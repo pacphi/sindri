@@ -38,24 +38,28 @@ Like its mythological namesake, Sindri forges powerful development environments 
 git clone https://github.com/pacphi/sindri.git
 cd sindri
 
-# Activate extensions
+# Prepare extension configuration
 cp docker/lib/extensions.d/active-extensions.conf.example docker/lib/extensions.d/active-extensions.conf
 
-# Deploy
+# Deploy (flyctl will be auto-installed if needed)
 ./scripts/vm-setup.sh --app-name my-sindri-dev --region sjc
 
 # Connect
 ssh developer@my-sindri-dev.fly.dev -p 10022
 
-# Run configure script inside VM
-./scripts/vm-configure.sh
+# Configure extensions inside VM
+# (mise-powered extensions provide declarative tool management)
+extension-manager --interactive
 
 # Start developing
 claude
 ```
 
-> **Prerequisites**: [Fly.io CLI](https://fly.io/docs/flyctl/install/) + SSH keys +
-[Claude Max](https://www.anthropic.com/max) or [API key](https://console.anthropic.com/settings/keys)
+> **Prerequisites**: SSH keys + [Claude Max](https://www.anthropic.com/max) or [API key](https://console.anthropic.com/settings/keys)
+>
+> **Note**: The setup script will prompt to install [Fly.io CLI](https://fly.io/docs/flyctl/install/) if not found
+>
+> **Tool Management**: Extensions use [mise](https://mise.jdx.dev/) for declarative version management where applicable
 
 ## 📚 Documentation
 
@@ -82,11 +86,17 @@ claude
 - **[Release Process](docs/RELEASE.md)** - Creating and publishing releases
 - **[Contributing](docs/CONTRIBUTING.md)** - Contribution guidelines and roadmap
 
+### CI/CD Infrastructure
+
+- **[Composite Actions](.github/actions/README.md)** - Reusable GitHub Actions
+- **[Test Scripts](.github/scripts/extension-tests/README.md)** - Shell test utilities
+
 ## 🌟 Key Features
 
 - **Zero Local Setup** - All AI tools run on remote VMs
 - **Cost Optimized** - Auto-suspend VMs (see [cost guide](docs/COST_MANAGEMENT.md) for details)
 - **Multi-Model AI** - agent-flow integration for 85-99% cost savings with 100+ models
+- **Unified Tool Management** - mise-powered extensions for consistent tooling
 - **IDE Integration** - VSCode and IntelliJ remote development
 - **Team Ready** - Shared or individual VMs with persistent volumes
 - **Secure** - SSH access with Fly.io network isolation
@@ -114,6 +124,70 @@ Manual controls:
 ```
 
 > See the [cost management guide](docs/COST_MANAGEMENT.md) for optimization strategies.
+
+## 🔌 Extension System
+
+Sindri uses a manifest-based extension system with declarative tool management via [mise](https://mise.jdx.dev/) where applicable.
+
+### mise-Powered Extensions
+
+The following extensions use mise for declarative, reproducible tool management:
+
+- **nodejs** - Node.js LTS with npm (replaces NVM approach)
+- **nodejs-devtools** - TypeScript, ESLint, Prettier, nodemon, goalie
+- **python** - Python 3.13 with pipx tools (virtualenv, poetry, flake8, mypy, black, jupyterlab, uv)
+- **rust** - Rust stable with cargo tools (ripgrep, fd-find, exa, bat, tokei)
+- **golang** - Go 1.24 with go tools (gopls, delve, goimports, golangci-lint, air, goreleaser)
+
+### Quick Commands
+
+```bash
+extension-manager list              # List available extensions
+extension-manager --interactive     # Interactive setup
+extension-manager install <name>    # Install extension
+extension-manager status <name>     # Check status
+```
+
+### Extension Categories
+
+**Core Environment:**
+
+- `workspace-structure` - Base directory structure
+- `nodejs` - Node.js LTS (mise-powered)
+- `ssh-environment` - SSH wrappers
+
+**AI:**
+
+- `ai-tools` - AI coding assistants
+- `claude-config` - Claude Code CLI (requires nodejs)
+
+**Development Tools:**
+
+- `github-cli` - GitHub CLI
+- `python` - Python 3.13 (mise-powered)
+- `rust` - Rust stable (mise-powered)
+- `golang` - Go 1.24 (mise-powered)
+- `nodejs-devtools` - Node.js dev tools (mise-powered)
+- `ruby` - Ruby 3.4/3.3 (rbenv)
+- `php` - PHP 8.3
+- `jvm` - Java/Kotlin/Scala (SDKMAN)
+- `dotnet` - .NET SDK 9.0/8.0
+
+**Infrastructure:**
+
+- `docker` - Docker Engine
+- `infra-tools` - Terraform, Ansible, kubectl, Helm
+- `cloud-tools` - AWS, Azure, GCP CLIs
+
+**Monitoring & Utilities:**
+
+- `monitoring` - System monitoring tools
+- `tmux-workspace` - Tmux session management
+- `playwright` - Browser automation testing
+- `agent-manager` - Agent management
+- `context-loader` - Context system
+
+> See [Customization Guide](docs/CUSTOMIZATION.md) for complete extension details.
 
 ## 🔧 Essential Commands
 

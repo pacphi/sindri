@@ -50,12 +50,20 @@ The Extension API v1.0 provides:
 
 Extensions are organized by category:
 
-#### Core Infrastructure
+#### Core Infrastructure (Protected)
+
+These extensions are **protected** and cannot be removed:
 
 - **workspace-structure** - Creates /workspace directory structure (src, tests, docs, scripts, etc.)
+- **mise-config** - Unified tool version manager for mise-powered extensions
 - **ssh-environment** - Configures SSH daemon for non-interactive sessions (required for CI/CD)
-- **nodejs** - Node.js LTS via NVM and npm (required by many tools)
-- **python** - Python 3.13 with pip, venv, uv (required by monitoring tools)
+
+#### Foundational Languages
+
+While not protected, these are highly recommended:
+
+- **nodejs** - Node.js LTS via mise and npm (required by many tools, depends on mise-config)
+- **python** - Python 3.13 with pip, venv, uv (required by monitoring tools, depends on mise-config)
 
 #### Claude AI
 
@@ -108,20 +116,23 @@ extension-manager list
 #   ✓ docker (docker.sh.example) - activated
 ```
 
-**Activate an extension:**
+**Install extensions (auto-activates):**
 
 ```bash
-# Activate Rust toolchain (adds to manifest)
-extension-manager activate rust
+# Install Rust toolchain
+extension-manager install rust
 
-# Activate Python development tools
-extension-manager activate python
+# Install Python development tools
+extension-manager install python
 
-# Activate Docker utilities
-extension-manager activate docker
+# Install Docker utilities
+extension-manager install docker
+
+# Or use interactive mode for guided setup
+extension-manager --interactive
 ```
 
-**Install activated extensions:**
+**Install all extensions from manifest:**
 
 ```bash
 # Install a specific activated extension
@@ -162,7 +173,7 @@ extension-manager reorder python 5
 > After activating extensions, run `extension-manager install-all` to install them. Extensions execute in the order listed in `active-extensions.conf`.
 
 > [!NOTE]
-> The `workspace-structure` extension is typically installed first as it creates the base directory structure. The `post-cleanup` extension should be installed last for optimal cleanup.
+> Protected extensions (workspace-structure, mise-config, ssh-environment) are automatically installed first and cannot be removed. The `post-cleanup` extension should be installed last for optimal cleanup.
 
 ### Activation Manifest
 
@@ -171,9 +182,9 @@ Extensions are executed in the order listed in `/workspace/scripts/extensions.d/
 **Example manifest:**
 
 ```conf
-# Core extensions (always first)
+# Protected extensions (required, cannot be removed):
 workspace-structure
-nodejs
+mise-config
 ssh-environment
 
 # Claude AI tools
@@ -200,10 +211,10 @@ post-cleanup
 # View current manifest
 cat /workspace/scripts/extensions.d/active-extensions.conf
 
-# Activate extension (adds to manifest)
-extension-manager activate <name>
+# Install extension (auto-activates and adds to manifest)
+extension-manager install <name>
 
-# Deactivate extension (removes from manifest)
+# Deactivate extension (removes from manifest, but doesn't uninstall)
 extension-manager deactivate <name>
 
 # Manually edit manifest (for advanced users)
