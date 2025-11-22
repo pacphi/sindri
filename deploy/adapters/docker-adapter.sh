@@ -18,13 +18,9 @@ MEMORY=$(yq '.deployment.resources.memory // "1GB"' "$SINDRI_YAML")
 CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
 PROFILE=$(yq '.extensions.profile // ""' "$SINDRI_YAML")
 
-# Build Docker image if needed
-if [[ ! -z "$(docker images -q sindri:latest 2>/dev/null)" ]]; then
-    echo "==> Using existing sindri:latest image"
-else
-    echo "==> Building Docker image..."
-    docker build -t sindri:latest -f docker/Dockerfile .
-fi
+# Always rebuild for local development to ensure fresh source
+echo "==> Building Docker image with latest source..."
+docker build -t sindri:latest -f docker/Dockerfile .
 
 # Generate docker-compose.yml
 cat > docker-compose.yml << EODC
@@ -44,7 +40,7 @@ services:
           cpus: '${CPUS}'
     stdin_open: true
     tty: true
-    command: /bin/bash
+    command: sleep infinity
 
 volumes:
   workspace:

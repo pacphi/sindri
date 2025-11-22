@@ -4,10 +4,17 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Source common functions
-source "$BASE_DIR/docker/lib/common.sh"
+# Detect environment and source common functions
+if [[ -f "/docker/lib/common.sh" ]]; then
+    # Running inside container
+    source /docker/lib/common.sh
+    BASE_DIR="/docker"
+else
+    # Running on host
+    BASE_DIR="$(dirname "$SCRIPT_DIR")"
+    source "$BASE_DIR/docker/lib/common.sh"
+fi
 
 show_help() {
     cat << 'EOH'
@@ -17,7 +24,7 @@ USAGE:
     sindri <command> [options]
 
 COMMANDS:
-    deploy [--provider <name>]   Deploy to provider (docker, fly, devpod)
+    deploy [--provider <name>] [--rebuild]   Deploy to provider (docker, fly, devpod)
     validate                     Validate sindri.yaml configuration
     plan                         Show deployment plan
     destroy [--provider <name>] [--force]  Destroy deployment
@@ -33,12 +40,14 @@ OPTIONS:
     -h, --help                   Show this help
     -c, --config <file>          Use specific config file (default: sindri.yaml)
     -p, --provider <name>        Deployment provider (docker, fly, devpod)
+    -r, --rebuild                Force rebuild of Docker image
     -v, --verbose                Verbose output
 
 EXAMPLES:
     sindri config init
     sindri deploy --provider docker
     sindri deploy --provider fly
+    sindri deploy --provider fly --rebuild  # Force rebuild on Fly.io
     sindri deploy --provider devpod
     sindri connect
     sindri destroy --provider docker
@@ -164,7 +173,8 @@ config_validate() {
 # Deploy to provider
 deploy() {
     local provider="${1:-}"
-    local config="${2:-sindri.yaml}"
+    local rebuild="${2:-}"
+    local config="${3:-sindri.yaml}"
 
     if [[ ! -f "$config" ]]; then
         print_error "$config not found. Run: sindri config init"
@@ -177,6 +187,9 @@ deploy() {
     fi
 
     print_header "Deploying with $provider provider"
+
+    # Export rebuild flag for adapters to use
+    export SINDRI_REBUILD="$rebuild"
 
     case "$provider" in
         docker)
@@ -351,7 +364,7 @@ plan() {
     case "$provider" in
         docker)
             echo "Docker Deployment Plan:"
-            echo "  • Build or use sindri:latest image"
+            echo "  • Build sindri:latest image (always rebuilds for fresh source)"
             echo "  • Create docker-compose.yml"
             echo "  • Create persistent volume: workspace"
             echo "  • Start container with resource limits"
@@ -360,6 +373,9 @@ plan() {
             echo "Commands to be executed:"
             echo "  docker build -t sindri:latest -f docker/Dockerfile ."
             echo "  docker-compose up -d"
+            echo ""
+            echo "Note: Docker provider always rebuilds to ensure fresh source code."
+            echo "      This is optimal for local development."
             echo ""
             ;;
         fly)
@@ -385,6 +401,8 @@ plan() {
             echo "  flyctl volumes create workspace -s ${volume_size//GB/} -r $region -a $name"
             echo "  flyctl deploy --ha=false"
             echo ""
+            echo "Note: Use --rebuild flag to force image rebuild: sindri deploy --rebuild"
+            echo ""
             ;;
         devpod)
             echo "DevPod/DevContainer Deployment Plan:"
@@ -398,6 +416,8 @@ plan() {
             echo "  • Use with DevPod: devpod up . --provider docker"
             echo "  • Use with VS Code: Open in DevContainer"
             echo "  • Use with GitHub Codespaces: Push and create codespace"
+            echo ""
+            echo "Note: Use --rebuild flag to force image rebuild: sindri deploy --rebuild"
             echo ""
             ;;
         *)
@@ -427,18 +447,23 @@ main() {
     case "$command" in
         deploy)
             local provider=""
+            local rebuild=""
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     -p|--provider)
                         provider="$2"
                         shift 2
                         ;;
+                    -r|--rebuild)
+                        rebuild="--rebuild"
+                        shift
+                        ;;
                     *)
                         shift
                         ;;
                 esac
             done
-            deploy "$provider"
+            deploy "$provider" "$rebuild"
             ;;
         validate)
             config_validate "$@"

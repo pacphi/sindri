@@ -4,15 +4,16 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULES_DIR="$SCRIPT_DIR/extension-manager-modules"
 
 # Source modules
-source "$SCRIPT_DIR/extension-manager-modules/cli.sh"
-source "$SCRIPT_DIR/extension-manager-modules/manifest.sh"
-source "$SCRIPT_DIR/extension-manager-modules/dependency.sh"
-source "$SCRIPT_DIR/extension-manager-modules/executor.sh"
-source "$SCRIPT_DIR/extension-manager-modules/validator.sh"
-source "$SCRIPT_DIR/extension-manager-modules/reporter.sh"
-source "$SCRIPT_DIR/extension-manager-modules/bom.sh"
+source "$MODULES_DIR/cli.sh"
+source "$MODULES_DIR/manifest.sh"
+source "$MODULES_DIR/dependency.sh"
+source "$MODULES_DIR/executor.sh"
+source "$MODULES_DIR/validator.sh"
+source "$MODULES_DIR/reporter.sh"
+source "$MODULES_DIR/bom.sh"
 
 # Main function
 main() {

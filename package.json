@@ -40,6 +40,7 @@
     "deploy": "./cli/sindri deploy",
     "deploy:docker": "./cli/sindri deploy --provider docker",
     "deploy:fly": "./cli/sindri deploy --provider fly",
+    "deploy:fly:rebuild": "./cli/sindri deploy --provider fly --rebuild",
     "deploy:devpod": "./cli/sindri deploy --provider devpod",
     "connect": "./cli/sindri connect",
     "config:init": "./cli/sindri config init",
