@@ -315,7 +315,7 @@ flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-app
 flyctl secrets set GITHUB_TOKEN=ghp_... -a my-app
 ```
 
-### Kubernetes
+### Kubernetes Secrets
 
 Use Kubernetes secrets:
 
@@ -326,13 +326,13 @@ kubectl create secret generic sindri-secrets \
   --namespace=dev-envs
 ```
 
-### DevPod
+### DevPod Secrets
 
 Handled by IDE settings or environment.
 
 ## Cost Considerations
 
-### Docker (Local)
+### Docker (Local) Costs
 
 **Cost:** $0 (uses local resources)
 
@@ -342,7 +342,7 @@ Handled by IDE settings or environment.
 - 10-50 GB disk space
 - 1-2 CPU cores
 
-### Fly.io (Cloud)
+### Fly.io (Cloud) Costs
 
 **Minimal Setup:**
 
@@ -360,7 +360,7 @@ Handled by IDE settings or environment.
 
 See: [Fly.io Deployment Guide](FLY_DEPLOYMENT.md) for detailed pricing.
 
-### Kubernetes
+### Kubernetes Costs
 
 **Varies by cluster:**
 
@@ -368,7 +368,7 @@ See: [Fly.io Deployment Guide](FLY_DEPLOYMENT.md) for detailed pricing.
 - Self-hosted: Infrastructure costs only
 - Per-environment: ~$5-20/month (resources)
 
-### DevPod
+### DevPod Costs
 
 **Cost:** $0 (local) or Codespaces pricing (~$0.18/hour)
 
@@ -507,6 +507,7 @@ Sindri's volume architecture makes migration straightforward:
    ```
 
 3. Restore workspace:
+
    ```bash
    tar -xzf workspace-backup.tar.gz -C /workspace
    ```

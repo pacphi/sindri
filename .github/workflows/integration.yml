@@ -1,6 +1,6 @@
 name: Integration Tests
 
-on:
+"on":
   push:
     branches: [main, develop]
   pull_request:
@@ -39,7 +39,7 @@ jobs:
 
       - name: Check extension manager syntax
         run: |
-          bash -n cli/extension-manager/extension-manager.sh
+          bash -n cli/extension-manager
 
   # Phase 2: Manifest and extension validation
   manifest-validation:

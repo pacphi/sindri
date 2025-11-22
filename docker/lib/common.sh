@@ -21,7 +21,8 @@ if [[ -z "${DOCKER_LIB:-}" ]]; then
         export DOCKER_LIB="/docker/lib"
     else
         # Assume we're being sourced from within /docker/lib
-        export DOCKER_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        DOCKER_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        export DOCKER_LIB
     fi
 fi
 export EXTENSIONS_DIR="$DOCKER_LIB/extensions"

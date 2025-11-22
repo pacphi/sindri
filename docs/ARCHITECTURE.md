@@ -11,7 +11,7 @@ Sindri is a declarative, provider-agnostic cloud development environment system 
 
 ## Directory Structure
 
-```
+```text
 sindri/
 ├── docker/
 │   ├── lib/
@@ -96,7 +96,7 @@ No hardcoding in scripts - everything is declarative.
 
 ### 4. Volume Architecture
 
-```
+```text
 /workspace/                 # Persistent volume (developer-owned)
 ├── projects/              # User projects
 ├── config/                # User configuration

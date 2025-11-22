@@ -69,7 +69,7 @@ pnpm build:latest  # Build as sindri:latest
 
 ### Directory Structure
 
-```
+```text
 sindri/
 ├── cli/                           # CLI entry points
 │   ├── sindri                     # Main deployment CLI
@@ -144,11 +144,12 @@ Critical concept: **Two-tier filesystem**
 **Mutable Workspace (`/workspace/`):**
 
 - Persistent volume mount
-- **Fully writable** by `developer` user (uid 1000)
+- **Fully writable** by `developer` user (uid 1001)
 - Contains user projects, configs, installed tools
 - Survives container restarts
 - Structure:
-  ```
+
+  ```text
   /workspace/
   ├── projects/         # User projects
   ├── config/          # User configs

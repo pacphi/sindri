@@ -1,6 +1,6 @@
 name: Infrastructure Tests
 
-on:
+"on":
   workflow_call:
 
 env:

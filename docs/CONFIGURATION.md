@@ -446,7 +446,7 @@ Validates against JSON schema: `docker/lib/schemas/sindri.schema.json`
 
 JSON schema for validation:
 
-```
+```text
 docker/lib/schemas/sindri.schema.json
 ```
 

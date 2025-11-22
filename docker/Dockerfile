@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DOCKER_LIB=/docker/lib
 
 # Create developer user
-RUN useradd -m -s /bin/bash -u 1000 developer && \
+RUN useradd -m -s /bin/bash -u 1001 developer && \
     mkdir -p /workspace && \
     chown -R developer:developer /workspace
 

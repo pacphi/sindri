@@ -1,6 +1,6 @@
 name: Self-Service Teardown (Fly.io)
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       app_name:
@@ -65,7 +65,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Check if app exists
-          if ! flyctl apps list --json | jq -e --arg name "$APP_NAME" '.[] | select(.Name == $name)' > /dev/null 2>&1; then
+          if ! flyctl apps list --json | \
+            jq -e --arg name "$APP_NAME" \
+            '.[] | select(.Name == $name)' > /dev/null 2>&1; then
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "❌ **App does not exist**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -124,12 +126,18 @@ jobs:
 
           echo "The following resources will be **permanently deleted**:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Machines:** ${{ steps.check-app.outputs.machine_count }} machine(s) will be stopped and destroyed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Machines:** \
+          ${{ steps.check-app.outputs.machine_count }} machine(s) \
+          will be stopped and destroyed" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ github.event.inputs.keep_volumes }}" == "true" ]; then
-            echo "- ⚠️ **Volumes:** ${{ steps.check-app.outputs.volume_count }} volume(s) will be **PRESERVED**" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚠️ **Volumes:** \
+            ${{ steps.check-app.outputs.volume_count }} volume(s) \
+            will be **PRESERVED**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- ✅ **Volumes:** ${{ steps.check-app.outputs.volume_count }} volume(s) will be destroyed" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ **Volumes:** \
+            ${{ steps.check-app.outputs.volume_count }} volume(s) \
+            will be destroyed" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "- ✅ **App:** \`${{ github.event.inputs.app_name }}\` will be destroyed" >> $GITHUB_STEP_SUMMARY
@@ -150,7 +158,8 @@ jobs:
             fi
 
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "💡 *VMs auto-suspend when idle, so only delete if you're sure you won't need it.*" >> $GITHUB_STEP_SUMMARY
+            echo "💡 *VMs auto-suspend when idle, so only delete \
+            if you're sure you won't need it.*" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -243,7 +252,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "ℹ️ **Volumes preserved as requested**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️ **Note:** Preserved volumes will continue to incur storage costs (~\$3-5/month)" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Note:** Preserved volumes will continue to \
+          incur storage costs (~\$3-5/month)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "To manually delete volumes later:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
@@ -279,7 +289,9 @@ jobs:
           APP_NAME="${{ github.event.inputs.app_name }}"
 
           # Verify app no longer exists
-          if flyctl apps list --json | jq -e --arg name "$APP_NAME" '.[] | select(.Name == $name)' > /dev/null 2>&1; then
+          if flyctl apps list --json | \
+            jq -e --arg name "$APP_NAME" \
+            '.[] | select(.Name == $name)' > /dev/null 2>&1; then
             echo "⚠️ **Warning:** App still exists in Fly.io" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Some resources may not have been fully deleted. Please check manually:" >> $GITHUB_STEP_SUMMARY
@@ -299,7 +311,9 @@ jobs:
           echo "### 📋 Teardown Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**App Name:** \`${{ github.event.inputs.app_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Workflow Run:** [\#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** [\#${{ github.run_number }}]\
+          (${{ github.server_url }}/${{ github.repository }}/actions/runs/\
+          ${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -317,4 +331,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "💡 **Need to deploy again?** Use the [Self-Service Deploy (Fly.io)](${{ github.server_url }}/${{ github.repository }}/actions/workflows/self-service-deploy-fly.yml) workflow" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **Need to deploy again?** Use the \
+          [Self-Service Deploy (Fly.io)](${{ github.server_url }}/\
+          ${{ github.repository }}/actions/workflows/\
+          self-service-deploy-fly.yml) workflow" >> $GITHUB_STEP_SUMMARY

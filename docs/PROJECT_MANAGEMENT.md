@@ -19,13 +19,13 @@ Sindri provides two powerful commands for project management: `clone-project` an
 
 Create new projects with intelligent type detection, pre-configured templates, and automatic extension activation.
 
-### Usage
+### new-project Usage
 
 ```bash
 ./cli/new-project <project_name> [options]
 ```
 
-### Options
+### new-project Options
 
 - `--type <type>` - Specify project type explicitly (node, python, go, rust, rails, django, spring, dotnet, terraform, docker)
 - `--list-types` - Show all available project types
@@ -34,7 +34,7 @@ Create new projects with intelligent type detection, pre-configured templates, a
 - `--git-email <email>` - Git user email for this project
 - `-h, --help` - Show help message
 
-### Examples
+### new-project Examples
 
 ```bash
 # Auto-detect from project name
@@ -50,7 +50,7 @@ Create new projects with intelligent type detection, pre-configured templates, a
 ./cli/new-project --list-types
 ```
 
-### How It Works
+### new-project How It Works
 
 1. **Type Detection**: Automatically detects project type from the name
    - `my-rails-app` → Rails
@@ -99,13 +99,13 @@ Create new projects with intelligent type detection, pre-configured templates, a
 
 Clone or fork existing repositories and automatically apply Claude AI enhancements.
 
-### Usage
+### clone-project Usage
 
 ```bash
 ./cli/clone-project <repository-url> [options]
 ```
 
-### Options
+### clone-project Options
 
 - `--fork` - Fork repo before cloning (requires gh CLI)
 - `--branch <name>` - Checkout specific branch after clone
@@ -117,7 +117,7 @@ Clone or fork existing repositories and automatically apply Claude AI enhancemen
 - `--no-enhance` - Skip all enhancements (just clone/fork)
 - `-h, --help` - Show help message
 
-### Examples
+### clone-project Examples
 
 ```bash
 # Simple clone with enhancements
@@ -136,7 +136,7 @@ Clone or fork existing repositories and automatically apply Claude AI enhancemen
 ./cli/clone-project https://github.com/large/repo --depth 1 --no-enhance
 ```
 
-### How It Works
+### clone-project How It Works
 
 1. **Fork/Clone**: Either clones directly or forks first (using GitHub CLI)
 
@@ -174,7 +174,7 @@ git fork-status          # Show fork remotes and branch tracking
 
 Both commands create/enhance projects with the following structure:
 
-```
+```text
 project-name/
 ├── .git/                 # Git repository
 │   └── hooks/           # Pre-commit and commit-msg hooks

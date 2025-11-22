@@ -267,7 +267,7 @@ docker,docker,27.0.0,apt,server,Apache-2.0
 
 ### SPDX Format
 
-```
+```text
 SPDXVersion: SPDX-2.3
 DataLicense: CC0-1.0
 SPDXID: SPDXRef-DOCUMENT

@@ -24,7 +24,7 @@ extension-manager status <extension-name>
 
 **Error:**
 
-```
+```text
 Error: yq command not found
 ```
 
@@ -46,7 +46,7 @@ sudo chmod +x /usr/local/bin/yq
 
 **Error:**
 
-```
+```text
 Cannot connect to Docker daemon
 ```
 
@@ -67,7 +67,7 @@ sudo systemctl start docker
 
 **Error:**
 
-```
+```text
 permission denied while trying to connect to the Docker daemon socket
 ```
 
@@ -90,7 +90,7 @@ docker ps
 
 **Error:**
 
-```
+```text
 Error installing extension: nodejs
 ```
 
@@ -143,7 +143,7 @@ df -h /workspace
 
 **Error:**
 
-```
+```text
 node: command not found
 ```
 
@@ -162,7 +162,7 @@ ssh developer@...
 
 **Error:**
 
-```
+```text
 Validation failed for extension: nodejs
 ```
 
@@ -198,7 +198,7 @@ cat ~/.config/mise/conf.d/nodejs.toml
 
 **Error:**
 
-```
+```text
 Error deploying to Docker
 ```
 
@@ -233,7 +233,7 @@ docker-compose down -v
 
 **Error:**
 
-```
+```text
 Error: failed to create app
 ```
 
@@ -281,7 +281,7 @@ flyctl logs -a my-app
 
 **Error:**
 
-```
+```text
 Error: namespace not found
 ```
 
@@ -303,7 +303,7 @@ providers:
 
 **Error:**
 
-```
+```text
 ssh: connect to host my-app.fly.dev port 10022: Connection refused
 ```
 
@@ -331,7 +331,7 @@ flyctl machine start <machine-id> -a my-app
 
 **Error:**
 
-```
+```text
 Permission denied (publickey)
 ```
 
@@ -355,7 +355,7 @@ flyctl ssh issue --agent -a my-app
 
 **Error:**
 
-```
+```text
 Error: No such container
 ```
 
@@ -381,7 +381,7 @@ docker-compose up -d
 
 **Error:**
 
-```
+```text
 Error: failed to create volume
 ```
 
@@ -415,7 +415,7 @@ flyctl volumes delete <volume-id>
 
 **Error:**
 
-```
+```text
 No space left on device
 ```
 
@@ -449,7 +449,7 @@ deployment:
 
 **Error:**
 
-```
+```text
 Permission denied: /workspace/projects
 ```
 
@@ -481,7 +481,7 @@ docker volume rm sindri-workspace
 
 **Error:**
 
-```
+```text
 Killed (OOM)
 ```
 
@@ -541,7 +541,7 @@ deployment:
 
 **Error:**
 
-```
+```text
 ERROR: failed to solve
 ```
 
@@ -575,7 +575,7 @@ docker build --dry-run -f docker/Dockerfile .
 
 **Error:**
 
-```
+```text
 Error: mise install failed
 ```
 
@@ -600,7 +600,7 @@ extension-manager install <extension>
 
 **Error:**
 
-```
+```text
 Schema validation failed
 ```
 
@@ -621,7 +621,7 @@ diff sindri.yaml examples/fly-minimal.sindri.yaml
 
 **Error:**
 
-```
+```text
 Extension validation failed
 ```
 
@@ -644,7 +644,7 @@ yq '.metadata.name' docker/lib/extensions/<extension>/extension.yaml
 
 **Error:**
 
-```
+```text
 Failed to fetch package
 ```
 
@@ -678,7 +678,7 @@ echo 'export HTTP_PROXY=http://proxy:port' >> ~/.bashrc
 
 **Error:**
 
-```
+```text
 Cannot connect to Fly.io
 ```
 
@@ -703,7 +703,7 @@ providers:
 
 **Error:**
 
-```
+```text
 ANTHROPIC_API_KEY not set
 ```
 
@@ -746,7 +746,7 @@ docker-compose restart
 
 **Error:**
 
-```
+```text
 Error: tool not found: node
 ```
 
@@ -784,7 +784,7 @@ mise reshim
 
 **Error:**
 
-```
+```text
 Installing node... (hangs)
 ```
 

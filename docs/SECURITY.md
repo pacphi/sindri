@@ -120,6 +120,7 @@ flyctl secrets set GITHUB_TOKEN=ghp_... -a my-app
    ```
 
 3. **Audit secret usage:**
+
    ```bash
    # List secrets (values hidden)
    flyctl secrets list -a my-app
@@ -247,13 +248,13 @@ sudo ufw enable
 
 ### Non-Root User
 
-Sindri runs as `developer` user (UID 1000), not root.
+Sindri runs as `developer` user (UID 1001), not root.
 
 **Verify:**
 
 ```bash
 whoami  # developer
-id      # uid=1000(developer)
+id      # uid=1001(developer)
 ```
 
 ### Read-Only System Files
@@ -293,7 +294,7 @@ securityContext:
       - ALL
   readOnlyRootFilesystem: false # /workspace is writable
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 1001
 ```
 
 ## Supply Chain Security

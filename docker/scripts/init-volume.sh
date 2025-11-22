@@ -11,6 +11,6 @@ mkdir -p /workspace/{projects,config,scripts,bin,.local,.config}
 mkdir -p /workspace/.system/{manifest,installed,logs}
 
 # Set permissions
-chown -R 1000:1000 /workspace
+chown -R 1001:1001 /workspace
 
 echo "Volume initialized"

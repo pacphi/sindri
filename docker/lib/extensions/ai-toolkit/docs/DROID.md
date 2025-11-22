@@ -257,7 +257,7 @@ droid
 > Have the test-generator create tests for UserController
 ```
 
-#### Best Practices
+#### Droid Best Practices
 
 **Encode Team Standards:**
 
@@ -450,7 +450,7 @@ droid
    # Add schema definitions, type files, checklists, etc.
    ```
 
-#### Best Practices
+#### Skill Best Practices
 
 **Encode Team Conventions:**
 
@@ -906,7 +906,7 @@ Create `~/.factory/AGENTS.md` for personal preferences that apply across all pro
 - Keep AGENTS.md current
 ```
 
-#### Best Practices
+#### AGENTS.md Best Practices
 
 **Keep It Current:**
 

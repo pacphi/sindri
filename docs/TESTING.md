@@ -129,7 +129,7 @@ pnpm test:unit
 
 Located in `test/unit/`:
 
-```
+```text
 test/unit/
 ├── extension-manager/
 │   ├── dependency-resolution.test.sh
@@ -177,7 +177,7 @@ echo "All tests passed"
 pnpm test:integration
 ```
 
-### Test Scenarios
+### Integration Test Scenarios
 
 Integration tests validate end-to-end workflows:
 
@@ -201,7 +201,7 @@ Integration tests validate end-to-end workflows:
 
 Located in `.github/scripts/`:
 
-```
+```text
 .github/scripts/
 ├── lib/
 │   ├── assertions.sh       # Test assertion helpers
@@ -279,7 +279,7 @@ Tests run for each extension:
 
 ### Extension Test Output
 
-```
+```text
 Testing extension: nodejs
 ✓ Schema validation passed
 ✓ Dependency resolution passed
@@ -302,7 +302,7 @@ Test provider deployments:
 pnpm test:infrastructure
 ```
 
-### Test Scenarios
+### Infrastructure Test Scenarios
 
 1. **Docker Deployment:**
    - Build image
@@ -363,7 +363,7 @@ strategy:
 
 ### CI Test Flow
 
-```
+```text
 ┌─────────────────┐
 │  Push to main   │
 └────────┬────────┘
@@ -432,7 +432,7 @@ assert_manifest_exists() {
 }
 ```
 
-### Test Helpers
+### Helper Functions
 
 Located in `.github/scripts/lib/test-helpers.sh`:
 

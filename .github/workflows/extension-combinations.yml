@@ -1,6 +1,6 @@
 name: Extension Combination Tests
 
-on:
+"on":
   workflow_call:
 
 env:

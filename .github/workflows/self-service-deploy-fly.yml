@@ -1,6 +1,6 @@
 name: Self-Service Deploy (Fly.io)
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       app_name:
@@ -197,7 +197,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Verify workspace structure
-          if flyctl ssh console -a "$app_name" --command "test -d /workspace/projects && test -d /workspace/config"; then
+          if flyctl ssh console -a "$app_name" \
+            --command "test -d /workspace/projects && \
+            test -d /workspace/config"; then
             echo "✅ Workspace structure present" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Workspace structure missing" >> $GITHUB_STEP_SUMMARY
@@ -258,7 +260,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ github.event.inputs.skip_cleanup }}" = "true" ]; then
-            echo "⚠️ **Persistent Mode**: VM will remain running. Remember to suspend or destroy when done to save costs." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Persistent Mode**: VM will remain running. \
+            Remember to suspend or destroy when done to save \
+            costs." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Cleanup resources

@@ -1,6 +1,6 @@
 name: Per-Extension Tests
 
-on:
+"on":
   workflow_call:
 
 env:
@@ -20,7 +20,10 @@ jobs:
         id: set-matrix
         run: |
           # Get all extensions from registry
-          extensions=$(find docker/lib/extensions -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+          extensions=$(
+            find docker/lib/extensions -mindepth 1 -maxdepth 1 \
+              -type d -exec basename {} \; | sort
+          )
 
           # Create JSON matrix
           matrix_json='{"extension":['
@@ -53,37 +56,50 @@ jobs:
       - name: Set up Fly.io environment
         uses: ./.github/actions/setup-fly-env
         with:
-          app-name: ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-${{ github.run_id }}
+          app-name: >-
+            ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-
+            ${{ github.run_id }}
           fly-api-token: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy Fly.io VM
         uses: ./.github/actions/deploy-fly-vm
         with:
-          app-name: ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-${{ github.run_id }}
+          app-name: >-
+            ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-
+            ${{ github.run_id }}
           extension: ${{ matrix.extension }}
 
       - name: Install extension
         uses: ./.github/actions/install-extension
         with:
           extension: ${{ matrix.extension }}
-          app-name: ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-${{ github.run_id }}
+          app-name: >-
+            ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-
+            ${{ github.run_id }}
 
       - name: Validate extension
         uses: ./.github/actions/validate-extension
         with:
           extension: ${{ matrix.extension }}
-          app-name: ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-${{ github.run_id }}
+          app-name: >-
+            ${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-
+            ${{ github.run_id }}
 
       - name: Test extension functionality
         run: |
-          APP_NAME="${{ env.TEST_APP_PREFIX }}-${{ matrix.extension }}-${{ github.run_id }}"
+          APP_NAME="${{ env.TEST_APP_PREFIX }}-\
+          ${{ matrix.extension }}-${{ github.run_id }}"
 
           # Run extension-specific tests
-          if [[ -f ".github/scripts/test-${{ matrix.extension }}.sh" ]]; then
-            bash .github/scripts/test-${{ matrix.extension }}.sh "$APP_NAME"
+          TEST_SCRIPT=".github/scripts/test-${{ matrix.extension }}.sh"
+          if [[ -f "$TEST_SCRIPT" ]]; then
+            bash "$TEST_SCRIPT" "$APP_NAME"
           else
-            echo "Running generic extension test for ${{ matrix.extension }}"
-            flyctl ssh console -a "$APP_NAME" --command "extension-manager validate ${{ matrix.extension }}"
+            echo "Running generic extension test for \
+            ${{ matrix.extension }}"
+            flyctl ssh console -a "$APP_NAME" \
+              --command "extension-manager validate \
+              ${{ matrix.extension }}"
           fi
 
       - name: Test idempotency

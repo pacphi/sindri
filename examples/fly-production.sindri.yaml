@@ -66,6 +66,8 @@ providers:
     highAvailability: false # Set true for multi-machine setup
 
 # Usage:
-# 1. Deploy: ./cli/sindri deploy --provider fly --config examples/fly-production.sindri.yaml
-# 2. Set secrets: flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a sindri-prod
+# 1. Deploy: ./cli/sindri deploy --provider fly \
+#            --config examples/fly-production.sindri.yaml
+# 2. Set secrets: flyctl secrets set \
+#                 ANTHROPIC_API_KEY=sk-ant-... -a sindri-prod
 # 3. Connect: ssh developer@sindri-prod.fly.dev -p 10022

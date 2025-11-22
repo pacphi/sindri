@@ -1,6 +1,6 @@
 name: Validation
 
-on:
+"on":
   push:
     branches: [main, develop]
   pull_request:
@@ -144,6 +144,7 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/amd64 \
+            --file docker/Dockerfile \
             --tag sindri:test \
             --cache-from type=gha \
             --cache-to type=gha,mode=max \

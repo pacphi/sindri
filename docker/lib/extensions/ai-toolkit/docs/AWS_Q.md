@@ -366,7 +366,7 @@ q translate "delete all unattached EBS volumes"
 # Then execute manually
 ```
 
-## Inline Suggestions
+## Using Inline Suggestions
 
 When enabled, Q provides autocompletions:
 

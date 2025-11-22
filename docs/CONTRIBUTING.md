@@ -157,6 +157,7 @@ Create pull request on GitHub with:
    ```
 
 5. **Test in Docker:**
+
    ```bash
    pnpm build
    docker run -it sindri:local
@@ -218,6 +219,7 @@ Test specific extension:
    ```
 
 4. Validate:
+
    ```bash
    extension-manager validate myext
    ```
