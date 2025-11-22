@@ -1,0 +1,39 @@
+name: Cleanup Fly.io VM
+description: Cleans up Fly.io resources (supports both test and production contexts)
+
+inputs:
+  app-name:
+    description: Name of the Fly.io app to cleanup
+    required: true
+  force:
+    description: Force deletion even if errors occur
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Destroy Fly app
+      shell: bash
+      run: |
+        echo "Cleaning up app: ${{ inputs.app-name }}"
+
+        # Destroy the app
+        if [[ "${{ inputs.force }}" == "true" ]]; then
+          flyctl apps destroy "${{ inputs.app-name }}" --yes || true
+        else
+          flyctl apps destroy "${{ inputs.app-name }}" --yes
+        fi
+
+    - name: Verify cleanup
+      shell: bash
+      run: |
+        # Check if app still exists
+        if flyctl apps list | grep -q "${{ inputs.app-name }}"; then
+          echo "WARNING: App ${{ inputs.app-name }} still exists!"
+          if [[ "${{ inputs.force }}" != "true" ]]; then
+            exit 1
+          fi
+        else
+          echo "App ${{ inputs.app-name }} successfully destroyed"
+        fi

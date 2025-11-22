@@ -1,0 +1,121 @@
+---
+metadata:
+  name: xfce-ubuntu
+  version: 2.0.0
+  description: XFCE desktop with xRDP remote access for GUI development
+  category: utilities
+  author: Sindri Team
+  homepage: https://www.xfce.org
+  dependencies: []
+
+requirements:
+  domains:
+    - archive.ubuntu.com
+    - security.ubuntu.com
+  diskSpace: 2500
+
+install:
+  method: hybrid
+  apt:
+    updateFirst: true
+    packages:
+      - xfce4
+      - xfce4-goodies
+      - xrdp
+      - dbus-x11
+      - xfonts-base
+      - xauth
+      - x11-xserver-utils
+      - firefox
+      - mousepad
+      - thunar
+  script:
+    path: post-install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: xsession.template
+      destination: ~/.xsession
+      mode: overwrite
+    - source: xfwm4.xml.template
+      destination: ~/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
+      mode: overwrite
+  environment:
+    - key: DISPLAY
+      value: ":0"
+      scope: bashrc
+    - key: XDG_SESSION_TYPE
+      value: "x11"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: startxfce4
+    - name: xrdp
+      versionFlag: "-v"
+      expectedPattern: "xrdp\\s+\\d+\\.\\d+\\.\\d+"
+    - name: firefox
+      versionFlag: "--version"
+      expectedPattern: "Firefox\\s+\\d+"
+    - name: mousepad
+      versionFlag: "--version"
+    - name: thunar
+      versionFlag: "--version"
+
+remove:
+  confirmation: true
+
+upgrade:
+  strategy: automatic
+  apt:
+    packages:
+      - xfce4
+      - xfce4-goodies
+      - xrdp
+      - firefox
+      - mousepad
+    updateFirst: true
+
+bom:
+  tools:
+    - name: xfce4
+      version: dynamic
+      source: apt
+      type: framework
+      license: GPL-2.0
+      homepage: https://www.xfce.org
+      purl: pkg:deb/ubuntu/xfce4
+    - name: xrdp
+      version: dynamic
+      source: apt
+      type: server
+      license: Apache-2.0
+      homepage: http://www.xrdp.org
+      purl: pkg:deb/ubuntu/xrdp
+    - name: firefox
+      version: dynamic
+      source: apt
+      type: utility
+      license: MPL-2.0
+      homepage: https://www.mozilla.org/firefox
+      purl: pkg:deb/ubuntu/firefox
+    - name: mousepad
+      version: dynamic
+      source: apt
+      type: utility
+      license: GPL-2.0
+      homepage: https://docs.xfce.org/apps/mousepad
+      purl: pkg:deb/ubuntu/mousepad
+    - name: thunar
+      version: dynamic
+      source: apt
+      type: utility
+      license: GPL-2.0
+      homepage: https://docs.xfce.org/xfce/thunar/
+      purl: pkg:deb/ubuntu/thunar
+  files:
+    - path: ~/.xsession
+      type: config
+    - path: ~/.config/xfce4
+      type: config

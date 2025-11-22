@@ -1,0 +1,28 @@
+# Sindri Configuration - Fly.io Minimal Example
+# Cost-optimized configuration for basic development
+
+version: 1.0
+name: sindri-minimal
+
+deployment:
+  provider: fly
+
+  resources:
+    memory: 1GB # Minimal RAM
+    cpus: 1 # Single vCPU
+
+  volumes:
+    workspace:
+      size: 10GB # 10GB storage
+
+extensions:
+  profile: minimal # nodejs + python only
+
+providers:
+  fly:
+    region: sjc
+    # Cost optimization enabled (default)
+    autoStopMachines: true
+    autoStartMachines: true
+# Usage:
+# Deploy: ./cli/sindri deploy --config examples/fly-minimal.sindri.yaml

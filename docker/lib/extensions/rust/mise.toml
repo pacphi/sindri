@@ -1,0 +1,6 @@
+[tools]
+rust = "stable"
+
+[env]
+CARGO_HOME = "~/.cargo"
+PATH_add = ["~/.cargo/bin"]

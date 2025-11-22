@@ -1,0 +1,59 @@
+---
+metadata:
+  name: nodejs
+  version: 1.0.0
+  description: Node.js LTS via mise
+  category: language
+  dependencies: []
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - nodejs.org
+  diskSpace: 600
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: NODE_ENV
+      value: development
+      scope: bashrc
+
+validate:
+  commands:
+    - name: node
+      expectedPattern: "v\\d+\\.\\d+\\.\\d+"
+    - name: npm
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [nodejs]
+
+bom:
+  tools:
+    - name: node
+      version: dynamic
+      source: mise
+      type: runtime
+      license: MIT
+      homepage: https://nodejs.org
+      purl: pkg:generic/nodejs
+    - name: npm
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: Artistic-2.0
+      homepage: https://www.npmjs.com
+      purl: pkg:npm/npm
+    - name: npx
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: Artistic-2.0
+      homepage: https://www.npmjs.com

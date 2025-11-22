@@ -1,0 +1,120 @@
+---
+metadata:
+  name: nodejs-devtools
+  version: 2.0.0
+  description: >-
+    TypeScript, ESLint, Prettier, and Node.js development tools via mise
+    npm backend
+  category: dev-tools
+  author: Sindri Team
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 200
+  secrets:
+    - perplexity_api_key
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  templates:
+    - source: prettierrc.template
+      destination: /workspace/templates/.prettierrc
+      mode: overwrite
+    - source: eslintrc.template
+      destination: /workspace/templates/.eslintrc.json
+      mode: overwrite
+    - source: tsconfig.template
+      destination: /workspace/templates/tsconfig.json
+      mode: overwrite
+
+validate:
+  commands:
+    - name: tsc
+      expectedPattern: "Version \\d+\\.\\d+\\.\\d+"
+    - name: ts-node
+    - name: prettier
+    - name: eslint
+    - name: nodemon
+    - name: goalie
+  mise:
+    tools:
+      - npm:typescript
+      - npm:prettier
+      - npm:eslint
+    minToolCount: 3
+
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - npm:typescript
+      - npm:ts-node
+      - npm:nodemon
+      - npm:prettier
+      - npm:eslint
+      - npm:@typescript-eslint/parser
+      - npm:@typescript-eslint/eslint-plugin
+      - npm:goalie
+      - npm:research-swarm
+  paths:
+    - /workspace/templates/.prettierrc
+    - /workspace/templates/.eslintrc.json
+    - /workspace/templates/tsconfig.json
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+
+bom:
+  tools:
+    - name: typescript
+      version: dynamic
+      source: npm
+      type: compiler
+      license: Apache-2.0
+      homepage: https://www.typescriptlang.org
+      purl: pkg:npm/typescript
+    - name: ts-node
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://typestrong.org/ts-node
+      purl: pkg:npm/ts-node
+    - name: prettier
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://prettier.io
+      purl: pkg:npm/prettier
+    - name: eslint
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://eslint.org
+      purl: pkg:npm/eslint
+    - name: nodemon
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://nodemon.io
+      purl: pkg:npm/nodemon
+    - name: goalie
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/cmurczek/goalie
+      purl: pkg:npm/goalie

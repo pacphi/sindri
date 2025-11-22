@@ -1,0 +1,186 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/sindri.schema.json",
+  "title": "Sindri Configuration",
+  "description": "Provider-agnostic Sindri deployment configuration",
+  "type": "object",
+  "required": ["version", "name", "deployment", "extensions"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Deployment name"
+    },
+    "deployment": {
+      "type": "object",
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["fly", "kubernetes", "docker-compose"]
+        },
+        "image": {
+          "type": "string",
+          "description": "Docker image to deploy"
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^\\d+(MB|GB)$"
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "volumes": {
+          "type": "object",
+          "properties": {
+            "workspace": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "default": "/workspace"
+                },
+                "size": {
+                  "type": "string",
+                  "pattern": "^\\d+(MB|GB)$",
+                  "default": "10GB"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": ["profile"],
+          "properties": {
+            "profile": {
+              "type": "string",
+              "enum": [
+                "minimal",
+                "fullstack",
+                "ai-dev",
+                "systems",
+                "enterprise"
+              ]
+            }
+          }
+        },
+        {
+          "required": ["active"],
+          "properties": {
+            "active": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "source"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["env", "file", "vault"]
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "properties": {
+        "fly": {
+          "type": "object",
+          "properties": {
+            "region": {
+              "type": "string",
+              "default": "sjc",
+              "description": "Fly.io region code (e.g., sjc, ord, iad)"
+            },
+            "autoStopMachines": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-suspend machines when idle (cost optimization)"
+            },
+            "autoStartMachines": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-start machines on incoming connections"
+            },
+            "cpuKind": {
+              "type": "string",
+              "enum": ["shared", "performance"],
+              "default": "shared",
+              "description": "CPU type: shared (cost-effective) or performance (dedicated)"
+            },
+            "sshPort": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65535,
+              "default": 10022,
+              "description": "External SSH port"
+            },
+            "organization": {
+              "type": "string",
+              "description": "Fly.io organization name"
+            },
+            "highAvailability": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable high availability (multiple machines)"
+            }
+          }
+        },
+        "kubernetes": {
+          "type": "object",
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "default": "default"
+            },
+            "storageClass": {
+              "type": "string"
+            },
+            "ingress": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "hostname": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

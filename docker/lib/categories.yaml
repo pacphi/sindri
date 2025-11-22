@@ -1,0 +1,65 @@
+---
+# Sindri Extension Categories
+# Declarative category definitions - no hardcoding in scripts
+version: 1.0
+
+categories:
+  base:
+    name: Base System
+    description: Core system components (always installed)
+    icon: 🔧
+    priority: 1
+
+  language:
+    name: Language Runtimes
+    description: Programming language environments
+    icon: 💻
+    priority: 2
+
+  dev-tools:
+    name: Development Tools
+    description: IDE extensions, linters, formatters
+    icon: 🛠️
+    priority: 3
+
+  infrastructure:
+    name: Infrastructure
+    description: Cloud, containers, orchestration
+    icon: ☁️
+    priority: 4
+
+  ai:
+    name: AI Tools
+    description: AI/ML frameworks and assistants
+    icon: 🤖
+    priority: 5
+
+  database:
+    name: Databases
+    description: Database servers and clients
+    icon: 🗄️
+    priority: 6
+
+  monitoring:
+    name: Monitoring
+    description: Observability and debugging tools
+    icon: 📊
+    priority: 7
+
+  mobile:
+    name: Mobile Development
+    description: Mobile SDKs and tools
+    icon: 📱
+    priority: 8
+
+  desktop:
+    name: Desktop Environment
+    description: Remote desktop and GUI environments
+    icon: 🖥️
+    priority: 9
+
+  utilities:
+    name: Utilities
+    description: General purpose tools
+    icon: 🔨
+    priority: 10

@@ -1,0 +1,16 @@
+[tools]
+# Infrastructure as Code
+terraform = "latest"
+"ubi:hashicorp/packer" = "latest"
+
+# Kubernetes tools
+kubectl = "latest"
+helm = "latest"
+"ubi:derailed/k9s" = "latest"
+
+# Configuration management
+# Note: Ansible installed via apt due to Python dependencies
+
+# Additional K8s tools available via mise
+"ubi:kubernetes-sigs/kustomize" = "latest"
+"ubi:mikefarah/yq" = "latest"

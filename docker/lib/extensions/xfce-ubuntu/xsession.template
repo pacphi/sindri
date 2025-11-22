@@ -1,0 +1,10 @@
+#!/bin/sh
+# xsession configuration for XFCE with xRDP
+# This file sets up the XFCE desktop session for remote access
+
+# Set up X session
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+
+# Start XFCE4 desktop
+exec startxfce4

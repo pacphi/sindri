@@ -1,0 +1,151 @@
+name: Validation
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  shellcheck:
+    name: Shell Script Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on all shell scripts
+        run: |
+          find . -name "*.sh" -type f | while read -r script; do
+            echo "Checking: $script"
+            shellcheck -S warning "$script" || exit 1
+          done
+
+  yamllint:
+    name: YAML Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Validate YAML files
+        run: |
+          cat > .yamllint.yml << EOF
+          extends: default
+          rules:
+            line-length:
+              max: 120
+              level: warning
+            comments:
+              min-spaces-from-content: 1
+            document-start: disable
+          EOF
+
+          find . -name "*.yaml" -o -name "*.yml" | xargs yamllint -c .yamllint.yml
+
+  schema-validation:
+    name: Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install yq
+        run: |
+          wget -O /tmp/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /tmp/yq
+          sudo mv /tmp/yq /usr/local/bin/yq
+
+      - name: Validate extension schemas
+        run: |
+          for ext_yaml in docker/lib/extensions/*/extension.yaml; do
+            if [[ -f "$ext_yaml" ]]; then
+              echo "Validating schema: $ext_yaml"
+
+              # Check required metadata fields
+              yq e '.metadata.name' "$ext_yaml" > /dev/null || {
+                echo "ERROR: Missing metadata.name in $ext_yaml"
+                exit 1
+              }
+
+              yq e '.metadata.version' "$ext_yaml" > /dev/null || {
+                echo "ERROR: Missing metadata.version in $ext_yaml"
+                exit 1
+              }
+
+              yq e '.providers' "$ext_yaml" > /dev/null || {
+                echo "ERROR: Missing providers in $ext_yaml"
+                exit 1
+              }
+
+              echo "  ✓ Schema valid"
+            fi
+          done
+
+      - name: Validate registry
+        run: |
+          # Check registry structure
+          yq e '.version' docker/lib/registry.yaml > /dev/null
+          yq e '.extensions' docker/lib/registry.yaml > /dev/null
+
+      - name: Validate profiles
+        run: |
+          # Check profiles structure
+          yq e '.version' docker/lib/profiles.yaml > /dev/null
+          yq e '.profiles' docker/lib/profiles.yaml > /dev/null
+
+  markdownlint:
+    name: Markdown Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Lint markdown files
+        run: |
+          cat > .markdownlint.json << EOF
+          {
+            "default": true,
+            "MD013": false,
+            "MD033": false,
+            "MD041": false
+          }
+          EOF
+
+          markdownlint '**/*.md' --ignore node_modules
+
+  docker-build:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --tag sindri:test \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            --output type=docker \
+            .

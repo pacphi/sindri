@@ -1,0 +1,68 @@
+---
+# Sindri Extension Profiles
+# Declarative profile definitions - no hardcoding in scripts
+version: 1.0
+
+profiles:
+  minimal:
+    description: Minimal development setup
+    extensions:
+      - nodejs
+      - python
+
+  fullstack:
+    description: Full-stack web development
+    extensions:
+      - nodejs
+      - python
+      - docker
+      - nodejs-devtools
+
+  ai-dev:
+    description: AI/ML development environment
+    extensions:
+      - nodejs
+      - python
+      - ai-toolkit
+      - openskills
+      - monitoring
+
+  systems:
+    description: Systems programming
+    extensions:
+      - rust
+      - golang
+      - docker
+      - infra-tools
+
+  enterprise:
+    description: Enterprise development (all languages)
+    extensions:
+      - nodejs
+      - python
+      - golang
+      - rust
+      - ruby
+      - jvm
+      - dotnet
+      - docker
+      - cloud-tools
+
+  data-science:
+    description: Data science and analytics
+    extensions:
+      - python
+      - monitoring
+
+  devops:
+    description: DevOps and infrastructure
+    extensions:
+      - docker
+      - infra-tools
+      - cloud-tools
+      - monitoring
+
+  mobile:
+    description: Mobile development
+    extensions:
+      - nodejs

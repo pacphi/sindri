@@ -1,0 +1,143 @@
+---
+# Sindri Extension Registry
+# Central registry of all available extensions
+version: 1.0
+
+extensions:
+  # Base System
+  mise-config:
+    category: base
+    description: mise tool manager configuration
+    protected: true
+
+  workspace-structure:
+    category: base
+    description: Workspace directory structure
+    protected: true
+
+  # Language Runtimes
+  nodejs:
+    category: language
+    description: Node.js LTS via mise
+    dependencies: []
+
+  python:
+    category: language
+    description: Python 3.13 via mise
+    dependencies: []
+
+  golang:
+    category: language
+    description: Go 1.24 via mise
+    dependencies: []
+
+  rust:
+    category: language
+    description: Rust stable via mise
+    dependencies: []
+
+  ruby:
+    category: language
+    description: Ruby 3.4 via mise
+    dependencies: []
+
+  php:
+    category: language
+    description: PHP 8.4 with Composer
+    dependencies: []
+
+  jvm:
+    category: language
+    description: Java/Kotlin/Scala via SDKMAN
+    dependencies: []
+
+  dotnet:
+    category: language
+    description: .NET SDK 9.0
+    dependencies: []
+
+  # Development Tools
+  nodejs-devtools:
+    category: dev-tools
+    description: TypeScript, ESLint, Prettier
+    dependencies: [nodejs]
+
+  github-cli:
+    category: dev-tools
+    description: GitHub CLI tools
+    dependencies: []
+
+  playwright:
+    category: dev-tools
+    description: Browser automation testing
+    dependencies: [nodejs]
+
+  # Infrastructure
+  docker:
+    category: infrastructure
+    description: Docker Engine and Compose
+    dependencies: []
+
+  infra-tools:
+    category: infrastructure
+    description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
+    dependencies: []
+
+  cloud-tools:
+    category: infrastructure
+    description: AWS, Azure, GCP CLIs
+    dependencies: []
+
+  # AI Tools
+  ai-toolkit:
+    category: ai
+    description: Codex, Gemini, Ollama, etc.
+    dependencies: [nodejs, python]
+
+  openskills:
+    category: ai
+    description: Claude Code skills manager
+    dependencies: [nodejs]
+
+  claude-auth-with-api-key:
+    category: ai
+    description: Claude API key authentication
+    dependencies: []
+
+  claude-marketplace:
+    category: ai
+    description: Claude Code marketplace configuration
+    dependencies: []
+
+  agent-manager:
+    category: ai
+    description: Claude agent management
+    dependencies: []
+
+  ruvnet-aliases:
+    category: ai
+    description: Claude Flow and Agentic Flow aliases for enhanced AI workflows
+    dependencies: []
+
+  # Monitoring
+  monitoring:
+    category: monitoring
+    description: htop, ctop, glances
+    dependencies: []
+
+  # Desktop/Utilities
+  guacamole:
+    category: dekstop
+    description: Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC)
+    dependencies: []
+
+  xfce-ubuntu:
+    category: desktop
+    description: XFCE desktop with xRDP remote access for GUI development
+    dependencies: []
+
+  # Utilities
+  tmux-workspace:
+    category: utilities
+    description: Tmux session management
+    dependencies: []

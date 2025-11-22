@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Default user mapping for Guacamole.
+    Modify this file to add users and connections.
+
+    SECURITY WARNING: This uses basic authentication.
+    For production, use database authentication or LDAP.
+-->
+<user-mapping>
+
+    <!-- Default developer user -->
+    <authorize username="developer" password="CHANGEME">
+
+        <!-- SSH connection to localhost -->
+        <connection name="Local SSH">
+            <protocol>ssh</protocol>
+            <param name="hostname">localhost</param>
+            <param name="port">22</param>
+            <param name="username">developer</param>
+        </connection>
+
+        <!-- RDP connection (if xfce-ubuntu installed) -->
+        <connection name="Local Desktop (RDP)">
+            <protocol>rdp</protocol>
+            <param name="hostname">localhost</param>
+            <param name="port">3389</param>
+            <param name="username">developer</param>
+            <param name="ignore-cert">true</param>
+        </connection>
+
+    </authorize>
+
+</user-mapping>

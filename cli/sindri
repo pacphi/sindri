@@ -1,0 +1,291 @@
+#!/bin/bash
+# Sindri CLI - Main entry point
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source common functions
+source "$BASE_DIR/docker/lib/common.sh"
+
+show_help() {
+    cat << 'EOH'
+sindri - Cloud Development Forge
+
+USAGE:
+    sindri <command> [options]
+
+COMMANDS:
+    deploy [--provider <name>]   Deploy to provider (docker, fly, devpod)
+    validate                     Validate sindri.yaml configuration
+    plan                         Show deployment plan
+    destroy                      Destroy deployment
+    connect                      Connect to deployed instance
+
+    profiles list                List available profiles
+    profiles show <name>         Show profile details
+
+    config init                  Initialize sindri.yaml
+    config validate              Validate configuration
+
+OPTIONS:
+    -h, --help                   Show this help
+    -c, --config <file>          Use specific config file (default: sindri.yaml)
+    -p, --provider <name>        Deployment provider (docker, fly, devpod)
+    -v, --verbose                Verbose output
+
+EXAMPLES:
+    sindri config init
+    sindri deploy --provider docker
+    sindri deploy --provider fly
+    sindri deploy --provider devpod
+    sindri connect
+EOH
+}
+
+# Initialize configuration
+config_init() {
+    if [[ -f "sindri.yaml" ]]; then
+        print_warning "sindri.yaml already exists"
+        read -p "Overwrite? (y/N) " -n 1 -r
+        echo
+        [[ ! $REPLY =~ ^[Yy]$ ]] && return 0
+    fi
+
+    cat > sindri.yaml << 'EOYAML'
+version: 1.0
+name: my-sindri-dev
+
+deployment:
+  provider: docker  # Options: docker, fly, devpod
+  resources:
+    memory: 2GB     # RAM allocation (e.g., 1GB, 2GB, 4GB)
+    cpus: 2         # Number of CPUs
+
+  volumes:
+    workspace:
+      path: /workspace
+      size: 10GB    # Persistent volume size
+
+extensions:
+  profile: fullstack  # Options: minimal, fullstack, ai-dev, systems, enterprise, devops, cloud-native
+  # Or specify custom extensions:
+  # active:
+  #   - nodejs
+  #   - python
+  #   - docker
+
+# Secrets configuration (set via provider-specific mechanisms)
+secrets:
+  # Claude Code
+  - name: ANTHROPIC_API_KEY
+    source: env
+
+  # GitHub integration
+  - name: GITHUB_TOKEN
+    source: env
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+  # AI Tools (optional)
+  # - name: OPENROUTER_API_KEY
+  #   source: env
+  # - name: GOOGLE_GEMINI_API_KEY
+  #   source: env
+  # - name: PERPLEXITY_API_KEY
+  #   source: env
+
+providers:
+  # Fly.io configuration
+  fly:
+    region: sjc                # Fly.io region (sjc, ord, iad, etc.)
+    autoStopMachines: true     # Auto-suspend when idle (cost savings)
+    autoStartMachines: true    # Auto-resume on connection
+    cpuKind: shared            # shared (cost-effective) or performance (dedicated)
+    sshPort: 10022             # External SSH port
+    organization: personal     # Fly.io organization
+    highAvailability: false    # Enable for multi-machine redundancy
+
+  # Docker configuration
+  docker:
+    network: bridge
+    restart: unless-stopped
+
+  # Kubernetes configuration
+  kubernetes:
+    namespace: default
+    storageClass: standard
+    ingress:
+      enabled: false
+      hostname: ""
+EOYAML
+
+    print_success "Created sindri.yaml"
+    echo ""
+    echo "Configuration options:"
+    echo "  • Provider: docker (local), fly (cloud), devpod (DevContainer)"
+    echo "  • Resources: Adjust memory/cpus based on needs"
+    echo "  • Extensions: Choose profile or custom active list"
+    echo "  • Secrets: Configure provider-specific secrets"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Edit sindri.yaml to customize your deployment"
+    echo "  2. Run: ./cli/sindri deploy"
+    echo ""
+    echo "For Fly.io deployments:"
+    echo "  • Set secrets: flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-sindri-dev"
+    echo "  • See docs/FLY_DEPLOYMENT.md for complete guide"
+    echo ""
+}
+
+# Validate configuration
+config_validate() {
+    local config="${1:-sindri.yaml}"
+
+    if [[ ! -f "$config" ]]; then
+        print_error "$config not found"
+        return 1
+    fi
+
+    # Validate against schema
+    local schema="$BASE_DIR/docker/lib/schemas/sindri.schema.json"
+    if [[ -f "$schema" ]]; then
+        validate_yaml_schema "$config" "$schema"
+    fi
+
+    print_success "Configuration valid"
+}
+
+# Deploy to provider
+deploy() {
+    local provider="${1:-docker}"
+    local config="${2:-sindri.yaml}"
+
+    if [[ ! -f "$config" ]]; then
+        print_error "$config not found. Run: sindri config init"
+        return 1
+    fi
+
+    # Override provider if specified in config
+    local config_provider
+    config_provider=$(yq '.deployment.provider' "$config" 2>/dev/null || echo "")
+    [[ -n "$config_provider" ]] && provider="$config_provider"
+
+    print_header "Deploying with $provider provider"
+
+    case "$provider" in
+        docker)
+            "$BASE_DIR/deploy/adapters/docker-adapter.sh" "$config"
+            ;;
+        fly)
+            "$BASE_DIR/deploy/adapters/fly-adapter.sh" "$config"
+            ;;
+        devpod)
+            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" "$config"
+            ;;
+        *)
+            print_error "Unknown provider: $provider"
+            echo "Available providers: docker, fly, devpod"
+            return 1
+            ;;
+    esac
+}
+
+# Connect to instance
+connect() {
+    local config="${1:-sindri.yaml}"
+
+    if [[ ! -f "$config" ]]; then
+        print_error "$config not found"
+        return 1
+    fi
+
+    local name provider
+    name=$(yq '.name' "$config")
+    provider=$(yq '.deployment.provider' "$config")
+
+    case "$provider" in
+        docker)
+            docker exec -it "$name" /bin/bash
+            ;;
+        fly)
+            flyctl ssh console -a "$name"
+            ;;
+        devpod)
+            devpod ssh "$name"
+            ;;
+        *)
+            print_error "Unknown provider: $provider"
+            ;;
+    esac
+}
+
+# Main
+main() {
+    local command="${1:-help}"
+    shift || true
+
+    case "$command" in
+        deploy)
+            local provider=""
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -p|--provider)
+                        provider="$2"
+                        shift 2
+                        ;;
+                    *)
+                        shift
+                        ;;
+                esac
+            done
+            deploy "$provider"
+            ;;
+        validate)
+            config_validate "$@"
+            ;;
+        connect)
+            connect "$@"
+            ;;
+        config)
+            case "${1:-}" in
+                init)
+                    config_init
+                    ;;
+                validate)
+                    config_validate "${2:-sindri.yaml}"
+                    ;;
+                *)
+                    echo "Usage: sindri config <init|validate>"
+                    ;;
+            esac
+            ;;
+        profiles)
+            case "${1:-}" in
+                list)
+                    "$BASE_DIR/cli/extension-manager" list-profiles
+                    ;;
+                show)
+                    [[ -z "${2:-}" ]] && echo "Usage: sindri profiles show <name>" && exit 1
+                    yq ".profiles.\"$2\"" "$BASE_DIR/docker/lib/profiles.yaml"
+                    ;;
+                *)
+                    echo "Usage: sindri profiles <list|show>"
+                    ;;
+            esac
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

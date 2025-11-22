@@ -1,0 +1,130 @@
+---
+metadata:
+  name: ai-toolkit
+  version: 2.0.0
+  description: >-
+    AI CLI tools and coding assistants (Ollama, Fabric, Codex, Gemini,
+    Hector, Droid, Grok, Copilot)
+  category: ai
+  author: Sindri Team
+  dependencies:
+    - nodejs
+    - python
+    - golang
+    - github-cli
+
+requirements:
+  domains:
+    - ollama.com
+    - github.com
+    - app.factory.ai
+    - api.openai.com
+    - generativelanguage.googleapis.com
+  diskSpace: 2000
+  secrets:
+    - google_gemini_api_key
+    - grok_api_key
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+
+configure:
+  templates:
+    - source: bashrc.template
+      destination: ~/.bashrc
+      mode: append
+    - source: readme.template
+      destination: /workspace/extensions/ai-tools/README.md
+      mode: overwrite
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+    - key: PATH
+      value: "$HOME/go/bin:$PATH"
+      scope: bashrc
+    - key: PATH
+      value: "$HOME/.factory/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: ollama
+    - name: fabric
+    - name: codex
+    - name: gemini
+    - name: hector
+    - name: droid
+    - name: grok
+
+remove:
+  paths:
+    - ~/.ollama
+    - ~/.local/share/fabric
+    - ~/.local/bin/fabric
+    - ~/go/bin/hector
+    - ~/.factory
+    - ~/.grok
+    - ~/.config/gemini
+    - /workspace/extensions/ai-tools
+
+upgrade:
+  strategy: manual
+  script:
+    path: upgrade.sh
+    timeout: 900
+
+bom:
+  tools:
+    - name: ollama
+      version: dynamic
+      source: script
+      type: server
+      license: MIT
+      homepage: https://ollama.com
+      purl: pkg:generic/ollama
+    - name: fabric
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/danielmiessler/fabric
+      purl: pkg:pypi/fabric
+    - name: codex
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/openai/openai-codex
+      purl: pkg:pypi/openai-codex
+    - name: gemini
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://ai.google.dev
+      purl: pkg:pypi/google-generativeai
+    - name: hector
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/hector-ai/hector
+      purl: pkg:golang/hector
+    - name: droid
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/droid-ai/droid
+      purl: pkg:npm/droid
+    - name: grok
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://x.ai
+      purl: pkg:generic/grok-cli

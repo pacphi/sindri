@@ -1,0 +1,477 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/extension.schema.json",
+  "title": "Sindri Extension Definition",
+  "description": "Schema for Sindri YAML extension definitions",
+  "type": "object",
+  "required": ["metadata", "install", "validate"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["name", "version", "description", "category"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Extension name (lowercase, hyphens allowed)"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "base",
+            "language",
+            "dev-tools",
+            "infrastructure",
+            "ai",
+            "utilities"
+          ]
+        },
+        "author": {
+          "type": "string"
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "hostname"
+          }
+        },
+        "diskSpace": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Required disk space in MB"
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "install": {
+      "type": "object",
+      "required": ["method"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["mise", "apt", "binary", "npm", "script", "hybrid"]
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "configFile": {
+              "type": "string"
+            },
+            "reshimAfterInstall": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "apt": {
+          "type": "object",
+          "properties": {
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["gpgKey", "sources"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "gpgKey": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "sources": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "binary": {
+          "type": "object",
+          "properties": {
+            "downloads": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "source"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "object",
+                    "required": ["type", "url"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["github-release", "direct-url"]
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "asset": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string",
+                        "default": "latest"
+                      }
+                    }
+                  },
+                  "destination": {
+                    "type": "string"
+                  },
+                  "extract": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "script": {
+          "type": "object",
+          "required": ["path"],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 600
+            }
+          }
+        }
+      }
+    },
+    "configure": {
+      "type": "object",
+      "properties": {
+        "templates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "destination"],
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "destination": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["overwrite", "append", "merge"],
+                "default": "overwrite"
+              }
+            }
+          }
+        },
+        "environment": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "value"],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string",
+                "enum": ["bashrc", "profile", "session"],
+                "default": "bashrc"
+              }
+            }
+          }
+        }
+      }
+    },
+    "validate": {
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "versionFlag": {
+                "type": "string",
+                "default": "--version"
+              },
+              "expectedPattern": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "minToolCount": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "remove": {
+      "type": "object",
+      "properties": {
+        "confirmation": {
+          "type": "boolean",
+          "default": true
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "removeConfig": {
+              "type": "boolean",
+              "default": true
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "upgrade": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["automatic", "manual", "none"],
+          "default": "automatic",
+          "description": "Upgrade strategy: automatic (use built-in upgrade), manual (custom script), none (no upgrade support)"
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "upgradeAll": {
+              "type": "boolean",
+              "default": true,
+              "description": "Upgrade all mise-managed tools"
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Specific tools to upgrade (if not upgradeAll)"
+            }
+          }
+        },
+        "apt": {
+          "type": "object",
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "APT packages to upgrade"
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "script": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Custom upgrade script path"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 600
+            }
+          }
+        }
+      }
+    },
+    "bom": {
+      "type": "object",
+      "description": "Bill of Materials - declarative listing of software installed by this extension",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "description": "Software tools/packages installed by this extension",
+          "items": {
+            "type": "object",
+            "required": ["name", "source"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Tool/package name"
+              },
+              "version": {
+                "type": "string",
+                "description": "Version (semantic version or 'dynamic' if resolved at runtime)"
+              },
+              "source": {
+                "type": "string",
+                "enum": ["mise", "apt", "npm", "binary", "script"],
+                "description": "Installation source method"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "runtime",
+                  "compiler",
+                  "package-manager",
+                  "cli-tool",
+                  "library",
+                  "framework",
+                  "database",
+                  "server",
+                  "utility"
+                ],
+                "description": "Type of software component"
+              },
+              "license": {
+                "type": "string",
+                "description": "Software license (e.g., MIT, Apache-2.0, GPL-3.0)"
+              },
+              "homepage": {
+                "type": "string",
+                "format": "uri",
+                "description": "Project homepage URL"
+              },
+              "downloadUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "Download URL (for binaries)"
+              },
+              "checksum": {
+                "type": "object",
+                "properties": {
+                  "algorithm": {
+                    "type": "string",
+                    "enum": ["sha256", "sha512", "md5"]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              },
+              "purl": {
+                "type": "string",
+                "description": "Package URL (PURL) for SBOM compatibility"
+              },
+              "cpe": {
+                "type": "string",
+                "description": "Common Platform Enumeration for vulnerability scanning"
+              }
+            }
+          }
+        },
+        "files": {
+          "type": "array",
+          "description": "Key files created by this extension",
+          "items": {
+            "type": "object",
+            "required": ["path", "type"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "File path relative to workspace"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["config", "binary", "library", "script", "data"],
+                "description": "File type"
+              },
+              "checksum": {
+                "type": "object",
+                "properties": {
+                  "algorithm": {
+                    "type": "string",
+                    "enum": ["sha256", "sha512", "md5"]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

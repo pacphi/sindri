@@ -1,0 +1,42 @@
+---
+metadata:
+  name: github-cli
+  version: 2.0.0
+  description: GitHub CLI authentication and workflow configuration
+  category: dev-tools
+  author: Sindri Team
+  dependencies: []
+
+requirements:
+  secrets:
+    - github_token
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 60
+
+validate:
+  commands:
+    - name: gh
+      expectedPattern: "gh version \\d+\\.\\d+\\.\\d+"
+
+remove:
+  paths:
+    - ~/.config/gh
+    - ~/.gh-workflow-helper.sh
+
+upgrade:
+  strategy: none # Pre-installed in Docker image
+
+bom:
+  tools:
+    - name: gh
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://cli.github.com
+      purl: pkg:github/cli/cli
+      cpe: cpe:2.3:a:github:cli:*:*:*:*:*:*:*:*

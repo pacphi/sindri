@@ -1,0 +1,89 @@
+---
+metadata:
+  name: guacamole
+  version: 2.0.0
+  description: Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC)
+  category: utilities
+  author: Sindri Team
+  homepage: https://guacamole.apache.org
+  dependencies: []
+
+requirements:
+  domains:
+    - downloads.apache.org
+    - archive.apache.org
+    - archive.ubuntu.com
+    - security.ubuntu.com
+  diskSpace: 1000
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 1200
+    args: ["--version", "1.5.4"]
+
+configure:
+  templates:
+    - source: guacamole.properties.template
+      destination: /etc/guacamole/guacamole.properties
+      mode: overwrite
+    - source: user-mapping.xml.template
+      destination: /etc/guacamole/user-mapping.xml
+      mode: overwrite
+  environment:
+    - key: GUACAMOLE_HOME
+      value: "/etc/guacamole"
+      scope: bashrc
+    - key: CATALINA_HOME
+      value: "/usr/share/tomcat9"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: guacd
+      versionFlag: "--version"
+      expectedPattern: "guacd version \\d+\\.\\d+\\.\\d+"
+    - name: java
+      versionFlag: "-version"
+      expectedPattern: "version"
+
+remove:
+  confirmation: true
+
+upgrade:
+  strategy: manual
+  script:
+    path: upgrade.sh
+    timeout: 600
+
+bom:
+  tools:
+    - name: guacd
+      version: "1.5.4"
+      source: binary
+      type: server
+      license: Apache-2.0
+      homepage: https://guacamole.apache.org
+      purl: pkg:generic/guacamole-server@1.5.4
+    - name: guacamole-client
+      version: "1.5.4"
+      source: binary
+      type: framework
+      license: Apache-2.0
+      homepage: https://guacamole.apache.org
+      purl: pkg:maven/org.apache.guacamole/guacamole@1.5.4
+    - name: tomcat9
+      version: dynamic
+      source: apt
+      type: server
+      license: Apache-2.0
+      homepage: https://tomcat.apache.org
+      purl: pkg:deb/ubuntu/tomcat9
+  files:
+    - path: /etc/guacamole/guacamole.properties
+      type: config
+    - path: /etc/guacamole/user-mapping.xml
+      type: config
+    - path: /var/lib/tomcat9/webapps/guacamole.war
+      type: binary

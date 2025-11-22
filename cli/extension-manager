@@ -1,0 +1,223 @@
+#!/bin/bash
+# extension-manager - Main entry point (fully declarative)
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source modules
+source "$SCRIPT_DIR/extension-manager-modules/cli.sh"
+source "$SCRIPT_DIR/extension-manager-modules/manifest.sh"
+source "$SCRIPT_DIR/extension-manager-modules/dependency.sh"
+source "$SCRIPT_DIR/extension-manager-modules/executor.sh"
+source "$SCRIPT_DIR/extension-manager-modules/validator.sh"
+source "$SCRIPT_DIR/extension-manager-modules/reporter.sh"
+source "$SCRIPT_DIR/extension-manager-modules/bom.sh"
+
+# Main function
+main() {
+    # Parse global flags
+    local args
+    args=$(parse_args "$@")
+    set -- $args
+
+    local command="${1:-help}"
+    shift || true
+
+    case "$command" in
+        list)
+            if [[ -n "${FILTER_CATEGORY:-}" ]]; then
+                list_extensions | grep -E "^  .* $FILTER_CATEGORY"
+            else
+                list_extensions
+            fi
+            ;;
+        list-profiles)
+            list_profiles
+            ;;
+        list-categories)
+            list_categories
+            ;;
+        install)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager install <name>"
+                return 1
+            fi
+            local ext_name="$1"
+            # Resolve dependencies first
+            local resolved
+            resolved=$(resolve_dependencies "$ext_name")
+            # Install in dependency order
+            for ext in $resolved; do
+                # Get category from registry
+                local category
+                category=$(load_yaml "${DOCKER_LIB}/registry.yaml" ".extensions.\"$ext\".category" 2>/dev/null || echo "unknown")
+                execute_extension "$ext" "install"
+                add_to_manifest "$ext" "$category"
+            done
+            ;;
+        install-profile)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager install-profile <profile>"
+                return 1
+            fi
+            install_profile "$1"
+            ;;
+        install-all)
+            local active_exts
+            active_exts=$(get_active_extensions)
+            if [[ -n "$active_exts" ]]; then
+                # Resolve all dependencies
+                local resolved
+                resolved=$(resolve_dependencies $active_exts)
+                # Install in order
+                for ext in $resolved; do
+                    execute_extension "$ext" "install"
+                done
+            else
+                print_warning "No active extensions in manifest"
+            fi
+            ;;
+        remove)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager remove <name>"
+                return 1
+            fi
+            execute_extension "$1" "remove"
+            remove_from_manifest "$1"
+            ;;
+        validate)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager validate <name>"
+                return 1
+            fi
+            execute_extension "$1" "validate"
+            ;;
+        validate-all)
+            validate_all_extensions
+            ;;
+        status)
+            if [[ $# -eq 0 ]]; then
+                show_all_status
+            else
+                execute_extension "$1" "status"
+            fi
+            ;;
+        resolve)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager resolve <name>"
+                return 1
+            fi
+            local resolved
+            resolved=$(resolve_dependencies "$1")
+            echo "Dependency resolution order:"
+            for ext in $resolved; do
+                echo "  - $ext"
+            done
+            ;;
+        search)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager search <term>"
+                return 1
+            fi
+            search_extensions "$1"
+            ;;
+        info)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager info <name>"
+                return 1
+            fi
+            show_extension_info "$1"
+            ;;
+        bom)
+            show_bom "$1"
+            ;;
+        bom-regenerate)
+            regenerate_all_boms
+            ;;
+        help|-h|--help)
+            show_help
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            show_help
+            return 1
+            ;;
+    esac
+}
+
+# Install profile (loads from declarative YAML)
+install_profile() {
+    local profile="$1"
+    local profiles_file="${DOCKER_LIB}/profiles.yaml"
+
+    if [[ ! -f "$profiles_file" ]]; then
+        print_error "Profiles file not found"
+        return 1
+    fi
+
+    # Check if profile exists
+    local profile_exists
+    profile_exists=$(load_yaml "$profiles_file" ".profiles.\"$profile\"" 2>/dev/null || echo "null")
+
+    if [[ "$profile_exists" == "null" ]]; then
+        print_error "Unknown profile: $profile"
+        print_status "Available profiles:"
+        load_yaml "$profiles_file" '.profiles | keys[]' 2>/dev/null | sed 's/^/  - /'
+        return 1
+    fi
+
+    print_header "Installing profile: $profile"
+
+    # Get extensions from profile
+    local extensions
+    extensions=$(load_yaml "$profiles_file" ".profiles.\"$profile\".extensions[]" 2>/dev/null || echo "")
+
+    if [[ -z "$extensions" ]]; then
+        print_error "Profile has no extensions defined"
+        return 1
+    fi
+
+    # Resolve dependencies for all extensions in profile
+    local resolved
+    resolved=$(resolve_dependencies $extensions)
+
+    # Install in order
+    for ext in $resolved; do
+        # Get category from registry
+        local category
+        category=$(load_yaml "${DOCKER_LIB}/registry.yaml" ".extensions.\"$ext\".category" 2>/dev/null || echo "unknown")
+
+        execute_extension "$ext" "install"
+        add_to_manifest "$ext" "$category"
+    done
+
+    print_success "Installed profile: $profile"
+}
+
+# Initialize workspace if not already done
+initialize_workspace() {
+    if [[ ! -f "${WORKSPACE:-/workspace}/.initialized" ]]; then
+        print_status "Initializing workspace..."
+
+        # Create directory structure
+        ensure_directory "${WORKSPACE:-/workspace}/projects"
+        ensure_directory "${WORKSPACE:-/workspace}/config"
+        ensure_directory "${WORKSPACE:-/workspace}/scripts"
+        ensure_directory "${WORKSPACE:-/workspace}/bin"
+        ensure_directory "${WORKSPACE:-/workspace}/.local"
+        ensure_directory "${WORKSPACE:-/workspace}/.config"
+        ensure_directory "${WORKSPACE:-/workspace}/.system"
+
+        # Initialize manifest
+        initialize_manifest
+
+        touch "${WORKSPACE:-/workspace}/.initialized"
+        print_success "Workspace initialized"
+    fi
+}
+
+# Run initialization if needed
+[[ "${INIT_WORKSPACE:-false}" == "true" ]] && initialize_workspace
+
+main "$@"

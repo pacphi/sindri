@@ -1,0 +1,72 @@
+---
+metadata:
+  name: docker
+  version: 1.0.0
+  description: Docker Engine and Compose
+  category: infrastructure
+  dependencies: []
+
+requirements:
+  domains:
+    - download.docker.com
+    - hub.docker.com
+  diskSpace: 1000
+
+install:
+  method: apt
+  apt:
+    repositories:
+      - gpgKey: https://download.docker.com/linux/ubuntu/gpg
+        sources: >-
+          deb [arch=amd64] https://download.docker.com/linux/ubuntu
+          jammy stable
+    packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+
+configure:
+  environment:
+    - key: DOCKER_BUILDKIT
+      value: "1"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: docker
+      expectedPattern: "Docker version \\d+\\.\\d+\\.\\d+"
+
+remove:
+  confirmation: true
+  apt:
+    packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+
+bom:
+  tools:
+    - name: docker
+      version: dynamic
+      source: apt
+      type: server
+      license: Apache-2.0
+      homepage: https://www.docker.com
+      purl: pkg:deb/ubuntu/docker-ce
+      cpe: cpe:2.3:a:docker:docker:*:*:*:*:*:*:*:*
+    - name: docker-compose
+      version: dynamic
+      source: apt
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://docs.docker.com/compose
+      purl: pkg:deb/ubuntu/docker-compose-plugin
+    - name: containerd
+      version: dynamic
+      source: apt
+      type: server
+      license: Apache-2.0
+      homepage: https://containerd.io
+      purl: pkg:deb/ubuntu/containerd.io

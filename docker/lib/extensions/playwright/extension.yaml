@@ -1,0 +1,60 @@
+---
+metadata:
+  name: playwright
+  version: 2.0.0
+  description: Playwright browser automation framework with Chromium
+  category: dev-tools
+  author: Sindri Team
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - playwright.azureedge.net
+  diskSpace: 1000
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+
+configure:
+  templates:
+    - source: playwright-config.template
+      destination: /workspace/playwright.config.ts
+      mode: overwrite
+    - source: test-spec.template
+      destination: /workspace/tests/example.spec.ts
+      mode: overwrite
+    - source: tsconfig.template
+      destination: /workspace/tsconfig.json
+      mode: overwrite
+
+validate:
+  commands:
+    - name: npx
+      versionFlag: playwright --version
+
+remove:
+  paths:
+    - /workspace/node_modules/playwright
+    - /workspace/node_modules/@playwright
+    - ~/.cache/ms-playwright
+
+upgrade:
+  strategy: manual
+  script:
+    path: upgrade.sh
+    timeout: 600
+
+bom:
+  tools:
+    - name: playwright
+      version: dynamic
+      source: npm
+      type: framework
+      license: Apache-2.0
+      homepage: https://playwright.dev
+      purl: pkg:npm/@playwright/test

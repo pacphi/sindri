@@ -1,0 +1,116 @@
+---
+metadata:
+  name: cloud-tools
+  version: 2.0.0
+  description: Cloud provider CLI tools (AWS, Azure, GCP, OCI, Alibaba, DO, IBM)
+  category: infrastructure
+  author: Sindri Team
+  dependencies: []
+
+requirements:
+  domains:
+    - awscli.amazonaws.com
+    - aka.ms
+    - packages.cloud.google.com
+    - github.com
+    - api.github.com
+    - raw.githubusercontent.com
+    - aliyuncli.alicdn.com
+    - clis.cloud.ibm.com
+  diskSpace: 2500
+  secrets:
+    - aws_access_key_id
+    - aws_secret_access_key
+    - aws_session_token
+    - azure_client_id
+    - azure_client_secret
+    - azure_tenant_id
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+
+configure:
+  templates:
+    - source: ssh-environment.template
+      destination: /etc/profile.d/00-ssh-environment.sh
+      mode: append
+    - source: bashrc.template
+      destination: ~/.bashrc
+      mode: append
+    - source: readme.template
+      destination: /workspace/extensions/cloud/README.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: aws
+      expectedPattern: "aws-cli"
+    - name: az
+    - name: gcloud
+
+remove:
+  paths:
+    - /usr/local/aws-cli
+    - /usr/local/bin/aws
+    - /usr/local/bin/aws_completer
+    - /usr/local/bin/aliyun
+    - /usr/local/bin/doctl
+    - /usr/local/ibmcloud
+    - /usr/local/bin/ibmcloud
+    - /workspace/extensions/cloud
+
+upgrade:
+  strategy: manual
+  script:
+    path: upgrade.sh
+    timeout: 900
+
+bom:
+  tools:
+    - name: aws
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://aws.amazon.com/cli
+      purl: pkg:generic/awscli
+      cpe: cpe:2.3:a:amazon:aws_cli:*:*:*:*:*:*:*:*
+    - name: az
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://docs.microsoft.com/en-us/cli/azure
+      purl: pkg:pypi/azure-cli
+      cpe: cpe:2.3:a:microsoft:azure_cli:*:*:*:*:*:*:*:*
+    - name: gcloud
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://cloud.google.com/sdk/gcloud
+      purl: pkg:generic/google-cloud-sdk
+    - name: aliyun
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://www.alibabacloud.com/help/cli
+      purl: pkg:generic/aliyun-cli
+    - name: doctl
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://docs.digitalocean.com/reference/doctl
+      purl: pkg:github/digitalocean/doctl
+    - name: ibmcloud
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://cloud.ibm.com/docs/cli
+      purl: pkg:generic/ibm-cloud-cli

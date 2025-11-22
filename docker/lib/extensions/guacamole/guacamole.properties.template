@@ -1,0 +1,14 @@
+# Guacamole configuration properties
+
+# Basic authentication provider
+auth-provider: net.sourceforge.guacamole.net.basic.BasicFileAuthenticationProvider
+
+# Location of user-mapping.xml
+basic-user-mapping: /etc/guacamole/user-mapping.xml
+
+# Hostname and port of guacamole proxy
+guacd-hostname: localhost
+guacd-port: 4822
+
+# Enable clipboard integration
+enable-clipboard-integration: true

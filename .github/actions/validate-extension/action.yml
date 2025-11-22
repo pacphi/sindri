@@ -1,0 +1,81 @@
+name: Validate Extension
+description: Validates a Sindri extension installation
+
+inputs:
+  extension:
+    description: Name of the extension to validate
+    required: true
+  app-name:
+    description: Name of the Fly.io app
+    required: true
+  run-tests:
+    description: Run extension-specific tests
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Run extension validation
+      shell: bash
+      run: |
+        echo "Validating extension: ${{ inputs.extension }}"
+
+        # Run built-in validation
+        flyctl ssh console -a "${{ inputs.app-name }}" \
+          --command "extension-manager validate ${{ inputs.extension }}"
+
+    - name: Check extension functions
+      shell: bash
+      run: |
+        # Test that extension functions are available
+        case "${{ inputs.extension }}" in
+          nodejs)
+            flyctl ssh console -a "${{ inputs.app-name }}" \
+              --command "node --version && npm --version"
+            ;;
+          python)
+            flyctl ssh console -a "${{ inputs.app-name }}" \
+              --command "python --version && pip --version"
+            ;;
+          docker)
+            flyctl ssh console -a "${{ inputs.app-name }}" \
+              --command "docker --version && docker compose version"
+            ;;
+          golang)
+            flyctl ssh console -a "${{ inputs.app-name }}" \
+              --command "go version"
+            ;;
+          rust)
+            flyctl ssh console -a "${{ inputs.app-name }}" \
+              --command "rustc --version && cargo --version"
+            ;;
+          *)
+            echo "No specific validation for ${{ inputs.extension }}"
+            ;;
+        esac
+
+    - name: Run extension tests
+      if: inputs.run-tests == 'true'
+      shell: bash
+      run: |
+        # Check for extension-specific test script
+        if [[ -f ".github/scripts/test-${{ inputs.extension }}.sh" ]]; then
+          echo "Running extension-specific tests..."
+          bash ".github/scripts/test-${{ inputs.extension }}.sh" "${{ inputs.app-name }}"
+        else
+          echo "No specific test script for ${{ inputs.extension }}"
+        fi
+
+    - name: Check idempotency
+      shell: bash
+      run: |
+        echo "Testing idempotency..."
+
+        # Re-run installation
+        flyctl ssh console -a "${{ inputs.app-name }}" \
+          --command "extension-manager install ${{ inputs.extension }}"
+
+        # Verify still works
+        flyctl ssh console -a "${{ inputs.app-name }}" \
+          --command "extension-manager validate ${{ inputs.extension }}"

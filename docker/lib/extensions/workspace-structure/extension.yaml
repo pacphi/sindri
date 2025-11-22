@@ -1,0 +1,31 @@
+---
+metadata:
+  name: workspace-structure
+  version: 1.0.0
+  description: Workspace directory structure initialization
+  category: base
+  author: Sindri Team
+  license: MIT
+  dependencies: []
+
+requirements:
+  diskSpace: 10
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 30
+
+validate:
+  commands: []
+
+remove:
+  paths: []
+  confirmation: false
+
+upgrade:
+  strategy: none
+
+bom:
+  tools: []

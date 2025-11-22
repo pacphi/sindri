@@ -1,0 +1,53 @@
+---
+metadata:
+  name: python
+  version: 1.0.0
+  description: Python 3.13 via mise
+  category: language
+  dependencies: []
+
+requirements:
+  domains:
+    - pypi.org
+    - python.org
+  diskSpace: 400
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: PYTHONDONTWRITEBYTECODE
+      value: "1"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: python
+      expectedPattern: "Python 3\\.\\d+\\.\\d+"
+    - name: pip
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [python]
+
+bom:
+  tools:
+    - name: python
+      version: dynamic
+      source: mise
+      type: runtime
+      license: PSF-2.0
+      homepage: https://www.python.org
+      purl: pkg:generic/python
+    - name: pip
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: MIT
+      homepage: https://pip.pypa.io
+      purl: pkg:pypi/pip

@@ -1,0 +1,44 @@
+# nodejs-devtools.toml - npm global dev tools configuration for mise
+# Requires nodejs.toml to be installed first
+
+[tools]
+# npm global development tools
+"npm:typescript" = "latest"
+"npm:ts-node" = "latest"
+"npm:eslint" = "latest"
+"npm:@typescript-eslint/parser" = "latest"
+"npm:@typescript-eslint/eslint-plugin" = "latest"
+"npm:prettier" = "latest"
+"npm:nodemon" = "latest"
+"npm:goalie" = "latest"
+"npm:research-swarm" = "latest"
+
+[tasks.format]
+description = "Format code with Prettier"
+run = "prettier --write ."
+
+[tasks.lint]
+description = "Lint code with ESLint"
+run = "eslint ."
+
+[tasks.typecheck]
+description = "Type check with TypeScript"
+run = "tsc --noEmit"
+
+[settings]
+experimental = true
+jobs = 2
+
+[env]
+# npm timeout configuration (in milliseconds)
+# fetch-timeout: maximum time for a single package download (5 minutes)
+# fetch-retries: number of times to retry failed downloads
+# fetch-retry-mintimeout: minimum retry delay
+# fetch-retry-maxtimeout: maximum retry delay
+npm_config_fetch_timeout = "300000"
+npm_config_fetch_retries = "2"
+npm_config_fetch_retry_mintimeout = "10000"
+npm_config_fetch_retry_maxtimeout = "60000"
+# Overall npm install timeout (10 minutes)
+npm_config_maxsockets = "10"
+npm_config_prefer_offline = "true"

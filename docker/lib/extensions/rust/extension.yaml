@@ -1,0 +1,47 @@
+---
+metadata:
+  name: rust
+  version: 1.0.0
+  description: Rust stable via mise
+  category: language
+  dependencies: []
+
+requirements:
+  domains:
+    - crates.io
+    - rust-lang.org
+  diskSpace: 800
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+validate:
+  commands:
+    - name: rustc
+      expectedPattern: "rustc \\d+\\.\\d+\\.\\d+"
+    - name: cargo
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [rust]
+
+bom:
+  tools:
+    - name: rustc
+      version: dynamic
+      source: mise
+      type: compiler
+      license: MIT OR Apache-2.0
+      homepage: https://www.rust-lang.org
+      purl: pkg:generic/rust
+    - name: cargo
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: MIT OR Apache-2.0
+      homepage: https://doc.rust-lang.org/cargo
+      purl: pkg:cargo/cargo

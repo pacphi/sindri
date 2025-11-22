@@ -1,0 +1,196 @@
+---
+metadata:
+  name: infra-tools
+  version: 2.0.0
+  description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
+  category: infrastructure
+  author: Sindri Team
+  homepage: https://sindri.dev
+  dependencies: []
+
+requirements:
+  domains:
+    - releases.hashicorp.com
+    - apt.releases.hashicorp.com
+    - dl.k8s.io
+    - get.helm.sh
+    - raw.githubusercontent.com
+    - github.com
+    - carvel.dev
+    - www.pulumi.com
+  diskSpace: 2500
+
+install:
+  method: hybrid
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+  apt:
+    updateFirst: true
+    packages:
+      - ansible
+      - ansible-lint
+      - jq
+      - curl
+      - wget
+  script:
+    path: install-additional.sh
+    timeout: 600
+    args: []
+
+configure:
+  templates:
+    - source: infra-tools.bashrc.template
+      destination: ~/.bashrc.d/infra-tools.sh
+      mode: overwrite
+    - source: infra-tools.readme.template
+      destination: /workspace/infrastructure/README.md
+      mode: overwrite
+  environment:
+    - key: KUBECONFIG
+      value: "$HOME/.kube/config"
+      scope: bashrc
+    - key: ANSIBLE_HOST_KEY_CHECKING
+      value: "False"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: terraform
+      versionFlag: "version"
+      expectedPattern: "Terraform v\\d+\\.\\d+\\.\\d+"
+    - name: ansible
+      versionFlag: "--version"
+      expectedPattern: "ansible \\[core \\d+\\.\\d+\\.\\d+\\]"
+    - name: kubectl
+      versionFlag: "version --client"
+      expectedPattern: "Client Version"
+    - name: helm
+      versionFlag: "version --short"
+      expectedPattern: "v\\d+\\.\\d+\\.\\d+"
+  mise:
+    tools: ["terraform", "kubectl", "helm", "ubi:derailed/k9s"]
+    minToolCount: 4
+
+remove:
+  confirmation: true
+  mise:
+    removeConfig: true
+    tools:
+      - terraform
+      - kubectl
+      - helm
+      - "ubi:derailed/k9s"
+      - "ubi:hashicorp/packer"
+      - "ubi:kubernetes-sigs/kustomize"
+      - "ubi:mikefarah/yq"
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+  apt:
+    packages: ["ansible", "ansible-lint"]
+    updateFirst: true
+
+bom:
+  tools:
+    - name: terraform
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: BUSL-1.1
+      homepage: https://www.terraform.io
+      purl: pkg:generic/terraform
+      cpe: cpe:2.3:a:hashicorp:terraform:*:*:*:*:*:*:*:*
+    - name: kubectl
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://kubernetes.io
+      purl: pkg:generic/kubectl
+    - name: helm
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://helm.sh
+      purl: pkg:generic/helm
+    - name: k9s
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://k9scli.io
+      purl: pkg:github/derailed/k9s
+    - name: ansible
+      version: dynamic
+      source: apt
+      type: cli-tool
+      license: GPL-3.0
+      homepage: https://www.ansible.com
+      purl: pkg:deb/ubuntu/ansible
+    - name: pulumi
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://www.pulumi.com
+      purl: pkg:generic/pulumi
+    - name: crossplane
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://www.crossplane.io
+      purl: pkg:generic/crossplane
+    - name: kubectx
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://github.com/ahmetb/kubectx
+      purl: pkg:github/ahmetb/kubectx
+    - name: kubens
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://github.com/ahmetb/kubectx
+      purl: pkg:github/ahmetb/kubectx
+    - name: kapp
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://carvel.dev/kapp
+      purl: pkg:generic/kapp
+    - name: ytt
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://carvel.dev/ytt
+      purl: pkg:generic/ytt
+    - name: kbld
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://carvel.dev/kbld
+      purl: pkg:generic/kbld
+    - name: vendir
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://carvel.dev/vendir
+      purl: pkg:generic/vendir
+    - name: imgpkg
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://carvel.dev/imgpkg
+      purl: pkg:generic/imgpkg

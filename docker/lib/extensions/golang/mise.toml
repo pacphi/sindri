@@ -1,0 +1,6 @@
+[tools]
+go = "1.24"
+
+[env]
+GOPATH = "~/go"
+PATH_add = ["~/go/bin"]

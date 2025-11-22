@@ -1,0 +1,134 @@
+name: Extension Combination Tests
+
+on:
+  workflow_call:
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  TEST_APP_PREFIX: sindri-combo
+
+jobs:
+  test-combinations:
+    name: Test ${{ matrix.combination.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        combination:
+          - name: full-node
+            extensions: "nodejs nodejs-devtools playwright openskills"
+            description: "Complete Node.js development stack"
+
+          - name: full-python
+            extensions: "python ai-toolkit monitoring"
+            description: "Python with AI tools"
+
+          - name: polyglot
+            extensions: "nodejs python golang rust"
+            description: "Multiple language runtimes"
+
+          - name: infrastructure
+            extensions: "docker infra-tools cloud-tools"
+            description: "Infrastructure management stack"
+
+          - name: ai-development
+            extensions: "nodejs python ai-toolkit claude-marketplace openskills agent-manager"
+            description: "AI development environment"
+
+          - name: fullstack
+            extensions: "nodejs python docker github-cli"
+            description: "Full stack development"
+
+          - name: desktop-dev
+            extensions: "guacamole xfce-ubuntu"
+            description: "Desktop development environment"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Fly CLI
+        run: |
+          curl -L https://fly.io/install.sh | sh
+          echo "$HOME/.fly/bin" >> $GITHUB_PATH
+
+      - name: Deploy test VM
+        run: |
+          APP_NAME="${{ env.TEST_APP_PREFIX }}-${{ matrix.combination.name }}-${{ github.run_id }}"
+
+          # Create app with adequate resources for combinations
+          flyctl apps create "$APP_NAME" --org personal || true
+
+          flyctl deploy \
+            --app "$APP_NAME" \
+            --vm-size performance-2x \
+            --vm-memory 4096 \
+            --strategy immediate
+
+      - name: Install extension combination
+        run: |
+          APP_NAME="${{ env.TEST_APP_PREFIX }}-${{ matrix.combination.name }}-${{ github.run_id }}"
+
+          echo "Installing combination: ${{ matrix.combination.description }}"
+
+          # Install all extensions in the combination
+          for ext in ${{ matrix.combination.extensions }}; do
+            echo "Installing $ext..."
+            flyctl ssh console -a "$APP_NAME" --command "extension-manager install $ext"
+          done
+
+      - name: Validate all extensions
+        run: |
+          APP_NAME="${{ env.TEST_APP_PREFIX }}-${{ matrix.combination.name }}-${{ github.run_id }}"
+
+          # Validate each extension
+          for ext in ${{ matrix.combination.extensions }}; do
+            echo "Validating $ext..."
+            flyctl ssh console -a "$APP_NAME" --command "extension-manager validate $ext"
+          done
+
+      - name: Test inter-extension compatibility
+        run: |
+          APP_NAME="${{ env.TEST_APP_PREFIX }}-${{ matrix.combination.name }}-${{ github.run_id }}"
+
+          # Run combination-specific tests
+          case "${{ matrix.combination.name }}" in
+            full-node)
+              flyctl ssh console -a "$APP_NAME" --command "node --version"
+              flyctl ssh console -a "$APP_NAME" --command "npm --version"
+              flyctl ssh console -a "$APP_NAME" --command "tsc --version"
+              ;;
+            full-python)
+              flyctl ssh console -a "$APP_NAME" --command "python --version"
+              flyctl ssh console -a "$APP_NAME" --command "pip --version"
+              ;;
+            polyglot)
+              flyctl ssh console -a "$APP_NAME" --command "node --version"
+              flyctl ssh console -a "$APP_NAME" --command "python --version"
+              flyctl ssh console -a "$APP_NAME" --command "go version"
+              flyctl ssh console -a "$APP_NAME" --command "rustc --version"
+              ;;
+            infrastructure)
+              flyctl ssh console -a "$APP_NAME" --command "docker --version"
+              flyctl ssh console -a "$APP_NAME" --command "terraform --version || echo 'Terraform check'"
+              ;;
+            *)
+              echo "Running generic combination test"
+              flyctl ssh console -a "$APP_NAME" --command "extension-manager list"
+              ;;
+          esac
+
+      - name: Performance check
+        run: |
+          APP_NAME="${{ env.TEST_APP_PREFIX }}-${{ matrix.combination.name }}-${{ github.run_id }}"
+
+          # Check resource usage
+          flyctl ssh console -a "$APP_NAME" --command "free -m"
+          flyctl ssh console -a "$APP_NAME" --command "df -h"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          APP_NAME="${{ env.TEST_APP_PREFIX }}-${{ matrix.combination.name }}-${{ github.run_id }}"
+          flyctl apps destroy "$APP_NAME" --yes || true

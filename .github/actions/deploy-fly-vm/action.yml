@@ -1,0 +1,75 @@
+name: Deploy Fly.io VM
+description: Deploys a VM on Fly.io (supports both test and production contexts)
+
+inputs:
+  app-name:
+    description: Name of the Fly.io app
+    required: true
+  extension:
+    description: Extension to test (affects VM sizing)
+    required: false
+    default: ""
+  vm-size:
+    description: VM size (shared-cpu-1x, performance-2x, etc)
+    required: false
+    default: "shared-cpu-1x"
+  vm-memory:
+    description: VM memory in MB
+    required: false
+    default: "1024"
+
+runs:
+  using: composite
+  steps:
+    - name: Create Fly app
+      shell: bash
+      run: |
+        flyctl apps create "${{ inputs.app-name }}" --org personal || true
+
+    - name: Determine VM resources
+      id: resources
+      shell: bash
+      run: |
+        # Determine resources based on extension
+        case "${{ inputs.extension }}" in
+          docker|guacamole|xfce-ubuntu)
+            echo "vm_size=performance-2x" >> $GITHUB_OUTPUT
+            echo "vm_memory=4096" >> $GITHUB_OUTPUT
+            ;;
+          ai-toolkit|claude-marketplace|agent-manager)
+            echo "vm_size=shared-cpu-2x" >> $GITHUB_OUTPUT
+            echo "vm_memory=2048" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "vm_size=${{ inputs.vm-size }}" >> $GITHUB_OUTPUT
+            echo "vm_memory=${{ inputs.vm-memory }}" >> $GITHUB_OUTPUT
+            ;;
+        esac
+
+    - name: Deploy VM
+      shell: bash
+      run: |
+        flyctl deploy \
+          --app "${{ inputs.app-name }}" \
+          --vm-size "${{ steps.resources.outputs.vm_size }}" \
+          --vm-memory "${{ steps.resources.outputs.vm_memory }}" \
+          --strategy immediate \
+          --wait-timeout 300
+
+    - name: Wait for VM to be ready
+      shell: bash
+      run: |
+        echo "Waiting for VM to be ready..."
+        for i in {1..30}; do
+          if flyctl ssh console -a "${{ inputs.app-name }}" --command "echo 'VM ready'" 2>/dev/null; then
+            echo "VM is ready!"
+            break
+          fi
+          echo "Attempt $i/30 - VM not ready yet..."
+          sleep 10
+        done
+
+    - name: Verify deployment
+      shell: bash
+      run: |
+        flyctl status -a "${{ inputs.app-name }}"

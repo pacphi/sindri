@@ -1,0 +1,51 @@
+---
+metadata:
+  name: claude-marketplace
+  version: 2.0.0
+  description: Claude Code plugin marketplace integration via YAML configuration
+  category: dev-tools
+  author: Sindri Team
+  dependencies: []
+
+requirements:
+  diskSpace: 50
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: marketplaces.yml.example
+      destination: /workspace/config/marketplaces.yml
+      mode: overwrite
+    - source: marketplaces.ci.yml.example
+      destination: /workspace/config/marketplaces.ci.yml
+      mode: overwrite
+    - source: default-settings.json
+      destination: ~/.claude/settings.json
+      mode: merge
+
+validate:
+  commands:
+    - name: claude
+      expectedPattern: "claude"
+
+remove:
+  paths:
+    - /workspace/config/marketplaces.yml
+    - /workspace/config/marketplaces.ci.yml
+
+upgrade:
+  strategy: none
+
+bom:
+  tools:
+    - name: claude-code
+      version: dynamic
+      source: binary
+      type: cli-tool
+      license: Proprietary
+      homepage: https://claude.ai/code

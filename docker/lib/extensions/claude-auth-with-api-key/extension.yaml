@@ -1,0 +1,40 @@
+---
+metadata:
+  name: claude-auth-with-api-key
+  version: 2.0.0
+  description: Claude Code CLI authentication via ANTHROPIC_API_KEY
+  category: ai
+  author: Sindri Team
+  dependencies: []
+
+requirements:
+  diskSpace: 10
+  secrets:
+    - anthropic_api_key
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 60
+
+validate:
+  commands:
+    - name: claude
+      expectedPattern: "claude"
+
+remove:
+  paths:
+    - /workspace/bin/claude
+
+upgrade:
+  strategy: none
+
+bom:
+  tools:
+    - name: claude-code
+      version: dynamic
+      source: binary
+      type: cli-tool
+      license: Proprietary
+      homepage: https://claude.ai/code

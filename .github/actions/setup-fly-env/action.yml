@@ -1,0 +1,36 @@
+name: Setup Fly.io Environment
+description: Sets up Fly.io environment for Sindri deployment (supports both test and production contexts)
+
+inputs:
+  app-name:
+    description: Name of the Fly.io app
+    required: true
+  fly-api-token:
+    description: Fly.io API token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Fly CLI
+      shell: bash
+      run: |
+        curl -L https://fly.io/install.sh | sh
+        echo "$HOME/.fly/bin" >> $GITHUB_PATH
+
+    - name: Authenticate with Fly
+      shell: bash
+      run: |
+        echo "${{ inputs.fly-api-token }}" | flyctl auth token
+
+    - name: Install test utilities
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq yq curl wget
+
+    - name: Set environment variables
+      shell: bash
+      run: |
+        echo "FLY_APP_NAME=${{ inputs.app-name }}" >> $GITHUB_ENV
+        echo "DEPLOYMENT_TIMESTAMP=$(date +%s)" >> $GITHUB_ENV

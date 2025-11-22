@@ -1,0 +1,45 @@
+---
+metadata:
+  name: golang
+  version: 1.0.0
+  description: Go 1.24 via mise
+  category: language
+  dependencies: []
+
+requirements:
+  domains:
+    - golang.org
+    - proxy.golang.org
+  diskSpace: 500
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: GOPATH
+      value: "~/go"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: go
+      expectedPattern: "go version go\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [go]
+
+bom:
+  tools:
+    - name: go
+      version: dynamic
+      source: mise
+      type: compiler
+      license: BSD-3-Clause
+      homepage: https://golang.org
+      purl: pkg:golang/go

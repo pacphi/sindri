@@ -1,0 +1,8 @@
+# pnpm workspace configuration
+# Allows for potential future monorepo structure
+
+packages:
+  - "."
+  - "cli/**"
+  - "extensions/**"
+  - "test/**"

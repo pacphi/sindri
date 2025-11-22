@@ -1,0 +1,71 @@
+# Sindri Configuration - Fly.io Production Example
+# This example shows all available Fly.io configuration options
+
+version: 1.0
+name: sindri-prod
+
+deployment:
+  provider: fly
+  image: registry.fly.io/sindri:latest
+
+  resources:
+    memory: 4GB # 4GB RAM for AI-powered development
+    cpus: 2 # 2 vCPUs for better performance
+
+  volumes:
+    workspace:
+      path: /workspace
+      size: 30GB # 30GB persistent storage
+
+# Extension configuration
+extensions:
+  profile: fullstack # or use 'active:' for custom list
+
+# Secrets configuration (set via flyctl secrets set)
+# These are referenced in fly.toml comments but managed via Fly.io
+secrets:
+  # Claude Code authentication
+  - name: ANTHROPIC_API_KEY
+    source: env
+
+  # GitHub integration
+  - name: GITHUB_TOKEN
+    source: env
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+  - name: GITHUB_USER
+    source: env
+
+  # AI Tools (optional)
+  - name: OPENROUTER_API_KEY
+    source: env
+  - name: GOOGLE_GEMINI_API_KEY
+    source: env
+  - name: PERPLEXITY_API_KEY
+    source: env
+  - name: XAI_API_KEY
+    source: env
+
+  # Package registries (optional)
+  - name: NPM_TOKEN
+    source: env
+  - name: PYPI_TOKEN
+    source: env
+
+# Fly.io-specific configuration
+providers:
+  fly:
+    region: sjc # Silicon Valley region
+    autoStopMachines: true # Suspend when idle (cost savings)
+    autoStartMachines: true # Auto-resume on connection
+    cpuKind: shared # shared or performance
+    sshPort: 10022 # External SSH port
+    organization: personal # Your Fly.io org
+    highAvailability: false # Set true for multi-machine setup
+
+# Usage:
+# 1. Deploy: ./cli/sindri deploy --provider fly --config examples/fly-production.sindri.yaml
+# 2. Set secrets: flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a sindri-prod
+# 3. Connect: ssh developer@sindri-prod.fly.dev -p 10022

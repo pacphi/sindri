@@ -1,0 +1,59 @@
+name: Install Extension
+description: Installs a Sindri extension on the test VM
+
+inputs:
+  extension:
+    description: Name of the extension to install
+    required: true
+  app-name:
+    description: Name of the Fly.io app
+    required: true
+  with-dependencies:
+    description: Install dependencies automatically
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Check extension exists
+      shell: bash
+      run: |
+        if [[ ! -d "docker/lib/extensions/${{ inputs.extension }}" ]]; then
+          echo "ERROR: Extension ${{ inputs.extension }} not found!"
+          exit 1
+        fi
+
+    - name: Upload extension files
+      shell: bash
+      run: |
+        # Create temp directory for upload
+        TEMP_DIR=$(mktemp -d)
+        cp -r docker/lib/extensions/${{ inputs.extension }}/* "$TEMP_DIR/"
+
+        # Upload to VM
+        tar -czf - -C "$TEMP_DIR" . | \
+          flyctl ssh console -a "${{ inputs.app-name }}" \
+            --command "mkdir -p /tmp/ext-upload && tar -xzf - -C /tmp/ext-upload"
+
+        rm -rf "$TEMP_DIR"
+
+    - name: Install extension
+      shell: bash
+      run: |
+        echo "Installing extension: ${{ inputs.extension }}"
+
+        # Install with or without dependencies
+        if [[ "${{ inputs.with-dependencies }}" == "true" ]]; then
+          flyctl ssh console -a "${{ inputs.app-name }}" \
+            --command "extension-manager install ${{ inputs.extension }}"
+        else
+          flyctl ssh console -a "${{ inputs.app-name }}" \
+            --command "extension-manager install ${{ inputs.extension }} --no-deps"
+        fi
+
+    - name: Verify installation
+      shell: bash
+      run: |
+        flyctl ssh console -a "${{ inputs.app-name }}" \
+          --command "extension-manager status ${{ inputs.extension }}"

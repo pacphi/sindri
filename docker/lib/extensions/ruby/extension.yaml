@@ -1,0 +1,76 @@
+---
+metadata:
+  name: ruby
+  version: 2.0.0
+  description: Ruby 3.4.7 via mise with Rails and Bundler
+  category: language
+  author: Sindri Team
+  dependencies: []
+
+requirements:
+  domains:
+    - rubygems.org
+    - github.com
+  diskSpace: 2500
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+
+configure:
+  templates:
+    - source: bashrc-aliases.template
+      destination: ~/.bashrc
+      mode: append
+    - source: gemfile-template.template
+      destination: /workspace/templates/Gemfile
+      mode: overwrite
+    - source: rubocop-config.template
+      destination: /workspace/templates/.rubocop.yml
+      mode: overwrite
+
+validate:
+  commands:
+    - name: ruby
+      expectedPattern: "ruby \\d+\\.\\d+\\.\\d+"
+    - name: gem
+    - name: bundle
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [ruby]
+  paths:
+    - /workspace/templates/Gemfile
+    - /workspace/templates/.rubocop.yml
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+
+bom:
+  tools:
+    - name: ruby
+      version: dynamic
+      source: mise
+      type: runtime
+      license: Ruby OR BSD-2-Clause
+      homepage: https://www.ruby-lang.org
+      purl: pkg:generic/ruby
+    - name: gem
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: Ruby OR MIT
+      homepage: https://rubygems.org
+      purl: pkg:gem/rubygems
+    - name: bundle
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: MIT
+      homepage: https://bundler.io
+      purl: pkg:gem/bundler
