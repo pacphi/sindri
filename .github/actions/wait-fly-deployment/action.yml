@@ -93,7 +93,13 @@ runs:
           fi
 
           # Extract and display current machine status
-          current_status=$(echo "$status_output" | grep -oE "(created|starting|started|running|stopping|stopped|replacing|destroying|destroyed|failed|crashed)" | head -1 || echo "unknown")
+          status_pattern="(created|starting|started|running|stopping|stopped"
+          status_pattern+="|replacing|destroying|destroyed|failed|crashed)"
+          current_status=$(
+            echo "$status_output" | \
+            grep -oE "$status_pattern" | \
+            head -1 || echo "unknown"
+          )
           echo "   Current status: $current_status (expected: $expected_status)"
 
           if echo "$status_output" | grep -q "$expected_status"; then
