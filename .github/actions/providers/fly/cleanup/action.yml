@@ -1,0 +1,208 @@
+name: Cleanup Fly.io Resources
+description: Cleans up Fly.io apps, machines, and volumes
+
+inputs:
+  app-name:
+    description: Fly.io app name to cleanup
+    required: false
+    default: ''
+  fly-api-token:
+    description: Fly.io API token
+    required: true
+  cleanup-pattern:
+    description: Pattern to match apps for cleanup
+    required: false
+    default: ''
+  force:
+    description: Force cleanup without confirmation
+    required: false
+    default: 'true'
+  cleanup-volumes:
+    description: Also cleanup volumes
+    required: false
+    default: 'true'
+  cleanup-secrets:
+    description: Clear all secrets before deletion
+    required: false
+    default: 'true'
+  max-age-hours:
+    description: Only cleanup apps older than this many hours
+    required: false
+    default: '0'
+
+outputs:
+  cleaned-apps:
+    description: List of cleaned app names
+    value: ${{ steps.cleanup.outputs.cleaned }}
+  cleanup-status:
+    description: Cleanup operation status
+    value: ${{ steps.cleanup.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - name: List current apps
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Current Fly.io apps"
+
+        flyctl apps list || echo "No apps found"
+
+        echo "::endgroup::"
+
+    - name: Cleanup specific app
+      if: inputs.app-name != ''
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Cleaning up app: ${{ inputs.app-name }}"
+
+        APP_NAME="${{ inputs.app-name }}"
+        FORCE="${{ inputs.force }}"
+
+        # Check if app exists
+        if flyctl apps list | grep -q "$APP_NAME"; then
+          # Clear secrets if requested
+          if [[ "${{ inputs.cleanup-secrets }}" == "true" ]]; then
+            echo "Clearing secrets..."
+            flyctl secrets list -a "$APP_NAME" --json | \
+              jq -r '.[].Name' | \
+              xargs -I {} flyctl secrets unset {} -a "$APP_NAME" --stage || true
+            flyctl secrets deploy -a "$APP_NAME" || true
+          fi
+
+          # Stop all machines
+          echo "Stopping machines..."
+          flyctl machine list -a "$APP_NAME" --json | jq -r '.[].id' | \
+            while read -r machine_id; do
+              flyctl machine stop "$machine_id" -a "$APP_NAME" || true
+            done
+
+          # Delete app
+          echo "Deleting app..."
+          if [[ "$FORCE" == "true" ]]; then
+            flyctl apps destroy "$APP_NAME" --yes || true
+          else
+            flyctl apps destroy "$APP_NAME" || true
+          fi
+
+          echo "✅ App $APP_NAME cleaned up"
+        else
+          echo "⚠️ App $APP_NAME not found"
+        fi
+
+        echo "::endgroup::"
+
+    - name: Cleanup apps by pattern
+      if: inputs.cleanup-pattern != ''
+      id: cleanup
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Cleaning up apps matching pattern: ${{ inputs.cleanup-pattern }}"
+
+        PATTERN="${{ inputs.cleanup-pattern }}"
+        MAX_AGE_HOURS="${{ inputs.max-age-hours }}"
+        FORCE="${{ inputs.force }}"
+        CLEANED="[]"
+
+        # Get apps matching pattern
+        APPS=$(flyctl apps list --json | \
+          jq -r ".[] | select(.Name | contains(\"$PATTERN\")) | .Name" || echo "")
+
+        if [[ -z "$APPS" ]]; then
+          echo "No apps found matching pattern: $PATTERN"
+          STATUS="no-apps"
+        else
+          CURRENT_TIME=$(date +%s)
+
+          for app in $APPS; do
+            # Check app age if max-age-hours is set
+            if [[ "$MAX_AGE_HOURS" -gt 0 ]]; then
+              CREATED_AT=$(flyctl apps list --json | \
+                jq -r ".[] | select(.Name == \"$app\") | .CreatedAt" || echo "")
+
+              if [[ -n "$CREATED_AT" ]]; then
+                APP_TIME=$(date -d "$CREATED_AT" +%s 2>/dev/null || date +%s)
+                AGE_HOURS=$(( (CURRENT_TIME - APP_TIME) / 3600 ))
+
+                if [[ $AGE_HOURS -lt $MAX_AGE_HOURS ]]; then
+                  echo "Skipping $app (age: ${AGE_HOURS}h < ${MAX_AGE_HOURS}h)"
+                  continue
+                fi
+              fi
+            fi
+
+            echo "Cleaning up app: $app"
+
+            # Clear secrets
+            if [[ "${{ inputs.cleanup-secrets }}" == "true" ]]; then
+              flyctl secrets list -a "$app" --json | \
+                jq -r '.[].Name' | \
+                xargs -I {} flyctl secrets unset {} -a "$app" --stage || true
+              flyctl secrets deploy -a "$app" || true
+            fi
+
+            # Stop machines
+            flyctl machine list -a "$app" --json | jq -r '.[].id' | \
+              while read -r machine_id; do
+                flyctl machine stop "$machine_id" -a "$app" || true
+              done
+
+            # Delete app
+            if [[ "$FORCE" == "true" ]]; then
+              flyctl apps destroy "$app" --yes || true
+            else
+              flyctl apps destroy "$app" || true
+            fi
+
+            # Add to cleaned list
+            CLEANED=$(echo "$CLEANED" | jq --arg app "$app" '. + [$app]')
+          done
+
+          STATUS="success"
+          echo "✅ Cleaned up $(echo "$CLEANED" | jq '. | length') apps"
+        fi
+
+        echo "cleaned=$CLEANED" >> $GITHUB_OUTPUT
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Cleanup orphaned volumes
+      if: inputs.cleanup-volumes == 'true'
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Cleaning up orphaned volumes"
+
+        # List all volumes
+        VOLUMES=$(flyctl volumes list --json 2>/dev/null || echo "[]")
+
+        # Check for orphaned volumes (volumes without apps)
+        echo "$VOLUMES" | jq -r '.[] | select(.attached_machine_id == null) | .id' | \
+          while read -r volume_id; do
+            if [[ -n "$volume_id" ]]; then
+              echo "Deleting orphaned volume: $volume_id"
+              flyctl volumes destroy "$volume_id" --yes || true
+            fi
+          done
+
+        echo "::endgroup::"
+
+    - name: Final status
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Final status"
+
+        echo "Remaining apps:"
+        flyctl apps list || echo "No apps"
+
+        echo "::endgroup::"

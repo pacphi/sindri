@@ -1,0 +1,150 @@
+name: Validate Sindri Configuration
+description: Validates sindri.yaml against schema and checks for common issues
+
+inputs:
+  config-path:
+    description: Path to sindri.yaml file
+    required: false
+    default: sindri.yaml
+  schema-path:
+    description: Path to JSON schema file
+    required: false
+    default: docker/lib/schemas/sindri.schema.json
+  check-extensions:
+    description: Whether to validate referenced extensions exist
+    required: false
+    default: 'true'
+  check-providers:
+    description: Whether to validate provider configuration
+    required: false
+    default: 'true'
+
+outputs:
+  valid:
+    description: Whether the configuration is valid
+    value: ${{ steps.validate.outputs.valid }}
+  errors:
+    description: JSON array of validation errors
+    value: ${{ steps.validate.outputs.errors }}
+  warnings:
+    description: JSON array of validation warnings
+    value: ${{ steps.validate.outputs.warnings }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install validation tools
+      shell: bash
+      run: |
+        echo "::group::Installing validation tools"
+
+        # Install ajv-cli for JSON schema validation
+        npm install -g ajv-cli ajv-formats
+
+        # Install yq for YAML parsing
+        if ! command -v yq &> /dev/null; then
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+        fi
+
+        echo "::endgroup::"
+
+    - name: Validate against schema
+      id: validate
+      shell: bash
+      run: |
+        echo "::group::Validating configuration"
+
+        CONFIG="${{ inputs.config-path }}"
+        SCHEMA="${{ inputs.schema-path }}"
+        ERRORS="[]"
+        WARNINGS="[]"
+        VALID="true"
+
+        # Check file exists
+        if [[ ! -f "$CONFIG" ]]; then
+          ERRORS=$(echo "$ERRORS" | jq '. + ["Configuration file not found: '"$CONFIG"'"]')
+          VALID="false"
+        else
+          # Convert YAML to JSON for validation
+          yq -o=json '.' "$CONFIG" > /tmp/sindri-config.json
+
+          # Validate against schema
+          if ! ajv validate -s "$SCHEMA" -d /tmp/sindri-config.json --strict=false; then
+            ERRORS=$(echo "$ERRORS" | jq '. + ["Schema validation failed"]')
+            VALID="false"
+          fi
+
+          # Check extensions if requested
+          if [[ "${{ inputs.check-extensions }}" == "true" ]]; then
+            # Get profile and extensions from config
+            PROFILE=$(yq '.extensions.profile // ""' "$CONFIG")
+            EXTENSIONS=$(yq -o=json '.extensions.list // []' "$CONFIG")
+
+            # Validate profile exists
+            if [[ -n "$PROFILE" ]]; then
+              if ! yq ".profiles.$PROFILE" docker/lib/profiles.yaml > /dev/null 2>&1; then
+                WARNINGS=$(echo "$WARNINGS" | jq '. + ["Profile not found: '"$PROFILE"'"]')
+              fi
+            fi
+
+            # Validate each extension exists
+            for ext in $(echo "$EXTENSIONS" | jq -r '.[]'); do
+              if [[ ! -d "docker/lib/extensions/$ext" ]]; then
+                WARNINGS=$(echo "$WARNINGS" | jq '. + ["Extension not found: '"$ext"'"]')
+              fi
+            done
+          fi
+
+          # Check provider configuration if requested
+          if [[ "${{ inputs.check-providers }}" == "true" ]]; then
+            PROVIDER=$(yq '.deployment.provider // "docker"' "$CONFIG")
+
+            # Check provider adapter exists
+            if [[ ! -f "deploy/adapters/${PROVIDER}-adapter.sh" ]]; then
+              ERRORS=$(echo "$ERRORS" | jq '. + ["Unknown provider: '"$PROVIDER"'"]')
+              VALID="false"
+            fi
+
+            # Provider-specific validation
+            case "$PROVIDER" in
+              fly)
+                # Check for required Fly.io fields
+                if [[ -z "$(yq '.deployment.fly.region // ""' "$CONFIG")" ]]; then
+                  WARNINGS=$(echo "$WARNINGS" | jq '. + ["Fly.io region not specified, will use default"]')
+                fi
+                ;;
+              docker)
+                # Check for Docker-specific configuration
+                if [[ -z "$(yq '.deployment.resources.memory // ""' "$CONFIG")" ]]; then
+                  WARNINGS=$(echo "$WARNINGS" | jq '. + ["Memory limit not specified for Docker"]')
+                fi
+                ;;
+              devpod)
+                # Check for DevPod-specific configuration
+                if [[ -z "$(yq '.deployment.devpod.provider // ""' "$CONFIG")" ]]; then
+                  WARNINGS=$(echo "$WARNINGS" | jq '. + ["DevPod provider not specified"]')
+                fi
+                ;;
+            esac
+          fi
+        fi
+
+        # Set outputs
+        echo "valid=$VALID" >> $GITHUB_OUTPUT
+        echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+        echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+
+        # Display results
+        if [[ "$VALID" == "false" ]]; then
+          echo "::error::Configuration validation failed"
+          echo "Errors: $ERRORS"
+          exit 1
+        else
+          echo "✅ Configuration is valid"
+          if [[ "$WARNINGS" != "[]" ]]; then
+            echo "⚠️ Warnings: $WARNINGS"
+          fi
+        fi
+
+        echo "::endgroup::"

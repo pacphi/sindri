@@ -1,0 +1,145 @@
+name: Validate Extension
+description: Validates an extension installation on any provider
+
+inputs:
+  extension:
+    description: Extension name to validate
+    required: true
+  provider:
+    description: Provider type (docker, fly, devpod, kubernetes, ssh)
+    required: true
+  target:
+    description: Target identifier (container name, app name, workspace ID)
+    required: true
+  fly-api-token:
+    description: Fly.io API token (required for Fly provider)
+    required: false
+    default: ''
+  test-commands:
+    description: JSON array of additional test commands
+    required: false
+    default: '[]'
+
+outputs:
+  validation-status:
+    description: Validation status
+    value: ${{ steps.validate.outputs.status }}
+  test-results:
+    description: Test command results
+    value: ${{ steps.test.outputs.results }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate extension
+      id: validate
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Validating extension: ${{ inputs.extension }}"
+
+        PROVIDER="${{ inputs.provider }}"
+        TARGET="${{ inputs.target }}"
+        EXTENSION="${{ inputs.extension }}"
+
+        # Run validation command
+        case "$PROVIDER" in
+          docker)
+            if docker exec "$TARGET" extension-manager validate "$EXTENSION"; then
+              STATUS="valid"
+            else
+              STATUS="invalid"
+            fi
+            ;;
+
+          fly)
+            if flyctl ssh console -a "$TARGET" --command "extension-manager validate $EXTENSION"; then
+              STATUS="valid"
+            else
+              STATUS="invalid"
+            fi
+            ;;
+
+          devpod*|kubernetes|ssh)
+            if devpod exec "$TARGET" -- extension-manager validate "$EXTENSION"; then
+              STATUS="valid"
+            else
+              STATUS="invalid"
+            fi
+            ;;
+
+          *)
+            echo "❌ Unknown provider: $PROVIDER"
+            STATUS="error"
+            ;;
+        esac
+
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+        if [[ "$STATUS" == "valid" ]]; then
+          echo "✅ Extension $EXTENSION is valid"
+        else
+          echo "❌ Extension $EXTENSION validation failed"
+        fi
+
+        echo "::endgroup::"
+
+    - name: Run test commands
+      id: test
+      if: inputs.test-commands != '[]'
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Running test commands"
+
+        PROVIDER="${{ inputs.provider }}"
+        TARGET="${{ inputs.target }}"
+        COMMANDS='${{ inputs.test-commands }}'
+        RESULTS='{}'
+
+        for cmd in $(echo "$COMMANDS" | jq -r '.[]'); do
+          echo "Testing: $cmd"
+
+          case "$PROVIDER" in
+            docker)
+              set +e
+              OUTPUT=$(docker exec "$TARGET" bash -c "$cmd" 2>&1)
+              EXIT_CODE=$?
+              set -e
+              ;;
+
+            fly)
+              set +e
+              OUTPUT=$(flyctl ssh console -a "$TARGET" --command "$cmd" 2>&1)
+              EXIT_CODE=$?
+              set -e
+              ;;
+
+            devpod*|kubernetes|ssh)
+              set +e
+              OUTPUT=$(devpod exec "$TARGET" -- bash -c "$cmd" 2>&1)
+              EXIT_CODE=$?
+              set -e
+              ;;
+          esac
+
+          if [[ $EXIT_CODE -eq 0 ]]; then
+            echo "  ✅ Passed"
+            STATUS="passed"
+          else
+            echo "  ❌ Failed (exit code: $EXIT_CODE)"
+            STATUS="failed"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" \
+            --arg status "$STATUS" \
+            --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, output: $output}')
+        done
+
+        echo "results=$RESULTS" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"

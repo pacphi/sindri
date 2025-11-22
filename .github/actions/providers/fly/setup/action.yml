@@ -1,0 +1,166 @@
+name: Setup Fly.io Provider
+description: Sets up Fly.io environment for Sindri deployment
+
+inputs:
+  app-name:
+    description: Fly.io app name
+    required: true
+  fly-api-token:
+    description: Fly.io API token
+    required: true
+  region:
+    description: Fly.io region
+    required: false
+    default: sjc
+  organization:
+    description: Fly.io organization
+    required: false
+    default: personal
+  install-cli:
+    description: Whether to install Fly CLI
+    required: false
+    default: 'true'
+  flyctl-version:
+    description: Fly CLI version to install
+    required: false
+    default: 'latest'
+
+outputs:
+  app-name:
+    description: Final app name
+    value: ${{ steps.setup.outputs.app-name }}
+  region:
+    description: Deployment region
+    value: ${{ steps.setup.outputs.region }}
+  organization:
+    description: Fly.io organization
+    value: ${{ steps.setup.outputs.organization }}
+  app-url:
+    description: Application URL
+    value: ${{ steps.setup.outputs.app-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Fly CLI
+      if: inputs.install-cli == 'true'
+      shell: bash
+      run: |
+        echo "::group::Installing Fly CLI"
+
+        if [[ "${{ inputs.flyctl-version }}" == "latest" ]]; then
+          curl -L https://fly.io/install.sh | sh
+        else
+          VERSION="${{ inputs.flyctl-version }}"
+          curl -L https://fly.io/install.sh | sh -s "$VERSION"
+        fi
+
+        echo "$HOME/.fly/bin" >> $GITHUB_PATH
+        export PATH="$HOME/.fly/bin:$PATH"
+
+        # Verify installation
+        flyctl version
+
+        echo "::endgroup::"
+
+    - name: Authenticate with Fly.io
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Authenticating with Fly.io"
+
+        # Test authentication
+        flyctl auth whoami
+
+        echo "::endgroup::"
+
+    - name: Setup Fly.io app
+      id: setup
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Setting up Fly.io app"
+
+        APP_NAME="${{ inputs.app-name }}"
+        REGION="${{ inputs.region }}"
+        ORG="${{ inputs.organization }}"
+
+        # Check if app exists
+        if flyctl apps list | grep -q "$APP_NAME"; then
+          echo "App $APP_NAME already exists"
+        else
+          echo "Creating app $APP_NAME"
+          flyctl apps create "$APP_NAME" \
+            --org "$ORG" \
+            --region "$REGION" || true
+        fi
+
+        # Get app URL
+        APP_URL="https://${APP_NAME}.fly.dev"
+
+        # Set outputs
+        echo "app-name=$APP_NAME" >> $GITHUB_OUTPUT
+        echo "region=$REGION" >> $GITHUB_OUTPUT
+        echo "organization=$ORG" >> $GITHUB_OUTPUT
+        echo "app-url=$APP_URL" >> $GITHUB_OUTPUT
+
+        echo "::notice title=Fly.io App::Name: $APP_NAME, Region: $REGION, URL: $APP_URL"
+
+        echo "::endgroup::"
+
+    - name: Create fly.toml
+      shell: bash
+      run: |
+        echo "::group::Creating fly.toml"
+
+        APP_NAME="${{ inputs.app-name }}"
+        REGION="${{ inputs.region }}"
+
+        # Generate fly.toml if it doesn't exist
+        if [[ ! -f "fly.toml" ]]; then
+          cat > fly.toml << EOF
+        app = "$APP_NAME"
+        primary_region = "$REGION"
+        kill_signal = "SIGTERM"
+        kill_timeout = "5s"
+
+        [build]
+          dockerfile = "docker/Dockerfile"
+
+        [env]
+          INIT_WORKSPACE = "true"
+
+        [[mounts]]
+          source = "workspace_data"
+          destination = "/workspace"
+          initial_size = "10gb"
+
+        [[services]]
+          protocol = "tcp"
+          internal_port = 22
+          auto_start_machines = true
+          auto_stop_machines = true
+          min_machines_running = 0
+
+          [[services.ports]]
+            port = 22
+
+        [checks]
+          [checks.health]
+            grace_period = "30s"
+            interval = "30s"
+            method = "get"
+            path = "/health"
+            port = 8080
+            timeout = "5s"
+            type = "http"
+        EOF
+
+          echo "Created fly.toml"
+        else
+          echo "Using existing fly.toml"
+        fi
+
+        echo "::endgroup::"

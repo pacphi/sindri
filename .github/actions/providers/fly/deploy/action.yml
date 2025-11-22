@@ -1,0 +1,237 @@
+name: Deploy to Fly.io
+description: Deploys Sindri to Fly.io infrastructure
+
+inputs:
+  app-name:
+    description: Fly.io app name
+    required: true
+  fly-api-token:
+    description: Fly.io API token
+    required: true
+  region:
+    description: Deployment region
+    required: false
+    default: sjc
+  vm-size:
+    description: VM size (shared-cpu-1x, dedicated-cpu-1x, etc.)
+    required: false
+    default: shared-cpu-1x
+  vm-memory:
+    description: VM memory in MB
+    required: false
+    default: '1024'
+  volume-size:
+    description: Volume size in GB
+    required: false
+    default: '10'
+  extension-profile:
+    description: Extension profile to install
+    required: false
+    default: ''
+  secrets:
+    description: JSON object with secrets to set
+    required: false
+    default: '{}'
+  deployment-strategy:
+    description: Deployment strategy (immediate, rolling, canary)
+    required: false
+    default: immediate
+  wait-for-deployment:
+    description: Wait for deployment to complete
+    required: false
+    default: 'true'
+  timeout-seconds:
+    description: Deployment timeout in seconds
+    required: false
+    default: '300'
+
+outputs:
+  machine-id:
+    description: Fly.io machine ID
+    value: ${{ steps.deploy.outputs.machine-id }}
+  deployment-id:
+    description: Deployment ID
+    value: ${{ steps.deploy.outputs.deployment-id }}
+  app-url:
+    description: Application URL
+    value: ${{ steps.deploy.outputs.app-url }}
+  status:
+    description: Deployment status
+    value: ${{ steps.verify.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure deployment
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Configuring deployment"
+
+        APP_NAME="${{ inputs.app-name }}"
+
+        # Update fly.toml with deployment settings
+        if [[ -f "fly.toml" ]]; then
+          # Update VM size and memory
+          yq -i ".vm.size = \"${{ inputs.vm-size }}\"" fly.toml || true
+          yq -i ".vm.memory = ${{ inputs.vm-memory }}" fly.toml || true
+        fi
+
+        # Create or update volume
+        VOLUME_EXISTS=$(flyctl volumes list -a "$APP_NAME" --json | jq -r '.[0].id' || echo "")
+        if [[ -z "$VOLUME_EXISTS" ]]; then
+          echo "Creating volume..."
+          flyctl volumes create workspace_data \
+            --app "$APP_NAME" \
+            --region "${{ inputs.region }}" \
+            --size "${{ inputs.volume-size }}" || true
+        else
+          echo "Volume already exists: $VOLUME_EXISTS"
+        fi
+
+        echo "::endgroup::"
+
+    - name: Set secrets
+      if: inputs.secrets != '{}'
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Setting secrets"
+
+        APP_NAME="${{ inputs.app-name }}"
+        SECRETS='${{ inputs.secrets }}'
+
+        # Parse and set each secret
+        echo "$SECRETS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | \
+        while IFS='=' read -r key value; do
+          echo "Setting secret: $key"
+          flyctl secrets set "$key=$value" -a "$APP_NAME" --stage || true
+        done
+
+        # Deploy staged secrets
+        flyctl secrets deploy -a "$APP_NAME" || true
+
+        echo "::endgroup::"
+
+    - name: Deploy application
+      id: deploy
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Deploying to Fly.io"
+
+        APP_NAME="${{ inputs.app-name }}"
+        STRATEGY="${{ inputs.deployment-strategy }}"
+
+        # Set environment variables
+        if [[ -n "${{ inputs.extension-profile }}" ]]; then
+          export INSTALL_PROFILE="${{ inputs.extension-profile }}"
+        fi
+
+        # Deploy with specified strategy
+        echo "Deploying with strategy: $STRATEGY"
+
+        DEPLOY_OUTPUT=$(flyctl deploy \
+          --app "$APP_NAME" \
+          --vm-size "${{ inputs.vm-size }}" \
+          --vm-memory "${{ inputs.vm-memory }}" \
+          --strategy "$STRATEGY" \
+          --verbose 2>&1 | tee /tmp/fly-deploy.log)
+
+        # Extract deployment information
+        DEPLOYMENT_ID=$(echo "$DEPLOY_OUTPUT" | grep -oP 'Deployment ID: \K[^ ]+' || echo "unknown")
+        MACHINE_ID=$(flyctl machine list -a "$APP_NAME" --json | jq -r '.[0].id' || echo "")
+        APP_URL="https://${APP_NAME}.fly.dev"
+
+        echo "machine-id=$MACHINE_ID" >> $GITHUB_OUTPUT
+        echo "deployment-id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+        echo "app-url=$APP_URL" >> $GITHUB_OUTPUT
+
+        echo "::notice title=Deployment Info::Machine ID: $MACHINE_ID, URL: $APP_URL"
+
+        echo "::endgroup::"
+
+    - name: Wait for deployment
+      if: inputs.wait-for-deployment == 'true'
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Waiting for deployment to complete"
+
+        APP_NAME="${{ inputs.app-name }}"
+        TIMEOUT="${{ inputs.timeout-seconds }}"
+        START_TIME=$(date +%s)
+
+        while true; do
+          CURRENT_TIME=$(date +%s)
+          ELAPSED=$((CURRENT_TIME - START_TIME))
+
+          if [[ $ELAPSED -gt $TIMEOUT ]]; then
+            echo "❌ Timeout waiting for deployment"
+            exit 1
+          fi
+
+          # Check machine status
+          STATUS=$(flyctl machine list -a "$APP_NAME" --json | \
+            jq -r '.[0].state' || echo "unknown")
+
+          echo "Machine status: $STATUS (elapsed: ${ELAPSED}s)"
+
+          if [[ "$STATUS" == "started" ]]; then
+            echo "✅ Deployment successful"
+            break
+          elif [[ "$STATUS" == "failed" ]] || [[ "$STATUS" == "destroyed" ]]; then
+            echo "❌ Deployment failed"
+            flyctl logs -a "$APP_NAME" || true
+            exit 1
+          fi
+
+          sleep 10
+        done
+
+        echo "::endgroup::"
+
+    - name: Verify deployment
+      id: verify
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Verifying deployment"
+
+        APP_NAME="${{ inputs.app-name }}"
+
+        # Test SSH connectivity
+        echo "Testing SSH connectivity..."
+        if flyctl ssh console -a "$APP_NAME" --command "echo 'SSH connection successful'"; then
+          echo "✅ SSH connectivity verified"
+          SSH_STATUS="success"
+        else
+          echo "❌ SSH connectivity failed"
+          SSH_STATUS="failure"
+        fi
+
+        # Test volume mount
+        echo "Testing volume mount..."
+        if flyctl ssh console -a "$APP_NAME" --command "df -h /workspace | grep workspace"; then
+          echo "✅ Volume mounted successfully"
+          VOLUME_STATUS="success"
+        else
+          echo "❌ Volume mount failed"
+          VOLUME_STATUS="failure"
+        fi
+
+        # Overall status
+        if [[ "$SSH_STATUS" == "success" ]] && [[ "$VOLUME_STATUS" == "success" ]]; then
+          STATUS="success"
+        else
+          STATUS="partial"
+        fi
+
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"

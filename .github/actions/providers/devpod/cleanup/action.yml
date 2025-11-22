@@ -1,0 +1,188 @@
+name: Cleanup DevPod Resources
+description: Cleans up DevPod workspaces and provider resources
+
+inputs:
+  workspace-id:
+    description: Workspace ID to cleanup
+    required: false
+    default: ''
+  cleanup-all:
+    description: Cleanup all workspaces
+    required: false
+    default: 'false'
+  force:
+    description: Force cleanup even if workspace is running
+    required: false
+    default: 'false'
+  remove-provider:
+    description: Remove the provider after cleanup
+    required: false
+    default: 'false'
+  provider-id:
+    description: Provider ID to remove
+    required: false
+    default: ''
+  cleanup-volumes:
+    description: Also cleanup persistent volumes
+    required: false
+    default: 'true'
+
+outputs:
+  cleaned-workspaces:
+    description: List of cleaned workspace IDs
+    value: ${{ steps.cleanup.outputs.cleaned }}
+  cleanup-status:
+    description: Cleanup operation status
+    value: ${{ steps.cleanup.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - name: List current workspaces
+      shell: bash
+      run: |
+        echo "::group::Current DevPod workspaces"
+
+        devpod list || echo "No workspaces found"
+
+        echo "::endgroup::"
+
+    - name: Cleanup specific workspace
+      if: inputs.workspace-id != ''
+      shell: bash
+      run: |
+        echo "::group::Cleaning up workspace: ${{ inputs.workspace-id }}"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+        FORCE="${{ inputs.force }}"
+
+        # Check if workspace exists
+        if devpod list --output json | jq -e ".[] | select(.id == \"$WORKSPACE_ID\")" > /dev/null; then
+          # Stop workspace first if not forcing
+          if [[ "$FORCE" != "true" ]]; then
+            echo "Stopping workspace..."
+            devpod stop "$WORKSPACE_ID" || true
+            sleep 5
+          fi
+
+          # Delete workspace
+          echo "Deleting workspace..."
+          if [[ "$FORCE" == "true" ]]; then
+            devpod delete "$WORKSPACE_ID" --force || true
+          else
+            devpod delete "$WORKSPACE_ID" || true
+          fi
+
+          echo "✅ Workspace $WORKSPACE_ID cleaned up"
+        else
+          echo "⚠️ Workspace $WORKSPACE_ID not found"
+        fi
+
+        echo "::endgroup::"
+
+    - name: Cleanup all workspaces
+      if: inputs.cleanup-all == 'true'
+      id: cleanup
+      shell: bash
+      run: |
+        echo "::group::Cleaning up all workspaces"
+
+        FORCE="${{ inputs.force }}"
+        CLEANED="[]"
+
+        # Get all workspace IDs
+        WORKSPACES=$(devpod list --output json | jq -r '.[].id' || echo "")
+
+        if [[ -z "$WORKSPACES" ]]; then
+          echo "No workspaces to clean up"
+          STATUS="no-workspaces"
+        else
+          for workspace in $WORKSPACES; do
+            echo "Cleaning up workspace: $workspace"
+
+            # Stop workspace
+            if [[ "$FORCE" != "true" ]]; then
+              devpod stop "$workspace" || true
+              sleep 2
+            fi
+
+            # Delete workspace
+            if [[ "$FORCE" == "true" ]]; then
+              devpod delete "$workspace" --force || true
+            else
+              devpod delete "$workspace" || true
+            fi
+
+            # Add to cleaned list
+            CLEANED=$(echo "$CLEANED" | jq --arg ws "$workspace" '. + [$ws]')
+          done
+
+          STATUS="success"
+          echo "✅ All workspaces cleaned up"
+        fi
+
+        echo "cleaned=$CLEANED" >> $GITHUB_OUTPUT
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Cleanup volumes
+      if: inputs.cleanup-volumes == 'true'
+      shell: bash
+      run: |
+        echo "::group::Cleaning up volumes"
+
+        # Provider-specific volume cleanup
+        PROVIDER_ID="${{ inputs.provider-id }}"
+
+        if [[ -n "$PROVIDER_ID" ]]; then
+          # Get provider type
+          PROVIDER_TYPE=$(devpod provider list --output json | \
+            jq -r ".[] | select(.name == \"$PROVIDER_ID\") | .provider" || echo "")
+
+          case "$PROVIDER_TYPE" in
+            docker)
+              echo "Cleaning up Docker volumes..."
+              docker volume ls --format "{{.Name}}" | grep -E "devpod|sindri" | \
+                xargs -r docker volume rm || true
+              ;;
+            kubernetes)
+              echo "Cleaning up Kubernetes PVCs..."
+              kubectl get pvc -n devpod --no-headers | grep devpod | \
+                awk '{print $1}' | xargs -r kubectl delete pvc -n devpod || true
+              ;;
+          esac
+        fi
+
+        echo "::endgroup::"
+
+    - name: Remove provider
+      if: inputs.remove-provider == 'true' && inputs.provider-id != ''
+      shell: bash
+      run: |
+        echo "::group::Removing provider: ${{ inputs.provider-id }}"
+
+        PROVIDER_ID="${{ inputs.provider-id }}"
+
+        # Check if provider exists
+        if devpod provider list | grep -q "$PROVIDER_ID"; then
+          devpod provider remove "$PROVIDER_ID" || true
+          echo "✅ Provider $PROVIDER_ID removed"
+        else
+          echo "⚠️ Provider $PROVIDER_ID not found"
+        fi
+
+        echo "::endgroup::"
+
+    - name: Final status
+      shell: bash
+      run: |
+        echo "::group::Final status"
+
+        echo "Remaining workspaces:"
+        devpod list || echo "No workspaces"
+
+        echo "Configured providers:"
+        devpod provider list || echo "No providers"
+
+        echo "::endgroup::"

@@ -1,0 +1,346 @@
+name: Setup DevPod Provider
+description: Sets up DevPod with specified cloud provider (AWS, GCP, Azure, DigitalOcean, Kubernetes, SSH)
+
+inputs:
+  provider-type:
+    description: DevPod provider type (aws, gcp, azure, digitalocean, kubernetes, ssh, docker)
+    required: true
+  provider-name:
+    description: Custom name for provider instance
+    required: false
+    default: ''
+  install-cli:
+    description: Whether to install DevPod CLI
+    required: false
+    default: 'true'
+  devpod-version:
+    description: DevPod CLI version to install
+    required: false
+    default: 'latest'
+  provider-options:
+    description: JSON object with provider-specific options
+    required: false
+    default: '{}'
+
+  # AWS-specific inputs
+  aws-region:
+    description: AWS region for EC2 instances
+    required: false
+    default: 'us-west-2'
+  aws-instance-type:
+    description: AWS EC2 instance type
+    required: false
+    default: 'c5.xlarge'
+  aws-disk-size:
+    description: AWS EBS volume size in GB
+    required: false
+    default: '40'
+  aws-use-spot:
+    description: Use AWS spot instances
+    required: false
+    default: 'false'
+
+  # GCP-specific inputs
+  gcp-project:
+    description: GCP project ID
+    required: false
+    default: ''
+  gcp-zone:
+    description: GCP zone for instances
+    required: false
+    default: 'us-central1-a'
+  gcp-machine-type:
+    description: GCP machine type
+    required: false
+    default: 'e2-standard-4'
+
+  # Azure-specific inputs
+  azure-subscription:
+    description: Azure subscription ID
+    required: false
+    default: ''
+  azure-resource-group:
+    description: Azure resource group name
+    required: false
+    default: 'devpod-resources'
+  azure-location:
+    description: Azure location/region
+    required: false
+    default: 'eastus'
+  azure-vm-size:
+    description: Azure VM size
+    required: false
+    default: 'Standard_D4s_v3'
+
+  # DigitalOcean-specific inputs
+  do-region:
+    description: DigitalOcean region
+    required: false
+    default: 'nyc3'
+  do-size:
+    description: DigitalOcean droplet size
+    required: false
+    default: 's-4vcpu-8gb'
+
+  # Kubernetes-specific inputs
+  k8s-config-path:
+    description: Path to kubeconfig file
+    required: false
+    default: '~/.kube/config'
+  k8s-context:
+    description: Kubernetes context to use
+    required: false
+    default: ''
+  k8s-namespace:
+    description: Kubernetes namespace for DevPod workspaces
+    required: false
+    default: 'devpod'
+
+  # SSH-specific inputs
+  ssh-host:
+    description: SSH host address
+    required: false
+    default: ''
+  ssh-user:
+    description: SSH username
+    required: false
+    default: ''
+  ssh-key-path:
+    description: Path to SSH private key
+    required: false
+    default: '~/.ssh/id_rsa'
+
+outputs:
+  provider-id:
+    description: Configured provider identifier
+    value: ${{ steps.configure.outputs.provider-id }}
+  provider-status:
+    description: Provider setup status
+    value: ${{ steps.verify.outputs.status }}
+  provider-config:
+    description: JSON object with provider configuration
+    value: ${{ steps.configure.outputs.config }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install DevPod CLI
+      if: inputs.install-cli == 'true'
+      shell: bash
+      run: |
+        echo "::group::Installing DevPod CLI"
+
+        # Determine version
+        if [[ "${{ inputs.devpod-version }}" == "latest" ]]; then
+          VERSION=$(curl -s https://api.github.com/repos/loft-sh/devpod/releases/latest | jq -r .tag_name)
+        else
+          VERSION="${{ inputs.devpod-version }}"
+        fi
+
+        # Determine platform
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        if [[ "$ARCH" == "x86_64" ]]; then
+          ARCH="amd64"
+        elif [[ "$ARCH" == "aarch64" ]]; then
+          ARCH="arm64"
+        fi
+
+        # Download and install
+        DOWNLOAD_URL="https://github.com/loft-sh/devpod/releases/download/${VERSION}/devpod-${OS}-${ARCH}"
+        echo "Downloading DevPod from: $DOWNLOAD_URL"
+
+        curl -L -o /tmp/devpod "$DOWNLOAD_URL"
+        chmod +x /tmp/devpod
+        sudo mv /tmp/devpod /usr/local/bin/devpod
+
+        # Verify installation
+        devpod version
+
+        echo "::endgroup::"
+
+    - name: Setup cloud provider CLI tools
+      shell: bash
+      run: |
+        echo "::group::Setting up provider CLI tools"
+
+        case "${{ inputs.provider-type }}" in
+          aws)
+            # Install AWS CLI if not present
+            if ! command -v aws &> /dev/null; then
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip -q awscliv2.zip
+              sudo ./aws/install
+              rm -rf aws awscliv2.zip
+            fi
+            ;;
+
+          gcp)
+            # Install gcloud CLI if not present
+            if ! command -v gcloud &> /dev/null; then
+              echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+                sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+              curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+                sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+              sudo apt-get update && sudo apt-get install -y google-cloud-cli
+            fi
+            ;;
+
+          azure)
+            # Install Azure CLI if not present
+            if ! command -v az &> /dev/null; then
+              curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+            fi
+            ;;
+
+          digitalocean)
+            # Install doctl if not present
+            if ! command -v doctl &> /dev/null; then
+              cd /tmp
+              wget https://github.com/digitalocean/doctl/releases/latest/download/doctl-$(uname -s)-$(uname -m).tar.gz
+              tar xf doctl-*.tar.gz
+              sudo mv doctl /usr/local/bin
+              cd -
+            fi
+            ;;
+
+          kubernetes)
+            # Install kubectl if not present
+            if ! command -v kubectl &> /dev/null; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x kubectl
+              sudo mv kubectl /usr/local/bin/
+            fi
+            ;;
+        esac
+
+        echo "::endgroup::"
+
+    - name: Configure provider
+      id: configure
+      shell: bash
+      run: |
+        echo "::group::Configuring DevPod provider"
+
+        PROVIDER="${{ inputs.provider-type }}"
+        PROVIDER_NAME="${{ inputs.provider-name }}"
+        OPTIONS='${{ inputs.provider-options }}'
+
+        # Handle devpod- prefix if present
+        if [[ "$PROVIDER" == devpod-* ]]; then
+          PROVIDER="${PROVIDER#devpod-}"
+        fi
+
+        # Use custom name if provided
+        if [[ -n "$PROVIDER_NAME" ]]; then
+          PROVIDER_ID="$PROVIDER_NAME"
+        else
+          PROVIDER_ID="$PROVIDER"
+        fi
+
+        # Add the provider
+        echo "Adding provider: $PROVIDER as $PROVIDER_ID"
+        devpod provider add "$PROVIDER" --name "$PROVIDER_ID" || true
+
+        # Configure provider-specific options
+        case "$PROVIDER" in
+          aws)
+            devpod provider set-options "$PROVIDER_ID" \
+              --option AWS_REGION="${{ inputs.aws-region }}" \
+              --option AWS_INSTANCE_TYPE="${{ inputs.aws-instance-type }}" \
+              --option AWS_DISK_SIZE="${{ inputs.aws-disk-size }}"
+
+            if [[ "${{ inputs.aws-use-spot }}" == "true" ]]; then
+              devpod provider set-options "$PROVIDER_ID" --option AWS_USE_SPOT_INSTANCE=true
+            fi
+            ;;
+
+          gcp)
+            if [[ -n "${{ inputs.gcp-project }}" ]]; then
+              devpod provider set-options "$PROVIDER_ID" \
+                --option GCP_PROJECT="${{ inputs.gcp-project }}" \
+                --option GCP_ZONE="${{ inputs.gcp-zone }}" \
+                --option GCP_MACHINE_TYPE="${{ inputs.gcp-machine-type }}"
+            fi
+            ;;
+
+          azure)
+            if [[ -n "${{ inputs.azure-subscription }}" ]]; then
+              devpod provider set-options "$PROVIDER_ID" \
+                --option AZURE_SUBSCRIPTION="${{ inputs.azure-subscription }}" \
+                --option AZURE_RESOURCE_GROUP="${{ inputs.azure-resource-group }}" \
+                --option AZURE_LOCATION="${{ inputs.azure-location }}" \
+                --option AZURE_VM_SIZE="${{ inputs.azure-vm-size }}"
+            fi
+            ;;
+
+          digitalocean)
+            devpod provider set-options "$PROVIDER_ID" \
+              --option DIGITALOCEAN_REGION="${{ inputs.do-region }}" \
+              --option DIGITALOCEAN_SIZE="${{ inputs.do-size }}"
+            ;;
+
+          kubernetes)
+            devpod provider set-options "$PROVIDER_ID" \
+              --option KUBERNETES_CONFIG="${{ inputs.k8s-config-path }}" \
+              --option KUBERNETES_NAMESPACE="${{ inputs.k8s-namespace }}"
+
+            if [[ -n "${{ inputs.k8s-context }}" ]]; then
+              devpod provider set-options "$PROVIDER_ID" \
+                --option KUBERNETES_CONTEXT="${{ inputs.k8s-context }}"
+            fi
+            ;;
+
+          ssh)
+            if [[ -n "${{ inputs.ssh-host }}" ]]; then
+              devpod provider set-options "$PROVIDER_ID" \
+                --option SSH_HOST="${{ inputs.ssh-host }}" \
+                --option SSH_USER="${{ inputs.ssh-user }}" \
+                --option SSH_KEY_PATH="${{ inputs.ssh-key-path }}"
+            fi
+            ;;
+        esac
+
+        # Apply any additional custom options from JSON
+        if [[ "$OPTIONS" != "{}" ]]; then
+          echo "$OPTIONS" | jq -r 'to_entries[] | "--option \(.key)=\(.value)"' | \
+          while read -r opt; do
+            eval "devpod provider set-options $PROVIDER_ID $opt"
+          done
+        fi
+
+        # Set inactivity timeout for all providers
+        devpod provider set-options "$PROVIDER_ID" --option INACTIVITY_TIMEOUT=10m
+
+        # Get provider configuration
+        CONFIG=$(devpod provider options "$PROVIDER_ID" --output json || echo '{}')
+
+        echo "provider-id=$PROVIDER_ID" >> $GITHUB_OUTPUT
+        echo "config=$CONFIG" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Verify provider setup
+      id: verify
+      shell: bash
+      run: |
+        echo "::group::Verifying provider setup"
+
+        PROVIDER_ID="${{ steps.configure.outputs.provider-id }}"
+
+        # Check provider is available
+        if devpod provider list | grep -q "$PROVIDER_ID"; then
+          echo "✅ Provider $PROVIDER_ID is configured"
+          STATUS="ready"
+        else
+          echo "❌ Provider $PROVIDER_ID not found"
+          STATUS="error"
+          exit 1
+        fi
+
+        # Display provider info
+        devpod provider list
+
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"

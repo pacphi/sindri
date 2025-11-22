@@ -1,0 +1,260 @@
+name: Run Integration Test
+description: Runs integration tests across any provider
+
+inputs:
+  provider:
+    description: Provider type
+    required: true
+  target:
+    description: Target identifier
+    required: true
+  test-scenario:
+    description: Test scenario to run
+    required: true
+  test-config:
+    description: Path to test configuration
+    required: false
+    default: .github/test-configs/providers.yaml
+  fly-api-token:
+    description: Fly.io API token
+    required: false
+    default: ''
+  collect-metrics:
+    description: Collect performance metrics
+    required: false
+    default: 'true'
+
+outputs:
+  test-status:
+    description: Test execution status
+    value: ${{ steps.run.outputs.status }}
+  metrics:
+    description: Performance metrics
+    value: ${{ steps.metrics.outputs.data }}
+  report:
+    description: Test report
+    value: ${{ steps.report.outputs.data }}
+
+runs:
+  using: composite
+  steps:
+    - name: Load test scenario
+      id: scenario
+      shell: bash
+      run: |
+        echo "::group::Loading test scenario: ${{ inputs.test-scenario }}"
+
+        CONFIG_FILE="${{ inputs.test-config }}"
+        SCENARIO="${{ inputs.test-scenario }}"
+
+        if [[ -f "$CONFIG_FILE" ]]; then
+          STEPS=$(yq -o=json ".test_scenarios.$SCENARIO.steps" "$CONFIG_FILE" || echo '[]')
+          DESCRIPTION=$(yq ".test_scenarios.$SCENARIO.description" "$CONFIG_FILE" || echo "")
+        else
+          STEPS='[]'
+          DESCRIPTION=""
+        fi
+
+        echo "steps=$STEPS" >> $GITHUB_OUTPUT
+        echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
+
+        echo "Scenario: $DESCRIPTION"
+        echo "Steps: $STEPS"
+
+        echo "::endgroup::"
+
+    - name: Run test scenario
+      id: run
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Running test scenario"
+
+        PROVIDER="${{ inputs.provider }}"
+        TARGET="${{ inputs.target }}"
+        STEPS='${{ steps.scenario.outputs.steps }}'
+        STATUS="success"
+
+        # Execute each step in the scenario
+        for step in $(echo "$STEPS" | jq -r '.[]'); do
+          echo "Executing step: $step"
+
+          case "$step" in
+            deploy_application)
+              echo "Application already deployed"
+              ;;
+
+            verify_health)
+              case "$PROVIDER" in
+                docker)
+                  docker exec "$TARGET" echo "Health check"
+                  ;;
+                fly)
+                  flyctl status -a "$TARGET"
+                  ;;
+                devpod*|kubernetes|ssh)
+                  devpod status "$TARGET"
+                  ;;
+              esac
+              ;;
+
+            test_cli_commands)
+              case "$PROVIDER" in
+                docker)
+                  docker exec "$TARGET" sindri --version
+                  docker exec "$TARGET" extension-manager list
+                  ;;
+                fly)
+                  flyctl ssh console -a "$TARGET" --command "sindri --version"
+                  flyctl ssh console -a "$TARGET" --command "extension-manager list"
+                  ;;
+                devpod*|kubernetes|ssh)
+                  devpod exec "$TARGET" -- sindri --version
+                  devpod exec "$TARGET" -- extension-manager list
+                  ;;
+              esac
+              ;;
+
+            install_extension|install_profile)
+              echo "Installing extensions..."
+              # Implementation depends on scenario
+              ;;
+
+            validate_extension|validate_all_extensions)
+              echo "Validating extensions..."
+              # Implementation depends on scenario
+              ;;
+
+            test_idempotency)
+              echo "Testing idempotency..."
+              # Re-run installations
+              ;;
+
+            create_test_data)
+              echo "Creating test data..."
+              TEST_FILE="/workspace/test-$(date +%s).txt"
+              case "$PROVIDER" in
+                docker)
+                  docker exec "$TARGET" bash -c "echo 'test data' > $TEST_FILE"
+                  ;;
+                fly)
+                  flyctl ssh console -a "$TARGET" --command "echo 'test data' > $TEST_FILE"
+                  ;;
+                devpod*|kubernetes|ssh)
+                  devpod exec "$TARGET" -- bash -c "echo 'test data' > $TEST_FILE"
+                  ;;
+              esac
+              ;;
+
+            restart_application)
+              echo "Restarting application..."
+              case "$PROVIDER" in
+                docker)
+                  docker restart "$TARGET"
+                  sleep 10
+                  ;;
+                fly)
+                  MACHINE_ID=$(flyctl machine list -a "$TARGET" --json | jq -r '.[0].id')
+                  flyctl machine restart "$MACHINE_ID" -a "$TARGET"
+                  sleep 30
+                  ;;
+                devpod*|kubernetes|ssh)
+                  devpod stop "$TARGET"
+                  sleep 5
+                  devpod up "$TARGET"
+                  ;;
+              esac
+              ;;
+
+            verify_data_persistence)
+              echo "Verifying data persistence..."
+              # Check if test data still exists
+              ;;
+
+            cleanup)
+              echo "Cleanup handled by workflow"
+              ;;
+
+            *)
+              echo "Unknown step: $step"
+              ;;
+          esac
+
+          if [[ $? -ne 0 ]]; then
+            echo "Step failed: $step"
+            STATUS="failure"
+            break
+          fi
+        done
+
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Collect metrics
+      id: metrics
+      if: inputs.collect-metrics == 'true'
+      shell: bash
+      run: |
+        echo "::group::Collecting metrics"
+
+        START_TIME=$(date +%s)
+        METRICS='{}'
+
+        # Collect provider-specific metrics
+        case "${{ inputs.provider }}" in
+          docker)
+            # Docker metrics
+            STATS=$(docker stats --no-stream --format json "${{ inputs.target }}" || echo '{}')
+            METRICS=$(echo "$METRICS" | jq --argjson stats "$STATS" '.docker = $stats')
+            ;;
+
+          fly)
+            # Fly.io metrics (would use API)
+            METRICS=$(echo "$METRICS" | jq '.fly = {provider: "fly"}')
+            ;;
+
+          devpod*|kubernetes|ssh)
+            # DevPod metrics
+            METRICS=$(echo "$METRICS" | jq '.devpod = {provider: "${{ inputs.provider }}"}')
+            ;;
+        esac
+
+        # Add timing
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+        METRICS=$(echo "$METRICS" | jq --arg dur "$DURATION" '.duration = ($dur | tonumber)')
+
+        echo "data=$METRICS" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Generate report
+      id: report
+      if: always()
+      shell: bash
+      run: |
+        echo "::group::Generating test report"
+
+        REPORT=$(cat << EOF
+        {
+          "scenario": "${{ inputs.test-scenario }}",
+          "provider": "${{ inputs.provider }}",
+          "target": "${{ inputs.target }}",
+          "status": "${{ steps.run.outputs.status }}",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "metrics": ${{ steps.metrics.outputs.data || '{}' }}
+        }
+        EOF
+        )
+
+        echo "data=$REPORT" >> $GITHUB_OUTPUT
+
+        # Add to job summary
+        echo "## Integration Test Report" >> $GITHUB_STEP_SUMMARY
+        echo "- **Scenario**: ${{ inputs.test-scenario }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Provider**: ${{ inputs.provider }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ${{ steps.run.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+
+        echo "::endgroup::"

@@ -1,0 +1,228 @@
+name: Test DevPod Workspace
+description: Runs tests inside a DevPod workspace
+
+inputs:
+  workspace-id:
+    description: Workspace ID to test
+    required: true
+  test-commands:
+    description: JSON array of test commands to run
+    required: false
+    default: '["sindri --version", "extension-manager list"]'
+  test-scripts:
+    description: Path to test scripts directory
+    required: false
+    default: ''
+  extension:
+    description: Specific extension to test
+    required: false
+    default: ''
+  run-integration-tests:
+    description: Run integration tests
+    required: false
+    default: 'true'
+  collect-logs:
+    description: Collect workspace logs on failure
+    required: false
+    default: 'true'
+  validate-environment:
+    description: Validate environment setup
+    required: false
+    default: 'true'
+
+outputs:
+  test-results:
+    description: JSON object with test results
+    value: ${{ steps.run-tests.outputs.results }}
+  all-passed:
+    description: Whether all tests passed
+    value: ${{ steps.run-tests.outputs.all-passed }}
+  logs-artifact:
+    description: Name of uploaded logs artifact (if any)
+    value: ${{ steps.collect-logs.outputs.artifact-name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate environment
+      if: inputs.validate-environment == 'true'
+      shell: bash
+      run: |
+        echo "::group::Validating DevPod environment"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+
+        # Check workspace is running
+        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.status' || echo "unknown")
+        if [[ "$STATUS" != "Running" ]] && [[ "$STATUS" != "running" ]]; then
+          echo "❌ Workspace is not running (status: $STATUS)"
+          exit 1
+        fi
+
+        # Validate basic environment
+        echo "Testing basic commands..."
+        devpod exec "$WORKSPACE_ID" -- pwd
+        devpod exec "$WORKSPACE_ID" -- whoami
+        devpod exec "$WORKSPACE_ID" -- ls -la /workspace
+
+        echo "✅ Environment validation passed"
+        echo "::endgroup::"
+
+    - name: Run test commands
+      id: run-tests
+      shell: bash
+      run: |
+        echo "::group::Running test commands"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+        COMMANDS='${{ inputs.test-commands }}'
+        RESULTS='{}'
+        ALL_PASSED="true"
+
+        # Run each test command
+        for cmd in $(echo "$COMMANDS" | jq -r '.[]'); do
+          echo "Testing: $cmd"
+
+          set +e
+          OUTPUT=$(devpod exec "$WORKSPACE_ID" -- bash -c "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ $EXIT_CODE -eq 0 ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (exit code: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          # Store result
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" \
+            --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" \
+            --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        echo "results=$RESULTS" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Test specific extension
+      if: inputs.extension != ''
+      shell: bash
+      run: |
+        echo "::group::Testing extension: ${{ inputs.extension }}"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+        EXTENSION="${{ inputs.extension }}"
+
+        # Install extension
+        echo "Installing extension..."
+        devpod exec "$WORKSPACE_ID" -- extension-manager install "$EXTENSION"
+
+        # Validate extension
+        echo "Validating extension..."
+        devpod exec "$WORKSPACE_ID" -- extension-manager validate "$EXTENSION"
+
+        # Test idempotency
+        echo "Testing idempotency..."
+        devpod exec "$WORKSPACE_ID" -- extension-manager install "$EXTENSION"
+        devpod exec "$WORKSPACE_ID" -- extension-manager validate "$EXTENSION"
+
+        # Run extension-specific tests if available
+        TEST_SCRIPT=".github/scripts/test-${EXTENSION}.sh"
+        if [[ -f "$TEST_SCRIPT" ]]; then
+          echo "Running extension-specific tests..."
+          devpod exec "$WORKSPACE_ID" -- bash < "$TEST_SCRIPT"
+        fi
+
+        echo "::endgroup::"
+
+    - name: Run test scripts
+      if: inputs.test-scripts != ''
+      shell: bash
+      run: |
+        echo "::group::Running test scripts"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+        SCRIPT_DIR="${{ inputs.test-scripts }}"
+
+        if [[ -d "$SCRIPT_DIR" ]]; then
+          for script in "$SCRIPT_DIR"/*.sh; do
+            if [[ -f "$script" ]]; then
+              echo "Running: $(basename "$script")"
+              devpod exec "$WORKSPACE_ID" -- bash < "$script"
+            fi
+          done
+        fi
+
+        echo "::endgroup::"
+
+    - name: Run integration tests
+      if: inputs.run-integration-tests == 'true'
+      shell: bash
+      run: |
+        echo "::group::Running integration tests"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+
+        # Test CLI functionality
+        echo "Testing Sindri CLI..."
+        devpod exec "$WORKSPACE_ID" -- sindri config validate || true
+        devpod exec "$WORKSPACE_ID" -- sindri --help
+
+        # Test extension manager
+        echo "Testing extension manager..."
+        devpod exec "$WORKSPACE_ID" -- extension-manager list
+        devpod exec "$WORKSPACE_ID" -- extension-manager list-profiles
+        devpod exec "$WORKSPACE_ID" -- extension-manager validate-all
+
+        # Test volume persistence
+        echo "Testing volume persistence..."
+        devpod exec "$WORKSPACE_ID" -- bash -c "echo 'test-data' > /workspace/test-persistence.txt"
+        devpod exec "$WORKSPACE_ID" -- cat /workspace/test-persistence.txt
+
+        echo "::endgroup::"
+
+    - name: Collect logs on failure
+      id: collect-logs
+      if: failure() && inputs.collect-logs == 'true'
+      shell: bash
+      run: |
+        echo "::group::Collecting logs"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+        ARTIFACT_NAME="devpod-logs-${WORKSPACE_ID}-${{ github.run_id }}"
+
+        # Create logs directory
+        mkdir -p /tmp/devpod-logs
+
+        # Get DevPod logs
+        devpod logs "$WORKSPACE_ID" > /tmp/devpod-logs/devpod.log 2>&1 || true
+
+        # Get workspace status
+        devpod status "$WORKSPACE_ID" --output json > /tmp/devpod-logs/status.json 2>&1 || true
+
+        # Get provider logs
+        devpod provider logs > /tmp/devpod-logs/provider.log 2>&1 || true
+
+        # Try to get extension manager logs from workspace
+        devpod exec "$WORKSPACE_ID" -- cat /workspace/.system/logs/extension-manager.log \
+          > /tmp/devpod-logs/extension-manager.log 2>&1 || true
+
+        echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Upload logs
+      if: failure() && inputs.collect-logs == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.collect-logs.outputs.artifact-name }}
+        path: /tmp/devpod-logs/
+        retention-days: 7
