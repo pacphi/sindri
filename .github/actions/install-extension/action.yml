@@ -8,6 +8,9 @@ inputs:
   app-name:
     description: Name of the Fly.io app
     required: true
+  fly-api-token:
+    description: Fly.io API token
+    required: true
   with-dependencies:
     description: Install dependencies automatically
     required: false
@@ -26,6 +29,8 @@ runs:
 
     - name: Upload extension files
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         # Create temp directory for upload
         TEMP_DIR=$(mktemp -d)
@@ -40,6 +45,8 @@ runs:
 
     - name: Install extension
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         echo "Installing extension: ${{ inputs.extension }}"
 
@@ -54,6 +61,8 @@ runs:
 
     - name: Verify installation
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         flyctl ssh console -a "${{ inputs.app-name }}" \
           --command "extension-manager status ${{ inputs.extension }}"

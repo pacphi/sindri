@@ -5,6 +5,9 @@ inputs:
   app-name:
     description: Name of the Fly.io app to cleanup
     required: true
+  fly-api-token:
+    description: Fly.io API token
+    required: true
   force:
     description: Force deletion even if errors occur
     required: false
@@ -15,6 +18,8 @@ runs:
   steps:
     - name: Destroy Fly app
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         echo "Cleaning up app: ${{ inputs.app-name }}"
 
@@ -27,6 +32,8 @@ runs:
 
     - name: Verify cleanup
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         # Check if app still exists
         if flyctl apps list | grep -q "${{ inputs.app-name }}"; then

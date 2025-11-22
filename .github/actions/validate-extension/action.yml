@@ -8,6 +8,9 @@ inputs:
   app-name:
     description: Name of the Fly.io app
     required: true
+  fly-api-token:
+    description: Fly.io API token
+    required: true
   run-tests:
     description: Run extension-specific tests
     required: false
@@ -18,6 +21,8 @@ runs:
   steps:
     - name: Run extension validation
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         echo "Validating extension: ${{ inputs.extension }}"
 
@@ -27,6 +32,8 @@ runs:
 
     - name: Check extension functions
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         # Test that extension functions are available
         case "${{ inputs.extension }}" in
@@ -69,6 +76,8 @@ runs:
 
     - name: Check idempotency
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         echo "Testing idempotency..."
 

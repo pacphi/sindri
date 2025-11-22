@@ -5,6 +5,9 @@ inputs:
   app-name:
     description: Name of the Fly.io app
     required: true
+  fly-api-token:
+    description: Fly.io API token
+    required: true
   extension:
     description: Extension to test (affects VM sizing)
     required: false
@@ -23,6 +26,8 @@ runs:
   steps:
     - name: Create Fly app
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         flyctl apps create "${{ inputs.app-name }}" --org personal || true
 
@@ -48,6 +53,8 @@ runs:
 
     - name: Deploy VM
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         flyctl deploy \
           --app "${{ inputs.app-name }}" \
@@ -58,6 +65,8 @@ runs:
 
     - name: Wait for VM to be ready
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         echo "Waiting for VM to be ready..."
         for i in {1..30}; do
@@ -71,5 +80,7 @@ runs:
 
     - name: Verify deployment
       shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
         flyctl status -a "${{ inputs.app-name }}"
