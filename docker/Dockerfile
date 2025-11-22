@@ -46,7 +46,9 @@ COPY docker/scripts /docker/scripts
 
 # Set up entrypoint
 COPY docker/scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh /docker/scripts/*.sh
+RUN chmod +x /entrypoint.sh /docker/scripts/*.sh && \
+    chmod -R 755 /docker/lib && \
+    chmod -R 755 /docker/scripts
 
 # Allow developer sudo access (for apt installations)
 RUN echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers

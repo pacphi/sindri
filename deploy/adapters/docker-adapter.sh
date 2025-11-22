@@ -28,8 +28,6 @@ fi
 
 # Generate docker-compose.yml
 cat > docker-compose.yml << EODC
-version: '3.8'
-
 services:
   sindri:
     image: sindri:latest
