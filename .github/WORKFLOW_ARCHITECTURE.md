@@ -312,17 +312,17 @@ Tests run in parallel with configurable limits:
 
 The following table shows which GitHub secrets need to be configured for each provider:
 
-| Provider | Required Secrets | Optional Secrets | Description |
-|----------|------------------|------------------|-------------|
-| **Docker** | None | `DOCKER_HUB_USERNAME`<br>`DOCKER_HUB_TOKEN` | Local Docker testing requires no secrets. Registry push requires Docker Hub credentials. |
-| **Fly.io** | `FLY_API_TOKEN` | None | API token from [fly.io/user/personal_access_tokens](https://fly.io/user/personal_access_tokens) |
-| **DevPod AWS** | `AWS_ACCESS_KEY_ID`<br>`AWS_SECRET_ACCESS_KEY` | `AWS_SESSION_TOKEN`<br>`AWS_REGION` | IAM user credentials with EC2 permissions. Consider using OIDC for better security. |
-| **DevPod GCP** | `GCP_SERVICE_ACCOUNT_KEY` | `GCP_PROJECT_ID` | Service account JSON key with Compute Engine permissions |
-| **DevPod Azure** | `AZURE_CLIENT_ID`<br>`AZURE_CLIENT_SECRET`<br>`AZURE_TENANT_ID` | `AZURE_SUBSCRIPTION_ID` | Service principal credentials with VM contributor role |
-| **DevPod DigitalOcean** | `DIGITALOCEAN_TOKEN` | None | Personal access token with read/write scope |
-| **Kubernetes** | `KUBECONFIG` | `K8S_NAMESPACE`<br>`K8S_CONTEXT` | Base64-encoded kubeconfig file with cluster access |
-| **SSH** | `SSH_PRIVATE_KEY` | `SSH_HOST`<br>`SSH_USER`<br>`SSH_PORT` | Private key for SSH authentication to remote servers |
-| **All Providers** | None | `SLACK_WEBHOOK_URL`<br>`DISCORD_WEBHOOK_URL` | Notification webhook URLs for deployment status |
+| Provider                | Required Secrets                                                | Optional Secrets                             | Description                                                                                     |
+| ----------------------- | --------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Docker**              | None                                                            | `DOCKER_HUB_USERNAME`<br>`DOCKER_HUB_TOKEN`  | Local Docker testing requires no secrets. Registry push requires Docker Hub credentials.        |
+| **Fly.io**              | `FLY_API_TOKEN`                                                 | None                                         | API token from [fly.io/user/personal_access_tokens](https://fly.io/user/personal_access_tokens) |
+| **DevPod AWS**          | `AWS_ACCESS_KEY_ID`<br>`AWS_SECRET_ACCESS_KEY`                  | `AWS_SESSION_TOKEN`<br>`AWS_REGION`          | IAM user credentials with EC2 permissions. Consider using OIDC for better security.             |
+| **DevPod GCP**          | `GCP_SERVICE_ACCOUNT_KEY`                                       | `GCP_PROJECT_ID`                             | Service account JSON key with Compute Engine permissions                                        |
+| **DevPod Azure**        | `AZURE_CLIENT_ID`<br>`AZURE_CLIENT_SECRET`<br>`AZURE_TENANT_ID` | `AZURE_SUBSCRIPTION_ID`                      | Service principal credentials with VM contributor role                                          |
+| **DevPod DigitalOcean** | `DIGITALOCEAN_TOKEN`                                            | None                                         | Personal access token with read/write scope                                                     |
+| **Kubernetes**          | `KUBECONFIG`                                                    | `K8S_NAMESPACE`<br>`K8S_CONTEXT`             | Base64-encoded kubeconfig file with cluster access                                              |
+| **SSH**                 | `SSH_PRIVATE_KEY`                                               | `SSH_HOST`<br>`SSH_USER`<br>`SSH_PORT`       | Private key for SSH authentication to remote servers                                            |
+| **All Providers**       | None                                                            | `SLACK_WEBHOOK_URL`<br>`DISCORD_WEBHOOK_URL` | Notification webhook URLs for deployment status                                                 |
 
 ### Setting Up Secrets
 
@@ -355,7 +355,7 @@ AZURE_TENANT_ID: "00000000-0000-0000-0000-000000000000"
 DIGITALOCEAN_TOKEN: "dop_v1_***"
 
 # Kubernetes setup
-KUBECONFIG: "YXBpVmVyc2lvbjogdjEK..."  # base64 encoded
+KUBECONFIG: "YXBpVmVyc2lvbjogdjEK..." # base64 encoded
 
 # Notifications
 SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/T***/B***/***"
@@ -371,7 +371,7 @@ jobs:
     uses: ./.github/workflows/test-provider.yml
     with:
       provider: devpod-aws
-    secrets: inherit  # Passes all secrets
+    secrets: inherit # Passes all secrets
 ```
 
 Or explicitly pass specific secrets:
@@ -398,7 +398,7 @@ jobs:
 ### Timeout Management
 
 ```yaml
-timeout-minutes: 30  # Job timeout
+timeout-minutes: 30 # Job timeout
 timeout_seconds: 300 # Step timeout
 ```
 

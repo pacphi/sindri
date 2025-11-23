@@ -27,6 +27,21 @@ profiles:
       - openskills
       - monitoring
 
+  anthropic-dev:
+    description: AI development with Anthropic toolset bias
+    extensions:
+      - agent-manager
+      - ai-toolkit
+      - claude-code-mux
+      - claude-marketplace
+      - cloud-tools
+      - openskills
+      - nodejs-devtools
+      - playwright
+      - rust
+      - ruvnet-aliases
+      - tmux-workspaces
+
   systems:
     description: Systems programming
     extensions:
