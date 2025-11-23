@@ -296,7 +296,11 @@ jobs:
           fly-api-token: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Cleanup DevPod resources
-        if: always() && inputs.skip-cleanup != true && (startsWith(inputs.provider, 'devpod') || inputs.provider == 'kubernetes' || inputs.provider == 'ssh')
+        if: >-
+          always() && inputs.skip-cleanup != true &&
+          (startsWith(inputs.provider, 'devpod') ||
+           inputs.provider == 'kubernetes' ||
+           inputs.provider == 'ssh')
         uses: ./.github/actions/providers/devpod/cleanup
         with:
           workspace-id: ${{ steps.setup.outputs.deployment-id }}

@@ -42,18 +42,8 @@ jobs:
 
       - name: Validate YAML files
         run: |
-          cat > .yamllint.yml << EOF
-          extends: default
-          rules:
-            line-length:
-              max: 120
-              level: warning
-            comments:
-              min-spaces-from-content: 1
-            document-start: disable
-          EOF
-
-          find . -name "*.yaml" -o -name "*.yml" | xargs yamllint -c .yamllint.yml
+          # Exclude node_modules from validation
+          find . -path ./node_modules -prune -o \( -name "*.yaml" -o -name "*.yml" \) -type f -print | xargs yamllint -c .yamllint.yml
 
   schema-validation:
     name: Schema Validation

@@ -35,7 +35,8 @@ jobs:
       - name: Validate YAML files
         run: |
           pip install yamllint
-          find . -name "*.yaml" -o -name "*.yml" | xargs yamllint -d relaxed
+          # Exclude node_modules from validation
+          find . -path ./node_modules -prune -o \( -name "*.yaml" -o -name "*.yml" \) -type f -print | xargs yamllint -c .yamllint.yml
 
       - name: Check extension manager syntax
         run: |

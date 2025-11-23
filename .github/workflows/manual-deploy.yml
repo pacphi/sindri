@@ -232,7 +232,10 @@ jobs:
 
       # DevPod deployments
       - name: Setup DevPod provider
-        if: startsWith(github.event.inputs.provider, 'devpod') || github.event.inputs.provider == 'kubernetes' || github.event.inputs.provider == 'ssh'
+        if: >-
+          startsWith(github.event.inputs.provider, 'devpod') ||
+          github.event.inputs.provider == 'kubernetes' ||
+          github.event.inputs.provider == 'ssh'
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: ${{ github.event.inputs.provider }}
@@ -248,7 +251,10 @@ jobs:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
       - name: Deploy DevPod workspace
-        if: startsWith(github.event.inputs.provider, 'devpod') || github.event.inputs.provider == 'kubernetes' || github.event.inputs.provider == 'ssh'
+        if: >-
+          startsWith(github.event.inputs.provider, 'devpod') ||
+          github.event.inputs.provider == 'kubernetes' ||
+          github.event.inputs.provider == 'ssh'
         id: deploy-devpod
         uses: ./.github/actions/providers/devpod/deploy
         with:
@@ -317,41 +323,20 @@ jobs:
     needs: [validate-inputs, deploy]
     if: always() && github.event.inputs.notify-slack == 'true'
     steps:
+      - uses: actions/checkout@v5
+
       - name: Prepare notification
         id: notification
         run: |
-          if [[ "${{ needs.deploy.outputs.deployment-status }}" == "success" ]]; then
-            STATUS_EMOJI="✅"
-            STATUS_TEXT="successful"
-          else
-            STATUS_EMOJI="❌"
-            STATUS_TEXT="failed"
-          fi
-
-          MESSAGE=$(cat << EOF
-          {
-            "text": "Manual Deployment ${STATUS_TEXT}",
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "${STATUS_EMOJI} *Manual Deployment ${STATUS_TEXT}*\n*App:* ${{ needs.validate-inputs.outputs.app-name }}\n*Provider:* ${{ github.event.inputs.provider }}\n*Environment:* ${{ github.event.inputs.environment }}\n*URL:* ${{ needs.deploy.outputs.deployment-url }}"
-                }
-              },
-              {
-                "type": "context",
-                "elements": [
-                  {
-                    "type": "mrkdwn",
-                    "text": "Deployed by: ${{ github.actor }} | Run: ${{ github.run_id }}"
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
-          )
+          STATUS="${{ needs.deploy.outputs.deployment-status }}"
+          MESSAGE=$(.github/scripts/generate-slack-notification.sh \
+            "$STATUS" \
+            "${{ needs.validate-inputs.outputs.app-name }}" \
+            "${{ github.event.inputs.provider }}" \
+            "${{ github.event.inputs.environment }}" \
+            "${{ needs.deploy.outputs.deployment-url }}" \
+            "${{ github.actor }}" \
+            "${{ github.run_id }}")
 
           echo "message=$MESSAGE" >> $GITHUB_OUTPUT
 
