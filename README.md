@@ -73,6 +73,7 @@ cd sindri
 - **[Deployment Overview](docs/DEPLOYMENT.md)** - Provider comparison and selection
 - **[Fly.io Deployment](docs/FLY_DEPLOYMENT.md)** - Fly.io-specific guide
 - **[DevPod Integration](docs/DEVPOD_INTEGRATION.md)** - DevContainer setup
+- **[Secrets Management](docs/SECRETS_MANAGEMENT.md)** - Managing secrets across providers
 
 ### Project Management
 

@@ -521,6 +521,29 @@ main() {
                     ;;
             esac
             ;;
+        secrets)
+            # Source secrets manager
+            source "$BASE_DIR/cli/secrets-manager"
+
+            case "${1:-}" in
+                validate)
+                    secrets_validate "${2:-sindri.yaml}"
+                    ;;
+                list)
+                    secrets_list "${2:-sindri.yaml}"
+                    ;;
+                test-vault)
+                    secrets_test_vault
+                    ;;
+                encode-file)
+                    [[ -z "${2:-}" ]] && echo "Usage: sindri secrets encode-file <path>" && exit 1
+                    secrets_encode_file "$2"
+                    ;;
+                *)
+                    echo "Usage: sindri secrets <validate|list|test-vault|encode-file>"
+                    ;;
+            esac
+            ;;
         help|-h|--help)
             show_help
             ;;

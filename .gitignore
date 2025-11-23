@@ -8,6 +8,7 @@
 *.env.production
 *.env.staging
 .env.*
+.env.secrets
 secrets/
 keys/
 certs/

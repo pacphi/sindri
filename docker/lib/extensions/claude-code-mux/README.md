@@ -94,14 +94,17 @@ ccm-start logs     # Tail server logs
 
 The extension installs a comprehensive configuration template at `/workspace/config/ccm-config.toml`. You can configure CCM via:
 
-**Option 1: Web UI (Recommended)**
+#### Option 1: Web UI (Recommended)
+
 Access `http://127.0.0.1:13456` to:
+
 1. **Providers Tab**: Add API keys for your providers (Anthropic, OpenAI, etc.)
 2. **Models Tab**: Configure model mappings and fallback chains
 3. **Router Tab**: Set intelligent routing rules (auto-saves)
 4. **Test Tab**: Live request testing
 
-**Option 2: Edit Config File Directly**
+#### Option 2: Edit Config File Directly
+
 ```bash
 $EDITOR /workspace/config/ccm-config.toml
 ```

@@ -5,12 +5,17 @@ set -e
 
 # shellcheck disable=SC2034  # May be used in future adapter implementations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SINDRI_YAML="${1:-sindri.yaml}"
 
 if [[ ! -f "$SINDRI_YAML" ]]; then
     echo "Error: $SINDRI_YAML not found"
     exit 1
 fi
+
+# Source common utilities and secrets manager
+source "$BASE_DIR/docker/lib/common.sh"
+source "$BASE_DIR/cli/secrets-manager"
 
 # Parse sindri.yaml
 NAME=$(yq '.name' "$SINDRI_YAML")
@@ -211,6 +216,15 @@ fi
 # Create volume if not exists
 if ! flyctl volumes list -a "$NAME" | grep -q "workspace"; then
     flyctl volumes create workspace -s 10 -r "$REGION" -a "$NAME"
+fi
+
+# Resolve and inject secrets
+print_status "Resolving secrets..."
+if secrets_resolve_all "$SINDRI_YAML"; then
+    print_status "Injecting secrets into Fly.io app..."
+    secrets_inject_fly "$NAME"
+else
+    print_warning "Secret resolution failed, continuing without secrets..."
 fi
 
 # Deploy

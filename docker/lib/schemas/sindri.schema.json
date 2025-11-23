@@ -94,21 +94,72 @@
     },
     "secrets": {
       "type": "array",
+      "description": "Secrets to inject into the deployment",
       "items": {
         "type": "object",
         "required": ["name", "source"],
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Environment variable name for the secret",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
           },
           "source": {
             "type": "string",
-            "enum": ["env", "file", "vault"]
+            "enum": ["env", "file", "vault"],
+            "description": "Source type: env (environment/file), file (file mount), vault (HashiCorp Vault)"
+          },
+          "required": {
+            "type": "boolean",
+            "default": false,
+            "description": "Fail deployment if secret is not available"
           },
           "path": {
-            "type": "string"
+            "type": "string",
+            "description": "File path (for source: file)"
+          },
+          "mountPath": {
+            "type": "string",
+            "description": "Container destination path (for source: file)"
+          },
+          "permissions": {
+            "type": "string",
+            "pattern": "^0[0-7]{3}$",
+            "default": "0644",
+            "description": "Unix file permissions in octal (for source: file)"
+          },
+          "vaultPath": {
+            "type": "string",
+            "description": "Vault KV path (for source: vault)"
+          },
+          "vaultKey": {
+            "type": "string",
+            "description": "Key within the Vault secret (for source: vault)"
+          },
+          "vaultMount": {
+            "type": "string",
+            "default": "secret",
+            "description": "Vault mount point (for source: vault)"
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "source": { "const": "file" } }
+            },
+            "then": {
+              "required": ["path", "mountPath"]
+            }
+          },
+          {
+            "if": {
+              "properties": { "source": { "const": "vault" } }
+            },
+            "then": {
+              "required": ["vaultPath", "vaultKey"]
+            }
+          }
+        ]
       }
     },
     "providers": {
