@@ -118,7 +118,13 @@ jobs:
           esac
 
           echo "config=$CONFIG_PATH" >> $GITHUB_OUTPUT
+
+          # Extract container name from config for Docker provider
+          CONTAINER_NAME=$(yq '.name' "$CONFIG_PATH")
+          echo "container-name=$CONTAINER_NAME" >> $GITHUB_OUTPUT
+
           echo "::notice title=Config Path::Using $CONFIG_PATH for ${{ inputs.provider }} provider"
+          echo "::notice title=Container Name::Container will be named $CONTAINER_NAME"
 
       - name: Setup Sindri environment
         uses: ./.github/actions/core/setup-sindri
@@ -268,7 +274,7 @@ jobs:
           case "${{ inputs.provider }}" in
             docker)
               docker ps
-              docker exec sindri-dev sindri --version
+              docker exec ${{ steps.config-path.outputs.container-name }} sindri --version
               ;;
             fly)
               flyctl ssh console -a sindri-test-${{ steps.setup.outputs.deployment-id }} \
@@ -295,9 +301,10 @@ jobs:
             echo "Using generic provider test"
             case "${{ inputs.provider }}" in
               docker)
-                docker exec sindri-dev extension-manager list
-                docker exec sindri-dev extension-manager install-profile ${{ inputs.extension-profile }}
-                docker exec sindri-dev extension-manager validate-all
+                CONTAINER="${{ steps.config-path.outputs.container-name }}"
+                docker exec "$CONTAINER" extension-manager list
+                docker exec "$CONTAINER" extension-manager install-profile ${{ inputs.extension-profile }}
+                docker exec "$CONTAINER" extension-manager validate-all
                 ;;
               fly)
                 APP_NAME="sindri-test-${{ steps.setup.outputs.deployment-id }}"
@@ -327,7 +334,7 @@ jobs:
       - name: Cleanup Docker resources
         if: always() && inputs.skip-cleanup != true && inputs.provider == 'docker'
         run: |
-          docker-compose down -v || true
+          docker compose down -v || true
           docker volume ls | grep sindri | awk '{print $2}' | xargs -r docker volume rm || true
 
       - name: Cleanup Fly.io resources
