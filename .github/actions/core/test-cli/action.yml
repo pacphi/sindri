@@ -9,15 +9,15 @@ inputs:
   test-in-container:
     description: Whether to test inside a Docker container
     required: false
-    default: 'false'
+    default: "false"
   image:
     description: Docker image to use for container tests
     required: false
-    default: 'sindri:latest'
+    default: "sindri:latest"
   expected-exit-codes:
     description: JSON object mapping commands to expected exit codes
     required: false
-    default: '{}'
+    default: "{}"
 
 outputs:
   test-results:

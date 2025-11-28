@@ -11,47 +11,47 @@ inputs:
   source:
     description: Source repository or path for the workspace
     required: false
-    default: '.'
+    default: "."
   devcontainer-path:
     description: Path to devcontainer.json file
     required: false
-    default: '.devcontainer/devcontainer.json'
+    default: ".devcontainer/devcontainer.json"
   ide:
     description: IDE to use (vscode, openvscode, none)
     required: false
-    default: 'none'
+    default: "none"
   prebuild-repository:
     description: Container registry for prebuild images
     required: false
-    default: ''
+    default: ""
   dotfiles-url:
     description: URL to dotfiles repository
     required: false
-    default: ''
+    default: ""
   dotfiles-script:
     description: Script to run for dotfiles installation
     required: false
-    default: ''
+    default: ""
   env-vars:
     description: JSON object with environment variables
     required: false
-    default: '{}'
+    default: "{}"
   git-credentials:
     description: Inject git credentials into workspace
     required: false
-    default: 'true'
+    default: "true"
   docker-credentials:
     description: Inject docker credentials into workspace
     required: false
-    default: 'true'
+    default: "true"
   wait-for-ready:
     description: Wait for workspace to be ready
     required: false
-    default: 'true'
+    default: "true"
   timeout-seconds:
     description: Timeout for workspace readiness
     required: false
-    default: '600'
+    default: "600"
 
 outputs:
   workspace-status:

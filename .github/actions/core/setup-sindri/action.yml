@@ -9,11 +9,11 @@ inputs:
   validate-config:
     description: Whether to validate the configuration
     required: false
-    default: 'true'
+    default: "true"
   install-dependencies:
     description: Whether to install system dependencies
     required: false
-    default: 'true'
+    default: "true"
 
 outputs:
   name:

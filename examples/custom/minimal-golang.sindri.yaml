@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - Custom Minimal Go Example
+# Go-only development (minimal setup)
+version: "1.0"
+name: sindri-custom-minimal-golang
+
+deployment:
+  provider: fly
+  resources:
+    memory: 2GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  active:
+    - golang
+
+providers:
+  fly:
+    region: ord
+    cpuKind: shared
+    autoStopMachines: true
+    autoStartMachines: true

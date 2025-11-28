@@ -4,25 +4,25 @@ on:
   push:
     branches: [main, develop]
     paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.github/ISSUE_TEMPLATE/**'
+      - "**.md"
+      - "docs/**"
+      - ".github/ISSUE_TEMPLATE/**"
   pull_request:
     branches: [main, develop]
     types: [opened, synchronize, reopened]
   schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+    - cron: "0 2 * * *" # Daily at 2 AM UTC
   workflow_dispatch:
     inputs:
       providers:
         description: Providers to test (comma-separated or 'all')
         required: false
-        default: 'docker,fly'
+        default: "docker,fly"
         type: string
       test-suite:
         description: Test suite to run
         required: false
-        default: 'integration'
+        default: "integration"
         type: choice
         options:
           - smoke
@@ -42,17 +42,54 @@ env:
   DOCKER_BUILDKIT: 1
 
 jobs:
-  # Code validation and quality checks
-  validate:
-    name: Validate Code
-    uses: ./.github/workflows/validation.yml
+  # Shell script validation
+  shellcheck:
+    name: Shell Script Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on all shell scripts
+        run: |
+          find . -name "*.sh" -type f ! -path "./node_modules/*" | while read -r script; do
+            echo "Checking: $script"
+            shellcheck "$script" || exit 1
+          done
+
+  # Markdown validation
+  markdownlint:
+    name: Markdown Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Lint markdown files
+        run: markdownlint '**/*.md' --ignore node_modules
+
+  # YAML validation (uses comprehensive new workflow)
+  validate-yaml:
+    name: Validate YAML
+    uses: ./.github/workflows/validate-yaml.yml
     secrets: inherit
 
   # Build Docker image
   build:
     name: Build Image
     runs-on: ubuntu-latest
-    needs: validate
+    needs: [shellcheck, markdownlint, validate-yaml]
     outputs:
       image-tag: ${{ steps.build.outputs.tag }}
       image-digest: ${{ steps.build.outputs.digest }}
@@ -115,7 +152,7 @@ jobs:
   generate-matrix:
     name: Generate Test Matrix
     runs-on: ubuntu-latest
-    needs: validate
+    needs: [shellcheck, markdownlint, validate-yaml]
     outputs:
       providers: ${{ steps.matrix.outputs.providers }}
       extensions: ${{ steps.matrix.outputs.extensions }}
@@ -187,7 +224,9 @@ jobs:
     name: CI Required Checks
     runs-on: ubuntu-latest
     needs:
-      - validate
+      - shellcheck
+      - markdownlint
+      - validate-yaml
       - build
       - test-cli
     if: ${{ always() }}
@@ -195,16 +234,22 @@ jobs:
       - name: Check required jobs
         run: |
           # Check if any required job failed
-          VALIDATE="${{ needs.validate.result }}"
+          SHELLCHECK="${{ needs.shellcheck.result }}"
+          MARKDOWNLINT="${{ needs.markdownlint.result }}"
+          VALIDATE_YAML="${{ needs.validate-yaml.result }}"
           BUILD="${{ needs.build.result }}"
           TEST_CLI="${{ needs.test-cli.result }}"
 
-          if [[ "$VALIDATE" != "success" ]] || \
+          if [[ "$SHELLCHECK" != "success" ]] || \
+             [[ "$MARKDOWNLINT" != "success" ]] || \
+             [[ "$VALIDATE_YAML" != "success" ]] || \
              [[ "$BUILD" != "success" ]] || \
              [[ "$TEST_CLI" != "success" ]]; then
             echo "❌ Required CI checks failed"
             echo "Results:"
-            echo "  validate: $VALIDATE"
+            echo "  shellcheck: $SHELLCHECK"
+            echo "  markdownlint: $MARKDOWNLINT"
+            echo "  validate-yaml: $VALIDATE_YAML"
             echo "  build: $BUILD"
             echo "  test-cli: $TEST_CLI"
             exit 1

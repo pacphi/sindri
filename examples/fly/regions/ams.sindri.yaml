@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Fly.io Amsterdam Region
+# Deploy to Amsterdam (ams) data center
+version: "1.0"
+name: sindri-test-fly-ams
+
+deployment:
+  provider: fly
+  resources:
+    memory: 2GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: minimal
+
+providers:
+  fly:
+    region: ams # Amsterdam region
+    cpuKind: shared
+    autoStopMachines: false
+    autoStartMachines: true

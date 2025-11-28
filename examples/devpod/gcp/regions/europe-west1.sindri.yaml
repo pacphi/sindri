@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - DevPod GCP Belgium
+# GCP Compute Engine in Belgium region
+version: "1.0"
+name: sindri-test-devpod-gcp-belgium
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: gcp
+    gcp:
+      zone: europe-west1-b
+      machineType: e2-standard-4

@@ -5,19 +5,19 @@ inputs:
   install-compose:
     description: Whether to install Docker Compose
     required: false
-    default: 'true'
+    default: "true"
   compose-version:
     description: Docker Compose version to install
     required: false
-    default: 'latest'
+    default: "latest"
   buildx-version:
     description: Docker Buildx version to use
     required: false
-    default: 'latest'
+    default: "latest"
   registry-auth:
     description: JSON object with registry authentication details
     required: false
-    default: ''
+    default: ""
 
 outputs:
   docker-version:

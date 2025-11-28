@@ -1172,5 +1172,5 @@ sindri deploy
 
 - [Configuration Reference](CONFIGURATION.md) - Complete sindri.yaml reference
 - [Security Best Practices](SECURITY.md) - Security guidelines
-- [Fly Deployment](FLY_DEPLOYMENT.md) - Fly.io-specific deployment
+- [Fly Deployment](providers/FLY.md) - Fly.io-specific deployment
 - [Architecture](ARCHITECTURE.md) - System architecture overview

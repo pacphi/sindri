@@ -19,11 +19,11 @@ inputs:
   install-cli:
     description: Whether to install Fly CLI
     required: false
-    default: 'true'
+    default: "true"
   flyctl-version:
     description: Fly CLI version to install
     required: false
-    default: 'latest'
+    default: "latest"
 
 outputs:
   app-name:

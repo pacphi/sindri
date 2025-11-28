@@ -30,14 +30,7 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "base",
-              "language",
-              "dev-tools",
-              "infrastructure",
-              "ai",
-              "utilities"
-            ]
+            "enum": ["base", "language", "dev-tools", "infrastructure", "ai", "utilities"]
           },
           "dependencies": {
             "type": "array",

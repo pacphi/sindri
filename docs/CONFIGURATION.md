@@ -454,5 +454,7 @@ docker/lib/schemas/sindri.schema.json
 
 - [Quickstart](QUICKSTART.md)
 - [Extension Catalog](EXTENSIONS.md)
-- [Fly.io Deployment](FLY_DEPLOYMENT.md)
-- [DevPod Integration](DEVPOD_INTEGRATION.md)
+- [Fly.io Deployment](providers/FLY.md)
+- [DevPod Integration](providers/DEVPOD.md)
+- [Docker Deployment](providers/DOCKER.md)
+- [Kubernetes Deployment](providers/KUBERNETES.md)

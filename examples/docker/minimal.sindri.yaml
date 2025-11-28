@@ -1,0 +1,17 @@
+---
+# Sindri Configuration - Docker Compose Minimal
+# Local development with Docker Compose
+version: "1.0"
+name: sindri-test-docker-minimal
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 2GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: minimal

@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/registry.schema.json",
+  "title": "Sindri Extension Registry",
+  "description": "Schema for the extension registry",
+  "type": "object",
+  "required": ["version", "extensions"],
+  "properties": {
+    "version": {
+      "type": ["string", "number"],
+      "description": "Schema version"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["category", "description"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "base",
+              "language",
+              "dev-tools",
+              "infrastructure",
+              "ai",
+              "database",
+              "monitoring",
+              "mobile",
+              "desktop",
+              "utilities"
+            ],
+            "description": "Category this extension belongs to"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Human-readable description of the extension"
+          },
+          "protected": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this extension is protected (cannot be removed)"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of extension names this extension depends on"
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Map of extension names to their registry entries"
+    }
+  },
+  "additionalProperties": false
+}

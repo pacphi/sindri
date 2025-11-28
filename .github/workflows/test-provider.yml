@@ -198,13 +198,15 @@ jobs:
 
       # DevPod SSH Provider
       - name: Setup DevPod SSH provider
-        if: inputs.provider == 'ssh' && secrets.SSH_PRIVATE_KEY != ''
+        if: inputs.provider == 'ssh'
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: ssh
           provider-name: ssh-test
           ssh-host: ${{ steps.config.outputs.config.ssh_host }}
           ssh-user: ${{ steps.config.outputs.config.ssh_user }}
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       # Deploy DevPod workspace (for all DevPod providers)
       - name: Deploy DevPod workspace

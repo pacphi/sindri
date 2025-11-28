@@ -226,6 +226,7 @@ EOF
 
     4)
         print_status "Copying template for custom configuration..."
+        TEMPLATE_FILE="/docker/lib/extensions/claude-code-mux/config-template.toml"
         cp "$TEMPLATE_FILE" "$CONFIG_FILE"
         print_success "Template copied to: $CONFIG_FILE"
         echo ""

@@ -4,13 +4,13 @@ Comprehensive guide to testing in Sindri.
 
 ## Test Philosophy
 
-Sindri uses multiple layers of testing:
+Sindri uses a **YAML-driven testing architecture** where:
 
-1. **Static Analysis** - Linting and schema validation
-2. **Unit Tests** - Individual component testing
-3. **Integration Tests** - End-to-end workflow testing
-4. **Extension Tests** - Per-extension validation
-5. **Infrastructure Tests** - Provider deployment testing
+1. **sindri.yaml is the single source of truth** - All provider-specific details live in configuration files
+2. **Tests iterate over configuration files** - No provider logic in workflows
+3. **End consumers pass sindri.yaml** - Deploy and teardown accept a config file
+4. **Test fixtures are pre-defined configs** - The `examples/` directory covers all test scenarios
+5. **All YAML files are validated** - Extensions, profiles, registry, categories, templates all have schema validation
 
 ## Quick Test Commands
 
@@ -26,6 +26,9 @@ pnpm test:unit              # Unit tests
 pnpm test:integration       # Integration tests
 pnpm test:extensions        # Extension tests
 
+# YAML validation (new)
+./test/unit/yaml/run-all-yaml-tests.sh
+
 # Specific linting
 pnpm lint                   # All linting
 pnpm lint:yaml              # YAML linting
@@ -37,40 +40,92 @@ pnpm format                 # Format all files
 pnpm format:md              # Format markdown only
 ```
 
+## YAML-Driven Testing
+
+### Test Examples as Fixtures
+
+All test scenarios are defined as `sindri.yaml` files in the `examples/` directory:
+
+```text
+examples/
+├── fly/
+│   ├── minimal.sindri.yaml       # Basic Fly.io test
+│   ├── fullstack.sindri.yaml     # Full profile test
+│   └── regions/                  # Region-specific tests
+├── docker/
+│   ├── minimal.sindri.yaml       # Local Docker test
+│   └── fullstack.sindri.yaml
+├── devpod/
+│   ├── aws/                      # AWS EC2 via DevPod
+│   ├── gcp/                      # GCP via DevPod
+│   ├── azure/                    # Azure via DevPod
+│   ├── digitalocean/             # DigitalOcean via DevPod
+│   └── kubernetes/               # K8s via DevPod
+└── profiles/                     # Profile-specific tests
+```
+
+### Running Tests Against Examples
+
+```bash
+# Test a single configuration
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+
+# Test all examples in a directory
+./cli/sindri test --config examples/fly/ --suite smoke
+
+# Validate configuration before testing
+./cli/sindri config validate --config examples/fly/minimal.sindri.yaml
+```
+
+### Test Suites
+
+| Suite         | Purpose                                 | Duration |
+| ------------- | --------------------------------------- | -------- |
+| `smoke`       | Basic connectivity and health checks    | Fast     |
+| `integration` | Extension validation and functionality  | Medium   |
+| `full`        | All tests including smoke + integration | Slow     |
+
 ## Static Analysis
 
 ### YAML Validation
 
-**Tool:** yamllint
+The new YAML validation system provides comprehensive checks:
 
 ```bash
-pnpm lint:yaml
+# Run all YAML validation tests
+./test/unit/yaml/run-all-yaml-tests.sh
 ```
 
-**Configuration:** `.yamllint.yml`
+**Individual YAML Tests:**
 
-**Validates:**
+| Script                      | Purpose                                      |
+| --------------------------- | -------------------------------------------- |
+| `test-extension-schemas.sh` | Validate extension.yaml files against schema |
+| `test-profile-schema.sh`    | Validate profiles.yaml                       |
+| `test-registry-schema.sh`   | Validate registry.yaml                       |
+| `test-categories-schema.sh` | Validate categories.yaml                     |
+| `test-templates-schema.sh`  | Validate project-templates.yaml              |
+| `test-sindri-examples.sh`   | Validate all sindri.yaml examples            |
+| `test-cross-references.sh`  | Validate cross-file references               |
+| `test-yaml-lint.sh`         | Run yamllint on all YAML files               |
 
-- Indentation (2 spaces)
-- Line length
-- Trailing spaces
-- Document structure
+**Quality Checks:**
 
-**Schema Validation:**
-
-```bash
-# Validate extension against schema
-./cli/extension-manager validate <extension-name>
-
-# Validate sindri.yaml
-./cli/sindri config validate
-```
+| Script                           | Purpose                                  |
+| -------------------------------- | ---------------------------------------- |
+| `test-extension-completeness.sh` | Verify extensions have required files    |
+| `test-profile-dependencies.sh`   | Check dependency ordering                |
+| `test-description-quality.sh`    | Check for placeholder/short descriptions |
+| `test-naming-consistency.sh`     | Verify naming conventions                |
 
 **Schemas:**
 
-- `docker/lib/schemas/extension.schema.json`
-- `docker/lib/schemas/manifest.schema.json`
-- `docker/lib/schemas/sindri.schema.json`
+- `docker/lib/schemas/extension.schema.json` - Extension definitions
+- `docker/lib/schemas/sindri.schema.json` - Sindri configurations
+- `docker/lib/schemas/profiles.schema.json` - Profile definitions
+- `docker/lib/schemas/registry.schema.json` - Extension registry
+- `docker/lib/schemas/categories.schema.json` - Category definitions
+- `docker/lib/schemas/project-templates.schema.json` - Project templates
 
 ### Shell Script Validation
 
@@ -82,19 +137,6 @@ pnpm lint:shell
 
 **Strictness:** Warning level (`-S warning`)
 
-**Common issues:**
-
-- Unquoted variables
-- Missing error handling
-- Unsafe file operations
-
-**Fix automatically:**
-
-```bash
-# shellcheck suggests fixes in output
-shellcheck -f diff script.sh | patch
-```
-
 ### Markdown Validation
 
 **Tool:** markdownlint
@@ -103,263 +145,21 @@ shellcheck -f diff script.sh | patch
 pnpm lint:md
 ```
 
-**Configuration:** `.markdownlint.json`
-
-**Common issues:**
-
-- Missing blank lines
-- Inconsistent heading levels
-- Bare URLs (should be in brackets)
-
-**Fix automatically:**
-
-```bash
-pnpm format:md
-```
-
-## Unit Tests
-
-### Running Unit Tests
-
-```bash
-pnpm test:unit
-```
-
-### Test Structure
-
-Located in `test/unit/`:
-
-```text
-test/unit/
-├── extension-manager/
-│   ├── dependency-resolution.test.sh
-│   ├── manifest-management.test.sh
-│   └── validation.test.sh
-├── adapters/
-│   ├── docker-adapter.test.sh
-│   └── fly-adapter.test.sh
-└── common/
-    └── utilities.test.sh
-```
-
-### Writing Unit Tests
-
-Use bash testing framework (bats or simple assertions):
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Test dependency resolution
-test_dependency_resolution() {
-    local result
-    result=$(resolve_dependencies "nodejs")
-    assert_contains "$result" "workspace-structure"
-}
-
-# Test manifest update
-test_manifest_update() {
-    update_manifest "nodejs" "1.0.0"
-    assert_file_exists "/workspace/.system/manifest/nodejs.yaml"
-}
-
-# Run tests
-test_dependency_resolution
-test_manifest_update
-echo "All tests passed"
-```
-
-## Integration Tests
-
-### Running Integration Tests
-
-```bash
-pnpm test:integration
-```
-
-### Integration Test Scenarios
-
-Integration tests validate end-to-end workflows:
-
-1. **Extension Installation Flow:**
-   - Install extension
-   - Verify installation
-   - Check manifest
-   - Validate tool availability
-
-2. **Dependency Resolution:**
-   - Install extension with dependencies
-   - Verify dependency chain
-   - Check installation order
-
-3. **Provider Deployment:**
-   - Generate provider config
-   - Validate config format
-   - Test deployment (dry-run)
-
-### Integration Test Structure
-
-Located in `.github/scripts/`:
-
-```text
-.github/scripts/
-├── lib/
-│   ├── assertions.sh       # Test assertion helpers
-│   └── test-helpers.sh     # Test utilities
-├── extensions/
-│   └── test-extension-complete.sh
-└── test-all-extensions.sh
-```
-
-### Example Integration Test
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-source "$(dirname "$0")/lib/test-helpers.sh"
-source "$(dirname "$0")/lib/assertions.sh"
-
-test_extension_install() {
-    print_test "Testing extension installation"
-
-    # Install extension
-    extension-manager install nodejs
-
-    # Assertions
-    assert_command_exists "node"
-    assert_command_exists "npm"
-    assert_manifest_exists "nodejs"
-
-    print_success "Extension installation test passed"
-}
-
-test_extension_install
-```
-
-## Extension Tests
-
-### Running Extension Tests
-
-Test all extensions:
-
-```bash
-pnpm test:extensions
-```
-
-Test specific extension:
-
-```bash
-./.github/scripts/test-all-extensions.sh nodejs
-```
-
-### Extension Test Matrix
-
-Tests run for each extension:
-
-1. **Schema Validation:**
-   - extension.yaml validates against schema
-   - Required fields present
-   - Valid enum values
-
-2. **Installation:**
-   - Extension installs successfully
-   - Dependencies resolved
-   - No errors during installation
-
-3. **Validation:**
-   - Commands exist
-   - Version patterns match
-   - Files created
-
-4. **BOM Generation:**
-   - BOM file created
-   - Contains expected tools
-   - Valid BOM format
-
-### Extension Test Output
-
-```text
-Testing extension: nodejs
-✓ Schema validation passed
-✓ Dependency resolution passed
-✓ Installation completed
-✓ Command 'node' found (v22.0.0)
-✓ Command 'npm' found (v10.0.0)
-✓ Manifest created
-✓ BOM generated
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ All tests passed for nodejs
-```
-
-## Infrastructure Tests
-
-### Running Infrastructure Tests
-
-Test provider deployments:
-
-```bash
-pnpm test:infrastructure
-```
-
-### Infrastructure Test Scenarios
-
-1. **Docker Deployment:**
-   - Build image
-   - Start container
-   - Install extensions
-   - Validate environment
-
-2. **Fly.io Deployment:**
-   - Generate fly.toml
-   - Validate configuration
-   - Deploy to Fly.io (in CI)
-   - Test SSH access
-
-3. **DevPod Deployment:**
-   - Generate devcontainer.json
-   - Validate against spec
-   - Test container build
-
-### Infrastructure Test Matrix
-
-Located in `.github/workflows/infrastructure-tests.yml`:
-
-```yaml
-strategy:
-  matrix:
-    provider: [docker, fly, devpod]
-    profile: [minimal, fullstack]
-```
-
 ## GitHub Actions CI/CD
 
 ### Workflow Overview
 
-1. **validation.yml** - Code quality checks
-   - yamllint
-   - shellcheck
-   - markdownlint
+The CI system uses these workflows:
 
-2. **integration.yml** - Main test orchestration
-   - Unit tests
-   - Integration tests
-   - Extension tests
-
-3. **per-extension-tests.yml** - Extension validation
-   - Test each extension individually
-   - Parallel execution
-   - Detailed reports
-
-4. **infrastructure-tests.yml** - Provider deployments
-   - Test Docker, Fly.io, DevPod
-   - Validate configurations
-   - Deployment smoke tests
-
-5. **extension-combinations.yml** - Profile testing
-   - Test extension profiles
-   - Validate dependency resolution
-   - Check for conflicts
+| Workflow                 | Purpose                                         |
+| ------------------------ | ----------------------------------------------- |
+| `ci.yml`                 | Main CI orchestrator - validation, build, tests |
+| `validate-yaml.yml`      | Comprehensive YAML validation                   |
+| `test-sindri-config.yml` | Config-driven testing (discovers examples)      |
+| `deploy-sindri.yml`      | Reusable deployment workflow                    |
+| `teardown-sindri.yml`    | Reusable cleanup workflow                       |
+| `test-provider.yml`      | Provider-specific testing                       |
+| `release.yml`            | Release automation                              |
 
 ### CI Test Flow
 
@@ -368,34 +168,46 @@ strategy:
 │  Push to main   │
 └────────┬────────┘
          │
-         ├─> validation.yml
-         │   ├─> yamllint
-         │   ├─> shellcheck
-         │   └─> markdownlint
+         ├─> shellcheck (shell validation)
          │
-         ├─> integration.yml
-         │   ├─> Unit tests
-         │   ├─> Integration tests
-         │   └─> Extension tests
+         ├─> markdownlint (markdown validation)
          │
-         ├─> per-extension-tests.yml
-         │   ├─> Test nodejs
-         │   ├─> Test python
-         │   └─> ... (parallel)
+         ├─> validate-yaml.yml
+         │   ├─> YAML lint
+         │   ├─> Schema validation
+         │   ├─> Cross-references
+         │   └─> Extension consistency
          │
-         └─> infrastructure-tests.yml
-             ├─> Docker build & test
-             ├─> Fly.io config validation
-             └─> DevPod config validation
+         ├─> build (Docker image)
+         │
+         ├─> test-cli (CLI commands)
+         │
+         ├─> test-providers (matrix)
+         │   ├─> docker
+         │   └─> fly
+         │
+         └─> test-extensions
+```
+
+### Testing with Examples
+
+The `test-sindri-config.yml` workflow discovers and tests all examples:
+
+```yaml
+# Run via workflow_dispatch
+config-path: examples/fly/ # Test all Fly.io examples
+test-suite: smoke # Test suite to run
+skip-cleanup: false # Cleanup after tests
 ```
 
 ### Running CI Locally
 
-Approximate CI environment locally:
-
 ```bash
 # Validation checks
 pnpm validate
+
+# YAML validation
+./test/unit/yaml/run-all-yaml-tests.sh
 
 # Unit + integration tests
 pnpm test
@@ -408,190 +220,130 @@ pnpm build
 docker run -it sindri:local extension-manager validate-all
 ```
 
-## Test Helpers
+## Test CLI Commands
 
-### Assertion Functions
-
-Located in `.github/scripts/lib/assertions.sh`:
+### Validate Configuration
 
 ```bash
-assert_command_exists() {
-    command -v "$1" >/dev/null 2>&1 || fail "Command not found: $1"
-}
-
-assert_file_exists() {
-    [[ -f "$1" ]] || fail "File not found: $1"
-}
-
-assert_contains() {
-    echo "$1" | grep -q "$2" || fail "String not found: $2"
-}
-
-assert_manifest_exists() {
-    assert_file_exists "/workspace/.system/manifest/$1.yaml"
-}
+# Validate against schema
+./cli/sindri config validate --config examples/fly/minimal.sindri.yaml
 ```
 
-### Helper Functions
-
-Located in `.github/scripts/lib/test-helpers.sh`:
+### Run Tests
 
 ```bash
-print_test() {
-    echo "━━━ TEST: $1"
-}
+# Smoke test (basic connectivity)
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
 
-setup_test_workspace() {
-    export WORKSPACE="/tmp/sindri-test-$$"
-    mkdir -p "$WORKSPACE"
-}
+# Integration test (full extension validation)
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite integration
 
-cleanup_test_workspace() {
-    rm -rf "$WORKSPACE"
-}
-
-run_in_container() {
-    docker run --rm sindri:local "$@"
-}
+# Full test suite
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite full
 ```
 
-## Test Coverage
-
-### Current Coverage
-
-- **Extensions:** 100% (all extensions have tests)
-- **Core modules:** ~80% (main paths covered)
-- **Adapters:** ~70% (provider-specific logic)
-
-### Coverage Goals
-
-- Increase core module coverage to 90%
-- Add negative test cases
-- Expand edge case testing
-
-## Debugging Tests
-
-### Enable Debug Output
+### Deploy for Manual Testing
 
 ```bash
-# Enable debug mode
-export DEBUG=true
+# Deploy
+./cli/sindri deploy --config examples/fly/minimal.sindri.yaml
 
-# Run tests
-pnpm test
+# Connect
+./cli/sindri connect --config examples/fly/minimal.sindri.yaml
 
-# Or for specific test
-DEBUG=true ./.github/scripts/test-all-extensions.sh nodejs
+# Teardown
+./cli/sindri destroy --config examples/fly/minimal.sindri.yaml --force
 ```
 
-### Verbose Output
+## Unit Tests
+
+### Running Unit Tests
 
 ```bash
-# Verbose shellcheck
-shellcheck -f tty script.sh
-
-# Verbose yamllint
-yamllint -f parsable file.yaml
+pnpm test:unit
 ```
 
-### Test in Docker
+### Test Structure
 
-Run tests inside Docker container:
+```text
+test/unit/
+├── yaml/                          # YAML validation tests
+│   ├── run-all-yaml-tests.sh      # Master test runner
+│   ├── test-extension-schemas.sh
+│   ├── test-cross-references.sh
+│   └── ...
+├── extension-manager/
+│   ├── dependency-resolution.test.sh
+│   └── validation.test.sh
+└── common/
+    └── utilities.test.sh
+```
+
+## Extension Tests
+
+### Running Extension Tests
 
 ```bash
-# Build image
-pnpm build
+# Test all extensions
+pnpm test:extensions
 
-# Run test inside container
-docker run -it sindri:local bash
-extension-manager install nodejs
-extension-manager validate nodejs
+# Test specific extension
+./cli/extension-manager validate nodejs
 ```
 
-## Continuous Testing
+### Extension Test Matrix
 
-### Pre-Commit Hook
+Tests run for each extension:
 
-Install pre-commit hook:
-
-```bash
-# .git/hooks/pre-commit
-#!/usr/bin/env bash
-pnpm validate || exit 1
-pnpm test:unit || exit 1
-```
-
-Make executable:
-
-```bash
-chmod +x .git/hooks/pre-commit
-```
-
-### Watch Mode (Local Development)
-
-Watch files and re-run tests:
-
-```bash
-# Using watchexec or similar
-watchexec -e sh,yaml,md pnpm validate
-```
-
-## Performance Testing
-
-### Extension Install Time
-
-Measure extension installation time:
-
-```bash
-time extension-manager install nodejs
-```
-
-### Docker Build Time
-
-Measure image build time:
-
-```bash
-time pnpm build
-```
-
-### Startup Time
-
-Measure container startup time:
-
-```bash
-time docker run --rm sindri:local echo "ready"
-```
+1. **Schema Validation:** extension.yaml validates against schema
+2. **Installation:** Extension installs successfully
+3. **Validation:** Commands exist and version patterns match
+4. **BOM Generation:** Bill of materials generated correctly
 
 ## Best Practices
 
 1. **Test Before Push:**
 
    ```bash
-   pnpm validate && pnpm test
+   pnpm validate && ./test/unit/yaml/run-all-yaml-tests.sh && pnpm test
    ```
 
-2. **Write Tests for New Features:**
-   - Add unit tests for new functions
-   - Add integration tests for workflows
-   - Add extension tests for new extensions
+2. **Add Example Configs for New Scenarios:**
+   - Create a new `sindri.yaml` in `examples/`
+   - The CI will automatically discover and test it
 
-3. **Keep Tests Fast:**
-   - Use mocks where appropriate
-   - Parallelize independent tests
-   - Cache test dependencies
+3. **Validate YAML Changes:**
+   - Run `./test/unit/yaml/run-all-yaml-tests.sh` after YAML changes
+   - Check cross-references if modifying registry/profiles
 
-4. **Meaningful Assertions:**
-   - Test behavior, not implementation
-   - Assert expected outcomes
-   - Include failure messages
+4. **Keep Tests Fast:**
+   - Use `--suite smoke` for quick validation
+   - Use `--suite full` for comprehensive testing
 
 5. **Clean Up Resources:**
-   - Remove test files after tests
-   - Clean up Docker containers
-   - Reset state between tests
+   - Always use `--force` with destroy in automated scripts
+   - CI workflows handle cleanup automatically
+
+## Debugging Tests
+
+### Enable Debug Output
+
+```bash
+export DEBUG=true
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+```
+
+### Test in Docker
+
+```bash
+pnpm build
+docker run -it sindri:local bash
+extension-manager install nodejs
+extension-manager validate nodejs
+```
 
 ## Related Documentation
 
-- [Contributing Guide](CONTRIBUTING.md)
+- [Configuration Guide](CONFIGURATION.md)
 - [Extension Authoring](EXTENSION_AUTHORING.md)
-- [Architecture](ARCHITECTURE.md)
+- [Contributing Guide](CONTRIBUTING.md)

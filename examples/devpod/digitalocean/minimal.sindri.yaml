@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - DevPod DigitalOcean Minimal
+# Basic DigitalOcean Droplet development environment
+version: "1.0"
+name: sindri-test-devpod-do-minimal
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: digitalocean
+    digitalocean:
+      region: nyc3
+      size: s-4vcpu-8gb

@@ -1,0 +1,33 @@
+---
+# Sindri Configuration - Custom Security-Focused Example
+# Security and compliance tooling
+version: "1.0"
+name: sindri-custom-security
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  active:
+    - python
+    - docker
+    - cloud-tools
+    - monitoring
+
+secrets:
+  - name: VAULT_TOKEN
+    source: env
+  - name: SECURITY_SCANNER_KEY
+    source: env
+
+providers:
+  docker-compose:
+    privileged: false # Locked down
+    ports:
+      - "8200:8200" # Vault UI

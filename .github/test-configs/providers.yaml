@@ -156,7 +156,7 @@ providers:
       - kubectl
 
   ssh:
-    enabled: false  # Requires SSH server setup
+    enabled: false # Requires SSH server setup
     test_suites:
       - smoke
     timeout_minutes: 15

@@ -1,0 +1,819 @@
+# Sindri CLI Reference
+
+Complete command-line reference for Sindri deployment and extension management.
+
+## Overview
+
+Sindri provides two primary CLI tools:
+
+1. **`sindri`** - Main deployment and configuration CLI
+2. **`extension-manager`** - Extension installation and management
+
+Both CLIs work on the host system (outside containers) and inside deployed containers.
+
+---
+
+## sindri CLI
+
+**Location:** `cli/sindri`
+
+Main deployment tool for managing Sindri environments across providers.
+
+### Global Options
+
+```bash
+-h, --help               Show help message
+-c, --config <file>      Use specific config file (default: sindri.yaml)
+-p, --provider <name>    Deployment provider (docker, fly, devpod)
+-r, --rebuild            Force rebuild of Docker image
+-v, --verbose            Verbose output
+```
+
+---
+
+## Configuration Commands
+
+### sindri config init
+
+Create a new `sindri.yaml` configuration file with sensible defaults.
+
+```bash
+sindri config init
+```
+
+**Behavior:**
+
+- Creates `sindri.yaml` in current directory
+- Prompts before overwriting existing file
+- Generates template with common options commented
+
+**Example Output:**
+
+```yaml
+version: 1.0
+name: my-sindri-dev
+
+deployment:
+  provider: docker
+  resources:
+    memory: 2GB
+    cpus: 2
+
+extensions:
+  profile: fullstack
+
+secrets:
+  - name: ANTHROPIC_API_KEY
+    source: env
+```
+
+### sindri config validate
+
+Validate configuration file against JSON schema.
+
+```bash
+sindri config validate [--config <file>]
+```
+
+**Options:**
+
+- `--config <file>` - Config file to validate (default: `sindri.yaml`)
+
+**Examples:**
+
+```bash
+# Validate default sindri.yaml
+sindri config validate
+
+# Validate specific file
+sindri config validate --config examples/fly/minimal.sindri.yaml
+
+# Validate all examples
+for f in examples/**/*.sindri.yaml; do
+  sindri config validate --config "$f"
+done
+```
+
+**Exit Codes:**
+
+- `0` - Validation passed
+- `1` - Validation failed (schema errors, missing required fields)
+
+---
+
+## Deployment Commands
+
+### sindri deploy
+
+Deploy Sindri environment to specified provider.
+
+```bash
+sindri deploy [--provider <name>] [--rebuild] [--config <file>]
+```
+
+**Options:**
+
+- `--provider <name>` - Override provider from config (docker, fly, devpod)
+- `--rebuild` - Force rebuild Docker image (useful for Fly.io)
+- `--config <file>` - Use specific config file
+
+**Provider Behavior:**
+
+- **docker** - Deploys via Docker Compose locally
+- **fly** - Deploys to Fly.io cloud (requires flyctl)
+- **devpod** - Deploys as DevContainer (requires devpod CLI)
+
+**Examples:**
+
+```bash
+# Deploy using provider in sindri.yaml
+sindri deploy
+
+# Deploy to Docker explicitly
+sindri deploy --provider docker
+
+# Deploy to Fly.io with fresh image build
+sindri deploy --provider fly --rebuild
+
+# Deploy using example config
+sindri deploy --config examples/fly/minimal.sindri.yaml
+
+# Deploy DevPod environment
+sindri deploy --provider devpod
+```
+
+**What Happens:**
+
+1. Validates configuration
+2. Builds/pulls Docker image (if needed)
+3. Deploys using provider-specific adapter
+4. Waits for environment to be ready
+5. Displays connection information
+
+### sindri plan
+
+Show deployment plan without executing (dry-run mode).
+
+```bash
+sindri plan [--config <file>]
+```
+
+**Output:**
+
+- Provider to be used
+- Resources to be allocated
+- Extensions to be installed
+- Secrets configuration status
+- Estimated costs (for cloud providers)
+
+**Example:**
+
+```bash
+sindri plan --config examples/fly/production.sindri.yaml
+```
+
+### sindri destroy
+
+Teardown deployed environment and cleanup resources.
+
+```bash
+sindri destroy [--provider <name>] [--force] [--config <file>]
+```
+
+**Options:**
+
+- `--provider <name>` - Provider to teardown (auto-detected if omitted)
+- `--force` - Skip confirmation prompt
+- `--config <file>` - Config file used for deployment
+
+**Examples:**
+
+```bash
+# Teardown with confirmation
+sindri destroy
+
+# Force teardown without confirmation
+sindri destroy --force
+
+# Teardown specific provider
+sindri destroy --provider fly
+
+# Teardown using config
+sindri destroy --config examples/fly/minimal.sindri.yaml
+```
+
+**Cleanup Actions:**
+
+- Stops and removes containers (Docker)
+- Destroys Fly.io machines and volumes
+- Removes DevPod workspace
+- Cleans up provider-specific resources
+
+### sindri connect
+
+Connect to deployed Sindri environment via SSH.
+
+```bash
+sindri connect [--config <file>]
+```
+
+**Behavior:**
+
+- Auto-detects connection method based on provider
+- Opens SSH session as `developer` user
+- Lands in `/workspace` directory
+
+**Examples:**
+
+```bash
+# Connect to running environment
+sindri connect
+
+# Connect using specific config
+sindri connect --config my-custom.sindri.yaml
+```
+
+**Provider Connection Methods:**
+
+- **docker** - `docker exec` into container
+- **fly** - `flyctl ssh console` via proxy
+- **devpod** - `devpod ssh` into workspace
+
+---
+
+## Testing Commands
+
+### sindri test
+
+Run test suite on deployed environment.
+
+```bash
+sindri test [--config <file>] [--suite <name>]
+```
+
+**Options:**
+
+- `--config <file>` - Config file to test
+- `--suite <name>` - Test suite to run (smoke, integration, full)
+
+**Test Suites:**
+
+- `smoke` - Quick health checks (extension presence, basic functionality)
+- `integration` - Full integration tests (extension interactions)
+- `full` - Comprehensive tests (performance, security, compliance)
+
+**Examples:**
+
+```bash
+# Run smoke tests on current deployment
+sindri test --suite smoke
+
+# Test specific configuration
+sindri test --config examples/fly/ai-dev.sindri.yaml --suite integration
+
+# Run full test suite
+sindri test --suite full
+```
+
+---
+
+## Profile Commands
+
+### sindri profiles list
+
+List all available extension profiles.
+
+```bash
+sindri profiles list
+```
+
+**Output:**
+
+```text
+Available profiles:
+  minimal       - Basic Node.js + Python setup (2 extensions)
+  fullstack     - Full-stack development (4 extensions)
+  ai-dev        - AI/ML development (5 extensions)
+  anthropic-dev - Complete Anthropic toolset (12 extensions)
+  systems       - Systems programming (4 extensions)
+  enterprise    - Multi-language enterprise stack (9 extensions)
+  data-science  - Python + monitoring (2 extensions)
+  devops        - DevOps and infrastructure (4 extensions)
+  mobile        - Mobile development backend (1+ extensions)
+```
+
+### sindri profiles show
+
+Show details about a specific profile.
+
+```bash
+sindri profiles show <profile-name>
+```
+
+**Example:**
+
+```bash
+sindri profiles show ai-dev
+```
+
+**Output:**
+
+```text
+Profile: ai-dev
+Description: AI/ML development with Claude Code and monitoring
+Extensions:
+  - nodejs (language)
+  - python (language)
+  - ai-toolkit (ai)
+  - openskills (ai)
+  - monitoring (monitoring)
+```
+
+---
+
+## extension-manager CLI
+
+**Location:** `cli/extension-manager`
+
+Manage extensions in Sindri environments. Can be used on host or inside container.
+
+### Extension Manager Options
+
+```bash
+-h, --help               Show help message
+-v, --verbose            Verbose output
+--category <name>        Filter by category (for list command)
+```
+
+---
+
+## Extension Listing Commands
+
+### extension-manager list
+
+List all available extensions.
+
+```bash
+extension-manager list [--category <name>]
+```
+
+**Options:**
+
+- `--category <name>` - Filter by category
+
+**Examples:**
+
+```bash
+# List all extensions
+extension-manager list
+
+# List only language extensions
+extension-manager list --category language
+
+# List AI tools
+extension-manager list --category ai
+```
+
+**Output Format:**
+
+```text
+Available extensions:
+  nodejs           - Node.js runtime and npm (language)
+  python           - Python runtime and pip (language)
+  golang           - Go programming language (language)
+  rust             - Rust toolchain (language)
+  docker           - Docker client and CLI (dev-tools)
+  ai-toolkit       - AI development toolkit (ai)
+  ...
+```
+
+### extension-manager list-profiles
+
+List all available extension profiles.
+
+```bash
+extension-manager list-profiles
+```
+
+**Output:**
+
+```text
+Available profiles:
+  minimal       - nodejs, python
+  fullstack     - nodejs, python, docker, nodejs-devtools
+  ai-dev        - nodejs, python, ai-toolkit, openskills, monitoring
+  ...
+```
+
+### extension-manager list-categories
+
+List all extension categories.
+
+```bash
+extension-manager list-categories
+```
+
+**Output:**
+
+```text
+Available categories:
+  language      - Programming languages and runtimes
+  dev-tools     - Development utilities and tools
+  database      - Database clients and tools
+  cloud         - Cloud provider CLIs and SDKs
+  monitoring    - Monitoring and observability
+  security      - Security and compliance tools
+  ai            - AI and machine learning tools
+  desktop       - Desktop environments (GUI)
+```
+
+---
+
+## Extension Installation Commands
+
+### extension-manager install
+
+Install a single extension with its dependencies.
+
+```bash
+extension-manager install <extension-name>
+```
+
+**Behavior:**
+
+1. Resolves dependencies recursively
+2. Installs in topological order
+3. Validates installation
+4. Updates manifest
+
+**Examples:**
+
+```bash
+# Install Node.js (includes workspace-structure, mise-config dependencies)
+extension-manager install nodejs
+
+# Install AI toolkit (includes nodejs, python, golang, github-cli dependencies)
+extension-manager install ai-toolkit
+
+# Install Docker
+extension-manager install docker
+```
+
+### extension-manager install-profile
+
+Install all extensions from a profile.
+
+```bash
+extension-manager install-profile <profile-name>
+```
+
+**Examples:**
+
+```bash
+# Install minimal profile (nodejs + python)
+extension-manager install-profile minimal
+
+# Install full AI development stack
+extension-manager install-profile ai-dev
+
+# Install enterprise profile (all languages)
+extension-manager install-profile enterprise
+```
+
+### extension-manager install-all
+
+Install all extensions listed in the manifest.
+
+```bash
+extension-manager install-all
+```
+
+**Use Case:**
+
+- Restoring extensions after container restart
+- Bulk installation during environment setup
+
+---
+
+## Extension Removal Commands
+
+### extension-manager remove
+
+Uninstall an extension.
+
+```bash
+extension-manager remove <extension-name>
+```
+
+**Behavior:**
+
+1. Runs extension's `remove` script/configuration
+2. Removes from manifest
+3. Cleans up installation artifacts
+
+**Examples:**
+
+```bash
+# Remove Node.js
+extension-manager remove nodejs
+
+# Remove Docker
+extension-manager remove docker
+```
+
+**Warning:** Does not automatically remove dependent extensions.
+
+---
+
+## Extension Validation Commands
+
+### extension-manager validate
+
+Validate a single extension's installation.
+
+```bash
+extension-manager validate <extension-name>
+```
+
+**Checks:**
+
+- Extension is installed
+- Validation commands pass
+- Expected patterns match output
+- Dependencies are satisfied
+
+**Examples:**
+
+```bash
+# Validate Node.js installation
+extension-manager validate nodejs
+
+# Validate Python
+extension-manager validate python
+
+# Validate AI toolkit
+extension-manager validate ai-toolkit
+```
+
+**Exit Codes:**
+
+- `0` - Validation passed
+- `1` - Validation failed
+
+### extension-manager validate-all
+
+Validate all installed extensions.
+
+```bash
+extension-manager validate-all
+```
+
+**Output:**
+
+```text
+Validating extensions...
+✓ nodejs - Node.js v20.11.0 (validated)
+✓ python - Python 3.11.8 (validated)
+✓ docker - Docker 25.0.3 (validated)
+✗ rust - rustc not found (failed)
+
+Summary: 3/4 extensions valid
+```
+
+---
+
+## Extension Status Commands
+
+### extension-manager status
+
+Show installation status of a specific extension.
+
+```bash
+extension-manager status <extension-name>
+```
+
+**Output:**
+
+```text
+Extension: nodejs
+Status: installed
+Version: 1.0.0
+Category: language
+Dependencies: workspace-structure, mise-config
+Installed: 2024-01-15T10:30:00Z
+```
+
+### extension-manager status-all
+
+Show status of all extensions in manifest.
+
+```bash
+extension-manager status-all
+```
+
+---
+
+## Extension Information Commands
+
+### extension-manager show
+
+Show detailed information about an extension.
+
+```bash
+extension-manager show <extension-name>
+```
+
+**Output:**
+
+```text
+Name: nodejs
+Version: 1.0.0
+Category: language
+Description: Node.js runtime and npm package manager
+
+Requirements:
+  - Disk Space: 500MB
+  - Domains: nodejs.org, npmjs.com
+
+Dependencies:
+  - workspace-structure
+  - mise-config
+
+Install Method: mise
+Configuration: mise.toml
+
+Validation:
+  - node --version (expected: v\d+\.\d+\.\d+)
+  - npm --version
+```
+
+### extension-manager generate-bom
+
+Generate Bill of Materials for installed extensions.
+
+```bash
+extension-manager generate-bom [--format <format>]
+```
+
+**Options:**
+
+- `--format <format>` - Output format (text, json, yaml, cyclonedx)
+
+**Examples:**
+
+```bash
+# Generate text BOM
+extension-manager generate-bom
+
+# Generate JSON BOM
+extension-manager generate-bom --format json
+
+# Generate CycloneDX SBOM
+extension-manager generate-bom --format cyclonedx
+```
+
+---
+
+## Environment Variables
+
+### Global Variables
+
+```bash
+SINDRI_CONFIG       # Override config file path
+SINDRI_PROVIDER     # Override deployment provider
+SINDRI_REBUILD      # Force rebuild (true/false)
+SINDRI_VERBOSE      # Enable verbose output (true/false)
+```
+
+### Extension Manager Variables
+
+```bash
+DOCKER_LIB          # Path to docker/lib (auto-detected)
+WORKSPACE_ROOT      # Workspace root path (default: /workspace)
+MANIFEST_DIR        # Manifest directory (default: /workspace/.system/manifest)
+```
+
+---
+
+## Exit Codes
+
+All CLI commands follow standard exit code conventions:
+
+- `0` - Success
+- `1` - General error (invalid arguments, file not found)
+- `2` - Configuration error (invalid YAML, schema violation)
+- `3` - Deployment error (provider failure, resource exhaustion)
+- `4` - Validation error (extension validation failed)
+
+---
+
+## Scripting and Automation
+
+### Batch Operations
+
+```bash
+# Deploy multiple configurations
+for config in examples/fly/*.sindri.yaml; do
+  sindri deploy --config "$config"
+done
+
+# Validate all examples
+find examples -name "*.sindri.yaml" -exec sindri config validate --config {} \;
+
+# Install multiple extensions
+for ext in nodejs python docker; do
+  extension-manager install "$ext"
+done
+```
+
+### CI/CD Integration
+
+```bash
+# Validate and deploy in CI
+#!/bin/bash
+set -e
+
+sindri config validate --config production.sindri.yaml
+sindri deploy --config production.sindri.yaml --provider fly
+
+# Wait for health check
+sleep 30
+sindri test --config production.sindri.yaml --suite smoke
+```
+
+### Error Handling
+
+```bash
+# Check if deployment succeeded
+if sindri deploy --provider docker; then
+  echo "Deployment successful"
+  sindri connect
+else
+  echo "Deployment failed"
+  sindri destroy --force
+  exit 1
+fi
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Config validation fails
+
+```bash
+# Check YAML syntax
+yamllint sindri.yaml
+
+# Validate against schema
+sindri config validate --verbose
+```
+
+#### Extension installation fails
+
+```bash
+# Check extension status
+extension-manager status <extension>
+
+# Validate extension
+extension-manager validate <extension>
+
+# Check logs
+cat /workspace/.system/logs/<extension>.log
+```
+
+#### Deployment hangs
+
+```bash
+# Use verbose mode
+sindri deploy --verbose
+
+# Check provider status
+# Docker: docker ps -a
+# Fly: flyctl status
+# DevPod: devpod list
+```
+
+#### Can't connect to environment
+
+```bash
+# Check deployment status
+sindri plan
+
+# Verify provider connection
+# Docker: docker exec -it <container> bash
+# Fly: flyctl ssh console
+# DevPod: devpod ssh <workspace>
+```
+
+---
+
+## See Also
+
+- [Configuration Reference](CONFIGURATION.md) - Complete configuration guide
+- [Schema Reference](SCHEMA.md) - JSON schema documentation
+- [Extension Authoring](EXTENSION_AUTHORING.md) - Creating custom extensions
+- [Deployment Guide](DEPLOYMENT.md) - Provider-specific deployment details
+- [Troubleshooting](TROUBLESHOOTING.md) - Common issues and solutions

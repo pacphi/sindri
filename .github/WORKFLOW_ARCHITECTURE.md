@@ -2,17 +2,16 @@
 
 ## Overview
 
-This document describes the comprehensive multi-provider GitHub Actions workflow architecture for Sindri.
-The architecture supports testing across multiple cloud providers (AWS, GCP, Azure, DigitalOcean),
-container platforms (Docker, Kubernetes), and deployment methods (Fly.io, DevPod, SSH).
+This document describes the YAML-driven GitHub Actions workflow architecture for Sindri.
+The architecture follows a configuration-first approach where `sindri.yaml` files drive all testing and deployment.
 
 ## Architecture Principles
 
-1. **Provider Abstraction**: All provider-specific logic is encapsulated in dedicated composite actions
-2. **Reusability**: Common functionality is extracted into reusable workflows and actions
-3. **Scalability**: Matrix strategies enable parallel testing across providers and configurations
-4. **Configurability**: Tests are driven by YAML configuration files
-5. **Modularity**: Small, focused actions that can be composed together
+1. **Configuration-Driven**: All provider details live in `sindri.yaml` files, not workflow logic
+2. **Examples as Test Fixtures**: The `examples/` directory contains both user documentation AND test fixtures
+3. **Reusability**: Common functionality extracted into reusable workflows
+4. **Comprehensive Validation**: All YAML files validated against JSON schemas
+5. **Single Source of Truth**: `sindri.yaml` is the only input needed for deploy/test/teardown
 
 ## Directory Structure
 
@@ -20,42 +19,70 @@ container platforms (Docker, Kubernetes), and deployment methods (Fly.io, DevPod
 .github/
 ├── workflows/                    # GitHub Workflows
 │   ├── ci.yml                    # Main CI orchestrator
-│   ├── test-provider.yml         # Reusable provider testing
-│   ├── test-extensions.yml       # Reusable extension testing
-│   ├── manual-deploy.yml         # Manual deployment with dispatch
-│   ├── validation.yml            # Code quality checks
-│   └── ...
+│   ├── validate-yaml.yml         # Comprehensive YAML validation
+│   ├── test-sindri-config.yml    # Config-driven testing
+│   ├── deploy-sindri.yml         # Reusable deployment
+│   ├── teardown-sindri.yml       # Reusable teardown
+│   ├── test-provider.yml         # Provider-specific testing
+│   ├── test-extensions.yml       # Extension testing (multi-provider)
+│   ├── manual-deploy.yml         # Manual deployment workflow
+│   ├── self-service-deploy-fly.yml # Self-service Fly.io deployment
+│   └── release.yml               # Release automation
 │
 ├── actions/                      # Composite Actions
 │   ├── core/                     # Core functionality
-│   │   ├── setup-sindri/         # Setup Sindri environment
-│   │   ├── build-image/          # Build Docker images
-│   │   ├── validate-config/      # Validate configurations
-│   │   └── test-cli/             # Test CLI commands
+│   │   ├── setup-sindri/         # Environment setup, config parsing
+│   │   ├── build-image/          # Docker image building with caching
+│   │   └── test-cli/             # CLI command testing
 │   │
-│   ├── providers/                # Provider-specific actions
-│   │   ├── docker/
-│   │   │   ├── setup/            # Setup Docker environment
-│   │   │   └── ...
-│   │   ├── fly/
-│   │   │   ├── setup/            # Setup Fly.io
-│   │   │   ├── deploy/           # Deploy to Fly.io
-│   │   │   ├── test/             # Test on Fly.io
-│   │   │   └── cleanup/          # Cleanup Fly.io resources
-│   │   └── devpod/
-│   │       ├── setup/            # Setup DevPod providers
-│   │       ├── deploy/           # Deploy workspaces
-│   │       ├── test/             # Test workspaces
-│   │       └── cleanup/          # Cleanup resources
-│   │
-│   └── tests/                    # Test actions
-│       ├── install-extension/    # Install extensions
-│       ├── validate-extension/   # Validate extensions
-│       └── run-integration-test/ # Run integration tests
+│   └── providers/                # Provider-specific actions
+│       ├── docker/
+│       │   └── setup/            # Docker/Buildx setup
+│       ├── fly/
+│       │   ├── setup/            # Fly CLI install, app creation
+│       │   ├── deploy/           # Fly.io deployment
+│       │   ├── test/             # Fly.io testing
+│       │   └── cleanup/          # Fly.io resource cleanup
+│       └── devpod/
+│           ├── setup/            # DevPod CLI, cloud provider setup
+│           ├── deploy/           # DevPod workspace deployment
+│           ├── test/             # DevPod workspace testing
+│           └── cleanup/          # DevPod resource cleanup
 │
-└── test-configs/                 # Test configurations
-    ├── providers.yaml            # Provider test settings
-    └── extensions.yaml           # Extension test settings
+├── scripts/                      # Test scripts and utilities
+│   ├── test-all-extensions.sh    # Extension validation script
+│   ├── generate-slack-notification.sh  # Slack message generator
+│   ├── lib/
+│   │   ├── test-helpers.sh       # Shared test functions
+│   │   └── assertions.sh         # Test assertion functions
+│   └── extensions/
+│       └── test-extension-complete.sh  # Full extension test suite
+│
+├── test-configs/                 # Test configuration files
+│   ├── providers.yaml            # Provider test parameters
+│   └── extensions.yaml           # Extension test parameters
+│
+└── WORKFLOW_ARCHITECTURE.md      # This document
+
+examples/                         # Test fixtures AND user examples
+├── fly/
+│   └── regions/                  # Region-specific examples
+├── docker/
+├── devpod/
+│   ├── aws/
+│   │   └── regions/
+│   ├── gcp/
+│   │   └── regions/
+│   ├── azure/
+│   │   └── regions/
+│   └── digitalocean/
+│       └── regions/
+└── profiles/
+
+test/                             # Test suites
+├── unit/
+│   └── yaml/                     # YAML validation tests
+└── integration/                  # Integration tests
 ```
 
 ## Workflows
@@ -64,11 +91,12 @@ container platforms (Docker, Kubernetes), and deployment methods (Fly.io, DevPod
 
 The primary CI orchestrator that:
 
-- Validates code quality
+- Validates shell scripts (shellcheck)
+- Validates markdown (markdownlint)
+- Validates all YAML (via `validate-yaml.yml`)
 - Builds Docker images
-- Generates test matrices based on context
+- Tests CLI commands
 - Runs provider and extension tests in parallel
-- Aggregates results
 
 **Triggers:**
 
@@ -77,473 +105,275 @@ The primary CI orchestrator that:
 - Scheduled (nightly)
 - Manual dispatch with provider selection
 
-### Test Provider Workflow (`test-provider.yml`)
+### YAML Validation Workflow (`validate-yaml.yml`)
 
-Reusable workflow for testing any provider:
+Comprehensive YAML validation:
 
-- Accepts provider type as input
-- Sets up provider-specific environment
-- Deploys Sindri
-- Runs smoke/integration/full test suites
-- Handles cleanup
+- YAML linting (yamllint)
+- Schema validation (all YAML files against their schemas)
+- Cross-reference validation (profiles → registry → extensions → categories)
+- Extension consistency checks
 
-**Supported Providers:**
+### Config-Driven Test Workflow (`test-sindri-config.yml`)
 
-- `docker` - Local Docker
-- `fly` - Fly.io
-- `devpod-aws` - AWS EC2 via DevPod
-- `devpod-gcp` - Google Cloud via DevPod
-- `devpod-azure` - Azure via DevPod
-- `devpod-do` - DigitalOcean via DevPod
-- `kubernetes` - Kubernetes clusters
-- `ssh` - Remote SSH servers
+The core of the YAML-driven approach:
 
-### Test Extensions Workflow (`test-extensions.yml`)
-
-Reusable workflow for testing extensions:
-
-- Tests individual extensions in parallel
-- Supports extension combinations
-- Validates installation, functionality, and idempotency
-- Provider-agnostic testing
-
-### Manual Deploy Workflow (`manual-deploy.yml`)
-
-Interactive deployment via `workflow_dispatch`:
-
-- Choose provider, environment, and configuration
-- Deploy with custom settings
-- Optional auto-cleanup scheduling
-- Slack notifications
-
-## Composite Actions
-
-### Core Actions
-
-#### `core/setup-sindri`
-
-Sets up Sindri environment with dependencies and configuration validation.
+- **Discovers** sindri.yaml files in specified path
+- **Validates** each configuration against schema
+- **Deploys** using the configuration
+- **Tests** with specified suite (smoke/integration/full)
+- **Tears down** resources
 
 ```yaml
-uses: ./.github/actions/core/setup-sindri
-with:
-  sindri-config: sindri.yaml
-  validate-config: true
+# Example: Test all Fly.io examples
+- uses: ./.github/workflows/test-sindri-config.yml
+  with:
+    config-path: examples/fly/
+    test-suite: smoke
 ```
 
-#### `core/build-image`
+### Deploy Workflow (`deploy-sindri.yml`)
 
-Builds Docker images with intelligent caching.
+Reusable deployment accepting only a config file:
 
 ```yaml
-uses: ./.github/actions/core/build-image
-with:
-  image-tag: sindri:latest
-  cache-key-prefix: sindri-ci
+- uses: ./.github/workflows/deploy-sindri.yml
+  with:
+    config-path: examples/fly/minimal.sindri.yaml
 ```
 
-### Provider Actions
+### Teardown Workflow (`teardown-sindri.yml`)
 
-Each provider has four standard actions:
-
-#### Setup
-
-Initializes provider environment and authentication.
+Reusable cleanup accepting only a config file:
 
 ```yaml
-uses: ./.github/actions/providers/{provider}/setup
-with:
-  # Provider-specific inputs
+- uses: ./.github/workflows/teardown-sindri.yml
+  with:
+    config-path: examples/fly/minimal.sindri.yaml
+    force: true
 ```
 
-#### Deploy
+### Manual Deploy vs Deploy Sindri: When to Use Each
 
-Deploys Sindri to the provider.
+Two deployment workflows serve different use cases:
+
+| Aspect                   | `manual-deploy.yml`                        | `deploy-sindri.yml`                              |
+| ------------------------ | ------------------------------------------ | ------------------------------------------------ |
+| **Trigger**              | `workflow_dispatch` only (human-initiated) | `workflow_call` + `workflow_dispatch` (reusable) |
+| **Configuration Source** | Generates `sindri.yaml` from UI inputs     | Reads existing `sindri.yaml` file from path      |
+| **Design Pattern**       | Monolithic, self-contained                 | Reusable building block                          |
+| **Lines of Code**        | ~400                                       | ~130                                             |
+
+**Input Approach:**
+
+- **manual-deploy**: UI-driven with extensive options (provider, environment, VM size, region, extension profile, auto-cleanup, test toggles, Slack notifications). Includes provider-specific size/region mapping logic.
+- **deploy-sindri**: Single input (`config-path`). All deployment parameters come from the YAML file itself.
+
+**Job Structure:**
+
+- **manual-deploy** (7 jobs): validate-inputs → build-image → deploy → test-deployment → schedule-cleanup → notify → summary
+- **deploy-sindri** (1 job): parse config → deploy
+
+**Provider Handling:**
 
 ```yaml
-uses: ./.github/actions/providers/{provider}/deploy
-with:
-  # Deployment configuration
+# manual-deploy: Uses composite actions
+- uses: ./.github/actions/providers/fly/setup
+- uses: ./.github/actions/providers/fly/deploy
+
+# deploy-sindri: Direct CLI calls
+./cli/sindri deploy --config "$CONFIG" --provider fly
 ```
 
-#### Test
+**When to Use Each:**
 
-Runs tests on deployed instance.
+| Use Case                                      | Recommended Workflow            |
+| --------------------------------------------- | ------------------------------- |
+| One-off manual deployments with UI            | `manual-deploy`                 |
+| CI/CD pipeline integration                    | `deploy-sindri`                 |
+| Calling from other workflows                  | `deploy-sindri` (workflow_call) |
+| Complex deployment with tests + notifications | `manual-deploy`                 |
+| Simple "deploy this config file"              | `deploy-sindri`                 |
 
-```yaml
-uses: ./.github/actions/providers/{provider}/test
-with:
-  # Test parameters
+**Trade-offs:**
+
+| `manual-deploy`                                        | `deploy-sindri`                                       |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| ✅ Rich UI with sensible defaults                      | ✅ Config-as-code (sindri.yaml is source of truth)    |
+| ✅ Built-in testing, cleanup scheduling, notifications | ✅ Reusable from other workflows                      |
+| ✅ Provider-specific size/region mapping               | ✅ Simpler, easier to maintain                        |
+| ❌ Harder to version control (inputs are ephemeral)    | ❌ No built-in extras (tests, notifications, cleanup) |
+| ❌ More complex, more maintenance                      | ❌ Less provider-specific intelligence in workflow    |
+
+### Provider Test Workflow (`test-provider.yml`)
+
+Provider-specific testing with smoke/integration/full suites.
+
+### Extension Test Workflow (`test-extensions.yml`)
+
+Tests extensions across providers with combination support.
+
+## Scripts Directory
+
+The `.github/scripts/` directory contains test utilities:
+
+| Script                                  | Purpose                                                        |
+| --------------------------------------- | -------------------------------------------------------------- |
+| `test-all-extensions.sh`                | Validates all extensions (used by `pnpm test:extensions`)      |
+| `generate-slack-notification.sh`        | Generates Slack messages for deployment notifications          |
+| `lib/test-helpers.sh`                   | Shared logging, retry, and VM interaction functions            |
+| `lib/assertions.sh`                     | Test assertion functions (equals, contains, file exists, etc.) |
+| `extensions/test-extension-complete.sh` | Full test suite for individual extensions                      |
+
+**Extensibility:** Workflows support optional extension-specific test scripts at
+`.github/scripts/test-{extension}.sh`. If present, these are executed; otherwise,
+generic tests run. Currently no extension-specific scripts exist - the generic
+tests handle all cases.
+
+## Test Configurations
+
+The `.github/test-configs/` directory contains reference configurations:
+
+| File              | Purpose                                                             |
+| ----------------- | ------------------------------------------------------------------- |
+| `providers.yaml`  | Defines provider test parameters, regions, VM sizes, test commands  |
+| `extensions.yaml` | Defines extension test commands, validation patterns, test projects |
+
+These configs serve as **reference documentation** for test parameters and are
+partially consumed by workflows. Workflows may also use inline test logic for
+simpler cases.
+
+## YAML-Driven Testing Flow
+
+```text
+┌───────────────────────────────────┐
+│  examples/fly/minimal.sindri.yaml │
+└────────────────┬──────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  test-sindri-config.yml         │
+│  - Discover configs             │
+│  - Parse provider/profile       │
+└────────────────┬────────────────┘
+                 │
+         ┌───────┴───────┐
+         ▼               ▼
+┌─────────────┐   ┌─────────────┐
+│ Validate    │   │ Deploy      │
+│ (schema)    │   │ (provider)  │
+└─────────────┘   └──────┬──────┘
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │ Test        │
+                  │ (suite)     │
+                  └──────┬──────┘
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │ Teardown    │
+                  │ (cleanup)   │
+                  └─────────────┘
 ```
 
-#### Cleanup
+## Benefits Over Previous Approach
 
-Removes all provider resources.
+| Aspect                 | Previous (Workflow Inputs)   | Current (YAML-Driven)                    |
+| ---------------------- | ---------------------------- | ---------------------------------------- |
+| **Regions**            | Polluted workflow inputs     | Each provider's regions in example files |
+| **Adding providers**   | Edit workflow inputs, matrix | Just add new example files               |
+| **Adding regions**     | Edit choice options          | Add a new example file                   |
+| **Consumer testing**   | Different interface          | Same interface as consumers              |
+| **Provider options**   | Scattered in workflows       | Consolidated in schema                   |
+| **Test maintenance**   | Complex workflow logic       | Simple file iteration                    |
+| **Debugging**          | Which inputs were used?      | Just look at the YAML file               |
+| **User documentation** | Separate from test fixtures  | Examples ARE the docs                    |
 
-```yaml
-uses: ./.github/actions/providers/{provider}/cleanup
-with:
-  # Cleanup options
-```
+## Required Secrets by Provider
 
-### Test Actions
-
-Provider-agnostic test actions:
-
-#### `tests/install-extension`
-
-Installs extensions on any provider.
-
-```yaml
-uses: ./.github/actions/tests/install-extension
-with:
-  extension: nodejs
-  provider: docker
-  target: container-name
-```
-
-#### `tests/validate-extension`
-
-Validates extension installation.
-
-```yaml
-uses: ./.github/actions/tests/validate-extension
-with:
-  extension: nodejs
-  provider: fly
-  target: app-name
-```
-
-## Test Configuration
-
-### Provider Configuration (`providers.yaml`)
-
-```yaml
-providers:
-  docker:
-    enabled: true
-    test_suites: [smoke, integration]
-    timeout_minutes: 15
-    resources:
-      memory: 2GB
-      cpus: 2
-
-  fly:
-    enabled: true
-    regions: [sjc, ord]
-    vm_sizes:
-      small: shared-cpu-1x
-      medium: shared-cpu-2x
-```
-
-### Extension Configuration (`extensions.yaml`)
-
-```yaml
-extensions:
-  nodejs:
-    category: language
-    priority: high
-    test_commands:
-      - node --version
-      - npm --version
-    validation_pattern: "v\\d+\\.\\d+\\.\\d+"
-```
+| Provider            | Required Secrets                                            |
+| ------------------- | ----------------------------------------------------------- |
+| Docker              | None (local)                                                |
+| Fly.io              | `FLY_API_TOKEN`                                             |
+| DevPod AWS          | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                |
+| DevPod GCP          | `GCP_SERVICE_ACCOUNT_KEY`                                   |
+| DevPod Azure        | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID` |
+| DevPod DigitalOcean | `DIGITALOCEAN_TOKEN`                                        |
+| Kubernetes          | `KUBECONFIG`                                                |
 
 ## Usage Examples
 
-### Running CI Locally
+### Test All Examples
+
+```yaml
+# Via workflow_dispatch
+config-path: examples/
+test-suite: smoke
+```
+
+### Test Specific Provider
+
+```yaml
+config-path: examples/fly/
+test-suite: integration
+```
+
+### Test Single Configuration
+
+```yaml
+config-path: examples/fly/minimal.sindri.yaml
+test-suite: full
+```
+
+### Local Testing
 
 ```bash
-# Test specific provider
-act -W .github/workflows/ci.yml \
-  --env-file .env \
-  -e '{"inputs":{"providers":"docker,fly"}}'
+# Validate YAML
+./test/unit/yaml/run-all-yaml-tests.sh
 
-# Run with all providers
-act -W .github/workflows/ci.yml \
-  --env-file .env \
-  -e '{"inputs":{"providers":"all"}}'
+# Test specific config
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+
+# Deploy and connect
+./cli/sindri deploy --config examples/fly/minimal.sindri.yaml
+./cli/sindri connect --config examples/fly/minimal.sindri.yaml
 ```
 
-### Manual Deployment
+## Adding New Test Scenarios
 
-```bash
-# Deploy to AWS via GitHub UI
-# Navigate to Actions → Manual Deploy → Run workflow
-# Select: provider=devpod-aws, environment=staging
-```
-
-### Testing Extensions
-
-```bash
-# Test specific extensions
-act -W .github/workflows/test-extensions.yml \
-  -e '{"inputs":{"extensions":"[\"nodejs\",\"python\"]"}}'
-```
-
-## Matrix Testing Strategy
-
-### Dynamic Matrix Generation
-
-The CI workflow dynamically generates test matrices based on:
-
-- Event type (push, PR, schedule, manual)
-- Branch (main, develop, feature)
-- Configuration (providers.yaml)
-
-Example matrix generation:
-
-- **PR**: Minimal testing (Docker only)
-- **Main push**: Standard testing (Docker + Fly)
-- **Schedule**: Comprehensive (all providers)
-- **Manual**: User-selected providers
-
-### Parallel Execution
-
-Tests run in parallel with configurable limits:
-
-- Provider tests: max 4 parallel
-- Extension tests: max 3 parallel
-- Combination tests: max 2 parallel
-
-## Security and Secrets
-
-### Required GitHub Secrets by Provider
-
-The following table shows which GitHub secrets need to be configured for each provider:
-
-| Provider                | Required Secrets                                                | Optional Secrets                             | Description                                                                                     |
-| ----------------------- | --------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| **Docker**              | None                                                            | `DOCKER_HUB_USERNAME`<br>`DOCKER_HUB_TOKEN`  | Local Docker testing requires no secrets. Registry push requires Docker Hub credentials.        |
-| **Fly.io**              | `FLY_API_TOKEN`                                                 | None                                         | API token from [fly.io/user/personal_access_tokens](https://fly.io/user/personal_access_tokens) |
-| **DevPod AWS**          | `AWS_ACCESS_KEY_ID`<br>`AWS_SECRET_ACCESS_KEY`                  | `AWS_SESSION_TOKEN`<br>`AWS_REGION`          | IAM user credentials with EC2 permissions. Consider using OIDC for better security.             |
-| **DevPod GCP**          | `GCP_SERVICE_ACCOUNT_KEY`                                       | `GCP_PROJECT_ID`                             | Service account JSON key with Compute Engine permissions                                        |
-| **DevPod Azure**        | `AZURE_CLIENT_ID`<br>`AZURE_CLIENT_SECRET`<br>`AZURE_TENANT_ID` | `AZURE_SUBSCRIPTION_ID`                      | Service principal credentials with VM contributor role                                          |
-| **DevPod DigitalOcean** | `DIGITALOCEAN_TOKEN`                                            | None                                         | Personal access token with read/write scope                                                     |
-| **Kubernetes**          | `KUBECONFIG`                                                    | `K8S_NAMESPACE`<br>`K8S_CONTEXT`             | Base64-encoded kubeconfig file with cluster access                                              |
-| **SSH**                 | `SSH_PRIVATE_KEY`                                               | `SSH_HOST`<br>`SSH_USER`<br>`SSH_PORT`       | Private key for SSH authentication to remote servers                                            |
-| **All Providers**       | None                                                            | `SLACK_WEBHOOK_URL`<br>`DISCORD_WEBHOOK_URL` | Notification webhook URLs for deployment status                                                 |
-
-### Setting Up Secrets
-
-1. Navigate to **Settings → Secrets and variables → Actions** in your GitHub repository
-2. Click **New repository secret**
-3. Add the required secrets for your providers
-4. Use the exact secret names as shown in the table
-
-### Secret Management Best Practices
-
-- **Use OIDC where possible**: For AWS, GCP, and Azure, consider using OpenID Connect instead of long-lived credentials
-- **Rotate regularly**: Set up automated rotation for cloud provider credentials
-- **Scope appropriately**: Use repository secrets for sensitive data, environment secrets for deployment-specific values
-- **Audit access**: Regularly review secret access logs in GitHub
-- **Never commit secrets**: Use `.gitignore` and pre-commit hooks to prevent accidental commits
-
-### Example Secret Setup for Multi-Provider Testing
-
-```yaml
-# Minimal setup for Docker + Fly.io testing
-FLY_API_TOKEN: "fly_***"
-
-# Full cloud provider setup
-AWS_ACCESS_KEY_ID: "AKIA***"
-AWS_SECRET_ACCESS_KEY: "***"
-GCP_SERVICE_ACCOUNT_KEY: '{"type":"service_account",...}'
-AZURE_CLIENT_ID: "00000000-0000-0000-0000-000000000000"
-AZURE_CLIENT_SECRET: "***"
-AZURE_TENANT_ID: "00000000-0000-0000-0000-000000000000"
-DIGITALOCEAN_TOKEN: "dop_v1_***"
-
-# Kubernetes setup
-KUBECONFIG: "YXBpVmVyc2lvbjogdjEK..." # base64 encoded
-
-# Notifications
-SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/T***/B***/***"
-```
-
-### Secret Access in Workflows
-
-Secrets are passed to reusable workflows via `secrets: inherit`:
-
-```yaml
-jobs:
-  test-provider:
-    uses: ./.github/workflows/test-provider.yml
-    with:
-      provider: devpod-aws
-    secrets: inherit # Passes all secrets
-```
-
-Or explicitly pass specific secrets:
-
-```yaml
-jobs:
-  test-provider:
-    uses: ./.github/workflows/test-provider.yml
-    with:
-      provider: fly
-    secrets:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-```
-
-## Performance Optimization
-
-### Caching Strategies
-
-1. **Docker Layer Caching**: BuildKit cache for image builds
-2. **Artifact Caching**: Share built images between jobs
-3. **Provider Caching**: Provider-specific optimizations
-4. **Dependency Caching**: Cache package managers
-
-### Timeout Management
-
-```yaml
-timeout-minutes: 30 # Job timeout
-timeout_seconds: 300 # Step timeout
-```
-
-## Monitoring and Reporting
-
-### Job Summaries
-
-Each workflow generates markdown summaries:
-
-- Test results table
-- Failed tests list
-- Performance metrics
-- Deployment URLs
-
-### Artifacts
-
-- Test logs
-- Performance metrics
-- Deployment configurations
-- Cleanup schedules
-
-## Best Practices
-
-### Adding a New Provider
-
-1. Create provider actions in `.github/actions/providers/{provider}/`
-2. Add configuration to `providers.yaml`
-3. Update matrix generation in `ci.yml`
-4. Add provider-specific secrets
-5. Test with `workflow_dispatch`
-
-### Adding a New Extension
-
-1. Add extension configuration to `extensions.yaml`
-2. Create test scripts in `.github/scripts/test-{extension}.sh`
-3. Add to extension matrix
-4. Test with extension workflow
-
-### Workflow Development
-
-1. Use reusable workflows for common patterns
-2. Keep actions focused and composable
-3. Validate inputs and provide defaults
-4. Include error handling and cleanup
-5. Generate helpful output summaries
+1. Create a new `sindri.yaml` file in appropriate `examples/` subdirectory
+2. The file is automatically:
+   - Discovered by `test-sindri-config.yml`
+   - Validated against schema
+   - Used as documentation for users
+3. No workflow changes needed
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Provider Authentication Failures**
-   - Verify secrets are set correctly
+1. **Validation Failures**
+   - Run `./test/unit/yaml/run-all-yaml-tests.sh` locally
+   - Check cross-references if modifying registry/profiles
+
+2. **Provider Authentication**
+   - Verify secrets are set in repository settings
    - Check credential expiration
-   - Review provider-specific auth requirements
 
-2. **Test Timeouts**
-   - Increase timeout values
+3. **Test Timeouts**
+   - Increase `timeout-minutes` in workflow
    - Check provider resource limits
-   - Review test complexity
-
-3. **Cleanup Failures**
-   - Run manual cleanup workflow
-   - Check provider console directly
-   - Review cleanup logs
 
 ### Debug Mode
 
-Enable debug logging:
-
-```yaml
-env:
-  ACTIONS_STEP_DEBUG: true
-  ACTIONS_RUNNER_DEBUG: true
+```bash
+# Local debugging
+export DEBUG=true
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
 ```
-
-## Migration Guide
-
-### From Old Actions
-
-Old action → New action mapping:
-
-- `setup-fly-env` → `providers/fly/setup`
-- `deploy-fly-vm` → `providers/fly/deploy`
-- `cleanup-fly-vm` → `providers/fly/cleanup`
-- `install-extension` → `tests/install-extension`
-- `validate-extension` → `tests/validate-extension`
-
-### Updating Workflows
-
-```yaml
-# Old
-uses: ./.github/actions/setup-fly-env
-
-# New
-uses: ./.github/actions/providers/fly/setup
-```
-
-## Future Enhancements
-
-### Planned Features
-
-1. **Additional Providers**
-   - Hetzner Cloud
-   - Linode
-   - Vultr
-   - Oracle Cloud
-
-2. **Advanced Testing**
-   - Load testing
-   - Security scanning
-   - Compliance validation
-   - Cost analysis
-
-3. **Automation**
-   - Auto-scaling based on load
-   - Predictive cleanup
-   - Cost optimization
-   - Performance tuning
-
-4. **Integration**
-   - Terraform/OpenTofu
-   - Pulumi
-   - Crossplane
-   - ArgoCD
-
-## Contributing
-
-### Adding Provider Support
-
-1. Fork the repository
-2. Create provider actions following the pattern
-3. Add comprehensive tests
-4. Update documentation
-5. Submit PR with description
-
-### Reporting Issues
-
-- Use GitHub Issues
-- Include workflow logs
-- Specify provider and configuration
-- Provide reproduction steps
 
 ## References
 
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [DevPod Documentation](https://devpod.sh/docs)
-- [Fly.io Documentation](https://fly.io/docs)
-- [Docker Documentation](https://docs.docker.com)
+- [Testing Guide](../docs/TESTING.md)
+- [Examples README](../examples/README.md)

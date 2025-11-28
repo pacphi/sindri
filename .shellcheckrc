@@ -1,0 +1,15 @@
+# ShellCheck configuration
+# https://www.shellcheck.net/wiki/
+
+# Minimum severity: error, warning, info, style
+severity=warning
+
+# Shell dialect (default: auto-detect from shebang)
+# shell=bash
+
+# Enable optional checks
+enable=all
+
+# Disable specific checks if needed
+# SC2154: Variables sourced from common.sh (DOCKER_LIB, EXTENSIONS_DIR, SCHEMAS_DIR, GREEN, NC, etc.)
+disable=SC2154

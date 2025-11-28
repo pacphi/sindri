@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Docker DevOps Example
+# Local DevOps and infrastructure development
+version: "1.0"
+name: sindri-docker-devops
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  profile: devops
+
+providers:
+  docker-compose:
+    privileged: true # Required for Docker-in-Docker
+    ports:
+      - "8080:8080" # Web UI
+      - "9090:9090" # Prometheus

@@ -12,23 +12,23 @@ inputs:
   test-scripts:
     description: Path to test scripts directory
     required: false
-    default: ''
+    default: ""
   extension:
     description: Specific extension to test
     required: false
-    default: ''
+    default: ""
   run-integration-tests:
     description: Run integration tests
     required: false
-    default: 'true'
+    default: "true"
   collect-logs:
     description: Collect workspace logs on failure
     required: false
-    default: 'true'
+    default: "true"
   validate-environment:
     description: Validate environment setup
     required: false
-    default: 'true'
+    default: "true"
 
 outputs:
   test-results:

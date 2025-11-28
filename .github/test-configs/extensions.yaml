@@ -18,8 +18,8 @@ extensions:
         - echo 'console.log("Hello from Node.js");' > test.js
         - node test.js
     dependencies: []
-    required_disk_space: 500  # MB
-    estimated_install_time: 30  # seconds
+    required_disk_space: 500 # MB
+    estimated_install_time: 30 # seconds
 
   python:
     category: language

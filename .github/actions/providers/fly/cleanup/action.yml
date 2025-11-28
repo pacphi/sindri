@@ -5,30 +5,30 @@ inputs:
   app-name:
     description: Fly.io app name to cleanup
     required: false
-    default: ''
+    default: ""
   fly-api-token:
     description: Fly.io API token
     required: true
   cleanup-pattern:
     description: Pattern to match apps for cleanup
     required: false
-    default: ''
+    default: ""
   force:
     description: Force cleanup without confirmation
     required: false
-    default: 'true'
+    default: "true"
   cleanup-volumes:
     description: Also cleanup volumes
     required: false
-    default: 'true'
+    default: "true"
   cleanup-secrets:
     description: Clear all secrets before deletion
     required: false
-    default: 'true'
+    default: "true"
   max-age-hours:
     description: Only cleanup apps older than this many hours
     required: false
-    default: '0'
+    default: "0"
 
 outputs:
   cleaned-apps:

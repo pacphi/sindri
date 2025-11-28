@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Fly.io Minimal
+# Cost-optimized configuration for basic development
+version: "1.0"
+name: sindri-test-fly-minimal
+
+deployment:
+  provider: fly
+  resources:
+    memory: 1GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: minimal
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: shared
+    autoStopMachines: false # Keep running for tests
+    autoStartMachines: true

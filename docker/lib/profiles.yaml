@@ -40,7 +40,7 @@ profiles:
       - playwright
       - rust
       - ruvnet-aliases
-      - tmux-workspaces
+      - tmux-workspace
 
   systems:
     description: Systems programming

@@ -1,0 +1,17 @@
+---
+# Sindri Configuration - Docker Compose Fullstack
+# Full local development environment
+version: "1.0"
+name: sindri-test-docker-fullstack
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 4GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: fullstack

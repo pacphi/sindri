@@ -246,15 +246,18 @@ profiles:
 
 ### GitHub Actions
 
-7 workflows in `.github/workflows/`:
+10 workflows in `.github/workflows/`:
 
-- `integration.yml` - Main test orchestration
-- `per-extension-tests.yml` - Individual extension validation
-- `validation.yml` - Code quality (shellcheck, yamllint, markdownlint)
-- `ci.yml` - Continuous integration
-- `release.yml` - Release automation
-- `extension-combinations.yml` - Test extension combinations
-- `infrastructure-tests.yml` - Provider deployment tests
+- `ci.yml` - Main CI orchestrator (linting, building, testing)
+- `validate-yaml.yml` - Comprehensive YAML validation with schema checks
+- `test-provider.yml` - Provider-specific testing (docker, fly, devpod, k8s)
+- `test-extensions.yml` - Extension testing across providers
+- `test-sindri-config.yml` - User configuration testing
+- `deploy-sindri.yml` - Reusable deployment workflow
+- `teardown-sindri.yml` - Reusable teardown workflow
+- `manual-deploy.yml` - Manual deployment trigger
+- `self-service-deploy-fly.yml` - Self-service Fly.io deployment
+- `release.yml` - Automated release with changelog generation (see [docs/RELEASE.md](docs/RELEASE.md))
 
 ## Code Style
 

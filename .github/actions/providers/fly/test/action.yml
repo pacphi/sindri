@@ -15,23 +15,23 @@ inputs:
   test-extension:
     description: Specific extension to test
     required: false
-    default: ''
+    default: ""
   test-scripts:
     description: Path to test scripts directory
     required: false
-    default: ''
+    default: ""
   run-integration-tests:
     description: Run integration tests
     required: false
-    default: 'true'
+    default: "true"
   test-persistence:
     description: Test volume persistence
     required: false
-    default: 'true'
+    default: "true"
   collect-logs:
     description: Collect logs on failure
     required: false
-    default: 'true'
+    default: "true"
 
 outputs:
   test-results:

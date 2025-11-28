@@ -19,19 +19,19 @@ inputs:
   vm-memory:
     description: VM memory in MB
     required: false
-    default: '1024'
+    default: "1024"
   volume-size:
     description: Volume size in GB
     required: false
-    default: '10'
+    default: "10"
   extension-profile:
     description: Extension profile to install
     required: false
-    default: ''
+    default: ""
   secrets:
     description: JSON object with secrets to set
     required: false
-    default: '{}'
+    default: "{}"
   deployment-strategy:
     description: Deployment strategy (immediate, rolling, canary)
     required: false
@@ -39,11 +39,11 @@ inputs:
   wait-for-deployment:
     description: Wait for deployment to complete
     required: false
-    default: 'true'
+    default: "true"
   timeout-seconds:
     description: Deployment timeout in seconds
     required: false
-    default: '300'
+    default: "300"
 
 outputs:
   machine-id:

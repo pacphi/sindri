@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/profiles.schema.json",
+  "title": "Sindri Extension Profiles",
+  "description": "Schema for extension profile definitions",
+  "type": "object",
+  "required": ["version", "profiles"],
+  "properties": {
+    "version": {
+      "type": ["string", "number"],
+      "description": "Schema version"
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["description", "extensions"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Human-readable description of the profile"
+          },
+          "extensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "List of extensions included in this profile"
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Map of profile names to their definitions"
+    }
+  },
+  "additionalProperties": false
+}

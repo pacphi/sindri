@@ -24,17 +24,21 @@ USAGE:
     sindri <command> [options]
 
 COMMANDS:
-    deploy [--provider <name>] [--rebuild]   Deploy to provider (docker, fly, devpod)
-    validate                     Validate sindri.yaml configuration
-    plan                         Show deployment plan
-    destroy [--provider <name>] [--force]  Destroy deployment
-    connect                      Connect to deployed instance
+    deploy [--provider <name>] [--rebuild] [--config <file>]
+                                 Deploy to provider (docker, fly, devpod)
+    plan [--config <file>]       Show deployment plan
+    destroy [--provider <name>] [--force] [--config <file>]
+                                 Destroy deployment
+    connect [--config <file>]    Connect to deployed instance
+    test [--config <file>] [--suite <name>]
+                                 Run test suite on deployed instance
 
     profiles list                List available profiles
     profiles show <name>         Show profile details
 
     config init                  Initialize sindri.yaml
-    config validate              Validate configuration
+    config validate [--config <file>]
+                                 Validate configuration against schema
 
 OPTIONS:
     -h, --help                   Show this help
@@ -49,9 +53,11 @@ EXAMPLES:
     sindri deploy --provider fly
     sindri deploy --provider fly --rebuild  # Force rebuild on Fly.io
     sindri deploy --provider devpod
+    sindri deploy --config examples/fly/minimal.sindri.yaml
     sindri connect
     sindri destroy --provider docker
     sindri destroy --force
+    sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
 EOH
 }
 
@@ -148,7 +154,7 @@ EOYAML
     echo ""
     echo "For Fly.io deployments:"
     echo "  • Set secrets: flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-sindri-dev"
-    echo "  • See docs/FLY_DEPLOYMENT.md for complete guide"
+    echo "  • See docs/providers/FLY.md for complete guide"
     echo ""
 }
 
@@ -331,6 +337,103 @@ destroy() {
     esac
 }
 
+# Run test suite on deployed instance
+test_suite() {
+    local config="${1:-sindri.yaml}"
+    local suite="${2:-smoke}"
+
+    if [[ ! -f "$config" ]]; then
+        print_error "$config not found"
+        return 1
+    fi
+
+    local name provider
+    name=$(yq '.name' "$config")
+    provider=$(yq '.deployment.provider' "$config")
+
+    print_header "Running test suite: $suite on $name ($provider)"
+
+    case "$suite" in
+        smoke)
+            # Basic connectivity and health checks
+            print_status "Running smoke tests..."
+
+            case "$provider" in
+                docker)
+                    # Check container is running
+                    if ! docker ps | grep -q "$name"; then
+                        print_error "Container $name is not running"
+                        return 1
+                    fi
+
+                    # Check basic commands work
+                    docker exec "$name" whoami || { print_error "Failed to exec into container"; return 1; }
+                    docker exec "$name" cat /etc/os-release || { print_error "Failed to read OS info"; return 1; }
+                    ;;
+                fly)
+                    # Check app is running
+                    if ! flyctl status -a "$name" 2>/dev/null | grep -q "running"; then
+                        print_error "Fly.io app $name is not running"
+                        return 1
+                    fi
+
+                    # Check SSH connectivity
+                    flyctl ssh console -a "$name" -C "whoami" || { print_error "SSH test failed"; return 1; }
+                    ;;
+                devpod)
+                    # Check workspace exists
+                    if ! devpod list | grep -q "$name"; then
+                        print_error "DevPod workspace $name not found"
+                        return 1
+                    fi
+
+                    # Check SSH connectivity
+                    devpod ssh "$name" "whoami" || { print_error "SSH test failed"; return 1; }
+                    ;;
+            esac
+
+            print_success "Smoke tests passed"
+            ;;
+        integration)
+            # Full integration tests
+            print_status "Running integration tests..."
+
+            # Deploy if not already running
+            if ! deploy "" "" "$config"; then
+                print_error "Deploy failed"
+                return 1
+            fi
+
+            # Run extension validation
+            case "$provider" in
+                docker)
+                    docker exec "$name" /docker/cli/extension-manager validate-all
+                    ;;
+                fly)
+                    flyctl ssh console -a "$name" -C "/docker/cli/extension-manager validate-all"
+                    ;;
+                devpod)
+                    devpod ssh "$name" "/docker/cli/extension-manager validate-all"
+                    ;;
+            esac
+
+            print_success "Integration tests passed"
+            ;;
+        full)
+            # Run all test suites
+            print_status "Running full test suite..."
+            test_suite "$config" "smoke" || return 1
+            test_suite "$config" "integration" || return 1
+            print_success "Full test suite passed"
+            ;;
+        *)
+            print_error "Unknown test suite: $suite"
+            echo "Available suites: smoke, integration, full"
+            return 1
+            ;;
+    esac
+}
+
 # Show deployment plan
 plan() {
     local config="${1:-sindri.yaml}"
@@ -448,6 +551,7 @@ main() {
         deploy)
             local provider=""
             local rebuild=""
+            local config="sindri.yaml"
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     -p|--provider)
@@ -458,22 +562,36 @@ main() {
                         rebuild="--rebuild"
                         shift
                         ;;
+                    -c|--config)
+                        config="$2"
+                        shift 2
+                        ;;
                     *)
                         shift
                         ;;
                 esac
             done
-            deploy "$provider" "$rebuild"
-            ;;
-        validate)
-            config_validate "$@"
+            deploy "$provider" "$rebuild" "$config"
             ;;
         connect)
-            connect "$@"
+            local config="sindri.yaml"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -c|--config)
+                        config="$2"
+                        shift 2
+                        ;;
+                    *)
+                        shift
+                        ;;
+                esac
+            done
+            connect "$config"
             ;;
         destroy)
             local provider=""
             local force=""
+            local config="sindri.yaml"
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     -p|--provider)
@@ -484,15 +602,51 @@ main() {
                         force="--force"
                         shift
                         ;;
+                    -c|--config)
+                        config="$2"
+                        shift 2
+                        ;;
                     *)
                         shift
                         ;;
                 esac
             done
-            destroy "$provider" "$force"
+            destroy "$provider" "$force" "$config"
             ;;
         plan)
-            plan "$@"
+            local config="sindri.yaml"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -c|--config)
+                        config="$2"
+                        shift 2
+                        ;;
+                    *)
+                        shift
+                        ;;
+                esac
+            done
+            plan "$config"
+            ;;
+        test)
+            local config="sindri.yaml"
+            local suite="smoke"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -c|--config)
+                        config="$2"
+                        shift 2
+                        ;;
+                    -s|--suite)
+                        suite="$2"
+                        shift 2
+                        ;;
+                    *)
+                        shift
+                        ;;
+                esac
+            done
+            test_suite "$config" "$suite"
             ;;
         config)
             case "${1:-}" in
@@ -500,7 +654,21 @@ main() {
                     config_init
                     ;;
                 validate)
-                    config_validate "${2:-sindri.yaml}"
+                    shift
+                    local config="sindri.yaml"
+                    while [[ $# -gt 0 ]]; do
+                        case "$1" in
+                            -c|--config)
+                                config="$2"
+                                shift 2
+                                ;;
+                            *)
+                                config="$1"
+                                shift
+                                ;;
+                        esac
+                    done
+                    config_validate "$config"
                     ;;
                 *)
                     echo "Usage: sindri config <init|validate>"

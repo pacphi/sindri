@@ -21,7 +21,8 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["fly", "kubernetes", "docker-compose"]
+          "enum": ["fly", "kubernetes", "docker-compose", "devpod"],
+          "description": "Deployment provider"
         },
         "image": {
           "type": "string",
@@ -73,8 +74,12 @@
                 "minimal",
                 "fullstack",
                 "ai-dev",
+                "anthropic-dev",
                 "systems",
-                "enterprise"
+                "enterprise",
+                "data-science",
+                "devops",
+                "mobile"
               ]
             }
           }
@@ -171,7 +176,7 @@
             "region": {
               "type": "string",
               "default": "sjc",
-              "description": "Fly.io region code (e.g., sjc, ord, iad)"
+              "description": "Fly.io region code (e.g., sjc, ord, iad, ams)"
             },
             "autoStopMachines": {
               "type": "boolean",
@@ -226,6 +231,193 @@
                 },
                 "hostname": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "devpod": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["aws", "gcp", "azure", "digitalocean", "kubernetes", "ssh", "docker"],
+              "description": "DevPod provider type"
+            },
+            "aws": {
+              "type": "object",
+              "description": "AWS EC2 provider options",
+              "properties": {
+                "region": {
+                  "type": "string",
+                  "default": "us-west-2",
+                  "description": "AWS region"
+                },
+                "instanceType": {
+                  "type": "string",
+                  "default": "c5.xlarge",
+                  "description": "EC2 instance type"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "default": 40,
+                  "description": "Root volume size in GB"
+                },
+                "useSpot": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Use spot instances for cost savings"
+                },
+                "subnetId": {
+                  "type": "string",
+                  "description": "VPC subnet ID for instance placement"
+                },
+                "securityGroupId": {
+                  "type": "string",
+                  "description": "Security group ID to attach"
+                }
+              }
+            },
+            "gcp": {
+              "type": "object",
+              "description": "GCP Compute Engine provider options",
+              "properties": {
+                "project": {
+                  "type": "string",
+                  "description": "GCP project ID"
+                },
+                "zone": {
+                  "type": "string",
+                  "default": "us-central1-a",
+                  "description": "GCP zone"
+                },
+                "machineType": {
+                  "type": "string",
+                  "default": "e2-standard-4",
+                  "description": "GCE machine type"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "default": 40,
+                  "description": "Boot disk size in GB"
+                },
+                "diskType": {
+                  "type": "string",
+                  "enum": ["pd-standard", "pd-balanced", "pd-ssd"],
+                  "default": "pd-balanced",
+                  "description": "Persistent disk type"
+                }
+              }
+            },
+            "azure": {
+              "type": "object",
+              "description": "Azure VM provider options",
+              "properties": {
+                "subscription": {
+                  "type": "string",
+                  "description": "Azure subscription ID"
+                },
+                "resourceGroup": {
+                  "type": "string",
+                  "default": "devpod-resources",
+                  "description": "Resource group name"
+                },
+                "location": {
+                  "type": "string",
+                  "default": "eastus",
+                  "description": "Azure region"
+                },
+                "vmSize": {
+                  "type": "string",
+                  "default": "Standard_D4s_v3",
+                  "description": "VM size"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "default": 40,
+                  "description": "OS disk size in GB"
+                }
+              }
+            },
+            "digitalocean": {
+              "type": "object",
+              "description": "DigitalOcean Droplet provider options",
+              "properties": {
+                "region": {
+                  "type": "string",
+                  "default": "nyc3",
+                  "description": "DigitalOcean region"
+                },
+                "size": {
+                  "type": "string",
+                  "default": "s-4vcpu-8gb",
+                  "description": "Droplet size"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "description": "Block storage size in GB (optional)"
+                }
+              }
+            },
+            "kubernetes": {
+              "type": "object",
+              "description": "Kubernetes pod provider options",
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "default": "devpod",
+                  "description": "Kubernetes namespace"
+                },
+                "storageClass": {
+                  "type": "string",
+                  "description": "Storage class for persistent volumes"
+                },
+                "context": {
+                  "type": "string",
+                  "description": "Kubernetes context to use"
+                },
+                "nodeSelector": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Node selector labels"
+                }
+              }
+            },
+            "ssh": {
+              "type": "object",
+              "description": "SSH provider options for existing machines",
+              "properties": {
+                "host": {
+                  "type": "string",
+                  "description": "SSH host address"
+                },
+                "user": {
+                  "type": "string",
+                  "default": "root",
+                  "description": "SSH user"
+                },
+                "port": {
+                  "type": "integer",
+                  "default": 22,
+                  "description": "SSH port"
+                },
+                "keyPath": {
+                  "type": "string",
+                  "default": "~/.ssh/id_rsa",
+                  "description": "Path to SSH private key"
+                }
+              }
+            },
+            "docker": {
+              "type": "object",
+              "description": "Local Docker provider options",
+              "properties": {
+                "dockerHost": {
+                  "type": "string",
+                  "description": "Docker host URL (defaults to local socket)"
                 }
               }
             }

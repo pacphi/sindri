@@ -13,23 +13,23 @@ inputs:
   context:
     description: Build context path
     required: false
-    default: '.'
+    default: "."
   push:
     description: Whether to push the image to registry
     required: false
-    default: 'false'
+    default: "false"
   registry:
     description: Docker registry URL
     required: false
-    default: ''
+    default: ""
   cache-key-prefix:
     description: Cache key prefix for layer caching
     required: false
-    default: 'sindri-docker'
+    default: "sindri-docker"
   platforms:
     description: Target platforms for multi-arch build
     required: false
-    default: 'linux/amd64'
+    default: "linux/amd64"
 
 outputs:
   image:

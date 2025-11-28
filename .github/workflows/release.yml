@@ -3,13 +3,244 @@ name: Release
 "on":
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  release:
+  # Job 1: Validate the release tag format and detect prerelease
+  validate-tag:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      is_prerelease: ${{ steps.validate.outputs.is_prerelease }}
+    steps:
+      - name: Validate semantic version tag
+        id: validate
+        run: |
+          tag_name="${GITHUB_REF#refs/tags/}"
+          echo "Tag name: $tag_name"
+
+          # Validate format: v1.0.0 or v1.0.0-alpha.1
+          if [[ ! $tag_name =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid tag format: $tag_name"
+            echo "Tag must match pattern: v{MAJOR}.{MINOR}.{PATCH} or v{MAJOR}.{MINOR}.{PATCH}-{prerelease}"
+            exit 1
+          fi
+
+          # Extract version without 'v' prefix
+          version="${tag_name#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          # Detect prerelease (alpha, beta, rc)
+          if [[ $version =~ -[a-zA-Z] ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Detected prerelease version: $version"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Detected stable version: $version"
+          fi
+
+  # Job 2: Generate changelog from commits since last tag
+  generate-changelog:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      changelog_file: ${{ steps.changelog.outputs.changelog_file }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          current_tag="v$version"
+
+          # Get previous tag
+          previous_tag=$(git describe --tags --abbrev=0 "$current_tag^" 2>/dev/null || echo "")
+
+          if [[ -z "$previous_tag" ]]; then
+            echo "No previous tag found, using all commits"
+            commit_range="$current_tag"
+          else
+            echo "Generating changelog from $previous_tag to $current_tag"
+            commit_range="$previous_tag..$current_tag"
+          fi
+
+          # Initialize changelog sections
+          features=""
+          fixes=""
+          docs=""
+          deps=""
+          perf=""
+          refactor=""
+          chore=""
+          tests=""
+          other=""
+
+          # Parse commits and categorize
+          while IFS= read -r commit; do
+            [[ -z "$commit" ]] && continue
+
+            # Extract commit hash and message
+            hash="${commit:0:7}"
+            message="${commit:8}"
+
+            # Categorize by conventional commit prefix
+            case "$message" in
+              feat:*|feat\(*) features+="- $message ($hash)"$'\n' ;;
+              fix:*|fix\(*)   fixes+="- $message ($hash)"$'\n' ;;
+              docs:*|docs\(*) docs+="- $message ($hash)"$'\n' ;;
+              deps:*|deps\(*) deps+="- $message ($hash)"$'\n' ;;
+              perf:*|perf\(*) perf+="- $message ($hash)"$'\n' ;;
+              refactor:*|refactor\(*) refactor+="- $message ($hash)"$'\n' ;;
+              chore:*|chore\(*) chore+="- $message ($hash)"$'\n' ;;
+              test:*|test\(*) tests+="- $message ($hash)"$'\n' ;;
+              ci:*|ci\(*)     chore+="- $message ($hash)"$'\n' ;;
+              style:*|style\(*) chore+="- $message ($hash)"$'\n' ;;
+              *)              other+="- $message ($hash)"$'\n' ;;
+            esac
+          done < <(git log --oneline "$commit_range" 2>/dev/null || git log --oneline)
+
+          # Build changelog content
+          changelog="## [$version] - $(date +%Y-%m-%d)"$'\n\n'
+
+          [[ -n "$features" ]] && changelog+="### :sparkles: Features"$'\n\n'"$features"$'\n'
+          [[ -n "$fixes" ]] && changelog+="### :bug: Bug Fixes"$'\n\n'"$fixes"$'\n'
+          [[ -n "$docs" ]] && changelog+="### :books: Documentation"$'\n\n'"$docs"$'\n'
+          [[ -n "$deps" ]] && changelog+="### :package: Dependencies"$'\n\n'"$deps"$'\n'
+          [[ -n "$perf" ]] && changelog+="### :zap: Performance"$'\n\n'"$perf"$'\n'
+          [[ -n "$refactor" ]] && changelog+="### :recycle: Refactoring"$'\n\n'"$refactor"$'\n'
+          [[ -n "$tests" ]] && changelog+="### :white_check_mark: Tests"$'\n\n'"$tests"$'\n'
+          [[ -n "$chore" ]] && changelog+="### :wrench: Maintenance"$'\n\n'"$chore"$'\n'
+          [[ -n "$other" ]] && changelog+="### :gear: Other Changes"$'\n\n'"$other"$'\n'
+
+          # Add installation instructions
+          changelog+="### Installation"$'\n\n'
+          changelog+='```bash'$'\n'
+          changelog+="# Clone and checkout"$'\n'
+          changelog+="git clone https://github.com/${{ github.repository }}.git"$'\n'
+          changelog+="cd sindri"$'\n'
+          changelog+="git checkout $current_tag"$'\n\n'
+          changelog+="# Deploy (choose your provider)"$'\n'
+          changelog+="./cli/sindri deploy --provider docker   # Local Docker"$'\n'
+          changelog+="./cli/sindri deploy --provider fly      # Fly.io"$'\n'
+          changelog+="./cli/sindri deploy --provider devpod   # DevContainer"$'\n'
+          changelog+='```'$'\n\n'
+
+          # Add diff link if previous tag exists
+          if [[ -n "$previous_tag" ]]; then
+            changelog+="**Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...$current_tag"$'\n'
+          fi
+
+          # Save changelog to file for artifact
+          echo "$changelog" > changelog.md
+
+          # Output for GitHub Actions (escape newlines)
+          {
+            echo "changelog<<CHANGELOG_EOF"
+            echo "$changelog"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "changelog_file=changelog.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: changelog.md
+
+  # Job 3: Update CHANGELOG.md in repository
+  update-changelog:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog]
     permissions:
       contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+
+      - name: Update CHANGELOG.md
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          changelog_header='# Changelog
+
+          All notable changes to this project will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          <!-- Entries below are auto-generated by release workflow -->'
+
+          # Create CHANGELOG.md if it doesn't exist
+          if [[ ! -f CHANGELOG.md ]]; then
+            echo "$changelog_header" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+
+          # Read current changelog content (skip header if exists)
+          if grep -q "<!-- Entries below are auto-generated" CHANGELOG.md; then
+            # Extract content after the marker
+            existing_content=$(sed -n '/<!-- Entries below are auto-generated/,$ p' CHANGELOG.md | tail -n +2)
+          else
+            existing_content=$(cat CHANGELOG.md)
+          fi
+
+          # Check if this version already exists
+          if grep -q "## \[$version\]" CHANGELOG.md; then
+            echo "Version $version already exists in CHANGELOG.md, skipping update"
+            exit 0
+          fi
+
+          # Rebuild CHANGELOG.md with new version at top
+          {
+            echo "$changelog_header"
+            echo ""
+            cat changelog.md
+            echo ""
+            echo "$existing_content"
+          } > CHANGELOG.md.new
+
+          mv CHANGELOG.md.new CHANGELOG.md
+
+      - name: Commit changelog update
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes to commit
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changes to CHANGELOG.md"
+            exit 0
+          fi
+
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for v$version
+
+          [skip ci]"
+          git push origin main
+
+  # Job 4: Build and push Docker image to GHCR
+  build-image:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    permissions:
+      contents: read
       packages: write
     steps:
       - uses: actions/checkout@v5
@@ -20,7 +251,7 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -28,11 +259,12 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -42,13 +274,191 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ needs.validate-tag.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Create Release
+  # Job 5: Create GitHub Release with changelog and assets
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog, build-image]
+    permissions:
+      contents: write
+    outputs:
+      release_url: ${{ steps.release.outputs.url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: changelog
+
+      - name: Create install.sh asset
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cat > install.sh << 'INSTALL_EOF'
+          #!/usr/bin/env bash
+          # Sindri Installation Script
+          # Generated for version: VERSION_PLACEHOLDER
+          set -euo pipefail
+
+          echo "Installing Sindri VERSION_PLACEHOLDER..."
+
+          # Check prerequisites
+          command -v git >/dev/null 2>&1 || { echo "Error: git is required"; exit 1; }
+          command -v docker >/dev/null 2>&1 || { echo "Error: docker is required"; exit 1; }
+
+          # Clone repository
+          if [[ -d "sindri" ]]; then
+            echo "Updating existing sindri directory..."
+            cd sindri
+            git fetch --tags
+          else
+            echo "Cloning sindri repository..."
+            git clone https://github.com/REPO_PLACEHOLDER.git
+            cd sindri
+          fi
+
+          # Checkout version
+          git checkout vVERSION_PLACEHOLDER
+
+          echo ""
+          echo "Sindri VERSION_PLACEHOLDER installed successfully!"
+          echo ""
+          echo "To deploy, run one of:"
+          echo "  ./cli/sindri deploy --provider docker   # Local Docker"
+          echo "  ./cli/sindri deploy --provider fly      # Fly.io"
+          echo "  ./cli/sindri deploy --provider devpod   # DevContainer"
+          echo ""
+          INSTALL_EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$version/g" install.sh
+          sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" install.sh
+          chmod +x install.sh
+
+      - name: Create QUICK_REFERENCE.md asset
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cat > QUICK_REFERENCE.md << 'QUICKREF_EOF'
+          # Sindri Quick Reference
+
+          Version: VERSION_PLACEHOLDER
+
+          ## Configuration
+
+          ```bash
+          ./cli/sindri config init        # Create sindri.yaml
+          ./cli/sindri config validate    # Validate configuration
+          ```
+
+          ## Deployment
+
+          ```bash
+          ./cli/sindri deploy --provider docker   # Local Docker
+          ./cli/sindri deploy --provider fly      # Fly.io
+          ./cli/sindri deploy --provider devpod   # DevContainer
+          ```
+
+          ## Extension Management
+
+          ```bash
+          ./cli/extension-manager list               # List all extensions
+          ./cli/extension-manager list-profiles      # List extension profiles
+          ./cli/extension-manager install <ext>      # Install extension
+          ./cli/extension-manager install-profile <profile>  # Install profile
+          ./cli/extension-manager validate <ext>     # Validate extension
+          ./cli/extension-manager status <ext>       # Check extension status
+          ```
+
+          ## Docker Image
+
+          ```bash
+          docker pull ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER
+          docker run -it -v sindri-workspace:/workspace ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER
+          ```
+
+          ## Documentation
+
+          - [README](https://github.com/REPO_PLACEHOLDER#readme)
+          - [Configuration Guide](https://github.com/REPO_PLACEHOLDER/blob/main/docs/CONFIGURATION.md)
+          - [Deployment Guide](https://github.com/REPO_PLACEHOLDER/blob/main/docs/DEPLOYMENT.md)
+          - [Contributing](https://github.com/REPO_PLACEHOLDER/blob/main/docs/CONTRIBUTING.md)
+          QUICKREF_EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$version/g" QUICK_REFERENCE.md
+          sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" QUICK_REFERENCE.md
+
+      - name: Create GitHub Release
+        id: release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          name: Sindri v${{ needs.validate-tag.outputs.version }}
+          body_path: changelog.md
+          prerelease: ${{ needs.validate-tag.outputs.is_prerelease }}
           files: |
-            README.md
-            IMPLEMENTATION_STATUS.md
+            install.sh
+            QUICK_REFERENCE.md
+
+  # Job 6: Notify on success or create issue on failure
+  notify-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, create-release, update-changelog]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Notify success
+        if: needs.create-release.result == 'success'
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "::notice::Release v$version published successfully!"
+          echo "Release URL: ${{ needs.create-release.outputs.release_url }}"
+          echo "Docker image: ghcr.io/${{ github.repository }}:$version"
+
+      - name: Create failure issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ needs.validate-tag.outputs.version }}';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Release v${version} failed`,
+              body: `## Release Failure
+
+            The automated release for **v${version}** failed.
+
+            ### Details
+
+            - **Tag**: v${version}
+            - **Workflow Run**: ${runUrl}
+            - **Triggered by**: @${context.actor}
+
+            ### Next Steps
+
+            1. Review the [workflow logs](${runUrl})
+            2. Fix any issues
+            3. Delete the tag and recreate it, or create a new patch version
+
+            \`\`\`bash
+            # To retry with same version:
+            git tag -d v${version}
+            git push origin :refs/tags/v${version}
+            # Fix issues...
+            git tag v${version}
+            git push origin v${version}
+            \`\`\`
+            `,
+              labels: ['release-failure', 'automated']
+            });

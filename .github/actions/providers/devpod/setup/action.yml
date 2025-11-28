@@ -8,107 +8,107 @@ inputs:
   provider-name:
     description: Custom name for provider instance
     required: false
-    default: ''
+    default: ""
   install-cli:
     description: Whether to install DevPod CLI
     required: false
-    default: 'true'
+    default: "true"
   devpod-version:
     description: DevPod CLI version to install
     required: false
-    default: 'latest'
+    default: "latest"
   provider-options:
     description: JSON object with provider-specific options
     required: false
-    default: '{}'
+    default: "{}"
 
   # AWS-specific inputs
   aws-region:
     description: AWS region for EC2 instances
     required: false
-    default: 'us-west-2'
+    default: "us-west-2"
   aws-instance-type:
     description: AWS EC2 instance type
     required: false
-    default: 'c5.xlarge'
+    default: "c5.xlarge"
   aws-disk-size:
     description: AWS EBS volume size in GB
     required: false
-    default: '40'
+    default: "40"
   aws-use-spot:
     description: Use AWS spot instances
     required: false
-    default: 'false'
+    default: "false"
 
   # GCP-specific inputs
   gcp-project:
     description: GCP project ID
     required: false
-    default: ''
+    default: ""
   gcp-zone:
     description: GCP zone for instances
     required: false
-    default: 'us-central1-a'
+    default: "us-central1-a"
   gcp-machine-type:
     description: GCP machine type
     required: false
-    default: 'e2-standard-4'
+    default: "e2-standard-4"
 
   # Azure-specific inputs
   azure-subscription:
     description: Azure subscription ID
     required: false
-    default: ''
+    default: ""
   azure-resource-group:
     description: Azure resource group name
     required: false
-    default: 'devpod-resources'
+    default: "devpod-resources"
   azure-location:
     description: Azure location/region
     required: false
-    default: 'eastus'
+    default: "eastus"
   azure-vm-size:
     description: Azure VM size
     required: false
-    default: 'Standard_D4s_v3'
+    default: "Standard_D4s_v3"
 
   # DigitalOcean-specific inputs
   do-region:
     description: DigitalOcean region
     required: false
-    default: 'nyc3'
+    default: "nyc3"
   do-size:
     description: DigitalOcean droplet size
     required: false
-    default: 's-4vcpu-8gb'
+    default: "s-4vcpu-8gb"
 
   # Kubernetes-specific inputs
   k8s-config-path:
     description: Path to kubeconfig file
     required: false
-    default: '~/.kube/config'
+    default: "~/.kube/config"
   k8s-context:
     description: Kubernetes context to use
     required: false
-    default: ''
+    default: ""
   k8s-namespace:
     description: Kubernetes namespace for DevPod workspaces
     required: false
-    default: 'devpod'
+    default: "devpod"
 
   # SSH-specific inputs
   ssh-host:
     description: SSH host address
     required: false
-    default: ''
+    default: ""
   ssh-user:
     description: SSH username
     required: false
-    default: ''
+    default: ""
   ssh-key-path:
     description: Path to SSH private key
     required: false
-    default: '~/.ssh/id_rsa'
+    default: "~/.ssh/id_rsa"
 
 outputs:
   provider-id:

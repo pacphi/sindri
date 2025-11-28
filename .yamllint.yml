@@ -1,8 +1,8 @@
 extends: default
 rules:
   line-length:
-    max: 150  # Increased from 120 to accommodate GitHub Actions syntax
-    level: warning  # Keep as warning, not error
+    max: 150 # Increased from 120 to accommodate GitHub Actions syntax
+    level: warning # Keep as warning, not error
 
   comments:
     min-spaces-from-content: 1
@@ -10,6 +10,6 @@ rules:
   document-start: disable
 
   truthy:
-    allowed-values: ['true', 'false', 'on', 'off']  # Allow 'on' for GitHub Actions
+    allowed-values: ["true", "false", "on", "off"] # Allow 'on' for GitHub Actions
 
   new-line-at-end-of-file: enable

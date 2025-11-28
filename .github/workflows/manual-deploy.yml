@@ -36,10 +36,13 @@ on:
         options:
           - minimal
           - fullstack
-          - backend
-          - frontend
-          - devops
+          - ai-dev
+          - anthropic-dev
+          - systems
+          - enterprise
           - data-science
+          - devops
+          - mobile
       vm-size:
         description: VM/Instance size (provider-specific)
         required: false
@@ -57,7 +60,7 @@ on:
       auto-cleanup:
         description: Auto-cleanup after hours (0 = no cleanup)
         required: false
-        default: '24'
+        default: "24"
         type: string
       run-tests:
         description: Run tests after deployment

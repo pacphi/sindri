@@ -5,27 +5,27 @@ inputs:
   workspace-id:
     description: Workspace ID to cleanup
     required: false
-    default: ''
+    default: ""
   cleanup-all:
     description: Cleanup all workspaces
     required: false
-    default: 'false'
+    default: "false"
   force:
     description: Force cleanup even if workspace is running
     required: false
-    default: 'false'
+    default: "false"
   remove-provider:
     description: Remove the provider after cleanup
     required: false
-    default: 'false'
+    default: "false"
   provider-id:
     description: Provider ID to remove
     required: false
-    default: ''
+    default: ""
   cleanup-volumes:
     description: Also cleanup persistent volumes
     required: false
-    default: 'true'
+    default: "true"
 
 outputs:
   cleaned-workspaces:
