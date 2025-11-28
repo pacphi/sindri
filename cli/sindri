@@ -331,7 +331,7 @@ destroy() {
             # Remove docker-compose resources if exists
             if [[ -f "docker-compose.yml" ]]; then
                 print_status "Removing docker-compose resources..."
-                docker-compose down -v 2>/dev/null || true
+                docker compose down -v 2>/dev/null || true
                 rm -f docker-compose.yml
             fi
 
@@ -517,7 +517,7 @@ plan() {
             echo ""
             echo "Commands to be executed:"
             echo "  docker build -t sindri:latest -f docker/Dockerfile ."
-            echo "  docker-compose up -d"
+            echo "  docker compose up -d"
             echo ""
             echo "Note: Docker provider always rebuilds to ensure fresh source code."
             echo "      This is optimal for local development."

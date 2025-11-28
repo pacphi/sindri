@@ -65,7 +65,7 @@ case "$EXTENSION" in
 
     docker)
         run_test "docker command" "assert_command docker '$APP_NAME'"
-        run_test "docker compose" "assert_command docker-compose '$APP_NAME'"
+        run_test "docker compose" "run_on_vm '$APP_NAME' 'docker compose version'"
         run_test "docker version" "run_on_vm '$APP_NAME' 'docker --version'"
         ;;
 
