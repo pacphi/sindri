@@ -59,8 +59,12 @@ runs:
         RESULTS='{}'
         ALL_PASSED="true"
 
-        # Parse and run each command
-        for cmd in $(echo "$COMMANDS" | jq -r '.[]'); do
+        # Get command count for iteration
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        # Parse and run each command using index-based iteration to preserve spaces
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
           echo "Testing: $cmd"
 
           # Get expected exit code (default to 0)
