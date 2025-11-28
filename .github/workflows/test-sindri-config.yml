@@ -139,9 +139,9 @@ jobs:
             # Single file
             CONFIGS=$(echo "[\"$CONFIG_PATH\"]")
           elif [[ -d "$CONFIG_PATH" ]]; then
-            # Directory - find all sindri.yaml files
+            # Directory - find all sindri.yaml files (use -c for compact single-line JSON)
             CONFIGS=$(find "$CONFIG_PATH" -name "*.sindri.yaml" -type f | \
-              jq -R . | jq -s .)
+              jq -R . | jq -sc .)
           else
             echo "Error: $CONFIG_PATH is not a file or directory"
             exit 1

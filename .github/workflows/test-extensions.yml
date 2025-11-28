@@ -315,11 +315,12 @@ jobs:
             # In a real implementation, we'd need to use artifacts or other mechanisms
             RESULT="unknown"
 
-            RESULTS=$(echo "$RESULTS" | jq --arg ext "$ext" --arg result "$RESULT" \
+            # Use -c for compact single-line JSON for GITHUB_OUTPUT
+            RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" --arg result "$RESULT" \
               '.[$ext] = $result')
 
             if [[ "$RESULT" == "failed" ]]; then
-              FAILED=$(echo "$FAILED" | jq --arg ext "$ext" '. + [$ext]')
+              FAILED=$(echo "$FAILED" | jq -c --arg ext "$ext" '. + [$ext]')
             fi
           done
 

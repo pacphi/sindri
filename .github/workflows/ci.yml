@@ -171,8 +171,8 @@ jobs:
             if [[ "$INPUT_PROVIDERS" == "all" ]]; then
               PROVIDERS='["docker", "fly", "devpod-aws", "devpod-gcp", "devpod-azure", "devpod-do", "kubernetes"]'
             else
-              # Convert comma-separated to JSON array
-              PROVIDERS=$(echo "$INPUT_PROVIDERS" | jq -R 'split(",") | map(ltrimstr(" ") | rtrimstr(" "))')
+              # Convert comma-separated to JSON array (use -c for compact single-line JSON)
+              PROVIDERS=$(echo "$INPUT_PROVIDERS" | jq -Rc 'split(",") | map(ltrimstr(" ") | rtrimstr(" "))')
             fi
           elif [[ "${{ github.event_name }}" == "schedule" ]]; then
             # Full test suite for scheduled runs
@@ -185,9 +185,9 @@ jobs:
             PROVIDERS='["docker"]'
           fi
 
-          # Generate extension matrix
+          # Generate extension matrix (use -c for compact single-line JSON)
           EXTENSIONS=$(find docker/lib/extensions -mindepth 1 -maxdepth 1 -type d \
-            -exec basename {} \; | head -5 | jq -R . | jq -s .)
+            -exec basename {} \; | head -5 | jq -R . | jq -sc .)
 
           echo "providers=$PROVIDERS" >> $GITHUB_OUTPUT
           echo "extensions=$EXTENSIONS" >> $GITHUB_OUTPUT

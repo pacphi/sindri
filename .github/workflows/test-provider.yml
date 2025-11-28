@@ -317,20 +317,20 @@ jobs:
           RESULTS='{}'
           STATUS="success"
 
-          # Check smoke test results
+          # Check smoke test results (use -c for compact single-line JSON for GITHUB_OUTPUT)
           if [[ "${{ steps.smoke-tests.outcome }}" == "failure" ]]; then
             STATUS="failure"
-            RESULTS=$(echo "$RESULTS" | jq '.smoke = "failed"')
+            RESULTS=$(echo "$RESULTS" | jq -c '.smoke = "failed"')
           elif [[ "${{ steps.smoke-tests.outcome }}" == "success" ]]; then
-            RESULTS=$(echo "$RESULTS" | jq '.smoke = "passed"')
+            RESULTS=$(echo "$RESULTS" | jq -c '.smoke = "passed"')
           fi
 
           # Check integration test results
           if [[ "${{ steps.integration-tests.outcome }}" == "failure" ]]; then
             STATUS="failure"
-            RESULTS=$(echo "$RESULTS" | jq '.integration = "failed"')
+            RESULTS=$(echo "$RESULTS" | jq -c '.integration = "failed"')
           elif [[ "${{ steps.integration-tests.outcome }}" == "success" ]]; then
-            RESULTS=$(echo "$RESULTS" | jq '.integration = "passed"')
+            RESULTS=$(echo "$RESULTS" | jq -c '.integration = "passed"')
           fi
 
           echo "status=$STATUS" >> $GITHUB_OUTPUT
