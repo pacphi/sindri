@@ -58,12 +58,15 @@ jobs:
       - name: Validate extension schemas
         run: |
           FAILURES=0
+          tmpfile=$(mktemp)
+          trap 'rm -f "$tmpfile"' EXIT
           for ext in docker/lib/extensions/*/extension.yaml; do
             echo "Validating: $ext"
-            if ! yq -o=json "$ext" | ajv validate \
+            yq -o=json "$ext" > "$tmpfile"
+            if ! ajv validate \
               -c ajv-formats \
               -s docker/lib/schemas/extension.schema.json \
-              -d /dev/stdin; then
+              -d "$tmpfile"; then
               ((FAILURES++)) || true
             fi
           done
@@ -75,13 +78,16 @@ jobs:
       - name: Validate sindri.yaml examples
         run: |
           FAILURES=0
+          tmpfile=$(mktemp)
+          trap 'rm -f "$tmpfile"' EXIT
           for example in examples/**/*.sindri.yaml examples/*.sindri.yaml; do
             if [[ -f "$example" ]]; then
               echo "Validating: $example"
-              if ! yq -o=json "$example" | ajv validate \
+              yq -o=json "$example" > "$tmpfile"
+              if ! ajv validate \
                 -c ajv-formats \
                 -s docker/lib/schemas/sindri.schema.json \
-                -d /dev/stdin; then
+                -d "$tmpfile"; then
                 ((FAILURES++)) || true
               fi
             fi
@@ -93,31 +99,43 @@ jobs:
 
       - name: Validate profiles.yaml
         run: |
-          yq -o=json docker/lib/profiles.yaml | ajv validate \
+          tmpfile=$(mktemp)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/profiles.yaml > "$tmpfile"
+          ajv validate \
             -c ajv-formats \
             -s docker/lib/schemas/profiles.schema.json \
-            -d /dev/stdin
+            -d "$tmpfile"
 
       - name: Validate registry.yaml
         run: |
-          yq -o=json docker/lib/registry.yaml | ajv validate \
+          tmpfile=$(mktemp)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/registry.yaml > "$tmpfile"
+          ajv validate \
             -c ajv-formats \
             -s docker/lib/schemas/registry.schema.json \
-            -d /dev/stdin
+            -d "$tmpfile"
 
       - name: Validate categories.yaml
         run: |
-          yq -o=json docker/lib/categories.yaml | ajv validate \
+          tmpfile=$(mktemp)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/categories.yaml > "$tmpfile"
+          ajv validate \
             -c ajv-formats \
             -s docker/lib/schemas/categories.schema.json \
-            -d /dev/stdin
+            -d "$tmpfile"
 
       - name: Validate project-templates.yaml
         run: |
-          yq -o=json docker/lib/project-templates.yaml | ajv validate \
+          tmpfile=$(mktemp)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/project-templates.yaml > "$tmpfile"
+          ajv validate \
             -c ajv-formats \
             -s docker/lib/schemas/project-templates.schema.json \
-            -d /dev/stdin
+            -d "$tmpfile"
 
   cross-references:
     name: Cross-Reference Validation

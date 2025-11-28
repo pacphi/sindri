@@ -1,8 +1,9 @@
 # ShellCheck configuration
-# https://www.shellcheck.net/wiki/
-
-# Minimum severity: error, warning, info, style
-severity=warning
+# https://www.shellcheck.net/wiki/Directive
+#
+# Note: Only these directives are supported in .shellcheckrc:
+#   disable, enable, external-sources, source-path, source, shell
+# Severity must be set via SHELLCHECK_OPTS env var or command line (--severity=warning)
 
 # Shell dialect (default: auto-detect from shebang)
 # shell=bash
@@ -10,7 +11,14 @@ severity=warning
 # Enable optional checks
 enable=all
 
-# Disable specific checks if needed
+# Allow following sourced files from external paths
+external-sources=true
+
+# Help shellcheck find sourced files relative to the script's directory
+source-path=SCRIPTDIR
+
+# Disable specific checks
+# SC1091: Not following sourced file (handled by external-sources + source-path, but some dynamic paths can't be resolved)
 # SC2154: Variables sourced from common.sh (DOCKER_LIB, EXTENSIONS_DIR, SCHEMAS_DIR, GREEN, NC, etc.)
 # SC2250: Prefer braces around variable references (style preference - codebase uses $VAR consistently)
-disable=SC2154,SC2250
+disable=SC1091,SC2154,SC2250

@@ -55,10 +55,12 @@ jobs:
           sudo apt-get install -y shellcheck
 
       - name: Run shellcheck on all shell scripts
+        env:
+          SHELLCHECK_OPTS: --severity=warning
         run: |
           find . -name "*.sh" -type f ! -path "./node_modules/*" | while read -r script; do
             echo "Checking: $script"
-            shellcheck "$script" || exit 1
+            shellcheck --rcfile=.shellcheckrc "$script" || exit 1
           done
 
   # Markdown validation
