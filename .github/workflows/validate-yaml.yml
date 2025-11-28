@@ -52,7 +52,8 @@ jobs:
       - name: Install tools
         run: |
           npm install -g ajv-cli
-          pip install yq
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
 
       - name: Validate extension schemas
         run: |
@@ -120,7 +121,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install yq
-        run: pip install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
 
       - name: Validate cross-references
         run: ./test/unit/yaml/test-cross-references.sh
@@ -133,7 +136,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install yq
-        run: pip install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
 
       - name: Check extension naming consistency
         run: |

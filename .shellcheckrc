@@ -12,4 +12,5 @@ enable=all
 
 # Disable specific checks if needed
 # SC2154: Variables sourced from common.sh (DOCKER_LIB, EXTENSIONS_DIR, SCHEMAS_DIR, GREEN, NC, etc.)
-disable=SC2154
+# SC2250: Prefer braces around variable references (style preference - codebase uses $VAR consistently)
+disable=SC2154,SC2250
