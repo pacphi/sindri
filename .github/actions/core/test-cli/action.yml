@@ -101,8 +101,8 @@ runs:
             '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
         done
 
-        # Set outputs
-        echo "results=$RESULTS" >> $GITHUB_OUTPUT
+        # Set outputs (use jq -c for compact single-line JSON)
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
         echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
 
         # Fail if any test failed

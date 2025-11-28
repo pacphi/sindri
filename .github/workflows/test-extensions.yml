@@ -88,8 +88,8 @@ jobs:
           DEPLOYMENT_ID="${{ matrix.extension }}-${{ github.run_id }}-${{ github.run_number }}"
           echo "deployment-id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
 
-          # Load extension configuration
-          EXTENSION_CONFIG=$(yq -o=json ".extensions.${{ matrix.extension }}" .github/test-configs/extensions.yaml || echo '{}')
+          # Load extension configuration (use -I=0 for compact single-line JSON)
+          EXTENSION_CONFIG=$(yq -o=json -I=0 ".extensions.${{ matrix.extension }}" .github/test-configs/extensions.yaml || echo '{}')
           echo "config=$EXTENSION_CONFIG" >> $GITHUB_OUTPUT
 
       # Docker provider testing
