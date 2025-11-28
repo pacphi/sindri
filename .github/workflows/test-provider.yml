@@ -159,7 +159,7 @@ jobs:
       - name: Deploy to Docker
         if: inputs.provider == 'docker'
         run: |
-          ./cli/sindri deploy --provider docker --profile ${{ inputs.extension-profile }}
+          ./cli/sindri deploy --provider docker --config ${{ steps.config-path.outputs.config }}
 
       # Fly.io Provider
       - name: Setup Fly.io provider

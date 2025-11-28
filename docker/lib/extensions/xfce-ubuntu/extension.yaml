@@ -65,6 +65,21 @@ validate:
 
 remove:
   confirmation: true
+  apt:
+    packages:
+      - xfce4
+      - xfce4-goodies
+      - xrdp
+      - dbus-x11
+      - xfonts-base
+      - xauth
+      - x11-xserver-utils
+      - firefox
+      - mousepad
+      - thunar
+  paths:
+    - ~/.xsession
+    - ~/.config/xfce4
 
 upgrade:
   strategy: automatic

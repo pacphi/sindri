@@ -83,7 +83,7 @@ EODC
 secrets_get_docker_files >> docker-compose.yml || true
 
 echo "==> Starting Docker container..."
-docker-compose up -d
+docker compose up -d
 
 echo "==> Container started. Connect with:"
 echo "    docker exec -it ${NAME} /bin/bash"

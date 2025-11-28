@@ -81,7 +81,7 @@ command_exists() {
 
 # Check if running as specific user
 is_user() {
-    [[ "$USER" == "$1" ]] || [[ "$USER" == "root" ]]
+    [[ "${USER:-}" == "$1" ]] || [[ "${USER:-}" == "root" ]]
 }
 
 # Ensure directory exists with proper ownership
@@ -91,7 +91,7 @@ ensure_directory() {
 
     if [[ ! -d "$dir" ]]; then
         mkdir -p "$dir"
-        if [[ "$USER" == "root" ]]; then
+        if [[ "${USER:-}" == "root" ]]; then
             chown -R "$owner" "$dir"
         fi
     fi

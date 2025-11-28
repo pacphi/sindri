@@ -292,6 +292,36 @@
             }
           }
         },
+        "apt": {
+          "type": "object",
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "APT packages to remove"
+            },
+            "purge": {
+              "type": "boolean",
+              "default": false,
+              "description": "Use apt purge instead of apt remove"
+            }
+          }
+        },
+        "script": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Custom uninstall script path"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 120
+            }
+          }
+        },
         "paths": {
           "type": "array",
           "items": {

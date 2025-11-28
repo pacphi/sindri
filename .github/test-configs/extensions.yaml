@@ -79,7 +79,7 @@ extensions:
     priority: high
     test_commands:
       - docker --version
-      - docker-compose --version
+      - docker compose version
     validation_pattern: "Docker version \\d+"
     test_project:
       type: container

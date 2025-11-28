@@ -39,25 +39,15 @@ runs:
         version: ${{ inputs.buildx-version }}
         install: true
 
-    - name: Install Docker Compose
+    - name: Verify Docker Compose
       if: inputs.install-compose == 'true'
       shell: bash
       run: |
-        echo "::group::Installing Docker Compose"
+        echo "::group::Verifying Docker Compose"
 
-        if [[ "${{ inputs.compose-version }}" == "latest" ]]; then
-          COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
-        else
-          COMPOSE_VERSION="${{ inputs.compose-version }}"
-        fi
-
-        # Download and install Docker Compose
-        sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
-          -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-
-        # Verify installation
-        docker-compose --version
+        # Docker Compose V2 is included as a plugin in modern Docker
+        # Verify it's available
+        docker compose version
 
         echo "::endgroup::"
 
@@ -87,9 +77,9 @@ runs:
         DOCKER_VERSION=$(docker --version | awk '{print $3}' | sed 's/,$//')
         echo "docker=$DOCKER_VERSION" >> $GITHUB_OUTPUT
 
-        # Get Docker Compose version
-        if command -v docker-compose &> /dev/null; then
-          COMPOSE_VERSION=$(docker-compose --version | awk '{print $4}' | sed 's/,$//')
+        # Get Docker Compose version (V2 plugin)
+        if docker compose version &> /dev/null; then
+          COMPOSE_VERSION=$(docker compose version --short)
           echo "compose=$COMPOSE_VERSION" >> $GITHUB_OUTPUT
         fi
 
