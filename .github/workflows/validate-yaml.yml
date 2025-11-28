@@ -58,7 +58,8 @@ jobs:
       - name: Validate extension schemas
         run: |
           FAILURES=0
-          tmpfile=$(mktemp)
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
           trap 'rm -f "$tmpfile"' EXIT
           for ext in docker/lib/extensions/*/extension.yaml; do
             echo "Validating: $ext"
@@ -78,7 +79,8 @@ jobs:
       - name: Validate sindri.yaml examples
         run: |
           FAILURES=0
-          tmpfile=$(mktemp)
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
           trap 'rm -f "$tmpfile"' EXIT
           for example in examples/**/*.sindri.yaml examples/*.sindri.yaml; do
             if [[ -f "$example" ]]; then
@@ -99,7 +101,8 @@ jobs:
 
       - name: Validate profiles.yaml
         run: |
-          tmpfile=$(mktemp)
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
           trap 'rm -f "$tmpfile"' EXIT
           yq -o=json docker/lib/profiles.yaml > "$tmpfile"
           ajv validate \
@@ -109,7 +112,8 @@ jobs:
 
       - name: Validate registry.yaml
         run: |
-          tmpfile=$(mktemp)
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
           trap 'rm -f "$tmpfile"' EXIT
           yq -o=json docker/lib/registry.yaml > "$tmpfile"
           ajv validate \
@@ -119,7 +123,8 @@ jobs:
 
       - name: Validate categories.yaml
         run: |
-          tmpfile=$(mktemp)
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
           trap 'rm -f "$tmpfile"' EXIT
           yq -o=json docker/lib/categories.yaml > "$tmpfile"
           ajv validate \
@@ -129,7 +134,8 @@ jobs:
 
       - name: Validate project-templates.yaml
         run: |
-          tmpfile=$(mktemp)
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
           trap 'rm -f "$tmpfile"' EXIT
           yq -o=json docker/lib/project-templates.yaml > "$tmpfile"
           ajv validate \

@@ -60,7 +60,8 @@ jobs:
         run: |
           find . -name "*.sh" -type f ! -path "./node_modules/*" | while read -r script; do
             echo "Checking: $script"
-            shellcheck --rcfile=.shellcheckrc "$script" || exit 1
+            # ShellCheck automatically reads .shellcheckrc from the repo root
+            shellcheck "$script" || exit 1
           done
 
   # Markdown validation
