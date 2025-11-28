@@ -16,6 +16,47 @@ else
     source "$BASE_DIR/docker/lib/common.sh"
 fi
 
+show_version() {
+    local version_file
+    local version
+
+    # Try to find VERSION file
+    if [[ -f "$SCRIPT_DIR/../VERSION" ]]; then
+        version_file="$SCRIPT_DIR/../VERSION"
+    elif [[ -f "/docker/VERSION" ]]; then
+        version_file="/docker/VERSION"
+    elif [[ -f "$BASE_DIR/VERSION" ]]; then
+        version_file="$BASE_DIR/VERSION"
+    fi
+
+    if [[ -n "$version_file" && -f "$version_file" ]]; then
+        version=$(tr -d '[:space:]' < "$version_file")
+    else
+        version="unknown"
+    fi
+
+    # Check if we're on a tagged release commit
+    if command -v git &>/dev/null && [[ -d "$SCRIPT_DIR/../.git" || -d "$BASE_DIR/.git" ]]; then
+        local git_dir="${SCRIPT_DIR}/.."
+        [[ -d "$BASE_DIR/.git" ]] && git_dir="$BASE_DIR"
+
+        # Get current commit SHA
+        local sha
+        sha=$(git -C "$git_dir" rev-parse --short HEAD 2>/dev/null)
+
+        # Check if current commit is tagged with a version tag
+        local tag
+        tag=$(git -C "$git_dir" describe --exact-match --tags HEAD 2>/dev/null | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' || true)
+
+        # If not on a tagged release, append dev suffix
+        if [[ -z "$tag" && -n "$sha" ]]; then
+            version="${version}-dev+${sha}"
+        fi
+    fi
+
+    echo "sindri version $version"
+}
+
 show_help() {
     cat << 'EOH'
 sindri - Cloud Development Forge
@@ -42,6 +83,7 @@ COMMANDS:
 
 OPTIONS:
     -h, --help                   Show this help
+    -V, --version                Show version information
     -c, --config <file>          Use specific config file (default: sindri.yaml)
     -p, --provider <name>        Deployment provider (docker, fly, devpod)
     -r, --rebuild                Force rebuild of Docker image
@@ -714,6 +756,9 @@ main() {
             ;;
         help|-h|--help)
             show_help
+            ;;
+        version|-V|--version)
+            show_version
             ;;
         *)
             print_error "Unknown command: $command"

@@ -81,9 +81,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Determine config path
+        id: config-path
+        run: |
+          # Map provider input to example config path
+          case "${{ inputs.provider }}" in
+            docker)
+              CONFIG_PATH="examples/docker/minimal.sindri.yaml"
+              ;;
+            fly)
+              CONFIG_PATH="examples/fly/minimal.sindri.yaml"
+              ;;
+            devpod-aws)
+              CONFIG_PATH="examples/devpod/aws/minimal.sindri.yaml"
+              ;;
+            devpod-gcp)
+              CONFIG_PATH="examples/devpod/gcp/minimal.sindri.yaml"
+              ;;
+            devpod-azure)
+              CONFIG_PATH="examples/devpod/azure/minimal.sindri.yaml"
+              ;;
+            devpod-do)
+              CONFIG_PATH="examples/devpod/digitalocean/minimal.sindri.yaml"
+              ;;
+            kubernetes)
+              CONFIG_PATH="examples/devpod/kubernetes/minimal.sindri.yaml"
+              ;;
+            ssh)
+              # SSH provider uses a generic docker config as base
+              CONFIG_PATH="examples/docker/minimal.sindri.yaml"
+              ;;
+            *)
+              echo "::error::Unknown provider: ${{ inputs.provider }}"
+              exit 1
+              ;;
+          esac
+
+          echo "config=$CONFIG_PATH" >> $GITHUB_OUTPUT
+          echo "::notice title=Config Path::Using $CONFIG_PATH for ${{ inputs.provider }} provider"
+
       - name: Setup Sindri environment
         uses: ./.github/actions/core/setup-sindri
         with:
+          sindri-config: ${{ steps.config-path.outputs.config }}
           validate-config: true
 
       - name: Generate deployment ID

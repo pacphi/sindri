@@ -186,8 +186,9 @@ jobs:
           fi
 
           # Generate extension matrix (use -c for compact single-line JSON)
-          EXTENSIONS=$(find docker/lib/extensions -mindepth 1 -maxdepth 1 -type d \
-            -exec basename {} \; | head -5 | jq -R . | jq -sc .)
+          # Use -printf to avoid broken pipe errors from basename
+          EXTENSIONS=$(find docker/lib/extensions -mindepth 1 -maxdepth 1 -type d -printf '%f\n' \
+            | head -5 | jq -R . | jq -sc .)
 
           echo "providers=$PROVIDERS" >> $GITHUB_OUTPUT
           echo "extensions=$EXTENSIONS" >> $GITHUB_OUTPUT
@@ -220,6 +221,8 @@ jobs:
     with:
       extensions: ${{ needs.generate-matrix.outputs.extensions }}
       provider: docker
+      image: sindri:ci-${{ github.sha }}
+      image-artifact: sindri-image-${{ github.sha }}
     secrets: inherit
 
   # Final status check - only depends on jobs that always run

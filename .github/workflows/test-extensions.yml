@@ -12,6 +12,16 @@ on:
         required: false
         default: docker
         type: string
+      image:
+        description: Docker image to use (e.g., sindri:ci-abc123)
+        required: false
+        default: sindri:latest
+        type: string
+      image-artifact:
+        description: Name of the artifact containing the Docker image
+        required: false
+        default: ""
+        type: string
       test-combinations:
         description: Test extension combinations
         required: false
@@ -81,6 +91,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Download image artifact
+        if: inputs.image-artifact != '' && inputs.provider == 'docker'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.image-artifact }}
+
+      - name: Load Docker image
+        if: inputs.image-artifact != '' && inputs.provider == 'docker'
+        run: |
+          gunzip -c sindri-image.tar.gz | docker load
+
       - name: Setup test environment
         id: setup
         run: |
@@ -103,7 +124,7 @@ jobs:
           docker run -d \
             --name sindri-test-${{ matrix.extension }} \
             -v sindri-workspace:/workspace \
-            sindri:latest \
+            ${{ inputs.image }} \
             tail -f /dev/null
 
       - name: Test extension in Docker
