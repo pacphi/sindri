@@ -203,7 +203,7 @@
               },
               "mode": {
                 "type": "string",
-                "enum": ["overwrite", "append", "merge"],
+                "enum": ["overwrite", "append", "merge", "skip-if-exists"],
                 "default": "overwrite"
               }
             }
@@ -378,7 +378,7 @@
               },
               "source": {
                 "type": "string",
-                "enum": ["mise", "apt", "npm", "binary", "script"],
+                "enum": ["mise", "apt", "npm", "binary", "script", "github-release"],
                 "description": "Installation source method"
               },
               "type": {

@@ -54,7 +54,7 @@ for ext in $(yq '.extensions | keys | .[]' "$REGISTRY_FILE"); do
   fi
 
   category=$(yq ".extensions.$ext.category" "$REGISTRY_FILE")
-  if [[ ! " $VALID_CATEGORIES " =~ " $category " ]]; then
+  if [[ ! " $VALID_CATEGORIES " =~ \ $category\  ]]; then
     echo -e "${RED}FAIL: Extension '$ext' has invalid category '$category'${NC}"
     ((FAILURES++))
   fi
