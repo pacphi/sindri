@@ -18,6 +18,7 @@ extensions:
 
 providers:
   devpod:
-    provider: kubernetes
-    namespace: devpod-workspaces
-    storageClassName: fast-ssd
+    type: kubernetes
+    kubernetes:
+      namespace: devpod-workspaces
+      storageClass: fast-ssd

@@ -18,7 +18,8 @@ extensions:
 
 providers:
   devpod:
-    provider: gcp
-    region: us-central1
-    instanceType: n2-standard-4
-    diskSize: 60
+    type: gcp
+    gcp:
+      zone: us-central1-a
+      machineType: n2-standard-4
+      diskSize: 60

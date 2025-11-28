@@ -18,7 +18,8 @@ extensions:
 
 providers:
   devpod:
-    provider: aws
-    region: us-east-1
-    instanceType: t3.xlarge
-    diskSize: 60
+    type: aws
+    aws:
+      region: us-east-1
+      instanceType: t3.xlarge
+      diskSize: 60

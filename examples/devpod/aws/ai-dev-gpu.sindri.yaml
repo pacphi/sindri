@@ -18,7 +18,8 @@ extensions:
 
 providers:
   devpod:
-    provider: aws
-    region: us-east-1
-    instanceType: g4dn.2xlarge # GPU instance
-    diskSize: 150
+    type: aws
+    aws:
+      region: us-east-1
+      instanceType: g4dn.2xlarge # GPU instance
+      diskSize: 150

@@ -18,7 +18,8 @@ extensions:
 
 providers:
   devpod:
-    provider: azure
-    region: eastus
-    instanceType: Standard_D4s_v3
-    diskSize: 150
+    type: azure
+    azure:
+      location: eastus
+      vmSize: Standard_D4s_v3
+      diskSize: 150

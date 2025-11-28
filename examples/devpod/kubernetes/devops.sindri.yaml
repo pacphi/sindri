@@ -18,6 +18,7 @@ extensions:
 
 providers:
   devpod:
-    provider: kubernetes
-    namespace: devpod-workspaces
-    storageClassName: standard
+    type: kubernetes
+    kubernetes:
+      namespace: devpod-workspaces
+      storageClass: standard
