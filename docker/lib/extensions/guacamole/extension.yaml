@@ -3,7 +3,7 @@ metadata:
   name: guacamole
   version: 2.0.0
   description: Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC)
-  category: utilities
+  category: desktop
   author: Sindri Team
   homepage: https://guacamole.apache.org
   dependencies: []

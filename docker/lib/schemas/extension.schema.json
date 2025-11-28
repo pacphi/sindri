@@ -27,7 +27,7 @@
         },
         "category": {
           "type": "string",
-          "enum": ["base", "language", "dev-tools", "infrastructure", "ai", "utilities"]
+          "enum": ["base", "language", "dev-tools", "infrastructure", "ai", "utilities", "desktop", "monitoring"]
         },
         "author": {
           "type": "string"

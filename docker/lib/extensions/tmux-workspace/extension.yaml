@@ -5,7 +5,7 @@ metadata:
   description: >-
     Tmux workspace management with helper scripts and auto-start
     functionality
-  category: dev-tools
+  category: utilities
   author: Sindri Team
   license: MIT
   dependencies: []

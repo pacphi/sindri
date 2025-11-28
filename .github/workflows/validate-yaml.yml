@@ -51,7 +51,7 @@ jobs:
 
       - name: Install tools
         run: |
-          npm install -g ajv-cli
+          npm install -g ajv-cli ajv-formats
           wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
@@ -61,6 +61,7 @@ jobs:
           for ext in docker/lib/extensions/*/extension.yaml; do
             echo "Validating: $ext"
             if ! yq -o=json "$ext" | ajv validate \
+              -c ajv-formats \
               -s docker/lib/schemas/extension.schema.json \
               -d /dev/stdin; then
               ((FAILURES++)) || true
@@ -78,6 +79,7 @@ jobs:
             if [[ -f "$example" ]]; then
               echo "Validating: $example"
               if ! yq -o=json "$example" | ajv validate \
+                -c ajv-formats \
                 -s docker/lib/schemas/sindri.schema.json \
                 -d /dev/stdin; then
                 ((FAILURES++)) || true
@@ -92,24 +94,28 @@ jobs:
       - name: Validate profiles.yaml
         run: |
           yq -o=json docker/lib/profiles.yaml | ajv validate \
+            -c ajv-formats \
             -s docker/lib/schemas/profiles.schema.json \
             -d /dev/stdin
 
       - name: Validate registry.yaml
         run: |
           yq -o=json docker/lib/registry.yaml | ajv validate \
+            -c ajv-formats \
             -s docker/lib/schemas/registry.schema.json \
             -d /dev/stdin
 
       - name: Validate categories.yaml
         run: |
           yq -o=json docker/lib/categories.yaml | ajv validate \
+            -c ajv-formats \
             -s docker/lib/schemas/categories.schema.json \
             -d /dev/stdin
 
       - name: Validate project-templates.yaml
         run: |
           yq -o=json docker/lib/project-templates.yaml | ajv validate \
+            -c ajv-formats \
             -s docker/lib/schemas/project-templates.schema.json \
             -d /dev/stdin
 
