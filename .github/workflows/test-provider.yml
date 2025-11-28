@@ -138,8 +138,8 @@ jobs:
         run: |
           CONFIG_FILE="${{ inputs.test-config }}"
           if [[ -f "$CONFIG_FILE" ]]; then
-            # Extract provider-specific configuration
-            PROVIDER_CONFIG=$(yq -o=json ".providers.${{ inputs.provider }}" "$CONFIG_FILE")
+            # Extract provider-specific configuration (use -I=0 for compact single-line JSON for GITHUB_OUTPUT)
+            PROVIDER_CONFIG=$(yq -o=json -I=0 ".providers.${{ inputs.provider }}" "$CONFIG_FILE")
             echo "config=$PROVIDER_CONFIG" >> $GITHUB_OUTPUT
           else
             echo "config={}" >> $GITHUB_OUTPUT

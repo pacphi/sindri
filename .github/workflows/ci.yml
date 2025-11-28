@@ -146,7 +146,7 @@ jobs:
             [
               "sindri --version",
               "sindri --help",
-              "sindri config validate",
+              "sindri config init",
               "extension-manager list",
               "extension-manager list-profiles",
               "extension-manager validate nodejs"
