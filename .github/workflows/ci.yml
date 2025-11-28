@@ -145,7 +145,8 @@ jobs:
           test-commands: |
             [
               "sindri --version",
-              "sindri config validate --help",
+              "sindri --help",
+              "sindri config validate",
               "extension-manager list",
               "extension-manager list-profiles",
               "extension-manager validate nodejs"

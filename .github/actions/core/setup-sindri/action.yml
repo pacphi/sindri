@@ -76,8 +76,8 @@ runs:
         PROVIDER=$(yq '.deployment.provider // "docker"' "$CONFIG")
         PROFILE=$(yq '.extensions.profile // "minimal"' "$CONFIG")
 
-        # Extract resources as JSON
-        RESOURCES=$(yq -o=json '.deployment.resources // {}' "$CONFIG")
+        # Extract resources as compact JSON (single line for GITHUB_OUTPUT)
+        RESOURCES=$(yq -o=json -I=0 '.deployment.resources // {}' "$CONFIG")
 
         # Set outputs
         echo "name=$NAME" >> $GITHUB_OUTPUT
