@@ -79,6 +79,7 @@ add_to_manifest() {
     fi
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Added $ext_name to manifest"
+    return 0
 }
 
 # Remove extension from manifest
@@ -103,6 +104,7 @@ remove_from_manifest() {
     yq eval -i ".extensions[] |= (select(.name == \"$ext_name\").active = false)" "$MANIFEST_FILE"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Deactivated $ext_name in manifest"
+    return 0
 }
 
 # List extensions from manifest

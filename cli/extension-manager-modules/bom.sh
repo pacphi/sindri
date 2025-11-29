@@ -79,6 +79,7 @@ EOF
     resolve_dynamic_versions "$bom_file"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Generated BOM for $ext_name: $bom_file"
+    return 0
 }
 
 # Extract explicit BOM from extension.yaml
