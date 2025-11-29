@@ -151,7 +151,7 @@ jobs:
           echo "changelog_file=changelog.md" >> "$GITHUB_OUTPUT"
 
       - name: Upload changelog artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: changelog
           path: changelog.md
