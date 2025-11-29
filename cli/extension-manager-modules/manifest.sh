@@ -66,6 +66,11 @@ add_to_manifest() {
         return 1
     fi
 
+    # Ensure manifest file exists before modifying
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        initialize_manifest
+    fi
+
     # Check if already in manifest
     local exists
     exists=$(load_yaml "$MANIFEST_FILE" ".extensions[] | select(.name == \"$ext_name\")" 2>/dev/null || echo "")
