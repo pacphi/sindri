@@ -22,9 +22,8 @@ pnpm test
 pnpm validate
 
 # Specific test suites
-pnpm test:unit              # Unit tests
-pnpm test:integration       # Integration tests
-pnpm test:extensions        # Extension tests
+pnpm test:unit              # Unit tests (YAML validation)
+pnpm test:extensions        # Extension validation tests
 
 # YAML validation (new)
 ./test/unit/yaml/run-all-yaml-tests.sh

@@ -123,7 +123,7 @@ log_info "Phase 5: File System Checks"
 
 case "$EXTENSION" in
     nodejs|python|golang|rust|ruby)
-        run_test "mise config" "assert_file_exists '/workspace/.mise.toml' '$APP_NAME'"
+        run_test "mise config" "assert_file_exists '\${WORKSPACE:-\$HOME/workspace}/.mise.toml' '$APP_NAME'"
         ;;
     docker)
         run_test "docker socket" "assert_file_exists '/var/run/docker.sock' '$APP_NAME'"

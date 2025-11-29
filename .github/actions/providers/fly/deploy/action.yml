@@ -217,7 +217,7 @@ runs:
 
         # Test volume mount
         echo "Testing volume mount..."
-        if flyctl ssh console -a "$APP_NAME" --command "df -h /workspace | grep workspace"; then
+        if flyctl ssh console -a "$APP_NAME" --command 'df -h /alt/home/developer | grep -E "(home|developer)"'; then
           echo "✅ Volume mounted successfully"
           VOLUME_STATUS="success"
         else

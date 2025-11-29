@@ -115,7 +115,7 @@ test_persistence() {
     local app_name="$1"
     local test_file
     local test_content
-    test_file="/workspace/test-persistence-$(date +%s).txt"
+    test_file="\${WORKSPACE:-\$HOME/workspace}/test-persistence-$(date +%s).txt"
     test_content="persistence-test-$(date +%s)"
 
     log_info "Testing persistence..."

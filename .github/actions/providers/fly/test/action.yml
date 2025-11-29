@@ -66,7 +66,7 @@ runs:
         # Basic connectivity test
         flyctl ssh console -a "$APP_NAME" --command "pwd"
         flyctl ssh console -a "$APP_NAME" --command "whoami"
-        flyctl ssh console -a "$APP_NAME" --command "ls -la /workspace"
+        flyctl ssh console -a "$APP_NAME" --command 'ls -la "${WORKSPACE:-$HOME/workspace}"'
 
         echo "✅ Environment validation passed"
         echo "::endgroup::"
@@ -159,7 +159,7 @@ runs:
         echo "::group::Testing volume persistence"
 
         APP_NAME="${{ inputs.app-name }}"
-        TEST_FILE="/workspace/persistence-test-$(date +%s).txt"
+        TEST_FILE="\${WORKSPACE:-\$HOME/workspace}/persistence-test-$(date +%s).txt"
         TEST_DATA="Test data: $(date)"
 
         # Create test file

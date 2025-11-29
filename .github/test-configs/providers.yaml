@@ -38,7 +38,7 @@ providers:
     test_commands:
       - sindri --version
       - extension-manager list
-      - df -h /workspace
+      - df -h "${WORKSPACE:-$HOME/workspace}"
     extensions_to_test:
       - nodejs
       - python

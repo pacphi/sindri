@@ -133,8 +133,8 @@ runs:
           INIT_WORKSPACE = "true"
 
         [[mounts]]
-          source = "workspace_data"
-          destination = "/workspace"
+          source = "home_data"
+          destination = "/alt/home/developer"
           initial_size = "10gb"
 
         [[services]]

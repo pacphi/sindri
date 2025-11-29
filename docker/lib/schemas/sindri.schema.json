@@ -21,8 +21,8 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["fly", "kubernetes", "docker-compose", "devpod"],
-          "description": "Deployment provider"
+          "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod"],
+          "description": "Deployment provider (docker is an alias for docker-compose)"
         },
         "image": {
           "type": "string",
@@ -49,7 +49,8 @@
               "properties": {
                 "path": {
                   "type": "string",
-                  "default": "/workspace"
+                  "default": "/alt/home/developer/workspace",
+                  "description": "Container path for workspace volume"
                 },
                 "size": {
                   "type": "string",

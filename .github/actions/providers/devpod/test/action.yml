@@ -63,7 +63,7 @@ runs:
         echo "Testing basic commands..."
         devpod exec "$WORKSPACE_ID" -- pwd
         devpod exec "$WORKSPACE_ID" -- whoami
-        devpod exec "$WORKSPACE_ID" -- ls -la /workspace
+        devpod exec "$WORKSPACE_ID" -- bash -c 'ls -la "${WORKSPACE:-$HOME/workspace}"'
 
         echo "✅ Environment validation passed"
         echo "::endgroup::"
@@ -184,8 +184,8 @@ runs:
 
         # Test volume persistence
         echo "Testing volume persistence..."
-        devpod exec "$WORKSPACE_ID" -- bash -c "echo 'test-data' > /workspace/test-persistence.txt"
-        devpod exec "$WORKSPACE_ID" -- cat /workspace/test-persistence.txt
+        devpod exec "$WORKSPACE_ID" -- bash -c 'echo "test-data" > "${WORKSPACE:-$HOME/workspace}/test-persistence.txt"'
+        devpod exec "$WORKSPACE_ID" -- bash -c 'cat "${WORKSPACE:-$HOME/workspace}/test-persistence.txt"'
 
         echo "::endgroup::"
 
@@ -212,7 +212,7 @@ runs:
         devpod provider logs > /tmp/devpod-logs/provider.log 2>&1 || true
 
         # Try to get extension manager logs from workspace
-        devpod exec "$WORKSPACE_ID" -- cat /workspace/.system/logs/extension-manager.log \
+        devpod exec "$WORKSPACE_ID" -- bash -c 'cat "${WORKSPACE:-$HOME/workspace}/.system/logs/extension-manager.log"' \
           > /tmp/devpod-logs/extension-manager.log 2>&1 || true
 
         echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT

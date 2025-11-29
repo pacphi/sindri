@@ -378,7 +378,7 @@ jobs:
 
           ```bash
           docker pull ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER
-          docker run -it -v sindri-workspace:/workspace ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER
+          docker run -it -v sindri-home:/alt/home/developer ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER
           ```
 
           ## Documentation

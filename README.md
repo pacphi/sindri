@@ -129,7 +129,7 @@ See [CLAUDE.md](CLAUDE.md) for complete development guide.
 - **Modular Extension System** - YAML-driven with dependency resolution
 - **Schema Validation** - All YAML validated against JSON schemas
 - **Provider Adapters** - Clean abstraction for Docker, Fly, Kubernetes, DevPod
-- **Volume Architecture** - Immutable `/docker/lib` system, mutable `/workspace` user data
+- **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
 - **BOM Tracking** - Comprehensive software bill of materials for security auditing
 
 Read more: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)

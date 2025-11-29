@@ -180,7 +180,7 @@ jobs:
               echo "Running test project..."
               echo "$CONFIG" | jq -r '.test_project.commands[]' | while read -r cmd; do
                 echo "Executing: $cmd"
-                docker exec "$CONTAINER" bash -c "cd /workspace && $cmd"
+                docker exec "$CONTAINER" bash -c 'cd "${WORKSPACE:-$HOME/workspace}" && '"$cmd"
               done
             fi
           fi

@@ -26,7 +26,6 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │   ├── test-provider.yml         # Provider-specific testing
 │   ├── test-extensions.yml       # Extension testing (multi-provider)
 │   ├── manual-deploy.yml         # Manual deployment workflow
-│   ├── self-service-deploy-fly.yml # Self-service Fly.io deployment
 │   └── release.yml               # Release automation
 │
 ├── actions/                      # Composite Actions
