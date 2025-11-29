@@ -20,17 +20,38 @@ RUN useradd -m -s /bin/bash -u 1001 developer && \
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    bind9-dnsutils \
     build-essential \
-    curl \
-    wget \
-    git \
     ca-certificates \
+    curl \
+    direnv \
+    gettext-base \
+    git \
     gnupg \
-    lsb-release \
-    sudo \
+    iputils-ping \
     jq \
+    libreadline-dev \
+    libssl-dev \
+    libyaml-dev \
+    nano \
+    net-tools \
+    netcat-openbsd \
+    openssh-server \
+    pkg-config \
+    postgresql-client \
+    redis-tools \
+    rsync \
+    screen \
+    software-properties-common \
+    sqlite3 \
+    sudo \
+    telnet \
+    tree \
     unzip \
+    vim \
+    wget \
     zip \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install yq for YAML parsing
