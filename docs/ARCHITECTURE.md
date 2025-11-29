@@ -22,8 +22,7 @@ sindri/
 │   │   ├── registry.yaml     # Extension registry
 │   │   └── common.sh         # Shared utilities
 │   ├── scripts/
-│   │   ├── entrypoint.sh     # Container entrypoint
-│   │   └── init-volume.sh    # Volume initialization
+│   │   └── entrypoint.sh     # Container entrypoint
 │   └── Dockerfile            # Optimized multi-stage build
 ├── deploy/
 │   └── adapters/             # Provider adapters

@@ -95,8 +95,7 @@ sindri/
 │   │   ├── categories.yaml        # Category definitions
 │   │   └── common.sh              # Shared utility functions
 │   └── scripts/
-│       ├── entrypoint.sh          # Container initialization
-│       └── init-volume.sh         # Kubernetes volume setup
+│       └── entrypoint.sh          # Container initialization
 │
 ├── deploy/
 │   └── adapters/                  # Provider-specific deployment logic
@@ -175,12 +174,12 @@ Critical concept: **Two-tier filesystem with home directory as volume**
 
 **Key Environment Variables:**
 
-| Variable | Value |
-|----------|-------|
-| `HOME` | `/alt/home/developer` |
-| `WORKSPACE` | `/alt/home/developer/workspace` |
-| `MISE_DATA_DIR` | `$HOME/.local/share/mise` |
-| `MISE_CONFIG_DIR` | `$HOME/.config/mise` |
+| Variable          | Value                           |
+| ----------------- | ------------------------------- |
+| `HOME`            | `/alt/home/developer`           |
+| `WORKSPACE`       | `/alt/home/developer/workspace` |
+| `MISE_DATA_DIR`   | `$HOME/.local/share/mise`       |
+| `MISE_CONFIG_DIR` | `$HOME/.config/mise`            |
 
 ### Multi-Provider Architecture
 

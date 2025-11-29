@@ -11,12 +11,12 @@ LOGFILE="$HOME/.claude-code-mux/ccm.log"
 
 case "${1:-start}" in
     start)
-        if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+        if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
             echo "CCM server is already running (PID: $(cat "$PIDFILE"))"
             exit 0
         fi
 
-        if [ ! -f "$CONFIG_FILE" ]; then
+        if [[ ! -f "$CONFIG_FILE" ]]; then
             echo "Error: Config file not found at $CONFIG_FILE"
             echo "Run 'ccm-quickstart' to create a configuration"
             exit 1
@@ -39,7 +39,7 @@ case "${1:-start}" in
         ;;
 
     stop)
-        if [ -f "$PIDFILE" ]; then
+        if [[ -f "$PIDFILE" ]]; then
             PID=$(cat "$PIDFILE")
             if kill -0 "$PID" 2>/dev/null; then
                 echo "Stopping CCM server (PID: $PID)..."
@@ -62,7 +62,7 @@ case "${1:-start}" in
         ;;
 
     status)
-        if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+        if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
             echo "CCM server is running (PID: $(cat "$PIDFILE"))"
             echo "Admin UI: http://127.0.0.1:13456"
             exit 0
@@ -73,7 +73,7 @@ case "${1:-start}" in
         ;;
 
     logs)
-        if [ -f "$LOGFILE" ]; then
+        if [[ -f "$LOGFILE" ]]; then
             tail -f "$LOGFILE"
         else
             echo "No log file found at $LOGFILE"

@@ -87,9 +87,19 @@ if [[ ! -f "${HOME}/.initialized" ]]; then
         # Setup MOTD
         setup_motd
 
+        # Copy skeleton files to home (including welcome.sh)
+        if [[ -d /etc/skel ]]; then
+            cp -rn /etc/skel/. "${HOME}/" 2>/dev/null || true
+        fi
+
         # Mark as initialized
         touch "${HOME}/.initialized"
         print_success "Home directory initialized"
+
+        # Show first-login welcome message
+        if [[ -x "${HOME}/welcome.sh" ]]; then
+            "${HOME}/welcome.sh"
+        fi
     else
         print_error "Failed to initialize home directory"
         # Continue anyway - let subsequent commands fail with better error messages

@@ -19,7 +19,7 @@ else
 fi
 
 # Stop CCM if running
-if [ -f "$HOME/.claude-code-mux/ccm.pid" ]; then
+if [[ -f "$HOME/.claude-code-mux/ccm.pid" ]]; then
     print_status "Stopping CCM server..."
     ccm-start stop || true
 fi
@@ -31,7 +31,7 @@ bash "$SCRIPT_DIR/install.sh"
 # Get new version
 NEW_VERSION=$(ccm --version 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -n1 || echo "unknown")
 
-if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+if [[ "$NEW_VERSION" != "$CURRENT_VERSION" ]]; then
     print_success "CCM upgraded from $CURRENT_VERSION to $NEW_VERSION"
 else
     print_status "CCM is already at the latest version: $NEW_VERSION"

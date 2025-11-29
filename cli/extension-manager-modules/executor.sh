@@ -234,7 +234,7 @@ install_via_apt() {
             fi
 
             if [[ -n "$sources" ]] && [[ "$sources" != "null" ]]; then
-                echo "$sources" >> /etc/apt/sources.list.d/${ext_name}.list
+                echo "$sources" >> "/etc/apt/sources.list.d/${ext_name}.list"
             fi
         done
     fi

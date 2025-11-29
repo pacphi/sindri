@@ -85,7 +85,7 @@ fi
 sleep 2
 pkill -f "ccm start" || true
 
-if [ -f ~/.claude-code-mux/config.toml ]; then
+if [[ -f ~/.claude-code-mux/config.toml ]]; then
     print_success "CCM configuration initialized at ~/.claude-code-mux/config.toml"
 else
     print_warning "CCM config not auto-created. Will be generated on first run."

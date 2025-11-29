@@ -85,6 +85,9 @@ RUN chmod +x /entrypoint.sh && \
     find /docker/scripts -type f -name "*.sh" -exec chmod 755 {} \; && \
     find /docker/cli -type f -exec chmod 755 {} \;
 
+# Create welcome script in /etc/skel for first-login message
+RUN /docker/scripts/create-welcome.sh
+
 # Allow developer sudo access (for apt installations)
 RUN echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 

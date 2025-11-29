@@ -15,7 +15,7 @@ print_status "━━━━━━━━━━━━━━━━━━━━━━
 echo ""
 
 # Check if config already exists
-if [ -f "$CONFIG_FILE" ]; then
+if [[ -f "$CONFIG_FILE" ]]; then
     print_warning "Configuration already exists at: $CONFIG_FILE"
     echo ""
     echo "What would you like to do?"

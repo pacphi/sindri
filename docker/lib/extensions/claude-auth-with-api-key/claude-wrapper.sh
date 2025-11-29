@@ -12,7 +12,7 @@
 SECRETS_LIB="$HOME/.secrets/lib.sh"
 
 # Only load API key if secrets library exists and has the key
-if [ -f "$SECRETS_LIB" ]; then
+if [[ -f "$SECRETS_LIB" ]]; then
     # Source secrets library functions
     # shellcheck source=/dev/null
     source "$SECRETS_LIB" 2>/dev/null

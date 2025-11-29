@@ -261,36 +261,36 @@ The CI system supports three test suite levels, selectable via workflow dispatch
 
 ### Test Suite Selection
 
-| Trigger | Default Suite | Providers Tested |
-|---------|---------------|------------------|
-| PR to main/develop | `integration` | `["docker"]` |
-| Push to main | `integration` | `["docker", "fly"]` |
-| Scheduled (nightly 2AM UTC) | `integration` | `["docker", "fly", "devpod-aws", "kubernetes"]` |
-| Manual dispatch | User-selectable | User-selectable (default: `docker,fly`) |
+| Trigger                     | Default Suite   | Providers Tested                                |
+| --------------------------- | --------------- | ----------------------------------------------- |
+| PR to main/develop          | `integration`   | `["docker"]`                                    |
+| Push to main                | `integration`   | `["docker", "fly"]`                             |
+| Scheduled (nightly 2AM UTC) | `integration`   | `["docker", "fly", "devpod-aws", "kubernetes"]` |
+| Manual dispatch             | User-selectable | User-selectable (default: `docker,fly`)         |
 
 ## Extension Testing by Provider
 
 Each provider tests a specific set of extensions defined in `.github/test-configs/providers.yaml`:
 
-| Provider | Extensions Tested |
-|----------|-------------------|
-| docker | `nodejs`, `python`, `docker` |
-| fly | `nodejs`, `python`, `golang`, `terraform` |
-| devpod-aws | `nodejs`, `aws-cli`, `terraform` |
-| devpod-gcp | `nodejs`, `gcloud`, `kubernetes-tools` |
-| devpod-azure | `nodejs`, `azure-cli`, `dotnet` |
-| devpod-do | `nodejs`, `docker`, `kubectl` |
-| kubernetes | `kubernetes-tools`, `helm`, `kubectl` |
+| Provider     | Extensions Tested                         |
+| ------------ | ----------------------------------------- |
+| docker       | `nodejs`, `python`, `docker`              |
+| fly          | `nodejs`, `python`, `golang`, `terraform` |
+| devpod-aws   | `nodejs`, `aws-cli`, `terraform`          |
+| devpod-gcp   | `nodejs`, `gcloud`, `kubernetes-tools`    |
+| devpod-azure | `nodejs`, `azure-cli`, `dotnet`           |
+| devpod-do    | `nodejs`, `docker`, `kubectl`             |
+| kubernetes   | `kubernetes-tools`, `helm`, `kubectl`     |
 
 ### Extension Test Matrices
 
 The CI uses different extension matrices based on context (from `.github/test-configs/extensions.yaml`):
 
-| Matrix | Extensions | When Used |
-|--------|------------|-----------|
-| `quick` | `nodejs`, `python` | PRs, branch pushes |
-| `standard` | `nodejs`, `python`, `golang`, `docker` | Main branch, manual |
-| `comprehensive` | All extensions | Scheduled nightly runs |
+| Matrix          | Extensions                             | When Used              |
+| --------------- | -------------------------------------- | ---------------------- |
+| `quick`         | `nodejs`, `python`                     | PRs, branch pushes     |
+| `standard`      | `nodejs`, `python`, `golang`, `docker` | Main branch, manual    |
+| `comprehensive` | All extensions                         | Scheduled nightly runs |
 
 ### Overriding Test Configuration
 
@@ -298,9 +298,9 @@ The CI uses different extension matrices based on context (from `.github/test-co
 
 ```yaml
 # Manual trigger inputs in ci.yml
-providers: "docker,fly,devpod-aws"  # Comma-separated or "all"
-test-suite: "full"                   # smoke | integration | full
-skip-cleanup: true                   # Keep resources for debugging
+providers: "docker,fly,devpod-aws" # Comma-separated or "all"
+test-suite: "full" # smoke | integration | full
+skip-cleanup: true # Keep resources for debugging
 ```
 
 **Via sindri.yaml Configuration:**
@@ -309,7 +309,7 @@ The `sindri.yaml` file specifies the extension profile to deploy:
 
 ```yaml
 extensions:
-  profile: fullstack  # Uses profile from docker/lib/profiles.yaml
+  profile: fullstack # Uses profile from docker/lib/profiles.yaml
 ```
 
 **Via Test Config Files:**
