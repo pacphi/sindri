@@ -152,14 +152,12 @@ runs:
             port = 22
 
         [checks]
-          [checks.health]
+          [checks.ssh]
             grace_period = "30s"
-            interval = "30s"
-            method = "get"
-            path = "/health"
-            port = 8080
+            interval = "15s"
+            port = 22
             timeout = "5s"
-            type = "http"
+            type = "tcp"
         EOF
 
           echo "Created fly.toml"
