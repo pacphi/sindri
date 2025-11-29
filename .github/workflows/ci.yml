@@ -186,14 +186,14 @@ jobs:
             PROVIDERS='["docker"]'
           fi
 
-          # Generate extension matrix from test config (use -c for compact single-line JSON)
+          # Generate extension matrix from test config (use -I=0 for compact single-line JSON)
           # Use extensions with verified test configurations, excluding container-incompatible ones
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
             # Full test: use standard matrix from config
-            EXTENSIONS=$(yq -o=json '.test_matrices.standard.extensions' .github/test-configs/extensions.yaml)
+            EXTENSIONS=$(yq -o=json -I=0 '.test_matrices.standard.extensions' .github/test-configs/extensions.yaml)
           else
             # Quick test: use quick matrix from config
-            EXTENSIONS=$(yq -o=json '.test_matrices.quick.extensions' .github/test-configs/extensions.yaml)
+            EXTENSIONS=$(yq -o=json -I=0 '.test_matrices.quick.extensions' .github/test-configs/extensions.yaml)
           fi
           # Fallback if yq fails
           if [[ -z "$EXTENSIONS" || "$EXTENSIONS" == "null" ]]; then
