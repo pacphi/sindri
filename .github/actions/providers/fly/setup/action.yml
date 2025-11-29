@@ -92,9 +92,13 @@ runs:
           echo "App $APP_NAME already exists"
         else
           echo "Creating app $APP_NAME"
-          flyctl apps create "$APP_NAME" \
-            --org "$ORG" \
-            --region "$REGION" || true
+          # Note: flyctl apps create doesn't accept --region flag
+          # Region is specified at deployment/launch time
+          if ! flyctl apps create "$APP_NAME" --org "$ORG"; then
+            echo "::error::Failed to create Fly.io app $APP_NAME"
+            exit 1
+          fi
+          echo "✅ App $APP_NAME created successfully"
         fi
 
         # Get app URL

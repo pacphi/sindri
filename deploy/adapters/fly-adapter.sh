@@ -22,6 +22,7 @@ NAME=$(yq '.name' "$SINDRI_YAML")
 MEMORY=$(yq '.deployment.resources.memory // "2GB"' "$SINDRI_YAML" | sed 's/GB/*1024/;s/MB//')
 CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
 REGION=$(yq '.providers.fly.region // "sjc"' "$SINDRI_YAML")
+ORG=$(yq '.providers.fly.organization // "personal"' "$SINDRI_YAML")
 PROFILE=$(yq '.extensions.profile // ""' "$SINDRI_YAML")
 CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
 VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML" | sed 's/GB//')
@@ -74,7 +75,7 @@ primary_region = "${REGION}"
 [mounts]
   # Mount persistent volume as developer's home directory
   # This ensures $HOME is persistent and contains workspace, config, and tool data
-  source = "dev_home"
+  source = "home_data"
   destination = "/alt/home/developer"
   # Initial size matches the volume size specified during creation
   initial_size = "${VOLUME_SIZE}gb"
@@ -155,8 +156,8 @@ primary_region = "${REGION}"
 #   worker = "background-tasks"
 
 # Volume configuration reference
-# Create volume with: flyctl volumes create dev_home --region ${REGION} --size ${VOLUME_SIZE}
-# Volume naming pattern: dev_home (mounts as developer's home directory)
+# Create volume with: flyctl volumes create home_data --region ${REGION} --size ${VOLUME_SIZE}
+# Volume naming pattern: home_data (mounts as developer's home directory)
 # Pricing: ~\$0.15/GB/month
 
 # Cost optimization notes:
@@ -212,12 +213,12 @@ echo "==> Deploying to Fly.io..."
 
 # Create app if not exists
 if ! flyctl apps list | grep -q "$NAME"; then
-    flyctl apps create "$NAME" --org personal
+    flyctl apps create "$NAME" --org "$ORG"
 fi
 
 # Create volume if not exists
-if ! flyctl volumes list -a "$NAME" | grep -q "dev_home"; then
-    flyctl volumes create dev_home -s 10 -r "$REGION" -a "$NAME"
+if ! flyctl volumes list -a "$NAME" | grep -q "home_data"; then
+    flyctl volumes create home_data -s "$VOLUME_SIZE" -r "$REGION" -a "$NAME" --yes
 fi
 
 # Resolve and inject secrets

@@ -71,21 +71,25 @@ runs:
 
         APP_NAME="${{ inputs.app-name }}"
 
-        # Update fly.toml with deployment settings
-        if [[ -f "fly.toml" ]]; then
-          # Update VM size and memory
-          yq -i ".vm.size = \"${{ inputs.vm-size }}\"" fly.toml || true
-          yq -i ".vm.memory = ${{ inputs.vm-memory }}" fly.toml || true
+        # Note: VM size and memory are passed directly to flyctl deploy command
+        # yq doesn't fully support TOML output format, so we avoid editing fly.toml
+
+        # Verify the app exists before proceeding
+        if ! flyctl apps list | grep -q "$APP_NAME"; then
+          echo "::error::App $APP_NAME not found. Ensure setup action ran successfully."
+          exit 1
         fi
 
-        # Create or update volume
+        # Create or update volume (must match mount source in fly.toml: "home_data")
         VOLUME_EXISTS=$(flyctl volumes list -a "$APP_NAME" --json | jq -r '.[0].id' || echo "")
-        if [[ -z "$VOLUME_EXISTS" ]]; then
-          echo "Creating volume..."
-          flyctl volumes create workspace_data \
+        if [[ -z "$VOLUME_EXISTS" || "$VOLUME_EXISTS" == "null" ]]; then
+          echo "Creating volume home_data..."
+          if ! flyctl volumes create home_data \
             --app "$APP_NAME" \
             --region "${{ inputs.region }}" \
-            --size "${{ inputs.volume-size }}" || true
+            --size "${{ inputs.volume-size }}" --yes; then
+            echo "::warning::Volume creation failed, deployment may still succeed with auto-created volume"
+          fi
         else
           echo "Volume already exists: $VOLUME_EXISTS"
         fi

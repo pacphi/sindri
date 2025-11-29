@@ -122,8 +122,6 @@ pnpm test:extensions   # Test extensions
 pnpm build             # Build Docker image
 ```
 
-See [CLAUDE.md](CLAUDE.md) for complete development guide.
-
 ## Architecture Highlights
 
 - **Modular Extension System** - YAML-driven with dependency resolution
@@ -131,8 +129,6 @@ See [CLAUDE.md](CLAUDE.md) for complete development guide.
 - **Provider Adapters** - Clean abstraction for Docker, Fly, Kubernetes, DevPod
 - **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
 - **BOM Tracking** - Comprehensive software bill of materials for security auditing
-
-Read more: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## License
 

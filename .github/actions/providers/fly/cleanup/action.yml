@@ -174,20 +174,22 @@ runs:
         echo "::endgroup::"
 
     - name: Cleanup orphaned volumes
-      if: inputs.cleanup-volumes == 'true'
+      if: inputs.cleanup-volumes == 'true' && inputs.app-name != ''
       shell: bash
       env:
         FLY_API_TOKEN: ${{ inputs.fly-api-token }}
       run: |
-        echo "::group::Cleaning up orphaned volumes"
+        echo "::group::Cleaning up orphaned volumes for app: ${{ inputs.app-name }}"
 
-        # List all volumes
-        VOLUMES=$(flyctl volumes list --json 2>/dev/null || echo "[]")
+        APP_NAME="${{ inputs.app-name }}"
 
-        # Check for orphaned volumes (volumes without apps)
+        # List volumes for the specific app (flyctl volumes list requires -a flag)
+        VOLUMES=$(flyctl volumes list -a "$APP_NAME" --json 2>/dev/null || echo "[]")
+
+        # Check for orphaned volumes (volumes not attached to any machine)
         echo "$VOLUMES" | jq -r '.[] | select(.attached_machine_id == null) | .id' | \
           while read -r volume_id; do
-            if [[ -n "$volume_id" ]]; then
+            if [[ -n "$volume_id" && "$volume_id" != "null" ]]; then
               echo "Deleting orphaned volume: $volume_id"
               flyctl volumes destroy "$volume_id" --yes || true
             fi
