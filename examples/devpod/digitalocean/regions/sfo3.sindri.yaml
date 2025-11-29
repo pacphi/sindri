@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - DevPod DigitalOcean San Francisco
+# DigitalOcean Droplet in San Francisco
+version: "1.0"
+name: sindri-test-devpod-do-sfo
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: digitalocean
+    digitalocean:
+      region: sfo3
+      size: s-4vcpu-8gb

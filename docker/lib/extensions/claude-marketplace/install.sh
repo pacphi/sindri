@@ -10,7 +10,8 @@ source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 print_status "Installing Claude marketplace configuration..."
 
 CLAUDE_CONFIG_DIR="$HOME/.claude"
-MARKETPLACES_CONFIG_DIR="/workspace/config"
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+MARKETPLACES_CONFIG_DIR="${WORKSPACE}/config"
 
 # Ensure config directory exists
 mkdir -p "$MARKETPLACES_CONFIG_DIR"

@@ -35,18 +35,18 @@ retry_with_backoff() {
     local command="${*:4}"
     local attempt=0
 
-    while [ $attempt -lt $max_attempts ]; do
+    while [[ $attempt -lt $max_attempts ]]; do
         attempt=$((attempt + 1))
 
         if eval "$command"; then
             return 0
         fi
 
-        if [ $attempt -lt $max_attempts ]; then
+        if [[ $attempt -lt $max_attempts ]]; then
             log_warning "Command failed (attempt $attempt/$max_attempts). Retrying in ${delay}s..."
             sleep "$delay"
             delay=$((delay * 2))
-            if [ $delay -gt $max_delay ]; then
+            if [[ $delay -gt $max_delay ]]; then
                 delay=$max_delay
             fi
         fi
@@ -95,7 +95,7 @@ wait_for_vm() {
 
     log_info "Waiting for VM $app_name to be ready..."
 
-    while [ $elapsed -lt $max_wait ]; do
+    while [[ $elapsed -lt $max_wait ]]; do
         if flyctl ssh console -a "$app_name" --command "echo 'ready'" &>/dev/null; then
             log_success "VM $app_name is ready"
             return 0
@@ -115,7 +115,7 @@ test_persistence() {
     local app_name="$1"
     local test_file
     local test_content
-    test_file="/workspace/test-persistence-$(date +%s).txt"
+    test_file="\${WORKSPACE:-\$HOME/workspace}/test-persistence-$(date +%s).txt"
     test_content="persistence-test-$(date +%s)"
 
     log_info "Testing persistence..."

@@ -5,6 +5,7 @@ set -e
 
 # shellcheck disable=SC2034  # May be used in future adapter implementations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SINDRI_YAML="${1:-sindri.yaml}"
 
 if [[ ! -f "$SINDRI_YAML" ]]; then
@@ -12,20 +13,37 @@ if [[ ! -f "$SINDRI_YAML" ]]; then
     exit 1
 fi
 
+# Source common utilities and secrets manager
+source "$BASE_DIR/docker/lib/common.sh"
+source "$BASE_DIR/cli/secrets-manager"
+
 # Parse sindri.yaml
 NAME=$(yq '.name' "$SINDRI_YAML")
 PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
 
+# Resolve secrets
+print_status "Resolving secrets..."
+secrets_resolve_all "$SINDRI_YAML" || true
+
 # Create .devcontainer directory
 mkdir -p .devcontainer
 
-# Generate devcontainer.json
-cat > .devcontainer/devcontainer.json << EODC
+# Generate devcontainer.json with secrets
+{
+cat << EODC
 {
   "name": "${NAME}",
   "dockerFile": "../docker/Dockerfile",
-  "workspaceFolder": "/workspace",
-  "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/alt/home/developer/workspace",
+  "workspaceMount": "source=\${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
+
+EODC
+
+# Add secrets as containerEnv
+secrets_generate_devcontainer_env
+
+cat << EODC
+,
 
   "customizations": {
     "vscode": {
@@ -62,7 +80,7 @@ cat > .devcontainer/devcontainer.json << EODC
   "containerUser": "developer",
 
   "mounts": [
-    "source=sindri-workspace,target=/workspace,type=volume"
+    "source=sindri-home,target=/alt/home/developer,type=volume"
   ],
 
   "runArgs": [
@@ -84,6 +102,7 @@ cat > .devcontainer/devcontainer.json << EODC
   }
 }
 EODC
+} > .devcontainer/devcontainer.json
 
 # Generate provider.yaml for DevPod
 cat > .devcontainer/provider.yaml << EOPY

@@ -345,13 +345,13 @@ templates:
 
       ## Setup Instructions
       ```bash
-      docker-compose up --build
+      docker compose up --build
       ```
 
       ## Development Commands
-      - `docker-compose up` - Start containers
-      - `docker-compose down` - Stop containers
-      - `docker-compose logs` - View logs
+      - `docker compose up` - Start containers
+      - `docker compose down` - Stop containers
+      - `docker compose logs` - View logs
       - `docker build -t {project_name} .` - Build image
 
 # Detection rules for auto-type selection

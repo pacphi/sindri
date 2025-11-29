@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod AWS US East
+# AWS EC2 in N. Virginia region
+version: "1.0"
+name: sindri-test-devpod-aws-east
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: aws
+    aws:
+      region: us-east-1
+      instanceType: c5.xlarge
+      diskSize: 40

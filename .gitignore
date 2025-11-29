@@ -8,6 +8,7 @@
 *.env.production
 *.env.staging
 .env.*
+.env.secrets
 secrets/
 keys/
 certs/
@@ -47,10 +48,6 @@ docker-compose.local.yml
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Sindri configuration
-sindri.yaml
-sindri.*.yaml
 
 # Archives (implementation artifacts)
 .archives/
@@ -158,10 +155,9 @@ local-*
 personal-*
 private-*
 custom-*
-sindri.local.yaml
-sindri.*.yaml
-!sindri.yaml
 !examples/*.sindri.yaml
+sindri.yaml
+sindri.*.yaml
 
 # Test Files and Coverage
 test-results/

@@ -456,7 +456,7 @@ grype sbom:sbom.spdx
    flyctl machine stop <machine-id> -a my-app
 
    # Docker: Stop container
-   docker-compose stop
+   docker compose stop
 
    # Kubernetes: Scale to zero
    kubectl scale statefulset my-app --replicas=0 -n dev-envs

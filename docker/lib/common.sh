@@ -29,14 +29,20 @@ export EXTENSIONS_DIR="$DOCKER_LIB/extensions"
 export SCHEMAS_DIR="$DOCKER_LIB/schemas"
 export TEMPLATES_DIR="$DOCKER_LIB/templates"
 
-# Workspace paths (volume mount, fully writable by developer)
+# Workspace paths (derived from HOME, volume mount is at $HOME)
+# New architecture: $HOME = /alt/home/developer (volume), $WORKSPACE = $HOME/workspace
 if [[ -z "${WORKSPACE:-}" ]]; then
-    if [[ -d "/workspace" ]]; then
+    if [[ -n "${HOME:-}" ]] && [[ -d "${HOME}/workspace" ]]; then
+        export WORKSPACE="${HOME}/workspace"
+    elif [[ -d "/alt/home/developer/workspace" ]]; then
+        export WORKSPACE="/alt/home/developer/workspace"
+    elif [[ -d "/workspace" ]]; then
+        # Backward compatibility for legacy deployments
         export WORKSPACE="/workspace"
     else
         # For local testing, use a workspace directory in home
-        export WORKSPACE="${HOME}/.sindri/workspace"
-        mkdir -p "$WORKSPACE"
+        export WORKSPACE="${HOME:-/alt/home/developer}/workspace"
+        mkdir -p "$WORKSPACE" 2>/dev/null || true
     fi
 fi
 export WORKSPACE_PROJECTS="${WORKSPACE_PROJECTS:-$WORKSPACE/projects}"
@@ -81,7 +87,7 @@ command_exists() {
 
 # Check if running as specific user
 is_user() {
-    [[ "$USER" == "$1" ]] || [[ "$USER" == "root" ]]
+    [[ "${USER:-}" == "$1" ]] || [[ "${USER:-}" == "root" ]]
 }
 
 # Ensure directory exists with proper ownership
@@ -91,7 +97,7 @@ ensure_directory() {
 
     if [[ ! -d "$dir" ]]; then
         mkdir -p "$dir"
-        if [[ "$USER" == "root" ]]; then
+        if [[ "${USER:-}" == "root" ]]; then
             chown -R "$owner" "$dir"
         fi
     fi

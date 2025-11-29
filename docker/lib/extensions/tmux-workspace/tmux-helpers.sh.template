@@ -2,6 +2,7 @@
 # Tmux Helper Functions for Sindri Development Environment
 
 SESSION_NAME="${TMUX_SESSION_NAME:-sindri-workspace}"
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
 
 # Function to check if session exists
 tmux_session_exists() {
@@ -15,7 +16,7 @@ tmux_new_window() {
     local session_name="${2:-$SESSION_NAME}"
 
     if tmux_session_exists "$session_name"; then
-        tmux new-window -t "$session_name" -n "$window_name" -c "/workspace"
+        tmux new-window -t "$session_name" -n "$window_name" -c "${WORKSPACE}"
         echo "Created window: $window_name"
     else
         echo "Session $session_name not found"
@@ -95,7 +96,7 @@ tmux_status() {
 # Function to create development-focused window layout
 tmux_dev_layout() {
     local session_name="${1:-$SESSION_NAME}"
-    local project_dir="${2:-/workspace}"
+    local project_dir="${2:-${WORKSPACE}}"
 
     if ! tmux_session_exists "$session_name"; then
         echo "Session $session_name not found"
@@ -122,7 +123,7 @@ tmux_dev_layout() {
 # Function to save session layout
 tmux_save_session() {
     local session_name="${1:-$SESSION_NAME}"
-    local save_file="/workspace/.tmux-session-${session_name}.save"
+    local save_file="${WORKSPACE}/.tmux-session-${session_name}.save"
 
     if ! tmux_session_exists "$session_name"; then
         echo "Session $session_name not found"
@@ -144,7 +145,7 @@ tmux_save_session() {
 # Function to restore session layout
 tmux_restore_session() {
     local session_name="${1:-$SESSION_NAME}"
-    local save_file="/workspace/.tmux-session-${session_name}.save"
+    local save_file="${WORKSPACE}/.tmux-session-${session_name}.save"
 
     if [[ ! -f "$save_file" ]]; then
         echo "Save file not found: $save_file"

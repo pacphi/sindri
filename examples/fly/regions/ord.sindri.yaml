@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Fly.io Chicago Region
+# Deploy to Chicago (ord) data center
+version: "1.0"
+name: sindri-test-fly-ord
+
+deployment:
+  provider: fly
+  resources:
+    memory: 2GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: minimal
+
+providers:
+  fly:
+    region: ord # Chicago region
+    cpuKind: shared
+    autoStopMachines: false
+    autoStartMachines: true

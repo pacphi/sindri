@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Docker AI Development Example
+# Local AI/ML development with Docker Compose
+version: "1.0"
+name: sindri-docker-ai-dev
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 12GB
+    cpus: 6
+  volumes:
+    workspace:
+      size: 80GB
+
+extensions:
+  profile: ai-dev
+
+providers:
+  docker-compose:
+    ports:
+      - "8080:8080" # API server
+      - "8888:8888" # Jupyter
+      - "6006:6006" # TensorBoard

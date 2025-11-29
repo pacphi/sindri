@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod AWS AI Development with GPU
+# AI/ML development on AWS with GPU-enabled instance
+version: "1.0"
+name: sindri-devpod-aws-ai-gpu
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 16GB
+    cpus: 8
+  volumes:
+    workspace:
+      size: 100GB
+
+extensions:
+  profile: ai-dev
+
+providers:
+  devpod:
+    type: aws
+    aws:
+      region: us-east-1
+      instanceType: g4dn.2xlarge # GPU instance
+      diskSize: 150

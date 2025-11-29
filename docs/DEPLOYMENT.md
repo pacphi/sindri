@@ -6,10 +6,10 @@ Guide to deploying Sindri across different providers.
 
 Sindri uses a **provider-agnostic architecture** where a single `sindri.yaml` configuration can deploy to multiple platforms:
 
-- **Docker** - Local development and testing
-- **Fly.io** - Cloud deployment with auto-suspend and cost optimization
-- **Kubernetes** - Enterprise orchestration
-- **DevPod** - IDE-integrated containers (VS Code, Codespaces)
+- **[Docker](providers/DOCKER.md)** - Local development and testing
+- **[Fly.io](providers/FLY.md)** - Cloud deployment with auto-suspend and cost optimization
+- **[Kubernetes](providers/KUBERNETES.md)** - Enterprise orchestration
+- **[DevPod](providers/DEVPOD.md)** - IDE-integrated containers (VS Code, Codespaces)
 
 ## Provider Comparison
 
@@ -24,106 +24,12 @@ Sindri uses a **provider-agnostic architecture** where a single `sindri.yaml` co
 | **Scaling**            | Manual         | Auto/Manual           | Auto             | Manual       |
 | **Prerequisites**      | Docker         | flyctl                | kubectl, cluster | DevPod CLI   |
 
-## Quick Deployment Comparison
-
-### Docker (Local)
-
-**Best for:** Testing, offline development, CI/CD
-
-```bash
-./cli/sindri deploy --provider docker
-```
-
-**Pros:**
-
-- Instant startup
-- No cost
-- Works offline
-- Full control
-
-**Cons:**
-
-- Local resources only
-- No remote access
-- Manual lifecycle management
-
-### Fly.io (Cloud)
-
-**Best for:** Remote development, team collaboration, cost-optimized cloud
-
-```bash
-./cli/sindri deploy --provider fly
-```
-
-**Pros:**
-
-- Auto-suspend (pay per use)
-- SSH access anywhere
-- Persistent volumes
-- Fast deployment
-
-**Cons:**
-
-- Requires internet
-- Monthly cost (~$6-50)
-- Single-region by default
-
-See: [Fly.io Deployment Guide](FLY_DEPLOYMENT.md)
-
-### Kubernetes (Enterprise)
-
-**Best for:** Large teams, multi-tenant, enterprise compliance
-
-```bash
-./cli/sindri deploy --provider kubernetes
-```
-
-**Pros:**
-
-- Multi-tenant isolation
-- Advanced networking
-- Enterprise features
-- Horizontal scaling
-
-**Cons:**
-
-- Complex setup
-- Requires cluster
-- Higher operational overhead
-
-### DevPod (IDE Integration)
-
-**Best for:** VS Code users, GitHub Codespaces, local IDE containers
-
-```bash
-./cli/sindri deploy --provider devpod
-```
-
-**Pros:**
-
-- Native VS Code integration
-- Codespaces support
-- IDE features preserved
-- Local or remote
-
-**Cons:**
-
-- VS Code focused
-- Limited to DevContainer spec
-- Manual lifecycle
-
-See: [DevPod Integration Guide](DEVPOD_INTEGRATION.md)
-
-## Deployment Workflow
+## Quick Start
 
 ### 1. Initialize Configuration
 
 ```bash
-# Create sindri.yaml
 ./cli/sindri config init
-
-# Or copy from examples
-cp examples/fly-minimal.sindri.yaml sindri.yaml
 ```
 
 ### 2. Edit Configuration
@@ -134,15 +40,13 @@ version: 1.0
 name: my-dev-env
 
 deployment:
-  provider: fly # Choose provider
+  provider: fly # docker | fly | kubernetes | devpod
 
 extensions:
   profile: fullstack
 ```
 
-See: [Configuration Reference](CONFIGURATION.md)
-
-### 3. Validate Configuration
+### 3. Validate
 
 ```bash
 ./cli/sindri config validate
@@ -161,216 +65,77 @@ See: [Configuration Reference](CONFIGURATION.md)
 ### 5. Connect
 
 ```bash
-# For Docker
+# Docker
 docker exec -it my-dev-env bash
 
-# For Fly.io
+# Fly.io
 ssh developer@my-dev-env.fly.dev -p 10022
 
-# For Kubernetes
+# Kubernetes
 kubectl exec -it my-dev-env-0 -n dev-envs -- bash
 
-# For DevPod
+# DevPod
 devpod ssh .
 ```
 
-## Provider-Specific Configuration
-
-### Docker Configuration
-
-```yaml
-version: 1.0
-name: sindri-docker
-
-deployment:
-  provider: docker
-  resources:
-    memory: 2GB
-    cpus: 1
-
-extensions:
-  profile: minimal
-
-providers:
-  docker:
-    ports:
-      - "3000:3000"
-      - "8080:8080"
-```
-
-**Generated:** `docker-compose.yml`
-
-### Fly.io Configuration
-
-```yaml
-version: 1.0
-name: sindri-fly
-
-deployment:
-  provider: fly
-  resources:
-    memory: 2GB
-    cpus: 1
-  volumes:
-    workspace:
-      size: 10GB
-
-extensions:
-  profile: fullstack
-
-providers:
-  fly:
-    region: sjc
-    autoStopMachines: true
-    autoStartMachines: true
-```
-
-**Generated:** `fly.toml`
-
-See: [Fly.io Deployment Guide](FLY_DEPLOYMENT.md)
-
-### Kubernetes Configuration
-
-```yaml
-version: 1.0
-name: sindri-k8s
-
-deployment:
-  provider: kubernetes
-  resources:
-    memory: 4GB
-    cpus: 2
-  volumes:
-    workspace:
-      size: 30GB
-
-extensions:
-  profile: enterprise
-
-providers:
-  kubernetes:
-    namespace: dev-environments
-    storageClass: fast-ssd
-    ingressEnabled: true
-    ingressHost: sindri.company.com
-```
-
-**Generated:** Kubernetes manifests (StatefulSet, PVC, Service, Ingress)
-
-### DevPod Configuration
-
-```yaml
-version: 1.0
-name: sindri-devpod
-
-deployment:
-  provider: devpod
-  resources:
-    memory: 4GB
-    cpus: 2
-
-extensions:
-  profile: fullstack
-
-providers:
-  devpod:
-    vscodeExtensions:
-      - ms-python.python
-      - golang.go
-    forwardPorts:
-      - 3000
-      - 8080
-```
-
-**Generated:** `.devcontainer/devcontainer.json`
-
-## Secrets Management
-
-Secrets are handled differently by each provider:
+## Choosing a Provider
 
 ### Docker
 
-Use `.env` file (not committed):
+**Use when:**
 
-```bash
-# .env
-ANTHROPIC_API_KEY=sk-ant-...
-GITHUB_TOKEN=ghp_...
-```
+- Testing locally before cloud deployment
+- Working offline
+- Running CI/CD pipelines
+- Zero cost is required
 
-Reference in `docker-compose.yml`:
-
-```yaml
-services:
-  sindri:
-    env_file: .env
-```
+[Docker Provider Guide](providers/DOCKER.md)
 
 ### Fly.io
 
-Use Fly secrets:
+**Use when:**
 
-```bash
-flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-app
-flyctl secrets set GITHUB_TOKEN=ghp_... -a my-app
-```
+- Need remote access from anywhere
+- Want cost-optimized cloud deployment
+- Individual developer or small team
+- Auto-suspend/resume is valuable
 
-### Kubernetes Secrets
+[Fly.io Provider Guide](providers/FLY.md)
 
-Use Kubernetes secrets:
+### Kubernetes
 
-```bash
-kubectl create secret generic sindri-secrets \
-  --from-literal=ANTHROPIC_API_KEY=sk-ant-... \
-  --from-literal=GITHUB_TOKEN=ghp_... \
-  --namespace=dev-envs
-```
+**Use when:**
 
-### DevPod Secrets
+- Enterprise compliance requirements
+- Multi-tenant environments
+- Need horizontal scaling
+- Existing cluster infrastructure
 
-Handled by IDE settings or environment.
+[Kubernetes Provider Guide](providers/KUBERNETES.md)
 
-## Cost Considerations
+### DevPod
 
-### Docker (Local) Costs
+**Use when:**
 
-**Cost:** $0 (uses local resources)
+- VS Code is primary editor
+- Using GitHub Codespaces
+- Want IDE-native container experience
+- Need DevContainer compatibility
 
-**Resource Requirements:**
+[DevPod Provider Guide](providers/DEVPOD.md)
 
-- 2-8 GB RAM recommended
-- 10-50 GB disk space
-- 1-2 CPU cores
+## Secrets Management
 
-### Fly.io (Cloud) Costs
+Each provider handles secrets differently:
 
-**Minimal Setup:**
+| Provider   | Method                   | Example                                    |
+| ---------- | ------------------------ | ------------------------------------------ |
+| Docker     | `.env` file              | `ANTHROPIC_API_KEY=sk-ant-...`             |
+| Fly.io     | `flyctl secrets`         | `flyctl secrets set ANTHROPIC_API_KEY=...` |
+| Kubernetes | Kubernetes secrets       | `kubectl create secret generic ...`        |
+| DevPod     | IDE settings/environment | VS Code settings or environment variables  |
 
-- 1 GB RAM, 1 vCPU: ~$5-10/month
-- 10 GB volume: ~$1.50/month
-- **Total: ~$6.50-11.50/month**
-
-**Standard Setup:**
-
-- 2 GB RAM, 1 vCPU: ~$10-15/month
-- 30 GB volume: ~$4.50/month
-- **Total: ~$14.50-19.50/month**
-
-**With auto-suspend:** Costs scale with usage time.
-
-See: [Fly.io Deployment Guide](FLY_DEPLOYMENT.md) for detailed pricing.
-
-### Kubernetes Costs
-
-**Varies by cluster:**
-
-- Managed K8s (GKE, EKS, AKS): ~$70-150/month base
-- Self-hosted: Infrastructure costs only
-- Per-environment: ~$5-20/month (resources)
-
-### DevPod Costs
-
-**Cost:** $0 (local) or Codespaces pricing (~$0.18/hour)
+See provider-specific guides for details.
 
 ## Lifecycle Management
 
@@ -382,29 +147,19 @@ docker start my-dev-env
 docker stop my-dev-env
 
 # Fly.io (automatic with auto-suspend)
-flyctl machine start <machine-id> -a my-app
-flyctl machine stop <machine-id> -a my-app
+flyctl machine start <id> -a my-app
+flyctl machine stop <id> -a my-app
 
 # Kubernetes
 kubectl scale statefulset my-dev-env --replicas=0 -n dev-envs
 kubectl scale statefulset my-dev-env --replicas=1 -n dev-envs
 ```
 
-### Update Configuration
-
-```bash
-# Edit sindri.yaml
-vim sindri.yaml
-
-# Redeploy
-./cli/sindri deploy
-```
-
 ### Teardown
 
 ```bash
 # Docker
-docker-compose down -v
+docker compose down -v
 
 # Fly.io
 flyctl apps destroy my-app
@@ -416,19 +171,29 @@ kubectl delete namespace dev-envs
 devpod delete .
 ```
 
-## Multi-Environment Strategy
+## Migration Between Providers
 
-Deploy multiple environments from one repo:
+Sindri's volume architecture makes migration straightforward:
 
-```bash
-# Production
-cp examples/fly-production.sindri.yaml sindri.yaml
-./cli/sindri deploy
+1. Export workspace:
 
-# Development
-cp examples/fly-minimal.sindri.yaml sindri-dev.yaml
-./cli/sindri deploy --config sindri-dev.yaml
-```
+   ```bash
+   tar -czf workspace-backup.tar.gz /workspace
+   ```
+
+2. Deploy to new provider:
+
+   ```bash
+   ./cli/sindri deploy --provider fly
+   ```
+
+3. Restore workspace:
+
+   ```bash
+   tar -xzf workspace-backup.tar.gz -C /workspace
+   ```
+
+All extensions and configurations are preserved.
 
 ## Hybrid Deployment
 
@@ -439,95 +204,17 @@ Use different providers for different purposes:
 - **Production workloads:** Kubernetes
 - **IDE integration:** DevPod
 
-All use the same base image and extension system!
-
-## Troubleshooting
-
-### Connection Issues
-
-```bash
-# Check deployment status
-./cli/sindri status
-
-# View logs
-./cli/sindri logs
-
-# Restart
-./cli/sindri restart
-```
-
-### Resource Constraints
-
-Increase resources in `sindri.yaml`:
-
-```yaml
-deployment:
-  resources:
-    memory: 4GB # Increase from 2GB
-    cpus: 2 # Increase from 1
-```
-
-Then redeploy:
-
-```bash
-./cli/sindri deploy
-```
-
-### Volume Issues
-
-Check volume status:
-
-```bash
-# Docker
-docker volume ls
-docker volume inspect sindri-workspace
-
-# Fly.io
-flyctl volumes list -a my-app
-
-# Kubernetes
-kubectl get pvc -n dev-envs
-```
-
-## Migration Between Providers
-
-Sindri's volume architecture makes migration straightforward:
-
-1. Export workspace data:
-
-   ```bash
-   tar -czf workspace-backup.tar.gz /workspace
-   ```
-
-2. Deploy to new provider:
-
-   ```bash
-   # Update provider in sindri.yaml
-   ./cli/sindri deploy --provider fly
-   ```
-
-3. Restore workspace:
-
-   ```bash
-   tar -xzf workspace-backup.tar.gz -C /workspace
-   ```
-
-All extensions and configurations are preserved!
-
-## Best Practices
-
-1. **Start Local** - Test with Docker before deploying to cloud
-2. **Use Profiles** - Leverage extension profiles for consistency
-3. **Version Control** - Commit `sindri.yaml` to version control
-4. **Secrets Externally** - Never commit secrets to `sindri.yaml`
-5. **Monitor Costs** - Use auto-suspend on Fly.io, set resource limits
-6. **Regular Backups** - Snapshot volumes periodically
-7. **Test Migrations** - Validate before switching providers
+All use the same base image and extension system.
 
 ## Related Documentation
 
 - [Quickstart](QUICKSTART.md)
 - [Configuration Reference](CONFIGURATION.md)
-- [Fly.io Deployment](FLY_DEPLOYMENT.md)
-- [DevPod Integration](DEVPOD_INTEGRATION.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
+
+### Provider Guides
+
+- [Docker](providers/DOCKER.md)
+- [Fly.io](providers/FLY.md)
+- [Kubernetes](providers/KUBERNETES.md)
+- [DevPod](providers/DEVPOD.md)

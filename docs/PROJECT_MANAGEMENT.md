@@ -163,7 +163,7 @@ Clone or fork existing repositories and automatically apply Claude AI enhancemen
 When using `--fork`, the following Git aliases are automatically configured:
 
 ```bash
-git sync-upstream         # Fetch and merge upstream changes
+git sync-upstream        # Fetch and merge upstream changes
 git push-fork            # Push current branch to your fork
 git update-from-upstream # Rebase current branch on upstream/main
 git pr-branch <name>     # Create new branch from upstream/main
@@ -277,5 +277,4 @@ Available variables in templates:
 ## See Also
 
 - [Extension Manager](../cli/extension-manager) - Manage Sindri extensions
-- [CLAUDE.md](../CLAUDE.md) - Project documentation guidelines
-- [Extension Development](./EXTENSION_DEVELOPMENT.md) - Create custom extensions
+- [Extension Authoring](./EXTENSION_AUTHORING.md) - Create custom extensions

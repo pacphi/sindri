@@ -4,6 +4,7 @@
 # Only auto-start if we're in an SSH session and no tmux is running
 if [[ -n "$SSH_CONNECTION" ]] && [[ -z "$TMUX" ]]; then
     SESSION_NAME="${TMUX_SESSION_NAME:-sindri-workspace}"
+    WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
 
     # Check if there's an existing session
     if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
@@ -11,8 +12,8 @@ if [[ -n "$SSH_CONNECTION" ]] && [[ -z "$TMUX" ]]; then
         tmux attach-session -t "$SESSION_NAME"
     else
         echo "Starting new Sindri workspace..."
-        if [[ -x /workspace/scripts/tmux-workspace.sh ]]; then
-            /workspace/scripts/tmux-workspace.sh
+        if [[ -x "${WORKSPACE}/scripts/tmux-workspace.sh" ]]; then
+            "${WORKSPACE}/scripts/tmux-workspace.sh"
         else
             echo "Error: tmux-workspace.sh not found or not executable"
         fi

@@ -1,0 +1,45 @@
+---
+# Sindri Configuration - Fly.io Production
+# Production-ready configuration with all options
+version: "1.0"
+name: sindri-prod
+
+deployment:
+  provider: fly
+  image: registry.fly.io/sindri:latest
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      path: /workspace
+      size: 30GB
+
+extensions:
+  profile: fullstack
+
+secrets:
+  - name: ANTHROPIC_API_KEY
+    source: env
+  - name: GITHUB_TOKEN
+    source: env
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+  - name: GITHUB_USER
+    source: env
+  - name: OPENROUTER_API_KEY
+    source: env
+  - name: GOOGLE_GEMINI_API_KEY
+    source: env
+
+providers:
+  fly:
+    region: sjc
+    autoStopMachines: true
+    autoStartMachines: true
+    cpuKind: performance
+    sshPort: 10022
+    organization: personal
+    highAvailability: false

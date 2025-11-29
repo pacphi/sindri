@@ -5,14 +5,14 @@
 # when running Claude Code, providing transparent authentication without requiring
 # users to manually load secrets or run authentication commands.
 #
-# Location: /workspace/bin/claude (this wrapper)
+# Location: $WORKSPACE/bin/claude (this wrapper)
 # Real CLI:  /usr/local/bin/claude (actual Claude Code executable)
 
 # Path to secrets library
 SECRETS_LIB="$HOME/.secrets/lib.sh"
 
 # Only load API key if secrets library exists and has the key
-if [ -f "$SECRETS_LIB" ]; then
+if [[ -f "$SECRETS_LIB" ]]; then
     # Source secrets library functions
     # shellcheck source=/dev/null
     source "$SECRETS_LIB" 2>/dev/null

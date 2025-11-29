@@ -13,8 +13,8 @@ alias cf-init-project="npx claude-flow@alpha init --force --project-name"
 alias cf-init-nexus="npx claude-flow@alpha init --flow-nexus"
 
 # Core Operations (Context-Aware Wrappers)
-alias cf-swarm="/workspace/scripts/cf-with-context.sh swarm"
-alias cf-hive="/workspace/scripts/cf-with-context.sh hive-mind spawn"
+alias cf-swarm="\${WORKSPACE:-\${HOME}/workspace}/scripts/cf-with-context.sh swarm"
+alias cf-hive="\${WORKSPACE:-\${HOME}/workspace}/scripts/cf-with-context.sh hive-mind spawn"
 
 # Hive-Mind Operations
 alias cf-spawn="npx claude-flow@alpha hive-mind spawn"

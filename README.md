@@ -1,8 +1,7 @@
 # Sindri
 
 [![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
-[![Integration Tests](https://github.com/pacphi/sindri/actions/workflows/integration.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/integration.yml)
-[![Validation](https://github.com/pacphi/sindri/actions/workflows/validation.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/validation.yml)
+[![CI](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci.yml)
 
 A declarative, provider-agnostic cloud development environment system. Deploy consistent development environments to Fly.io, Kubernetes, or local Docker using YAML-defined extensions.
 
@@ -71,46 +70,42 @@ cd sindri
 ### Deployment
 
 - **[Deployment Overview](docs/DEPLOYMENT.md)** - Provider comparison and selection
-- **[Fly.io Deployment](docs/FLY_DEPLOYMENT.md)** - Fly.io-specific guide
-- **[DevPod Integration](docs/DEVPOD_INTEGRATION.md)** - DevContainer setup
+- **[Fly.io Deployment](docs/providers/FLY.md)** - Fly.io-specific guide
+- **[DevPod Integration](docs/providers/DEVPOD.md)** - DevContainer setup
+- **[Docker Deployment](docs/providers/DOCKER.md)** - Local Docker setup
+- **[Kubernetes Deployment](docs/providers/KUBERNETES.md)** - Enterprise K8s guide
+- **[Secrets Management](docs/SECRETS_MANAGEMENT.md)** - Managing secrets across providers
 
-### Project Management
+### Development & Operations
 
 - **[Project Management](docs/PROJECT_MANAGEMENT.md)** - Using new-project and clone-project
-
-### Developer Documentation
-
 - **[Contributing Guide](docs/CONTRIBUTING.md)** - Development workflow and standards
 - **[Testing Guide](docs/TESTING.md)** - Running tests and CI/CD
+- **[Release Process](docs/RELEASE.md)** - Creating releases and changelog automation
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Security](docs/SECURITY.md)** - Security best practices
 
 ## Extension Profiles
 
-Sindri includes pre-configured profiles for common development scenarios:
+Sindri includes 27+ modular extensions organized into profiles:
 
-- **minimal** - Node.js, Python basics
-- **fullstack** - Node.js, Python, Docker, Postgres, dev tools
-- **ai-dev** - AI toolkit with Ollama, Gemini, OpenRouter support
-- **systems** - Rust, Go, Docker, infrastructure tools
-- **enterprise** - All languages and infrastructure tools
+| Profile        | Description                                  |
+| -------------- | -------------------------------------------- |
+| **minimal**    | Node.js, Python basics                       |
+| **fullstack**  | Node.js, Python, Docker, Postgres, dev tools |
+| **ai-dev**     | AI toolkit with Ollama, Gemini, OpenRouter   |
+| **systems**    | Rust, Go, Docker, infrastructure tools       |
+| **enterprise** | All languages and infrastructure tools       |
 
 ```yaml
 # sindri.yaml
 extensions:
-  profile: fullstack # Use a pre-defined profile
+  profile: fullstack
 ```
 
-See [Extension Catalog](docs/EXTENSIONS.md) for complete extension list.
+**Available categories:** Languages (nodejs, python, golang, rust, ruby, php, jvm, dotnet), Tools (github-cli, docker, playwright, monitoring), Infrastructure (infra-tools, cloud-tools), AI (ai-toolkit, openskills, claude-marketplace)
 
-## Available Extensions
-
-**Languages:** nodejs, python, golang, rust, ruby, php, jvm, dotnet
-**Tools:** github-cli, docker, playwright, monitoring
-**Infrastructure:** infra-tools, cloud-tools
-**AI:** ai-toolkit, openskills, claude-marketplace
-
-Complete details: [docs/EXTENSIONS.md](docs/EXTENSIONS.md)
+See [Extension Catalog](docs/EXTENSIONS.md) for complete list and usage.
 
 ## Development Commands
 
@@ -134,7 +129,7 @@ See [CLAUDE.md](CLAUDE.md) for complete development guide.
 - **Modular Extension System** - YAML-driven with dependency resolution
 - **Schema Validation** - All YAML validated against JSON schemas
 - **Provider Adapters** - Clean abstraction for Docker, Fly, Kubernetes, DevPod
-- **Volume Architecture** - Immutable `/docker/lib` system, mutable `/workspace` user data
+- **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
 - **BOM Tracking** - Comprehensive software bill of materials for security auditing
 
 Read more: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -142,9 +137,3 @@ Read more: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Anthropic](https://www.anthropic.com/) for Claude Code and Claude AI
-- [mise](https://mise.jdx.dev/) for declarative tool version management
-- [Fly.io](https://fly.io/) for excellent container hosting platform

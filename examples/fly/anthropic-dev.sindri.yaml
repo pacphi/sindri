@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Fly.io Anthropic Development Example
+# Production AI development with full Anthropic toolset on Fly.io
+version: "1.0"
+name: sindri-fly-anthropic-dev
+
+deployment:
+  provider: fly
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  profile: anthropic-dev
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: performance
+    autoStopMachines: false # Always-on for production
+    autoStartMachines: true

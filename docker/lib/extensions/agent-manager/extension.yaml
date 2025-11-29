@@ -24,10 +24,10 @@ install:
 configure:
   templates:
     - source: agents-config.yaml.template
-      destination: /workspace/config/agents-config.yaml
+      destination: ~/config/agents-config.yaml
       mode: skip-if-exists
     - source: agent-discovery.sh.template
-      destination: /workspace/scripts/agent-discovery.sh
+      destination: ~/scripts/agent-discovery.sh
       mode: overwrite
   environment:
     - key: PATH
@@ -42,8 +42,8 @@ validate:
 remove:
   paths:
     - ~/.local/bin/agent-manager
-    - /workspace/config/agents-config.yaml
-    - /workspace/scripts/agent-discovery.sh
+    - ~/config/agents-config.yaml
+    - ~/scripts/agent-discovery.sh
   confirmation: true
 
 upgrade:

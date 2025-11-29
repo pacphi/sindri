@@ -1,0 +1,28 @@
+---
+# Sindri Configuration - Custom Cloud-Native Example
+# Cloud-native development without language runtimes
+version: "1.0"
+name: sindri-custom-cloud-native
+
+deployment:
+  provider: fly
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 30GB
+
+extensions:
+  active:
+    - docker
+    - infra-tools
+    - cloud-tools
+    - monitoring
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: shared
+    autoStopMachines: true
+    autoStartMachines: true
