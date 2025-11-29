@@ -138,13 +138,15 @@ ANTHROPIC_API_KEY=sk-ant-... docker compose up -d
 
 ### Default Volumes
 
-The adapter creates a persistent volume for `/workspace`:
+The adapter creates a persistent volume for the developer's home directory:
 
 ```yaml
 volumes:
-  sindri-workspace:
+  dev_home:
     driver: local
 ```
+
+This volume is mounted at `/alt/home/developer`, which is set as `$HOME`. The workspace directory (`$WORKSPACE`) is located at `/alt/home/developer/workspace`.
 
 ### Custom Volume Mounts
 
@@ -152,9 +154,9 @@ volumes:
 providers:
   docker:
     volumes:
-      - "./projects:/workspace/projects"
-      - "~/.ssh:/home/developer/.ssh:ro"
-      - "~/.gitconfig:/home/developer/.gitconfig:ro"
+      - "./projects:/alt/home/developer/workspace/projects"
+      - "~/.ssh:/alt/home/developer/.ssh:ro"
+      - "~/.gitconfig:/alt/home/developer/.gitconfig:ro"
 ```
 
 ### Volume Operations
@@ -164,15 +166,15 @@ providers:
 docker volume ls | grep sindri
 
 # Inspect volume
-docker volume inspect sindri-workspace
+docker volume inspect dev_home
 
 # Backup volume
-docker run --rm -v sindri-workspace:/data -v $(pwd):/backup \
-  alpine tar czf /backup/workspace-backup.tar.gz -C /data .
+docker run --rm -v dev_home:/data -v $(pwd):/backup \
+  alpine tar czf /backup/home-backup.tar.gz -C /data .
 
 # Restore volume
-docker run --rm -v sindri-workspace:/data -v $(pwd):/backup \
-  alpine tar xzf /backup/workspace-backup.tar.gz -C /data
+docker run --rm -v dev_home:/data -v $(pwd):/backup \
+  alpine tar xzf /backup/home-backup.tar.gz -C /data
 ```
 
 ## Port Forwarding
@@ -276,10 +278,10 @@ docker inspect sindri-docker
 
 ```bash
 # Check volume permissions
-docker exec sindri-docker ls -la /workspace
+docker exec sindri-docker ls -la /alt/home/developer
 
 # Fix ownership
-docker exec -u root sindri-docker chown -R developer:developer /workspace
+docker exec -u root sindri-docker chown -R developer:developer /alt/home/developer
 ```
 
 ### Out of Memory

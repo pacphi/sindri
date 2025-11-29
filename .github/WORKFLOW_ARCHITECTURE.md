@@ -213,6 +213,133 @@ Provider-specific testing with smoke/integration/full suites.
 
 Tests extensions across providers with combination support.
 
+## Test Suites
+
+The CI system supports three test suite levels, selectable via workflow dispatch or determined automatically.
+
+### Smoke Tests
+
+**Purpose:** Quick sanity check to verify deployment is alive.
+
+**What runs:**
+
+- Verifies container/VM is running
+- Executes `sindri --version` inside the environment
+- Confirms basic connectivity
+
+**Duration:** ~30 seconds
+
+**When used:** Quick validation, debugging deployments
+
+### Integration Tests
+
+**Purpose:** Validate extension system and profiles work correctly.
+
+**What runs:**
+
+- `extension-manager list` - enumerate available extensions
+- `extension-manager install-profile <profile>` - install extension profile
+- `extension-manager validate-all` - validate all installed extensions
+- Provider-specific test scripts (if present at `.github/scripts/test-provider-<provider>.sh`)
+
+**Duration:** 2-5 minutes depending on profile
+
+**When used:** Default for PRs, pushes, and scheduled runs
+
+### Full Tests
+
+**Purpose:** Comprehensive validation running both smoke AND integration tests sequentially.
+
+**What runs:**
+
+- All smoke tests
+- All integration tests
+
+**Duration:** 3-6 minutes
+
+**When used:** Thorough validation before releases or major merges
+
+### Test Suite Selection
+
+| Trigger | Default Suite | Providers Tested |
+|---------|---------------|------------------|
+| PR to main/develop | `integration` | `["docker"]` |
+| Push to main | `integration` | `["docker", "fly"]` |
+| Scheduled (nightly 2AM UTC) | `integration` | `["docker", "fly", "devpod-aws", "kubernetes"]` |
+| Manual dispatch | User-selectable | User-selectable (default: `docker,fly`) |
+
+## Extension Testing by Provider
+
+Each provider tests a specific set of extensions defined in `.github/test-configs/providers.yaml`:
+
+| Provider | Extensions Tested |
+|----------|-------------------|
+| docker | `nodejs`, `python`, `docker` |
+| fly | `nodejs`, `python`, `golang`, `terraform` |
+| devpod-aws | `nodejs`, `aws-cli`, `terraform` |
+| devpod-gcp | `nodejs`, `gcloud`, `kubernetes-tools` |
+| devpod-azure | `nodejs`, `azure-cli`, `dotnet` |
+| devpod-do | `nodejs`, `docker`, `kubectl` |
+| kubernetes | `kubernetes-tools`, `helm`, `kubectl` |
+
+### Extension Test Matrices
+
+The CI uses different extension matrices based on context (from `.github/test-configs/extensions.yaml`):
+
+| Matrix | Extensions | When Used |
+|--------|------------|-----------|
+| `quick` | `nodejs`, `python` | PRs, branch pushes |
+| `standard` | `nodejs`, `python`, `golang`, `docker` | Main branch, manual |
+| `comprehensive` | All extensions | Scheduled nightly runs |
+
+### Overriding Test Configuration
+
+**Via Workflow Dispatch (UI):**
+
+```yaml
+# Manual trigger inputs in ci.yml
+providers: "docker,fly,devpod-aws"  # Comma-separated or "all"
+test-suite: "full"                   # smoke | integration | full
+skip-cleanup: true                   # Keep resources for debugging
+```
+
+**Via sindri.yaml Configuration:**
+
+The `sindri.yaml` file specifies the extension profile to deploy:
+
+```yaml
+extensions:
+  profile: fullstack  # Uses profile from docker/lib/profiles.yaml
+```
+
+**Via Test Config Files:**
+
+Modify `.github/test-configs/extensions.yaml` to change:
+
+- Which extensions are tested (`test_matrices.quick.extensions`)
+- Extension-specific test commands (`extensions.<name>.test_commands`)
+- Test combinations (`test_combinations`)
+
+Modify `.github/test-configs/providers.yaml` to change:
+
+- Provider-specific extensions (`providers.<name>.extensions_to_test`)
+- Test profiles (`test_profiles`)
+- Timeout and resource limits
+
+### Extension Profile in Integration Tests
+
+Integration tests use the `extension-profile` input (default: `minimal`):
+
+```yaml
+# From test-provider.yml
+extension-profile:
+  description: Extension profile to test
+  required: false
+  default: minimal
+```
+
+Available profiles are defined in `docker/lib/profiles.yaml`. Override via workflow dispatch or by calling the reusable workflow with a different value.
+
 ## Scripts Directory
 
 The `.github/scripts/` directory contains test utilities:

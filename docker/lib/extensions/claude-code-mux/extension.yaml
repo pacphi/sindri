@@ -24,13 +24,13 @@ install:
 configure:
   templates:
     - source: ccmctl.sh
-      destination: /workspace/bin/ccmctl
+      destination: ~/bin/ccmctl
       mode: overwrite
     - source: quickstart.sh
-      destination: /workspace/bin/ccm-quickstart
+      destination: ~/bin/ccm-quickstart
       mode: overwrite
     - source: ccm-config.toml.template
-      destination: /workspace/config/ccm-config.toml
+      destination: ~/config/ccm-config.toml
       mode: overwrite
   environment:
     - key: ANTHROPIC_BASE_URL
@@ -40,7 +40,7 @@ configure:
       value: "ccm-proxy"
       scope: bashrc
     - key: PATH
-      value: "/workspace/bin:$PATH"
+      value: "${WORKSPACE:-${HOME}/workspace}/bin:$PATH"
       scope: bashrc
 
 validate:
@@ -51,8 +51,8 @@ validate:
 
 remove:
   paths:
-    - /workspace/bin/ccm
-    - /workspace/bin/ccmctl
+    - ~/bin/ccm
+    - ~/bin/ccmctl
     - ~/.claude-code-mux
   confirmation: true
 
@@ -73,11 +73,11 @@ bom:
       purl: pkg:github/9j/claude-code-mux
       cpe: cpe:2.3:a:9j:claude-code-mux:*:*:*:*:*:*:*:*
   files:
-    - path: /workspace/bin/ccm
+    - path: ~/bin/ccm
       type: binary
-    - path: /workspace/bin/ccmctl
+    - path: ~/bin/ccmctl
       type: script
-    - path: /workspace/bin/ccm-quickstart
+    - path: ~/bin/ccm-quickstart
       type: script
-    - path: /workspace/config/ccm-config.toml
+    - path: ~/config/ccm-config.toml
       type: config

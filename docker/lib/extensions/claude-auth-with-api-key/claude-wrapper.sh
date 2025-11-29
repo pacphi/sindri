@@ -5,7 +5,7 @@
 # when running Claude Code, providing transparent authentication without requiring
 # users to manually load secrets or run authentication commands.
 #
-# Location: /workspace/bin/claude (this wrapper)
+# Location: $WORKSPACE/bin/claude (this wrapper)
 # Real CLI:  /usr/local/bin/claude (actual Claude Code executable)
 
 # Path to secrets library

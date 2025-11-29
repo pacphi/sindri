@@ -37,7 +37,7 @@ configure:
       destination: ~/.bashrc
       mode: append
     - source: readme.template
-      destination: /workspace/extensions/ai-tools/README.md
+      destination: ~/extensions/ai-tools/README.md
       mode: overwrite
   environment:
     - key: PATH
@@ -69,7 +69,7 @@ remove:
     - ~/.factory
     - ~/.grok
     - ~/.config/gemini
-    - /workspace/extensions/ai-tools
+    - ~/extensions/ai-tools
 
 upgrade:
   strategy: manual

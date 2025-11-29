@@ -123,7 +123,7 @@ sindri/
    - `executor.sh` reads YAML and executes declaratively
    - `dependency.sh` resolves dependency DAG
    - `validator.sh` validates against JSON schemas
-   - `manifest.sh` tracks installed extensions in `/workspace/.system/manifest/`
+   - `manifest.sh` tracks installed extensions in `$WORKSPACE/.system/manifest/`
 
 3. **Extension Manager Modules**:
    - Fully modular design - each module has single responsibility
@@ -132,7 +132,7 @@ sindri/
 
 ### Volume Architecture
 
-Critical concept: **Two-tier filesystem**
+Critical concept: **Two-tier filesystem with home directory as volume**
 
 **Immutable System (`/docker/lib`):**
 
@@ -141,25 +141,46 @@ Critical concept: **Two-tier filesystem**
 - Read-only, owned by root
 - Updated only by rebuilding the image
 
-**Mutable Workspace (`/workspace/`):**
+**Mutable Home Directory (`/alt/home/developer`):**
 
-- Persistent volume mount
+- Persistent volume mount point = `$HOME`
 - **Fully writable** by `developer` user (uid 1001)
-- Contains user projects, configs, installed tools
+- Contains workspace, XDG directories, and all user data
 - Survives container restarts
 - Structure:
 
   ```text
-  /workspace/
-  ├── projects/         # User projects
-  ├── config/          # User configs
-  ├── bin/             # User binaries (in PATH)
-  ├── .local/          # mise installations
-  ├── .config/         # Tool configurations
-  └── .system/         # Extension state
-      ├── manifest/    # Active extensions
-      └── logs/        # Extension logs
+  /alt/home/developer/      # $HOME - volume mount point
+  ├── workspace/            # $WORKSPACE - projects and scripts
+  │   ├── projects/         # User projects
+  │   ├── config/           # User configs
+  │   ├── scripts/          # User scripts
+  │   ├── bin/              # User binaries (in PATH)
+  │   └── .system/          # Extension state
+  │       ├── manifest/     # Active extensions
+  │       ├── installed/    # Installation markers
+  │       └── logs/         # Extension logs
+  ├── .local/               # XDG local (mise installations)
+  │   ├── share/mise/       # mise data
+  │   ├── state/mise/       # mise state
+  │   └── bin/              # Local binaries
+  ├── .config/              # XDG config
+  │   └── mise/             # mise configuration
+  ├── .cache/               # XDG cache
+  │   └── mise/             # mise cache
+  ├── .bashrc               # Shell configuration
+  ├── .profile              # Profile configuration
+  └── .initialized          # Initialization marker
   ```
+
+**Key Environment Variables:**
+
+| Variable | Value |
+|----------|-------|
+| `HOME` | `/alt/home/developer` |
+| `WORKSPACE` | `/alt/home/developer/workspace` |
+| `MISE_DATA_DIR` | `$HOME/.local/share/mise` |
+| `MISE_CONFIG_DIR` | `$HOME/.config/mise` |
 
 ### Multi-Provider Architecture
 

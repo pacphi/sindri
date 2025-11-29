@@ -4,7 +4,8 @@ set -euo pipefail
 # CCM Control Script
 # Manages the Claude Code Mux server lifecycle
 
-CONFIG_FILE="/workspace/config/ccm-config.toml"
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+CONFIG_FILE="${WORKSPACE}/config/ccm-config.toml"
 PIDFILE="$HOME/.claude-code-mux/ccm.pid"
 LOGFILE="$HOME/.claude-code-mux/ccm.log"
 

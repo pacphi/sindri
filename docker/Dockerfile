@@ -1,22 +1,28 @@
 # Sindri - Optimized Multi-Stage Build
 FROM ubuntu:24.04 AS base
 
+# Define the alternate home path for volume mounting
+# This allows the entire home directory to be on a persistent volume
+ARG ALT_HOME=/alt/home/developer
+
 # Set environment
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    WORKSPACE=/workspace \
+    ALT_HOME=${ALT_HOME} \
+    HOME=${ALT_HOME} \
+    WORKSPACE=${ALT_HOME}/workspace \
     DOCKER_LIB=/docker/lib \
-    MISE_DATA_DIR="/workspace/.local/share/mise" \
-    MISE_CONFIG_DIR="/workspace/.config/mise" \
-    MISE_CACHE_DIR="/workspace/.cache/mise" \
-    MISE_STATE_DIR="/workspace/.local/state/mise" \
-    PATH="/docker/cli:/workspace/bin:/workspace/.local/share/mise/shims:$PATH"
+    MISE_DATA_DIR="${ALT_HOME}/.local/share/mise" \
+    MISE_CONFIG_DIR="${ALT_HOME}/.config/mise" \
+    MISE_CACHE_DIR="${ALT_HOME}/.cache/mise" \
+    MISE_STATE_DIR="${ALT_HOME}/.local/state/mise" \
+    PATH="/docker/cli:${ALT_HOME}/workspace/bin:${ALT_HOME}/.local/share/mise/shims:$PATH"
 
-# Create developer user
-RUN useradd -m -s /bin/bash -u 1001 developer && \
-    mkdir -p /workspace && \
-    chown -R developer:developer /workspace
+# Create developer user with alternate home directory
+RUN useradd -m -s /bin/bash -u 1001 -d ${ALT_HOME} developer && \
+    mkdir -p ${ALT_HOME}/workspace && \
+    chown -R developer:developer ${ALT_HOME}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -84,7 +90,7 @@ RUN echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Switch to developer user
 USER developer
-WORKDIR /workspace
+WORKDIR ${WORKSPACE}
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/bin/bash"]

@@ -96,18 +96,31 @@ No hardcoding in scripts - everything is declarative.
 
 ### 4. Volume Architecture
 
+The persistent volume is mounted at the developer's home directory (`/alt/home/developer`).
+This ensures `$HOME` is persistent and contains all user data including workspace, configs, and tool installations.
+
 ```text
-/workspace/                 # Persistent volume (developer-owned)
-├── projects/              # User projects
-├── config/                # User configuration
-├── scripts/               # User scripts
-├── bin/                   # User binaries
-├── .local/                # mise installations
-├── .config/               # Tool configs
-└── .system/               # Extension state
-    ├── manifest/          # Active extensions
-    ├── installed/         # Installation markers
-    └── logs/              # Extension logs
+/alt/home/developer/        # $HOME - persistent volume mount
+├── workspace/              # $WORKSPACE - projects and development files
+│   ├── projects/           # User projects
+│   ├── config/             # User configuration
+│   ├── scripts/            # User scripts
+│   ├── bin/                # User binaries (in PATH)
+│   └── .system/            # Extension state
+│       ├── manifest/       # Active extensions
+│       ├── installed/      # Installation markers
+│       └── logs/           # Extension logs
+├── .local/                 # XDG local directory
+│   ├── share/mise/         # mise data
+│   ├── state/mise/         # mise state
+│   └── bin/                # Local binaries
+├── .config/                # XDG config directory
+│   └── mise/               # mise configuration
+├── .cache/                 # XDG cache directory
+│   └── mise/               # mise cache
+├── .bashrc                 # Shell configuration
+├── .profile                # Profile configuration
+└── .initialized            # Initialization marker
 ```
 
 ## Extension Installation Flow
@@ -133,5 +146,6 @@ No hardcoding in scripts - everything is declarative.
 1. **Declarative over imperative** - YAML configuration, no hardcoding
 2. **Provider-agnostic** - Single config works everywhere
 3. **Fast startup** - Baked base image (10-15s vs 90-120s)
-4. **User workspace** - /workspace fully writable by developer
-5. **Modular design** - 6 extension manager modules < 200 lines each
+4. **Home as volume** - $HOME (`/alt/home/developer`) is the persistent volume mount
+5. **XDG compliance** - Tool data follows XDG Base Directory Specification
+6. **Modular design** - 6 extension manager modules < 200 lines each

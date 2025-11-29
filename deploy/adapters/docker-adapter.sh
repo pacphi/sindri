@@ -41,7 +41,7 @@ services:
     image: sindri:latest
     container_name: ${NAME}
     volumes:
-      - workspace:/workspace
+      - dev_home:/alt/home/developer
 EODC
 
 # Add env_file if secrets exist
@@ -74,7 +74,7 @@ cat >> docker-compose.yml << EODC
     command: sleep infinity
 
 volumes:
-  workspace:
+  dev_home:
     driver: local
 
 EODC

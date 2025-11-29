@@ -44,7 +44,7 @@ configure:
       destination: ~/.bashrc.d/infra-tools.sh
       mode: overwrite
     - source: infra-tools.readme.template
-      destination: /workspace/infrastructure/README.md
+      destination: ~/infrastructure/README.md
       mode: overwrite
   environment:
     - key: KUBECONFIG
@@ -90,7 +90,7 @@ remove:
       - ansible-lint
   paths:
     - ~/.bashrc.d/infra-tools.sh
-    - /workspace/infrastructure
+    - ~/infrastructure
     - /usr/local/bin/pulumi
     - /usr/local/bin/crossplane
     - /usr/local/bin/kubectx

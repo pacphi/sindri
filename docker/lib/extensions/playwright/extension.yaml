@@ -23,13 +23,13 @@ install:
 configure:
   templates:
     - source: playwright-config.template
-      destination: /workspace/playwright.config.ts
+      destination: ~/playwright.config.ts
       mode: overwrite
     - source: test-spec.template
-      destination: /workspace/tests/example.spec.ts
+      destination: ~/tests/example.spec.ts
       mode: overwrite
     - source: tsconfig.template
-      destination: /workspace/tsconfig.json
+      destination: ~/tsconfig.json
       mode: overwrite
 
 validate:
@@ -39,8 +39,8 @@ validate:
 
 remove:
   paths:
-    - /workspace/node_modules/playwright
-    - /workspace/node_modules/@playwright
+    - ~/node_modules/playwright
+    - ~/node_modules/@playwright
     - ~/.cache/ms-playwright
 
 upgrade:

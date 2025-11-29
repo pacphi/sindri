@@ -1,6 +1,6 @@
 ---
 # .github/workflows/validate-yaml.yml
-# YAML validation workflow - runs on every PR that touches YAML files
+# YAML validation workflow
 name: Validate YAML
 
 on:

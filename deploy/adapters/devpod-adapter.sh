@@ -34,8 +34,8 @@ cat << EODC
 {
   "name": "${NAME}",
   "dockerFile": "../docker/Dockerfile",
-  "workspaceFolder": "/workspace",
-  "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/alt/home/developer/workspace",
+  "workspaceMount": "source=\${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
 
 EODC
 
@@ -80,7 +80,7 @@ cat << EODC
   "containerUser": "developer",
 
   "mounts": [
-    "source=sindri-workspace,target=/workspace,type=volume"
+    "source=sindri-home,target=/alt/home/developer,type=volume"
   ],
 
   "runArgs": [

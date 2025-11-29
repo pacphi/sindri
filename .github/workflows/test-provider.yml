@@ -174,20 +174,22 @@ jobs:
           # Wait for container to fully start
           sleep 2
 
-          # Ensure workspace has correct permissions (volume may be root-owned initially)
-          docker exec --user root "$CONTAINER" chown -R developer:developer /workspace || true
+          # Ensure home directory has correct permissions (volume may be root-owned initially)
+          docker exec --user root "$CONTAINER" chown -R developer:developer /alt/home/developer || true
 
-          # Verify workspace is initialized
+          # Verify home/workspace is initialized
           docker exec "$CONTAINER" bash -c '
-            if [[ ! -f /workspace/.initialized ]]; then
-              mkdir -p /workspace/{projects,config,scripts,bin}
-              mkdir -p /workspace/.local/{share/mise,state/mise,bin}
-              mkdir -p /workspace/.config/mise/conf.d
-              mkdir -p /workspace/.cache/mise
-              mkdir -p /workspace/.system/{manifest,installed,logs}
-              touch /workspace/.bashrc /workspace/.profile
-              touch /workspace/.initialized
-              echo "Workspace initialized by CI"
+            HOME="${HOME:-/alt/home/developer}"
+            WORKSPACE="${WORKSPACE:-$HOME/workspace}"
+            if [[ ! -f "$HOME/.initialized" ]]; then
+              mkdir -p "$WORKSPACE"/{projects,config,scripts,bin}
+              mkdir -p "$HOME"/.local/{share/mise,state/mise,bin}
+              mkdir -p "$HOME"/.config/mise/conf.d
+              mkdir -p "$HOME"/.cache/mise
+              mkdir -p "$WORKSPACE"/.system/{manifest,installed,logs}
+              touch "$HOME"/.bashrc "$HOME"/.profile
+              touch "$HOME"/.initialized
+              echo "Home directory initialized by CI"
             fi
           '
 

@@ -72,9 +72,10 @@ primary_region = "${REGION}"
 
 # Volume mounts for persistent storage
 [mounts]
-  # Mount persistent volume for all development work
-  source = "workspace"
-  destination = "/workspace"
+  # Mount persistent volume as developer's home directory
+  # This ensures $HOME is persistent and contains workspace, config, and tool data
+  source = "dev_home"
+  destination = "/alt/home/developer"
   # Initial size matches the volume size specified during creation
   initial_size = "${VOLUME_SIZE}gb"
   # Keep snapshots for a week
@@ -154,8 +155,8 @@ primary_region = "${REGION}"
 #   worker = "background-tasks"
 
 # Volume configuration reference
-# Create volume with: flyctl volumes create workspace --region ${REGION} --size ${VOLUME_SIZE}
-# Volume naming pattern: workspace (standardized)
+# Create volume with: flyctl volumes create dev_home --region ${REGION} --size ${VOLUME_SIZE}
+# Volume naming pattern: dev_home (mounts as developer's home directory)
 # Pricing: ~\$0.15/GB/month
 
 # Cost optimization notes:
@@ -201,7 +202,8 @@ primary_region = "${REGION}"
 # 3. Connect: ssh developer@${NAME}.fly.dev -p ${SSH_EXTERNAL_PORT}
 #    (External port ${SSH_EXTERNAL_PORT} maps to internal SSH daemon on port 2222)
 #    Alternative: flyctl ssh console -a ${NAME} (uses Fly.io's hallpass service)
-# 4. Work: All files in /workspace are persistent
+# 4. Work: All files in \$HOME (/alt/home/developer) are persistent
+#    Projects go in \$WORKSPACE (/alt/home/developer/workspace)
 # 5. Idle: VM automatically suspends after inactivity
 # 6. Resume: VM starts automatically on next connection
 EOFT
@@ -214,8 +216,8 @@ if ! flyctl apps list | grep -q "$NAME"; then
 fi
 
 # Create volume if not exists
-if ! flyctl volumes list -a "$NAME" | grep -q "workspace"; then
-    flyctl volumes create workspace -s 10 -r "$REGION" -a "$NAME"
+if ! flyctl volumes list -a "$NAME" | grep -q "dev_home"; then
+    flyctl volumes create dev_home -s 10 -r "$REGION" -a "$NAME"
 fi
 
 # Resolve and inject secrets
