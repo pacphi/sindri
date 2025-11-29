@@ -167,6 +167,30 @@ jobs:
         run: |
           ./cli/sindri deploy --provider docker --config ${{ steps.config-path.outputs.config }}
 
+      - name: Fix Docker volume permissions
+        if: inputs.provider == 'docker'
+        run: |
+          CONTAINER="${{ steps.config-path.outputs.container-name }}"
+          # Wait for container to fully start
+          sleep 2
+
+          # Ensure workspace has correct permissions (volume may be root-owned initially)
+          docker exec --user root "$CONTAINER" chown -R developer:developer /workspace || true
+
+          # Verify workspace is initialized
+          docker exec "$CONTAINER" bash -c '
+            if [[ ! -f /workspace/.initialized ]]; then
+              mkdir -p /workspace/{projects,config,scripts,bin}
+              mkdir -p /workspace/.local/{share/mise,state/mise,bin}
+              mkdir -p /workspace/.config/mise/conf.d
+              mkdir -p /workspace/.cache/mise
+              mkdir -p /workspace/.system/{manifest,installed,logs}
+              touch /workspace/.bashrc /workspace/.profile
+              touch /workspace/.initialized
+              echo "Workspace initialized by CI"
+            fi
+          '
+
       # Fly.io Provider
       - name: Setup Fly.io provider
         if: inputs.provider == 'fly'

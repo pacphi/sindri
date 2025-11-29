@@ -151,8 +151,15 @@ install_via_mise() {
     local ext_yaml="$2"
     local ext_dir
     ext_dir=$(dirname "$ext_yaml")
+    local workspace="${WORKSPACE:-/workspace}"
 
     print_status "Installing $ext_name via mise..."
+
+    # Check if mise is available
+    if ! command_exists mise; then
+        print_error "mise is not available"
+        return 1
+    fi
 
     # Get config file
     local config_file
@@ -171,24 +178,29 @@ install_via_mise() {
     fi
 
     # Copy mise config to user's config directory
-    ensure_directory "${WORKSPACE:-/workspace}/.config/mise/conf.d"
-    cp "$config_path" "${WORKSPACE:-/workspace}/.config/mise/conf.d/${ext_name}.toml"
+    local mise_conf_dir="$workspace/.config/mise/conf.d"
+    ensure_directory "$mise_conf_dir"
+    cp "$config_path" "$mise_conf_dir/${ext_name}.toml" || {
+        print_error "Failed to copy mise config to $mise_conf_dir"
+        return 1
+    }
 
     # Install tools
-    if command_exists mise; then
-        cd "${WORKSPACE:-/workspace}" || return 1
-        mise install || return 1
+    cd "$workspace" || return 1
 
-        # Reshim if needed
-        local reshim
-        reshim=$(load_yaml "$ext_yaml" '.install.mise.reshimAfterInstall' 2>/dev/null || echo "true")
-
-        if [[ "$reshim" == "true" ]]; then
-            mise reshim
-        fi
-    else
-        print_error "mise is not available"
+    # Run mise install (returns 0 even when "all tools are installed")
+    if ! mise install 2>&1; then
+        print_error "mise install failed"
         return 1
+    fi
+
+    # Reshim if needed - handle errors gracefully
+    local reshim
+    reshim=$(load_yaml "$ext_yaml" '.install.mise.reshimAfterInstall' 2>/dev/null || echo "true")
+
+    if [[ "$reshim" == "true" ]]; then
+        # mise reshim can fail if there's nothing to reshim - that's OK
+        mise reshim 2>/dev/null || true
     fi
 
     return 0
@@ -382,6 +394,7 @@ configure_extension() {
     local ext_yaml="$2"
     local ext_dir
     ext_dir=$(dirname "$ext_yaml")
+    local workspace="${WORKSPACE:-/workspace}"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_status "Configuring $ext_name..."
 
@@ -399,7 +412,10 @@ configure_extension() {
             local source_path="$ext_dir/$source"
 
             # Expand home directory
-            dest="${dest/#\~/${WORKSPACE:-/workspace}}"
+            dest="${dest/#\~/$workspace}"
+
+            # Ensure destination directory exists
+            ensure_directory "$(dirname "$dest")"
 
             case "$mode" in
                 overwrite)
@@ -407,6 +423,10 @@ configure_extension() {
                     ;;
                 append)
                     cat "$source_path" >> "$dest"
+                    ;;
+                *)
+                    print_warning "Unknown template mode: $mode, using overwrite"
+                    cp "$source_path" "$dest"
                     ;;
             esac
         done
@@ -417,6 +437,16 @@ configure_extension() {
     env_count=$(load_yaml "$ext_yaml" '.configure.environment | length' 2>/dev/null || echo "0")
 
     if [[ "$env_count" != "null" ]] && [[ "$env_count" -gt 0 ]]; then
+        local bashrc_file="$workspace/.bashrc"
+
+        # Ensure .bashrc exists
+        if [[ ! -f "$bashrc_file" ]]; then
+            touch "$bashrc_file" 2>/dev/null || {
+                print_warning "Cannot create $bashrc_file - skipping environment configuration"
+                return 0
+            }
+        fi
+
         for i in $(seq 0 $((env_count - 1))); do
             local key value scope
             key=$(load_yaml "$ext_yaml" ".configure.environment[$i].key")
@@ -424,7 +454,10 @@ configure_extension() {
             scope=$(load_yaml "$ext_yaml" ".configure.environment[$i].scope" 2>/dev/null || echo "bashrc")
 
             if [[ "$scope" == "bashrc" ]]; then
-                echo "export ${key}=\"${value}\"" >> "${WORKSPACE:-/workspace}/.bashrc"
+                # Only add if not already present
+                if ! grep -q "^export ${key}=" "$bashrc_file" 2>/dev/null; then
+                    echo "export ${key}=\"${value}\"" >> "$bashrc_file"
+                fi
             fi
         done
     fi

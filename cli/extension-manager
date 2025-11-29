@@ -198,27 +198,54 @@ install_profile() {
 
 # Initialize workspace if not already done
 initialize_workspace() {
-    if [[ ! -f "${WORKSPACE:-/workspace}/.initialized" ]]; then
+    local workspace="${WORKSPACE:-/workspace}"
+
+    if [[ ! -f "$workspace/.initialized" ]]; then
         print_status "Initializing workspace..."
 
         # Create directory structure
-        ensure_directory "${WORKSPACE:-/workspace}/projects"
-        ensure_directory "${WORKSPACE:-/workspace}/config"
-        ensure_directory "${WORKSPACE:-/workspace}/scripts"
-        ensure_directory "${WORKSPACE:-/workspace}/bin"
-        ensure_directory "${WORKSPACE:-/workspace}/.local"
-        ensure_directory "${WORKSPACE:-/workspace}/.config"
-        ensure_directory "${WORKSPACE:-/workspace}/.system"
+        ensure_directory "$workspace/projects"
+        ensure_directory "$workspace/config"
+        ensure_directory "$workspace/scripts"
+        ensure_directory "$workspace/bin"
+        ensure_directory "$workspace/.local"
+        ensure_directory "$workspace/.config"
+        ensure_directory "$workspace/.system"
+        ensure_directory "$workspace/.system/manifest"
+        ensure_directory "$workspace/.system/installed"
+        ensure_directory "$workspace/.system/logs"
+
+        # Create essential files if they don't exist
+        [[ ! -f "$workspace/.bashrc" ]] && touch "$workspace/.bashrc"
+        [[ ! -f "$workspace/.profile" ]] && touch "$workspace/.profile"
 
         # Initialize manifest
         initialize_manifest
 
-        touch "${WORKSPACE:-/workspace}/.initialized"
+        touch "$workspace/.initialized"
         print_success "Workspace initialized"
     fi
 }
 
-# Run initialization if needed
-[[ "${INIT_WORKSPACE:-false}" == "true" ]] && initialize_workspace
+# Ensure workspace directories exist for critical operations
+# This is a lighter check than full initialization
+ensure_workspace_ready() {
+    local workspace="${WORKSPACE:-/workspace}"
+
+    # Ensure critical directories exist
+    ensure_directory "$workspace/.system/manifest"
+    ensure_directory "$workspace/.system/installed"
+
+    # Ensure .bashrc exists (needed for configure_extension)
+    [[ ! -f "$workspace/.bashrc" ]] && touch "$workspace/.bashrc" 2>/dev/null || true
+}
+
+# Run full initialization if explicitly requested, otherwise ensure workspace is ready
+if [[ "${INIT_WORKSPACE:-false}" == "true" ]]; then
+    initialize_workspace
+else
+    # Always ensure critical workspace directories exist
+    ensure_workspace_ready
+fi
 
 main "$@"

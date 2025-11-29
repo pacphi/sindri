@@ -127,6 +127,29 @@ jobs:
             ${{ inputs.image }} \
             tail -f /dev/null
 
+      - name: Wait for container initialization
+        if: inputs.provider == 'docker'
+        run: |
+          CONTAINER="sindri-test-${{ matrix.extension }}"
+          # Wait for container to start
+          sleep 2
+
+          # Ensure workspace has correct permissions (volume may be root-owned)
+          docker exec --user root "$CONTAINER" chown -R developer:developer /workspace || true
+
+          # Ensure workspace is initialized
+          docker exec "$CONTAINER" bash -c '
+            if [[ ! -f /workspace/.initialized ]]; then
+              mkdir -p /workspace/{projects,config,scripts,bin}
+              mkdir -p /workspace/.local/{share/mise,state/mise,bin}
+              mkdir -p /workspace/.config/mise/conf.d
+              mkdir -p /workspace/.cache/mise
+              mkdir -p /workspace/.system/{manifest,installed,logs}
+              touch /workspace/.bashrc /workspace/.profile
+              touch /workspace/.initialized
+            fi
+          '
+
       - name: Test extension in Docker
         if: inputs.provider == 'docker'
         id: test-docker
