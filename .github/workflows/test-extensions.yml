@@ -155,6 +155,8 @@ jobs:
       - name: Test extension in Docker
         if: inputs.provider == 'docker'
         id: test-docker
+        env:
+          CONFIG: ${{ steps.setup.outputs.config }}
         run: |
           CONTAINER="sindri-test-${{ matrix.extension }}"
 
@@ -166,8 +168,7 @@ jobs:
           echo "Validating ${{ matrix.extension }}..."
           docker exec "$CONTAINER" extension-manager validate ${{ matrix.extension }}
 
-          # Run test commands
-          CONFIG='${{ steps.setup.outputs.config }}'
+          # Run test commands (CONFIG passed via environment variable to avoid quoting issues)
           if [[ "$CONFIG" != "{}" ]]; then
             echo "$CONFIG" | jq -r '.test_commands[]?' | while read -r cmd; do
               echo "Running: $cmd"
