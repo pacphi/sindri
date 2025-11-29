@@ -151,7 +151,8 @@ install_via_mise() {
     local ext_yaml="$2"
     local ext_dir
     ext_dir=$(dirname "$ext_yaml")
-    local workspace="${WORKSPACE:-/workspace}"
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
     print_status "Installing $ext_name via mise..."
 
@@ -177,8 +178,9 @@ install_via_mise() {
         return 1
     fi
 
-    # Copy mise config to user's config directory
-    local mise_conf_dir="$workspace/.config/mise/conf.d"
+    # Copy mise config to user's XDG config directory (not workspace)
+    # Mise looks for configs at $MISE_CONFIG_DIR which is $HOME/.config/mise
+    local mise_conf_dir="${MISE_CONFIG_DIR:-$home_dir/.config/mise}/conf.d"
     ensure_directory "$mise_conf_dir"
     cp "$config_path" "$mise_conf_dir/${ext_name}.toml" || {
         print_error "Failed to copy mise config to $mise_conf_dir"
@@ -257,6 +259,8 @@ install_via_apt() {
 install_via_binary() {
     local ext_name="$1"
     local ext_yaml="$2"
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
     print_status "Installing $ext_name via binary download..."
 
@@ -269,14 +273,14 @@ install_via_binary() {
         return 1
     fi
 
-    ensure_directory "${WORKSPACE:-/workspace}/bin"
+    ensure_directory "$workspace/bin"
 
     # Download each binary
     for i in $(seq 0 $((downloads_count - 1))); do
         local name url destination extract
         name=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].name")
         url=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].source.url")
-        destination=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].destination" 2>/dev/null || echo "${WORKSPACE:-/workspace}/bin")
+        destination=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].destination" 2>/dev/null || echo "$workspace/bin")
         extract=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].extract" 2>/dev/null || echo "false")
 
         print_status "Downloading $name..."
@@ -394,7 +398,8 @@ configure_extension() {
     local ext_yaml="$2"
     local ext_dir
     ext_dir=$(dirname "$ext_yaml")
-    local workspace="${WORKSPACE:-/workspace}"
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_status "Configuring $ext_name..."
 
@@ -411,8 +416,8 @@ configure_extension() {
 
             local source_path="$ext_dir/$source"
 
-            # Expand home directory
-            dest="${dest/#\~/$workspace}"
+            # Expand home directory (~ means $HOME, not $WORKSPACE)
+            dest="${dest/#\~/$home_dir}"
 
             # Ensure destination directory exists
             ensure_directory "$(dirname "$dest")"
@@ -437,7 +442,8 @@ configure_extension() {
     env_count=$(load_yaml "$ext_yaml" '.configure.environment | length' 2>/dev/null || echo "0")
 
     if [[ "$env_count" != "null" ]] && [[ "$env_count" -gt 0 ]]; then
-        local bashrc_file="$workspace/.bashrc"
+        # .bashrc lives in $HOME, not $WORKSPACE
+        local bashrc_file="$home_dir/.bashrc"
 
         # Ensure .bashrc exists
         if [[ ! -f "$bashrc_file" ]]; then
@@ -499,6 +505,7 @@ validate_extension() {
 remove_extension() {
     local ext_name="$1"
     local ext_yaml="$2"
+    local home_dir="${HOME:-/alt/home/developer}"
 
     print_header "Removing extension: $ext_name"
 
@@ -520,12 +527,12 @@ remove_extension() {
         return 0
     fi
 
-    # Remove mise config
+    # Remove mise config (from XDG config dir, not workspace)
     local has_mise_removal
     has_mise_removal=$(load_yaml "$ext_yaml" '.remove.mise' 2>/dev/null || echo "null")
 
     if [[ "$has_mise_removal" != "null" ]]; then
-        rm -f "${WORKSPACE:-/workspace}/.config/mise/conf.d/${ext_name}.toml"
+        rm -f "${MISE_CONFIG_DIR:-$home_dir/.config/mise}/conf.d/${ext_name}.toml"
     fi
 
     # Remove paths
@@ -533,8 +540,8 @@ remove_extension() {
     paths=$(load_yaml "$ext_yaml" '.remove.paths[]' 2>/dev/null || true)
 
     for path in $paths; do
-        # Expand home directory
-        path="${path/#\~/${WORKSPACE:-/workspace}}"
+        # Expand home directory (~ means $HOME, not $WORKSPACE)
+        path="${path/#\~/$home_dir}"
         if [[ -e "$path" ]]; then
             rm -rf "$path"
         fi

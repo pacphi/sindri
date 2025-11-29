@@ -103,7 +103,7 @@ check_dependencies() {
 # Check if extension is installed
 is_extension_installed() {
     local ext_name="$1"
-    local marker_file="${WORKSPACE_SYSTEM:-/workspace/.system}/installed/$ext_name.installed"
+    local marker_file="${WORKSPACE_SYSTEM}/installed/$ext_name.installed"
 
     [[ -f "$marker_file" ]]
 }
@@ -111,7 +111,7 @@ is_extension_installed() {
 # Mark extension as installed
 mark_installed() {
     local ext_name="$1"
-    local installed_dir="${WORKSPACE_SYSTEM:-/workspace/.system}/installed"
+    local installed_dir="${WORKSPACE_SYSTEM}/installed"
     ensure_directory "$installed_dir"
     date -u +"%Y-%m-%dT%H:%M:%SZ" > "$installed_dir/$ext_name.installed"
 }
@@ -119,7 +119,7 @@ mark_installed() {
 # Mark extension as uninstalled
 mark_uninstalled() {
     local ext_name="$1"
-    rm -f "${WORKSPACE_SYSTEM:-/workspace/.system}/installed/$ext_name.installed"
+    rm -f "${WORKSPACE_SYSTEM}/installed/$ext_name.installed"
 }
 
 # Export functions

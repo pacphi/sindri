@@ -15,7 +15,7 @@ source "${MODULE_DIR}/executor.sh"
 # Validate all installed extensions
 validate_all_extensions() {
     local extensions
-    extensions=$(find "${WORKSPACE_SYSTEM:-/workspace/.system}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
+    extensions=$(find "${WORKSPACE_SYSTEM}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
 
     if [[ -z "$extensions" ]]; then
         print_warning "No extensions installed"

@@ -10,7 +10,8 @@ else
     source "${MODULE_DIR}/../../docker/lib/common.sh"
 fi
 
-MANIFEST_FILE="${WORKSPACE_MANIFEST:-/workspace/.system/manifest}/active-extensions.yaml"
+# WORKSPACE_MANIFEST is set by common.sh (sourced above)
+MANIFEST_FILE="${WORKSPACE_MANIFEST}/active-extensions.yaml"
 
 # Read manifest
 read_manifest() {

@@ -198,31 +198,37 @@ install_profile() {
 
 # Initialize workspace if not already done
 initialize_workspace() {
-    local workspace="${WORKSPACE:-/workspace}"
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
-    if [[ ! -f "$workspace/.initialized" ]]; then
+    if [[ ! -f "$home_dir/.initialized" ]]; then
         print_status "Initializing workspace..."
 
-        # Create directory structure
+        # Create workspace directory structure
         ensure_directory "$workspace/projects"
         ensure_directory "$workspace/config"
         ensure_directory "$workspace/scripts"
         ensure_directory "$workspace/bin"
-        ensure_directory "$workspace/.local"
-        ensure_directory "$workspace/.config"
         ensure_directory "$workspace/.system"
         ensure_directory "$workspace/.system/manifest"
         ensure_directory "$workspace/.system/installed"
         ensure_directory "$workspace/.system/logs"
 
-        # Create essential files if they don't exist
-        [[ ! -f "$workspace/.bashrc" ]] && touch "$workspace/.bashrc"
-        [[ ! -f "$workspace/.profile" ]] && touch "$workspace/.profile"
+        # Create XDG directories in $HOME (not $WORKSPACE)
+        ensure_directory "$home_dir/.local/share/mise"
+        ensure_directory "$home_dir/.local/state/mise"
+        ensure_directory "$home_dir/.local/bin"
+        ensure_directory "$home_dir/.config/mise/conf.d"
+        ensure_directory "$home_dir/.cache/mise"
+
+        # Create essential files in $HOME (not $WORKSPACE)
+        [[ ! -f "$home_dir/.bashrc" ]] && touch "$home_dir/.bashrc"
+        [[ ! -f "$home_dir/.profile" ]] && touch "$home_dir/.profile"
 
         # Initialize manifest
         initialize_manifest
 
-        touch "$workspace/.initialized"
+        touch "$home_dir/.initialized"
         print_success "Workspace initialized"
     fi
 }
@@ -230,14 +236,15 @@ initialize_workspace() {
 # Ensure workspace directories exist for critical operations
 # This is a lighter check than full initialization
 ensure_workspace_ready() {
-    local workspace="${WORKSPACE:-/workspace}"
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
-    # Ensure critical directories exist
+    # Ensure critical workspace directories exist
     ensure_directory "$workspace/.system/manifest"
     ensure_directory "$workspace/.system/installed"
 
-    # Ensure .bashrc exists (needed for configure_extension)
-    [[ ! -f "$workspace/.bashrc" ]] && touch "$workspace/.bashrc" 2>/dev/null || true
+    # Ensure .bashrc exists in $HOME (needed for configure_extension)
+    [[ ! -f "$home_dir/.bashrc" ]] && touch "$home_dir/.bashrc" 2>/dev/null || true
 }
 
 # Run full initialization if explicitly requested, otherwise ensure workspace is ready
