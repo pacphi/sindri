@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod AWS Fullstack Example
+# Full-stack development on AWS EC2 with dedicated resources
+version: "1.0"
+name: sindri-devpod-aws-fullstack
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: fullstack
+
+providers:
+  devpod:
+    type: aws
+    aws:
+      region: us-east-1
+      instanceType: t3.xlarge
+      diskSize: 60

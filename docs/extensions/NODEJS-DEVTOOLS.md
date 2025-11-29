@@ -1,0 +1,88 @@
+# Node.js DevTools
+
+TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend.
+
+## Overview
+
+| Property         | Value               |
+| ---------------- | ------------------- |
+| **Category**     | dev-tools           |
+| **Version**      | 2.0.0               |
+| **Installation** | mise                |
+| **Disk Space**   | 200 MB              |
+| **Dependencies** | [nodejs](NODEJS.md) |
+
+## Description
+
+TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend - provides essential JavaScript/TypeScript development tooling.
+
+## Installed Tools
+
+| Tool       | Type     | Description                  |
+| ---------- | -------- | ---------------------------- |
+| `tsc`      | compiler | TypeScript compiler          |
+| `ts-node`  | cli-tool | TypeScript execution         |
+| `prettier` | cli-tool | Code formatter               |
+| `eslint`   | cli-tool | JavaScript/TypeScript linter |
+| `nodemon`  | cli-tool | Auto-restart server          |
+| `goalie`   | cli-tool | Package update manager       |
+
+## Configuration
+
+### Templates
+
+| Template              | Destination                           | Description       |
+| --------------------- | ------------------------------------- | ----------------- |
+| `prettierrc.template` | `/workspace/templates/.prettierrc`    | Prettier config   |
+| `eslintrc.template`   | `/workspace/templates/.eslintrc.json` | ESLint config     |
+| `tsconfig.template`   | `/workspace/templates/tsconfig.json`  | TypeScript config |
+
+### Sample ESLint Config
+
+```json
+{
+  "extends": ["eslint:recommended"],
+  "parser": "@typescript-eslint/parser"
+}
+```
+
+## Secrets (Optional)
+
+| Secret               | Description                       |
+| -------------------- | --------------------------------- |
+| `perplexity_api_key` | Perplexity API for research-swarm |
+
+## Network Requirements
+
+- `registry.npmjs.org` - NPM registry
+
+## Installation
+
+```bash
+extension-manager install nodejs-devtools
+```
+
+## Validation
+
+```bash
+tsc --version       # Expected: Version X.X.X
+ts-node --version
+prettier --version
+eslint --version
+nodemon --version
+goalie --version
+```
+
+## Upgrade
+
+**Strategy:** automatic
+
+Automatically upgrades all mise-managed npm tools.
+
+## Removal
+
+```bash
+extension-manager remove nodejs-devtools
+```
+
+Removes mise configuration and template files.

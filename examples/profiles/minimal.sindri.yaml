@@ -1,0 +1,23 @@
+---
+# Sindri Configuration - Minimal Profile Example
+# Demonstrates the minimal profile (nodejs + python)
+version: "1.0"
+name: sindri-profile-minimal
+
+deployment:
+  provider: fly
+  resources:
+    memory: 1GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: minimal
+
+providers:
+  fly:
+    region: sjc
+    autoStopMachines: true
+    autoStartMachines: true

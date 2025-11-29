@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - DevPod Kubernetes DevOps Example
+# DevOps environment running as Kubernetes pod
+version: "1.0"
+name: sindri-devpod-k8s-devops
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 30GB
+
+extensions:
+  profile: devops
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: devpod-workspaces
+      storageClass: standard

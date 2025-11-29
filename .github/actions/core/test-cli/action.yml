@@ -1,0 +1,118 @@
+name: Test Sindri CLI
+description: Tests the Sindri CLI and extension manager functionality
+
+inputs:
+  test-commands:
+    description: JSON array of CLI commands to test
+    required: false
+    default: '["sindri --help", "sindri config validate", "extension-manager list"]'
+  test-in-container:
+    description: Whether to test inside a Docker container
+    required: false
+    default: "false"
+  image:
+    description: Docker image to use for container tests
+    required: false
+    default: "sindri:latest"
+  expected-exit-codes:
+    description: JSON object mapping commands to expected exit codes
+    required: false
+    default: "{}"
+
+outputs:
+  test-results:
+    description: JSON object with test results
+    value: ${{ steps.run-tests.outputs.results }}
+  all-passed:
+    description: Whether all tests passed
+    value: ${{ steps.run-tests.outputs.all-passed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup test environment
+      shell: bash
+      run: |
+        echo "::group::Setting up test environment"
+
+        # Make CLI scripts executable
+        chmod +x cli/sindri
+        chmod +x cli/extension-manager
+
+        # Add CLI to PATH for testing
+        echo "${{ github.workspace }}/cli" >> $GITHUB_PATH
+
+        echo "::endgroup::"
+
+    - name: Run CLI tests
+      id: run-tests
+      shell: bash
+      run: |
+        echo "::group::Running CLI tests"
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        CONTAINER_TEST="${{ inputs.test-in-container }}"
+        IMAGE="${{ inputs.image }}"
+
+        # Initialize results
+        RESULTS='{}'
+        ALL_PASSED="true"
+
+        # Get command count for iteration
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        # Parse and run each command using index-based iteration to preserve spaces
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+
+          # Get expected exit code (default to 0)
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          # Run the command
+          if [[ "$CONTAINER_TEST" == "true" ]]; then
+            # Run in container
+            set +e
+            OUTPUT=$(docker run --rm "$IMAGE" bash -c "$cmd" 2>&1)
+            EXIT_CODE=$?
+            set -e
+          else
+            # Run locally
+            set +e
+            OUTPUT=$(eval "$cmd" 2>&1)
+            EXIT_CODE=$?
+            set -e
+          fi
+
+          # Check result
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          # Store result
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" \
+            --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" \
+            --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        # Set outputs (use jq -c for compact single-line JSON)
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+
+        # Fail if any test failed
+        if [[ "$ALL_PASSED" == "false" ]]; then
+          echo "::error::Some CLI tests failed"
+          exit 1
+        fi
+
+        echo "::endgroup::"

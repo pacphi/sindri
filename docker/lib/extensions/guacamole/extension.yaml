@@ -3,7 +3,7 @@ metadata:
   name: guacamole
   version: 2.0.0
   description: Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC)
-  category: utilities
+  category: desktop
   author: Sindri Team
   homepage: https://guacamole.apache.org
   dependencies: []
@@ -50,6 +50,12 @@ validate:
 
 remove:
   confirmation: true
+  mise:
+    removeConfig: true
+    tools: [tomcat]
+  script:
+    path: uninstall.sh
+    timeout: 120
 
 upgrade:
   strategy: manual
@@ -73,13 +79,13 @@ bom:
       license: Apache-2.0
       homepage: https://guacamole.apache.org
       purl: pkg:maven/org.apache.guacamole/guacamole@1.5.4
-    - name: tomcat9
-      version: dynamic
-      source: apt
+    - name: tomcat
+      version: "9.x"
+      source: mise
       type: server
       license: Apache-2.0
       homepage: https://tomcat.apache.org
-      purl: pkg:deb/ubuntu/tomcat9
+      purl: pkg:generic/tomcat@9
   files:
     - path: /etc/guacamole/guacamole.properties
       type: config

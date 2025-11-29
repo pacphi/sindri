@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - DevPod GCP Minimal
+# Basic GCP Compute Engine development environment
+version: "1.0"
+name: sindri-test-devpod-gcp-minimal
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: gcp
+    gcp:
+      zone: us-central1-a
+      machineType: e2-standard-4

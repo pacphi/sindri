@@ -73,7 +73,7 @@ if command_exists symfony; then
 else
   print_status "Installing Symfony CLI..."
   if timeout 120 bash -c 'wget https://get.symfony.com/cli/installer -O - | bash' 2>/dev/null; then
-    sudo mv $HOME/.symfony*/bin/symfony /usr/local/bin/symfony 2>/dev/null
+    sudo mv "$HOME"/.symfony*/bin/symfony /usr/local/bin/symfony 2>/dev/null
     print_success "Symfony CLI installed"
   else
     print_warning "Symfony CLI installation failed"

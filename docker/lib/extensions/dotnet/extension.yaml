@@ -26,16 +26,16 @@ configure:
       destination: ~/.bashrc
       mode: append
     - source: directory-build-props.template
-      destination: /workspace/templates/Directory.Build.props
+      destination: ~/templates/Directory.Build.props
       mode: overwrite
     - source: editorconfig.template
-      destination: /workspace/templates/.editorconfig
+      destination: ~/templates/.editorconfig
       mode: overwrite
     - source: global-json.template
-      destination: /workspace/templates/global.json
+      destination: ~/templates/global.json
       mode: overwrite
     - source: nuget-config.template
-      destination: /workspace/templates/nuget.config
+      destination: ~/templates/nuget.config
       mode: overwrite
 
 validate:
@@ -47,9 +47,9 @@ remove:
   paths:
     - ~/.dotnet
     - ~/.nuget
-    - /workspace/templates/Directory.Build.props
-    - /workspace/templates/global.json
-    - /workspace/templates/nuget.config
+    - ~/templates/Directory.Build.props
+    - ~/templates/global.json
+    - ~/templates/nuget.config
 
 upgrade:
   strategy: automatic

@@ -109,18 +109,76 @@ install_build_dependencies() {
 # ============================================================================
 
 install_tomcat() {
-    print_status "Installing Tomcat 9..."
+    print_status "Installing Tomcat 9 via mise..."
 
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-        tomcat9 \
-        tomcat9-admin \
-        tomcat9-common \
-        tomcat9-user || {
-        print_error "Failed to install Tomcat"
+    # Install Java (required for Tomcat)
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq default-jdk || {
+        print_error "Failed to install Java"
         return 1
     }
 
-    print_success "Tomcat 9 installed"
+    # Install Tomcat 9.x via mise (latest 9.x version)
+    if ! mise use -g tomcat@9; then
+        print_error "Failed to install Tomcat via mise"
+        return 1
+    fi
+
+    # Get the mise tomcat installation path
+    local TOMCAT_DIR
+    TOMCAT_DIR="$(mise where tomcat)"
+
+    if [[ -z "$TOMCAT_DIR" || ! -d "$TOMCAT_DIR" ]]; then
+        print_error "Tomcat installation directory not found"
+        return 1
+    fi
+
+    print_status "Tomcat installed at: $TOMCAT_DIR"
+
+    # Create tomcat user and group for service management
+    if ! getent group tomcat > /dev/null 2>&1; then
+        sudo groupadd tomcat
+    fi
+    if ! getent passwd tomcat > /dev/null 2>&1; then
+        sudo useradd -s /bin/false -g tomcat -d "$TOMCAT_DIR" tomcat
+    fi
+
+    # Set ownership for webapps directory
+    sudo chown -R tomcat:tomcat "$TOMCAT_DIR/webapps"
+    sudo chmod +x "$TOMCAT_DIR"/bin/*.sh
+
+    # Create symlinks for compatibility
+    sudo mkdir -p /var/lib/tomcat9
+    sudo ln -sf "$TOMCAT_DIR/webapps" /var/lib/tomcat9/webapps
+    sudo mkdir -p /usr/share/tomcat9
+
+    # Create systemd service for Tomcat
+    sudo tee /etc/systemd/system/tomcat9.service > /dev/null << EOF
+[Unit]
+Description=Apache Tomcat 9 Web Application Container
+After=network.target
+
+[Service]
+Type=forking
+User=tomcat
+Group=tomcat
+Environment="JAVA_HOME=/usr/lib/jvm/default-java"
+Environment="CATALINA_PID=$TOMCAT_DIR/temp/catalina.pid"
+Environment="CATALINA_HOME=$TOMCAT_DIR"
+Environment="CATALINA_BASE=$TOMCAT_DIR"
+ExecStart=$TOMCAT_DIR/bin/startup.sh
+ExecStop=$TOMCAT_DIR/bin/shutdown.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload
+
+    # Export for use by other functions
+    export TOMCAT_HOME="$TOMCAT_DIR"
+
+    print_success "Tomcat 9 installed via mise"
     return 0
 }
 
@@ -201,11 +259,18 @@ install_guacamole_client() {
         return 1
     fi
 
-    # Deploy to Tomcat
-    print_status "Deploying to Tomcat..."
-    sudo mkdir -p /var/lib/tomcat9/webapps
-    sudo cp guacamole.war /var/lib/tomcat9/webapps/
-    sudo chown tomcat:tomcat /var/lib/tomcat9/webapps/guacamole.war
+    # Get Tomcat directory from mise (use exported TOMCAT_HOME or query mise)
+    local TOMCAT_DIR="${TOMCAT_HOME:-$(mise where tomcat)}"
+    if [[ -z "$TOMCAT_DIR" || ! -d "$TOMCAT_DIR" ]]; then
+        print_error "Tomcat installation directory not found"
+        return 1
+    fi
+
+    # Deploy to Tomcat webapps directory
+    print_status "Deploying to Tomcat at ${TOMCAT_DIR}..."
+    sudo mkdir -p "$TOMCAT_DIR/webapps"
+    sudo cp guacamole.war "$TOMCAT_DIR/webapps/"
+    sudo chown tomcat:tomcat "$TOMCAT_DIR/webapps/guacamole.war"
 
     print_success "guacamole-client deployed"
     return 0
@@ -218,16 +283,29 @@ install_guacamole_client() {
 create_config_dirs() {
     print_status "Creating configuration directories..."
 
+    # Get Tomcat directory from mise (use exported TOMCAT_HOME or query mise)
+    local TOMCAT_DIR="${TOMCAT_HOME:-$(mise where tomcat)}"
+    if [[ -z "$TOMCAT_DIR" || ! -d "$TOMCAT_DIR" ]]; then
+        print_error "Tomcat installation directory not found"
+        return 1
+    fi
+
     sudo mkdir -p /etc/guacamole
     sudo mkdir -p /etc/guacamole/extensions
     sudo mkdir -p /etc/guacamole/lib
-    sudo mkdir -p /usr/share/tomcat9/.guacamole
+    sudo mkdir -p "$TOMCAT_DIR/.guacamole"
 
     # Link configuration to Tomcat
-    if [[ ! -L /usr/share/tomcat9/.guacamole/guacamole.properties ]]; then
-        sudo ln -sf /etc/guacamole/guacamole.properties /usr/share/tomcat9/.guacamole/
+    if [[ ! -L "$TOMCAT_DIR/.guacamole/guacamole.properties" ]]; then
+        sudo ln -sf /etc/guacamole/guacamole.properties "$TOMCAT_DIR/.guacamole/"
     fi
-    sudo chown -R tomcat:tomcat /usr/share/tomcat9/.guacamole
+    sudo chown -R tomcat:tomcat "$TOMCAT_DIR/.guacamole"
+
+    # Also create backward-compatible symlink
+    sudo mkdir -p /usr/share/tomcat9
+    if [[ ! -L /usr/share/tomcat9/.guacamole ]]; then
+        sudo ln -sf "$TOMCAT_DIR/.guacamole" /usr/share/tomcat9/.guacamole
+    fi
 
     print_success "Configuration directories created"
     return 0

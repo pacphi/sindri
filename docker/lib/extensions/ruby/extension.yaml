@@ -25,10 +25,10 @@ configure:
       destination: ~/.bashrc
       mode: append
     - source: gemfile-template.template
-      destination: /workspace/templates/Gemfile
+      destination: ~/templates/Gemfile
       mode: overwrite
     - source: rubocop-config.template
-      destination: /workspace/templates/.rubocop.yml
+      destination: ~/templates/.rubocop.yml
       mode: overwrite
 
 validate:
@@ -43,8 +43,8 @@ remove:
     removeConfig: true
     tools: [ruby]
   paths:
-    - /workspace/templates/Gemfile
-    - /workspace/templates/.rubocop.yml
+    - ~/templates/Gemfile
+    - ~/templates/.rubocop.yml
 
 upgrade:
   strategy: automatic

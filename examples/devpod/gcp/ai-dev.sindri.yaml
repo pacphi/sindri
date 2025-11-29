@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod GCP AI Development
+# AI/ML development on GCP with high-memory instance
+version: "1.0"
+name: sindri-devpod-gcp-ai-dev
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 16GB
+    cpus: 8
+  volumes:
+    workspace:
+      size: 80GB
+
+extensions:
+  profile: ai-dev
+
+providers:
+  devpod:
+    type: gcp
+    gcp:
+      zone: us-central1-a
+      machineType: n2-highmem-8
+      diskSize: 120

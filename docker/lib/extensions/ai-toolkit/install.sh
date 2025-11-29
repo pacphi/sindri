@@ -204,6 +204,7 @@ else
 fi
 
 # Create workspace
-mkdir -p /workspace/extensions/ai-tools/{ollama-models,fabric-patterns,projects}
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+mkdir -p "${WORKSPACE}/extensions/ai-tools"/{ollama-models,fabric-patterns,projects}
 
 print_success "AI toolkit installation complete"

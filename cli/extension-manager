@@ -4,15 +4,16 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULES_DIR="$SCRIPT_DIR/extension-manager-modules"
 
 # Source modules
-source "$SCRIPT_DIR/extension-manager-modules/cli.sh"
-source "$SCRIPT_DIR/extension-manager-modules/manifest.sh"
-source "$SCRIPT_DIR/extension-manager-modules/dependency.sh"
-source "$SCRIPT_DIR/extension-manager-modules/executor.sh"
-source "$SCRIPT_DIR/extension-manager-modules/validator.sh"
-source "$SCRIPT_DIR/extension-manager-modules/reporter.sh"
-source "$SCRIPT_DIR/extension-manager-modules/bom.sh"
+source "$MODULES_DIR/cli.sh"
+source "$MODULES_DIR/manifest.sh"
+source "$MODULES_DIR/dependency.sh"
+source "$MODULES_DIR/executor.sh"
+source "$MODULES_DIR/validator.sh"
+source "$MODULES_DIR/reporter.sh"
+source "$MODULES_DIR/bom.sh"
 
 # Main function
 main() {
@@ -197,27 +198,61 @@ install_profile() {
 
 # Initialize workspace if not already done
 initialize_workspace() {
-    if [[ ! -f "${WORKSPACE:-/workspace}/.initialized" ]]; then
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
+
+    if [[ ! -f "$home_dir/.initialized" ]]; then
         print_status "Initializing workspace..."
 
-        # Create directory structure
-        ensure_directory "${WORKSPACE:-/workspace}/projects"
-        ensure_directory "${WORKSPACE:-/workspace}/config"
-        ensure_directory "${WORKSPACE:-/workspace}/scripts"
-        ensure_directory "${WORKSPACE:-/workspace}/bin"
-        ensure_directory "${WORKSPACE:-/workspace}/.local"
-        ensure_directory "${WORKSPACE:-/workspace}/.config"
-        ensure_directory "${WORKSPACE:-/workspace}/.system"
+        # Create workspace directory structure
+        ensure_directory "$workspace/projects"
+        ensure_directory "$workspace/config"
+        ensure_directory "$workspace/scripts"
+        ensure_directory "$workspace/bin"
+        ensure_directory "$workspace/.system"
+        ensure_directory "$workspace/.system/manifest"
+        ensure_directory "$workspace/.system/installed"
+        ensure_directory "$workspace/.system/logs"
+
+        # Create XDG directories in $HOME (not $WORKSPACE)
+        ensure_directory "$home_dir/.local/share/mise"
+        ensure_directory "$home_dir/.local/state/mise"
+        ensure_directory "$home_dir/.local/bin"
+        ensure_directory "$home_dir/.config/mise/conf.d"
+        ensure_directory "$home_dir/.cache/mise"
+
+        # Create essential files in $HOME (not $WORKSPACE)
+        [[ ! -f "$home_dir/.bashrc" ]] && touch "$home_dir/.bashrc"
+        [[ ! -f "$home_dir/.profile" ]] && touch "$home_dir/.profile"
 
         # Initialize manifest
         initialize_manifest
 
-        touch "${WORKSPACE:-/workspace}/.initialized"
+        touch "$home_dir/.initialized"
         print_success "Workspace initialized"
     fi
 }
 
-# Run initialization if needed
-[[ "${INIT_WORKSPACE:-false}" == "true" ]] && initialize_workspace
+# Ensure workspace directories exist for critical operations
+# This is a lighter check than full initialization
+ensure_workspace_ready() {
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
+
+    # Ensure critical workspace directories exist
+    ensure_directory "$workspace/.system/manifest"
+    ensure_directory "$workspace/.system/installed"
+
+    # Ensure .bashrc exists in $HOME (needed for configure_extension)
+    [[ ! -f "$home_dir/.bashrc" ]] && touch "$home_dir/.bashrc" 2>/dev/null || true
+}
+
+# Run full initialization if explicitly requested, otherwise ensure workspace is ready
+if [[ "${INIT_WORKSPACE:-false}" == "true" ]]; then
+    initialize_workspace
+else
+    # Always ensure critical workspace directories exist
+    ensure_workspace_ready
+fi
 
 main "$@"

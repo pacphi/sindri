@@ -1,0 +1,89 @@
+name: Setup Sindri Environment
+description: Sets up the Sindri development environment with dependencies
+
+inputs:
+  sindri-config:
+    description: Path to sindri.yaml configuration file
+    required: false
+    default: sindri.yaml
+  validate-config:
+    description: Whether to validate the configuration
+    required: false
+    default: "true"
+  install-dependencies:
+    description: Whether to install system dependencies
+    required: false
+    default: "true"
+
+outputs:
+  name:
+    description: Project name from sindri.yaml
+    value: ${{ steps.parse-config.outputs.name }}
+  provider:
+    description: Configured provider
+    value: ${{ steps.parse-config.outputs.provider }}
+  profile:
+    description: Extension profile
+    value: ${{ steps.parse-config.outputs.profile }}
+  resources:
+    description: JSON-encoded resource requirements
+    value: ${{ steps.parse-config.outputs.resources }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      if: inputs.install-dependencies == 'true'
+      shell: bash
+      run: |
+        # Install required tools
+        echo "::group::Installing dependencies"
+
+        # Install yq for YAML parsing
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+
+        # Install jq for JSON parsing
+        sudo apt-get update -qq
+        sudo apt-get install -y jq
+
+        echo "::endgroup::"
+
+    - name: Validate configuration
+      if: inputs.validate-config == 'true'
+      shell: bash
+      run: |
+        echo "::group::Validating sindri.yaml"
+
+        if [[ ! -f "${{ inputs.sindri-config }}" ]]; then
+          echo "Error: Configuration file ${{ inputs.sindri-config }} not found"
+          exit 1
+        fi
+
+        # Validate against schema
+        ./cli/sindri config validate --config "${{ inputs.sindri-config }}"
+
+        echo "::endgroup::"
+
+    - name: Parse configuration
+      id: parse-config
+      shell: bash
+      run: |
+        CONFIG="${{ inputs.sindri-config }}"
+
+        # Extract configuration values
+        NAME=$(yq '.name' "$CONFIG")
+        PROVIDER=$(yq '.deployment.provider // "docker"' "$CONFIG")
+        PROFILE=$(yq '.extensions.profile // "minimal"' "$CONFIG")
+
+        # Extract resources as compact JSON (single line for GITHUB_OUTPUT)
+        RESOURCES=$(yq -o=json -I=0 '.deployment.resources // {}' "$CONFIG")
+
+        # Set outputs
+        echo "name=$NAME" >> $GITHUB_OUTPUT
+        echo "provider=$PROVIDER" >> $GITHUB_OUTPUT
+        echo "profile=$PROFILE" >> $GITHUB_OUTPUT
+        echo "resources=$RESOURCES" >> $GITHUB_OUTPUT
+
+        # Display configuration
+        echo "::notice title=Sindri Configuration::Name: $NAME, Provider: $PROVIDER, Profile: $PROFILE"

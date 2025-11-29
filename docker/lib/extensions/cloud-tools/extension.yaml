@@ -41,7 +41,7 @@ configure:
       destination: ~/.bashrc
       mode: append
     - source: readme.template
-      destination: /workspace/extensions/cloud/README.md
+      destination: ~/extensions/cloud/README.md
       mode: overwrite
 
 validate:
@@ -60,7 +60,7 @@ remove:
     - /usr/local/bin/doctl
     - /usr/local/ibmcloud
     - /usr/local/bin/ibmcloud
-    - /workspace/extensions/cloud
+    - ~/extensions/cloud
 
 upgrade:
   strategy: manual

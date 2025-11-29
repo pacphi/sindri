@@ -3,7 +3,7 @@
 
 set -e
 
-WORKSPACE_DIR="${WORKSPACE_DIR:-/workspace}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-${WORKSPACE:-${HOME}/workspace}}"
 SESSION_NAME="${TMUX_SESSION_NAME:-sindri-workspace}"
 
 print_status() {

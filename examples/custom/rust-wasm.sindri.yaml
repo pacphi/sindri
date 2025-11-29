@@ -1,0 +1,27 @@
+---
+# Sindri Configuration - Custom Rust WebAssembly Example
+# Rust + Node.js for WebAssembly development
+version: "1.0"
+name: sindri-custom-rust-wasm
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 6GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  active:
+    - rust
+    - nodejs
+    - nodejs-devtools
+    - docker
+
+providers:
+  docker-compose:
+    ports:
+      - "8080:8080" # WASM server
+      - "3000:3000" # Dev server

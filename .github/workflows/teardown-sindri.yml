@@ -1,0 +1,93 @@
+---
+# .github/workflows/teardown-sindri.yml
+# Reusable workflow for tearing down Sindri deployments
+name: Teardown Sindri
+
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: Path to sindri.yaml configuration file
+        required: true
+        type: string
+      force:
+        description: Force cleanup without confirmation
+        required: false
+        type: boolean
+        default: true
+
+  workflow_dispatch:
+    inputs:
+      config-path:
+        description: Path to sindri.yaml configuration file
+        required: true
+        type: string
+      force:
+        description: Force cleanup
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  teardown:
+    name: Teardown from ${{ inputs.config-path }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install yq
+        run: pip install yq
+
+      - name: Parse configuration
+        id: parse
+        run: |
+          CONFIG="${{ inputs.config-path }}"
+
+          if [[ ! -f "$CONFIG" ]]; then
+            echo "Error: Config file not found: $CONFIG"
+            exit 1
+          fi
+
+          NAME=$(yq '.name' "$CONFIG")
+          PROVIDER=$(yq '.deployment.provider' "$CONFIG")
+
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "provider=$PROVIDER" >> $GITHUB_OUTPUT
+
+          echo "Teardown: $NAME (provider: $PROVIDER)"
+
+      - name: Setup Fly.io CLI
+        if: steps.parse.outputs.provider == 'fly'
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Teardown
+        run: |
+          CONFIG="${{ inputs.config-path }}"
+          FORCE_FLAG=""
+          if [[ "${{ inputs.force }}" == "true" ]]; then
+            FORCE_FLAG="--force"
+          fi
+
+          # sindri destroy reads the config and handles provider routing internally
+          ./cli/sindri destroy --config "$CONFIG" $FORCE_FLAG
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+      - name: Teardown summary
+        run: |
+          echo "## Teardown Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Name | ${{ steps.parse.outputs.name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | ${{ steps.parse.outputs.provider }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | Destroyed |" >> $GITHUB_STEP_SUMMARY

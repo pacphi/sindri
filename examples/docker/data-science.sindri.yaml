@@ -1,0 +1,23 @@
+---
+# Sindri Configuration - Docker Data Science Example
+# Local data science and analytics environment
+version: "1.0"
+name: sindri-docker-datascience
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 10GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 60GB
+
+extensions:
+  profile: data-science
+
+providers:
+  docker-compose:
+    ports:
+      - "8888:8888" # Jupyter
+      - "8501:8501" # Streamlit

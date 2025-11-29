@@ -1,0 +1,22 @@
+---
+# Sindri Configuration - Docker Systems Programming Example
+# Local systems programming with Rust and Go
+version: "1.0"
+name: sindri-docker-systems
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 6GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: systems
+
+providers:
+  docker-compose:
+    ports:
+      - "8000:8000" # HTTP server

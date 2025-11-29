@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - AI Development Profile Example
+# AI/ML development environment
+version: "1.0"
+name: sindri-profile-ai-dev
+
+deployment:
+  provider: fly
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 30GB
+
+extensions:
+  profile: ai-dev
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: performance
+    autoStopMachines: true
+    autoStartMachines: true

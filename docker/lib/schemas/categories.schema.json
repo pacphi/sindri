@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/categories.schema.json",
+  "title": "Sindri Extension Categories",
+  "description": "Schema for extension category definitions",
+  "type": "object",
+  "required": ["version", "categories"],
+  "properties": {
+    "version": {
+      "type": ["string", "number"],
+      "description": "Schema version"
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "description", "priority"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name of the category"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the category"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Emoji or icon for the category"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Sort order priority (lower numbers appear first)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Map of category identifiers to their definitions"
+    }
+  },
+  "additionalProperties": false
+}

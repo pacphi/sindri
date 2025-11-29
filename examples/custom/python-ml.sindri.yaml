@@ -1,0 +1,27 @@
+---
+# Sindri Configuration - Custom Python ML Example
+# Python-only ML environment (no Node.js, focused on AI/ML)
+version: "1.0"
+name: sindri-custom-python-ml
+
+deployment:
+  provider: fly
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 60GB
+
+extensions:
+  active:
+    - python
+    - ai-toolkit
+    - monitoring
+
+providers:
+  fly:
+    region: ord
+    cpuKind: performance
+    autoStopMachines: true
+    autoStartMachines: true

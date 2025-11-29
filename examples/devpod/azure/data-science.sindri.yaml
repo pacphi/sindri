@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod Azure Data Science
+# Data science environment on Azure with high-memory VM
+version: "1.0"
+name: sindri-devpod-azure-datascience
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 16GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 100GB
+
+extensions:
+  profile: data-science
+
+providers:
+  devpod:
+    type: azure
+    azure:
+      location: eastus
+      vmSize: Standard_D4s_v3
+      diskSize: 150

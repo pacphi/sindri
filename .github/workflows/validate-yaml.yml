@@ -1,0 +1,217 @@
+---
+# .github/workflows/validate-yaml.yml
+# YAML validation workflow
+name: Validate YAML
+
+on:
+  pull_request:
+    paths:
+      - "**.yaml"
+      - "**.yml"
+      - "docker/lib/schemas/*.json"
+  push:
+    branches: [main]
+    paths:
+      - "**.yaml"
+      - "**.yml"
+      - "docker/lib/schemas/*.json"
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: |
+          yamllint --strict \
+            docker/lib/*.yaml \
+            docker/lib/extensions/*/extension.yaml \
+            examples/**/*.yaml \
+            .github/workflows/*.yml
+
+  schema-validation:
+    name: Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install tools
+        run: |
+          npm install -g ajv-cli ajv-formats
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Validate extension schemas
+        run: |
+          FAILURES=0
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
+          trap 'rm -f "$tmpfile"' EXIT
+          for ext in docker/lib/extensions/*/extension.yaml; do
+            echo "Validating: $ext"
+            yq -o=json "$ext" > "$tmpfile"
+            if ! ajv validate \
+              -c ajv-formats \
+              -s docker/lib/schemas/extension.schema.json \
+              -d "$tmpfile"; then
+              ((FAILURES++)) || true
+            fi
+          done
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "Failed: $FAILURES extension(s)"
+            exit 1
+          fi
+
+      - name: Validate sindri.yaml examples
+        run: |
+          FAILURES=0
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
+          trap 'rm -f "$tmpfile"' EXIT
+          for example in examples/**/*.sindri.yaml examples/*.sindri.yaml; do
+            if [[ -f "$example" ]]; then
+              echo "Validating: $example"
+              yq -o=json "$example" > "$tmpfile"
+              if ! ajv validate \
+                -c ajv-formats \
+                -s docker/lib/schemas/sindri.schema.json \
+                -d "$tmpfile"; then
+                ((FAILURES++)) || true
+              fi
+            fi
+          done
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "Failed: $FAILURES example(s)"
+            exit 1
+          fi
+
+      - name: Validate profiles.yaml
+        run: |
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/profiles.yaml > "$tmpfile"
+          ajv validate \
+            -c ajv-formats \
+            -s docker/lib/schemas/profiles.schema.json \
+            -d "$tmpfile"
+
+      - name: Validate registry.yaml
+        run: |
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/registry.yaml > "$tmpfile"
+          ajv validate \
+            -c ajv-formats \
+            -s docker/lib/schemas/registry.schema.json \
+            -d "$tmpfile"
+
+      - name: Validate categories.yaml
+        run: |
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/categories.yaml > "$tmpfile"
+          ajv validate \
+            -c ajv-formats \
+            -s docker/lib/schemas/categories.schema.json \
+            -d "$tmpfile"
+
+      - name: Validate project-templates.yaml
+        run: |
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/project-templates.yaml > "$tmpfile"
+          ajv validate \
+            -c ajv-formats \
+            -s docker/lib/schemas/project-templates.schema.json \
+            -d "$tmpfile"
+
+  cross-references:
+    name: Cross-Reference Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Validate cross-references
+        run: ./test/unit/yaml/test-cross-references.sh
+
+  extension-consistency:
+    name: Extension Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Check extension naming consistency
+        run: |
+          # Extension directory name must match metadata.name
+          FAILURES=0
+          for ext_dir in docker/lib/extensions/*/; do
+            if [[ -f "$ext_dir/extension.yaml" ]]; then
+              dir_name=$(basename "$ext_dir")
+              yaml_name=$(yq '.metadata.name' "$ext_dir/extension.yaml")
+
+              if [[ "$dir_name" != "$yaml_name" ]]; then
+                echo "FAIL: Directory '$dir_name' doesn't match metadata.name '$yaml_name'"
+                ((FAILURES++)) || true
+              fi
+            fi
+          done
+
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "Extension naming check failed: $FAILURES error(s)"
+            exit 1
+          fi
+          echo "All extension names consistent"
+
+      - name: Check category consistency
+        run: |
+          # Extension category must match registry entry
+          FAILURES=0
+          for ext_dir in docker/lib/extensions/*/; do
+            if [[ -f "$ext_dir/extension.yaml" ]]; then
+              ext_name=$(basename "$ext_dir")
+              ext_category=$(yq '.metadata.category // ""' "$ext_dir/extension.yaml")
+              reg_category=$(yq ".extensions.$ext_name.category // \"\"" docker/lib/registry.yaml)
+
+              if [[ -n "$ext_category" ]] && [[ -n "$reg_category" ]] && \
+                 [[ "$ext_category" != "$reg_category" ]]; then
+                echo "FAIL: $ext_name category mismatch: extension.yaml='$ext_category', registry.yaml='$reg_category'"
+                ((FAILURES++)) || true
+              fi
+            fi
+          done
+
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "Category consistency check failed: $FAILURES error(s)"
+            exit 1
+          fi
+          echo "All extension categories consistent"

@@ -1,0 +1,254 @@
+# Claude Code Mux Configuration
+# This file is installed at: /workspace/config/ccm-config.toml
+#
+# The extension installs this template with working defaults.
+# Use ccm-quickstart to generate pre-configured setups, or edit this file directly.
+# CCM server loads this config via: ccm start --config /workspace/config/ccm-config.toml
+#
+# Uncomment sections below to enable providers, models, and routing features.
+
+[server]
+# Proxy server configuration
+host = "127.0.0.1"
+port = 13456
+
+# ============================================================================
+# PROVIDERS - Add your API providers here
+# ============================================================================
+# Providers must be configured before creating model mappings.
+# Priority: Lower number = higher priority (1 is highest)
+
+# Example: Anthropic (Claude) - OAuth for free access with Claude Pro/Max
+# [[providers]]
+# name = "anthropic-oauth"
+# type = "anthropic"
+# auth_type = "oauth"
+# priority = 1
+# # After adding this, run: ccmctl start, then login via Web UI
+
+# Example: Anthropic - API Key (commercial access)
+# [[providers]]
+# name = "anthropic-api"
+# type = "anthropic"
+# auth_type = "api_key"
+# api_key = "sk-ant-..."  # Replace with your key
+# priority = 1
+
+# Example: OpenAI - OAuth for free access with ChatGPT Plus/Pro
+# [[providers]]
+# name = "openai-oauth"
+# type = "openai"
+# auth_type = "oauth"
+# priority = 2
+# # Fallback if Anthropic fails
+
+# Example: OpenAI - API Key
+# [[providers]]
+# name = "openai-api"
+# type = "openai"
+# auth_type = "api_key"
+# api_key = "sk-..."  # Replace with your key
+# priority = 2
+
+# Example: Google Gemini - OAuth for free with Google AI Pro/Ultra
+# [[providers]]
+# name = "gemini-oauth"
+# type = "gemini"
+# auth_type = "oauth"
+# priority = 3
+
+# Example: ZenMux - Multi-model gateway
+# [[providers]]
+# name = "zenmux"
+# type = "zenmux"
+# auth_type = "api_key"
+# api_key = "zm-..."  # Replace with your key
+# priority = 2
+
+# Example: Groq - Ultra-fast inference
+# [[providers]]
+# name = "groq"
+# type = "groq"
+# auth_type = "api_key"
+# api_key = "gsk_..."  # Replace with your key
+# priority = 3
+
+# Example: OpenRouter - Access to 200+ models
+# [[providers]]
+# name = "openrouter"
+# type = "openrouter"
+# auth_type = "api_key"
+# api_key = "sk-or-..."  # Replace with your key
+# priority = 3
+
+# ============================================================================
+# MODEL MAPPINGS - Map model names to providers with failover
+# ============================================================================
+# Configure which providers handle which models, with automatic failover.
+
+# Example: Claude Sonnet with failover to OpenAI
+# [[models]]
+# name = "claude-sonnet-4-20250514"
+# providers = [
+#   { name = "anthropic-oauth", priority = 1 },    # Primary (free with Pro/Max)
+#   { name = "openai-oauth", priority = 2 },       # Secondary fallback
+#   { name = "openrouter", priority = 3 }          # Tertiary fallback
+# ]
+
+# Example: Cost-optimized routing - cheap primary with quality fallback
+# [[models]]
+# name = "claude-sonnet-3-5-20241022"
+# providers = [
+#   { name = "zenmux", priority = 1 },             # Cheap primary
+#   { name = "anthropic-api", priority = 2 }       # Quality fallback
+# ]
+
+# Example: Gemini with failover
+# [[models]]
+# name = "gemini-2.0-flash-exp"
+# providers = [
+#   { name = "gemini-oauth", priority = 1 },       # Free with AI Pro
+#   { name = "openrouter", priority = 2 }          # Fallback
+# ]
+
+# Example: GPT models
+# [[models]]
+# name = "gpt-4o"
+# providers = [
+#   { name = "openai-oauth", priority = 1 },       # Free with ChatGPT Plus
+#   { name = "openai-api", priority = 2 }          # API fallback
+# ]
+
+# ============================================================================
+# INTELLIGENT ROUTING - Route requests by task type
+# ============================================================================
+# Automatically select optimal models based on request characteristics.
+
+[router]
+# Enable intelligent routing
+enabled = true
+
+# Websearch routing - Use web-enabled models for search queries
+# [router.websearch]
+# model = "gemini-2.0-flash-exp"  # Gemini excels at web search
+# enabled = true
+
+# Reasoning routing - Extended thinking for complex problems
+# [router.reasoning]
+# model = "claude-sonnet-4-20250514"  # Claude excels at deep reasoning
+# enabled = true
+
+# Background task routing - Non-interactive batch work
+# [router.background]
+# model = "gpt-4o-mini"  # Use cheaper models for background tasks
+# enabled = true
+# patterns = [
+#   "batch_.*",
+#   "async_.*",
+#   "background_.*"
+# ]
+
+# Default routing - Fallback for unspecified requests
+[router.default]
+model = "claude-sonnet-4-20250514"
+enabled = true
+
+# ============================================================================
+# QUICKSTART EXAMPLES
+# ============================================================================
+# Copy one of these ready-to-use configurations:
+
+# --- OPTION 1: Free OAuth Setup (Best for Claude Pro/Max + ChatGPT Plus) ---
+# Uncomment this section for zero-cost multi-model access:
+#
+# [[providers]]
+# name = "anthropic"
+# type = "anthropic"
+# auth_type = "oauth"
+# priority = 1
+#
+# [[providers]]
+# name = "openai"
+# type = "openai"
+# auth_type = "oauth"
+# priority = 2
+#
+# [[models]]
+# name = "claude-sonnet-4-20250514"
+# providers = [
+#   { name = "anthropic", priority = 1 },
+#   { name = "openai", priority = 2 }
+# ]
+
+# --- OPTION 2: API Key Setup with Failover ---
+# Uncomment for commercial API access with automatic failover:
+#
+# [[providers]]
+# name = "anthropic"
+# type = "anthropic"
+# auth_type = "api_key"
+# api_key = "sk-ant-YOUR_KEY_HERE"
+# priority = 1
+#
+# [[providers]]
+# name = "openai"
+# type = "openai"
+# auth_type = "api_key"
+# api_key = "sk-YOUR_KEY_HERE"
+# priority = 2
+#
+# [[models]]
+# name = "claude-sonnet-4-20250514"
+# providers = [
+#   { name = "anthropic", priority = 1 },
+#   { name = "openai", priority = 2 }
+# ]
+#
+# [[models]]
+# name = "gpt-4o"
+# providers = [{ name = "openai", priority = 1 }]
+
+# --- OPTION 3: Cost-Optimized Multi-Provider ---
+# Uncomment for budget-conscious routing with quality fallback:
+#
+# [[providers]]
+# name = "groq"
+# type = "groq"
+# auth_type = "api_key"
+# api_key = "gsk_YOUR_KEY_HERE"
+# priority = 1
+#
+# [[providers]]
+# name = "anthropic"
+# type = "anthropic"
+# auth_type = "api_key"
+# api_key = "sk-ant-YOUR_KEY_HERE"
+# priority = 2
+#
+# [[models]]
+# name = "claude-sonnet-4-20250514"
+# providers = [
+#   { name = "groq", priority = 1 },        # Ultra-fast, cheaper
+#   { name = "anthropic", priority = 2 }    # Quality fallback
+# ]
+
+# ============================================================================
+# ADVANCED CONFIGURATION
+# ============================================================================
+
+# Logging configuration
+[logging]
+level = "info"  # Options: debug, info, warn, error
+format = "json"  # Options: json, text
+
+# Performance tuning
+[performance]
+max_concurrent_requests = 100
+request_timeout_seconds = 300
+connection_pool_size = 10
+
+# Retry behavior for failed requests
+[retry]
+max_attempts = 3
+backoff_multiplier = 2
+initial_delay_ms = 1000

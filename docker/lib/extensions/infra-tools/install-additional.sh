@@ -6,8 +6,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
+# Use WORKSPACE from environment or derive from HOME
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+
 # Install directory
-INSTALL_DIR="/workspace/bin"
+INSTALL_DIR="${WORKSPACE}/bin"
 mkdir -p "$INSTALL_DIR"
 
 # Install Pulumi
@@ -114,7 +117,7 @@ install_carvel() {
 setup_workspace() {
     print_status "Setting up infrastructure workspace..."
 
-    mkdir -p /workspace/infrastructure/{terraform,ansible,kubernetes,pulumi}
+    mkdir -p "${WORKSPACE}/infrastructure"/{terraform,ansible,kubernetes,pulumi}
     mkdir -p "$HOME/.kube"
 
     print_success "Infrastructure workspace created"

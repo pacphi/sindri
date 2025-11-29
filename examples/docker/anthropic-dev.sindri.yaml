@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Docker Anthropic Development Example
+# Local AI development with full Anthropic toolset
+version: "1.0"
+name: sindri-docker-anthropic-dev
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 16GB
+    cpus: 8
+  volumes:
+    workspace:
+      size: 100GB
+
+extensions:
+  profile: anthropic-dev
+
+providers:
+  docker-compose:
+    ports:
+      - "8080:8080" # API server
+      - "3000:3000" # Web UI
+      - "5173:5173" # Vite dev server

@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - DevPod Kubernetes Minimal
+# Kubernetes pod-based development environment
+version: "1.0"
+name: sindri-test-devpod-k8s-minimal
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 2GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: sindri-test
+      storageClass: standard

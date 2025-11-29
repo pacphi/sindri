@@ -2,10 +2,18 @@
 # bom.sh - Bill of Materials generation and management (declarative)
 
 MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${MODULE_DIR}/../../docker/lib/common.sh"
+
+# Detect environment and source common functions
+if [[ -f "/docker/lib/common.sh" ]]; then
+    source /docker/lib/common.sh
+else
+    source "${MODULE_DIR}/../../docker/lib/common.sh"
+fi
+
 source "${MODULE_DIR}/dependency.sh"
 
-BOM_DIR="${WORKSPACE_SYSTEM:-/workspace/.system}/bom"
+# WORKSPACE_SYSTEM is set by common.sh (sourced above)
+BOM_DIR="${WORKSPACE_SYSTEM}/bom"
 
 # Generate BOM for a single extension
 generate_extension_bom() {
@@ -34,8 +42,8 @@ generate_extension_bom() {
 
     # Get installation timestamp
     local installed_at
-    if [[ -f "${WORKSPACE_SYSTEM:-/workspace/.system}/installed/$ext_name.installed" ]]; then
-        installed_at=$(cat "${WORKSPACE_SYSTEM:-/workspace/.system}/installed/$ext_name.installed")
+    if [[ -f "${WORKSPACE_SYSTEM}/installed/$ext_name.installed" ]]; then
+        installed_at=$(cat "${WORKSPACE_SYSTEM}/installed/$ext_name.installed")
     else
         installed_at="unknown"
     fi
@@ -72,6 +80,7 @@ EOF
     resolve_dynamic_versions "$bom_file"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Generated BOM for $ext_name: $bom_file"
+    return 0
 }
 
 # Extract explicit BOM from extension.yaml
@@ -300,7 +309,7 @@ generate_aggregate_bom() {
 
     # Get all installed extensions
     local installed_exts
-    installed_exts=$(find "${WORKSPACE_SYSTEM:-/workspace/.system}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
+    installed_exts=$(find "${WORKSPACE_SYSTEM}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
 
     if [[ -z "$installed_exts" ]]; then
         print_warning "No extensions installed"
@@ -654,7 +663,7 @@ regenerate_all_boms() {
     print_status "Regenerating all BOMs..."
 
     local installed_exts
-    installed_exts=$(find "${WORKSPACE_SYSTEM:-/workspace/.system}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
+    installed_exts=$(find "${WORKSPACE_SYSTEM}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
 
     if [[ -z "$installed_exts" ]]; then
         print_warning "No extensions installed"

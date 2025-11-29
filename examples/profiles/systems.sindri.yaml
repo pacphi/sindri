@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Systems Programming Profile Example
+# Systems programming with Rust, Go, and infrastructure tools
+version: "1.0"
+name: sindri-profile-systems
+
+deployment:
+  provider: fly
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 30GB
+
+extensions:
+  profile: systems
+
+providers:
+  fly:
+    region: ord
+    cpuKind: performance
+    autoStopMachines: true
+    autoStartMachines: true

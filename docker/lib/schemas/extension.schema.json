@@ -27,14 +27,7 @@
         },
         "category": {
           "type": "string",
-          "enum": [
-            "base",
-            "language",
-            "dev-tools",
-            "infrastructure",
-            "ai",
-            "utilities"
-          ]
+          "enum": ["base", "language", "dev-tools", "infrastructure", "ai", "utilities", "desktop", "monitoring"]
         },
         "author": {
           "type": "string"
@@ -210,7 +203,7 @@
               },
               "mode": {
                 "type": "string",
-                "enum": ["overwrite", "append", "merge"],
+                "enum": ["overwrite", "append", "merge", "skip-if-exists"],
                 "default": "overwrite"
               }
             }
@@ -296,6 +289,36 @@
               "items": {
                 "type": "string"
               }
+            }
+          }
+        },
+        "apt": {
+          "type": "object",
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "APT packages to remove"
+            },
+            "purge": {
+              "type": "boolean",
+              "default": false,
+              "description": "Use apt purge instead of apt remove"
+            }
+          }
+        },
+        "script": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Custom uninstall script path"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 120
             }
           }
         },
@@ -385,7 +408,7 @@
               },
               "source": {
                 "type": "string",
-                "enum": ["mise", "apt", "npm", "binary", "script"],
+                "enum": ["mise", "apt", "npm", "binary", "script", "github-release"],
                 "description": "Installation source method"
               },
               "type": {

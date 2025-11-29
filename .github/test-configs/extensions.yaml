@@ -1,0 +1,309 @@
+# Extension Test Configuration
+# Defines test parameters for each extension
+
+extensions:
+  nodejs:
+    category: language
+    priority: high
+    test_commands:
+      - node --version
+      - npm --version
+      - npx --version
+    validation_pattern: "v\\d+\\.\\d+\\.\\d+"
+    test_project:
+      type: express-app
+      commands:
+        - npm init -y
+        - npm install express
+        - echo 'console.log("Hello from Node.js");' > test.js
+        - node test.js
+    dependencies: []
+    required_disk_space: 500 # MB
+    estimated_install_time: 30 # seconds
+
+  python:
+    category: language
+    priority: high
+    test_commands:
+      - python3 --version
+      - pip3 --version
+    validation_pattern: "Python 3\\.\\d+\\.\\d+"
+    test_project:
+      type: flask-app
+      commands:
+        - python3 -m venv test-env
+        - source test-env/bin/activate
+        - pip install flask
+        - echo 'print("Hello from Python")' > test.py
+        - python3 test.py
+    dependencies: []
+    required_disk_space: 300
+    estimated_install_time: 45
+
+  golang:
+    category: language
+    priority: medium
+    test_commands:
+      - go version
+    validation_pattern: "go\\d+\\.\\d+"
+    test_project:
+      type: go-module
+      commands:
+        - go mod init test
+        - echo 'package main; import "fmt"; func main() { fmt.Println("Hello from Go") }' > main.go
+        - go run main.go
+    dependencies: []
+    required_disk_space: 400
+    estimated_install_time: 60
+
+  rust:
+    category: language
+    priority: medium
+    test_commands:
+      - rustc --version
+      - cargo --version
+    validation_pattern: "rustc \\d+\\.\\d+\\.\\d+"
+    test_project:
+      type: cargo-project
+      commands:
+        - cargo new test-project
+        - cd test-project
+        - cargo build
+        - cargo run
+    dependencies: []
+    required_disk_space: 800
+    estimated_install_time: 90
+
+  docker:
+    category: dev-tools
+    priority: high
+    test_commands:
+      - docker --version
+      - docker compose version
+    validation_pattern: "Docker version \\d+"
+    test_project:
+      type: container
+      commands:
+        - docker run hello-world
+        - docker ps
+        - docker images
+    dependencies: []
+    required_disk_space: 1000
+    estimated_install_time: 60
+
+  terraform:
+    category: cloud
+    priority: medium
+    test_commands:
+      - terraform version
+    validation_pattern: "Terraform v\\d+\\.\\d+\\.\\d+"
+    test_project:
+      type: tf-module
+      commands:
+        - echo 'resource "null_resource" "test" {}' > main.tf
+        - terraform init
+        - terraform plan
+    dependencies: []
+    required_disk_space: 200
+    estimated_install_time: 30
+
+  ansible:
+    category: cloud
+    priority: medium
+    test_commands:
+      - ansible --version
+      - ansible-playbook --version
+    validation_pattern: "ansible.*\\d+\\.\\d+\\.\\d+"
+    test_project:
+      type: playbook
+      commands:
+        - echo '- hosts: localhost' > test.yml
+        - echo '  tasks:' >> test.yml
+        - echo '    - debug: msg="Hello from Ansible"' >> test.yml
+        - ansible-playbook test.yml
+    dependencies:
+      - python
+    required_disk_space: 150
+    estimated_install_time: 45
+
+  kubernetes-tools:
+    category: cloud
+    priority: high
+    test_commands:
+      - kubectl version --client
+      - helm version
+      - k9s version
+    validation_pattern: ".*"
+    test_project:
+      type: k8s-manifest
+      commands:
+        - kubectl config view
+        - helm list
+    dependencies: []
+    required_disk_space: 300
+    estimated_install_time: 60
+
+  aws-cli:
+    category: cloud
+    priority: medium
+    test_commands:
+      - aws --version
+    validation_pattern: "aws-cli.*\\d+\\.\\d+\\.\\d+"
+    test_project:
+      type: aws-commands
+      commands:
+        - aws configure list
+        - aws s3 ls || true
+    dependencies: []
+    required_disk_space: 200
+    estimated_install_time: 45
+
+  gcloud:
+    category: cloud
+    priority: medium
+    test_commands:
+      - gcloud version
+    validation_pattern: "Google Cloud SDK.*\\d+"
+    test_project:
+      type: gcp-commands
+      commands:
+        - gcloud config list
+        - gcloud projects list || true
+    dependencies: []
+    required_disk_space: 400
+    estimated_install_time: 60
+
+  azure-cli:
+    category: cloud
+    priority: medium
+    test_commands:
+      - az version
+    validation_pattern: ".*azure-cli.*\\d+\\.\\d+\\.\\d+"
+    test_project:
+      type: azure-commands
+      commands:
+        - az account show || true
+        - az group list || true
+    dependencies: []
+    required_disk_space: 300
+    estimated_install_time: 60
+
+  dotnet:
+    category: language
+    priority: low
+    test_commands:
+      - dotnet --version
+    validation_pattern: "\\d+\\.\\d+\\.\\d+"
+    test_project:
+      type: console-app
+      commands:
+        - dotnet new console -n TestApp
+        - cd TestApp
+        - dotnet build
+        - dotnet run
+    dependencies: []
+    required_disk_space: 500
+    estimated_install_time: 90
+
+# Extension test combinations
+test_combinations:
+  frontend:
+    description: Frontend development stack
+    extensions:
+      - nodejs
+      - typescript
+      - prettier
+    test_interaction: true
+
+  backend:
+    description: Backend development stack
+    extensions:
+      - python
+      - golang
+      - postgresql-client
+    test_interaction: true
+
+  fullstack:
+    description: Full-stack development
+    extensions:
+      - nodejs
+      - python
+      - docker
+      - postgresql-client
+    test_interaction: true
+
+  devops:
+    description: DevOps toolkit
+    extensions:
+      - terraform
+      - ansible
+      - kubernetes-tools
+      - aws-cli
+    test_interaction: true
+
+  data-science:
+    description: Data science environment
+    extensions:
+      - python
+      - jupyter
+      - pandas
+    test_interaction: true
+
+# Test matrices for different scenarios
+test_matrices:
+  quick:
+    description: Quick validation matrix
+    extensions:
+      - nodejs
+      - python
+    providers:
+      - docker
+    profiles:
+      - minimal
+
+  standard:
+    description: Standard test matrix
+    extensions:
+      - nodejs
+      - python
+      - golang
+      - docker
+    providers:
+      - docker
+      - fly
+    profiles:
+      - minimal
+      - backend
+
+  comprehensive:
+    description: Comprehensive test matrix
+    extensions: all
+    providers:
+      - docker
+      - fly
+      - devpod-aws
+      - kubernetes
+    profiles: all
+
+# Validation rules
+validation_rules:
+  installation:
+    - extension_binary_exists
+    - version_command_works
+    - version_matches_pattern
+    - dependencies_installed
+
+  functionality:
+    - test_commands_succeed
+    - test_project_builds
+    - test_project_runs
+
+  idempotency:
+    - reinstall_succeeds
+    - no_duplicate_configs
+    - manifest_unchanged
+
+  cleanup:
+    - uninstall_removes_binaries
+    - config_cleaned_up
+    - manifest_updated

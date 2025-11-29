@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Docker Mobile Development Example
+# Local mobile development environment
+version: "1.0"
+name: sindri-docker-mobile
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 60GB
+
+extensions:
+  profile: mobile
+
+providers:
+  docker-compose:
+    ports:
+      - "3000:3000" # React Native Metro
+      - "19000:19000" # Expo
+      - "8081:8081" # React Native Dev

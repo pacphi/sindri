@@ -18,7 +18,7 @@ EXTENSIONS=$(find "$EXTENSIONS_DIR" -mindepth 1 -maxdepth 1 -type d -exec basena
 declare -A RESULTS
 
 log_info "Testing all extensions in $TEST_MODE mode"
-log_info "Found extensions: $(echo $EXTENSIONS | tr '\n' ' ')"
+log_info "Found extensions: $(echo "$EXTENSIONS" | tr '\n' ' ')"
 
 # Test each extension
 for ext in $EXTENSIONS; do

@@ -5,7 +5,7 @@ metadata:
   description: >-
     Tmux workspace management with helper scripts and auto-start
     functionality
-  category: dev-tools
+  category: utilities
   author: Sindri Team
   license: MIT
   dependencies: []
@@ -23,32 +23,32 @@ install:
 configure:
   templates:
     - source: tmux.conf.template
-      destination: /workspace/config/tmux.conf
+      destination: ~/config/tmux.conf
       mode: overwrite
     - source: tmux-workspace.sh.template
-      destination: /workspace/scripts/tmux-workspace.sh
+      destination: ~/scripts/tmux-workspace.sh
       mode: overwrite
       permissions: "755"
     - source: tmux-helpers.sh.template
-      destination: /workspace/scripts/tmux-helpers.sh
+      destination: ~/scripts/tmux-helpers.sh
       mode: overwrite
       permissions: "755"
     - source: tmux-auto-start.sh.template
-      destination: /workspace/scripts/tmux-auto-start.sh
+      destination: ~/scripts/tmux-auto-start.sh
       mode: overwrite
       permissions: "755"
   postInstall:
     - description: "Create tmux config symlink"
-      command: "ln -sf /workspace/config/tmux.conf ~/.tmux.conf"
+      command: "ln -sf ${WORKSPACE:-${HOME}/workspace}/config/tmux.conf ~/.tmux.conf"
     - description: "Source tmux helpers in bashrc"
       command: >-
         grep -q 'tmux-helpers.sh' ~/.bashrc ||
-        echo 'source /workspace/scripts/tmux-helpers.sh 2>/dev/null'
+        echo 'source ${WORKSPACE:-${HOME}/workspace}/scripts/tmux-helpers.sh 2>/dev/null'
         >> ~/.bashrc
     - description: "Add tmux scripts to PATH"
       command: >-
-        grep -q '/workspace/scripts' ~/.bashrc ||
-        echo 'export PATH="/workspace/scripts:$PATH"' >> ~/.bashrc
+        grep -q 'scripts' ~/.bashrc ||
+        echo 'export PATH="${WORKSPACE:-${HOME}/workspace}/scripts:$PATH"' >> ~/.bashrc
   environment:
     - key: TMUX_SESSION_NAME
       value: sindri-workspace
@@ -62,10 +62,10 @@ validate:
 
 remove:
   paths:
-    - /workspace/config/tmux.conf
-    - /workspace/scripts/tmux-workspace.sh
-    - /workspace/scripts/tmux-helpers.sh
-    - /workspace/scripts/tmux-auto-start.sh
+    - ~/config/tmux.conf
+    - ~/scripts/tmux-workspace.sh
+    - ~/scripts/tmux-helpers.sh
+    - ~/scripts/tmux-auto-start.sh
     - ~/.tmux.conf
   confirmation: true
 

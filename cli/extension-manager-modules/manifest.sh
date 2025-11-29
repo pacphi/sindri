@@ -2,9 +2,16 @@
 # manifest.sh - Manifest management (declarative)
 
 MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${MODULE_DIR}/../../docker/lib/common.sh"
 
-MANIFEST_FILE="${WORKSPACE_MANIFEST:-/workspace/.system/manifest}/active-extensions.yaml"
+# Detect environment and source common functions
+if [[ -f "/docker/lib/common.sh" ]]; then
+    source /docker/lib/common.sh
+else
+    source "${MODULE_DIR}/../../docker/lib/common.sh"
+fi
+
+# WORKSPACE_MANIFEST is set by common.sh (sourced above)
+MANIFEST_FILE="${WORKSPACE_MANIFEST}/active-extensions.yaml"
 
 # Read manifest
 read_manifest() {
@@ -59,6 +66,11 @@ add_to_manifest() {
         return 1
     fi
 
+    # Ensure manifest file exists before modifying
+    if [[ ! -f "$MANIFEST_FILE" ]]; then
+        initialize_manifest
+    fi
+
     # Check if already in manifest
     local exists
     exists=$(load_yaml "$MANIFEST_FILE" ".extensions[] | select(.name == \"$ext_name\")" 2>/dev/null || echo "")
@@ -73,6 +85,7 @@ add_to_manifest() {
     fi
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Added $ext_name to manifest"
+    return 0
 }
 
 # Remove extension from manifest
@@ -97,6 +110,7 @@ remove_from_manifest() {
     yq eval -i ".extensions[] |= (select(.name == \"$ext_name\").active = false)" "$MANIFEST_FILE"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Deactivated $ext_name in manifest"
+    return 0
 }
 
 # List extensions from manifest

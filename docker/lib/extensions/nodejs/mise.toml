@@ -4,4 +4,4 @@ node = "lts"
 [env]
 NODE_ENV = "development"
 NPM_CONFIG_PREFIX = "~/.npm-global"
-PATH_add = ["~/.npm-global/bin"]
+_.path = ["~/.npm-global/bin"]

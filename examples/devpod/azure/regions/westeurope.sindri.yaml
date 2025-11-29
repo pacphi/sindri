@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod Azure West Europe
+# Azure VM in West Europe (Netherlands)
+version: "1.0"
+name: sindri-test-devpod-azure-westeurope
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: azure
+    azure:
+      location: westeurope
+      vmSize: Standard_D4s_v3
+      diskSize: 40

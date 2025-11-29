@@ -1,27 +1,48 @@
 # Extension Catalog
 
-Comprehensive guide to all available Sindri extensions.
+Comprehensive guide to all available Sindri extensions. Each extension is documented in detail in the [extensions/](extensions/) directory.
 
 ## Extension System Overview
 
 Extensions are YAML-defined packages that install and configure development tools. Each extension:
 
 - Declares metadata, dependencies, and requirements
-- Uses declarative installation methods (mise, apt, npm, binary, script)
+- Uses declarative installation methods (mise, apt, npm, binary, script, hybrid)
 - Validates successful installation
 - Integrates with the extension manifest system
+- Tracks installed software via Bill of Materials (BOM)
+
+## Quick Start
+
+```bash
+# Install a single extension
+extension-manager install nodejs
+
+# Install a profile (bundle of extensions)
+extension-manager install-profile fullstack
+
+# List available extensions
+extension-manager list
+
+# Check extension status
+extension-manager status nodejs
+```
 
 ## Extension Profiles
 
-Pre-configured bundles for common workflows:
+Pre-configured bundles for common workflows. Profiles make it easy to set up complete development environments.
 
-| Profile        | Extensions                                         | Use Case                         |
-| -------------- | -------------------------------------------------- | -------------------------------- |
-| **minimal**    | nodejs, python                                     | Lightweight scripting            |
-| **fullstack**  | nodejs, python, docker, postgres, nodejs-devtools  | Web development                  |
-| **ai-dev**     | nodejs, python, ai-toolkit, openskills, monitoring | AI development                   |
-| **systems**    | rust, golang, docker, infra-tools                  | Systems programming              |
-| **enterprise** | All languages + infrastructure                     | Complete development environment |
+| Profile           | Extensions                                                                                                                                                 | Use Case                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **minimal**       | nodejs, python                                                                                                                                             | Lightweight scripting        |
+| **fullstack**     | nodejs, python, docker, nodejs-devtools                                                                                                                    | Web development              |
+| **ai-dev**        | nodejs, python, ai-toolkit, openskills, monitoring                                                                                                         | AI/ML development            |
+| **anthropic-dev** | agent-manager, ai-toolkit, claude-code-mux, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, ruvnet-aliases, tmux-workspace | Anthropic/Claude development |
+| **systems**       | rust, golang, docker, infra-tools                                                                                                                          | Systems programming          |
+| **enterprise**    | All languages + infrastructure                                                                                                                             | Complete environment         |
+| **data-science**  | python, monitoring                                                                                                                                         | Data analysis                |
+| **devops**        | docker, infra-tools, cloud-tools, monitoring                                                                                                               | Infrastructure               |
+| **mobile**        | nodejs                                                                                                                                                     | Mobile development (WIP)     |
 
 ### Using Profiles
 
@@ -31,523 +52,110 @@ extensions:
   profile: fullstack
 ```
 
-Or install via CLI:
+Or via CLI:
 
 ```bash
 extension-manager install-profile fullstack
 ```
 
-## Base System Extensions
-
-Pre-installed in all environments:
-
-### workspace-structure
-
-**Category:** base
-**Description:** Base directory structure for user workspace
-
-Creates:
-
-- `/workspace/projects` - User projects
-- `/workspace/config` - Configuration files
-- `/workspace/bin` - User binaries
-- `/workspace/.local` - Local installations
-- `/workspace/.config` - Tool configs
-- `/workspace/.system` - Extension state
-
-**No installation required** - automatically configured at first boot.
-
-### mise-config
-
-**Category:** base
-**Description:** mise tool version manager configuration
-
-Provides declarative tool management via [mise](https://mise.jdx.dev/).
-
-**Pre-installed** in base image.
-
-## Language Runtimes
-
-### nodejs
-
-**Category:** language
-**Installation:** mise
-**Disk Space:** 600 MB
-
-Node.js LTS runtime with npm.
-
-**Installed tools:**
-
-- `node` - Node.js runtime
-- `npm` - Package manager
-
-**Configuration:**
-
-```yaml
-# mise.toml
-[tools]
-node = "lts"
-```
-
-### python
-
-**Category:** language
-**Installation:** mise
-**Disk Space:** 800 MB
-
-Python 3.13 with pipx tools.
-
-**Installed tools:**
-
-- `python` - Python 3.13
-- `pip` - Package installer
-- `pipx` - Install Python applications
-- `virtualenv` - Virtual environments
-- `poetry` - Dependency management
-- `flake8` - Linter
-- `mypy` - Type checker
-- `black` - Code formatter
-- `jupyterlab` - Interactive notebooks
-- `uv` - Fast Python package installer
-
-### golang
-
-**Category:** language
-**Installation:** mise
-**Disk Space:** 500 MB
-
-Go 1.24 with development tools.
-
-**Installed tools:**
-
-- `go` - Go compiler
-- `gopls` - Language server
-- `delve` - Debugger
-- `goimports` - Import formatter
-- `golangci-lint` - Linter
-- `air` - Live reload
-- `goreleaser` - Release automation
-
-### rust
-
-**Category:** language
-**Installation:** mise
-**Disk Space:** 1000 MB
-
-Rust stable toolchain with cargo utilities.
-
-**Installed tools:**
-
-- `rustc` - Rust compiler
-- `cargo` - Package manager
-- `rustfmt` - Code formatter
-- `clippy` - Linter
-- `ripgrep` - Fast grep alternative
-- `fd-find` - Fast find alternative
-- `exa` - Modern ls replacement
-- `bat` - Cat with syntax highlighting
-- `tokei` - Code statistics
-
-### ruby
-
-**Category:** language
-**Installation:** mise
-**Disk Space:** 400 MB
-
-Ruby 3.4 with gems.
-
-**Installed tools:**
-
-- `ruby` - Ruby interpreter
-- `gem` - Package manager
-- `bundler` - Dependency management
-- `rubocop` - Linter and formatter
-
-**Configuration:**
-
-```yaml
-# mise.toml
-[tools]
-ruby = "3.4"
-```
-
-### jvm
-
-**Category:** language
-**Installation:** script (SDKMAN)
-**Disk Space:** 800 MB
-
-Java, Kotlin, Scala via SDKMAN.
-
-**Installed tools:**
-
-- `java` - Java 21 LTS
-- `javac` - Java compiler
-- `gradle` - Build tool
-- `maven` - Build tool
-- `kotlin` - Kotlin compiler
-- `scala` - Scala compiler
-
-**Dependencies:** None
-
-### dotnet
-
-**Category:** language
-**Installation:** script (Microsoft installer)
-**Disk Space:** 1200 MB
-
-.NET SDK 9.0 and 8.0.
-
-**Installed tools:**
-
-- `dotnet` - .NET CLI
-- SDK 9.0 (current)
-- SDK 8.0 (LTS)
-
-**Configuration:**
-
-- `Directory.Build.props` - Global MSBuild props
-- `nuget.config` - NuGet configuration
-- `.editorconfig` - Editor settings
-- `global.json` - SDK version pinning
-
-### php
-
-**Category:** language
-**Installation:** apt + script
-**Disk Space:** 300 MB
-
-PHP 8.4 with Composer.
-
-**Installed tools:**
-
-- `php` - PHP 8.4
-- `composer` - Dependency manager
-- `php-cs-fixer` - Code style fixer
-
-**Configuration:**
-
-```ini
-# development.ini
-display_errors = On
-error_reporting = E_ALL
-```
-
-## Development Tools
-
-### nodejs-devtools
-
-**Category:** dev-tools
-**Installation:** mise (npm)
-**Dependencies:** nodejs
-**Disk Space:** 300 MB
-
-Node.js development tools.
-
-**Installed tools:**
-
-- `typescript` - TypeScript compiler
-- `eslint` - JavaScript linter
-- `prettier` - Code formatter
-- `nodemon` - Auto-restart server
-- `goalie` - Package update manager
-
-**Configuration:**
-
-```yaml
-# .eslintrc.yml
-extends:
-  - eslint:recommended
-```
-
-### github-cli
-
-**Category:** dev-tools
-**Installation:** apt
-**Disk Space:** 50 MB
-
-GitHub CLI for repository management.
-
-**Installed tools:**
-
-- `gh` - GitHub CLI
-
-**Usage:**
-
-```bash
-gh auth login
-gh repo create
-gh pr create
-```
-
-### docker
-
-**Category:** infrastructure
-**Installation:** apt (Docker Engine)
-**Disk Space:** 500 MB
-
-Docker Engine for containerization.
-
-**Installed tools:**
-
-- `docker` - Docker CLI
-- `docker-compose` - Multi-container orchestration
-
-**Configuration:** Docker daemon runs as service.
-
-### playwright
-
-**Category:** dev-tools
-**Installation:** npm
-**Dependencies:** nodejs
-**Disk Space:** 800 MB
-
-Browser automation testing framework.
-
-**Installed tools:**
-
-- `playwright` - Browser automation
-- Chromium, Firefox, WebKit browsers
-
-**Configuration:**
-
-```typescript
-// playwright.config.ts
-export default {
-  testDir: "./tests",
-  use: {
-    headless: true,
-  },
-};
-```
-
-## AI Tools
-
-### ai-toolkit
-
-**Category:** ai
-**Installation:** hybrid (multiple methods)
-**Dependencies:** nodejs, python
-**Disk Space:** 2000 MB
-
-Comprehensive AI coding assistants.
-
-**Installed tools:**
-
-- **Codex** - OpenAI Codex integration
-- **Gemini** - Google Gemini CLI
-- **Ollama** - Local LLM runtime
-- **Fabric** - AI pattern executor
-- **Hector** - Code review assistant
-- **Droid** - Android AI helper
-- **AWS Q** - AWS code assistant
-- **GitHub Copilot** - GitHub Copilot CLI
-- **Grok** - xAI Grok integration
-
-**Configuration:** Each tool has dedicated setup. See [ai-toolkit/README.md](../docker/lib/extensions/ai-toolkit/README.md)
-
-### openskills
-
-**Category:** ai
-**Installation:** script
-**Dependencies:** nodejs
-**Disk Space:** 100 MB
-
-Claude Code skills management system.
-
-**Installed tools:**
-
-- `openskills` - Skills CLI for Claude Code
-
-**Usage:**
-
-```bash
-openskills install skill-name
-openskills list
-openskills update skill-name
-```
-
-### claude-marketplace
-
-**Category:** ai
-**Installation:** script
-**Dependencies:** None
-**Disk Space:** 50 MB
-
-Claude Code plugin marketplace integration.
-
-**Configuration:**
-
-- `marketplaces.yml` - Plugin sources
-- `default-settings.json` - Default Claude settings
-
-### claude-auth-with-api-key
-
-**Category:** ai
-**Installation:** script
-**Dependencies:** None
-**Disk Space:** 10 MB
-
-Claude Code API key authentication wrapper.
-
-**Usage:** Automatically wraps `claude` command to use API key instead of session auth.
-
-**Environment:** Requires `ANTHROPIC_API_KEY` secret.
-
-### agent-manager
-
-**Category:** ai
-**Installation:** script
-**Dependencies:** None
-**Disk Space:** 20 MB
-
-Agent orchestration and management.
-
-**Installed tools:**
-
-- Agent search and discovery
-- Agent execution tracking
-
-## Infrastructure Tools
-
-### infra-tools
-
-**Category:** infrastructure
-**Installation:** mise
-**Disk Space:** 1000 MB
-
-Infrastructure as code and orchestration tools.
-
-**Installed tools:**
-
-- `terraform` - Infrastructure provisioning
-- `ansible` - Configuration management
-- `kubectl` - Kubernetes CLI
-- `helm` - Kubernetes package manager
-- `k9s` - Kubernetes TUI
-- `kubectx` - Kubernetes context switcher
-
-**Configuration:**
-
-```yaml
-# mise.toml
-[tools]
-terraform = "latest"
-kubectl = "latest"
-helm = "latest"
-```
-
-### cloud-tools
-
-**Category:** infrastructure
-**Installation:** hybrid (apt + script)
-**Disk Space:** 800 MB
-
-Cloud provider CLIs.
-
-**Installed tools:**
-
-- `aws` - AWS CLI
-- `az` - Azure CLI
-- `gcloud` - Google Cloud CLI
-
-**SSH Configuration:** Includes SSH wrapper for cloud instances.
-
-## Monitoring & Utilities
-
-### monitoring
-
-**Category:** monitoring
-**Installation:** apt
-**Disk Space:** 200 MB
-
-System monitoring and observability tools.
-
-**Installed tools:**
-
-- `htop` - Process viewer
-- `iotop` - I/O monitor
-- `nethogs` - Network monitor
-- `glances` - System monitor
-- `dstat` - System statistics
-
-### tmux-workspace
-
-**Category:** utilities
-**Installation:** apt + script
-**Disk Space:** 50 MB
-
-Tmux session management for persistent workflows.
-
-**Installed tools:**
-
-- `tmux` - Terminal multiplexer
-- Workspace management scripts
-
-**Configuration:**
-
-```bash
-# Auto-start tmux on login
-tmux attach || tmux new-session
-```
-
-**Aliases:**
-
-```bash
-tw-create <name>   # Create workspace
-tw-switch <name>   # Switch workspace
-tw-list            # List workspaces
-```
-
-### guacamole
-
-**Category:** utilities
-**Installation:** hybrid
-**Disk Space:** 400 MB
-
-Apache Guacamole for remote desktop access (VNC/RDP).
-
-**Installed tools:**
-
-- Guacamole server
-- VNC/RDP support
-
-**Configuration:**
-
-- `guacamole.properties` - Server config
-- `user-mapping.xml` - User authentication
-
-### xfce-ubuntu
-
-**Category:** utilities
-**Installation:** apt
-**Disk Space:** 1500 MB
-
-XFCE desktop environment for graphical applications.
-
-**Installed tools:**
-
-- XFCE desktop
-- VNC server for remote access
-- Common GUI applications
-
-## Utility Aliases
-
-### ruvnet-aliases
-
-**Category:** utilities
-**Installation:** script
-**Disk Space:** 5 MB
-
-Workflow automation aliases for agentic and Claude flows.
-
-**Installed aliases:**
-
-- Agentic flow commands
-- Claude flow shortcuts
-- Productivity helpers
-
-**Source:** [ruvnet/agentic-flow](https://github.com/ruvnet/agentic-flow) and [ruvnet/claude-flow](https://github.com/ruvnet/claude-flow)
+## Extensions by Category
+
+### Base System
+
+Pre-installed foundational extensions:
+
+| Extension           | Description               | Docs                                                        |
+| ------------------- | ------------------------- | ----------------------------------------------------------- |
+| workspace-structure | Base directory structure  | [WORKSPACE-STRUCTURE.md](extensions/WORKSPACE-STRUCTURE.md) |
+| mise-config         | Mise tool version manager | [MISE-CONFIG.md](extensions/MISE-CONFIG.md)                 |
+
+### Language Runtimes
+
+| Extension | Language                  | Version    | Docs                              |
+| --------- | ------------------------- | ---------- | --------------------------------- |
+| nodejs    | Node.js                   | LTS        | [NODEJS.md](extensions/NODEJS.md) |
+| python    | Python                    | 3.13       | [PYTHON.md](extensions/PYTHON.md) |
+| golang    | Go                        | 1.24       | [GOLANG.md](extensions/GOLANG.md) |
+| rust      | Rust                      | stable     | [RUST.md](extensions/RUST.md)     |
+| ruby      | Ruby                      | 3.4.7      | [RUBY.md](extensions/RUBY.md)     |
+| jvm       | Java/Kotlin/Scala/Clojure | Java 21    | [JVM.md](extensions/JVM.md)       |
+| dotnet    | .NET                      | 10.0 & 8.0 | [DOTNET.md](extensions/DOTNET.md) |
+| php       | PHP                       | 8.4        | [PHP.md](extensions/PHP.md)       |
+
+### Development Tools
+
+| Extension          | Purpose                        | Docs                                                      |
+| ------------------ | ------------------------------ | --------------------------------------------------------- |
+| nodejs-devtools    | TypeScript, ESLint, Prettier   | [NODEJS-DEVTOOLS.md](extensions/NODEJS-DEVTOOLS.md)       |
+| github-cli         | GitHub CLI (`gh`)              | [GITHUB-CLI.md](extensions/GITHUB-CLI.md)                 |
+| playwright         | Browser automation testing     | [PLAYWRIGHT.md](extensions/PLAYWRIGHT.md)                 |
+| tmux-workspace     | Terminal multiplexer workspace | [TMUX-WORKSPACE.md](extensions/TMUX-WORKSPACE.md)         |
+| claude-marketplace | Claude Code plugin marketplace | [CLAUDE-MARKETPLACE.md](extensions/CLAUDE-MARKETPLACE.md) |
+
+### AI Tools
+
+| Extension                | Purpose                                     | Docs                                                                  |
+| ------------------------ | ------------------------------------------- | --------------------------------------------------------------------- |
+| ai-toolkit               | AI CLI tools (Ollama, Gemini, Fabric, etc.) | [AI-TOOLKIT.md](extensions/AI-TOOLKIT.md)                             |
+| openskills               | Claude Code skills manager                  | [OPENSKILLS.md](extensions/OPENSKILLS.md)                             |
+| claude-code-mux          | AI routing proxy (18+ providers)            | [CLAUDE-CODE-MUX.md](extensions/CLAUDE-CODE-MUX.md)                   |
+| claude-auth-with-api-key | Claude API key authentication               | [CLAUDE-AUTH-WITH-API-KEY.md](extensions/CLAUDE-AUTH-WITH-API-KEY.md) |
+| agent-manager            | AI agent orchestration                      | [AGENT-MANAGER.md](extensions/AGENT-MANAGER.md)                       |
+| ruvnet-aliases           | Claude Flow & Agentic Flow aliases          | [RUVNET-ALIASES.md](extensions/RUVNET-ALIASES.md)                     |
+
+### Infrastructure
+
+| Extension   | Purpose                                          | Docs                                        |
+| ----------- | ------------------------------------------------ | ------------------------------------------- |
+| docker      | Docker Engine & Compose                          | [DOCKER.md](extensions/DOCKER.md)           |
+| infra-tools | Terraform, Kubernetes, Ansible, Pulumi + 10 more | [INFRA-TOOLS.md](extensions/INFRA-TOOLS.md) |
+| cloud-tools | AWS, Azure, GCP, OCI, Alibaba, DO, IBM CLIs      | [CLOUD-TOOLS.md](extensions/CLOUD-TOOLS.md) |
+| monitoring  | Claude usage monitoring (uv, claude-monitor)     | [MONITORING.md](extensions/MONITORING.md)   |
+
+### Desktop & Utilities
+
+| Extension   | Purpose                                | Docs                                        |
+| ----------- | -------------------------------------- | ------------------------------------------- |
+| guacamole   | Web-based remote desktop (SSH/RDP/VNC) | [GUACAMOLE.md](extensions/GUACAMOLE.md)     |
+| xfce-ubuntu | XFCE desktop with xRDP                 | [XFCE-UBUNTU.md](extensions/XFCE-UBUNTU.md) |
+
+## Extension Features
+
+### Upgrade Strategies
+
+Extensions support different upgrade approaches:
+
+| Strategy    | Description               | Extensions                                                                        |
+| ----------- | ------------------------- | --------------------------------------------------------------------------------- |
+| `automatic` | Auto-upgrade via mise/apt | dotnet, ruby, nodejs-devtools, monitoring, xfce-ubuntu, agent-manager, openskills |
+| `manual`    | Custom upgrade script     | ai-toolkit, cloud-tools, jvm, infra-tools, claude-code-mux, playwright, guacamole |
+| `none`      | No upgrades (static)      | github-cli, claude-marketplace, ruvnet-aliases, workspace-structure, mise-config  |
+
+### Secret Requirements
+
+Some extensions require API keys or credentials:
+
+| Extension                | Required Secrets                        |
+| ------------------------ | --------------------------------------- |
+| ai-toolkit               | `google_gemini_api_key`, `grok_api_key` |
+| cloud-tools              | AWS, Azure credentials                  |
+| claude-auth-with-api-key | `anthropic_api_key`                     |
+| github-cli               | `github_token`                          |
+| nodejs-devtools          | `perplexity_api_key` (optional)         |
+
+### Removal Confirmation
+
+These extensions require confirmation before removal (destructive operation):
+
+- docker
+- infra-tools
+- cloud-tools
+- claude-code-mux
+- openskills
+- agent-manager
+- tmux-workspace
+- guacamole
+- xfce-ubuntu
 
 ## Extension Management
 
@@ -581,10 +189,10 @@ extension-manager validate nodejs
 extension-manager validate-all
 ```
 
-### Extension Status
+### Upgrade Extensions
 
 ```bash
-extension-manager status nodejs
+extension-manager upgrade nodejs
 ```
 
 ### Remove Extensions
@@ -595,26 +203,27 @@ extension-manager remove nodejs
 
 ## Extension Dependencies
 
-Some extensions require other extensions to be installed first. Dependencies are automatically resolved:
+Dependencies are automatically resolved and installed:
 
-- **nodejs-devtools** → requires nodejs
-- **playwright** → requires nodejs
-- **openskills** → requires nodejs
-- **cloud-tools** → provides SSH environment templates
-
-## Creating Custom Extensions
-
-See [Extension Authoring Guide](EXTENSION_AUTHORING.md) for creating your own extensions.
+```text
+nodejs-devtools → nodejs
+playwright → nodejs
+openskills → nodejs
+ai-toolkit → nodejs, python, golang, github-cli
+monitoring → python
+```
 
 ## Extension Storage
 
-- Extension definitions: `/docker/lib/extensions/`
-- Installed manifest: `/workspace/.system/manifest/`
-- Extension logs: `/workspace/.system/logs/`
-- BOM tracking: `/workspace/.system/bom/`
+| Location                       | Purpose                       |
+| ------------------------------ | ----------------------------- |
+| `/docker/lib/extensions/`      | Extension definitions (YAML)  |
+| `/workspace/.system/manifest/` | Installed extension manifests |
+| `/workspace/.system/logs/`     | Extension installation logs   |
+| `/workspace/.system/bom/`      | Bill of Materials tracking    |
 
 ## Related Documentation
 
-- [Extension Authoring](EXTENSION_AUTHORING.md)
-- [Bill of Materials](BOM.md)
-- [Architecture](ARCHITECTURE.md)
+- [Extension Authoring](EXTENSION_AUTHORING.md) - Create custom extensions
+- [Architecture](ARCHITECTURE.md) - System architecture
+- [Configuration](CONFIGURATION.md) - sindri.yaml configuration

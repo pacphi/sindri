@@ -4,7 +4,7 @@
 # Lines starting with # are comments and will be ignored.
 #
 # To use this file:
-# 1. Copy to /workspace/marketplaces.ci.yml: cp /workspace/marketplaces.ci.yml.example /workspace/marketplaces.ci.yml
+# 1. Copy to $WORKSPACE/marketplaces.ci.yml: cp $WORKSPACE/marketplaces.ci.yml.example $WORKSPACE/marketplaces.ci.yml
 # 2. Run: extension-manager install claude-marketplace
 #
 # See:

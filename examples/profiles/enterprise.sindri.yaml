@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Enterprise Profile Example
+# Full enterprise development (all languages and cloud tools)
+version: "1.0"
+name: sindri-profile-enterprise
+
+deployment:
+  provider: fly
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  profile: enterprise
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: performance
+    autoStopMachines: true
+    autoStartMachines: true

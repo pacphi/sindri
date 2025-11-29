@@ -26,13 +26,13 @@ install:
 configure:
   templates:
     - source: prettierrc.template
-      destination: /workspace/templates/.prettierrc
+      destination: ~/templates/.prettierrc
       mode: overwrite
     - source: eslintrc.template
-      destination: /workspace/templates/.eslintrc.json
+      destination: ~/templates/.eslintrc.json
       mode: overwrite
     - source: tsconfig.template
-      destination: /workspace/templates/tsconfig.json
+      destination: ~/templates/tsconfig.json
       mode: overwrite
 
 validate:
@@ -65,9 +65,9 @@ remove:
       - npm:goalie
       - npm:research-swarm
   paths:
-    - /workspace/templates/.prettierrc
-    - /workspace/templates/.eslintrc.json
-    - /workspace/templates/tsconfig.json
+    - ~/templates/.prettierrc
+    - ~/templates/.eslintrc.json
+    - ~/templates/tsconfig.json
 
 upgrade:
   strategy: automatic

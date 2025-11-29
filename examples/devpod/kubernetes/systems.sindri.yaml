@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - DevPod Kubernetes Systems Programming
+# Systems programming (Rust/Go) in Kubernetes pod
+version: "1.0"
+name: sindri-devpod-k8s-systems
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 30GB
+
+extensions:
+  profile: systems
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: devpod-workspaces
+      storageClass: fast-ssd

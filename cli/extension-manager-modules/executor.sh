@@ -2,7 +2,14 @@
 # executor.sh - YAML execution engine (declarative)
 
 MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${MODULE_DIR}/../../docker/lib/common.sh"
+
+# Detect environment and source common functions
+if [[ -f "/docker/lib/common.sh" ]]; then
+    source /docker/lib/common.sh
+else
+    source "${MODULE_DIR}/../../docker/lib/common.sh"
+fi
+
 source "${MODULE_DIR}/dependency.sh"
 source "${MODULE_DIR}/bom.sh"
 
@@ -144,8 +151,16 @@ install_via_mise() {
     local ext_yaml="$2"
     local ext_dir
     ext_dir=$(dirname "$ext_yaml")
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
     print_status "Installing $ext_name via mise..."
+
+    # Check if mise is available
+    if ! command_exists mise; then
+        print_error "mise is not available"
+        return 1
+    fi
 
     # Get config file
     local config_file
@@ -163,25 +178,31 @@ install_via_mise() {
         return 1
     fi
 
-    # Copy mise config to user's config directory
-    ensure_directory "${WORKSPACE:-/workspace}/.config/mise/conf.d"
-    cp "$config_path" "${WORKSPACE:-/workspace}/.config/mise/conf.d/${ext_name}.toml"
+    # Copy mise config to user's XDG config directory (not workspace)
+    # Mise looks for configs at $MISE_CONFIG_DIR which is $HOME/.config/mise
+    local mise_conf_dir="${MISE_CONFIG_DIR:-$home_dir/.config/mise}/conf.d"
+    ensure_directory "$mise_conf_dir"
+    cp "$config_path" "$mise_conf_dir/${ext_name}.toml" || {
+        print_error "Failed to copy mise config to $mise_conf_dir"
+        return 1
+    }
 
     # Install tools
-    if command_exists mise; then
-        cd "${WORKSPACE:-/workspace}" || return 1
-        mise install || return 1
+    cd "$workspace" || return 1
 
-        # Reshim if needed
-        local reshim
-        reshim=$(load_yaml "$ext_yaml" '.install.mise.reshimAfterInstall' 2>/dev/null || echo "true")
-
-        if [[ "$reshim" == "true" ]]; then
-            mise reshim
-        fi
-    else
-        print_error "mise is not available"
+    # Run mise install (returns 0 even when "all tools are installed")
+    if ! mise install 2>&1; then
+        print_error "mise install failed"
         return 1
+    fi
+
+    # Reshim if needed - handle errors gracefully
+    local reshim
+    reshim=$(load_yaml "$ext_yaml" '.install.mise.reshimAfterInstall' 2>/dev/null || echo "true")
+
+    if [[ "$reshim" == "true" ]]; then
+        # mise reshim can fail if there's nothing to reshim - that's OK
+        mise reshim 2>/dev/null || true
     fi
 
     return 0
@@ -215,7 +236,7 @@ install_via_apt() {
             fi
 
             if [[ -n "$sources" ]] && [[ "$sources" != "null" ]]; then
-                echo "$sources" >> /etc/apt/sources.list.d/${ext_name}.list
+                echo "$sources" >> "/etc/apt/sources.list.d/${ext_name}.list"
             fi
         done
     fi
@@ -238,6 +259,8 @@ install_via_apt() {
 install_via_binary() {
     local ext_name="$1"
     local ext_yaml="$2"
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
     print_status "Installing $ext_name via binary download..."
 
@@ -250,14 +273,14 @@ install_via_binary() {
         return 1
     fi
 
-    ensure_directory "${WORKSPACE:-/workspace}/bin"
+    ensure_directory "$workspace/bin"
 
     # Download each binary
     for i in $(seq 0 $((downloads_count - 1))); do
         local name url destination extract
         name=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].name")
         url=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].source.url")
-        destination=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].destination" 2>/dev/null || echo "${WORKSPACE:-/workspace}/bin")
+        destination=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].destination" 2>/dev/null || echo "$workspace/bin")
         extract=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].extract" 2>/dev/null || echo "false")
 
         print_status "Downloading $name..."
@@ -375,6 +398,8 @@ configure_extension() {
     local ext_yaml="$2"
     local ext_dir
     ext_dir=$(dirname "$ext_yaml")
+    local home_dir="${HOME:-/alt/home/developer}"
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_status "Configuring $ext_name..."
 
@@ -391,8 +416,11 @@ configure_extension() {
 
             local source_path="$ext_dir/$source"
 
-            # Expand home directory
-            dest="${dest/#\~/${WORKSPACE:-/workspace}}"
+            # Expand home directory (~ means $HOME, not $WORKSPACE)
+            dest="${dest/#\~/$home_dir}"
+
+            # Ensure destination directory exists
+            ensure_directory "$(dirname "$dest")"
 
             case "$mode" in
                 overwrite)
@@ -400,6 +428,10 @@ configure_extension() {
                     ;;
                 append)
                     cat "$source_path" >> "$dest"
+                    ;;
+                *)
+                    print_warning "Unknown template mode: $mode, using overwrite"
+                    cp "$source_path" "$dest"
                     ;;
             esac
         done
@@ -410,6 +442,17 @@ configure_extension() {
     env_count=$(load_yaml "$ext_yaml" '.configure.environment | length' 2>/dev/null || echo "0")
 
     if [[ "$env_count" != "null" ]] && [[ "$env_count" -gt 0 ]]; then
+        # .bashrc lives in $HOME, not $WORKSPACE
+        local bashrc_file="$home_dir/.bashrc"
+
+        # Ensure .bashrc exists
+        if [[ ! -f "$bashrc_file" ]]; then
+            touch "$bashrc_file" 2>/dev/null || {
+                print_warning "Cannot create $bashrc_file - skipping environment configuration"
+                return 0
+            }
+        fi
+
         for i in $(seq 0 $((env_count - 1))); do
             local key value scope
             key=$(load_yaml "$ext_yaml" ".configure.environment[$i].key")
@@ -417,7 +460,10 @@ configure_extension() {
             scope=$(load_yaml "$ext_yaml" ".configure.environment[$i].scope" 2>/dev/null || echo "bashrc")
 
             if [[ "$scope" == "bashrc" ]]; then
-                echo "export ${key}=\"${value}\"" >> "${WORKSPACE:-/workspace}/.bashrc"
+                # Only add if not already present
+                if ! grep -q "^export ${key}=" "$bashrc_file" 2>/dev/null; then
+                    echo "export ${key}=\"${value}\"" >> "$bashrc_file"
+                fi
             fi
         done
     fi
@@ -459,6 +505,7 @@ validate_extension() {
 remove_extension() {
     local ext_name="$1"
     local ext_yaml="$2"
+    local home_dir="${HOME:-/alt/home/developer}"
 
     print_header "Removing extension: $ext_name"
 
@@ -480,12 +527,12 @@ remove_extension() {
         return 0
     fi
 
-    # Remove mise config
+    # Remove mise config (from XDG config dir, not workspace)
     local has_mise_removal
     has_mise_removal=$(load_yaml "$ext_yaml" '.remove.mise' 2>/dev/null || echo "null")
 
     if [[ "$has_mise_removal" != "null" ]]; then
-        rm -f "${WORKSPACE:-/workspace}/.config/mise/conf.d/${ext_name}.toml"
+        rm -f "${MISE_CONFIG_DIR:-$home_dir/.config/mise}/conf.d/${ext_name}.toml"
     fi
 
     # Remove paths
@@ -493,8 +540,8 @@ remove_extension() {
     paths=$(load_yaml "$ext_yaml" '.remove.paths[]' 2>/dev/null || true)
 
     for path in $paths; do
-        # Expand home directory
-        path="${path/#\~/${WORKSPACE:-/workspace}}"
+        # Expand home directory (~ means $HOME, not $WORKSPACE)
+        path="${path/#\~/$home_dir}"
         if [[ -e "$path" ]]; then
             rm -rf "$path"
         fi

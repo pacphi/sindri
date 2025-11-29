@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod GCP Fullstack Example
+# Full-stack development on GCP Compute Engine
+version: "1.0"
+name: sindri-devpod-gcp-fullstack
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: fullstack
+
+providers:
+  devpod:
+    type: gcp
+    gcp:
+      zone: us-central1-a
+      machineType: n2-standard-4
+      diskSize: 60

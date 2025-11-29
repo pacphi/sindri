@@ -2,13 +2,20 @@
 # validator.sh - Validation logic (declarative)
 
 MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${MODULE_DIR}/../../docker/lib/common.sh"
+
+# Detect environment and source common functions
+if [[ -f "/docker/lib/common.sh" ]]; then
+    source /docker/lib/common.sh
+else
+    source "${MODULE_DIR}/../../docker/lib/common.sh"
+fi
+
 source "${MODULE_DIR}/executor.sh"
 
 # Validate all installed extensions
 validate_all_extensions() {
     local extensions
-    extensions=$(find "${WORKSPACE_SYSTEM:-/workspace/.system}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
+    extensions=$(find "${WORKSPACE_SYSTEM}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
 
     if [[ -z "$extensions" ]]; then
         print_warning "No extensions installed"

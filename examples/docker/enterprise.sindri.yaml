@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - Docker Enterprise Example
+# Local enterprise development with all languages
+version: "1.0"
+name: sindri-docker-enterprise
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 16GB
+    cpus: 8
+  volumes:
+    workspace:
+      size: 100GB
+
+extensions:
+  profile: enterprise
+
+providers:
+  docker-compose:
+    ports:
+      - "3000:3000" # Node.js
+      - "8000:8000" # Python
+      - "8080:8080" # Java/Go
+      - "5000:5000" # .NET

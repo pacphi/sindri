@@ -109,6 +109,11 @@ extensions:
     description: Claude Code marketplace configuration
     dependencies: []
 
+  claude-code-mux:
+    category: ai
+    description: High-performance AI routing proxy with failover across 18+ providers
+    dependencies: []
+
   agent-manager:
     category: ai
     description: Claude agent management
@@ -125,9 +130,9 @@ extensions:
     description: htop, ctop, glances
     dependencies: []
 
-  # Desktop/Utilities
+  # Desktop
   guacamole:
-    category: dekstop
+    category: desktop
     description: Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC)
     dependencies: []
 

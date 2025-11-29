@@ -25,7 +25,7 @@ validate:
 
 remove:
   paths:
-    - /workspace/bin/claude
+    - ~/bin/claude
 
 upgrade:
   strategy: none

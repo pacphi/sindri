@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Fly.io Mobile Development Example
+# Mobile development backend on Fly.io
+version: "1.0"
+name: sindri-fly-mobile
+
+deployment:
+  provider: fly
+  resources:
+    memory: 6GB
+    cpus: 3
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: mobile
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: performance
+    autoStopMachines: true
+    autoStartMachines: true

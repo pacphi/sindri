@@ -1,0 +1,26 @@
+---
+# Sindri Configuration - DevPod AWS Minimal
+# Basic AWS EC2 development environment
+version: "1.0"
+name: sindri-test-devpod-aws-minimal
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: aws
+    aws:
+      region: us-west-2
+      instanceType: c5.xlarge
+      diskSize: 40
+      useSpot: false

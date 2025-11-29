@@ -1,0 +1,246 @@
+name: Deploy DevPod Workspace
+description: Deploys a DevPod workspace to the configured provider
+
+inputs:
+  workspace-id:
+    description: Unique identifier for the workspace
+    required: true
+  provider-id:
+    description: Provider ID to use for deployment
+    required: true
+  source:
+    description: Source repository or path for the workspace
+    required: false
+    default: "."
+  devcontainer-path:
+    description: Path to devcontainer.json file
+    required: false
+    default: ".devcontainer/devcontainer.json"
+  ide:
+    description: IDE to use (vscode, openvscode, none)
+    required: false
+    default: "none"
+  prebuild-repository:
+    description: Container registry for prebuild images
+    required: false
+    default: ""
+  dotfiles-url:
+    description: URL to dotfiles repository
+    required: false
+    default: ""
+  dotfiles-script:
+    description: Script to run for dotfiles installation
+    required: false
+    default: ""
+  env-vars:
+    description: JSON object with environment variables
+    required: false
+    default: "{}"
+  git-credentials:
+    description: Inject git credentials into workspace
+    required: false
+    default: "true"
+  docker-credentials:
+    description: Inject docker credentials into workspace
+    required: false
+    default: "true"
+  wait-for-ready:
+    description: Wait for workspace to be ready
+    required: false
+    default: "true"
+  timeout-seconds:
+    description: Timeout for workspace readiness
+    required: false
+    default: "600"
+
+outputs:
+  workspace-status:
+    description: Workspace deployment status
+    value: ${{ steps.deploy.outputs.status }}
+  workspace-url:
+    description: URL to access the workspace (if applicable)
+    value: ${{ steps.deploy.outputs.url }}
+  machine-id:
+    description: Machine/container ID for the workspace
+    value: ${{ steps.deploy.outputs.machine-id }}
+  ssh-command:
+    description: SSH command to connect to workspace
+    value: ${{ steps.connect.outputs.ssh-command }}
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare devcontainer configuration
+      shell: bash
+      run: |
+        echo "::group::Preparing devcontainer configuration"
+
+        # Ensure devcontainer directory exists
+        mkdir -p .devcontainer
+
+        # If using Sindri, generate devcontainer.json from sindri.yaml
+        if [[ -f "sindri.yaml" ]] && [[ ! -f "${{ inputs.devcontainer-path }}" ]]; then
+          echo "Generating devcontainer.json from sindri.yaml"
+
+          # Extract configuration
+          NAME=$(yq '.name' sindri.yaml)
+          PROFILE=$(yq '.extensions.profile // "minimal"' sindri.yaml)
+
+          # Generate devcontainer.json
+          cat > "${{ inputs.devcontainer-path }}" << 'EODC'
+        {
+          "name": "${NAME}",
+          "image": "sindri:latest",
+          "workspaceFolder": "/alt/home/developer/workspace",
+          "workspaceMount": "source=${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
+
+          "customizations": {
+            "vscode": {
+              "extensions": [
+                "ms-vscode.vscode-typescript-next",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode"
+              ],
+              "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash"
+              }
+            }
+          },
+
+          "features": {
+            "ghcr.io/devcontainers/features/github-cli:1": {},
+            "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+          },
+
+          "postCreateCommand": "extension-manager install-profile ${PROFILE}",
+          "remoteUser": "developer"
+        }
+        EODC
+        fi
+
+        echo "::endgroup::"
+
+    - name: Deploy workspace
+      id: deploy
+      shell: bash
+      run: |
+        echo "::group::Deploying DevPod workspace"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+        PROVIDER_ID="${{ inputs.provider-id }}"
+        SOURCE="${{ inputs.source }}"
+        IDE="${{ inputs.ide }}"
+
+        # Build devpod up command
+        CMD="devpod up"
+        CMD="$CMD --id $WORKSPACE_ID"
+        CMD="$CMD --provider $PROVIDER_ID"
+        CMD="$CMD --ide $IDE"
+
+        # Add optional parameters
+        if [[ -f "${{ inputs.devcontainer-path }}" ]]; then
+          CMD="$CMD --devcontainer-path ${{ inputs.devcontainer-path }}"
+        fi
+
+        if [[ -n "${{ inputs.prebuild-repository }}" ]]; then
+          CMD="$CMD --prebuild-repository ${{ inputs.prebuild-repository }}"
+        fi
+
+        if [[ -n "${{ inputs.dotfiles-url }}" ]]; then
+          CMD="$CMD --dotfiles ${{ inputs.dotfiles-url }}"
+          if [[ -n "${{ inputs.dotfiles-script }}" ]]; then
+            CMD="$CMD --dotfiles-script ${{ inputs.dotfiles-script }}"
+          fi
+        fi
+
+        if [[ "${{ inputs.git-credentials }}" == "false" ]]; then
+          CMD="$CMD --no-inject-git-credentials"
+        fi
+
+        if [[ "${{ inputs.docker-credentials }}" == "false" ]]; then
+          CMD="$CMD --no-inject-docker-credentials"
+        fi
+
+        # Add environment variables
+        ENV_VARS='${{ inputs.env-vars }}'
+        if [[ "$ENV_VARS" != "{}" ]]; then
+          echo "$ENV_VARS" | jq -r 'to_entries[] | "--env \(.key)=\(.value)"' | \
+          while read -r env; do
+            CMD="$CMD $env"
+          done
+        fi
+
+        # Add source at the end
+        CMD="$CMD $SOURCE"
+
+        # Execute deployment
+        echo "Running: $CMD"
+        eval "$CMD"
+
+        # Get workspace status
+        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.status' || echo "unknown")
+
+        # Get machine ID if available
+        MACHINE_ID=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.provider.machineID' || echo "")
+
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+        echo "machine-id=$MACHINE_ID" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Wait for workspace ready
+      if: inputs.wait-for-ready == 'true'
+      shell: bash
+      run: |
+        echo "::group::Waiting for workspace to be ready"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+        TIMEOUT="${{ inputs.timeout-seconds }}"
+        START_TIME=$(date +%s)
+
+        while true; do
+          CURRENT_TIME=$(date +%s)
+          ELAPSED=$((CURRENT_TIME - START_TIME))
+
+          if [[ $ELAPSED -gt $TIMEOUT ]]; then
+            echo "❌ Timeout waiting for workspace to be ready"
+            exit 1
+          fi
+
+          STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.status' || echo "unknown")
+          echo "Status: $STATUS (elapsed: ${ELAPSED}s)"
+
+          if [[ "$STATUS" == "Running" ]] || [[ "$STATUS" == "running" ]]; then
+            echo "✅ Workspace is ready"
+            break
+          elif [[ "$STATUS" == "Error" ]] || [[ "$STATUS" == "error" ]]; then
+            echo "❌ Workspace deployment failed"
+            devpod logs "$WORKSPACE_ID" || true
+            exit 1
+          fi
+
+          sleep 10
+        done
+
+        echo "::endgroup::"
+
+    - name: Get connection information
+      id: connect
+      shell: bash
+      run: |
+        echo "::group::Getting connection information"
+
+        WORKSPACE_ID="${{ inputs.workspace-id }}"
+
+        # Get SSH command
+        SSH_CMD=$(devpod ssh "$WORKSPACE_ID" --print-command 2>/dev/null || echo "")
+
+        if [[ -n "$SSH_CMD" ]]; then
+          echo "SSH Command: $SSH_CMD"
+          echo "ssh-command=$SSH_CMD" >> $GITHUB_OUTPUT
+        fi
+
+        # Get workspace info
+        devpod list --output json | jq ".[] | select(.id == \"$WORKSPACE_ID\")" || true
+
+        echo "::endgroup::"

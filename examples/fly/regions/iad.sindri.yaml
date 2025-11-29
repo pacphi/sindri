@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Fly.io Virginia Region
+# Deploy to Ashburn/Virginia (iad) data center
+version: "1.0"
+name: sindri-test-fly-iad
+
+deployment:
+  provider: fly
+  resources:
+    memory: 2GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: minimal
+
+providers:
+  fly:
+    region: iad # Virginia region
+    cpuKind: shared
+    autoStopMachines: false
+    autoStartMachines: true

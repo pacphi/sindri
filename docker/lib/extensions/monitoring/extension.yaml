@@ -5,7 +5,7 @@ metadata:
   description: >-
     Claude monitoring and usage tracking tools (UV, claude-monitor,
     claude-usage-cli)
-  category: infrastructure
+  category: monitoring
   author: Sindri Team
   dependencies:
     - python

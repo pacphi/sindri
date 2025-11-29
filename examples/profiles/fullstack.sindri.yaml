@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Fullstack Profile Example
+# Full-stack web development (nodejs, python, docker, nodejs-devtools)
+version: "1.0"
+name: sindri-profile-fullstack
+
+deployment:
+  provider: fly
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: fullstack
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: performance
+    autoStopMachines: true
+    autoStartMachines: true

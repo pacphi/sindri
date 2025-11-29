@@ -1,0 +1,30 @@
+---
+# Sindri Configuration - Custom Polyglot Backend Example
+# Multi-language backend (Python, Go, Rust) without frontend tools
+version: "1.0"
+name: sindri-custom-polyglot-backend
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  active:
+    - python
+    - golang
+    - rust
+    - docker
+    - cloud-tools
+
+providers:
+  devpod:
+    type: aws
+    aws:
+      region: us-east-1
+      instanceType: t3.xlarge
+      diskSize: 80

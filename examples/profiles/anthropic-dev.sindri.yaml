@@ -1,0 +1,24 @@
+---
+# Sindri Configuration - Anthropic Development Profile Example
+# AI development with Anthropic toolset (12 extensions including claude-code-mux, agent-manager)
+version: "1.0"
+name: sindri-profile-anthropic-dev
+
+deployment:
+  provider: fly
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  profile: anthropic-dev
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: performance
+    autoStopMachines: false # Keep running for active development
+    autoStartMachines: true

@@ -1,0 +1,25 @@
+---
+# Sindri Configuration - DevPod Azure Minimal
+# Basic Azure VM development environment
+version: "1.0"
+name: sindri-test-devpod-azure-minimal
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: minimal
+
+providers:
+  devpod:
+    type: azure
+    azure:
+      location: eastus
+      vmSize: Standard_D4s_v3
+      diskSize: 40

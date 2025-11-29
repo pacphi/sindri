@@ -2,7 +2,14 @@
 # reporter.sh - Status reporting (declarative)
 
 MODULE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${MODULE_DIR}/../../docker/lib/common.sh"
+
+# Detect environment and source common functions
+if [[ -f "/docker/lib/common.sh" ]]; then
+    source /docker/lib/common.sh
+else
+    source "${MODULE_DIR}/../../docker/lib/common.sh"
+fi
+
 source "${MODULE_DIR}/dependency.sh"
 
 # List all available extensions from registry
@@ -160,7 +167,7 @@ show_extension_info() {
     if is_extension_installed "$ext_name"; then
         echo "Status: Installed"
         local install_date
-        install_date=$(cat "${WORKSPACE_SYSTEM:-/workspace/.system}/installed/$ext_name.installed" 2>/dev/null || echo "unknown")
+        install_date=$(cat "${WORKSPACE_SYSTEM}/installed/$ext_name.installed" 2>/dev/null || echo "unknown")
         echo "Installed: $install_date"
     else
         echo "Status: Not installed"
@@ -237,8 +244,8 @@ show_all_status() {
     fi
 
     # Count installed
-    if [[ -d "${WORKSPACE_SYSTEM:-/workspace/.system}/installed" ]]; then
-        installed_count=$(find "${WORKSPACE_SYSTEM:-/workspace/.system}/installed" -name "*.installed" | wc -l)
+    if [[ -d "${WORKSPACE_SYSTEM}/installed" ]]; then
+        installed_count=$(find "${WORKSPACE_SYSTEM}/installed" -name "*.installed" | wc -l)
     fi
 
     echo "Installed: $installed_count / $total_count"
@@ -248,7 +255,7 @@ show_all_status() {
     if [[ $installed_count -gt 0 ]]; then
         echo "Installed extensions:"
         local installed_exts
-        installed_exts=$(find "${WORKSPACE_SYSTEM:-/workspace/.system}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
+        installed_exts=$(find "${WORKSPACE_SYSTEM}/installed" -name "*.installed" -exec basename {} .installed \; 2>/dev/null)
 
         for ext_name in $installed_exts; do
             local category
