@@ -516,7 +516,7 @@ plan() {
             echo "  • Install extension profile: $profile"
             echo ""
             echo "Commands to be executed:"
-            echo "  docker build -t sindri:latest -f docker/Dockerfile ."
+            echo "  docker build -t sindri:latest -f Dockerfile ."
             echo "  docker compose up -d"
             echo ""
             echo "Note: Docker provider always rebuilds to ensure fresh source code."

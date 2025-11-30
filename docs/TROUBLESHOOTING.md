@@ -565,10 +565,10 @@ pnpm build 2>&1 | tee build.log
 docker system prune -a
 
 # Rebuild without cache
-docker build --no-cache -t sindri:local -f docker/Dockerfile .
+docker build --no-cache -t sindri:local -f Dockerfile .
 
 # Check for syntax errors in Dockerfile
-docker build --dry-run -f docker/Dockerfile .
+docker build --dry-run -f Dockerfile .
 ```
 
 ### Extension build fails in Dockerfile

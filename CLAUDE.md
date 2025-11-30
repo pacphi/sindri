@@ -84,6 +84,7 @@ pnpm build:latest  # Build as sindri:latest
 
 ```text
 sindri/
+├── Dockerfile                     # Multi-stage optimized build
 ├── cli/                           # CLI entry points
 │   ├── sindri                     # Main deployment CLI
 │   ├── extension-manager          # Extension management CLI
@@ -97,7 +98,6 @@ sindri/
 │       └── bom.sh                 # Bill of Materials tracking
 │
 ├── docker/
-│   ├── Dockerfile                 # Multi-stage optimized build
 │   ├── lib/                       # Immutable system files (baked into image)
 │   │   ├── extensions/            # 27+ YAML extension definitions
 │   │   ├── schemas/               # JSON schemas for validation

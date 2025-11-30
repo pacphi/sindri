@@ -225,7 +225,7 @@ MEMORY_MB=$(echo "$MEMORY" | sed 's/GB/*1024/;s/MB//' | bc)
 cat << EODC
 {
   "name": "${NAME}",
-  "dockerFile": "../docker/Dockerfile",
+  "dockerFile": "../Dockerfile",
   "workspaceFolder": "/alt/home/developer/workspace",
   "workspaceMount": "source=\${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
 

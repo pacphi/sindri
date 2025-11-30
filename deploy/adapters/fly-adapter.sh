@@ -139,7 +139,7 @@ primary_region = "${REGION}"
 
 # Build configuration
 [build]
-  dockerfile = "docker/Dockerfile"
+  dockerfile = "Dockerfile"
 
 # Note: No [processes] section needed - Docker's CMD runs the entrypoint
 # which handles SSH server startup via START_SSHD=true environment variable

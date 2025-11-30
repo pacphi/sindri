@@ -111,7 +111,7 @@ mkdir -p "$OUTPUT_DIR"
 # Build image unless skipped or config-only
 if [[ "$CONFIG_ONLY" != "true" ]] && [[ "$SKIP_BUILD" != "true" ]]; then
     echo "==> Building Docker image with latest source..."
-    docker build -t sindri:latest -f docker/Dockerfile .
+    docker build -t sindri:latest -f Dockerfile .
 fi
 
 # Resolve secrets (skip in config-only mode)

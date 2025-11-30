@@ -9,7 +9,7 @@ inputs:
   dockerfile:
     description: Path to Dockerfile
     required: false
-    default: docker/Dockerfile
+    default: Dockerfile
   context:
     description: Build context path
     required: false

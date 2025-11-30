@@ -72,9 +72,9 @@ RUN curl https://mise.run | sh && \
     mise use -g node@lts python@3.13
 
 # Copy extension system and CLI tools
-COPY docker/lib /docker/lib
-COPY docker/scripts /docker/scripts
+COPY docker/ /docker/
 COPY cli /docker/cli
+COPY deploy /docker/deploy
 
 # Set permissions for scripts and CLI tools
 RUN chmod -R +r /docker/lib && \
