@@ -95,5 +95,5 @@ RUN echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 USER developer
 WORKDIR ${WORKSPACE}
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["/bin/bash"]
+# CMD-only for Fly.io compatibility (entrypoint defaults to bash if no args)
+CMD ["/entrypoint.sh"]

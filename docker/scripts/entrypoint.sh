@@ -183,5 +183,9 @@ if is_sshd_command "$@"; then
     fi
 fi
 
-# Execute command or shell (default behavior for Docker)
-exec "$@"
+# Execute command or default to bash (for Docker interactive use)
+if [[ $# -eq 0 ]]; then
+    exec /bin/bash
+else
+    exec "$@"
+fi
