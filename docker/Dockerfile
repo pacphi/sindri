@@ -76,10 +76,8 @@ COPY docker/lib /docker/lib
 COPY docker/scripts /docker/scripts
 COPY cli /docker/cli
 
-# Set up entrypoint and CLI tools
-COPY docker/scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && \
-    chmod -R +r /docker/lib && \
+# Set permissions for scripts and CLI tools
+RUN chmod -R +r /docker/lib && \
     find /docker/lib -type f -exec chmod 644 {} \; && \
     find /docker/lib -type d -exec chmod 755 {} \; && \
     find /docker/scripts -type f -name "*.sh" -exec chmod 755 {} \; && \
@@ -95,5 +93,5 @@ RUN echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 USER developer
 WORKDIR ${WORKSPACE}
 
-# CMD-only for Fly.io compatibility (entrypoint defaults to bash if no args)
-CMD ["/entrypoint.sh"]
+# Use natural path from COPY (matches sindri-legacy pattern for Fly.io compatibility)
+CMD ["/docker/scripts/entrypoint.sh"]
