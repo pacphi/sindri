@@ -141,12 +141,10 @@ primary_region = "${REGION}"
 [build]
   dockerfile = "docker/Dockerfile"
 
-# Process groups - define explicit long-running process
-# This ensures the container stays running and SSH is accessible
-# Note: Don't include /entrypoint.sh here - it's already set as ENTRYPOINT in Dockerfile
-# See: https://fly.io/docs/launch/processes/
-[processes]
-  app = "/usr/sbin/sshd -D -e"
+# Note: No [processes] section needed - Docker's CMD runs the entrypoint
+# which handles SSH server startup via START_SSHD=true environment variable
+# This matches the sindri-legacy pattern and avoids ENTRYPOINT/process conflicts
+# See: https://fly.io/docs/blueprints/opensshd/
 
 # Environment variables
 [env]
@@ -170,7 +168,6 @@ primary_region = "${REGION}"
   # This ensures $HOME is persistent and contains workspace, config, and tool data
   source = "home_data"
   destination = "/alt/home/developer"
-  processes = ["app"]
   # Initial size matches the volume size specified during creation
   initial_size = "${VOLUME_SIZE}gb"
   # Keep snapshots for a week
@@ -188,7 +185,6 @@ primary_region = "${REGION}"
 [[services]]
   protocol = "tcp"
   internal_port = 2222
-  processes = ["app"]
 
   # Cost optimization settings
   auto_stop_machines = "${AUTO_STOP_MODE}"
@@ -208,8 +204,7 @@ primary_region = "${REGION}"
 
 # VM resource allocation
 # Start small and scale up if needed
-[[vm]]
-  processes = ["app"]
+[vm]
   # CPU and memory settings (adjust based on needs)
   cpu_kind = "${CPU_KIND}"     # Options: "shared", "performance"
   cpus = ${CPUS}               # Number of CPUs
@@ -232,7 +227,6 @@ primary_region = "${REGION}"
     interval = "15s"
     timeout = "5s"
     grace_period = "30s"
-    processes = ["app"]
 
 # Volume configuration reference
 # Volume is automatically created by fly deploy if it doesn't exist
@@ -241,9 +235,10 @@ primary_region = "${REGION}"
 # Pricing: ~\$0.15/GB/month
 
 # Process configuration notes:
-# The [processes] section defines "app" which runs the SSH server via entrypoint
-# This ensures the container stays running and is accessible via SSH
-# See: https://fly.io/docs/launch/processes/
+# No [processes] section is used - Docker's CMD handles container startup
+# The entrypoint script detects START_SSHD=true and starts the SSH server
+# This avoids conflicts between Docker ENTRYPOINT and Fly.io process commands
+# See: https://fly.io/docs/blueprints/opensshd/
 
 # Cost optimization notes:
 # 1. auto_stop_machines = "${AUTO_STOP_MODE}" - Suspends when idle, fastest restart

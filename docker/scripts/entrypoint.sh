@@ -171,6 +171,11 @@ if is_sshd_command "$@"; then
     # If the command is just sshd with options, run it via sudo
     if [[ "$1" == *"sshd"* ]] || [[ "$1" == "/usr/sbin/sshd" ]]; then
         exec sudo "$@"
+    elif [[ "${START_SSHD:-}" == "true" ]]; then
+        # For Fly.io: START_SSHD=true means run sshd in foreground
+        # This keeps the container alive and accepts SSH connections
+        # -D: Don't daemonize, -e: Log to stderr
+        exec sudo /usr/sbin/sshd -D -e
     else
         # Start sshd in the background and run the provided command
         sudo /usr/sbin/sshd
