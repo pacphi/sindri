@@ -143,9 +143,10 @@ primary_region = "${REGION}"
 
 # Process groups - define explicit long-running process
 # This ensures the container stays running and SSH is accessible
+# Note: Don't include /entrypoint.sh here - it's already set as ENTRYPOINT in Dockerfile
 # See: https://fly.io/docs/launch/processes/
 [processes]
-  app = "/entrypoint.sh /usr/sbin/sshd -D -e"
+  app = "/usr/sbin/sshd -D -e"
 
 # Environment variables
 [env]
