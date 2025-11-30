@@ -1,5 +1,5 @@
 name: Deploy to Fly.io
-description: Deploys Sindri to Fly.io infrastructure
+description: Deploys Sindri to Fly.io infrastructure using pre-built images
 
 inputs:
   app-name:
@@ -44,6 +44,14 @@ inputs:
     description: Deployment timeout in seconds
     required: false
     default: "300"
+  image-tag:
+    description: Tag for the Docker image (defaults to git SHA)
+    required: false
+    default: ""
+  image:
+    description: Pre-built Docker image to deploy (e.g., sindri:ci-abc123)
+    required: false
+    default: ""
 
 outputs:
   machine-id:
@@ -119,6 +127,45 @@ runs:
 
         echo "::endgroup::"
 
+    - name: Push image to Fly.io registry
+      id: push-image
+      if: inputs.image != ''
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Pushing image to Fly.io registry"
+
+        APP_NAME="${{ inputs.app-name }}"
+        SOURCE_IMAGE="${{ inputs.image }}"
+        IMAGE_TAG="${{ inputs.image-tag }}"
+
+        # Use provided tag or extract from source image
+        if [[ -z "$IMAGE_TAG" ]]; then
+          IMAGE_TAG="$(echo "$SOURCE_IMAGE" | cut -d: -f2)"
+          [[ -z "$IMAGE_TAG" || "$IMAGE_TAG" == "$SOURCE_IMAGE" ]] && IMAGE_TAG="latest"
+        fi
+
+        REGISTRY_IMAGE="registry.fly.io/${APP_NAME}:${IMAGE_TAG}"
+
+        echo "Source image: $SOURCE_IMAGE"
+        echo "Target image: $REGISTRY_IMAGE"
+
+        # Authenticate Docker with Fly.io registry
+        flyctl auth docker
+
+        # Tag the pre-built image for Fly.io registry
+        docker tag "$SOURCE_IMAGE" "$REGISTRY_IMAGE"
+
+        # Push to Fly.io registry
+        echo "Pushing to Fly.io registry..."
+        docker push "$REGISTRY_IMAGE"
+
+        echo "registry-image=$REGISTRY_IMAGE" >> $GITHUB_OUTPUT
+        echo "✅ Image pushed: $REGISTRY_IMAGE"
+
+        echo "::endgroup::"
+
     - name: Deploy application
       id: deploy
       shell: bash
@@ -130,6 +177,7 @@ runs:
         APP_NAME="${{ inputs.app-name }}"
         STRATEGY="${{ inputs.deployment-strategy }}"
         TIMEOUT="${{ inputs.timeout-seconds }}"
+        REGISTRY_IMAGE="${{ steps.push-image.outputs.registry-image }}"
 
         # Show fly.toml for debugging
         echo "=== fly.toml contents ==="
@@ -141,20 +189,33 @@ runs:
           export INSTALL_PROFILE="${{ inputs.extension-profile }}"
         fi
 
-        # Deploy with specified strategy
-        # --ha=false: Single machine (appropriate for testing)
-        # --wait-timeout: Maximum time to wait for deployment
+        # Deploy with pre-built image or build locally
         echo "Deploying with strategy: $STRATEGY"
 
         set +e  # Don't exit on error, capture it
-        DEPLOY_OUTPUT=$(flyctl deploy \
-          --app "$APP_NAME" \
-          --ha=false \
-          --vm-memory "${{ inputs.vm-memory }}" \
-          --strategy "$STRATEGY" \
-          --wait-timeout "${TIMEOUT}s" \
-          --yes \
-          --verbose 2>&1 | tee /tmp/fly-deploy.log)
+        if [[ -n "$REGISTRY_IMAGE" ]]; then
+          echo "Deploying pre-built image: $REGISTRY_IMAGE"
+          DEPLOY_OUTPUT=$(flyctl deploy \
+            --app "$APP_NAME" \
+            --image "$REGISTRY_IMAGE" \
+            --ha=false \
+            --vm-memory "${{ inputs.vm-memory }}" \
+            --strategy "$STRATEGY" \
+            --wait-timeout "${TIMEOUT}s" \
+            --yes \
+            --verbose 2>&1 | tee /tmp/fly-deploy.log)
+        else
+          echo "No pre-built image provided, building with --local-only"
+          DEPLOY_OUTPUT=$(flyctl deploy \
+            --app "$APP_NAME" \
+            --local-only \
+            --ha=false \
+            --vm-memory "${{ inputs.vm-memory }}" \
+            --strategy "$STRATEGY" \
+            --wait-timeout "${TIMEOUT}s" \
+            --yes \
+            --verbose 2>&1 | tee /tmp/fly-deploy.log)
+        fi
         DEPLOY_EXIT_CODE=$?
         set -e
 

@@ -271,6 +271,20 @@ jobs:
           echo "container-name=$CONTAINER" >> $GITHUB_OUTPUT
 
       # --- Fly.io Provider ---
+      - name: Download Docker image artifact (Fly.io)
+        if: inputs.provider == 'fly' && inputs.image-artifact != ''
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ inputs.image-artifact }}
+
+      - name: Load Docker image from artifact (Fly.io)
+        if: inputs.provider == 'fly' && inputs.image-artifact != ''
+        run: |
+          if [[ -f "sindri-image.tar.gz" ]]; then
+            gunzip -c sindri-image.tar.gz | docker load
+            echo "✅ Image loaded: ${{ inputs.image }}"
+          fi
+
       - name: Setup Fly.io provider
         if: inputs.provider == 'fly'
         uses: ./.github/actions/providers/fly/setup
@@ -286,6 +300,7 @@ jobs:
           app-name: ${{ steps.setup.outputs.app-name }}
           fly-api-token: ${{ secrets.FLY_API_TOKEN }}
           extension-profile: ${{ inputs.extension-profile }}
+          image: ${{ inputs.image-artifact != '' && inputs.image || '' }}
 
       # --- DevPod AWS Provider ---
       - name: Setup DevPod AWS provider
