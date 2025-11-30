@@ -129,6 +129,12 @@ runs:
 
         APP_NAME="${{ inputs.app-name }}"
         STRATEGY="${{ inputs.deployment-strategy }}"
+        TIMEOUT="${{ inputs.timeout-seconds }}"
+
+        # Show fly.toml for debugging
+        echo "=== fly.toml contents ==="
+        cat fly.toml
+        echo "========================="
 
         # Set environment variables
         if [[ -n "${{ inputs.extension-profile }}" ]]; then
@@ -136,18 +142,31 @@ runs:
         fi
 
         # Deploy with specified strategy
+        # --ha=false: Single machine (appropriate for testing)
+        # --wait-timeout: Maximum time to wait for deployment
         echo "Deploying with strategy: $STRATEGY"
 
+        set +e  # Don't exit on error, capture it
         DEPLOY_OUTPUT=$(flyctl deploy \
           --app "$APP_NAME" \
-          --vm-size "${{ inputs.vm-size }}" \
+          --ha=false \
           --vm-memory "${{ inputs.vm-memory }}" \
           --strategy "$STRATEGY" \
+          --wait-timeout "${TIMEOUT}s" \
+          --yes \
           --verbose 2>&1 | tee /tmp/fly-deploy.log)
+        DEPLOY_EXIT_CODE=$?
+        set -e
+
+        if [[ $DEPLOY_EXIT_CODE -ne 0 ]]; then
+          echo "::warning::Deploy command exited with code $DEPLOY_EXIT_CODE"
+          echo "Deploy output:"
+          cat /tmp/fly-deploy.log
+        fi
 
         # Extract deployment information
         DEPLOYMENT_ID=$(echo "$DEPLOY_OUTPUT" | grep -oP 'Deployment ID: \K[^ ]+' || echo "unknown")
-        MACHINE_ID=$(flyctl machine list -a "$APP_NAME" --json | jq -r '.[0].id' || echo "")
+        MACHINE_ID=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null | jq -r '.[0].id // empty' || echo "")
         APP_URL="https://${APP_NAME}.fly.dev"
 
         echo "machine-id=$MACHINE_ID" >> $GITHUB_OUTPUT
@@ -170,28 +189,46 @@ runs:
         TIMEOUT="${{ inputs.timeout-seconds }}"
         START_TIME=$(date +%s)
 
+        # Initial wait for machine to be created
+        sleep 5
+
         while true; do
           CURRENT_TIME=$(date +%s)
           ELAPSED=$((CURRENT_TIME - START_TIME))
 
           if [[ $ELAPSED -gt $TIMEOUT ]]; then
-            echo "❌ Timeout waiting for deployment"
+            echo "❌ Timeout waiting for deployment after ${ELAPSED}s"
+            echo ""
+            echo "=== Diagnostic Information ==="
+            echo "App status:"
+            flyctl status -a "$APP_NAME" 2>&1 || true
+            echo ""
+            echo "Machine list:"
+            flyctl machine list -a "$APP_NAME" 2>&1 || true
+            echo ""
+            echo "Recent logs:"
+            flyctl logs -a "$APP_NAME" --no-tail 2>&1 | tail -50 || true
+            echo "=============================="
             exit 1
           fi
 
           # Check machine status
-          STATUS=$(flyctl machine list -a "$APP_NAME" --json | \
-            jq -r '.[0].state' || echo "unknown")
+          MACHINE_JSON=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null || echo "[]")
+          STATUS=$(echo "$MACHINE_JSON" | jq -r '.[0].state // "no-machine"')
+          MACHINE_ID=$(echo "$MACHINE_JSON" | jq -r '.[0].id // "none"')
 
-          echo "Machine status: $STATUS (elapsed: ${ELAPSED}s)"
+          echo "Machine $MACHINE_ID status: $STATUS (elapsed: ${ELAPSED}s)"
 
           if [[ "$STATUS" == "started" ]]; then
-            echo "✅ Deployment successful"
+            echo "✅ Deployment successful - machine is running"
             break
-          elif [[ "$STATUS" == "failed" ]] || [[ "$STATUS" == "destroyed" ]]; then
-            echo "❌ Deployment failed"
-            flyctl logs -a "$APP_NAME" || true
+          elif [[ "$STATUS" == "failed" ]] || [[ "$STATUS" == "destroyed" ]] || [[ "$STATUS" == "crashed" ]]; then
+            echo "❌ Deployment failed with status: $STATUS"
+            echo "Fetching logs for diagnostics..."
+            flyctl logs -a "$APP_NAME" --no-tail 2>&1 | tail -100 || true
             exit 1
+          elif [[ "$STATUS" == "no-machine" ]]; then
+            echo "⏳ Waiting for machine to be created..."
           fi
 
           sleep 10

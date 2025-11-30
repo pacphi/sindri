@@ -125,8 +125,8 @@ runs:
         # Generate fly.toml if it doesn't exist
         if [[ ! -f "fly.toml" ]]; then
           cat > fly.toml << EOF
-        app = "$APP_NAME"
-        primary_region = "$REGION"
+        app = "${APP_NAME}"
+        primary_region = "${REGION}"
         kill_signal = "SIGTERM"
         kill_timeout = "5s"
 
@@ -141,11 +141,17 @@ runs:
           destination = "/alt/home/developer"
           initial_size = "10gb"
 
-        # No services/ports exposed - Fly.io SSH proxy handles access via flyctl ssh console
-        # The container runs bash, not sshd - Fly's SSH proxy connects directly to the machine
+        # Process to keep container running for flyctl ssh console access
+        # Fly.io requires a long-running process for the machine to reach "started" state
+        [processes]
+          app = "tail -f /dev/null"
         EOF
 
-          echo "Created fly.toml"
+          # Remove leading whitespace from heredoc (TOML requires no leading spaces)
+          sed -i 's/^        //' fly.toml
+
+          echo "Created fly.toml:"
+          cat fly.toml
         else
           echo "Using existing fly.toml"
         fi
