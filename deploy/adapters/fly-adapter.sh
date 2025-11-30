@@ -1,24 +1,87 @@
 #!/bin/bash
 # Fly.io adapter - Enhanced with comprehensive fly.toml generation
+#
+# Usage:
+#   fly-adapter.sh [OPTIONS] [sindri.yaml]
+#
+# Options:
+#   --config-only    Generate fly.toml without deploying
+#   --output-dir     Directory for generated files (default: current directory)
+#   --output-vars    Output parsed variables for CI integration (JSON to stdout)
+#   --app-name       Override app name from sindri.yaml
+#   --help           Show this help message
+#
+# Examples:
+#   fly-adapter.sh                           # Deploy using ./sindri.yaml
+#   fly-adapter.sh --config-only             # Just generate fly.toml
+#   fly-adapter.sh --output-dir /tmp myapp.yaml  # Generate to specific directory
 
 set -e
 
 # shellcheck disable=SC2034  # May be used in future adapter implementations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-SINDRI_YAML="${1:-sindri.yaml}"
+
+# Default values
+SINDRI_YAML=""
+CONFIG_ONLY=false
+OUTPUT_DIR="."
+OUTPUT_VARS=false
+APP_NAME_OVERRIDE=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --config-only)
+            CONFIG_ONLY=true
+            shift
+            ;;
+        --output-dir)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        --output-vars)
+            OUTPUT_VARS=true
+            shift
+            ;;
+        --app-name)
+            APP_NAME_OVERRIDE="$2"
+            shift 2
+            ;;
+        --help)
+            head -20 "$0" | tail -18
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            SINDRI_YAML="$1"
+            shift
+            ;;
+    esac
+done
+
+# Default sindri.yaml if not specified
+SINDRI_YAML="${SINDRI_YAML:-sindri.yaml}"
 
 if [[ ! -f "$SINDRI_YAML" ]]; then
-    echo "Error: $SINDRI_YAML not found"
+    echo "Error: $SINDRI_YAML not found" >&2
     exit 1
 fi
 
 # Source common utilities and secrets manager
 source "$BASE_DIR/docker/lib/common.sh"
-source "$BASE_DIR/cli/secrets-manager"
+if [[ "$CONFIG_ONLY" != "true" ]]; then
+    source "$BASE_DIR/cli/secrets-manager"
+fi
 
 # Parse sindri.yaml
 NAME=$(yq '.name' "$SINDRI_YAML")
+# Apply app name override if provided
+[[ -n "$APP_NAME_OVERRIDE" ]] && NAME="$APP_NAME_OVERRIDE"
+
 MEMORY=$(yq '.deployment.resources.memory // "2GB"' "$SINDRI_YAML" | sed 's/GB/*1024/;s/MB//')
 CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
 REGION=$(yq '.providers.fly.region // "sjc"' "$SINDRI_YAML")
@@ -42,8 +105,29 @@ SWAP_MB=$((MEMORY_MB / 2))
 AUTO_STOP_MODE="suspend"
 [[ "$AUTO_STOP" == "false" ]] && AUTO_STOP_MODE="off"
 
+# Output variables for CI integration if requested
+if [[ "$OUTPUT_VARS" == "true" ]]; then
+    cat << EOJSON
+{
+  "name": "$NAME",
+  "region": "$REGION",
+  "organization": "$ORG",
+  "profile": "$PROFILE",
+  "memory_mb": $MEMORY_MB,
+  "cpus": $CPUS,
+  "volume_size": $VOLUME_SIZE,
+  "ssh_port": $SSH_EXTERNAL_PORT,
+  "cpu_kind": "$CPU_KIND"
+}
+EOJSON
+    exit 0
+fi
+
+# Ensure output directory exists
+mkdir -p "$OUTPUT_DIR"
+
 # Generate fly.toml with comprehensive configuration
-cat > fly.toml << EOFT
+cat > "$OUTPUT_DIR/fly.toml" << EOFT
 # fly.toml configuration for Sindri
 # AI-powered cloud development forge with cost-effective remote development,
 # scale-to-zero capabilities, and persistent storage
@@ -209,6 +293,15 @@ primary_region = "${REGION}"
 # 6. Resume: VM starts automatically on next connection
 EOFT
 
+# If config-only mode, just report success and exit
+if [[ "$CONFIG_ONLY" == "true" ]]; then
+    echo "==> Generated fly.toml at $OUTPUT_DIR/fly.toml"
+    echo "    App name: $NAME"
+    echo "    Region: $REGION"
+    echo "    Profile: $PROFILE"
+    exit 0
+fi
+
 echo "==> Deploying to Fly.io..."
 
 # Create app if not exists
@@ -230,7 +323,10 @@ else
     print_warning "Secret resolution failed, continuing without secrets..."
 fi
 
-# Deploy
+# Deploy (use generated fly.toml from output directory if different from current)
+if [[ "$OUTPUT_DIR" != "." ]]; then
+    cp "$OUTPUT_DIR/fly.toml" ./fly.toml
+fi
 flyctl deploy --ha=false --wait-timeout 600
 
 echo "==> Deployed to Fly.io"
