@@ -296,11 +296,23 @@ When adding features:
 
 ### GitHub Actions Workflows
 
-- **ci.yml** - Main CI orchestrator (linting, building, testing)
+- **ci.yml** - Main CI orchestrator with unified provider testing
 - **validate-yaml.yml** - Comprehensive YAML schema validation
-- **test-provider.yml** - Provider-specific deployment testing
-- **test-extensions.yml** - Extension testing across providers
+- **test-provider.yml** - Full test suite per provider (CLI + extensions + integration)
 - **release.yml** - Release automation
+
+### Unified Provider Testing
+
+The CI runs **identical tests on every selected provider**, ensuring consistent quality:
+
+```text
+FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
+  ├─> CLI tests (sindri, extension-manager commands)
+  ├─> Extension tests (validate, install profile)
+  └─> Run test suites (smoke, integration, full)
+```
+
+This catches provider-specific bugs that would be missed by Docker-only testing.
 
 ### Pre-Commit Checks
 

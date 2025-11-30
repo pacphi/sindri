@@ -18,13 +18,12 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 ```text
 .github/
 ├── workflows/                    # GitHub Workflows
-│   ├── ci.yml                    # Main CI orchestrator
+│   ├── ci.yml                    # Main CI orchestrator (unified provider testing)
 │   ├── validate-yaml.yml         # Comprehensive YAML validation
 │   ├── test-sindri-config.yml    # Config-driven testing
 │   ├── deploy-sindri.yml         # Reusable deployment
 │   ├── teardown-sindri.yml       # Reusable teardown
-│   ├── test-provider.yml         # Provider-specific testing
-│   ├── test-extensions.yml       # Extension testing (multi-provider)
+│   ├── test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
 │   ├── manual-deploy.yml         # Manual deployment workflow
 │   └── release.yml               # Release automation
 │
@@ -88,20 +87,30 @@ test/                             # Test suites
 
 ### Main CI Workflow (`ci.yml`)
 
-The primary CI orchestrator that:
+The primary CI orchestrator with **unified provider testing**:
 
 - Validates shell scripts (shellcheck)
 - Validates markdown (markdownlint)
 - Validates all YAML (via `validate-yaml.yml`)
 - Builds Docker images
-- Tests CLI commands
-- Runs provider and extension tests in parallel
+- Runs **unified provider tests** (CLI + extensions + integration) for each selected provider
+
+**Key Design Principle:** Each provider receives identical test coverage:
+
+```text
+FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
+  └─> test-provider.yml
+      ├─> Phase 1: Deploy infrastructure
+      ├─> Phase 2: CLI tests (sindri, extension-manager)
+      ├─> Phase 3: Extension tests (validate, install profile)
+      ├─> Phase 4: Run test suites (smoke, integration, full)
+      └─> Phase 5: Cleanup
+```
 
 **Triggers:**
 
 - Push to main/develop branches
 - Pull requests
-- Scheduled (nightly)
 - Manual dispatch with provider selection
 
 ### YAML Validation Workflow (`validate-yaml.yml`)
@@ -206,11 +215,40 @@ Two deployment workflows serve different use cases:
 
 ### Provider Test Workflow (`test-provider.yml`)
 
-Provider-specific testing with smoke/integration/full suites.
+**Unified provider testing** that runs the complete test suite for a single provider:
 
-### Extension Test Workflow (`test-extensions.yml`)
+**Test Phases:**
 
-Tests extensions across providers with combination support.
+1. **Infrastructure Deployment** - Sets up Docker/Fly.io/DevPod infrastructure
+2. **CLI Tests** - Uses `test-cli` action to run commands on deployed infrastructure
+3. **Extension Tests** - Validates and installs extensions on the provider
+4. **Integration Tests** - Smoke and full test suites
+5. **Cleanup** - Tears down infrastructure (unless skip-cleanup is set)
+
+**Supported Providers:**
+
+- `docker` - Local Docker containers
+- `fly` - Fly.io cloud VMs
+- `devpod-aws` - AWS EC2 via DevPod
+- `devpod-gcp` - GCP Compute via DevPod
+- `devpod-azure` - Azure VMs via DevPod
+- `devpod-do` - DigitalOcean Droplets via DevPod
+- `devpod-k8s` - Kubernetes pods via DevPod
+- `devpod-ssh` - SSH hosts via DevPod
+
+**CLI Test Action (`test-cli`):**
+
+The refactored `test-cli` action supports all providers with provider-specific execution:
+
+| Provider     | Execution Method        | Required Credentials                    |
+| ------------ | ----------------------- | --------------------------------------- |
+| `docker`     | `docker exec`           | None                                    |
+| `fly`        | `flyctl ssh console`    | `FLY_API_TOKEN`                         |
+| `devpod-aws` | `devpod exec`           | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| `devpod-gcp` | `devpod exec`           | `GCP_SERVICE_ACCOUNT_KEY`               |
+| `devpod-azure` | `devpod exec`         | `AZURE_CLIENT_ID/SECRET/TENANT_ID`      |
+| `devpod-do`  | `devpod exec`           | `DIGITALOCEAN_TOKEN`                    |
+| `devpod-k8s` | `devpod exec`           | `KUBECONFIG`                            |
 
 ## Test Suites
 
@@ -243,7 +281,7 @@ The CI system supports three test suite levels, selectable via workflow dispatch
 
 **Duration:** 2-5 minutes depending on profile
 
-**When used:** Default for PRs, pushes, and scheduled runs
+**When used:** Default for PRs and pushes
 
 ### Full Tests
 
@@ -260,12 +298,11 @@ The CI system supports three test suite levels, selectable via workflow dispatch
 
 ### Test Suite Selection
 
-| Trigger                     | Default Suite   | Providers Tested                                |
-| --------------------------- | --------------- | ----------------------------------------------- |
-| PR to main/develop          | `integration`   | `["docker"]`                                    |
-| Push to main                | `integration`   | `["docker", "fly"]`                             |
-| Scheduled (nightly 2AM UTC) | `integration`   | `["docker", "fly", "devpod-aws", "kubernetes"]` |
-| Manual dispatch             | User-selectable | User-selectable (default: `docker,fly`)         |
+| Trigger            | Default Suite   | Providers Tested                        |
+| ------------------ | --------------- | --------------------------------------- |
+| PR to main/develop | `integration`   | `["docker"]`                            |
+| Push to main       | `integration`   | `["docker", "fly"]`                     |
+| Manual dispatch    | User-selectable | User-selectable (default: `docker,fly`) |
 
 ## Extension Testing by Provider
 
@@ -285,11 +322,11 @@ Each provider tests a specific set of extensions defined in `.github/test-config
 
 The CI uses different extension matrices based on context (from `.github/test-configs/extensions.yaml`):
 
-| Matrix          | Extensions                             | When Used              |
-| --------------- | -------------------------------------- | ---------------------- |
-| `quick`         | `nodejs`, `python`                     | PRs, branch pushes     |
-| `standard`      | `nodejs`, `python`, `golang`, `docker` | Main branch, manual    |
-| `comprehensive` | All extensions                         | Scheduled nightly runs |
+| Matrix          | Extensions                             | When Used                    |
+| --------------- | -------------------------------------- | ---------------------------- |
+| `quick`         | `nodejs`, `python`                     | PRs, branch pushes           |
+| `standard`      | `nodejs`, `python`, `golang`, `docker` | Main branch, manual dispatch |
+| `comprehensive` | All extensions                         | Manual dispatch (`all`)      |
 
 ### Overriding Test Configuration
 

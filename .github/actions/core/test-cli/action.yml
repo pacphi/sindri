@@ -1,19 +1,85 @@
 name: Test Sindri CLI
-description: Tests the Sindri CLI and extension manager functionality
+description: Tests the Sindri CLI and extension manager functionality across providers
 
 inputs:
   test-commands:
     description: JSON array of CLI commands to test
     required: false
     default: '["sindri --help", "sindri config validate", "extension-manager list"]'
+  provider:
+    description: Provider to use for testing (local, docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s, devpod-ssh)
+    required: false
+    default: "docker"
+
+  # Docker provider options
   test-in-container:
-    description: Whether to test inside a Docker container
+    description: Whether to test inside a Docker container (legacy, use provider=docker)
     required: false
     default: "false"
   image:
     description: Docker image to use for container tests
     required: false
     default: "sindri:latest"
+  container-name:
+    description: Name of running container (for docker provider with existing container)
+    required: false
+    default: ""
+
+  # Fly.io provider options
+  fly-app-name:
+    description: Fly.io app name for fly provider
+    required: false
+    default: ""
+  fly-api-token:
+    description: Fly.io API token
+    required: false
+    default: ""
+
+  # DevPod provider options
+  devpod-workspace-id:
+    description: DevPod workspace ID
+    required: false
+    default: ""
+
+  # DevPod cloud credentials (passed based on provider type)
+  aws-access-key-id:
+    description: AWS access key ID (for devpod-aws)
+    required: false
+    default: ""
+  aws-secret-access-key:
+    description: AWS secret access key (for devpod-aws)
+    required: false
+    default: ""
+  gcp-service-account-key:
+    description: GCP service account key JSON (for devpod-gcp)
+    required: false
+    default: ""
+  azure-client-id:
+    description: Azure client ID (for devpod-azure)
+    required: false
+    default: ""
+  azure-client-secret:
+    description: Azure client secret (for devpod-azure)
+    required: false
+    default: ""
+  azure-tenant-id:
+    description: Azure tenant ID (for devpod-azure)
+    required: false
+    default: ""
+  digitalocean-token:
+    description: DigitalOcean API token (for devpod-do)
+    required: false
+    default: ""
+  kubeconfig:
+    description: Kubernetes config content (for devpod-k8s)
+    required: false
+    default: ""
+  ssh-private-key:
+    description: SSH private key (for devpod-ssh)
+    required: false
+    default: ""
+
+  # Common options
   expected-exit-codes:
     description: JSON object mapping commands to expected exit codes
     required: false
@@ -22,10 +88,10 @@ inputs:
 outputs:
   test-results:
     description: JSON object with test results
-    value: ${{ steps.run-tests.outputs.results }}
+    value: ${{ steps.aggregate.outputs.results }}
   all-passed:
     description: Whether all tests passed
-    value: ${{ steps.run-tests.outputs.all-passed }}
+    value: ${{ steps.aggregate.outputs.all-passed }}
 
 runs:
   using: composite
@@ -34,58 +100,37 @@ runs:
       shell: bash
       run: |
         echo "::group::Setting up test environment"
-
-        # Make CLI scripts executable
-        chmod +x cli/sindri
-        chmod +x cli/extension-manager
-
-        # Add CLI to PATH for testing
+        chmod +x cli/sindri cli/extension-manager
         echo "${{ github.workspace }}/cli" >> $GITHUB_PATH
-
         echo "::endgroup::"
 
-    - name: Run CLI tests
-      id: run-tests
+    # ===========================================
+    # LOCAL PROVIDER - Run tests directly on host
+    # ===========================================
+    - name: Run CLI tests (local)
+      id: test-local
+      if: inputs.provider == 'local'
       shell: bash
       run: |
-        echo "::group::Running CLI tests"
+        echo "::group::Running CLI tests (local)"
 
         COMMANDS='${{ inputs.test-commands }}'
         EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
-        CONTAINER_TEST="${{ inputs.test-in-container }}"
-        IMAGE="${{ inputs.image }}"
 
-        # Initialize results
         RESULTS='{}'
         ALL_PASSED="true"
-
-        # Get command count for iteration
         CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
 
-        # Parse and run each command using index-based iteration to preserve spaces
         for ((i=0; i<CMD_COUNT; i++)); do
           cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
           echo "Testing: $cmd"
-
-          # Get expected exit code (default to 0)
           EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
 
-          # Run the command
-          if [[ "$CONTAINER_TEST" == "true" ]]; then
-            # Run in container
-            set +e
-            OUTPUT=$(docker run --rm "$IMAGE" bash -c "$cmd" 2>&1)
-            EXIT_CODE=$?
-            set -e
-          else
-            # Run locally
-            set +e
-            OUTPUT=$(eval "$cmd" 2>&1)
-            EXIT_CODE=$?
-            set -e
-          fi
+          set +e
+          OUTPUT=$(eval "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
 
-          # Check result
           if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
             STATUS="passed"
             echo "  ✅ Passed (exit code: $EXIT_CODE)"
@@ -96,23 +141,575 @@ runs:
             echo "  Output: $OUTPUT"
           fi
 
-          # Store result
           RESULTS=$(echo "$RESULTS" | jq \
-            --arg cmd "$cmd" \
-            --arg status "$STATUS" \
-            --arg exit_code "$EXIT_CODE" \
-            --arg output "$OUTPUT" \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
             '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
         done
 
-        # Set outputs (use jq -c for compact single-line JSON)
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # DOCKER PROVIDER - Run tests in container
+    # ===========================================
+    - name: Run CLI tests (docker)
+      id: test-docker
+      if: inputs.provider == 'docker' || inputs.test-in-container == 'true'
+      shell: bash
+      run: |
+        echo "::group::Running CLI tests (docker)"
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        IMAGE="${{ inputs.image }}"
+        CONTAINER="${{ inputs.container-name }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          if [[ -n "$CONTAINER" ]]; then
+            OUTPUT=$(docker exec "$CONTAINER" bash -c "$cmd" 2>&1)
+          else
+            OUTPUT=$(docker run --rm "$IMAGE" bash -c "$cmd" 2>&1)
+          fi
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # FLY.IO PROVIDER - Run tests via SSH console
+    # ===========================================
+    - name: Run CLI tests (fly)
+      id: test-fly
+      if: inputs.provider == 'fly'
+      shell: bash
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly-api-token }}
+      run: |
+        echo "::group::Running CLI tests (fly)"
+
+        if [[ -z "${{ inputs.fly-app-name }}" ]]; then
+          echo "::error::fly-app-name is required for fly provider"
+          exit 1
+        fi
+        if [[ -z "$FLY_API_TOKEN" ]]; then
+          echo "::error::fly-api-token is required for fly provider"
+          exit 1
+        fi
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        FLY_APP="${{ inputs.fly-app-name }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          OUTPUT=$(flyctl ssh console -a "$FLY_APP" --command "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # DEVPOD AWS PROVIDER
+    # ===========================================
+    - name: Run CLI tests (devpod-aws)
+      id: test-devpod-aws
+      if: inputs.provider == 'devpod-aws'
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+      run: |
+        echo "::group::Running CLI tests (devpod-aws)"
+
+        if [[ -z "${{ inputs.devpod-workspace-id }}" ]]; then
+          echo "::error::devpod-workspace-id is required for devpod-aws provider"
+          exit 1
+        fi
+        if [[ -z "$AWS_ACCESS_KEY_ID" ]] || [[ -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+          echo "::error::AWS credentials required for devpod-aws provider"
+          exit 1
+        fi
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        WORKSPACE="${{ inputs.devpod-workspace-id }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # DEVPOD GCP PROVIDER
+    # ===========================================
+    - name: Run CLI tests (devpod-gcp)
+      id: test-devpod-gcp
+      if: inputs.provider == 'devpod-gcp'
+      shell: bash
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+      run: |
+        echo "::group::Running CLI tests (devpod-gcp)"
+
+        if [[ -z "${{ inputs.devpod-workspace-id }}" ]]; then
+          echo "::error::devpod-workspace-id is required for devpod-gcp provider"
+          exit 1
+        fi
+        if [[ -z "${{ inputs.gcp-service-account-key }}" ]]; then
+          echo "::error::gcp-service-account-key required for devpod-gcp provider"
+          exit 1
+        fi
+
+        # Write GCP credentials to file
+        echo '${{ inputs.gcp-service-account-key }}' > /tmp/gcp-key.json
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        WORKSPACE="${{ inputs.devpod-workspace-id }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        # Cleanup credentials
+        rm -f /tmp/gcp-key.json
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # DEVPOD AZURE PROVIDER
+    # ===========================================
+    - name: Run CLI tests (devpod-azure)
+      id: test-devpod-azure
+      if: inputs.provider == 'devpod-azure'
+      shell: bash
+      env:
+        AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
+        AZURE_CLIENT_SECRET: ${{ inputs.azure-client-secret }}
+        AZURE_TENANT_ID: ${{ inputs.azure-tenant-id }}
+      run: |
+        echo "::group::Running CLI tests (devpod-azure)"
+
+        if [[ -z "${{ inputs.devpod-workspace-id }}" ]]; then
+          echo "::error::devpod-workspace-id is required for devpod-azure provider"
+          exit 1
+        fi
+        if [[ -z "$AZURE_CLIENT_ID" ]] || [[ -z "$AZURE_CLIENT_SECRET" ]] || [[ -z "$AZURE_TENANT_ID" ]]; then
+          echo "::error::Azure credentials required for devpod-azure provider"
+          exit 1
+        fi
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        WORKSPACE="${{ inputs.devpod-workspace-id }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # DEVPOD DIGITALOCEAN PROVIDER
+    # ===========================================
+    - name: Run CLI tests (devpod-do)
+      id: test-devpod-do
+      if: inputs.provider == 'devpod-do'
+      shell: bash
+      env:
+        DIGITALOCEAN_TOKEN: ${{ inputs.digitalocean-token }}
+      run: |
+        echo "::group::Running CLI tests (devpod-do)"
+
+        if [[ -z "${{ inputs.devpod-workspace-id }}" ]]; then
+          echo "::error::devpod-workspace-id is required for devpod-do provider"
+          exit 1
+        fi
+        if [[ -z "$DIGITALOCEAN_TOKEN" ]]; then
+          echo "::error::digitalocean-token required for devpod-do provider"
+          exit 1
+        fi
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        WORKSPACE="${{ inputs.devpod-workspace-id }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # DEVPOD KUBERNETES PROVIDER
+    # ===========================================
+    - name: Run CLI tests (devpod-k8s)
+      id: test-devpod-k8s
+      if: inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes'
+      shell: bash
+      run: |
+        echo "::group::Running CLI tests (devpod-k8s)"
+
+        if [[ -z "${{ inputs.devpod-workspace-id }}" ]]; then
+          echo "::error::devpod-workspace-id is required for devpod-k8s provider"
+          exit 1
+        fi
+        if [[ -z "${{ inputs.kubeconfig }}" ]]; then
+          echo "::error::kubeconfig required for devpod-k8s provider"
+          exit 1
+        fi
+
+        # Write kubeconfig to file
+        mkdir -p ~/.kube
+        echo '${{ inputs.kubeconfig }}' > ~/.kube/config
+        chmod 600 ~/.kube/config
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        WORKSPACE="${{ inputs.devpod-workspace-id }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # DEVPOD SSH PROVIDER
+    # ===========================================
+    - name: Run CLI tests (devpod-ssh)
+      id: test-devpod-ssh
+      if: inputs.provider == 'devpod-ssh'
+      shell: bash
+      run: |
+        echo "::group::Running CLI tests (devpod-ssh)"
+
+        if [[ -z "${{ inputs.devpod-workspace-id }}" ]]; then
+          echo "::error::devpod-workspace-id is required for devpod-ssh provider"
+          exit 1
+        fi
+        if [[ -z "${{ inputs.ssh-private-key }}" ]]; then
+          echo "::error::ssh-private-key required for devpod-ssh provider"
+          exit 1
+        fi
+
+        # Setup SSH key
+        mkdir -p ~/.ssh
+        echo '${{ inputs.ssh-private-key }}' > ~/.ssh/devpod_key
+        chmod 600 ~/.ssh/devpod_key
+
+        COMMANDS='${{ inputs.test-commands }}'
+        EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
+        WORKSPACE="${{ inputs.devpod-workspace-id }}"
+
+        RESULTS='{}'
+        ALL_PASSED="true"
+        CMD_COUNT=$(echo "$COMMANDS" | jq 'length')
+
+        for ((i=0; i<CMD_COUNT; i++)); do
+          cmd=$(echo "$COMMANDS" | jq -r ".[$i]")
+          echo "Testing: $cmd"
+          EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
+
+          set +e
+          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [[ "$EXIT_CODE" -eq "$EXPECTED" ]]; then
+            STATUS="passed"
+            echo "  ✅ Passed (exit code: $EXIT_CODE)"
+          else
+            STATUS="failed"
+            ALL_PASSED="false"
+            echo "  ❌ Failed (expected: $EXPECTED, got: $EXIT_CODE)"
+            echo "  Output: $OUTPUT"
+          fi
+
+          RESULTS=$(echo "$RESULTS" | jq \
+            --arg cmd "$cmd" --arg status "$STATUS" \
+            --arg exit_code "$EXIT_CODE" --arg output "$OUTPUT" \
+            '.[$cmd] = {status: $status, exit_code: ($exit_code | tonumber), output: $output}')
+        done
+
+        # Cleanup SSH key
+        rm -f ~/.ssh/devpod_key
+
+        echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        [[ "$ALL_PASSED" == "false" ]] && exit 1 || true
+
+        echo "::endgroup::"
+
+    # ===========================================
+    # AGGREGATE RESULTS
+    # ===========================================
+    - name: Aggregate test results
+      id: aggregate
+      if: always()
+      shell: bash
+      env:
+        # Pass all step outputs as env vars (GitHub Actions requires explicit references)
+        LOCAL_RESULTS: ${{ steps.test-local.outputs.results }}
+        LOCAL_PASSED: ${{ steps.test-local.outputs.all-passed }}
+        DOCKER_RESULTS: ${{ steps.test-docker.outputs.results }}
+        DOCKER_PASSED: ${{ steps.test-docker.outputs.all-passed }}
+        FLY_RESULTS: ${{ steps.test-fly.outputs.results }}
+        FLY_PASSED: ${{ steps.test-fly.outputs.all-passed }}
+        AWS_RESULTS: ${{ steps.test-devpod-aws.outputs.results }}
+        AWS_PASSED: ${{ steps.test-devpod-aws.outputs.all-passed }}
+        GCP_RESULTS: ${{ steps.test-devpod-gcp.outputs.results }}
+        GCP_PASSED: ${{ steps.test-devpod-gcp.outputs.all-passed }}
+        AZURE_RESULTS: ${{ steps.test-devpod-azure.outputs.results }}
+        AZURE_PASSED: ${{ steps.test-devpod-azure.outputs.all-passed }}
+        DO_RESULTS: ${{ steps.test-devpod-do.outputs.results }}
+        DO_PASSED: ${{ steps.test-devpod-do.outputs.all-passed }}
+        K8S_RESULTS: ${{ steps.test-devpod-k8s.outputs.results }}
+        K8S_PASSED: ${{ steps.test-devpod-k8s.outputs.all-passed }}
+        SSH_RESULTS: ${{ steps.test-devpod-ssh.outputs.results }}
+        SSH_PASSED: ${{ steps.test-devpod-ssh.outputs.all-passed }}
+      run: |
+        # Collect results from whichever provider ran
+        RESULTS='{}'
+        ALL_PASSED="true"
+
+        # Check each provider's output in order
+        for prefix in LOCAL DOCKER FLY AWS GCP AZURE DO K8S SSH; do
+          results_var="${prefix}_RESULTS"
+          passed_var="${prefix}_PASSED"
+          step_results="${!results_var}"
+          step_passed="${!passed_var}"
+
+          if [[ -n "$step_results" && "$step_results" != "" && "$step_results" != "{}" ]]; then
+            RESULTS="$step_results"
+            ALL_PASSED="$step_passed"
+            echo "Using results from $prefix provider"
+            break
+          fi
+        done
+
+        # Handle case where no provider ran (shouldn't happen)
+        if [[ "$RESULTS" == "{}" ]]; then
+          echo "::warning::No provider tests executed for provider: ${{ inputs.provider }}"
+          RESULTS='{"_meta": {"status": "no_tests_run", "provider": "${{ inputs.provider }}"}}'
+        fi
+
         echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
         echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
 
-        # Fail if any test failed
         if [[ "$ALL_PASSED" == "false" ]]; then
           echo "::error::Some CLI tests failed"
           exit 1
         fi
-
-        echo "::endgroup::"

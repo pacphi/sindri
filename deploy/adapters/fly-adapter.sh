@@ -141,6 +141,12 @@ primary_region = "${REGION}"
 [build]
   dockerfile = "docker/Dockerfile"
 
+# Process groups - define explicit long-running process
+# This ensures the container stays running and SSH is accessible
+# See: https://fly.io/docs/launch/processes/
+[processes]
+  app = "/entrypoint.sh /usr/sbin/sshd -D -e"
+
 # Environment variables
 [env]
   # User configuration
@@ -154,13 +160,16 @@ primary_region = "${REGION}"
   CUSTOM_EXTENSIONS = "${CUSTOM_EXTENSIONS}"
   # Workspace initialization
   INIT_WORKSPACE = "true"
+  # Enable SSH server mode for Fly.io
+  START_SSHD = "true"
 
 # Volume mounts for persistent storage
-[mounts]
+[[mounts]]
   # Mount persistent volume as developer's home directory
   # This ensures $HOME is persistent and contains workspace, config, and tool data
   source = "home_data"
   destination = "/alt/home/developer"
+  processes = ["app"]
   # Initial size matches the volume size specified during creation
   initial_size = "${VOLUME_SIZE}gb"
   # Keep snapshots for a week
@@ -173,9 +182,12 @@ primary_region = "${REGION}"
   auto_extend_size_limit = "250GB"
 
 # SSH service configuration (primary access method)
+# Note: sshd listens internally on 2222 to avoid conflicts with Fly.io's internal SSH on port 22
+# See: https://fly.io/docs/blueprints/opensshd/
 [[services]]
   protocol = "tcp"
-  internal_port = 2222  # Use port 2222 to avoid conflicts with Fly.io's hallpass service on port 22
+  internal_port = 2222
+  processes = ["app"]
 
   # Cost optimization settings
   auto_stop_machines = "${AUTO_STOP_MODE}"
@@ -189,21 +201,14 @@ primary_region = "${REGION}"
   # Health check for SSH service
   [[services.tcp_checks]]
     interval = "15s"
-    timeout = "2s"
-    grace_period = "10s"
-    restart_limit = 0
-
-# Machine configuration
-[machine]
-  # Auto-restart on failure
-  auto_restart = true
-
-  # Restart policy
-  restart_policy = "always"
+    timeout = "5s"
+    grace_period = "30s"
+    restart_limit = 3
 
 # VM resource allocation
 # Start small and scale up if needed
-[vm]
+[[vm]]
+  processes = ["app"]
   # CPU and memory settings (adjust based on needs)
   cpu_kind = "${CPU_KIND}"     # Options: "shared", "performance"
   cpus = ${CPUS}               # Number of CPUs
@@ -215,46 +220,41 @@ primary_region = "${REGION}"
 [deploy]
   # Deployment strategy for zero-downtime updates
   strategy = "rolling"
-
-  # Release command (runs once per deployment)
-  release_command = "echo 'Deployment complete'"
+  # No release_command - initialization happens in entrypoint
 
 # Monitoring and health checks
 [checks]
   # SSH service health check
   [checks.ssh]
     type = "tcp"
-    port = 2222  # Updated to match SSH daemon port
+    port = 2222
     interval = "15s"
-    timeout = "2s"
-
-# Optional: Metrics and observability
-[metrics]
-  port = 9090
-  path = "/metrics"
-
-# Optional: Process groups for complex applications
-# Uncomment if you need separate processes
-# [processes]
-#   app = "ssh-server"
-#   worker = "background-tasks"
+    timeout = "5s"
+    grace_period = "30s"
+    processes = ["app"]
 
 # Volume configuration reference
-# Create volume with: flyctl volumes create home_data --region ${REGION} --size ${VOLUME_SIZE}
-# Volume naming pattern: home_data (mounts as developer's home directory)
+# Volume is automatically created by fly deploy if it doesn't exist
+# Manual creation: flyctl volumes create home_data --region ${REGION} --size ${VOLUME_SIZE}
+# Volume naming pattern: home_data (mounts as developer's home directory at /alt/home/developer)
 # Pricing: ~\$0.15/GB/month
 
+# Process configuration notes:
+# The [processes] section defines "app" which runs the SSH server via entrypoint
+# This ensures the container stays running and is accessible via SSH
+# See: https://fly.io/docs/launch/processes/
+
 # Cost optimization notes:
-# 1. auto_stop_machines = "${AUTO_STOP_MODE}" - Fastest restart, lowest cost when idle
+# 1. auto_stop_machines = "${AUTO_STOP_MODE}" - Suspends when idle, fastest restart
 # 2. min_machines_running = 0 - Allows complete scale-to-zero
 # 3. ${CPU_KIND} CPU - Cost-effective for development workloads
 # 4. ${MEMORY_MB}MB RAM - Good performance for AI-powered development
 
 # Security notes:
-# 1. SSH access only via key authentication (configured in Dockerfile)
-# 2. Non-standard SSH port (${SSH_EXTERNAL_PORT}) reduces automated attacks
-# 3. Auto-restart on failure provides resilience
-# 4. No root access via SSH (configured in Dockerfile)
+# 1. SSH server listens on port 2222 internally (avoids conflict with Fly.io's port 22)
+# 2. External port ${SSH_EXTERNAL_PORT} maps to internal port 2222
+# 3. Password authentication enabled for developer user
+# 4. Root login disabled via SSH
 # 5. Secrets management via Fly.io secrets:
 #    - ANTHROPIC_API_KEY: Claude API authentication
 #    - GITHUB_TOKEN: GitHub authentication for git operations

@@ -307,17 +307,19 @@ profiles:
 
 ### GitHub Actions
 
-9 workflows in `.github/workflows/`:
+8 workflows in `.github/workflows/`:
 
-- `ci.yml` - Main CI orchestrator (linting, building, testing)
+- `ci.yml` - Main CI orchestrator with unified provider testing
 - `validate-yaml.yml` - Comprehensive YAML validation with schema checks
-- `test-provider.yml` - Provider-specific testing (docker, fly, devpod, k8s)
-- `test-extensions.yml` - Extension testing across providers
+- `test-provider.yml` - Full test suite per provider (CLI + extensions + integration)
 - `test-sindri-config.yml` - User configuration testing
 - `deploy-sindri.yml` - Reusable deployment workflow
 - `teardown-sindri.yml` - Reusable teardown workflow
 - `manual-deploy.yml` - Manual deployment trigger
 - `release.yml` - Automated release with changelog generation (see [docs/RELEASE.md](docs/RELEASE.md))
+
+**Unified Provider Testing**: Each selected provider runs CLI tests, extension tests, and
+integration tests. This ensures consistent coverage across Docker, Fly.io, and DevPod providers.
 
 ## Code Style
 
