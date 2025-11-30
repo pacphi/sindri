@@ -56,6 +56,11 @@ extensions:
     description: .NET SDK 9.0
     dependencies: []
 
+  haskell:
+    category: language
+    description: Haskell with GHC, Cabal, Stack, and HLS
+    dependencies: []
+
   # Development Tools
   nodejs-devtools:
     category: dev-tools
