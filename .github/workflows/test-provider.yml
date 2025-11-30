@@ -16,25 +16,15 @@ on:
         default: integration
         type: string
       extension-profile:
-        description: Extension profile to test
+        description: Extension profile to test (determines extensions and resource requirements)
         required: false
         default: minimal
-        type: string
-      extensions-to-test:
-        description: JSON array of specific extensions to test
-        required: false
-        default: '["nodejs", "python"]'
         type: string
       skip-cleanup:
         description: Skip resource cleanup for debugging
         required: false
         default: false
         type: boolean
-      test-config:
-        description: Path to test configuration file
-        required: false
-        default: .github/test-configs/providers.yaml
-        type: string
       timeout-minutes:
         description: Maximum time for the test
         required: false
@@ -91,6 +81,30 @@ on:
       extension-tests-passed:
         description: Whether extension tests passed
         value: ${{ jobs.test.outputs.extensions-passed }}
+      profile-disk-mb:
+        description: Total disk space required by profile (MB)
+        value: ${{ jobs.test.outputs.disk-mb }}
+      profile-memory-mb:
+        description: Total memory required by profile (MB)
+        value: ${{ jobs.test.outputs.memory-mb }}
+      profile-recommended-timeout:
+        description: Recommended timeout for profile (minutes)
+        value: ${{ jobs.test.outputs.recommended-timeout }}
+      profile-vm-size-tier:
+        description: Recommended VM size tier (small/medium/large/xlarge)
+        value: ${{ jobs.test.outputs.vm-size-tier }}
+      provider-vm-size:
+        description: Provider-specific VM size (e.g., t3.medium, shared-cpu-2x)
+        value: ${{ jobs.test.outputs.provider-vm-size }}
+      provider-memory:
+        description: Provider-specific memory allocation
+        value: ${{ jobs.test.outputs.provider-memory }}
+      provider-disk:
+        description: Provider-specific disk size
+        value: ${{ jobs.test.outputs.provider-disk }}
+      workspace-volume-gb:
+        description: Recommended workspace volume size (GB)
+        value: ${{ jobs.test.outputs.workspace-volume-gb }}
 
 jobs:
   test:
@@ -103,6 +117,14 @@ jobs:
       results: ${{ steps.summary.outputs.results }}
       cli-passed: ${{ steps.cli-tests.outputs.all-passed }}
       extensions-passed: ${{ steps.extension-tests.outputs.all-passed }}
+      disk-mb: ${{ steps.resources.outputs.disk_mb }}
+      memory-mb: ${{ steps.resources.outputs.memory_mb }}
+      recommended-timeout: ${{ steps.resources.outputs.timeout_from_tier }}
+      vm-size-tier: ${{ steps.resources.outputs.vm_size_tier }}
+      provider-vm-size: ${{ steps.resources.outputs.provider_vm_size }}
+      provider-memory: ${{ steps.resources.outputs.provider_memory }}
+      provider-disk: ${{ steps.resources.outputs.provider_disk }}
+      workspace-volume-gb: ${{ steps.resources.outputs.workspace_volume_gb }}
 
     steps:
       - name: Checkout repository
@@ -157,6 +179,29 @@ jobs:
           echo "container-name=$CONTAINER_NAME" >> $GITHUB_OUTPUT
 
           echo "::notice title=Config Path::Using $CONFIG_PATH for ${{ inputs.provider }} provider"
+
+      - name: Calculate profile resources
+        id: resources
+        run: |
+          chmod +x .github/scripts/calculate-profile-resources.sh
+          PROFILE="${{ inputs.extension-profile }}"
+          PROVIDER="${{ inputs.provider }}"
+
+          # Calculate with provider-specific sizing
+          RESULT=$(.github/scripts/calculate-profile-resources.sh "$PROFILE" "$PROVIDER")
+
+          # Parse and output each line
+          while IFS= read -r line; do
+            echo "$line" >> $GITHUB_OUTPUT
+          done <<< "$RESULT"
+
+          # Extract key values for notice
+          DISK_MB=$(echo "$RESULT" | grep "^disk_mb=" | cut -d= -f2)
+          MEMORY_MB=$(echo "$RESULT" | grep "^memory_mb=" | cut -d= -f2)
+          VM_SIZE=$(echo "$RESULT" | grep "^provider_vm_size=" | cut -d= -f2)
+          TIMEOUT=$(echo "$RESULT" | grep "^timeout_from_tier=" | cut -d= -f2)
+
+          echo "::notice title=Profile Resources::Profile=$PROFILE, Provider=$PROVIDER, VM=$VM_SIZE, Disk=${DISK_MB}MB, Memory=${MEMORY_MB}MB, Timeout=${TIMEOUT}min"
 
       - name: Generate deployment ID
         id: setup
@@ -357,18 +402,17 @@ jobs:
             ]
 
       # ============================================
-      # PHASE 3: Extension Tests
+      # PHASE 3: Extension Tests (Profile-Driven)
       # ============================================
       - name: Run extension tests
         id: extension-tests
         run: |
           echo "::group::Running extension tests on ${{ inputs.provider }}"
 
-          EXTENSIONS='${{ inputs.extensions-to-test }}'
+          PROFILE="${{ inputs.extension-profile }}"
           RESULTS='{}'
           ALL_PASSED="true"
 
-          # Function to run command on provider
           run_on_provider() {
             local cmd="$1"
             case "${{ inputs.provider }}" in
@@ -384,31 +428,10 @@ jobs:
             esac
           }
 
-          # Test each extension
-          for ext in $(echo "$EXTENSIONS" | jq -r '.[]'); do
-            echo "Testing extension: $ext"
-
-            # Validate extension
-            set +e
-            OUTPUT=$(run_on_provider "extension-manager validate $ext" 2>&1)
-            EXIT_CODE=$?
-            set -e
-
-            if [[ $EXIT_CODE -eq 0 ]]; then
-              echo "  ✅ $ext validation passed"
-              RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "passed"')
-            else
-              echo "  ❌ $ext validation failed"
-              echo "  Output: $OUTPUT"
-              RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "failed"')
-              ALL_PASSED="false"
-            fi
-          done
-
-          # Install extension profile
-          echo "Installing extension profile: ${{ inputs.extension-profile }}"
+          # Install extension profile first
+          echo "Installing extension profile: $PROFILE"
           set +e
-          run_on_provider "extension-manager install-profile ${{ inputs.extension-profile }}"
+          run_on_provider "extension-manager install-profile $PROFILE"
           PROFILE_EXIT=$?
           set -e
 
@@ -417,6 +440,29 @@ jobs:
           else
             RESULTS=$(echo "$RESULTS" | jq -c '.profile_install = "failed"')
             ALL_PASSED="false"
+          fi
+
+          # Get extensions from the installed profile and validate each
+          EXTENSIONS=$(run_on_provider "yq '.profiles.${PROFILE}.extensions[]' /docker/lib/profiles.yaml" 2>/dev/null || echo "")
+
+          if [[ -n "$EXTENSIONS" ]]; then
+            for ext in $EXTENSIONS; do
+              echo "Validating extension: $ext"
+              set +e
+              OUTPUT=$(run_on_provider "extension-manager validate $ext" 2>&1)
+              EXIT_CODE=$?
+              set -e
+
+              if [[ $EXIT_CODE -eq 0 ]]; then
+                echo "  ✅ $ext validation passed"
+                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "passed"')
+              else
+                echo "  ❌ $ext validation failed"
+                echo "  Output: $OUTPUT"
+                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "failed"')
+                ALL_PASSED="false"
+              fi
+            done
           fi
 
           echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT

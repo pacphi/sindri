@@ -9,6 +9,8 @@ metadata:
 
 requirements:
   diskSpace: 50
+  memory: 0
+  installTime: 30
 
 install:
   method: script

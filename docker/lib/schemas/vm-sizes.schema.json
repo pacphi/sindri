@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/vm-sizes.schema.json",
+  "title": "Sindri VM Size Mappings",
+  "description": "Schema for VM size mappings across cloud providers",
+  "type": "object",
+  "required": ["tiers", "providers"],
+  "properties": {
+    "tiers": {
+      "type": "object",
+      "description": "Resource tier definitions",
+      "properties": {
+        "small": { "$ref": "#/$defs/tierDefinition" },
+        "medium": { "$ref": "#/$defs/tierDefinition" },
+        "large": { "$ref": "#/$defs/tierDefinition" },
+        "xlarge": { "$ref": "#/$defs/tierDefinition" }
+      },
+      "required": ["small", "medium", "large", "xlarge"],
+      "additionalProperties": false
+    },
+    "providers": {
+      "type": "object",
+      "description": "Provider-specific VM size mappings",
+      "properties": {
+        "fly": { "$ref": "#/$defs/providerConfig" },
+        "docker": { "$ref": "#/$defs/providerConfig" },
+        "aws": { "$ref": "#/$defs/providerConfig" },
+        "gcp": { "$ref": "#/$defs/providerConfig" },
+        "azure": { "$ref": "#/$defs/providerConfig" },
+        "digitalocean": { "$ref": "#/$defs/providerConfig" },
+        "kubernetes": { "$ref": "#/$defs/providerConfig" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/providerConfig" }
+    },
+    "volumes": {
+      "type": "object",
+      "description": "Volume size recommendations by tier",
+      "properties": {
+        "workspace": { "$ref": "#/$defs/tierSizes" },
+        "home": { "$ref": "#/$defs/tierSizes" }
+      }
+    },
+    "timeouts": {
+      "$ref": "#/$defs/tierSizes",
+      "description": "Timeout recommendations by tier (in minutes)"
+    }
+  },
+  "$defs": {
+    "tierDefinition": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the tier"
+        },
+        "memory_range": {
+          "type": "string",
+          "description": "Memory range for this tier"
+        },
+        "disk_range": {
+          "type": "string",
+          "description": "Disk space range for this tier"
+        }
+      },
+      "required": ["description"]
+    },
+    "tierSizes": {
+      "type": "object",
+      "properties": {
+        "small": { "type": ["integer", "string"] },
+        "medium": { "type": ["integer", "string"] },
+        "large": { "type": ["integer", "string"] },
+        "xlarge": { "type": ["integer", "string"] }
+      },
+      "required": ["small", "medium", "large", "xlarge"],
+      "additionalProperties": false
+    },
+    "providerConfig": {
+      "type": "object",
+      "required": ["description", "sizes"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description of the provider"
+        },
+        "sizes": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "VM size identifiers for each tier"
+        },
+        "memory": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Memory allocation per tier (MB or with unit)"
+        },
+        "vcpus": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "vCPU count per tier"
+        },
+        "cpus": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "CPU count per tier"
+        },
+        "cpu": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "CPU allocation per tier (for K8s)"
+        },
+        "disk": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Disk size per tier (GB)"
+        },
+        "storage": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Storage allocation per tier (for K8s)"
+        },
+        "swap": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Swap size per tier (MB)"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

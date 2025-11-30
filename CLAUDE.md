@@ -103,10 +103,12 @@ sindri/
 │   │   ├── schemas/               # JSON schemas for validation
 │   │   │   ├── extension.schema.json
 │   │   │   ├── manifest.schema.json
-│   │   │   └── sindri.schema.json
+│   │   │   ├── sindri.schema.json
+│   │   │   └── vm-sizes.schema.json
 │   │   ├── profiles.yaml          # Extension profile definitions
 │   │   ├── registry.yaml          # Extension registry
 │   │   ├── categories.yaml        # Category definitions
+│   │   ├── vm-sizes.yaml          # VM size mappings by provider
 │   │   └── common.sh              # Shared utility functions
 │   └── scripts/
 │       └── entrypoint.sh          # Container initialization

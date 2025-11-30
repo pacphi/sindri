@@ -12,6 +12,8 @@ metadata:
 
 requirements:
   diskSpace: 50
+  memory: 64
+  installTime: 30
 
 install:
   method: apt

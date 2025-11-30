@@ -104,6 +104,7 @@ The new YAML validation system provides comprehensive checks:
 | `test-registry-schema.sh`   | Validate registry.yaml                       |
 | `test-categories-schema.sh` | Validate categories.yaml                     |
 | `test-templates-schema.sh`  | Validate project-templates.yaml              |
+| `test-vm-sizes-schema.sh`   | Validate vm-sizes.yaml                       |
 | `test-sindri-examples.sh`   | Validate all sindri.yaml examples            |
 | `test-cross-references.sh`  | Validate cross-file references               |
 | `test-yaml-lint.sh`         | Run yamllint on all YAML files               |
@@ -125,6 +126,7 @@ The new YAML validation system provides comprehensive checks:
 - `docker/lib/schemas/registry.schema.json` - Extension registry
 - `docker/lib/schemas/categories.schema.json` - Category definitions
 - `docker/lib/schemas/project-templates.schema.json` - Project templates
+- `docker/lib/schemas/vm-sizes.schema.json` - VM size mappings across providers
 
 ### Shell Script Validation
 

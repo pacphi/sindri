@@ -11,6 +11,8 @@ requirements:
     - crates.io
     - rust-lang.org
   diskSpace: 800
+  memory: 2048
+  installTime: 120
 
 install:
   method: mise

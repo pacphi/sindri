@@ -11,6 +11,8 @@ requirements:
     - golang.org
     - proxy.golang.org
   diskSpace: 500
+  memory: 256
+  installTime: 60
 
 install:
   method: mise

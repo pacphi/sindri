@@ -12,6 +12,8 @@ requirements:
     - rubygems.org
     - github.com
   diskSpace: 2500
+  memory: 512
+  installTime: 90
 
 install:
   method: script

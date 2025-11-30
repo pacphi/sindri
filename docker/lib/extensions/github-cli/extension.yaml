@@ -8,6 +8,9 @@ metadata:
   dependencies: []
 
 requirements:
+  diskSpace: 50
+  memory: 0
+  installTime: 30
   secrets:
     - github_token
 

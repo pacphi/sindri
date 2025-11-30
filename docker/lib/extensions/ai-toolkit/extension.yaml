@@ -21,6 +21,8 @@ requirements:
     - api.openai.com
     - generativelanguage.googleapis.com
   diskSpace: 2000
+  memory: 8192
+  installTime: 300
   secrets:
     - google_gemini_api_key
     - grok_api_key

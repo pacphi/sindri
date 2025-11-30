@@ -20,6 +20,7 @@ sindri/
 │   │   ├── profiles.yaml     # Extension profiles
 │   │   ├── categories.yaml   # Category definitions
 │   │   ├── registry.yaml     # Extension registry
+│   │   ├── vm-sizes.yaml     # VM size mappings by provider
 │   │   └── common.sh         # Shared utilities
 │   ├── scripts/
 │   │   └── entrypoint.sh     # Container entrypoint
@@ -90,6 +91,7 @@ All configuration is loaded from YAML files:
 - **profiles.yaml** - Extension combinations
 - **categories.yaml** - Category metadata
 - **registry.yaml** - Available extensions
+- **vm-sizes.yaml** - Provider-specific VM size mappings by tier
 
 No hardcoding in scripts - everything is declarative.
 

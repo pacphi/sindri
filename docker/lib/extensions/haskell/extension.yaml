@@ -13,6 +13,8 @@ requirements:
     - stackage.org
     - downloads.haskell.org
   diskSpace: 2000
+  memory: 4096
+  installTime: 180
 
 install:
   method: mise

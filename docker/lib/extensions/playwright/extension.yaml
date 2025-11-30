@@ -13,6 +13,8 @@ requirements:
     - registry.npmjs.org
     - playwright.azureedge.net
   diskSpace: 1000
+  memory: 2048
+  installTime: 120
 
 install:
   method: script

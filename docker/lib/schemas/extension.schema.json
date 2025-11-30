@@ -59,6 +59,16 @@
           "minimum": 0,
           "description": "Required disk space in MB"
         },
+        "memory": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Additional runtime memory needed in MB (beyond base system)"
+        },
+        "installTime": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Estimated installation time in seconds"
+        },
         "secrets": {
           "type": "array",
           "items": {
