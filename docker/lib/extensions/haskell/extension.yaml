@@ -64,14 +64,14 @@ bom:
     - name: stack
       version: dynamic
       source: mise
-      type: build-tool
+      type: cli-tool
       license: BSD-3-Clause
       homepage: https://docs.haskellstack.org
       purl: pkg:generic/stack
     - name: haskell-language-server
       version: dynamic
       source: mise
-      type: lsp-server
+      type: server
       license: Apache-2.0
       homepage: https://haskell-language-server.readthedocs.io
       purl: pkg:generic/haskell-language-server
