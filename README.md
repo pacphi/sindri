@@ -43,15 +43,17 @@ cd sindri
 ./cli/sindri deploy --provider fly
 ```
 
-**Prerequisites:** Docker, yq. For Fly.io: flyctl. For DevPod: devpod CLI.
+**Prerequisites:** [Docker](https://www.docker.com/get-started/), [yq](https://github.com/mikefarah/yq). For Fly.io: [flyctl](https://fly.io/docs/flyctl/install/) CLI. For DevPod: [devpod](https://devpod.sh/) CLI.
 
 ## Core Features
 
-- **YAML-First Architecture** - Declarative extension definitions with JSON schema validation
-- **Provider-Agnostic** - Single config deploys to Docker, Fly.io, Kubernetes, or DevPod
+- **Modular Extension System** - YAML-driven with dependency resolution
 - **Fast Startup** - Optimized Docker images with pre-installed tools (10-15s cold start)
-- **Extension System** - 27+ modular extensions for languages, tools, and infrastructure
-- **Immutable/Mutable Split** - System files baked into images, user workspace fully writable
+- **Extension System** - 25+ modular extensions for languages, tools, and infrastructure
+- **Schema Validation** - All YAML validated against JSON schemas
+- **Provider Adapters** - Clean abstraction for Docker, Fly, Kubernetes, DevPod
+- **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
+- **BOM Tracking** - Comprehensive software bill of materials for security auditing
 
 ## Documentation
 
@@ -96,51 +98,6 @@ Example questions:
 - "How do I use the apt installation method?"
 - "Show me an example of a script-based extension"
 ```
-
-## Extension Profiles
-
-Sindri includes 27+ modular extensions organized into profiles, like:
-
-| Profile        | Description                                  |
-| -------------- | -------------------------------------------- |
-| **minimal**    | Node.js, Python basics                       |
-| **fullstack**  | Node.js, Python, Docker, Postgres, dev tools |
-| **ai-dev**     | AI toolkit with Ollama, Gemini, OpenRouter   |
-| **systems**    | Rust, Go, Docker, infrastructure tools       |
-| **enterprise** | All languages and infrastructure tools       |
-
-```yaml
-# sindri.yaml
-extensions:
-  profile: fullstack
-```
-
-**Available categories:** Languages (nodejs, python, golang, rust, ruby, php, jvm, dotnet), Tools (github-cli, docker, playwright, monitoring), Infrastructure (infra-tools, cloud-tools), AI (ai-toolkit, openskills, claude-marketplace)
-
-See [Extension Catalog](docs/EXTENSIONS.md) for complete list and usage.
-
-## Development Commands
-
-```bash
-# Validation and linting
-pnpm validate          # Run all validations
-pnpm lint              # Lint all code
-
-# Testing
-pnpm test              # Run all tests
-pnpm test:extensions   # Test extensions
-
-# Build
-pnpm build             # Build Docker image
-```
-
-## Architecture Highlights
-
-- **Modular Extension System** - YAML-driven with dependency resolution
-- **Schema Validation** - All YAML validated against JSON schemas
-- **Provider Adapters** - Clean abstraction for Docker, Fly, Kubernetes, DevPod
-- **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
-- **BOM Tracking** - Comprehensive software bill of materials for security auditing
 
 ## License
 
