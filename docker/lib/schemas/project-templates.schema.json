@@ -20,6 +20,13 @@
             "type": "string",
             "description": "Human-readable description of the template"
           },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Alternative names that map to this template (e.g., 'nodejs' for 'node')"
+          },
           "extensions": {
             "type": "array",
             "items": {
@@ -51,6 +58,36 @@
           "claude_md_template": {
             "type": "string",
             "description": "Template for CLAUDE.md file content"
+          },
+          "dependencies": {
+            "type": "object",
+            "description": "Dependency installation configuration for this template",
+            "properties": {
+              "detect": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "array", "items": { "type": "string" } }
+                ],
+                "description": "File(s) that indicate this project type needs dependency installation"
+              },
+              "command": {
+                "type": "string",
+                "description": "Command to install dependencies"
+              },
+              "requires": {
+                "type": "string",
+                "description": "Tool/command that must exist to run the install command"
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable description shown during installation"
+              },
+              "fetch_command": {
+                "type": "string",
+                "description": "Alternative command for --skip-build mode (fetch deps without building)"
+              }
+            },
+            "required": ["detect", "command", "requires"]
           }
         },
         "additionalProperties": false

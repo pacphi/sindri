@@ -335,20 +335,90 @@ categories:
 
 **Location:** `docker/lib/schemas/project-templates.schema.json`
 
-Schema for project templates (future use).
+Schema for project templates used by `new-project` and `create_gitignore` functions.
 
 ### Template Structure
 
 ```yaml
+version: string              # Schema version (e.g., "2.0")
+
 templates:
   template-name:
-    name: string             # Template name
-    description: string      # Template description
-    extensions: array        # Required extensions
-    files: array             # Files to scaffold
-      - path: string
-        content: string
+    description: string      # Human-readable template description
+    aliases: array           # Alternative names that map to this template
+                            # (e.g., ["nodejs", "javascript"] for "node")
+    extensions: array        # Required extensions for this template
+    detection_patterns: array # Keywords for auto-detection
+    setup_commands: array    # Shell commands to run during setup
+    files:                   # Map of file paths to content templates
+      "filename": |
+        content...
+      ".gitignore": |
+        # Ignore patterns...
+    claude_md_template: |    # Template for CLAUDE.md file
+      # Project documentation...
+    dependencies:            # Dependency installation config
+      detect: string|array   # File(s) indicating deps needed (e.g., "package.json")
+      command: string        # Install command (e.g., "npm install")
+      requires: string       # Required tool (e.g., "npm")
+      description: string    # Human-readable description
+      fetch_command: string  # Alternative for --skip-build mode (optional)
+
+detection_rules:             # Rules for auto-detecting templates
+  name_patterns: array       # Patterns to match project names
+  framework_keywords: object # Keywords mapped to template names
 ```
+
+### Dependencies Configuration
+
+The `dependencies` field enables declarative dependency installation per template. This is used by `install_project_dependencies()` to:
+
+1. **With `--template` flag**: Use the specified template's dependency config
+2. **Without template**: Scan all templates and install dependencies for any matching detection files
+
+Example configurations:
+
+```yaml
+# Node.js - simple case
+dependencies:
+  detect: "package.json"
+  command: "npm install"
+  requires: "npm"
+  description: "Node.js dependencies"
+
+# Rust - with fetch-only mode
+dependencies:
+  detect: "Cargo.toml"
+  command: "cargo build"
+  requires: "cargo"
+  description: "Rust project"
+  fetch_command: "cargo fetch"  # Used with --skip-build
+
+# .NET - multiple detection patterns
+dependencies:
+  detect: ["*.csproj", "*.sln"]
+  command: "dotnet restore"
+  requires: "dotnet"
+  description: ".NET dependencies"
+```
+
+### Template Aliases
+
+Each template can define `aliases` - alternative names that resolve to the canonical template name. This enables users to reference templates by common variations:
+
+| Template   | Aliases                              |
+|------------|--------------------------------------|
+| node       | nodejs, javascript                   |
+| python     | py, python3                          |
+| go         | golang                               |
+| rust       | rs                                   |
+| rails      | ruby, ror                            |
+| spring     | java, springboot, spring-boot        |
+| dotnet     | csharp, c#, .net                     |
+| terraform  | tf, infra, infrastructure            |
+| docker     | container, containerized             |
+
+When a template alias is used, it is automatically resolved to the canonical template name.
 
 ---
 
