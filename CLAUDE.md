@@ -102,12 +102,16 @@ sindri/
 │   │   ├── sshd_config            # SSH daemon configuration (port 2222)
 │   │   └── developer-sudoers      # Sudoers configuration for developer user
 │   ├── lib/                       # Immutable system files (baked into image)
-│   │   ├── extensions/            # 27+ YAML extension definitions
+│   │   ├── extensions/            # 29 YAML extension definitions
 │   │   ├── schemas/               # JSON schemas for validation
 │   │   │   ├── extension.schema.json
 │   │   │   ├── manifest.schema.json
 │   │   │   ├── sindri.schema.json
-│   │   │   └── vm-sizes.schema.json
+│   │   │   ├── vm-sizes.schema.json
+│   │   │   ├── profiles.schema.json
+│   │   │   ├── registry.schema.json
+│   │   │   ├── categories.schema.json
+│   │   │   └── project-templates.schema.json
 │   │   ├── profiles.yaml          # Extension profile definitions
 │   │   ├── registry.yaml          # Extension registry
 │   │   ├── categories.yaml        # Category definitions
@@ -320,7 +324,7 @@ metadata:
   name: myext
   version: 1.0.0
   description: Brief description
-  category: language|dev-tools|database|cloud|monitoring|security
+  category: base|language|dev-tools|infrastructure|ai|utilities|desktop|monitoring
   dependencies: [] # List of extension names
 
 requirements:

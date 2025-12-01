@@ -13,18 +13,18 @@ Sindri is a declarative, provider-agnostic cloud development environment system 
 
 ```text
 sindri/
+├── Dockerfile                # Optimized multi-stage build
 ├── docker/
 │   ├── lib/
-│   │   ├── extensions/       # Extension definitions (YAML)
-│   │   ├── schemas/          # JSON schemas for validation
+│   │   ├── extensions/       # Extension definitions (YAML) - 29 extensions
+│   │   ├── schemas/          # JSON schemas for validation - 8 schemas
 │   │   ├── profiles.yaml     # Extension profiles
 │   │   ├── categories.yaml   # Category definitions
 │   │   ├── registry.yaml     # Extension registry
 │   │   ├── vm-sizes.yaml     # VM size mappings by provider
 │   │   └── common.sh         # Shared utilities
-│   ├── scripts/
-│   │   └── entrypoint.sh     # Container entrypoint
-│   └── Dockerfile            # Optimized multi-stage build
+│   └── scripts/
+│       └── entrypoint.sh     # Container entrypoint
 ├── deploy/
 │   └── adapters/             # Provider adapters
 │       ├── docker-adapter.sh
@@ -34,12 +34,13 @@ sindri/
 │   ├── sindri                # Main CLI
 │   ├── extension-manager     # Extension manager CLI
 │   └── extension-manager-modules/
+│       ├── bom.sh            # Bill of Materials tracking
 │       ├── cli.sh            # Argument parsing
-│       ├── manifest.sh       # Manifest management
 │       ├── dependency.sh     # Dependency resolution
 │       ├── executor.sh       # YAML execution engine
-│       ├── validator.sh      # Validation logic
-│       └── reporter.sh       # Status reporting
+│       ├── manifest.sh       # Manifest management
+│       ├── reporter.sh       # Status reporting
+│       └── validator.sh      # Validation logic
 ├── .github/
 │   └── workflows/            # CI/CD pipelines
 └── docs/                     # Documentation
@@ -149,4 +150,4 @@ This ensures `$HOME` is persistent and contains all user data including workspac
 3. **Fast startup** - Baked base image (10-15s vs 90-120s)
 4. **Home as volume** - $HOME (`/alt/home/developer`) is the persistent volume mount
 5. **XDG compliance** - Tool data follows XDG Base Directory Specification
-6. **Modular design** - 6 extension manager modules < 200 lines each
+6. **Modular design** - 7 extension manager modules < 200 lines each

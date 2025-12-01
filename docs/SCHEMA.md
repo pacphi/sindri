@@ -245,13 +245,16 @@ remove:                      # Optional cleanup configuration
 
 ### Extension Categories
 
+Valid categories (from `extension.schema.json`):
+
+- `base` - Core system components
 - `language` - Programming languages and runtimes
 - `dev-tools` - Development utilities and tools
-- `database` - Database clients and tools
-- `cloud` - Cloud provider CLIs and SDKs
-- `monitoring` - Monitoring and observability tools
-- `security` - Security and compliance tools
+- `infrastructure` - Cloud, containers, orchestration
+- `ai` - AI and machine learning tools
+- `utilities` - General purpose tools
 - `desktop` - Desktop environments (GUI)
+- `monitoring` - Monitoring and observability tools
 
 ---
 

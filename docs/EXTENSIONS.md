@@ -71,16 +71,17 @@ Pre-installed foundational extensions:
 
 ### Language Runtimes
 
-| Extension | Language                  | Version    | Docs                              |
-| --------- | ------------------------- | ---------- | --------------------------------- |
-| nodejs    | Node.js                   | LTS        | [NODEJS.md](extensions/NODEJS.md) |
-| python    | Python                    | 3.13       | [PYTHON.md](extensions/PYTHON.md) |
-| golang    | Go                        | 1.24       | [GOLANG.md](extensions/GOLANG.md) |
-| rust      | Rust                      | stable     | [RUST.md](extensions/RUST.md)     |
-| ruby      | Ruby                      | 3.4.7      | [RUBY.md](extensions/RUBY.md)     |
-| jvm       | Java/Kotlin/Scala/Clojure | Java 21    | [JVM.md](extensions/JVM.md)       |
-| dotnet    | .NET                      | 10.0 & 8.0 | [DOTNET.md](extensions/DOTNET.md) |
-| php       | PHP                       | 8.4        | [PHP.md](extensions/PHP.md)       |
+| Extension | Language                  | Version    | Docs                                |
+| --------- | ------------------------- | ---------- | ----------------------------------- |
+| nodejs    | Node.js                   | LTS        | [NODEJS.md](extensions/NODEJS.md)   |
+| python    | Python                    | 3.13       | [PYTHON.md](extensions/PYTHON.md)   |
+| golang    | Go                        | 1.24       | [GOLANG.md](extensions/GOLANG.md)   |
+| rust      | Rust                      | stable     | [RUST.md](extensions/RUST.md)       |
+| ruby      | Ruby                      | 3.4.7      | [RUBY.md](extensions/RUBY.md)       |
+| jvm       | Java/Kotlin/Scala/Clojure | Java 21    | [JVM.md](extensions/JVM.md)         |
+| dotnet    | .NET                      | 10.0 & 8.0 | [DOTNET.md](extensions/DOTNET.md)   |
+| php       | PHP                       | 8.4        | [PHP.md](extensions/PHP.md)         |
+| haskell   | Haskell                   | GHC 9.x    | [HASKELL.md](extensions/HASKELL.md) |
 
 ### Development Tools
 
@@ -89,6 +90,7 @@ Pre-installed foundational extensions:
 | nodejs-devtools    | TypeScript, ESLint, Prettier   | [NODEJS-DEVTOOLS.md](extensions/NODEJS-DEVTOOLS.md)       |
 | github-cli         | GitHub CLI (`gh`)              | [GITHUB-CLI.md](extensions/GITHUB-CLI.md)                 |
 | playwright         | Browser automation testing     | [PLAYWRIGHT.md](extensions/PLAYWRIGHT.md)                 |
+| agentic-qe         | AI-powered test generation     | [AGENTIC-QE.md](extensions/AGENTIC-QE.md)                 |
 | tmux-workspace     | Terminal multiplexer workspace | [TMUX-WORKSPACE.md](extensions/TMUX-WORKSPACE.md)         |
 | claude-marketplace | Claude Code plugin marketplace | [CLAUDE-MARKETPLACE.md](extensions/CLAUDE-MARKETPLACE.md) |
 
