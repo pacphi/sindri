@@ -221,10 +221,12 @@ The base image includes these tools system-wide (in `/usr/local/bin`):
 | `yq`     | YAML processor                              | Binary download      |
 
 **Development tools (Node.js, Python, etc.)** are installed via extensions:
+
 ```bash
 extension-manager install nodejs    # Installs Node.js via mise
 extension-manager install python    # Installs Python via mise
 ```
+
 Tools installed via extensions are stored on the persistent volume (`$HOME/.local/share/mise/`).
 
 **Claude Code Installation:**
