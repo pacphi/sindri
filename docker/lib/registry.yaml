@@ -77,6 +77,11 @@ extensions:
     description: Browser automation testing
     dependencies: [nodejs]
 
+  agentic-qe:
+    category: dev-tools
+    description: AI-powered test generation and quality engineering framework
+    dependencies: [nodejs]
+
   # Infrastructure
   docker:
     category: infrastructure
