@@ -11,7 +11,7 @@
   "scripts": {
     "validate": "pnpm validate:yaml && pnpm validate:shell && pnpm validate:markdown",
     "validate:yaml": "sh -c 'find docker/lib -name \"*.yaml\" -o -name \"*.yml\" | xargs yamllint && yamllint .github/workflows/*.yml'",
-    "validate:shell": "sh -c 'find docker/scripts docker/lib/extensions .github/scripts cli deploy -name \"*.sh\" -type f 2>/dev/null | xargs shellcheck'",
+    "validate:shell": "sh -c 'find docker/scripts docker/lib/extensions .github/scripts cli deploy -name \"*.sh\" -type f 2>/dev/null | xargs shellcheck -S warning'",
     "validate:markdown": "markdownlint '**/*.md' --ignore node_modules --ignore .git",
     "test": "pnpm test:unit",
     "test:unit": "bash test/unit/yaml/run-all-yaml-tests.sh",

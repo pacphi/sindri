@@ -16,7 +16,7 @@ ENV_CONFIG_FILE="$SSHD_CONFIG_D/99-bash-env.conf"
 SSH_ENV_FILE="$PROFILE_D_DIR/00-ssh-environment.sh"
 
 # Create sshd_config.d directory if it doesn't exist
-if [ ! -d "$SSHD_CONFIG_D" ]; then
+if [[ ! -d "$SSHD_CONFIG_D" ]]; then
     mkdir -p "$SSHD_CONFIG_D"
     echo "  Created $SSHD_CONFIG_D"
 fi

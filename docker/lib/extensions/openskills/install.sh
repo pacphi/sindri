@@ -67,9 +67,11 @@ print_success "Created config directory: ~/.openskills"
 # Add to PATH if needed
 bin_path="$HOME/.local/bin"
 if [[ -d "$bin_path" ]] && ! grep -q "$bin_path" "$HOME/.bashrc" 2>/dev/null; then
-    echo "" >> "$HOME/.bashrc"
-    echo "# openskills - binary path" >> "$HOME/.bashrc"
-    echo "export PATH=\"$bin_path:\$PATH\"" >> "$HOME/.bashrc"
+    {
+        echo ""
+        echo "# openskills - binary path"
+        echo "export PATH=\"$bin_path:\$PATH\""
+    } >> "$HOME/.bashrc"
     print_success "Added ~/.local/bin to PATH"
 fi
 

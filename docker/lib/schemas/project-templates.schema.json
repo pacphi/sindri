@@ -64,10 +64,7 @@
             "description": "Dependency installation configuration for this template",
             "properties": {
               "detect": {
-                "oneOf": [
-                  { "type": "string" },
-                  { "type": "array", "items": { "type": "string" } }
-                ],
+                "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }],
                 "description": "File(s) that indicate this project type needs dependency installation"
               },
               "command": {

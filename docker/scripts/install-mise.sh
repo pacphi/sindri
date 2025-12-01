@@ -22,7 +22,6 @@ fi
 MISE_INSTALL_PATH="/usr/local/bin/mise"
 PROFILE_SCRIPT="/etc/profile.d/01-mise-activation.sh"
 SKEL_BASHRC="/etc/skel/.bashrc"
-DEVELOPER_USER="${DEV_USER:-developer}"
 ALT_HOME="${ALT_HOME:-/alt/home/developer}"
 
 # Parse arguments

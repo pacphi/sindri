@@ -244,15 +244,15 @@ Two deployment workflows serve different use cases:
 
 The refactored `test-cli` action supports all providers with provider-specific execution:
 
-| Provider     | Execution Method        | Required Credentials                    |
-| ------------ | ----------------------- | --------------------------------------- |
-| `docker`     | `docker exec`           | None                                    |
-| `fly`        | `flyctl ssh console`    | `FLY_API_TOKEN`                         |
-| `devpod-aws` | `devpod exec`           | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
-| `devpod-gcp` | `devpod exec`           | `GCP_SERVICE_ACCOUNT_KEY`               |
-| `devpod-azure` | `devpod exec`         | `AZURE_CLIENT_ID/SECRET/TENANT_ID`      |
-| `devpod-do`  | `devpod exec`           | `DIGITALOCEAN_TOKEN`                    |
-| `devpod-k8s` | `devpod exec`           | `KUBECONFIG`                            |
+| Provider       | Execution Method     | Required Credentials                         |
+| -------------- | -------------------- | -------------------------------------------- |
+| `docker`       | `docker exec`        | None                                         |
+| `fly`          | `flyctl ssh console` | `FLY_API_TOKEN`                              |
+| `devpod-aws`   | `devpod exec`        | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| `devpod-gcp`   | `devpod exec`        | `GCP_SERVICE_ACCOUNT_KEY`                    |
+| `devpod-azure` | `devpod exec`        | `AZURE_CLIENT_ID/SECRET/TENANT_ID`           |
+| `devpod-do`    | `devpod exec`        | `DIGITALOCEAN_TOKEN`                         |
+| `devpod-k8s`   | `devpod exec`        | `KUBECONFIG`                                 |
 
 ## Test Suites
 
@@ -322,17 +322,17 @@ Extension testing is **profile-driven**: the selected profile determines which e
 
 Profiles are defined in `docker/lib/profiles.yaml` with varying resource requirements:
 
-| Profile        | Extensions | Disk Required | Timeout |
-| -------------- | ---------- | ------------- | ------- |
-| `minimal`      | 2          | ~1.0 GB       | 15 min  |
-| `data-science` | 2          | ~0.6 GB       | 15 min  |
-| `mobile`       | 1          | ~0.6 GB       | 15 min  |
-| `fullstack`    | 4          | ~2.2 GB       | 25 min  |
-| `ai-dev`       | 5          | ~3.3 GB       | 30 min  |
-| `systems`      | 4          | ~4.8 GB       | 35 min  |
-| `devops`       | 4          | ~6.2 GB       | 35 min  |
-| `anthropic-dev`| 11         | ~6.8 GB       | 40 min  |
-| `enterprise`   | 9          | ~12.8 GB      | 45 min  |
+| Profile         | Extensions | Disk Required | Timeout |
+| --------------- | ---------- | ------------- | ------- |
+| `minimal`       | 2          | ~1.0 GB       | 15 min  |
+| `data-science`  | 2          | ~0.6 GB       | 15 min  |
+| `mobile`        | 1          | ~0.6 GB       | 15 min  |
+| `fullstack`     | 4          | ~2.2 GB       | 25 min  |
+| `ai-dev`        | 5          | ~3.3 GB       | 30 min  |
+| `systems`       | 4          | ~4.8 GB       | 35 min  |
+| `devops`        | 4          | ~6.2 GB       | 35 min  |
+| `anthropic-dev` | 11         | ~6.8 GB       | 40 min  |
+| `enterprise`    | 9          | ~12.8 GB      | 45 min  |
 
 ### Profile Resource Calculation
 
@@ -344,14 +344,14 @@ The `test-provider.yml` workflow calculates resource requirements based on the s
 
 **VM Size Mappings** (`docker/lib/vm-sizes.yaml`):
 
-| Provider      | Small            | Medium           | Large            | XLarge           |
-| ------------- | ---------------- | ---------------- | ---------------- | ---------------- |
-| Fly.io        | shared-cpu-1x    | shared-cpu-2x    | performance-2x   | performance-4x   |
-| Docker        | default          | default          | default          | default          |
-| AWS           | t3.small         | t3.medium        | t3.large         | t3.xlarge        |
-| GCP           | e2-small         | e2-medium        | e2-standard-4    | e2-standard-8    |
-| Azure         | Standard_B1s     | Standard_B2s     | Standard_D2s_v3  | Standard_D4s_v3  |
-| DigitalOcean  | s-1vcpu-2gb      | s-2vcpu-4gb      | s-4vcpu-8gb      | s-8vcpu-16gb     |
+| Provider     | Small         | Medium        | Large           | XLarge          |
+| ------------ | ------------- | ------------- | --------------- | --------------- |
+| Fly.io       | shared-cpu-1x | shared-cpu-2x | performance-2x  | performance-4x  |
+| Docker       | default       | default       | default         | default         |
+| AWS          | t3.small      | t3.medium     | t3.large        | t3.xlarge       |
+| GCP          | e2-small      | e2-medium     | e2-standard-4   | e2-standard-8   |
+| Azure        | Standard_B1s  | Standard_B2s  | Standard_D2s_v3 | Standard_D4s_v3 |
+| DigitalOcean | s-1vcpu-2gb   | s-2vcpu-4gb   | s-4vcpu-8gb     | s-8vcpu-16gb    |
 
 This enables right-sizing CI infrastructure based on profile complexity.
 
@@ -361,10 +361,10 @@ This enables right-sizing CI infrastructure based on profile complexity.
 
 ```yaml
 # Manual trigger inputs in ci.yml
-providers: "docker,fly,devpod-aws"  # Comma-separated or "all"
-extension-profile: "fullstack"      # Profile to install and test
-test-suite: "full"                  # smoke | integration | full
-skip-cleanup: true                  # Keep resources for debugging
+providers: "docker,fly,devpod-aws" # Comma-separated or "all"
+extension-profile: "fullstack" # Profile to install and test
+test-suite: "full" # smoke | integration | full
+skip-cleanup: true # Keep resources for debugging
 ```
 
 **Via sindri.yaml Configuration:**
@@ -373,21 +373,21 @@ The `sindri.yaml` file specifies the extension profile to deploy:
 
 ```yaml
 extensions:
-  profile: fullstack  # Uses profile from docker/lib/profiles.yaml
+  profile: fullstack # Uses profile from docker/lib/profiles.yaml
 ```
 
 ## Scripts Directory
 
 The `.github/scripts/` directory contains test utilities:
 
-| Script                                  | Purpose                                                        |
-| --------------------------------------- | -------------------------------------------------------------- |
-| `test-all-extensions.sh`                | Validates all extensions (used by `pnpm test:extensions`)      |
+| Script                                  | Purpose                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| `test-all-extensions.sh`                | Validates all extensions (used by `pnpm test:extensions`)            |
 | `calculate-profile-resources.sh`        | Calculates aggregate resources for a profile (disk, memory, timeout) |
-| `generate-slack-notification.sh`        | Generates Slack messages for deployment notifications          |
-| `lib/test-helpers.sh`                   | Shared logging, retry, and VM interaction functions            |
-| `lib/assertions.sh`                     | Test assertion functions (equals, contains, file exists, etc.) |
-| `extensions/test-extension-complete.sh` | Full test suite for individual extensions                      |
+| `generate-slack-notification.sh`        | Generates Slack messages for deployment notifications                |
+| `lib/test-helpers.sh`                   | Shared logging, retry, and VM interaction functions                  |
+| `lib/assertions.sh`                     | Test assertion functions (equals, contains, file exists, etc.)       |
+| `extensions/test-extension-complete.sh` | Full test suite for individual extensions                            |
 
 **Extensibility:** Workflows support optional extension-specific test scripts at
 `.github/scripts/test-{extension}.sh`. If present, these are executed; otherwise,

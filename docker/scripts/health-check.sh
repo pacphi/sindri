@@ -3,7 +3,7 @@
 
 # In CI mode, we use Fly.io's hallpass SSH instead of custom sshd
 # Health check should pass as long as the container is running
-if [ "$CI_MODE" = "true" ]; then
+if [[ "$CI_MODE" == "true" ]]; then
     exit 0
 fi
 

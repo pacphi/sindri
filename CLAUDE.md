@@ -196,33 +196,34 @@ Critical concept: **Two-tier filesystem with home directory as volume**
 
 **Key Environment Variables:**
 
-| Variable          | Value                           |
-| ----------------- | ------------------------------- |
-| `ALT_HOME`        | `/alt/home/developer`           |
-| `HOME`            | `/alt/home/developer`           |
-| `WORKSPACE`       | `/alt/home/developer/workspace` |
-| `DOCKER_LIB`      | `/docker/lib`                   |
-| `SSH_PORT`        | `2222`                          |
+| Variable          | Value                              |
+| ----------------- | ---------------------------------- |
+| `ALT_HOME`        | `/alt/home/developer`              |
+| `HOME`            | `/alt/home/developer`              |
+| `WORKSPACE`       | `/alt/home/developer/workspace`    |
+| `DOCKER_LIB`      | `/docker/lib`                      |
+| `SSH_PORT`        | `2222`                             |
 | `CI_MODE`         | `true` in CI (disables SSH daemon) |
-| `MISE_DATA_DIR`   | `$HOME/.local/share/mise`       |
-| `MISE_CONFIG_DIR` | `$HOME/.config/mise`            |
-| `MISE_CACHE_DIR`  | `$HOME/.cache/mise`             |
-| `MISE_STATE_DIR`  | `$HOME/.local/state/mise`       |
+| `MISE_DATA_DIR`   | `$HOME/.local/share/mise`          |
+| `MISE_CONFIG_DIR` | `$HOME/.config/mise`               |
+| `MISE_CACHE_DIR`  | `$HOME/.cache/mise`                |
+| `MISE_STATE_DIR`  | `$HOME/.local/state/mise`          |
 
 ### Pre-installed Tools
 
 The base image includes these tools system-wide (in `/usr/local/bin`):
 
-| Tool         | Purpose                                    | Installation Script      |
-| ------------ | ------------------------------------------ | ------------------------ |
-| `mise`       | Unified tool version manager               | `install-mise.sh`        |
-| `claude`     | Claude Code CLI for AI-assisted development| `install-claude.sh`      |
-| `node`       | Node.js LTS (via mise)                     | `install-mise.sh --with-tools` |
-| `python`     | Python 3.13 (via mise)                     | `install-mise.sh --with-tools` |
-| `gh`         | GitHub CLI                                 | APT package              |
-| `yq`         | YAML processor                             | Binary download          |
+| Tool     | Purpose                                     | Installation Script            |
+| -------- | ------------------------------------------- | ------------------------------ |
+| `mise`   | Unified tool version manager                | `install-mise.sh`              |
+| `claude` | Claude Code CLI for AI-assisted development | `install-claude.sh`            |
+| `node`   | Node.js LTS (via mise)                      | `install-mise.sh --with-tools` |
+| `python` | Python 3.13 (via mise)                      | `install-mise.sh --with-tools` |
+| `gh`     | GitHub CLI                                  | APT package                    |
+| `yq`     | YAML processor                              | Binary download                |
 
 **Claude Code Installation:**
+
 - Uses Anthropic's official curl installer with 5-minute timeout
 - Binary installed to `/usr/local/bin/claude` for system-wide access
 - User config directory (`~/.claude/`) created from `/etc/skel/.claude/` on first login
@@ -272,11 +273,11 @@ The `setup-ssh-environment.sh` script configures `BASH_ENV` so that SSH commands
 
 **Available Adapters:**
 
-| Provider        | Adapter                  | Notes                                        |
-| --------------- | ------------------------ | -------------------------------------------- |
-| `docker`        | `docker-adapter.sh`      | Local Docker Compose deployment              |
-| `fly`           | `fly-adapter.sh`         | Fly.io cloud deployment (supports `--ci-mode`) |
-| `devpod`        | `devpod-adapter.sh`      | DevContainer (supports AWS, GCP, Azure, K8s) |
+| Provider | Adapter             | Notes                                          |
+| -------- | ------------------- | ---------------------------------------------- |
+| `docker` | `docker-adapter.sh` | Local Docker Compose deployment                |
+| `fly`    | `fly-adapter.sh`    | Fly.io cloud deployment (supports `--ci-mode`) |
+| `devpod` | `devpod-adapter.sh` | DevContainer (supports AWS, GCP, Azure, K8s)   |
 
 **Note:** Kubernetes deployment is supported via the DevPod provider with `type: kubernetes`. There is no native kubernetes-adapter; use DevPod for K8s deployments.
 
@@ -288,6 +289,7 @@ The `setup-ssh-environment.sh` script configures `BASH_ENV` so that SSH commands
 ```
 
 When `--ci-mode` is enabled:
+
 - `services = []` is generated (no SSH service, avoids hallpass conflicts)
 - Health checks are disabled
 - `CI_MODE=true` is added to environment
@@ -339,9 +341,9 @@ validate:
       expectedPattern: "v\\d+\\.\\d+\\.\\d+" # Optional regex
 
 upgrade:
-  strategy: reinstall|in-place  # How to handle version upgrades
+  strategy: reinstall|in-place # How to handle version upgrades
   script:
-    path: upgrade.sh  # Optional upgrade script
+    path: upgrade.sh # Optional upgrade script
 
 remove:
   mise:
@@ -351,7 +353,7 @@ remove:
     path: uninstall.sh
 
 bom:
-  components:  # Bill of Materials - auto-generated, do not edit manually
+  components: # Bill of Materials - auto-generated, do not edit manually
     - name: tool-name
       version: "1.0.0"
       type: runtime|library|tool

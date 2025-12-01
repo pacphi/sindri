@@ -152,15 +152,15 @@ pnpm lint:md
 
 The CI system uses these workflows:
 
-| Workflow                 | Purpose                                                      |
-| ------------------------ | ------------------------------------------------------------ |
-| `ci.yml`                 | Main CI orchestrator - validation, build, unified testing    |
-| `validate-yaml.yml`      | Comprehensive YAML validation                                |
-| `test-sindri-config.yml` | Config-driven testing (discovers examples)                   |
-| `deploy-sindri.yml`      | Reusable deployment workflow                                 |
-| `teardown-sindri.yml`    | Reusable cleanup workflow                                    |
-| `test-provider.yml`      | Full test suite per provider (CLI + extensions + integration)|
-| `release.yml`            | Release automation                                           |
+| Workflow                 | Purpose                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| `ci.yml`                 | Main CI orchestrator - validation, build, unified testing     |
+| `validate-yaml.yml`      | Comprehensive YAML validation                                 |
+| `test-sindri-config.yml` | Config-driven testing (discovers examples)                    |
+| `deploy-sindri.yml`      | Reusable deployment workflow                                  |
+| `teardown-sindri.yml`    | Reusable cleanup workflow                                     |
+| `test-provider.yml`      | Full test suite per provider (CLI + extensions + integration) |
+| `release.yml`            | Release automation                                            |
 
 ### CI Test Flow (Unified Provider Testing)
 
