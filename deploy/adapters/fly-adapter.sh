@@ -131,10 +131,10 @@ EOJSON
     exit 0
 fi
 
-# Determine if CI mode is active
-CI_MODE_VALUE=""
-[[ "$CI_MODE" == "true" ]] && CI_MODE_VALUE='
-  # CI Mode enabled - use flyctl ssh console for access
+# Determine if CI mode is active (controls SSH daemon startup in entrypoint)
+CI_MODE_ENV=""
+[[ "$CI_MODE" == "true" ]] && CI_MODE_ENV='
+  # CI Mode enabled - SSH daemon is skipped, use flyctl ssh console for access
   CI_MODE = "true"'
 
 # Ensure output directory exists
@@ -155,9 +155,8 @@ primary_region = "${REGION}"
 [build]
   dockerfile = "Dockerfile"
 
-# Note: No [processes] section needed - Docker's CMD runs the entrypoint
-# which handles SSH server startup via START_SSHD=true environment variable
-# This matches the sindri-legacy pattern and avoids ENTRYPOINT/process conflicts
+# Note: No [processes] section needed - Docker's ENTRYPOINT runs the entrypoint script
+# The entrypoint checks CI_MODE to decide whether to start SSH daemon
 # See: https://fly.io/docs/blueprints/opensshd/
 
 # Environment variables
@@ -172,9 +171,7 @@ primary_region = "${REGION}"
   INSTALL_PROFILE = "${PROFILE}"
   CUSTOM_EXTENSIONS = "${CUSTOM_EXTENSIONS}"
   # Workspace initialization
-  INIT_WORKSPACE = "true"
-  # Enable SSH server mode for Fly.io (unless CI_MODE is true)
-  START_SSHD = "true"${CI_MODE_VALUE}
+  INIT_WORKSPACE = "true"${CI_MODE_ENV}
 
 # Volume mounts for persistent storage
 [[mounts]]
@@ -287,9 +284,9 @@ cat >> "$OUTPUT_DIR/fly.toml" << EOFT
 # Pricing: ~\$0.15/GB/month
 
 # Process configuration notes:
-# No [processes] section is used - Docker's CMD handles container startup
-# The entrypoint script detects START_SSHD=true and starts the SSH server
-# This avoids conflicts between Docker ENTRYPOINT and Fly.io process commands
+# No [processes] section is used - Docker's ENTRYPOINT handles container startup
+# The entrypoint script checks CI_MODE to determine whether to start SSH daemon
+# In CI mode, SSH is skipped and access is via flyctl ssh console (hallpass)
 # See: https://fly.io/docs/blueprints/opensshd/
 
 # Cost optimization notes:

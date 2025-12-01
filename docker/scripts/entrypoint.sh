@@ -49,9 +49,19 @@ setup_home_directory() {
 
     # Ensure the volume mount point exists
     if [[ ! -d "$ALT_HOME" ]]; then
-        mkdir -p "$ALT_HOME"
+        mkdir -p "$ALT_HOME" || {
+            print_error "Failed to create home directory: $ALT_HOME"
+            exit 1
+        }
         print_status "Created home directory: $ALT_HOME"
     fi
+
+    # Verify volume is writable (critical for Fly.io volume mounts)
+    if ! touch "${ALT_HOME}/.write_test" 2>/dev/null; then
+        print_error "Volume at $ALT_HOME is not writable - check volume mount"
+        exit 1
+    fi
+    rm -f "${ALT_HOME}/.write_test"
 
     # Check if home is initialized (first boot detection)
     if [[ ! -f "${ALT_HOME}/.initialized" ]]; then
@@ -271,12 +281,15 @@ GITCRED
 # ------------------------------------------------------------------------------
 # start_ssh_daemon - Start SSH daemon (if not in CI mode)
 # ------------------------------------------------------------------------------
+# Follows Fly.io OpenSSH blueprint pattern:
+# https://fly.io/docs/blueprints/opensshd/
 start_ssh_daemon() {
     if [[ "${CI_MODE:-}" == "true" ]]; then
         print_status "CI Mode: Skipping SSH daemon startup"
         print_success "Sindri is ready (CI Mode)!"
         print_status "SSH access available via: flyctl ssh console"
         print_status "Home directory: $ALT_HOME"
+        print_status "Workspace: $WORKSPACE"
     else
         print_status "Starting SSH daemon on port ${SSH_PORT}..."
 
@@ -286,30 +299,32 @@ start_ssh_daemon() {
         # Ensure sshd runtime directory exists
         mkdir -p /var/run/sshd
 
-        # Start SSH daemon in foreground (-D) with logging to stderr (-e)
-        # This keeps the container alive and accepts SSH connections
-        /usr/sbin/sshd -D -e &
+        # Start SSH daemon as background service (not forked foreground)
+        # This follows the Fly.io blueprint pattern for OpenSSH
+        /usr/sbin/sshd -e || {
+            print_error "Failed to start SSH daemon"
+            exit 1
+        }
 
         print_success "Sindri is ready!"
         print_status "SSH server listening on port ${SSH_PORT}"
         print_status "Home directory: $ALT_HOME"
+        print_status "Workspace: $WORKSPACE"
     fi
 }
 
 # ------------------------------------------------------------------------------
-# wait_for_shutdown - Handle graceful shutdown
+# wait_for_shutdown - Handle graceful shutdown and keep container alive
 # ------------------------------------------------------------------------------
+# Uses exec to replace shell with sleep, ensuring proper signal handling
+# This follows the Fly.io blueprint pattern for long-running containers
 wait_for_shutdown() {
     # Handle shutdown gracefully
-    trap 'echo "Shutting down..."; kill $(jobs -p) 2>/dev/null; exit 0' SIGTERM SIGINT
+    trap 'echo "Shutting down Sindri..."; pkill sshd 2>/dev/null; exit 0' SIGTERM SIGINT
 
-    if [[ "${CI_MODE:-}" == "true" ]]; then
-        # In CI mode, keep container running without SSH
-        sleep infinity
-    else
-        # Wait for SSH daemon
-        wait $!
-    fi
+    # Keep container alive using exec to replace shell process
+    # This ensures signals are properly handled by PID 1
+    exec sleep infinity
 }
 
 # ------------------------------------------------------------------------------
@@ -331,6 +346,15 @@ show_welcome() {
 # main - Entry point that orchestrates container startup
 # ------------------------------------------------------------------------------
 main() {
+    # Early startup logging - output to stderr to ensure it's visible
+    # This helps debug container startup issues on Fly.io
+    echo "========================================"  >&2
+    echo "Sindri Container Starting"  >&2
+    echo "Time: $(date -Iseconds 2>/dev/null || date)"  >&2
+    echo "CI_MODE: ${CI_MODE:-false}"  >&2
+    echo "ALT_HOME: ${ALT_HOME}"  >&2
+    echo "========================================"  >&2
+
     # Display MOTD banner
     if [[ -f /etc/motd ]]; then
         cat /etc/motd

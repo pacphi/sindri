@@ -129,8 +129,10 @@ EXPOSE 2222
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD /docker/scripts/health-check.sh
 
-# Set working directory (will be created on volume at runtime)
-WORKDIR ${ALT_HOME}/workspace
+# Working directory is set to /tmp initially
+# The entrypoint will cd to workspace after creating it on the volume
+# This avoids issues with WORKDIR pointing to a non-existent path on empty volumes
+WORKDIR /tmp
 
 # Entrypoint runs as root to:
 # 1. Initialize home directory on volume
