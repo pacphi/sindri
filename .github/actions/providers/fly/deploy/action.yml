@@ -52,6 +52,10 @@ inputs:
     description: Pre-built Docker image to deploy (e.g., sindri:ci-abc123)
     required: false
     default: ""
+  ci-mode:
+    description: Enable CI mode (skips SSH daemon, uses flyctl ssh console)
+    required: false
+    default: "true"
 
 outputs:
   machine-id:
@@ -105,7 +109,6 @@ runs:
         echo "::endgroup::"
 
     - name: Set secrets
-      if: inputs.secrets != '{}'
       shell: bash
       env:
         FLY_API_TOKEN: ${{ inputs.fly-api-token }}
@@ -115,12 +118,20 @@ runs:
         APP_NAME="${{ inputs.app-name }}"
         SECRETS='${{ inputs.secrets }}'
 
-        # Parse and set each secret
-        echo "$SECRETS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | \
-        while IFS='=' read -r key value; do
-          echo "Setting secret: $key"
-          flyctl secrets set "$key=$value" -a "$APP_NAME" --stage || true
-        done
+        # Set CI_MODE if enabled
+        if [[ "${{ inputs.ci-mode }}" == "true" ]]; then
+          echo "Setting CI_MODE=true (SSH daemon disabled, use flyctl ssh console)"
+          flyctl secrets set "CI_MODE=true" -a "$APP_NAME" --stage || true
+        fi
+
+        # Parse and set each secret from inputs
+        if [[ "$SECRETS" != "{}" ]]; then
+          echo "$SECRETS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | \
+          while IFS='=' read -r key value; do
+            echo "Setting secret: $key"
+            flyctl secrets set "$key=$value" -a "$APP_NAME" --stage || true
+          done
+        fi
 
         # Deploy staged secrets
         flyctl secrets deploy -a "$APP_NAME" || true

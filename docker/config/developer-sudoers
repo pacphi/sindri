@@ -1,0 +1,3 @@
+# Sudoers configuration for developer user
+# Allows passwordless sudo for all commands
+developer ALL=(ALL) NOPASSWD:ALL

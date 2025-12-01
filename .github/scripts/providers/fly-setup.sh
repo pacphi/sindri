@@ -3,10 +3,11 @@
 # Generates fly.toml using adapter or creates minimal fallback config
 #
 # Usage:
-#   fly-setup.sh --app-name NAME [--sindri-config PATH] [--region REGION] [--output-dir DIR]
+#   fly-setup.sh --app-name NAME [--sindri-config PATH] [--region REGION] [--output-dir DIR] [--ci-mode]
 #
 # When --sindri-config is provided, uses the fly-adapter.sh to generate comprehensive config.
 # Otherwise, creates a minimal fly.toml suitable for CI testing.
+# Use --ci-mode to generate CI-compatible config (empty services, no health checks).
 
 set -euo pipefail
 
@@ -18,6 +19,7 @@ APP_NAME=""
 SINDRI_CONFIG=""
 REGION="sjc"
 OUTPUT_DIR="."
+CI_MODE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -38,6 +40,10 @@ while [[ $# -gt 0 ]]; do
             OUTPUT_DIR="$2"
             shift 2
             ;;
+        --ci-mode)
+            CI_MODE=true
+            shift
+            ;;
         --help)
             head -12 "$0" | tail -10
             exit 0
@@ -48,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Build CI_MODE flag for adapter
+CI_MODE_FLAG=""
+[[ "$CI_MODE" == "true" ]] && CI_MODE_FLAG="--ci-mode"
 
 # Validate required inputs
 if [[ -z "$APP_NAME" ]]; then
@@ -69,11 +79,14 @@ fi
 if [[ -n "$SINDRI_CONFIG" ]] && [[ -f "$SINDRI_CONFIG" ]]; then
     echo "source=adapter"
     echo "Generating fly.toml using adapter with config: $SINDRI_CONFIG"
+    [[ "$CI_MODE" == "true" ]] && echo "CI Mode: enabled"
 
+    # shellcheck disable=SC2086
     "$REPO_ROOT/deploy/adapters/fly-adapter.sh" \
         --config-only \
         --output-dir "$OUTPUT_DIR" \
         --app-name "$APP_NAME" \
+        $CI_MODE_FLAG \
         "$SINDRI_CONFIG"
 
     exit 0
@@ -83,6 +96,7 @@ fi
 # Create a temporary minimal sindri.yaml
 echo "source=fallback"
 echo "Generating minimal fly.toml (no sindri-config provided)"
+[[ "$CI_MODE" == "true" ]] && echo "CI Mode: enabled"
 
 TEMP_CONFIG=$(mktemp)
 cat > "$TEMP_CONFIG" << YAML
@@ -109,10 +123,12 @@ providers:
 YAML
 
 # Use the adapter with the temporary config
+# shellcheck disable=SC2086
 "$REPO_ROOT/deploy/adapters/fly-adapter.sh" \
     --config-only \
     --output-dir "$OUTPUT_DIR" \
     --app-name "$APP_NAME" \
+    $CI_MODE_FLAG \
     "$TEMP_CONFIG"
 
 # Cleanup

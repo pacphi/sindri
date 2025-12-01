@@ -9,11 +9,13 @@
 #   --output-dir     Directory for generated files (default: current directory)
 #   --output-vars    Output parsed variables for CI integration (JSON to stdout)
 #   --app-name       Override app name from sindri.yaml
+#   --ci-mode        Enable CI mode (empty services, set CI_MODE=true env)
 #   --help           Show this help message
 #
 # Examples:
 #   fly-adapter.sh                           # Deploy using ./sindri.yaml
 #   fly-adapter.sh --config-only             # Just generate fly.toml
+#   fly-adapter.sh --ci-mode --config-only   # Generate CI-compatible fly.toml
 #   fly-adapter.sh --output-dir /tmp myapp.yaml  # Generate to specific directory
 
 set -e
@@ -28,6 +30,7 @@ CONFIG_ONLY=false
 OUTPUT_DIR="."
 OUTPUT_VARS=false
 APP_NAME_OVERRIDE=""
+CI_MODE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -47,6 +50,10 @@ while [[ $# -gt 0 ]]; do
         --app-name)
             APP_NAME_OVERRIDE="$2"
             shift 2
+            ;;
+        --ci-mode)
+            CI_MODE=true
+            shift
             ;;
         --help)
             head -20 "$0" | tail -18
@@ -117,11 +124,18 @@ if [[ "$OUTPUT_VARS" == "true" ]]; then
   "cpus": $CPUS,
   "volume_size": $VOLUME_SIZE,
   "ssh_port": $SSH_EXTERNAL_PORT,
-  "cpu_kind": "$CPU_KIND"
+  "cpu_kind": "$CPU_KIND",
+  "ci_mode": $CI_MODE
 }
 EOJSON
     exit 0
 fi
+
+# Determine if CI mode is active
+CI_MODE_VALUE=""
+[[ "$CI_MODE" == "true" ]] && CI_MODE_VALUE='
+  # CI Mode enabled - use flyctl ssh console for access
+  CI_MODE = "true"'
 
 # Ensure output directory exists
 mkdir -p "$OUTPUT_DIR"
@@ -159,8 +173,8 @@ primary_region = "${REGION}"
   CUSTOM_EXTENSIONS = "${CUSTOM_EXTENSIONS}"
   # Workspace initialization
   INIT_WORKSPACE = "true"
-  # Enable SSH server mode for Fly.io
-  START_SSHD = "true"
+  # Enable SSH server mode for Fly.io (unless CI_MODE is true)
+  START_SSHD = "true"${CI_MODE_VALUE}
 
 # Volume mounts for persistent storage
 [[mounts]]
@@ -179,6 +193,20 @@ primary_region = "${REGION}"
   # Maximum size limit
   auto_extend_size_limit = "250GB"
 
+EOFT
+
+# Add services section based on CI_MODE
+if [[ "$CI_MODE" == "true" ]]; then
+    # CI Mode: Empty services to avoid hallpass conflicts
+    cat >> "$OUTPUT_DIR/fly.toml" << 'CISERVICES'
+# Services configuration - empty for CI mode to prevent hallpass conflicts
+# In CI mode, use flyctl ssh console for access instead of custom SSH service
+services = []
+
+CISERVICES
+else
+    # Normal mode: Full SSH services configuration
+    cat >> "$OUTPUT_DIR/fly.toml" << NORMALSERVICES
 # SSH service configuration (primary access method)
 # Note: sshd listens internally on 2222 to avoid conflicts with Fly.io's internal SSH on port 22
 # See: https://fly.io/docs/blueprints/opensshd/
@@ -202,6 +230,11 @@ primary_region = "${REGION}"
     grace_period = "30s"
     restart_limit = 3
 
+NORMALSERVICES
+fi
+
+# Continue with VM and remaining configuration
+cat >> "$OUTPUT_DIR/fly.toml" << EOFT
 # VM resource allocation
 # Start small and scale up if needed
 [vm]
@@ -218,6 +251,12 @@ primary_region = "${REGION}"
   strategy = "rolling"
   # No release_command - initialization happens in entrypoint
 
+EOFT
+
+# Add health checks section based on CI_MODE
+if [[ "$CI_MODE" != "true" ]]; then
+    # Normal mode: Add SSH health checks
+    cat >> "$OUTPUT_DIR/fly.toml" << 'HEALTHCHECKS'
 # Monitoring and health checks
 [checks]
   # SSH service health check
@@ -227,6 +266,19 @@ primary_region = "${REGION}"
     interval = "15s"
     timeout = "5s"
     grace_period = "30s"
+
+HEALTHCHECKS
+else
+    # CI Mode: Skip health checks
+    cat >> "$OUTPUT_DIR/fly.toml" << 'NOHEALTHCHECKS'
+# Monitoring and health checks - disabled for CI mode
+# Health checks are skipped in CI to allow faster deployment and avoid timeout issues
+
+NOHEALTHCHECKS
+fi
+
+# Add documentation comments
+cat >> "$OUTPUT_DIR/fly.toml" << EOFT
 
 # Volume configuration reference
 # Volume is automatically created by fly deploy if it doesn't exist
@@ -299,6 +351,7 @@ if [[ "$CONFIG_ONLY" == "true" ]]; then
     echo "    App name: $NAME"
     echo "    Region: $REGION"
     echo "    Profile: $PROFILE"
+    echo "    CI Mode: $CI_MODE"
     exit 0
 fi
 

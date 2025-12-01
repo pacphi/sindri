@@ -28,6 +28,10 @@ inputs:
     description: Fly CLI version to install
     required: false
     default: "latest"
+  ci-mode:
+    description: Enable CI mode (empty services, no health checks, use flyctl ssh console)
+    required: false
+    default: "true"
 
 outputs:
   app-name:
@@ -134,6 +138,12 @@ runs:
         # Add sindri-config if provided
         if [[ -n "${{ inputs.sindri-config }}" ]]; then
           SETUP_ARGS="$SETUP_ARGS --sindri-config ${{ inputs.sindri-config }}"
+        fi
+
+        # Add CI mode flag if enabled
+        if [[ "${{ inputs.ci-mode }}" == "true" ]]; then
+          SETUP_ARGS="$SETUP_ARGS --ci-mode"
+          echo "CI Mode: enabled (empty services, no health checks)"
         fi
 
         # Run the helper script and capture the source
