@@ -12,6 +12,7 @@ ARG ALT_HOME=/alt/home/developer
 
 # Set environment variables
 # Note: HOME will be reset to ALT_HOME at runtime via entrypoint
+# Note: MISE_* vars are set at runtime to user's home (on persistent volume)
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -80,22 +81,18 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Copy scripts first so we can use them for installation
-COPY docker/scripts/install-mise.sh /docker/scripts/install-mise.sh
-COPY docker/scripts/install-claude.sh /docker/scripts/install-claude.sh
-RUN chmod +x /docker/scripts/install-mise.sh /docker/scripts/install-claude.sh
-
-# Install mise (tool version manager) system-wide with default tools
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN /docker/scripts/install-mise.sh --with-tools
-
-# Install Claude Code CLI system-wide
-RUN /docker/scripts/install-claude.sh
-
 # Copy extension system, CLI tools, and configurations
 COPY docker/ /docker/
 COPY cli /docker/cli
 COPY deploy /docker/deploy
+
+# Install mise (tool version manager) binary only
+# Tools are installed by users via extensions at runtime (stored on persistent volume)
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN /docker/scripts/install-mise.sh
+
+# Install Claude Code CLI system-wide
+RUN /docker/scripts/install-claude.sh
 
 # Set permissions for scripts and CLI tools
 RUN chmod -R +r /docker/lib && \
@@ -119,15 +116,11 @@ RUN cp /docker/config/sshd_config /etc/ssh/sshd_config && \
 # This ensures BASH_ENV is set so SSH commands get full environment
 RUN /docker/scripts/setup-ssh-environment.sh
 
-# Add mise activation to /etc/skel/.bashrc (template for new home directories)
-RUN echo '' >> /etc/skel/.bashrc && \
-    echo '# mise - unified tool version manager' >> /etc/skel/.bashrc && \
-    echo 'if command -v mise >/dev/null 2>&1; then' >> /etc/skel/.bashrc && \
-    echo '    eval "$(mise activate bash)"' >> /etc/skel/.bashrc && \
-    echo 'fi' >> /etc/skel/.bashrc
-
 # Create welcome script in /etc/skel for first-login message
 RUN /docker/scripts/create-welcome.sh
+
+# Setup MOTD banner
+RUN /docker/scripts/setup-motd.sh
 
 # Expose SSH port (internal port 2222)
 EXPOSE 2222
@@ -142,6 +135,7 @@ WORKDIR ${ALT_HOME}/workspace
 # Entrypoint runs as root to:
 # 1. Initialize home directory on volume
 # 2. Set proper permissions
-# 3. Start SSH daemon (requires root)
+# 3. Start SSH daemon (requires root) OR execute passed command
 # Note: SSH sessions run as developer user
-CMD ["/docker/scripts/entrypoint.sh"]
+ENTRYPOINT ["/docker/scripts/entrypoint.sh"]
+CMD []

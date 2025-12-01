@@ -267,15 +267,6 @@ GITCRED
     fi
 }
 
-# ------------------------------------------------------------------------------
-# setup_motd - Configure Message of the Day banner
-# ------------------------------------------------------------------------------
-setup_motd() {
-    if [[ -f "/docker/scripts/setup-motd.sh" ]]; then
-        print_status "Setting up MOTD banner..."
-        bash /docker/scripts/setup-motd.sh 2>/dev/null || true
-    fi
-}
 
 # ------------------------------------------------------------------------------
 # start_ssh_daemon - Start SSH daemon (if not in CI mode)
@@ -322,19 +313,56 @@ wait_for_shutdown() {
 }
 
 # ------------------------------------------------------------------------------
+# show_welcome - Display welcome message on first boot only
+# ------------------------------------------------------------------------------
+show_welcome() {
+    local welcome_marker="${ALT_HOME}/.welcome_shown"
+
+    # Only show welcome on first boot (marker doesn't exist yet)
+    if [[ ! -f "$welcome_marker" ]] && [[ -x "${ALT_HOME}/welcome.sh" ]]; then
+        su - "$DEVELOPER_USER" -c "${ALT_HOME}/welcome.sh" 2>/dev/null || true
+        # Create marker so welcome isn't shown on container restarts
+        touch "$welcome_marker"
+        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$welcome_marker"
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # main - Entry point that orchestrates container startup
 # ------------------------------------------------------------------------------
 main() {
-    echo "========================================"
-    echo "Starting Sindri Development Environment"
-    echo "========================================"
+    # Display MOTD banner
+    if [[ -f /etc/motd ]]; then
+        cat /etc/motd
+    fi
 
+    # Always initialize the environment
     setup_home_directory
     setup_ssh_keys
     setup_git_config
-    setup_motd
-    start_ssh_daemon
-    wait_for_shutdown
+
+    # Check if a command was passed (interactive mode)
+    if [[ $# -gt 0 ]]; then
+        # Interactive mode: execute command as developer user
+        print_status "Interactive mode: executing command as $DEVELOPER_USER"
+
+        # Show welcome message for interactive shells
+        if [[ "$1" == "/bin/bash" || "$1" == "bash" || "$1" == "/bin/sh" || "$1" == "sh" ]]; then
+            show_welcome
+        fi
+
+        # Execute the command as the developer user
+        export HOME="$ALT_HOME"
+        export PATH="${ALT_HOME}/.local/share/mise/shims:/docker/cli:${ALT_HOME}/workspace/bin:/usr/local/bin:$PATH"
+        export MISE_DATA_DIR="${ALT_HOME}/.local/share/mise"
+        export MISE_CONFIG_DIR="${ALT_HOME}/.config/mise"
+        cd "$WORKSPACE"
+        exec sudo -u "$DEVELOPER_USER" --preserve-env=HOME,PATH,WORKSPACE,ALT_HOME,MISE_DATA_DIR,MISE_CONFIG_DIR "$@"
+    else
+        # Server mode: start SSH daemon
+        start_ssh_daemon
+        wait_for_shutdown
+    fi
 }
 
 # ==============================================================================

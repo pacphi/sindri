@@ -65,7 +65,8 @@ print_status "Running Claude Code installer as $DEVELOPER_USER (timeout: ${INSTA
 
 # Run the installer as developer user with timeout
 # The installer places the binary in ~/.local/bin/claude
-if ! su - "$DEVELOPER_USER" -c "
+# Note: Use 'su' without '-' to avoid trying to cd to non-existent home directory
+if ! su "$DEVELOPER_USER" -c "
     export HOME='$TEMP_HOME'
     export XDG_DATA_HOME='$TEMP_HOME/.local/share'
     export XDG_CONFIG_HOME='$TEMP_HOME/.config'

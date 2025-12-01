@@ -11,7 +11,7 @@ Sindri is a declarative, provider-agnostic cloud development environment system.
 - **YAML-First Architecture**: Extensions are declarative YAML files, not bash scripts. All configuration is driven by YAML schemas.
 - **Provider Agnostic**: Single `sindri.yaml` deploys to multiple providers (docker, fly, devpod, kubernetes via devpod).
 - **Immutable/Mutable Split**: System files in `/docker/` are baked into the image (immutable), while `$HOME` (`/alt/home/developer`) is a persistent volume containing workspace and all user data.
-- **Fast Startup**: Optimized base image with pre-installed runtimes (Node.js, Python, Claude Code) enables 10-15s cold starts.
+- **Fast Startup**: Optimized base image with pre-installed tools (mise, Claude Code) enables fast startup. Development tools are installed via extensions on persistent volume.
 
 ## Commands
 
@@ -213,14 +213,19 @@ Critical concept: **Two-tier filesystem with home directory as volume**
 
 The base image includes these tools system-wide (in `/usr/local/bin`):
 
-| Tool     | Purpose                                     | Installation Script            |
-| -------- | ------------------------------------------- | ------------------------------ |
-| `mise`   | Unified tool version manager                | `install-mise.sh`              |
-| `claude` | Claude Code CLI for AI-assisted development | `install-claude.sh`            |
-| `node`   | Node.js LTS (via mise)                      | `install-mise.sh --with-tools` |
-| `python` | Python 3.13 (via mise)                      | `install-mise.sh --with-tools` |
-| `gh`     | GitHub CLI                                  | APT package                    |
-| `yq`     | YAML processor                              | Binary download                |
+| Tool     | Purpose                                     | Installation Script  |
+| -------- | ------------------------------------------- | -------------------- |
+| `mise`   | Unified tool version manager                | `install-mise.sh`    |
+| `claude` | Claude Code CLI for AI-assisted development | `install-claude.sh`  |
+| `gh`     | GitHub CLI                                  | APT package          |
+| `yq`     | YAML processor                              | Binary download      |
+
+**Development tools (Node.js, Python, etc.)** are installed via extensions:
+```bash
+extension-manager install nodejs    # Installs Node.js via mise
+extension-manager install python    # Installs Python via mise
+```
+Tools installed via extensions are stored on the persistent volume (`$HOME/.local/share/mise/`).
 
 **Claude Code Installation:**
 
