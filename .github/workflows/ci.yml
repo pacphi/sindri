@@ -127,6 +127,9 @@ jobs:
         with:
           image-tag: sindri:ci-${{ github.sha }}
           cache-key-prefix: sindri-ci
+          # Disable buildx cache to avoid layer corruption
+          # See: https://github.com/docker/buildx/issues/637
+          no-cache: true
 
       - name: Save image as artifact
         run: |
