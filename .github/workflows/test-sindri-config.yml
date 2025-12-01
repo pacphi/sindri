@@ -128,7 +128,7 @@ jobs:
       count: ${{ steps.discover.outputs.count }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Discover sindri.yaml files
         id: discover
@@ -165,7 +165,7 @@ jobs:
         config: ${{ fromJson(needs.discover-configs.outputs.configs) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install yq
         run: pip install yq

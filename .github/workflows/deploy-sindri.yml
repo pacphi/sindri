@@ -34,7 +34,7 @@ jobs:
       app-url: ${{ steps.deploy.outputs.app-url }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install yq
         run: pip install yq

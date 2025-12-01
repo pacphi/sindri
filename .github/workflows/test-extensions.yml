@@ -55,7 +55,7 @@ jobs:
       combinations: ${{ steps.prepare.outputs.combinations }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Prepare test matrix
         id: prepare
@@ -89,7 +89,7 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Download image artifact
         if: inputs.image-artifact != '' && inputs.provider == 'docker'
@@ -282,7 +282,7 @@ jobs:
         combination: ${{ fromJson(needs.prepare.outputs.combinations) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Load combination configuration
         id: config
