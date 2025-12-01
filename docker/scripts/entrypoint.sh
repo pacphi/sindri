@@ -49,12 +49,73 @@ configure_sshd() {
         fi
     fi
 
-    # Generate host keys if they don't exist
-    if [[ ! -f /etc/ssh/ssh_host_rsa_key ]]; then
-        sudo ssh-keygen -A 2>/dev/null || true
-    fi
+    # Persist/restore SSH host keys for stable fingerprints across deploys
+    # See: https://fly.io/docs/blueprints/opensshd/
+    persist_ssh_host_keys
 
     print_status "SSH server configured on port ${ssh_port}"
+}
+
+# Persist SSH host keys to volume for stable fingerprints across deploys
+# This prevents "host key changed" warnings when machines are redeployed
+# See: https://fly.io/docs/blueprints/opensshd/
+persist_ssh_host_keys() {
+    local host_keys_dir="${HOME}/.ssh/host_keys"
+
+    # Create host keys directory in persistent volume
+    mkdir -p "$host_keys_dir" 2>/dev/null || true
+    chmod 700 "$host_keys_dir" 2>/dev/null || true
+
+    # Check if we have persisted keys in the volume
+    if ls "$host_keys_dir"/*_key >/dev/null 2>&1; then
+        # Restore persisted keys to /etc/ssh
+        print_status "Restoring persisted SSH host keys..."
+        sudo cp "$host_keys_dir"/*_key /etc/ssh/ 2>/dev/null || true
+        sudo cp "$host_keys_dir"/*_key.pub /etc/ssh/ 2>/dev/null || true
+        sudo chmod 600 /etc/ssh/*_key 2>/dev/null || true
+        sudo chmod 644 /etc/ssh/*_key.pub 2>/dev/null || true
+    else
+        # Generate new host keys if they don't exist
+        if [[ ! -f /etc/ssh/ssh_host_rsa_key ]]; then
+            print_status "Generating new SSH host keys..."
+            sudo ssh-keygen -A 2>/dev/null || true
+        fi
+
+        # Persist the keys to the volume for future deploys
+        print_status "Persisting SSH host keys to volume..."
+        cp /etc/ssh/ssh_host_*_key "$host_keys_dir/" 2>/dev/null || true
+        cp /etc/ssh/ssh_host_*_key.pub "$host_keys_dir/" 2>/dev/null || true
+        chmod 600 "$host_keys_dir"/*_key 2>/dev/null || true
+        chmod 644 "$host_keys_dir"/*_key.pub 2>/dev/null || true
+    fi
+}
+
+# Setup authorized_keys from AUTHORIZED_KEYS environment variable
+# This allows key-based SSH authentication without password
+# See: https://fly.io/docs/blueprints/opensshd/
+setup_authorized_keys() {
+    local ssh_dir="${HOME}/.ssh"
+    local auth_keys_file="${ssh_dir}/authorized_keys"
+
+    # Create .ssh directory if needed
+    mkdir -p "$ssh_dir" 2>/dev/null || true
+    chmod 700 "$ssh_dir" 2>/dev/null || true
+
+    # If AUTHORIZED_KEYS env var is set, write it to authorized_keys file
+    if [[ -n "${AUTHORIZED_KEYS:-}" ]]; then
+        print_status "Setting up SSH authorized keys from environment..."
+        echo "$AUTHORIZED_KEYS" > "$auth_keys_file"
+        chmod 600 "$auth_keys_file"
+        print_success "SSH authorized keys configured"
+    fi
+
+    # Also check for AUTHORIZED_KEYS_FILE pointing to a file path
+    if [[ -n "${AUTHORIZED_KEYS_FILE:-}" ]] && [[ -f "${AUTHORIZED_KEYS_FILE}" ]]; then
+        print_status "Appending SSH authorized keys from file..."
+        cat "${AUTHORIZED_KEYS_FILE}" >> "$auth_keys_file"
+        chmod 600 "$auth_keys_file"
+        print_success "SSH authorized keys appended from file"
+    fi
 }
 
 # Fix home directory ownership with robust fallback
@@ -163,6 +224,9 @@ is_sshd_command() {
 # If running sshd, configure and start it
 if is_sshd_command "$@"; then
     configure_sshd "${SSH_PORT}"
+
+    # Setup authorized_keys from environment variable (if provided)
+    setup_authorized_keys
 
     # sshd requires root to bind to privileged ports and manage sessions
     # Use sudo to start sshd, then it will handle user sessions

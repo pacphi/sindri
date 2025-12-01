@@ -137,6 +137,10 @@ extensions:
 
 # Secrets configuration (set via provider-specific mechanisms)
 secrets:
+  # SSH key-based authentication (recommended for Fly.io)
+  # - name: AUTHORIZED_KEYS
+  #   source: env
+
   # Claude Code
   - name: ANTHROPIC_API_KEY
     source: env

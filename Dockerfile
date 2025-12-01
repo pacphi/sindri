@@ -1,5 +1,9 @@
-# Sindri - Optimized Multi-Stage Build
-FROM ubuntu:24.04 AS base
+# Sindri
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.title="Sindri Development Environment"
+LABEL org.opencontainers.image.description="Provider-agnostic cloud dev environment with extensible tooling and pre-configured runtimes"
+LABEL org.opencontainers.image.vendor="Sindri"
 
 # Define the alternate home path for volume mounting
 # This allows the entire home directory to be on a persistent volume
@@ -57,8 +61,7 @@ RUN apt-get update && apt-get install -y \
     vim \
     wget \
     zip \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+    zlib1g-dev
 
 # Install yq for YAML parsing
 RUN wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
@@ -70,8 +73,11 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
     apt-get update && \
-    apt-get install -y gh && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y gh
+
+# Clean up to reduce layer size
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install mise (tool version manager) and pre-install runtimes
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

@@ -249,9 +249,12 @@ primary_region = "${REGION}"
 # Security notes:
 # 1. SSH server listens on port 2222 internally (avoids conflict with Fly.io's port 22)
 # 2. External port ${SSH_EXTERNAL_PORT} maps to internal port 2222
-# 3. Password authentication enabled for developer user
+# 3. Password authentication enabled for developer user (can use key-based auth instead)
 # 4. Root login disabled via SSH
-# 5. Secrets management via Fly.io secrets:
+# 5. SSH host keys are persisted to volume (~/.ssh/host_keys/) for stable fingerprints
+# 6. Secrets management via Fly.io secrets:
+#    - AUTHORIZED_KEYS: SSH public keys for key-based authentication (recommended)
+#      Set with: flyctl secrets set "AUTHORIZED_KEYS=\$(cat ~/.ssh/id_ed25519.pub)" -a ${NAME}
 #    - ANTHROPIC_API_KEY: Claude API authentication
 #    - GITHUB_TOKEN: GitHub authentication for git operations
 #    - GIT_USER_NAME: Git config user.name
@@ -273,6 +276,7 @@ primary_region = "${REGION}"
 # Development workflow:
 # 1. Deploy: flyctl deploy
 # 2. Set secrets (optional):
+#    flyctl secrets set "AUTHORIZED_KEYS=\$(cat ~/.ssh/id_ed25519.pub)" -a ${NAME}
 #    flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a ${NAME}
 #    flyctl secrets set GITHUB_TOKEN=ghp_... -a ${NAME}
 #    flyctl secrets set GIT_USER_NAME="Your Name" -a ${NAME}
