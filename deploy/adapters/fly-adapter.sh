@@ -101,6 +101,44 @@ AUTO_START=$(yq '.providers.fly.autoStartMachines // true' "$SINDRI_YAML")
 CPU_KIND=$(yq '.providers.fly.cpuKind // "shared"' "$SINDRI_YAML")
 SSH_EXTERNAL_PORT=$(yq '.providers.fly.sshPort // 10022' "$SINDRI_YAML")
 
+# Parse GPU configuration
+GPU_ENABLED=$(yq '.deployment.resources.gpu.enabled // false' "$SINDRI_YAML")
+GPU_TIER=$(yq '.deployment.resources.gpu.tier // "gpu-small"' "$SINDRI_YAML")
+GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
+
+# GPU tier to Fly.io machine type mapping
+get_fly_gpu_config() {
+    local tier="${1:-gpu-small}"
+    case "$tier" in
+        gpu-small)   echo "a100-40gb:8:32768" ;;   # guest_type:cpus:memory_mb
+        gpu-medium)  echo "a100-40gb:16:65536" ;;
+        gpu-large)   echo "l40s:16:65536" ;;
+        gpu-xlarge)  echo "a100-80gb:32:131072" ;;
+        *)           echo "a100-40gb:8:32768" ;;
+    esac
+}
+
+# Validate Fly.io GPU region
+validate_fly_gpu_region() {
+    local region="$1"
+    local valid_regions=("ord" "sjc")
+
+    for valid in "${valid_regions[@]}"; do
+        if [[ "$region" == "$valid" ]]; then
+            return 0
+        fi
+    done
+
+    echo "Warning: GPU machines may not be available in region: $region" >&2
+    echo "GPU-enabled regions: ${valid_regions[*]}" >&2
+    return 1
+}
+
+# Validate GPU configuration
+if [[ "$GPU_ENABLED" == "true" ]]; then
+    validate_fly_gpu_region "$REGION" || true
+fi
+
 # Calculate memory in MB
 MEMORY_MB=$(echo "$MEMORY" | bc)
 
@@ -125,7 +163,10 @@ if [[ "$OUTPUT_VARS" == "true" ]]; then
   "volume_size": $VOLUME_SIZE,
   "ssh_port": $SSH_EXTERNAL_PORT,
   "cpu_kind": "$CPU_KIND",
-  "ci_mode": $CI_MODE
+  "ci_mode": $CI_MODE,
+  "gpu_enabled": $GPU_ENABLED,
+  "gpu_tier": "$GPU_TIER",
+  "gpu_count": $GPU_COUNT
 }
 EOJSON
     exit 0
@@ -231,7 +272,27 @@ NORMALSERVICES
 fi
 
 # Continue with VM and remaining configuration
-cat >> "$OUTPUT_DIR/fly.toml" << EOFT
+if [[ "$GPU_ENABLED" == "true" ]]; then
+    # GPU-enabled VM configuration
+    GPU_CONFIG=$(get_fly_gpu_config "$GPU_TIER")
+    GPU_GUEST_TYPE=$(echo "$GPU_CONFIG" | cut -d: -f1)
+    GPU_CPUS=$(echo "$GPU_CONFIG" | cut -d: -f2)
+    GPU_MEMORY_MB=$(echo "$GPU_CONFIG" | cut -d: -f3)
+
+    cat >> "$OUTPUT_DIR/fly.toml" << EOFT
+# GPU-enabled VM resource allocation
+# Using Fly.io GPU machines with ${GPU_TIER} tier
+[vm]
+  # GPU machine type - includes GPU, CPU, and memory
+  guest_type = "${GPU_GUEST_TYPE}"
+  cpus = ${GPU_CPUS}
+  memory = "${GPU_MEMORY_MB}mb"
+  # Note: GPU machines include swap configured automatically
+
+# Deployment settings
+EOFT
+else
+    cat >> "$OUTPUT_DIR/fly.toml" << EOFT
 # VM resource allocation
 # Start small and scale up if needed
 [vm]
@@ -243,6 +304,10 @@ cat >> "$OUTPUT_DIR/fly.toml" << EOFT
   swap_size_mb = ${SWAP_MB}
 
 # Deployment settings
+EOFT
+fi
+
+cat >> "$OUTPUT_DIR/fly.toml" << EOFT
 [deploy]
   # Deployment strategy for zero-downtime updates
   strategy = "rolling"
@@ -349,6 +414,9 @@ if [[ "$CONFIG_ONLY" == "true" ]]; then
     echo "    Region: $REGION"
     echo "    Profile: $PROFILE"
     echo "    CI Mode: $CI_MODE"
+    if [[ "$GPU_ENABLED" == "true" ]]; then
+        echo "    GPU: $GPU_TIER ($GPU_GUEST_TYPE)"
+    fi
     exit 0
 fi
 

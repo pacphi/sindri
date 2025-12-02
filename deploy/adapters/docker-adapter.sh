@@ -92,6 +92,24 @@ MEMORY=$(yq '.deployment.resources.memory // "1GB"' "$SINDRI_YAML")
 CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
 PROFILE=$(yq '.extensions.profile // ""' "$SINDRI_YAML")
 
+# Parse GPU configuration
+GPU_ENABLED=$(yq '.deployment.resources.gpu.enabled // false' "$SINDRI_YAML")
+GPU_TYPE=$(yq '.deployment.resources.gpu.type // "nvidia"' "$SINDRI_YAML")
+GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
+
+# Validate GPU support
+if [[ "$GPU_ENABLED" == "true" ]]; then
+    if [[ "$GPU_TYPE" != "nvidia" ]]; then
+        echo "Error: Docker adapter only supports nvidia GPUs (requested: $GPU_TYPE)" >&2
+        exit 1
+    fi
+
+    # Check for NVIDIA runtime availability
+    if ! docker info 2>/dev/null | grep -q "nvidia"; then
+        echo "Warning: NVIDIA Docker runtime not detected. Install nvidia-container-toolkit for GPU support." >&2
+    fi
+fi
+
 # Output variables for CI integration if requested
 if [[ "$OUTPUT_VARS" == "true" ]]; then
     cat << EOJSON
@@ -99,7 +117,10 @@ if [[ "$OUTPUT_VARS" == "true" ]]; then
   "name": "$NAME",
   "memory": "$MEMORY",
   "cpus": $CPUS,
-  "profile": "$PROFILE"
+  "profile": "$PROFILE",
+  "gpu_enabled": $GPU_ENABLED,
+  "gpu_type": "$GPU_TYPE",
+  "gpu_count": $GPU_COUNT
 }
 EOJSON
     exit 0
@@ -153,13 +174,38 @@ if [[ "$CONFIG_ONLY" != "true" ]]; then
     secrets_get_docker_mounts >> "$OUTPUT_DIR/docker-compose.yml" || true
 fi
 
-# Add resource limits
-cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+# Add GPU runtime if enabled
+if [[ "$GPU_ENABLED" == "true" ]]; then
+    cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    runtime: nvidia
+EODC
+fi
+
+# Add resource limits (with GPU reservations if enabled)
+if [[ "$GPU_ENABLED" == "true" ]]; then
+    cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
     deploy:
       resources:
         limits:
           memory: ${MEMORY}
           cpus: '${CPUS}'
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${GPU_COUNT}
+              capabilities: [gpu, compute, utility]
+EODC
+else
+    cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY}
+          cpus: '${CPUS}'
+EODC
+fi
+
+cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
     stdin_open: true
     tty: true
     command: sleep infinity

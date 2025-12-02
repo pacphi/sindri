@@ -90,6 +90,57 @@ MEMORY=$(yq '.deployment.resources.memory // "4GB"' "$SINDRI_YAML")
 CPUS=$(yq '.deployment.resources.cpus // 2' "$SINDRI_YAML")
 VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML" | sed 's/GB//')
 
+# Parse GPU configuration
+GPU_ENABLED=$(yq '.deployment.resources.gpu.enabled // false' "$SINDRI_YAML")
+GPU_TIER=$(yq '.deployment.resources.gpu.tier // "gpu-small"' "$SINDRI_YAML")
+GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
+
+# GPU tier to provider-specific instance mapping functions
+get_aws_gpu_instance() {
+    local tier="${1:-gpu-small}"
+    case "$tier" in
+        gpu-small)   echo "g4dn.xlarge" ;;
+        gpu-medium)  echo "g5.2xlarge" ;;
+        gpu-large)   echo "g5.4xlarge" ;;
+        gpu-xlarge)  echo "p4d.24xlarge" ;;
+        *)           echo "g4dn.xlarge" ;;
+    esac
+}
+
+get_gcp_gpu_config() {
+    local tier="${1:-gpu-small}"
+    # Returns: machine_type:accelerator_type:accelerator_count
+    case "$tier" in
+        gpu-small)   echo "n1-standard-4:nvidia-tesla-t4:1" ;;
+        gpu-medium)  echo "n1-standard-8:nvidia-tesla-a10g:1" ;;
+        gpu-large)   echo "g2-standard-16:nvidia-l4:1" ;;
+        gpu-xlarge)  echo "a2-megagpu-16g:nvidia-a100-80gb:8" ;;
+        *)           echo "n1-standard-4:nvidia-tesla-t4:1" ;;
+    esac
+}
+
+get_azure_gpu_vm() {
+    local tier="${1:-gpu-small}"
+    case "$tier" in
+        gpu-small)   echo "Standard_NC4as_T4_v3" ;;
+        gpu-medium)  echo "Standard_NC8as_T4_v3" ;;
+        gpu-large)   echo "Standard_NC24ads_A100_v4" ;;
+        gpu-xlarge)  echo "Standard_ND96amsr_A100_v4" ;;
+        *)           echo "Standard_NC4as_T4_v3" ;;
+    esac
+}
+
+get_k8s_gpu_node_selector() {
+    local tier="${1:-gpu-small}"
+    case "$tier" in
+        gpu-small)   echo "nvidia-tesla-t4" ;;
+        gpu-medium)  echo "nvidia-a10g" ;;
+        gpu-large)   echo "nvidia-l40s" ;;
+        gpu-xlarge)  echo "nvidia-a100" ;;
+        *)           echo "nvidia-tesla-t4" ;;
+    esac
+}
+
 # Parse DevPod provider configuration
 DEVPOD_PROVIDER=$(yq '.providers.devpod.type // "docker"' "$SINDRI_YAML")
 
@@ -102,6 +153,11 @@ case "$DEVPOD_PROVIDER" in
         AWS_USE_SPOT=$(yq '.providers.devpod.aws.useSpot // false' "$SINDRI_YAML")
         AWS_SUBNET_ID=$(yq '.providers.devpod.aws.subnetId // ""' "$SINDRI_YAML")
         AWS_SECURITY_GROUP=$(yq '.providers.devpod.aws.securityGroupId // ""' "$SINDRI_YAML")
+        # Override instance type for GPU
+        if [[ "$GPU_ENABLED" == "true" ]]; then
+            AWS_INSTANCE_TYPE=$(get_aws_gpu_instance "$GPU_TIER")
+            echo "Using GPU instance: $AWS_INSTANCE_TYPE" >&2
+        fi
         ;;
     gcp)
         GCP_PROJECT=$(yq '.providers.devpod.gcp.project // ""' "$SINDRI_YAML")
@@ -109,6 +165,16 @@ case "$DEVPOD_PROVIDER" in
         GCP_MACHINE_TYPE=$(yq '.providers.devpod.gcp.machineType // "e2-standard-4"' "$SINDRI_YAML")
         GCP_DISK_SIZE=$(yq '.providers.devpod.gcp.diskSize // 40' "$SINDRI_YAML")
         GCP_DISK_TYPE=$(yq '.providers.devpod.gcp.diskType // "pd-balanced"' "$SINDRI_YAML")
+        GCP_ACCELERATOR_TYPE=""
+        GCP_ACCELERATOR_COUNT=0
+        # Override machine type and add accelerator for GPU
+        if [[ "$GPU_ENABLED" == "true" ]]; then
+            GPU_CONFIG=$(get_gcp_gpu_config "$GPU_TIER")
+            GCP_MACHINE_TYPE=$(echo "$GPU_CONFIG" | cut -d: -f1)
+            GCP_ACCELERATOR_TYPE=$(echo "$GPU_CONFIG" | cut -d: -f2)
+            GCP_ACCELERATOR_COUNT=$(echo "$GPU_CONFIG" | cut -d: -f3)
+            echo "Using GPU: $GCP_ACCELERATOR_TYPE x$GCP_ACCELERATOR_COUNT on $GCP_MACHINE_TYPE" >&2
+        fi
         ;;
     azure)
         AZURE_SUBSCRIPTION=$(yq '.providers.devpod.azure.subscription // ""' "$SINDRI_YAML")
@@ -116,6 +182,11 @@ case "$DEVPOD_PROVIDER" in
         AZURE_LOCATION=$(yq '.providers.devpod.azure.location // "eastus"' "$SINDRI_YAML")
         AZURE_VM_SIZE=$(yq '.providers.devpod.azure.vmSize // "Standard_D4s_v3"' "$SINDRI_YAML")
         AZURE_DISK_SIZE=$(yq '.providers.devpod.azure.diskSize // 40' "$SINDRI_YAML")
+        # Override VM size for GPU
+        if [[ "$GPU_ENABLED" == "true" ]]; then
+            AZURE_VM_SIZE=$(get_azure_gpu_vm "$GPU_TIER")
+            echo "Using GPU VM: $AZURE_VM_SIZE" >&2
+        fi
         ;;
     digitalocean)
         DO_REGION=$(yq '.providers.devpod.digitalocean.region // "nyc3"' "$SINDRI_YAML")
@@ -126,6 +197,14 @@ case "$DEVPOD_PROVIDER" in
         K8S_NAMESPACE=$(yq '.providers.devpod.kubernetes.namespace // "devpod"' "$SINDRI_YAML")
         K8S_STORAGE_CLASS=$(yq '.providers.devpod.kubernetes.storageClass // ""' "$SINDRI_YAML")
         K8S_CONTEXT=$(yq '.providers.devpod.kubernetes.context // ""' "$SINDRI_YAML")
+        K8S_GPU_NODE_SELECTOR=""
+        # shellcheck disable=SC2034  # Used in provider.yaml generation
+        K8S_GPU_RESOURCE_KEY="nvidia.com/gpu"
+        # Add GPU node selector for GPU
+        if [[ "$GPU_ENABLED" == "true" ]]; then
+            K8S_GPU_NODE_SELECTOR=$(get_k8s_gpu_node_selector "$GPU_TIER")
+            echo "Using GPU node selector: accelerator=$K8S_GPU_NODE_SELECTOR" >&2
+        fi
         ;;
     ssh)
         SSH_HOST=$(yq '.providers.devpod.ssh.host // ""' "$SINDRI_YAML")
@@ -202,6 +281,9 @@ EOJSON
   "memory": "$MEMORY",
   "cpus": $CPUS,
   "volumeSize": $VOLUME_SIZE,
+  "gpu_enabled": $GPU_ENABLED,
+  "gpu_tier": "$GPU_TIER",
+  "gpu_count": $GPU_COUNT,
   "providerConfig": $PROVIDER_CONFIG
 }
 EOJSON
@@ -251,7 +333,8 @@ cat << EODC
   "hostRequirements": {
     "cpus": ${CPUS},
     "memory": "${MEMORY_MB}mb",
-    "storage": "${VOLUME_SIZE}gb"
+    "storage": "${VOLUME_SIZE}gb"$(if [[ "$GPU_ENABLED" == "true" ]]; then echo ',
+    "gpu": "optional"'; fi)
   },
 
   "customizations": {
@@ -296,7 +379,8 @@ cat << EODC
     "--cap-add=SYS_PTRACE",
     "--security-opt", "seccomp=unconfined",
     "--cpus=${CPUS}",
-    "--memory=${MEMORY}"
+    "--memory=${MEMORY}"$(if [[ "$GPU_ENABLED" == "true" ]]; then echo ',
+    "--gpus", "all"'; fi)
   ],
 
   "forwardPorts": [3000, 8080],
@@ -513,6 +597,9 @@ if [[ "$CONFIG_ONLY" == "true" ]]; then
     echo "    Provider: $DEVPOD_PROVIDER"
     echo "    Profile: $PROFILE"
     echo "    Resources: ${CPUS} CPUs, ${MEMORY} memory, ${VOLUME_SIZE}GB storage"
+    if [[ "$GPU_ENABLED" == "true" ]]; then
+        echo "    GPU: $GPU_TIER (count: $GPU_COUNT)"
+    fi
     exit 0
 fi
 

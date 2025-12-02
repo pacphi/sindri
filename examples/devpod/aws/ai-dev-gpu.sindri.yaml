@@ -7,11 +7,16 @@ name: sindri-devpod-aws-ai-gpu
 deployment:
   provider: devpod
   resources:
-    memory: 16GB
+    memory: 32GB
     cpus: 8
+    gpu:
+      enabled: true
+      type: nvidia
+      tier: gpu-medium  # Maps to g5.2xlarge (A10G, 24GB VRAM)
+      count: 1
   volumes:
     workspace:
-      size: 100GB
+      size: 200GB
 
 extensions:
   profile: ai-dev
@@ -21,5 +26,5 @@ providers:
     type: aws
     aws:
       region: us-east-1
-      instanceType: g4dn.2xlarge # GPU instance
-      diskSize: 150
+      diskSize: 200
+      useSpot: true  # Cost savings for GPU instances

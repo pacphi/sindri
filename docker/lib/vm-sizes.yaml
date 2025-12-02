@@ -27,6 +27,39 @@ tiers:
     memory_range: "8192+ MB"
     disk_range: "10000+ MB"
 
+# GPU Tier Definitions
+gpu_tiers:
+  gpu-small:
+    description: Entry-level GPU (T4, 16GB VRAM, good for inference)
+    gpu_memory_range: "8-16 GB"
+    gpu_type: T4
+    use_cases:
+      - inference
+      - light training
+      - development
+  gpu-medium:
+    description: Mid-range GPU (A10G/L4, 24GB VRAM, good for training)
+    gpu_memory_range: "16-24 GB"
+    gpu_type: A10G
+    use_cases:
+      - training
+      - inference
+      - fine-tuning
+  gpu-large:
+    description: High-end GPU (L40S/A100-40G, 40-48GB VRAM)
+    gpu_memory_range: "40-48 GB"
+    gpu_type: L40S
+    use_cases:
+      - large model training
+      - multi-model inference
+  gpu-xlarge:
+    description: Enterprise GPU (A100-80G/H100, 80GB+ VRAM)
+    gpu_memory_range: "80+ GB"
+    gpu_type: A100-80G
+    use_cases:
+      - LLM training
+      - enterprise workloads
+
 providers:
   fly:
     description: Fly.io VM sizes
@@ -45,6 +78,25 @@ providers:
       medium: 1024
       large: 2048
       xlarge: 4096
+    # GPU configuration for Fly.io
+    gpu_sizes:
+      gpu-small: a100-40gb
+      gpu-medium: a100-40gb
+      gpu-large: l40s
+      gpu-xlarge: a100-80gb
+    gpu_memory:
+      gpu-small: 40960
+      gpu-medium: 40960
+      gpu-large: 48128
+      gpu-xlarge: 81920
+    gpu_cpus:
+      gpu-small: 8
+      gpu-medium: 16
+      gpu-large: 16
+      gpu-xlarge: 32
+    gpu_regions:
+      - ord  # Chicago - primary GPU region
+      - sjc  # San Jose
 
   docker:
     description: Docker resource limits
@@ -63,6 +115,19 @@ providers:
       medium: 2
       large: 4
       xlarge: 8
+    # GPU configuration for Docker
+    gpu_runtime: nvidia
+    gpu_device_driver: nvidia
+    gpu_sizes:
+      gpu-small: nvidia-t4
+      gpu-medium: nvidia-a10g
+      gpu-large: nvidia-l40s
+      gpu-xlarge: nvidia-a100
+    gpu_count:
+      gpu-small: 1
+      gpu-medium: 1
+      gpu-large: 1
+      gpu-xlarge: 1
 
   aws:
     description: AWS EC2 instance types (via DevPod)
@@ -86,6 +151,27 @@ providers:
       medium: 50
       large: 80
       xlarge: 120
+    # GPU configuration for AWS
+    gpu_sizes:
+      gpu-small: g4dn.xlarge      # T4, 16GB, 4 vCPU
+      gpu-medium: g5.2xlarge      # A10G, 24GB, 8 vCPU
+      gpu-large: g5.4xlarge       # A10G, 24GB, 16 vCPU
+      gpu-xlarge: p4d.24xlarge    # A100x8, 320GB, 96 vCPU
+    gpu_memory:
+      gpu-small: 16384
+      gpu-medium: 24576
+      gpu-large: 24576
+      gpu-xlarge: 327680
+    gpu_vcpus:
+      gpu-small: 4
+      gpu-medium: 8
+      gpu-large: 16
+      gpu-xlarge: 96
+    gpu_count:
+      gpu-small: 1
+      gpu-medium: 1
+      gpu-large: 1
+      gpu-xlarge: 8
 
   gcp:
     description: GCP Compute Engine machine types (via DevPod)
@@ -109,6 +195,22 @@ providers:
       medium: 50
       large: 80
       xlarge: 120
+    # GPU configuration for GCP
+    gpu_sizes:
+      gpu-small: n1-standard-4
+      gpu-medium: n1-standard-8
+      gpu-large: g2-standard-16
+      gpu-xlarge: a2-megagpu-16g
+    gpu_accelerator_type:
+      gpu-small: nvidia-tesla-t4
+      gpu-medium: nvidia-tesla-a10g
+      gpu-large: nvidia-l4
+      gpu-xlarge: nvidia-a100-80gb
+    gpu_accelerator_count:
+      gpu-small: 1
+      gpu-medium: 1
+      gpu-large: 1
+      gpu-xlarge: 16
 
   azure:
     description: Azure VM sizes (via DevPod)
@@ -132,6 +234,22 @@ providers:
       medium: 50
       large: 80
       xlarge: 120
+    # GPU configuration for Azure
+    gpu_sizes:
+      gpu-small: Standard_NC4as_T4_v3     # T4, 16GB
+      gpu-medium: Standard_NC8as_T4_v3    # T4, 16GB, 8 vCPU
+      gpu-large: Standard_NC24ads_A100_v4 # A100, 80GB
+      gpu-xlarge: Standard_ND96amsr_A100_v4  # A100x8
+    gpu_memory:
+      gpu-small: 16384
+      gpu-medium: 16384
+      gpu-large: 81920
+      gpu-xlarge: 655360
+    gpu_count:
+      gpu-small: 1
+      gpu-medium: 1
+      gpu-large: 1
+      gpu-xlarge: 8
 
   digitalocean:
     description: DigitalOcean droplet sizes (via DevPod)
@@ -178,6 +296,27 @@ providers:
       medium: 50Gi
       large: 80Gi
       xlarge: 120Gi
+    # GPU configuration for Kubernetes
+    gpu_resource_key: nvidia.com/gpu
+    gpu_sizes:
+      gpu-small: gpu-small
+      gpu-medium: gpu-medium
+      gpu-large: gpu-large
+      gpu-xlarge: gpu-xlarge
+    gpu_node_selector:
+      gpu-small:
+        accelerator: nvidia-tesla-t4
+      gpu-medium:
+        accelerator: nvidia-a10g
+      gpu-large:
+        accelerator: nvidia-l40s
+      gpu-xlarge:
+        accelerator: nvidia-a100
+    gpu_count:
+      gpu-small: 1
+      gpu-medium: 1
+      gpu-large: 1
+      gpu-xlarge: 8
 
 # Volume size recommendations by tier (in GB)
 volumes:

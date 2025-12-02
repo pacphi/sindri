@@ -210,7 +210,155 @@ retry_command() {
     return 1
 }
 
+# =============================================================================
+# GPU Detection and Validation Functions
+# =============================================================================
+
+# Check if GPU is available on host
+# Usage: check_gpu_available [gpu_type]
+# gpu_type: nvidia (default), amd
+check_gpu_available() {
+    local gpu_type="${1:-nvidia}"
+
+    if [[ "$gpu_type" == "nvidia" ]]; then
+        if command_exists nvidia-smi; then
+            if nvidia-smi &>/dev/null; then
+                return 0
+            fi
+        fi
+    elif [[ "$gpu_type" == "amd" ]]; then
+        if command_exists rocm-smi; then
+            if rocm-smi &>/dev/null; then
+                return 0
+            fi
+        fi
+    fi
+
+    return 1
+}
+
+# Get GPU count on host
+# Usage: get_gpu_count [gpu_type]
+get_gpu_count() {
+    local gpu_type="${1:-nvidia}"
+
+    if [[ "$gpu_type" == "nvidia" ]]; then
+        if command_exists nvidia-smi; then
+            nvidia-smi --list-gpus 2>/dev/null | wc -l
+        else
+            echo "0"
+        fi
+    elif [[ "$gpu_type" == "amd" ]]; then
+        if command_exists rocm-smi; then
+            rocm-smi --showproductname 2>/dev/null | grep -c "GPU" || echo "0"
+        else
+            echo "0"
+        fi
+    else
+        echo "0"
+    fi
+}
+
+# Get GPU memory in MB
+# Usage: get_gpu_memory [gpu_type]
+get_gpu_memory() {
+    local gpu_type="${1:-nvidia}"
+
+    if [[ "$gpu_type" == "nvidia" ]]; then
+        if command_exists nvidia-smi; then
+            nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1
+        else
+            echo "0"
+        fi
+    else
+        echo "0"
+    fi
+}
+
+# Validate GPU configuration for provider
+# Usage: validate_gpu_config provider gpu_enabled gpu_tier [region]
+validate_gpu_config() {
+    local provider="$1"
+    local gpu_enabled="$2"
+    local gpu_tier="${3:-gpu-small}"
+    local region="${4:-}"
+
+    if [[ "$gpu_enabled" != "true" ]]; then
+        return 0
+    fi
+
+    case "$provider" in
+        docker|docker-compose)
+            if ! check_gpu_available; then
+                print_error "GPU requested but no NVIDIA GPU detected on host"
+                print_status "Install nvidia-container-toolkit for GPU support"
+                return 1
+            fi
+            ;;
+        fly)
+            local gpu_regions=("ord" "sjc")
+            if [[ -n "$region" ]]; then
+                local valid=false
+                for r in "${gpu_regions[@]}"; do
+                    if [[ "$region" == "$r" ]]; then
+                        valid=true
+                        break
+                    fi
+                done
+                if [[ "$valid" != "true" ]]; then
+                    print_warning "GPU may not be available in Fly.io region: $region"
+                    print_status "GPU-enabled regions: ${gpu_regions[*]}"
+                fi
+            fi
+            ;;
+        devpod|aws|gcp|azure|kubernetes)
+            # DevPod GPU validation depends on provider type
+            print_status "GPU support validated at deployment time by cloud provider"
+            ;;
+        *)
+            print_warning "Unknown provider: $provider - GPU support not validated"
+            ;;
+    esac
+
+    return 0
+}
+
+# Check extension GPU requirements against deployment
+# Usage: check_extension_gpu_requirements extension_dir gpu_enabled gpu_count
+check_extension_gpu_requirements() {
+    local extension_dir="$1"
+    local gpu_enabled="$2"
+    local gpu_count="${3:-0}"
+
+    local ext_yaml="$extension_dir/extension.yaml"
+    if [[ ! -f "$ext_yaml" ]]; then
+        return 0
+    fi
+
+    local gpu_required
+    local gpu_min_count
+    gpu_required=$(yq '.requirements.gpu.required // false' "$ext_yaml" 2>/dev/null)
+    gpu_min_count=$(yq '.requirements.gpu.minCount // 1' "$ext_yaml" 2>/dev/null)
+
+    if [[ "$gpu_required" == "true" ]] && [[ "$gpu_enabled" != "true" ]]; then
+        local ext_name
+        ext_name=$(yq '.metadata.name' "$ext_yaml")
+        print_error "Extension '$ext_name' requires GPU but GPU is not enabled"
+        return 1
+    fi
+
+    if [[ "$gpu_required" == "true" ]] && [[ "$gpu_count" -lt "$gpu_min_count" ]]; then
+        local ext_name
+        ext_name=$(yq '.metadata.name' "$ext_yaml")
+        print_error "Extension '$ext_name' requires $gpu_min_count GPUs but only $gpu_count configured"
+        return 1
+    fi
+
+    return 0
+}
+
 # Export functions for use in subshells
 export -f print_status print_success print_warning print_error print_header
 export -f command_exists is_user ensure_directory
 export -f load_yaml validate_yaml_schema check_dns check_disk_space retry_command
+export -f check_gpu_available get_gpu_count get_gpu_memory validate_gpu_config check_extension_gpu_requirements

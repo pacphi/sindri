@@ -18,6 +18,17 @@
       "required": ["small", "medium", "large", "xlarge"],
       "additionalProperties": false
     },
+    "gpu_tiers": {
+      "type": "object",
+      "description": "GPU resource tier definitions",
+      "properties": {
+        "gpu-small": { "$ref": "#/$defs/gpuTierDefinition" },
+        "gpu-medium": { "$ref": "#/$defs/gpuTierDefinition" },
+        "gpu-large": { "$ref": "#/$defs/gpuTierDefinition" },
+        "gpu-xlarge": { "$ref": "#/$defs/gpuTierDefinition" }
+      },
+      "additionalProperties": false
+    },
     "providers": {
       "type": "object",
       "description": "Provider-specific VM size mappings",
@@ -114,9 +125,92 @@
         "swap": {
           "$ref": "#/$defs/tierSizes",
           "description": "Swap size per tier (MB)"
+        },
+        "gpu_sizes": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "GPU instance/machine types per tier"
+        },
+        "gpu_memory": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "GPU memory per tier (MB)"
+        },
+        "gpu_count": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "GPU count per tier"
+        },
+        "gpu_cpus": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "CPU allocation for GPU instances"
+        },
+        "gpu_accelerator_type": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "Accelerator type for GCP"
+        },
+        "gpu_accelerator_count": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "Accelerator count for GCP"
+        },
+        "gpu_node_selector": {
+          "type": "object",
+          "description": "Kubernetes node selectors for GPU tiers",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        },
+        "gpu_regions": {
+          "type": "array",
+          "description": "Regions where GPU is available",
+          "items": { "type": "string" }
+        },
+        "gpu_runtime": {
+          "type": "string",
+          "description": "GPU runtime (e.g., nvidia)"
+        },
+        "gpu_device_driver": {
+          "type": "string",
+          "description": "GPU device driver"
+        },
+        "gpu_resource_key": {
+          "type": "string",
+          "description": "Kubernetes GPU resource key (e.g., nvidia.com/gpu)"
         }
       },
       "additionalProperties": true
+    },
+    "gpuTierDefinition": {
+      "type": "object",
+      "description": "GPU tier definition",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the GPU tier"
+        },
+        "gpu_memory_range": {
+          "type": "string",
+          "description": "GPU memory range for this tier"
+        },
+        "gpu_type": {
+          "type": "string",
+          "description": "GPU architecture (e.g., T4, A10G, L40S, A100)"
+        },
+        "use_cases": {
+          "type": "array",
+          "description": "Recommended use cases for this tier",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["description"]
+    },
+    "gpuTierSizes": {
+      "type": "object",
+      "properties": {
+        "gpu-small": { "type": ["integer", "string"] },
+        "gpu-medium": { "type": ["integer", "string"] },
+        "gpu-large": { "type": ["integer", "string"] },
+        "gpu-xlarge": { "type": ["integer", "string"] }
+      },
+      "additionalProperties": false
     }
   }
 }
