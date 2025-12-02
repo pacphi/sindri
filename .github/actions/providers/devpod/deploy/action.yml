@@ -177,11 +177,11 @@ runs:
         echo "Running: $CMD"
         eval "$CMD"
 
-        # Get workspace status (DevPod uses 'State' field, not 'status')
-        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.State' || echo "unknown")
+        # Get workspace status (DevPod uses lowercase 'state' in JSON output)
+        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.state' || echo "unknown")
 
-        # Get provider name (DevPod returns provider as string, not object)
-        PROVIDER_NAME=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.Provider' || echo "")
+        # Get provider name (DevPod uses lowercase 'provider' in JSON output)
+        PROVIDER_NAME=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.provider' || echo "")
 
         echo "status=$STATUS" >> $GITHUB_OUTPUT
         echo "provider-name=$PROVIDER_NAME" >> $GITHUB_OUTPUT
@@ -207,14 +207,14 @@ runs:
             exit 1
           fi
 
-          STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.State' || echo "unknown")
+          STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.state' || echo "unknown")
           echo "Status: $STATUS (elapsed: ${ELAPSED}s)"
 
           # DevPod returns lowercase state values: "running", "stopped", "busy", etc.
-          if [[ "$STATUS" == "Running" ]] || [[ "$STATUS" == "running" ]]; then
+          if [[ "$STATUS" == "running" ]]; then
             echo "✅ Workspace is ready"
             break
-          elif [[ "$STATUS" == "Error" ]] || [[ "$STATUS" == "error" ]]; then
+          elif [[ "$STATUS" == "error" ]]; then
             echo "❌ Workspace deployment failed"
             devpod logs "$WORKSPACE_ID" || true
             exit 1
