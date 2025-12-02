@@ -250,10 +250,10 @@ The `examples/k8s/` folder contains configs that CREATE local clusters (kind/k3d
 then deploy via DevPod. CI handles cluster creation separately via the setup action,
 so it uses the simpler `examples/devpod/kubernetes/` configs that assume an existing cluster.
 
-| Directory | Purpose | When to Use |
-|-----------|---------|-------------|
-| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster | CI, external clusters |
-| `examples/k8s/` | Create cluster + deploy (all-in-one) | Local development |
+| Directory                     | Purpose                              | When to Use           |
+| ----------------------------- | ------------------------------------ | --------------------- |
+| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster       | CI, external clusters |
+| `examples/k8s/`               | Create cluster + deploy (all-in-one) | Local development     |
 
 **Manual local K8s testing:**
 

@@ -159,10 +159,10 @@ k8s/
 
 **Key difference from `devpod/kubernetes/`:**
 
-| Directory | Purpose | When to Use |
-|-----------|---------|-------------|
+| Directory            | Purpose                    | When to Use           |
+| -------------------- | -------------------------- | --------------------- |
 | `devpod/kubernetes/` | Deploy to EXISTING cluster | CI, external clusters |
-| `k8s/` | CREATE cluster + deploy | Local development |
+| `k8s/`               | CREATE cluster + deploy    | Local development     |
 
 **Usage:**
 

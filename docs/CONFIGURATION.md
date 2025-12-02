@@ -298,15 +298,15 @@ providers:
 
 **Available DevPod backends:**
 
-| Type | Backend | Example Config |
-|------|---------|----------------|
-| `docker` | Local Docker (default) | `examples/devpod/` |
-| `aws` | AWS EC2 | `examples/devpod/aws/` |
-| `gcp` | GCP Compute | `examples/devpod/gcp/` |
-| `azure` | Azure VMs | `examples/devpod/azure/` |
+| Type           | Backend               | Example Config                  |
+| -------------- | --------------------- | ------------------------------- |
+| `docker`       | Local Docker (default)| `examples/devpod/`              |
+| `aws`          | AWS EC2               | `examples/devpod/aws/`          |
+| `gcp`          | GCP Compute           | `examples/devpod/gcp/`          |
+| `azure`        | Azure VMs             | `examples/devpod/azure/`        |
 | `digitalocean` | DigitalOcean Droplets | `examples/devpod/digitalocean/` |
-| `kubernetes` | Kubernetes pods | `examples/devpod/kubernetes/` |
-| `ssh` | Any SSH host | N/A |
+| `kubernetes`   | Kubernetes pods       | `examples/devpod/kubernetes/`   |
+| `ssh`          | Any SSH host          | N/A                             |
 
 ## Kubernetes Deployment Paths
 
@@ -348,13 +348,13 @@ providers:
 
 **Choosing between them:**
 
-| Use Case | Recommended Path |
-|----------|------------------|
-| Enterprise with existing K8s tooling | Direct Kubernetes |
-| VS Code Remote Container support | DevPod + K8s |
-| CI/CD testing (auto-creates kind cluster) | DevPod + K8s |
-| GitHub Codespaces compatibility | DevPod + K8s |
-| Need native K8s manifests for GitOps | Direct Kubernetes |
+| Use Case                                  | Recommended Path  |
+| ----------------------------------------- | ----------------- |
+| Enterprise with existing K8s tooling      | Direct Kubernetes |
+| VS Code Remote Container support          | DevPod + K8s      |
+| CI/CD testing (auto-creates kind cluster) | DevPod + K8s      |
+| GitHub Codespaces compatibility           | DevPod + K8s      |
+| Need native K8s manifests for GitOps      | Direct Kubernetes |
 
 ## Environment Variables
 

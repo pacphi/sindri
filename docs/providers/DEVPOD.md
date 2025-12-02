@@ -137,15 +137,15 @@ DevContainer features add capabilities:
 
 DevPod is a **meta-provider** that can deploy to multiple backends:
 
-| Backend | CLI Provider | sindri.yaml `type` | Example Configs |
-|---------|--------------|-------------------|-----------------|
-| Docker (local) | `docker` | `docker` | `examples/devpod/` |
-| AWS EC2 | `aws` | `aws` | `examples/devpod/aws/` |
-| GCP Compute | `gcp` | `gcp` | `examples/devpod/gcp/` |
-| Azure VMs | `azure` | `azure` | `examples/devpod/azure/` |
-| DigitalOcean | `digitalocean` | `digitalocean` | `examples/devpod/digitalocean/` |
-| Kubernetes | `kubernetes` | `kubernetes` | `examples/devpod/kubernetes/` |
-| SSH Host | `ssh` | `ssh` | N/A |
+| Backend        | CLI Provider   | sindri.yaml `type` | Example Configs                 |
+| -------------- | -------------- | ------------------ | ------------------------------- |
+| Docker (local) | `docker`       | `docker`           | `examples/devpod/`              |
+| AWS EC2        | `aws`          | `aws`              | `examples/devpod/aws/`          |
+| GCP Compute    | `gcp`          | `gcp`              | `examples/devpod/gcp/`          |
+| Azure VMs      | `azure`        | `azure`            | `examples/devpod/azure/`        |
+| DigitalOcean   | `digitalocean` | `digitalocean`     | `examples/devpod/digitalocean/` |
+| Kubernetes     | `kubernetes`   | `kubernetes`       | `examples/devpod/kubernetes/`   |
+| SSH Host       | `ssh`          | `ssh`              | N/A                             |
 
 ### Docker (Local)
 
@@ -178,11 +178,11 @@ providers:
 
 When testing in CI without an external cluster:
 
-| KUBECONFIG Secret | CI Behavior |
-|-------------------|-------------|
-| Not provided | Auto-creates kind cluster |
-| Provided (file path) | Uses that kubeconfig |
-| Provided (content) | Writes to ~/.kube/config |
+| KUBECONFIG Secret    | CI Behavior               |
+| -------------------- | ------------------------- |
+| Not provided         | Auto-creates kind cluster |
+| Provided (file path) | Uses that kubeconfig      |
+| Provided (content)   | Writes to ~/.kube/config  |
 
 The CI workflow automatically handles cluster provisioning:
 
@@ -193,10 +193,10 @@ providers: devpod-k8s  # Kind cluster auto-created
 
 **Example directories:**
 
-| Directory | Purpose | Used By |
-|-----------|---------|---------|
-| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster | CI (`devpod-k8s`) |
-| `examples/k8s/` | Create local cluster + deploy | Manual local testing |
+| Directory                     | Purpose                        | Used By              |
+| ----------------------------- | ------------------------------ | -------------------- |
+| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster | CI (`devpod-k8s`)    |
+| `examples/k8s/`               | Create local cluster + deploy  | Manual local testing |
 
 ### AWS
 

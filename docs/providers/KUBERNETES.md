@@ -32,10 +32,10 @@ auto-provisioned kind clusters for testing. See [Testing Guide](../TESTING.md).
 
 **Example directories:**
 
-| Directory | Purpose |
-|-----------|---------|
-| `examples/devpod/kubernetes/` | DevPod+K8s configs (CI uses these) |
-| `examples/k8s/` | Local cluster creation + deployment |
+| Directory                     | Purpose                              |
+| ----------------------------- | ------------------------------------ |
+| `examples/devpod/kubernetes/` | DevPod+K8s configs (CI uses these)   |
+| `examples/k8s/`               | Local cluster creation + deployment  |
 
 ## Prerequisites
 
