@@ -74,6 +74,45 @@
           "items": {
             "type": "string"
           }
+        },
+        "gpu": {
+          "type": "object",
+          "description": "GPU requirements for this extension",
+          "properties": {
+            "required": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether GPU is mandatory for this extension"
+            },
+            "recommended": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether GPU is recommended but not required"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["nvidia", "amd", "any"],
+              "default": "nvidia",
+              "description": "Required GPU vendor type"
+            },
+            "minCount": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "description": "Minimum number of GPUs required"
+            },
+            "minMemory": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Minimum GPU memory in MB"
+            },
+            "cudaVersion": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+              "description": "Minimum CUDA version required (e.g., 12.0)"
+            }
+          },
+          "additionalProperties": false
         }
       }
     },

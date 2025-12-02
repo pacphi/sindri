@@ -1,0 +1,33 @@
+---
+# Sindri Configuration - Fly.io GPU ML Training
+# GPU-accelerated ML training on Fly.io
+# GPU available in regions: ord (Chicago), sjc (San Jose)
+version: "1.0"
+name: sindri-fly-gpu-ml
+
+deployment:
+  provider: fly
+  resources:
+    memory: 64GB
+    cpus: 16
+    gpu:
+      enabled: true
+      tier: gpu-large  # Maps to L40S with 48GB VRAM
+  volumes:
+    workspace:
+      size: 200GB
+
+extensions:
+  profile: ai-dev
+
+providers:
+  fly:
+    region: ord  # Chicago - GPU-enabled region
+    autoStopMachines: true
+    autoStartMachines: true
+
+# Fly.toml will generate:
+# [vm]
+#   guest_type = "l40s"
+#   cpus = 16
+#   memory = "65536mb"

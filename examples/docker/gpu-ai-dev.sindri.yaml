@@ -1,0 +1,27 @@
+---
+# Sindri Configuration - Docker AI Development with GPU
+# Local AI/ML development with NVIDIA GPU support
+# Requires: nvidia-container-toolkit installed on host
+version: "1.0"
+name: sindri-docker-gpu-ai
+
+deployment:
+  provider: docker
+  resources:
+    memory: 32GB
+    cpus: 8
+    gpu:
+      enabled: true
+      type: nvidia
+      count: 1  # Use all available host GPUs with count: -1
+  volumes:
+    workspace:
+      size: 100GB
+
+extensions:
+  profile: ai-dev
+
+# Docker-compose will generate:
+# - runtime: nvidia
+# - deploy.resources.reservations.devices with nvidia driver
+# - NVIDIA_VISIBLE_DEVICES=all environment variable

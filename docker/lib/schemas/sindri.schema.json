@@ -38,6 +38,41 @@
             "cpus": {
               "type": "integer",
               "minimum": 1
+            },
+            "gpu": {
+              "type": "object",
+              "description": "GPU configuration for compute workloads",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable GPU support for this deployment"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["nvidia", "amd"],
+                  "default": "nvidia",
+                  "description": "GPU vendor type"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8,
+                  "default": 1,
+                  "description": "Number of GPUs to request"
+                },
+                "tier": {
+                  "type": "string",
+                  "enum": ["gpu-small", "gpu-medium", "gpu-large", "gpu-xlarge"],
+                  "description": "GPU tier for automatic instance selection"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^\\d+(GB|MB)$",
+                  "description": "Minimum GPU memory required (e.g., 16GB, 24GB)"
+                }
+              },
+              "additionalProperties": false
             }
           }
         },

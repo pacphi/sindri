@@ -1,0 +1,236 @@
+---
+# GPU Capabilities by Provider
+# Used for validation and user guidance
+
+providers:
+  docker:
+    supported: true
+    gpu_types:
+      - nvidia
+    notes: |
+      Requires nvidia-container-toolkit installed on host.
+      Host must have NVIDIA drivers and GPUs available.
+    validation_command: nvidia-smi
+    setup_docs: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/
+
+  fly:
+    supported: true
+    gpu_types:
+      - nvidia
+    available_gpus:
+      - type: a100-40gb
+        memory_gb: 40
+        available_regions:
+          - ord
+          - sjc
+      - type: a100-80gb
+        memory_gb: 80
+        available_regions:
+          - ord
+      - type: l40s
+        memory_gb: 48
+        available_regions:
+          - ord
+          - sjc
+    notes: |
+      GPU machines require Fly.io Machines API.
+      Not available in all regions.
+      Use guest_type in [vm] section of fly.toml.
+    setup_docs: https://fly.io/docs/gpus/
+
+  aws:
+    supported: true
+    gpu_types:
+      - nvidia
+    instance_families:
+      inference:
+        - family: g4dn
+          gpu: T4
+          memory_gb: 16
+          description: Cost-effective inference
+        - family: g5
+          gpu: A10G
+          memory_gb: 24
+          description: Balanced inference/training
+        - family: inf1
+          description: AWS Inferentia (custom chips)
+        - family: inf2
+          description: AWS Inferentia2 (custom chips)
+      training:
+        - family: p3
+          gpu: V100
+          memory_gb: 16
+          description: Legacy training workloads
+        - family: p4d
+          gpu: A100
+          memory_gb: 40
+          description: High-end training
+        - family: p5
+          gpu: H100
+          memory_gb: 80
+          description: Latest generation training
+    notes: |
+      GPU instances have per-region availability.
+      Spot instances available for significant cost savings.
+      g4dn is most cost-effective for inference.
+    setup_docs: https://aws.amazon.com/ec2/instance-types/#Accelerated_Computing
+
+  gcp:
+    supported: true
+    gpu_types:
+      - nvidia
+    accelerator_types:
+      - type: nvidia-tesla-t4
+        memory_gb: 16
+        use_case: Inference, light training
+        zones:
+          - us-central1-a
+          - us-east1-c
+          - europe-west4-a
+      - type: nvidia-tesla-a10g
+        memory_gb: 24
+        use_case: Balanced workloads
+      - type: nvidia-l4
+        memory_gb: 24
+        use_case: Inference, fine-tuning
+      - type: nvidia-a100-80gb
+        memory_gb: 80
+        use_case: Large model training
+        zones:
+          - us-central1-a
+          - us-east4-c
+    notes: |
+      GPUs attached to VMs, not built-in.
+      Zone availability varies by GPU type.
+      Use acceleratorType and acceleratorCount in DevPod config.
+    setup_docs: https://cloud.google.com/compute/docs/gpus
+
+  azure:
+    supported: true
+    gpu_types:
+      - nvidia
+      - amd
+    vm_series:
+      nvidia:
+        - series: NC_T4_v3
+          gpu: T4
+          memory_gb: 16
+          description: Cost-effective inference
+        - series: NC_A100_v4
+          gpu: A100
+          memory_gb: 80
+          description: High-end training
+        - series: ND_H100_v5
+          gpu: H100
+          memory_gb: 80
+          description: Latest generation
+      amd:
+        - series: NVv4
+          gpu: MI25
+          description: AMD GPU workloads
+    notes: |
+      GPU VMs in specific series.
+      Region availability varies.
+      NC series best for cost-effective GPU.
+    setup_docs: https://docs.microsoft.com/azure/virtual-machines/sizes-gpu
+
+  kubernetes:
+    supported: true
+    gpu_types:
+      - nvidia
+      - amd
+    requirements:
+      - NVIDIA GPU Operator or AMD GPU plugin
+      - GPU nodes with proper labels
+      - Resource quota for nvidia.com/gpu
+    resource_key: nvidia.com/gpu
+    node_selector_labels:
+      - accelerator
+      - nvidia.com/gpu.product
+      - gpu-type
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+    notes: |
+      Requires cluster with GPU nodes and operators.
+      Node selectors and tolerations applied automatically.
+      Works with EKS, GKE, AKS, and self-managed clusters.
+    setup_docs: https://github.com/NVIDIA/gpu-operator
+
+  digitalocean:
+    supported: false
+    notes: |
+      DigitalOcean Droplets do not support GPU attachments.
+      Consider using AWS, GCP, or Azure for GPU workloads.
+
+# GPU Tier Reference
+# Maps generic tiers to provider-specific recommendations
+tier_recommendations:
+  gpu-small:
+    description: Entry-level GPU for inference and development
+    gpu_model: T4
+    vram: 16GB
+    recommended_for:
+      - Model inference
+      - Light training
+      - Development/testing
+    cost_level: Low
+    providers:
+      docker: Host GPU pass-through
+      fly: a100-40gb (minimum available)
+      aws: g4dn.xlarge
+      gcp: n1-standard-4 + nvidia-tesla-t4
+      azure: Standard_NC4as_T4_v3
+      kubernetes: Node with T4 GPU
+
+  gpu-medium:
+    description: Mid-range GPU for training and larger inference
+    gpu_model: A10G
+    vram: 24GB
+    recommended_for:
+      - Fine-tuning
+      - Medium-scale training
+      - Multi-model inference
+    cost_level: Medium
+    providers:
+      docker: Host GPU pass-through
+      fly: a100-40gb
+      aws: g5.2xlarge
+      gcp: n1-standard-8 + nvidia-tesla-a10g
+      azure: Standard_NC8as_T4_v3
+      kubernetes: Node with A10G GPU
+
+  gpu-large:
+    description: High-end GPU for serious training workloads
+    gpu_model: L40S/A100-40G
+    vram: 40-48GB
+    recommended_for:
+      - Large model training
+      - Enterprise inference
+      - Research workloads
+    cost_level: High
+    providers:
+      docker: Host GPU pass-through
+      fly: l40s
+      aws: g5.4xlarge
+      gcp: g2-standard-16 + nvidia-l4
+      azure: Standard_NC24ads_A100_v4
+      kubernetes: Node with L40S/A100 GPU
+
+  gpu-xlarge:
+    description: Enterprise GPU for LLM training
+    gpu_model: A100-80G/H100
+    vram: 80GB+
+    recommended_for:
+      - LLM training
+      - Enterprise workloads
+      - Multi-GPU training
+    cost_level: Very High
+    providers:
+      docker: Host GPU pass-through
+      fly: a100-80gb
+      aws: p4d.24xlarge
+      gcp: a2-megagpu-16g + nvidia-a100-80gb
+      azure: Standard_ND96amsr_A100_v4
+      kubernetes: Node with A100-80G/H100 GPU

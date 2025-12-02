@@ -1,0 +1,35 @@
+---
+# Sindri Configuration - DevPod GCP GPU Inference
+# GPU-accelerated inference on Google Cloud
+version: "1.0"
+name: sindri-devpod-gcp-gpu
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 32GB
+    cpus: 8
+    gpu:
+      enabled: true
+      type: nvidia
+      tier: gpu-small  # Maps to T4 GPU
+      count: 1
+  volumes:
+    workspace:
+      size: 150GB
+
+extensions:
+  profile: ai-dev
+
+providers:
+  devpod:
+    type: gcp
+    gcp:
+      zone: us-central1-a  # T4 GPUs available
+      diskSize: 150
+      diskType: pd-ssd
+
+# DevPod will configure:
+# - machineType: n1-standard-4
+# - acceleratorType: nvidia-tesla-t4
+# - acceleratorCount: 1

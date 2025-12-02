@@ -1,0 +1,35 @@
+---
+# Sindri Configuration - Kubernetes GPU Workload
+# GPU-accelerated development on Kubernetes cluster
+# Requires: NVIDIA GPU Operator or device plugin on cluster
+version: "1.0"
+name: sindri-k8s-gpu
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 32GB
+    cpus: 8
+    gpu:
+      enabled: true
+      type: nvidia
+      tier: gpu-medium  # Selects nodes with A10G GPUs
+      count: 1
+  volumes:
+    workspace:
+      size: 100GB
+
+extensions:
+  profile: ai-dev
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: gpu-workloads
+      storageClass: fast-ssd
+
+# DevPod will configure:
+# - nodeSelector: accelerator=nvidia-a10g
+# - resources.limits: nvidia.com/gpu: 1
+# - tolerations for GPU nodes
