@@ -15,6 +15,11 @@ extensions:
     description: Workspace directory structure
     protected: true
 
+  github-cli:
+    category: base
+    description: GitHub CLI authentication and workflow configuration
+    protected: true
+
   # Language Runtimes
   nodejs:
     category: language
@@ -67,14 +72,14 @@ extensions:
     description: TypeScript, ESLint, Prettier
     dependencies: [nodejs]
 
-  github-cli:
-    category: dev-tools
-    description: GitHub CLI tools
-    dependencies: []
-
   playwright:
     category: dev-tools
     description: Browser automation testing
+    dependencies: [nodejs]
+
+  agentic-qe:
+    category: dev-tools
+    description: AI-powered test generation and quality engineering framework
     dependencies: [nodejs]
 
   # Infrastructure

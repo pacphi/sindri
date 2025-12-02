@@ -19,6 +19,8 @@ requirements:
     - carvel.dev
     - www.pulumi.com
   diskSpace: 2500
+  memory: 256
+  installTime: 120
 
 install:
   method: hybrid

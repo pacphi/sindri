@@ -1,0 +1,33 @@
+# SSH daemon configuration for Sindri Development Environment
+# Port 2222 avoids conflicts with Fly.io's hallpass service on port 22
+
+# Security settings
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+StrictModes yes
+
+# Port configuration - use 2222 internally
+Port 2222
+
+# Keep connections alive
+ClientAliveInterval 60
+ClientAliveCountMax 3
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Authentication limits
+LoginGraceTime 120
+MaxAuthTries 6
+MaxSessions 10
+
+# Allow only developer user
+AllowUsers developer
+
+# SFTP subsystem
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Include additional configuration from sshd_config.d
+Include /etc/ssh/sshd_config.d/*.conf

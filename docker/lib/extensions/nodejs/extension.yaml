@@ -11,6 +11,8 @@ requirements:
     - registry.npmjs.org
     - nodejs.org
   diskSpace: 600
+  memory: 256
+  installTime: 30
 
 install:
   method: mise

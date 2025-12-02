@@ -1,0 +1,70 @@
+---
+metadata:
+  name: agentic-qe
+  version: 1.0.0
+  description: >-
+    Agentic Quality Engineering framework with AI-powered test generation,
+    coverage analysis, and multi-agent testing workflows
+  category: dev-tools
+  author: Sindri Team
+  homepage: https://github.com/proffesor-for-testing/agentic-qe
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+    - api.anthropic.com
+  diskSpace: 500
+  memory: 512
+  installTime: 120
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: AQE_HOME
+      value: $HOME/.agentic-qe
+      scope: bashrc
+
+validate:
+  commands:
+    - name: aqe
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+  mise:
+    tools:
+      - npm:agentic-qe
+    minToolCount: 1
+
+remove:
+  confirmation: true
+  mise:
+    removeConfig: true
+    tools:
+      - npm:agentic-qe
+  paths:
+    - ~/.agentic-qe
+    - ./.agentic-qe
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+    tools:
+      - npm:agentic-qe
+
+bom:
+  tools:
+    - name: agentic-qe
+      version: dynamic
+      source: npm
+      type: framework
+      license: MIT
+      homepage: https://github.com/proffesor-for-testing/agentic-qe
+      purl: pkg:npm/agentic-qe

@@ -11,7 +11,7 @@ Sindri is a declarative, provider-agnostic cloud development environment system.
 - **YAML-First Architecture**: Extensions are declarative YAML files, not bash scripts. All configuration is driven by YAML schemas.
 - **Provider Agnostic**: Single `sindri.yaml` deploys to multiple providers (docker, fly, devpod, kubernetes via devpod).
 - **Immutable/Mutable Split**: System files in `/docker/` are baked into the image (immutable), while `$HOME` (`/alt/home/developer`) is a persistent volume containing workspace and all user data.
-- **Fast Startup**: Optimized base image with pre-installed runtimes (Node.js, Python) enables 10-15s cold starts.
+- **Fast Startup**: Optimized base image with pre-installed tools (mise, Claude Code) enables fast startup. Development tools are installed via extensions on persistent volume.
 
 ## Commands
 
@@ -84,6 +84,7 @@ pnpm build:latest  # Build as sindri:latest
 
 ```text
 sindri/
+├── Dockerfile                     # Multi-stage optimized build
 ├── cli/                           # CLI entry points
 │   ├── sindri                     # Main deployment CLI
 │   ├── extension-manager          # Extension management CLI
@@ -97,19 +98,30 @@ sindri/
 │       └── bom.sh                 # Bill of Materials tracking
 │
 ├── docker/
-│   ├── Dockerfile                 # Multi-stage optimized build
+│   ├── config/                    # Configuration files copied at build time
+│   │   ├── sshd_config            # SSH daemon configuration (port 2222)
+│   │   └── developer-sudoers      # Sudoers configuration for developer user
 │   ├── lib/                       # Immutable system files (baked into image)
-│   │   ├── extensions/            # 27+ YAML extension definitions
+│   │   ├── extensions/            # 29 YAML extension definitions
 │   │   ├── schemas/               # JSON schemas for validation
 │   │   │   ├── extension.schema.json
 │   │   │   ├── manifest.schema.json
-│   │   │   └── sindri.schema.json
+│   │   │   ├── sindri.schema.json
+│   │   │   ├── vm-sizes.schema.json
+│   │   │   ├── profiles.schema.json
+│   │   │   ├── registry.schema.json
+│   │   │   ├── categories.schema.json
+│   │   │   └── project-templates.schema.json
 │   │   ├── profiles.yaml          # Extension profile definitions
 │   │   ├── registry.yaml          # Extension registry
 │   │   ├── categories.yaml        # Category definitions
+│   │   ├── vm-sizes.yaml          # VM size mappings by provider
 │   │   └── common.sh              # Shared utility functions
 │   └── scripts/
-│       └── entrypoint.sh          # Container initialization
+│       ├── entrypoint.sh          # Container initialization (runs as root)
+│       ├── setup-ssh-environment.sh # SSH environment for CI/CD
+│       ├── install-mise.sh        # mise tool manager installation
+│       └── install-claude.sh      # Claude Code CLI installation
 │
 ├── deploy/
 │   └── adapters/                  # Provider-specific deployment logic
@@ -188,16 +200,78 @@ Critical concept: **Two-tier filesystem with home directory as volume**
 
 **Key Environment Variables:**
 
-| Variable          | Value                           |
-| ----------------- | ------------------------------- |
-| `ALT_HOME`        | `/alt/home/developer`           |
-| `HOME`            | `/alt/home/developer`           |
-| `WORKSPACE`       | `/alt/home/developer/workspace` |
-| `DOCKER_LIB`      | `/docker/lib`                   |
-| `MISE_DATA_DIR`   | `$HOME/.local/share/mise`       |
-| `MISE_CONFIG_DIR` | `$HOME/.config/mise`            |
-| `MISE_CACHE_DIR`  | `$HOME/.cache/mise`             |
-| `MISE_STATE_DIR`  | `$HOME/.local/state/mise`       |
+| Variable          | Value                              |
+| ----------------- | ---------------------------------- |
+| `ALT_HOME`        | `/alt/home/developer`              |
+| `HOME`            | `/alt/home/developer`              |
+| `WORKSPACE`       | `/alt/home/developer/workspace`    |
+| `DOCKER_LIB`      | `/docker/lib`                      |
+| `SSH_PORT`        | `2222`                             |
+| `CI_MODE`         | `true` in CI (disables SSH daemon) |
+| `MISE_DATA_DIR`   | `$HOME/.local/share/mise`          |
+| `MISE_CONFIG_DIR` | `$HOME/.config/mise`               |
+| `MISE_CACHE_DIR`  | `$HOME/.cache/mise`                |
+| `MISE_STATE_DIR`  | `$HOME/.local/state/mise`          |
+
+### Pre-installed Tools
+
+The base image includes these tools system-wide (in `/usr/local/bin`):
+
+| Tool     | Purpose                                     | Installation Script  |
+| -------- | ------------------------------------------- | -------------------- |
+| `mise`   | Unified tool version manager                | `install-mise.sh`    |
+| `claude` | Claude Code CLI for AI-assisted development | `install-claude.sh`  |
+| `gh`     | GitHub CLI                                  | APT package          |
+| `yq`     | YAML processor                              | Binary download      |
+
+**Development tools (Node.js, Python, etc.)** are installed via extensions:
+
+```bash
+extension-manager install nodejs    # Installs Node.js via mise
+extension-manager install python    # Installs Python via mise
+```
+
+Tools installed via extensions are stored on the persistent volume (`$HOME/.local/share/mise/`).
+
+**Claude Code Installation:**
+
+- Uses Anthropic's official curl installer with 5-minute timeout
+- Binary installed to `/usr/local/bin/claude` for system-wide access
+- User config directory (`~/.claude/`) created from `/etc/skel/.claude/` on first login
+- Available immediately after container startup
+
+### Container Startup Architecture
+
+The container runs as **root** to properly initialize volumes and start the SSH daemon:
+
+1. **Entrypoint** (`/docker/scripts/entrypoint.sh`) - runs as root:
+   - Initializes home directory on volume (first boot)
+   - Sets correct ownership for developer user
+   - Configures SSH authorized keys from `AUTHORIZED_KEYS` env
+   - Configures Git user from `GIT_USER_NAME`, `GIT_USER_EMAIL`
+   - Starts SSH daemon on port 2222 (unless `CI_MODE=true`)
+
+2. **SSH Sessions** - run as developer user:
+   - SSH daemon drops privileges to developer user for sessions
+   - Full environment available via `BASH_ENV` configuration
+
+3. **CI Mode** (`CI_MODE=true`):
+   - SSH daemon is NOT started
+   - Container stays alive with `sleep infinity`
+   - Use `flyctl ssh console` for access (Fly.io hallpass)
+   - fly.toml has `services = []` to avoid port conflicts
+
+### SSH Configuration
+
+SSH is configured for secure, non-standard port access:
+
+- **Internal Port**: 2222 (avoids conflict with Fly.io hallpass on port 22)
+- **External Port**: Configurable (default: 10022)
+- **Authentication**: Key-only (password disabled)
+- **Environment**: Full shell environment available in non-interactive SSH commands
+
+The `setup-ssh-environment.sh` script configures `BASH_ENV` so that SSH commands
+(like those from CI/CD) get the full environment including mise-managed tools.
 
 ### Multi-Provider Architecture
 
@@ -210,13 +284,27 @@ Critical concept: **Two-tier filesystem with home directory as volume**
 
 **Available Adapters:**
 
-| Provider        | Adapter                  | Notes                                        |
-| --------------- | ------------------------ | -------------------------------------------- |
-| `docker`        | `docker-adapter.sh`      | Local Docker Compose deployment              |
-| `fly`           | `fly-adapter.sh`         | Fly.io cloud deployment                      |
-| `devpod`        | `devpod-adapter.sh`      | DevContainer (supports AWS, GCP, Azure, K8s) |
+| Provider | Adapter             | Notes                                          |
+| -------- | ------------------- | ---------------------------------------------- |
+| `docker` | `docker-adapter.sh` | Local Docker Compose deployment                |
+| `fly`    | `fly-adapter.sh`    | Fly.io cloud deployment (supports `--ci-mode`) |
+| `devpod` | `devpod-adapter.sh` | DevContainer (supports AWS, GCP, Azure, K8s)   |
 
 **Note:** Kubernetes deployment is supported via the DevPod provider with `type: kubernetes`. There is no native kubernetes-adapter; use DevPod for K8s deployments.
+
+**Fly.io Adapter CI Mode:**
+
+```bash
+# Generate CI-compatible fly.toml (empty services, no health checks)
+./deploy/adapters/fly-adapter.sh --ci-mode --config-only sindri.yaml
+```
+
+When `--ci-mode` is enabled:
+
+- `services = []` is generated (no SSH service, avoids hallpass conflicts)
+- Health checks are disabled
+- `CI_MODE=true` is added to environment
+- Container uses `sleep infinity` instead of SSH daemon
 
 All adapters share the same base Docker image and extension system.
 
@@ -236,7 +324,7 @@ metadata:
   name: myext
   version: 1.0.0
   description: Brief description
-  category: language|dev-tools|database|cloud|monitoring|security
+  category: base|language|dev-tools|infrastructure|ai|utilities|desktop|monitoring
   dependencies: [] # List of extension names
 
 requirements:
@@ -264,9 +352,9 @@ validate:
       expectedPattern: "v\\d+\\.\\d+\\.\\d+" # Optional regex
 
 upgrade:
-  strategy: reinstall|in-place  # How to handle version upgrades
+  strategy: reinstall|in-place # How to handle version upgrades
   script:
-    path: upgrade.sh  # Optional upgrade script
+    path: upgrade.sh # Optional upgrade script
 
 remove:
   mise:
@@ -276,7 +364,7 @@ remove:
     path: uninstall.sh
 
 bom:
-  components:  # Bill of Materials - auto-generated, do not edit manually
+  components: # Bill of Materials - auto-generated, do not edit manually
     - name: tool-name
       version: "1.0.0"
       type: runtime|library|tool
@@ -307,17 +395,19 @@ profiles:
 
 ### GitHub Actions
 
-9 workflows in `.github/workflows/`:
+8 workflows in `.github/workflows/`:
 
-- `ci.yml` - Main CI orchestrator (linting, building, testing)
+- `ci.yml` - Main CI orchestrator with unified provider testing
 - `validate-yaml.yml` - Comprehensive YAML validation with schema checks
-- `test-provider.yml` - Provider-specific testing (docker, fly, devpod, k8s)
-- `test-extensions.yml` - Extension testing across providers
+- `test-provider.yml` - Full test suite per provider (CLI + extensions + integration)
 - `test-sindri-config.yml` - User configuration testing
 - `deploy-sindri.yml` - Reusable deployment workflow
 - `teardown-sindri.yml` - Reusable teardown workflow
 - `manual-deploy.yml` - Manual deployment trigger
 - `release.yml` - Automated release with changelog generation (see [docs/RELEASE.md](docs/RELEASE.md))
+
+**Unified Provider Testing**: Each selected provider runs CLI tests, extension tests, and
+integration tests. This ensures consistent coverage across Docker, Fly.io, and DevPod providers.
 
 ## Code Style
 

@@ -85,164 +85,97 @@ EOF
     print_success "Git hooks configured"
 }
 
+# Function to resolve project type alias to canonical template name
+# Reads aliases from project-templates.yaml
+_resolve_project_type() {
+    local project_type="$1"
+    local templates_file="$2"
+
+    # First check if it's already a valid template name
+    local exists
+    exists=$(yq eval ".templates.${project_type} // \"\"" "$templates_file" 2>/dev/null)
+    if [[ -n "$exists" && "$exists" != "null" ]]; then
+        echo "$project_type"
+        return 0
+    fi
+
+    # Search through all templates for matching alias
+    local canonical_name
+    canonical_name=$(yq eval "
+        .templates | to_entries | .[] |
+        select(.value.aliases // [] | contains([\"${project_type}\"])) |
+        .key
+    " "$templates_file" 2>/dev/null | head -1)
+
+    if [[ -n "$canonical_name" ]]; then
+        echo "$canonical_name"
+        return 0
+    fi
+
+    # No match found, return original (will fall back to general later)
+    echo "$project_type"
+}
+
 # Function to create gitignore file
+# Reads .gitignore content from project-templates.yaml based on project type
 create_gitignore() {
     local project_type="${1:-general}"
     local gitignore_file="${2:-.gitignore}"
+    local templates_file="${DOCKER_LIB:-/docker/lib}/project-templates.yaml"
 
     print_status "Creating .gitignore for $project_type project..."
 
-    case "$project_type" in
-        node|nodejs)
-            cat > "$gitignore_file" << 'EOF'
-# Dependencies
-node_modules/
-jspm_packages/
+    # Check if templates file exists
+    if [[ ! -f "$templates_file" ]]; then
+        print_warning "Project templates file not found: $templates_file"
+        print_status "Using built-in default .gitignore"
+        _create_default_gitignore "$gitignore_file"
+        return 0
+    fi
 
-# Build outputs
-dist/
-build/
-*.min.js
-*.min.css
+    # Check if yq is available
+    if ! command_exists yq; then
+        print_warning "yq not available for YAML parsing"
+        print_status "Using built-in default .gitignore"
+        _create_default_gitignore "$gitignore_file"
+        return 0
+    fi
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+    # Resolve project type alias to canonical template name
+    local resolved_type
+    resolved_type=$(_resolve_project_type "$project_type" "$templates_file")
+    if [[ "$resolved_type" != "$project_type" ]]; then
+        print_debug "Resolved '$project_type' to template '$resolved_type'"
+    fi
 
-# Environment
-.env
-.env.local
-.env.*.local
+    # Try to get .gitignore content for the resolved project type
+    local gitignore_content
+    gitignore_content=$(yq eval ".templates.${resolved_type}.files.\".gitignore\" // \"\"" "$templates_file" 2>/dev/null)
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+    # If not found or empty, try the general template
+    if [[ -z "$gitignore_content" || "$gitignore_content" == "null" ]]; then
+        print_debug "No .gitignore found for '$resolved_type', trying 'general' template"
+        gitignore_content=$(yq eval ".templates.general.files.\".gitignore\" // \"\"" "$templates_file" 2>/dev/null)
+    fi
 
-# OS
-.DS_Store
-Thumbs.db
+    # If still not found, use built-in default
+    if [[ -z "$gitignore_content" || "$gitignore_content" == "null" ]]; then
+        print_warning "No .gitignore template found for '$project_type'"
+        print_status "Using built-in default .gitignore"
+        _create_default_gitignore "$gitignore_file"
+        return 0
+    fi
 
-# Testing
-coverage/
-.nyc_output/
+    # Write the gitignore content to file
+    echo "$gitignore_content" > "$gitignore_file"
 
-# Temporary
-tmp/
-temp/
-EOF
-            ;;
-        python)
-            cat > "$gitignore_file" << 'EOF'
-# Byte-compiled / optimized
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+    print_success ".gitignore created for $project_type project"
+}
 
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Testing
-.tox/
-.coverage
-.coverage.*
-.cache
-.pytest_cache/
-htmlcov/
-
-# Environment
-.env
-*.env
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Jupyter
-.ipynb_checkpoints
-EOF
-            ;;
-        go|golang)
-            cat > "$gitignore_file" << 'EOF'
-# Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary
-*.test
-
-# Output
-*.out
-
-# Dependency directories
-vendor/
-
-# Go workspace
-go.work
-
-# Environment
-.env
-*.env
-
-# IDE
-.vscode/
-.idea/
-*.swp
-EOF
-            ;;
-        rust)
-            cat > "$gitignore_file" << 'EOF'
-# Rust build
-/target/
-**/*.rs.bk
-*.pdb
-
-# Cargo
-Cargo.lock
-
-# IDE
-.vscode/
-.idea/
-*.swp
-
-# Environment
-.env
-EOF
-            ;;
-        *)
-            cat > "$gitignore_file" << 'EOF'
+# Internal function: Create a default .gitignore when YAML parsing is unavailable
+_create_default_gitignore() {
+    local gitignore_file="$1"
+    cat > "$gitignore_file" << 'EOF'
 # Build outputs
 build/
 dist/
@@ -278,10 +211,6 @@ tmp/
 temp/
 .cache/
 EOF
-            ;;
-    esac
-
-    print_success ".gitignore created for $project_type project"
 }
 
 # Function to initialize Git repository
@@ -406,5 +335,5 @@ apply_git_config_overrides() {
 }
 
 # Export functions
-export -f setup_git_hooks create_gitignore init_git_repo
+export -f setup_git_hooks _resolve_project_type create_gitignore _create_default_gitignore init_git_repo
 export -f setup_fork_remotes setup_fork_aliases apply_git_config_overrides

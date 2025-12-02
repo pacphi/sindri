@@ -1,0 +1,200 @@
+---
+# VM Size Mappings by Provider
+# Maps resource tiers (small/medium/large/xlarge) to provider-specific VM sizes
+# These can be tuned based on cost/performance requirements
+
+# Resource tier definitions (for reference)
+# small:  < 2GB memory, < 2GB disk - lightweight profiles
+# medium: < 4GB memory, < 5GB disk - standard profiles
+# large:  < 8GB memory, < 10GB disk - heavy profiles
+# xlarge: 8GB+ memory, 10GB+ disk - enterprise profiles
+
+tiers:
+  small:
+    description: Lightweight workloads (minimal, data-science, mobile)
+    memory_range: "0-2048 MB"
+    disk_range: "0-2000 MB"
+  medium:
+    description: Standard workloads (fullstack)
+    memory_range: "2048-4096 MB"
+    disk_range: "2000-5000 MB"
+  large:
+    description: Heavy workloads (ai-dev, systems, devops)
+    memory_range: "4096-8192 MB"
+    disk_range: "5000-10000 MB"
+  xlarge:
+    description: Enterprise workloads (anthropic-dev, enterprise)
+    memory_range: "8192+ MB"
+    disk_range: "10000+ MB"
+
+providers:
+  fly:
+    description: Fly.io VM sizes
+    sizes:
+      small: shared-cpu-1x
+      medium: shared-cpu-2x
+      large: performance-2x
+      xlarge: performance-4x
+    memory:
+      small: 256
+      medium: 512
+      large: 2048
+      xlarge: 4096
+    swap:
+      small: 512
+      medium: 1024
+      large: 2048
+      xlarge: 4096
+
+  docker:
+    description: Docker resource limits
+    sizes:
+      small: default
+      medium: default
+      large: default
+      xlarge: default
+    memory:
+      small: 2048
+      medium: 4096
+      large: 8192
+      xlarge: 16384
+    cpus:
+      small: 1
+      medium: 2
+      large: 4
+      xlarge: 8
+
+  aws:
+    description: AWS EC2 instance types (via DevPod)
+    sizes:
+      small: t3.small
+      medium: t3.medium
+      large: t3.large
+      xlarge: t3.xlarge
+    memory:
+      small: 2048
+      medium: 4096
+      large: 8192
+      xlarge: 16384
+    vcpus:
+      small: 2
+      medium: 2
+      large: 2
+      xlarge: 4
+    disk:
+      small: 30
+      medium: 50
+      large: 80
+      xlarge: 120
+
+  gcp:
+    description: GCP Compute Engine machine types (via DevPod)
+    sizes:
+      small: e2-small
+      medium: e2-medium
+      large: e2-standard-4
+      xlarge: e2-standard-8
+    memory:
+      small: 2048
+      medium: 4096
+      large: 16384
+      xlarge: 32768
+    vcpus:
+      small: 2
+      medium: 2
+      large: 4
+      xlarge: 8
+    disk:
+      small: 30
+      medium: 50
+      large: 80
+      xlarge: 120
+
+  azure:
+    description: Azure VM sizes (via DevPod)
+    sizes:
+      small: Standard_B1s
+      medium: Standard_B2s
+      large: Standard_D2s_v3
+      xlarge: Standard_D4s_v3
+    memory:
+      small: 1024
+      medium: 4096
+      large: 8192
+      xlarge: 16384
+    vcpus:
+      small: 1
+      medium: 2
+      large: 2
+      xlarge: 4
+    disk:
+      small: 30
+      medium: 50
+      large: 80
+      xlarge: 120
+
+  digitalocean:
+    description: DigitalOcean droplet sizes (via DevPod)
+    sizes:
+      small: s-1vcpu-2gb
+      medium: s-2vcpu-4gb
+      large: s-4vcpu-8gb
+      xlarge: s-8vcpu-16gb
+    memory:
+      small: 2048
+      medium: 4096
+      large: 8192
+      xlarge: 16384
+    vcpus:
+      small: 1
+      medium: 2
+      large: 4
+      xlarge: 8
+    disk:
+      small: 50
+      medium: 80
+      large: 160
+      xlarge: 320
+
+  kubernetes:
+    description: Kubernetes resource requests/limits (via DevPod)
+    sizes:
+      small: small
+      medium: medium
+      large: large
+      xlarge: xlarge
+    memory:
+      small: 2Gi
+      medium: 4Gi
+      large: 8Gi
+      xlarge: 16Gi
+    cpu:
+      small: "1"
+      medium: "2"
+      large: "4"
+      xlarge: "8"
+    storage:
+      small: 30Gi
+      medium: 50Gi
+      large: 80Gi
+      xlarge: 120Gi
+
+# Volume size recommendations by tier (in GB)
+volumes:
+  workspace:
+    small: 10
+    medium: 20
+    large: 40
+    xlarge: 80
+  home:
+    small: 5
+    medium: 10
+    large: 20
+    xlarge: 40
+
+# Timeout recommendations by tier (in minutes)
+timeouts:
+  small: 15
+  medium: 25
+  large: 35
+  xlarge: 45

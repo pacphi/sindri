@@ -143,6 +143,17 @@ jobs:
             -s docker/lib/schemas/project-templates.schema.json \
             -d "$tmpfile"
 
+      - name: Validate vm-sizes.yaml
+        run: |
+          # ajv-cli requires .json extension to parse files correctly
+          tmpfile=$(mktemp --suffix=.json)
+          trap 'rm -f "$tmpfile"' EXIT
+          yq -o=json docker/lib/vm-sizes.yaml > "$tmpfile"
+          ajv validate \
+            -c ajv-formats \
+            -s docker/lib/schemas/vm-sizes.schema.json \
+            -d "$tmpfile"
+
   cross-references:
     name: Cross-Reference Validation
     runs-on: ubuntu-latest

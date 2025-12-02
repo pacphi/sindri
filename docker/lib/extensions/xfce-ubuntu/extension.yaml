@@ -13,6 +13,8 @@ requirements:
     - archive.ubuntu.com
     - security.ubuntu.com
   diskSpace: 2500
+  memory: 1024
+  installTime: 300
 
 install:
   method: hybrid

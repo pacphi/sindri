@@ -87,7 +87,10 @@ extension-manager validate-all
 ## Profiles
 
 - **minimal**: nodejs, python
-- **fullstack**: nodejs, python, docker, postgres, nodejs-devtools
-- **ai-dev**: nodejs, python, ai-toolkit, openskills
+- **fullstack**: nodejs, python, docker, nodejs-devtools
+- **ai-dev**: nodejs, python, ai-toolkit, openskills, monitoring
+- **anthropic-dev**: agent-manager, ai-toolkit, claude-code-mux, and more
 - **systems**: rust, golang, docker, infra-tools
-- **enterprise**: All languages and tools
+- **enterprise**: All languages and infrastructure
+- **data-science**: python, monitoring
+- **devops**: docker, infra-tools, cloud-tools, monitoring

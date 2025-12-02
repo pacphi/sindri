@@ -69,69 +69,31 @@ list_types() {
     exit 0
 }
 
-detect_project_type() {
-    local project_name="$1"
-    local name_lower
-    name_lower=$(echo "$project_name" | tr '[:upper:]' '[:lower:]')
-
-    case "$name_lower" in
-        *rails*) echo "rails" ;;
-        *django*) echo "django" ;;
-        *spring*) echo "spring" ;;
-        *terraform*|*tf*|*infra*) echo "terraform" ;;
-        *docker*|*container*) echo "docker" ;;
-        *api*|*service*) echo "api" ;;
-        *web*|*frontend*|*ui*) echo "web" ;;
-        *) echo "" ;;
-    esac
-}
-
+# Select project type interactively when detection is ambiguous or no match
+# Uses YAML-driven detection from project-templates.sh
 select_project_type() {
     local detected="$1"
-    local available_types=()
-    while IFS= read -r type; do
-        available_types+=("$type")
-    done < <(get_template_types)
 
-    if [[ "$detected" == "api" ]]; then
-        print_status "Detected API project. What kind of API?"
-        echo "Common choices for APIs:"
-        echo "  1) node     - Node.js/Express API"
-        echo "  2) python   - Python/FastAPI or Django REST"
-        echo "  3) go       - Go API server"
-        echo "  4) spring   - Spring Boot API"
-        echo "  5) dotnet   - .NET Web API"
+    # Handle ambiguous detection (e.g., "ambiguous:node,go,python")
+    if [[ "$detected" == ambiguous:* ]]; then
+        local suggestions="${detected#ambiguous:}"
+
+        print_status "Multiple project types match. Which do you prefer?"
+        echo "Suggested types:"
+        get_type_suggestions "$suggestions"
         echo ""
-        read -r -p "Enter choice (1-5) or type name: " choice
 
-        case "$choice" in
-            1) echo "node" ;;
-            2) echo "python" ;;
-            3) echo "go" ;;
-            4) echo "spring" ;;
-            5) echo "dotnet" ;;
-            *) echo "$choice" ;;
-        esac
-    elif [[ "$detected" == "web" ]]; then
-        print_status "Detected web project. What framework?"
-        echo "Common choices for web apps:"
-        echo "  1) node     - Node.js/Express"
-        echo "  2) rails    - Ruby on Rails"
-        echo "  3) django   - Django"
-        echo "  4) dotnet   - ASP.NET Core"
-        echo ""
-        read -r -p "Enter choice (1-4) or type name: " choice
+        local count
+        count=$(echo "$suggestions" | tr ',' '\n' | wc -l | tr -d ' ')
+        read -r -p "Enter choice (1-${count}) or type name: " choice
 
-        case "$choice" in
-            1) echo "node" ;;
-            2) echo "rails" ;;
-            3) echo "django" ;;
-            4) echo "dotnet" ;;
-            *) echo "$choice" ;;
-        esac
+        local resolved
+        resolved=$(resolve_type_choice "$choice" "$suggestions")
+        echo "$resolved"
     else
+        # No detection - show all available types
         print_status "Available project types:"
-        printf "%s\n" "${available_types[@]}" | pr -t -3
+        get_template_types | pr -t -3
         echo ""
         read -r -p "Enter project type [default: node]: " input
         echo "${input:-node}"
@@ -234,12 +196,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$AUTO_DETECT" == "true" ]] && [[ -z "$PROJECT_TYPE" ]]; then
-    DETECTED_TYPE=$(detect_project_type "$PROJECT_NAME")
+    # Use YAML-driven detection from project-templates.sh
+    DETECTED_TYPE=$(detect_type_from_name "$PROJECT_NAME")
 
-    if [[ -n "$DETECTED_TYPE" ]] && [[ "$DETECTED_TYPE" != "api" ]] && [[ "$DETECTED_TYPE" != "web" ]] && [[ "$INTERACTIVE" != "true" ]]; then
+    if [[ -n "$DETECTED_TYPE" ]] && [[ "$DETECTED_TYPE" != ambiguous:* ]] && [[ "$INTERACTIVE" != "true" ]]; then
+        # Unambiguous match - use it directly
         PROJECT_TYPE="$DETECTED_TYPE"
         print_status "Auto-detected project type: $PROJECT_TYPE"
     else
+        # Ambiguous or no match - prompt user
         PROJECT_TYPE=$(select_project_type "$DETECTED_TYPE")
     fi
 fi
@@ -247,6 +212,9 @@ fi
 if [[ -z "$PROJECT_TYPE" ]]; then
     PROJECT_TYPE="node"
 fi
+
+# Resolve aliases (e.g., "nodejs" -> "node", "py" -> "python")
+PROJECT_TYPE=$(resolve_template_alias "$PROJECT_TYPE")
 
 if [[ -f "$TEMPLATES_CONFIG" ]]; then
     if ! get_template_types | grep -q "^${PROJECT_TYPE}$"; then

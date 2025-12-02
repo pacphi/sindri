@@ -11,6 +11,8 @@ requirements:
     - pypi.org
     - python.org
   diskSpace: 400
+  memory: 128
+  installTime: 45
 
 install:
   method: mise

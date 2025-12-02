@@ -11,6 +11,8 @@ requirements:
     - download.docker.com
     - hub.docker.com
   diskSpace: 1000
+  memory: 2048
+  installTime: 120
 
 install:
   method: apt

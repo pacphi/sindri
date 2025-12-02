@@ -13,6 +13,8 @@ requirements:
     - archive.ubuntu.com
     - ppa.launchpadcontent.net
   diskSpace: 2500
+  memory: 512
+  installTime: 120
 
 install:
   method: script

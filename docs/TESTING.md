@@ -104,6 +104,7 @@ The new YAML validation system provides comprehensive checks:
 | `test-registry-schema.sh`   | Validate registry.yaml                       |
 | `test-categories-schema.sh` | Validate categories.yaml                     |
 | `test-templates-schema.sh`  | Validate project-templates.yaml              |
+| `test-vm-sizes-schema.sh`   | Validate vm-sizes.yaml                       |
 | `test-sindri-examples.sh`   | Validate all sindri.yaml examples            |
 | `test-cross-references.sh`  | Validate cross-file references               |
 | `test-yaml-lint.sh`         | Run yamllint on all YAML files               |
@@ -125,6 +126,7 @@ The new YAML validation system provides comprehensive checks:
 - `docker/lib/schemas/registry.schema.json` - Extension registry
 - `docker/lib/schemas/categories.schema.json` - Category definitions
 - `docker/lib/schemas/project-templates.schema.json` - Project templates
+- `docker/lib/schemas/vm-sizes.schema.json` - VM size mappings across providers
 
 ### Shell Script Validation
 
@@ -150,17 +152,17 @@ pnpm lint:md
 
 The CI system uses these workflows:
 
-| Workflow                 | Purpose                                         |
-| ------------------------ | ----------------------------------------------- |
-| `ci.yml`                 | Main CI orchestrator - validation, build, tests |
-| `validate-yaml.yml`      | Comprehensive YAML validation                   |
-| `test-sindri-config.yml` | Config-driven testing (discovers examples)      |
-| `deploy-sindri.yml`      | Reusable deployment workflow                    |
-| `teardown-sindri.yml`    | Reusable cleanup workflow                       |
-| `test-provider.yml`      | Provider-specific testing                       |
-| `release.yml`            | Release automation                              |
+| Workflow                 | Purpose                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| `ci.yml`                 | Main CI orchestrator - validation, build, unified testing     |
+| `validate-yaml.yml`      | Comprehensive YAML validation                                 |
+| `test-sindri-config.yml` | Config-driven testing (discovers examples)                    |
+| `deploy-sindri.yml`      | Reusable deployment workflow                                  |
+| `teardown-sindri.yml`    | Reusable cleanup workflow                                     |
+| `test-provider.yml`      | Full test suite per provider (CLI + extensions + integration) |
+| `release.yml`            | Release automation                                            |
 
-### CI Test Flow
+### CI Test Flow (Unified Provider Testing)
 
 ```text
 ┌─────────────────┐
@@ -179,14 +181,23 @@ The CI system uses these workflows:
          │
          ├─> build (Docker image)
          │
-         ├─> test-cli (CLI commands)
-         │
-         ├─> test-providers (matrix)
-         │   ├─> docker
-         │   └─> fly
-         │
-         └─> test-extensions
+         └─> test-providers (matrix: each provider gets FULL test coverage)
+             │
+             FOR EACH provider in [docker, fly, devpod-aws, devpod-do, etc.]:
+             │
+             ├─> Phase 1: Deploy infrastructure
+             │
+             ├─> Phase 2: CLI tests (sindri, extension-manager)
+             │
+             ├─> Phase 3: Extension tests (validate, install profile)
+             │
+             ├─> Phase 4: Run test suites (smoke, integration, full)
+             │
+             └─> Phase 5: Cleanup
 ```
+
+**Key Change**: CLI and extension tests now run on EACH selected provider, not just Docker.
+This ensures consistent test coverage and catches provider-specific issues.
 
 ### Testing with Examples
 

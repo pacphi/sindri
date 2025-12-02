@@ -64,29 +64,45 @@ runs:
         FORCE="${{ inputs.force }}"
 
         # Check if app exists
-        if flyctl apps list | grep -q "$APP_NAME"; then
-          # Clear secrets if requested
+        if flyctl apps list 2>/dev/null | grep -q "$APP_NAME"; then
+          # Clear secrets if requested (skip if no machines deployed)
           if [[ "${{ inputs.cleanup-secrets }}" == "true" ]]; then
             echo "Clearing secrets..."
-            flyctl secrets list -a "$APP_NAME" --json | \
-              jq -r '.[].Name' | \
-              xargs -I {} flyctl secrets unset {} -a "$APP_NAME" --stage || true
-            flyctl secrets deploy -a "$APP_NAME" || true
+            SECRETS=$(flyctl secrets list -a "$APP_NAME" --json 2>/dev/null || echo "[]")
+            if [[ "$SECRETS" != "[]" && "$SECRETS" != "null" ]]; then
+              echo "$SECRETS" | jq -r '.[].Name // empty' 2>/dev/null | \
+                while read -r secret_name; do
+                  [[ -n "$secret_name" ]] && flyctl secrets unset "$secret_name" -a "$APP_NAME" --stage 2>/dev/null || true
+                done
+              # Only deploy secrets if there are machines
+              MACHINES=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null || echo "[]")
+              if [[ "$MACHINES" != "[]" ]]; then
+                flyctl secrets deploy -a "$APP_NAME" 2>/dev/null || true
+              fi
+            fi
           fi
 
-          # Stop all machines
-          echo "Stopping machines..."
-          flyctl machine list -a "$APP_NAME" --json | jq -r '.[].id' | \
+          # Stop and destroy all machines (force destroy handles stuck machines)
+          echo "Destroying machines..."
+          MACHINES=$(flyctl machine list -a "$APP_NAME" --json 2>/dev/null || echo "[]")
+          echo "$MACHINES" | jq -r '.[].id // empty' 2>/dev/null | \
             while read -r machine_id; do
-              flyctl machine stop "$machine_id" -a "$APP_NAME" || true
+              if [[ -n "$machine_id" ]]; then
+                echo "  Destroying machine: $machine_id"
+                # Use force destroy - this works even if machine is in transitional state
+                flyctl machine destroy "$machine_id" -a "$APP_NAME" --force 2>/dev/null || true
+              fi
             done
+
+          # Brief wait for machine cleanup
+          sleep 2
 
           # Delete app
           echo "Deleting app..."
           if [[ "$FORCE" == "true" ]]; then
-            flyctl apps destroy "$APP_NAME" --yes || true
+            flyctl apps destroy "$APP_NAME" --yes 2>/dev/null || true
           else
-            flyctl apps destroy "$APP_NAME" || true
+            flyctl apps destroy "$APP_NAME" 2>/dev/null || true
           fi
 
           echo "✅ App $APP_NAME cleaned up"

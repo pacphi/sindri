@@ -18,13 +18,12 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 ```text
 .github/
 ├── workflows/                    # GitHub Workflows
-│   ├── ci.yml                    # Main CI orchestrator
+│   ├── ci.yml                    # Main CI orchestrator (unified provider testing)
 │   ├── validate-yaml.yml         # Comprehensive YAML validation
 │   ├── test-sindri-config.yml    # Config-driven testing
 │   ├── deploy-sindri.yml         # Reusable deployment
 │   ├── teardown-sindri.yml       # Reusable teardown
-│   ├── test-provider.yml         # Provider-specific testing
-│   ├── test-extensions.yml       # Extension testing (multi-provider)
+│   ├── test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
 │   ├── manual-deploy.yml         # Manual deployment workflow
 │   └── release.yml               # Release automation
 │
@@ -50,16 +49,13 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │
 ├── scripts/                      # Test scripts and utilities
 │   ├── test-all-extensions.sh    # Extension validation script
+│   ├── calculate-profile-resources.sh  # Profile resource calculator
 │   ├── generate-slack-notification.sh  # Slack message generator
 │   ├── lib/
 │   │   ├── test-helpers.sh       # Shared test functions
 │   │   └── assertions.sh         # Test assertion functions
 │   └── extensions/
 │       └── test-extension-complete.sh  # Full extension test suite
-│
-├── test-configs/                 # Test configuration files
-│   ├── providers.yaml            # Provider test parameters
-│   └── extensions.yaml           # Extension test parameters
 │
 └── WORKFLOW_ARCHITECTURE.md      # This document
 
@@ -88,20 +84,30 @@ test/                             # Test suites
 
 ### Main CI Workflow (`ci.yml`)
 
-The primary CI orchestrator that:
+The primary CI orchestrator with **unified provider testing**:
 
 - Validates shell scripts (shellcheck)
 - Validates markdown (markdownlint)
 - Validates all YAML (via `validate-yaml.yml`)
 - Builds Docker images
-- Tests CLI commands
-- Runs provider and extension tests in parallel
+- Runs **unified provider tests** (CLI + extensions + integration) for each selected provider
+
+**Key Design Principle:** Each provider receives identical test coverage:
+
+```text
+FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
+  └─> test-provider.yml
+      ├─> Phase 1: Deploy infrastructure
+      ├─> Phase 2: CLI tests (sindri, extension-manager)
+      ├─> Phase 3: Extension tests (validate, install profile)
+      ├─> Phase 4: Run test suites (smoke, integration, full)
+      └─> Phase 5: Cleanup
+```
 
 **Triggers:**
 
 - Push to main/develop branches
 - Pull requests
-- Scheduled (nightly)
 - Manual dispatch with provider selection
 
 ### YAML Validation Workflow (`validate-yaml.yml`)
@@ -109,7 +115,14 @@ The primary CI orchestrator that:
 Comprehensive YAML validation:
 
 - YAML linting (yamllint)
-- Schema validation (all YAML files against their schemas)
+- Schema validation (all YAML files against their schemas):
+  - Extension definitions (`extension.yaml`)
+  - Sindri configuration examples (`*.sindri.yaml`)
+  - Profiles (`profiles.yaml`)
+  - Registry (`registry.yaml`)
+  - Categories (`categories.yaml`)
+  - Project templates (`project-templates.yaml`)
+  - VM size mappings (`vm-sizes.yaml`)
 - Cross-reference validation (profiles → registry → extensions → categories)
 - Extension consistency checks
 
@@ -206,11 +219,40 @@ Two deployment workflows serve different use cases:
 
 ### Provider Test Workflow (`test-provider.yml`)
 
-Provider-specific testing with smoke/integration/full suites.
+**Unified provider testing** that runs the complete test suite for a single provider:
 
-### Extension Test Workflow (`test-extensions.yml`)
+**Test Phases:**
 
-Tests extensions across providers with combination support.
+1. **Infrastructure Deployment** - Sets up Docker/Fly.io/DevPod infrastructure
+2. **CLI Tests** - Uses `test-cli` action to run commands on deployed infrastructure
+3. **Extension Tests** - Validates and installs extensions on the provider
+4. **Integration Tests** - Smoke and full test suites
+5. **Cleanup** - Tears down infrastructure (unless skip-cleanup is set)
+
+**Supported Providers:**
+
+- `docker` - Local Docker containers
+- `fly` - Fly.io cloud VMs
+- `devpod-aws` - AWS EC2 via DevPod
+- `devpod-gcp` - GCP Compute via DevPod
+- `devpod-azure` - Azure VMs via DevPod
+- `devpod-do` - DigitalOcean Droplets via DevPod
+- `devpod-k8s` - Kubernetes pods via DevPod
+- `devpod-ssh` - SSH hosts via DevPod
+
+**CLI Test Action (`test-cli`):**
+
+The refactored `test-cli` action supports all providers with provider-specific execution:
+
+| Provider       | Execution Method     | Required Credentials                         |
+| -------------- | -------------------- | -------------------------------------------- |
+| `docker`       | `docker exec`        | None                                         |
+| `fly`          | `flyctl ssh console` | `FLY_API_TOKEN`                              |
+| `devpod-aws`   | `devpod exec`        | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| `devpod-gcp`   | `devpod exec`        | `GCP_SERVICE_ACCOUNT_KEY`                    |
+| `devpod-azure` | `devpod exec`        | `AZURE_CLIENT_ID/SECRET/TENANT_ID`           |
+| `devpod-do`    | `devpod exec`        | `DIGITALOCEAN_TOKEN`                         |
+| `devpod-k8s`   | `devpod exec`        | `KUBECONFIG`                                 |
 
 ## Test Suites
 
@@ -243,7 +285,7 @@ The CI system supports three test suite levels, selectable via workflow dispatch
 
 **Duration:** 2-5 minutes depending on profile
 
-**When used:** Default for PRs, pushes, and scheduled runs
+**When used:** Default for PRs and pushes
 
 ### Full Tests
 
@@ -260,44 +302,67 @@ The CI system supports three test suite levels, selectable via workflow dispatch
 
 ### Test Suite Selection
 
-| Trigger                     | Default Suite   | Providers Tested                                |
-| --------------------------- | --------------- | ----------------------------------------------- |
-| PR to main/develop          | `integration`   | `["docker"]`                                    |
-| Push to main                | `integration`   | `["docker", "fly"]`                             |
-| Scheduled (nightly 2AM UTC) | `integration`   | `["docker", "fly", "devpod-aws", "kubernetes"]` |
-| Manual dispatch             | User-selectable | User-selectable (default: `docker,fly`)         |
+| Trigger            | Default Suite   | Providers Tested                        |
+| ------------------ | --------------- | --------------------------------------- |
+| PR to main/develop | `integration`   | `["docker"]`                            |
+| Push to main       | `integration`   | `["docker", "fly"]`                     |
+| Manual dispatch    | User-selectable | User-selectable (default: `docker,fly`) |
 
-## Extension Testing by Provider
+## Profile-Driven Extension Testing
 
-Each provider tests a specific set of extensions defined in `.github/test-configs/providers.yaml`:
+Extension testing is **profile-driven**: the selected profile determines which extensions are installed and validated.
 
-| Provider     | Extensions Tested                         |
-| ------------ | ----------------------------------------- |
-| docker       | `nodejs`, `python`, `docker`              |
-| fly          | `nodejs`, `python`, `golang`, `terraform` |
-| devpod-aws   | `nodejs`, `aws-cli`, `terraform`          |
-| devpod-gcp   | `nodejs`, `gcloud`, `kubernetes-tools`    |
-| devpod-azure | `nodejs`, `azure-cli`, `dotnet`           |
-| devpod-do    | `nodejs`, `docker`, `kubectl`             |
-| kubernetes   | `kubernetes-tools`, `helm`, `kubectl`     |
+### How It Works
 
-### Extension Test Matrices
+1. **Profile Selection**: CI workflow selects an extension profile (default: `minimal`)
+2. **Profile Installation**: `extension-manager install-profile <profile>` installs all extensions in the profile
+3. **Validation**: Each installed extension is validated with `extension-manager validate <ext>`
 
-The CI uses different extension matrices based on context (from `.github/test-configs/extensions.yaml`):
+### Available Profiles
 
-| Matrix          | Extensions                             | When Used              |
-| --------------- | -------------------------------------- | ---------------------- |
-| `quick`         | `nodejs`, `python`                     | PRs, branch pushes     |
-| `standard`      | `nodejs`, `python`, `golang`, `docker` | Main branch, manual    |
-| `comprehensive` | All extensions                         | Scheduled nightly runs |
+Profiles are defined in `docker/lib/profiles.yaml` with varying resource requirements:
 
-### Overriding Test Configuration
+| Profile         | Extensions | Disk Required | Timeout |
+| --------------- | ---------- | ------------- | ------- |
+| `minimal`       | 2          | ~1.0 GB       | 15 min  |
+| `data-science`  | 2          | ~0.6 GB       | 15 min  |
+| `mobile`        | 1          | ~0.6 GB       | 15 min  |
+| `fullstack`     | 4          | ~2.2 GB       | 25 min  |
+| `ai-dev`        | 5          | ~3.3 GB       | 30 min  |
+| `systems`       | 4          | ~4.8 GB       | 35 min  |
+| `devops`        | 4          | ~6.2 GB       | 35 min  |
+| `anthropic-dev` | 11         | ~6.8 GB       | 40 min  |
+| `enterprise`    | 9          | ~12.8 GB      | 45 min  |
+
+### Profile Resource Calculation
+
+The `test-provider.yml` workflow calculates resource requirements based on the selected profile:
+
+1. **Resource Aggregation**: Sums `diskSpace`, `memory`, and `installTime` from all extensions in a profile
+2. **Tier Classification**: Maps totals to resource tiers (small/medium/large/xlarge)
+3. **Provider Mapping**: Translates tiers to provider-specific VM sizes using `docker/lib/vm-sizes.yaml`
+
+**VM Size Mappings** (`docker/lib/vm-sizes.yaml`):
+
+| Provider     | Small         | Medium        | Large           | XLarge          |
+| ------------ | ------------- | ------------- | --------------- | --------------- |
+| Fly.io       | shared-cpu-1x | shared-cpu-2x | performance-2x  | performance-4x  |
+| Docker       | default       | default       | default         | default         |
+| AWS          | t3.small      | t3.medium     | t3.large        | t3.xlarge       |
+| GCP          | e2-small      | e2-medium     | e2-standard-4   | e2-standard-8   |
+| Azure        | Standard_B1s  | Standard_B2s  | Standard_D2s_v3 | Standard_D4s_v3 |
+| DigitalOcean | s-1vcpu-2gb   | s-2vcpu-4gb   | s-4vcpu-8gb     | s-8vcpu-16gb    |
+
+This enables right-sizing CI infrastructure based on profile complexity.
+
+### Configuring Extension Tests
 
 **Via Workflow Dispatch (UI):**
 
 ```yaml
 # Manual trigger inputs in ci.yml
 providers: "docker,fly,devpod-aws" # Comma-separated or "all"
+extension-profile: "fullstack" # Profile to install and test
 test-suite: "full" # smoke | integration | full
 skip-cleanup: true # Keep resources for debugging
 ```
@@ -311,63 +376,23 @@ extensions:
   profile: fullstack # Uses profile from docker/lib/profiles.yaml
 ```
 
-**Via Test Config Files:**
-
-Modify `.github/test-configs/extensions.yaml` to change:
-
-- Which extensions are tested (`test_matrices.quick.extensions`)
-- Extension-specific test commands (`extensions.<name>.test_commands`)
-- Test combinations (`test_combinations`)
-
-Modify `.github/test-configs/providers.yaml` to change:
-
-- Provider-specific extensions (`providers.<name>.extensions_to_test`)
-- Test profiles (`test_profiles`)
-- Timeout and resource limits
-
-### Extension Profile in Integration Tests
-
-Integration tests use the `extension-profile` input (default: `minimal`):
-
-```yaml
-# From test-provider.yml
-extension-profile:
-  description: Extension profile to test
-  required: false
-  default: minimal
-```
-
-Available profiles are defined in `docker/lib/profiles.yaml`. Override via workflow dispatch or by calling the reusable workflow with a different value.
-
 ## Scripts Directory
 
 The `.github/scripts/` directory contains test utilities:
 
-| Script                                  | Purpose                                                        |
-| --------------------------------------- | -------------------------------------------------------------- |
-| `test-all-extensions.sh`                | Validates all extensions (used by `pnpm test:extensions`)      |
-| `generate-slack-notification.sh`        | Generates Slack messages for deployment notifications          |
-| `lib/test-helpers.sh`                   | Shared logging, retry, and VM interaction functions            |
-| `lib/assertions.sh`                     | Test assertion functions (equals, contains, file exists, etc.) |
-| `extensions/test-extension-complete.sh` | Full test suite for individual extensions                      |
+| Script                                  | Purpose                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| `test-all-extensions.sh`                | Validates all extensions (used by `pnpm test:extensions`)            |
+| `calculate-profile-resources.sh`        | Calculates aggregate resources for a profile (disk, memory, timeout) |
+| `generate-slack-notification.sh`        | Generates Slack messages for deployment notifications                |
+| `lib/test-helpers.sh`                   | Shared logging, retry, and VM interaction functions                  |
+| `lib/assertions.sh`                     | Test assertion functions (equals, contains, file exists, etc.)       |
+| `extensions/test-extension-complete.sh` | Full test suite for individual extensions                            |
 
 **Extensibility:** Workflows support optional extension-specific test scripts at
 `.github/scripts/test-{extension}.sh`. If present, these are executed; otherwise,
 generic tests run. Currently no extension-specific scripts exist - the generic
 tests handle all cases.
-
-## Test Configurations
-
-The `.github/test-configs/` directory contains reference configurations:
-
-| File              | Purpose                                                             |
-| ----------------- | ------------------------------------------------------------------- |
-| `providers.yaml`  | Defines provider test parameters, regions, VM sizes, test commands  |
-| `extensions.yaml` | Defines extension test commands, validation patterns, test projects |
-
-These configs serve as **reference documentation** for test parameters and are
-partially consumed by workflows. Workflows may also use inline test logic for
-simpler cases.
 
 ## YAML-Driven Testing Flow
 

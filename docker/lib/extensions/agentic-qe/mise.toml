@@ -1,0 +1,51 @@
+# agentic-qe.toml - Agentic Quality Engineering framework configuration for mise
+# Requires nodejs extension to be installed first
+
+[tools]
+# Agentic QE CLI tool
+"npm:agentic-qe" = "latest"
+
+[tasks.init]
+description = "Initialize AQE in current project"
+run = "aqe init"
+
+[tasks.test]
+description = "Generate tests with AQE"
+run = "aqe test"
+
+[tasks.coverage]
+description = "Analyze coverage gaps"
+run = "aqe coverage --threshold 80"
+
+[tasks.quality]
+description = "Run quality gates"
+run = "aqe quality"
+
+[tasks.status]
+description = "View AQE fleet status"
+run = "aqe status --verbose"
+
+[tasks.routing]
+description = "Enable multi-model router"
+run = "aqe routing enable"
+
+[tasks.learn]
+description = "Enable learning system"
+run = "aqe learn enable --all"
+
+[tasks.patterns]
+description = "List available patterns"
+run = "aqe patterns list"
+
+[settings]
+experimental = true
+jobs = 2
+
+[env]
+# npm timeout configuration (in milliseconds)
+npm_config_fetch_timeout = "300000"
+npm_config_fetch_retries = "2"
+npm_config_fetch_retry_mintimeout = "10000"
+npm_config_fetch_retry_maxtimeout = "60000"
+npm_config_maxsockets = "10"
+npm_config_prefer_offline = "true"

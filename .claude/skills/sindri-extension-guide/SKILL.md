@@ -60,13 +60,13 @@ validate:
 
 ```yaml
 metadata:
-  name: extension-name        # lowercase with hyphens
-  version: 1.0.0              # semantic versioning
-  description: What it does   # 10-200 characters
-  category: dev-tools         # see categories below
-  author: Your Name           # optional
-  homepage: https://...       # optional
-  dependencies:               # other extensions needed
+  name: extension-name # lowercase with hyphens
+  version: 1.0.0 # semantic versioning
+  description: What it does # 10-200 characters
+  category: dev-tools # see categories below
+  author: Your Name # optional
+  homepage: https://... # optional
+  dependencies: # other extensions needed
     - nodejs
     - python
 ```
@@ -88,11 +88,11 @@ metadata:
 
 ```yaml
 requirements:
-  domains:                    # Network access needed
+  domains: # Network access needed
     - api.github.com
     - registry.npmjs.org
-  diskSpace: 500              # MB required
-  secrets:                    # Credentials needed
+  diskSpace: 500 # MB required
+  secrets: # Credentials needed
     - GITHUB_TOKEN
 ```
 
@@ -106,8 +106,8 @@ Choose ONE installation method:
 install:
   method: mise
   mise:
-    configFile: mise.toml     # Reference to mise config
-    reshim: true              # Rebuild shims after install
+    configFile: mise.toml # Reference to mise config
+    reshim: true # Rebuild shims after install
 ```
 
 **apt** (system packages):
@@ -134,7 +134,7 @@ install:
   method: binary
   binary:
     url: https://github.com/org/repo/releases/download/v1.0.0/tool-linux-amd64.tar.gz
-    extract: tar.gz           # tar.gz, zip, or none
+    extract: tar.gz # tar.gz, zip, or none
     destination: ~/.local/bin/tool
 ```
 
@@ -157,7 +157,7 @@ install:
   method: script
   script:
     path: scripts/install.sh
-    timeout: 300              # seconds (default: 300)
+    timeout: 300 # seconds (default: 300)
 ```
 
 **hybrid** (multiple methods):
@@ -182,11 +182,11 @@ configure:
   templates:
     - source: templates/config.template
       destination: ~/.config/tool/config.yaml
-      mode: overwrite         # overwrite|append|merge|skip-if-exists
+      mode: overwrite # overwrite|append|merge|skip-if-exists
   environment:
     - key: TOOL_HOME
       value: $HOME/.tool
-      scope: bashrc           # bashrc|profile|session
+      scope: bashrc # bashrc|profile|session
 ```
 
 ### 5. Validate (Required)
@@ -229,7 +229,7 @@ remove:
 
 ```yaml
 upgrade:
-  strategy: automatic         # automatic|manual|none
+  strategy: automatic # automatic|manual|none
   mise:
     upgradeAll: true
   apt:
@@ -245,7 +245,7 @@ upgrade:
 bom:
   tools:
     - name: node
-      version: dynamic        # or specific version
+      version: dynamic # or specific version
       source: mise
       type: runtime
       license: MIT
@@ -341,13 +341,13 @@ echo "my-tool installed successfully"
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
+| Issue                   | Solution                                  |
+| ----------------------- | ----------------------------------------- |
 | Schema validation fails | Check YAML syntax, verify required fields |
-| Dependencies not found | Add missing extensions to registry.yaml |
-| Install times out | Increase timeout in script section |
-| Validation fails | Check expectedPattern regex escaping |
-| Permission denied | Scripts must be executable |
+| Dependencies not found  | Add missing extensions to registry.yaml   |
+| Install times out       | Increase timeout in script section        |
+| Validation fails        | Check expectedPattern regex escaping      |
+| Permission denied       | Scripts must be executable                |
 
 ## Reference Files
 

@@ -5,11 +5,17 @@ templates:
   # Language-based templates
   node:
     description: "Node.js application"
+    aliases: ["nodejs", "javascript"]
     extensions:
       - nodejs
     detection_patterns: ["node", "npm", "express", "js", "typescript", "ts"]
     setup_commands:
       - "npm init -y"
+    dependencies:
+      detect: "package.json"
+      command: "npm install"
+      requires: "npm"
+      description: "Node.js dependencies"
     files:
       "package.json": |
         {
@@ -22,6 +28,47 @@ templates:
             "test": "jest"
           }
         }
+      ".gitignore": |
+        # Dependencies
+        node_modules/
+        jspm_packages/
+
+        # Build outputs
+        dist/
+        build/
+        *.min.js
+        *.min.css
+
+        # Logs
+        logs/
+        *.log
+        npm-debug.log*
+        yarn-debug.log*
+        yarn-error.log*
+
+        # Environment
+        .env
+        .env.local
+        .env.*.local
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
+        *.swo
+        *~
+
+        # OS
+        .DS_Store
+        Thumbs.db
+
+        # Testing
+        coverage/
+        .nyc_output/
+
+        # Temporary
+        tmp/
+        temp/
     claude_md_template: |
       # {project_name}
 
@@ -44,6 +91,7 @@ templates:
 
   python:
     description: "Python application"
+    aliases: ["py", "python3"]
     extensions:
       - python
     detection_patterns:
@@ -58,6 +106,11 @@ templates:
       - "python3 -m venv venv"
       - "source venv/bin/activate || . venv/bin/activate"
       - "touch requirements.txt"
+    dependencies:
+      detect: "requirements.txt"
+      command: "pip3 install -r requirements.txt"
+      requires: "pip3"
+      description: "Python dependencies"
     files:
       "requirements.txt": ""
       "main.py": |
@@ -71,6 +124,57 @@ templates:
 
         if __name__ == "__main__":
             main()
+      ".gitignore": |
+        # Byte-compiled / optimized
+        __pycache__/
+        *.py[cod]
+        *$py.class
+        *.so
+
+        # Virtual Environment
+        venv/
+        env/
+        ENV/
+        .venv
+
+        # Distribution / packaging
+        .Python
+        build/
+        develop-eggs/
+        dist/
+        downloads/
+        eggs/
+        .eggs/
+        lib/
+        lib64/
+        parts/
+        sdist/
+        var/
+        wheels/
+        *.egg-info/
+        .installed.cfg
+        *.egg
+
+        # Testing
+        .tox/
+        .coverage
+        .coverage.*
+        .cache
+        .pytest_cache/
+        htmlcov/
+
+        # Environment
+        .env
+        *.env
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
+        *.swo
+
+        # Jupyter
+        .ipynb_checkpoints
     claude_md_template: |
       # {project_name}
 
@@ -92,11 +196,17 @@ templates:
 
   go:
     description: "Go application"
+    aliases: ["golang"]
     extensions:
       - golang
     detection_patterns: ["go", "golang", "api", "service", "microservice"]
     setup_commands:
       - "go mod init {project_name}"
+    dependencies:
+      detect: "go.mod"
+      command: "go mod download"
+      requires: "go"
+      description: "Go dependencies"
     files:
       "main.go": |
         package main
@@ -106,6 +216,34 @@ templates:
         func main() {
             fmt.Println("Hello from {project_name}!")
         }
+      ".gitignore": |
+        # Binaries
+        *.exe
+        *.exe~
+        *.dll
+        *.so
+        *.dylib
+
+        # Test binary
+        *.test
+
+        # Output
+        *.out
+
+        # Dependency directories
+        vendor/
+
+        # Go workspace
+        go.work
+
+        # Environment
+        .env
+        *.env
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
     claude_md_template: |
       # {project_name}
 
@@ -125,11 +263,35 @@ templates:
 
   rust:
     description: "Rust application"
+    aliases: ["rs"]
     extensions:
       - rust
     detection_patterns: ["rust", "rs", "cargo", "cli", "system"]
     setup_commands:
       - "cargo init --name {project_name}"
+    dependencies:
+      detect: "Cargo.toml"
+      command: "cargo build"
+      requires: "cargo"
+      description: "Rust project"
+      fetch_command: "cargo fetch"
+    files:
+      ".gitignore": |
+        # Rust build
+        /target/
+        **/*.rs.bk
+        *.pdb
+
+        # Cargo
+        Cargo.lock
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
+
+        # Environment
+        .env
     claude_md_template: |
       # {project_name}
 
@@ -150,11 +312,57 @@ templates:
   # Framework-based templates
   rails:
     description: "Ruby on Rails application"
+    aliases: ["ruby", "ror"]
     extensions:
       - ruby
     detection_patterns: ["rails", "ruby", "web", "mvc"]
     setup_commands:
       - "rails new . --skip-git --force"
+    dependencies:
+      detect: "Gemfile"
+      command: "bundle install"
+      requires: "bundle"
+      description: "Ruby dependencies"
+    files:
+      ".gitignore": |
+        # Rails specific
+        *.rbc
+        capybara-*.html
+        .rspec
+        /db/*.sqlite3
+        /db/*.sqlite3-journal
+        /db/*.sqlite3-*
+        /public/system
+        /coverage/
+        /spec/tmp
+        *.orig
+        rerun.txt
+        pickle-email-*.html
+
+        # Ignore bundler config
+        /.bundle
+
+        # Ignore all logfiles and tempfiles
+        /log/*
+        /tmp/*
+        !/log/.keep
+        !/tmp/.keep
+
+        # Ignore uploaded files in development
+        /storage/*
+        !/storage/.keep
+
+        # Ignore master key for decrypting credentials
+        /config/master.key
+
+        # Environment
+        .env
+        *.env
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
     claude_md_template: |
       # {project_name}
 
@@ -184,6 +392,51 @@ templates:
       - "source venv/bin/activate || . venv/bin/activate"
       - "pip install django"
       - "django-admin startproject {project_name} ."
+    dependencies:
+      detect: "requirements.txt"
+      command: "pip3 install -r requirements.txt"
+      requires: "pip3"
+      description: "Django dependencies"
+    files:
+      ".gitignore": |
+        # Python
+        __pycache__/
+        *.py[cod]
+        *$py.class
+        *.so
+
+        # Virtual Environment
+        venv/
+        env/
+        ENV/
+        .venv
+
+        # Django
+        *.log
+        local_settings.py
+        db.sqlite3
+        db.sqlite3-journal
+        /media
+        /static
+
+        # Distribution / packaging
+        dist/
+        build/
+        *.egg-info/
+
+        # Testing
+        .coverage
+        .pytest_cache/
+        htmlcov/
+
+        # Environment
+        .env
+        *.env
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
     claude_md_template: |
       # {project_name}
 
@@ -206,11 +459,63 @@ templates:
 
   spring:
     description: "Spring Boot application"
+    aliases: ["spring-boot", "spring-web", "spring-webmvc"]
     extensions:
       - jvm
     detection_patterns: ["spring", "java", "boot", "api", "microservice"]
     setup_commands:
       - "spring init --dependencies=web,data-jpa {project_name}"
+    dependencies:
+      detect: "pom.xml"
+      command: "./mvnw dependency:resolve"
+      requires: "java"
+      description: "Maven dependencies"
+    files:
+      ".gitignore": |
+        # Compiled class files
+        *.class
+
+        # Log files
+        *.log
+
+        # Package files
+        *.jar
+        *.war
+        *.nar
+        *.ear
+        *.zip
+        *.tar.gz
+        *.rar
+
+        # Maven
+        target/
+        pom.xml.tag
+        pom.xml.releaseBackup
+        pom.xml.versionsBackup
+        pom.xml.next
+        release.properties
+        dependency-reduced-pom.xml
+        buildNumber.properties
+        .mvn/timing.properties
+        .mvn/wrapper/maven-wrapper.jar
+
+        # Gradle
+        .gradle/
+        build/
+        !gradle/wrapper/gradle-wrapper.jar
+
+        # Environment
+        .env
+        *.env
+
+        # IDE
+        .vscode/
+        .idea/
+        *.iml
+        *.swp
+        .project
+        .classpath
+        .settings/
     claude_md_template: |
       # {project_name}
 
@@ -229,11 +534,64 @@ templates:
 
   dotnet:
     description: ".NET application"
+    aliases: ["csharp", "c#", ".net"]
     extensions:
       - dotnet
     detection_patterns: ["dotnet", "csharp", "c#", "api", "web", "blazor"]
     setup_commands:
       - "dotnet new web"
+    dependencies:
+      detect: ["*.csproj", "*.sln"]
+      command: "dotnet restore"
+      requires: "dotnet"
+      description: ".NET dependencies"
+    files:
+      ".gitignore": |
+        # Build results
+        [Dd]ebug/
+        [Dd]ebugPublic/
+        [Rr]elease/
+        [Rr]eleases/
+        x64/
+        x86/
+        [Ww][Ii][Nn]32/
+        [Aa][Rr][Mm]/
+        [Aa][Rr][Mm]64/
+        bld/
+        [Bb]in/
+        [Oo]bj/
+        [Ll]og/
+        [Ll]ogs/
+
+        # NuGet packages
+        *.nupkg
+        *.snupkg
+        **/[Pp]ackages/*
+        !**/[Pp]ackages/build/
+
+        # .NET Core
+        project.lock.json
+        project.fragment.lock.json
+        artifacts/
+
+        # User-specific files
+        *.rsuser
+        *.suo
+        *.user
+        *.userosscache
+        *.sln.docstates
+
+        # Environment
+        .env
+        *.env
+        appsettings.*.json
+        !appsettings.Development.json
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
+        .vs/
     claude_md_template: |
       # {project_name}
 
@@ -254,6 +612,7 @@ templates:
   # Infrastructure templates
   terraform:
     description: "Terraform infrastructure project"
+    aliases: ["tf", "infra", "infrastructure"]
     extensions:
       - infra-tools
     detection_patterns: ["terraform", "tf", "infrastructure", "infra", "iac"]
@@ -289,6 +648,31 @@ templates:
         }
       "outputs.tf": |
         # Add outputs here
+      ".gitignore": |
+        # Terraform
+        .terraform/
+        .terraform.lock.hcl
+        *.tfstate
+        *.tfstate.*
+        crash.log
+        crash.*.log
+        *.tfvars
+        *.tfvars.json
+        override.tf
+        override.tf.json
+        *_override.tf
+        *_override.tf.json
+        .terraformrc
+        terraform.rc
+
+        # Environment
+        .env
+        *.env
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
     claude_md_template: |
       # {project_name}
 
@@ -310,6 +694,7 @@ templates:
 
   docker:
     description: "Dockerized application"
+    aliases: ["container", "containerized"]
     extensions:
       - docker
     detection_patterns: ["docker", "container", "microservice"]
@@ -337,6 +722,34 @@ templates:
               - "3000:3000"
             environment:
               - NODE_ENV=development
+      ".gitignore": |
+        # Docker
+        .docker/
+
+        # Environment
+        .env
+        .env.*
+        *.env
+
+        # Build outputs
+        build/
+        dist/
+
+        # Dependencies
+        node_modules/
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
+
+        # OS
+        .DS_Store
+        Thumbs.db
+
+        # Logs
+        *.log
+        logs/
     claude_md_template: |
       # {project_name}
 
@@ -353,6 +766,60 @@ templates:
       - `docker compose down` - Stop containers
       - `docker compose logs` - View logs
       - `docker build -t {project_name} .` - Build image
+
+  # Default/general template for unknown project types
+  general:
+    description: "General purpose project"
+    extensions: []
+    detection_patterns: []
+    setup_commands: []
+    files:
+      ".gitignore": |
+        # Build outputs
+        build/
+        dist/
+        out/
+        target/
+
+        # Dependencies
+        node_modules/
+        vendor/
+
+        # Environment
+        .env
+        .env.*
+        *.env
+
+        # IDE
+        .vscode/
+        .idea/
+        *.swp
+        *.swo
+        *~
+
+        # OS
+        .DS_Store
+        Thumbs.db
+
+        # Logs
+        *.log
+        logs/
+
+        # Temporary
+        tmp/
+        temp/
+        .cache/
+    claude_md_template: |
+      # {project_name}
+
+      ## Project Overview
+      [Add project description]
+
+      ## Setup Instructions
+      [Add setup instructions]
+
+      ## Development Commands
+      [Add development commands]
 
 # Detection rules for auto-type selection
 detection_rules:

@@ -169,7 +169,7 @@ extensions:
 
 ```bash
 # Build Docker image
-docker build -t sindri:test -f docker/Dockerfile .
+docker build -t sindri:test -f Dockerfile .
 
 # Run container
 docker run -it -v sindri-workspace:/workspace sindri:test

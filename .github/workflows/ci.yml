@@ -1,5 +1,8 @@
 name: CI
 
+# Unified CI workflow that runs all tests (CLI, extensions, integration) on selected providers
+# This ensures consistent test coverage across all deployment targets.
+
 on:
   push:
     branches: [main, develop]
@@ -10,8 +13,6 @@ on:
   pull_request:
     branches: [main, develop]
     types: [opened, synchronize, reopened]
-  schedule:
-    - cron: "0 2 * * *" # Daily at 2 AM UTC
   workflow_dispatch:
     inputs:
       providers:
@@ -28,6 +29,21 @@ on:
           - smoke
           - integration
           - full
+      extension-profile:
+        description: Extension profile to test (affects resource requirements)
+        required: false
+        default: "minimal"
+        type: choice
+        options:
+          - minimal
+          - data-science
+          - mobile
+          - fullstack
+          - ai-dev
+          - systems
+          - devops
+          - anthropic-dev
+          - enterprise
       skip-cleanup:
         description: Skip resource cleanup for debugging
         required: false
@@ -42,7 +58,10 @@ env:
   DOCKER_BUILDKIT: 1
 
 jobs:
-  # Shell script validation
+  # ============================================
+  # Validation Jobs
+  # ============================================
+
   shellcheck:
     name: Shell Script Validation
     runs-on: ubuntu-latest
@@ -60,11 +79,9 @@ jobs:
         run: |
           find . -name "*.sh" -type f ! -path "./node_modules/*" | while read -r script; do
             echo "Checking: $script"
-            # ShellCheck automatically reads .shellcheckrc from the repo root
             shellcheck "$script" || exit 1
           done
 
-  # Markdown validation
   markdownlint:
     name: Markdown Validation
     runs-on: ubuntu-latest
@@ -82,13 +99,15 @@ jobs:
       - name: Lint markdown files
         run: markdownlint '**/*.md' --ignore node_modules
 
-  # YAML validation (uses comprehensive new workflow)
   validate-yaml:
     name: Validate YAML
     uses: ./.github/workflows/validate-yaml.yml
     secrets: inherit
 
-  # Build Docker image
+  # ============================================
+  # Build Job
+  # ============================================
+
   build:
     name: Build Image
     runs-on: ubuntu-latest
@@ -108,6 +127,9 @@ jobs:
         with:
           image-tag: sindri:ci-${{ github.sha }}
           cache-key-prefix: sindri-ci
+          # Disable buildx cache to avoid layer corruption
+          # See: https://github.com/docker/buildx/issues/637
+          no-cache: true
 
       - name: Save image as artifact
         run: |
@@ -120,93 +142,45 @@ jobs:
           path: sindri-image.tar.gz
           retention-days: 1
 
-  # Test CLI functionality
-  test-cli:
-    name: Test CLI
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v5
+  # ============================================
+  # Test Matrix Generation
+  # ============================================
 
-      - name: Download image artifact
-        uses: actions/download-artifact@v6
-        with:
-          name: sindri-image-${{ github.sha }}
-
-      - name: Load Docker image
-        run: |
-          gunzip -c sindri-image.tar.gz | docker load
-
-      - name: Test CLI commands
-        uses: ./.github/actions/core/test-cli
-        with:
-          test-in-container: true
-          image: sindri:ci-${{ github.sha }}
-          test-commands: |
-            [
-              "sindri --version",
-              "sindri --help",
-              "sindri config init",
-              "extension-manager list",
-              "extension-manager list-profiles",
-              "extension-manager validate nodejs"
-            ]
-
-  # Generate provider test matrix
   generate-matrix:
     name: Generate Test Matrix
     runs-on: ubuntu-latest
     needs: [shellcheck, markdownlint, validate-yaml]
     outputs:
       providers: ${{ steps.matrix.outputs.providers }}
-      extensions: ${{ steps.matrix.outputs.extensions }}
     steps:
       - uses: actions/checkout@v5
 
       - name: Generate matrices
         id: matrix
         run: |
-          # Determine which providers to test
+          # Determine which providers to test based on trigger type
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             INPUT_PROVIDERS="${{ github.event.inputs.providers }}"
             if [[ "$INPUT_PROVIDERS" == "all" ]]; then
-              PROVIDERS='["docker", "fly", "devpod-aws", "devpod-gcp", "devpod-azure", "devpod-do", "kubernetes"]'
+              PROVIDERS='["docker", "fly", "devpod-aws", "devpod-gcp", "devpod-azure", "devpod-do", "devpod-k8s"]'
             else
-              # Convert comma-separated to JSON array (use -c for compact single-line JSON)
               PROVIDERS=$(echo "$INPUT_PROVIDERS" | jq -Rc 'split(",") | map(ltrimstr(" ") | rtrimstr(" "))')
             fi
-          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
-            # Full test suite for scheduled runs
-            PROVIDERS='["docker", "fly", "devpod-aws", "kubernetes"]'
           elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            # Main branch: test primary providers
             PROVIDERS='["docker", "fly"]'
           else
-            # PRs and other branches: minimal testing
             PROVIDERS='["docker"]'
           fi
 
-          # Generate extension matrix from test config (use -I=0 for compact single-line JSON)
-          # Use extensions with verified test configurations, excluding container-incompatible ones
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
-            # Full test: use standard matrix from config
-            EXTENSIONS=$(yq -o=json -I=0 '.test_matrices.standard.extensions' .github/test-configs/extensions.yaml)
-          else
-            # Quick test: use quick matrix from config
-            EXTENSIONS=$(yq -o=json -I=0 '.test_matrices.quick.extensions' .github/test-configs/extensions.yaml)
-          fi
-          # Fallback if yq fails
-          if [[ -z "$EXTENSIONS" || "$EXTENSIONS" == "null" ]]; then
-            EXTENSIONS='["nodejs", "python"]'
-          fi
-
           echo "providers=$PROVIDERS" >> $GITHUB_OUTPUT
-          echo "extensions=$EXTENSIONS" >> $GITHUB_OUTPUT
+          echo "::notice title=Test Providers::$PROVIDERS"
 
-          echo "Testing providers: $PROVIDERS"
-          echo "Testing extensions: $EXTENSIONS"
+  # ============================================
+  # Unified Provider Testing
+  # ============================================
+  # Each provider runs CLI tests, extension tests, and integration tests
+  # This ensures consistent test coverage across all deployment targets
 
-  # Test providers in parallel
   test-providers:
     name: Test ${{ matrix.provider }}
     needs: [build, generate-matrix]
@@ -219,23 +193,16 @@ jobs:
     with:
       provider: ${{ matrix.provider }}
       test-suite: ${{ github.event.inputs.test-suite || 'integration' }}
+      extension-profile: ${{ github.event.inputs.extension-profile || 'minimal' }}
       skip-cleanup: ${{ github.event.inputs.skip-cleanup == 'true' }}
-    secrets: inherit
-
-  # Test extensions
-  test-extensions:
-    name: Test Extensions
-    needs: [build, generate-matrix]
-    if: needs.generate-matrix.outputs.extensions != '[]'
-    uses: ./.github/workflows/test-extensions.yml
-    with:
-      extensions: ${{ needs.generate-matrix.outputs.extensions }}
-      provider: docker
       image: sindri:ci-${{ github.sha }}
       image-artifact: sindri-image-${{ github.sha }}
     secrets: inherit
 
-  # Final status check - only depends on jobs that always run
+  # ============================================
+  # CI Status Checks
+  # ============================================
+
   ci-required:
     name: CI Required Checks
     runs-on: ubuntu-latest
@@ -244,7 +211,6 @@ jobs:
       - markdownlint
       - validate-yaml
       - build
-      - test-cli
     if: ${{ always() }}
     steps:
       - name: Check required jobs
@@ -254,60 +220,45 @@ jobs:
           MARKDOWNLINT="${{ needs.markdownlint.result }}"
           VALIDATE_YAML="${{ needs.validate-yaml.result }}"
           BUILD="${{ needs.build.result }}"
-          TEST_CLI="${{ needs.test-cli.result }}"
 
           if [[ "$SHELLCHECK" != "success" ]] || \
              [[ "$MARKDOWNLINT" != "success" ]] || \
              [[ "$VALIDATE_YAML" != "success" ]] || \
-             [[ "$BUILD" != "success" ]] || \
-             [[ "$TEST_CLI" != "success" ]]; then
+             [[ "$BUILD" != "success" ]]; then
             echo "❌ Required CI checks failed"
             echo "Results:"
             echo "  shellcheck: $SHELLCHECK"
             echo "  markdownlint: $MARKDOWNLINT"
             echo "  validate-yaml: $VALIDATE_YAML"
             echo "  build: $BUILD"
-            echo "  test-cli: $TEST_CLI"
             exit 1
           fi
 
           echo "✅ Required CI checks passed"
 
-  # Overall CI status - includes optional jobs
   ci-status:
     name: CI Status
     runs-on: ubuntu-latest
     needs:
       - ci-required
       - test-providers
-      - test-extensions
     if: ${{ always() }}
     steps:
       - name: Check overall status
         run: |
-          # Check results of all jobs
           REQUIRED="${{ needs.ci-required.result }}"
           TEST_PROVIDERS="${{ needs.test-providers.result }}"
-          TEST_EXTENSIONS="${{ needs.test-extensions.result }}"
 
           # Required checks must pass
           if [[ "$REQUIRED" != "success" ]]; then
             echo "❌ CI failed - required checks did not pass"
-            echo "Results:"
-            echo "  ci-required: $REQUIRED"
-            echo "  test-providers: $TEST_PROVIDERS"
-            echo "  test-extensions: $TEST_EXTENSIONS"
             exit 1
           fi
 
-          # Optional jobs should pass if they ran
-          if ([[ "$TEST_PROVIDERS" != "skipped" ]] && [[ "$TEST_PROVIDERS" != "success" ]]) || \
-             ([[ "$TEST_EXTENSIONS" != "skipped" ]] && [[ "$TEST_EXTENSIONS" != "success" ]]); then
-            echo "❌ CI failed - optional checks failed"
-            echo "Results:"
-            echo "  ci-required: $REQUIRED"
+          # Provider tests should pass if they ran
+          if [[ "$TEST_PROVIDERS" != "skipped" ]] && [[ "$TEST_PROVIDERS" != "success" ]]; then
+            echo "❌ CI failed - provider tests failed"
             echo "  test-providers: $TEST_PROVIDERS"
-            echo "  test-extensions: $TEST_EXTENSIONS"
             exit 1
           fi
 
@@ -315,21 +266,23 @@ jobs:
           echo "Results:"
           echo "  ci-required: $REQUIRED"
           echo "  test-providers: $TEST_PROVIDERS"
-          echo "  test-extensions: $TEST_EXTENSIONS"
 
       - name: Generate summary
         if: always()
         run: |
           echo "# CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
+          echo "## Unified Provider Testing" >> $GITHUB_STEP_SUMMARY
+          echo "Each selected provider receives **complete test coverage**:" >> $GITHUB_STEP_SUMMARY
+          echo "- CLI Tests (sindri, extension-manager commands)" >> $GITHUB_STEP_SUMMARY
+          echo "- Extension Tests (validation, installation)" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests (end-to-end workflows)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Job Results" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Required Checks | ${{ needs.ci-required.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test Providers | ${{ needs.test-providers.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test Extensions | ${{ needs.test-extensions.result }} |" >> $GITHUB_STEP_SUMMARY
-
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Metadata" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

@@ -20,13 +20,11 @@ show_version() {
     local version_file
     local version
 
-    # Try to find VERSION file
-    if [[ -f "$SCRIPT_DIR/../VERSION" ]]; then
-        version_file="$SCRIPT_DIR/../VERSION"
-    elif [[ -f "/docker/VERSION" ]]; then
-        version_file="/docker/VERSION"
-    elif [[ -f "$BASE_DIR/VERSION" ]]; then
-        version_file="$BASE_DIR/VERSION"
+    # Try to find VERSION file (co-located with sindri CLI)
+    if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+        version_file="$SCRIPT_DIR/VERSION"
+    elif [[ -f "/docker/cli/VERSION" ]]; then
+        version_file="/docker/cli/VERSION"
     fi
 
     if [[ -n "$version_file" && -f "$version_file" ]]; then
@@ -137,6 +135,10 @@ extensions:
 
 # Secrets configuration (set via provider-specific mechanisms)
 secrets:
+  # SSH key-based authentication (recommended for Fly.io)
+  # - name: AUTHORIZED_KEYS
+  #   source: env
+
   # Claude Code
   - name: ANTHROPIC_API_KEY
     source: env
@@ -516,7 +518,7 @@ plan() {
             echo "  • Install extension profile: $profile"
             echo ""
             echo "Commands to be executed:"
-            echo "  docker build -t sindri:latest -f docker/Dockerfile ."
+            echo "  docker build -t sindri:latest -f Dockerfile ."
             echo "  docker compose up -d"
             echo ""
             echo "Note: Docker provider always rebuilds to ensure fresh source code."

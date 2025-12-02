@@ -18,6 +18,8 @@ requirements:
     - aliyuncli.alicdn.com
     - clis.cloud.ibm.com
   diskSpace: 2500
+  memory: 256
+  installTime: 180
   secrets:
     - aws_access_key_id
     - aws_secret_access_key

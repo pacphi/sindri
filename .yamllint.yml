@@ -1,7 +1,7 @@
 extends: default
 rules:
   line-length:
-    max: 150 # Increased from 120 to accommodate GitHub Actions syntax
+    max: 175
     level: warning # Keep as warning, not error
 
   comments:

@@ -417,14 +417,14 @@ extension-manager list-categories
 
 ```text
 Available categories:
+  base          - Core system components
   language      - Programming languages and runtimes
   dev-tools     - Development utilities and tools
-  database      - Database clients and tools
-  cloud         - Cloud provider CLIs and SDKs
-  monitoring    - Monitoring and observability
-  security      - Security and compliance tools
+  infrastructure - Cloud, containers, orchestration
   ai            - AI and machine learning tools
+  utilities     - General purpose tools
   desktop       - Desktop environments (GUI)
+  monitoring    - Monitoring and observability
 ```
 
 ---
@@ -615,12 +615,12 @@ extension-manager status-all
 
 ## Extension Information Commands
 
-### extension-manager show
+### extension-manager info
 
 Show detailed information about an extension.
 
 ```bash
-extension-manager show <extension-name>
+extension-manager info <extension-name>
 ```
 
 **Output:**
@@ -647,29 +647,30 @@ Validation:
   - npm --version
 ```
 
-### extension-manager generate-bom
+### extension-manager bom
 
-Generate Bill of Materials for installed extensions.
+Show Bill of Materials for installed extensions.
 
 ```bash
-extension-manager generate-bom [--format <format>]
+extension-manager bom [extension-name]
 ```
-
-**Options:**
-
-- `--format <format>` - Output format (text, json, yaml, cyclonedx)
 
 **Examples:**
 
 ```bash
-# Generate text BOM
-extension-manager generate-bom
+# Show BOM for all extensions
+extension-manager bom
 
-# Generate JSON BOM
-extension-manager generate-bom --format json
+# Show BOM for specific extension
+extension-manager bom nodejs
+```
 
-# Generate CycloneDX SBOM
-extension-manager generate-bom --format cyclonedx
+### extension-manager bom-regenerate
+
+Regenerate Bill of Materials for all extensions.
+
+```bash
+extension-manager bom-regenerate
 ```
 
 ---

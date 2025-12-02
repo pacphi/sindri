@@ -14,84 +14,140 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Only source if not already loaded
 [[ "${COMMON_SH_LOADED:-}" != "true" ]] && source "${SCRIPT_DIR}/common.sh"
 [[ "${GIT_SH_LOADED:-}" != "true" ]] && source "${SCRIPT_DIR}/git.sh"
+source "${SCRIPT_DIR}/project-templates.sh"
 
 # shellcheck disable=SC2120
 install_project_dependencies() {
     local skip_build=false
-    [[ "${1:-}" == "--skip-build" ]] && skip_build=true
+    local template=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --skip-build)
+                skip_build=true
+                shift
+                ;;
+            --template)
+                template="$2"
+                shift 2
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
 
     print_status "Detecting and installing project dependencies..."
 
     local deps_installed=false
 
-    if [[ -f "package.json" ]] && command_exists npm; then
-        print_status "Installing Node.js dependencies..."
-        if npm install; then
-            deps_installed=true
-            print_success "Node.js dependencies installed"
-        else
-            print_error "Failed to install Node.js dependencies"
-            return 1
-        fi
-    fi
-
-    if [[ -f "requirements.txt" ]] && command_exists pip3; then
-        print_status "Installing Python dependencies..."
-        if pip3 install -r requirements.txt; then
-            deps_installed=true
-            print_success "Python dependencies installed"
-        else
-            print_error "Failed to install Python dependencies"
-            return 1
-        fi
-    fi
-
-    if [[ -f "go.mod" ]] && command_exists go; then
-        print_status "Installing Go dependencies..."
-        if go mod download; then
-            deps_installed=true
-            print_success "Go dependencies installed"
-        else
-            print_error "Failed to install Go dependencies"
-            return 1
-        fi
-    fi
-
-    if [[ -f "Cargo.toml" ]] && command_exists cargo; then
-        if [[ "$skip_build" == "false" ]]; then
-            print_status "Building Rust project..."
-            if cargo build; then
-                deps_installed=true
-                print_success "Rust project built"
-            else
-                print_error "Failed to build Rust project"
-                return 1
-            fi
-        else
-            print_status "Fetching Rust dependencies..."
-            if cargo fetch; then
-                deps_installed=true
-                print_success "Rust dependencies fetched"
-            else
-                print_error "Failed to fetch Rust dependencies"
-                return 1
-            fi
-        fi
-    fi
-
-    if [[ -f "Gemfile" ]] && command_exists bundle; then
-        print_status "Installing Ruby dependencies..."
-        if bundle install; then
-            deps_installed=true
-            print_success "Ruby dependencies installed"
-        else
-            print_error "Failed to install Ruby dependencies"
-            return 1
-        fi
+    # If template is specified, use its dependencies config
+    if [[ -n "$template" ]]; then
+        _install_template_dependencies "$template" "$skip_build" && deps_installed=true
+    else
+        # Fallback: scan all templates for matching dependency files
+        _scan_and_install_dependencies "$skip_build" && deps_installed=true
     fi
 
     [[ "$deps_installed" == "false" ]] && print_debug "No dependency files detected"
     return 0
+}
+
+_install_template_dependencies() {
+    local template="$1"
+    local skip_build="$2"
+
+    local deps_config
+    if ! deps_config=$(get_template_dependencies "$template" 2>/dev/null); then
+        print_debug "No dependencies config for template: $template"
+        return 1
+    fi
+
+    _execute_dependency_config "$deps_config" "$skip_build"
+}
+
+_scan_and_install_dependencies() {
+    local skip_build="$1"
+    local found_any=false
+
+    local all_configs
+    if ! all_configs=$(get_all_dependencies_configs 2>/dev/null); then
+        print_debug "Could not load dependency configs"
+        return 1
+    fi
+
+    local count
+    count=$(echo "$all_configs" | jq 'length')
+
+    for ((i=0; i<count; i++)); do
+        local config
+        config=$(echo "$all_configs" | jq ".[$i]")
+
+        local detect
+        detect=$(echo "$config" | jq -r '.detect')
+
+        # Handle both string and array detect patterns
+        if [[ "$detect" == "["* ]]; then
+            # Array of patterns - check each with glob
+            local pattern_count
+            pattern_count=$(echo "$config" | jq -r '.detect | length')
+            for ((j=0; j<pattern_count; j++)); do
+                local pattern
+                pattern=$(echo "$config" | jq -r ".detect[$j]")
+                # shellcheck disable=SC2086
+                if compgen -G $pattern > /dev/null 2>&1; then
+                    if _execute_dependency_config "$config" "$skip_build"; then
+                        found_any=true
+                    fi
+                    break
+                fi
+            done
+        else
+            # Single file pattern
+            # shellcheck disable=SC2086
+            if compgen -G $detect > /dev/null 2>&1; then
+                if _execute_dependency_config "$config" "$skip_build"; then
+                    found_any=true
+                fi
+            fi
+        fi
+    done
+
+    [[ "$found_any" == "true" ]]
+}
+
+_execute_dependency_config() {
+    local config="$1"
+    local skip_build="$2"
+
+    local requires command description fetch_command
+    requires=$(echo "$config" | jq -r '.requires')
+    command=$(echo "$config" | jq -r '.command')
+    description=$(echo "$config" | jq -r '.description // "dependencies"')
+    fetch_command=$(echo "$config" | jq -r '.fetch_command // ""')
+
+    # Check if required tool exists
+    if ! command_exists "$requires"; then
+        print_debug "Skipping $description ($requires not available)"
+        return 1
+    fi
+
+    # Choose command based on skip_build flag
+    local cmd_to_run="$command"
+    if [[ "$skip_build" == "true" ]] && [[ -n "$fetch_command" ]]; then
+        cmd_to_run="$fetch_command"
+        print_status "Fetching $description..."
+    else
+        print_status "Installing $description..."
+    fi
+
+    if eval "$cmd_to_run"; then
+        print_success "$description installed"
+        return 0
+    else
+        print_error "Failed to install $description"
+        return 1
+    fi
 }
 
 init_claude_tools() {
@@ -141,31 +197,6 @@ init_claude_tools() {
             tools_initialized=true
         else
             print_debug "agent-flow initialization skipped"
-        fi
-    fi
-
-    if [[ "$tools_initialized" == "true" ]]; then
-        print_status "Creating .envrc for direnv integration..."
-        cat > .envrc << 'ENVRC_EOF'
-# Auto-generated by Sindri project setup
-# This file enables project-specific Claude Flow and Agentic Flow aliases
-
-# Load Claude Flow aliases if initialized
-if [[ -d .swarm ]] || command -v npx >/dev/null 2>&1; then
-    [[ -f /workspace/config/claude-flow.aliases ]] && source /workspace/config/claude-flow.aliases
-fi
-
-# Load Agentic Flow aliases if available
-if command -v npx >/dev/null 2>&1 && npx --yes agentic-flow --help >/dev/null 2>&1; then
-    [[ -f /workspace/config/agentic-flow.aliases ]] && source /workspace/config/agentic-flow.aliases
-fi
-ENVRC_EOF
-
-        if command_exists direnv; then
-            direnv allow . >/dev/null 2>&1 || true
-            print_success ".envrc created and allowed"
-        else
-            print_success ".envrc created (direnv will auto-load on next shell)"
         fi
     fi
 
@@ -291,6 +322,9 @@ setup_project_enhancements() {
 }
 
 export -f install_project_dependencies
+export -f _install_template_dependencies
+export -f _scan_and_install_dependencies
+export -f _execute_dependency_config
 export -f init_claude_tools
 export -f create_project_claude_md
 export -f setup_project_enhancements

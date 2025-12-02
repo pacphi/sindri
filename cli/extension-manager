@@ -131,7 +131,7 @@ main() {
             show_extension_info "$1"
             ;;
         bom)
-            show_bom "$1"
+            show_bom "${1:-}"
             ;;
         bom-regenerate)
             regenerate_all_boms
