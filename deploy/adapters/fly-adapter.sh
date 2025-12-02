@@ -355,6 +355,7 @@ fi
 # ------------------------------------------------------------------------------
 # ensure_ssh_keys - Ensure AUTHORIZED_KEYS is configured for SSH access
 # ------------------------------------------------------------------------------
+# Skips interactive prompts in CI (non-interactive shell) or when CI_MODE=true
 ensure_ssh_keys() {
     local app_name="$1"
 
@@ -377,6 +378,13 @@ ensure_ssh_keys() {
     # Check if AUTHORIZED_KEYS is already set on Fly.io
     if flyctl secrets list -a "$app_name" 2>/dev/null | grep -q "AUTHORIZED_KEYS"; then
         print_status "SSH keys already configured on Fly.io"
+        return 0
+    fi
+
+    # In CI mode or non-interactive shell, skip prompts
+    if [[ "${CI_MODE:-}" == "true" ]] || [[ "${CI:-}" == "true" ]] || [[ ! -t 0 ]]; then
+        print_warning "No SSH keys configured (CI mode - skipping interactive setup)"
+        print_status "SSH access available via: flyctl ssh console -a $app_name"
         return 0
     fi
 
