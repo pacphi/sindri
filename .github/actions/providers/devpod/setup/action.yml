@@ -443,7 +443,12 @@ runs:
         CONFIG=$(devpod provider options "$PROVIDER_ID" --output json || echo '{}')
 
         echo "provider-id=$PROVIDER_ID" >> $GITHUB_OUTPUT
-        echo "config=$CONFIG" >> $GITHUB_OUTPUT
+
+        {
+          echo "config<<EOF"
+          echo "$CONFIG"
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
 
         echo "::endgroup::"
 
