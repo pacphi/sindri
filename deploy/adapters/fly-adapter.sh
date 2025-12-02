@@ -352,6 +352,89 @@ if [[ "$CONFIG_ONLY" == "true" ]]; then
     exit 0
 fi
 
+# ------------------------------------------------------------------------------
+# ensure_ssh_keys - Ensure AUTHORIZED_KEYS is configured for SSH access
+# ------------------------------------------------------------------------------
+ensure_ssh_keys() {
+    local app_name="$1"
+
+    # Check if AUTHORIZED_KEYS is already set in environment
+    if [[ -n "${AUTHORIZED_KEYS:-}" ]]; then
+        print_status "SSH keys found in environment"
+        return 0
+    fi
+
+    # Check if AUTHORIZED_KEYS is set in .env or .env.local
+    if [[ -f .env.local ]] && grep -q "^AUTHORIZED_KEYS=" .env.local 2>/dev/null; then
+        print_status "SSH keys found in .env.local"
+        return 0
+    fi
+    if [[ -f .env ]] && grep -q "^AUTHORIZED_KEYS=" .env 2>/dev/null; then
+        print_status "SSH keys found in .env"
+        return 0
+    fi
+
+    # Check if AUTHORIZED_KEYS is already set on Fly.io
+    if flyctl secrets list -a "$app_name" 2>/dev/null | grep -q "AUTHORIZED_KEYS"; then
+        print_status "SSH keys already configured on Fly.io"
+        return 0
+    fi
+
+    print_warning "No SSH keys configured - SSH access will not be available"
+    print_status "Checking for local SSH keys..."
+
+    # Look for common SSH public keys
+    local ssh_key=""
+    local ssh_key_type=""
+    for key_file in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub ~/.ssh/id_ecdsa.pub; do
+        if [[ -f "$key_file" ]]; then
+            ssh_key=$(cat "$key_file")
+            ssh_key_type=$(basename "$key_file" .pub)
+            break
+        fi
+    done
+
+    if [[ -n "$ssh_key" ]]; then
+        print_success "Found local SSH key: $ssh_key_type"
+        echo ""
+        read -p "Use this key for SSH access to Sindri? (Y/n) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            print_status "Configuring SSH key on Fly.io..."
+            flyctl secrets set "AUTHORIZED_KEYS=$ssh_key" -a "$app_name"
+            print_success "SSH key configured successfully"
+            return 0
+        fi
+    else
+        print_warning "No local SSH keys found in ~/.ssh/"
+        echo ""
+        read -p "Generate a new SSH key pair for Sindri? (Y/n) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            local key_path="$HOME/.ssh/sindri_ed25519"
+            print_status "Generating SSH key pair..."
+            ssh-keygen -t ed25519 -f "$key_path" -N "" -C "sindri-dev-$(date +%Y%m%d)"
+            ssh_key=$(cat "${key_path}.pub")
+            print_success "SSH key generated: $key_path"
+
+            print_status "Configuring SSH key on Fly.io..."
+            flyctl secrets set "AUTHORIZED_KEYS=$ssh_key" -a "$app_name"
+            print_success "SSH key configured successfully"
+
+            echo ""
+            print_status "To connect, use:"
+            echo "    ssh -i $key_path developer@${app_name}.fly.dev -p ${SSH_EXTERNAL_PORT}"
+            echo ""
+            return 0
+        fi
+    fi
+
+    # User declined to configure SSH keys
+    print_warning "Continuing without SSH key configuration"
+    print_status "SSH access will only be available via: flyctl ssh console -a $app_name"
+    return 0
+}
+
 echo "==> Deploying to Fly.io..."
 
 # Create app if not exists
@@ -363,6 +446,9 @@ fi
 if ! flyctl volumes list -a "$NAME" | grep -q "home_data"; then
     flyctl volumes create home_data -s "$VOLUME_SIZE" -r "$REGION" -a "$NAME" --yes
 fi
+
+# Ensure SSH keys are configured (interactive prompt if missing)
+ensure_ssh_keys "$NAME"
 
 # Resolve and inject secrets
 print_status "Resolving secrets..."

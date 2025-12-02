@@ -316,15 +316,24 @@ start_ssh_daemon() {
 # ------------------------------------------------------------------------------
 # wait_for_shutdown - Handle graceful shutdown and keep container alive
 # ------------------------------------------------------------------------------
-# Uses exec to replace shell with sleep, ensuring proper signal handling
-# This follows the Fly.io blueprint pattern for long-running containers
+# Uses a while loop with signal handling for robust container lifecycle
+# This avoids potential segfaults with 'exec sleep infinity' on some platforms
 wait_for_shutdown() {
     # Handle shutdown gracefully
-    trap 'echo "Shutting down Sindri..."; pkill sshd 2>/dev/null; exit 0' SIGTERM SIGINT
+    shutdown_handler() {
+        echo "Shutting down Sindri..."
+        pkill sshd 2>/dev/null || true
+        exit 0
+    }
+    trap shutdown_handler SIGTERM SIGINT SIGHUP
 
-    # Keep container alive using exec to replace shell process
-    # This ensures signals are properly handled by PID 1
-    exec sleep infinity
+    # Keep container alive with a simple loop
+    # This is more reliable than 'exec sleep infinity' which can segfault
+    # on some container runtimes (observed on Fly.io with Ubuntu 24.04)
+    while true; do
+        sleep 60 &
+        wait $! || true
+    done
 }
 
 # ------------------------------------------------------------------------------
