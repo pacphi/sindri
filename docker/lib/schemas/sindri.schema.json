@@ -423,6 +423,81 @@
               }
             }
           }
+        },
+        "k8s": {
+          "type": "object",
+          "description": "Local Kubernetes cluster configuration (kind, k3d)",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["kind", "k3d"],
+              "default": "kind",
+              "description": "Local K8s provider: kind (Kubernetes IN Docker) or k3d (K3s in Docker)"
+            },
+            "clusterName": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Cluster name (defaults to sindri.yaml name)"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^v?\\d+\\.\\d+\\.\\d+$",
+              "default": "v1.31.0",
+              "description": "Kubernetes version"
+            },
+            "nodes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 1,
+              "description": "Number of nodes (1 = single node, >1 = multi-node with workers)"
+            },
+            "kind": {
+              "type": "object",
+              "description": "kind-specific options",
+              "properties": {
+                "image": {
+                  "type": "string",
+                  "description": "Custom kind node image (e.g., kindest/node:v1.31.0)"
+                },
+                "configFile": {
+                  "type": "string",
+                  "description": "Path to kind cluster config YAML"
+                }
+              }
+            },
+            "k3d": {
+              "type": "object",
+              "description": "k3d-specific options",
+              "properties": {
+                "image": {
+                  "type": "string",
+                  "description": "Custom k3s image"
+                },
+                "registry": {
+                  "type": "object",
+                  "description": "Local registry configuration",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Create a local registry with the cluster"
+                    },
+                    "name": {
+                      "type": "string",
+                      "default": "k3d-registry",
+                      "description": "Registry name"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "default": 5000,
+                      "description": "Registry port"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

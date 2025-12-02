@@ -26,6 +26,14 @@ inputs:
     description: Also cleanup persistent volumes
     required: false
     default: "true"
+  kind-cluster-name:
+    description: Name of the kind cluster to delete (if created during setup)
+    required: false
+    default: ""
+  kind-cluster-created:
+    description: Whether a kind cluster was created during setup
+    required: false
+    default: "false"
 
 outputs:
   cleaned-workspaces:
@@ -174,6 +182,28 @@ runs:
 
         echo "::endgroup::"
 
+    - name: Cleanup kind cluster
+      if: inputs.kind-cluster-created == 'true' && inputs.kind-cluster-name != ''
+      shell: bash
+      run: |
+        echo "::group::Cleaning up kind cluster"
+
+        CLUSTER_NAME="${{ inputs.kind-cluster-name }}"
+
+        if command -v kind &> /dev/null; then
+          if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
+            echo "Deleting kind cluster: $CLUSTER_NAME"
+            kind delete cluster --name "$CLUSTER_NAME"
+            echo "Kind cluster '$CLUSTER_NAME' deleted"
+          else
+            echo "Kind cluster '$CLUSTER_NAME' not found (already deleted?)"
+          fi
+        else
+          echo "kind CLI not found, skipping cluster cleanup"
+        fi
+
+        echo "::endgroup::"
+
     - name: Final status
       shell: bash
       run: |
@@ -184,5 +214,11 @@ runs:
 
         echo "Configured providers:"
         devpod provider list || echo "No providers"
+
+        # Show kind clusters if kind is available
+        if command -v kind &> /dev/null; then
+          echo "Kind clusters:"
+          kind get clusters || echo "No kind clusters"
+        fi
 
         echo "::endgroup::"

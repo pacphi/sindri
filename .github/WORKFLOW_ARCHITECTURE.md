@@ -70,8 +70,9 @@ examples/                         # Test fixtures AND user examples
 │   │   └── regions/
 │   ├── azure/
 │   │   └── regions/
-│   └── digitalocean/
-│       └── regions/
+│   ├── digitalocean/
+│   │   └── regions/
+│   └── kubernetes/               # K8s examples (uses kind in CI if no KUBECONFIG)
 └── profiles/
 
 test/                             # Test suites
@@ -237,7 +238,7 @@ Two deployment workflows serve different use cases:
 - `devpod-gcp` - GCP Compute via DevPod
 - `devpod-azure` - Azure VMs via DevPod
 - `devpod-do` - DigitalOcean Droplets via DevPod
-- `devpod-k8s` - Kubernetes pods via DevPod
+- `devpod-k8s` - Kubernetes pods via DevPod (auto-provisions kind cluster if no KUBECONFIG)
 - `devpod-ssh` - SSH hosts via DevPod
 
 **CLI Test Action (`test-cli`):**
@@ -252,7 +253,7 @@ The refactored `test-cli` action supports all providers with provider-specific e
 | `devpod-gcp`   | `devpod exec`        | `GCP_SERVICE_ACCOUNT_KEY`                    |
 | `devpod-azure` | `devpod exec`        | `AZURE_CLIENT_ID/SECRET/TENANT_ID`           |
 | `devpod-do`    | `devpod exec`        | `DIGITALOCEAN_TOKEN`                         |
-| `devpod-k8s`   | `devpod exec`        | `KUBECONFIG`                                 |
+| `devpod-k8s`   | `devpod exec`        | `KUBECONFIG` (optional - uses kind if absent)|
 
 ## Test Suites
 
@@ -443,15 +444,33 @@ tests handle all cases.
 
 ## Required Secrets by Provider
 
-| Provider            | Required Secrets                                            |
-| ------------------- | ----------------------------------------------------------- |
-| Docker              | None (local)                                                |
-| Fly.io              | `FLY_API_TOKEN`                                             |
-| DevPod AWS          | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                |
-| DevPod GCP          | `GCP_SERVICE_ACCOUNT_KEY`                                   |
-| DevPod Azure        | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID` |
-| DevPod DigitalOcean | `DIGITALOCEAN_TOKEN`                                        |
-| Kubernetes          | `KUBECONFIG`                                                |
+| Provider            | Required Secrets                                                      |
+| ------------------- | --------------------------------------------------------------------- |
+| Docker              | None (local)                                                          |
+| Fly.io              | `FLY_API_TOKEN`                                                       |
+| DevPod AWS          | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                          |
+| DevPod GCP          | `GCP_SERVICE_ACCOUNT_KEY`                                             |
+| DevPod Azure        | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`           |
+| DevPod DigitalOcean | `DIGITALOCEAN_TOKEN`                                                  |
+| Kubernetes          | `KUBECONFIG` (optional - auto-creates kind cluster if not provided)   |
+
+### Kubernetes Testing with Kind
+
+The `devpod-k8s` provider supports automatic kind cluster bootstrapping for CI environments:
+
+**Auto-detection behavior:**
+
+- If `KUBECONFIG` secret is provided → uses your external Kubernetes cluster
+- If `KUBECONFIG` is not set → automatically creates a local kind cluster
+
+**Kind cluster details:**
+
+- Cluster name: `sindri-ci-<run-id>` (unique per workflow run)
+- Kubernetes version: v1.32.0 (configurable)
+- Namespace: `sindri-test`
+- Automatically cleaned up after tests
+
+This enables fast CI feedback without requiring users to maintain external Kubernetes clusters.
 
 ## Usage Examples
 

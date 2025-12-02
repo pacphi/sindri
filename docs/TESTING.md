@@ -199,6 +199,47 @@ The CI system uses these workflows:
 **Key Change**: CLI and extension tests now run on EACH selected provider, not just Docker.
 This ensures consistent test coverage and catches provider-specific issues.
 
+### Kubernetes Testing with Kind
+
+The CI workflow supports testing against Kubernetes using DevPod with automatic cluster
+bootstrapping. This provides fast feedback without requiring users to maintain external clusters.
+
+**Behavior:**
+
+| KUBECONFIG Secret | Result                                           |
+| ----------------- | ------------------------------------------------ |
+| Not provided      | Automatically creates a local kind cluster       |
+| Provided          | Uses the external Kubernetes cluster             |
+
+**To test with kind (default for CI):**
+
+```yaml
+# No KUBECONFIG secret needed - kind cluster is auto-created
+providers: devpod-k8s
+```
+
+**To test with an external cluster:**
+
+1. Add a `KUBECONFIG` secret to your repository containing the kubeconfig content
+2. The workflow will detect it and use your external cluster instead of creating kind
+
+**Kind cluster configuration:**
+
+- Cluster name: `sindri-ci-<run-id>` (unique per workflow run)
+- Kubernetes version: v1.32.0 (configurable via `k8s-kind-node-image`)
+- Namespace: `sindri-test`
+- Automatically cleaned up after tests complete
+
+**Manual override:**
+
+```yaml
+# Force kind cluster creation even with KUBECONFIG present
+k8s-use-kind: "true"
+
+# Force external cluster (fails if no KUBECONFIG)
+k8s-use-kind: "false"
+```
+
 ### Testing with Examples
 
 The `test-sindri-config.yml` workflow discovers and tests all examples:

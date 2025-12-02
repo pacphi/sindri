@@ -1,0 +1,36 @@
+---
+# Sindri with local kind cluster
+# Usage:
+#   1. Create cluster: sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
+#   2. Deploy Sindri:  sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+#   3. Destroy:        sindri k8s destroy --config examples/k8s/kind-minimal.sindri.yaml
+
+version: "1.0"
+name: sindri-kind-local
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: fullstack
+
+# Local k8s cluster configuration
+providers:
+  k8s:
+    provider: kind
+    clusterName: sindri-kind-local
+    nodes: 1
+
+  # DevPod targets the local kind cluster
+  devpod:
+    type: kubernetes
+    kubernetes:
+      context: kind-sindri-kind-local
+      namespace: sindri
+      storageClass: standard
