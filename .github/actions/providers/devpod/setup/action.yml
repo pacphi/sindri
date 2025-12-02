@@ -408,8 +408,11 @@ runs:
             ;;
 
           kubernetes)
+            # Expand ~ to $HOME for kubeconfig path (DevPod doesn't expand tilde)
+            K8S_CONFIG="${{ inputs.k8s-config-path }}"
+            K8S_CONFIG="${K8S_CONFIG/#\~/$HOME}"
             devpod provider set-options "$PROVIDER_ID" \
-              --option KUBERNETES_CONFIG="${{ inputs.k8s-config-path }}" \
+              --option KUBERNETES_CONFIG="$K8S_CONFIG" \
               --option KUBERNETES_NAMESPACE="${{ inputs.k8s-namespace }}"
 
             if [[ -n "${{ inputs.k8s-context }}" ]]; then
