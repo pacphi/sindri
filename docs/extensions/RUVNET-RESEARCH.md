@@ -18,16 +18,16 @@ AI research tools including Goalie goal management and Research-Swarm multi-agen
 
 ## Installed Tools
 
-| Tool             | Type     | Description                           |
-| ---------------- | -------- | ------------------------------------- |
-| `goalie`         | cli-tool | Goal management and tracking          |
-| `research-swarm` | cli-tool | Multi-agent AI research framework     |
+| Tool             | Type     | Description                       |
+| ---------------- | -------- | --------------------------------- |
+| `goalie`         | cli-tool | Goal management and tracking      |
+| `research-swarm` | cli-tool | Multi-agent AI research framework |
 
 ## Secrets (Optional)
 
-| Secret               | Description                  |
-| -------------------- | ---------------------------- |
-| `perplexity_api_key` | Perplexity API for research  |
+| Secret               | Description                 |
+| -------------------- | --------------------------- |
+| `perplexity_api_key` | Perplexity API for research |
 
 ## Network Requirements
 

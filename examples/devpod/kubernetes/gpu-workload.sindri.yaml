@@ -13,7 +13,7 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-medium  # Selects nodes with A10G GPUs
+      tier: gpu-medium # Selects nodes with A10G GPUs
       count: 1
   volumes:
     workspace:

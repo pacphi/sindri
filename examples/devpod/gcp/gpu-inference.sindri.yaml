@@ -12,7 +12,7 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-small  # Maps to T4 GPU
+      tier: gpu-small # Maps to T4 GPU
       count: 1
   volumes:
     workspace:
@@ -25,7 +25,7 @@ providers:
   devpod:
     type: gcp
     gcp:
-      zone: us-central1-a  # T4 GPUs available
+      zone: us-central1-a # T4 GPUs available
       diskSize: 150
       diskType: pd-ssd
 

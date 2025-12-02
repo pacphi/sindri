@@ -12,7 +12,7 @@ deployment:
     cpus: 16
     gpu:
       enabled: true
-      tier: gpu-large  # Maps to L40S with 48GB VRAM
+      tier: gpu-large # Maps to L40S with 48GB VRAM
   volumes:
     workspace:
       size: 200GB
@@ -22,7 +22,7 @@ extensions:
 
 providers:
   fly:
-    region: ord  # Chicago - GPU-enabled region
+    region: ord # Chicago - GPU-enabled region
     autoStopMachines: true
     autoStartMachines: true
 

@@ -32,9 +32,9 @@ Perfect for:
 
 ## Secrets (Required)
 
-| Secret               | Description           |
-| -------------------- | --------------------- |
-| `openrouter_api_key` | OpenRouter API key    |
+| Secret               | Description        |
+| -------------------- | ------------------ |
+| `openrouter_api_key` | OpenRouter API key |
 
 ## Network Requirements
 
@@ -77,27 +77,27 @@ claudish --list-models
 
 Prioritized OpenRouter models:
 
-| Model                               | Best For                |
-| ----------------------------------- | ----------------------- |
-| `x-ai/grok-code-fast-1` (default)   | Fast coding iterations  |
-| `openai/gpt-5-codex`                | Complex implementations |
-| `minimax/minimax-m2`                | General coding tasks    |
-| `zhipu-ai/glm-4.6`                  | Multilingual code       |
-| `qwen/qwen3-vl-235b-a22b-instruct`  | UI/visual tasks         |
+| Model                              | Best For                |
+| ---------------------------------- | ----------------------- |
+| `x-ai/grok-code-fast-1` (default)  | Fast coding iterations  |
+| `openai/gpt-5-codex`               | Complex implementations |
+| `minimax/minimax-m2`               | General coding tasks    |
+| `zhipu-ai/glm-4.6`                 | Multilingual code       |
+| `qwen/qwen3-vl-235b-a22b-instruct` | UI/visual tasks         |
 
 ### Command-Line Options
 
-| Flag                   | Description                              |
-| ---------------------- | ---------------------------------------- |
-| `-m, --model <model>`  | Specify OpenRouter model                 |
-| `-p, --port <port>`    | Proxy server port                        |
-| `-i, --interactive`    | Persistent session mode                  |
-| `-q, --quiet`          | Suppress logs                            |
-| `-v, --verbose`        | Show logs                                |
-| `--json`               | Structured output format                 |
-| `--dangerous`          | Disable sandbox restrictions             |
-| `--agent <name>`       | Use specific agent                       |
-| `--init`               | Install Claudish skill in project        |
+| Flag                  | Description                       |
+| --------------------- | --------------------------------- |
+| `-m, --model <model>` | Specify OpenRouter model          |
+| `-p, --port <port>`   | Proxy server port                 |
+| `-i, --interactive`   | Persistent session mode           |
+| `-q, --quiet`         | Suppress logs                     |
+| `-v, --verbose`       | Show logs                         |
+| `--json`              | Structured output format          |
+| `--dangerous`         | Disable sandbox restrictions      |
+| `--agent <name>`      | Use specific agent                |
+| `--init`              | Install Claudish skill in project |
 
 ### Initialize Skill
 

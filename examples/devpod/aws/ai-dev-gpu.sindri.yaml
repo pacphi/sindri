@@ -12,7 +12,7 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-medium  # Maps to g5.2xlarge (A10G, 24GB VRAM)
+      tier: gpu-medium # Maps to g5.2xlarge (A10G, 24GB VRAM)
       count: 1
   volumes:
     workspace:
@@ -27,4 +27,4 @@ providers:
     aws:
       region: us-east-1
       diskSize: 200
-      useSpot: true  # Cost savings for GPU instances
+      useSpot: true # Cost savings for GPU instances
