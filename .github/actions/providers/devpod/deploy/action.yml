@@ -60,9 +60,9 @@ outputs:
   workspace-url:
     description: URL to access the workspace (if applicable)
     value: ${{ steps.deploy.outputs.url }}
-  machine-id:
-    description: Machine/container ID for the workspace
-    value: ${{ steps.deploy.outputs.machine-id }}
+  provider-name:
+    description: Provider name used for the workspace
+    value: ${{ steps.deploy.outputs.provider-name }}
   ssh-command:
     description: SSH command to connect to workspace
     value: ${{ steps.connect.outputs.ssh-command }}
@@ -177,14 +177,14 @@ runs:
         echo "Running: $CMD"
         eval "$CMD"
 
-        # Get workspace status
-        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.status' || echo "unknown")
+        # Get workspace status (DevPod uses 'State' field, not 'status')
+        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.State' || echo "unknown")
 
-        # Get machine ID if available
-        MACHINE_ID=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.provider.machineID' || echo "")
+        # Get provider name (DevPod returns provider as string, not object)
+        PROVIDER_NAME=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.Provider' || echo "")
 
         echo "status=$STATUS" >> $GITHUB_OUTPUT
-        echo "machine-id=$MACHINE_ID" >> $GITHUB_OUTPUT
+        echo "provider-name=$PROVIDER_NAME" >> $GITHUB_OUTPUT
 
         echo "::endgroup::"
 
@@ -207,9 +207,10 @@ runs:
             exit 1
           fi
 
-          STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.status' || echo "unknown")
+          STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.State' || echo "unknown")
           echo "Status: $STATUS (elapsed: ${ELAPSED}s)"
 
+          # DevPod returns lowercase state values: "running", "stopped", "busy", etc.
           if [[ "$STATUS" == "Running" ]] || [[ "$STATUS" == "running" ]]; then
             echo "✅ Workspace is ready"
             break
