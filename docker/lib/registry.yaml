@@ -134,6 +134,16 @@ extensions:
     description: Claude Flow and Agentic Flow aliases for enhanced AI workflows
     dependencies: []
 
+  ruvnet-research:
+    category: ai
+    description: AI research tools (Goalie, Research-Swarm)
+    dependencies: [nodejs]
+
+  claudish:
+    category: ai
+    description: OpenRouter model proxy for Claude Code
+    dependencies: [nodejs]
+
   # Monitoring
   monitoring:
     category: monitoring

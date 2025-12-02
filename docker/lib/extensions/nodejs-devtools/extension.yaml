@@ -1,7 +1,7 @@
 ---
 metadata:
   name: nodejs-devtools
-  version: 2.0.0
+  version: 2.1.0
   description: >-
     TypeScript, ESLint, Prettier, and Node.js development tools via mise
     npm backend
@@ -13,11 +13,9 @@ metadata:
 requirements:
   domains:
     - registry.npmjs.org
-  diskSpace: 200
+  diskSpace: 150
   memory: 256
   installTime: 60
-  secrets:
-    - perplexity_api_key
 
 install:
   method: mise
@@ -45,7 +43,6 @@ validate:
     - name: prettier
     - name: eslint
     - name: nodemon
-    - name: goalie
   mise:
     tools:
       - npm:typescript
@@ -64,8 +61,6 @@ remove:
       - npm:eslint
       - npm:@typescript-eslint/parser
       - npm:@typescript-eslint/eslint-plugin
-      - npm:goalie
-      - npm:research-swarm
   paths:
     - ~/templates/.prettierrc
     - ~/templates/.eslintrc.json
@@ -113,10 +108,3 @@ bom:
       license: MIT
       homepage: https://nodemon.io
       purl: pkg:npm/nodemon
-    - name: goalie
-      version: dynamic
-      source: npm
-      type: cli-tool
-      license: MIT
-      homepage: https://github.com/cmurczek/goalie
-      purl: pkg:npm/goalie

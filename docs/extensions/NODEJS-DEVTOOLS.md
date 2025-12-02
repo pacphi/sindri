@@ -7,9 +7,9 @@ TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend
 | Property         | Value               |
 | ---------------- | ------------------- |
 | **Category**     | dev-tools           |
-| **Version**      | 2.0.0               |
+| **Version**      | 2.1.0               |
 | **Installation** | mise                |
-| **Disk Space**   | 200 MB              |
+| **Disk Space**   | 150 MB              |
 | **Dependencies** | [nodejs](NODEJS.md) |
 
 ## Description
@@ -25,7 +25,6 @@ TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend
 | `prettier` | cli-tool | Code formatter               |
 | `eslint`   | cli-tool | JavaScript/TypeScript linter |
 | `nodemon`  | cli-tool | Auto-restart server          |
-| `goalie`   | cli-tool | Package update manager       |
 
 ## Configuration
 
@@ -46,12 +45,6 @@ TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend
 }
 ```
 
-## Secrets (Optional)
-
-| Secret               | Description                       |
-| -------------------- | --------------------------------- |
-| `perplexity_api_key` | Perplexity API for research-swarm |
-
 ## Network Requirements
 
 - `registry.npmjs.org` - NPM registry
@@ -70,7 +63,6 @@ ts-node --version
 prettier --version
 eslint --version
 nodemon --version
-goalie --version
 ```
 
 ## Upgrade
@@ -86,3 +78,7 @@ extension-manager remove nodejs-devtools
 ```
 
 Removes mise configuration and template files.
+
+## Related Extensions
+
+- [ruvnet-research](RUVNET-RESEARCH.md) - AI research tools (Goalie, Research-Swarm)

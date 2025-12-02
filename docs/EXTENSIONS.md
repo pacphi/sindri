@@ -102,8 +102,10 @@ Pre-installed foundational extensions:
 | openskills               | Claude Code skills manager                  | [OPENSKILLS.md](extensions/OPENSKILLS.md)                             |
 | claude-code-mux          | AI routing proxy (18+ providers)            | [CLAUDE-CODE-MUX.md](extensions/CLAUDE-CODE-MUX.md)                   |
 | claude-auth-with-api-key | Claude API key authentication               | [CLAUDE-AUTH-WITH-API-KEY.md](extensions/CLAUDE-AUTH-WITH-API-KEY.md) |
+| claudish                 | OpenRouter model proxy for Claude Code      | [CLAUDISH.md](extensions/CLAUDISH.md)                                 |
 | agent-manager            | AI agent orchestration                      | [AGENT-MANAGER.md](extensions/AGENT-MANAGER.md)                       |
 | ruvnet-aliases           | Claude Flow & Agentic Flow aliases          | [RUVNET-ALIASES.md](extensions/RUVNET-ALIASES.md)                     |
+| ruvnet-research          | AI research tools (Goalie, Research-Swarm)  | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md)                   |
 
 ### Infrastructure
 
@@ -142,8 +144,9 @@ Some extensions require API keys or credentials:
 | ai-toolkit               | `google_gemini_api_key`, `grok_api_key` |
 | cloud-tools              | AWS, Azure credentials                  |
 | claude-auth-with-api-key | `anthropic_api_key`                     |
+| claudish                 | `openrouter_api_key`                    |
 | github-cli               | `github_token`                          |
-| nodejs-devtools          | `perplexity_api_key` (optional)         |
+| ruvnet-research          | `perplexity_api_key` (optional)         |
 
 ### Removal Confirmation
 
@@ -213,6 +216,8 @@ playwright → nodejs
 openskills → nodejs
 ai-toolkit → nodejs, python, golang, github-cli
 monitoring → python
+ruvnet-research → nodejs
+claudish → nodejs
 ```
 
 ## Extension Storage

@@ -1,0 +1,19 @@
+# claudish.toml - OpenRouter model proxy for Claude Code
+# Requires nodejs extension to be installed first
+
+[tools]
+# Claudish CLI - run Claude Code with OpenRouter models
+"npm:claudish" = "latest"
+
+[settings]
+experimental = true
+jobs = 2
+
+[env]
+# npm timeout configuration (in milliseconds)
+npm_config_fetch_timeout = "300000"
+npm_config_fetch_retries = "2"
+npm_config_fetch_retry_mintimeout = "10000"
+npm_config_fetch_retry_maxtimeout = "60000"
+npm_config_maxsockets = "10"
+npm_config_prefer_offline = "true"
