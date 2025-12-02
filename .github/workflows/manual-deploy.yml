@@ -86,7 +86,7 @@ jobs:
       region: ${{ steps.validate.outputs.region }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Validate and process inputs
         id: validate
@@ -170,7 +170,7 @@ jobs:
       image-tag: ${{ steps.build.outputs.tag }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Build image
         id: build
@@ -188,7 +188,7 @@ jobs:
       deployment-status: ${{ steps.deploy.outputs.status }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Generate sindri.yaml
         run: |
@@ -326,7 +326,7 @@ jobs:
     needs: [validate-inputs, deploy]
     if: always() && github.event.inputs.notify-slack == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Prepare notification
         id: notification
