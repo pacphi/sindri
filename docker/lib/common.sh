@@ -217,6 +217,7 @@ retry_command() {
 # Check if GPU is available on host
 # Usage: check_gpu_available [gpu_type]
 # gpu_type: nvidia (default), amd
+# shellcheck disable=SC2120  # Function accepts optional argument with default
 check_gpu_available() {
     local gpu_type="${1:-nvidia}"
 
@@ -280,6 +281,7 @@ get_gpu_memory() {
 validate_gpu_config() {
     local provider="$1"
     local gpu_enabled="$2"
+    # shellcheck disable=SC2034  # gpu_tier reserved for future tier-specific validation
     local gpu_tier="${3:-gpu-small}"
     local region="${4:-}"
 
@@ -289,6 +291,7 @@ validate_gpu_config() {
 
     case "$provider" in
         docker|docker-compose)
+            # shellcheck disable=SC2119  # check_gpu_available uses default argument
             if ! check_gpu_available; then
                 print_error "GPU requested but no NVIDIA GPU detected on host"
                 print_status "Install nvidia-container-toolkit for GPU support"
