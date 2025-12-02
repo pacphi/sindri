@@ -20,7 +20,7 @@ on:
           Providers to test (comma-separated or 'all').
           Options: docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s
         required: false
-        default: "docker,fly"
+        default: "docker,fly,devpod-k8s"
         type: string
       test-suite:
         description: Test suite to run
