@@ -472,6 +472,53 @@ The `devpod-k8s` provider supports automatic kind cluster bootstrapping for CI e
 
 This enables fast CI feedback without requiring users to maintain external Kubernetes clusters.
 
+### Kubernetes Example Directory Structure
+
+Two directories serve different Kubernetes use cases:
+
+| Directory | Purpose | Used By CI |
+|-----------|---------|------------|
+| `examples/devpod/kubernetes/` | Deploy Sindri TO an existing K8s cluster via DevPod | Yes (`devpod-k8s`) |
+| `examples/k8s/` | Create AND deploy to local clusters (kind, k3d) | No (manual use) |
+
+**CI Config Path Selection:**
+
+- `devpod-k8s` provider → `examples/devpod/kubernetes/minimal.sindri.yaml`
+- The `examples/k8s/` configs are for users who want to create local clusters first
+
+**KUBECONFIG Decision Flow:**
+
+```text
+┌─────────────────────────────────────┐
+│  devpod-k8s provider selected       │
+└────────────────┬────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────┐
+│  KUBECONFIG secret provided?        │
+└────────────────┬────────────────────┘
+                 │
+         ┌───────┴───────┐
+         │               │
+         ▼               ▼
+┌─────────────┐   ┌─────────────────────┐
+│   Yes       │   │   No                │
+│             │   │                     │
+│ Use external│   │ Auto-create kind    │
+│ cluster     │   │ cluster for CI      │
+└─────────────┘   └─────────────────────┘
+```
+
+**Manual override options:**
+
+```yaml
+# Force kind cluster creation even with KUBECONFIG present
+k8s-use-kind: "true"
+
+# Force external cluster (fails if no KUBECONFIG)
+k8s-use-kind: "false"
+```
+
 ## Usage Examples
 
 ### Test All Examples

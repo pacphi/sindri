@@ -24,6 +24,37 @@ Sindri uses a **provider-agnostic architecture** where a single `sindri.yaml` co
 | **Scaling**            | Manual         | Auto/Manual           | Auto             | Manual       |
 | **Prerequisites**      | Docker         | flyctl                | kubectl, cluster | DevPod CLI   |
 
+## DevPod Multi-Backend Architecture
+
+DevPod is unique - it's a **meta-provider** that can deploy to multiple backends:
+
+| DevPod Backend | sindri.yaml Config | CI Provider Name | Use Case |
+|----------------|-------------------|------------------|----------|
+| Docker (local) | `type: docker` | N/A | Local development |
+| AWS EC2 | `type: aws` | `devpod-aws` | Cloud dev on AWS |
+| GCP Compute | `type: gcp` | `devpod-gcp` | Cloud dev on GCP |
+| Azure VMs | `type: azure` | `devpod-azure` | Cloud dev on Azure |
+| DigitalOcean | `type: digitalocean` | `devpod-do` | Budget cloud dev |
+| Kubernetes | `type: kubernetes` | `devpod-k8s` | K8s pod-based dev |
+| SSH Host | `type: ssh` | `devpod-ssh` | Any SSH server |
+
+**Example configuration:**
+
+```yaml
+deployment:
+  provider: devpod        # Use DevPod as the deployment method
+
+providers:
+  devpod:
+    type: kubernetes      # Target Kubernetes as the backend
+    kubernetes:
+      namespace: sindri-dev
+      storageClass: standard
+```
+
+**CI Testing Note:** When using `devpod-k8s` in CI without a `KUBECONFIG` secret,
+a local kind cluster is automatically created for testing.
+
 ## Quick Start
 
 ### 1. Initialize Configuration

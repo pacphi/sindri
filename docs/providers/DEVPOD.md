@@ -135,7 +135,17 @@ DevContainer features add capabilities:
 
 ## Multi-Provider Support
 
-DevPod supports multiple providers:
+DevPod is a **meta-provider** that can deploy to multiple backends:
+
+| Backend | CLI Provider | sindri.yaml `type` | Example Configs |
+|---------|--------------|-------------------|-----------------|
+| Docker (local) | `docker` | `docker` | `examples/devpod/` |
+| AWS EC2 | `aws` | `aws` | `examples/devpod/aws/` |
+| GCP Compute | `gcp` | `gcp` | `examples/devpod/gcp/` |
+| Azure VMs | `azure` | `azure` | `examples/devpod/azure/` |
+| DigitalOcean | `digitalocean` | `digitalocean` | `examples/devpod/digitalocean/` |
+| Kubernetes | `kubernetes` | `kubernetes` | `examples/devpod/kubernetes/` |
+| SSH Host | `ssh` | `ssh` | N/A |
 
 ### Docker (Local)
 
@@ -148,6 +158,45 @@ devpod up . --provider docker
 ```bash
 devpod up . --provider kubernetes --options "NAMESPACE=dev"
 ```
+
+**sindri.yaml configuration:**
+
+```yaml
+deployment:
+  provider: devpod
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: sindri-dev
+      storageClass: standard
+      context: my-cluster    # Optional: specific kubeconfig context
+```
+
+**CI Testing with Kind:**
+
+When testing in CI without an external cluster:
+
+| KUBECONFIG Secret | CI Behavior |
+|-------------------|-------------|
+| Not provided | Auto-creates kind cluster |
+| Provided (file path) | Uses that kubeconfig |
+| Provided (content) | Writes to ~/.kube/config |
+
+The CI workflow automatically handles cluster provisioning:
+
+```yaml
+# In GitHub Actions - no KUBECONFIG needed
+providers: devpod-k8s  # Kind cluster auto-created
+```
+
+**Example directories:**
+
+| Directory | Purpose | Used By |
+|-----------|---------|---------|
+| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster | CI (`devpod-k8s`) |
+| `examples/k8s/` | Create local cluster + deploy | Manual local testing |
 
 ### AWS
 

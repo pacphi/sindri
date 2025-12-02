@@ -487,6 +487,64 @@ devpod up . --provider ssh \
 </section>
 
 <section>
+    <h2>DevPod Backend Options</h2>
+    <p>DevPod is a <span class="highlight">meta-provider</span> - one tool, many backends:</p>
+    <table class="comparison-table">
+        <tr>
+            <th>Backend</th>
+            <th>CI Provider</th>
+            <th>Use Case</th>
+        </tr>
+        <tr>
+            <td>Docker</td>
+            <td>-</td>
+            <td>Local development</td>
+        </tr>
+        <tr>
+            <td>AWS EC2</td>
+            <td>devpod-aws</td>
+            <td>Cloud dev on AWS</td>
+        </tr>
+        <tr>
+            <td>GCP / Azure / DO</td>
+            <td>devpod-gcp/azure/do</td>
+            <td>Cloud dev</td>
+        </tr>
+        <tr>
+            <td>Kubernetes</td>
+            <td>devpod-k8s</td>
+            <td>K8s pod-based dev</td>
+        </tr>
+        <tr>
+            <td>SSH</td>
+            <td>devpod-ssh</td>
+            <td>Any SSH server</td>
+        </tr>
+    </table>
+</section>
+
+<section>
+    <h2>DevPod + Kubernetes</h2>
+    <pre><code class="language-yaml"># sindri.yaml
+deployment:
+  provider: devpod
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: sindri-dev
+      storageClass: standard</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">CI Tip:</span> No KUBECONFIG secret? CI auto-creates a kind cluster!
+    </p>
+    <p class="small">
+        Example configs: <code>examples/devpod/kubernetes/</code> (deploy to existing cluster)<br>
+        Local clusters: <code>examples/k8s/</code> (create cluster + deploy)
+    </p>
+</section>
+
+<section>
     <h2>DevPod Benefits</h2>
     <ul>
         <li><span class="highlight">IDE Integration</span> - Full VS Code features</li>

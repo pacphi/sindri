@@ -48,6 +48,7 @@ Ready-to-use configuration files for deploying Sindri to various providers. **47
 | `devpod/azure/`        | DevPod + Azure | 3        | Azure VM-based development environments |
 | `devpod/digitalocean/` | DevPod + DO    | 2        | DigitalOcean droplet environments       |
 | `devpod/kubernetes/`   | DevPod + K8s   | 3        | Kubernetes pod-based environments       |
+| `k8s/`                 | Kind/K3d       | 2        | Local cluster creation + deployment     |
 | `custom/`              | Mixed          | 7        | Custom extension combinations           |
 
 ### By Extension Profile
@@ -145,6 +146,37 @@ devpod/
     ├── devops.sindri.yaml          # DevOps in K8s (standard storage)
     └── systems.sindri.yaml         # Rust/Go in K8s (fast-ssd storage)
 ```
+
+### Local Kubernetes Examples (2 examples)
+
+These configs **create local Kubernetes clusters** AND deploy Sindri (all-in-one for local dev):
+
+```text
+k8s/
+├── kind-minimal.sindri.yaml       # Creates kind cluster + deploys via DevPod
+└── k3d-with-registry.sindri.yaml  # Creates k3d cluster with local registry
+```
+
+**Key difference from `devpod/kubernetes/`:**
+
+| Directory | Purpose | When to Use |
+|-----------|---------|-------------|
+| `devpod/kubernetes/` | Deploy to EXISTING cluster | CI, external clusters |
+| `k8s/` | CREATE cluster + deploy | Local development |
+
+**Usage:**
+
+```bash
+# Option 1: Use k8s/ configs (creates cluster + deploys)
+./cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+
+# Option 2: Create cluster separately, then use devpod/kubernetes
+kind create cluster --name my-cluster
+./cli/sindri deploy --config examples/devpod/kubernetes/minimal.sindri.yaml
+```
+
+**CI Testing Note:** The CI workflow uses `devpod/kubernetes/` configs because it handles
+cluster creation separately (auto-creates kind if no KUBECONFIG secret is provided).
 
 ### Custom Extension Examples (7 examples)
 

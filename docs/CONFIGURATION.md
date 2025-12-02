@@ -282,6 +282,80 @@ providers:
       - ghcr.io/devcontainers/features/docker-in-docker:2
 ```
 
+### DevPod Multi-Backend Support
+
+DevPod can deploy to multiple cloud backends. Use `providers.devpod.type` to select:
+
+```yaml
+providers:
+  devpod:
+    type: kubernetes # docker | aws | gcp | azure | digitalocean | kubernetes | ssh
+    kubernetes:
+      namespace: sindri-dev
+      storageClass: standard
+      context: my-cluster # Optional: specific kubeconfig context
+```
+
+**Available DevPod backends:**
+
+| Type | Backend | Example Config |
+|------|---------|----------------|
+| `docker` | Local Docker (default) | `examples/devpod/` |
+| `aws` | AWS EC2 | `examples/devpod/aws/` |
+| `gcp` | GCP Compute | `examples/devpod/gcp/` |
+| `azure` | Azure VMs | `examples/devpod/azure/` |
+| `digitalocean` | DigitalOcean Droplets | `examples/devpod/digitalocean/` |
+| `kubernetes` | Kubernetes pods | `examples/devpod/kubernetes/` |
+| `ssh` | Any SSH host | N/A |
+
+## Kubernetes Deployment Paths
+
+Sindri supports two distinct paths to Kubernetes:
+
+### Path 1: Direct Kubernetes (`provider: kubernetes`)
+
+Generates native Kubernetes manifests (StatefulSet, PVC, Service, Ingress).
+
+```yaml
+deployment:
+  provider: kubernetes
+
+providers:
+  kubernetes:
+    namespace: dev-environments
+    storageClass: fast-ssd
+```
+
+**Best for:** Enterprise teams with existing K8s tooling and RBAC requirements.
+
+### Path 2: DevPod + Kubernetes (`provider: devpod` with `type: kubernetes`)
+
+Uses DevPod to deploy a DevContainer to a Kubernetes cluster.
+
+```yaml
+deployment:
+  provider: devpod
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: sindri-test
+      storageClass: standard
+```
+
+**Best for:** IDE integration, CI testing, DevContainer compatibility.
+
+**Choosing between them:**
+
+| Use Case | Recommended Path |
+|----------|------------------|
+| Enterprise with existing K8s tooling | Direct Kubernetes |
+| VS Code Remote Container support | DevPod + K8s |
+| CI/CD testing (auto-creates kind cluster) | DevPod + K8s |
+| GitHub Codespaces compatibility | DevPod + K8s |
+| Need native K8s manifests for GitOps | Direct Kubernetes |
+
 ## Environment Variables
 
 Set environment variables for the container.

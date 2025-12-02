@@ -16,7 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       providers:
-        description: Providers to test (comma-separated or 'all')
+        description: |
+          Providers to test (comma-separated or 'all').
+          Options: docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s
         required: false
         default: "docker,fly"
         type: string

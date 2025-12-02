@@ -8,6 +8,35 @@ The Kubernetes provider generates manifests (StatefulSet, PVC, Service, Ingress)
 
 **Best for:** Enterprise teams, multi-tenant environments, compliance requirements
 
+## Kubernetes Deployment Paths
+
+Sindri supports two paths to Kubernetes deployment:
+
+### Path 1: Direct Kubernetes (This Guide)
+
+- Uses `deployment.provider: kubernetes`
+- Generates native K8s manifests (StatefulSet, PVC, Service, Ingress)
+- Full control over K8s resources
+- Best for: Enterprise teams with existing K8s tooling
+
+### Path 2: DevPod + Kubernetes
+
+- Uses `deployment.provider: devpod` with `type: kubernetes`
+- Deploys via DevPod's Kubernetes provider
+- DevContainer compatibility, IDE integration
+- Best for: VS Code Remote, CI testing, DevContainer workflows
+- See [DevPod Provider Guide](DEVPOD.md)
+
+**CI Testing Note:** The CI workflow uses DevPod+K8s (`devpod-k8s` provider) with
+auto-provisioned kind clusters for testing. See [Testing Guide](../TESTING.md).
+
+**Example directories:**
+
+| Directory | Purpose |
+|-----------|---------|
+| `examples/devpod/kubernetes/` | DevPod+K8s configs (CI uses these) |
+| `examples/k8s/` | Local cluster creation + deployment |
+
 ## Prerequisites
 
 - Kubernetes cluster (1.24+)

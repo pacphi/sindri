@@ -240,6 +240,32 @@ k8s-use-kind: "true"
 k8s-use-kind: "false"
 ```
 
+### Example Configuration Used
+
+CI uses `examples/devpod/kubernetes/minimal.sindri.yaml` for `devpod-k8s` tests.
+
+**Why not `examples/k8s/`?**
+
+The `examples/k8s/` folder contains configs that CREATE local clusters (kind/k3d)
+then deploy via DevPod. CI handles cluster creation separately via the setup action,
+so it uses the simpler `examples/devpod/kubernetes/` configs that assume an existing cluster.
+
+| Directory | Purpose | When to Use |
+|-----------|---------|-------------|
+| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster | CI, external clusters |
+| `examples/k8s/` | Create cluster + deploy (all-in-one) | Local development |
+
+**Manual local K8s testing:**
+
+```bash
+# Option 1: Use examples/k8s/ (creates cluster + deploys)
+./cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+
+# Option 2: Create cluster yourself, then use devpod/kubernetes
+kind create cluster --name my-cluster
+./cli/sindri deploy --config examples/devpod/kubernetes/minimal.sindri.yaml
+```
+
 ### Testing with Examples
 
 The `test-sindri-config.yml` workflow discovers and tests all examples:
