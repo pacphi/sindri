@@ -308,7 +308,7 @@ jobs:
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: aws
-          provider-name: aws-test
+          provider-name: devpod-aws-test
           aws-region: us-west-2
           aws-instance-type: t3.medium
         env:
@@ -321,7 +321,7 @@ jobs:
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: gcp
-          provider-name: gcp-test
+          provider-name: devpod-gcp-test
           gcp-zone: us-central1-a
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -332,7 +332,7 @@ jobs:
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: azure
-          provider-name: azure-test
+          provider-name: devpod-azure-test
           azure-location: eastus
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -345,7 +345,7 @@ jobs:
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: digitalocean
-          provider-name: do-test
+          provider-name: devpod-do-test
           do-region: nyc3
         env:
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
@@ -357,7 +357,7 @@ jobs:
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: kubernetes
-          provider-name: k8s-test
+          provider-name: devpod-k8s-test
           k8s-namespace: sindri-test
           # Auto-detect: uses kind if no KUBECONFIG secret provided
           k8s-use-kind: auto
@@ -371,7 +371,7 @@ jobs:
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: ssh
-          provider-name: ssh-test
+          provider-name: devpod-ssh-test
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
