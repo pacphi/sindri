@@ -79,11 +79,28 @@ validate:
 
 ### 2. Provider Adapters
 
-Adapters translate sindri.yaml to provider-specific configurations:
+Adapters provide full lifecycle management for each provider using a command-based interface:
 
-- **docker-adapter.sh** → docker-compose.yml
-- **fly-adapter.sh** → fly.toml
-- **devpod-adapter.sh** → devcontainer.json
+```bash
+<adapter>.sh <command> [options] [config]
+
+Commands:
+  deploy   - Create/update deployment
+  connect  - Connect to running environment
+  destroy  - Tear down deployment
+  plan     - Show deployment plan
+  status   - Show deployment status
+```
+
+**Adapter capabilities:**
+
+| Adapter             | Config Generated     | Deploy Command         |
+| ------------------- | -------------------- | ---------------------- |
+| `docker-adapter.sh` | `docker-compose.yml` | `docker compose up -d` |
+| `fly-adapter.sh`    | `fly.toml`           | `flyctl deploy`        |
+| `devpod-adapter.sh` | `devcontainer.json`  | `devpod up`            |
+
+The sindri CLI delegates all operations to adapters, keeping provider-specific logic encapsulated.
 
 ### 3. Declarative Configuration
 

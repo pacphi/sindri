@@ -97,13 +97,17 @@
     <section>
         <h2>Core Architecture</h2>
         <div class="architecture-diagram">
-sindri.yaml          (Your Configuration)
+sindri.yaml                    (Your Configuration)
     │
-    ├── Docker Adapter    → docker-compose.yml → Local Container
-    ├── Fly.io Adapter    → fly.toml          → Cloud VM
-    └── DevPod Adapter    → devcontainer.json → IDE Integration
+    └── sindri CLI             (Unified interface)
+        │
+        ├── docker-adapter.sh  → docker-compose.yml → Local Container
+        ├── fly-adapter.sh     → fly.toml          → Fly.io Cloud
+        └── devpod-adapter.sh  → devcontainer.json → DevPod/K8s
+
+Each adapter handles: deploy | connect | status | plan | destroy
         </div>
-        <p style="margin-top: 1em;">Single source of truth for all providers</p>
+        <p style="margin-top: 1em;">Single CLI delegates to provider-specific adapters for full lifecycle management</p>
     </section>
 
     <section>
@@ -426,19 +430,23 @@ flyctl apps destroy my-app</code></pre>
 
 <section>
     <h2>Deploy to DevPod</h2>
-    <pre><code class="language-bash"># Generate DevContainer configuration
+    <pre><code class="language-bash"># Deploy workspace (handles provider setup automatically)
 ./cli/sindri deploy --provider devpod
 
-# Option 1: Open in VS Code
-code .
-# Then: Ctrl+Shift+P → "Dev Containers: Open Folder in Container"
+# Check status
+./cli/sindri status
 
-# Option 2: Use DevPod CLI
-devpod up . --provider docker
-devpod ssh .
+# Connect via sindri (auto-detects)
+./cli/sindri connect
 
-# Option 3: Open directly in IDE
-devpod up . --ide vscode</code></pre>
+# Or connect via devpod directly
+devpod ssh my-sindri-dev
+
+# Open in VS Code
+devpod up my-sindri-dev --ide vscode
+
+# Destroy
+./cli/sindri destroy</code></pre>
 </section>
 
 <section>
@@ -608,14 +616,14 @@ providers:
 sindri config init          # Create sindri.yaml
 sindri config validate      # Validate config
 
-# Deployment
+# Deployment Lifecycle
 sindri deploy               # Deploy (uses provider in config)
 sindri deploy --provider X  # Deploy to specific provider
-sindri plan                 # Dry-run deployment
+sindri connect              # SSH to environment
+sindri status               # Check deployment status
+sindri plan                 # Show deployment plan (dry-run)
 sindri destroy              # Teardown
-
-# Connection
-sindri connect              # SSH to environment</code></pre>
+sindri destroy --force      # Teardown without confirmation</code></pre>
     </section>
 
     <section>
