@@ -1,0 +1,45 @@
+---
+# Sindri with local k3d cluster and registry
+# Usage:
+#   1. Create cluster: sindri k8s create --config examples/k8s/k3d-with-registry.sindri.yaml
+#   2. Deploy Sindri:  sindri deploy --config examples/k8s/k3d-with-registry.sindri.yaml
+#   3. Destroy:        sindri k8s destroy --config examples/k8s/k3d-with-registry.sindri.yaml
+#
+# The local registry allows pushing custom images:
+#   docker tag myimage localhost:5000/myimage
+#   docker push localhost:5000/myimage
+
+version: "1.0"
+name: sindri-k3d-dev
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 30GB
+
+extensions:
+  profile: devops
+
+# Local k8s cluster configuration
+providers:
+  k8s:
+    provider: k3d
+    clusterName: sindri-k3d-dev
+    nodes: 3  # 1 server + 2 agents
+    k3d:
+      registry:
+        enabled: true
+        name: sindri-registry
+        port: 5000
+
+  # DevPod targets the local k3d cluster
+  devpod:
+    type: kubernetes
+    kubernetes:
+      context: k3d-sindri-k3d-dev
+      namespace: sindri
+      storageClass: local-path

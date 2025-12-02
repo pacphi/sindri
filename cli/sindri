@@ -98,6 +98,20 @@ EXAMPLES:
     sindri destroy --provider docker
     sindri destroy --force
     sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+
+    # Local Kubernetes cluster management
+    sindri k8s create --provider kind
+    sindri k8s config
+    sindri k8s destroy --force
+
+LOCAL KUBERNETES:
+    k8s create [--provider <kind|k3d>] [--name <name>] [--config <file>]
+                                 Create local Kubernetes cluster
+    k8s config [--name <name>]   Show kubeconfig context for DevPod integration
+    k8s destroy [--name <name>] [--force]
+                                 Destroy local Kubernetes cluster
+    k8s list                     List all local Kubernetes clusters
+    k8s status [--name <name>]   Show cluster status
 EOH
 }
 
@@ -755,6 +769,50 @@ main() {
                     echo "Usage: sindri secrets <validate|list|test-vault|encode-file>"
                     ;;
             esac
+            ;;
+        k8s)
+            # Local Kubernetes cluster management
+            local k8s_cmd="${1:-help}"
+            shift || true
+
+            local provider="" name="" force="" config=""
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -p|--provider)
+                        provider="$2"
+                        shift 2
+                        ;;
+                    -n|--name)
+                        name="$2"
+                        shift 2
+                        ;;
+                    -f|--force)
+                        force="--force"
+                        shift
+                        ;;
+                    -c|--config)
+                        config="$2"
+                        shift 2
+                        ;;
+                    *)
+                        # Check if it's a config file
+                        if [[ -f "$1" ]]; then
+                            config="$1"
+                        fi
+                        shift
+                        ;;
+                esac
+            done
+
+            # Build adapter args
+            local adapter_args=("$k8s_cmd")
+            [[ -n "$provider" ]] && adapter_args+=("--provider" "$provider")
+            [[ -n "$name" ]] && adapter_args+=("--name" "$name")
+            [[ -n "$force" ]] && adapter_args+=("$force")
+            [[ -n "$config" ]] && adapter_args+=("$config")
+
+            # Execute k8s adapter
+            "$BASE_DIR/deploy/adapters/k8s/k8s-adapter.sh" "${adapter_args[@]}"
             ;;
         help|-h|--help)
             show_help

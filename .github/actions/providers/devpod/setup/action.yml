@@ -95,6 +95,22 @@ inputs:
     description: Kubernetes namespace for DevPod workspaces
     required: false
     default: "devpod"
+  k8s-use-kind:
+    description: Create a local kind cluster for testing (auto-detected if KUBECONFIG not provided)
+    required: false
+    default: "auto"
+  k8s-kind-cluster-name:
+    description: Name for the kind cluster
+    required: false
+    default: "sindri-test"
+  k8s-kind-version:
+    description: Kind version to install
+    required: false
+    default: "v0.27.0"
+  k8s-kind-node-image:
+    description: Kind node image (Kubernetes version)
+    required: false
+    default: "kindest/node:v1.32.0"
 
   # SSH-specific inputs
   ssh-host:
@@ -120,6 +136,12 @@ outputs:
   provider-config:
     description: JSON object with provider configuration
     value: ${{ steps.configure.outputs.config }}
+  kind-cluster-created:
+    description: Whether a kind cluster was created
+    value: ${{ steps.kind-cluster.outputs.created }}
+  kind-cluster-name:
+    description: Name of the kind cluster (if created)
+    value: ${{ steps.kind-cluster.outputs.cluster-name }}
 
 runs:
   using: composite
@@ -213,6 +235,111 @@ runs:
             fi
             ;;
         esac
+
+        echo "::endgroup::"
+
+    # Create kind cluster for Kubernetes provider if needed
+    - name: Setup kind cluster (if needed)
+      id: kind-cluster
+      if: inputs.provider-type == 'kubernetes'
+      shell: bash
+      env:
+        KUBECONFIG_SECRET: ${{ env.KUBECONFIG }}
+      run: |
+        echo "::group::Checking Kubernetes cluster availability"
+
+        USE_KIND="${{ inputs.k8s-use-kind }}"
+        CLUSTER_NAME="${{ inputs.k8s-kind-cluster-name }}"
+        KIND_VERSION="${{ inputs.k8s-kind-version }}"
+        NODE_IMAGE="${{ inputs.k8s-kind-node-image }}"
+
+        # Auto-detect: use kind if no KUBECONFIG provided
+        if [[ "$USE_KIND" == "auto" ]]; then
+          if [[ -n "$KUBECONFIG_SECRET" ]] || [[ -f "$HOME/.kube/config" ]]; then
+            echo "KUBECONFIG detected, using external cluster"
+            USE_KIND="false"
+          else
+            echo "No KUBECONFIG detected, will create kind cluster"
+            USE_KIND="true"
+          fi
+        fi
+
+        if [[ "$USE_KIND" == "true" ]]; then
+          echo "Creating kind cluster for CI testing..."
+
+          # Install kind if not present
+          if ! command -v kind &> /dev/null; then
+            echo "Installing kind ${KIND_VERSION}..."
+            curl -Lo /tmp/kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+            chmod +x /tmp/kind
+            sudo mv /tmp/kind /usr/local/bin/kind
+          fi
+
+          kind version
+
+          # Create cluster with optimized config for CI
+          cat > /tmp/kind-config.yaml << 'KINDEOF'
+        kind: Cluster
+        apiVersion: kind.x-k8s.io/v1alpha4
+        nodes:
+          - role: control-plane
+            extraPortMappings:
+              - containerPort: 30000
+                hostPort: 30000
+                protocol: TCP
+        KINDEOF
+
+          # Delete existing cluster if present (idempotent)
+          kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
+
+          # Create the cluster
+          echo "Creating kind cluster: $CLUSTER_NAME"
+          kind create cluster \
+            --name "$CLUSTER_NAME" \
+            --image "$NODE_IMAGE" \
+            --config /tmp/kind-config.yaml \
+            --wait 120s
+
+          # Set kubeconfig for subsequent steps
+          mkdir -p "$HOME/.kube"
+          kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+          # Verify cluster is ready
+          echo "Waiting for cluster to be ready..."
+          kubectl wait --for=condition=Ready nodes --all --timeout=120s
+
+          # Create namespace for DevPod
+          kubectl create namespace "${{ inputs.k8s-namespace }}" --dry-run=client -o yaml | kubectl apply -f -
+
+          echo "created=true" >> $GITHUB_OUTPUT
+          echo "cluster-name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
+          echo "kubeconfig=$HOME/.kube/config" >> $GITHUB_OUTPUT
+
+          echo "Kind cluster '$CLUSTER_NAME' is ready"
+          kubectl cluster-info
+          kubectl get nodes
+        else
+          echo "Using external Kubernetes cluster"
+
+          # Write KUBECONFIG secret to file if provided as content
+          if [[ -n "$KUBECONFIG_SECRET" ]] && [[ ! -f "$KUBECONFIG_SECRET" ]]; then
+            mkdir -p "$HOME/.kube"
+            echo "$KUBECONFIG_SECRET" > "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
+          fi
+
+          echo "created=false" >> $GITHUB_OUTPUT
+          echo "cluster-name=" >> $GITHUB_OUTPUT
+
+          # Verify external cluster connectivity
+          if kubectl cluster-info &>/dev/null; then
+            echo "External cluster is accessible"
+            kubectl cluster-info
+          else
+            echo "::warning::External cluster not accessible, tests may fail"
+          fi
+        fi
 
         echo "::endgroup::"
 

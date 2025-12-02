@@ -48,6 +48,7 @@
             font-family: monospace;
             font-size: 0.5em;
             text-align: left;
+            white-space: pre;
         }
         .cost-badge {
             display: inline-block;
@@ -187,6 +188,25 @@ extensions:
     - docker
     - rust</code></pre>
     </section>
+</section>
+
+<!-- Examples Directory -->
+<section>
+    <h2>47 Ready-to-Use Examples</h2>
+    <p>Skip the boilerplate - start with a tested configuration:</p>
+    <pre><code class="language-bash">examples/
+├── fly/          # 17 Fly.io examples
+├── docker/       # 11 Docker examples
+├── devpod/       # 19 DevPod examples (AWS, GCP, Azure, K8s)
+├── profiles/     # Profile-based configurations
+└── custom/       # 7 custom extension combinations
+
+# Copy, customize, and deploy
+cp examples/fly/minimal.sindri.yaml sindri.yaml
+./cli/sindri deploy</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Every example is tested in CI - if it's in <code>examples/</code>, it works!
+    </p>
 </section>
 
 <!-- DOCKER SECTION -->

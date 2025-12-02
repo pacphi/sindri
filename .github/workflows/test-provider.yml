@@ -352,12 +352,16 @@ jobs:
 
       # --- DevPod Kubernetes Provider ---
       - name: Setup DevPod Kubernetes provider
+        id: k8s-setup
         if: inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes'
         uses: ./.github/actions/providers/devpod/setup
         with:
           provider-type: kubernetes
           provider-name: k8s-test
           k8s-namespace: sindri-test
+          # Auto-detect: uses kind if no KUBECONFIG secret provided
+          k8s-use-kind: auto
+          k8s-kind-cluster-name: sindri-ci-${{ github.run_id }}
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
@@ -577,6 +581,9 @@ jobs:
         with:
           workspace-id: ${{ steps.setup.outputs.workspace-id }}
           force: true
+          # Pass kind cluster info for cleanup (only populated if kind was used)
+          kind-cluster-created: ${{ steps.k8s-setup.outputs.kind-cluster-created || 'false' }}
+          kind-cluster-name: ${{ steps.k8s-setup.outputs.kind-cluster-name || '' }}
 
       # ============================================
       # PHASE 6: Summary

@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sindri: Workspace Structure & Developer Experience</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+    <style>
+        :root {
+            --r-heading-color: #58a6ff;
+            --r-link-color: #79c0ff;
+            --r-selection-background-color: #388bfd;
+        }
+        .reveal h1 { font-size: 2.2em; }
+        .reveal h2 { font-size: 1.6em; color: #58a6ff; }
+        .reveal h3 { font-size: 1.3em; color: #8b949e; }
+        .reveal pre { font-size: 0.55em; }
+        .reveal code { background: #161b22; padding: 0.2em 0.4em; border-radius: 4px; }
+        .reveal pre code { padding: 1em; }
+        .reveal ul { font-size: 0.9em; }
+        .reveal li { margin: 0.5em 0; }
+        .highlight { color: #58a6ff; font-weight: bold; }
+        .success { color: #3fb950; }
+        .warning { color: #d29922; }
+        .template-box {
+            display: inline-block;
+            padding: 0.5em 1em;
+            margin: 0.3em;
+            background: #21262d;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+        .comparison-table { font-size: 0.65em; }
+        .comparison-table td, .comparison-table th {
+            padding: 0.4em 0.8em;
+            border: 1px solid #30363d;
+        }
+        .comparison-table th { background: #21262d; }
+        .small { font-size: 0.7em; color: #8b949e; }
+        .architecture-diagram {
+            background: #161b22;
+            padding: 1em;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.5em;
+            text-align: left;
+            white-space: pre;
+        }
+        .feature-badge {
+            display: inline-block;
+            padding: 0.2em 0.6em;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 0.5em;
+        }
+        .badge-auto { background: #238636; }
+        .badge-template { background: #1f6feb; }
+        .badge-enhance { background: #9e6a03; }
+        .two-column {
+            display: flex;
+            gap: 2em;
+        }
+        .two-column > div {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- Title Slide -->
+<section data-background-gradient="linear-gradient(135deg, #0d1117 0%, #161b22 100%)">
+    <h1>Workspace & Projects</h1>
+    <h3>Developer Experience in Sindri</h3>
+    <p class="small">Streamlined project creation with intelligent templates and Claude enhancements</p>
+    <p style="margin-top: 2em;">
+        <span class="template-box">new-project</span>
+        <span class="template-box">clone-project</span>
+        <span class="template-box">Templates</span>
+    </p>
+</section>
+
+<!-- What This Deck Covers -->
+<section>
+    <h2>What You'll Learn</h2>
+    <ul>
+        <li><span class="highlight">Workspace Structure</span> - How projects are organized</li>
+        <li><span class="highlight">new-project</span> - Create projects from templates</li>
+        <li><span class="highlight">clone-project</span> - Clone repos with enhancements</li>
+        <li><span class="highlight">Project Templates</span> - 12 built-in templates</li>
+        <li><span class="highlight">Custom Templates</span> - Add your own templates</li>
+    </ul>
+</section>
+
+<!-- WORKSPACE STRUCTURE SECTION -->
+<section data-background="#238636">
+    <h1>Workspace Structure</h1>
+    <h3>Where Everything Lives</h3>
+</section>
+
+<section>
+    <h2>The Sindri Workspace</h2>
+    <div class="architecture-diagram">
+$HOME/                              # /alt/home/developer
+├── workspace/                      # $WORKSPACE - main working directory
+│   ├── projects/                   # Your code projects ($WORKSPACE_PROJECTS)
+│   │   ├── my-api/                 # Individual project
+│   │   ├── web-frontend/           # Another project
+│   │   └── ...
+│   ├── config/                     # User configurations
+│   ├── scripts/                    # Custom scripts
+│   ├── bin/                        # Local binaries (in PATH)
+│   └── .system/                    # Extension state (manifest, logs)
+├── .local/share/mise/              # Tool installations (Node, Python, etc.)
+├── .config/                        # XDG configuration
+└── .cache/                         # Cached data
+    </div>
+</section>
+
+<section>
+    <h2>Key Environment Variables</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Variable</th>
+            <th>Path</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td><code>$HOME</code></td>
+            <td>/alt/home/developer</td>
+            <td>User home directory</td>
+        </tr>
+        <tr>
+            <td><code>$WORKSPACE</code></td>
+            <td>$HOME/workspace</td>
+            <td>Main working directory</td>
+        </tr>
+        <tr>
+            <td><code>$WORKSPACE_PROJECTS</code></td>
+            <td>$WORKSPACE/projects</td>
+            <td>Where projects live</td>
+        </tr>
+        <tr>
+            <td><code>$DOCKER_LIB</code></td>
+            <td>/docker/lib</td>
+            <td>Immutable system files</td>
+        </tr>
+    </table>
+    <p class="small" style="margin-top: 1em;">
+        Projects are created in <code>$WORKSPACE_PROJECTS</code> by default
+    </p>
+</section>
+
+<section>
+    <h2>Persistent Storage</h2>
+    <ul>
+        <li><span class="highlight">Volume-based</span> - All of <code>$HOME</code> survives restarts</li>
+        <li><span class="highlight">Tool installations</span> - mise-managed tools persist</li>
+        <li><span class="highlight">Project data</span> - Your code is always there</li>
+        <li><span class="highlight">Git config</span> - User settings remembered</li>
+        <li><span class="highlight">Extension state</span> - Manifests and logs retained</li>
+    </ul>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">Stop and restart your container - your work is safe!</span>
+    </p>
+</section>
+
+<!-- NEW-PROJECT SECTION -->
+<section data-background="#1f6feb">
+    <h1>new-project</h1>
+    <h3>Create Projects from Templates</h3>
+    <p class="feature-badge badge-auto">Auto-detect</p>
+    <p class="feature-badge badge-template">12 Templates</p>
+    <p class="feature-badge badge-enhance">Claude Enhanced</p>
+</section>
+
+<section>
+    <h2>The Value Proposition</h2>
+    <ul>
+        <li><span class="highlight">Intelligent Detection</span> - Guesses project type from name</li>
+        <li><span class="highlight">Template-based Setup</span> - Proper structure from the start</li>
+        <li><span class="highlight">Extension Activation</span> - Installs required tools automatically</li>
+        <li><span class="highlight">Claude Integration</span> - Creates CLAUDE.md for AI context</li>
+        <li><span class="highlight">Git Initialization</span> - Ready for version control immediately</li>
+    </ul>
+    <p class="small" style="margin-top: 1em;">
+        Go from idea to coding in seconds, not minutes
+    </p>
+</section>
+
+<section>
+    <h2>Basic Usage</h2>
+    <pre><code class="language-bash"># Auto-detect project type from name
+new-project my-rails-app        # Detects "rails" from name
+new-project api-service         # Prompts - multiple types match "api"
+new-project python-analyzer     # Detects "python" from name
+
+# Specify type explicitly
+new-project my-app --type node
+new-project backend --type go
+new-project cloud-infra --type terraform
+
+# List available templates
+new-project --list-types</code></pre>
+</section>
+
+<section>
+    <h2>What Gets Created</h2>
+    <pre><code class="language-bash">$ new-project my-node-api --type node
+
+# Creates:
+my-node-api/
+├── .git/                   # Git repository initialized
+├── .gitignore              # Language-appropriate ignores
+├── package.json            # With npm scripts configured
+├── CLAUDE.md               # AI context for Claude
+└── (initial commit made)
+
+# Also:
+# - nodejs extension activated
+# - Git user configured
+# - Ready for immediate development</code></pre>
+</section>
+
+<section>
+    <h2>Command Options</h2>
+    <pre><code class="language-bash">new-project &lt;name&gt; [options]
+
+Options:
+  --type &lt;type&gt;       Specify project type explicitly
+  --list-types        Show all available project types
+  --interactive       Force interactive type selection
+  --git-name &lt;name&gt;   Set Git user name for this project
+  --git-email &lt;email&gt; Set Git user email for this project
+  -h, --help          Show help message</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Per-project Git config is useful for work vs personal projects
+    </p>
+</section>
+
+<section>
+    <h2>Auto-Detection Examples</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Project Name</th>
+            <th>Detected Type</th>
+            <th>Why?</th>
+        </tr>
+        <tr>
+            <td>my-rails-app</td>
+            <td>rails</td>
+            <td>Contains "rails"</td>
+        </tr>
+        <tr>
+            <td>django-blog</td>
+            <td>django</td>
+            <td>Contains "django"</td>
+        </tr>
+        <tr>
+            <td>user-service</td>
+            <td><em>prompts</em></td>
+            <td>Matches go, node, spring...</td>
+        </tr>
+        <tr>
+            <td>infra-aws</td>
+            <td>terraform</td>
+            <td>Contains "infra"</td>
+        </tr>
+        <tr>
+            <td>py-ml-model</td>
+            <td>python</td>
+            <td>Contains "py"</td>
+        </tr>
+    </table>
+</section>
+
+<!-- CLONE-PROJECT SECTION -->
+<section data-background="#9e6a03">
+    <h1>clone-project</h1>
+    <h3>Clone & Enhance Existing Repos</h3>
+</section>
+
+<section>
+    <h2>The Value Proposition</h2>
+    <ul>
+        <li><span class="highlight">Fork Support</span> - Fork and clone in one command</li>
+        <li><span class="highlight">Claude Enhancements</span> - CLAUDE.md and Git hooks</li>
+        <li><span class="highlight">Dependency Detection</span> - Auto-install project deps</li>
+        <li><span class="highlight">Feature Branches</span> - Create branch immediately</li>
+        <li><span class="highlight">Per-Project Git Config</span> - Different identity per repo</li>
+    </ul>
+    <p class="small" style="margin-top: 1em;">
+        Clone any repo and it's ready for AI-assisted development
+    </p>
+</section>
+
+<section>
+    <h2>Basic Usage</h2>
+    <pre><code class="language-bash"># Simple clone with enhancements
+clone-project https://github.com/user/awesome-project
+
+# Fork, then clone (requires gh CLI)
+clone-project https://github.com/org/project --fork
+
+# Clone and create feature branch
+clone-project https://github.com/user/repo --feature add-auth
+
+# Full workflow: fork + feature branch
+clone-project https://github.com/org/repo --fork --feature my-feature</code></pre>
+</section>
+
+<section>
+    <h2>What Gets Added</h2>
+    <pre><code class="language-bash">$ clone-project https://github.com/user/api-server
+
+# Clones to:
+$WORKSPACE_PROJECTS/api-server/
+
+# Adds:
+├── CLAUDE.md               # AI context (if not present)
+├── .git/hooks/             # Pre-commit, commit-msg hooks
+└── (dependencies installed if detected)
+
+# Output:
+Project api-server cloned successfully
+Location: /alt/home/developer/workspace/projects/api-server
+Next steps:
+   1. cd api-server
+   2. Start coding with: claude</code></pre>
+</section>
+
+<section>
+    <h2>Command Options</h2>
+    <pre><code class="language-bash">clone-project &lt;repository-url&gt; [options]
+
+Options:
+  --fork              Fork repo before cloning (requires gh CLI)
+  --branch &lt;name&gt;     Checkout specific branch after clone
+  --depth &lt;n&gt;         Shallow clone with n commits
+  --git-name &lt;name&gt;   Configure Git user name for this project
+  --git-email &lt;email&gt; Configure Git user email for this project
+  --feature &lt;name&gt;    Create and checkout feature branch
+  --no-deps           Skip dependency installation
+  --no-enhance        Skip all enhancements (just clone/fork)
+  -h, --help          Show help message</code></pre>
+</section>
+
+<section>
+    <h2>Fork Workflow</h2>
+    <pre><code class="language-bash"># Complete contribution workflow
+clone-project https://github.com/org/project \
+  --fork \
+  --feature add-dark-mode \
+  --git-name "Your Name" \
+  --git-email "you@example.com"
+
+# Sets up:
+# - origin: your fork
+# - upstream: original repo
+# - Branch: add-dark-mode
+# - Git aliases for sync: git sync-upstream</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Ready to make your contribution and create a PR
+    </p>
+</section>
+
+<!-- PROJECT TEMPLATES SECTION -->
+<section data-background="#388bfd">
+    <h1>Project Templates</h1>
+    <h3>12 Built-in Templates</h3>
+</section>
+
+<section>
+    <h2>Available Templates</h2>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+        <span class="template-box">node</span>
+        <span class="template-box">python</span>
+        <span class="template-box">go</span>
+        <span class="template-box">rust</span>
+        <span class="template-box">rails</span>
+        <span class="template-box">django</span>
+        <span class="template-box">spring</span>
+        <span class="template-box">dotnet</span>
+        <span class="template-box">terraform</span>
+        <span class="template-box">docker</span>
+        <span class="template-box">general</span>
+    </div>
+    <p class="small" style="margin-top: 1em;">
+        Each template includes: files, .gitignore, extensions, setup commands, and CLAUDE.md template
+    </p>
+</section>
+
+<section>
+    <section>
+        <h2>Template Details: Node.js</h2>
+        <pre><code class="language-yaml">node:
+  description: "Node.js application"
+  aliases: ["nodejs", "javascript"]
+  extensions:
+    - nodejs
+  detection_patterns: ["node", "npm", "express", "js", "typescript", "ts"]
+  setup_commands:
+    - "npm init -y"
+  dependencies:
+    detect: "package.json"
+    command: "npm install"
+  files:
+    "package.json": |
+      {
+        "name": "{project_name}",
+        "scripts": { "start": "node index.js", ... }
+      }
+    ".gitignore": "node_modules/\ndist/\n..."</code></pre>
+    </section>
+
+    <section>
+        <h2>Template Details: Python</h2>
+        <pre><code class="language-yaml">python:
+  description: "Python application"
+  aliases: ["py", "python3"]
+  extensions:
+    - python
+  detection_patterns: ["python", "py", "django", "flask", "fastapi", "ml"]
+  setup_commands:
+    - "python3 -m venv venv"
+    - "source venv/bin/activate"
+    - "touch requirements.txt"
+  dependencies:
+    detect: "requirements.txt"
+    command: "pip3 install -r requirements.txt"
+  files:
+    "main.py": "#!/usr/bin/env python3\n..."
+    ".gitignore": "__pycache__/\nvenv/\n..."</code></pre>
+    </section>
+
+    <section>
+        <h2>Template Details: Terraform</h2>
+        <pre><code class="language-yaml">terraform:
+  description: "Terraform infrastructure project"
+  aliases: ["tf", "infra", "infrastructure"]
+  extensions:
+    - infra-tools
+  detection_patterns: ["terraform", "tf", "infrastructure", "infra", "iac"]
+  files:
+    "main.tf": |
+      terraform {
+        required_version = ">= 1.0"
+        required_providers { ... }
+      }
+    "variables.tf": "variable \"aws_region\" { ... }"
+    "outputs.tf": "# Add outputs here"
+    ".gitignore": ".terraform/\n*.tfstate\n..."</code></pre>
+    </section>
+</section>
+
+<section>
+    <h2>Template Aliases</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Template</th>
+            <th>Aliases</th>
+        </tr>
+        <tr>
+            <td>node</td>
+            <td>nodejs, javascript</td>
+        </tr>
+        <tr>
+            <td>python</td>
+            <td>py, python3</td>
+        </tr>
+        <tr>
+            <td>go</td>
+            <td>golang</td>
+        </tr>
+        <tr>
+            <td>rust</td>
+            <td>rs</td>
+        </tr>
+        <tr>
+            <td>rails</td>
+            <td>ruby, ror</td>
+        </tr>
+        <tr>
+            <td>terraform</td>
+            <td>tf, infra, infrastructure</td>
+        </tr>
+        <tr>
+            <td>dotnet</td>
+            <td>csharp, c#, .net</td>
+        </tr>
+    </table>
+    <p class="small" style="margin-top: 1em;">
+        Use any alias: <code>new-project app --type py</code>
+    </p>
+</section>
+
+<section>
+    <h2>What Templates Provide</h2>
+    <div class="two-column">
+        <div>
+            <h4>Files & Structure</h4>
+            <ul>
+                <li>Language-specific entry point</li>
+                <li>Comprehensive .gitignore</li>
+                <li>Config files (package.json, etc.)</li>
+                <li>CLAUDE.md template</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Automation</h4>
+            <ul>
+                <li>Extension installation</li>
+                <li>Setup commands run</li>
+                <li>Git repository initialized</li>
+                <li>Initial commit made</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ADDING CUSTOM TEMPLATES SECTION -->
+<section data-background="#6e40c9">
+    <h1>Custom Templates</h1>
+    <h3>Add Your Own Templates</h3>
+</section>
+
+<section>
+    <h2>Template Configuration File</h2>
+    <pre><code class="language-bash"># Templates are defined in:
+/docker/lib/project-templates.yaml
+
+# Schema validation:
+/docker/lib/schemas/project-templates.schema.json
+
+# Helper functions:
+/docker/lib/project-templates.sh</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Templates are YAML-driven - add new templates by editing project-templates.yaml
+    </p>
+</section>
+
+<section>
+    <h2>Template Structure</h2>
+    <pre><code class="language-yaml">templates:
+  mytemplate:
+    description: "My custom template"
+    aliases: ["mt", "custom"]           # Optional short names
+    extensions:                          # Extensions to install
+      - nodejs
+      - docker
+    detection_patterns:                  # Name patterns to match
+      - "mypattern"
+      - "custom"
+    setup_commands:                      # Run after project creation
+      - "npm init -y"
+    dependencies:                        # Auto-install dependencies
+      detect: "package.json"
+      command: "npm install"
+    files:                               # Files to create
+      "README.md": "# {project_name}"
+      ".gitignore": "node_modules/"
+    claude_md_template: |                # CLAUDE.md content
+      # {project_name}
+      ## Setup
+      ...</code></pre>
+</section>
+
+<section>
+    <h2>Template Variables</h2>
+    <p>Use these placeholders in files and claude_md_template:</p>
+    <table class="comparison-table">
+        <tr>
+            <th>Variable</th>
+            <th>Value</th>
+        </tr>
+        <tr>
+            <td><code>{project_name}</code></td>
+            <td>Name of the project</td>
+        </tr>
+        <tr>
+            <td><code>{author}</code></td>
+            <td>Git user name</td>
+        </tr>
+        <tr>
+            <td><code>{git_user_name}</code></td>
+            <td>Git user name</td>
+        </tr>
+        <tr>
+            <td><code>{git_user_email}</code></td>
+            <td>Git user email</td>
+        </tr>
+        <tr>
+            <td><code>{date}</code></td>
+            <td>Current date (YYYY-MM-DD)</td>
+        </tr>
+        <tr>
+            <td><code>{year}</code></td>
+            <td>Current year</td>
+        </tr>
+    </table>
+</section>
+
+<section>
+    <h2>Example: Adding a FastAPI Template</h2>
+    <pre><code class="language-yaml">fastapi:
+  description: "FastAPI Python web application"
+  aliases: ["fast", "fastapi-app"]
+  extensions:
+    - python
+  detection_patterns: ["fastapi", "fast", "api-py"]
+  setup_commands:
+    - "python3 -m venv venv"
+    - "source venv/bin/activate"
+    - "pip install fastapi uvicorn"
+  dependencies:
+    detect: "requirements.txt"
+    command: "pip install -r requirements.txt"
+  files:
+    "main.py": |
+      from fastapi import FastAPI
+      app = FastAPI()
+
+      @app.get("/")
+      def read_root():
+          return {"Hello": "World"}
+    "requirements.txt": |
+      fastapi>=0.100.0
+      uvicorn>=0.23.0</code></pre>
+</section>
+
+<section>
+    <h2>Detection Rules</h2>
+    <pre><code class="language-yaml">detection_rules:
+  # Name pattern matching (regex)
+  name_patterns:
+    - pattern: ".*-?rails?-?.*"
+      type: "rails"
+    - pattern: ".*-?api.*"
+      types: ["node", "go", "python"]    # Prompts user to choose
+    - pattern: ".*-?service.*"
+      types: ["go", "node", "spring"]
+
+  # Framework keywords
+  framework_keywords:
+    rails: ["rails", "ruby"]
+    django: ["django", "python"]
+    spring: ["spring", "java", "kotlin"]</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Add detection rules to enable auto-detection for your custom templates
+    </p>
+</section>
+
+<section>
+    <h2>Validation</h2>
+    <pre><code class="language-bash"># Validate your template changes
+pnpm validate:yaml
+
+# Or manually with yamllint
+yamllint docker/lib/project-templates.yaml
+
+# Schema validation happens automatically
+# when templates are loaded</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Templates are validated against <code>project-templates.schema.json</code>
+    </p>
+</section>
+
+<!-- WORKFLOW EXAMPLES -->
+<section data-background-gradient="linear-gradient(135deg, #238636 0%, #1f6feb 100%)">
+    <h1>Workflow Examples</h1>
+</section>
+
+<section>
+    <h2>Starting a New Feature</h2>
+    <pre><code class="language-bash"># Create a new microservice
+new-project user-auth-service --type go
+
+# Output:
+Auto-detected project type: go
+Activating extension: golang
+Extension activated: golang
+Project user-auth-service created successfully
+Location: /alt/home/developer/workspace/projects/user-auth-service
+
+# Start developing immediately
+cd $WORKSPACE_PROJECTS/user-auth-service
+claude  # AI-assisted development with full context</code></pre>
+</section>
+
+<section>
+    <h2>Contributing to Open Source</h2>
+    <pre><code class="language-bash"># Fork, clone, and prepare for contribution
+clone-project https://github.com/org/awesome-project \
+  --fork \
+  --feature fix-memory-leak \
+  --git-email "opensource@example.com"
+
+# Ready to work:
+cd $WORKSPACE_PROJECTS/awesome-project
+git status  # On branch fix-memory-leak
+
+# After making changes:
+git push -u origin fix-memory-leak
+gh pr create  # Create pull request</code></pre>
+</section>
+
+<section>
+    <h2>Quick Prototype</h2>
+    <pre><code class="language-bash"># Spin up a quick Python prototype
+new-project ml-experiment --type python
+
+cd $WORKSPACE_PROJECTS/ml-experiment
+
+# Virtual environment is already created
+source venv/bin/activate
+
+# CLAUDE.md provides context
+claude "Add a function to load CSV data and train a simple model"</code></pre>
+</section>
+
+<!-- SUMMARY -->
+<section>
+    <h2>Summary</h2>
+    <ul>
+        <li><span class="highlight">Workspace</span> - Organized structure at <code>$WORKSPACE_PROJECTS</code></li>
+        <li><span class="highlight">new-project</span> - Create from 12 templates with auto-detection</li>
+        <li><span class="highlight">clone-project</span> - Clone/fork with Claude enhancements</li>
+        <li><span class="highlight">Templates</span> - YAML-driven, easy to extend</li>
+        <li><span class="highlight">Claude Ready</span> - Every project has CLAUDE.md context</li>
+    </ul>
+</section>
+
+<!-- Quick Reference -->
+<section>
+    <h2>Quick Reference</h2>
+    <pre><code class="language-bash"># Create new project
+new-project myapp                    # Auto-detect type
+new-project myapp --type node        # Specify type
+new-project --list-types             # Show templates
+
+# Clone existing project
+clone-project &lt;url&gt;                  # Clone + enhance
+clone-project &lt;url&gt; --fork           # Fork + clone
+clone-project &lt;url&gt; --feature feat   # Clone + branch
+
+# Templates file
+/docker/lib/project-templates.yaml</code></pre>
+</section>
+
+<!-- Get Started -->
+<section data-background-gradient="linear-gradient(135deg, #0d1117 0%, #161b22 100%)">
+    <h2>Start Building</h2>
+    <pre><code class="language-bash"># Inside your Sindri environment:
+new-project my-awesome-app
+
+# Or clone an existing repo:
+clone-project https://github.com/you/your-project
+
+# Then:
+cd $WORKSPACE_PROJECTS/my-awesome-app
+claude  # Start AI-assisted development</code></pre>
+    <p style="margin-top: 2em;">
+        <a href="https://github.com/pacphi/sindri" style="color: white;">
+            github.com/pacphi/sindri
+        </a>
+    </p>
+</section>
+
+<!-- Questions -->
+<section>
+    <h1>Questions?</h1>
+    <p style="margin-top: 2em;">
+        <a href="https://github.com/pacphi/sindri">GitHub Repository</a>
+    </p>
+    <p class="small">
+        Related slides: <code>getting-started.html</code> | <code>extensions.html</code>
+    </p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/markdown/markdown.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+    Reveal.initialize({
+        hash: true,
+        slideNumber: true,
+        transition: 'slide',
+        plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+    });
+</script>
+</body>
+</html>
