@@ -313,7 +313,7 @@ sindri destroy → <adapter>.sh destroy
 
 ```bash
 # Generate CI-compatible fly.toml (empty services, no health checks)
-./deploy/adapters/fly-adapter.sh --ci-mode --config-only sindri.yaml
+./deploy/adapters/fly-adapter.sh deploy --ci-mode --config-only sindri.yaml
 ```
 
 When `--ci-mode` is enabled:

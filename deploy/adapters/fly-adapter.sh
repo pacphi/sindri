@@ -80,7 +80,9 @@ source "$BASE_DIR/docker/lib/common.sh"
 
 parse_config() {
     NAME=$(yq '.name' "$SINDRI_YAML")
-    [[ -n "$APP_NAME_OVERRIDE" ]] && NAME="$APP_NAME_OVERRIDE"
+    if [[ -n "$APP_NAME_OVERRIDE" ]]; then
+        NAME="$APP_NAME_OVERRIDE"
+    fi
 
     MEMORY=$(yq '.deployment.resources.memory // "2GB"' "$SINDRI_YAML" | sed 's/GB/*1024/;s/MB//')
     CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
@@ -103,9 +105,13 @@ parse_config() {
     # Calculated values
     MEMORY_MB=$(echo "$MEMORY" | bc)
     SWAP_MB=$((MEMORY_MB / 2))
-    [[ $SWAP_MB -lt 2048 ]] && SWAP_MB=2048
+    if [[ $SWAP_MB -lt 2048 ]]; then
+        SWAP_MB=2048
+    fi
     AUTO_STOP_MODE="suspend"
-    [[ "$AUTO_STOP" == "false" ]] && AUTO_STOP_MODE="off"
+    if [[ "$AUTO_STOP" == "false" ]]; then
+        AUTO_STOP_MODE="off"
+    fi
 }
 
 require_flyctl() {
@@ -540,7 +546,9 @@ EOJSON
     fi
 
     # Copy fly.toml to working directory if generated elsewhere
-    [[ "$OUTPUT_DIR" != "." ]] && cp "$OUTPUT_DIR/fly.toml" ./fly.toml
+    if [[ "$OUTPUT_DIR" != "." ]]; then
+        cp "$OUTPUT_DIR/fly.toml" ./fly.toml
+    fi
 
     # Deploy
     print_status "Deploying application..."

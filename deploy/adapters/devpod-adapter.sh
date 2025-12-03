@@ -128,7 +128,9 @@ get_k8s_gpu_node_selector() {
 
 parse_config() {
     NAME=$(yq '.name' "$SINDRI_YAML")
-    [[ -n "$WORKSPACE_NAME_OVERRIDE" ]] && NAME="$WORKSPACE_NAME_OVERRIDE"
+    if [[ -n "$WORKSPACE_NAME_OVERRIDE" ]]; then
+        NAME="$WORKSPACE_NAME_OVERRIDE"
+    fi
 
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
     CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')

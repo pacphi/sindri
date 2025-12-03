@@ -80,7 +80,9 @@ source "$BASE_DIR/docker/lib/common.sh"
 
 parse_config() {
     NAME=$(yq '.name' "$SINDRI_YAML")
-    [[ -n "$CONTAINER_NAME_OVERRIDE" ]] && NAME="$CONTAINER_NAME_OVERRIDE"
+    if [[ -n "$CONTAINER_NAME_OVERRIDE" ]]; then
+        NAME="$CONTAINER_NAME_OVERRIDE"
+    fi
 
     MEMORY=$(yq '.deployment.resources.memory // "1GB"' "$SINDRI_YAML")
     CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
