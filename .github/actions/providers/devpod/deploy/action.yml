@@ -101,13 +101,14 @@ runs:
         # Determine if we need to generate a new devcontainer.json
         GENERATE_NEW="false"
 
-        # Case 1: No devcontainer.json exists and sindri.yaml exists
-        if [[ -f "sindri.yaml" ]] && [[ ! -f "$DEVCONTAINER_PATH" ]]; then
+        # Case 1: No devcontainer.json exists at all (common in CI where .devcontainer/ is gitignored)
+        if [[ ! -f "$DEVCONTAINER_PATH" ]]; then
           GENERATE_NEW="true"
-          echo "No devcontainer.json found, will generate from sindri.yaml"
+          echo "No devcontainer.json found at $DEVCONTAINER_PATH - will generate one"
         fi
 
         # Case 2: Kubernetes provider with existing devcontainer.json using dockerFile
+        # (K8s can't build from Dockerfile, needs pre-built image)
         if [[ "$IS_K8S_PROVIDER" == "true" ]] && [[ -f "$DEVCONTAINER_PATH" ]]; then
           if grep -q '"dockerFile"' "$DEVCONTAINER_PATH" || grep -q '"build"' "$DEVCONTAINER_PATH"; then
             GENERATE_NEW="true"
