@@ -305,7 +305,7 @@ runs:
           EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
 
           set +e
-          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          OUTPUT=$(devpod ssh "$WORKSPACE" --command "$cmd" 2>&1)
           EXIT_CODE=$?
           set -e
 
@@ -369,7 +369,7 @@ runs:
           EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
 
           set +e
-          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          OUTPUT=$(devpod ssh "$WORKSPACE" --command "$cmd" 2>&1)
           EXIT_CODE=$?
           set -e
 
@@ -435,7 +435,7 @@ runs:
           EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
 
           set +e
-          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          OUTPUT=$(devpod ssh "$WORKSPACE" --command "$cmd" 2>&1)
           EXIT_CODE=$?
           set -e
 
@@ -496,7 +496,7 @@ runs:
           EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
 
           set +e
-          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          OUTPUT=$(devpod ssh "$WORKSPACE" --command "$cmd" 2>&1)
           EXIT_CODE=$?
           set -e
 
@@ -565,7 +565,7 @@ runs:
           EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
 
           set +e
-          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          OUTPUT=$(devpod ssh "$WORKSPACE" --command "$cmd" 2>&1)
           EXIT_CODE=$?
           set -e
 
@@ -629,7 +629,7 @@ runs:
           EXPECTED=$(echo "$EXPECTED_CODES" | jq -r --arg cmd "$cmd" '.[$cmd] // 0')
 
           set +e
-          OUTPUT=$(devpod exec "$WORKSPACE" -- bash -c "$cmd" 2>&1)
+          OUTPUT=$(devpod ssh "$WORKSPACE" --command "$cmd" 2>&1)
           EXIT_CODE=$?
           set -e
 

@@ -245,15 +245,15 @@ Two deployment workflows serve different use cases:
 
 The refactored `test-cli` action supports all providers with provider-specific execution:
 
-| Provider       | Execution Method     | Required Credentials                          |
-| -------------- | -------------------- | --------------------------------------------- |
-| `docker`       | `docker exec`        | None                                          |
-| `fly`          | `flyctl ssh console` | `FLY_API_TOKEN`                               |
-| `devpod-aws`   | `devpod exec`        | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`  |
-| `devpod-gcp`   | `devpod exec`        | `GCP_SERVICE_ACCOUNT_KEY`                     |
-| `devpod-azure` | `devpod exec`        | `AZURE_CLIENT_ID/SECRET/TENANT_ID`            |
-| `devpod-do`    | `devpod exec`        | `DIGITALOCEAN_TOKEN`                          |
-| `devpod-k8s`   | `devpod exec`        | `KUBECONFIG` (optional - uses kind if absent) |
+| Provider       | Execution Method       | Required Credentials                          |
+| -------------- | ---------------------- | --------------------------------------------- |
+| `docker`       | `docker exec`          | None                                          |
+| `fly`          | `flyctl ssh console`   | `FLY_API_TOKEN`                               |
+| `devpod-aws`   | `devpod ssh --command` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`  |
+| `devpod-gcp`   | `devpod ssh --command` | `GCP_SERVICE_ACCOUNT_KEY`                     |
+| `devpod-azure` | `devpod ssh --command` | `AZURE_CLIENT_ID/SECRET/TENANT_ID`            |
+| `devpod-do`    | `devpod ssh --command` | `DIGITALOCEAN_TOKEN`                          |
+| `devpod-k8s`   | `devpod ssh --command` | `KUBECONFIG` (optional - uses kind if absent) |
 
 ## Test Suites
 

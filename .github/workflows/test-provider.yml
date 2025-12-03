@@ -442,7 +442,7 @@ jobs:
                 flyctl ssh console -a "${{ steps.setup.outputs.app-name }}" --command "$cmd"
                 ;;
               devpod-*|kubernetes|ssh)
-                devpod exec "${{ steps.setup.outputs.workspace-id }}" -- bash -c "$cmd"
+                devpod ssh "${{ steps.setup.outputs.workspace-id }}" --command "$cmd"
                 ;;
             esac
           }
@@ -513,7 +513,7 @@ jobs:
               flyctl ssh console -a ${{ steps.setup.outputs.app-name }} --command "sindri --version"
               ;;
             devpod-*|kubernetes|ssh)
-              devpod exec ${{ steps.setup.outputs.workspace-id }} -- sindri --version
+              devpod ssh ${{ steps.setup.outputs.workspace-id }} --command "sindri --version"
               ;;
           esac
 
@@ -546,7 +546,7 @@ jobs:
                 ;;
               devpod-*|kubernetes|ssh)
                 WS="${{ steps.setup.outputs.workspace-id }}"
-                devpod exec "$WS" -- extension-manager bom
+                devpod ssh "$WS" --command "extension-manager bom"
                 ;;
             esac
           fi
