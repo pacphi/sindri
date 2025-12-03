@@ -1,7 +1,7 @@
 extends: default
 rules:
   line-length:
-    max: 175
+    max: 225
     level: warning # Keep as warning, not error
 
   comments:

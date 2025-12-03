@@ -303,11 +303,17 @@ runs:
             KIND_VERSION="${{ inputs.k8s-kind-version }}"
             NODE_IMAGE="${{ inputs.k8s-kind-node-image }}"
 
-            if ! command -v kind &> /dev/null; then
-              echo "Installing kind ${KIND_VERSION}..."
+            # Always install the requested kind version (overwrite pre-installed version)
+            # GitHub Actions runners may have a different version pre-installed that's
+            # incompatible with our config format
+            CURRENT_KIND_VERSION=$(kind version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "none")
+            if [[ "$CURRENT_KIND_VERSION" != "$KIND_VERSION" ]]; then
+              echo "Installing kind ${KIND_VERSION} (current: ${CURRENT_KIND_VERSION})..."
               curl -Lo /tmp/kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
               chmod +x /tmp/kind
               sudo mv /tmp/kind /usr/local/bin/kind
+            else
+              echo "kind ${KIND_VERSION} already installed"
             fi
             kind version
 
@@ -360,9 +366,13 @@ runs:
             K3D_VERSION="${{ inputs.k8s-k3d-version }}"
             K8S_VERSION="${{ inputs.k8s-k3d-k8s-version }}"
 
-            if ! command -v k3d &> /dev/null; then
-              echo "Installing k3d ${K3D_VERSION}..."
+            # Always install the requested k3d version (overwrite pre-installed version)
+            CURRENT_K3D_VERSION=$(k3d version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "none")
+            if [[ "$CURRENT_K3D_VERSION" != "$K3D_VERSION" ]]; then
+              echo "Installing k3d ${K3D_VERSION} (current: ${CURRENT_K3D_VERSION})..."
               curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG="${K3D_VERSION}" bash
+            else
+              echo "k3d ${K3D_VERSION} already installed"
             fi
             k3d version
 
