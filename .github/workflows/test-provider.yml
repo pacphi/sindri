@@ -416,6 +416,7 @@ jobs:
           workspace-id: ${{ steps.setup.outputs.workspace-id }}
           provider-id: ${{ inputs.provider }}-test
           devcontainer-path: .devcontainer/devcontainer.json
+          image: ${{ inputs.image }}
 
       # ============================================
       # PHASE 2: CLI Tests
