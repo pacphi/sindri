@@ -245,15 +245,15 @@ Two deployment workflows serve different use cases:
 
 The refactored `test-cli` action supports all providers with provider-specific execution:
 
-| Provider       | Execution Method     | Required Credentials                         |
-| -------------- | -------------------- | -------------------------------------------- |
-| `docker`       | `docker exec`        | None                                         |
-| `fly`          | `flyctl ssh console` | `FLY_API_TOKEN`                              |
-| `devpod-aws`   | `devpod exec`        | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
-| `devpod-gcp`   | `devpod exec`        | `GCP_SERVICE_ACCOUNT_KEY`                    |
-| `devpod-azure` | `devpod exec`        | `AZURE_CLIENT_ID/SECRET/TENANT_ID`           |
-| `devpod-do`    | `devpod exec`        | `DIGITALOCEAN_TOKEN`                         |
-| `devpod-k8s`   | `devpod exec`        | `KUBECONFIG` (optional - uses kind if absent)|
+| Provider       | Execution Method       | Required Credentials                          |
+| -------------- | ---------------------- | --------------------------------------------- |
+| `docker`       | `docker exec`          | None                                          |
+| `fly`          | `flyctl ssh console`   | `FLY_API_TOKEN`                               |
+| `devpod-aws`   | `devpod ssh --command` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`  |
+| `devpod-gcp`   | `devpod ssh --command` | `GCP_SERVICE_ACCOUNT_KEY`                     |
+| `devpod-azure` | `devpod ssh --command` | `AZURE_CLIENT_ID/SECRET/TENANT_ID`            |
+| `devpod-do`    | `devpod ssh --command` | `DIGITALOCEAN_TOKEN`                          |
+| `devpod-k8s`   | `devpod ssh --command` | `KUBECONFIG` (optional - uses kind if absent) |
 
 ## Test Suites
 
@@ -444,15 +444,15 @@ tests handle all cases.
 
 ## Required Secrets by Provider
 
-| Provider            | Required Secrets                                                      |
-| ------------------- | --------------------------------------------------------------------- |
-| Docker              | None (local)                                                          |
-| Fly.io              | `FLY_API_TOKEN`                                                       |
-| DevPod AWS          | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                          |
-| DevPod GCP          | `GCP_SERVICE_ACCOUNT_KEY`                                             |
-| DevPod Azure        | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`           |
-| DevPod DigitalOcean | `DIGITALOCEAN_TOKEN`                                                  |
-| Kubernetes          | `KUBECONFIG` (optional - auto-creates kind cluster if not provided)   |
+| Provider            | Required Secrets                                                    |
+| ------------------- | ------------------------------------------------------------------- |
+| Docker              | None (local)                                                        |
+| Fly.io              | `FLY_API_TOKEN`                                                     |
+| DevPod AWS          | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                        |
+| DevPod GCP          | `GCP_SERVICE_ACCOUNT_KEY`                                           |
+| DevPod Azure        | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`         |
+| DevPod DigitalOcean | `DIGITALOCEAN_TOKEN`                                                |
+| Kubernetes          | `KUBECONFIG` (optional - auto-creates kind cluster if not provided) |
 
 ### Kubernetes Testing with Kind
 
@@ -476,10 +476,10 @@ This enables fast CI feedback without requiring users to maintain external Kuber
 
 Two directories serve different Kubernetes use cases:
 
-| Directory | Purpose | Used By CI |
-|-----------|---------|------------|
+| Directory                     | Purpose                                             | Used By CI         |
+| ----------------------------- | --------------------------------------------------- | ------------------ |
 | `examples/devpod/kubernetes/` | Deploy Sindri TO an existing K8s cluster via DevPod | Yes (`devpod-k8s`) |
-| `examples/k8s/` | Create AND deploy to local clusters (kind, k3d) | No (manual use) |
+| `examples/k8s/`               | Create AND deploy to local clusters (kind, k3d)     | No (manual use)    |
 
 **CI Config Path Selection:**
 

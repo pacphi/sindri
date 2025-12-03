@@ -19,12 +19,12 @@ Complete Haskell development environment providing the Glasgow Haskell Compiler 
 
 ## Installed Tools
 
-| Tool                            | Type            | Description                     | License       |
-| ------------------------------- | --------------- | ------------------------------- | ------------- |
-| `ghc`                           | compiler        | Glasgow Haskell Compiler        | BSD-3-Clause  |
-| `cabal`                         | package-manager | Haskell package manager         | BSD-3-Clause  |
-| `stack`                         | cli-tool        | Haskell build and project tool  | BSD-3-Clause  |
-| `haskell-language-server`       | server          | Language server for IDE support | Apache-2.0    |
+| Tool                      | Type            | Description                     | License      |
+| ------------------------- | --------------- | ------------------------------- | ------------ |
+| `ghc`                     | compiler        | Glasgow Haskell Compiler        | BSD-3-Clause |
+| `cabal`                   | package-manager | Haskell package manager         | BSD-3-Clause |
+| `stack`                   | cli-tool        | Haskell build and project tool  | BSD-3-Clause |
+| `haskell-language-server` | server          | Language server for IDE support | Apache-2.0   |
 
 ## Configuration
 
@@ -38,10 +38,10 @@ hls = "latest"
 
 ### Environment Variables
 
-| Variable     | Value      | Description                |
-| ------------ | ---------- | -------------------------- |
-| `CABAL_DIR`  | ~/.cabal   | Cabal data directory       |
-| `STACK_ROOT` | ~/.stack   | Stack root directory       |
+| Variable     | Value    | Description          |
+| ------------ | -------- | -------------------- |
+| `CABAL_DIR`  | ~/.cabal | Cabal data directory |
+| `STACK_ROOT` | ~/.stack | Stack root directory |
 
 ## Network Requirements
 

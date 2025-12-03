@@ -26,12 +26,16 @@ inputs:
     description: Also cleanup persistent volumes
     required: false
     default: "true"
-  kind-cluster-name:
-    description: Name of the kind cluster to delete (if created during setup)
+  local-cluster-name:
+    description: Name of the local cluster to delete (if created during setup)
     required: false
     default: ""
-  kind-cluster-created:
-    description: Whether a kind cluster was created during setup
+  local-cluster-type:
+    description: Type of local cluster (kind or k3d)
+    required: false
+    default: ""
+  local-cluster-created:
+    description: Whether a local cluster was created during setup
     required: false
     default: "false"
 
@@ -182,24 +186,53 @@ runs:
 
         echo "::endgroup::"
 
-    - name: Cleanup kind cluster
-      if: inputs.kind-cluster-created == 'true' && inputs.kind-cluster-name != ''
+    - name: Cleanup local cluster and registry
+      if: inputs.local-cluster-created == 'true' && inputs.local-cluster-name != ''
       shell: bash
       run: |
-        echo "::group::Cleaning up kind cluster"
+        echo "::group::Cleaning up local cluster and registry"
 
-        CLUSTER_NAME="${{ inputs.kind-cluster-name }}"
+        CLUSTER_NAME="${{ inputs.local-cluster-name }}"
+        CLUSTER_TYPE="${{ inputs.local-cluster-type }}"
+        REG_NAME="local-registry-${CLUSTER_NAME}"
 
-        if command -v kind &> /dev/null; then
-          if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-            echo "Deleting kind cluster: $CLUSTER_NAME"
-            kind delete cluster --name "$CLUSTER_NAME"
-            echo "Kind cluster '$CLUSTER_NAME' deleted"
+        # Delete cluster based on type
+        if [[ "$CLUSTER_TYPE" == "kind" ]]; then
+          if command -v kind &> /dev/null; then
+            if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
+              echo "Deleting kind cluster: $CLUSTER_NAME"
+              kind delete cluster --name "$CLUSTER_NAME"
+              echo "Kind cluster '$CLUSTER_NAME' deleted"
+            else
+              echo "Kind cluster '$CLUSTER_NAME' not found (already deleted?)"
+            fi
           else
-            echo "Kind cluster '$CLUSTER_NAME' not found (already deleted?)"
+            echo "kind CLI not found, skipping cluster cleanup"
+          fi
+        elif [[ "$CLUSTER_TYPE" == "k3d" ]]; then
+          if command -v k3d &> /dev/null; then
+            if k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
+              echo "Deleting k3d cluster: $CLUSTER_NAME"
+              k3d cluster delete "$CLUSTER_NAME"
+              echo "k3d cluster '$CLUSTER_NAME' deleted"
+            else
+              echo "k3d cluster '$CLUSTER_NAME' not found (already deleted?)"
+            fi
+          else
+            echo "k3d CLI not found, skipping cluster cleanup"
           fi
         else
-          echo "kind CLI not found, skipping cluster cleanup"
+          echo "Unknown or empty cluster type: $CLUSTER_TYPE, skipping cluster cleanup"
+        fi
+
+        # Delete local registry container
+        if [ "$(docker ps -aq -f name="${REG_NAME}" 2>/dev/null)" ]; then
+          echo "Stopping and removing local registry: $REG_NAME"
+          docker stop "${REG_NAME}" 2>/dev/null || true
+          docker rm "${REG_NAME}" 2>/dev/null || true
+          echo "Local registry '$REG_NAME' removed"
+        else
+          echo "Local registry '$REG_NAME' not found (already removed?)"
         fi
 
         echo "::endgroup::"
@@ -215,10 +248,15 @@ runs:
         echo "Configured providers:"
         devpod provider list || echo "No providers"
 
-        # Show kind clusters if kind is available
+        # Show local clusters if tools are available
         if command -v kind &> /dev/null; then
           echo "Kind clusters:"
           kind get clusters || echo "No kind clusters"
+        fi
+
+        if command -v k3d &> /dev/null; then
+          echo "k3d clusters:"
+          k3d cluster list || echo "No k3d clusters"
         fi
 
         echo "::endgroup::"

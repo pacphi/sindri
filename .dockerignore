@@ -34,6 +34,8 @@ __pycache__/
 fly.toml
 .fly/
 
+# devcontainer config (not needed in runtime)
+.devcontainer/
 # Documentation (not needed in runtime)
 docs/
 *.md

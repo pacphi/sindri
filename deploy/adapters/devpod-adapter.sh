@@ -1,69 +1,80 @@
 #!/bin/bash
-# DevPod adapter - DevContainer deployment
+# DevPod adapter - Full lifecycle management for DevPod deployments
 #
 # Usage:
-#   devpod-adapter.sh [OPTIONS] [sindri.yaml]
+#   devpod-adapter.sh <command> [OPTIONS] [sindri.yaml]
+#
+# Commands:
+#   deploy     Create/update DevPod workspace
+#   connect    SSH into workspace
+#   destroy    Delete workspace and cleanup
+#   plan       Show deployment plan
+#   status     Show workspace status
 #
 # Options:
-#   --config-only    Generate devcontainer.json without deploying
-#   --output-dir     Directory for generated files (default: current directory)
-#   --output-vars    Output parsed variables for CI integration (JSON to stdout)
-#   --workspace-name Override workspace name from sindri.yaml
-#   --help           Show this help message
+#   --config-only        Generate devcontainer.json without deploying (deploy only)
+#   --output-dir         Directory for generated files (default: current directory)
+#   --output-vars        Output parsed variables as JSON (deploy only)
+#   --workspace-name     Override workspace name from sindri.yaml
+#   --build-repository   Docker registry for image push (required for non-local K8s)
+#   --skip-build         Skip image build (use existing image)
+#   --force              Skip confirmation prompts (destroy only)
+#   --help               Show this help message
+#
+# Environment Variables:
+#   DOCKER_USERNAME      Docker registry username (or use .env)
+#   DOCKER_PASSWORD      Docker registry password (or use .env)
+#   DOCKER_REGISTRY      Docker registry URL (default: docker.io)
 #
 # Examples:
-#   devpod-adapter.sh                           # Generate config using ./sindri.yaml
-#   devpod-adapter.sh --config-only             # Just generate devcontainer.json
-#   devpod-adapter.sh --output-dir /tmp         # Generate to specific directory
+#   devpod-adapter.sh deploy sindri.yaml
+#   devpod-adapter.sh deploy --build-repository ghcr.io/myorg/sindri
+#   devpod-adapter.sh connect
+#   devpod-adapter.sh destroy --force
+#   devpod-adapter.sh status
 
 set -e
 
-# shellcheck disable=SC2034  # May be used in future adapter implementations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Default values
+COMMAND=""
 SINDRI_YAML=""
 CONFIG_ONLY=false
 OUTPUT_DIR="."
 OUTPUT_VARS=false
 WORKSPACE_NAME_OVERRIDE=""
+BUILD_REPOSITORY=""
+SKIP_BUILD=false
+FORCE=false
+
+show_help() {
+    head -34 "$0" | tail -32
+    exit 0
+}
 
 # Parse arguments
+[[ $# -eq 0 ]] && show_help
+
+COMMAND="$1"
+shift
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --config-only)
-            CONFIG_ONLY=true
-            shift
-            ;;
-        --output-dir)
-            OUTPUT_DIR="$2"
-            shift 2
-            ;;
-        --output-vars)
-            OUTPUT_VARS=true
-            shift
-            ;;
-        --workspace-name)
-            WORKSPACE_NAME_OVERRIDE="$2"
-            shift 2
-            ;;
-        --help)
-            head -18 "$0" | tail -16
-            exit 0
-            ;;
-        -*)
-            echo "Unknown option: $1" >&2
-            exit 1
-            ;;
-        *)
-            SINDRI_YAML="$1"
-            shift
-            ;;
+        --config-only)  CONFIG_ONLY=true; shift ;;
+        --output-dir)   OUTPUT_DIR="$2"; shift 2 ;;
+        --output-vars)  OUTPUT_VARS=true; shift ;;
+        --workspace-name) WORKSPACE_NAME_OVERRIDE="$2"; shift 2 ;;
+        --build-repository) BUILD_REPOSITORY="$2"; shift 2 ;;
+        --skip-build)   SKIP_BUILD=true; shift ;;
+        --force|-f)     FORCE=true; shift ;;
+        --help|-h)      show_help ;;
+        -*)             echo "Unknown option: $1" >&2; exit 1 ;;
+        *)              SINDRI_YAML="$1"; shift ;;
     esac
 done
 
-# Default sindri.yaml if not specified
 SINDRI_YAML="${SINDRI_YAML:-sindri.yaml}"
 
 if [[ ! -f "$SINDRI_YAML" ]]; then
@@ -71,31 +82,13 @@ if [[ ! -f "$SINDRI_YAML" ]]; then
     exit 1
 fi
 
-# Source common utilities and secrets manager
+# Source common utilities
 source "$BASE_DIR/docker/lib/common.sh"
-if [[ "$CONFIG_ONLY" != "true" ]]; then
-    source "$BASE_DIR/cli/secrets-manager"
-fi
 
-# Parse sindri.yaml - Common configuration
-NAME=$(yq '.name' "$SINDRI_YAML")
-# Apply workspace name override if provided
-[[ -n "$WORKSPACE_NAME_OVERRIDE" ]] && NAME="$WORKSPACE_NAME_OVERRIDE"
+# ============================================================================
+# GPU Tier Mapping Functions
+# ============================================================================
 
-PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
-CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
-
-# Parse deployment resources
-MEMORY=$(yq '.deployment.resources.memory // "4GB"' "$SINDRI_YAML")
-CPUS=$(yq '.deployment.resources.cpus // 2' "$SINDRI_YAML")
-VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML" | sed 's/GB//')
-
-# Parse GPU configuration
-GPU_ENABLED=$(yq '.deployment.resources.gpu.enabled // false' "$SINDRI_YAML")
-GPU_TIER=$(yq '.deployment.resources.gpu.tier // "gpu-small"' "$SINDRI_YAML")
-GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
-
-# GPU tier to provider-specific instance mapping functions
 get_aws_gpu_instance() {
     local tier="${1:-gpu-small}"
     case "$tier" in
@@ -141,202 +134,435 @@ get_k8s_gpu_node_selector() {
     esac
 }
 
-# Parse DevPod provider configuration
-DEVPOD_PROVIDER=$(yq '.providers.devpod.type // "docker"' "$SINDRI_YAML")
+# ============================================================================
+# Configuration Parsing
+# ============================================================================
 
-# Provider-specific configuration parsing
-case "$DEVPOD_PROVIDER" in
-    aws)
-        AWS_REGION=$(yq '.providers.devpod.aws.region // "us-west-2"' "$SINDRI_YAML")
-        AWS_INSTANCE_TYPE=$(yq '.providers.devpod.aws.instanceType // "c5.xlarge"' "$SINDRI_YAML")
-        AWS_DISK_SIZE=$(yq '.providers.devpod.aws.diskSize // 40' "$SINDRI_YAML")
-        AWS_USE_SPOT=$(yq '.providers.devpod.aws.useSpot // false' "$SINDRI_YAML")
-        AWS_SUBNET_ID=$(yq '.providers.devpod.aws.subnetId // ""' "$SINDRI_YAML")
-        AWS_SECURITY_GROUP=$(yq '.providers.devpod.aws.securityGroupId // ""' "$SINDRI_YAML")
-        # Override instance type for GPU
-        if [[ "$GPU_ENABLED" == "true" ]]; then
-            AWS_INSTANCE_TYPE=$(get_aws_gpu_instance "$GPU_TIER")
-            echo "Using GPU instance: $AWS_INSTANCE_TYPE" >&2
-        fi
-        ;;
-    gcp)
-        GCP_PROJECT=$(yq '.providers.devpod.gcp.project // ""' "$SINDRI_YAML")
-        GCP_ZONE=$(yq '.providers.devpod.gcp.zone // "us-central1-a"' "$SINDRI_YAML")
-        GCP_MACHINE_TYPE=$(yq '.providers.devpod.gcp.machineType // "e2-standard-4"' "$SINDRI_YAML")
-        GCP_DISK_SIZE=$(yq '.providers.devpod.gcp.diskSize // 40' "$SINDRI_YAML")
-        GCP_DISK_TYPE=$(yq '.providers.devpod.gcp.diskType // "pd-balanced"' "$SINDRI_YAML")
-        GCP_ACCELERATOR_TYPE=""
-        GCP_ACCELERATOR_COUNT=0
-        # Override machine type and add accelerator for GPU
-        if [[ "$GPU_ENABLED" == "true" ]]; then
-            GPU_CONFIG=$(get_gcp_gpu_config "$GPU_TIER")
-            GCP_MACHINE_TYPE=$(echo "$GPU_CONFIG" | cut -d: -f1)
-            GCP_ACCELERATOR_TYPE=$(echo "$GPU_CONFIG" | cut -d: -f2)
-            GCP_ACCELERATOR_COUNT=$(echo "$GPU_CONFIG" | cut -d: -f3)
-            echo "Using GPU: $GCP_ACCELERATOR_TYPE x$GCP_ACCELERATOR_COUNT on $GCP_MACHINE_TYPE" >&2
-        fi
-        ;;
-    azure)
-        AZURE_SUBSCRIPTION=$(yq '.providers.devpod.azure.subscription // ""' "$SINDRI_YAML")
-        AZURE_RESOURCE_GROUP=$(yq '.providers.devpod.azure.resourceGroup // "devpod-resources"' "$SINDRI_YAML")
-        AZURE_LOCATION=$(yq '.providers.devpod.azure.location // "eastus"' "$SINDRI_YAML")
-        AZURE_VM_SIZE=$(yq '.providers.devpod.azure.vmSize // "Standard_D4s_v3"' "$SINDRI_YAML")
-        AZURE_DISK_SIZE=$(yq '.providers.devpod.azure.diskSize // 40' "$SINDRI_YAML")
-        # Override VM size for GPU
-        if [[ "$GPU_ENABLED" == "true" ]]; then
-            AZURE_VM_SIZE=$(get_azure_gpu_vm "$GPU_TIER")
-            echo "Using GPU VM: $AZURE_VM_SIZE" >&2
-        fi
-        ;;
-    digitalocean)
-        DO_REGION=$(yq '.providers.devpod.digitalocean.region // "nyc3"' "$SINDRI_YAML")
-        DO_SIZE=$(yq '.providers.devpod.digitalocean.size // "s-4vcpu-8gb"' "$SINDRI_YAML")
-        DO_DISK_SIZE=$(yq '.providers.devpod.digitalocean.diskSize // 0' "$SINDRI_YAML")
-        ;;
-    kubernetes)
-        K8S_NAMESPACE=$(yq '.providers.devpod.kubernetes.namespace // "devpod"' "$SINDRI_YAML")
-        K8S_STORAGE_CLASS=$(yq '.providers.devpod.kubernetes.storageClass // ""' "$SINDRI_YAML")
-        K8S_CONTEXT=$(yq '.providers.devpod.kubernetes.context // ""' "$SINDRI_YAML")
-        K8S_GPU_NODE_SELECTOR=""
-        # shellcheck disable=SC2034  # Used in provider.yaml generation
-        K8S_GPU_RESOURCE_KEY="nvidia.com/gpu"
-        # Add GPU node selector for GPU
-        if [[ "$GPU_ENABLED" == "true" ]]; then
-            K8S_GPU_NODE_SELECTOR=$(get_k8s_gpu_node_selector "$GPU_TIER")
-            echo "Using GPU node selector: accelerator=$K8S_GPU_NODE_SELECTOR" >&2
-        fi
-        ;;
-    ssh)
-        SSH_HOST=$(yq '.providers.devpod.ssh.host // ""' "$SINDRI_YAML")
-        SSH_USER=$(yq '.providers.devpod.ssh.user // "root"' "$SINDRI_YAML")
-        SSH_PORT=$(yq '.providers.devpod.ssh.port // 22' "$SINDRI_YAML")
-        SSH_KEY_PATH=$(yq '.providers.devpod.ssh.keyPath // "~/.ssh/id_rsa"' "$SINDRI_YAML")
-        ;;
-    docker)
-        DOCKER_HOST=$(yq '.providers.devpod.docker.dockerHost // ""' "$SINDRI_YAML")
-        ;;
-esac
+parse_config() {
+    NAME=$(yq '.name' "$SINDRI_YAML")
+    if [[ -n "$WORKSPACE_NAME_OVERRIDE" ]]; then
+        NAME="$WORKSPACE_NAME_OVERRIDE"
+    fi
 
-# Output variables for CI integration if requested
-if [[ "$OUTPUT_VARS" == "true" ]]; then
-    # Build provider-specific JSON
-    PROVIDER_CONFIG="{}"
+    PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
+    CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
+
+    MEMORY=$(yq '.deployment.resources.memory // "4GB"' "$SINDRI_YAML")
+    CPUS=$(yq '.deployment.resources.cpus // 2' "$SINDRI_YAML")
+    VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML" | sed 's/GB//')
+
+    GPU_ENABLED=$(yq '.deployment.resources.gpu.enabled // false' "$SINDRI_YAML")
+    GPU_TIER=$(yq '.deployment.resources.gpu.tier // "gpu-small"' "$SINDRI_YAML")
+    GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
+
+    DEVPOD_PROVIDER=$(yq '.providers.devpod.type // "docker"' "$SINDRI_YAML")
+
+    # Build repository from config (CLI flag takes precedence)
+    if [[ -z "$BUILD_REPOSITORY" ]]; then
+        BUILD_REPOSITORY=$(yq '.providers.devpod.buildRepository // ""' "$SINDRI_YAML")
+    fi
+
+    # Provider-specific config
     case "$DEVPOD_PROVIDER" in
+        kubernetes)
+            K8S_NAMESPACE=$(yq '.providers.devpod.kubernetes.namespace // "devpod"' "$SINDRI_YAML")
+            K8S_STORAGE_CLASS=$(yq '.providers.devpod.kubernetes.storageClass // ""' "$SINDRI_YAML")
+            K8S_CONTEXT=$(yq '.providers.devpod.kubernetes.context // ""' "$SINDRI_YAML")
+            # GPU node selector for k8s
+            if [[ "$GPU_ENABLED" == "true" ]]; then
+                K8S_GPU_NODE_SELECTOR=$(get_k8s_gpu_node_selector "$GPU_TIER")
+                print_status "Using GPU node selector: accelerator=$K8S_GPU_NODE_SELECTOR"
+            fi
+            ;;
         aws)
-            PROVIDER_CONFIG=$(cat << EOJSON
-{
-      "region": "$AWS_REGION",
-      "instanceType": "$AWS_INSTANCE_TYPE",
-      "diskSize": $AWS_DISK_SIZE,
-      "useSpot": $AWS_USE_SPOT
-    }
-EOJSON
-)
+            AWS_REGION=$(yq '.providers.devpod.aws.region // "us-west-2"' "$SINDRI_YAML")
+            AWS_INSTANCE_TYPE=$(yq '.providers.devpod.aws.instanceType // "c5.xlarge"' "$SINDRI_YAML")
+            AWS_DISK_SIZE=$(yq '.providers.devpod.aws.diskSize // 40' "$SINDRI_YAML")
+            # Override instance type for GPU
+            if [[ "$GPU_ENABLED" == "true" ]]; then
+                AWS_INSTANCE_TYPE=$(get_aws_gpu_instance "$GPU_TIER")
+                print_status "Using GPU instance: $AWS_INSTANCE_TYPE"
+            fi
             ;;
         gcp)
-            PROVIDER_CONFIG=$(cat << EOJSON
-{
-      "zone": "$GCP_ZONE",
-      "machineType": "$GCP_MACHINE_TYPE",
-      "diskSize": $GCP_DISK_SIZE,
-      "diskType": "$GCP_DISK_TYPE"
-    }
-EOJSON
-)
+            GCP_ZONE=$(yq '.providers.devpod.gcp.zone // "us-central1-a"' "$SINDRI_YAML")
+            GCP_MACHINE_TYPE=$(yq '.providers.devpod.gcp.machineType // "e2-standard-4"' "$SINDRI_YAML")
+            GCP_DISK_SIZE=$(yq '.providers.devpod.gcp.diskSize // 40' "$SINDRI_YAML")
+            # Override machine type and add accelerator for GPU
+            if [[ "$GPU_ENABLED" == "true" ]]; then
+                local gpu_config
+                gpu_config=$(get_gcp_gpu_config "$GPU_TIER")
+                GCP_MACHINE_TYPE=$(echo "$gpu_config" | cut -d: -f1)
+                GCP_ACCELERATOR_TYPE=$(echo "$gpu_config" | cut -d: -f2)
+                GCP_ACCELERATOR_COUNT=$(echo "$gpu_config" | cut -d: -f3)
+                print_status "Using GPU: $GCP_ACCELERATOR_TYPE x$GCP_ACCELERATOR_COUNT on $GCP_MACHINE_TYPE"
+            fi
             ;;
         azure)
-            PROVIDER_CONFIG=$(cat << EOJSON
-{
-      "location": "$AZURE_LOCATION",
-      "vmSize": "$AZURE_VM_SIZE",
-      "diskSize": $AZURE_DISK_SIZE
-    }
-EOJSON
-)
+            AZURE_LOCATION=$(yq '.providers.devpod.azure.location // "eastus"' "$SINDRI_YAML")
+            AZURE_VM_SIZE=$(yq '.providers.devpod.azure.vmSize // "Standard_D4s_v3"' "$SINDRI_YAML")
+            AZURE_DISK_SIZE=$(yq '.providers.devpod.azure.diskSize // 40' "$SINDRI_YAML")
+            # Override VM size for GPU
+            if [[ "$GPU_ENABLED" == "true" ]]; then
+                AZURE_VM_SIZE=$(get_azure_gpu_vm "$GPU_TIER")
+                print_status "Using GPU VM: $AZURE_VM_SIZE"
+            fi
             ;;
-        digitalocean)
-            PROVIDER_CONFIG=$(cat << EOJSON
-{
-      "region": "$DO_REGION",
-      "size": "$DO_SIZE"
-    }
-EOJSON
-)
+        docker|ssh|digitalocean)
+            # These providers don't need additional config
             ;;
-        kubernetes)
-            PROVIDER_CONFIG=$(cat << EOJSON
-{
-      "namespace": "$K8S_NAMESPACE"
+    esac
+}
+
+require_devpod() {
+    if ! command -v devpod >/dev/null 2>&1; then
+        print_error "DevPod CLI is not installed"
+        echo "Install from: https://devpod.sh/docs/getting-started/install"
+        exit 1
+    fi
+}
+
+ensure_devpod_provider() {
+    local provider="$1"
+    if devpod provider list 2>/dev/null | grep -q "^$provider "; then
+        return 0
+    fi
+    print_status "Adding DevPod provider: $provider"
+    devpod provider add "$provider" || {
+        print_error "Failed to add $provider provider"
+        return 1
     }
-EOJSON
-)
+}
+
+configure_k8s_provider() {
+    [[ "$DEVPOD_PROVIDER" != "kubernetes" ]] && return 0
+
+    print_status "Configuring kubernetes provider..."
+
+    if [[ -n "${K8S_CONTEXT:-}" ]]; then
+        print_status "  Context: $K8S_CONTEXT"
+        devpod provider set-options kubernetes -o KUBERNETES_CONTEXT="$K8S_CONTEXT" 2>/dev/null || true
+    fi
+
+    if [[ -n "${K8S_NAMESPACE:-}" ]]; then
+        print_status "  Namespace: $K8S_NAMESPACE"
+        devpod provider set-options kubernetes -o KUBERNETES_NAMESPACE="$K8S_NAMESPACE" 2>/dev/null || true
+
+        local context_arg=()
+        [[ -n "${K8S_CONTEXT:-}" ]] && context_arg=(--context "$K8S_CONTEXT")
+
+        if ! kubectl "${context_arg[@]}" get namespace "$K8S_NAMESPACE" >/dev/null 2>&1; then
+            print_status "Creating namespace: $K8S_NAMESPACE"
+            kubectl "${context_arg[@]}" create namespace "$K8S_NAMESPACE" || true
+        fi
+    fi
+
+    if [[ -n "${K8S_STORAGE_CLASS:-}" ]]; then
+        print_status "  Storage class: $K8S_STORAGE_CLASS"
+        devpod provider set-options kubernetes -o KUBERNETES_STORAGE_CLASS="$K8S_STORAGE_CLASS" 2>/dev/null || true
+    fi
+}
+
+# ============================================================================
+# Image Building and Loading
+# ============================================================================
+
+# Detect if running against a local Kubernetes cluster (kind or k3d)
+# Returns: "kind", "k3d", or "" (empty for non-local/unknown)
+detect_local_cluster() {
+    local context_arg=()
+    [[ -n "${K8S_CONTEXT:-}" ]] && context_arg=(--context "$K8S_CONTEXT")
+
+    # Check for kind cluster
+    if command -v kind &>/dev/null; then
+        local current_context
+        current_context=$(kubectl "${context_arg[@]}" config current-context 2>/dev/null || echo "")
+        if [[ "$current_context" == kind-* ]]; then
+            # Extract cluster name from context (kind-<cluster-name>)
+            local cluster_name="${current_context#kind-}"
+            if kind get clusters 2>/dev/null | grep -q "^${cluster_name}$"; then
+                echo "kind:$cluster_name"
+                return 0
+            fi
+        fi
+        # Also check if any kind cluster exists matching the context
+        local kind_clusters
+        kind_clusters=$(kind get clusters 2>/dev/null || true)
+        if [[ -n "$kind_clusters" ]]; then
+            while read -r cluster; do
+                if [[ "$current_context" == "kind-$cluster" ]]; then
+                    echo "kind:$cluster"
+                    return 0
+                fi
+            done <<< "$kind_clusters"
+        fi
+    fi
+
+    # Check for k3d cluster
+    if command -v k3d &>/dev/null; then
+        local current_context
+        current_context=$(kubectl "${context_arg[@]}" config current-context 2>/dev/null || echo "")
+        if [[ "$current_context" == k3d-* ]]; then
+            local cluster_name="${current_context#k3d-}"
+            if k3d cluster list 2>/dev/null | grep -q "^${cluster_name}"; then
+                echo "k3d:$cluster_name"
+                return 0
+            fi
+        fi
+    fi
+
+    echo ""
+}
+
+# Get Docker registry credentials from environment, .env files, or Docker config
+# Sets: DOCKER_USERNAME, DOCKER_PASSWORD, DOCKER_REGISTRY
+get_docker_credentials() {
+    # Priority: environment > .env.local > .env > ~/.docker/config.json
+
+    # Check environment variables first
+    if [[ -n "${DOCKER_USERNAME:-}" ]] && [[ -n "${DOCKER_PASSWORD:-}" ]]; then
+        print_status "  Using Docker credentials from environment"
+        return 0
+    fi
+
+    # Check .env.local
+    if [[ -f .env.local ]]; then
+        if grep -q "^DOCKER_USERNAME=" .env.local 2>/dev/null; then
+            DOCKER_USERNAME=$(grep "^DOCKER_USERNAME=" .env.local | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_PASSWORD=$(grep "^DOCKER_PASSWORD=" .env.local | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_REGISTRY=$(grep "^DOCKER_REGISTRY=" .env.local | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' || echo "")
+            if [[ -n "$DOCKER_USERNAME" ]] && [[ -n "$DOCKER_PASSWORD" ]]; then
+                print_status "  Using Docker credentials from .env.local"
+                return 0
+            fi
+        fi
+    fi
+
+    # Check .env
+    if [[ -f .env ]]; then
+        if grep -q "^DOCKER_USERNAME=" .env 2>/dev/null; then
+            DOCKER_USERNAME=$(grep "^DOCKER_USERNAME=" .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_PASSWORD=$(grep "^DOCKER_PASSWORD=" .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_REGISTRY=$(grep "^DOCKER_REGISTRY=" .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' || echo "")
+            if [[ -n "$DOCKER_USERNAME" ]] && [[ -n "$DOCKER_PASSWORD" ]]; then
+                print_status "  Using Docker credentials from .env"
+                return 0
+            fi
+        fi
+    fi
+
+    # Check if already logged in via Docker config
+    if [[ -f ~/.docker/config.json ]]; then
+        local registry_host
+        registry_host=$(echo "$BUILD_REPOSITORY" | cut -d/ -f1)
+        if jq -e ".auths.\"$registry_host\" // .auths.\"https://$registry_host\"" ~/.docker/config.json &>/dev/null; then
+            print_status "  Using existing Docker login for $registry_host"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+# Login to Docker registry
+docker_registry_login() {
+    local registry_host
+    registry_host=$(echo "$BUILD_REPOSITORY" | cut -d/ -f1)
+
+    # Special handling for common registries
+    case "$registry_host" in
+        ghcr.io)
+            if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+                print_status "Logging in to GitHub Container Registry..."
+                echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${GITHUB_ACTOR:-git}" --password-stdin
+                return $?
+            fi
+            ;;
+        *.dkr.ecr.*.amazonaws.com)
+            if command -v aws &>/dev/null; then
+                print_status "Logging in to Amazon ECR..."
+                local region
+                region=$(echo "$registry_host" | sed 's/.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/\1/')
+                aws ecr get-login-password --region "$region" | docker login --username AWS --password-stdin "$registry_host"
+                return $?
+            fi
+            ;;
+        *.gcr.io|gcr.io)
+            if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]; then
+                print_status "Logging in to Google Container Registry..."
+                cat "$GOOGLE_APPLICATION_CREDENTIALS" | docker login -u _json_key --password-stdin "https://$registry_host"
+                return $?
+            fi
             ;;
     esac
 
-    cat << EOJSON
-{
-  "name": "$NAME",
-  "profile": "$PROFILE",
-  "provider": "$DEVPOD_PROVIDER",
-  "memory": "$MEMORY",
-  "cpus": $CPUS,
-  "volumeSize": $VOLUME_SIZE,
-  "gpu_enabled": $GPU_ENABLED,
-  "gpu_tier": "$GPU_TIER",
-  "gpu_count": $GPU_COUNT,
-  "providerConfig": $PROVIDER_CONFIG
+    # Generic registry login
+    if [[ -n "${DOCKER_USERNAME:-}" ]] && [[ -n "${DOCKER_PASSWORD:-}" ]]; then
+        local registry="${DOCKER_REGISTRY:-$registry_host}"
+        print_status "Logging in to Docker registry: $registry"
+        echo "$DOCKER_PASSWORD" | docker login "$registry" -u "$DOCKER_USERNAME" --password-stdin
+        return $?
+    fi
+
+    print_warning "No Docker credentials found for $registry_host"
+    return 1
 }
-EOJSON
-    exit 0
-fi
 
-# Resolve secrets (skip in config-only mode)
-if [[ "$CONFIG_ONLY" != "true" ]]; then
-    print_status "Resolving secrets..."
-    secrets_resolve_all "$SINDRI_YAML" || true
-fi
+# Build the Sindri Docker image
+build_image() {
+    local image_tag="$1"
 
-# Create .devcontainer directory in output location
-mkdir -p "$OUTPUT_DIR/.devcontainer"
+    if [[ ! -f "$BASE_DIR/Dockerfile" ]]; then
+        print_error "Dockerfile not found at $BASE_DIR/Dockerfile"
+        return 1
+    fi
 
-# Convert memory string to numeric for hostRequirements (e.g., "4GB" -> 4096)
-MEMORY_MB=$(echo "$MEMORY" | sed 's/GB/*1024/;s/MB//' | bc)
+    print_status "Building Docker image: $image_tag"
+    docker build -t "$image_tag" -f "$BASE_DIR/Dockerfile" "$BASE_DIR"
+}
 
-# Generate devcontainer.json with secrets and resource configuration
-{
-cat << EODC
+# Push image to registry
+push_image() {
+    local image_tag="$1"
+
+    print_status "Pushing image to registry: $image_tag"
+    docker push "$image_tag"
+}
+
+# Load image into local Kubernetes cluster (kind or k3d)
+load_image_local() {
+    local image_tag="$1"
+    local cluster_info="$2"
+
+    local cluster_type="${cluster_info%%:*}"
+    local cluster_name="${cluster_info#*:}"
+
+    case "$cluster_type" in
+        kind)
+            print_status "Loading image into kind cluster: $cluster_name"
+            kind load docker-image "$image_tag" --name "$cluster_name"
+            ;;
+        k3d)
+            print_status "Loading image into k3d cluster: $cluster_name"
+            k3d image import "$image_tag" --cluster "$cluster_name"
+            ;;
+        *)
+            print_error "Unknown local cluster type: $cluster_type"
+            return 1
+            ;;
+    esac
+}
+
+# Prepare image for DevPod deployment
+# Returns the image tag to use in devcontainer.json
+prepare_image() {
+    local image_tag="sindri:latest"
+
+    if [[ "$SKIP_BUILD" == "true" ]]; then
+        print_status "Skipping image build (--skip-build)"
+        echo "$image_tag"
+        return 0
+    fi
+
+    # For docker provider, no special handling needed (uses Dockerfile directly)
+    if [[ "$DEVPOD_PROVIDER" == "docker" ]]; then
+        echo ""  # Empty means use dockerFile in devcontainer.json
+        return 0
+    fi
+
+    # Check for local cluster (kind/k3d)
+    local local_cluster
+    local_cluster=$(detect_local_cluster)
+
+    if [[ -n "$local_cluster" ]]; then
+        print_status "Detected local Kubernetes cluster: $local_cluster"
+
+        # Build locally and load into cluster
+        build_image "$image_tag" || return 1
+        load_image_local "$image_tag" "$local_cluster" || return 1
+
+        echo "$image_tag"
+        return 0
+    fi
+
+    # For cloud/external Kubernetes - require build repository
+    if [[ "$DEVPOD_PROVIDER" == "kubernetes" ]] || [[ "$DEVPOD_PROVIDER" == "aws" ]] || \
+       [[ "$DEVPOD_PROVIDER" == "gcp" ]] || [[ "$DEVPOD_PROVIDER" == "azure" ]]; then
+
+        if [[ -z "$BUILD_REPOSITORY" ]]; then
+            print_error "Build repository required for $DEVPOD_PROVIDER provider"
+            echo ""
+            echo "Options:"
+            echo "  1. CLI flag:    sindri deploy --build-repository ghcr.io/myorg/sindri"
+            echo "  2. sindri.yaml: providers.devpod.buildRepository: ghcr.io/myorg/sindri"
+            echo ""
+            echo "Also ensure Docker credentials are available:"
+            echo "  - Set DOCKER_USERNAME and DOCKER_PASSWORD environment variables"
+            echo "  - Or add them to .env or .env.local"
+            echo "  - Or run 'docker login' for your registry"
+            return 1
+        fi
+
+        image_tag="$BUILD_REPOSITORY:latest"
+
+        # Get credentials and login
+        if ! get_docker_credentials; then
+            if ! docker_registry_login; then
+                print_error "Failed to authenticate with Docker registry"
+                return 1
+            fi
+        fi
+
+        # Build and push
+        build_image "$image_tag" || return 1
+        push_image "$image_tag" || return 1
+
+        echo "$image_tag"
+        return 0
+    fi
+
+    # Default: use Dockerfile
+    echo ""
+}
+
+generate_devcontainer() {
+    local image_tag="${1:-}"
+
+    mkdir -p "$OUTPUT_DIR/.devcontainer"
+    local MEMORY_MB
+    MEMORY_MB=$(echo "$MEMORY" | sed 's/GB/*1024/;s/MB//' | bc)
+
+    # Determine image source line
+    local image_source
+    if [[ -n "$image_tag" ]]; then
+        image_source="\"image\": \"${image_tag}\","
+    else
+        image_source="\"dockerFile\": \"../Dockerfile\","
+    fi
+
+    cat > "$OUTPUT_DIR/.devcontainer/devcontainer.json" << EODC
 {
   "name": "${NAME}",
-  "dockerFile": "../Dockerfile",
+  ${image_source}
   "workspaceFolder": "/alt/home/developer/workspace",
   "workspaceMount": "source=\${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
-
-EODC
-
-# Add secrets as containerEnv (skip in config-only mode)
-if [[ "$CONFIG_ONLY" != "true" ]]; then
-    secrets_generate_devcontainer_env
-else
-    # Add environment variables including profile and extensions
-    cat << EODC
   "containerEnv": {
+    "HOME": "/alt/home/developer",
+    "ALT_HOME": "/alt/home/developer",
+    "WORKSPACE": "/alt/home/developer/workspace",
+    "MISE_DATA_DIR": "/alt/home/developer/.local/share/mise",
+    "MISE_CONFIG_DIR": "/alt/home/developer/.config/mise",
+    "MISE_CACHE_DIR": "/alt/home/developer/.cache/mise",
+    "MISE_STATE_DIR": "/alt/home/developer/.local/state/mise",
     "INSTALL_PROFILE": "${PROFILE}",
     "CUSTOM_EXTENSIONS": "${CUSTOM_EXTENSIONS}",
     "INIT_WORKSPACE": "true"
-  }
-EODC
-fi
-
-cat << EODC
-,
-
+  },
   "hostRequirements": {
     "cpus": ${CPUS},
     "memory": "${MEMORY_MB}mb",
-    "storage": "${VOLUME_SIZE}gb"$(if [[ "$GPU_ENABLED" == "true" ]]; then echo ',
-    "gpu": "optional"'; fi)
+    "storage": "${VOLUME_SIZE}gb"
   },
-
   "customizations": {
     "vscode": {
       "extensions": [
@@ -344,280 +570,311 @@ cat << EODC
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "ms-python.python",
-        "ms-python.vscode-pylance",
         "golang.go",
         "rust-lang.rust-analyzer"
-      ],
-      "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "terminal.integrated.profiles.linux": {
-          "bash": {
-            "path": "/bin/bash",
-            "icon": "terminal-bash"
-          }
-        }
-      }
+      ]
     }
   },
-
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
-
   "postCreateCommand": "/docker/cli/extension-manager install-profile ${PROFILE}",
-  "postStartCommand": "echo 'Welcome to Sindri DevContainer!'",
-
   "remoteUser": "developer",
   "containerUser": "developer",
-
-  "mounts": [
-    "source=sindri-home,target=/alt/home/developer,type=volume"
-  ],
-
-  "runArgs": [
-    "--cap-add=SYS_PTRACE",
-    "--security-opt", "seccomp=unconfined",
-    "--cpus=${CPUS}",
-    "--memory=${MEMORY}"$(if [[ "$GPU_ENABLED" == "true" ]]; then echo ',
-    "--gpus", "all"'; fi)
-  ],
-
-  "forwardPorts": [3000, 8080],
-
-  "portsAttributes": {
-    "3000": {
-      "label": "Application",
-      "onAutoForward": "notify"
-    },
-    "8080": {
-      "label": "API",
-      "onAutoForward": "silent"
-    }
-  }
+  "mounts": ["source=sindri-home,target=/alt/home/developer,type=volume"],
+  "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined", "--cpus=${CPUS}", "--memory=${MEMORY}"],
+  "forwardPorts": [3000, 8080]
 }
 EODC
-} > "$OUTPUT_DIR/.devcontainer/devcontainer.json"
+}
 
-# Generate provider.yaml for DevPod with provider-specific options
-{
-cat << EOPY
-# Sindri DevPod provider configuration
-# Provider type: ${DEVPOD_PROVIDER}
-name: sindri-provider
-version: v1.0.0
-description: Sindri development environment provider (${DEVPOD_PROVIDER})
+# ============================================================================
+# Commands
+# ============================================================================
 
-agent:
-  path: \${DEVPOD}
-  driver: docker
-  docker:
-    buildRepository: sindri-devpod
+cmd_deploy() {
+    parse_config
 
-options:
-  PROFILE:
-    description: Extension profile to install
-    default: "${PROFILE}"
-    enum: ["minimal", "fullstack", "ai-dev", "systems", "enterprise"]
+    if [[ "$OUTPUT_VARS" == "true" ]]; then
+        cat << EOJSON
+{"name":"$NAME","profile":"$PROFILE","provider":"$DEVPOD_PROVIDER","memory":"$MEMORY","cpus":$CPUS,"volumeSize":$VOLUME_SIZE,"gpu_enabled":$GPU_ENABLED,"gpu_tier":"$GPU_TIER","buildRepository":"$BUILD_REPOSITORY"}
+EOJSON
+        return 0
+    fi
 
-  CPUS:
-    description: Number of CPUs
-    default: "${CPUS}"
+    echo "==> Deploying with DevPod"
+    echo "  Workspace: $NAME"
+    echo "  Provider: $DEVPOD_PROVIDER"
+    echo "  Profile: $PROFILE"
+    echo "  Resources: ${CPUS} CPUs, ${MEMORY} memory, ${VOLUME_SIZE}GB storage"
+    if [[ -n "$BUILD_REPOSITORY" ]]; then
+        echo "  Build Repository: $BUILD_REPOSITORY"
+    fi
 
-  MEMORY:
-    description: Memory allocation
-    default: "${MEMORY}"
+    # Prepare image (build/push/load as needed)
+    local image_tag
+    if ! image_tag=$(prepare_image); then
+        print_error "Failed to prepare image"
+        exit 1
+    fi
 
-  WORKSPACE_SIZE:
-    description: Workspace volume size in GB
-    default: "${VOLUME_SIZE}"
+    # Generate devcontainer configuration
+    generate_devcontainer "$image_tag"
 
-EOPY
+    if [[ "$CONFIG_ONLY" == "true" ]]; then
+        print_success "Generated DevPod configuration at $OUTPUT_DIR/.devcontainer/"
+        echo "  Workspace: $NAME"
+        echo "  Provider: $DEVPOD_PROVIDER"
+        echo "  Profile: $PROFILE"
+        if [[ -n "$image_tag" ]]; then
+            echo "  Image: $image_tag"
+        else
+            echo "  Image: (build from Dockerfile)"
+        fi
+        if [[ "$GPU_ENABLED" == "true" ]]; then
+            echo "  GPU: $GPU_TIER (count: $GPU_COUNT)"
+        fi
+        return 0
+    fi
 
-# Add provider-specific options
-case "$DEVPOD_PROVIDER" in
-    aws)
-        cat << EOPY
-  # AWS EC2 specific options
-  AWS_REGION:
-    description: AWS region
-    default: "${AWS_REGION}"
+    require_devpod
 
-  AWS_INSTANCE_TYPE:
-    description: EC2 instance type
-    default: "${AWS_INSTANCE_TYPE}"
+    ensure_devpod_provider "$DEVPOD_PROVIDER" || exit 1
+    configure_k8s_provider
 
-  AWS_DISK_SIZE:
-    description: Root volume size in GB
-    default: "${AWS_DISK_SIZE}"
+    local devpod_cmd="devpod up . --provider $DEVPOD_PROVIDER --id $NAME --ide none"
+    print_status "Running: $devpod_cmd"
 
-  AWS_USE_SPOT:
-    description: Use spot instances for cost savings
-    default: "${AWS_USE_SPOT}"
-EOPY
-        [[ -n "$AWS_SUBNET_ID" ]] && echo "
-  AWS_SUBNET_ID:
-    description: VPC subnet ID
-    default: \"${AWS_SUBNET_ID}\""
-        [[ -n "$AWS_SECURITY_GROUP" ]] && echo "
-  AWS_SECURITY_GROUP:
-    description: Security group ID
-    default: \"${AWS_SECURITY_GROUP}\""
-        ;;
-    gcp)
-        cat << EOPY
-  # GCP Compute Engine specific options
-  GCP_ZONE:
-    description: GCP zone
-    default: "${GCP_ZONE}"
+    if eval "$devpod_cmd"; then
+        print_success "DevPod workspace '$NAME' deployed"
+        echo ""
+        echo "Connect:  sindri connect  OR  devpod ssh $NAME"
+        echo "Status:   sindri status   OR  devpod status $NAME"
+        echo "Stop:     devpod stop $NAME"
+        echo "Destroy:  sindri destroy  OR  devpod delete $NAME"
+    else
+        print_error "DevPod deployment failed"
+        echo "Check: devpod provider list"
+        echo "Logs:  devpod logs $NAME"
+        exit 1
+    fi
+}
 
-  GCP_MACHINE_TYPE:
-    description: GCE machine type
-    default: "${GCP_MACHINE_TYPE}"
+cmd_connect() {
+    parse_config
+    require_devpod
 
-  GCP_DISK_SIZE:
-    description: Boot disk size in GB
-    default: "${GCP_DISK_SIZE}"
+    if ! devpod list 2>/dev/null | grep -q "$NAME"; then
+        print_error "Workspace '$NAME' not found"
+        echo "Deploy first: sindri deploy"
+        exit 1
+    fi
 
-  GCP_DISK_TYPE:
-    description: Persistent disk type
-    default: "${GCP_DISK_TYPE}"
-    enum: ["pd-standard", "pd-balanced", "pd-ssd"]
-EOPY
-        [[ -n "$GCP_PROJECT" ]] && echo "
-  GCP_PROJECT:
-    description: GCP project ID
-    default: \"${GCP_PROJECT}\""
-        ;;
-    azure)
-        cat << EOPY
-  # Azure VM specific options
-  AZURE_LOCATION:
-    description: Azure region
-    default: "${AZURE_LOCATION}"
+    devpod ssh "$NAME"
+}
 
-  AZURE_VM_SIZE:
-    description: VM size
-    default: "${AZURE_VM_SIZE}"
+cmd_destroy() {
+    parse_config
 
-  AZURE_DISK_SIZE:
-    description: OS disk size in GB
-    default: "${AZURE_DISK_SIZE}"
+    if [[ "$FORCE" != "true" ]]; then
+        print_warning "This will destroy workspace '$NAME'"
+        read -p "Are you sure? (y/N) " -n 1 -r
+        echo
+        [[ ! $REPLY =~ ^[Yy]$ ]] && { print_status "Cancelled"; exit 0; }
+    fi
 
-  AZURE_RESOURCE_GROUP:
-    description: Resource group name
-    default: "${AZURE_RESOURCE_GROUP}"
-EOPY
-        [[ -n "$AZURE_SUBSCRIPTION" ]] && echo "
-  AZURE_SUBSCRIPTION:
-    description: Azure subscription ID
-    default: \"${AZURE_SUBSCRIPTION}\""
-        ;;
-    digitalocean)
-        cat << EOPY
-  # DigitalOcean Droplet specific options
-  DO_REGION:
-    description: DigitalOcean region
-    default: "${DO_REGION}"
+    print_header "Destroying DevPod workspace: $NAME"
 
-  DO_SIZE:
-    description: Droplet size
-    default: "${DO_SIZE}"
-EOPY
-        [[ "$DO_DISK_SIZE" -gt 0 ]] && echo "
-  DO_DISK_SIZE:
-    description: Block storage size in GB
-    default: \"${DO_DISK_SIZE}\""
-        ;;
-    kubernetes)
-        cat << EOPY
-  # Kubernetes pod specific options
-  K8S_NAMESPACE:
-    description: Kubernetes namespace
-    default: "${K8S_NAMESPACE}"
-EOPY
-        [[ -n "$K8S_STORAGE_CLASS" ]] && echo "
-  K8S_STORAGE_CLASS:
-    description: Storage class for persistent volumes
-    default: \"${K8S_STORAGE_CLASS}\""
-        [[ -n "$K8S_CONTEXT" ]] && echo "
-  K8S_CONTEXT:
-    description: Kubernetes context to use
-    default: \"${K8S_CONTEXT}\""
-        ;;
-    ssh)
-        cat << EOPY
-  # SSH provider specific options
-  SSH_HOST:
-    description: SSH host address
-    default: "${SSH_HOST}"
+    if command -v devpod >/dev/null 2>&1; then
+        if devpod list 2>/dev/null | grep -q "$NAME"; then
+            print_status "Stopping workspace..."
+            devpod stop "$NAME" 2>/dev/null || true
+            print_status "Deleting workspace..."
+            devpod delete "$NAME" --force 2>/dev/null || true
+        else
+            print_warning "Workspace '$NAME' not found in DevPod"
+        fi
+    fi
 
-  SSH_USER:
-    description: SSH user
-    default: "${SSH_USER}"
+    if [[ -d ".devcontainer" ]]; then
+        rm -rf .devcontainer
+        print_status "Removed .devcontainer directory"
+    fi
 
-  SSH_PORT:
-    description: SSH port
-    default: "${SSH_PORT}"
+    # Cleanup k8s resources if using kubernetes provider
+    if [[ "$DEVPOD_PROVIDER" == "kubernetes" ]] && [[ -n "${K8S_NAMESPACE:-}" ]]; then
+        local context_arg=()
+        [[ -n "${K8S_CONTEXT:-}" ]] && context_arg=(--context "$K8S_CONTEXT")
 
-  SSH_KEY_PATH:
-    description: Path to SSH private key
-    default: "${SSH_KEY_PATH}"
-EOPY
-        ;;
-    docker)
-        [[ -n "$DOCKER_HOST" ]] && cat << EOPY
-  # Docker provider specific options
-  DOCKER_HOST:
-    description: Docker host URL
-    default: "${DOCKER_HOST}"
-EOPY
+        if kubectl "${context_arg[@]}" get namespace "$K8S_NAMESPACE" >/dev/null 2>&1; then
+            print_status "Cleaning up kubernetes resources in namespace: $K8S_NAMESPACE"
+            kubectl "${context_arg[@]}" delete pods -n "$K8S_NAMESPACE" -l devpod.sh/workspace="$NAME" 2>/dev/null || true
+            kubectl "${context_arg[@]}" delete pvc -n "$K8S_NAMESPACE" -l devpod.sh/workspace="$NAME" 2>/dev/null || true
+        fi
+    fi
+
+    print_success "Workspace destroyed"
+}
+
+cmd_plan() {
+    parse_config
+
+    print_header "DevPod Deployment Plan"
+    echo ""
+    echo "Workspace:  $NAME"
+    echo "Provider:   $DEVPOD_PROVIDER"
+    echo "Profile:    $PROFILE"
+    echo ""
+    echo "Resources:"
+    echo "  CPUs:     $CPUS"
+    echo "  Memory:   $MEMORY"
+    echo "  Storage:  ${VOLUME_SIZE}GB"
+    if [[ "$GPU_ENABLED" == "true" ]]; then
+        echo "  GPU:      $GPU_TIER (count: $GPU_COUNT)"
+    fi
+    echo ""
+
+    # Show image strategy
+    echo "Image Strategy:"
+    case "$DEVPOD_PROVIDER" in
+        docker)
+            echo "  Build from Dockerfile (local Docker)"
+            ;;
+        kubernetes)
+            local local_cluster
+            local_cluster=$(detect_local_cluster)
+            if [[ -n "$local_cluster" ]]; then
+                echo "  Local cluster detected: $local_cluster"
+                echo "  → Build locally and load into cluster"
+            elif [[ -n "$BUILD_REPOSITORY" ]]; then
+                echo "  Build repository: $BUILD_REPOSITORY"
+                echo "  → Build and push to registry"
+            else
+                echo "  ⚠ No build repository configured"
+                echo "  → Set --build-repository or providers.devpod.buildRepository"
+            fi
+            ;;
+        aws|gcp|azure)
+            if [[ -n "$BUILD_REPOSITORY" ]]; then
+                echo "  Build repository: $BUILD_REPOSITORY"
+                echo "  → Build and push to registry"
+            else
+                echo "  ⚠ No build repository configured"
+                echo "  → Set --build-repository or providers.devpod.buildRepository"
+            fi
+            ;;
+        *)
+            echo "  Build from Dockerfile"
+            ;;
+    esac
+    echo ""
+
+    case "$DEVPOD_PROVIDER" in
+        kubernetes)
+            echo "Kubernetes:"
+            echo "  Context:       ${K8S_CONTEXT:-<current>}"
+            echo "  Namespace:     ${K8S_NAMESPACE:-devpod}"
+            echo "  StorageClass:  ${K8S_STORAGE_CLASS:-<default>}"
+            ;;
+        aws)
+            echo "AWS:"
+            echo "  Region:        ${AWS_REGION:-us-west-2}"
+            echo "  Instance:      ${AWS_INSTANCE_TYPE:-c5.xlarge}"
+            echo "  Disk:          ${AWS_DISK_SIZE:-40}GB"
+            ;;
+        gcp)
+            echo "GCP:"
+            echo "  Zone:          ${GCP_ZONE:-us-central1-a}"
+            echo "  Machine:       ${GCP_MACHINE_TYPE:-e2-standard-4}"
+            echo "  Disk:          ${GCP_DISK_SIZE:-40}GB"
+            ;;
+        azure)
+            echo "Azure:"
+            echo "  Location:      ${AZURE_LOCATION:-eastus}"
+            echo "  VM Size:       ${AZURE_VM_SIZE:-Standard_D4s_v3}"
+            echo "  Disk:          ${AZURE_DISK_SIZE:-40}GB"
+            ;;
+        docker)
+            echo "Docker: Local container"
+            ;;
+        *)
+            echo "Provider: $DEVPOD_PROVIDER"
+            ;;
+    esac
+
+    echo ""
+    echo "Actions:"
+    local step=1
+    if [[ "$DEVPOD_PROVIDER" != "docker" ]]; then
+        local local_cluster
+        local_cluster=$(detect_local_cluster)
+        if [[ -n "$local_cluster" ]]; then
+            echo "  $step. Build Docker image locally"
+            ((step++))
+            echo "  $step. Load image into $local_cluster"
+            ((step++))
+        elif [[ -n "$BUILD_REPOSITORY" ]]; then
+            echo "  $step. Authenticate with Docker registry"
+            ((step++))
+            echo "  $step. Build Docker image"
+            ((step++))
+            echo "  $step. Push to $BUILD_REPOSITORY"
+            ((step++))
+        fi
+    fi
+    echo "  $step. Generate .devcontainer/devcontainer.json"
+    ((step++))
+    echo "  $step. Add '$DEVPOD_PROVIDER' provider to DevPod (if needed)"
+    ((step++))
+    if [[ "$DEVPOD_PROVIDER" == "kubernetes" ]]; then
+        echo "  $step. Create namespace '$K8S_NAMESPACE' (if needed)"
+        ((step++))
+    fi
+    echo "  $step. Run: devpod up . --provider $DEVPOD_PROVIDER --id $NAME"
+}
+
+cmd_status() {
+    parse_config
+    require_devpod
+
+    print_header "DevPod Workspace Status"
+    echo ""
+    echo "Workspace: $NAME"
+    echo "Provider:  $DEVPOD_PROVIDER"
+    echo ""
+
+    if devpod list 2>/dev/null | grep -q "$NAME"; then
+        devpod status "$NAME" 2>/dev/null || true
+        echo ""
+
+        if [[ "$DEVPOD_PROVIDER" == "kubernetes" ]] && [[ -n "${K8S_CONTEXT:-}" ]]; then
+            echo "Kubernetes resources:"
+            local context_arg=()
+            [[ -n "${K8S_CONTEXT:-}" ]] && context_arg=(--context "$K8S_CONTEXT")
+            kubectl "${context_arg[@]}" get pods -n "${K8S_NAMESPACE:-devpod}" -l devpod.sh/workspace="$NAME" 2>/dev/null || echo "  No pods found"
+        fi
+    else
+        echo "Status: Not deployed"
+        echo ""
+        echo "Deploy with: sindri deploy"
+    fi
+}
+
+# ============================================================================
+# Main dispatch
+# ============================================================================
+
+case "$COMMAND" in
+    deploy)  cmd_deploy ;;
+    connect) cmd_connect ;;
+    destroy) cmd_destroy ;;
+    plan)    cmd_plan ;;
+    status)  cmd_status ;;
+    help|--help|-h) show_help ;;
+    *)
+        echo "Unknown command: $COMMAND" >&2
+        echo "Commands: deploy, connect, destroy, plan, status"
+        exit 1
         ;;
 esac
-
-cat << EOPY
-
-exec:
-  command: |-
-    docker exec -it \${CONTAINER_ID} \${COMMAND}
-
-  init: |-
-    echo "Initializing Sindri workspace..."
-    /docker/cli/extension-manager install-profile \${PROFILE}
-
-  shutdown: |-
-    echo "Shutting down Sindri workspace..."
-EOPY
-} > "$OUTPUT_DIR/.devcontainer/provider.yaml"
-
-# If config-only mode, just report success and exit
-if [[ "$CONFIG_ONLY" == "true" ]]; then
-    echo "==> Generated DevPod configuration at $OUTPUT_DIR/.devcontainer/"
-    echo "    Workspace name: $NAME"
-    echo "    Provider: $DEVPOD_PROVIDER"
-    echo "    Profile: $PROFILE"
-    echo "    Resources: ${CPUS} CPUs, ${MEMORY} memory, ${VOLUME_SIZE}GB storage"
-    if [[ "$GPU_ENABLED" == "true" ]]; then
-        echo "    GPU: $GPU_TIER (count: $GPU_COUNT)"
-    fi
-    exit 0
-fi
-
-echo "==> DevPod configuration created"
-echo ""
-echo "Configuration:"
-echo "  Provider: $DEVPOD_PROVIDER"
-echo "  Profile: $PROFILE"
-echo "  Resources: ${CPUS} CPUs, ${MEMORY} memory, ${VOLUME_SIZE}GB storage"
-echo ""
-echo "To use with DevPod:"
-echo "  1. Install DevPod: https://devpod.sh/docs/getting-started/install"
-echo "  2. Create workspace: devpod up . --provider $DEVPOD_PROVIDER"
-echo ""
-echo "To use with VS Code:"
-echo "  1. Install 'Dev Containers' extension"
-echo "  2. Open folder in container: Ctrl+Shift+P -> 'Dev Containers: Open Folder in Container'"
-echo ""
-echo "To use with GitHub Codespaces:"
-echo "  1. Push to GitHub repository"
-echo "  2. Create codespace from repository"

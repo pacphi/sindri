@@ -298,15 +298,15 @@ providers:
 
 **Available DevPod backends:**
 
-| Type           | Backend               | Example Config                  |
-| -------------- | --------------------- | ------------------------------- |
-| `docker`       | Local Docker (default)| `examples/devpod/`              |
-| `aws`          | AWS EC2               | `examples/devpod/aws/`          |
-| `gcp`          | GCP Compute           | `examples/devpod/gcp/`          |
-| `azure`        | Azure VMs             | `examples/devpod/azure/`        |
-| `digitalocean` | DigitalOcean Droplets | `examples/devpod/digitalocean/` |
-| `kubernetes`   | Kubernetes pods       | `examples/devpod/kubernetes/`   |
-| `ssh`          | Any SSH host          | N/A                             |
+| Type           | Backend                | Example Config                  |
+| -------------- | ---------------------- | ------------------------------- |
+| `docker`       | Local Docker (default) | `examples/devpod/`              |
+| `aws`          | AWS EC2                | `examples/devpod/aws/`          |
+| `gcp`          | GCP Compute            | `examples/devpod/gcp/`          |
+| `azure`        | Azure VMs              | `examples/devpod/azure/`        |
+| `digitalocean` | DigitalOcean Droplets  | `examples/devpod/digitalocean/` |
+| `kubernetes`   | Kubernetes pods        | `examples/devpod/kubernetes/`   |
+| `ssh`          | Any SSH host           | N/A                             |
 
 ## Kubernetes Deployment Paths
 

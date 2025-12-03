@@ -44,6 +44,14 @@ inputs:
     description: Inject docker credentials into workspace
     required: false
     default: "true"
+  image:
+    description: Pre-built container image to use (required for Kubernetes provider)
+    required: false
+    default: "sindri:latest"
+  force-image:
+    description: Force use of image instead of dockerFile in devcontainer.json
+    required: false
+    default: "false"
   wait-for-ready:
     description: Wait for workspace to be ready
     required: false
@@ -78,44 +86,106 @@ runs:
         # Ensure devcontainer directory exists
         mkdir -p .devcontainer
 
-        # If using Sindri, generate devcontainer.json from sindri.yaml
-        if [[ -f "sindri.yaml" ]] && [[ ! -f "${{ inputs.devcontainer-path }}" ]]; then
-          echo "Generating devcontainer.json from sindri.yaml"
+        DEVCONTAINER_PATH="${{ inputs.devcontainer-path }}"
+        FORCE_IMAGE="${{ inputs.force-image }}"
+        IMAGE="${{ inputs.image }}"
+        PROVIDER_ID="${{ inputs.provider-id }}"
 
-          # Extract configuration
-          NAME=$(yq '.name' sindri.yaml)
-          PROFILE=$(yq '.extensions.profile // "minimal"' sindri.yaml)
+        # Check if this is a Kubernetes provider (requires pre-built image)
+        IS_K8S_PROVIDER="false"
+        if [[ "$PROVIDER_ID" == *"k8s"* ]] || [[ "$PROVIDER_ID" == *"kubernetes"* ]]; then
+          IS_K8S_PROVIDER="true"
+          echo "Kubernetes provider detected - will use pre-built image"
+        fi
 
-          # Generate devcontainer.json
-          cat > "${{ inputs.devcontainer-path }}" << 'EODC'
-        {
-          "name": "${NAME}",
-          "image": "sindri:latest",
-          "workspaceFolder": "/alt/home/developer/workspace",
-          "workspaceMount": "source=${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
+        # Determine if we need to generate a new devcontainer.json
+        GENERATE_NEW="false"
 
-          "customizations": {
-            "vscode": {
-              "extensions": [
-                "ms-vscode.vscode-typescript-next",
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode"
-              ],
-              "settings": {
-                "terminal.integrated.defaultProfile.linux": "bash"
-              }
-            }
-          },
+        # Case 1: No devcontainer.json exists at all (common in CI where .devcontainer/ is gitignored)
+        if [[ ! -f "$DEVCONTAINER_PATH" ]]; then
+          GENERATE_NEW="true"
+          echo "No devcontainer.json found at $DEVCONTAINER_PATH - will generate one"
+        fi
 
-          "features": {
-            "ghcr.io/devcontainers/features/github-cli:1": {},
-            "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-          },
+        # Case 2: Kubernetes provider with existing devcontainer.json using dockerFile
+        # (K8s can't build from Dockerfile, needs pre-built image)
+        if [[ "$IS_K8S_PROVIDER" == "true" ]] && [[ -f "$DEVCONTAINER_PATH" ]]; then
+          if grep -q '"dockerFile"' "$DEVCONTAINER_PATH" || grep -q '"build"' "$DEVCONTAINER_PATH"; then
+            GENERATE_NEW="true"
+            echo "Existing devcontainer.json uses dockerFile/build - Kubernetes requires image"
+            # Backup original
+            cp "$DEVCONTAINER_PATH" "${DEVCONTAINER_PATH}.original"
+          fi
+        fi
 
-          "postCreateCommand": "extension-manager install-profile ${PROFILE}",
-          "remoteUser": "developer"
-        }
-        EODC
+        # Case 3: Force image mode enabled
+        if [[ "$FORCE_IMAGE" == "true" ]] && [[ -f "$DEVCONTAINER_PATH" ]]; then
+          if grep -q '"dockerFile"' "$DEVCONTAINER_PATH" || grep -q '"build"' "$DEVCONTAINER_PATH"; then
+            GENERATE_NEW="true"
+            echo "Force image mode - replacing dockerFile/build with image reference"
+            cp "$DEVCONTAINER_PATH" "${DEVCONTAINER_PATH}.original"
+          fi
+        fi
+
+        # Generate CI-compatible devcontainer.json if needed
+        if [[ "$GENERATE_NEW" == "true" ]]; then
+          echo "Generating CI-compatible devcontainer.json with image: $IMAGE"
+
+          # Extract name from sindri.yaml or use default
+          if [[ -f "sindri.yaml" ]]; then
+            NAME=$(yq -r '.name // "sindri-workspace"' sindri.yaml)
+            PROFILE=$(yq -r '.extensions.profile // "minimal"' sindri.yaml)
+          else
+            NAME="sindri-workspace"
+            PROFILE="minimal"
+          fi
+
+          # Generate devcontainer.json with image reference (not dockerFile)
+          # Use jq to construct valid JSON
+          # IMPORTANT: HOME and MISE_* env vars are critical for extension-manager to work
+          jq -n \
+            --arg name "$NAME" \
+            --arg image "$IMAGE" \
+            --arg profile "$PROFILE" \
+            '{
+              name: $name,
+              image: $image,
+              workspaceFolder: "/alt/home/developer/workspace",
+              workspaceMount: "source=${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
+              containerEnv: {
+                HOME: "/alt/home/developer",
+                ALT_HOME: "/alt/home/developer",
+                WORKSPACE: "/alt/home/developer/workspace",
+                MISE_DATA_DIR: "/alt/home/developer/.local/share/mise",
+                MISE_CONFIG_DIR: "/alt/home/developer/.config/mise",
+                MISE_CACHE_DIR: "/alt/home/developer/.cache/mise",
+                MISE_STATE_DIR: "/alt/home/developer/.local/state/mise",
+                CI_MODE: "true"
+              },
+              customizations: {
+                vscode: {
+                  extensions: [
+                    "ms-vscode.vscode-typescript-next",
+                    "dbaeumer.vscode-eslint",
+                    "esbenp.prettier-vscode"
+                  ],
+                  settings: {
+                    "terminal.integrated.defaultProfile.linux": "bash"
+                  }
+                }
+              },
+              postCreateCommand: "/docker/cli/extension-manager install-profile \($profile)",
+              remoteUser: "developer",
+              containerUser: "developer"
+            }' > "$DEVCONTAINER_PATH"
+
+          echo "Generated devcontainer.json:"
+          cat "$DEVCONTAINER_PATH"
+        else
+          echo "Using existing devcontainer.json at $DEVCONTAINER_PATH"
+          if [[ -f "$DEVCONTAINER_PATH" ]]; then
+            cat "$DEVCONTAINER_PATH"
+          fi
         fi
 
         echo "::endgroup::"
@@ -177,11 +247,11 @@ runs:
         echo "Running: $CMD"
         eval "$CMD"
 
-        # Get workspace status (DevPod uses 'State' field, not 'status')
-        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.State' || echo "unknown")
+        # Get workspace status (DevPod uses lowercase 'state' in JSON output)
+        STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.state' || echo "unknown")
 
-        # Get provider name (DevPod returns provider as string, not object)
-        PROVIDER_NAME=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.Provider' || echo "")
+        # Get provider name (DevPod uses lowercase 'provider' in JSON output)
+        PROVIDER_NAME=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.provider' || echo "")
 
         echo "status=$STATUS" >> $GITHUB_OUTPUT
         echo "provider-name=$PROVIDER_NAME" >> $GITHUB_OUTPUT
@@ -207,14 +277,16 @@ runs:
             exit 1
           fi
 
-          STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.State' || echo "unknown")
+          STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.state' || echo "unknown")
+          # Normalize to lowercase for comparison
+          STATUS_LOWER=$(echo "$STATUS" | tr '[:upper:]' '[:lower:]')
           echo "Status: $STATUS (elapsed: ${ELAPSED}s)"
 
-          # DevPod returns lowercase state values: "running", "stopped", "busy", etc.
-          if [[ "$STATUS" == "Running" ]] || [[ "$STATUS" == "running" ]]; then
+          # DevPod state values may vary in case - compare case-insensitively
+          if [[ "$STATUS_LOWER" == "running" ]]; then
             echo "✅ Workspace is ready"
             break
-          elif [[ "$STATUS" == "Error" ]] || [[ "$STATUS" == "error" ]]; then
+          elif [[ "$STATUS_LOWER" == "error" ]]; then
             echo "❌ Workspace deployment failed"
             devpod logs "$WORKSPACE_ID" || true
             exit 1

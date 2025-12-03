@@ -82,7 +82,7 @@ if [[ -n "$SINDRI_CONFIG" ]] && [[ -f "$SINDRI_CONFIG" ]]; then
     [[ "$CI_MODE" == "true" ]] && echo "CI Mode: enabled"
 
     # shellcheck disable=SC2086
-    "$REPO_ROOT/deploy/adapters/fly-adapter.sh" \
+    "$REPO_ROOT/deploy/adapters/fly-adapter.sh" deploy \
         --config-only \
         --output-dir "$OUTPUT_DIR" \
         --app-name "$APP_NAME" \
@@ -124,7 +124,7 @@ YAML
 
 # Use the adapter with the temporary config
 # shellcheck disable=SC2086
-"$REPO_ROOT/deploy/adapters/fly-adapter.sh" \
+"$REPO_ROOT/deploy/adapters/fly-adapter.sh" deploy \
     --config-only \
     --output-dir "$OUTPUT_DIR" \
     --app-name "$APP_NAME" \

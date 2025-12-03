@@ -24,9 +24,9 @@ Agentic Quality Engineering (AQE) is an AI-powered framework that provides:
 
 ## Installed Tools
 
-| Tool  | Type      | Description                   | License |
-| ----- | --------- | ----------------------------- | ------- |
-| `aqe` | framework | Agentic QE CLI and framework  | MIT     |
+| Tool  | Type      | Description                  | License |
+| ----- | --------- | ---------------------------- | ------- |
+| `aqe` | framework | Agentic QE CLI and framework | MIT     |
 
 ## Configuration
 
@@ -39,9 +39,9 @@ Agentic Quality Engineering (AQE) is an AI-powered framework that provides:
 
 ### Environment Variables
 
-| Variable   | Value              | Description           |
-| ---------- | ------------------ | --------------------- |
-| `AQE_HOME` | $HOME/.agentic-qe  | AQE configuration dir |
+| Variable   | Value             | Description           |
+| ---------- | ----------------- | --------------------- |
+| `AQE_HOME` | $HOME/.agentic-qe | AQE configuration dir |
 
 ## Network Requirements
 

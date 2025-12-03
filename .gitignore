@@ -221,8 +221,8 @@ memory/
 coordination/
 hive-mind-prompt-*.txt
 
-# DevContainer local overrides
-.devcontainer/devcontainer.local.json
+# DevContainer
+.devcontainer/
 
 # Mise cache and runtime files
 .mise.local.toml

@@ -13,7 +13,7 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      count: 1  # Use all available host GPUs with count: -1
+      count: 1 # Use all available host GPUs with count: -1
   volumes:
     workspace:
       size: 100GB

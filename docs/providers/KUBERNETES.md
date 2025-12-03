@@ -25,17 +25,18 @@ Sindri supports two paths to Kubernetes deployment:
 - Deploys via DevPod's Kubernetes provider
 - DevContainer compatibility, IDE integration
 - Best for: VS Code Remote, CI testing, DevContainer workflows
-- See [DevPod Provider Guide](DEVPOD.md)
+- **Image handling:** Auto-detects kind/k3d for local clusters; external clusters require `buildRepository`
+- See [DevPod Provider Guide](DEVPOD.md) (includes [Image Building](DEVPOD.md#image-building-for-kubernetes) section)
 
 **CI Testing Note:** The CI workflow uses DevPod+K8s (`devpod-k8s` provider) with
 auto-provisioned kind clusters for testing. See [Testing Guide](../TESTING.md).
 
 **Example directories:**
 
-| Directory                     | Purpose                              |
-| ----------------------------- | ------------------------------------ |
-| `examples/devpod/kubernetes/` | DevPod+K8s configs (CI uses these)   |
-| `examples/k8s/`               | Local cluster creation + deployment  |
+| Directory                     | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `examples/devpod/kubernetes/` | DevPod+K8s configs (CI uses these)  |
+| `examples/k8s/`               | Local cluster creation + deployment |
 
 ## Prerequisites
 

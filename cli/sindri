@@ -69,6 +69,7 @@ COMMANDS:
     destroy [--provider <name>] [--force] [--config <file>]
                                  Destroy deployment
     connect [--config <file>]    Connect to deployed instance
+    status [--config <file>]     Show deployment status
     test [--config <file>] [--suite <name>]
                                  Run test suite on deployed instance
 
@@ -257,13 +258,13 @@ deploy() {
 
     case "$provider" in
         docker)
-            "$BASE_DIR/deploy/adapters/docker-adapter.sh" "$config"
+            "$BASE_DIR/deploy/adapters/docker-adapter.sh" deploy "$config"
             ;;
         fly)
-            "$BASE_DIR/deploy/adapters/fly-adapter.sh" "$config"
+            "$BASE_DIR/deploy/adapters/fly-adapter.sh" deploy "$config"
             ;;
         devpod)
-            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" "$config"
+            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" deploy "$config"
             ;;
         *)
             print_error "Unknown provider: $provider"
@@ -282,19 +283,18 @@ connect() {
         return 1
     fi
 
-    local name provider
-    name=$(yq '.name' "$config")
+    local provider
     provider=$(yq '.deployment.provider' "$config")
 
     case "$provider" in
         docker)
-            docker exec -it "$name" /bin/bash
+            "$BASE_DIR/deploy/adapters/docker-adapter.sh" connect "$config"
             ;;
         fly)
-            flyctl ssh console -a "$name"
+            "$BASE_DIR/deploy/adapters/fly-adapter.sh" connect "$config"
             ;;
         devpod)
-            devpod ssh "$name"
+            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" connect "$config"
             ;;
         *)
             print_error "Unknown provider: $provider"
@@ -313,79 +313,22 @@ destroy() {
         return 1
     fi
 
-    # Use provider from config if not specified via command line
     if [[ -z "$provider" ]]; then
         provider=$(yq '.deployment.provider' "$config" 2>/dev/null || echo "docker")
     fi
 
-    local name
-    name=$(yq '.name' "$config")
-
-    # Confirmation prompt unless --force is used
-    if [[ "$force" != "--force" ]]; then
-        print_warning "This will destroy the deployment '$name' on provider '$provider'"
-        read -p "Are you sure? (y/N) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_status "Destroy cancelled"
-            return 0
-        fi
-    fi
-
-    print_header "Destroying $name on $provider"
+    local force_arg=""
+    [[ "$force" == "--force" ]] && force_arg="--force"
 
     case "$provider" in
         docker)
-            # Stop and remove container
-            if docker ps -a | grep -q "$name"; then
-                print_status "Stopping container $name..."
-                docker stop "$name" 2>/dev/null || true
-                print_status "Removing container $name..."
-                docker rm "$name" 2>/dev/null || true
-            fi
-
-            # Remove docker-compose resources if exists
-            if [[ -f "docker-compose.yml" ]]; then
-                print_status "Removing docker-compose resources..."
-                docker compose down -v 2>/dev/null || true
-                rm -f docker-compose.yml
-            fi
-
-            print_success "Docker deployment destroyed"
+            "$BASE_DIR/deploy/adapters/docker-adapter.sh" destroy "$force_arg" "$config"
             ;;
         fly)
-            print_status "Destroying Fly.io app $name..."
-
-            # Delete the app (this also deletes volumes and secrets)
-            if flyctl apps list | grep -q "$name"; then
-                flyctl apps destroy "$name" --yes
-            else
-                print_warning "App $name not found on Fly.io"
-            fi
-
-            # Remove fly.toml
-            if [[ -f "fly.toml" ]]; then
-                rm -f fly.toml
-                print_status "Removed fly.toml"
-            fi
-
-            print_success "Fly.io deployment destroyed"
+            "$BASE_DIR/deploy/adapters/fly-adapter.sh" destroy "$force_arg" "$config"
             ;;
         devpod)
-            print_status "Destroying DevPod workspace..."
-
-            # Stop and delete DevPod workspace
-            if devpod list | grep -q "$name"; then
-                devpod delete "$name" --force
-            fi
-
-            # Remove .devcontainer directory
-            if [[ -d ".devcontainer" ]]; then
-                rm -rf .devcontainer
-                print_status "Removed .devcontainer directory"
-            fi
-
-            print_success "DevPod deployment destroyed"
+            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" destroy "$force_arg" "$config"
             ;;
         *)
             print_error "Unknown provider: $provider"
@@ -448,6 +391,10 @@ test_suite() {
                     # Check SSH connectivity
                     devpod ssh "$name" "whoami" || { print_error "SSH test failed"; return 1; }
                     ;;
+                *)
+                    print_error "Smoke tests not implemented for provider: $provider"
+                    return 1
+                    ;;
             esac
 
             print_success "Smoke tests passed"
@@ -472,6 +419,10 @@ test_suite() {
                     ;;
                 devpod)
                     devpod ssh "$name" "/docker/cli/extension-manager validate-all"
+                    ;;
+                *)
+                    print_error "Integration tests not implemented for provider: $provider"
+                    return 1
                     ;;
             esac
 
@@ -501,103 +452,51 @@ plan() {
         return 1
     fi
 
-    print_header "Deployment Plan"
-
-    # Parse configuration
-    local name provider memory cpus volume_size profile
-    name=$(yq '.name' "$config")
+    local provider
     provider=$(yq '.deployment.provider' "$config")
-    memory=$(yq '.deployment.resources.memory // "2GB"' "$config")
-    cpus=$(yq '.deployment.resources.cpus // 2' "$config")
-    volume_size=$(yq '.deployment.volumes.workspace.size // "10GB"' "$config")
-    profile=$(yq '.extensions.profile // "minimal"' "$config")
-
-    echo ""
-    echo "Configuration Summary:"
-    echo "  Name:        $name"
-    echo "  Provider:    $provider"
-    echo "  Memory:      $memory"
-    echo "  CPUs:        $cpus"
-    echo "  Volume:      $volume_size"
-    echo "  Profile:     $profile"
-    echo ""
 
     case "$provider" in
         docker)
-            echo "Docker Deployment Plan:"
-            echo "  • Build sindri:latest image (always rebuilds for fresh source)"
-            echo "  • Create docker-compose.yml"
-            echo "  • Create persistent volume: workspace"
-            echo "  • Start container with resource limits"
-            echo "  • Install extension profile: $profile"
-            echo ""
-            echo "Commands to be executed:"
-            echo "  docker build -t sindri:latest -f Dockerfile ."
-            echo "  docker compose up -d"
-            echo ""
-            echo "Note: Docker provider always rebuilds to ensure fresh source code."
-            echo "      This is optimal for local development."
-            echo ""
+            "$BASE_DIR/deploy/adapters/docker-adapter.sh" plan "$config"
             ;;
         fly)
-            local region auto_stop ssh_port
-            region=$(yq '.providers.fly.region // "sjc"' "$config")
-            auto_stop=$(yq '.providers.fly.autoStopMachines // true' "$config")
-            ssh_port=$(yq '.providers.fly.sshPort // 10022' "$config")
-
-            echo "Fly.io Deployment Plan:"
-            echo "  • Region:    $region"
-            echo "  • Auto-stop: $auto_stop"
-            echo "  • SSH Port:  $ssh_port"
-            echo ""
-            echo "Actions:"
-            echo "  • Generate fly.toml configuration"
-            echo "  • Create app: $name"
-            echo "  • Create volume: workspace (${volume_size})"
-            echo "  • Deploy application"
-            echo "  • Install extension profile: $profile"
-            echo ""
-            echo "Commands to be executed:"
-            echo "  flyctl apps create $name --org personal"
-            echo "  flyctl volumes create workspace -s ${volume_size//GB/} -r $region -a $name"
-            echo "  flyctl deploy --ha=false"
-            echo ""
-            echo "Note: Use --rebuild flag to force image rebuild: sindri deploy --rebuild"
-            echo ""
+            "$BASE_DIR/deploy/adapters/fly-adapter.sh" plan "$config"
             ;;
         devpod)
-            echo "DevPod/DevContainer Deployment Plan:"
-            echo "  • Generate .devcontainer/devcontainer.json"
-            echo "  • Generate .devcontainer/provider.yaml"
-            echo "  • Configure VS Code extensions"
-            echo "  • Mount workspace volume"
-            echo "  • Install extension profile: $profile"
-            echo ""
-            echo "Next steps:"
-            echo "  • Use with DevPod: devpod up . --provider docker"
-            echo "  • Use with VS Code: Open in DevContainer"
-            echo "  • Use with GitHub Codespaces: Push and create codespace"
-            echo ""
-            echo "Note: Use --rebuild flag to force image rebuild: sindri deploy --rebuild"
-            echo ""
+            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" plan "$config"
             ;;
         *)
             print_error "Unknown provider: $provider"
             ;;
     esac
+}
 
-    # Show secrets if configured
-    local secrets
-    secrets=$(yq '.secrets[]?.name' "$config" 2>/dev/null || true)
-    if [[ ! -z "$secrets" ]]; then
-        echo "Secrets to configure:"
-        echo "$secrets" | while read -r secret; do
-            echo "  • $secret"
-        done
-        echo ""
+# Show deployment status
+status() {
+    local config="${1:-sindri.yaml}"
+
+    if [[ ! -f "$config" ]]; then
+        print_error "$config not found"
+        return 1
     fi
 
-    print_success "Plan complete. Run 'sindri deploy' to execute."
+    local provider
+    provider=$(yq '.deployment.provider' "$config")
+
+    case "$provider" in
+        docker)
+            "$BASE_DIR/deploy/adapters/docker-adapter.sh" status "$config"
+            ;;
+        fly)
+            "$BASE_DIR/deploy/adapters/fly-adapter.sh" status "$config"
+            ;;
+        devpod)
+            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" status "$config"
+            ;;
+        *)
+            print_error "Unknown provider: $provider"
+            ;;
+    esac
 }
 
 # Main
@@ -670,6 +569,16 @@ main() {
                 esac
             done
             destroy "$provider" "$force" "$config"
+            ;;
+        status)
+            local config="sindri.yaml"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -c|--config) config="$2"; shift 2 ;;
+                    *) shift ;;
+                esac
+            done
+            status "$config"
             ;;
         plan)
             local config="sindri.yaml"

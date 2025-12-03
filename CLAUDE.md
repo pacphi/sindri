@@ -217,12 +217,12 @@ Critical concept: **Two-tier filesystem with home directory as volume**
 
 The base image includes these tools system-wide (in `/usr/local/bin`):
 
-| Tool     | Purpose                                     | Installation Script  |
-| -------- | ------------------------------------------- | -------------------- |
-| `mise`   | Unified tool version manager                | `install-mise.sh`    |
-| `claude` | Claude Code CLI for AI-assisted development | `install-claude.sh`  |
-| `gh`     | GitHub CLI                                  | APT package          |
-| `yq`     | YAML processor                              | Binary download      |
+| Tool     | Purpose                                     | Installation Script |
+| -------- | ------------------------------------------- | ------------------- |
+| `mise`   | Unified tool version manager                | `install-mise.sh`   |
+| `claude` | Claude Code CLI for AI-assisted development | `install-claude.sh` |
+| `gh`     | GitHub CLI                                  | APT package         |
+| `yq`     | YAML processor                              | Binary download     |
 
 **Development tools (Node.js, Python, etc.)** are installed via extensions:
 
@@ -275,20 +275,37 @@ The `setup-ssh-environment.sh` script configures `BASH_ENV` so that SSH commands
 
 ### Multi-Provider Architecture
 
-**Adapter Pattern**: Each provider has a dedicated adapter script in `deploy/adapters/`:
+**Adapter Pattern**: Each provider has a dedicated adapter script in `deploy/adapters/` that handles
+the full lifecycle using a command-based interface:
 
-- Reads `sindri.yaml` (single source of truth)
-- Translates to provider-specific format (docker-compose.yml, fly.toml, devcontainer.json)
-- Handles provider-specific deployment commands
-- Manages secrets via provider mechanisms
+```bash
+<adapter>.sh <command> [options] [config]
+
+Commands:
+  deploy   - Create/update deployment
+  connect  - Connect to running environment
+  destroy  - Tear down deployment
+  plan     - Show deployment plan
+  status   - Show deployment status
+```
+
+The sindri CLI delegates all operations to adapters:
+
+```bash
+sindri deploy  → <adapter>.sh deploy
+sindri connect → <adapter>.sh connect
+sindri status  → <adapter>.sh status
+sindri plan    → <adapter>.sh plan
+sindri destroy → <adapter>.sh destroy
+```
 
 **Available Adapters:**
 
-| Provider | Adapter             | Notes                                          |
-| -------- | ------------------- | ---------------------------------------------- |
-| `docker` | `docker-adapter.sh` | Local Docker Compose deployment                |
-| `fly`    | `fly-adapter.sh`    | Fly.io cloud deployment (supports `--ci-mode`) |
-| `devpod` | `devpod-adapter.sh` | DevContainer (supports AWS, GCP, Azure, K8s)   |
+| Provider | Adapter             | Generated Config     | Deploy Command         |
+| -------- | ------------------- | -------------------- | ---------------------- |
+| `docker` | `docker-adapter.sh` | `docker-compose.yml` | `docker compose up -d` |
+| `fly`    | `fly-adapter.sh`    | `fly.toml`           | `flyctl deploy`        |
+| `devpod` | `devpod-adapter.sh` | `devcontainer.json`  | `devpod up`            |
 
 **Note:** Kubernetes deployment is supported via the DevPod provider with `type: kubernetes`. There is no native kubernetes-adapter; use DevPod for K8s deployments.
 
@@ -296,7 +313,7 @@ The `setup-ssh-environment.sh` script configures `BASH_ENV` so that SSH commands
 
 ```bash
 # Generate CI-compatible fly.toml (empty services, no health checks)
-./deploy/adapters/fly-adapter.sh --ci-mode --config-only sindri.yaml
+./deploy/adapters/fly-adapter.sh deploy --ci-mode --config-only sindri.yaml
 ```
 
 When `--ci-mode` is enabled:

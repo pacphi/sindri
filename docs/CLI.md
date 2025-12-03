@@ -239,6 +239,36 @@ sindri connect --config my-custom.sindri.yaml
 - **fly** - `flyctl ssh console` via proxy
 - **devpod** - `devpod ssh` into workspace
 
+### sindri status
+
+Show deployment status for the current environment.
+
+```bash
+sindri status [--config <file>]
+```
+
+**Behavior:**
+
+- Auto-detects provider from configuration
+- Queries provider-specific status information
+- Shows resource usage and connection details
+
+**Examples:**
+
+```bash
+# Check status of current deployment
+sindri status
+
+# Check status for specific config
+sindri status --config production.sindri.yaml
+```
+
+**Provider Status Information:**
+
+- **docker** - Container state, resource usage (CPU/memory)
+- **fly** - Machine status, volumes, app state
+- **devpod** - Workspace status, Kubernetes pod state (if k8s backend)
+
 ---
 
 ## Testing Commands

@@ -206,10 +206,10 @@ bootstrapping. This provides fast feedback without requiring users to maintain e
 
 **Behavior:**
 
-| KUBECONFIG Secret | Result                                           |
-| ----------------- | ------------------------------------------------ |
-| Not provided      | Automatically creates a local kind cluster       |
-| Provided          | Uses the external Kubernetes cluster             |
+| KUBECONFIG Secret | Result                                     |
+| ----------------- | ------------------------------------------ |
+| Not provided      | Automatically creates a local kind cluster |
+| Provided          | Uses the external Kubernetes cluster       |
 
 **To test with kind (default for CI):**
 

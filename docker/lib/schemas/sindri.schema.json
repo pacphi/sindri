@@ -281,6 +281,10 @@
               "enum": ["aws", "gcp", "azure", "digitalocean", "kubernetes", "ssh", "docker"],
               "description": "DevPod provider type"
             },
+            "buildRepository": {
+              "type": "string",
+              "description": "Docker registry URL for image push (required for non-local Kubernetes and cloud providers). Example: ghcr.io/myorg/sindri"
+            },
             "aws": {
               "type": "object",
               "description": "AWS EC2 provider options",

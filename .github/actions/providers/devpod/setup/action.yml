@@ -95,22 +95,34 @@ inputs:
     description: Kubernetes namespace for DevPod workspaces
     required: false
     default: "devpod"
-  k8s-use-kind:
-    description: Create a local kind cluster for testing (auto-detected if KUBECONFIG not provided)
+  k8s-use-local-cluster:
+    description: Create a local cluster for testing (auto-detected if KUBECONFIG not provided)
     required: false
     default: "auto"
-  k8s-kind-cluster-name:
-    description: Name for the kind cluster
+  k8s-local-cluster-type:
+    description: Type of local cluster to create (kind or k3d)
+    required: false
+    default: "kind"
+  k8s-local-cluster-name:
+    description: Name for the local cluster
     required: false
     default: "sindri-test"
   k8s-kind-version:
-    description: Kind version to install
+    description: Kind version to install (only used when cluster-type is kind)
     required: false
     default: "v0.27.0"
   k8s-kind-node-image:
-    description: Kind node image (Kubernetes version)
+    description: Kind node image / Kubernetes version (only used when cluster-type is kind)
     required: false
     default: "kindest/node:v1.32.0"
+  k8s-k3d-version:
+    description: k3d version to install (only used when cluster-type is k3d)
+    required: false
+    default: "v5.7.5"
+  k8s-k3d-k8s-version:
+    description: Kubernetes version for k3d (only used when cluster-type is k3d)
+    required: false
+    default: "v1.31.4"
 
   # SSH-specific inputs
   ssh-host:
@@ -136,12 +148,21 @@ outputs:
   provider-config:
     description: JSON object with provider configuration
     value: ${{ steps.configure.outputs.config }}
-  kind-cluster-created:
-    description: Whether a kind cluster was created
-    value: ${{ steps.kind-cluster.outputs.created }}
-  kind-cluster-name:
-    description: Name of the kind cluster (if created)
-    value: ${{ steps.kind-cluster.outputs.cluster-name }}
+  local-cluster-created:
+    description: Whether a local cluster was created
+    value: ${{ steps.local-cluster.outputs.created }}
+  local-cluster-type:
+    description: Type of local cluster (kind or k3d)
+    value: ${{ steps.local-cluster.outputs.cluster-type }}
+  local-cluster-name:
+    description: Name of the local cluster (if created)
+    value: ${{ steps.local-cluster.outputs.cluster-name }}
+  local-registry-url:
+    description: URL of the local registry (if local cluster with registry was created)
+    value: ${{ steps.local-cluster.outputs.registry-url }}
+  local-registry-name:
+    description: Name of the local registry container (if created)
+    value: ${{ steps.local-cluster.outputs.registry-name }}
 
 runs:
   using: composite
@@ -238,9 +259,9 @@ runs:
 
         echo "::endgroup::"
 
-    # Create kind cluster for Kubernetes provider if needed
-    - name: Setup kind cluster (if needed)
-      id: kind-cluster
+    # Create local cluster (kind or k3d) for Kubernetes provider if needed
+    - name: Setup local Kubernetes cluster (if needed)
+      id: local-cluster
       if: inputs.provider-type == 'kubernetes'
       shell: bash
       env:
@@ -248,75 +269,169 @@ runs:
       run: |
         echo "::group::Checking Kubernetes cluster availability"
 
-        USE_KIND="${{ inputs.k8s-use-kind }}"
-        CLUSTER_NAME="${{ inputs.k8s-kind-cluster-name }}"
-        KIND_VERSION="${{ inputs.k8s-kind-version }}"
-        NODE_IMAGE="${{ inputs.k8s-kind-node-image }}"
+        USE_LOCAL="${{ inputs.k8s-use-local-cluster }}"
+        CLUSTER_TYPE="${{ inputs.k8s-local-cluster-type }}"
+        CLUSTER_NAME="${{ inputs.k8s-local-cluster-name }}"
 
-        # Auto-detect: use kind if no KUBECONFIG provided
-        if [[ "$USE_KIND" == "auto" ]]; then
+        # Auto-detect: use local cluster if no KUBECONFIG provided
+        if [[ "$USE_LOCAL" == "auto" ]]; then
           if [[ -n "$KUBECONFIG_SECRET" ]] || [[ -f "$HOME/.kube/config" ]]; then
             echo "KUBECONFIG detected, using external cluster"
-            USE_KIND="false"
+            USE_LOCAL="false"
           else
-            echo "No KUBECONFIG detected, will create kind cluster"
-            USE_KIND="true"
+            echo "No KUBECONFIG detected, will create local $CLUSTER_TYPE cluster"
+            USE_LOCAL="true"
           fi
         fi
 
-        if [[ "$USE_KIND" == "true" ]]; then
-          echo "Creating kind cluster for CI testing..."
+        if [[ "$USE_LOCAL" == "true" ]]; then
+          echo "Creating $CLUSTER_TYPE cluster with local registry for CI testing..."
 
-          # Install kind if not present
-          if ! command -v kind &> /dev/null; then
-            echo "Installing kind ${KIND_VERSION}..."
-            curl -Lo /tmp/kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
-            chmod +x /tmp/kind
-            sudo mv /tmp/kind /usr/local/bin/kind
+          # Set up local registry (common for both kind and k3d)
+          REG_NAME="local-registry-${CLUSTER_NAME}"
+          REG_PORT="5001"
+
+          if [ "$(docker inspect -f '{{.State.Running}}' "${REG_NAME}" 2>/dev/null || true)" != 'true' ]; then
+            echo "Creating local registry: ${REG_NAME} on port ${REG_PORT}"
+            docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" registry:2
+          else
+            echo "Local registry ${REG_NAME} already running"
           fi
 
-          kind version
+          if [[ "$CLUSTER_TYPE" == "kind" ]]; then
+            # ===== KIND CLUSTER SETUP =====
+            KIND_VERSION="${{ inputs.k8s-kind-version }}"
+            NODE_IMAGE="${{ inputs.k8s-kind-node-image }}"
 
-          # Create cluster with optimized config for CI
-          cat > /tmp/kind-config.yaml << 'KINDEOF'
+            # Always install the requested kind version (overwrite pre-installed version)
+            # GitHub Actions runners may have a different version pre-installed that's
+            # incompatible with our config format
+            CURRENT_KIND_VERSION=$(kind version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "none")
+            if [[ "$CURRENT_KIND_VERSION" != "$KIND_VERSION" ]]; then
+              echo "Installing kind ${KIND_VERSION} (current: ${CURRENT_KIND_VERSION})..."
+              curl -Lo /tmp/kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+              chmod +x /tmp/kind
+              sudo mv /tmp/kind /usr/local/bin/kind
+            else
+              echo "kind ${KIND_VERSION} already installed"
+            fi
+            kind version
+
+            # Create kind config with registry support
+            cat > /tmp/kind-config.yaml << 'KINDEOF'
         kind: Cluster
         apiVersion: kind.x-k8s.io/v1alpha4
+        containerdConfigPatches:
+        - |-
+          [plugins."io.containerd.grpc.v1.cri".registry]
+            config_path = "/etc/containerd/certs.d"
         nodes:
-          - role: control-plane
-            extraPortMappings:
-              - containerPort: 30000
-                hostPort: 30000
-                protocol: TCP
+        - role: control-plane
+          extraPortMappings:
+          - containerPort: 30000
+            hostPort: 30000
+            protocol: TCP
         KINDEOF
+            sed -i 's/^        //' /tmp/kind-config.yaml
 
-          # Delete existing cluster if present (idempotent)
-          kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
+            kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
 
-          # Create the cluster
-          echo "Creating kind cluster: $CLUSTER_NAME"
-          kind create cluster \
-            --name "$CLUSTER_NAME" \
-            --image "$NODE_IMAGE" \
-            --config /tmp/kind-config.yaml \
-            --wait 120s
+            echo "Creating kind cluster: $CLUSTER_NAME"
+            kind create cluster \
+              --name "$CLUSTER_NAME" \
+              --image "$NODE_IMAGE" \
+              --config /tmp/kind-config.yaml \
+              --wait 120s
 
-          # Set kubeconfig for subsequent steps
-          mkdir -p "$HOME/.kube"
-          kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
+            # Connect registry to kind network
+            if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' "${REG_NAME}")" = 'null' ]; then
+              docker network connect "kind" "${REG_NAME}" || true
+            fi
 
-          # Verify cluster is ready
+            # Configure containerd to use the local registry
+            REGISTRY_DIR="/etc/containerd/certs.d/localhost:${REG_PORT}"
+            for node in $(kind get nodes --name "$CLUSTER_NAME"); do
+              echo "Configuring registry on node: ${node}"
+              docker exec "${node}" mkdir -p "${REGISTRY_DIR}"
+              docker exec "${node}" bash -c "echo '[host.\"http://${REG_NAME}:5000\"]' > ${REGISTRY_DIR}/hosts.toml && echo '  capabilities = [\"pull\", \"resolve\", \"push\"]' >> ${REGISTRY_DIR}/hosts.toml"
+            done
+
+            # Get kubeconfig
+            mkdir -p "$HOME/.kube"
+            kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
+
+          elif [[ "$CLUSTER_TYPE" == "k3d" ]]; then
+            # ===== K3D CLUSTER SETUP =====
+            K3D_VERSION="${{ inputs.k8s-k3d-version }}"
+            K8S_VERSION="${{ inputs.k8s-k3d-k8s-version }}"
+
+            # Always install the requested k3d version (overwrite pre-installed version)
+            CURRENT_K3D_VERSION=$(k3d version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "none")
+            if [[ "$CURRENT_K3D_VERSION" != "$K3D_VERSION" ]]; then
+              echo "Installing k3d ${K3D_VERSION} (current: ${CURRENT_K3D_VERSION})..."
+              curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG="${K3D_VERSION}" bash
+            else
+              echo "k3d ${K3D_VERSION} already installed"
+            fi
+            k3d version
+
+            k3d cluster delete "$CLUSTER_NAME" 2>/dev/null || true
+
+            echo "Creating k3d cluster: $CLUSTER_NAME"
+            k3d cluster create "$CLUSTER_NAME" \
+              --image "rancher/k3s:${K8S_VERSION}-k3s1" \
+              --registry-use "k3d-${REG_NAME}:${REG_PORT}" \
+              --port "30000:30000@server:0" \
+              --wait
+
+            # Connect registry to k3d network
+            K3D_NETWORK="k3d-${CLUSTER_NAME}"
+            if [ "$(docker inspect -f="{{json .NetworkSettings.Networks.\"${K3D_NETWORK}\"}}" "${REG_NAME}" 2>/dev/null)" = 'null' ]; then
+              docker network connect "${K3D_NETWORK}" "${REG_NAME}" || true
+            fi
+
+            # Get kubeconfig
+            mkdir -p "$HOME/.kube"
+            k3d kubeconfig get "$CLUSTER_NAME" > "$HOME/.kube/config"
+            chmod 600 "$HOME/.kube/config"
+
+          else
+            echo "::error::Unknown cluster type: $CLUSTER_TYPE (must be 'kind' or 'k3d')"
+            exit 1
+          fi
+
+          # Common post-setup for both kind and k3d
           echo "Waiting for cluster to be ready..."
           kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
           # Create namespace for DevPod
           kubectl create namespace "${{ inputs.k8s-namespace }}" --dry-run=client -o yaml | kubectl apply -f -
 
+          # Create local registry hosting ConfigMap
+          cat > /tmp/local-registry-cm.yaml << 'CMEOF'
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: local-registry-hosting
+          namespace: kube-public
+        data:
+          localRegistryHosting.v1: |
+            host: "REGISTRY_PLACEHOLDER"
+            help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
+        CMEOF
+          sed -i 's/^        //' /tmp/local-registry-cm.yaml
+          sed -i "s/REGISTRY_PLACEHOLDER/localhost:${REG_PORT}/" /tmp/local-registry-cm.yaml
+          kubectl apply -f /tmp/local-registry-cm.yaml
+
           echo "created=true" >> $GITHUB_OUTPUT
+          echo "cluster-type=$CLUSTER_TYPE" >> $GITHUB_OUTPUT
           echo "cluster-name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
           echo "kubeconfig=$HOME/.kube/config" >> $GITHUB_OUTPUT
+          echo "registry-url=localhost:${REG_PORT}" >> $GITHUB_OUTPUT
+          echo "registry-name=${REG_NAME}" >> $GITHUB_OUTPUT
 
-          echo "Kind cluster '$CLUSTER_NAME' is ready"
+          echo "$CLUSTER_TYPE cluster '$CLUSTER_NAME' is ready with local registry at localhost:${REG_PORT}"
           kubectl cluster-info
           kubectl get nodes
         else
@@ -330,6 +445,7 @@ runs:
           fi
 
           echo "created=false" >> $GITHUB_OUTPUT
+          echo "cluster-type=" >> $GITHUB_OUTPUT
           echo "cluster-name=" >> $GITHUB_OUTPUT
 
           # Verify external cluster connectivity

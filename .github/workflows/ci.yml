@@ -20,7 +20,7 @@ on:
           Providers to test (comma-separated or 'all').
           Options: docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s
         required: false
-        default: "docker,fly"
+        default: "docker,fly,devpod-k8s"
         type: string
       test-suite:
         description: Test suite to run
@@ -168,10 +168,9 @@ jobs:
             else
               PROVIDERS=$(echo "$INPUT_PROVIDERS" | jq -Rc 'split(",") | map(ltrimstr(" ") | rtrimstr(" "))')
             fi
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            PROVIDERS='["docker", "fly"]'
           else
-            PROVIDERS='["docker"]'
+            # Push and PR events all test the same provider set
+            PROVIDERS='["docker", "fly", "devpod-k8s"]'
           fi
 
           echo "providers=$PROVIDERS" >> $GITHUB_OUTPUT

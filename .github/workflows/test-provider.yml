@@ -359,11 +359,69 @@ jobs:
           provider-type: kubernetes
           provider-name: devpod-k8s-test
           k8s-namespace: sindri-test
-          # Auto-detect: uses kind if no KUBECONFIG secret provided
-          k8s-use-kind: auto
-          k8s-kind-cluster-name: sindri-ci-${{ github.run_id }}
+          # Auto-detect: uses local cluster if no KUBECONFIG secret provided
+          k8s-use-local-cluster: auto
+          k8s-local-cluster-type: kind  # Can be 'kind' or 'k3d'
+          k8s-local-cluster-name: sindri-ci-${{ github.run_id }}
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+      - name: Download Docker image artifact (DevPod K8s)
+        if: (inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes') && inputs.image-artifact != ''
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ inputs.image-artifact }}
+
+      - name: Push Docker image to local registry
+        id: push-to-registry
+        if: (inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes') && inputs.image-artifact != ''
+        run: |
+          echo "::group::Pushing Sindri image to local registry"
+
+          # Load image into Docker first
+          if [[ -f "sindri-image.tar.gz" ]]; then
+            gunzip -c sindri-image.tar.gz | docker load
+            echo "✅ Image loaded into Docker: ${{ inputs.image }}"
+          fi
+
+          # Get local registry URL from k8s-setup outputs
+          LOCAL_REGISTRY="${{ steps.k8s-setup.outputs.local-registry-url }}"
+
+          if [[ -n "$LOCAL_REGISTRY" ]]; then
+            echo "Pushing image to local registry: $LOCAL_REGISTRY"
+
+            # Tag and push the CI image to local registry
+            REGISTRY_IMAGE="${LOCAL_REGISTRY}/sindri:ci"
+            docker tag "${{ inputs.image }}" "$REGISTRY_IMAGE"
+            docker push "$REGISTRY_IMAGE"
+            echo "✅ Image pushed as: $REGISTRY_IMAGE"
+
+            # Also push as sindri:latest
+            REGISTRY_IMAGE_LATEST="${LOCAL_REGISTRY}/sindri:latest"
+            docker tag "${{ inputs.image }}" "$REGISTRY_IMAGE_LATEST"
+            docker push "$REGISTRY_IMAGE_LATEST"
+            echo "✅ Image pushed as: $REGISTRY_IMAGE_LATEST"
+
+            echo "registry-image=$REGISTRY_IMAGE" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::No local registry URL found, falling back to direct image load"
+            # Fallback to direct image load (for external clusters without local registry)
+            CLUSTER_NAME="sindri-ci-${{ github.run_id }}"
+            CLUSTER_TYPE="${{ steps.k8s-setup.outputs.local-cluster-type }}"
+
+            if [[ "$CLUSTER_TYPE" == "kind" ]] && kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
+              echo "Loading image into kind cluster: $CLUSTER_NAME"
+              kind load docker-image "${{ inputs.image }}" --name "$CLUSTER_NAME"
+              echo "✅ Image loaded into kind cluster"
+            elif [[ "$CLUSTER_TYPE" == "k3d" ]] && k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
+              echo "Loading image into k3d cluster: $CLUSTER_NAME"
+              k3d image import "${{ inputs.image }}" --cluster "$CLUSTER_NAME"
+              echo "✅ Image loaded into k3d cluster"
+            fi
+            echo "registry-image=${{ inputs.image }}" >> $GITHUB_OUTPUT
+          fi
+
+          echo "::endgroup::"
 
       # --- DevPod SSH Provider ---
       - name: Setup DevPod SSH provider
@@ -384,6 +442,8 @@ jobs:
           workspace-id: ${{ steps.setup.outputs.workspace-id }}
           provider-id: ${{ inputs.provider }}-test
           devcontainer-path: .devcontainer/devcontainer.json
+          # Use local registry image for K8s provider, otherwise use the original image
+          image: ${{ steps.push-to-registry.outputs.registry-image || inputs.image }}
 
       # ============================================
       # PHASE 2: CLI Tests
@@ -442,7 +502,7 @@ jobs:
                 flyctl ssh console -a "${{ steps.setup.outputs.app-name }}" --command "$cmd"
                 ;;
               devpod-*|kubernetes|ssh)
-                devpod exec "${{ steps.setup.outputs.workspace-id }}" -- bash -c "$cmd"
+                devpod ssh "${{ steps.setup.outputs.workspace-id }}" --command "$cmd"
                 ;;
             esac
           }
@@ -513,7 +573,7 @@ jobs:
               flyctl ssh console -a ${{ steps.setup.outputs.app-name }} --command "sindri --version"
               ;;
             devpod-*|kubernetes|ssh)
-              devpod exec ${{ steps.setup.outputs.workspace-id }} -- sindri --version
+              devpod ssh ${{ steps.setup.outputs.workspace-id }} --command "sindri --version"
               ;;
           esac
 
@@ -546,7 +606,7 @@ jobs:
                 ;;
               devpod-*|kubernetes|ssh)
                 WS="${{ steps.setup.outputs.workspace-id }}"
-                devpod exec "$WS" -- extension-manager bom
+                devpod ssh "$WS" --command "extension-manager bom"
                 ;;
             esac
           fi
@@ -581,9 +641,10 @@ jobs:
         with:
           workspace-id: ${{ steps.setup.outputs.workspace-id }}
           force: true
-          # Pass kind cluster info for cleanup (only populated if kind was used)
-          kind-cluster-created: ${{ steps.k8s-setup.outputs.kind-cluster-created || 'false' }}
-          kind-cluster-name: ${{ steps.k8s-setup.outputs.kind-cluster-name || '' }}
+          # Pass local cluster info for cleanup (only populated if local cluster was created)
+          local-cluster-created: ${{ steps.k8s-setup.outputs.local-cluster-created || 'false' }}
+          local-cluster-type: ${{ steps.k8s-setup.outputs.local-cluster-type || '' }}
+          local-cluster-name: ${{ steps.k8s-setup.outputs.local-cluster-name || '' }}
 
       # ============================================
       # PHASE 6: Summary

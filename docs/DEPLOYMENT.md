@@ -42,11 +42,11 @@ DevPod is unique - it's a **meta-provider** that can deploy to multiple backends
 
 ```yaml
 deployment:
-  provider: devpod        # Use DevPod as the deployment method
+  provider: devpod # Use DevPod as the deployment method
 
 providers:
   devpod:
-    type: kubernetes      # Target Kubernetes as the backend
+    type: kubernetes # Target Kubernetes as the backend
     kubernetes:
       namespace: sindri-dev
       storageClass: standard
@@ -96,17 +96,19 @@ extensions:
 ### 5. Connect
 
 ```bash
-# Docker
-docker exec -it my-dev-env bash
+# Universal (auto-detects provider)
+./cli/sindri connect
 
-# Fly.io
-ssh developer@my-dev-env.fly.dev -p 10022
+# Or provider-specific commands:
+# Docker: docker exec -it my-dev-env bash
+# Fly.io: ssh developer@my-dev-env.fly.dev -p 10022
+# DevPod: devpod ssh my-dev-env
+```
 
-# Kubernetes
-kubectl exec -it my-dev-env-0 -n dev-envs -- bash
+### 6. Check Status
 
-# DevPod
-devpod ssh .
+```bash
+./cli/sindri status
 ```
 
 ## Choosing a Provider
@@ -170,36 +172,48 @@ See provider-specific guides for details.
 
 ## Lifecycle Management
 
-### Start/Stop
+### Common Commands
 
 ```bash
-# Docker
-docker start my-dev-env
-docker stop my-dev-env
+# Check status (any provider)
+./cli/sindri status
 
-# Fly.io (automatic with auto-suspend)
-flyctl machine start <id> -a my-app
-flyctl machine stop <id> -a my-app
+# Connect to environment (any provider)
+./cli/sindri connect
 
-# Kubernetes
-kubectl scale statefulset my-dev-env --replicas=0 -n dev-envs
-kubectl scale statefulset my-dev-env --replicas=1 -n dev-envs
+# Show deployment plan (dry-run)
+./cli/sindri plan
+
+# Teardown (any provider)
+./cli/sindri destroy         # With confirmation
+./cli/sindri destroy --force # Skip confirmation
 ```
 
-### Teardown
+### Provider-Specific Commands
+
+**Docker:**
 
 ```bash
-# Docker
-docker compose down -v
+docker start my-dev-env
+docker stop my-dev-env
+docker compose down -v  # Removes volumes
+```
 
-# Fly.io
+**Fly.io:**
+
+```bash
+flyctl status -a my-app
+flyctl machine start <id> -a my-app
+flyctl machine stop <id> -a my-app
 flyctl apps destroy my-app
+```
 
-# Kubernetes
-kubectl delete namespace dev-envs
+**DevPod:**
 
-# DevPod
-devpod delete .
+```bash
+devpod status my-dev-env
+devpod stop my-dev-env
+devpod delete my-dev-env
 ```
 
 ## Migration Between Providers

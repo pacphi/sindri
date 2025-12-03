@@ -95,8 +95,8 @@ providers:
       gpu-large: 16
       gpu-xlarge: 32
     gpu_regions:
-      - ord  # Chicago - primary GPU region
-      - sjc  # San Jose
+      - ord # Chicago - primary GPU region
+      - sjc # San Jose
 
   docker:
     description: Docker resource limits
@@ -153,10 +153,10 @@ providers:
       xlarge: 120
     # GPU configuration for AWS
     gpu_sizes:
-      gpu-small: g4dn.xlarge      # T4, 16GB, 4 vCPU
-      gpu-medium: g5.2xlarge      # A10G, 24GB, 8 vCPU
-      gpu-large: g5.4xlarge       # A10G, 24GB, 16 vCPU
-      gpu-xlarge: p4d.24xlarge    # A100x8, 320GB, 96 vCPU
+      gpu-small: g4dn.xlarge # T4, 16GB, 4 vCPU
+      gpu-medium: g5.2xlarge # A10G, 24GB, 8 vCPU
+      gpu-large: g5.4xlarge # A10G, 24GB, 16 vCPU
+      gpu-xlarge: p4d.24xlarge # A100x8, 320GB, 96 vCPU
     gpu_memory:
       gpu-small: 16384
       gpu-medium: 24576
@@ -236,10 +236,10 @@ providers:
       xlarge: 120
     # GPU configuration for Azure
     gpu_sizes:
-      gpu-small: Standard_NC4as_T4_v3     # T4, 16GB
-      gpu-medium: Standard_NC8as_T4_v3    # T4, 16GB, 8 vCPU
+      gpu-small: Standard_NC4as_T4_v3 # T4, 16GB
+      gpu-medium: Standard_NC8as_T4_v3 # T4, 16GB, 8 vCPU
       gpu-large: Standard_NC24ads_A100_v4 # A100, 80GB
-      gpu-xlarge: Standard_ND96amsr_A100_v4  # A100x8
+      gpu-xlarge: Standard_ND96amsr_A100_v4 # A100x8
     gpu_memory:
       gpu-small: 16384
       gpu-medium: 16384

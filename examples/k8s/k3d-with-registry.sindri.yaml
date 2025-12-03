@@ -29,7 +29,7 @@ providers:
   k8s:
     provider: k3d
     clusterName: sindri-k3d-dev
-    nodes: 3  # 1 server + 2 agents
+    nodes: 3 # 1 server + 2 agents
     k3d:
       registry:
         enabled: true

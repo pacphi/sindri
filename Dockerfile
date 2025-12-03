@@ -24,8 +24,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # Create developer user (without home directory - it's on the volume)
 # Use -M to skip home directory creation during build
+# Use -d to set home to ALT_HOME (critical for DevPod/devcontainer compatibility)
 # Home directory will be initialized at runtime on persistent volume
-RUN useradd -M -s /bin/bash -u 1001 -G sudo developer && \
+RUN useradd -M -d ${ALT_HOME} -s /bin/bash -u 1001 -G sudo developer && \
     mkdir -p ${ALT_HOME} && \
     chown developer:developer ${ALT_HOME}
 
