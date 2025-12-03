@@ -168,10 +168,9 @@ jobs:
             else
               PROVIDERS=$(echo "$INPUT_PROVIDERS" | jq -Rc 'split(",") | map(ltrimstr(" ") | rtrimstr(" "))')
             fi
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            PROVIDERS='["docker", "fly"]'
           else
-            PROVIDERS='["docker"]'
+            # Push and PR events all test the same provider set
+            PROVIDERS='["docker", "fly", "devpod-k8s"]'
           fi
 
           echo "providers=$PROVIDERS" >> $GITHUB_OUTPUT
