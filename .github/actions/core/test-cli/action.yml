@@ -536,15 +536,20 @@ runs:
           echo "::error::devpod-workspace-id is required for devpod-k8s provider"
           exit 1
         fi
-        if [[ -z "${{ inputs.kubeconfig }}" ]]; then
-          echo "::error::kubeconfig required for devpod-k8s provider"
+
+        # Use provided kubeconfig or check for existing one (e.g., from kind cluster)
+        if [[ -n "${{ inputs.kubeconfig }}" ]]; then
+          # Write provided kubeconfig to file
+          mkdir -p ~/.kube
+          echo '${{ inputs.kubeconfig }}' > ~/.kube/config
+          chmod 600 ~/.kube/config
+          echo "Using provided kubeconfig"
+        elif [[ -f ~/.kube/config ]]; then
+          echo "Using existing kubeconfig at ~/.kube/config"
+        else
+          echo "::error::kubeconfig required for devpod-k8s provider (either via input or ~/.kube/config)"
           exit 1
         fi
-
-        # Write kubeconfig to file
-        mkdir -p ~/.kube
-        echo '${{ inputs.kubeconfig }}' > ~/.kube/config
-        chmod 600 ~/.kube/config
 
         COMMANDS='${{ inputs.test-commands }}'
         EXPECTED_CODES='${{ inputs.expected-exit-codes }}'
