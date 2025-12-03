@@ -208,13 +208,15 @@ runs:
           fi
 
           STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.state' || echo "unknown")
+          # Normalize to lowercase for comparison
+          STATUS_LOWER=$(echo "$STATUS" | tr '[:upper:]' '[:lower:]')
           echo "Status: $STATUS (elapsed: ${ELAPSED}s)"
 
-          # DevPod returns lowercase state values: "running", "stopped", "busy", etc.
-          if [[ "$STATUS" == "running" ]]; then
+          # DevPod state values may vary in case - compare case-insensitively
+          if [[ "$STATUS_LOWER" == "running" ]]; then
             echo "✅ Workspace is ready"
             break
-          elif [[ "$STATUS" == "error" ]]; then
+          elif [[ "$STATUS_LOWER" == "error" ]]; then
             echo "❌ Workspace deployment failed"
             devpod logs "$WORKSPACE_ID" || true
             exit 1

@@ -52,9 +52,10 @@ runs:
 
         WORKSPACE_ID="${{ inputs.workspace-id }}"
 
-        # Check workspace is running (DevPod uses lowercase 'state' in JSON output)
+        # Check workspace is running (normalize case for comparison)
         STATUS=$(devpod status "$WORKSPACE_ID" --output json | jq -r '.state' || echo "unknown")
-        if [[ "$STATUS" != "running" ]]; then
+        STATUS_LOWER=$(echo "$STATUS" | tr '[:upper:]' '[:lower:]')
+        if [[ "$STATUS_LOWER" != "running" ]]; then
           echo "❌ Workspace is not running (status: $STATUS)"
           exit 1
         fi
