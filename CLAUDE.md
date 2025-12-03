@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sindri is a declarative, provider-agnostic cloud development environment system. It uses YAML-defined extensions and optimized Docker images to deploy consistent development environments to Fly.io, Kubernetes, or local Docker.
+Sindri is a declarative, provider-agnostic cloud development environment system. It uses YAML-defined extensions and optimized Docker images to deploy consistent development environments to Fly.io, local Docker, or via DevPod to Kubernetes, AWS, GCP, Azure, and other cloud providers.
 
 **Core Design Principles:**
 
 - **YAML-First Architecture**: Extensions are declarative YAML files, not bash scripts. All configuration is driven by YAML schemas.
-- **Provider Agnostic**: Single `sindri.yaml` deploys to multiple providers (docker, fly, devpod, kubernetes via devpod).
+- **Provider Agnostic**: Single `sindri.yaml` deploys to multiple providers (docker, fly, devpod). DevPod supports multiple backends including Kubernetes, AWS, GCP, Azure, DigitalOcean, and SSH hosts.
 - **Immutable/Mutable Split**: System files in `/docker/` are baked into the image (immutable), while `$HOME` (`/alt/home/developer`) is a persistent volume containing workspace and all user data.
 - **Fast Startup**: Optimized base image with pre-installed tools (mise, Claude Code) enables fast startup. Development tools are installed via extensions on persistent volume.
 

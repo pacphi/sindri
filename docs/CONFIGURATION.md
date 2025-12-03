@@ -9,7 +9,7 @@ version: 1.0 # Configuration version
 name: my-dev-env # Environment name
 
 deployment:
-  provider: docker # docker | fly | kubernetes | devpod
+  provider: docker # docker | fly | devpod
   resources: # Resource allocation
     memory: 2GB
     cpus: 1
@@ -27,7 +27,6 @@ extensions:
 providers: # Provider-specific config
   fly: {}
   docker: {}
-  kubernetes: {}
   devpod: {}
 ```
 
@@ -73,9 +72,9 @@ name: my-sindri-dev
 
 **Type:** string
 **Required:** Yes
-**Options:** `docker`, `fly`, `kubernetes`, `devpod`
+**Options:** `docker`, `fly`, `devpod`
 
-Target deployment platform.
+Target deployment platform. For Kubernetes deployments, use `devpod` with `type: kubernetes`.
 
 ```yaml
 deployment:
@@ -253,18 +252,6 @@ providers:
 **Shared CPU:** Good for development, auto-suspend workloads.
 **Performance CPU:** For CPU-intensive work, production.
 
-### Kubernetes Provider
-
-```yaml
-providers:
-  kubernetes:
-    namespace: dev-envs # Kubernetes namespace
-    storageClass: standard # StorageClass for PVC
-    imagePullPolicy: IfNotPresent # Image pull policy
-    ingressEnabled: false # Enable Ingress
-    ingressHost: dev.example.com # Ingress hostname
-```
-
 ### DevPod Provider
 
 ```yaml
@@ -308,29 +295,9 @@ providers:
 | `kubernetes`   | Kubernetes pods        | `examples/devpod/kubernetes/`   |
 | `ssh`          | Any SSH host           | N/A                             |
 
-## Kubernetes Deployment Paths
+## Kubernetes Deployment
 
-Sindri supports two distinct paths to Kubernetes:
-
-### Path 1: Direct Kubernetes (`provider: kubernetes`)
-
-Generates native Kubernetes manifests (StatefulSet, PVC, Service, Ingress).
-
-```yaml
-deployment:
-  provider: kubernetes
-
-providers:
-  kubernetes:
-    namespace: dev-environments
-    storageClass: fast-ssd
-```
-
-**Best for:** Enterprise teams with existing K8s tooling and RBAC requirements.
-
-### Path 2: DevPod + Kubernetes (`provider: devpod` with `type: kubernetes`)
-
-Uses DevPod to deploy a DevContainer to a Kubernetes cluster.
+Sindri deploys to Kubernetes via DevPod. Use `provider: devpod` with `type: kubernetes`:
 
 ```yaml
 deployment:
@@ -342,19 +309,17 @@ providers:
     kubernetes:
       namespace: sindri-test
       storageClass: standard
+      context: my-cluster  # Optional: specific kubeconfig context
 ```
 
-**Best for:** IDE integration, CI testing, DevContainer compatibility.
+**Features:**
 
-**Choosing between them:**
+- DevContainer compatibility and IDE integration
+- Automatic image handling for local clusters (kind/k3d)
+- CI/CD testing support with auto-provisioned clusters
 
-| Use Case                                  | Recommended Path  |
-| ----------------------------------------- | ----------------- |
-| Enterprise with existing K8s tooling      | Direct Kubernetes |
-| VS Code Remote Container support          | DevPod + K8s      |
-| CI/CD testing (auto-creates kind cluster) | DevPod + K8s      |
-| GitHub Codespaces compatibility           | DevPod + K8s      |
-| Need native K8s manifests for GitOps      | Direct Kubernetes |
+For manual Kubernetes deployment without DevPod (GitOps, enterprise policies),
+see [Appendix A in the Kubernetes Guide](providers/KUBERNETES.md#appendix-a-manual-kubernetes-deployment).
 
 ## Environment Variables
 
@@ -444,14 +409,14 @@ providers:
     cpuKind: shared
 ```
 
-## Complete Example: Kubernetes
+## Complete Example: Kubernetes (via DevPod)
 
 ```yaml
 version: 1.0
 name: sindri-k8s
 
 deployment:
-  provider: kubernetes
+  provider: devpod
   resources:
     memory: 4GB
     cpus: 2
@@ -463,12 +428,12 @@ extensions:
   profile: enterprise
 
 providers:
-  kubernetes:
-    namespace: dev-environments
-    storageClass: fast-ssd
-    imagePullPolicy: Always
-    ingressEnabled: true
-    ingressHost: sindri.dev.company.com
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: dev-environments
+      storageClass: fast-ssd
+      context: my-production-cluster
 
 environment:
   ENVIRONMENT: production

@@ -8,21 +8,23 @@ Sindri uses a **provider-agnostic architecture** where a single `sindri.yaml` co
 
 - **[Docker](providers/DOCKER.md)** - Local development and testing
 - **[Fly.io](providers/FLY.md)** - Cloud deployment with auto-suspend and cost optimization
-- **[Kubernetes](providers/KUBERNETES.md)** - Enterprise orchestration
-- **[DevPod](providers/DEVPOD.md)** - IDE-integrated containers (VS Code, Codespaces)
+- **[DevPod](providers/DEVPOD.md)** - IDE-integrated containers, multi-cloud, and Kubernetes
 
 ## Provider Comparison
 
-| Feature                | Docker         | Fly.io                | Kubernetes       | DevPod       |
-| ---------------------- | -------------- | --------------------- | ---------------- | ------------ |
-| **Best For**           | Local dev      | Individual developers | Enterprise/teams | IDE users    |
-| **Cost**               | Free (local)   | ~$6-50/mo             | Variable         | Free (local) |
-| **Setup Time**         | < 1 min        | < 5 min               | 10-30 min        | < 2 min      |
-| **Auto-Suspend**       | Manual         | Yes                   | Via HPA          | Manual       |
-| **Persistent Storage** | Docker volumes | Fly volumes           | PVCs             | Volumes      |
-| **Remote Access**      | Local only     | SSH/Web               | Ingress          | SSH/VSCode   |
-| **Scaling**            | Manual         | Auto/Manual           | Auto             | Manual       |
-| **Prerequisites**      | Docker         | flyctl                | kubectl, cluster | DevPod CLI   |
+| Feature                | Docker         | Fly.io                | DevPod                          |
+| ---------------------- | -------------- | --------------------- | ------------------------------- |
+| **Best For**           | Local dev      | Individual developers | IDE users, K8s, multi-cloud     |
+| **Cost**               | Free (local)   | ~$6-50/mo             | Varies by backend               |
+| **Setup Time**         | < 1 min        | < 5 min               | < 2 min                         |
+| **Auto-Suspend**       | Manual         | Yes                   | Backend-dependent               |
+| **Persistent Storage** | Docker volumes | Fly volumes           | Volumes/PVCs                    |
+| **Remote Access**      | Local only     | SSH/Web               | SSH/VSCode                      |
+| **Scaling**            | Manual         | Auto/Manual           | Backend-dependent               |
+| **Prerequisites**      | Docker         | flyctl                | DevPod CLI + backend (optional) |
+
+**Note:** Kubernetes deployment is handled via DevPod with `type: kubernetes`.
+See [Kubernetes Deployment Guide](providers/KUBERNETES.md).
 
 ## DevPod Multi-Backend Architecture
 
@@ -71,7 +73,7 @@ version: 1.0
 name: my-dev-env
 
 deployment:
-  provider: fly # docker | fly | kubernetes | devpod
+  provider: fly # docker | fly | devpod
 
 extensions:
   profile: fullstack
@@ -135,17 +137,6 @@ extensions:
 
 [Fly.io Provider Guide](providers/FLY.md)
 
-### Kubernetes
-
-**Use when:**
-
-- Enterprise compliance requirements
-- Multi-tenant environments
-- Need horizontal scaling
-- Existing cluster infrastructure
-
-[Kubernetes Provider Guide](providers/KUBERNETES.md)
-
 ### DevPod
 
 **Use when:**
@@ -154,8 +145,12 @@ extensions:
 - Using GitHub Codespaces
 - Want IDE-native container experience
 - Need DevContainer compatibility
+- Deploying to Kubernetes clusters
+- Using cloud providers (AWS, GCP, Azure, DigitalOcean)
 
 [DevPod Provider Guide](providers/DEVPOD.md)
+
+**For Kubernetes specifically:** See [Kubernetes Deployment Guide](providers/KUBERNETES.md)
 
 ## Secrets Management
 
@@ -261,5 +256,5 @@ All use the same base image and extension system.
 
 - [Docker](providers/DOCKER.md)
 - [Fly.io](providers/FLY.md)
-- [Kubernetes](providers/KUBERNETES.md)
 - [DevPod](providers/DEVPOD.md)
+- [Kubernetes (via DevPod)](providers/KUBERNETES.md)

@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
 [![CI](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci.yml)
 
-A declarative, provider-agnostic cloud development environment system. Deploy consistent development environments to Fly.io, Kubernetes, or local Docker using YAML-defined extensions.
+A declarative, provider-agnostic cloud development environment system. Deploy consistent development environments to Fly.io, local Docker, or via DevPod to Kubernetes, AWS, GCP, Azure, and other cloud providers using YAML-defined extensions.
 
 ```text
    ███████╗██╗███╗   ██╗██████╗ ██████╗ ██╗
@@ -51,7 +51,7 @@ cd sindri
 - **Fast Startup** - Optimized Docker images with pre-installed tools (10-15s cold start)
 - **Extension System** - 31 modular extensions for languages, tools, and infrastructure
 - **Schema Validation** - All YAML validated against JSON schemas
-- **Provider Adapters** - Clean abstraction for Docker, Fly, Kubernetes, DevPod
+- **Provider Adapters** - Clean abstraction for Docker, Fly.io, and DevPod (with Kubernetes, AWS, GCP, Azure backends)
 - **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
 - **BOM Tracking** - Comprehensive software bill of materials for security auditing
 
