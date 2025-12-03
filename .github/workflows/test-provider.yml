@@ -365,6 +365,38 @@ jobs:
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
+      - name: Download Docker image artifact (DevPod K8s)
+        if: (inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes') && inputs.image-artifact != ''
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ inputs.image-artifact }}
+
+      - name: Load Docker image into kind cluster
+        if: (inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes') && inputs.image-artifact != ''
+        run: |
+          echo "::group::Loading Sindri image into kind cluster"
+
+          # Load image into Docker first
+          if [[ -f "sindri-image.tar.gz" ]]; then
+            gunzip -c sindri-image.tar.gz | docker load
+            echo "✅ Image loaded into Docker: ${{ inputs.image }}"
+          fi
+
+          # Load image into kind cluster
+          CLUSTER_NAME="sindri-ci-${{ github.run_id }}"
+          if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
+            echo "Loading image into kind cluster: $CLUSTER_NAME"
+            kind load docker-image "${{ inputs.image }}" --name "$CLUSTER_NAME"
+            # Also load as sindri:latest for devcontainer.json compatibility
+            docker tag "${{ inputs.image }}" sindri:latest
+            kind load docker-image sindri:latest --name "$CLUSTER_NAME"
+            echo "✅ Image loaded into kind cluster"
+          else
+            echo "::warning::Kind cluster not found, skipping image load"
+          fi
+
+          echo "::endgroup::"
+
       # --- DevPod SSH Provider ---
       - name: Setup DevPod SSH provider
         if: inputs.provider == 'devpod-ssh' || inputs.provider == 'ssh'

@@ -12,15 +12,23 @@
 #   status     Show workspace status
 #
 # Options:
-#   --config-only    Generate devcontainer.json without deploying (deploy only)
-#   --output-dir     Directory for generated files (default: current directory)
-#   --output-vars    Output parsed variables as JSON (deploy only)
-#   --workspace-name Override workspace name from sindri.yaml
-#   --force          Skip confirmation prompts (destroy only)
-#   --help           Show this help message
+#   --config-only        Generate devcontainer.json without deploying (deploy only)
+#   --output-dir         Directory for generated files (default: current directory)
+#   --output-vars        Output parsed variables as JSON (deploy only)
+#   --workspace-name     Override workspace name from sindri.yaml
+#   --build-repository   Docker registry for image push (required for non-local K8s)
+#   --skip-build         Skip image build (use existing image)
+#   --force              Skip confirmation prompts (destroy only)
+#   --help               Show this help message
+#
+# Environment Variables:
+#   DOCKER_USERNAME      Docker registry username (or use .env)
+#   DOCKER_PASSWORD      Docker registry password (or use .env)
+#   DOCKER_REGISTRY      Docker registry URL (default: docker.io)
 #
 # Examples:
 #   devpod-adapter.sh deploy sindri.yaml
+#   devpod-adapter.sh deploy --build-repository ghcr.io/myorg/sindri
 #   devpod-adapter.sh connect
 #   devpod-adapter.sh destroy --force
 #   devpod-adapter.sh status
@@ -37,10 +45,12 @@ CONFIG_ONLY=false
 OUTPUT_DIR="."
 OUTPUT_VARS=false
 WORKSPACE_NAME_OVERRIDE=""
+BUILD_REPOSITORY=""
+SKIP_BUILD=false
 FORCE=false
 
 show_help() {
-    head -26 "$0" | tail -24
+    head -34 "$0" | tail -32
     exit 0
 }
 
@@ -56,6 +66,8 @@ while [[ $# -gt 0 ]]; do
         --output-dir)   OUTPUT_DIR="$2"; shift 2 ;;
         --output-vars)  OUTPUT_VARS=true; shift ;;
         --workspace-name) WORKSPACE_NAME_OVERRIDE="$2"; shift 2 ;;
+        --build-repository) BUILD_REPOSITORY="$2"; shift 2 ;;
+        --skip-build)   SKIP_BUILD=true; shift ;;
         --force|-f)     FORCE=true; shift ;;
         --help|-h)      show_help ;;
         -*)             echo "Unknown option: $1" >&2; exit 1 ;;
@@ -144,6 +156,11 @@ parse_config() {
     GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
 
     DEVPOD_PROVIDER=$(yq '.providers.devpod.type // "docker"' "$SINDRI_YAML")
+
+    # Build repository from config (CLI flag takes precedence)
+    if [[ -z "$BUILD_REPOSITORY" ]]; then
+        BUILD_REPOSITORY=$(yq '.providers.devpod.buildRepository // ""' "$SINDRI_YAML")
+    fi
 
     # Provider-specific config
     case "$DEVPOD_PROVIDER" in
@@ -246,15 +263,287 @@ configure_k8s_provider() {
     fi
 }
 
+# ============================================================================
+# Image Building and Loading
+# ============================================================================
+
+# Detect if running against a local Kubernetes cluster (kind or k3d)
+# Returns: "kind", "k3d", or "" (empty for non-local/unknown)
+detect_local_cluster() {
+    local context_arg=()
+    [[ -n "${K8S_CONTEXT:-}" ]] && context_arg=(--context "$K8S_CONTEXT")
+
+    # Check for kind cluster
+    if command -v kind &>/dev/null; then
+        local current_context
+        current_context=$(kubectl "${context_arg[@]}" config current-context 2>/dev/null || echo "")
+        if [[ "$current_context" == kind-* ]]; then
+            # Extract cluster name from context (kind-<cluster-name>)
+            local cluster_name="${current_context#kind-}"
+            if kind get clusters 2>/dev/null | grep -q "^${cluster_name}$"; then
+                echo "kind:$cluster_name"
+                return 0
+            fi
+        fi
+        # Also check if any kind cluster exists matching the context
+        local kind_clusters
+        kind_clusters=$(kind get clusters 2>/dev/null || true)
+        if [[ -n "$kind_clusters" ]]; then
+            while read -r cluster; do
+                if [[ "$current_context" == "kind-$cluster" ]]; then
+                    echo "kind:$cluster"
+                    return 0
+                fi
+            done <<< "$kind_clusters"
+        fi
+    fi
+
+    # Check for k3d cluster
+    if command -v k3d &>/dev/null; then
+        local current_context
+        current_context=$(kubectl "${context_arg[@]}" config current-context 2>/dev/null || echo "")
+        if [[ "$current_context" == k3d-* ]]; then
+            local cluster_name="${current_context#k3d-}"
+            if k3d cluster list 2>/dev/null | grep -q "^${cluster_name}"; then
+                echo "k3d:$cluster_name"
+                return 0
+            fi
+        fi
+    fi
+
+    echo ""
+}
+
+# Get Docker registry credentials from environment, .env files, or Docker config
+# Sets: DOCKER_USERNAME, DOCKER_PASSWORD, DOCKER_REGISTRY
+get_docker_credentials() {
+    # Priority: environment > .env.local > .env > ~/.docker/config.json
+
+    # Check environment variables first
+    if [[ -n "${DOCKER_USERNAME:-}" ]] && [[ -n "${DOCKER_PASSWORD:-}" ]]; then
+        print_status "  Using Docker credentials from environment"
+        return 0
+    fi
+
+    # Check .env.local
+    if [[ -f .env.local ]]; then
+        if grep -q "^DOCKER_USERNAME=" .env.local 2>/dev/null; then
+            DOCKER_USERNAME=$(grep "^DOCKER_USERNAME=" .env.local | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_PASSWORD=$(grep "^DOCKER_PASSWORD=" .env.local | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_REGISTRY=$(grep "^DOCKER_REGISTRY=" .env.local | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' || echo "")
+            if [[ -n "$DOCKER_USERNAME" ]] && [[ -n "$DOCKER_PASSWORD" ]]; then
+                print_status "  Using Docker credentials from .env.local"
+                return 0
+            fi
+        fi
+    fi
+
+    # Check .env
+    if [[ -f .env ]]; then
+        if grep -q "^DOCKER_USERNAME=" .env 2>/dev/null; then
+            DOCKER_USERNAME=$(grep "^DOCKER_USERNAME=" .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_PASSWORD=$(grep "^DOCKER_PASSWORD=" .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+            DOCKER_REGISTRY=$(grep "^DOCKER_REGISTRY=" .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' || echo "")
+            if [[ -n "$DOCKER_USERNAME" ]] && [[ -n "$DOCKER_PASSWORD" ]]; then
+                print_status "  Using Docker credentials from .env"
+                return 0
+            fi
+        fi
+    fi
+
+    # Check if already logged in via Docker config
+    if [[ -f ~/.docker/config.json ]]; then
+        local registry_host
+        registry_host=$(echo "$BUILD_REPOSITORY" | cut -d/ -f1)
+        if jq -e ".auths.\"$registry_host\" // .auths.\"https://$registry_host\"" ~/.docker/config.json &>/dev/null; then
+            print_status "  Using existing Docker login for $registry_host"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+# Login to Docker registry
+docker_registry_login() {
+    local registry_host
+    registry_host=$(echo "$BUILD_REPOSITORY" | cut -d/ -f1)
+
+    # Special handling for common registries
+    case "$registry_host" in
+        ghcr.io)
+            if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+                print_status "Logging in to GitHub Container Registry..."
+                echo "$GITHUB_TOKEN" | docker login ghcr.io -u "${GITHUB_ACTOR:-git}" --password-stdin
+                return $?
+            fi
+            ;;
+        *.dkr.ecr.*.amazonaws.com)
+            if command -v aws &>/dev/null; then
+                print_status "Logging in to Amazon ECR..."
+                local region
+                region=$(echo "$registry_host" | sed 's/.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/\1/')
+                aws ecr get-login-password --region "$region" | docker login --username AWS --password-stdin "$registry_host"
+                return $?
+            fi
+            ;;
+        *.gcr.io|gcr.io)
+            if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]; then
+                print_status "Logging in to Google Container Registry..."
+                cat "$GOOGLE_APPLICATION_CREDENTIALS" | docker login -u _json_key --password-stdin "https://$registry_host"
+                return $?
+            fi
+            ;;
+    esac
+
+    # Generic registry login
+    if [[ -n "${DOCKER_USERNAME:-}" ]] && [[ -n "${DOCKER_PASSWORD:-}" ]]; then
+        local registry="${DOCKER_REGISTRY:-$registry_host}"
+        print_status "Logging in to Docker registry: $registry"
+        echo "$DOCKER_PASSWORD" | docker login "$registry" -u "$DOCKER_USERNAME" --password-stdin
+        return $?
+    fi
+
+    print_warning "No Docker credentials found for $registry_host"
+    return 1
+}
+
+# Build the Sindri Docker image
+build_image() {
+    local image_tag="$1"
+
+    if [[ ! -f "$BASE_DIR/Dockerfile" ]]; then
+        print_error "Dockerfile not found at $BASE_DIR/Dockerfile"
+        return 1
+    fi
+
+    print_status "Building Docker image: $image_tag"
+    docker build -t "$image_tag" -f "$BASE_DIR/Dockerfile" "$BASE_DIR"
+}
+
+# Push image to registry
+push_image() {
+    local image_tag="$1"
+
+    print_status "Pushing image to registry: $image_tag"
+    docker push "$image_tag"
+}
+
+# Load image into local Kubernetes cluster (kind or k3d)
+load_image_local() {
+    local image_tag="$1"
+    local cluster_info="$2"
+
+    local cluster_type="${cluster_info%%:*}"
+    local cluster_name="${cluster_info#*:}"
+
+    case "$cluster_type" in
+        kind)
+            print_status "Loading image into kind cluster: $cluster_name"
+            kind load docker-image "$image_tag" --name "$cluster_name"
+            ;;
+        k3d)
+            print_status "Loading image into k3d cluster: $cluster_name"
+            k3d image import "$image_tag" --cluster "$cluster_name"
+            ;;
+        *)
+            print_error "Unknown local cluster type: $cluster_type"
+            return 1
+            ;;
+    esac
+}
+
+# Prepare image for DevPod deployment
+# Returns the image tag to use in devcontainer.json
+prepare_image() {
+    local image_tag="sindri:latest"
+
+    if [[ "$SKIP_BUILD" == "true" ]]; then
+        print_status "Skipping image build (--skip-build)"
+        echo "$image_tag"
+        return 0
+    fi
+
+    # For docker provider, no special handling needed (uses Dockerfile directly)
+    if [[ "$DEVPOD_PROVIDER" == "docker" ]]; then
+        echo ""  # Empty means use dockerFile in devcontainer.json
+        return 0
+    fi
+
+    # Check for local cluster (kind/k3d)
+    local local_cluster
+    local_cluster=$(detect_local_cluster)
+
+    if [[ -n "$local_cluster" ]]; then
+        print_status "Detected local Kubernetes cluster: $local_cluster"
+
+        # Build locally and load into cluster
+        build_image "$image_tag" || return 1
+        load_image_local "$image_tag" "$local_cluster" || return 1
+
+        echo "$image_tag"
+        return 0
+    fi
+
+    # For cloud/external Kubernetes - require build repository
+    if [[ "$DEVPOD_PROVIDER" == "kubernetes" ]] || [[ "$DEVPOD_PROVIDER" == "aws" ]] || \
+       [[ "$DEVPOD_PROVIDER" == "gcp" ]] || [[ "$DEVPOD_PROVIDER" == "azure" ]]; then
+
+        if [[ -z "$BUILD_REPOSITORY" ]]; then
+            print_error "Build repository required for $DEVPOD_PROVIDER provider"
+            echo ""
+            echo "Options:"
+            echo "  1. CLI flag:    sindri deploy --build-repository ghcr.io/myorg/sindri"
+            echo "  2. sindri.yaml: providers.devpod.buildRepository: ghcr.io/myorg/sindri"
+            echo ""
+            echo "Also ensure Docker credentials are available:"
+            echo "  - Set DOCKER_USERNAME and DOCKER_PASSWORD environment variables"
+            echo "  - Or add them to .env or .env.local"
+            echo "  - Or run 'docker login' for your registry"
+            return 1
+        fi
+
+        image_tag="$BUILD_REPOSITORY:latest"
+
+        # Get credentials and login
+        if ! get_docker_credentials; then
+            if ! docker_registry_login; then
+                print_error "Failed to authenticate with Docker registry"
+                return 1
+            fi
+        fi
+
+        # Build and push
+        build_image "$image_tag" || return 1
+        push_image "$image_tag" || return 1
+
+        echo "$image_tag"
+        return 0
+    fi
+
+    # Default: use Dockerfile
+    echo ""
+}
+
 generate_devcontainer() {
+    local image_tag="${1:-}"
+
     mkdir -p "$OUTPUT_DIR/.devcontainer"
     local MEMORY_MB
     MEMORY_MB=$(echo "$MEMORY" | sed 's/GB/*1024/;s/MB//' | bc)
 
+    # Determine image source line
+    local image_source
+    if [[ -n "$image_tag" ]]; then
+        image_source="\"image\": \"${image_tag}\","
+    else
+        image_source="\"dockerFile\": \"../Dockerfile\","
+    fi
+
     cat > "$OUTPUT_DIR/.devcontainer/devcontainer.json" << EODC
 {
   "name": "${NAME}",
-  "dockerFile": "../Dockerfile",
+  ${image_source}
   "workspaceFolder": "/alt/home/developer/workspace",
   "workspaceMount": "source=\${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
   "containerEnv": {
@@ -302,18 +591,40 @@ cmd_deploy() {
 
     if [[ "$OUTPUT_VARS" == "true" ]]; then
         cat << EOJSON
-{"name":"$NAME","profile":"$PROFILE","provider":"$DEVPOD_PROVIDER","memory":"$MEMORY","cpus":$CPUS,"volumeSize":$VOLUME_SIZE,"gpu_enabled":$GPU_ENABLED,"gpu_tier":"$GPU_TIER"}
+{"name":"$NAME","profile":"$PROFILE","provider":"$DEVPOD_PROVIDER","memory":"$MEMORY","cpus":$CPUS,"volumeSize":$VOLUME_SIZE,"gpu_enabled":$GPU_ENABLED,"gpu_tier":"$GPU_TIER","buildRepository":"$BUILD_REPOSITORY"}
 EOJSON
         return 0
     fi
 
-    generate_devcontainer
+    echo "==> Deploying with DevPod"
+    echo "  Workspace: $NAME"
+    echo "  Provider: $DEVPOD_PROVIDER"
+    echo "  Profile: $PROFILE"
+    echo "  Resources: ${CPUS} CPUs, ${MEMORY} memory, ${VOLUME_SIZE}GB storage"
+    if [[ -n "$BUILD_REPOSITORY" ]]; then
+        echo "  Build Repository: $BUILD_REPOSITORY"
+    fi
+
+    # Prepare image (build/push/load as needed)
+    local image_tag
+    if ! image_tag=$(prepare_image); then
+        print_error "Failed to prepare image"
+        exit 1
+    fi
+
+    # Generate devcontainer configuration
+    generate_devcontainer "$image_tag"
 
     if [[ "$CONFIG_ONLY" == "true" ]]; then
         print_success "Generated DevPod configuration at $OUTPUT_DIR/.devcontainer/"
         echo "  Workspace: $NAME"
         echo "  Provider: $DEVPOD_PROVIDER"
         echo "  Profile: $PROFILE"
+        if [[ -n "$image_tag" ]]; then
+            echo "  Image: $image_tag"
+        else
+            echo "  Image: (build from Dockerfile)"
+        fi
         if [[ "$GPU_ENABLED" == "true" ]]; then
             echo "  GPU: $GPU_TIER (count: $GPU_COUNT)"
         fi
@@ -321,12 +632,6 @@ EOJSON
     fi
 
     require_devpod
-
-    echo "==> Deploying with DevPod"
-    echo "  Workspace: $NAME"
-    echo "  Provider: $DEVPOD_PROVIDER"
-    echo "  Profile: $PROFILE"
-    echo "  Resources: ${CPUS} CPUs, ${MEMORY} memory, ${VOLUME_SIZE}GB storage"
 
     ensure_devpod_provider "$DEVPOD_PROVIDER" || exit 1
     configure_k8s_provider
@@ -423,6 +728,41 @@ cmd_plan() {
     fi
     echo ""
 
+    # Show image strategy
+    echo "Image Strategy:"
+    case "$DEVPOD_PROVIDER" in
+        docker)
+            echo "  Build from Dockerfile (local Docker)"
+            ;;
+        kubernetes)
+            local local_cluster
+            local_cluster=$(detect_local_cluster)
+            if [[ -n "$local_cluster" ]]; then
+                echo "  Local cluster detected: $local_cluster"
+                echo "  → Build locally and load into cluster"
+            elif [[ -n "$BUILD_REPOSITORY" ]]; then
+                echo "  Build repository: $BUILD_REPOSITORY"
+                echo "  → Build and push to registry"
+            else
+                echo "  ⚠ No build repository configured"
+                echo "  → Set --build-repository or providers.devpod.buildRepository"
+            fi
+            ;;
+        aws|gcp|azure)
+            if [[ -n "$BUILD_REPOSITORY" ]]; then
+                echo "  Build repository: $BUILD_REPOSITORY"
+                echo "  → Build and push to registry"
+            else
+                echo "  ⚠ No build repository configured"
+                echo "  → Set --build-repository or providers.devpod.buildRepository"
+            fi
+            ;;
+        *)
+            echo "  Build from Dockerfile"
+            ;;
+    esac
+    echo ""
+
     case "$DEVPOD_PROVIDER" in
         kubernetes)
             echo "Kubernetes:"
@@ -458,14 +798,33 @@ cmd_plan() {
 
     echo ""
     echo "Actions:"
-    echo "  1. Generate .devcontainer/devcontainer.json"
-    echo "  2. Add '$DEVPOD_PROVIDER' provider to DevPod (if needed)"
-    if [[ "$DEVPOD_PROVIDER" == "kubernetes" ]]; then
-        echo "  3. Create namespace '$K8S_NAMESPACE' (if needed)"
-        echo "  4. Run: devpod up . --provider $DEVPOD_PROVIDER --id $NAME"
-    else
-        echo "  3. Run: devpod up . --provider $DEVPOD_PROVIDER --id $NAME"
+    local step=1
+    if [[ "$DEVPOD_PROVIDER" != "docker" ]]; then
+        local local_cluster
+        local_cluster=$(detect_local_cluster)
+        if [[ -n "$local_cluster" ]]; then
+            echo "  $step. Build Docker image locally"
+            ((step++))
+            echo "  $step. Load image into $local_cluster"
+            ((step++))
+        elif [[ -n "$BUILD_REPOSITORY" ]]; then
+            echo "  $step. Authenticate with Docker registry"
+            ((step++))
+            echo "  $step. Build Docker image"
+            ((step++))
+            echo "  $step. Push to $BUILD_REPOSITORY"
+            ((step++))
+        fi
     fi
+    echo "  $step. Generate .devcontainer/devcontainer.json"
+    ((step++))
+    echo "  $step. Add '$DEVPOD_PROVIDER' provider to DevPod (if needed)"
+    ((step++))
+    if [[ "$DEVPOD_PROVIDER" == "kubernetes" ]]; then
+        echo "  $step. Create namespace '$K8S_NAMESPACE' (if needed)"
+        ((step++))
+    fi
+    echo "  $step. Run: devpod up . --provider $DEVPOD_PROVIDER --id $NAME"
 }
 
 cmd_status() {
