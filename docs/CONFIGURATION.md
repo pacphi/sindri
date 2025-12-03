@@ -309,7 +309,7 @@ providers:
     kubernetes:
       namespace: sindri-test
       storageClass: standard
-      context: my-cluster  # Optional: specific kubeconfig context
+      context: my-cluster # Optional: specific kubeconfig context
 ```
 
 **Features:**

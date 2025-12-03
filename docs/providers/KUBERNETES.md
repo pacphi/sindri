@@ -95,7 +95,7 @@ providers:
   devpod:
     type: kubernetes
     kubernetes:
-      context: my-cluster-context    # kubectl context to use
+      context: my-cluster-context # kubectl context to use
       namespace: dev-environments
       storageClass: fast-ssd
 ```
@@ -111,7 +111,7 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-medium    # Selects nodes with A10G GPUs
+      tier: gpu-medium # Selects nodes with A10G GPUs
       count: 1
   volumes:
     workspace:
@@ -139,13 +139,13 @@ providers:
 
 ## Deployment Commands
 
-| Command          | Description                             |
-| ---------------- | --------------------------------------- |
-| `sindri deploy`  | Create/update the Kubernetes workspace  |
-| `sindri connect` | SSH into the workspace                  |
-| `sindri status`  | Show workspace status                   |
-| `sindri plan`    | Preview deployment plan                 |
-| `sindri destroy` | Delete the workspace                    |
+| Command          | Description                            |
+| ---------------- | -------------------------------------- |
+| `sindri deploy`  | Create/update the Kubernetes workspace |
+| `sindri connect` | SSH into the workspace                 |
+| `sindri status`  | Show workspace status                  |
+| `sindri plan`    | Preview deployment plan                |
+| `sindri destroy` | Delete the workspace                   |
 
 ## Image Handling
 
@@ -248,11 +248,11 @@ providers:
 
 When you deploy, DevPod creates these Kubernetes resources:
 
-| Resource                  | Purpose                                         |
-| ------------------------- | ----------------------------------------------- |
-| **Pod**                   | Runs the Sindri container                       |
-| **PersistentVolumeClaim** | Persists `/alt/home/developer` across restarts  |
-| **Service**               | Exposes SSH on port 2222                        |
+| Resource                  | Purpose                                        |
+| ------------------------- | ---------------------------------------------- |
+| **Pod**                   | Runs the Sindri container                      |
+| **PersistentVolumeClaim** | Persists `/alt/home/developer` across restarts |
+| **Service**               | Exposes SSH on port 2222                       |
 
 You don't manage these directly - DevPod handles the lifecycle. To inspect:
 
@@ -627,7 +627,7 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: dev-alice
   egress:
-    - {}  # Allow all egress (internet access for development)
+    - {} # Allow all egress (internet access for development)
 ```
 
 ### RBAC for Users

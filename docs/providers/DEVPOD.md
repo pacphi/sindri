@@ -282,12 +282,12 @@ Sindri looks for registry credentials in this order:
 
 **Special registry support:**
 
-| Registry                        | Credential Source                        |
-| ------------------------------- | ---------------------------------------- |
-| ghcr.io                         | `GITHUB_TOKEN` environment variable      |
-| ECR (*.dkr.ecr.*.amazonaws.com) | AWS CLI (`aws ecr get-login-password`)   |
-| GCR (*.gcr.io)                  | `GOOGLE_APPLICATION_CREDENTIALS`         |
-| Other                           | `DOCKER_USERNAME` + `DOCKER_PASSWORD`    |
+| Registry                        | Credential Source                      |
+| ------------------------------- | -------------------------------------- |
+| ghcr.io                         | `GITHUB_TOKEN` environment variable    |
+| ECR (_.dkr.ecr._.amazonaws.com) | AWS CLI (`aws ecr get-login-password`) |
+| GCR (\*.gcr.io)                 | `GOOGLE_APPLICATION_CREDENTIALS`       |
+| Other                           | `DOCKER_USERNAME` + `DOCKER_PASSWORD`  |
 
 ### Viewing the Image Strategy
 

@@ -361,7 +361,7 @@ jobs:
           k8s-namespace: sindri-test
           # Auto-detect: uses local cluster if no KUBECONFIG secret provided
           k8s-use-local-cluster: auto
-          k8s-local-cluster-type: kind  # Can be 'kind' or 'k3d'
+          k8s-local-cluster-type: kind # Can be 'kind' or 'k3d'
           k8s-local-cluster-name: sindri-ci-${{ github.run_id }}
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}

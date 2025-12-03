@@ -65,7 +65,3 @@ git checkout v1.0.0
 ./cli/sindri deploy --provider fly      # Fly.io
 ./cli/sindri deploy --provider devpod   # DevContainer
 ```
-
-
-
-
