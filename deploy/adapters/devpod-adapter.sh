@@ -547,6 +547,13 @@ generate_devcontainer() {
   "workspaceFolder": "/alt/home/developer/workspace",
   "workspaceMount": "source=\${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
   "containerEnv": {
+    "HOME": "/alt/home/developer",
+    "ALT_HOME": "/alt/home/developer",
+    "WORKSPACE": "/alt/home/developer/workspace",
+    "MISE_DATA_DIR": "/alt/home/developer/.local/share/mise",
+    "MISE_CONFIG_DIR": "/alt/home/developer/.config/mise",
+    "MISE_CACHE_DIR": "/alt/home/developer/.cache/mise",
+    "MISE_STATE_DIR": "/alt/home/developer/.local/state/mise",
     "INSTALL_PROFILE": "${PROFILE}",
     "CUSTOM_EXTENSIONS": "${CUSTOM_EXTENSIONS}",
     "INIT_WORKSPACE": "true"

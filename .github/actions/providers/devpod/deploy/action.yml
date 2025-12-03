@@ -142,6 +142,7 @@ runs:
 
           # Generate devcontainer.json with image reference (not dockerFile)
           # Use jq to construct valid JSON
+          # IMPORTANT: HOME and MISE_* env vars are critical for extension-manager to work
           jq -n \
             --arg name "$NAME" \
             --arg image "$IMAGE" \
@@ -152,6 +153,13 @@ runs:
               workspaceFolder: "/alt/home/developer/workspace",
               workspaceMount: "source=${localWorkspaceFolder},target=/alt/home/developer/workspace,type=bind",
               containerEnv: {
+                HOME: "/alt/home/developer",
+                ALT_HOME: "/alt/home/developer",
+                WORKSPACE: "/alt/home/developer/workspace",
+                MISE_DATA_DIR: "/alt/home/developer/.local/share/mise",
+                MISE_CONFIG_DIR: "/alt/home/developer/.config/mise",
+                MISE_CACHE_DIR: "/alt/home/developer/.cache/mise",
+                MISE_STATE_DIR: "/alt/home/developer/.local/state/mise",
                 CI_MODE: "true"
               },
               customizations: {
