@@ -326,11 +326,11 @@ runs:
           [plugins."io.containerd.grpc.v1.cri".registry]
             config_path = "/etc/containerd/certs.d"
         nodes:
-          - role: control-plane
-            extraPortMappings:
-              - containerPort: 30000
-                hostPort: 30000
-                protocol: TCP
+        - role: control-plane
+          extraPortMappings:
+          - containerPort: 30000
+            hostPort: 30000
+            protocol: TCP
         KINDEOF
             sed -i 's/^        //' /tmp/kind-config.yaml
 
