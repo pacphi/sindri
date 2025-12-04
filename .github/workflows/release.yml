@@ -216,7 +216,13 @@ jobs:
 
           mv CHANGELOG.md.new CHANGELOG.md
 
-      - name: Commit changelog update
+      - name: Update VERSION file
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "$version" > cli/VERSION
+          echo "Updated cli/VERSION to $version"
+
+      - name: Commit release updates
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
 
@@ -224,13 +230,13 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Check if there are changes to commit
-          if git diff --quiet CHANGELOG.md; then
-            echo "No changes to CHANGELOG.md"
+          if git diff --quiet CHANGELOG.md cli/VERSION; then
+            echo "No changes to commit"
             exit 0
           fi
 
-          git add CHANGELOG.md
-          git commit -m "docs: update CHANGELOG.md for v$version
+          git add CHANGELOG.md cli/VERSION
+          git commit -m "chore(release): update CHANGELOG.md and VERSION for v$version
 
           [skip ci]"
           git push origin main
