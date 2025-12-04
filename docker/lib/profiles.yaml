@@ -31,15 +31,21 @@ profiles:
     description: AI development with Anthropic toolset bias
     extensions:
       - agent-manager
+      - agentic-qe
       - ai-toolkit
       - claude-code-mux
+      - claudish
       - claude-marketplace
       - cloud-tools
+      - golang
+      - infra-tools
+      - jvm
       - openskills
       - nodejs-devtools
       - playwright
       - rust
       - ruvnet-aliases
+      - ruvnet-research
       - tmux-workspace
 
   systems:
