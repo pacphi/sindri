@@ -97,15 +97,35 @@ runs:
           # Brief wait for machine cleanup
           sleep 2
 
-          # Delete app
+          # Delete app with retry logic for pending/stuck apps
           echo "Deleting app..."
-          if [[ "$FORCE" == "true" ]]; then
-            flyctl apps destroy "$APP_NAME" --yes 2>/dev/null || true
-          else
-            flyctl apps destroy "$APP_NAME" 2>/dev/null || true
-          fi
+          DELETE_SUCCESS=false
+          for attempt in 1 2 3; do
+            echo "  Attempt $attempt to delete app..."
+            if [[ "$FORCE" == "true" ]]; then
+              if flyctl apps destroy "$APP_NAME" --yes 2>&1; then
+                DELETE_SUCCESS=true
+                break
+              fi
+            else
+              if flyctl apps destroy "$APP_NAME" 2>&1; then
+                DELETE_SUCCESS=true
+                break
+              fi
+            fi
+            # Wait before retry (Fly.io may need time to process pending state)
+            sleep 5
+          done
 
-          echo "✅ App $APP_NAME cleaned up"
+          # Verify the app was actually deleted
+          sleep 2
+          if flyctl apps list 2>/dev/null | grep -q "^${APP_NAME}[[:space:]]"; then
+            echo "::warning::App $APP_NAME still exists after cleanup attempts"
+            echo "⚠️ App $APP_NAME may require manual deletion"
+            echo "  Run: flyctl apps destroy $APP_NAME --yes"
+          else
+            echo "✅ App $APP_NAME cleaned up successfully"
+          fi
         else
           echo "⚠️ App $APP_NAME not found"
         fi
