@@ -126,29 +126,85 @@ config_init() {
     fi
 
     cat > sindri.yaml << 'EOYAML'
+# Sindri Configuration
+# ====================
+# Reference files:
+#   In repo:      docker/lib/profiles.yaml, docker/lib/registry.yaml
+#   In container: /docker/lib/profiles.yaml, /docker/lib/registry.yaml
+#
+# Key references:
+#   - profiles.yaml    - Extension profiles (minimal, fullstack, ai-dev, etc.)
+#   - registry.yaml    - All available extensions
+#   - categories.yaml  - Extension categories
+#   - vm-sizes.yaml    - VM size mappings per provider
+#
+# Documentation: docs/CONFIGURATION.md, docs/SCHEMA.md
+# Examples: examples/ directory (organized by provider)
+
 version: "1.0"
 name: my-sindri-dev
 
+# =============================================================================
+# DEPLOYMENT
+# =============================================================================
 deployment:
   provider: docker  # Options: docker, fly, devpod
+
   resources:
-    memory: 2GB     # RAM allocation (e.g., 1GB, 2GB, 4GB)
-    cpus: 2         # Number of CPUs
+    memory: 2GB     # RAM allocation (e.g., 1GB, 2GB, 4GB, 8GB)
+    cpus: 2         # Number of CPUs (1-8)
+
+    # GPU support (optional) - see vm-sizes.yaml for provider-specific options
+    # gpu:
+    #   enabled: true
+    #   type: nvidia          # nvidia or amd
+    #   count: 1              # Number of GPUs (1-8)
+    #   tier: gpu-medium      # gpu-small, gpu-medium, gpu-large, gpu-xlarge
+    #   memory: 16GB          # Minimum GPU memory
 
   volumes:
     workspace:
-      path: /workspace
+      path: /alt/home/developer
       size: 10GB    # Persistent volume size
 
+# =============================================================================
+# EXTENSIONS
+# =============================================================================
+# Three options for configuring extensions:
+#
+# Option 1: Use a profile (recommended for quick setup)
+# Option 2: List specific extensions with 'active' (mutually exclusive with profile)
+# Option 3: Use a profile + additional extensions
+
 extensions:
-  profile: fullstack  # Options: minimal, fullstack, ai-dev, systems, enterprise, devops, cloud-native
-  # Or specify custom extensions:
+  # Option 1: Use a predefined profile
+  profile: fullstack
+  # Available profiles: minimal, fullstack, ai-dev, anthropic-dev,
+  #                     systems, enterprise, data-science, devops, mobile
+  # See: docker/lib/profiles.yaml for contents of each profile
+
+  # Option 2: List specific extensions (mutually exclusive with profile)
   # active:
   #   - nodejs
   #   - python
   #   - docker
+  #   - ai-toolkit
+  # See: docker/lib/registry.yaml for all available extensions
 
-# Secrets configuration (set via provider-specific mechanisms)
+  # Option 3: Add extensions on top of a profile
+  # additional:
+  #   - rust
+  #   - golang
+  #   - infra-tools
+
+# =============================================================================
+# SECRETS
+# =============================================================================
+# Set via provider-specific mechanisms:
+#   - Docker: environment variables or .env file
+#   - Fly.io: flyctl secrets set KEY=value -a app-name
+#   - DevPod: environment variables
+
 secrets:
   # SSH key-based authentication (recommended for Fly.io)
   # - name: AUTHORIZED_KEYS
@@ -174,10 +230,29 @@ secrets:
   # - name: PERPLEXITY_API_KEY
   #   source: env
 
+  # File-based secrets (mount files into container)
+  # - name: SSH_KEY
+  #   source: file
+  #   path: ~/.ssh/id_rsa
+  #   mountPath: /home/developer/.ssh/id_rsa
+  #   permissions: "0600"
+
+  # HashiCorp Vault secrets
+  # - name: DB_PASSWORD
+  #   source: vault
+  #   vaultPath: secret/data/myapp
+  #   vaultKey: password
+  #   vaultMount: secret
+
+# =============================================================================
+# PROVIDERS
+# =============================================================================
 providers:
-  # Fly.io configuration
+  # ---------------------------------------------------------------------------
+  # Fly.io - Cloud deployment
+  # ---------------------------------------------------------------------------
   fly:
-    region: sjc                # Fly.io region (sjc, ord, iad, etc.)
+    region: sjc                # Fly.io region (sjc, ord, iad, ams, etc.)
     autoStopMachines: true     # Auto-suspend when idle (cost savings)
     autoStartMachines: true    # Auto-resume on connection
     cpuKind: shared            # shared (cost-effective) or performance (dedicated)
@@ -185,12 +260,96 @@ providers:
     organization: personal     # Fly.io organization
     highAvailability: false    # Enable for multi-machine redundancy
 
-  # Docker configuration
+  # ---------------------------------------------------------------------------
+  # Docker - Local container deployment
+  # ---------------------------------------------------------------------------
   docker:
-    network: bridge
-    restart: unless-stopped
+    network: bridge            # bridge, host, or none
+    restart: unless-stopped    # no, always, on-failure, unless-stopped
+    # ports:                   # Additional port mappings
+    #   - "3000:3000"
+    #   - "8080:8080"
+    # privileged: false        # Run in privileged mode (use with caution)
+    # extraHosts:              # Add entries to /etc/hosts
+    #   - "host.docker.internal:host-gateway"
 
-  # Kubernetes configuration
+  # ---------------------------------------------------------------------------
+  # DevPod - Multi-provider DevContainer deployment
+  # ---------------------------------------------------------------------------
+  # devpod:
+  #   type: docker             # docker, aws, gcp, azure, digitalocean, kubernetes, ssh
+  #   # buildRepository: ghcr.io/myorg/sindri  # Required for cloud/k8s providers
+  #
+  #   # AWS EC2 options
+  #   # aws:
+  #   #   region: us-west-2
+  #   #   instanceType: c5.xlarge
+  #   #   diskSize: 40
+  #   #   useSpot: false
+  #   #   subnetId: subnet-xxx
+  #   #   securityGroupId: sg-xxx
+  #
+  #   # GCP Compute Engine options
+  #   # gcp:
+  #   #   project: my-project-id
+  #   #   zone: us-central1-a
+  #   #   machineType: e2-standard-4
+  #   #   diskSize: 40
+  #   #   diskType: pd-balanced  # pd-standard, pd-balanced, pd-ssd
+  #
+  #   # Azure VM options
+  #   # azure:
+  #   #   subscription: xxx-xxx-xxx
+  #   #   resourceGroup: devpod-resources
+  #   #   location: eastus
+  #   #   vmSize: Standard_D4s_v3
+  #   #   diskSize: 40
+  #
+  #   # DigitalOcean Droplet options
+  #   # digitalocean:
+  #   #   region: nyc3
+  #   #   size: s-4vcpu-8gb
+  #
+  #   # Kubernetes pod options
+  #   # kubernetes:
+  #   #   namespace: devpod
+  #   #   context: my-cluster
+  #   #   storageClass: standard
+  #   #   nodeSelector:
+  #   #     kubernetes.io/arch: amd64
+  #
+  #   # SSH to existing machine
+  #   # ssh:
+  #   #   host: dev-server.example.com
+  #   #   user: root
+  #   #   port: 22
+  #   #   keyPath: ~/.ssh/id_rsa
+
+  # ---------------------------------------------------------------------------
+  # Local Kubernetes cluster (kind/k3d)
+  # ---------------------------------------------------------------------------
+  # k8s:
+  #   provider: kind           # kind or k3d
+  #   clusterName: sindri-dev  # Defaults to sindri.yaml name
+  #   version: v1.31.0
+  #   nodes: 1                 # 1 = single node, >1 = multi-node with workers
+  #
+  #   # kind-specific options
+  #   # kind:
+  #   #   image: kindest/node:v1.31.0
+  #   #   configFile: kind-config.yaml
+  #
+  #   # k3d-specific options
+  #   # k3d:
+  #   #   image: rancher/k3s:v1.31.0-k3s1
+  #   #   registry:
+  #   #     enabled: true
+  #   #     name: k3d-registry
+  #   #     port: 5000
+
+  # ---------------------------------------------------------------------------
+  # Kubernetes (native) - Note: use DevPod for K8s deployment
+  # ---------------------------------------------------------------------------
   kubernetes:
     namespace: default
     storageClass: standard
@@ -201,19 +360,21 @@ EOYAML
 
     print_success "Created sindri.yaml"
     echo ""
-    echo "Configuration options:"
-    echo "  • Provider: docker (local), fly (cloud), devpod (DevContainer)"
-    echo "  • Resources: Adjust memory/cpus based on needs"
-    echo "  • Extensions: Choose profile or custom active list"
-    echo "  • Secrets: Configure provider-specific secrets"
+    echo "Reference files:"
+    echo "  • docker/lib/profiles.yaml  - Extension profiles and their contents"
+    echo "  • docker/lib/registry.yaml  - All available extensions"
+    echo "  • docs/CONFIGURATION.md     - Full configuration guide"
+    echo "  • examples/                 - Ready-to-use examples by provider"
     echo ""
     echo "Next steps:"
     echo "  1. Edit sindri.yaml to customize your deployment"
-    echo "  2. Run: ./cli/sindri deploy"
+    echo "  2. Run: ./cli/sindri config validate"
+    echo "  3. Run: ./cli/sindri deploy"
     echo ""
-    echo "For Fly.io deployments:"
-    echo "  • Set secrets: flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-sindri-dev"
-    echo "  • See docs/providers/FLY.md for complete guide"
+    echo "Quick commands:"
+    echo "  • List profiles:    ./cli/extension-manager list-profiles"
+    echo "  • List extensions:  ./cli/extension-manager list"
+    echo "  • Validate config:  ./cli/sindri config validate"
     echo ""
 }
 

@@ -100,36 +100,47 @@
     },
     "extensions": {
       "type": "object",
+      "description": "Extension configuration: use profile, active list, or profile with additional extensions",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": [
+            "minimal",
+            "fullstack",
+            "ai-dev",
+            "anthropic-dev",
+            "systems",
+            "enterprise",
+            "data-science",
+            "devops",
+            "mobile"
+          ],
+          "description": "Extension profile to use as a base"
+        },
+        "active": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Explicit list of extensions to install (mutually exclusive with profile)"
+        },
+        "additional": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional extensions to install on top of a profile"
+        }
+      },
+      "additionalProperties": false,
       "oneOf": [
         {
           "required": ["profile"],
-          "properties": {
-            "profile": {
-              "type": "string",
-              "enum": [
-                "minimal",
-                "fullstack",
-                "ai-dev",
-                "anthropic-dev",
-                "systems",
-                "enterprise",
-                "data-science",
-                "devops",
-                "mobile"
-              ]
-            }
-          }
+          "not": { "required": ["active"] }
         },
         {
           "required": ["active"],
-          "properties": {
-            "active": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
+          "allOf": [{ "not": { "required": ["profile"] } }, { "not": { "required": ["additional"] } }]
         }
       ]
     },
@@ -245,6 +256,44 @@
               "type": "boolean",
               "default": false,
               "description": "Enable high availability (multiple machines)"
+            }
+          }
+        },
+        "docker": {
+          "type": "object",
+          "description": "Docker Compose provider options",
+          "properties": {
+            "network": {
+              "type": "string",
+              "enum": ["bridge", "host", "none"],
+              "default": "bridge",
+              "description": "Docker network mode"
+            },
+            "restart": {
+              "type": "string",
+              "enum": ["no", "always", "on-failure", "unless-stopped"],
+              "default": "unless-stopped",
+              "description": "Container restart policy"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^\\d+:\\d+$"
+              },
+              "description": "Additional port mappings (e.g., '3000:3000')"
+            },
+            "privileged": {
+              "type": "boolean",
+              "default": false,
+              "description": "Run container in privileged mode"
+            },
+            "extraHosts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Extra hosts to add to /etc/hosts (e.g., 'host.docker.internal:host-gateway')"
             }
           }
         },

@@ -104,7 +104,19 @@ extensions:
     - ai-toolkit
 ```
 
-**Note:** You can also combine both approaches - specify a profile and add additional extensions to `active`.
+#### Option 3: Profile with Additional Extensions
+
+Combine a profile with extra extensions using `additional`:
+
+```yaml
+extensions:
+  profile: minimal
+  additional:
+    - docker
+    - github-cli
+```
+
+**Note:** `active` and `profile` are mutually exclusive. Use `additional` to add extensions on top of a profile.
 
 ### Secrets Configuration
 

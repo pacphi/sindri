@@ -18,11 +18,12 @@ deployment:
       size: 10GB
 
 extensions:
-  profile: fullstack # Extension profile OR
-  list: # Individual extensions
-    - nodejs
-    - python
-    - docker
+  profile: fullstack # Use a profile, OR
+  # active:          # List individual extensions (mutually exclusive with profile)
+  #   - nodejs
+  #   - python
+  # additional:      # Extra extensions on top of a profile (optional)
+  #   - docker
 
 providers: # Provider-specific config
   fly: {}
@@ -167,7 +168,7 @@ extensions:
 
 ```yaml
 extensions:
-  list:
+  active:
     - nodejs
     - python
     - docker
