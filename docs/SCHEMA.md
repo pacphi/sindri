@@ -128,6 +128,9 @@ secrets:
     source: string # enum: [env, file, vault]
     required: boolean # Optional, default: false
 
+    # For source: env (optional)
+    fromFile: string # Read value from file (supports ~ expansion)
+
     # For source: file
     path: string # File path on host
     mountPath: string # Destination in container
@@ -141,9 +144,23 @@ secrets:
 
 **Secret Sources:**
 
-- `env` - Read from environment variable or `.env` file
-- `file` - Mount file into container
+- `env` - Read from environment variable, `.env` file, or local file via `fromFile`
+- `file` - Mount file into container at specified path
 - `vault` - Fetch from HashiCorp Vault
+
+**The `fromFile` Property (for `source: env`):**
+
+When using `source: env`, you can optionally specify `fromFile` to read the secret value directly from a local file instead of requiring manual environment variable setup:
+
+```yaml
+secrets:
+  # Reads content of ~/.ssh/id_ed25519.pub into AUTHORIZED_KEYS env var
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+```
+
+This is particularly useful for SSH public keys where you want zero-config setup. The resolution priority is: shell env → .env.local → .env → fromFile.
 
 ### Provider-Specific Configuration
 

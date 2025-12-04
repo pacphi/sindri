@@ -827,34 +827,70 @@ ssh developer@my-app.fly.dev -p 10022
 
 <!-- Supported Secrets -->
 <section>
-    <h2>Supported Secrets</h2>
-    <div style="display: flex; gap: 2em; font-size: 0.7em;">
-        <div>
-            <h4>Core</h4>
-            <ul>
-                <li>ANTHROPIC_API_KEY</li>
-                <li>GITHUB_TOKEN</li>
-                <li>GIT_USER_NAME</li>
-                <li>GIT_USER_EMAIL</li>
-            </ul>
+    <section>
+        <h2>Supported Secrets</h2>
+        <div style="display: flex; gap: 2em; font-size: 0.7em;">
+            <div>
+                <h4>Core</h4>
+                <ul>
+                    <li>ANTHROPIC_API_KEY</li>
+                    <li>GITHUB_TOKEN</li>
+                    <li>GIT_USER_NAME</li>
+                    <li>GIT_USER_EMAIL</li>
+                </ul>
+            </div>
+            <div>
+                <h4>AI Services</h4>
+                <ul>
+                    <li>OPENROUTER_API_KEY</li>
+                    <li>GOOGLE_GEMINI_API_KEY</li>
+                    <li>PERPLEXITY_API_KEY</li>
+                    <li>XAI_API_KEY</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Package Registries</h4>
+                <ul>
+                    <li>NPM_TOKEN</li>
+                    <li>PYPI_TOKEN</li>
+                </ul>
+            </div>
         </div>
-        <div>
-            <h4>AI Services</h4>
-            <ul>
-                <li>OPENROUTER_API_KEY</li>
-                <li>GOOGLE_GEMINI_API_KEY</li>
-                <li>PERPLEXITY_API_KEY</li>
-                <li>XAI_API_KEY</li>
-            </ul>
+    </section>
+
+    <section>
+        <h2>SSH Keys with <code>fromFile</code></h2>
+        <p>Read secrets directly from local files - zero manual export!</p>
+        <pre><code class="language-yaml">secrets:
+  # SSH public key - auto-reads from file
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+
+  # API keys from environment or .env files
+  - name: ANTHROPIC_API_KEY
+    source: env</code></pre>
+        <p class="small" style="margin-top: 1em;">
+            <span class="highlight">Resolution priority:</span> shell env &rarr; .env.local &rarr; .env &rarr; fromFile
+        </p>
+    </section>
+
+    <section>
+        <h2>SSH Key Direction</h2>
+        <div class="architecture-diagram">
+┌─────────────────┐                    ┌─────────────────────┐
+│  Your Laptop    │ ──── SSH ────────► │   Sindri Container  │
+│                 │                    │                     │
+│ Private Key     │    Authenticates   │ Public Key          │
+│ ~/.ssh/id_ed25519│                   │ AUTHORIZED_KEYS     │
+└─────────────────┘                    └─────────────────────┘
         </div>
-        <div>
-            <h4>Package Registries</h4>
-            <ul>
-                <li>NPM_TOKEN</li>
-                <li>PYPI_TOKEN</li>
-            </ul>
-        </div>
-    </div>
+        <ul style="font-size: 0.7em; margin-top: 1em;">
+            <li><span class="success">SSH INTO container:</span> Use AUTHORIZED_KEYS (public key)</li>
+            <li><span class="warning">SSH OUT from container:</span> Mount private key with <code>source: file</code></li>
+        </ul>
+        <p class="small">Never mount your personal private key - use dedicated deploy keys!</p>
+    </section>
 </section>
 
 <!-- Troubleshooting -->

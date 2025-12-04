@@ -1,0 +1,8 @@
+# Directories
+node_modules
+.git
+.claude
+.archives
+
+# Files with expected duplicate headings
+CHANGELOG.md

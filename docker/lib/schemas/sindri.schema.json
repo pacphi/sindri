@@ -161,6 +161,10 @@
             "enum": ["env", "file", "vault"],
             "description": "Source type: env (environment/file), file (file mount), vault (HashiCorp Vault)"
           },
+          "fromFile": {
+            "type": "string",
+            "description": "Read secret value from file content (for source: env). Supports ~ expansion. Falls back to env var if file not found."
+          },
           "required": {
             "type": "boolean",
             "default": false,

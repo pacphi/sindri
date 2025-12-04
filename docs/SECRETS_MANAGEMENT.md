@@ -79,7 +79,7 @@ That's it! Sindri will automatically:
 
 ### Environment Variables (`source: env`)
 
-Resolve secrets from environment variables, `.env` files, or shell exports.
+Resolve secrets from environment variables, `.env` files, shell exports, or local files.
 
 #### Resolution Priority
 
@@ -88,6 +88,7 @@ Secrets are resolved in this order (highest priority first):
 1. **Shell environment variables** - `export ANTHROPIC_API_KEY=...`
 2. **`.env.local`** - Gitignored, personal secrets
 3. **`.env`** - Committed, shared defaults
+4. **`fromFile`** - Read content from a local file (if specified)
 
 #### Environment Variable Configuration
 
@@ -100,6 +101,44 @@ secrets:
     source: env
     required: true # Fail deployment if missing
 ```
+
+#### The `fromFile` Property
+
+Use `fromFile` to read secret content directly from a local file. This is ideal for SSH public keys and other file-based credentials where you don't want to manually `export` or maintain `.env` files:
+
+```yaml
+secrets:
+  # SSH public key - reads from file automatically
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub # Supports ~ expansion
+
+  # Git signing key
+  - name: GPG_PUBLIC_KEY
+    source: env
+    fromFile: ~/.gnupg/public.asc
+```
+
+**Key differences: `fromFile` vs `source: file`**
+
+| Feature            | `fromFile`                         | `source: file`             |
+| ------------------ | ---------------------------------- | -------------------------- |
+| **Purpose**        | Read file content → env var        | Mount file into container  |
+| **Result**         | Sets environment variable          | File exists at `mountPath` |
+| **Use case**       | SSH public keys, API keys in files | Certificates, config files |
+| **Container path** | N/A                                | Required via `mountPath`   |
+
+**When to use `fromFile`:**
+
+- SSH authorized keys (`AUTHORIZED_KEYS`)
+- API keys stored in files
+- Any secret where you need the _content_ as an environment variable
+
+**When to use `source: file`:**
+
+- TLS certificates that apps read from disk
+- Config files that must exist at specific paths
+- Private keys for outbound SSH connections
 
 #### Environment Variable Usage Patterns
 
@@ -506,6 +545,9 @@ secrets:
     source: env|file|vault # Required: Secret source type
     required: boolean # Optional: Fail if missing (default: false)
 
+    # For source: env (optional)
+    fromFile: string # Read value from file content (supports ~ expansion)
+
     # For source: file
     path: string # Required: Local file path
     mountPath: string # Required: Container destination path
@@ -712,6 +754,49 @@ rules:
 ```
 
 ## Common Patterns
+
+### Pattern 0: SSH Key Management
+
+Understanding SSH key direction is critical for secure configuration:
+
+```text
+┌─────────────────┐                    ┌─────────────────────┐
+│  Your Laptop    │ ──── SSH ────────► │   Sindri Container  │
+│                 │                    │                     │
+│ Private Key     │    Authenticates   │ Public Key          │
+│ ~/.ssh/id_ed25519│    with public key │ AUTHORIZED_KEYS     │
+└─────────────────┘                    └─────────────────────┘
+```
+
+**For SSH INTO the container (most common):**
+
+- Your laptop keeps the **private key** (`~/.ssh/id_ed25519`)
+- Container needs the **public key** (`AUTHORIZED_KEYS`)
+- Use `fromFile` to read your public key:
+
+```yaml
+secrets:
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub # Public key content → env var
+```
+
+**For SSH OUT FROM the container (git clone, deploy):**
+
+- Container needs a **private key** for outbound connections
+- Mount the private key as a file:
+
+```yaml
+secrets:
+  # Mount deploy key for git operations inside container
+  - name: DEPLOY_SSH_KEY
+    source: file
+    path: ~/.ssh/deploy_key_ed25519 # Private key
+    mountPath: /alt/home/developer/.ssh/id_ed25519
+    permissions: "0600" # Restrictive permissions required
+```
+
+**Security note:** Never mount your personal private key into a container. Use dedicated deploy keys with limited scope.
 
 ### Pattern 1: Multi-Environment Configuration
 
