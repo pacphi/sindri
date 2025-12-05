@@ -32,17 +32,17 @@ extension-manager status nodejs
 
 Pre-configured bundles for common workflows. Profiles make it easy to set up complete development environments.
 
-| Profile           | Extensions                                                                                                                                                 | Use Case                     |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **minimal**       | nodejs, python                                                                                                                                             | Lightweight scripting        |
-| **fullstack**     | nodejs, python, docker, nodejs-devtools                                                                                                                    | Web development              |
-| **ai-dev**        | nodejs, python, ai-toolkit, openskills, monitoring                                                                                                         | AI/ML development            |
-| **anthropic-dev** | agent-manager, ai-toolkit, claude-code-mux, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, ruvnet-aliases, tmux-workspace | Anthropic/Claude development |
-| **systems**       | rust, golang, docker, infra-tools                                                                                                                          | Systems programming          |
-| **enterprise**    | All languages + infrastructure                                                                                                                             | Complete environment         |
-| **data-science**  | python, monitoring                                                                                                                                         | Data analysis                |
-| **devops**        | docker, infra-tools, cloud-tools, monitoring                                                                                                               | Infrastructure               |
-| **mobile**        | nodejs                                                                                                                                                     | Mobile development (WIP)     |
+| Profile           | Extensions                                                                                                                                                           | Use Case                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **minimal**       | nodejs, python                                                                                                                                                       | Lightweight scripting        |
+| **fullstack**     | nodejs, python, docker, nodejs-devtools                                                                                                                              | Web development              |
+| **ai-dev**        | nodejs, python, ai-toolkit, openskills, monitoring                                                                                                                   | AI/ML development            |
+| **anthropic-dev** | agent-manager, ai-toolkit, claude-code-mux, claudeup, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, ruvnet-aliases, tmux-workspace | Anthropic/Claude development |
+| **systems**       | rust, golang, docker, infra-tools                                                                                                                                    | Systems programming          |
+| **enterprise**    | All languages + infrastructure                                                                                                                                       | Complete environment         |
+| **data-science**  | python, monitoring                                                                                                                                                   | Data analysis                |
+| **devops**        | docker, infra-tools, cloud-tools, monitoring                                                                                                                         | Infrastructure               |
+| **mobile**        | nodejs                                                                                                                                                               | Mobile development (WIP)     |
 
 ### Using Profiles
 
@@ -103,6 +103,7 @@ Pre-installed foundational extensions:
 | claude-code-mux          | AI routing proxy (18+ providers)            | [CLAUDE-CODE-MUX.md](extensions/CLAUDE-CODE-MUX.md)                   |
 | claude-auth-with-api-key | Claude API key authentication               | [CLAUDE-AUTH-WITH-API-KEY.md](extensions/CLAUDE-AUTH-WITH-API-KEY.md) |
 | claudish                 | OpenRouter model proxy for Claude Code      | [CLAUDISH.md](extensions/CLAUDISH.md)                                 |
+| claudeup                 | TUI for Claude Code plugins & MCP config    | [CLAUDEUP.md](extensions/CLAUDEUP.md)                                 |
 | agent-manager            | AI agent orchestration                      | [AGENT-MANAGER.md](extensions/AGENT-MANAGER.md)                       |
 | ruvnet-aliases           | Claude Flow & Agentic Flow aliases          | [RUVNET-ALIASES.md](extensions/RUVNET-ALIASES.md)                     |
 | ruvnet-research          | AI research tools (Goalie, Research-Swarm)  | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md)                   |

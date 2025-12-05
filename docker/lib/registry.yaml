@@ -144,6 +144,11 @@ extensions:
     description: OpenRouter model proxy for Claude Code
     dependencies: [nodejs]
 
+  claudeup:
+    category: ai
+    description: TUI for managing Claude Code plugins, MCPs, and configuration
+    dependencies: [nodejs]
+
   # Monitoring
   monitoring:
     category: monitoring

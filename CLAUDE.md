@@ -102,7 +102,7 @@ sindri/
 │   │   ├── sshd_config            # SSH daemon configuration (port 2222)
 │   │   └── developer-sudoers      # Sudoers configuration for developer user
 │   ├── lib/                       # Immutable system files (baked into image)
-│   │   ├── extensions/            # 31 YAML extension definitions
+│   │   ├── extensions/            # 32 YAML extension definitions
 │   │   ├── schemas/               # JSON schemas for validation
 │   │   │   ├── extension.schema.json
 │   │   │   ├── manifest.schema.json
