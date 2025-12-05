@@ -170,6 +170,14 @@ install_profile() {
 
     print_header "Installing profile: $profile"
 
+    # Always install mise-config first to configure mise settings (yes=true, trusted paths)
+    # This ensures mise auto-accepts prompts before other extensions install tools
+    if ! is_extension_installed "mise-config"; then
+        print_status "Installing base extension: mise-config"
+        execute_extension "mise-config" "install"
+        add_to_manifest "mise-config" "base"
+    fi
+
     # Get extensions from profile
     local extensions
     extensions=$(load_yaml "$profiles_file" ".profiles.\"$profile\".extensions[]" 2>/dev/null || echo "")

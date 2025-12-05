@@ -12,14 +12,23 @@ print_status "Configuring mise..."
 # Create mise config directory
 mkdir -p ~/.config/mise/conf.d
 
+# Get home directory for trusted_config_paths
+MISE_HOME="${HOME:-/alt/home/developer}"
+
 # Create global mise config
-cat > ~/.config/mise/config.toml << 'EOF'
+# - yes = true: auto-accept all prompts (trust, install confirmations)
+# - trusted_config_paths: auto-trust extension configs in conf.d
+cat > ~/.config/mise/config.toml << EOF
 [settings]
 experimental = true
 always_keep_download = false
 always_keep_install = false
 plugin_autoupdate_last_check_duration = "7d"
 jobs = 4
+# Auto-accept prompts for CI/automated environments
+yes = true
+# Auto-trust extension config files
+trusted_config_paths = ["${MISE_HOME}/.config/mise/conf.d"]
 
 [env]
 MISE_USE_TOML = "1"

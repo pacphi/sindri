@@ -190,12 +190,6 @@ install_via_mise() {
     # Install tools
     cd "$workspace" || return 1
 
-    # Auto-accept mise prompts (including trust) in CI/non-interactive environments
-    # MISE_YES=1 is the documented way to run mise in automated environments
-    if [[ "${CI:-}" == "true" ]] || [[ "${CI_MODE:-}" == "true" ]] || [[ ! -t 0 ]]; then
-        export MISE_YES=1
-    fi
-
     # Run mise install (returns 0 even when "all tools are installed")
     if ! mise install 2>&1; then
         print_error "mise install failed"
