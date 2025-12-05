@@ -15,6 +15,9 @@ source "${MODULE_DIR}/dependency.sh"
 # WORKSPACE_SYSTEM is set by common.sh (sourced above)
 BOM_DIR="${WORKSPACE_SYSTEM}/bom"
 
+# Read Sindri version from VERSION file
+SINDRI_VERSION=$(cat "${MODULE_DIR}/../VERSION" 2>/dev/null || echo "1.0.0")
+
 # Generate BOM for a single extension
 generate_extension_bom() {
     local ext_name="$1"
@@ -281,13 +284,13 @@ resolve_dynamic_versions() {
             local actual_version=""
 
             if command_exists "$name"; then
-                # Try common version flags
-                actual_version=$($name --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
+                # Try common version flags with 5-second timeout to prevent hangs in CI
+                actual_version=$(timeout 5 "$name" --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
                 if [[ -z "$actual_version" ]]; then
-                    actual_version=$($name -v 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
+                    actual_version=$(timeout 5 "$name" -v 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
                 fi
                 if [[ -z "$actual_version" ]]; then
-                    actual_version=$($name version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
+                    actual_version=$(timeout 5 "$name" version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
                 fi
             fi
 
@@ -320,7 +323,7 @@ generate_aggregate_bom() {
     cat > "$output_file" << EOF
 # Aggregate Bill of Materials
 # Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-# Sindri Version: 1.0.0
+# Sindri Version: $SINDRI_VERSION
 
 extensions: []
 EOF
@@ -483,7 +486,11 @@ EOF
     "component": {
       "type": "application",
       "name": "sindri-workspace",
-      "version": "1.0.0"
+      "version": "
+EOF
+    echo -n "$SINDRI_VERSION"
+    cat << 'EOF'
+"
     }
   },
   "components": [
