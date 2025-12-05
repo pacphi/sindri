@@ -6,11 +6,17 @@
 # container bootstrap. Called by entrypoint.sh on first boot.
 #
 # Environment Variables:
+#   SKIP_AUTO_INSTALL     - Set to "true" to disable auto-install (default: false)
 #   INSTALL_PROFILE       - Profile name (e.g., "fullstack", "minimal")
 #   CUSTOM_EXTENSIONS     - Comma-separated list of extensions
 #   ADDITIONAL_EXTENSIONS - Extensions to add on top of profile (future)
 #
 # Creates: $WORKSPACE/.system/bootstrap.yaml (prevents re-run on restart)
+#
+# Use Cases:
+#   - CI testing: Set SKIP_AUTO_INSTALL=true to test manual extension installation
+#   - Manual control: Users who prefer to install extensions themselves
+#   - Debugging: Skip auto-install to isolate extension issues
 # ==============================================================================
 
 set -e
@@ -42,6 +48,13 @@ fi
 # ------------------------------------------------------------------------------
 install_extensions() {
     local bootstrap_marker="${WORKSPACE}/.system/bootstrap.yaml"
+
+    # Skip if auto-install is disabled
+    if [[ "${SKIP_AUTO_INSTALL:-false}" == "true" ]]; then
+        print_status "Auto-install disabled (SKIP_AUTO_INSTALL=true)"
+        print_status "Extensions can be installed manually with: extension-manager install-profile <profile>"
+        return 0
+    fi
 
     # Skip if already bootstrapped
     if [[ -f "$bootstrap_marker" ]]; then
@@ -202,6 +215,7 @@ installed:
 
 # Environment variables at runtime
 environment:
+  SKIP_AUTO_INSTALL: ${SKIP_AUTO_INSTALL:-false}
   INSTALL_PROFILE: ${INSTALL_PROFILE:-null}
   CUSTOM_EXTENSIONS: ${CUSTOM_EXTENSIONS:-null}
   ADDITIONAL_EXTENSIONS: ${ADDITIONAL_EXTENSIONS:-null}

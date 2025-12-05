@@ -145,6 +145,8 @@ parse_config() {
     fi
 
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
+    # Auto-install: default true, set extensions.autoInstall: false to disable
+    AUTO_INSTALL=$(yq '.extensions.autoInstall // true' "$SINDRI_YAML")
     CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
 
     MEMORY=$(yq '.deployment.resources.memory // "4GB"' "$SINDRI_YAML")
@@ -532,6 +534,12 @@ generate_devcontainer() {
     local MEMORY_MB
     MEMORY_MB=$(echo "$MEMORY" | sed 's/GB/*1024/;s/MB//' | bc)
 
+    # Convert autoInstall (true/false) to SKIP_AUTO_INSTALL (inverted)
+    local skip_auto_install="false"
+    if [[ "$AUTO_INSTALL" == "false" ]]; then
+        skip_auto_install="true"
+    fi
+
     # Determine image source line
     local image_source
     if [[ -n "$image_tag" ]]; then
@@ -556,6 +564,7 @@ generate_devcontainer() {
     "MISE_STATE_DIR": "/alt/home/developer/.local/state/mise",
     "INSTALL_PROFILE": "${PROFILE}",
     "CUSTOM_EXTENSIONS": "${CUSTOM_EXTENSIONS}",
+    "SKIP_AUTO_INSTALL": "${skip_auto_install}",
     "INIT_WORKSPACE": "true"
   },
   "hostRequirements": {

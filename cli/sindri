@@ -197,6 +197,10 @@ extensions:
   #   - golang
   #   - infra-tools
 
+  # Auto-install extensions on container startup (default: true)
+  # Set to false for manual control or CI testing where tests install explicitly
+  autoInstall: true
+
 # =============================================================================
 # SECRETS
 # =============================================================================

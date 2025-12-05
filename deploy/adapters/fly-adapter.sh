@@ -89,6 +89,8 @@ parse_config() {
     REGION=$(yq '.providers.fly.region // "sjc"' "$SINDRI_YAML")
     ORG=$(yq '.providers.fly.organization // "personal"' "$SINDRI_YAML")
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
+    # Auto-install: default true, set extensions.autoInstall: false to disable
+    AUTO_INSTALL=$(yq '.extensions.autoInstall // true' "$SINDRI_YAML")
     CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
     VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML" | sed 's/GB//')
     AUTO_STOP=$(yq '.providers.fly.autoStopMachines // true' "$SINDRI_YAML")
@@ -157,6 +159,12 @@ validate_fly_gpu_region() {
 generate_fly_toml() {
     mkdir -p "$OUTPUT_DIR"
 
+    # Convert autoInstall (true/false) to SKIP_AUTO_INSTALL (inverted)
+    local skip_auto_install="false"
+    if [[ "$AUTO_INSTALL" == "false" ]]; then
+        skip_auto_install="true"
+    fi
+
     # Determine if CI mode is active
     local ci_mode_env=""
     if [[ "$CI_MODE" == "true" ]]; then
@@ -195,6 +203,8 @@ primary_region = "${REGION}"
   # Extension profile or custom list
   INSTALL_PROFILE = "${PROFILE}"
   CUSTOM_EXTENSIONS = "${CUSTOM_EXTENSIONS}"
+  # Skip auto-install (set to true for manual control)
+  SKIP_AUTO_INSTALL = "${skip_auto_install}"
   # Workspace initialization
   INIT_WORKSPACE = "true"${ci_mode_env}
 

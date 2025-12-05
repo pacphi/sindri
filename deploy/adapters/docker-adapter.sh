@@ -87,6 +87,8 @@ parse_config() {
     MEMORY=$(yq '.deployment.resources.memory // "1GB"' "$SINDRI_YAML")
     CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
+    # Auto-install: default true, set extensions.autoInstall: false to disable
+    AUTO_INSTALL=$(yq '.extensions.autoInstall // true' "$SINDRI_YAML")
     VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML")
 
     # GPU configuration
@@ -140,11 +142,18 @@ EODC
 EODC
     fi
 
+    # Convert autoInstall (true/false) to SKIP_AUTO_INSTALL (inverted)
+    local skip_auto_install="false"
+    if [[ "$AUTO_INSTALL" == "false" ]]; then
+        skip_auto_install="true"
+    fi
+
     # Add environment variables
     cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
     environment:
       - INIT_WORKSPACE=true
       - INSTALL_PROFILE=${PROFILE}
+      - SKIP_AUTO_INSTALL=${skip_auto_install}
 EODC
 
     # Add GPU or standard resource configuration
@@ -320,6 +329,7 @@ cmd_plan() {
     echo ""
     echo "Container:  $NAME"
     echo "Profile:    $PROFILE"
+    echo "Auto-install: $AUTO_INSTALL"
     echo ""
     echo "Resources:"
     echo "  CPUs:     $CPUS"
@@ -335,7 +345,11 @@ cmd_plan() {
     echo "  3. Resolve and inject secrets"
     echo "  4. Create volume: dev_home"
     echo "  5. Start container: $NAME"
-    echo "  6. Install extension profile: $PROFILE"
+    if [[ "$AUTO_INSTALL" == "true" ]]; then
+        echo "  6. Auto-install extension profile: $PROFILE"
+    else
+        echo "  6. Skip auto-install (manual: extension-manager install-profile $PROFILE)"
+    fi
 }
 
 cmd_status() {

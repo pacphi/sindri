@@ -15,6 +15,8 @@ deployment:
 
 extensions:
   profile: minimal
+  # Disable auto-install for CI testing (tests install extensions explicitly)
+  autoInstall: false
 
 providers:
   fly:
