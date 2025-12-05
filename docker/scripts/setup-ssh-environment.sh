@@ -23,23 +23,32 @@ cat > "$SSH_ENV_FILE" << 'EOF'
 #!/bin/bash
 # SSH environment initialization for non-interactive sessions
 # Used via BASH_ENV for non-interactive SSH commands
+#
+# This script is placed in /etc/profile.d/ but is primarily used via BASH_ENV
+# for non-interactive SSH sessions. When sourced during a login shell,
+# /etc/profile has already sourced bash.bashrc, so we skip redundant sourcing.
 
 # Guard against re-entry (prevents infinite recursion)
 [ -n "$__SSH_ENV_LOADED" ] && return 0
 export __SSH_ENV_LOADED=1
 
-# Source system-wide bash configuration
-[ -f /etc/bashrc ] && . /etc/bashrc
-[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+# Skip if we're in a login shell (profile.d sourcing) - bash.bashrc already loaded
+# Only source bash.bashrc when used as BASH_ENV for non-interactive sessions
+if [ -z "$PS1" ] && [ -n "$BASH_ENV" ]; then
+    [ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+fi
 
 # Source profile.d scripts (excluding this file to prevent recursion)
-for script in /etc/profile.d/*.sh; do
-    [ "$script" = "/etc/profile.d/00-ssh-environment.sh" ] && continue
-    [ -r "$script" ] && . "$script"
-done
+# Only needed for BASH_ENV usage; login shells already source profile.d via /etc/profile
+if [ -z "$PS1" ]; then
+    for script in /etc/profile.d/*.sh; do
+        [ "$script" = "/etc/profile.d/00-ssh-environment.sh" ] && continue
+        [ -r "$script" ] && . "$script"
+    done
+fi
 
-# Source user's bashrc if it exists
-if [ -n "$HOME" ] && [ -f "$HOME/.bashrc" ]; then
+# Source user's bashrc if it exists (for non-interactive BASH_ENV usage)
+if [ -z "$PS1" ] && [ -n "$HOME" ] && [ -f "$HOME/.bashrc" ]; then
     . "$HOME/.bashrc"
 fi
 EOF

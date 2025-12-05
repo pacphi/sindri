@@ -192,6 +192,12 @@ setup_ssh_keys() {
         chmod 700 "${ALT_HOME}/.ssh"
         chmod 600 "${ALT_HOME}/.ssh/authorized_keys"
 
+        # Unlock the user account for SSH key authentication
+        # By default, useradd creates locked accounts (! in shadow)
+        # This prevents SSH login even with valid keys
+        # Setting password to '*' allows key auth while keeping password disabled
+        usermod -p '*' "${DEVELOPER_USER}" 2>/dev/null || true
+
         print_success "SSH keys configured"
     else
         print_warning "No SSH keys found in AUTHORIZED_KEYS environment variable"
@@ -303,12 +309,9 @@ start_ssh_daemon() {
         # Ensure sshd runtime directory exists
         mkdir -p /var/run/sshd
 
-        # Start SSH daemon as background service (not forked foreground)
-        # This follows the Fly.io blueprint pattern for OpenSSH
-        /usr/sbin/sshd -e || {
-            print_error "Failed to start SSH daemon"
-            exit 1
-        }
+        # Start SSH daemon in foreground mode, then background it
+        # This matches the legacy approach for better process control
+        /usr/sbin/sshd -D &
 
         print_success "Sindri is ready!"
         print_status "SSH server listening on port ${SSH_PORT}"

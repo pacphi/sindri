@@ -386,6 +386,84 @@ EOFT
 # SSH Key Configuration
 # ============================================================================
 
+# Validate SSH key configuration from sindri.yaml
+# Returns 0 if valid, 1 if RSA key detected (should stop deploy)
+validate_ssh_key_config() {
+    local config_file="$1"
+
+    # Check if AUTHORIZED_KEYS has a fromFile pointing to an RSA key
+    local from_file
+    from_file=$(yq '.secrets[] | select(.name == "AUTHORIZED_KEYS") | .fromFile // ""' "$config_file" 2>/dev/null)
+
+    if [[ -z "$from_file" ]]; then
+        # No fromFile specified, proceed normally
+        return 0
+    fi
+
+    # Expand ~ to $HOME
+    from_file="${from_file/#\~/$HOME}"
+
+    # Check if the file path contains "rsa" (indicating RSA key)
+    if [[ "$from_file" == *"rsa"* ]]; then
+        print_error "RSA SSH key detected in sindri.yaml"
+        echo ""
+        echo "Your configuration specifies an RSA key:"
+        echo "  fromFile: $from_file"
+        echo ""
+        echo "RSA keys are deprecated and may cause authentication issues with modern"
+        echo "SSH servers. ED25519 keys are recommended for better security and compatibility."
+        echo ""
+        echo "To fix this:"
+        echo ""
+        echo "  1. Generate an ED25519 key (if you don't have one):"
+        echo "     ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -C \"your-email@example.com\""
+        echo ""
+        echo "  2. Update your sindri.yaml to use the ED25519 key:"
+        echo "     secrets:"
+        echo "       - name: AUTHORIZED_KEYS"
+        echo "         source: env"
+        echo "         fromFile: ~/.ssh/id_ed25519.pub"
+        echo ""
+        echo "  3. Re-run the deploy command"
+        echo ""
+        return 1
+    fi
+
+    # Check if ED25519 key file exists, create if not
+    if [[ "$from_file" == *"ed25519"* ]]; then
+        if [[ ! -f "$from_file" ]]; then
+            # Check for the private key too
+            local private_key="${from_file%.pub}"
+            if [[ ! -f "$private_key" ]]; then
+                print_warning "ED25519 key not found: $from_file"
+                echo ""
+
+                # In CI mode or non-interactive, fail
+                if [[ "${CI_MODE:-}" == "true" ]] || [[ "${CI:-}" == "true" ]] || [[ ! -t 0 ]]; then
+                    print_error "Cannot create SSH key in non-interactive mode"
+                    echo "Generate the key manually: ssh-keygen -t ed25519 -f $private_key"
+                    return 1
+                fi
+
+                read -p "Generate ED25519 key pair? (Y/n) " -n 1 -r
+                echo ""
+                if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+                    print_status "Generating ED25519 SSH key pair..."
+                    mkdir -p "$(dirname "$private_key")"
+                    ssh-keygen -t ed25519 -f "$private_key" -N "" -C "sindri-dev-$(date +%Y%m%d)"
+                    print_success "SSH key generated: $private_key"
+                else
+                    print_error "SSH key required for deployment"
+                    return 1
+                fi
+            fi
+        fi
+        print_status "Using ED25519 key: $from_file"
+    fi
+
+    return 0
+}
+
 ensure_ssh_keys() {
     local app_name="$1"
 
@@ -421,10 +499,10 @@ ensure_ssh_keys() {
     print_warning "No SSH keys configured - SSH access will not be available"
     print_status "Checking for local SSH keys..."
 
-    # Look for common SSH public keys
+    # Look for common SSH public keys (prefer ED25519)
     local ssh_key=""
     local ssh_key_type=""
-    for key_file in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub ~/.ssh/id_ecdsa.pub; do
+    for key_file in ~/.ssh/id_ed25519.pub ~/.ssh/id_ecdsa.pub; do
         if [[ -f "$key_file" ]]; then
             ssh_key=$(cat "$key_file")
             ssh_key_type=$(basename "$key_file" .pub)
@@ -444,13 +522,13 @@ ensure_ssh_keys() {
             return 0
         fi
     else
-        print_warning "No local SSH keys found in ~/.ssh/"
+        print_warning "No ED25519/ECDSA SSH keys found in ~/.ssh/"
         echo ""
-        read -p "Generate a new SSH key pair for Sindri? (Y/n) " -n 1 -r
+        read -p "Generate a new ED25519 SSH key pair for Sindri? (Y/n) " -n 1 -r
         echo ""
         if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            local key_path="$HOME/.ssh/sindri_ed25519"
-            print_status "Generating SSH key pair..."
+            local key_path="$HOME/.ssh/id_ed25519"
+            print_status "Generating ED25519 SSH key pair..."
             ssh-keygen -t ed25519 -f "$key_path" -N "" -C "sindri-dev-$(date +%Y%m%d)"
             ssh_key=$(cat "${key_path}.pub")
             print_success "SSH key generated: $key_path"
@@ -461,7 +539,7 @@ ensure_ssh_keys() {
 
             echo ""
             print_status "To connect, use:"
-            echo "    ssh -i $key_path developer@${app_name}.fly.dev -p ${SSH_EXTERNAL_PORT}"
+            echo "    ssh developer@${app_name}.fly.dev -p ${SSH_EXTERNAL_PORT}"
             echo ""
             return 0
         fi
@@ -477,6 +555,12 @@ ensure_ssh_keys() {
 
 cmd_deploy() {
     parse_config
+
+    # Validate SSH key configuration early (before any resources are created)
+    # This stops the deploy if an RSA key is specified, or creates ED25519 if missing
+    if ! validate_ssh_key_config "$SINDRI_YAML"; then
+        exit 1
+    fi
 
     # Output variables for CI integration
     if [[ "$OUTPUT_VARS" == "true" ]]; then
@@ -588,7 +672,27 @@ cmd_connect() {
         exit 1
     fi
 
-    flyctl ssh console -a "$NAME"
+    # Check if machine is suspended and wake it first
+    local machine_state
+    machine_state=$(flyctl machines list -a "$NAME" --json 2>/dev/null | yq -r '.[0].state // "unknown"')
+
+    if [[ "$machine_state" == "suspended" ]] || [[ "$machine_state" == "stopped" ]]; then
+        print_status "Machine is $machine_state, waking up..."
+        local machine_id
+        machine_id=$(flyctl machines list -a "$NAME" --json 2>/dev/null | yq -r '.[0].id // ""')
+        if [[ -n "$machine_id" ]]; then
+            flyctl machine start "$machine_id" -a "$NAME" 2>/dev/null || true
+            print_status "Waiting for machine to start..."
+            sleep 5
+        fi
+    fi
+
+    # Connect as developer user with proper login shell and home directory
+    # --pty allocates a pseudo-terminal for interactive shell
+    # Display MOTD first (flyctl ssh doesn't trigger PAM's pam_motd)
+    # Then 'su - developer' ensures HOME is set correctly and we land in $HOME
+    # Note: sh -c required because flyctl ssh -C doesn't parse shell operators
+    flyctl ssh console -a "$NAME" --pty -C "sh -c 'cat /etc/motd 2>/dev/null; exec su - developer'"
 }
 
 cmd_destroy() {

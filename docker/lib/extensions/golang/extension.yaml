@@ -28,6 +28,9 @@ configure:
     - key: GOMODCACHE
       value: "${HOME}/go/pkg/mod"
       scope: bashrc
+    - key: GOBIN
+      value: "${HOME}/go/bin"
+      scope: bashrc
 
 validate:
   commands:
