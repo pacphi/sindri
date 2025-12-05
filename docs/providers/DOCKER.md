@@ -79,11 +79,8 @@ This will:
 ### Connect
 
 ```bash
-# Interactive shell
-docker exec -it sindri-docker bash
-
-# As developer user
-docker exec -it -u developer sindri-docker bash
+# Interactive shell (via entrypoint - sets up environment, switches to developer user)
+docker exec -it sindri-docker /docker/scripts/entrypoint.sh /bin/bash
 ```
 
 ### Lifecycle Management

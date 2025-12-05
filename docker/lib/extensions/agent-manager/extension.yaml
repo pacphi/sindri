@@ -28,9 +28,6 @@ configure:
     - source: agents-config.yaml.template
       destination: ~/config/agents-config.yaml
       mode: skip-if-exists
-    - source: agent-discovery.sh.template
-      destination: ~/scripts/agent-discovery.sh
-      mode: overwrite
   environment:
     - key: PATH
       value: "$HOME/.local/bin:$PATH"

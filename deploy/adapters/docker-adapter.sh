@@ -260,7 +260,7 @@ EOJSON
     echo ""
     echo "Connect:"
     echo "  sindri connect"
-    echo "  docker exec -it $NAME /bin/bash"
+    echo "  docker exec -it $NAME /docker/scripts/entrypoint.sh /bin/bash"
     echo ""
     echo "Manage:"
     echo "  sindri status"
@@ -276,7 +276,9 @@ cmd_connect() {
         exit 1
     fi
 
-    docker exec -it "$NAME" /bin/bash
+    # Run through entrypoint to properly setup environment, show MOTD/welcome,
+    # switch to developer user, and cd to workspace
+    docker exec -it "$NAME" /docker/scripts/entrypoint.sh /bin/bash
 }
 
 cmd_destroy() {

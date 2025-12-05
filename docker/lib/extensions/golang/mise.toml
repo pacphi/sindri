@@ -2,5 +2,5 @@
 go = "1.24"
 
 [env]
-GOPATH = "~/go"
-_.path = ["~/go/bin"]
+GOPATH = "$HOME/go"
+_.path = ["$HOME/go/bin"]

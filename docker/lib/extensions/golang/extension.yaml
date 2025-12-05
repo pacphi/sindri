@@ -23,7 +23,10 @@ install:
 configure:
   environment:
     - key: GOPATH
-      value: "~/go"
+      value: "${HOME}/go"
+      scope: bashrc
+    - key: GOMODCACHE
+      value: "${HOME}/go/pkg/mod"
       scope: bashrc
 
 validate:

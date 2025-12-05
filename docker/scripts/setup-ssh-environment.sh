@@ -22,13 +22,19 @@ echo "  Creating SSH environment initialization script..."
 cat > "$SSH_ENV_FILE" << 'EOF'
 #!/bin/bash
 # SSH environment initialization for non-interactive sessions
+# Used via BASH_ENV for non-interactive SSH commands
+
+# Guard against re-entry (prevents infinite recursion)
+[ -n "$__SSH_ENV_LOADED" ] && return 0
+export __SSH_ENV_LOADED=1
 
 # Source system-wide bash configuration
 [ -f /etc/bashrc ] && . /etc/bashrc
 [ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
 
-# Source all profile.d scripts
+# Source profile.d scripts (excluding this file to prevent recursion)
 for script in /etc/profile.d/*.sh; do
+    [ "$script" = "/etc/profile.d/00-ssh-environment.sh" ] && continue
     [ -r "$script" ] && . "$script"
 done
 

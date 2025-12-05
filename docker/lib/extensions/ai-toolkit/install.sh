@@ -10,6 +10,18 @@ source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 print_status "Installing AI CLI tools using hybrid approach..."
 
 # ===========================================================================
+# GO ENVIRONMENT SETUP
+# ===========================================================================
+# Ensure GOPATH and GOMODCACHE use absolute paths (not ~)
+# This MUST be set unconditionally before any Go-based tool installations,
+# including mise install which may install Go packages
+export GOPATH="${HOME}/go"
+export GOMODCACHE="${GOPATH}/pkg/mod"
+export GOBIN="${GOPATH}/bin"
+export PATH="${GOBIN}:${PATH}"
+mkdir -p "${GOPATH}" "${GOMODCACHE}" "${GOBIN}"
+
+# ===========================================================================
 # NATIVE INSTALLATIONS
 # ===========================================================================
 
@@ -129,14 +141,9 @@ else
     print_warning "npm not found - skipping npm-based tools"
   fi
 
-  # go install
+  # go install (GOPATH already configured at top of script)
   if command_exists go; then
     print_status "Installing Go-based tools (fallback)..."
-
-    export GOPATH=$HOME/go
-    export GOBIN=$GOPATH/bin
-    export PATH=$PATH:$GOBIN
-    mkdir -p "$GOBIN"
 
     if ! command_exists hector; then
       timeout 300 go install github.com/kadirpekel/hector/cmd/hector@latest 2>&1 && print_success "Hector installed"
@@ -152,6 +159,8 @@ fi
 
 # Factory AI Droid
 print_status "Installing Factory AI CLI (Droid)..."
+# Ensure ~/.local/bin is in PATH for post-install check
+export PATH="${HOME}/.local/bin:${PATH}"
 if command_exists droid; then
   print_warning "Factory AI CLI already installed"
 else

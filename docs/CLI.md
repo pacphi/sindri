@@ -834,7 +834,7 @@ sindri deploy --verbose
 sindri plan
 
 # Verify provider connection
-# Docker: docker exec -it <container> bash
+# Docker: docker exec -it <container> /docker/scripts/entrypoint.sh /bin/bash
 # Fly: flyctl ssh console
 # DevPod: devpod ssh <workspace>
 ```

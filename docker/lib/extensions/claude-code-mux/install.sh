@@ -30,7 +30,14 @@ esac
 # Determine asset name based on OS and architecture
 case "$OS" in
     linux)
-        # Use musl for broader compatibility
+        # Linux ARM64 builds are not available from upstream
+        if [[ "$ARCH" == "aarch64" ]]; then
+            print_warning "Claude Code Mux does not provide Linux ARM64 binaries"
+            print_warning "See: https://github.com/9j/claude-code-mux/releases"
+            print_status "Skipping claude-code-mux installation on this platform"
+            exit 0  # Exit cleanly to not fail the profile
+        fi
+        # Use musl for broader compatibility on x86_64
         ASSET="ccm-linux-${ARCH}-musl.tar.gz"
         ;;
     darwin)
@@ -63,14 +70,15 @@ if ! tar -xzf "$TMP_DIR/ccm.tar.gz" -C "$TMP_DIR"; then
     exit 1
 fi
 
-# Install to /workspace/bin
-mkdir -p /workspace/bin
-mv "$TMP_DIR/ccm" /workspace/bin/ccm
-chmod +x /workspace/bin/ccm
+# Install to workspace bin directory
+BIN_DIR="${WORKSPACE:-${HOME}/workspace}/bin"
+mkdir -p "$BIN_DIR"
+mv "$TMP_DIR/ccm" "$BIN_DIR/ccm"
+chmod +x "$BIN_DIR/ccm"
 
 # Verify installation
-if /workspace/bin/ccm --version >/dev/null 2>&1; then
-    VERSION=$(/workspace/bin/ccm --version 2>&1 | head -n1)
+if "$BIN_DIR/ccm" --version >/dev/null 2>&1; then
+    VERSION=$("$BIN_DIR/ccm" --version 2>&1 | head -n1)
     print_success "CCM installed successfully: $VERSION"
 else
     print_error "CCM installation verification failed"
@@ -79,7 +87,7 @@ fi
 
 # Initialize CCM configuration (creates ~/.claude-code-mux/config.toml)
 print_status "Initializing CCM configuration..."
-if ! timeout 5 /workspace/bin/ccm start >/dev/null 2>&1 & then
+if ! timeout 5 "$BIN_DIR/ccm" start >/dev/null 2>&1 & then
     print_warning "CCM auto-configuration may require manual setup"
 fi
 sleep 2
@@ -122,8 +130,8 @@ print_status "    ccmctl logs            View logs"
 print_status ""
 print_status "  Configuration:"
 print_status "    Web UI:                http://127.0.0.1:13456 (easiest)"
-print_status "    Config file:           /workspace/config/ccm-config.toml"
-print_status "    Edit config:           \$EDITOR /workspace/config/ccm-config.toml"
+print_status "    Config file:           ~/workspace/config/ccm-config.toml"
+print_status "    Edit config:           \$EDITOR ~/workspace/config/ccm-config.toml"
 print_status ""
 print_status "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 print_status "⚡ HOW IT WORKS"

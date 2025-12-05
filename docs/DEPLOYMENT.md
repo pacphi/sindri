@@ -102,7 +102,7 @@ extensions:
 ./cli/sindri connect
 
 # Or provider-specific commands:
-# Docker: docker exec -it my-dev-env bash
+# Docker: docker exec -it my-dev-env /docker/scripts/entrypoint.sh /bin/bash
 # Fly.io: ssh developer@my-dev-env.fly.dev -p 10022
 # DevPod: devpod ssh my-dev-env
 ```

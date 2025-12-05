@@ -276,7 +276,7 @@ cp examples/fly/minimal.sindri.yaml sindri.yaml
 ./cli/sindri deploy --provider docker
 
 # Connect to container
-docker exec -it sindri-docker bash
+docker exec -it sindri-docker /docker/scripts/entrypoint.sh /bin/bash
 
 # View logs
 docker compose logs -f
@@ -763,7 +763,7 @@ git clone https://github.com/pacphi/sindri && cd sindri
 ./cli/sindri deploy --provider docker
 
 # 4. Connect and work
-docker exec -it sindri-docker bash
+docker exec -it sindri-docker /docker/scripts/entrypoint.sh /bin/bash
 cd /workspace
 extension-manager install-profile fullstack
 

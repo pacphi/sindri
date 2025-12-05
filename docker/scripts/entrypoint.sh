@@ -169,8 +169,12 @@ EOF
         [[ -f "${ALT_HOME}/.ssh/authorized_keys" ]] && chmod 600 "${ALT_HOME}/.ssh/authorized_keys"
     fi
 
-    # Update user's home directory in passwd
-    usermod -d "$ALT_HOME" "$DEVELOPER_USER" 2>/dev/null || true
+    # Update user's home directory in passwd (only if different)
+    local current_home
+    current_home=$(getent passwd "$DEVELOPER_USER" | cut -d: -f6) || true
+    if [[ "$current_home" != "$ALT_HOME" ]]; then
+        usermod -d "$ALT_HOME" "$DEVELOPER_USER" 2>/dev/null || true
+    fi
 
     print_success "Home directory configured"
 }
@@ -359,7 +363,9 @@ main() {
     # This helps debug container startup issues on Fly.io
     echo "========================================"  >&2
     echo "Sindri Container Starting"  >&2
-    echo "Time: $(date -Iseconds 2>/dev/null || date)"  >&2
+    local timestamp
+    timestamp=$(date -Iseconds 2>/dev/null) || timestamp=$(date) || true
+    echo "Time: $timestamp"  >&2
     echo "CI_MODE: ${CI_MODE:-false}"  >&2
     echo "ALT_HOME: ${ALT_HOME}"  >&2
     echo "========================================"  >&2
@@ -373,6 +379,12 @@ main() {
     setup_home_directory
     setup_ssh_keys
     setup_git_config
+
+    # Auto-install extensions based on INSTALL_PROFILE/CUSTOM_EXTENSIONS
+    if [[ -f "/docker/scripts/auto-install-extensions.sh" ]]; then
+        source /docker/scripts/auto-install-extensions.sh
+        install_extensions
+    fi
 
     # Check if a command was passed (interactive mode)
     if [[ $# -gt 0 ]]; then
