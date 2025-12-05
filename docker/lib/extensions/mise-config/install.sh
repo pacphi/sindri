@@ -7,6 +7,11 @@ set -euo pipefail
 # Source common utilities
 source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 
+# Ensure mise auto-accepts prompts (even for trust commands)
+# These are set here as explicit exports to ensure they're available in all contexts
+export MISE_YES=1
+export MISE_TRUSTED_CONFIG_PATHS="${HOME}/.config/mise:${HOME}/.config/mise/conf.d"
+
 print_status "Configuring mise..."
 
 # Create mise config directory

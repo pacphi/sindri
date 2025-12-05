@@ -13,6 +13,7 @@ ARG ALT_HOME=/alt/home/developer
 # Set environment variables
 # Note: HOME will be reset to ALT_HOME at runtime via entrypoint
 # Note: MISE_* vars are set at runtime to user's home (on persistent volume)
+# MISE_YES=1 and MISE_TRUSTED_CONFIG_PATHS are baked in to ensure docker exec bash -c works
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -20,6 +21,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WORKSPACE=${ALT_HOME}/workspace \
     DOCKER_LIB=/docker/lib \
     SSH_PORT=2222 \
+    MISE_YES=1 \
+    MISE_TRUSTED_CONFIG_PATHS="${ALT_HOME}/.config/mise:${ALT_HOME}/.config/mise/conf.d" \
     PATH="/docker/cli:${ALT_HOME}/workspace/bin:${ALT_HOME}/.local/share/mise/shims:/usr/local/bin:$PATH"
 
 # Create developer user (without home directory - it's on the volume)
