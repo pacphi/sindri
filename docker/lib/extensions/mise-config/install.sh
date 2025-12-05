@@ -34,4 +34,11 @@ trusted_config_paths = ["${MISE_HOME}/.config/mise/conf.d"]
 MISE_USE_TOML = "1"
 EOF
 
+# Trust the config file so mise can read it (required even for global configs in some scenarios)
+# This resolves chicken-and-egg problem: config has yes=true but mise won't read untrusted config
+mise trust ~/.config/mise/config.toml 2>/dev/null || true
+
+# Also trust the conf.d directory for extension configs
+mise trust ~/.config/mise/conf.d 2>/dev/null || true
+
 print_success "mise configuration complete"
