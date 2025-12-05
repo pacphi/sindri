@@ -104,8 +104,13 @@ install_extensions() {
     export MISE_CACHE_DIR="${ALT_HOME}/.cache/mise"
     export MISE_STATE_DIR="${ALT_HOME}/.local/state/mise"
 
+    # Auto-accept mise prompts in CI mode (trust, install confirmations)
+    if [[ "${CI_MODE:-}" == "true" ]]; then
+        export MISE_YES=1
+    fi
+
     # List of variable names to preserve (not VAR=value, just names)
-    local env_vars="HOME,PATH,WORKSPACE,ALT_HOME,DOCKER_LIB,MISE_DATA_DIR,MISE_CONFIG_DIR,MISE_CACHE_DIR,MISE_STATE_DIR"
+    local env_vars="HOME,PATH,WORKSPACE,ALT_HOME,DOCKER_LIB,MISE_DATA_DIR,MISE_CONFIG_DIR,MISE_CACHE_DIR,MISE_STATE_DIR,MISE_YES"
 
     local install_success=true
     local installed_profile=""

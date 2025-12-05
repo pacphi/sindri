@@ -370,6 +370,12 @@ main() {
     echo "ALT_HOME: ${ALT_HOME}"  >&2
     echo "========================================"  >&2
 
+    # Auto-accept mise prompts in CI mode (trust, install confirmations)
+    # This prevents mise from hanging on trust prompts in non-interactive CI
+    if [[ "${CI_MODE:-}" == "true" ]]; then
+        export MISE_YES=1
+    fi
+
     # Display MOTD banner
     if [[ -f /etc/motd ]]; then
         cat /etc/motd
