@@ -372,8 +372,33 @@ main() {
 
     # Auto-accept mise prompts in CI mode (trust, install confirmations)
     # This prevents mise from hanging on trust prompts in non-interactive CI
+    # We set it in multiple places to ensure it's available in all shell contexts:
+    # - /etc/environment: read by PAM for all sessions
+    # - /etc/profile.d/01-mise.sh: for login shells
+    # - /etc/sindri-env.sh + BASH_ENV: for bash -c commands (docker exec)
+    # - export: for current shell and subprocesses
     if [[ "${CI_MODE:-}" == "true" ]]; then
         export MISE_YES=1
+        # Add to /etc/environment for docker exec and other non-login shells
+        if ! grep -q "MISE_YES=1" /etc/environment 2>/dev/null; then
+            echo "MISE_YES=1" >> /etc/environment
+        fi
+        # Add to mise profile script for login shells
+        if [[ -f /etc/profile.d/01-mise.sh ]] && ! grep -q "MISE_YES" /etc/profile.d/01-mise.sh; then
+            echo 'export MISE_YES=1' >> /etc/profile.d/01-mise.sh
+        fi
+        # Create env script and set BASH_ENV for bash -c commands (docker exec)
+        # This ensures non-interactive, non-login shells get MISE_YES
+        cat > /etc/sindri-env.sh << 'ENVEOF'
+export MISE_YES=1
+export PATH="${HOME}/.local/share/mise/shims:${PATH}"
+ENVEOF
+        chmod 644 /etc/sindri-env.sh
+        export BASH_ENV=/etc/sindri-env.sh
+        # Also add BASH_ENV to /etc/environment so docker exec inherits it
+        if ! grep -q "BASH_ENV" /etc/environment 2>/dev/null; then
+            echo "BASH_ENV=/etc/sindri-env.sh" >> /etc/environment
+        fi
     fi
 
     # Display MOTD banner
