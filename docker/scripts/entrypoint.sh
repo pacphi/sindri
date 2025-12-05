@@ -121,8 +121,8 @@ if command -v mise >/dev/null 2>&1; then
     eval "$(mise activate bash)"
 fi
 
-# Add workspace bin to PATH
-export PATH="${HOME}/workspace/bin:${PATH}"
+# Add CLI tools and workspace bin to PATH
+export PATH="/docker/cli:${HOME}/workspace/bin:${PATH}"
 EOF
             print_status "Created .bashrc"
         fi
