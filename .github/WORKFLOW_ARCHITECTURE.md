@@ -48,14 +48,11 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │           └── cleanup/          # DevPod resource cleanup
 │
 ├── scripts/                      # Test scripts and utilities
-│   ├── test-all-extensions.sh    # Extension validation script
 │   ├── calculate-profile-resources.sh  # Profile resource calculator
 │   ├── generate-slack-notification.sh  # Slack message generator
-│   ├── lib/
-│   │   ├── test-helpers.sh       # Shared test functions
-│   │   └── assertions.sh         # Test assertion functions
-│   └── extensions/
-│       └── test-extension-complete.sh  # Full extension test suite
+│   └── lib/
+│       ├── test-helpers.sh       # Shared test functions
+│       └── assertions.sh         # Test assertion functions
 │
 └── WORKFLOW_ARCHITECTURE.md      # This document
 
@@ -381,19 +378,27 @@ extensions:
 
 The `.github/scripts/` directory contains test utilities:
 
-| Script                                  | Purpose                                                              |
-| --------------------------------------- | -------------------------------------------------------------------- |
-| `test-all-extensions.sh`                | Validates all extensions (used by `pnpm test:extensions`)            |
-| `calculate-profile-resources.sh`        | Calculates aggregate resources for a profile (disk, memory, timeout) |
-| `generate-slack-notification.sh`        | Generates Slack messages for deployment notifications                |
-| `lib/test-helpers.sh`                   | Shared logging, retry, and VM interaction functions                  |
-| `lib/assertions.sh`                     | Test assertion functions (equals, contains, file exists, etc.)       |
-| `extensions/test-extension-complete.sh` | Full test suite for individual extensions                            |
+| Script                           | Purpose                                                              |
+| -------------------------------- | -------------------------------------------------------------------- |
+| `calculate-profile-resources.sh` | Calculates aggregate resources for a profile (disk, memory, timeout) |
+| `generate-slack-notification.sh` | Generates Slack messages for deployment notifications                |
+| `lib/test-helpers.sh`            | Shared logging, retry, and VM interaction functions                  |
+| `lib/assertions.sh`              | Test assertion functions (equals, contains, file exists, etc.)       |
 
-**Extensibility:** Workflows support optional extension-specific test scripts at
-`.github/scripts/test-{extension}.sh`. If present, these are executed; otherwise,
-generic tests run. Currently no extension-specific scripts exist - the generic
-tests handle all cases.
+**Extension Testing:** All extension tests are now integrated into the `test-provider.yml` workflow with 9 phases:
+
+1. Profile Installation
+2. Extension Discovery
+3. Extension Validation
+4. Functionality Tests (integration/full only)
+5. Idempotency Tests (integration/full only)
+6. File System Checks (integration/full only)
+7. Environment Checks (integration/full only)
+8. Uninstall & Cleanup (integration/full only)
+9. Results Summary
+
+**Extensibility:** Workflows support optional provider-specific test scripts at
+`.github/scripts/test-provider-{provider}.sh`. If present, these are executed as part of the integration test phase.
 
 ## YAML-Driven Testing Flow
 

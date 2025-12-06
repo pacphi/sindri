@@ -513,7 +513,8 @@ remove_extension() {
     local needs_confirmation
     needs_confirmation=$(load_yaml "$ext_yaml" '.remove.confirmation' 2>/dev/null || echo "true")
 
-    if [[ "$needs_confirmation" == "true" ]] && [[ "${DRY_RUN:-false}" != "true" ]]; then
+    # Skip confirmation if --force is set or in dry-run mode
+    if [[ "$needs_confirmation" == "true" ]] && [[ "${DRY_RUN:-false}" != "true" ]] && [[ "${FORCE_MODE:-false}" != "true" ]]; then
         read -p "Remove $ext_name? (y/N) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then

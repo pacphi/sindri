@@ -192,10 +192,10 @@ Test all extensions:
 pnpm test:extensions
 ```
 
-Test specific extension:
+Test specific extension locally:
 
 ```bash
-./.github/scripts/test-all-extensions.sh myext
+./cli/extension-manager validate <extension-name>
 ```
 
 ### Manual Testing
