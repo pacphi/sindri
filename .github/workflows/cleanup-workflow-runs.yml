@@ -1,0 +1,104 @@
+name: Cleanup Workflow Runs
+
+on:
+  schedule:
+    # Run every Sunday at 00:00 UTC
+    - cron: "0 0 * * 0"
+
+  workflow_dispatch:
+    inputs:
+      days:
+        description: Delete runs completed more than N days ago
+        required: true
+        default: "7"
+        type: string
+      dry-run:
+        description: Show what would be deleted without deleting
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RETENTION_DAYS: ${{ github.event.inputs.days || '7' }}
+
+jobs:
+  cleanup:
+    name: Delete Old Workflow Runs
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Calculate cutoff date
+        id: cutoff
+        run: |
+          CUTOFF_DATE=$(date -d "-${{ env.RETENTION_DAYS }} days" --iso-8601=seconds)
+          echo "date=$CUTOFF_DATE" >> $GITHUB_OUTPUT
+          echo "Deleting runs completed before: $CUTOFF_DATE"
+
+      - name: List runs to delete
+        id: list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Fetching workflow runs completed before ${{ steps.cutoff.outputs.date }}..."
+
+          # Get all workflow runs older than cutoff date
+          RUNS=$(gh api repos/${{ github.repository }}/actions/runs \
+            --paginate \
+            --jq ".workflow_runs[] | select(.status == \"completed\") | select(.updated_at < \"${{ steps.cutoff.outputs.date }}\") | .id")
+
+          RUN_COUNT=$(echo "$RUNS" | grep -c . || echo "0")
+          echo "Found $RUN_COUNT runs to delete"
+          echo "count=$RUN_COUNT" >> $GITHUB_OUTPUT
+
+          # Save run IDs to file for deletion step
+          echo "$RUNS" > runs-to-delete.txt
+
+      - name: Delete workflow runs
+        if: steps.list.outputs.count != '0' && github.event.inputs.dry-run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Deleting ${{ steps.list.outputs.count }} workflow runs..."
+
+          DELETED=0
+          FAILED=0
+
+          while read -r RUN_ID; do
+            if [[ -n "$RUN_ID" ]]; then
+              if gh api repos/${{ github.repository }}/actions/runs/$RUN_ID -X DELETE 2>/dev/null; then
+                echo "Deleted run $RUN_ID"
+                ((DELETED++))
+              else
+                echo "Failed to delete run $RUN_ID"
+                ((FAILED++))
+              fi
+            fi
+          done < runs-to-delete.txt
+
+          echo "Successfully deleted: $DELETED runs"
+          echo "Failed to delete: $FAILED runs"
+
+      - name: Dry run summary
+        if: github.event.inputs.dry-run == 'true'
+        run: |
+          echo "DRY RUN - Would delete ${{ steps.list.outputs.count }} workflow runs:"
+          cat runs-to-delete.txt | head -20
+          if [[ $(wc -l < runs-to-delete.txt) -gt 20 ]]; then
+            echo "... and $(( $(wc -l < runs-to-delete.txt) - 20 )) more"
+          fi
+
+      - name: Summary
+        run: |
+          echo "# Workflow Run Cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Retention Days | ${{ env.RETENTION_DAYS }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cutoff Date | ${{ steps.cutoff.outputs.date }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Runs Found | ${{ steps.list.outputs.count }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.event.inputs.dry-run }}" == "true" ]]; then
+            echo "| Mode | Dry Run (no deletions) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Mode | Live |" >> $GITHUB_STEP_SUMMARY
+          fi
