@@ -131,7 +131,7 @@ services:
     image: sindri:latest
     container_name: ${NAME}
     volumes:
-      - dev_home:/alt/home/developer
+      - ${NAME}_home:/alt/home/developer
 EODC
 
     # Add env_file if secrets exist
@@ -189,7 +189,7 @@ EODC
     command: sleep infinity
 
 volumes:
-  dev_home:
+  ${NAME}_home:
     driver: local
 EODC
 }
