@@ -234,6 +234,25 @@ jobs:
       # ============================================
 
       # --- Docker Provider ---
+      # Pre-cleanup: Remove any leftover resources from previous CI runs
+      # This ensures a clean slate (no stale volumes with pre-installed extensions)
+      - name: Pre-cleanup Docker resources
+        if: inputs.provider == 'docker'
+        run: |
+          CONTAINER="${{ steps.config-path.outputs.container-name }}"
+          VOLUME="${CONTAINER}_home"
+
+          echo "Pre-cleanup: Ensuring clean slate for Docker test"
+          docker rm -f "$CONTAINER" 2>/dev/null || true
+          docker volume rm "$VOLUME" 2>/dev/null || true
+
+          # Also clean up any docker-compose artifacts
+          if [[ -f docker-compose.yml ]]; then
+            docker compose -f docker-compose.yml down -v 2>/dev/null || true
+          fi
+
+          echo "Pre-cleanup complete"
+
       - name: Download Docker image artifact
         if: inputs.provider == 'docker' && inputs.image-artifact != ''
         uses: actions/download-artifact@v6
