@@ -29,7 +29,9 @@ if [[ -n "$EXTENSIONS" ]]; then
 fi
 
 # Set GitHub Actions output
-echo "extensions=$EXTENSIONS" >> "${GITHUB_OUTPUT:-/dev/null}"
+# Convert newline-separated to space-separated for single-line output
+EXTENSIONS_LINE=$(echo "$EXTENSIONS" | tr '\n' ' ' | xargs)
+echo "extensions=$EXTENSIONS_LINE" >> "${GITHUB_OUTPUT:-/dev/null}"
 echo "extension-count=$EXT_COUNT" >> "${GITHUB_OUTPUT:-/dev/null}"
 
 log_result "discovery" "completed" "found_${EXT_COUNT}_extensions"

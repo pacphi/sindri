@@ -492,7 +492,10 @@ jobs:
       - name: Warmup DevPod connection
         if: startsWith(inputs.provider, 'devpod') || inputs.provider == 'kubernetes' || inputs.provider == 'ssh'
         run: |
-          .github/scripts/providers/warmup-devpod.sh "${{ inputs.provider }}" "${{ steps.setup.outputs.workspace-id }}"
+          .github/scripts/providers/warmup-devpod.sh \
+            "${{ inputs.provider }}" \
+            "${{ steps.setup.outputs.workspace-id }}" \
+            "sindri-test"
 
       # Determine target ID based on provider
       - name: Set target ID
@@ -518,6 +521,8 @@ jobs:
             "${{ inputs.provider }}" \
             "${{ inputs.extension-profile }}" \
             "${{ steps.target.outputs.id }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # PHASE 2: Discover Extensions
       - name: Discover extensions
@@ -527,6 +532,8 @@ jobs:
             "${{ inputs.provider }}" \
             "${{ inputs.extension-profile }}" \
             "${{ steps.target.outputs.id }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # PHASE 3: Validate Extensions
       - name: Validate extensions
@@ -537,6 +544,8 @@ jobs:
             "${{ inputs.extension-profile }}" \
             "${{ steps.target.outputs.id }}" \
             "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # PHASE 4: Functionality Tests (integration/full only)
       - name: Test functionality
@@ -548,6 +557,8 @@ jobs:
             "${{ inputs.extension-profile }}" \
             "${{ steps.target.outputs.id }}" \
             "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # PHASE 5: Idempotency Tests (full only)
       - name: Test idempotency
@@ -558,6 +569,8 @@ jobs:
             "${{ inputs.provider }}" \
             "${{ inputs.extension-profile }}" \
             "${{ steps.target.outputs.id }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # PHASE 6: Filesystem Verification (full only)
       - name: Verify filesystem
@@ -568,6 +581,8 @@ jobs:
             "${{ inputs.provider }}" \
             "${{ steps.target.outputs.id }}" \
             "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # PHASE 7: Environment Verification (full only)
       - name: Verify environment
@@ -578,6 +593,8 @@ jobs:
             "${{ inputs.provider }}" \
             "${{ steps.target.outputs.id }}" \
             "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # PHASE 8: Uninstall & Cleanup (full only)
       - name: Uninstall extensions
@@ -588,6 +605,8 @@ jobs:
             "${{ inputs.provider }}" \
             "${{ inputs.extension-profile }}" \
             "${{ steps.target.outputs.id }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       # Extension tests complete
       - name: Extension tests summary
