@@ -234,6 +234,32 @@ jobs:
       # ============================================
 
       # --- Docker Provider ---
+      # Pre-cleanup: Remove any leftover resources from previous CI runs
+      # This ensures a clean slate (no stale volumes with pre-installed extensions)
+      - name: Pre-cleanup Docker resources
+        if: inputs.provider == 'docker'
+        run: |
+          CONTAINER="${{ steps.config-path.outputs.container-name }}"
+
+          echo "Pre-cleanup: Ensuring clean slate for Docker test"
+          echo "  Container: $CONTAINER"
+
+          # Remove container if exists
+          docker rm -f "$CONTAINER" 2>/dev/null || true
+
+          # Remove volumes matching container name pattern
+          # Docker Compose prefixes volumes with project name (e.g., sindri_container_home)
+          # Use filter with pattern matching to catch all variants
+          echo "  Removing volumes matching: *${CONTAINER}_home"
+          docker volume ls -q --filter "name=${CONTAINER}_home" | xargs -r docker volume rm 2>/dev/null || true
+
+          # Also clean up any docker-compose artifacts
+          if [[ -f docker-compose.yml ]]; then
+            docker compose -f docker-compose.yml down -v 2>/dev/null || true
+          fi
+
+          echo "Pre-cleanup complete"
+
       - name: Download Docker image artifact
         if: inputs.provider == 'docker' && inputs.image-artifact != ''
         uses: actions/download-artifact@v6
@@ -481,81 +507,163 @@ jobs:
             ]
 
       # ============================================
-      # PHASE 3: Extension Tests (Profile-Driven)
+      # PHASE 3: Extension Tests (Modular Architecture)
       # ============================================
-      - name: Run extension tests
-        id: extension-tests
+      # Configure environment (feature flags, timeouts, provider tuning)
+      - name: Configure test environment
         run: |
-          echo "::group::Running extension tests on ${{ inputs.provider }}"
+          .github/scripts/providers/configure-environment.sh "${{ inputs.provider }}"
 
-          PROFILE="${{ inputs.extension-profile }}"
-          RESULTS='{}'
-          ALL_PASSED="true"
+      # DevPod warmup (conditional)
+      - name: Warmup DevPod connection
+        if: startsWith(inputs.provider, 'devpod') || inputs.provider == 'kubernetes' || inputs.provider == 'ssh'
+        run: |
+          .github/scripts/providers/warmup-devpod.sh \
+            "${{ inputs.provider }}" \
+            "${{ steps.setup.outputs.workspace-id }}" \
+            "sindri-test"
 
-          run_on_provider() {
-            local cmd="$1"
-            case "${{ inputs.provider }}" in
-              docker)
-                docker exec "${{ steps.config-path.outputs.container-name }}" bash -c "$cmd"
-                ;;
-              fly)
-                flyctl ssh console -a "${{ steps.setup.outputs.app-name }}" --command "$cmd"
-                ;;
-              devpod-*|kubernetes|ssh)
-                devpod ssh "${{ steps.setup.outputs.workspace-id }}" --command "$cmd"
-                ;;
-            esac
-          }
+      # Determine target ID based on provider
+      - name: Set target ID
+        id: target
+        run: |
+          case "${{ inputs.provider }}" in
+            docker)
+              echo "id=${{ steps.config-path.outputs.container-name }}" >> $GITHUB_OUTPUT
+              ;;
+            fly)
+              echo "id=${{ steps.setup.outputs.app-name }}" >> $GITHUB_OUTPUT
+              ;;
+            devpod-*|kubernetes|ssh)
+              echo "id=${{ steps.setup.outputs.workspace-id }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
 
-          # Install extension profile first
-          echo "Installing extension profile: $PROFILE"
-          set +e
-          run_on_provider "extension-manager install-profile $PROFILE"
-          PROFILE_EXIT=$?
-          set -e
-
-          if [[ $PROFILE_EXIT -eq 0 ]]; then
-            RESULTS=$(echo "$RESULTS" | jq -c '.profile_install = "passed"')
-          else
-            RESULTS=$(echo "$RESULTS" | jq -c '.profile_install = "failed"')
-            ALL_PASSED="false"
-          fi
-
-          # Get extensions from the installed profile and validate each
-          EXTENSIONS=$(run_on_provider "yq '.profiles.${PROFILE}.extensions[]' /docker/lib/profiles.yaml" 2>/dev/null || echo "")
-
-          if [[ -n "$EXTENSIONS" ]]; then
-            for ext in $EXTENSIONS; do
-              echo "Validating extension: $ext"
-              set +e
-              OUTPUT=$(run_on_provider "extension-manager validate $ext" 2>&1)
-              EXIT_CODE=$?
-              set -e
-
-              if [[ $EXIT_CODE -eq 0 ]]; then
-                echo "  ✅ $ext validation passed"
-                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "passed"')
-              else
-                echo "  ❌ $ext validation failed"
-                echo "  Output: $OUTPUT"
-                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "failed"')
-                ALL_PASSED="false"
-              fi
-            done
-          fi
-
-          echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
-          echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
-
-          echo "::endgroup::"
-
-          if [[ "$ALL_PASSED" == "false" ]]; then
-            echo "::warning::Some extension tests failed"
-          fi
+      # PHASE 1: Install Profile
+      - name: Install extension profile
+        id: install-profile
+        run: |
+          .github/scripts/tests/install-profile.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      # ============================================
+      # PHASE 2: Discover Extensions
+      - name: Discover extensions
+        id: discover
+        run: |
+          .github/scripts/tests/discover-extensions.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # PHASE 3: Validate Extensions
+      - name: Validate extensions
+        id: validate
+        run: |
+          .github/scripts/tests/validate-extensions.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # PHASE 4: Functionality Tests (integration/full only)
+      - name: Test functionality
+        if: inputs.test-suite != 'smoke'
+        id: functionality
+        run: |
+          .github/scripts/tests/test-functionality.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # PHASE 5: Idempotency Tests (full only)
+      - name: Test idempotency
+        if: inputs.test-suite == 'full'
+        id: idempotency
+        run: |
+          .github/scripts/tests/test-idempotency.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # PHASE 6: Filesystem Verification (full only)
+      - name: Verify filesystem
+        if: inputs.test-suite == 'full'
+        id: filesystem
+        run: |
+          .github/scripts/tests/verify-filesystem.sh \
+            "${{ inputs.provider }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # PHASE 7: Environment Verification (full only)
+      - name: Verify environment
+        if: inputs.test-suite == 'full'
+        id: environment
+        run: |
+          .github/scripts/tests/verify-environment.sh \
+            "${{ inputs.provider }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # PHASE 8: Uninstall & Cleanup (full only)
+      - name: Uninstall extensions
+        if: inputs.test-suite == 'full'
+        id: uninstall
+        run: |
+          .github/scripts/tests/uninstall-extensions.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      # Extension tests complete
+      - name: Extension tests summary
+        id: extension-tests
+        run: |
+          echo "::group::Extension Tests Summary"
+          echo "Profile: ${{ inputs.extension-profile }}"
+          echo "Provider: ${{ inputs.provider }}"
+          echo "Test Suite: ${{ inputs.test-suite }}"
+          echo ""
+          echo "Results:"
+          echo "  Install: ${{ steps.install-profile.outputs.profile-install-status }}"
+          echo "  Extensions found: ${{ steps.discover.outputs.extension-count }}"
+          echo "  Validated: ${{ steps.validate.outputs.validated-count }}"
+          echo "  Failed: ${{ steps.validate.outputs.failed-count }}"
+
+          if [[ "${{ inputs.test-suite }}" != "smoke" ]]; then
+            echo "  Functionality tests: ${{ steps.functionality.outputs.func-tested }} tested, ${{ steps.functionality.outputs.func-failed }} failed"
+          fi
+
+          if [[ "${{ inputs.test-suite }}" == "full" ]]; then
+            echo "  Idempotency: ${{ steps.idempotency.outcome }}"
+            echo "  Filesystem: ${{ steps.filesystem.outcome }}"
+            echo "  Environment: ${{ steps.environment.outcome }}"
+            echo "  Uninstall: ${{ steps.uninstall.outcome }}"
+          fi
+
+          echo "::endgroup::"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
       # PHASE 4: Run Test Suites (smoke, integration, full)
       # ============================================
       - name: Run smoke tests
@@ -621,8 +729,19 @@ jobs:
       - name: Cleanup Docker resources
         if: always() && inputs.skip-cleanup != true && inputs.provider == 'docker'
         run: |
-          docker compose down -v 2>/dev/null || true
-          docker rm -f ${{ steps.config-path.outputs.container-name }} 2>/dev/null || true
+          CONTAINER="${{ steps.config-path.outputs.container-name }}"
+
+          # Remove container and volumes (use explicit compose file if exists)
+          if [[ -f docker-compose.yml ]]; then
+            docker compose -f docker-compose.yml down -v 2>/dev/null || true
+          fi
+
+          # Force remove container as fallback
+          docker rm -f "$CONTAINER" 2>/dev/null || true
+
+          # Remove any orphaned volumes matching this deployment
+          # Docker Compose prefixes volumes with project name, so use pattern matching
+          docker volume ls -q --filter "name=${CONTAINER}_home" | xargs -r docker volume rm 2>/dev/null || true
 
       - name: Cleanup Fly.io resources
         if: always() && inputs.skip-cleanup != true && inputs.provider == 'fly'

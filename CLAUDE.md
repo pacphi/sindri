@@ -408,7 +408,7 @@ profiles:
 - **Unit tests**: `test/unit/` - YAML validation and schema tests
 - **Extension tests**:
   - Local: `./cli/extension-manager validate-all` or `pnpm test:extensions`
-  - CI: `.github/scripts/test-all-extensions.sh` - Full extension testing in CI/CD
+  - CI: Integrated into `test-provider.yml` - Full extension testing in CI/CD with 9 phases (installation, discovery, validation, functionality, idempotency, filesystem, environment, uninstall, results)
 
 ### GitHub Actions
 

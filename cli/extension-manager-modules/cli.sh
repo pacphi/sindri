@@ -40,6 +40,7 @@ OPTIONS:
     -h, --help              Show this help message
     -v, --verbose           Verbose output
     --dry-run               Show what would be done
+    --force                 Force operation without confirmation (for remove)
     --category <name>       Filter by category
     --profile <name>        Use specific profile
     --format <format>       BOM output format (yaml|json|csv|cyclonedx|spdx)
@@ -63,6 +64,7 @@ parse_args() {
     # Global flags
     export VERBOSE=false
     export DRY_RUN=false
+    export FORCE_MODE=false
     export FILTER_CATEGORY=""
     export USE_PROFILE=""
     export FORMAT="yaml"
@@ -80,6 +82,10 @@ parse_args() {
                 ;;
             --dry-run)
                 DRY_RUN=true
+                shift
+                ;;
+            --force)
+                FORCE_MODE=true
                 shift
                 ;;
             --category)

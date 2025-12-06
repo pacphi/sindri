@@ -37,8 +37,6 @@ git checkout v1.4.0
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.3.0...v1.4.0
 
-
-
 ## [1.3.0] - 2025-12-05
 
 ### :sparkles: Features

@@ -131,7 +131,7 @@ services:
     image: sindri:latest
     container_name: ${NAME}
     volumes:
-      - dev_home:/alt/home/developer
+      - ${NAME}_home:/alt/home/developer
 EODC
 
     # Add env_file if secrets exist
@@ -143,8 +143,11 @@ EODC
     fi
 
     # Convert autoInstall (true/false) to SKIP_AUTO_INSTALL (inverted)
+    # Use robust comparison: normalize to lowercase, trim whitespace
     local skip_auto_install="false"
-    if [[ "$AUTO_INSTALL" == "false" ]]; then
+    local auto_install_normalized
+    auto_install_normalized=$(echo "$AUTO_INSTALL" | tr '[:upper:]' '[:lower:]' | xargs)
+    if [[ "$auto_install_normalized" == "false" ]]; then
         skip_auto_install="true"
     fi
 
@@ -189,7 +192,7 @@ EODC
     command: sleep infinity
 
 volumes:
-  dev_home:
+  ${NAME}_home:
     driver: local
 EODC
 }

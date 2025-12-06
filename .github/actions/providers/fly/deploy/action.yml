@@ -329,12 +329,13 @@ runs:
         fi
 
         # Test volume mount
+        # Check if /alt/home/developer exists and is writable (avoids quoting issues with pipe/grep)
         echo "Testing volume mount..."
-        if flyctl ssh console -a "$APP_NAME" --command 'df -h /alt/home/developer | grep -E "(home|developer)"'; then
+        if flyctl ssh console -a "$APP_NAME" --command "test -d /alt/home/developer -a -w /alt/home/developer && echo 'Volume accessible'"; then
           echo "✅ Volume mounted successfully"
           VOLUME_STATUS="success"
         else
-          echo "❌ Volume mount failed"
+          echo "❌ Volume mount failed or not writable"
           VOLUME_STATUS="failure"
         fi
 

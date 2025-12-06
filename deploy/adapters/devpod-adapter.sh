@@ -535,8 +535,11 @@ generate_devcontainer() {
     MEMORY_MB=$(echo "$MEMORY" | sed 's/GB/*1024/;s/MB//' | bc)
 
     # Convert autoInstall (true/false) to SKIP_AUTO_INSTALL (inverted)
+    # Use robust comparison: normalize to lowercase, trim whitespace
     local skip_auto_install="false"
-    if [[ "$AUTO_INSTALL" == "false" ]]; then
+    local auto_install_normalized
+    auto_install_normalized=$(echo "$AUTO_INSTALL" | tr '[:upper:]' '[:lower:]' | xargs)
+    if [[ "$auto_install_normalized" == "false" ]]; then
         skip_auto_install="true"
     fi
 
