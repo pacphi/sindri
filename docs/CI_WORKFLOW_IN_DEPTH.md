@@ -64,14 +64,14 @@ approach that puts the `sindri` and `extension-manager` CLIs at the heart of all
 The deploy action automatically selects the appropriate config based on the
 test level and profile:
 
-| Test Level | Profile Being Tested | Config Used | Resources |
-|-----------|---------------------|-------------|-----------|
-| `quick` | any | `minimal.sindri.yaml` | Small (1-2GB RAM) |
-| `extension` | any | **`fullstack.sindri.yaml`** | Medium (4GB RAM) |
-| `profile` | minimal | `minimal.sindri.yaml` | Small (1-2GB RAM) |
-| `profile` | fullstack | `fullstack.sindri.yaml` | Medium (4GB RAM) |
-| `profile` | ai-dev | `ai-dev.sindri.yaml` | Large (8GB RAM, GPU) |
-| `profile` | enterprise | `enterprise.sindri.yaml` | XLarge (16GB+ RAM) |
+| Test Level  | Profile Being Tested | Config Used                 | Resources            |
+| ----------- | -------------------- | --------------------------- | -------------------- |
+| `quick`     | any                  | `minimal.sindri.yaml`       | Small (1-2GB RAM)    |
+| `extension` | any                  | **`fullstack.sindri.yaml`** | Medium (4GB RAM)     |
+| `profile`   | minimal              | `minimal.sindri.yaml`       | Small (1-2GB RAM)    |
+| `profile`   | fullstack            | `fullstack.sindri.yaml`     | Medium (4GB RAM)     |
+| `profile`   | ai-dev               | `ai-dev.sindri.yaml`        | Large (8GB RAM, GPU) |
+| `profile`   | enterprise           | `enterprise.sindri.yaml`    | XLarge (16GB+ RAM)   |
 
 **Why fullstack for extension tests?**
 
@@ -91,7 +91,7 @@ name: sindri-ci-test
 provider: docker
 extensions:
   profile: minimal
-  autoInstall: false  # CRITICAL: Disable auto-install for CI
+  autoInstall: false # CRITICAL: Disable auto-install for CI
 ```
 
 **Why this matters**:
@@ -146,15 +146,15 @@ The key insight is **inverting the test architecture**:
 
 All 7 providers are tested with the same unified approach:
 
-| Provider | Credential Setup | Deploy Method | Remote Execution |
-|----------|------------------|---------------|------------------|
-| `docker` | None | `sindri deploy` | `docker exec` |
-| `fly` | `FLY_API_TOKEN` | `fly-adapter.sh` | `flyctl ssh console` |
-| `devpod-aws` | `AWS_*` env vars | `devpod up --provider aws` | `devpod ssh` |
-| `devpod-gcp` | JSON key file | `devpod up --provider gcp` | `devpod ssh` |
-| `devpod-azure` | `AZURE_*` env vars | `devpod up --provider azure` | `devpod ssh` |
-| `devpod-do` | `DIGITALOCEAN_TOKEN` | `devpod up --provider do` | `devpod ssh` |
-| `devpod-k8s` | `KUBECONFIG` | `devpod up --provider k8s` | `devpod ssh` |
+| Provider       | Credential Setup     | Deploy Method                | Remote Execution     |
+| -------------- | -------------------- | ---------------------------- | -------------------- |
+| `docker`       | None                 | `sindri deploy`              | `docker exec`        |
+| `fly`          | `FLY_API_TOKEN`      | `fly-adapter.sh`             | `flyctl ssh console` |
+| `devpod-aws`   | `AWS_*` env vars     | `devpod up --provider aws`   | `devpod ssh`         |
+| `devpod-gcp`   | JSON key file        | `devpod up --provider gcp`   | `devpod ssh`         |
+| `devpod-azure` | `AZURE_*` env vars   | `devpod up --provider azure` | `devpod ssh`         |
+| `devpod-do`    | `DIGITALOCEAN_TOKEN` | `devpod up --provider do`    | `devpod ssh`         |
+| `devpod-k8s`   | `KUBECONFIG`         | `devpod up --provider k8s`   | `devpod ssh`         |
 
 All remote execution flows through `run-on-provider.sh`, which abstracts the
 provider-specific execution method.
@@ -163,15 +163,15 @@ provider-specific execution method.
 
 Secrets flow from GitHub repository → workflow → environment variables:
 
-| Provider | Secrets Required | Used In |
-|----------|-----------------|---------|
-| `docker` | None | N/A |
-| `fly` | `FLY_API_TOKEN` | Deploy (flyctl), Test (flyctl ssh) |
-| `devpod-aws` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Deploy (devpod up) |
-| `devpod-gcp` | `GCP_SERVICE_ACCOUNT_KEY` | Deploy (written to credentials file) |
-| `devpod-azure` | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID` | Deploy (Azure CLI) |
-| `devpod-do` | `DIGITALOCEAN_TOKEN` | Deploy (DevPod) |
-| `devpod-k8s` | `KUBECONFIG` (optional) | Deploy (written to ~/.kube/config) |
+| Provider       | Secrets Required                                            | Used In                              |
+| -------------- | ----------------------------------------------------------- | ------------------------------------ |
+| `docker`       | None                                                        | N/A                                  |
+| `fly`          | `FLY_API_TOKEN`                                             | Deploy (flyctl), Test (flyctl ssh)   |
+| `devpod-aws`   | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                | Deploy (devpod up)                   |
+| `devpod-gcp`   | `GCP_SERVICE_ACCOUNT_KEY`                                   | Deploy (written to credentials file) |
+| `devpod-azure` | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID` | Deploy (Azure CLI)                   |
+| `devpod-do`    | `DIGITALOCEAN_TOKEN`                                        | Deploy (DevPod)                      |
+| `devpod-k8s`   | `KUBECONFIG` (optional)                                     | Deploy (written to ~/.kube/config)   |
 
 **Secret Flow**:
 
@@ -216,33 +216,33 @@ Secrets flow from GitHub repository → workflow → environment variables:
 
 These tests verify core CLI functionality:
 
-| Test Name | Command | Success Criteria |
-|-----------|---------|------------------|
-| sindri-version | `sindri --version` | Exit code 0, outputs version string |
-| sindri-help | `sindri --help` | Exit code 0, outputs help text |
-| extension-manager-list | `extension-manager list` | Exit code 0, lists all available extensions |
-| extension-manager-profiles | `extension-manager list-profiles` | Exit code 0, lists all profiles (minimal, fullstack, etc.) |
-| extension-manager-categories | `extension-manager list-categories` | Exit code 0, lists categories (base, language, etc.) |
-| mise-available | `command -v mise` | Exit code 0, returns path to mise |
-| yq-available | `command -v yq` | Exit code 0, returns path to yq |
+| Test Name                    | Command                             | Success Criteria                                           |
+| ---------------------------- | ----------------------------------- | ---------------------------------------------------------- |
+| sindri-version               | `sindri --version`                  | Exit code 0, outputs version string                        |
+| sindri-help                  | `sindri --help`                     | Exit code 0, outputs help text                             |
+| extension-manager-list       | `extension-manager list`            | Exit code 0, lists all available extensions                |
+| extension-manager-profiles   | `extension-manager list-profiles`   | Exit code 0, lists all profiles (minimal, fullstack, etc.) |
+| extension-manager-categories | `extension-manager list-categories` | Exit code 0, lists categories (base, language, etc.)       |
+| mise-available               | `command -v mise`                   | Exit code 0, returns path to mise                          |
+| yq-available                 | `command -v yq`                     | Exit code 0, returns path to yq                            |
 
 ### Extension Level Tests
 
 Tests the full lifecycle of a single extension:
 
-| Step | Command | Success Criteria |
-|------|---------|------------------|
-| 1. List | `extension-manager list` | Exit 0, registry accessible |
-| 2. **Pre-check** | `extension-manager status nodejs` | **Status = NOT installed** |
-| 3. Install | `extension-manager install nodejs` | Exit 0, extension installed |
-| 4. Validate | `extension-manager validate nodejs` | Exit 0, validation passes |
-| 5. Status | `extension-manager status nodejs` | Exit 0, status = installed |
-| 6. Verify | `node --version` | Exit 0, tool works |
-| 7. **Idempotency: Reinstall** | `extension-manager install nodejs` | Exit 0, reinstall succeeds |
-| 8. **Idempotency: Revalidate** | `extension-manager validate nodejs` | Exit 0, still valid |
-| 9. BOM | `extension-manager bom` | Exit 0, BOM generated |
-| 10. Remove | `extension-manager remove nodejs` | Exit 0, extension removed |
-| 11. Verify Removed | `extension-manager status nodejs` | Status = not installed |
+| Step                           | Command                             | Success Criteria            |
+| ------------------------------ | ----------------------------------- | --------------------------- |
+| 1. List                        | `extension-manager list`            | Exit 0, registry accessible |
+| 2. **Pre-check**               | `extension-manager status nodejs`   | **Status = NOT installed**  |
+| 3. Install                     | `extension-manager install nodejs`  | Exit 0, extension installed |
+| 4. Validate                    | `extension-manager validate nodejs` | Exit 0, validation passes   |
+| 5. Status                      | `extension-manager status nodejs`   | Exit 0, status = installed  |
+| 6. Verify                      | `node --version`                    | Exit 0, tool works          |
+| 7. **Idempotency: Reinstall**  | `extension-manager install nodejs`  | Exit 0, reinstall succeeds  |
+| 8. **Idempotency: Revalidate** | `extension-manager validate nodejs` | Exit 0, still valid         |
+| 9. BOM                         | `extension-manager bom`             | Exit 0, BOM generated       |
+| 10. Remove                     | `extension-manager remove nodejs`   | Exit 0, extension removed   |
+| 11. Verify Removed             | `extension-manager status nodejs`   | Status = not installed      |
 
 > **Pre-check (Step 2)**: Fails immediately if extension is already installed.
 > This catches stale volumes, accidental autoInstall, or incomplete cleanup.
@@ -253,19 +253,19 @@ Tests the full lifecycle of a single extension:
 
 Tests the full lifecycle of a profile installation:
 
-| Step | Command | Success Criteria |
-|------|---------|------------------|
-| 1. List | `extension-manager list` | Exit 0, registry accessible |
-| 2. **Pre-check** | `extension-manager status` | **ALL extensions = NOT installed** |
-| 3. Install | `extension-manager install-profile minimal` | Exit 0, profile installed |
-| 4. Validate | `extension-manager validate-all` | Exit 0, all extensions pass |
-| 5. Status | `extension-manager status` | Exit 0, all = installed |
-| 6. Verify | `node --version && python --version` | Exit 0, tools work |
-| 7. **Idempotency: Reinstall** | `extension-manager install-profile minimal` | Exit 0, reinstall succeeds |
-| 8. **Idempotency: Revalidate** | `extension-manager validate-all` | Exit 0, all still valid |
-| 9. BOM | `extension-manager bom` | Exit 0, BOM generated |
-| 10. Remove | `extension-manager remove nodejs && extension-manager remove python` | Exit 0, extensions removed |
-| 11. Verify Removed | `extension-manager status` | All = not installed |
+| Step                           | Command                                                              | Success Criteria                   |
+| ------------------------------ | -------------------------------------------------------------------- | ---------------------------------- |
+| 1. List                        | `extension-manager list`                                             | Exit 0, registry accessible        |
+| 2. **Pre-check**               | `extension-manager status`                                           | **ALL extensions = NOT installed** |
+| 3. Install                     | `extension-manager install-profile minimal`                          | Exit 0, profile installed          |
+| 4. Validate                    | `extension-manager validate-all`                                     | Exit 0, all extensions pass        |
+| 5. Status                      | `extension-manager status`                                           | Exit 0, all = installed            |
+| 6. Verify                      | `node --version && python --version`                                 | Exit 0, tools work                 |
+| 7. **Idempotency: Reinstall**  | `extension-manager install-profile minimal`                          | Exit 0, reinstall succeeds         |
+| 8. **Idempotency: Revalidate** | `extension-manager validate-all`                                     | Exit 0, all still valid            |
+| 9. BOM                         | `extension-manager bom`                                              | Exit 0, BOM generated              |
+| 10. Remove                     | `extension-manager remove nodejs && extension-manager remove python` | Exit 0, extensions removed         |
+| 11. Verify Removed             | `extension-manager status`                                           | All = not installed                |
 
 > **Pre-check (Step 2)**: Fails immediately if ANY profile extension is already installed.
 > This detects dirty state from previous CI runs or misconfigured autoInstall.
@@ -276,22 +276,22 @@ Tests the full lifecycle of a profile installation:
 
 Summary of which operations are tested at each level:
 
-| Category | Operation | Command | Tested In |
-|----------|-----------|---------|-----------|
-| **Discovery** | List all | `extension-manager list` | Quick |
-| | List profiles | `extension-manager list-profiles` | Quick |
-| | List categories | `extension-manager list-categories` | Quick |
-| | Search | `extension-manager search {term}` | Extension |
-| | Info | `extension-manager info {ext}` | Extension |
-| **Installation** | Install single | `extension-manager install {ext}` | Extension |
-| | Install profile | `extension-manager install-profile {profile}` | Profile |
-| | Resolve deps | `extension-manager resolve {ext}` | Extension |
-| **Validation** | Validate single | `extension-manager validate {ext}` | Extension |
-| | Validate all | `extension-manager validate-all` | Profile |
-| **Status** | Status single | `extension-manager status {ext}` | Extension |
-| | Status all | `extension-manager status` | Profile |
-| **Removal** | Remove single | `extension-manager remove {ext}` | Extension, Profile |
-| **BOM** | Show BOM | `extension-manager bom` | Extension, Profile |
+| Category         | Operation       | Command                                       | Tested In          |
+| ---------------- | --------------- | --------------------------------------------- | ------------------ |
+| **Discovery**    | List all        | `extension-manager list`                      | Quick              |
+|                  | List profiles   | `extension-manager list-profiles`             | Quick              |
+|                  | List categories | `extension-manager list-categories`           | Quick              |
+|                  | Search          | `extension-manager search {term}`             | Extension          |
+|                  | Info            | `extension-manager info {ext}`                | Extension          |
+| **Installation** | Install single  | `extension-manager install {ext}`             | Extension          |
+|                  | Install profile | `extension-manager install-profile {profile}` | Profile            |
+|                  | Resolve deps    | `extension-manager resolve {ext}`             | Extension          |
+| **Validation**   | Validate single | `extension-manager validate {ext}`            | Extension          |
+|                  | Validate all    | `extension-manager validate-all`              | Profile            |
+| **Status**       | Status single   | `extension-manager status {ext}`              | Extension          |
+|                  | Status all      | `extension-manager status`                    | Profile            |
+| **Removal**      | Remove single   | `extension-manager remove {ext}`              | Extension, Profile |
+| **BOM**          | Show BOM        | `extension-manager bom`                       | Extension, Profile |
 
 ---
 
@@ -439,7 +439,7 @@ The simplified CI workflow has three main stages:
 
 ### Stage 3: Provider Testing (Parallel Matrix)
 
-For each provider in the matrix (docker, fly, devpod-*):
+For each provider in the matrix (docker, fly, devpod-\*):
 
 1. Setup credentials (provider-specific)
 2. Deploy infrastructure
@@ -450,13 +450,13 @@ For each provider in the matrix (docker, fly, devpod-*):
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `/docker/scripts/sindri-test.sh` | Unified test script (runs inside container) |
-| `.github/workflows/ci.yml` | Main CI orchestrator |
-| `.github/workflows/test-provider.yml` | Per-provider test workflow |
-| `.github/scripts/providers/run-on-provider.sh` | Provider execution abstraction |
-| `.github/scripts/providers/setup-credentials.sh` | Unified credential setup |
+| File                                             | Purpose                                     |
+| ------------------------------------------------ | ------------------------------------------- |
+| `/docker/scripts/sindri-test.sh`                 | Unified test script (runs inside container) |
+| `.github/workflows/ci.yml`                       | Main CI orchestrator                        |
+| `.github/workflows/test-provider.yml`            | Per-provider test workflow                  |
+| `.github/scripts/providers/run-on-provider.sh`   | Provider execution abstraction              |
+| `.github/scripts/providers/setup-credentials.sh` | Unified credential setup                    |
 
 ---
 

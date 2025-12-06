@@ -40,12 +40,16 @@ print_header() {
 
 run_test() {
     local name="$1"
+    # shellcheck disable=SC2178  # cmd is a string, not an array
     local cmd="$2"
-    local start=$(date +%s)
+    local start
+    start=$(date +%s)
 
     set +e
+    local output
+    # shellcheck disable=SC2128  # cmd is a string, not an array
     output=$(eval "$cmd" 2>&1)
-    exit_code=$?
+    local exit_code=$?
     set -e
 
     local duration=$(($(date +%s) - start))
