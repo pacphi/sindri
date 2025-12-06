@@ -137,14 +137,14 @@ runs:
               docker compose -f docker-compose.yml down -v 2>/dev/null || true
             fi
 
-            # Deploy using pre-built image (skip build if image already exists)
+            # Tag pre-built image as sindri:latest (what docker-adapter expects)
             if docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
-              echo "Using pre-built image: ${{ inputs.image }}"
-              IMAGE="${{ inputs.image }}" ./cli/sindri deploy --provider docker --config "$CONFIG"
-            else
-              echo "Pre-built image not found, building from Dockerfile"
-              ./cli/sindri deploy --provider docker --config "$CONFIG"
+              echo "Tagging pre-built image as sindri:latest"
+              docker tag "${{ inputs.image }}" sindri:latest
             fi
+
+            # Deploy using docker-adapter with --skip-build flag
+            ./deploy/adapters/docker-adapter.sh deploy --skip-build "$CONFIG"
 
             # Fix permissions on volume
             docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
