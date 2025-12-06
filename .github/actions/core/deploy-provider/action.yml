@@ -126,11 +126,25 @@ runs:
 
         case "$PROVIDER" in
           docker)
-            # Deploy using sindri CLI
-            ./cli/sindri deploy --provider docker --config "$CONFIG"
-
-            # Get container name from config
+            # Get container name from config (needed for pre-cleanup)
             TARGET_ID=$(yq '.name' "$CONFIG" 2>/dev/null || echo "sindri-test")
+
+            # PRE-CLEANUP: Remove stale resources from previous runs
+            echo "Pre-cleanup: Ensuring clean slate for Docker"
+            docker rm -f "$TARGET_ID" 2>/dev/null || true
+            docker volume ls -q --filter "name=${TARGET_ID}_home" | xargs -r docker volume rm 2>/dev/null || true
+            if [[ -f docker-compose.yml ]]; then
+              docker compose -f docker-compose.yml down -v 2>/dev/null || true
+            fi
+
+            # Deploy using pre-built image (skip build if image already exists)
+            if docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
+              echo "Using pre-built image: ${{ inputs.image }}"
+              IMAGE="${{ inputs.image }}" ./cli/sindri deploy --provider docker --config "$CONFIG"
+            else
+              echo "Pre-built image not found, building from Dockerfile"
+              ./cli/sindri deploy --provider docker --config "$CONFIG"
+            fi
 
             # Fix permissions on volume
             docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
