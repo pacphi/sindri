@@ -84,7 +84,7 @@ cd sindri
 - **[Contributing Guide](docs/CONTRIBUTING.md)** - Development workflow and standards
 - **[Testing Guide](docs/TESTING.md)** - Running tests and CI/CD
 - **[Workflow Architecture](.github/WORKFLOW_ARCHITECTURE.md)** - CI/CD workflow structure and design
-- **[CI Testing Deep Dive](docs/CI_WORKFLOW_IN_DEPTH.md)** - Comprehensive guide to extension and integration testing
+- **[CI Testing Deep Dive](docs/CI_WORKFLOW_IN_DEPTH.md)** - Comprehensive CI testing guide
 - **[Release Process](docs/RELEASE.md)** - Creating releases and changelog automation
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Security](docs/SECURITY.md)** - Security best practices

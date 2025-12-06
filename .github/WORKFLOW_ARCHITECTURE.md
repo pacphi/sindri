@@ -95,11 +95,13 @@ The primary CI orchestrator with **unified provider testing**:
 ```text
 FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
   └─> test-provider.yml
-      ├─> Phase 1: Deploy infrastructure
-      ├─> Phase 2: CLI tests (sindri, extension-manager)
-      ├─> Phase 3: Extension tests (validate, install profile)
-      ├─> Phase 4: Run test suites (smoke, integration, full)
-      └─> Phase 5: Cleanup
+      ├─> Setup credentials
+      ├─> Deploy infrastructure
+      ├─> Run sindri-test.sh (inside container)
+      │   ├─> Quick: CLI validation
+      │   ├─> Extension: Single extension lifecycle
+      │   └─> Profile: Profile lifecycle
+      └─> Cleanup
 ```
 
 **Triggers:**
@@ -131,7 +133,7 @@ The core of the YAML-driven approach:
 - **Discovers** sindri.yaml files in specified path
 - **Validates** each configuration against schema
 - **Deploys** using the configuration
-- **Tests** with specified suite (smoke/integration/full)
+- **Tests** with specified level (quick/extension/profile/all)
 - **Tears down** resources
 
 ```yaml
@@ -139,7 +141,7 @@ The core of the YAML-driven approach:
 - uses: ./.github/workflows/test-sindri-config.yml
   with:
     config-path: examples/fly/
-    test-suite: smoke
+    test-level: quick
 ```
 
 ### Deploy Workflow (`deploy-sindri.yml`)

@@ -22,15 +22,16 @@ on:
         required: false
         default: "docker,fly,devpod-k8s"
         type: string
-      test-suite:
-        description: Test suite to run
+      test-level:
+        description: Test level to run
         required: false
-        default: "integration"
+        default: "profile"
         type: choice
         options:
-          - smoke
-          - integration
-          - full
+          - quick
+          - extension
+          - profile
+          - all
       extension-profile:
         description: Extension profile to test (affects resource requirements)
         required: false
@@ -193,7 +194,7 @@ jobs:
     uses: ./.github/workflows/test-provider.yml
     with:
       provider: ${{ matrix.provider }}
-      test-suite: ${{ github.event.inputs.test-suite || 'integration' }}
+      test-level: ${{ github.event.inputs.test-level || 'profile' }}
       extension-profile: ${{ github.event.inputs.extension-profile || 'minimal' }}
       skip-cleanup: ${{ github.event.inputs.skip-cleanup == 'true' }}
       image: sindri:ci-${{ github.sha }}

@@ -408,7 +408,7 @@ profiles:
 - **Unit tests**: `test/unit/` - YAML validation and schema tests
 - **Extension tests**:
   - Local: `./cli/extension-manager validate-all` or `pnpm test:extensions`
-  - CI: Integrated into `test-provider.yml` - Full extension testing in CI/CD with 9 phases (installation, discovery, validation, functionality, idempotency, filesystem, environment, uninstall, results)
+  - CI: Integrated into `test-provider.yml` - Three test levels (quick, extension, profile) run via unified `sindri-test.sh` script
 
 ### GitHub Actions
 
@@ -416,15 +416,16 @@ profiles:
 
 - `ci.yml` - Main CI orchestrator with unified provider testing
 - `validate-yaml.yml` - Comprehensive YAML validation with schema checks
-- `test-provider.yml` - Full test suite per provider (CLI + extensions + integration)
+- `test-provider.yml` - Simplified provider testing (runs sindri-test.sh inside container)
 - `test-sindri-config.yml` - User configuration testing
 - `deploy-sindri.yml` - Reusable deployment workflow
 - `teardown-sindri.yml` - Reusable teardown workflow
 - `manual-deploy.yml` - Manual deployment trigger
 - `release.yml` - Automated release with changelog generation (see [docs/RELEASE.md](docs/RELEASE.md))
 
-**Unified Provider Testing**: Each selected provider runs CLI tests, extension tests, and
-integration tests. This ensures consistent coverage across Docker, Fly.io, and DevPod providers.
+**Simplified Testing Architecture**: All tests run INSIDE the container via `/docker/scripts/sindri-test.sh`.
+Each provider (Docker, Fly.io, DevPod) gets tested with three levels: quick (CLI), extension (single extension lifecycle),
+and profile (profile lifecycle). See [docs/CI_WORKFLOW_IN_DEPTH.md](docs/CI_WORKFLOW_IN_DEPTH.md) for details.
 
 ## Code Style
 

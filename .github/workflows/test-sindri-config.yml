@@ -10,11 +10,11 @@ on:
         description: Path to sindri.yaml file (or directory to test all)
         required: true
         type: string
-      test-suite:
-        description: Test suite to run
+      test-level:
+        description: Test level to run
         required: false
         type: string
-        default: smoke
+        default: quick
       skip-cleanup:
         description: Skip cleanup for debugging
         required: false
@@ -104,15 +104,16 @@ on:
           - examples/profiles/
           - examples/custom/
           - examples/ # All examples
-      test-suite:
-        description: Test suite to run
+      test-level:
+        description: Test level to run
         required: true
         type: choice
-        default: smoke
+        default: quick
         options:
-          - smoke
-          - integration
-          - full
+          - quick
+          - extension
+          - profile
+          - all
       skip-cleanup:
         description: Skip cleanup for debugging
         required: false
@@ -221,7 +222,7 @@ jobs:
 
       - name: Run tests
         run: |
-          ./cli/sindri test --config "${{ matrix.config }}" --suite "${{ inputs.test-suite }}"
+          ./cli/sindri test --config "${{ matrix.config }}" --level "${{ inputs.test-level }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 

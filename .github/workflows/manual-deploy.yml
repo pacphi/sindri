@@ -286,7 +286,7 @@ jobs:
     uses: ./.github/workflows/test-provider.yml
     with:
       provider: ${{ github.event.inputs.provider }}
-      test-suite: smoke
+      test-level: quick
       skip-cleanup: true
     secrets: inherit
 
