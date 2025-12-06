@@ -41,51 +41,49 @@ if [[ "${SINDRI_EMERGENCY_REVERT:-false}" == "true" ]]; then
     } >> "${GITHUB_ENV:-/dev/null}"
 fi
 
-# Provider-Specific Tuning
+# Provider-Specific Tuning (set local vars first for echoing)
 case "$PROVIDER" in
     docker)
-        {
-            echo "SINDRI_PARALLEL_JOBS=5"
-            echo "SINDRI_CONNECTION_OVERHEAD=0"
-            echo "SINDRI_RETRY_DELAY=1"
-        } >> "${GITHUB_ENV:-/dev/null}"
+        SINDRI_PARALLEL_JOBS=5
+        SINDRI_CONNECTION_OVERHEAD=0
+        SINDRI_RETRY_DELAY=1
         ;;
     fly)
-        {
-            echo "SINDRI_PARALLEL_JOBS=3"
-            echo "SINDRI_CONNECTION_OVERHEAD=2"
-            echo "SINDRI_RETRY_DELAY=3"
-        } >> "${GITHUB_ENV:-/dev/null}"
+        SINDRI_PARALLEL_JOBS=3
+        SINDRI_CONNECTION_OVERHEAD=2
+        SINDRI_RETRY_DELAY=3
         ;;
     devpod-k8s|kubernetes)
-        {
-            echo "SINDRI_PARALLEL_JOBS=2"
-            echo "SINDRI_CONNECTION_OVERHEAD=3"
-            echo "SINDRI_RETRY_DELAY=5"
-        } >> "${GITHUB_ENV:-/dev/null}"
+        SINDRI_PARALLEL_JOBS=2
+        SINDRI_CONNECTION_OVERHEAD=3
+        SINDRI_RETRY_DELAY=5
         ;;
     devpod-*|ssh)
-        {
-            echo "SINDRI_PARALLEL_JOBS=3"
-            echo "SINDRI_CONNECTION_OVERHEAD=2"
-            echo "SINDRI_RETRY_DELAY=3"
-        } >> "${GITHUB_ENV:-/dev/null}"
+        SINDRI_PARALLEL_JOBS=3
+        SINDRI_CONNECTION_OVERHEAD=2
+        SINDRI_RETRY_DELAY=3
         ;;
     *)
-        {
-            echo "SINDRI_PARALLEL_JOBS=2"
-            echo "SINDRI_CONNECTION_OVERHEAD=2"
-            echo "SINDRI_RETRY_DELAY=3"
-        } >> "${GITHUB_ENV:-/dev/null}"
+        SINDRI_PARALLEL_JOBS=2
+        SINDRI_CONNECTION_OVERHEAD=2
+        SINDRI_RETRY_DELAY=3
         ;;
 esac
 
+# Write provider-specific tuning to GITHUB_ENV for persistence
+{
+    echo "SINDRI_PARALLEL_JOBS=$SINDRI_PARALLEL_JOBS"
+    echo "SINDRI_CONNECTION_OVERHEAD=$SINDRI_CONNECTION_OVERHEAD"
+    echo "SINDRI_RETRY_DELAY=$SINDRI_RETRY_DELAY"
+} >> "${GITHUB_ENV:-/dev/null}"
+
 # =============================================================================
-# Output Configuration Summary
+# Output Configuration Summary (shows actual values set above)
 # =============================================================================
-echo "Provider: $PROVIDER"
+echo "Provider: $PROVIDER configured"
 echo "  Parallel jobs: $SINDRI_PARALLEL_JOBS"
 echo "  Connection overhead: ${SINDRI_CONNECTION_OVERHEAD}s"
 echo "  Retry delay: ${SINDRI_RETRY_DELAY}s"
-echo "  Batched calls: $SINDRI_ENABLE_BATCHED_REMOTE_CALLS"
-echo "  Parallel validation: $SINDRI_ENABLE_PARALLEL_VALIDATION"
+echo "  Timeouts: mise=${SINDRI_MISE_TIMEOUT:-300}s dns=${SINDRI_DNS_TIMEOUT:-3}s validation=${SINDRI_VALIDATION_TIMEOUT:-10}s"
+echo "  Batched calls: ${SINDRI_ENABLE_BATCHED_REMOTE_CALLS:-true}"
+echo "  Parallel validation: ${SINDRI_ENABLE_PARALLEL_VALIDATION:-true}"
