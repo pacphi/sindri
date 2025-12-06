@@ -40,6 +40,7 @@ jobs:
   schema-validation:
     name: Schema Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -48,10 +49,11 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install tools
         run: |
-          npm install -g ajv-cli ajv-formats
+          npm install -g ajv-cli ajv-formats --prefer-offline
           wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
