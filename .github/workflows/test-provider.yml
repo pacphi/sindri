@@ -486,7 +486,7 @@ jobs:
       # Configure environment (feature flags, timeouts, provider tuning)
       - name: Configure test environment
         run: |
-          source .github/scripts/providers/configure-environment.sh "${{ inputs.provider }}"
+          .github/scripts/providers/configure-environment.sh "${{ inputs.provider }}"
 
       # DevPod warmup (conditional)
       - name: Warmup DevPod connection
