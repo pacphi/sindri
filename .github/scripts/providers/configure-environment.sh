@@ -9,72 +9,74 @@ PROVIDER="${1:?Provider required (docker, fly, devpod-*, kubernetes, ssh)}"
 
 # =============================================================================
 # Core Timeout Configuration
+# Write to GITHUB_ENV so variables persist across workflow steps
 # =============================================================================
-export SINDRI_MISE_TIMEOUT="${SINDRI_MISE_TIMEOUT:-300}"              # 5 minutes for mise install
-export SINDRI_DNS_TIMEOUT="${SINDRI_DNS_TIMEOUT:-3}"                  # 3 seconds for DNS checks
-export SINDRI_VALIDATION_TIMEOUT="${SINDRI_VALIDATION_TIMEOUT:-10}"   # 10 seconds for validation commands
-export SINDRI_PROFILE_INSTALL_TIMEOUT="${SINDRI_PROFILE_INSTALL_TIMEOUT:-600}"  # 10 minutes for full profile
+{
+    echo "SINDRI_MISE_TIMEOUT=${SINDRI_MISE_TIMEOUT:-300}"
+    echo "SINDRI_DNS_TIMEOUT=${SINDRI_DNS_TIMEOUT:-3}"
+    echo "SINDRI_VALIDATION_TIMEOUT=${SINDRI_VALIDATION_TIMEOUT:-10}"
+    echo "SINDRI_PROFILE_INSTALL_TIMEOUT=${SINDRI_PROFILE_INSTALL_TIMEOUT:-600}"
 
-# =============================================================================
-# Feature Flags (Day 2 optimizations)
-# =============================================================================
-export SINDRI_ENABLE_PARALLEL_VALIDATION="${SINDRI_ENABLE_PARALLEL_VALIDATION:-true}"
-export SINDRI_ENABLE_BATCHED_REMOTE_CALLS="${SINDRI_ENABLE_BATCHED_REMOTE_CALLS:-true}"
-export SINDRI_ENABLE_DNS_CACHE="${SINDRI_ENABLE_DNS_CACHE:-true}"
-export SINDRI_ENABLE_RETRY_LOGIC="${SINDRI_ENABLE_RETRY_LOGIC:-true}"
-export SINDRI_ENABLE_PROGRESS_INDICATORS="${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}"
+    # Feature Flags
+    echo "SINDRI_ENABLE_PARALLEL_VALIDATION=${SINDRI_ENABLE_PARALLEL_VALIDATION:-true}"
+    echo "SINDRI_ENABLE_BATCHED_REMOTE_CALLS=${SINDRI_ENABLE_BATCHED_REMOTE_CALLS:-true}"
+    echo "SINDRI_ENABLE_DNS_CACHE=${SINDRI_ENABLE_DNS_CACHE:-true}"
+    echo "SINDRI_ENABLE_RETRY_LOGIC=${SINDRI_ENABLE_RETRY_LOGIC:-true}"
+    echo "SINDRI_ENABLE_PROGRESS_INDICATORS=${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}"
 
-# =============================================================================
-# Monitoring & Debugging
-# =============================================================================
-export SINDRI_ENABLE_TIMING_METRICS="${SINDRI_ENABLE_TIMING_METRICS:-true}"
-export SINDRI_ENABLE_DEBUG_OUTPUT="${SINDRI_ENABLE_DEBUG_OUTPUT:-false}"
-export SINDRI_FAIL_FAST="${SINDRI_FAIL_FAST:-true}"
+    # Monitoring
+    echo "SINDRI_ENABLE_TIMING_METRICS=${SINDRI_ENABLE_TIMING_METRICS:-true}"
+    echo "SINDRI_ENABLE_DEBUG_OUTPUT=${SINDRI_ENABLE_DEBUG_OUTPUT:-false}"
+    echo "SINDRI_FAIL_FAST=${SINDRI_FAIL_FAST:-true}"
+} >> "${GITHUB_ENV:-/dev/null}"
 
-# =============================================================================
 # Emergency Kill Switch
-# =============================================================================
 if [[ "${SINDRI_EMERGENCY_REVERT:-false}" == "true" ]]; then
     echo "⚠️  EMERGENCY REVERT MODE ACTIVE"
     echo "Disabling all Day 2 optimizations (batching, parallelism)"
-    export SINDRI_ENABLE_PARALLEL_VALIDATION=false
-    export SINDRI_ENABLE_BATCHED_REMOTE_CALLS=false
-    export SINDRI_PARALLEL_JOBS=1
+    {
+        echo "SINDRI_ENABLE_PARALLEL_VALIDATION=false"
+        echo "SINDRI_ENABLE_BATCHED_REMOTE_CALLS=false"
+        echo "SINDRI_PARALLEL_JOBS=1"
+    } >> "${GITHUB_ENV:-/dev/null}"
 fi
 
-# =============================================================================
 # Provider-Specific Tuning
-# =============================================================================
 case "$PROVIDER" in
     docker)
-        # Docker: Fast local exec, minimal overhead
-        export SINDRI_PARALLEL_JOBS=5          # More parallelism
-        export SINDRI_CONNECTION_OVERHEAD=0    # Negligible
-        export SINDRI_RETRY_DELAY=1            # Fast retries
+        {
+            echo "SINDRI_PARALLEL_JOBS=5"
+            echo "SINDRI_CONNECTION_OVERHEAD=0"
+            echo "SINDRI_RETRY_DELAY=1"
+        } >> "${GITHUB_ENV:-/dev/null}"
         ;;
     fly)
-        # Fly.io: SSH overhead, balanced parallelism
-        export SINDRI_PARALLEL_JOBS=3
-        export SINDRI_CONNECTION_OVERHEAD=2    # ~2s per SSH call
-        export SINDRI_RETRY_DELAY=3
+        {
+            echo "SINDRI_PARALLEL_JOBS=3"
+            echo "SINDRI_CONNECTION_OVERHEAD=2"
+            echo "SINDRI_RETRY_DELAY=3"
+        } >> "${GITHUB_ENV:-/dev/null}"
         ;;
     devpod-k8s|kubernetes)
-        # Kubernetes: kubectl exec can be slow
-        export SINDRI_PARALLEL_JOBS=2          # Lower parallelism
-        export SINDRI_CONNECTION_OVERHEAD=3    # kubectl overhead
-        export SINDRI_RETRY_DELAY=5            # Pod recovery time
+        {
+            echo "SINDRI_PARALLEL_JOBS=2"
+            echo "SINDRI_CONNECTION_OVERHEAD=3"
+            echo "SINDRI_RETRY_DELAY=5"
+        } >> "${GITHUB_ENV:-/dev/null}"
         ;;
     devpod-*|ssh)
-        # DevPod cloud/SSH: Similar to Fly.io
-        export SINDRI_PARALLEL_JOBS=3
-        export SINDRI_CONNECTION_OVERHEAD=2    # SSH connection time
-        export SINDRI_RETRY_DELAY=3
+        {
+            echo "SINDRI_PARALLEL_JOBS=3"
+            echo "SINDRI_CONNECTION_OVERHEAD=2"
+            echo "SINDRI_RETRY_DELAY=3"
+        } >> "${GITHUB_ENV:-/dev/null}"
         ;;
     *)
-        # Unknown provider: conservative defaults
-        export SINDRI_PARALLEL_JOBS=2
-        export SINDRI_CONNECTION_OVERHEAD=2
-        export SINDRI_RETRY_DELAY=3
+        {
+            echo "SINDRI_PARALLEL_JOBS=2"
+            echo "SINDRI_CONNECTION_OVERHEAD=2"
+            echo "SINDRI_RETRY_DELAY=3"
+        } >> "${GITHUB_ENV:-/dev/null}"
         ;;
 esac
 

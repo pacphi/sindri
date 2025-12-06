@@ -34,19 +34,30 @@ if [[ "$PROVIDER" == "devpod-k8s" ]] || [[ "$PROVIDER" == "kubernetes" ]]; then
     echo ""
     echo "Verifying pod readiness for Kubernetes backend..."
 
-    # Wait for pod to be ready (60s timeout)
+    # Wait for pod to be ready (120s timeout - pods can take time to start)
+    echo "Waiting for pod (timeout: 120s)..."
     if ! kubectl wait --for=condition=Ready \
         pod -l devpod.sh/workspace="$WORKSPACE_ID" \
-        --timeout=60s 2>&1; then
+        --timeout=120s 2>&1; then
 
-        echo "::error::Pod not ready after 60s"
+        echo "::warning::Pod not ready after 120s, checking pod status..."
         echo ""
         echo "Pod status:"
         kubectl get pods -l devpod.sh/workspace="$WORKSPACE_ID" || true
         echo ""
         echo "Pod details:"
         kubectl describe pods -l devpod.sh/workspace="$WORKSPACE_ID" || true
-        exit 1
+
+        # Retry once after showing diagnostics
+        echo ""
+        echo "Retrying pod wait (additional 60s)..."
+        if ! kubectl wait --for=condition=Ready \
+            pod -l devpod.sh/workspace="$WORKSPACE_ID" \
+            --timeout=60s 2>&1; then
+
+            echo "::error::Pod still not ready after 180s total"
+            exit 1
+        fi
     fi
 
     echo "✅ Kubernetes pod is ready"
