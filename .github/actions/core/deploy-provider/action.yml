@@ -149,8 +149,15 @@ runs:
             # Fix permissions on volume
             docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
 
-            # Verify container is ready
+            # Verify container is ready and check env vars
             docker exec "$TARGET_ID" bash -c 'echo "Container ready"'
+
+            # Debug: Check if SKIP_AUTO_INSTALL is set
+            SKIP_VALUE=$(docker exec "$TARGET_ID" bash -c 'echo $SKIP_AUTO_INSTALL')
+            echo "Debug: SKIP_AUTO_INSTALL=$SKIP_VALUE"
+
+            # Debug: Check if extensions are installed
+            docker exec "$TARGET_ID" bash -c 'extension-manager status nodejs || true'
 
             echo "✓ Deployed to Docker: $TARGET_ID"
             ;;

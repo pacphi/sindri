@@ -96,7 +96,7 @@ run_extension_lifecycle_tests() {
     # Step 2: PRE-CHECK - Verify extension NOT already installed
     echo "# Pre-check: Verifying $TEST_EXTENSION is NOT installed"
     run_test "pre-check-$TEST_EXTENSION" \
-        "extension-manager status $TEST_EXTENSION | grep -q 'not installed' || (echo 'DIRTY STATE DETECTED - $TEST_EXTENSION is already installed!' && exit 1)"
+        "extension-manager status $TEST_EXTENSION | grep -q 'Status: Not installed' || (echo 'DIRTY STATE DETECTED - $TEST_EXTENSION is already installed!' && exit 1)"
 
     # Step 3: Install single extension
     run_test "install-$TEST_EXTENSION" "extension-manager install $TEST_EXTENSION"
@@ -106,7 +106,7 @@ run_extension_lifecycle_tests() {
 
     # Step 5: Check status
     run_test "status-$TEST_EXTENSION" \
-        "extension-manager status $TEST_EXTENSION | grep -q 'installed'"
+        "extension-manager status $TEST_EXTENSION | grep -q 'Status: Installed'"
 
     # Step 6: Verify tool works
     local verify_cmd
@@ -135,7 +135,7 @@ run_extension_lifecycle_tests() {
 
     # Step 11: Verify removed
     run_test "verify-removed" \
-        "extension-manager status $TEST_EXTENSION | grep -q 'not installed'"
+        "extension-manager status $TEST_EXTENSION | grep -q 'Status: Not installed'"
 }
 
 # === Profile Lifecycle Tests ===
@@ -161,7 +161,7 @@ run_profile_lifecycle_tests() {
     # Check each extension is NOT installed
     local all_clean=true
     for ext in $extensions; do
-        if extension-manager status "$ext" 2>/dev/null | grep -q 'installed'; then
+        if extension-manager status "$ext" 2>/dev/null | grep -q 'Status: Installed'; then
             echo "  ERROR: $ext is already installed!"
             all_clean=false
         fi
@@ -255,7 +255,7 @@ run_profile_lifecycle_tests() {
     # Step 11: Verify all removed
     local all_removed=true
     for ext in $extensions; do
-        if extension-manager status "$ext" 2>/dev/null | grep -q 'installed'; then
+        if extension-manager status "$ext" 2>/dev/null | grep -q 'Status: Installed'; then
             all_removed=false
             echo "  ERROR: $ext is still installed!"
         fi

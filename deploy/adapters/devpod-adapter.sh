@@ -145,8 +145,13 @@ parse_config() {
     fi
 
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
-    # Auto-install: default true, set extensions.autoInstall: false to disable
-    AUTO_INSTALL=$(yq '.extensions.autoInstall // true' "$SINDRI_YAML")
+    # Auto-install: default FALSE (manual install), set extensions.autoInstall: true to enable
+    # Read without default (returns 'null' if not set)
+    AUTO_INSTALL=$(yq '.extensions.autoInstall' "$SINDRI_YAML")
+    # Default to FALSE if null (safer default - explicit control)
+    if [[ "$AUTO_INSTALL" == "null" ]]; then
+        AUTO_INSTALL="false"
+    fi
     CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
 
     MEMORY=$(yq '.deployment.resources.memory // "4GB"' "$SINDRI_YAML")

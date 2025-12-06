@@ -87,8 +87,13 @@ parse_config() {
     MEMORY=$(yq '.deployment.resources.memory // "1GB"' "$SINDRI_YAML")
     CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
-    # Auto-install: default true, set extensions.autoInstall: false to disable
-    AUTO_INSTALL=$(yq '.extensions.autoInstall // true' "$SINDRI_YAML")
+    # Auto-install: default FALSE (manual install), set extensions.autoInstall: true to enable
+    # Read without default (returns 'null' if not set)
+    AUTO_INSTALL=$(yq '.extensions.autoInstall' "$SINDRI_YAML")
+    # Default to FALSE if null (safer default - explicit control)
+    if [[ "$AUTO_INSTALL" == "null" ]]; then
+        AUTO_INSTALL="false"
+    fi
     VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML")
 
     # GPU configuration
