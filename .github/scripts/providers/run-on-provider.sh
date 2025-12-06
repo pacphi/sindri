@@ -11,7 +11,8 @@ COMMAND="${3:?Command required}"
 
 case "$PROVIDER" in
     docker)
-        docker exec "$TARGET_ID" bash -c "$COMMAND"
+        # Use login shell (-l) to ensure mise shims and PATH are properly loaded
+        docker exec "$TARGET_ID" bash -l -c "$COMMAND"
         ;;
     fly)
         flyctl ssh console -a "$TARGET_ID" --command "$COMMAND"
