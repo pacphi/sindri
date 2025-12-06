@@ -481,406 +481,144 @@ jobs:
             ]
 
       # ============================================
-      # PHASE 3: Extension Tests (Profile-Driven)
+      # PHASE 3: Extension Tests (Modular Architecture)
       # ============================================
-      - name: Run extension tests
+      # Configure environment (feature flags, timeouts, provider tuning)
+      - name: Configure test environment
+        run: |
+          source .github/scripts/providers/configure-environment.sh "${{ inputs.provider }}"
+
+      # DevPod warmup (conditional)
+      - name: Warmup DevPod connection
+        if: startsWith(inputs.provider, 'devpod') || inputs.provider == 'kubernetes' || inputs.provider == 'ssh'
+        run: |
+          .github/scripts/providers/warmup-devpod.sh "${{ inputs.provider }}" "${{ steps.setup.outputs.workspace-id }}"
+
+      # Determine target ID based on provider
+      - name: Set target ID
+        id: target
+        run: |
+          case "${{ inputs.provider }}" in
+            docker)
+              echo "id=${{ steps.config-path.outputs.container-name }}" >> $GITHUB_OUTPUT
+              ;;
+            fly)
+              echo "id=${{ steps.setup.outputs.app-name }}" >> $GITHUB_OUTPUT
+              ;;
+            devpod-*|kubernetes|ssh)
+              echo "id=${{ steps.setup.outputs.workspace-id }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      # PHASE 1: Install Profile
+      - name: Install extension profile
+        id: install-profile
+        run: |
+          .github/scripts/tests/install-profile.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
+
+      # PHASE 2: Discover Extensions
+      - name: Discover extensions
+        id: discover
+        run: |
+          .github/scripts/tests/discover-extensions.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
+
+      # PHASE 3: Validate Extensions
+      - name: Validate extensions
+        id: validate
+        run: |
+          .github/scripts/tests/validate-extensions.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+
+      # PHASE 4: Functionality Tests (integration/full only)
+      - name: Test functionality
+        if: inputs.test-suite != 'smoke'
+        id: functionality
+        run: |
+          .github/scripts/tests/test-functionality.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+
+      # PHASE 5: Idempotency Tests (full only)
+      - name: Test idempotency
+        if: inputs.test-suite == 'full'
+        id: idempotency
+        run: |
+          .github/scripts/tests/test-idempotency.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
+
+      # PHASE 6: Filesystem Verification (full only)
+      - name: Verify filesystem
+        if: inputs.test-suite == 'full'
+        id: filesystem
+        run: |
+          .github/scripts/tests/verify-filesystem.sh \
+            "${{ inputs.provider }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+
+      # PHASE 7: Environment Verification (full only)
+      - name: Verify environment
+        if: inputs.test-suite == 'full'
+        id: environment
+        run: |
+          .github/scripts/tests/verify-environment.sh \
+            "${{ inputs.provider }}" \
+            "${{ steps.target.outputs.id }}" \
+            "${{ steps.discover.outputs.extensions }}"
+
+      # PHASE 8: Uninstall & Cleanup (full only)
+      - name: Uninstall extensions
+        if: inputs.test-suite == 'full'
+        id: uninstall
+        run: |
+          .github/scripts/tests/uninstall-extensions.sh \
+            "${{ inputs.provider }}" \
+            "${{ inputs.extension-profile }}" \
+            "${{ steps.target.outputs.id }}"
+
+      # Extension tests complete
+      - name: Extension tests summary
         id: extension-tests
         run: |
-          echo "::group::Running extension tests on ${{ inputs.provider }}"
-
-          PROFILE="${{ inputs.extension-profile }}"
-          RESULTS='{}'
-          ALL_PASSED="true"
-
-          # Helper function for phase headers
-          print_phase() {
-            local phase_num="$1"
-            local phase_name="$2"
-            echo ""
-            echo "========================================"
-            echo "  PHASE ${phase_num}: ${phase_name}"
-            echo "========================================"
-            echo ""
-          }
-
-          run_on_provider() {
-            local cmd="$1"
-            case "${{ inputs.provider }}" in
-              docker)
-                docker exec "${{ steps.config-path.outputs.container-name }}" bash -c "$cmd"
-                ;;
-              fly)
-                flyctl ssh console -a "${{ steps.setup.outputs.app-name }}" --command "$cmd"
-                ;;
-              devpod-*|kubernetes|ssh)
-                devpod ssh "${{ steps.setup.outputs.workspace-id }}" --command "$cmd"
-                ;;
-            esac
-          }
-
-          # ----------------------------------------
-          # PHASE 1: Profile Installation
-          # ----------------------------------------
-          print_phase "1" "PROFILE INSTALLATION"
-          echo "Profile: $PROFILE"
+          echo "::group::Extension Tests Summary"
+          echo "Profile: ${{ inputs.extension-profile }}"
           echo "Provider: ${{ inputs.provider }}"
-          echo ""
-
-          set +e
-          run_on_provider "extension-manager install-profile $PROFILE"
-          PROFILE_EXIT=$?
-          set -e
-
-          if [[ $PROFILE_EXIT -eq 0 ]]; then
-            echo ""
-            echo "✅ Profile '$PROFILE' installed successfully"
-            RESULTS=$(echo "$RESULTS" | jq -c '.profile_install = "passed"')
-          else
-            echo ""
-            echo "❌ Profile '$PROFILE' installation failed (exit code: $PROFILE_EXIT)"
-            RESULTS=$(echo "$RESULTS" | jq -c '.profile_install = "failed"')
-            ALL_PASSED="false"
-          fi
-
-          # ----------------------------------------
-          # PHASE 2: Extension Discovery
-          # ----------------------------------------
-          print_phase "2" "EXTENSION DISCOVERY"
-
-          EXTENSIONS=$(run_on_provider "yq '.profiles.${PROFILE}.extensions[]' /docker/lib/profiles.yaml" 2>/dev/null || echo "")
-          EXT_COUNT=$(echo "$EXTENSIONS" | wc -w | tr -d ' ')
-
-          echo "Extensions in profile '$PROFILE': $EXT_COUNT"
-          if [[ -n "$EXTENSIONS" ]]; then
-            echo ""
-            for ext in $EXTENSIONS; do
-              echo "  - $ext"
-            done
-          fi
-
-          # ----------------------------------------
-          # PHASE 3: Extension Validation
-          # ----------------------------------------
-          print_phase "3" "EXTENSION VALIDATION"
-
-          if [[ -n "$EXTENSIONS" ]]; then
-            VALIDATED=0
-            FAILED=0
-
-            for ext in $EXTENSIONS; do
-              echo "[$((VALIDATED + FAILED + 1))/$EXT_COUNT] Validating: $ext"
-              set +e
-              OUTPUT=$(run_on_provider "extension-manager validate $ext" 2>&1)
-              EXIT_CODE=$?
-              set -e
-
-              if [[ $EXIT_CODE -eq 0 ]]; then
-                echo "        ✅ $ext - PASSED"
-                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "passed"')
-                VALIDATED=$((VALIDATED + 1))
-              else
-                echo "        ❌ $ext - FAILED"
-                echo "        Output: $OUTPUT"
-                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "failed"')
-                ALL_PASSED="false"
-                FAILED=$((FAILED + 1))
-              fi
-            done
-
-            echo ""
-            echo "----------------------------------------"
-            echo "Validation Summary: $VALIDATED passed, $FAILED failed"
-            echo "----------------------------------------"
-          else
-            echo "No extensions to validate"
-          fi
-
-          # ----------------------------------------
-          # PHASE 4: Functionality Tests
-          # (Only run for integration/full test suites)
-          # ----------------------------------------
-          if [[ "${{ inputs.test-suite }}" == "integration" || "${{ inputs.test-suite }}" == "full" ]]; then
-            print_phase "4" "FUNCTIONALITY TESTS"
-
-            if [[ -n "$EXTENSIONS" ]]; then
-              FUNC_TESTED=0
-              FUNC_FAILED=0
-
-              for ext in $EXTENSIONS; do
-                echo "[$ext] Running functionality tests..."
-
-                # Extension-specific functionality tests
-                case "$ext" in
-                  nodejs)
-                    set +e
-                    run_on_provider "node --version" &>/dev/null && echo "  ✅ node command" || { echo "  ❌ node command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    run_on_provider "npm --version" &>/dev/null && echo "  ✅ npm command" || { echo "  ❌ npm command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    set -e
-                    FUNC_TESTED=$((FUNC_TESTED + 2))
-                    ;;
-                  python)
-                    set +e
-                    run_on_provider "python --version" &>/dev/null && echo "  ✅ python command" || { echo "  ❌ python command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    run_on_provider "pip --version" &>/dev/null && echo "  ✅ pip command" || { echo "  ❌ pip command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    set -e
-                    FUNC_TESTED=$((FUNC_TESTED + 2))
-                    ;;
-                  golang)
-                    set +e
-                    run_on_provider "go version" &>/dev/null && echo "  ✅ go command" || { echo "  ❌ go command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    set -e
-                    FUNC_TESTED=$((FUNC_TESTED + 1))
-                    ;;
-                  rust)
-                    set +e
-                    run_on_provider "rustc --version" &>/dev/null && echo "  ✅ rustc command" || { echo "  ❌ rustc command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    run_on_provider "cargo --version" &>/dev/null && echo "  ✅ cargo command" || { echo "  ❌ cargo command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    set -e
-                    FUNC_TESTED=$((FUNC_TESTED + 2))
-                    ;;
-                  ruby)
-                    set +e
-                    run_on_provider "ruby --version" &>/dev/null && echo "  ✅ ruby command" || { echo "  ❌ ruby command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    run_on_provider "gem --version" &>/dev/null && echo "  ✅ gem command" || { echo "  ❌ gem command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    run_on_provider "bundle --version" &>/dev/null && echo "  ✅ bundle command" || { echo "  ❌ bundle command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    set -e
-                    FUNC_TESTED=$((FUNC_TESTED + 3))
-                    ;;
-                  docker)
-                    set +e
-                    run_on_provider "docker --version" &>/dev/null && echo "  ✅ docker command" || { echo "  ❌ docker command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    run_on_provider "docker compose version" &>/dev/null && echo "  ✅ docker compose" || { echo "  ❌ docker compose"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    set -e
-                    FUNC_TESTED=$((FUNC_TESTED + 2))
-                    ;;
-                  github-cli)
-                    set +e
-                    run_on_provider "gh --version" &>/dev/null && echo "  ✅ gh command" || { echo "  ❌ gh command"; FUNC_FAILED=$((FUNC_FAILED + 1)); ALL_PASSED="false"; }
-                    set -e
-                    FUNC_TESTED=$((FUNC_TESTED + 1))
-                    ;;
-                  *)
-                    echo "  No specific functionality tests for $ext"
-                    ;;
-                esac
-              done
-
-              echo ""
-              echo "----------------------------------------"
-              echo "Functionality Tests: $((FUNC_TESTED - FUNC_FAILED)) passed, $FUNC_FAILED failed"
-              echo "----------------------------------------"
-            fi
-          fi
-
-          # ----------------------------------------
-          # PHASE 5: Idempotency Tests
-          # (Only run for integration/full test suites)
-          # ----------------------------------------
-          if [[ "${{ inputs.test-suite }}" == "integration" || "${{ inputs.test-suite }}" == "full" ]]; then
-            print_phase "5" "IDEMPOTENCY TESTS"
-
-            echo "Reinstalling profile '$PROFILE'..."
-            set +e
-            run_on_provider "extension-manager install-profile $PROFILE"
-            REINSTALL_EXIT=$?
-            set -e
-
-            if [[ $REINSTALL_EXIT -eq 0 ]]; then
-              echo "        ✅ Profile reinstalled successfully"
-
-              # Validate all extensions still work
-              echo "Validating extensions after reinstall..."
-              REVALIDATED=0
-              for ext in $EXTENSIONS; do
-                set +e
-                run_on_provider "extension-manager validate $ext" &>/dev/null
-                if [[ $? -eq 0 ]]; then
-                  REVALIDATED=$((REVALIDATED + 1))
-                else
-                  ALL_PASSED="false"
-                fi
-                set -e
-              done
-
-              if [[ $REVALIDATED -eq $EXT_COUNT ]]; then
-                echo "        ✅ All extensions still valid ($REVALIDATED/$EXT_COUNT)"
-              else
-                echo "        ❌ Some extensions failed validation ($REVALIDATED/$EXT_COUNT)"
-                ALL_PASSED="false"
-              fi
-            else
-              echo "        ❌ Profile reinstallation failed"
-              ALL_PASSED="false"
-            fi
-          fi
-
-          # ----------------------------------------
-          # PHASE 6: File System Checks
-          # (Only run for integration/full test suites)
-          # ----------------------------------------
-          if [[ "${{ inputs.test-suite }}" == "integration" || "${{ inputs.test-suite }}" == "full" ]]; then
-            print_phase "6" "FILE SYSTEM CHECKS"
-
-            if [[ -n "$EXTENSIONS" ]]; then
-              for ext in $EXTENSIONS; do
-                case "$ext" in
-                  nodejs|python|golang|rust|ruby)
-                    set +e
-                    run_on_provider "test -f \$HOME/workspace/.mise.toml" &>/dev/null
-                    if [[ $? -eq 0 ]]; then
-                      echo "[$ext] ✅ .mise.toml exists"
-                    else
-                      echo "[$ext] ❌ .mise.toml missing"
-                      ALL_PASSED="false"
-                    fi
-                    set -e
-                    ;;
-                  docker)
-                    set +e
-                    run_on_provider "test -S /var/run/docker.sock" &>/dev/null
-                    if [[ $? -eq 0 ]]; then
-                      echo "[$ext] ✅ docker.sock exists"
-                    else
-                      echo "[$ext] ❌ docker.sock missing"
-                      ALL_PASSED="false"
-                    fi
-                    set -e
-                    ;;
-                  *)
-                    echo "[$ext] No specific file system checks"
-                    ;;
-                esac
-              done
-            fi
-          fi
-
-          # ----------------------------------------
-          # PHASE 7: Environment Checks
-          # (Only run for integration/full test suites)
-          # ----------------------------------------
-          if [[ "${{ inputs.test-suite }}" == "integration" || "${{ inputs.test-suite }}" == "full" ]]; then
-            print_phase "7" "ENVIRONMENT CHECKS"
-
-            if [[ -n "$EXTENSIONS" ]]; then
-              for ext in $EXTENSIONS; do
-                case "$ext" in
-                  nodejs)
-                    set +e
-                    NODE_ENV=$(run_on_provider "echo \$NODE_ENV" 2>/dev/null)
-                    if [[ -n "$NODE_ENV" ]]; then
-                      echo "[$ext] ✅ NODE_ENV is set ($NODE_ENV)"
-                    else
-                      echo "[$ext] ⚠️  NODE_ENV not set"
-                    fi
-                    set -e
-                    ;;
-                  python)
-                    set +e
-                    PYTHONPATH=$(run_on_provider "echo \$PYTHONPATH" 2>/dev/null)
-                    if [[ -n "$PYTHONPATH" ]]; then
-                      echo "[$ext] ✅ PYTHONPATH is set"
-                    else
-                      echo "[$ext] ⚠️  PYTHONPATH not set"
-                    fi
-                    set -e
-                    ;;
-                  golang)
-                    set +e
-                    GOPATH=$(run_on_provider "echo \$GOPATH" 2>/dev/null)
-                    if [[ -n "$GOPATH" ]]; then
-                      echo "[$ext] ✅ GOPATH is set ($GOPATH)"
-                    else
-                      echo "[$ext] ⚠️  GOPATH not set"
-                    fi
-                    set -e
-                    ;;
-                  *)
-                    echo "[$ext] No specific environment checks"
-                    ;;
-                esac
-              done
-            fi
-          fi
-
-          # ----------------------------------------
-          # PHASE 8: Uninstall & Cleanup
-          # (Only run for integration/full test suites)
-          # ----------------------------------------
-          if [[ "${{ inputs.test-suite }}" == "integration" || "${{ inputs.test-suite }}" == "full" ]]; then
-            print_phase "8" "UNINSTALL & CLEANUP"
-
-            if [[ -n "$EXTENSIONS" ]]; then
-              # Reverse the extension list for uninstallation (dependency order)
-              REVERSED_EXTS=$(echo "$EXTENSIONS" | tr ' ' '\n' | tac | tr '\n' ' ')
-
-              echo "Removing extensions in reverse order..."
-              REMOVED=0
-              REMOVE_FAILED=0
-
-              for ext in $REVERSED_EXTS; do
-                echo "[$((REMOVED + REMOVE_FAILED + 1))/$EXT_COUNT] Removing: $ext"
-                set +e
-                run_on_provider "extension-manager remove $ext --force" &>/dev/null
-                if [[ $? -eq 0 ]]; then
-                  echo "        ✅ $ext removed"
-                  REMOVED=$((REMOVED + 1))
-                else
-                  echo "        ❌ $ext removal failed"
-                  REMOVE_FAILED=$((REMOVE_FAILED + 1))
-                  ALL_PASSED="false"
-                fi
-                set -e
-              done
-
-              echo ""
-              echo "Verifying uninstall..."
-              STILL_INSTALLED=0
-              for ext in $EXTENSIONS; do
-                set +e
-                run_on_provider "extension-manager status $ext | grep -q 'Status: Installed'" &>/dev/null
-                if [[ $? -ne 0 ]]; then
-                  STILL_INSTALLED=$((STILL_INSTALLED + 1))
-                fi
-                set -e
-              done
-
-              if [[ $STILL_INSTALLED -eq $EXT_COUNT ]]; then
-                echo "        ✅ All extensions removed ($STILL_INSTALLED/$EXT_COUNT)"
-              else
-                echo "        ❌ Some extensions still installed ($((EXT_COUNT - STILL_INSTALLED))/$EXT_COUNT)"
-                ALL_PASSED="false"
-              fi
-
-              echo ""
-              echo "----------------------------------------"
-              echo "Uninstall Summary: $REMOVED removed, $REMOVE_FAILED failed"
-              echo "----------------------------------------"
-            fi
-          fi
-
-          # ----------------------------------------
-          # PHASE 9: Results Summary
-          # ----------------------------------------
-          print_phase "9" "RESULTS SUMMARY"
-
-          echo "Profile Installation: $(echo "$RESULTS" | jq -r '.profile_install // "n/a"')"
-          echo "Extensions Tested: $EXT_COUNT"
           echo "Test Suite: ${{ inputs.test-suite }}"
-          echo "Overall Status: $([ "$ALL_PASSED" == "true" ] && echo "✅ PASSED" || echo "❌ FAILED")"
           echo ""
+          echo "Results:"
+          echo "  Install: ${{ steps.install-profile.outputs.profile-install-status }}"
+          echo "  Extensions found: ${{ steps.discover.outputs.extension-count }}"
+          echo "  Validated: ${{ steps.validate.outputs.validated-count }}"
+          echo "  Failed: ${{ steps.validate.outputs.failed-count }}"
 
-          echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
-          echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+          if [[ "${{ inputs.test-suite }}" != "smoke" ]]; then
+            echo "  Functionality tests: ${{ steps.functionality.outputs.func-tested }} tested, ${{ steps.functionality.outputs.func-failed }} failed"
+          fi
+
+          if [[ "${{ inputs.test-suite }}" == "full" ]]; then
+            echo "  Idempotency: ${{ steps.idempotency.outcome }}"
+            echo "  Filesystem: ${{ steps.filesystem.outcome }}"
+            echo "  Environment: ${{ steps.environment.outcome }}"
+            echo "  Uninstall: ${{ steps.uninstall.outcome }}"
+          fi
 
           echo "::endgroup::"
-
-          if [[ "$ALL_PASSED" == "false" ]]; then
-            echo "::warning::Some extension tests failed"
-          fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      # ============================================
       # PHASE 4: Run Test Suites (smoke, integration, full)
       # ============================================
       - name: Run smoke tests

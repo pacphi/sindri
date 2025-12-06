@@ -110,78 +110,46 @@ wait_for_vm() {
     return 1
 }
 
-# Test file persistence
-test_persistence() {
-    local app_name="$1"
-    local test_file
-    local test_content
-    test_file="\${WORKSPACE:-\$HOME/workspace}/test-persistence-$(date +%s).txt"
-    test_content="persistence-test-$(date +%s)"
-
-    log_info "Testing persistence..."
-
-    # Create test file
-    run_on_vm "$app_name" "echo '$test_content' > $test_file"
-
-    # Get machine ID
-    local machine_id
-    machine_id=$(flyctl machine list -a "$app_name" --json | jq -r '.[0].id')
-
-    # Restart machine
-    log_info "Restarting machine..."
-    flyctl machine restart "$machine_id" -a "$app_name"
-
-    # Wait for VM to come back
-    wait_for_vm "$app_name"
-
-    # Check if file persists
-    local actual_content
-    actual_content=$(run_on_vm "$app_name" "cat $test_file")
-
-    if [[ "$actual_content" == "$test_content" ]]; then
-        log_success "Persistence test passed"
-        run_on_vm "$app_name" "rm -f $test_file"
-        return 0
-    else
-        log_error "Persistence test failed"
-        return 1
-    fi
-}
-
-# Test extension idempotency
-test_idempotency() {
-    local app_name="$1"
-    local extension="$2"
-
-    log_info "Testing idempotency for $extension..."
-
-    # First installation
-    run_on_vm "$app_name" "extension-manager install $extension"
-    local first_status=$?
-
-    # Second installation (should be idempotent)
-    run_on_vm "$app_name" "extension-manager install $extension"
-    local second_status=$?
-
-    if [[ $first_status -eq 0 && $second_status -eq 0 ]]; then
-        # Validate still works
-        if run_on_vm "$app_name" "extension-manager validate $extension"; then
-            log_success "Idempotency test passed for $extension"
-            return 0
-        fi
-    fi
-
-    log_error "Idempotency test failed for $extension"
-    return 1
-}
+# Note: test_persistence and test_idempotency have been moved to standalone scripts:
+# - .github/scripts/tests/test-persistence.sh
+# - .github/scripts/tests/test-extension-idempotency.sh
+# These are now called directly rather than as functions
 
 # Compare versions
 version_gt() {
     test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
 }
 
+# =============================================================================
+# Additional Test Helpers (for modular phase scripts)
+# =============================================================================
+
+# Print phase header
+print_phase() {
+    local phase_num="$1"
+    local phase_name="$2"
+    echo ""
+    echo "========================================"
+    echo "  PHASE ${phase_num}: ${phase_name}"
+    echo "========================================"
+    echo ""
+}
+
+# Log structured result (for output parsing)
+log_result() {
+    local component="$1"
+    local status="$2"
+    local message="${3:-}"
+
+    if [[ -n "$message" ]]; then
+        echo "RESULT:${component}:${status}:${message}"
+    else
+        echo "RESULT:${component}:${status}"
+    fi
+}
+
 # Export functions for use in other scripts
 export -f log_info log_success log_warning log_error
 export -f retry_with_backoff check_command_exists run_on_vm
-export -f is_extension_installed wait_for_vm test_persistence
-export -f test_idempotency version_gt
+export -f is_extension_installed wait_for_vm version_gt
+export -f print_phase log_result
