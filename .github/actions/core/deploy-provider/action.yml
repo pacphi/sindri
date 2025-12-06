@@ -158,8 +158,8 @@ runs:
           fly)
             APP_NAME="sindri-ci-${RUN_ID}-${RUN_NUMBER}"
 
-            # Deploy using fly adapter (CI mode)
-            ./deploy/adapters/fly-adapter.sh deploy --ci-mode --config "$CONFIG"
+            # Deploy using fly adapter (CI mode, config as positional arg)
+            ./deploy/adapters/fly-adapter.sh deploy --ci-mode "$CONFIG"
 
             TARGET_ID="$APP_NAME"
             echo "✓ Deployed to Fly.io: $TARGET_ID"
@@ -169,8 +169,8 @@ runs:
             BACKEND="${PROVIDER#devpod-}"
             WORKSPACE_ID="sindri-${RUN_ID}"
 
-            # Deploy using devpod adapter
-            ./deploy/adapters/devpod-adapter.sh deploy --provider "$BACKEND" --config "$CONFIG"
+            # Deploy using devpod adapter (config as positional arg)
+            ./deploy/adapters/devpod-adapter.sh deploy "$CONFIG"
 
             TARGET_ID="$WORKSPACE_ID"
             echo "✓ Deployed to DevPod ($BACKEND): $TARGET_ID"
