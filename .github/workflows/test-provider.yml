@@ -240,11 +240,18 @@ jobs:
         if: inputs.provider == 'docker'
         run: |
           CONTAINER="${{ steps.config-path.outputs.container-name }}"
-          VOLUME="${CONTAINER}_home"
 
           echo "Pre-cleanup: Ensuring clean slate for Docker test"
+          echo "  Container: $CONTAINER"
+
+          # Remove container if exists
           docker rm -f "$CONTAINER" 2>/dev/null || true
-          docker volume rm "$VOLUME" 2>/dev/null || true
+
+          # Remove volumes matching container name pattern
+          # Docker Compose prefixes volumes with project name (e.g., sindri_container_home)
+          # Use filter with pattern matching to catch all variants
+          echo "  Removing volumes matching: *${CONTAINER}_home"
+          docker volume ls -q --filter "name=${CONTAINER}_home" | xargs -r docker volume rm 2>/dev/null || true
 
           # Also clean up any docker-compose artifacts
           if [[ -f docker-compose.yml ]]; then
@@ -722,14 +729,19 @@ jobs:
       - name: Cleanup Docker resources
         if: always() && inputs.skip-cleanup != true && inputs.provider == 'docker'
         run: |
+          CONTAINER="${{ steps.config-path.outputs.container-name }}"
+
           # Remove container and volumes (use explicit compose file if exists)
           if [[ -f docker-compose.yml ]]; then
             docker compose -f docker-compose.yml down -v 2>/dev/null || true
           fi
+
           # Force remove container as fallback
-          docker rm -f ${{ steps.config-path.outputs.container-name }} 2>/dev/null || true
+          docker rm -f "$CONTAINER" 2>/dev/null || true
+
           # Remove any orphaned volumes matching this deployment
-          docker volume rm ${{ steps.config-path.outputs.container-name }}_home 2>/dev/null || true
+          # Docker Compose prefixes volumes with project name, so use pattern matching
+          docker volume ls -q --filter "name=${CONTAINER}_home" | xargs -r docker volume rm 2>/dev/null || true
 
       - name: Cleanup Fly.io resources
         if: always() && inputs.skip-cleanup != true && inputs.provider == 'fly'
