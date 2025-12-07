@@ -11,6 +11,7 @@ metadata:
 
 requirements:
   domains:
+    - sdkman.io
     - get.sdkman.io
     - api.sdkman.io
     - github.com

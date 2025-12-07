@@ -17,6 +17,7 @@ requirements:
   domains:
     - ollama.com
     - github.com
+    - factory.ai
     - app.factory.ai
     - api.openai.com
     - generativelanguage.googleapis.com

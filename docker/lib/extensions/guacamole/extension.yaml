@@ -10,6 +10,7 @@ metadata:
 
 requirements:
   domains:
+    - apache.org
     - downloads.apache.org
     - archive.apache.org
     - archive.ubuntu.com

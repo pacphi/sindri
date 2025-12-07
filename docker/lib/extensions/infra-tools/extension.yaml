@@ -14,9 +14,11 @@ requirements:
     - apt.releases.hashicorp.com
     - dl.k8s.io
     - get.helm.sh
+    - githubusercontent.com
     - raw.githubusercontent.com
     - github.com
     - carvel.dev
+    - pulumi.com
     - www.pulumi.com
   diskSpace: 2500
   memory: 256

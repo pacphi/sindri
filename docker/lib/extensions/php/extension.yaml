@@ -9,9 +9,11 @@ metadata:
 
 requirements:
   domains:
+    - github.io
     - composer.github.io
     - getcomposer.org
     - ppa.launchpadcontent.net
+    - symfony.com
     - get.symfony.com
   diskSpace: 1000
   memory: 256

@@ -32,13 +32,13 @@ profiles:
     extensions:
       - agent-manager
       - agentic-qe
+      - golang
       - ai-toolkit
       - claude-code-mux
       - claudeup
       - claudish
       - claude-marketplace
       - cloud-tools
-      - golang
       - infra-tools
       - jvm
       - openskills

@@ -246,8 +246,8 @@ for ext_dir in "$EXTENSIONS_DIR"/*/; do
     [[ -f "$ext_dir/extension.yaml" ]] || continue
     ext_name=$(basename "$ext_dir")
 
-    # Get declared domains
-    declared=$(yq -r '.requirements.domains[]? // empty' "$ext_dir/extension.yaml" 2>/dev/null | sort -u || true)
+    # Get declared domains (use yq eval for better compatibility)
+    declared=$(yq eval '.requirements.domains[]' "$ext_dir/extension.yaml" 2>/dev/null | sort -u || true)
 
     # Get referenced domains from scripts/configs
     referenced=$(extract_referenced_domains "$ext_dir")

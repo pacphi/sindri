@@ -9,6 +9,7 @@ metadata:
 
 requirements:
   domains:
+    - nuget.org
     - dist.nuget.org
     - archive.ubuntu.com
     - ppa.launchpadcontent.net

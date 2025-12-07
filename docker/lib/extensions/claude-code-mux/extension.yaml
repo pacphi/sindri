@@ -10,6 +10,7 @@ metadata:
 
 requirements:
   domains:
+    - github.com
     - api.anthropic.com
     - api.openai.com
     - generativelanguage.googleapis.com

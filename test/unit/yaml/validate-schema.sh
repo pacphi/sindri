@@ -211,13 +211,8 @@ run_all_validations() {
     "example(s)"; then
     exit_code=1
   fi
-  # Also check root examples
-  if ! validate_multiple_files \
-    "examples/*.sindri.yaml" \
-    "$SCHEMAS_DIR/sindri.schema.json" \
-    "example(s)"; then
-    exit_code=1
-  fi
+  # Note: All sindri.yaml examples are in subdirectories (docker/, fly/, etc.)
+  # so examples/*.sindri.yaml pattern is not needed
   echo ""
 
   # 3. profiles.yaml

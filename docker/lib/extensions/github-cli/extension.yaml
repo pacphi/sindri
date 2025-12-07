@@ -9,6 +9,9 @@ metadata:
   dependencies: []
 
 requirements:
+  domains:
+    - github.com
+    - api.github.com
   diskSpace: 50
   memory: 0
   installTime: 30
