@@ -102,18 +102,18 @@ The new YAML validation system provides comprehensive checks:
 
 **Individual YAML Tests:**
 
-| Script                         | Purpose                                       |
-| ------------------------------ | --------------------------------------------- |
-| `test-extension-schemas.sh`    | Validate extension.yaml files against schema  |
-| `test-profile-schema.sh`       | Validate profiles.yaml                        |
-| `test-registry-schema.sh`      | Validate registry.yaml                        |
-| `test-categories-schema.sh`    | Validate categories.yaml                      |
-| `test-templates-schema.sh`     | Validate project-templates.yaml               |
-| `test-vm-sizes-schema.sh`      | Validate vm-sizes.yaml                        |
-| `test-sindri-examples.sh`      | Validate all sindri.yaml examples             |
-| `test-cross-references.sh`     | Validate cross-file references                |
-| `test-domain-requirements.sh`  | Validate extension domain requirements        |
-| `test-yaml-lint.sh`            | Run yamllint on all YAML files                |
+| Script                        | Purpose                                      |
+| ----------------------------- | -------------------------------------------- |
+| `test-extension-schemas.sh`   | Validate extension.yaml files against schema |
+| `test-profile-schema.sh`      | Validate profiles.yaml                       |
+| `test-registry-schema.sh`     | Validate registry.yaml                       |
+| `test-categories-schema.sh`   | Validate categories.yaml                     |
+| `test-templates-schema.sh`    | Validate project-templates.yaml              |
+| `test-vm-sizes-schema.sh`     | Validate vm-sizes.yaml                       |
+| `test-sindri-examples.sh`     | Validate all sindri.yaml examples            |
+| `test-cross-references.sh`    | Validate cross-file references               |
+| `test-domain-requirements.sh` | Validate extension domain requirements       |
+| `test-yaml-lint.sh`           | Run yamllint on all YAML files               |
 
 **Quality Checks:**
 
@@ -139,12 +139,12 @@ The new YAML validation system provides comprehensive checks:
 Extensions declare `requirements.domains` to list external domains accessed during
 installation. The domain validation test (`test-domain-requirements.sh`) checks:
 
-| Check       | Behavior      | Description                                  |
-| ----------- | ------------- | -------------------------------------------- |
-| Format      | Hard fail     | Valid hostname syntax (RFC 1123)             |
-| Duplicates  | Hard fail     | No duplicate domain entries                  |
-| DNS         | Warning only  | Domains resolve (optional, off by default)   |
-| Undeclared  | Warning only  | Domains in scripts not declared (heuristic)  |
+| Check      | Behavior     | Description                                 |
+| ---------- | ------------ | ------------------------------------------- |
+| Format     | Hard fail    | Valid hostname syntax (RFC 1123)            |
+| Duplicates | Hard fail    | No duplicate domain entries                 |
+| DNS        | Warning only | Domains resolve (optional, off by default)  |
+| Undeclared | Warning only | Domains in scripts not declared (heuristic) |
 
 **Running locally:**
 

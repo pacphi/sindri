@@ -189,9 +189,9 @@ This enables pre-flight DNS checks and helps users understand network requiremen
 ```yaml
 requirements:
   domains:
-    - registry.npmjs.org   # npm package registry
-    - nodejs.org           # Node.js binaries
-    - github.com           # GitHub releases
+    - registry.npmjs.org # npm package registry
+    - nodejs.org # Node.js binaries
+    - github.com # GitHub releases
 ```
 
 ### Guidelines

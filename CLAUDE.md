@@ -45,37 +45,63 @@ pnpm build:latest  # Build as sindri:latest
 
 ```bash
 # Configuration
-./cli/sindri config init       # Create sindri.yaml
-./cli/sindri config validate   # Validate configuration
+./cli/sindri config init                # Create sindri.yaml
+./cli/sindri config validate            # Validate configuration against schema
 
-# Deployment
-./cli/sindri deploy                            # Deploy using provider in sindri.yaml
-./cli/sindri deploy --provider docker  # Deploy to Docker Compose
-./cli/sindri deploy --provider fly             # Deploy to Fly.io
-./cli/sindri deploy --provider devpod          # Deploy as DevContainer
+# Deployment Lifecycle
+./cli/sindri deploy                     # Deploy using provider in sindri.yaml
+./cli/sindri deploy --provider docker   # Deploy to Docker Compose
+./cli/sindri deploy --provider fly      # Deploy to Fly.io
+./cli/sindri deploy --provider devpod   # Deploy as DevContainer
+./cli/sindri deploy --rebuild           # Force rebuild of Docker image
+./cli/sindri plan                       # Show deployment plan
+./cli/sindri status                     # Show deployment status
+./cli/sindri connect                    # Connect to deployed instance
+./cli/sindri destroy                    # Destroy deployment
+./cli/sindri destroy --force            # Force destroy without confirmation
+./cli/sindri test --suite smoke         # Run test suite on deployed instance
+
+# Profiles
+./cli/sindri profiles list              # List available profiles
+./cli/sindri profiles show <name>       # Show profile details
+
+# Local Kubernetes (kind/k3d)
+./cli/sindri k8s create --provider kind # Create local K8s cluster
+./cli/sindri k8s config                 # Show kubeconfig for DevPod
+./cli/sindri k8s list                   # List local clusters
+./cli/sindri k8s status                 # Show cluster status
+./cli/sindri k8s destroy --force        # Destroy local cluster
 
 # Project Management
-./cli/new-project <name> [template]    # Create new project from template
-./cli/clone-project <url> [path]       # Clone and setup project
+./cli/new-project <name> [template]     # Create new project from template
+./cli/clone-project <url> [path]        # Clone and setup project
 
 # Secrets Management
-./cli/sindri secrets list              # List configured secrets
-./cli/sindri secrets validate          # Validate secrets configuration
+./cli/sindri secrets list               # List configured secrets
+./cli/sindri secrets validate           # Validate secrets configuration
+./cli/sindri secrets test-vault         # Test vault connectivity
+./cli/sindri secrets encode-file        # Encode file as secret
 
 # Extension Management
-./cli/extension-manager list                # List all extensions
-./cli/extension-manager list-profiles       # List extension profiles
-./cli/extension-manager list-categories     # List extension categories
-./cli/extension-manager info nodejs         # Show extension details
-./cli/extension-manager search <term>       # Search extensions
-./cli/extension-manager install nodejs      # Install single extension
-./cli/extension-manager install-profile fullstack  # Install profile
-./cli/extension-manager validate nodejs     # Validate extension
-./cli/extension-manager validate-all        # Validate all extensions
-./cli/extension-manager status nodejs       # Check extension status
-./cli/extension-manager resolve nodejs      # Show dependency resolution
-./cli/extension-manager bom                 # Show bill of materials
-./cli/extension-manager bom-regenerate      # Regenerate all BOMs
+./cli/extension-manager list                 # List all extensions
+./cli/extension-manager list --category lang # Filter by category
+./cli/extension-manager list-profiles        # List extension profiles
+./cli/extension-manager list-categories      # List extension categories
+./cli/extension-manager info nodejs          # Show extension details
+./cli/extension-manager search <term>        # Search extensions
+./cli/extension-manager install nodejs       # Install single extension
+./cli/extension-manager install-profile full # Install profile
+./cli/extension-manager install-all          # Install all active extensions
+./cli/extension-manager remove nodejs        # Remove extension
+./cli/extension-manager validate nodejs      # Validate extension
+./cli/extension-manager validate-all         # Validate all extensions
+./cli/extension-manager validate-domains     # Validate domain requirements
+./cli/extension-manager status nodejs        # Check extension status
+./cli/extension-manager resolve nodejs       # Show dependency resolution
+./cli/extension-manager bom                  # Show bill of materials
+./cli/extension-manager bom --format json    # Export BOM as JSON
+./cli/extension-manager bom --format cyclonedx # Export as CycloneDX SBOM
+./cli/extension-manager bom-regenerate       # Regenerate all BOMs
 ```
 
 ## Architecture
@@ -127,7 +153,11 @@ sindri/
 │   └── adapters/                  # Provider-specific deployment logic
 │       ├── docker-adapter.sh      # Docker Compose
 │       ├── fly-adapter.sh         # Fly.io
-│       └── devpod-adapter.sh      # DevContainer
+│       ├── devpod-adapter.sh      # DevContainer
+│       └── k8s/                   # Local Kubernetes adapters
+│           ├── k8s-adapter.sh     # Base K8s adapter
+│           ├── kind-adapter.sh    # Kind (Kubernetes in Docker)
+│           └── k3d-adapter.sh     # K3d (K3s in Docker)
 │
 └── examples/                      # Example sindri.yaml configurations
 ```
@@ -307,7 +337,13 @@ sindri destroy → <adapter>.sh destroy
 | `fly`    | `fly-adapter.sh`    | `fly.toml`           | `flyctl deploy`        |
 | `devpod` | `devpod-adapter.sh` | `devcontainer.json`  | `devpod up`            |
 
-**Note:** Kubernetes deployment is supported via the DevPod provider with `type: kubernetes`. There is no native kubernetes-adapter; use DevPod for K8s deployments.
+**Kubernetes Deployment Options:**
+
+1. **DevPod with `type: kubernetes`** - Recommended for remote K8s clusters (EKS, GKE, AKS)
+2. **Local K8s adapters** (`deploy/adapters/k8s/`) - For local development:
+   - `kind-adapter.sh` - Kubernetes in Docker
+   - `k3d-adapter.sh` - K3s in Docker
+   - `k8s-adapter.sh` - Base adapter for generic K8s
 
 **Fly.io Adapter CI Mode:**
 
@@ -412,7 +448,7 @@ profiles:
 
 ### GitHub Actions
 
-8 workflows in `.github/workflows/`:
+9 workflows in `.github/workflows/`:
 
 - `ci.yml` - Main CI orchestrator with unified provider testing
 - `validate-yaml.yml` - Comprehensive YAML validation with schema checks
@@ -422,6 +458,7 @@ profiles:
 - `teardown-sindri.yml` - Reusable teardown workflow
 - `manual-deploy.yml` - Manual deployment trigger
 - `release.yml` - Automated release with changelog generation (see [docs/RELEASE.md](docs/RELEASE.md))
+- `cleanup-workflow-runs.yml` - Scheduled cleanup of old workflow runs
 
 **Simplified Testing Architecture**: All tests run INSIDE the container via `/docker/scripts/sindri-test.sh`.
 Each provider (Docker, Fly.io, DevPod) gets tested with three levels: quick (CLI), extension (single extension lifecycle),

@@ -10,13 +10,15 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# Source common setup functions
+# shellcheck source=common-setup.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common-setup.sh"
 
-# Default values
+# Initialize common variables
+init_common_vars "${BASH_SOURCE[0]}"
+
+# Provider-specific defaults
 CONTAINER_NAME=""
-SINDRI_CONFIG=""
-OUTPUT_DIR="."
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -34,52 +36,36 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --help)
-            head -12 "$0" | tail -10
-            exit 0
+            show_help "$0"
             ;;
         *)
-            echo "Unknown option: $1" >&2
-            exit 1
+            unknown_option "$1"
             ;;
     esac
 done
 
 # Validate required inputs
-if [[ -z "$CONTAINER_NAME" ]]; then
-    echo "Error: --container-name is required" >&2
-    exit 1
-fi
+validate_required "container-name" "$CONTAINER_NAME"
 
 # Ensure output directory exists
-mkdir -p "$OUTPUT_DIR"
+ensure_output_dir
 
 # Check if docker-compose.yml already exists
-if [[ -f "$OUTPUT_DIR/docker-compose.yml" ]]; then
-    echo "source=existing"
-    echo "Using existing docker-compose.yml"
-    exit 0
-fi
+check_existing_config "$OUTPUT_DIR/docker-compose.yml"
 
 # If sindri-config provided and exists, use the adapter
-if [[ -n "$SINDRI_CONFIG" ]] && [[ -f "$SINDRI_CONFIG" ]]; then
-    echo "source=adapter"
-    echo "Generating docker-compose.yml using adapter with config: $SINDRI_CONFIG"
-
-    "$REPO_ROOT/deploy/adapters/docker-adapter.sh" \
+if has_sindri_config; then
+    run_adapter_with_config "docker-adapter.sh" deploy \
         --config-only \
         --output-dir "$OUTPUT_DIR" \
-        --container-name "$CONTAINER_NAME" \
-        "$SINDRI_CONFIG"
-
+        --container-name "$CONTAINER_NAME"
     exit 0
 fi
 
 # Fallback: Use the docker-adapter with a minimal inline config
-echo "source=fallback"
-echo "Generating minimal docker-compose.yml (no sindri-config provided)"
+TEMP_CONFIG=$(create_temp_config)
 
-TEMP_CONFIG=$(mktemp)
-cat > "$TEMP_CONFIG" << YAML
+write_minimal_config "$TEMP_CONFIG" << YAML
 version: "1.0"
 name: ${CONTAINER_NAME}
 deployment:
@@ -91,14 +77,11 @@ extensions:
   profile: minimal
 YAML
 
-# Use the adapter with the temporary config
-"$REPO_ROOT/deploy/adapters/docker-adapter.sh" \
+run_adapter_with_fallback "docker-adapter.sh" "$TEMP_CONFIG" deploy \
     --config-only \
     --output-dir "$OUTPUT_DIR" \
-    --container-name "$CONTAINER_NAME" \
-    "$TEMP_CONFIG"
+    --container-name "$CONTAINER_NAME"
 
-# Cleanup
-rm -f "$TEMP_CONFIG"
+cleanup_temp_config "$TEMP_CONFIG"
 
-echo "Generated docker-compose.yml successfully"
+print_generated_success "docker-compose.yml"
