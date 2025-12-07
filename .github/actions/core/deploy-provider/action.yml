@@ -113,6 +113,56 @@ runs:
           echo "✓ Image loaded: ${{ inputs.image }}"
         fi
 
+    - name: Install flyctl CLI
+      if: inputs.provider == 'fly'
+      shell: bash
+      run: |
+        echo "Installing flyctl CLI..."
+        curl -L https://fly.io/install.sh | sh
+        echo "$HOME/.fly/bin" >> $GITHUB_PATH
+        export PATH="$HOME/.fly/bin:$PATH"
+        flyctl version
+        echo "✓ flyctl installed"
+
+    - name: Setup kind cluster for devpod-k8s
+      if: inputs.provider == 'devpod-k8s'
+      shell: bash
+      run: |
+        echo "Setting up kind cluster for kubernetes testing..."
+
+        # Install kind if not present
+        if ! command -v kind &>/dev/null; then
+          echo "Installing kind..."
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+        fi
+
+        # Create kind cluster
+        echo "Creating kind cluster: sindri-ci"
+        kind create cluster --name sindri-ci --wait 60s
+
+        # Load the image into kind
+        echo "Loading image into kind cluster..."
+        kind load docker-image "${{ inputs.image }}" --name sindri-ci
+
+        # Also tag and load as sindri:latest
+        docker tag "${{ inputs.image }}" sindri:latest
+        kind load docker-image sindri:latest --name sindri-ci
+
+        echo "✓ Kind cluster ready with image loaded"
+
+    - name: Install DevPod CLI
+      if: startsWith(inputs.provider, 'devpod-')
+      shell: bash
+      run: |
+        echo "Installing DevPod CLI..."
+        curl -L -o devpod "https://github.com/loft-sh/devpod/releases/latest/download/devpod-linux-amd64"
+        chmod +x devpod
+        sudo mv devpod /usr/local/bin/devpod
+        devpod version
+        echo "✓ DevPod installed"
+
     - name: Deploy
       id: deploy
       shell: bash
@@ -169,8 +219,15 @@ runs:
             BACKEND="${PROVIDER#devpod-}"
             WORKSPACE_ID="sindri-${RUN_ID}"
 
+            # Build extra flags for specific providers
+            EXTRA_FLAGS=""
+            if [[ "$PROVIDER" == "devpod-k8s" ]]; then
+              # For k8s, we already loaded the image into kind cluster in setup step
+              EXTRA_FLAGS="--skip-build"
+            fi
+
             # Deploy using devpod adapter with --ci-mode (forces autoInstall=false)
-            ./deploy/adapters/devpod-adapter.sh deploy --ci-mode "$CONFIG"
+            ./deploy/adapters/devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS "$CONFIG"
 
             TARGET_ID="$WORKSPACE_ID"
             echo "✓ Deployed to DevPod ($BACKEND): $TARGET_ID"

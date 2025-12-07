@@ -57,11 +57,24 @@ runs:
 
           devpod-*)
             # Delete DevPod workspace
-            if devpod list 2>/dev/null | grep -q "$TARGET_ID"; then
-              devpod delete "$TARGET_ID" --force 2>/dev/null || true
-              echo "✓ Deleted DevPod workspace: $TARGET_ID"
-            else
-              echo "::notice::DevPod workspace $TARGET_ID not found"
+            if command -v devpod &>/dev/null; then
+              if devpod list 2>/dev/null | grep -q "$TARGET_ID"; then
+                devpod delete "$TARGET_ID" --force 2>/dev/null || true
+                echo "✓ Deleted DevPod workspace: $TARGET_ID"
+              else
+                echo "::notice::DevPod workspace $TARGET_ID not found"
+              fi
+            fi
+
+            # For devpod-k8s, also cleanup the kind cluster if it exists
+            if [[ "$PROVIDER" == "devpod-k8s" ]]; then
+              if command -v kind &>/dev/null; then
+                if kind get clusters 2>/dev/null | grep -q "^sindri-ci$"; then
+                  echo "Deleting kind cluster: sindri-ci"
+                  kind delete cluster --name sindri-ci 2>/dev/null || true
+                  echo "✓ Deleted kind cluster: sindri-ci"
+                fi
+              fi
             fi
             ;;
 
