@@ -68,10 +68,10 @@ jobs:
             if [[ -n "$RUN_ID" ]]; then
               if gh api repos/${{ github.repository }}/actions/runs/$RUN_ID -X DELETE 2>/dev/null; then
                 echo "Deleted run $RUN_ID"
-                ((DELETED++))
+                DELETED=$((DELETED + 1))
               else
                 echo "Failed to delete run $RUN_ID"
-                ((FAILED++))
+                FAILED=$((FAILED + 1))
               fi
             fi
           done < runs-to-delete.txt
