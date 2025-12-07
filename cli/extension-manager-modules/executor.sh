@@ -202,8 +202,13 @@ install_via_mise() {
         echo "     This step may take several minutes for large tools like Node.js or Python"
     fi
 
+    # Scope mise install to THIS extension's config only (not all conf.d files)
+    # This prevents failures in unrelated extensions from breaking this install
+    local scoped_config="$mise_conf_dir/${ext_name}.toml"
+
     # Run mise install with timeout and retry logic
-    if ! timeout 300 mise install 2>&1 | while IFS= read -r line; do
+    # Use MISE_CONFIG_FILE to scope to this extension only
+    if ! MISE_CONFIG_FILE="$scoped_config" timeout 300 mise install 2>&1 | while IFS= read -r line; do
         # Indent mise output for better readability
         if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
             echo "     $line"
@@ -213,23 +218,21 @@ install_via_mise() {
     done; then
         print_warning "mise install failed or timed out, retrying with exponential backoff..."
         # Use existing retry_command from common.sh (3 attempts, 2s initial delay)
-        if ! retry_command 3 2 timeout 300 mise install; then
+        if ! retry_command 3 2 MISE_CONFIG_FILE="$scoped_config" timeout 300 mise install; then
             print_error "mise install failed after 3 attempts (total: 15min max)"
             return 1
         fi
     fi
 
-    # Progress indicator: Step 4 - Reshim (if needed)
-    local reshim
-    reshim=$(load_yaml "$ext_yaml" '.install.mise.reshimAfterInstall' 2>/dev/null || echo "true")
-
-    if [[ "$reshim" == "true" ]]; then
-        if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
-            echo "  [4/4] Running mise reshim to update shims..."
-        fi
-        # mise reshim can fail if there's nothing to reshim - that's OK
-        mise reshim 2>/dev/null || true
+    # Progress indicator: Step 4 - Reshim (always run to ensure shims exist)
+    if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
+        echo "  [4/4] Running mise reshim to update shims..."
     fi
+    # Always reshim to ensure installed tools have shims created
+    # This fixes issues where tools install but shims don't exist
+    mise reshim 2>/dev/null || true
+    # Clear bash's command hash table so new commands are found
+    hash -r 2>/dev/null || true
 
     print_success "$ext_name installation via mise completed successfully"
 

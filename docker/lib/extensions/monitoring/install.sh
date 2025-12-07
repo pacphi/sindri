@@ -59,4 +59,10 @@ else
   print_warning "npm not found - skipping claude-usage-cli"
 fi
 
+# Refresh mise shims for all installed tools
+if command_exists mise; then
+    mise reshim 2>/dev/null || true
+fi
+hash -r 2>/dev/null || true
+
 print_success "Monitoring tools installation complete"

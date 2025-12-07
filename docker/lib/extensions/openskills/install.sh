@@ -46,14 +46,19 @@ print_status "Installing openskills via npm..."
 if npm install -g openskills; then
     print_success "OpenSkills installed successfully"
 
+    # Refresh mise shims so new command is discoverable
+    if command -v mise >/dev/null 2>&1; then
+        mise reshim 2>/dev/null || true
+    fi
+    hash -r 2>/dev/null || true
+
     # Verify installation
     if command -v openskills >/dev/null 2>&1; then
         version=$(openskills --version 2>/dev/null || echo "version check failed")
         print_success "OpenSkills CLI installed: $version"
     else
         print_warning "OpenSkills installed but command not found in PATH"
-        print_status "You may need to reload your shell"
-        exit 1
+        print_status "You may need to reload your shell or run: mise reshim"
     fi
 else
     print_error "Failed to install OpenSkills"

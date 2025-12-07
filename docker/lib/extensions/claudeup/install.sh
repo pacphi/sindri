@@ -43,14 +43,19 @@ print_status "Installing claudeup via npm..."
 if npm install -g claudeup; then
     print_success "Claudeup installed successfully"
 
+    # Refresh mise shims so new command is discoverable
+    if command -v mise >/dev/null 2>&1; then
+        mise reshim 2>/dev/null || true
+    fi
+    hash -r 2>/dev/null || true
+
     # Verify installation
     if command -v claudeup >/dev/null 2>&1; then
         version=$(claudeup --version 2>/dev/null || echo "version check failed")
         print_success "Claudeup TUI installed: $version"
     else
         print_warning "Claudeup installed but command not found in PATH"
-        print_status "You may need to reload your shell"
-        exit 1
+        print_status "You may need to reload your shell or run: mise reshim"
     fi
 else
     print_error "Failed to install Claudeup"

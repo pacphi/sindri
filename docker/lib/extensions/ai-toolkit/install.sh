@@ -216,4 +216,10 @@ fi
 WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
 mkdir -p "${WORKSPACE}/extensions/ai-tools"/{ollama-models,fabric-patterns,projects}
 
+# Refresh mise shims for all installed tools
+if command_exists mise; then
+    mise reshim 2>/dev/null || true
+fi
+hash -r 2>/dev/null || true
+
 print_success "AI toolkit installation complete"
