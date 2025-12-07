@@ -88,6 +88,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Validate profile for CI runner
+        if: inputs.provider == 'docker'
+        run: |
+          PROFILE="${{ inputs.extension-profile }}"
+          TEST_LEVEL="${{ inputs.test-level }}"
+
+          # Profiles that are safe for GitHub Actions runners (~7GB RAM)
+          # Other profiles require too much memory for standard CI runners
+          CI_SAFE_PROFILES="minimal data-science mobile"
+
+          # Only validate for profile-level tests (extension tests use fullstack config)
+          if [[ "$TEST_LEVEL" == "profile" ]]; then
+            if ! echo "$CI_SAFE_PROFILES" | grep -qw "$PROFILE"; then
+              echo "::error title=Profile Too Heavy::Profile '$PROFILE' requires more memory than GitHub Actions runners provide (~7GB)"
+              echo ""
+              echo "The following profiles are CI-safe for Docker provider:"
+              echo "  - minimal (2GB)"
+              echo "  - data-science (extensions only need ~384MB)"
+              echo "  - mobile (extensions only need ~256MB)"
+              echo ""
+              echo "Heavy profiles should be tested on:"
+              echo "  - Fly.io (cloud VMs with configurable memory)"
+              echo "  - DevPod with cloud providers (AWS, GCP, Azure)"
+              echo "  - Self-hosted runners with more resources"
+              exit 1
+            fi
+            echo "✓ Profile '$PROFILE' is CI-safe for Docker provider"
+          fi
+
       - name: Setup credentials
         run: |
           chmod +x .github/scripts/providers/setup-credentials.sh
@@ -181,6 +210,33 @@ jobs:
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Collect diagnostics on failure
+        if: failure() && inputs.provider == 'docker'
+        run: |
+          TARGET_ID="${{ steps.deploy.outputs.target-id }}"
+          echo "=== Container resource stats ==="
+          docker stats "$TARGET_ID" --no-stream 2>/dev/null || echo "Container not running"
+
+          echo ""
+          echo "=== Container state ==="
+          docker inspect "$TARGET_ID" --format='Status: {{.State.Status}} | OOMKilled: {{.State.OOMKilled}} | ExitCode: {{.State.ExitCode}}' 2>/dev/null || echo "Container not found"
+
+          echo ""
+          echo "=== Container logs (last 100 lines) ==="
+          docker logs --tail 100 "$TARGET_ID" 2>&1 || echo "No logs available"
+
+          echo ""
+          echo "=== Extension manager logs ==="
+          docker exec "$TARGET_ID" cat /alt/home/developer/workspace/.system/logs/*.log 2>/dev/null || echo "No extension logs"
+
+          echo ""
+          echo "=== Host memory info ==="
+          free -h
+
+          echo ""
+          echo "=== dmesg OOM messages ==="
+          dmesg 2>/dev/null | grep -i "oom\|killed" | tail -20 || echo "No OOM messages (or no access)"
 
       - name: Cleanup
         if: always() && inputs.skip-cleanup != true
