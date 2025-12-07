@@ -24,8 +24,11 @@ fi
 
 cd "$PROJECT_ROOT"
 
-# Find all YAML files, excluding common directories
-mapfile -t YAML_FILES < <(find . -type f \( -name "*.yaml" -o -name "*.yml" \) \
+# Find all YAML files, excluding common directories (bash 3.2 compatible)
+YAML_FILES=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && YAML_FILES+=("$line")
+done < <(find . -type f \( -name "*.yaml" -o -name "*.yml" \) \
   ! -path "./node_modules/*" \
   ! -path "./.git/*" \
   ! -path "./vendor/*" \

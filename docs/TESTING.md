@@ -104,13 +104,7 @@ The new YAML validation system provides comprehensive checks:
 
 | Script                        | Purpose                                      |
 | ----------------------------- | -------------------------------------------- |
-| `test-extension-schemas.sh`   | Validate extension.yaml files against schema |
-| `test-profile-schema.sh`      | Validate profiles.yaml                       |
-| `test-registry-schema.sh`     | Validate registry.yaml                       |
-| `test-categories-schema.sh`   | Validate categories.yaml                     |
-| `test-templates-schema.sh`    | Validate project-templates.yaml              |
-| `test-vm-sizes-schema.sh`     | Validate vm-sizes.yaml                       |
-| `test-sindri-examples.sh`     | Validate all sindri.yaml examples            |
+| `validate-schema.sh`          | Unified schema validation (all YAML schemas) |
 | `test-cross-references.sh`    | Validate cross-file references               |
 | `test-domain-requirements.sh` | Validate extension domain requirements       |
 | `test-yaml-lint.sh`           | Run yamllint on all YAML files               |
@@ -410,7 +404,7 @@ pnpm test:unit
 test/unit/
 ├── yaml/                          # YAML validation tests
 │   ├── run-all-yaml-tests.sh      # Master test runner
-│   ├── test-extension-schemas.sh
+│   ├── validate-schema.sh         # Unified schema validation
 │   ├── test-cross-references.sh
 │   └── ...
 ├── extension-manager/

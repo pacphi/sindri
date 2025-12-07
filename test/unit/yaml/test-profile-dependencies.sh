@@ -28,8 +28,11 @@ fi
 for profile in $(yq '.profiles | keys | .[]' "$PROFILES_FILE" 2>/dev/null); do
   echo "Checking profile: $profile"
 
-  # Get list of extensions in order
-  mapfile -t extensions < <(yq ".profiles.$profile.extensions[]" "$PROFILES_FILE" 2>/dev/null)
+  # Get list of extensions in order (bash 3.2 compatible - no mapfile)
+  extensions=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && extensions+=("$line")
+  done < <(yq ".profiles.$profile.extensions[]" "$PROFILES_FILE" 2>/dev/null)
 
   # For each extension, check that its dependencies come before it
   for i in "${!extensions[@]}"; do
@@ -40,10 +43,14 @@ for profile in $(yq '.profiles | keys | .[]' "$PROFILES_FILE" 2>/dev/null); do
       continue
     fi
 
-    # Get dependencies for this extension
-    mapfile -t deps < <(yq '.metadata.dependencies // [] | .[]' "$ext_file" 2>/dev/null || true)
+    # Get dependencies for this extension (bash 3.2 compatible)
+    deps=()
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && deps+=("$line")
+    done < <(yq '.metadata.dependencies // [] | .[]' "$ext_file" 2>/dev/null || true)
 
-    for dep in "${deps[@]}"; do
+    # Handle empty deps array safely with set -u
+    for dep in ${deps[@]+"${deps[@]}"}; do
       if [[ -z "$dep" ]]; then
         continue
       fi

@@ -42,13 +42,8 @@ echo -e "${BLUE}║           Sindri YAML Validation Test Suite              ║
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Core schema validation tests
-run_test "Extension Schema Validation" "$SCRIPT_DIR/test-extension-schemas.sh"
-run_test "Profile Schema Validation" "$SCRIPT_DIR/test-profile-schema.sh"
-run_test "Registry Schema Validation" "$SCRIPT_DIR/test-registry-schema.sh"
-run_test "Categories Schema Validation" "$SCRIPT_DIR/test-categories-schema.sh"
-run_test "Templates Schema Validation" "$SCRIPT_DIR/test-templates-schema.sh"
-run_test "Sindri Examples Validation" "$SCRIPT_DIR/test-sindri-examples.sh"
+# Core schema validation - use unified validate-schema.sh (DRY, uses ajv-formats)
+run_test "Schema Validation (all)" "$SCRIPT_DIR/validate-schema.sh"
 
 # Cross-reference validation
 run_test "Cross-Reference Validation" "$SCRIPT_DIR/test-cross-references.sh"
