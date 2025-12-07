@@ -18,6 +18,7 @@
 #   --workspace-name     Override workspace name from sindri.yaml
 #   --build-repository   Docker registry for image push (required for non-local K8s)
 #   --skip-build         Skip image build (use existing image)
+#   --image              Specify image to use (overrides build; use with --skip-build)
 #   --force              Skip confirmation prompts (destroy only)
 #   --help               Show this help message
 #
@@ -47,6 +48,7 @@ OUTPUT_VARS=false
 WORKSPACE_NAME_OVERRIDE=""
 BUILD_REPOSITORY=""
 SKIP_BUILD=false
+IMAGE_OVERRIDE=""
 FORCE=false
 CI_MODE=false
 
@@ -69,6 +71,7 @@ while [[ $# -gt 0 ]]; do
         --workspace-name) WORKSPACE_NAME_OVERRIDE="$2"; shift 2 ;;
         --build-repository) BUILD_REPOSITORY="$2"; shift 2 ;;
         --skip-build)   SKIP_BUILD=true; shift ;;
+        --image)        IMAGE_OVERRIDE="$2"; shift 2 ;;
         --ci-mode)      CI_MODE=true; shift ;;
         --force|-f)     FORCE=true; shift ;;
         --help|-h)      show_help ;;
@@ -470,6 +473,13 @@ load_image_local() {
 # Returns the image tag to use in devcontainer.json
 prepare_image() {
     local image_tag="sindri:latest"
+
+    # If explicit image is provided, use it directly
+    if [[ -n "$IMAGE_OVERRIDE" ]]; then
+        print_status "Using specified image: $IMAGE_OVERRIDE" >&2
+        echo "$IMAGE_OVERRIDE"
+        return 0
+    fi
 
     if [[ "$SKIP_BUILD" == "true" ]]; then
         print_status "Skipping image build (--skip-build)" >&2

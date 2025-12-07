@@ -19,6 +19,20 @@ if [[ -f /docker/lib/common.sh ]]; then
     source /docker/lib/common.sh
 fi
 
+# Activate mise to ensure installed tools are in PATH
+# This is critical after installing extensions via mise
+activate_mise() {
+    if command -v mise &>/dev/null; then
+        # Activate mise for current shell
+        eval "$(mise activate bash 2>/dev/null)" || true
+        # Also hook mise to update PATH when directory changes
+        eval "$(mise hook-env 2>/dev/null)" || true
+    fi
+}
+
+# Activate mise on script start
+activate_mise
+
 # === Configuration ===
 LEVEL="${LEVEL:-profile}"
 PROFILE="${PROFILE:-minimal}"
@@ -107,6 +121,9 @@ run_extension_lifecycle_tests() {
     # Step 3: Install single extension
     run_test "install-$TEST_EXTENSION" "extension-manager install $TEST_EXTENSION"
 
+    # Refresh mise environment after install to ensure tools are in PATH
+    activate_mise
+
     # Step 4: Validate extension
     run_test "validate-$TEST_EXTENSION" "extension-manager validate $TEST_EXTENSION"
 
@@ -187,6 +204,9 @@ run_profile_lifecycle_tests() {
 
     # Step 3: Install profile
     run_test "install-profile-$PROFILE" "extension-manager install-profile $PROFILE"
+
+    # Refresh mise environment after install to ensure tools are in PATH
+    activate_mise
 
     # Step 4: Validate all extensions
     run_test "validate-all" "extension-manager validate-all"
