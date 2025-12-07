@@ -52,10 +52,26 @@ jobs:
         run: |
           INPUT="${{ inputs.extensions }}"
 
+          # Extensions that require too much memory for standard CI runners (>4GB)
+          # These should be tested manually or on larger runners
+          SKIP_IN_CI="ai-toolkit jvm haskell xfce-ubuntu guacamole"
+
           if [[ "$INPUT" == "all" ]]; then
             # Get all non-protected extensions from registry
-            EXTENSIONS=$(yq '.extensions | to_entries | .[] | select(.value.protected != true) | .key' \
-              docker/lib/registry.yaml | jq -R . | jq -sc .)
+            ALL_EXTENSIONS=$(yq '.extensions | to_entries | .[] | select(.value.protected != true) | .key' \
+              docker/lib/registry.yaml)
+
+            # Filter out high-memory extensions
+            FILTERED=""
+            for ext in $ALL_EXTENSIONS; do
+              if ! echo "$SKIP_IN_CI" | grep -qw "$ext"; then
+                FILTERED="$FILTERED $ext"
+              else
+                echo "::warning title=Skipped::$ext requires >4GB memory, skipping in CI"
+              fi
+            done
+
+            EXTENSIONS=$(echo $FILTERED | tr ' ' '\n' | grep -v '^$' | jq -R . | jq -sc .)
           elif [[ "$INPUT" == *","* ]]; then
             # Multiple extensions - parse comma-separated list
             EXTENSIONS=$(echo "$INPUT" | jq -Rc 'split(",") | map(ltrimstr(" ") | rtrimstr(" "))')
@@ -102,12 +118,18 @@ jobs:
     name: Test ${{ matrix.extension }}
     needs: [generate-matrix, build-image]
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 2  # Reduced from 4 to limit concurrent memory usage
       matrix:
         extension: ${{ fromJson(needs.generate-matrix.outputs.extensions) }}
     steps:
+      - name: Checkout for extension info
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: docker/lib/extensions
+
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
@@ -117,10 +139,57 @@ jobs:
       - name: Load Docker image
         run: docker load -i /tmp/sindri-image.tar
 
+      - name: Determine resource requirements
+        id: resources
+        run: |
+          EXT="${{ matrix.extension }}"
+          EXT_YAML="docker/lib/extensions/$EXT/extension.yaml"
+
+          # Default values
+          MEMORY="4g"
+          SWAP="6g"
+          NODE_HEAP="512"
+
+          if [[ -f "$EXT_YAML" ]]; then
+            # Get memory requirement in MB from extension
+            REQ_MEM=$(yq '.requirements.memory // 256' "$EXT_YAML")
+
+            # Check for nodejs dependency (adds ~256MB)
+            HAS_NODEJS_DEP=$(yq '.metadata.dependencies[]? | select(. == "nodejs")' "$EXT_YAML")
+            if [[ -n "$HAS_NODEJS_DEP" ]]; then
+              REQ_MEM=$((REQ_MEM + 256))
+            fi
+
+            # Scale container memory based on requirements
+            if [[ $REQ_MEM -ge 2048 ]]; then
+              MEMORY="6g"
+              SWAP="8g"
+              NODE_HEAP="1024"
+            elif [[ $REQ_MEM -ge 1024 ]]; then
+              MEMORY="5g"
+              SWAP="7g"
+              NODE_HEAP="768"
+            elif [[ $REQ_MEM -ge 512 ]]; then
+              MEMORY="4g"
+              SWAP="6g"
+              NODE_HEAP="512"
+            fi
+
+            echo "Extension $EXT requires ${REQ_MEM}MB memory"
+          fi
+
+          echo "memory=$MEMORY" >> $GITHUB_OUTPUT
+          echo "swap=$SWAP" >> $GITHUB_OUTPUT
+          echo "node_heap=$NODE_HEAP" >> $GITHUB_OUTPUT
+
       - name: Start container
         run: |
           docker run -d --name sindri-test \
             -e CI_MODE=true \
+            -e NODE_OPTIONS="--max-old-space-size=${{ steps.resources.outputs.node_heap }}" \
+            -e npm_config_maxsockets=5 \
+            --memory=${{ steps.resources.outputs.memory }} \
+            --memory-swap=${{ steps.resources.outputs.swap }} \
             sindri:test
 
       - name: Wait for container ready
@@ -139,10 +208,24 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         run: |
-          echo "=== Container logs ==="
-          docker logs sindri-test || true
+          echo "=== Container resource stats ==="
+          docker stats sindri-test --no-stream || true
+
+          echo ""
+          echo "=== Container inspect (State) ==="
+          docker inspect sindri-test --format='{{.State.Status}} - OOMKilled: {{.State.OOMKilled}} - ExitCode: {{.State.ExitCode}}' || true
+
+          echo ""
+          echo "=== Container logs (last 100 lines) ==="
+          docker logs --tail 100 sindri-test 2>&1 || true
+
+          echo ""
           echo "=== Extension manager logs ==="
           docker exec sindri-test cat /alt/home/developer/workspace/.system/logs/*.log 2>/dev/null || true
+
+          echo ""
+          echo "=== dmesg OOM messages (if any) ==="
+          dmesg | grep -i "oom\|killed" | tail -20 || true
 
       - name: Cleanup
         if: always() && inputs.skip-cleanup != true
