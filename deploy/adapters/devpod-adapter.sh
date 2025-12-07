@@ -426,11 +426,11 @@ build_image() {
     local image_tag="$1"
 
     if [[ ! -f "$BASE_DIR/Dockerfile" ]]; then
-        print_error "Dockerfile not found at $BASE_DIR/Dockerfile"
+        print_error "Dockerfile not found at $BASE_DIR/Dockerfile" >&2
         return 1
     fi
 
-    print_status "Building Docker image: $image_tag"
+    print_status "Building Docker image: $image_tag" >&2
     docker build -t "$image_tag" -f "$BASE_DIR/Dockerfile" "$BASE_DIR"
 }
 
@@ -438,7 +438,7 @@ build_image() {
 push_image() {
     local image_tag="$1"
 
-    print_status "Pushing image to registry: $image_tag"
+    print_status "Pushing image to registry: $image_tag" >&2
     docker push "$image_tag"
 }
 
@@ -452,15 +452,15 @@ load_image_local() {
 
     case "$cluster_type" in
         kind)
-            print_status "Loading image into kind cluster: $cluster_name"
+            print_status "Loading image into kind cluster: $cluster_name" >&2
             kind load docker-image "$image_tag" --name "$cluster_name"
             ;;
         k3d)
-            print_status "Loading image into k3d cluster: $cluster_name"
+            print_status "Loading image into k3d cluster: $cluster_name" >&2
             k3d image import "$image_tag" --cluster "$cluster_name"
             ;;
         *)
-            print_error "Unknown local cluster type: $cluster_type"
+            print_error "Unknown local cluster type: $cluster_type" >&2
             return 1
             ;;
     esac
@@ -503,16 +503,16 @@ prepare_image() {
        [[ "$DEVPOD_PROVIDER" == "gcp" ]] || [[ "$DEVPOD_PROVIDER" == "azure" ]]; then
 
         if [[ -z "$BUILD_REPOSITORY" ]]; then
-            print_error "Build repository required for $DEVPOD_PROVIDER provider"
-            echo ""
-            echo "Options:"
-            echo "  1. CLI flag:    sindri deploy --build-repository ghcr.io/myorg/sindri"
-            echo "  2. sindri.yaml: providers.devpod.buildRepository: ghcr.io/myorg/sindri"
-            echo ""
-            echo "Also ensure Docker credentials are available:"
-            echo "  - Set DOCKER_USERNAME and DOCKER_PASSWORD environment variables"
-            echo "  - Or add them to .env or .env.local"
-            echo "  - Or run 'docker login' for your registry"
+            print_error "Build repository required for $DEVPOD_PROVIDER provider" >&2
+            echo "" >&2
+            echo "Options:" >&2
+            echo "  1. CLI flag:    sindri deploy --build-repository ghcr.io/myorg/sindri" >&2
+            echo "  2. sindri.yaml: providers.devpod.buildRepository: ghcr.io/myorg/sindri" >&2
+            echo "" >&2
+            echo "Also ensure Docker credentials are available:" >&2
+            echo "  - Set DOCKER_USERNAME and DOCKER_PASSWORD environment variables" >&2
+            echo "  - Or add them to .env or .env.local" >&2
+            echo "  - Or run 'docker login' for your registry" >&2
             return 1
         fi
 
@@ -521,7 +521,7 @@ prepare_image() {
         # Get credentials and login
         if ! get_docker_credentials; then
             if ! docker_registry_login; then
-                print_error "Failed to authenticate with Docker registry"
+                print_error "Failed to authenticate with Docker registry" >&2
                 return 1
             fi
         fi
