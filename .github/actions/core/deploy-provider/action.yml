@@ -169,16 +169,16 @@ runs:
         kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
 
         echo "→ Creating kind config with registry support..."
-        cat > /tmp/kind-config.yaml << 'KINDEOF'
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-containerdConfigPatches:
-- |-
-  [plugins."io.containerd.grpc.v1.cri".registry]
-    config_path = "/etc/containerd/certs.d"
-nodes:
-- role: control-plane
-KINDEOF
+        printf '%s\n' \
+          'kind: Cluster' \
+          'apiVersion: kind.x-k8s.io/v1alpha4' \
+          'containerdConfigPatches:' \
+          '- |-' \
+          '  [plugins."io.containerd.grpc.v1.cri".registry]' \
+          '    config_path = "/etc/containerd/certs.d"' \
+          'nodes:' \
+          '- role: control-plane' \
+          > /tmp/kind-config.yaml
 
         echo "→ Creating new cluster: ${CLUSTER_NAME}"
         kind create cluster --name "$CLUSTER_NAME" --config /tmp/kind-config.yaml --wait 120s
@@ -195,10 +195,7 @@ KINDEOF
         REGISTRY_DIR="/etc/containerd/certs.d/localhost:${REG_PORT}"
         for node in $(kind get nodes --name "$CLUSTER_NAME"); do
           docker exec "${node}" mkdir -p "${REGISTRY_DIR}"
-          docker exec "${node}" bash -c "cat > ${REGISTRY_DIR}/hosts.toml << EOF
-[host.\"http://${REG_NAME}:5000\"]
-  capabilities = [\"pull\", \"resolve\", \"push\"]
-EOF"
+          docker exec "${node}" bash -c "printf '%s\n' '[host.\"http://${REG_NAME}:5000\"]' '  capabilities = [\"pull\", \"resolve\", \"push\"]' > ${REGISTRY_DIR}/hosts.toml"
         done
         echo "::endgroup::"
 
