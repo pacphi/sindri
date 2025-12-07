@@ -472,7 +472,7 @@ prepare_image() {
     local image_tag="sindri:latest"
 
     if [[ "$SKIP_BUILD" == "true" ]]; then
-        print_status "Skipping image build (--skip-build)"
+        print_status "Skipping image build (--skip-build)" >&2
         echo "$image_tag"
         return 0
     fi
@@ -488,7 +488,7 @@ prepare_image() {
     local_cluster=$(detect_local_cluster)
 
     if [[ -n "$local_cluster" ]]; then
-        print_status "Detected local Kubernetes cluster: $local_cluster"
+        print_status "Detected local Kubernetes cluster: $local_cluster" >&2
 
         # Build locally and load into cluster
         build_image "$image_tag" || return 1
