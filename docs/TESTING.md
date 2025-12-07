@@ -185,15 +185,16 @@ pnpm lint:md
 
 The CI system uses these workflows:
 
-| Workflow                 | Purpose                                                       |
-| ------------------------ | ------------------------------------------------------------- |
-| `ci.yml`                 | Main CI orchestrator - validation, build, unified testing     |
-| `validate-yaml.yml`      | Comprehensive YAML validation                                 |
-| `test-sindri-config.yml` | Config-driven testing (discovers examples)                    |
-| `deploy-sindri.yml`      | Reusable deployment workflow                                  |
-| `teardown-sindri.yml`    | Reusable cleanup workflow                                     |
-| `test-provider.yml`      | Full test suite per provider (CLI + extensions + integration) |
-| `release.yml`            | Release automation                                            |
+| Workflow              | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `ci.yml`              | Main CI orchestrator - validation, build, unified testing     |
+| `validate-yaml.yml`   | Comprehensive YAML validation                                 |
+| `test-extensions.yml` | Registry-based extension testing (single, multiple, or all)   |
+| `test-profiles.yml`   | Config-driven profile testing (discovers sindri.yaml files)   |
+| `deploy-sindri.yml`   | Reusable deployment workflow                                  |
+| `teardown-sindri.yml` | Reusable cleanup workflow                                     |
+| `test-provider.yml`   | Full test suite per provider (CLI + extensions + integration) |
+| `release.yml`         | Release automation                                            |
 
 ### CI Test Flow (Simplified)
 
@@ -307,16 +308,35 @@ kind create cluster --name my-cluster
 ./cli/sindri deploy --config examples/devpod/kubernetes/minimal.sindri.yaml
 ```
 
-### Testing with Examples
+### Testing Profiles (Config-based)
 
-The `test-sindri-config.yml` workflow discovers and tests all examples:
+The `test-profiles.yml` workflow discovers and tests sindri.yaml configuration files:
 
 ```yaml
 # Run via workflow_dispatch
 config-path: examples/fly/ # Test all Fly.io examples
-test-suite: smoke # Test suite to run
+test-level: quick # Test level (quick, profile, all)
 skip-cleanup: false # Cleanup after tests
 ```
+
+### Testing Extensions (Registry-based)
+
+The `test-extensions.yml` workflow tests individual extensions directly from the registry:
+
+```yaml
+# Run via workflow_dispatch
+extensions: nodejs           # Single extension
+extensions: nodejs,python    # Multiple extensions (comma-separated)
+extensions: all              # All non-protected extensions (~29)
+skip-cleanup: false          # Cleanup after tests
+```
+
+**Key features:**
+
+- **Docker-only**: Tests run locally in Docker containers (fast feedback)
+- **Matrix execution**: Each extension runs as a separate job
+- **Protected exclusion**: Base extensions (mise-config, workspace-structure, github-cli) excluded from "all"
+- **Max parallel**: 4 concurrent extension tests
 
 ### Running CI Locally
 

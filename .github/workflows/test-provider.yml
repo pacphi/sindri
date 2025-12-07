@@ -21,6 +21,11 @@ on:
         required: false
         default: minimal
         type: string
+      extension:
+        description: Extension to test (for extension-level tests)
+        required: false
+        default: nodejs
+        type: string
       skip-cleanup:
         description: Skip resource cleanup for debugging
         required: false
@@ -133,6 +138,7 @@ jobs:
           echo "  Target ID:  $TARGET_ID"
           echo "  Test Level: ${{ inputs.test-level }}"
           echo "  Profile:    ${{ inputs.extension-profile }}"
+          echo "  Extension:  ${{ inputs.extension }}"
           echo ""
           echo "This stage executes sindri-test.sh INSIDE the deployed container."
           echo "The test script will:"
@@ -151,7 +157,7 @@ jobs:
           OUTPUT=$(.github/scripts/providers/run-on-provider.sh \
             "${{ inputs.provider }}" \
             "$TARGET_ID" \
-            "/docker/scripts/sindri-test.sh --level ${{ inputs.test-level }} --profile ${{ inputs.extension-profile }}")
+            "/docker/scripts/sindri-test.sh --level ${{ inputs.test-level }} --profile ${{ inputs.extension-profile }} --extension ${{ inputs.extension }}")
           EXIT_CODE=$?
           set -e
 
@@ -194,6 +200,7 @@ jobs:
           echo "| Provider | ${{ inputs.provider }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test Level | ${{ inputs.test-level }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Profile | ${{ inputs.extension-profile }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Extension | ${{ inputs.extension }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Status | ${{ steps.run-tests.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Target ID | ${{ steps.deploy.outputs.target-id }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

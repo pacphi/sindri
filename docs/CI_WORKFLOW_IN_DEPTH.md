@@ -214,6 +214,18 @@ Secrets flow from GitHub repository → workflow → environment variables:
 
 **Duration**: ~45-60 seconds (includes idempotency testing)
 
+**Extension Selection**: The `--extension` parameter controls which extension is tested:
+
+```bash
+# Default (nodejs)
+sindri-test.sh --level extension
+
+# Specific extension
+sindri-test.sh --level extension --extension python
+```
+
+The CI workflows (`ci.yml`, `test-provider.yml`) expose this as an `extension` input.
+
 ### Profile Level (Profile Lifecycle)
 
 **Purpose**: Test the full lifecycle of a profile install/remove with idempotency check.
@@ -399,6 +411,76 @@ Summary: 3 passed, 1 failed
 
 ---
 
+## Extension Testing Workflows
+
+Two specialized workflows handle different testing scenarios:
+
+### test-extensions.yml (Registry-Based)
+
+Tests individual extensions directly from the registry without requiring sindri.yaml files.
+
+**Inputs:**
+
+| Input          | Type   | Description                                 | Default  |
+| -------------- | ------ | ------------------------------------------- | -------- |
+| `extensions`   | string | Single name, comma-separated list, or `all` | `nodejs` |
+| `skip-cleanup` | bool   | Skip cleanup for debugging                  | `false`  |
+
+**Examples:**
+
+```bash
+# Single extension
+extensions: python
+
+# Multiple extensions
+extensions: nodejs,python,golang
+
+# All non-protected extensions (~29 total)
+extensions: all
+```
+
+**Architecture:**
+
+1. **generate-matrix** job: Parses input, expands `all` from registry
+2. **build-image** job: Builds Docker image once
+3. **test-extension** jobs: Matrix of extension tests (max 4 parallel)
+4. **summary** job: Aggregates results
+
+**Protected Extensions Excluded:**
+
+When `all` is specified, these base extensions are excluded:
+
+- `mise-config`
+- `workspace-structure`
+- `github-cli`
+
+### test-profiles.yml (Config-Based)
+
+Tests sindri.yaml configuration files from the `examples/` directory.
+
+**Inputs:**
+
+| Input          | Type   | Description                     | Default |
+| -------------- | ------ | ------------------------------- | ------- |
+| `config-path`  | choice | Path to file or directory       | -       |
+| `test-level`   | choice | Test level: quick, profile, all | `quick` |
+| `skip-cleanup` | bool   | Skip cleanup for debugging      | `false` |
+
+**Examples:**
+
+```yaml
+# Single config
+config-path: examples/fly/minimal.sindri.yaml
+
+# All Fly.io configs
+config-path: examples/fly/
+
+# All configs
+config-path: examples/
+```
+
+---
+
 ## Local Development
 
 The same test script used in CI can be run locally for debugging:
@@ -413,8 +495,11 @@ docker run -d --name test -e SKIP_AUTO_INSTALL=true sindri:local
 # Run quick tests (CLI validation only)
 docker exec test /docker/scripts/sindri-test.sh --level quick
 
-# Run extension lifecycle tests (single extension)
+# Run extension lifecycle tests (default: nodejs)
 docker exec test /docker/scripts/sindri-test.sh --level extension
+
+# Run extension lifecycle tests (specific extension)
+docker exec test /docker/scripts/sindri-test.sh --level extension --extension python
 
 # Run profile lifecycle tests
 docker exec test /docker/scripts/sindri-test.sh --level profile --profile minimal
@@ -464,13 +549,15 @@ For each provider in the matrix (docker, fly, devpod-\*):
 
 ## Key Files
 
-| File                                             | Purpose                                     |
-| ------------------------------------------------ | ------------------------------------------- |
-| `/docker/scripts/sindri-test.sh`                 | Unified test script (runs inside container) |
-| `.github/workflows/ci.yml`                       | Main CI orchestrator                        |
-| `.github/workflows/test-provider.yml`            | Per-provider test workflow                  |
-| `.github/scripts/providers/run-on-provider.sh`   | Provider execution abstraction              |
-| `.github/scripts/providers/setup-credentials.sh` | Unified credential setup                    |
+| File                                             | Purpose                                         |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `/docker/scripts/sindri-test.sh`                 | Unified test script (runs inside container)     |
+| `.github/workflows/ci.yml`                       | Main CI orchestrator                            |
+| `.github/workflows/test-provider.yml`            | Per-provider test workflow                      |
+| `.github/workflows/test-extensions.yml`          | Registry-based extension testing (Docker-only)  |
+| `.github/workflows/test-profiles.yml`            | Config-driven profile testing (discovers files) |
+| `.github/scripts/providers/run-on-provider.sh`   | Provider execution abstraction                  |
+| `.github/scripts/providers/setup-credentials.sh` | Unified credential setup                        |
 
 ---
 

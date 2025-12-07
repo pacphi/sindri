@@ -20,7 +20,8 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 ├── workflows/                    # GitHub Workflows
 │   ├── ci.yml                    # Main CI orchestrator (unified provider testing)
 │   ├── validate-yaml.yml         # Comprehensive YAML validation
-│   ├── test-sindri-config.yml    # Config-driven testing
+│   ├── test-extensions.yml       # Registry-based extension testing (Docker-only)
+│   ├── test-profiles.yml         # Config-driven profile testing (discovers sindri.yaml)
 │   ├── deploy-sindri.yml         # Reusable deployment
 │   ├── teardown-sindri.yml       # Reusable teardown
 │   ├── test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
@@ -126,19 +127,40 @@ Comprehensive YAML validation:
 - Cross-reference validation (profiles → registry → extensions → categories)
 - Extension consistency checks
 
-### Config-Driven Test Workflow (`test-sindri-config.yml`)
+### Extension Testing Workflow (`test-extensions.yml`)
 
-The core of the YAML-driven approach:
+Registry-based extension testing that runs in Docker (fast, local):
+
+- **Reads** extensions directly from `docker/lib/registry.yaml`
+- **Supports** single extension, comma-separated list, or `all`
+- **Matrix** runs each extension as a separate job (max 4 parallel)
+- **Excludes** protected base extensions from `all` (mise-config, workspace-structure, github-cli)
+
+```yaml
+# Example: Test specific extensions
+- uses: ./.github/workflows/test-extensions.yml
+  with:
+    extensions: nodejs,python,golang
+
+# Example: Test all non-protected extensions
+- uses: ./.github/workflows/test-extensions.yml
+  with:
+    extensions: all
+```
+
+### Profile Testing Workflow (`test-profiles.yml`)
+
+Config-driven testing for sindri.yaml files:
 
 - **Discovers** sindri.yaml files in specified path
 - **Validates** each configuration against schema
 - **Deploys** using the configuration
-- **Tests** with specified level (quick/extension/profile/all)
+- **Tests** with specified level (quick/profile/all)
 - **Tears down** resources
 
 ```yaml
 # Example: Test all Fly.io examples
-- uses: ./.github/workflows/test-sindri-config.yml
+- uses: ./.github/workflows/test-profiles.yml
   with:
     config-path: examples/fly/
     test-level: quick
@@ -404,6 +426,8 @@ The `.github/scripts/` directory contains test utilities:
 
 ## YAML-Driven Testing Flow
 
+### Profile Testing (test-profiles.yml)
+
 ```text
 ┌───────────────────────────────────┐
 │  examples/fly/minimal.sindri.yaml │
@@ -411,7 +435,7 @@ The `.github/scripts/` directory contains test utilities:
                  │
                  ▼
 ┌─────────────────────────────────┐
-│  test-sindri-config.yml         │
+│  test-profiles.yml              │
 │  - Discover configs             │
 │  - Parse provider/profile       │
 └────────────────┬────────────────┘
@@ -426,7 +450,7 @@ The `.github/scripts/` directory contains test utilities:
                          ▼
                   ┌─────────────┐
                   │ Test        │
-                  │ (suite)     │
+                  │ (level)     │
                   └──────┬──────┘
                          │
                          ▼
@@ -434,6 +458,36 @@ The `.github/scripts/` directory contains test utilities:
                   │ Teardown    │
                   │ (cleanup)   │
                   └─────────────┘
+```
+
+### Extension Testing (test-extensions.yml)
+
+```text
+┌───────────────────────────────────┐
+│  Input: "nodejs,python" or "all"  │
+└────────────────┬──────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  test-extensions.yml            │
+│  - Parse input (split/expand)   │
+│  - Query registry for "all"     │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  Build Docker image (once)      │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  Matrix: FOR EACH extension     │
+│  ├─> Start container            │
+│  ├─> Run sindri-test.sh         │
+│  │   --level extension          │
+│  │   --extension <name>         │
+│  └─> Cleanup container          │
+└─────────────────────────────────┘
 ```
 
 ## Benefits Over Previous Approach
@@ -528,26 +582,39 @@ k8s-use-kind: "false"
 
 ## Usage Examples
 
-### Test All Examples
+### Test All Config Examples (test-profiles.yml)
 
 ```yaml
 # Via workflow_dispatch
 config-path: examples/
-test-suite: smoke
+test-level: quick
 ```
 
-### Test Specific Provider
+### Test Specific Provider Configs (test-profiles.yml)
 
 ```yaml
 config-path: examples/fly/
-test-suite: integration
+test-level: profile
 ```
 
-### Test Single Configuration
+### Test Single Configuration (test-profiles.yml)
 
 ```yaml
 config-path: examples/fly/minimal.sindri.yaml
-test-suite: full
+test-level: all
+```
+
+### Test Individual Extensions (test-extensions.yml)
+
+```yaml
+# Single extension
+extensions: nodejs
+
+# Multiple extensions
+extensions: nodejs,python,golang
+
+# All non-protected extensions (~29)
+extensions: all
 ```
 
 ### Local Testing
@@ -566,12 +633,23 @@ test-suite: full
 
 ## Adding New Test Scenarios
 
+### Adding Profile/Config Tests
+
 1. Create a new `sindri.yaml` file in appropriate `examples/` subdirectory
 2. The file is automatically:
-   - Discovered by `test-sindri-config.yml`
+   - Discovered by `test-profiles.yml`
    - Validated against schema
    - Used as documentation for users
 3. No workflow changes needed
+
+### Adding Extension Tests
+
+Extensions are automatically tested via `test-extensions.yml`:
+
+1. Add new extension to `docker/lib/registry.yaml`
+2. Create extension definition in `docker/lib/extensions/<name>/extension.yaml`
+3. Test individually: trigger workflow with `extensions: <name>`
+4. Test with all: trigger workflow with `extensions: all` (excludes protected extensions)
 
 ## Troubleshooting
 

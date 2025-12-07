@@ -1,7 +1,8 @@
 ---
-# .github/workflows/test-sindri-config.yml
-# Main test workflow - iterates over sindri.yaml examples
-name: Test Sindri Configuration
+# .github/workflows/test-profiles.yml
+# Test sindri.yaml configuration files from examples directory
+# Tests profile-based deployments across different providers
+name: Test Profiles
 
 on:
   workflow_call:
@@ -32,14 +33,11 @@ on:
           - examples/fly/minimal.sindri.yaml
           - examples/fly/fullstack.sindri.yaml
           - examples/fly/production.sindri.yaml
-          - examples/fly/ai-dev.sindri.yaml
           - examples/fly/anthropic-dev.sindri.yaml
           - examples/fly/systems.sindri.yaml
           - examples/fly/mobile.sindri.yaml
-          - examples/fly/devops.sindri.yaml
-          - examples/fly/data-science.sindri.yaml
           - examples/fly/data-science-high-mem.sindri.yaml
-          - examples/fly/enterprise.sindri.yaml
+          - examples/fly/gpu-ml-training.sindri.yaml
           - examples/fly/regions/ord.sindri.yaml
           - examples/fly/regions/ams.sindri.yaml
           - examples/fly/regions/iad.sindri.yaml
@@ -53,6 +51,7 @@ on:
           - examples/docker/data-science.sindri.yaml
           - examples/docker/enterprise.sindri.yaml
           - examples/docker/mobile.sindri.yaml
+          - examples/docker/gpu-ai-dev.sindri.yaml
           # Individual examples - DevPod AWS
           - examples/devpod/aws/minimal.sindri.yaml
           - examples/devpod/aws/fullstack.sindri.yaml
@@ -63,6 +62,7 @@ on:
           - examples/devpod/gcp/minimal.sindri.yaml
           - examples/devpod/gcp/fullstack.sindri.yaml
           - examples/devpod/gcp/ai-dev.sindri.yaml
+          - examples/devpod/gcp/gpu-inference.sindri.yaml
           - examples/devpod/gcp/regions/europe-west1.sindri.yaml
           # Individual examples - DevPod Azure
           - examples/devpod/azure/minimal.sindri.yaml
@@ -75,6 +75,7 @@ on:
           - examples/devpod/kubernetes/minimal.sindri.yaml
           - examples/devpod/kubernetes/devops.sindri.yaml
           - examples/devpod/kubernetes/systems.sindri.yaml
+          - examples/devpod/kubernetes/gpu-workload.sindri.yaml
           # Individual examples - Profiles
           - examples/profiles/minimal.sindri.yaml
           - examples/profiles/fullstack.sindri.yaml
@@ -93,16 +94,21 @@ on:
           - examples/custom/frontend-only.sindri.yaml
           - examples/custom/minimal-golang.sindri.yaml
           - examples/custom/security-focused.sindri.yaml
+          # Individual examples - Local Kubernetes (kind/k3d)
+          - examples/k8s/kind-minimal.sindri.yaml
+          - examples/k8s/k3d-with-registry.sindri.yaml
           # Directories (test all in directory)
           - examples/fly/
           - examples/docker/
           - examples/devpod/aws/
           - examples/devpod/gcp/
           - examples/devpod/azure/
+          - examples/devpod/digitalocean/
           - examples/devpod/kubernetes/
           - examples/devpod/
           - examples/profiles/
           - examples/custom/
+          - examples/k8s/
           - examples/ # All examples
       test-level:
         description: Test level to run
@@ -111,7 +117,6 @@ on:
         default: quick
         options:
           - quick
-          - extension
           - profile
           - all
       skip-cleanup:
@@ -249,7 +254,7 @@ jobs:
     steps:
       - name: Generate summary
         run: |
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Profile Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Tested ${{ needs.discover-configs.outputs.count }} configuration(s)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
