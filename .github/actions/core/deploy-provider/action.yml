@@ -129,57 +129,77 @@ runs:
       if: inputs.provider == 'devpod-k8s'
       shell: bash
       run: |
-        echo "Setting up kind cluster for kubernetes testing..."
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║  STAGE 1: Setting up Kind Kubernetes cluster                 ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
 
         CLUSTER_NAME="sindri-ci"
 
-        # Install kind if not present
+        # Step 1.1: Install kind CLI
+        echo "::group::Step 1.1: Install kind CLI"
         KIND_VERSION="v0.27.0"
         CURRENT_KIND_VERSION=$(kind version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "none")
         if [[ "$CURRENT_KIND_VERSION" != "$KIND_VERSION" ]]; then
-          echo "Installing kind ${KIND_VERSION} (current: ${CURRENT_KIND_VERSION})..."
+          echo "→ Installing kind ${KIND_VERSION} (current: ${CURRENT_KIND_VERSION})..."
           curl -Lo ./kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
+        else
+          echo "→ kind ${KIND_VERSION} already installed"
         fi
         kind version
+        echo "::endgroup::"
 
-        # Create kind cluster
-        echo "Creating kind cluster: ${CLUSTER_NAME}"
+        # Step 1.2: Create kind cluster
+        echo "::group::Step 1.2: Create kind cluster"
+        echo "→ Removing any existing cluster: ${CLUSTER_NAME}"
         kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
+        echo "→ Creating new cluster: ${CLUSTER_NAME}"
         kind create cluster --name "$CLUSTER_NAME" --wait 120s
+        echo "::endgroup::"
 
-        # Load the CI image directly into kind's containerd
-        echo "Loading image into kind cluster..."
+        # Step 1.3: Load Docker image into kind
+        echo "::group::Step 1.3: Load Docker image into kind's containerd"
+        echo "→ Loading CI image: ${{ inputs.image }}"
         kind load docker-image "${{ inputs.image }}" --name "$CLUSTER_NAME"
-
-        # Also tag and load as sindri:latest for devcontainer.json compatibility
+        echo "→ Tagging as sindri:latest for devcontainer compatibility"
         docker tag "${{ inputs.image }}" sindri:latest
         kind load docker-image sindri:latest --name "$CLUSTER_NAME"
+        echo "::endgroup::"
 
-        # Set up kubeconfig
+        # Step 1.4: Configure kubectl
+        echo "::group::Step 1.4: Configure kubectl"
         mkdir -p "$HOME/.kube"
         kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/.kube/config"
         chmod 600 "$HOME/.kube/config"
-
-        # Wait for cluster ready
+        echo "→ Waiting for nodes to be ready..."
         kubectl wait --for=condition=Ready nodes --all --timeout=120s
-
-        # Create namespace for DevPod
+        echo "→ Creating namespace: sindri-test"
         kubectl create namespace sindri-test --dry-run=client -o yaml | kubectl apply -f -
+        echo "::endgroup::"
 
-        echo "✓ Kind cluster ready with image loaded"
+        echo ""
+        echo "✅ Kind cluster ready"
+        echo "   Cluster:   ${CLUSTER_NAME}"
+        echo "   Image:     sindri:latest (loaded into containerd)"
+        echo "   Namespace: sindri-test"
 
     - name: Install DevPod CLI
       if: startsWith(inputs.provider, 'devpod-')
       shell: bash
       run: |
-        echo "Installing DevPod CLI..."
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║  STAGE 2: Installing DevPod CLI                              ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "→ Downloading DevPod CLI..."
         curl -L -o devpod "https://github.com/loft-sh/devpod/releases/latest/download/devpod-linux-amd64"
         chmod +x devpod
         sudo mv devpod /usr/local/bin/devpod
+        echo ""
+        echo "✅ DevPod installed"
         devpod version
-        echo "✓ DevPod installed"
 
     - name: Deploy
       id: deploy
@@ -190,66 +210,93 @@ runs:
         RUN_NUMBER="${{ github.run_number }}"
         CONFIG="${{ steps.config.outputs.config }}"
 
-        echo "Deploying to $PROVIDER..."
+        echo ""
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║  STAGE 3: Deploying to provider                              ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "Provider: $PROVIDER"
+        echo "Config:   $CONFIG"
+        echo ""
 
         case "$PROVIDER" in
           docker)
             # Get container name from config (needed for pre-cleanup)
             TARGET_ID=$(yq '.name' "$CONFIG" 2>/dev/null || echo "sindri-test")
 
-            # PRE-CLEANUP: Remove stale resources from previous runs
-            echo "Pre-cleanup: Ensuring clean slate for Docker"
+            echo "::group::Step 3.1: Pre-cleanup"
+            echo "→ Removing stale Docker resources for: $TARGET_ID"
             docker rm -f "$TARGET_ID" 2>/dev/null || true
             docker volume ls -q --filter "name=${TARGET_ID}_home" | xargs -r docker volume rm 2>/dev/null || true
             if [[ -f docker-compose.yml ]]; then
               docker compose -f docker-compose.yml down -v 2>/dev/null || true
             fi
+            echo "::endgroup::"
 
-            # Tag pre-built image as sindri:latest (what docker-adapter expects)
+            echo "::group::Step 3.2: Prepare image"
             if docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
-              echo "Tagging pre-built image as sindri:latest"
+              echo "→ Tagging pre-built image as sindri:latest"
               docker tag "${{ inputs.image }}" sindri:latest
             fi
+            echo "::endgroup::"
 
-            # Deploy using docker-adapter with --ci-mode (forces autoInstall=false for clean tests)
+            echo "::group::Step 3.3: Deploy container"
+            echo "→ Running: docker-adapter.sh deploy --skip-build --ci-mode $CONFIG"
             ./deploy/adapters/docker-adapter.sh deploy --skip-build --ci-mode "$CONFIG"
+            echo "::endgroup::"
 
-            # Fix permissions on volume
+            echo "::group::Step 3.4: Verify container ready"
+            echo "→ Fixing permissions on volume..."
             docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
-
-            # Verify container is ready
+            echo "→ Testing container..."
             docker exec "$TARGET_ID" bash -c 'echo "Container ready"'
+            echo "::endgroup::"
 
-            echo "✓ Deployed to Docker: $TARGET_ID"
+            echo ""
+            echo "✅ Docker deployment complete"
+            echo "   Container: $TARGET_ID"
             ;;
 
           fly)
             APP_NAME="sindri-ci-${RUN_ID}-${RUN_NUMBER}"
 
-            # Deploy using fly adapter (CI mode, config as positional arg)
-            # Pass --app-name to override the name from sindri.yaml with CI-specific name
+            echo "::group::Step 3.1: Deploy to Fly.io"
+            echo "→ App name: $APP_NAME"
+            echo "→ Running: fly-adapter.sh deploy --ci-mode --app-name $APP_NAME $CONFIG"
             ./deploy/adapters/fly-adapter.sh deploy --ci-mode --app-name "$APP_NAME" "$CONFIG"
+            echo "::endgroup::"
 
             TARGET_ID="$APP_NAME"
-            echo "✓ Deployed to Fly.io: $TARGET_ID"
+            echo ""
+            echo "✅ Fly.io deployment complete"
+            echo "   App: $TARGET_ID"
             ;;
 
           devpod-*)
             BACKEND="${PROVIDER#devpod-}"
             WORKSPACE_ID="sindri-${RUN_ID}"
 
-            # Build extra flags for specific providers
+            echo "::group::Step 3.1: Configure DevPod"
+            echo "→ Backend: $BACKEND"
+            echo "→ Workspace ID: $WORKSPACE_ID"
+
             EXTRA_FLAGS=""
             if [[ "$PROVIDER" == "devpod-k8s" ]]; then
-              # For k8s, use sindri:latest which was loaded into kind's containerd
+              echo "→ Using pre-loaded image: sindri:latest (already in kind's containerd)"
               EXTRA_FLAGS="--skip-build --image sindri:latest"
             fi
+            echo "::endgroup::"
 
-            # Deploy using devpod adapter with --ci-mode (forces autoInstall=false)
+            echo "::group::Step 3.2: Create DevPod workspace"
+            echo "→ Running: devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS $CONFIG"
             ./deploy/adapters/devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS "$CONFIG"
+            echo "::endgroup::"
 
             TARGET_ID="$WORKSPACE_ID"
-            echo "✓ Deployed to DevPod ($BACKEND): $TARGET_ID"
+            echo ""
+            echo "✅ DevPod deployment complete"
+            echo "   Backend:   $BACKEND"
+            echo "   Workspace: $TARGET_ID"
             ;;
 
           *)
@@ -257,6 +304,15 @@ runs:
             exit 1
             ;;
         esac
+
+        echo ""
+        echo "────────────────────────────────────────────────────────────────"
+        echo "  Deployment Summary"
+        echo "────────────────────────────────────────────────────────────────"
+        echo "  Provider:  $PROVIDER"
+        echo "  Target ID: $TARGET_ID"
+        echo "  Config:    $CONFIG"
+        echo "────────────────────────────────────────────────────────────────"
 
         echo "target-id=$TARGET_ID" >> $GITHUB_OUTPUT
         echo "::notice title=Deployed::Target ID: $TARGET_ID"

@@ -123,11 +123,26 @@ jobs:
         run: |
           TARGET_ID="${{ steps.deploy.outputs.target-id }}"
 
-          echo "::group::Running tests on ${{ inputs.provider }}"
-          echo "Target: $TARGET_ID"
-          echo "Test Level: ${{ inputs.test-level }}"
-          echo "Profile: ${{ inputs.extension-profile }}"
           echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  STAGE 4: Running tests inside container                     ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Test Configuration:"
+          echo "  Provider:   ${{ inputs.provider }}"
+          echo "  Target ID:  $TARGET_ID"
+          echo "  Test Level: ${{ inputs.test-level }}"
+          echo "  Profile:    ${{ inputs.extension-profile }}"
+          echo ""
+          echo "This stage executes sindri-test.sh INSIDE the deployed container."
+          echo "The test script will:"
+          echo "  1. Run CLI validation tests (sindri, extension-manager)"
+          echo "  2. Install extensions from the '${{ inputs.extension-profile }}' profile"
+          echo "  3. Activate mise environment for installed tools"
+          echo "  4. Validate all installed extensions work correctly"
+          echo "  5. Clean up by removing installed extensions"
+          echo ""
+          echo "────────────────────────────────────────────────────────────────"
 
           # Single remote call executes entire test suite
           chmod +x .github/scripts/providers/run-on-provider.sh
@@ -141,13 +156,19 @@ jobs:
           set -e
 
           echo "$OUTPUT"
-          echo "::endgroup::"
+
+          echo ""
+          echo "────────────────────────────────────────────────────────────────"
 
           # Set outputs
           if [[ $EXIT_CODE -eq 0 ]]; then
+            echo ""
+            echo "✅ Tests passed"
             echo "status=success" >> $GITHUB_OUTPUT
             echo "::notice title=Tests Passed::All tests passed for ${{ inputs.provider }}"
           else
+            echo ""
+            echo "❌ Tests failed"
             echo "status=failure" >> $GITHUB_OUTPUT
             echo "::error title=Tests Failed::Tests failed for ${{ inputs.provider }}"
             exit 1
