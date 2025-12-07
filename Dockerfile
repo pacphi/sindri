@@ -54,6 +54,7 @@ RUN apt-get update && apt-get install -y \
     openssh-server \
     pkg-config \
     postgresql-client \
+    python3-jsonschema \
     redis-tools \
     rsync \
     screen \

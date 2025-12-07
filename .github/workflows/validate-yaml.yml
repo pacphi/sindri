@@ -40,6 +40,7 @@ jobs:
   schema-validation:
     name: Schema Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -55,104 +56,8 @@ jobs:
           wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
-      - name: Validate extension schemas
-        run: |
-          FAILURES=0
-          # ajv-cli requires .json extension to parse files correctly
-          tmpfile=$(mktemp --suffix=.json)
-          trap 'rm -f "$tmpfile"' EXIT
-          for ext in docker/lib/extensions/*/extension.yaml; do
-            echo "Validating: $ext"
-            yq -o=json "$ext" > "$tmpfile"
-            if ! ajv validate \
-              -c ajv-formats \
-              -s docker/lib/schemas/extension.schema.json \
-              -d "$tmpfile"; then
-              ((FAILURES++)) || true
-            fi
-          done
-          if [[ $FAILURES -gt 0 ]]; then
-            echo "Failed: $FAILURES extension(s)"
-            exit 1
-          fi
-
-      - name: Validate sindri.yaml examples
-        run: |
-          FAILURES=0
-          # ajv-cli requires .json extension to parse files correctly
-          tmpfile=$(mktemp --suffix=.json)
-          trap 'rm -f "$tmpfile"' EXIT
-          for example in examples/**/*.sindri.yaml examples/*.sindri.yaml; do
-            if [[ -f "$example" ]]; then
-              echo "Validating: $example"
-              yq -o=json "$example" > "$tmpfile"
-              if ! ajv validate \
-                -c ajv-formats \
-                -s docker/lib/schemas/sindri.schema.json \
-                -d "$tmpfile"; then
-                ((FAILURES++)) || true
-              fi
-            fi
-          done
-          if [[ $FAILURES -gt 0 ]]; then
-            echo "Failed: $FAILURES example(s)"
-            exit 1
-          fi
-
-      - name: Validate profiles.yaml
-        run: |
-          # ajv-cli requires .json extension to parse files correctly
-          tmpfile=$(mktemp --suffix=.json)
-          trap 'rm -f "$tmpfile"' EXIT
-          yq -o=json docker/lib/profiles.yaml > "$tmpfile"
-          ajv validate \
-            -c ajv-formats \
-            -s docker/lib/schemas/profiles.schema.json \
-            -d "$tmpfile"
-
-      - name: Validate registry.yaml
-        run: |
-          # ajv-cli requires .json extension to parse files correctly
-          tmpfile=$(mktemp --suffix=.json)
-          trap 'rm -f "$tmpfile"' EXIT
-          yq -o=json docker/lib/registry.yaml > "$tmpfile"
-          ajv validate \
-            -c ajv-formats \
-            -s docker/lib/schemas/registry.schema.json \
-            -d "$tmpfile"
-
-      - name: Validate categories.yaml
-        run: |
-          # ajv-cli requires .json extension to parse files correctly
-          tmpfile=$(mktemp --suffix=.json)
-          trap 'rm -f "$tmpfile"' EXIT
-          yq -o=json docker/lib/categories.yaml > "$tmpfile"
-          ajv validate \
-            -c ajv-formats \
-            -s docker/lib/schemas/categories.schema.json \
-            -d "$tmpfile"
-
-      - name: Validate project-templates.yaml
-        run: |
-          # ajv-cli requires .json extension to parse files correctly
-          tmpfile=$(mktemp --suffix=.json)
-          trap 'rm -f "$tmpfile"' EXIT
-          yq -o=json docker/lib/project-templates.yaml > "$tmpfile"
-          ajv validate \
-            -c ajv-formats \
-            -s docker/lib/schemas/project-templates.schema.json \
-            -d "$tmpfile"
-
-      - name: Validate vm-sizes.yaml
-        run: |
-          # ajv-cli requires .json extension to parse files correctly
-          tmpfile=$(mktemp --suffix=.json)
-          trap 'rm -f "$tmpfile"' EXIT
-          yq -o=json docker/lib/vm-sizes.yaml > "$tmpfile"
-          ajv validate \
-            -c ajv-formats \
-            -s docker/lib/schemas/vm-sizes.schema.json \
-            -d "$tmpfile"
+      - name: Validate all schemas
+        run: ./test/unit/yaml/validate-schema.sh all
 
   cross-references:
     name: Cross-Reference Validation
@@ -168,6 +73,25 @@ jobs:
 
       - name: Validate cross-references
         run: ./test/unit/yaml/test-cross-references.sh
+
+  domain-requirements:
+    name: Domain Requirements Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Validate domain requirements
+        run: |
+          chmod +x test/unit/yaml/test-domain-requirements.sh
+          # Run format/duplicate validation (hard fail)
+          # DNS validation disabled in CI (network may be restricted)
+          VALIDATE_DNS=false ./test/unit/yaml/test-domain-requirements.sh
 
   extension-consistency:
     name: Extension Consistency

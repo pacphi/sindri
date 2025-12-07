@@ -154,15 +154,21 @@ install_via_mise() {
     local home_dir="${HOME:-/alt/home/developer}"
     local workspace="${WORKSPACE:-$home_dir/workspace}"
 
-    print_status "Installing $ext_name via mise..."
+    print_status "Installing $ext_name via mise (this may take 1-5 minutes)..."
 
-    # Check if mise is available
+    # Progress indicator: Step 1 - Verify mise availability
+    if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
+        echo "  [1/4] Verifying mise availability..."
+    fi
     if ! command_exists mise; then
         print_error "mise is not available"
         return 1
     fi
 
-    # Get config file
+    # Progress indicator: Step 2 - Load and verify configuration
+    if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
+        echo "  [2/4] Loading mise configuration..."
+    fi
     local config_file
     config_file=$(load_yaml "$ext_yaml" '.install.mise.configFile')
 
@@ -178,32 +184,54 @@ install_via_mise() {
         return 1
     fi
 
-    # Copy mise config to user's XDG config directory (not workspace)
-    # Mise looks for configs at $MISE_CONFIG_DIR which is $HOME/.config/mise
+    # Copy mise config to user's XDG config directory
     local mise_conf_dir="${MISE_CONFIG_DIR:-$home_dir/.config/mise}/conf.d"
     ensure_directory "$mise_conf_dir"
     cp "$config_path" "$mise_conf_dir/${ext_name}.toml" || {
         print_error "Failed to copy mise config to $mise_conf_dir"
         return 1
     }
+    [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]] && echo "     Configuration copied to $mise_conf_dir"
 
     # Install tools
     cd "$workspace" || return 1
 
-    # Run mise install (returns 0 even when "all tools are installed")
-    if ! mise install 2>&1; then
-        print_error "mise install failed"
-        return 1
+    # Progress indicator: Step 3 - Install tools
+    if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
+        echo "  [3/4] Installing tools with mise (timeout: 5min, 3 retries if needed)..."
+        echo "     This step may take several minutes for large tools like Node.js or Python"
     fi
 
-    # Reshim if needed - handle errors gracefully
+    # Run mise install with timeout and retry logic
+    if ! timeout 300 mise install 2>&1 | while IFS= read -r line; do
+        # Indent mise output for better readability
+        if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
+            echo "     $line"
+        else
+            echo "$line"
+        fi
+    done; then
+        print_warning "mise install failed or timed out, retrying with exponential backoff..."
+        # Use existing retry_command from common.sh (3 attempts, 2s initial delay)
+        if ! retry_command 3 2 timeout 300 mise install; then
+            print_error "mise install failed after 3 attempts (total: 15min max)"
+            return 1
+        fi
+    fi
+
+    # Progress indicator: Step 4 - Reshim (if needed)
     local reshim
     reshim=$(load_yaml "$ext_yaml" '.install.mise.reshimAfterInstall' 2>/dev/null || echo "true")
 
     if [[ "$reshim" == "true" ]]; then
+        if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
+            echo "  [4/4] Running mise reshim to update shims..."
+        fi
         # mise reshim can fail if there's nothing to reshim - that's OK
         mise reshim 2>/dev/null || true
     fi
+
+    print_success "$ext_name installation via mise completed successfully"
 
     return 0
 }
@@ -478,18 +506,77 @@ validate_extension() {
 
     print_status "Validating $ext_name..."
 
-    # Validate commands exist
-    local commands
-    commands=$(load_yaml "$ext_yaml" '.validate.commands[].name' 2>/dev/null || true)
+    # Get validation timeout from extension or use default
+    local validation_timeout
+    validation_timeout=$(load_yaml "$ext_yaml" '.requirements.validationTimeout' 2>/dev/null || echo "null")
+    # Handle null from yq (same issue as autoInstall bug)
+    if [[ "$validation_timeout" == "null" ]]; then
+        validation_timeout="${SINDRI_VALIDATION_TIMEOUT:-10}"
+    fi
+
+    # Get list of validation commands
+    local num_commands
+    num_commands=$(load_yaml "$ext_yaml" '.validate.commands | length' 2>/dev/null || echo "0")
+
+    if [[ "$num_commands" == "0" ]]; then
+        [[ "${VERBOSE:-false}" == "true" ]] && print_warning "No validation commands defined for $ext_name"
+        return 0
+    fi
 
     local all_valid=true
-    for cmd in $commands; do
-        if command_exists "$cmd"; then
-            [[ "${VERBOSE:-false}" == "true" ]] && print_success "✓ $cmd found"
-        else
+    local idx=0
+
+    while [[ $idx -lt $num_commands ]]; do
+        local cmd
+        local expected_pattern
+        cmd=$(load_yaml "$ext_yaml" ".validate.commands[$idx].name" 2>/dev/null || true)
+        expected_pattern=$(load_yaml "$ext_yaml" ".validate.commands[$idx].expectedPattern" 2>/dev/null || true)
+
+        if [[ -z "$cmd" ]]; then
+            idx=$((idx + 1))
+            continue
+        fi
+
+        # Check if command exists first
+        if ! command_exists "$cmd"; then
             print_error "✗ $cmd not found"
             all_valid=false
+            idx=$((idx + 1))
+            continue
         fi
+
+        # Execute command with timeout and validate output if pattern provided
+        local output
+        local exit_code
+        if output=$(timeout "$validation_timeout" "$cmd" --version 2>&1); then
+            exit_code=0
+        else
+            exit_code=$?
+        fi
+
+        # Check if timeout occurred (exit code 124)
+        if [[ $exit_code -eq 124 ]]; then
+            print_error "✗ $cmd validation timed out after ${validation_timeout}s"
+            all_valid=false
+        elif [[ $exit_code -ne 0 ]]; then
+            print_error "✗ $cmd execution failed (exit code: $exit_code)"
+            all_valid=false
+        elif [[ -n "$expected_pattern" ]] && [[ "$expected_pattern" != "null" ]]; then
+            # Validate output against expected pattern if provided
+            # Use grep -P for Perl regex support (\d, \s, etc.)
+            if echo "$output" | grep -qP "$expected_pattern"; then
+                [[ "${VERBOSE:-false}" == "true" ]] && print_success "✓ $cmd validated (pattern matched)"
+            else
+                print_error "✗ $cmd output doesn't match expected pattern: $expected_pattern"
+                [[ "${VERBOSE:-false}" == "true" ]] && echo "  Output: $output"
+                all_valid=false
+            fi
+        else
+            # No pattern check, just verify command runs
+            [[ "${VERBOSE:-false}" == "true" ]] && print_success "✓ $cmd found and executable"
+        fi
+
+        idx=$((idx + 1))
     done
 
     if [[ "$all_valid" == "true" ]]; then
@@ -513,7 +600,8 @@ remove_extension() {
     local needs_confirmation
     needs_confirmation=$(load_yaml "$ext_yaml" '.remove.confirmation' 2>/dev/null || echo "true")
 
-    if [[ "$needs_confirmation" == "true" ]] && [[ "${DRY_RUN:-false}" != "true" ]]; then
+    # Skip confirmation if --force is set or in dry-run mode
+    if [[ "$needs_confirmation" == "true" ]] && [[ "${DRY_RUN:-false}" != "true" ]] && [[ "${FORCE_MODE:-false}" != "true" ]]; then
         read -p "Remove $ext_name? (y/N) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then

@@ -29,28 +29,31 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Source common adapter functions
+# shellcheck source=adapter-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/adapter-common.sh"
 
-COMMAND=""
-SINDRI_YAML=""
-CONFIG_ONLY=false
-OUTPUT_DIR="."
-OUTPUT_VARS=false
+# Initialize adapter
+adapter_init "${BASH_SOURCE[0]}"
+
+# Docker-specific defaults
 SKIP_BUILD=false
+# shellcheck disable=SC2034  # Used via indirect expansion in adapter_parse_base_config
 CONTAINER_NAME_OVERRIDE=""
-FORCE=false
 
+# Show help wrapper
 show_help() {
-    head -30 "$0" | tail -28
-    exit 0
+    adapter_show_help "$0" 30
 }
 
-[[ $# -eq 0 ]] && show_help
+# Parse command
+if ! adapter_parse_command "$@"; then
+    show_help
+fi
+set -- "${REMAINING_ARGS[@]}"
 
-COMMAND="$1"
-shift
-
+# Parse arguments
+# shellcheck disable=SC2034  # Variables used by adapter_parse_base_config or sourced scripts
 while [[ $# -gt 0 ]]; do
     case $1 in
         --config-only)    CONFIG_ONLY=true; shift ;;
@@ -58,20 +61,18 @@ while [[ $# -gt 0 ]]; do
         --output-vars)    OUTPUT_VARS=true; shift ;;
         --skip-build)     SKIP_BUILD=true; shift ;;
         --container-name) CONTAINER_NAME_OVERRIDE="$2"; shift 2 ;;
+        --ci-mode)        CI_MODE=true; shift ;;
         --force|-f)       FORCE=true; shift ;;
         --help|-h)        show_help ;;
-        -*)               echo "Unknown option: $1" >&2; exit 1 ;;
+        -*)               adapter_unknown_option "$1" ;;
         *)                SINDRI_YAML="$1"; shift ;;
     esac
 done
 
-SINDRI_YAML="${SINDRI_YAML:-sindri.yaml}"
+# Validate config file
+adapter_validate_config
 
-if [[ ! -f "$SINDRI_YAML" ]]; then
-    echo "Error: $SINDRI_YAML not found" >&2
-    exit 1
-fi
-
+# Source common utilities (print_*, etc.)
 source "$BASE_DIR/docker/lib/common.sh"
 
 # ============================================================================
@@ -79,39 +80,14 @@ source "$BASE_DIR/docker/lib/common.sh"
 # ============================================================================
 
 parse_config() {
-    NAME=$(yq '.name' "$SINDRI_YAML")
-    if [[ -n "$CONTAINER_NAME_OVERRIDE" ]]; then
-        NAME="$CONTAINER_NAME_OVERRIDE"
-    fi
+    # Parse base configuration
+    adapter_parse_base_config "CONTAINER_NAME_OVERRIDE"
 
-    MEMORY=$(yq '.deployment.resources.memory // "1GB"' "$SINDRI_YAML")
-    CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
-    PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
-    # Auto-install: default true, set extensions.autoInstall: false to disable
-    AUTO_INSTALL=$(yq '.extensions.autoInstall // true' "$SINDRI_YAML")
+    # Docker-specific: Memory is used as-is (e.g., "4GB")
+    # MEMORY, CPUS, VOLUME_SIZE already set by adapter_parse_base_config
+
+    # Re-read volume size with GB suffix for docker-compose
     VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML")
-
-    # GPU configuration
-    GPU_ENABLED=$(yq '.deployment.resources.gpu.enabled // false' "$SINDRI_YAML")
-    GPU_TYPE=$(yq '.deployment.resources.gpu.type // "nvidia"' "$SINDRI_YAML")
-    GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
-}
-
-validate_gpu() {
-    if [[ "$GPU_ENABLED" != "true" ]]; then
-        return 0
-    fi
-
-    if [[ "$GPU_TYPE" != "nvidia" ]]; then
-        print_error "Docker adapter only supports nvidia GPUs (requested: $GPU_TYPE)"
-        exit 1
-    fi
-
-    # Check for NVIDIA runtime availability
-    if ! docker info 2>/dev/null | grep -q "nvidia"; then
-        print_warning "NVIDIA Docker runtime not detected"
-        echo "Install nvidia-container-toolkit for GPU support." >&2
-    fi
 }
 
 # ============================================================================
@@ -131,7 +107,7 @@ services:
     image: sindri:latest
     container_name: ${NAME}
     volumes:
-      - dev_home:/alt/home/developer
+      - ${NAME}_home:/alt/home/developer
 EODC
 
     # Add env_file if secrets exist
@@ -142,11 +118,9 @@ EODC
 EODC
     fi
 
-    # Convert autoInstall (true/false) to SKIP_AUTO_INSTALL (inverted)
-    local skip_auto_install="false"
-    if [[ "$AUTO_INSTALL" == "false" ]]; then
-        skip_auto_install="true"
-    fi
+    # Get skip_auto_install value
+    local skip_auto_install
+    skip_auto_install=$(adapter_get_skip_auto_install)
 
     # Add environment variables
     cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
@@ -189,7 +163,7 @@ EODC
     command: sleep infinity
 
 volumes:
-  dev_home:
+  ${NAME}_home:
     driver: local
 EODC
 }
@@ -218,7 +192,7 @@ EOJSON
     fi
 
     # Validate GPU if enabled
-    validate_gpu
+    adapter_validate_docker_gpu
 
     # Resolve secrets (skip in config-only mode)
     if [[ "$CONFIG_ONLY" != "true" ]]; then
@@ -384,16 +358,4 @@ cmd_status() {
 # Main Dispatch
 # ============================================================================
 
-case "$COMMAND" in
-    deploy)  cmd_deploy ;;
-    connect) cmd_connect ;;
-    destroy) cmd_destroy ;;
-    plan)    cmd_plan ;;
-    status)  cmd_status ;;
-    help|--help|-h) show_help ;;
-    *)
-        echo "Unknown command: $COMMAND" >&2
-        echo "Commands: deploy, connect, destroy, plan, status"
-        exit 1
-        ;;
-esac
+adapter_dispatch "$COMMAND" cmd_deploy cmd_connect cmd_destroy cmd_plan cmd_status show_help

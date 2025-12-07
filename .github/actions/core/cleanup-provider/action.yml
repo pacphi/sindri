@@ -1,0 +1,87 @@
+name: Cleanup Provider
+description: Cleanup Sindri deployment on any supported provider (unified cleanup action)
+
+inputs:
+  provider:
+    description: Provider to cleanup (docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s)
+    required: true
+  target-id:
+    description: Target identifier to cleanup (container name, app name, or workspace ID)
+    required: true
+  force:
+    description: Force cleanup even if resources don't exist
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Cleanup
+      shell: bash
+      run: |
+        PROVIDER="${{ inputs.provider }}"
+        TARGET_ID="${{ inputs.target-id }}"
+        FORCE="${{ inputs.force }}"
+
+        echo "Cleaning up $PROVIDER deployment: $TARGET_ID..."
+
+        case "$PROVIDER" in
+          docker)
+            # Stop and remove container
+            if docker ps -a --format '{{.Names}}' | grep -q "^${TARGET_ID}$"; then
+              docker rm -f "$TARGET_ID" 2>/dev/null || true
+              echo "✓ Removed container: $TARGET_ID"
+            else
+              echo "::notice::Container $TARGET_ID not found"
+            fi
+
+            # Remove volumes matching container name
+            docker volume ls -q --filter "name=${TARGET_ID}_home" | xargs -r docker volume rm 2>/dev/null || true
+            echo "✓ Removed volumes for: $TARGET_ID"
+
+            # Clean up docker-compose if exists
+            if [[ -f docker-compose.yml ]]; then
+              docker compose -f docker-compose.yml down -v 2>/dev/null || true
+            fi
+            ;;
+
+          fly)
+            # Destroy Fly.io app
+            if flyctl apps list 2>/dev/null | grep -q "$TARGET_ID"; then
+              flyctl apps destroy "$TARGET_ID" --yes 2>/dev/null || true
+              echo "✓ Destroyed Fly.io app: $TARGET_ID"
+            else
+              echo "::notice::Fly.io app $TARGET_ID not found"
+            fi
+            ;;
+
+          devpod-*)
+            # Delete DevPod workspace
+            if command -v devpod &>/dev/null; then
+              if devpod list 2>/dev/null | grep -q "$TARGET_ID"; then
+                devpod delete "$TARGET_ID" --force 2>/dev/null || true
+                echo "✓ Deleted DevPod workspace: $TARGET_ID"
+              else
+                echo "::notice::DevPod workspace $TARGET_ID not found"
+              fi
+            fi
+
+            # For devpod-k8s, also cleanup the kind cluster if it exists
+            if [[ "$PROVIDER" == "devpod-k8s" ]]; then
+              if command -v kind &>/dev/null; then
+                if kind get clusters 2>/dev/null | grep -q "^sindri-ci$"; then
+                  echo "Deleting kind cluster: sindri-ci"
+                  kind delete cluster --name sindri-ci 2>/dev/null || true
+                  echo "✓ Deleted kind cluster: sindri-ci"
+                fi
+              fi
+            fi
+            ;;
+
+          *)
+            echo "::error::Unknown provider: $PROVIDER"
+            exit 1
+            ;;
+        esac
+
+        echo "✓ Cleanup complete for $PROVIDER"

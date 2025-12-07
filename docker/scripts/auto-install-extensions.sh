@@ -49,6 +49,12 @@ fi
 install_extensions() {
     local bootstrap_marker="${WORKSPACE}/.system/bootstrap.yaml"
 
+    # Debug logging for CI troubleshooting
+    print_status "Auto-install configuration:"
+    print_status "  SKIP_AUTO_INSTALL='${SKIP_AUTO_INSTALL:-<not set>}'"
+    print_status "  INSTALL_PROFILE='${INSTALL_PROFILE:-<not set>}'"
+    print_status "  CUSTOM_EXTENSIONS='${CUSTOM_EXTENSIONS:-<not set>}'"
+
     # Skip if auto-install is disabled
     if [[ "${SKIP_AUTO_INSTALL:-false}" == "true" ]]; then
         print_status "Auto-install disabled (SKIP_AUTO_INSTALL=true)"

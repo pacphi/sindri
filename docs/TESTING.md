@@ -67,22 +67,27 @@ examples/
 
 ```bash
 # Test a single configuration
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --level quick
 
 # Test all examples in a directory
-./cli/sindri test --config examples/fly/ --suite smoke
+./cli/sindri test --config examples/fly/ --level quick
 
 # Validate configuration before testing
 ./cli/sindri config validate --config examples/fly/minimal.sindri.yaml
 ```
 
-### Test Suites
+### Test Levels
 
-| Suite         | Purpose                                 | Duration |
-| ------------- | --------------------------------------- | -------- |
-| `smoke`       | Basic connectivity and health checks    | Fast     |
-| `integration` | Extension validation and functionality  | Medium   |
-| `full`        | All tests including smoke + integration | Slow     |
+| Level       | Purpose                                        | Duration | Tests |
+| ----------- | ---------------------------------------------- | -------- | ----- |
+| `quick`     | CLI validation only                            | ~10-15s  | 7     |
+| `extension` | Single extension lifecycle (install/remove)    | ~45-60s  | 11    |
+| `profile`   | Profile lifecycle (install-profile/remove all) | ~90-120s | 11    |
+| `all`       | All levels sequentially                        | ~2-3min  | 29    |
+
+**Note**: Extension and profile levels include idempotency testing (reinstall + revalidate).
+
+See [CI_WORKFLOW_IN_DEPTH.md](CI_WORKFLOW_IN_DEPTH.md) for detailed test specifications.
 
 ## Static Analysis
 
@@ -97,17 +102,18 @@ The new YAML validation system provides comprehensive checks:
 
 **Individual YAML Tests:**
 
-| Script                      | Purpose                                      |
-| --------------------------- | -------------------------------------------- |
-| `test-extension-schemas.sh` | Validate extension.yaml files against schema |
-| `test-profile-schema.sh`    | Validate profiles.yaml                       |
-| `test-registry-schema.sh`   | Validate registry.yaml                       |
-| `test-categories-schema.sh` | Validate categories.yaml                     |
-| `test-templates-schema.sh`  | Validate project-templates.yaml              |
-| `test-vm-sizes-schema.sh`   | Validate vm-sizes.yaml                       |
-| `test-sindri-examples.sh`   | Validate all sindri.yaml examples            |
-| `test-cross-references.sh`  | Validate cross-file references               |
-| `test-yaml-lint.sh`         | Run yamllint on all YAML files               |
+| Script                        | Purpose                                      |
+| ----------------------------- | -------------------------------------------- |
+| `test-extension-schemas.sh`   | Validate extension.yaml files against schema |
+| `test-profile-schema.sh`      | Validate profiles.yaml                       |
+| `test-registry-schema.sh`     | Validate registry.yaml                       |
+| `test-categories-schema.sh`   | Validate categories.yaml                     |
+| `test-templates-schema.sh`    | Validate project-templates.yaml              |
+| `test-vm-sizes-schema.sh`     | Validate vm-sizes.yaml                       |
+| `test-sindri-examples.sh`     | Validate all sindri.yaml examples            |
+| `test-cross-references.sh`    | Validate cross-file references               |
+| `test-domain-requirements.sh` | Validate extension domain requirements       |
+| `test-yaml-lint.sh`           | Run yamllint on all YAML files               |
 
 **Quality Checks:**
 
@@ -127,6 +133,33 @@ The new YAML validation system provides comprehensive checks:
 - `docker/lib/schemas/categories.schema.json` - Category definitions
 - `docker/lib/schemas/project-templates.schema.json` - Project templates
 - `docker/lib/schemas/vm-sizes.schema.json` - VM size mappings across providers
+
+### Domain Requirements Validation
+
+Extensions declare `requirements.domains` to list external domains accessed during
+installation. The domain validation test (`test-domain-requirements.sh`) checks:
+
+| Check      | Behavior     | Description                                 |
+| ---------- | ------------ | ------------------------------------------- |
+| Format     | Hard fail    | Valid hostname syntax (RFC 1123)            |
+| Duplicates | Hard fail    | No duplicate domain entries                 |
+| DNS        | Warning only | Domains resolve (optional, off by default)  |
+| Undeclared | Warning only | Domains in scripts not declared (heuristic) |
+
+**Running locally:**
+
+```bash
+# Via test script (format + duplicates only)
+./test/unit/yaml/test-domain-requirements.sh
+
+# Via extension-manager with DNS check
+extension-manager --check-dns validate-domains
+```
+
+**Environment variables:**
+
+- `VALIDATE_DNS=true` - Enable DNS resolution checks
+- `DNS_TIMEOUT=3` - DNS lookup timeout in seconds
 
 ### Shell Script Validation
 
@@ -152,17 +185,18 @@ pnpm lint:md
 
 The CI system uses these workflows:
 
-| Workflow                 | Purpose                                                       |
-| ------------------------ | ------------------------------------------------------------- |
-| `ci.yml`                 | Main CI orchestrator - validation, build, unified testing     |
-| `validate-yaml.yml`      | Comprehensive YAML validation                                 |
-| `test-sindri-config.yml` | Config-driven testing (discovers examples)                    |
-| `deploy-sindri.yml`      | Reusable deployment workflow                                  |
-| `teardown-sindri.yml`    | Reusable cleanup workflow                                     |
-| `test-provider.yml`      | Full test suite per provider (CLI + extensions + integration) |
-| `release.yml`            | Release automation                                            |
+| Workflow              | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `ci.yml`              | Main CI orchestrator - validation, build, unified testing     |
+| `validate-yaml.yml`   | Comprehensive YAML validation                                 |
+| `test-extensions.yml` | Registry-based extension testing (single, multiple, or all)   |
+| `test-profiles.yml`   | Config-driven profile testing (discovers sindri.yaml files)   |
+| `deploy-sindri.yml`   | Reusable deployment workflow                                  |
+| `teardown-sindri.yml` | Reusable cleanup workflow                                     |
+| `test-provider.yml`   | Full test suite per provider (CLI + extensions + integration) |
+| `release.yml`         | Release automation                                            |
 
-### CI Test Flow (Unified Provider Testing)
+### CI Test Flow (Simplified)
 
 ```text
 ┌─────────────────┐
@@ -181,23 +215,31 @@ The CI system uses these workflows:
          │
          ├─> build (Docker image)
          │
-         └─> test-providers (matrix: each provider gets FULL test coverage)
+         └─> test-providers (matrix: each provider tested)
              │
-             FOR EACH provider in [docker, fly, devpod-aws, devpod-do, etc.]:
+             FOR EACH provider in [docker, fly, devpod-k8s]:
              │
-             ├─> Phase 1: Deploy infrastructure
+             ├─> Setup credentials
              │
-             ├─> Phase 2: CLI tests (sindri, extension-manager)
+             ├─> Deploy infrastructure
              │
-             ├─> Phase 3: Extension tests (validate, install profile)
+             ├─> Run sindri-test.sh (ONE remote call)
+             │   │
+             │   └─> Executes INSIDE container:
+             │       - Quick: CLI validation
+             │       - Extension: Single extension lifecycle
+             │       - Profile: Profile lifecycle
              │
-             ├─> Phase 4: Run test suites (smoke, integration, full)
-             │
-             └─> Phase 5: Cleanup
+             └─> Cleanup
 ```
 
-**Key Change**: CLI and extension tests now run on EACH selected provider, not just Docker.
-This ensures consistent test coverage and catches provider-specific issues.
+**Key Simplification**: All tests run INSIDE the container via a single unified
+script (`/docker/scripts/sindri-test.sh`), eliminating shell quoting issues and
+reducing complexity from 2,400 lines to ~550 lines.
+
+**CI Mode**: All provider deployments use `--ci-mode` flag to force `autoInstall=false`,
+ensuring clean slate testing regardless of the sindri.yaml configuration. This allows
+testing any profile/config combination without modifying files.
 
 ### Kubernetes Testing with Kind
 
@@ -266,16 +308,35 @@ kind create cluster --name my-cluster
 ./cli/sindri deploy --config examples/devpod/kubernetes/minimal.sindri.yaml
 ```
 
-### Testing with Examples
+### Testing Profiles (Config-based)
 
-The `test-sindri-config.yml` workflow discovers and tests all examples:
+The `test-profiles.yml` workflow discovers and tests sindri.yaml configuration files:
 
 ```yaml
 # Run via workflow_dispatch
 config-path: examples/fly/ # Test all Fly.io examples
-test-suite: smoke # Test suite to run
+test-level: quick # Test level (quick, profile, all)
 skip-cleanup: false # Cleanup after tests
 ```
+
+### Testing Extensions (Registry-based)
+
+The `test-extensions.yml` workflow tests individual extensions directly from the registry:
+
+```yaml
+# Run via workflow_dispatch
+extensions: nodejs           # Single extension
+extensions: nodejs,python    # Multiple extensions (comma-separated)
+extensions: all              # All non-protected extensions (~29)
+skip-cleanup: false          # Cleanup after tests
+```
+
+**Key features:**
+
+- **Docker-only**: Tests run locally in Docker containers (fast feedback)
+- **Matrix execution**: Each extension runs as a separate job
+- **Protected exclusion**: Base extensions (mise-config, workspace-structure, github-cli) excluded from "all"
+- **Max parallel**: 4 concurrent extension tests
 
 ### Running CI Locally
 
@@ -309,14 +370,17 @@ docker run -it sindri:local extension-manager validate-all
 ### Run Tests
 
 ```bash
-# Smoke test (basic connectivity)
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+# Quick test (CLI validation)
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --level quick
 
-# Integration test (full extension validation)
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite integration
+# Extension lifecycle test (single extension)
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --level extension
 
-# Full test suite
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite full
+# Profile lifecycle test (full profile)
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --level profile
+
+# All tests
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --level all
 ```
 
 ### Deploy for Manual Testing
@@ -394,8 +458,8 @@ Tests run for each extension:
    - Check cross-references if modifying registry/profiles
 
 4. **Keep Tests Fast:**
-   - Use `--suite smoke` for quick validation
-   - Use `--suite full` for comprehensive testing
+   - Use `--level quick` for fast CLI validation
+   - Use `--level profile` for comprehensive testing
 
 5. **Clean Up Resources:**
    - Always use `--force` with destroy in automated scripts
@@ -407,7 +471,7 @@ Tests run for each extension:
 
 ```bash
 export DEBUG=true
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+./cli/sindri test --config examples/fly/minimal.sindri.yaml --level quick
 ```
 
 ### Test in Docker

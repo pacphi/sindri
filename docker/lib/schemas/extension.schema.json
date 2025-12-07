@@ -69,6 +69,18 @@
           "minimum": 0,
           "description": "Estimated installation time in seconds"
         },
+        "installTimeout": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 300,
+          "description": "Maximum installation timeout in seconds (default: 300s / 5min)"
+        },
+        "validationTimeout": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 10,
+          "description": "Maximum validation timeout in seconds (default: 10s)"
+        },
         "secrets": {
           "type": "array",
           "items": {

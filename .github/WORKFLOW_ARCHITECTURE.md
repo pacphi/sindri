@@ -20,7 +20,8 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 ├── workflows/                    # GitHub Workflows
 │   ├── ci.yml                    # Main CI orchestrator (unified provider testing)
 │   ├── validate-yaml.yml         # Comprehensive YAML validation
-│   ├── test-sindri-config.yml    # Config-driven testing
+│   ├── test-extensions.yml       # Registry-based extension testing (Docker-only)
+│   ├── test-profiles.yml         # Config-driven profile testing (discovers sindri.yaml)
 │   ├── deploy-sindri.yml         # Reusable deployment
 │   ├── teardown-sindri.yml       # Reusable teardown
 │   ├── test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
@@ -48,14 +49,11 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │           └── cleanup/          # DevPod resource cleanup
 │
 ├── scripts/                      # Test scripts and utilities
-│   ├── test-all-extensions.sh    # Extension validation script
 │   ├── calculate-profile-resources.sh  # Profile resource calculator
 │   ├── generate-slack-notification.sh  # Slack message generator
-│   ├── lib/
-│   │   ├── test-helpers.sh       # Shared test functions
-│   │   └── assertions.sh         # Test assertion functions
-│   └── extensions/
-│       └── test-extension-complete.sh  # Full extension test suite
+│   └── lib/
+│       ├── test-helpers.sh       # Shared test functions
+│       └── assertions.sh         # Test assertion functions
 │
 └── WORKFLOW_ARCHITECTURE.md      # This document
 
@@ -98,11 +96,13 @@ The primary CI orchestrator with **unified provider testing**:
 ```text
 FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
   └─> test-provider.yml
-      ├─> Phase 1: Deploy infrastructure
-      ├─> Phase 2: CLI tests (sindri, extension-manager)
-      ├─> Phase 3: Extension tests (validate, install profile)
-      ├─> Phase 4: Run test suites (smoke, integration, full)
-      └─> Phase 5: Cleanup
+      ├─> Setup credentials
+      ├─> Deploy infrastructure
+      ├─> Run sindri-test.sh (inside container)
+      │   ├─> Quick: CLI validation
+      │   ├─> Extension: Single extension lifecycle
+      │   └─> Profile: Profile lifecycle
+      └─> Cleanup
 ```
 
 **Triggers:**
@@ -127,22 +127,43 @@ Comprehensive YAML validation:
 - Cross-reference validation (profiles → registry → extensions → categories)
 - Extension consistency checks
 
-### Config-Driven Test Workflow (`test-sindri-config.yml`)
+### Extension Testing Workflow (`test-extensions.yml`)
 
-The core of the YAML-driven approach:
+Registry-based extension testing that runs in Docker (fast, local):
+
+- **Reads** extensions directly from `docker/lib/registry.yaml`
+- **Supports** single extension, comma-separated list, or `all`
+- **Matrix** runs each extension as a separate job (max 4 parallel)
+- **Excludes** protected base extensions from `all` (mise-config, workspace-structure, github-cli)
+
+```yaml
+# Example: Test specific extensions
+- uses: ./.github/workflows/test-extensions.yml
+  with:
+    extensions: nodejs,python,golang
+
+# Example: Test all non-protected extensions
+- uses: ./.github/workflows/test-extensions.yml
+  with:
+    extensions: all
+```
+
+### Profile Testing Workflow (`test-profiles.yml`)
+
+Config-driven testing for sindri.yaml files:
 
 - **Discovers** sindri.yaml files in specified path
 - **Validates** each configuration against schema
 - **Deploys** using the configuration
-- **Tests** with specified suite (smoke/integration/full)
+- **Tests** with specified level (quick/profile/all)
 - **Tears down** resources
 
 ```yaml
 # Example: Test all Fly.io examples
-- uses: ./.github/workflows/test-sindri-config.yml
+- uses: ./.github/workflows/test-profiles.yml
   with:
     config-path: examples/fly/
-    test-suite: smoke
+    test-level: quick
 ```
 
 ### Deploy Workflow (`deploy-sindri.yml`)
@@ -381,21 +402,31 @@ extensions:
 
 The `.github/scripts/` directory contains test utilities:
 
-| Script                                  | Purpose                                                              |
-| --------------------------------------- | -------------------------------------------------------------------- |
-| `test-all-extensions.sh`                | Validates all extensions (used by `pnpm test:extensions`)            |
-| `calculate-profile-resources.sh`        | Calculates aggregate resources for a profile (disk, memory, timeout) |
-| `generate-slack-notification.sh`        | Generates Slack messages for deployment notifications                |
-| `lib/test-helpers.sh`                   | Shared logging, retry, and VM interaction functions                  |
-| `lib/assertions.sh`                     | Test assertion functions (equals, contains, file exists, etc.)       |
-| `extensions/test-extension-complete.sh` | Full test suite for individual extensions                            |
+| Script                           | Purpose                                                              |
+| -------------------------------- | -------------------------------------------------------------------- |
+| `calculate-profile-resources.sh` | Calculates aggregate resources for a profile (disk, memory, timeout) |
+| `generate-slack-notification.sh` | Generates Slack messages for deployment notifications                |
+| `lib/test-helpers.sh`            | Shared logging, retry, and VM interaction functions                  |
+| `lib/assertions.sh`              | Test assertion functions (equals, contains, file exists, etc.)       |
 
-**Extensibility:** Workflows support optional extension-specific test scripts at
-`.github/scripts/test-{extension}.sh`. If present, these are executed; otherwise,
-generic tests run. Currently no extension-specific scripts exist - the generic
-tests handle all cases.
+**Extension Testing:** All extension tests are now integrated into the `test-provider.yml` workflow with 9 phases:
+
+1. Profile Installation
+2. Extension Discovery
+3. Extension Validation
+4. Functionality Tests (integration/full only)
+5. Idempotency Tests (integration/full only)
+6. File System Checks (integration/full only)
+7. Environment Checks (integration/full only)
+8. Uninstall & Cleanup (integration/full only)
+9. Results Summary
+
+**Extensibility:** Workflows support optional provider-specific test scripts at
+`.github/scripts/test-provider-{provider}.sh`. If present, these are executed as part of the integration test phase.
 
 ## YAML-Driven Testing Flow
+
+### Profile Testing (test-profiles.yml)
 
 ```text
 ┌───────────────────────────────────┐
@@ -404,7 +435,7 @@ tests handle all cases.
                  │
                  ▼
 ┌─────────────────────────────────┐
-│  test-sindri-config.yml         │
+│  test-profiles.yml              │
 │  - Discover configs             │
 │  - Parse provider/profile       │
 └────────────────┬────────────────┘
@@ -419,7 +450,7 @@ tests handle all cases.
                          ▼
                   ┌─────────────┐
                   │ Test        │
-                  │ (suite)     │
+                  │ (level)     │
                   └──────┬──────┘
                          │
                          ▼
@@ -427,6 +458,36 @@ tests handle all cases.
                   │ Teardown    │
                   │ (cleanup)   │
                   └─────────────┘
+```
+
+### Extension Testing (test-extensions.yml)
+
+```text
+┌───────────────────────────────────┐
+│  Input: "nodejs,python" or "all"  │
+└────────────────┬──────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  test-extensions.yml            │
+│  - Parse input (split/expand)   │
+│  - Query registry for "all"     │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  Build Docker image (once)      │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│  Matrix: FOR EACH extension     │
+│  ├─> Start container            │
+│  ├─> Run sindri-test.sh         │
+│  │   --level extension          │
+│  │   --extension <name>         │
+│  └─> Cleanup container          │
+└─────────────────────────────────┘
 ```
 
 ## Benefits Over Previous Approach
@@ -521,26 +582,39 @@ k8s-use-kind: "false"
 
 ## Usage Examples
 
-### Test All Examples
+### Test All Config Examples (test-profiles.yml)
 
 ```yaml
 # Via workflow_dispatch
 config-path: examples/
-test-suite: smoke
+test-level: quick
 ```
 
-### Test Specific Provider
+### Test Specific Provider Configs (test-profiles.yml)
 
 ```yaml
 config-path: examples/fly/
-test-suite: integration
+test-level: profile
 ```
 
-### Test Single Configuration
+### Test Single Configuration (test-profiles.yml)
 
 ```yaml
 config-path: examples/fly/minimal.sindri.yaml
-test-suite: full
+test-level: all
+```
+
+### Test Individual Extensions (test-extensions.yml)
+
+```yaml
+# Single extension
+extensions: nodejs
+
+# Multiple extensions
+extensions: nodejs,python,golang
+
+# All non-protected extensions (~29)
+extensions: all
 ```
 
 ### Local Testing
@@ -559,12 +633,23 @@ test-suite: full
 
 ## Adding New Test Scenarios
 
+### Adding Profile/Config Tests
+
 1. Create a new `sindri.yaml` file in appropriate `examples/` subdirectory
 2. The file is automatically:
-   - Discovered by `test-sindri-config.yml`
+   - Discovered by `test-profiles.yml`
    - Validated against schema
    - Used as documentation for users
 3. No workflow changes needed
+
+### Adding Extension Tests
+
+Extensions are automatically tested via `test-extensions.yml`:
+
+1. Add new extension to `docker/lib/registry.yaml`
+2. Create extension definition in `docker/lib/extensions/<name>/extension.yaml`
+3. Test individually: trigger workflow with `extensions: <name>`
+4. Test with all: trigger workflow with `extensions: all` (excludes protected extensions)
 
 ## Troubleshooting
 

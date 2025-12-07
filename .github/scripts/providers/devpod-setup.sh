@@ -10,14 +10,16 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# Source common setup functions
+# shellcheck source=common-setup.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common-setup.sh"
 
-# Default values
+# Initialize common variables
+init_common_vars "${BASH_SOURCE[0]}"
+
+# Provider-specific defaults
 WORKSPACE_NAME=""
-SINDRI_CONFIG=""
 PROVIDER_TYPE="docker"
-OUTPUT_DIR="."
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -39,52 +41,36 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --help)
-            head -12 "$0" | tail -10
-            exit 0
+            show_help "$0"
             ;;
         *)
-            echo "Unknown option: $1" >&2
-            exit 1
+            unknown_option "$1"
             ;;
     esac
 done
 
 # Validate required inputs
-if [[ -z "$WORKSPACE_NAME" ]]; then
-    echo "Error: --workspace-name is required" >&2
-    exit 1
-fi
+validate_required "workspace-name" "$WORKSPACE_NAME"
 
 # Ensure output directory exists
-mkdir -p "$OUTPUT_DIR"
+ensure_output_dir
 
 # Check if devcontainer.json already exists
-if [[ -f "$OUTPUT_DIR/.devcontainer/devcontainer.json" ]]; then
-    echo "source=existing"
-    echo "Using existing devcontainer.json"
-    exit 0
-fi
+check_existing_config "$OUTPUT_DIR/.devcontainer/devcontainer.json"
 
 # If sindri-config provided and exists, use the adapter
-if [[ -n "$SINDRI_CONFIG" ]] && [[ -f "$SINDRI_CONFIG" ]]; then
-    echo "source=adapter"
-    echo "Generating devcontainer.json using adapter with config: $SINDRI_CONFIG"
-
-    "$REPO_ROOT/deploy/adapters/devpod-adapter.sh" \
+if has_sindri_config; then
+    run_adapter_with_config "devpod-adapter.sh" deploy \
         --config-only \
         --output-dir "$OUTPUT_DIR" \
-        --workspace-name "$WORKSPACE_NAME" \
-        "$SINDRI_CONFIG"
-
+        --workspace-name "$WORKSPACE_NAME"
     exit 0
 fi
 
 # Fallback: Use the devpod-adapter with a minimal inline config
-echo "source=fallback"
-echo "Generating minimal devcontainer.json (no sindri-config provided)"
+TEMP_CONFIG=$(create_temp_config)
 
-TEMP_CONFIG=$(mktemp)
-cat > "$TEMP_CONFIG" << YAML
+write_minimal_config "$TEMP_CONFIG" << YAML
 version: "1.0"
 name: ${WORKSPACE_NAME}
 deployment:
@@ -102,14 +88,11 @@ providers:
     type: ${PROVIDER_TYPE}
 YAML
 
-# Use the adapter with the temporary config
-"$REPO_ROOT/deploy/adapters/devpod-adapter.sh" \
+run_adapter_with_fallback "devpod-adapter.sh" "$TEMP_CONFIG" deploy \
     --config-only \
     --output-dir "$OUTPUT_DIR" \
-    --workspace-name "$WORKSPACE_NAME" \
-    "$TEMP_CONFIG"
+    --workspace-name "$WORKSPACE_NAME"
 
-# Cleanup
-rm -f "$TEMP_CONFIG"
+cleanup_temp_config "$TEMP_CONFIG"
 
-echo "Generated devcontainer.json successfully"
+print_generated_success "devcontainer.json"

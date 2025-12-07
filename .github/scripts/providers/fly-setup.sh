@@ -11,14 +11,16 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# Source common setup functions
+# shellcheck source=common-setup.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common-setup.sh"
 
-# Default values
+# Initialize common variables
+init_common_vars "${BASH_SOURCE[0]}"
+
+# Provider-specific defaults
 APP_NAME=""
-SINDRI_CONFIG=""
 REGION="sjc"
-OUTPUT_DIR="."
 CI_MODE=false
 
 # Parse arguments
@@ -45,12 +47,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help)
-            head -12 "$0" | tail -10
-            exit 0
+            show_help "$0"
             ;;
         *)
-            echo "Unknown option: $1" >&2
-            exit 1
+            unknown_option "$1"
             ;;
     esac
 done
@@ -60,46 +60,32 @@ CI_MODE_FLAG=""
 [[ "$CI_MODE" == "true" ]] && CI_MODE_FLAG="--ci-mode"
 
 # Validate required inputs
-if [[ -z "$APP_NAME" ]]; then
-    echo "Error: --app-name is required" >&2
-    exit 1
-fi
+validate_required "app-name" "$APP_NAME"
 
 # Ensure output directory exists
-mkdir -p "$OUTPUT_DIR"
+ensure_output_dir
 
 # Check if fly.toml already exists
-if [[ -f "$OUTPUT_DIR/fly.toml" ]]; then
-    echo "source=existing"
-    echo "Using existing fly.toml"
-    exit 0
-fi
+check_existing_config "$OUTPUT_DIR/fly.toml"
 
 # If sindri-config provided and exists, use the adapter
-if [[ -n "$SINDRI_CONFIG" ]] && [[ -f "$SINDRI_CONFIG" ]]; then
-    echo "source=adapter"
-    echo "Generating fly.toml using adapter with config: $SINDRI_CONFIG"
+if has_sindri_config; then
     [[ "$CI_MODE" == "true" ]] && echo "CI Mode: enabled"
-
     # shellcheck disable=SC2086
-    "$REPO_ROOT/deploy/adapters/fly-adapter.sh" deploy \
+    run_adapter_with_config "fly-adapter.sh" deploy \
         --config-only \
         --output-dir "$OUTPUT_DIR" \
         --app-name "$APP_NAME" \
-        $CI_MODE_FLAG \
-        "$SINDRI_CONFIG"
-
+        $CI_MODE_FLAG
     exit 0
 fi
 
 # Fallback: Use the fly-adapter with a minimal inline config
-# Create a temporary minimal sindri.yaml
-echo "source=fallback"
-echo "Generating minimal fly.toml (no sindri-config provided)"
 [[ "$CI_MODE" == "true" ]] && echo "CI Mode: enabled"
 
-TEMP_CONFIG=$(mktemp)
-cat > "$TEMP_CONFIG" << YAML
+TEMP_CONFIG=$(create_temp_config)
+
+write_minimal_config "$TEMP_CONFIG" << YAML
 version: "1.0"
 name: ${APP_NAME}
 deployment:
@@ -122,16 +108,13 @@ providers:
     sshPort: 10022
 YAML
 
-# Use the adapter with the temporary config
 # shellcheck disable=SC2086
-"$REPO_ROOT/deploy/adapters/fly-adapter.sh" deploy \
+run_adapter_with_fallback "fly-adapter.sh" "$TEMP_CONFIG" deploy \
     --config-only \
     --output-dir "$OUTPUT_DIR" \
     --app-name "$APP_NAME" \
-    $CI_MODE_FLAG \
-    "$TEMP_CONFIG"
+    $CI_MODE_FLAG
 
-# Cleanup
-rm -f "$TEMP_CONFIG"
+cleanup_temp_config "$TEMP_CONFIG"
 
-echo "Generated fly.toml successfully"
+print_generated_success "fly.toml"

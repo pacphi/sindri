@@ -179,6 +179,50 @@ extension-manager install myext
 extension-manager validate myext
 ```
 
+## Domain Requirements
+
+Extensions should declare all external domains they need to access during installation.
+This enables pre-flight DNS checks and helps users understand network requirements.
+
+### Declaring Domains
+
+```yaml
+requirements:
+  domains:
+    - registry.npmjs.org # npm package registry
+    - nodejs.org # Node.js binaries
+    - github.com # GitHub releases
+```
+
+### Guidelines
+
+1. **List all domains** accessed during installation (package registries, binary downloads)
+2. **Use base domains** when possible (e.g., `github.com` covers `raw.githubusercontent.com`)
+3. **Exclude transient domains** that are only used at runtime, not installation
+4. **Keep domains current** - update if install scripts change
+
+### Validation
+
+Domains are validated in CI and can be checked locally:
+
+```bash
+# Validate format and check for duplicates
+extension-manager validate-domains myext
+
+# Also perform DNS resolution checks
+extension-manager --check-dns validate-domains myext
+
+# Validate all extensions
+extension-manager validate-domains
+```
+
+The validation checks:
+
+- **Format** - Valid hostname syntax (fails build if invalid)
+- **Duplicates** - No duplicate entries (fails build if found)
+- **DNS Resolution** - Domains resolve (warning only, optional)
+- **Undeclared** - Domains in scripts not in YAML (warning only, heuristic)
+
 ## Best Practices
 
 1. **Keep it simple** - Use existing methods when possible

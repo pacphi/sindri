@@ -192,10 +192,10 @@ Test all extensions:
 pnpm test:extensions
 ```
 
-Test specific extension:
+Test specific extension locally:
 
 ```bash
-./.github/scripts/test-all-extensions.sh myext
+./cli/extension-manager validate <extension-name>
 ```
 
 ### Manual Testing
@@ -307,9 +307,12 @@ The CI runs **identical tests on every selected provider**, ensuring consistent 
 
 ```text
 FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
-  ├─> CLI tests (sindri, extension-manager commands)
-  ├─> Extension tests (validate, install profile)
-  └─> Run test suites (smoke, integration, full)
+  ├─> Deploy infrastructure
+  ├─> Run sindri-test.sh (inside container):
+  │   ├─> Quick: CLI validation
+  │   ├─> Extension: Single extension lifecycle
+  │   └─> Profile: Profile lifecycle
+  └─> Cleanup
 ```
 
 This catches provider-specific bugs that would be missed by Docker-only testing.

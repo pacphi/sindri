@@ -1,24 +1,30 @@
-name: Test Provider (Full Suite)
+name: Test Provider
 
-# Unified provider testing workflow that runs CLI, extension, and integration tests
-# on the specified provider. This ensures consistent test coverage across all providers.
+# Simplified provider testing workflow
+# All tests run INSIDE the container via /docker/scripts/sindri-test.sh
+# Supports three test levels: quick, extension, profile
 
 on:
   workflow_call:
     inputs:
       provider:
-        description: Provider to test (docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s, devpod-ssh)
+        description: Provider to test (docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s)
         required: true
         type: string
-      test-suite:
-        description: Test suite to run (smoke, integration, full)
+      test-level:
+        description: Test level (quick, extension, profile, all)
         required: false
-        default: integration
+        default: profile
         type: string
       extension-profile:
-        description: Extension profile to test (determines extensions and resource requirements)
+        description: Extension profile to test
         required: false
         default: minimal
+        type: string
+      extension:
+        description: Extension to test (for extension-level tests)
+        required: false
+        default: nodejs
         type: string
       skip-cleanup:
         description: Skip resource cleanup for debugging
@@ -30,7 +36,6 @@ on:
         required: false
         default: 30
         type: number
-      # Image configuration (for Docker provider or pre-built images)
       image:
         description: Docker image to use
         required: false
@@ -43,7 +48,8 @@ on:
         type: string
 
     secrets:
-      # Provider credentials
+      FLY_API_TOKEN:
+        required: false
       AWS_ACCESS_KEY_ID:
         required: false
       AWS_SECRET_ACCESS_KEY:
@@ -58,53 +64,16 @@ on:
         required: false
       DIGITALOCEAN_TOKEN:
         required: false
-      FLY_API_TOKEN:
-        required: false
       KUBECONFIG:
-        required: false
-      SSH_PRIVATE_KEY:
         required: false
 
     outputs:
       test-status:
-        description: Overall test execution status
+        description: Overall test status
         value: ${{ jobs.test.outputs.status }}
-      deployment-id:
-        description: Deployment identifier for the test
-        value: ${{ jobs.test.outputs.deployment-id }}
-      test-results:
-        description: JSON object with detailed test results
-        value: ${{ jobs.test.outputs.results }}
-      cli-tests-passed:
-        description: Whether CLI tests passed
-        value: ${{ jobs.test.outputs.cli-passed }}
-      extension-tests-passed:
-        description: Whether extension tests passed
-        value: ${{ jobs.test.outputs.extensions-passed }}
-      profile-disk-mb:
-        description: Total disk space required by profile (MB)
-        value: ${{ jobs.test.outputs.disk-mb }}
-      profile-memory-mb:
-        description: Total memory required by profile (MB)
-        value: ${{ jobs.test.outputs.memory-mb }}
-      profile-recommended-timeout:
-        description: Recommended timeout for profile (minutes)
-        value: ${{ jobs.test.outputs.recommended-timeout }}
-      profile-vm-size-tier:
-        description: Recommended VM size tier (small/medium/large/xlarge)
-        value: ${{ jobs.test.outputs.vm-size-tier }}
-      provider-vm-size:
-        description: Provider-specific VM size (e.g., t3.medium, shared-cpu-2x)
-        value: ${{ jobs.test.outputs.provider-vm-size }}
-      provider-memory:
-        description: Provider-specific memory allocation
-        value: ${{ jobs.test.outputs.provider-memory }}
-      provider-disk:
-        description: Provider-specific disk size
-        value: ${{ jobs.test.outputs.provider-disk }}
-      workspace-volume-gb:
-        description: Recommended workspace volume size (GB)
-        value: ${{ jobs.test.outputs.workspace-volume-gb }}
+      target-id:
+        description: Deployment target ID
+        value: ${{ jobs.test.outputs.target-id }}
 
 jobs:
   test:
@@ -112,607 +81,132 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
     outputs:
-      status: ${{ steps.summary.outputs.status }}
-      deployment-id: ${{ steps.setup.outputs.deployment-id }}
-      results: ${{ steps.summary.outputs.results }}
-      cli-passed: ${{ steps.cli-tests.outputs.all-passed }}
-      extensions-passed: ${{ steps.extension-tests.outputs.all-passed }}
-      disk-mb: ${{ steps.resources.outputs.disk_mb }}
-      memory-mb: ${{ steps.resources.outputs.memory_mb }}
-      recommended-timeout: ${{ steps.resources.outputs.timeout_from_tier }}
-      vm-size-tier: ${{ steps.resources.outputs.vm_size_tier }}
-      provider-vm-size: ${{ steps.resources.outputs.provider_vm_size }}
-      provider-memory: ${{ steps.resources.outputs.provider_memory }}
-      provider-disk: ${{ steps.resources.outputs.provider_disk }}
-      workspace-volume-gb: ${{ steps.resources.outputs.workspace_volume_gb }}
+      status: ${{ steps.run-tests.outputs.status }}
+      target-id: ${{ steps.deploy.outputs.target-id }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      # ============================================
-      # PHASE 0: Configuration and Setup
-      # ============================================
-      - name: Determine config path
-        id: config-path
+      - name: Setup credentials
         run: |
-          # Map provider input to example config path
-          case "${{ inputs.provider }}" in
-            docker)
-              CONFIG_PATH="examples/docker/minimal.sindri.yaml"
-              ;;
-            fly)
-              CONFIG_PATH="examples/fly/minimal.sindri.yaml"
-              ;;
-            devpod-aws)
-              CONFIG_PATH="examples/devpod/aws/minimal.sindri.yaml"
-              ;;
-            devpod-gcp)
-              CONFIG_PATH="examples/devpod/gcp/minimal.sindri.yaml"
-              ;;
-            devpod-azure)
-              CONFIG_PATH="examples/devpod/azure/minimal.sindri.yaml"
-              ;;
-            devpod-do)
-              CONFIG_PATH="examples/devpod/digitalocean/minimal.sindri.yaml"
-              ;;
-            devpod-k8s|kubernetes)
-              CONFIG_PATH="examples/devpod/kubernetes/minimal.sindri.yaml"
-              ;;
-            devpod-ssh|ssh)
-              CONFIG_PATH="examples/docker/minimal.sindri.yaml"
-              ;;
-            *)
-              echo "::error::Unknown provider: ${{ inputs.provider }}"
-              exit 1
-              ;;
-          esac
-
-          echo "config=$CONFIG_PATH" >> $GITHUB_OUTPUT
-
-          # Extract container name from config for Docker provider
-          if [[ -f "$CONFIG_PATH" ]]; then
-            CONTAINER_NAME=$(yq '.name' "$CONFIG_PATH" 2>/dev/null || echo "sindri-test")
-          else
-            CONTAINER_NAME="sindri-test"
-          fi
-          echo "container-name=$CONTAINER_NAME" >> $GITHUB_OUTPUT
-
-          echo "::notice title=Config Path::Using $CONFIG_PATH for ${{ inputs.provider }} provider"
-
-      - name: Calculate profile resources
-        id: resources
-        run: |
-          chmod +x .github/scripts/calculate-profile-resources.sh
-          PROFILE="${{ inputs.extension-profile }}"
-          PROVIDER="${{ inputs.provider }}"
-
-          # Calculate with provider-specific sizing
-          RESULT=$(.github/scripts/calculate-profile-resources.sh "$PROFILE" "$PROVIDER")
-
-          # Parse and output each line
-          while IFS= read -r line; do
-            echo "$line" >> $GITHUB_OUTPUT
-          done <<< "$RESULT"
-
-          # Extract key values for notice
-          DISK_MB=$(echo "$RESULT" | grep "^disk_mb=" | cut -d= -f2)
-          MEMORY_MB=$(echo "$RESULT" | grep "^memory_mb=" | cut -d= -f2)
-          VM_SIZE=$(echo "$RESULT" | grep "^provider_vm_size=" | cut -d= -f2)
-          TIMEOUT=$(echo "$RESULT" | grep "^timeout_from_tier=" | cut -d= -f2)
-
-          echo "::notice title=Profile Resources::Profile=$PROFILE, Provider=$PROVIDER, VM=$VM_SIZE, Disk=${DISK_MB}MB, Memory=${MEMORY_MB}MB, Timeout=${TIMEOUT}min"
-
-      - name: Generate deployment ID
-        id: setup
-        run: |
-          DEPLOYMENT_ID="${{ inputs.provider }}-${{ github.run_id }}-${{ github.run_number }}"
-          echo "deployment-id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
-          echo "::notice title=Deployment ID::$DEPLOYMENT_ID"
-
-          # Set provider-specific identifiers
-          case "${{ inputs.provider }}" in
-            docker)
-              echo "container-name=${{ steps.config-path.outputs.container-name }}" >> $GITHUB_OUTPUT
-              ;;
-            fly)
-              echo "app-name=sindri-test-fly-${{ github.run_id }}-${{ github.run_number }}" >> $GITHUB_OUTPUT
-              ;;
-            devpod-*|kubernetes|ssh)
-              echo "workspace-id=sindri-${{ github.run_id }}" >> $GITHUB_OUTPUT
-              ;;
-          esac
-
-      - name: Setup Sindri environment
-        uses: ./.github/actions/core/setup-sindri
-        with:
-          sindri-config: ${{ steps.config-path.outputs.config }}
-          validate-config: true
-
-      # ============================================
-      # PHASE 1: Infrastructure Deployment
-      # ============================================
-
-      # --- Docker Provider ---
-      - name: Download Docker image artifact
-        if: inputs.provider == 'docker' && inputs.image-artifact != ''
-        uses: actions/download-artifact@v6
-        with:
-          name: ${{ inputs.image-artifact }}
-
-      - name: Load Docker image from artifact
-        if: inputs.provider == 'docker' && inputs.image-artifact != ''
-        run: |
-          if [[ -f "sindri-image.tar.gz" ]]; then
-            gunzip -c sindri-image.tar.gz | docker load
-          fi
-
-      - name: Build Docker image (if no artifact)
-        if: inputs.provider == 'docker' && inputs.image-artifact == ''
-        uses: ./.github/actions/core/build-image
-        with:
-          cache-key-prefix: sindri-test-docker
-
-      - name: Deploy to Docker
-        id: docker-deploy
-        if: inputs.provider == 'docker'
-        run: |
-          ./cli/sindri deploy --provider docker --config ${{ steps.config-path.outputs.config }}
-
-          CONTAINER="${{ steps.config-path.outputs.container-name }}"
-          sleep 3
-
-          # Fix permissions (volume may be root-owned initially)
-          docker exec --user root "$CONTAINER" chown -R developer:developer /alt/home/developer || true
-
-          # Verify container is ready
-          docker exec "$CONTAINER" bash -c 'echo "Container ready"'
-
-          echo "container-name=$CONTAINER" >> $GITHUB_OUTPUT
-
-      # --- Fly.io Provider ---
-      - name: Download Docker image artifact (Fly.io)
-        if: inputs.provider == 'fly' && inputs.image-artifact != ''
-        uses: actions/download-artifact@v6
-        with:
-          name: ${{ inputs.image-artifact }}
-
-      - name: Load Docker image from artifact (Fly.io)
-        if: inputs.provider == 'fly' && inputs.image-artifact != ''
-        run: |
-          if [[ -f "sindri-image.tar.gz" ]]; then
-            gunzip -c sindri-image.tar.gz | docker load
-            echo "✅ Image loaded: ${{ inputs.image }}"
-          fi
-
-      - name: Setup Fly.io provider
-        if: inputs.provider == 'fly'
-        uses: ./.github/actions/providers/fly/setup
-        with:
-          app-name: ${{ steps.setup.outputs.app-name }}
-          fly-api-token: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Deploy to Fly.io
-        id: fly-deploy
-        if: inputs.provider == 'fly'
-        uses: ./.github/actions/providers/fly/deploy
-        with:
-          app-name: ${{ steps.setup.outputs.app-name }}
-          fly-api-token: ${{ secrets.FLY_API_TOKEN }}
-          extension-profile: ${{ inputs.extension-profile }}
-          image: ${{ inputs.image-artifact != '' && inputs.image || '' }}
-
-      # --- DevPod AWS Provider ---
-      - name: Setup DevPod AWS provider
-        if: inputs.provider == 'devpod-aws'
-        uses: ./.github/actions/providers/devpod/setup
-        with:
-          provider-type: aws
-          provider-name: devpod-aws-test
-          aws-region: us-west-2
-          aws-instance-type: t3.medium
+          chmod +x .github/scripts/providers/setup-credentials.sh
+          source .github/scripts/providers/setup-credentials.sh "${{ inputs.provider }}"
         env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      # --- DevPod GCP Provider ---
-      - name: Setup DevPod GCP provider
-        if: inputs.provider == 'devpod-gcp'
-        uses: ./.github/actions/providers/devpod/setup
-        with:
-          provider-type: gcp
-          provider-name: devpod-gcp-test
-          gcp-zone: us-central1-a
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-      # --- DevPod Azure Provider ---
-      - name: Setup DevPod Azure provider
-        if: inputs.provider == 'devpod-azure'
-        uses: ./.github/actions/providers/devpod/setup
-        with:
-          provider-type: azure
-          provider-name: devpod-azure-test
-          azure-location: eastus
-        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-      # --- DevPod DigitalOcean Provider ---
-      - name: Setup DevPod DigitalOcean provider
-        if: inputs.provider == 'devpod-do'
-        uses: ./.github/actions/providers/devpod/setup
-        with:
-          provider-type: digitalocean
-          provider-name: devpod-do-test
-          do-region: nyc3
-        env:
           DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
-
-      # --- DevPod Kubernetes Provider ---
-      - name: Setup DevPod Kubernetes provider
-        id: k8s-setup
-        if: inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes'
-        uses: ./.github/actions/providers/devpod/setup
-        with:
-          provider-type: kubernetes
-          provider-name: devpod-k8s-test
-          k8s-namespace: sindri-test
-          # Auto-detect: uses local cluster if no KUBECONFIG secret provided
-          k8s-use-local-cluster: auto
-          k8s-local-cluster-type: kind # Can be 'kind' or 'k3d'
-          k8s-local-cluster-name: sindri-ci-${{ github.run_id }}
-        env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      - name: Download Docker image artifact (DevPod K8s)
-        if: (inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes') && inputs.image-artifact != ''
-        uses: actions/download-artifact@v6
-        with:
-          name: ${{ inputs.image-artifact }}
-
-      - name: Push Docker image to local registry
-        id: push-to-registry
-        if: (inputs.provider == 'devpod-k8s' || inputs.provider == 'kubernetes') && inputs.image-artifact != ''
-        run: |
-          echo "::group::Pushing Sindri image to local registry"
-
-          # Load image into Docker first
-          if [[ -f "sindri-image.tar.gz" ]]; then
-            gunzip -c sindri-image.tar.gz | docker load
-            echo "✅ Image loaded into Docker: ${{ inputs.image }}"
-          fi
-
-          # Get local registry URL from k8s-setup outputs
-          LOCAL_REGISTRY="${{ steps.k8s-setup.outputs.local-registry-url }}"
-
-          if [[ -n "$LOCAL_REGISTRY" ]]; then
-            echo "Pushing image to local registry: $LOCAL_REGISTRY"
-
-            # Tag and push the CI image to local registry
-            REGISTRY_IMAGE="${LOCAL_REGISTRY}/sindri:ci"
-            docker tag "${{ inputs.image }}" "$REGISTRY_IMAGE"
-            docker push "$REGISTRY_IMAGE"
-            echo "✅ Image pushed as: $REGISTRY_IMAGE"
-
-            # Also push as sindri:latest
-            REGISTRY_IMAGE_LATEST="${LOCAL_REGISTRY}/sindri:latest"
-            docker tag "${{ inputs.image }}" "$REGISTRY_IMAGE_LATEST"
-            docker push "$REGISTRY_IMAGE_LATEST"
-            echo "✅ Image pushed as: $REGISTRY_IMAGE_LATEST"
-
-            echo "registry-image=$REGISTRY_IMAGE" >> $GITHUB_OUTPUT
-          else
-            echo "::warning::No local registry URL found, falling back to direct image load"
-            # Fallback to direct image load (for external clusters without local registry)
-            CLUSTER_NAME="sindri-ci-${{ github.run_id }}"
-            CLUSTER_TYPE="${{ steps.k8s-setup.outputs.local-cluster-type }}"
-
-            if [[ "$CLUSTER_TYPE" == "kind" ]] && kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-              echo "Loading image into kind cluster: $CLUSTER_NAME"
-              kind load docker-image "${{ inputs.image }}" --name "$CLUSTER_NAME"
-              echo "✅ Image loaded into kind cluster"
-            elif [[ "$CLUSTER_TYPE" == "k3d" ]] && k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
-              echo "Loading image into k3d cluster: $CLUSTER_NAME"
-              k3d image import "${{ inputs.image }}" --cluster "$CLUSTER_NAME"
-              echo "✅ Image loaded into k3d cluster"
-            fi
-            echo "registry-image=${{ inputs.image }}" >> $GITHUB_OUTPUT
-          fi
-
-          echo "::endgroup::"
-
-      # --- DevPod SSH Provider ---
-      - name: Setup DevPod SSH provider
-        if: inputs.provider == 'devpod-ssh' || inputs.provider == 'ssh'
-        uses: ./.github/actions/providers/devpod/setup
-        with:
-          provider-type: ssh
-          provider-name: devpod-ssh-test
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      # --- Deploy DevPod workspace (for all DevPod providers) ---
-      - name: Deploy DevPod workspace
-        if: startsWith(inputs.provider, 'devpod') || inputs.provider == 'kubernetes' || inputs.provider == 'ssh'
-        id: devpod-deploy
-        uses: ./.github/actions/providers/devpod/deploy
-        with:
-          workspace-id: ${{ steps.setup.outputs.workspace-id }}
-          provider-id: ${{ inputs.provider }}-test
-          devcontainer-path: .devcontainer/devcontainer.json
-          # Use local registry image for K8s provider, otherwise use the original image
-          image: ${{ steps.push-to-registry.outputs.registry-image || inputs.image }}
-
-      # ============================================
-      # PHASE 2: CLI Tests
-      # ============================================
-      - name: Run CLI tests
-        id: cli-tests
-        uses: ./.github/actions/core/test-cli
+      - name: Deploy to provider
+        id: deploy
+        uses: ./.github/actions/core/deploy-provider
         with:
           provider: ${{ inputs.provider }}
-          # Docker options
-          container-name: ${{ steps.docker-deploy.outputs.container-name || steps.config-path.outputs.container-name }}
           image: ${{ inputs.image }}
-          # Fly.io options
-          fly-app-name: ${{ steps.setup.outputs.app-name }}
-          fly-api-token: ${{ secrets.FLY_API_TOKEN }}
-          # DevPod options
-          devpod-workspace-id: ${{ steps.setup.outputs.workspace-id }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          gcp-service-account-key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          digitalocean-token: ${{ secrets.DIGITALOCEAN_TOKEN }}
-          kubeconfig: ${{ secrets.KUBECONFIG }}
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Test commands
-          test-commands: |
-            [
-              "sindri --version",
-              "sindri --help",
-              "extension-manager list",
-              "extension-manager list-profiles",
-              "extension-manager list-categories"
-            ]
+          image-artifact: ${{ inputs.image-artifact }}
+          extension-profile: ${{ inputs.extension-profile }}
+          test-level: ${{ inputs.test-level }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      # ============================================
-      # PHASE 3: Extension Tests (Profile-Driven)
-      # ============================================
-      - name: Run extension tests
-        id: extension-tests
+      - name: Run tests
+        id: run-tests
         run: |
-          echo "::group::Running extension tests on ${{ inputs.provider }}"
+          TARGET_ID="${{ steps.deploy.outputs.target-id }}"
 
-          PROFILE="${{ inputs.extension-profile }}"
-          RESULTS='{}'
-          ALL_PASSED="true"
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  STAGE 3: Running Tests                                      ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Test Configuration:"
+          echo "  Provider:   ${{ inputs.provider }}"
+          echo "  Target ID:  $TARGET_ID"
+          echo "  Test Level: ${{ inputs.test-level }}"
+          echo "  Profile:    ${{ inputs.extension-profile }}"
+          echo "  Extension:  ${{ inputs.extension }}"
+          echo ""
+          echo "This stage executes sindri-test.sh INSIDE the deployed container."
+          echo "The test script will:"
+          echo "  1. Run CLI validation tests (sindri, extension-manager)"
+          echo "  2. Install extensions from the '${{ inputs.extension-profile }}' profile"
+          echo "  3. Activate mise environment for installed tools"
+          echo "  4. Validate all installed extensions work correctly"
+          echo "  5. Clean up by removing installed extensions"
+          echo ""
+          echo "────────────────────────────────────────────────────────────────"
 
-          run_on_provider() {
-            local cmd="$1"
-            case "${{ inputs.provider }}" in
-              docker)
-                docker exec "${{ steps.config-path.outputs.container-name }}" bash -c "$cmd"
-                ;;
-              fly)
-                flyctl ssh console -a "${{ steps.setup.outputs.app-name }}" --command "$cmd"
-                ;;
-              devpod-*|kubernetes|ssh)
-                devpod ssh "${{ steps.setup.outputs.workspace-id }}" --command "$cmd"
-                ;;
-            esac
-          }
+          # Single remote call executes entire test suite
+          chmod +x .github/scripts/providers/run-on-provider.sh
 
-          # Install extension profile first
-          echo "Installing extension profile: $PROFILE"
           set +e
-          run_on_provider "extension-manager install-profile $PROFILE"
-          PROFILE_EXIT=$?
+          OUTPUT=$(.github/scripts/providers/run-on-provider.sh \
+            "${{ inputs.provider }}" \
+            "$TARGET_ID" \
+            "/docker/scripts/sindri-test.sh --level ${{ inputs.test-level }} --profile ${{ inputs.extension-profile }} --extension ${{ inputs.extension }}")
+          EXIT_CODE=$?
           set -e
 
-          if [[ $PROFILE_EXIT -eq 0 ]]; then
-            RESULTS=$(echo "$RESULTS" | jq -c '.profile_install = "passed"')
+          echo "$OUTPUT"
+
+          echo ""
+          echo "────────────────────────────────────────────────────────────────"
+
+          # Set outputs
+          if [[ $EXIT_CODE -eq 0 ]]; then
+            echo ""
+            echo "✅ Tests passed"
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "::notice title=Tests Passed::All tests passed for ${{ inputs.provider }}"
           else
-            RESULTS=$(echo "$RESULTS" | jq -c '.profile_install = "failed"')
-            ALL_PASSED="false"
-          fi
-
-          # Get extensions from the installed profile and validate each
-          EXTENSIONS=$(run_on_provider "yq '.profiles.${PROFILE}.extensions[]' /docker/lib/profiles.yaml" 2>/dev/null || echo "")
-
-          if [[ -n "$EXTENSIONS" ]]; then
-            for ext in $EXTENSIONS; do
-              echo "Validating extension: $ext"
-              set +e
-              OUTPUT=$(run_on_provider "extension-manager validate $ext" 2>&1)
-              EXIT_CODE=$?
-              set -e
-
-              if [[ $EXIT_CODE -eq 0 ]]; then
-                echo "  ✅ $ext validation passed"
-                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "passed"')
-              else
-                echo "  ❌ $ext validation failed"
-                echo "  Output: $OUTPUT"
-                RESULTS=$(echo "$RESULTS" | jq -c --arg ext "$ext" '.[$ext] = "failed"')
-                ALL_PASSED="false"
-              fi
-            done
-          fi
-
-          echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
-          echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
-
-          echo "::endgroup::"
-
-          if [[ "$ALL_PASSED" == "false" ]]; then
-            echo "::warning::Some extension tests failed"
+            echo ""
+            echo "❌ Tests failed"
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "::error title=Tests Failed::Tests failed for ${{ inputs.provider }}"
+            exit 1
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
-      # ============================================
-      # PHASE 4: Run Test Suites (smoke, integration, full)
-      # ============================================
-      - name: Run smoke tests
-        if: inputs.test-suite == 'smoke' || inputs.test-suite == 'full'
-        id: smoke-tests
-        run: |
-          echo "::group::Running smoke tests"
-
-          case "${{ inputs.provider }}" in
-            docker)
-              docker ps
-              docker exec ${{ steps.config-path.outputs.container-name }} sindri --version
-              ;;
-            fly)
-              flyctl ssh console -a ${{ steps.setup.outputs.app-name }} --command "sindri --version"
-              ;;
-            devpod-*|kubernetes|ssh)
-              devpod ssh ${{ steps.setup.outputs.workspace-id }} --command "sindri --version"
-              ;;
-          esac
-
-          echo "::endgroup::"
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Run integration tests
-        if: inputs.test-suite == 'integration' || inputs.test-suite == 'full'
-        id: integration-tests
-        run: |
-          echo "::group::Running integration tests"
-
-          # Run test script if available
-          TEST_SCRIPT=".github/scripts/test-provider-${{ inputs.provider }}.sh"
-          if [[ -f "$TEST_SCRIPT" ]]; then
-            bash "$TEST_SCRIPT" "${{ steps.setup.outputs.deployment-id }}"
-          else
-            echo "No provider-specific test script, using generic tests"
-
-            case "${{ inputs.provider }}" in
-              docker)
-                CONTAINER="${{ steps.config-path.outputs.container-name }}"
-                docker exec "$CONTAINER" extension-manager bom
-                docker exec "$CONTAINER" sindri secrets list 2>/dev/null || true
-                ;;
-              fly)
-                APP="${{ steps.setup.outputs.app-name }}"
-                flyctl ssh console -a "$APP" --command "extension-manager bom"
-                ;;
-              devpod-*|kubernetes|ssh)
-                WS="${{ steps.setup.outputs.workspace-id }}"
-                devpod ssh "$WS" --command "extension-manager bom"
-                ;;
-            esac
-          fi
-
-          echo "::endgroup::"
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      # ============================================
-      # PHASE 5: Cleanup
-      # ============================================
-      - name: Cleanup Docker resources
-        if: always() && inputs.skip-cleanup != true && inputs.provider == 'docker'
-        run: |
-          docker compose down -v 2>/dev/null || true
-          docker rm -f ${{ steps.config-path.outputs.container-name }} 2>/dev/null || true
-
-      - name: Cleanup Fly.io resources
-        if: always() && inputs.skip-cleanup != true && inputs.provider == 'fly'
-        uses: ./.github/actions/providers/fly/cleanup
+      - name: Cleanup
+        if: always() && inputs.skip-cleanup != true
+        uses: ./.github/actions/core/cleanup-provider
         with:
-          app-name: ${{ steps.setup.outputs.app-name }}
-          fly-api-token: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Cleanup DevPod resources
-        if: >-
-          always() && inputs.skip-cleanup != true &&
-          (startsWith(inputs.provider, 'devpod') ||
-           inputs.provider == 'kubernetes' ||
-           inputs.provider == 'ssh')
-        uses: ./.github/actions/providers/devpod/cleanup
-        with:
-          workspace-id: ${{ steps.setup.outputs.workspace-id }}
+          provider: ${{ inputs.provider }}
+          target-id: ${{ steps.deploy.outputs.target-id }}
           force: true
-          # Pass local cluster info for cleanup (only populated if local cluster was created)
-          local-cluster-created: ${{ steps.k8s-setup.outputs.local-cluster-created || 'false' }}
-          local-cluster-type: ${{ steps.k8s-setup.outputs.local-cluster-type || '' }}
-          local-cluster-name: ${{ steps.k8s-setup.outputs.local-cluster-name || '' }}
 
-      # ============================================
-      # PHASE 6: Summary
-      # ============================================
-      - name: Generate test summary
-        id: summary
+      - name: Generate summary
         if: always()
         run: |
-          # Collect all results
-          RESULTS='{}'
-          STATUS="success"
-
-          # CLI test results
-          CLI_PASSED="${{ steps.cli-tests.outputs.all-passed }}"
-          if [[ "$CLI_PASSED" == "false" ]]; then
-            STATUS="failure"
-            RESULTS=$(echo "$RESULTS" | jq -c '.cli = "failed"')
-          elif [[ "$CLI_PASSED" == "true" ]]; then
-            RESULTS=$(echo "$RESULTS" | jq -c '.cli = "passed"')
-          else
-            RESULTS=$(echo "$RESULTS" | jq -c '.cli = "skipped"')
-          fi
-
-          # Extension test results
-          EXT_PASSED="${{ steps.extension-tests.outputs.all-passed }}"
-          EXT_RESULTS='${{ steps.extension-tests.outputs.results }}'
-          if [[ "$EXT_PASSED" == "false" ]]; then
-            STATUS="failure"
-            RESULTS=$(echo "$RESULTS" | jq -c '.extensions = "failed"')
-          elif [[ "$EXT_PASSED" == "true" ]]; then
-            RESULTS=$(echo "$RESULTS" | jq -c '.extensions = "passed"')
-          fi
-
-          # Smoke test results
-          if [[ "${{ steps.smoke-tests.outcome }}" == "failure" ]]; then
-            STATUS="failure"
-            RESULTS=$(echo "$RESULTS" | jq -c '.smoke = "failed"')
-          elif [[ "${{ steps.smoke-tests.outcome }}" == "success" ]]; then
-            RESULTS=$(echo "$RESULTS" | jq -c '.smoke = "passed"')
-          fi
-
-          # Integration test results
-          if [[ "${{ steps.integration-tests.outcome }}" == "failure" ]]; then
-            STATUS="failure"
-            RESULTS=$(echo "$RESULTS" | jq -c '.integration = "failed"')
-          elif [[ "${{ steps.integration-tests.outcome }}" == "success" ]]; then
-            RESULTS=$(echo "$RESULTS" | jq -c '.integration = "passed"')
-          fi
-
-          # Add extension details
-          if [[ -n "$EXT_RESULTS" && "$EXT_RESULTS" != "{}" ]]; then
-            RESULTS=$(echo "$RESULTS" | jq -c --argjson ext "$EXT_RESULTS" '.extension_details = $ext')
-          fi
-
-          echo "status=$STATUS" >> $GITHUB_OUTPUT
-          echo "results=$(echo "$RESULTS" | jq -c .)" >> $GITHUB_OUTPUT
-
-          # Generate job summary
           echo "## Provider Test Summary: ${{ inputs.provider }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Test Phase | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| CLI Tests | $(echo "$RESULTS" | jq -r '.cli // "n/a"') |" >> $GITHUB_STEP_SUMMARY
-          echo "| Extension Tests | $(echo "$RESULTS" | jq -r '.extensions // "n/a"') |" >> $GITHUB_STEP_SUMMARY
-          echo "| Smoke Tests | $(echo "$RESULTS" | jq -r '.smoke // "n/a"') |" >> $GITHUB_STEP_SUMMARY
-          echo "| Integration Tests | $(echo "$RESULTS" | jq -r '.integration // "n/a"') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Attribute | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | ${{ inputs.provider }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Level | ${{ inputs.test-level }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Profile | ${{ inputs.extension-profile }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Extension | ${{ inputs.extension }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ steps.run-tests.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Target ID | ${{ steps.deploy.outputs.target-id }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Overall Status**: $STATUS" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Test Suite**: ${{ inputs.test-suite }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Extension Profile**: ${{ inputs.extension-profile }}" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ steps.run-tests.outputs.status }}" == "success" ]]; then
+            echo "✅ **All tests passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Tests failed**" >> $GITHUB_STEP_SUMMARY
+          fi

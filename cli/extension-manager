@@ -17,10 +17,9 @@ source "$MODULES_DIR/bom.sh"
 
 # Main function
 main() {
-    # Parse global flags
-    local args
-    args=$(parse_args "$@")
-    set -- $args
+    # Parse global flags (modifies global vars directly, stores args in PARSED_ARGS)
+    parse_args "$@"
+    set -- "${PARSED_ARGS[@]}"
 
     local command="${1:-help}"
     shift || true
@@ -96,6 +95,15 @@ main() {
             ;;
         validate-all)
             validate_all_extensions
+            ;;
+        validate-domains)
+            if [[ $# -eq 0 ]]; then
+                # Validate all extensions
+                validate_all_domains
+            else
+                # Validate specific extension
+                validate_extension_domains "$1"
+            fi
             ;;
         status)
             if [[ $# -eq 0 ]]; then

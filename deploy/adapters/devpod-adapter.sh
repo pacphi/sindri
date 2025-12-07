@@ -18,6 +18,7 @@
 #   --workspace-name     Override workspace name from sindri.yaml
 #   --build-repository   Docker registry for image push (required for non-local K8s)
 #   --skip-build         Skip image build (use existing image)
+#   --image              Specify image to use (overrides build; use with --skip-build)
 #   --force              Skip confirmation prompts (destroy only)
 #   --help               Show this help message
 #
@@ -35,31 +36,33 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Source common adapter functions
+# shellcheck source=adapter-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/adapter-common.sh"
 
-# Default values
-COMMAND=""
-SINDRI_YAML=""
-CONFIG_ONLY=false
-OUTPUT_DIR="."
-OUTPUT_VARS=false
+# Initialize adapter
+adapter_init "${BASH_SOURCE[0]}"
+
+# DevPod-specific defaults
+# shellcheck disable=SC2034  # Used via indirect expansion in adapter_parse_base_config
 WORKSPACE_NAME_OVERRIDE=""
 BUILD_REPOSITORY=""
 SKIP_BUILD=false
-FORCE=false
+IMAGE_OVERRIDE=""
 
+# Show help wrapper
 show_help() {
-    head -34 "$0" | tail -32
-    exit 0
+    adapter_show_help "$0" 34
 }
 
+# Parse command
+if ! adapter_parse_command "$@"; then
+    show_help
+fi
+set -- "${REMAINING_ARGS[@]}"
+
 # Parse arguments
-[[ $# -eq 0 ]] && show_help
-
-COMMAND="$1"
-shift
-
+# shellcheck disable=SC2034  # Variables used by adapter_parse_base_config or sourced scripts
 while [[ $# -gt 0 ]]; do
     case $1 in
         --config-only)  CONFIG_ONLY=true; shift ;;
@@ -68,19 +71,17 @@ while [[ $# -gt 0 ]]; do
         --workspace-name) WORKSPACE_NAME_OVERRIDE="$2"; shift 2 ;;
         --build-repository) BUILD_REPOSITORY="$2"; shift 2 ;;
         --skip-build)   SKIP_BUILD=true; shift ;;
+        --image)        IMAGE_OVERRIDE="$2"; shift 2 ;;
+        --ci-mode)      CI_MODE=true; shift ;;
         --force|-f)     FORCE=true; shift ;;
         --help|-h)      show_help ;;
-        -*)             echo "Unknown option: $1" >&2; exit 1 ;;
+        -*)             adapter_unknown_option "$1" ;;
         *)              SINDRI_YAML="$1"; shift ;;
     esac
 done
 
-SINDRI_YAML="${SINDRI_YAML:-sindri.yaml}"
-
-if [[ ! -f "$SINDRI_YAML" ]]; then
-    echo "Error: $SINDRI_YAML not found" >&2
-    exit 1
-fi
+# Validate config file
+adapter_validate_config
 
 # Source common utilities
 source "$BASE_DIR/docker/lib/common.sh"
@@ -139,24 +140,10 @@ get_k8s_gpu_node_selector() {
 # ============================================================================
 
 parse_config() {
-    NAME=$(yq '.name' "$SINDRI_YAML")
-    if [[ -n "$WORKSPACE_NAME_OVERRIDE" ]]; then
-        NAME="$WORKSPACE_NAME_OVERRIDE"
-    fi
+    # Parse base configuration
+    adapter_parse_base_config "WORKSPACE_NAME_OVERRIDE"
 
-    PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
-    # Auto-install: default true, set extensions.autoInstall: false to disable
-    AUTO_INSTALL=$(yq '.extensions.autoInstall // true' "$SINDRI_YAML")
-    CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
-
-    MEMORY=$(yq '.deployment.resources.memory // "4GB"' "$SINDRI_YAML")
-    CPUS=$(yq '.deployment.resources.cpus // 2' "$SINDRI_YAML")
-    VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML" | sed 's/GB//')
-
-    GPU_ENABLED=$(yq '.deployment.resources.gpu.enabled // false' "$SINDRI_YAML")
-    GPU_TIER=$(yq '.deployment.resources.gpu.tier // "gpu-small"' "$SINDRI_YAML")
-    GPU_COUNT=$(yq '.deployment.resources.gpu.count // 1' "$SINDRI_YAML")
-
+    # DevPod provider type
     DEVPOD_PROVIDER=$(yq '.providers.devpod.type // "docker"' "$SINDRI_YAML")
 
     # Build repository from config (CLI flag takes precedence)
@@ -415,11 +402,11 @@ build_image() {
     local image_tag="$1"
 
     if [[ ! -f "$BASE_DIR/Dockerfile" ]]; then
-        print_error "Dockerfile not found at $BASE_DIR/Dockerfile"
+        print_error "Dockerfile not found at $BASE_DIR/Dockerfile" >&2
         return 1
     fi
 
-    print_status "Building Docker image: $image_tag"
+    print_status "Building Docker image: $image_tag" >&2
     docker build -t "$image_tag" -f "$BASE_DIR/Dockerfile" "$BASE_DIR"
 }
 
@@ -427,7 +414,7 @@ build_image() {
 push_image() {
     local image_tag="$1"
 
-    print_status "Pushing image to registry: $image_tag"
+    print_status "Pushing image to registry: $image_tag" >&2
     docker push "$image_tag"
 }
 
@@ -441,15 +428,15 @@ load_image_local() {
 
     case "$cluster_type" in
         kind)
-            print_status "Loading image into kind cluster: $cluster_name"
+            print_status "Loading image into kind cluster: $cluster_name" >&2
             kind load docker-image "$image_tag" --name "$cluster_name"
             ;;
         k3d)
-            print_status "Loading image into k3d cluster: $cluster_name"
+            print_status "Loading image into k3d cluster: $cluster_name" >&2
             k3d image import "$image_tag" --cluster "$cluster_name"
             ;;
         *)
-            print_error "Unknown local cluster type: $cluster_type"
+            print_error "Unknown local cluster type: $cluster_type" >&2
             return 1
             ;;
     esac
@@ -460,8 +447,15 @@ load_image_local() {
 prepare_image() {
     local image_tag="sindri:latest"
 
+    # If explicit image is provided, use it directly
+    if [[ -n "$IMAGE_OVERRIDE" ]]; then
+        print_status "Using specified image: $IMAGE_OVERRIDE" >&2
+        echo "$IMAGE_OVERRIDE"
+        return 0
+    fi
+
     if [[ "$SKIP_BUILD" == "true" ]]; then
-        print_status "Skipping image build (--skip-build)"
+        print_status "Skipping image build (--skip-build)" >&2
         echo "$image_tag"
         return 0
     fi
@@ -477,7 +471,7 @@ prepare_image() {
     local_cluster=$(detect_local_cluster)
 
     if [[ -n "$local_cluster" ]]; then
-        print_status "Detected local Kubernetes cluster: $local_cluster"
+        print_status "Detected local Kubernetes cluster: $local_cluster" >&2
 
         # Build locally and load into cluster
         build_image "$image_tag" || return 1
@@ -492,16 +486,16 @@ prepare_image() {
        [[ "$DEVPOD_PROVIDER" == "gcp" ]] || [[ "$DEVPOD_PROVIDER" == "azure" ]]; then
 
         if [[ -z "$BUILD_REPOSITORY" ]]; then
-            print_error "Build repository required for $DEVPOD_PROVIDER provider"
-            echo ""
-            echo "Options:"
-            echo "  1. CLI flag:    sindri deploy --build-repository ghcr.io/myorg/sindri"
-            echo "  2. sindri.yaml: providers.devpod.buildRepository: ghcr.io/myorg/sindri"
-            echo ""
-            echo "Also ensure Docker credentials are available:"
-            echo "  - Set DOCKER_USERNAME and DOCKER_PASSWORD environment variables"
-            echo "  - Or add them to .env or .env.local"
-            echo "  - Or run 'docker login' for your registry"
+            print_error "Build repository required for $DEVPOD_PROVIDER provider" >&2
+            echo "" >&2
+            echo "Options:" >&2
+            echo "  1. CLI flag:    sindri deploy --build-repository ghcr.io/myorg/sindri" >&2
+            echo "  2. sindri.yaml: providers.devpod.buildRepository: ghcr.io/myorg/sindri" >&2
+            echo "" >&2
+            echo "Also ensure Docker credentials are available:" >&2
+            echo "  - Set DOCKER_USERNAME and DOCKER_PASSWORD environment variables" >&2
+            echo "  - Or add them to .env or .env.local" >&2
+            echo "  - Or run 'docker login' for your registry" >&2
             return 1
         fi
 
@@ -510,7 +504,7 @@ prepare_image() {
         # Get credentials and login
         if ! get_docker_credentials; then
             if ! docker_registry_login; then
-                print_error "Failed to authenticate with Docker registry"
+                print_error "Failed to authenticate with Docker registry" >&2
                 return 1
             fi
         fi
@@ -534,11 +528,9 @@ generate_devcontainer() {
     local MEMORY_MB
     MEMORY_MB=$(echo "$MEMORY" | sed 's/GB/*1024/;s/MB//' | bc)
 
-    # Convert autoInstall (true/false) to SKIP_AUTO_INSTALL (inverted)
-    local skip_auto_install="false"
-    if [[ "$AUTO_INSTALL" == "false" ]]; then
-        skip_auto_install="true"
-    fi
+    # Get skip_auto_install value
+    local skip_auto_install
+    skip_auto_install=$(adapter_get_skip_auto_install)
 
     # Determine image source line
     local image_source
@@ -581,19 +573,15 @@ generate_devcontainer() {
         "ms-python.python",
         "golang.go",
         "rust-lang.rust-analyzer"
-      ]
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
     }
-  },
-  "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   "postCreateCommand": "/docker/cli/extension-manager install-profile ${PROFILE}",
   "remoteUser": "developer",
-  "containerUser": "developer",
-  "mounts": ["source=sindri-home,target=/alt/home/developer,type=volume"],
-  "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined", "--cpus=${CPUS}", "--memory=${MEMORY}"],
-  "forwardPorts": [3000, 8080]
+  "containerUser": "developer"
 }
 EODC
 }
@@ -612,7 +600,7 @@ EOJSON
         return 0
     fi
 
-    echo "==> Deploying with DevPod"
+    print_header "Deploying with DevPod"
     echo "  Workspace: $NAME"
     echo "  Provider: $DEVPOD_PROVIDER"
     echo "  Profile: $PROFILE"
@@ -874,16 +862,4 @@ cmd_status() {
 # Main dispatch
 # ============================================================================
 
-case "$COMMAND" in
-    deploy)  cmd_deploy ;;
-    connect) cmd_connect ;;
-    destroy) cmd_destroy ;;
-    plan)    cmd_plan ;;
-    status)  cmd_status ;;
-    help|--help|-h) show_help ;;
-    *)
-        echo "Unknown command: $COMMAND" >&2
-        echo "Commands: deploy, connect, destroy, plan, status"
-        exit 1
-        ;;
-esac
+adapter_dispatch "$COMMAND" cmd_deploy cmd_connect cmd_destroy cmd_plan cmd_status show_help
