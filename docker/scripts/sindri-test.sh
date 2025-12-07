@@ -42,6 +42,7 @@ TEST_EXTENSION="${TEST_EXTENSION:-nodejs}"  # Default extension for single exten
 # Counters
 PASSED=0
 FAILED=0
+STEP_NUM=0
 
 # === Helper Functions ===
 print_header() {
@@ -58,6 +59,9 @@ run_test() {
     local cmd="$2"
     local start
     start=$(date +%s)
+
+    # Increment step counter for consistent stage logging
+    STEP_NUM=$((STEP_NUM + 1))
 
     set +e
     local output
@@ -76,11 +80,11 @@ run_test() {
 
     if [[ $exit_code -eq 0 ]]; then
         PASSED=$((PASSED + 1))
-        echo "PASS: $name (${duration}s)"
+        echo "PASS: [3.${STEP_NUM}] $name (${duration}s)"
         return 0
     else
         FAILED=$((FAILED + 1))
-        echo "FAIL: $name (${duration}s)"
+        echo "FAIL: [3.${STEP_NUM}] $name (${duration}s)"
         echo "  Error: $output"
 
         if [[ "$FAIL_FAST" == "true" ]]; then

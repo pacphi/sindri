@@ -600,7 +600,7 @@ EOJSON
         return 0
     fi
 
-    echo "==> Deploying with DevPod"
+    print_header "Deploying with DevPod"
     echo "  Workspace: $NAME"
     echo "  Provider: $DEVPOD_PROVIDER"
     echo "  Profile: $PROFILE"

@@ -130,7 +130,7 @@ runs:
       shell: bash
       run: |
         echo "╔══════════════════════════════════════════════════════════════╗"
-        echo "║  STAGE 1: Setting up Kind Kubernetes cluster                 ║"
+        echo "║  STAGE 1: Infrastructure Setup - Kind Cluster                ║"
         echo "╚══════════════════════════════════════════════════════════════╝"
         echo ""
 
@@ -138,8 +138,8 @@ runs:
         REG_NAME="local-registry"
         REG_PORT="5001"
 
-        # Step 1.1: Install kind CLI
-        echo "::group::Step 1.1: Install kind CLI"
+        # Step 1.K1: Install kind CLI
+        echo "::group::Step 1.K1: Install kind CLI"
         KIND_VERSION="v0.27.0"
         CURRENT_KIND_VERSION=$(kind version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "none")
         if [[ "$CURRENT_KIND_VERSION" != "$KIND_VERSION" ]]; then
@@ -153,8 +153,8 @@ runs:
         kind version
         echo "::endgroup::"
 
-        # Step 1.2: Create local registry
-        echo "::group::Step 1.2: Create local Docker registry"
+        # Step 1.K2: Create local registry
+        echo "::group::Step 1.K2: Create local Docker registry"
         if [ "$(docker inspect -f '{{.State.Running}}' "${REG_NAME}" 2>/dev/null || true)" != 'true' ]; then
           echo "→ Starting local registry: ${REG_NAME} on port ${REG_PORT}"
           docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" registry:2
@@ -163,8 +163,8 @@ runs:
         fi
         echo "::endgroup::"
 
-        # Step 1.3: Create kind cluster with registry config
-        echo "::group::Step 1.3: Create kind cluster"
+        # Step 1.K3: Create kind cluster with registry config
+        echo "::group::Step 1.K3: Create kind cluster"
         echo "→ Removing any existing cluster: ${CLUSTER_NAME}"
         kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
 
@@ -184,8 +184,8 @@ runs:
         kind create cluster --name "$CLUSTER_NAME" --config /tmp/kind-config.yaml --wait 120s
         echo "::endgroup::"
 
-        # Step 1.4: Connect registry to kind network
-        echo "::group::Step 1.4: Connect registry to kind network"
+        # Step 1.K4: Connect registry to kind network
+        echo "::group::Step 1.K4: Connect registry to kind network"
         if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' "${REG_NAME}")" = 'null' ]; then
           echo "→ Connecting registry to kind network..."
           docker network connect "kind" "${REG_NAME}" || true
@@ -199,8 +199,8 @@ runs:
         done
         echo "::endgroup::"
 
-        # Step 1.5: Push image to local registry
-        echo "::group::Step 1.5: Push image to local registry"
+        # Step 1.K5: Push image to local registry
+        echo "::group::Step 1.K5: Push image to local registry"
         LOCAL_IMAGE="localhost:${REG_PORT}/sindri:latest"
         echo "→ Tagging image: ${{ inputs.image }} → ${LOCAL_IMAGE}"
         docker tag "${{ inputs.image }}" "${LOCAL_IMAGE}"
@@ -208,8 +208,8 @@ runs:
         docker push "${LOCAL_IMAGE}"
         echo "::endgroup::"
 
-        # Step 1.6: Configure kubectl
-        echo "::group::Step 1.6: Configure kubectl"
+        # Step 1.K6: Configure kubectl
+        echo "::group::Step 1.K6: Configure kubectl"
         mkdir -p "$HOME/.kube"
         kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/.kube/config"
         chmod 600 "$HOME/.kube/config"
@@ -232,7 +232,7 @@ runs:
       shell: bash
       run: |
         echo "╔══════════════════════════════════════════════════════════════╗"
-        echo "║  STAGE 2: Installing DevPod CLI                              ║"
+        echo "║  STAGE 1: Infrastructure Setup - DevPod CLI                  ║"
         echo "╚══════════════════════════════════════════════════════════════╝"
         echo ""
         echo "→ Downloading DevPod CLI..."
@@ -254,7 +254,7 @@ runs:
 
         echo ""
         echo "╔══════════════════════════════════════════════════════════════╗"
-        echo "║  STAGE 3: Deploying to provider                              ║"
+        echo "║  STAGE 2: Deploy to Provider                                 ║"
         echo "╚══════════════════════════════════════════════════════════════╝"
         echo ""
         echo "Provider: $PROVIDER"
@@ -266,7 +266,7 @@ runs:
             # Get container name from config (needed for pre-cleanup)
             TARGET_ID=$(yq '.name' "$CONFIG" 2>/dev/null || echo "sindri-test")
 
-            echo "::group::Step 3.1: Pre-cleanup"
+            echo "::group::Step 2.D1: Pre-cleanup"
             echo "→ Removing stale Docker resources for: $TARGET_ID"
             docker rm -f "$TARGET_ID" 2>/dev/null || true
             docker volume ls -q --filter "name=${TARGET_ID}_home" | xargs -r docker volume rm 2>/dev/null || true
@@ -275,19 +275,19 @@ runs:
             fi
             echo "::endgroup::"
 
-            echo "::group::Step 3.2: Prepare image"
+            echo "::group::Step 2.D2: Prepare image"
             if docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
               echo "→ Tagging pre-built image as sindri:latest"
               docker tag "${{ inputs.image }}" sindri:latest
             fi
             echo "::endgroup::"
 
-            echo "::group::Step 3.3: Deploy container"
+            echo "::group::Step 2.D3: Deploy container"
             echo "→ Running: docker-adapter.sh deploy --skip-build --ci-mode $CONFIG"
             ./deploy/adapters/docker-adapter.sh deploy --skip-build --ci-mode "$CONFIG"
             echo "::endgroup::"
 
-            echo "::group::Step 3.4: Verify container ready"
+            echo "::group::Step 2.D4: Verify container ready"
             echo "→ Fixing permissions on volume..."
             docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
             echo "→ Testing container..."
@@ -302,7 +302,7 @@ runs:
           fly)
             APP_NAME="sindri-ci-${RUN_ID}-${RUN_NUMBER}"
 
-            echo "::group::Step 3.1: Deploy to Fly.io"
+            echo "::group::Step 2.F1: Deploy to Fly.io"
             echo "→ App name: $APP_NAME"
             echo "→ Running: fly-adapter.sh deploy --ci-mode --app-name $APP_NAME $CONFIG"
             ./deploy/adapters/fly-adapter.sh deploy --ci-mode --app-name "$APP_NAME" "$CONFIG"
@@ -318,7 +318,7 @@ runs:
             BACKEND="${PROVIDER#devpod-}"
             WORKSPACE_ID="sindri-${RUN_ID}"
 
-            echo "::group::Step 3.1: Configure DevPod"
+            echo "::group::Step 2.P1: Configure DevPod"
             echo "→ Backend: $BACKEND"
             echo "→ Workspace ID: $WORKSPACE_ID"
 
@@ -331,7 +331,7 @@ runs:
             fi
             echo "::endgroup::"
 
-            echo "::group::Step 3.2: Create DevPod workspace"
+            echo "::group::Step 2.P2: Create DevPod workspace"
             echo "→ Running: devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS $CONFIG"
             ./deploy/adapters/devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS "$CONFIG"
             echo "::endgroup::"

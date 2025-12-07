@@ -80,6 +80,17 @@ print_header() {
     echo -e "${CYAN}==>${NC} ${1}"
 }
 
+# Print a stage step with consistent formatting
+# Usage: print_step <stage> <provider_prefix> <step_num> <description>
+# Example: print_step 2 D 1 "Pre-cleanup" → "→ Step 2.D1: Pre-cleanup"
+print_step() {
+    local stage="$1"
+    local provider="$2"
+    local step="$3"
+    local description="$4"
+    echo "→ Step ${stage}.${provider}${step}: ${description}"
+}
+
 # Check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -474,7 +485,7 @@ check_extension_gpu_requirements() {
 }
 
 # Export functions for use in subshells
-export -f print_status print_success print_warning print_error print_header
+export -f print_status print_success print_warning print_error print_header print_step
 export -f command_exists is_user ensure_directory
 export -f load_yaml validate_yaml_schema check_dns check_disk_space retry_command
 export -f check_gpu_available get_gpu_count get_gpu_memory validate_gpu_config check_extension_gpu_requirements

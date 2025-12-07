@@ -130,7 +130,7 @@ jobs:
 
           echo ""
           echo "╔══════════════════════════════════════════════════════════════╗"
-          echo "║  STAGE 4: Running tests inside container                     ║"
+          echo "║  STAGE 3: Running Tests                                      ║"
           echo "╚══════════════════════════════════════════════════════════════╝"
           echo ""
           echo "Test Configuration:"
