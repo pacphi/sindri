@@ -40,6 +40,7 @@ OUTPUT_VARS=false
 SKIP_BUILD=false
 CONTAINER_NAME_OVERRIDE=""
 FORCE=false
+CI_MODE=false
 
 show_help() {
     head -30 "$0" | tail -28
@@ -58,6 +59,7 @@ while [[ $# -gt 0 ]]; do
         --output-vars)    OUTPUT_VARS=true; shift ;;
         --skip-build)     SKIP_BUILD=true; shift ;;
         --container-name) CONTAINER_NAME_OVERRIDE="$2"; shift 2 ;;
+        --ci-mode)        CI_MODE=true; shift ;;
         --force|-f)       FORCE=true; shift ;;
         --help|-h)        show_help ;;
         -*)               echo "Unknown option: $1" >&2; exit 1 ;;
@@ -87,11 +89,15 @@ parse_config() {
     MEMORY=$(yq '.deployment.resources.memory // "1GB"' "$SINDRI_YAML")
     CPUS=$(yq '.deployment.resources.cpus // 1' "$SINDRI_YAML")
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
-    # Auto-install: default FALSE (manual install), set extensions.autoInstall: true to enable
-    # Read without default (returns 'null' if not set)
+    # Auto-install: default true for end users, false for CI testing
+    # Read from config without default (returns 'null' if not set)
     AUTO_INSTALL=$(yq '.extensions.autoInstall' "$SINDRI_YAML")
-    # Default to FALSE if null (safer default - explicit control)
     if [[ "$AUTO_INSTALL" == "null" ]]; then
+        AUTO_INSTALL="true"  # Default: auto-install enabled
+    fi
+
+    # CI mode override: Force autoInstall=false for clean testing
+    if [[ "$CI_MODE" == "true" ]]; then
         AUTO_INSTALL="false"
     fi
     VOLUME_SIZE=$(yq '.deployment.volumes.workspace.size // "10GB"' "$SINDRI_YAML")

@@ -143,8 +143,8 @@ runs:
               docker tag "${{ inputs.image }}" sindri:latest
             fi
 
-            # Deploy using docker-adapter with --skip-build flag
-            ./deploy/adapters/docker-adapter.sh deploy --skip-build "$CONFIG"
+            # Deploy using docker-adapter with --ci-mode (forces autoInstall=false for clean tests)
+            ./deploy/adapters/docker-adapter.sh deploy --skip-build --ci-mode "$CONFIG"
 
             # Fix permissions on volume
             docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
@@ -169,8 +169,8 @@ runs:
             BACKEND="${PROVIDER#devpod-}"
             WORKSPACE_ID="sindri-${RUN_ID}"
 
-            # Deploy using devpod adapter (config as positional arg)
-            ./deploy/adapters/devpod-adapter.sh deploy "$CONFIG"
+            # Deploy using devpod adapter with --ci-mode (forces autoInstall=false)
+            ./deploy/adapters/devpod-adapter.sh deploy --ci-mode "$CONFIG"
 
             TARGET_ID="$WORKSPACE_ID"
             echo "✓ Deployed to DevPod ($BACKEND): $TARGET_ID"

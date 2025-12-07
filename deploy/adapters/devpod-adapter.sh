@@ -48,6 +48,7 @@ WORKSPACE_NAME_OVERRIDE=""
 BUILD_REPOSITORY=""
 SKIP_BUILD=false
 FORCE=false
+CI_MODE=false
 
 show_help() {
     head -34 "$0" | tail -32
@@ -68,6 +69,7 @@ while [[ $# -gt 0 ]]; do
         --workspace-name) WORKSPACE_NAME_OVERRIDE="$2"; shift 2 ;;
         --build-repository) BUILD_REPOSITORY="$2"; shift 2 ;;
         --skip-build)   SKIP_BUILD=true; shift ;;
+        --ci-mode)      CI_MODE=true; shift ;;
         --force|-f)     FORCE=true; shift ;;
         --help|-h)      show_help ;;
         -*)             echo "Unknown option: $1" >&2; exit 1 ;;
@@ -145,11 +147,15 @@ parse_config() {
     fi
 
     PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
-    # Auto-install: default FALSE (manual install), set extensions.autoInstall: true to enable
-    # Read without default (returns 'null' if not set)
+    # Auto-install: default true for end users, false for CI testing
+    # Read from config without default (returns 'null' if not set)
     AUTO_INSTALL=$(yq '.extensions.autoInstall' "$SINDRI_YAML")
-    # Default to FALSE if null (safer default - explicit control)
     if [[ "$AUTO_INSTALL" == "null" ]]; then
+        AUTO_INSTALL="true"  # Default: auto-install enabled
+    fi
+
+    # CI mode override: Force autoInstall=false for clean testing
+    if [[ "$CI_MODE" == "true" ]]; then
         AUTO_INSTALL="false"
     fi
     CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
