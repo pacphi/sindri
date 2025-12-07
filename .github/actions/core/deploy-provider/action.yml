@@ -322,11 +322,12 @@ runs:
             echo "→ Backend: $BACKEND"
             echo "→ Workspace ID: $WORKSPACE_ID"
 
-            EXTRA_FLAGS=""
+            # Always pass workspace name to ensure consistent ID between deploy and test
+            EXTRA_FLAGS="--workspace-name $WORKSPACE_ID"
             if [[ "$PROVIDER" == "devpod-k8s" ]]; then
               REGISTRY_URL="${{ steps.kind-setup.outputs.registry-url }}"
               echo "→ Using image from local registry: ${REGISTRY_URL}/sindri:latest"
-              EXTRA_FLAGS="--skip-build --image ${REGISTRY_URL}/sindri:latest"
+              EXTRA_FLAGS="$EXTRA_FLAGS --skip-build --image ${REGISTRY_URL}/sindri:latest"
             fi
             echo "::endgroup::"
 
