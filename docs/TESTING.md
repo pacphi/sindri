@@ -78,12 +78,12 @@ examples/
 
 ### Test Levels
 
-| Level       | Purpose                                        | Duration   | Tests |
-| ----------- | ---------------------------------------------- | ---------- | ----- |
-| `quick`     | CLI validation only                            | ~10-15s    | 7     |
-| `extension` | Single extension lifecycle (install/remove)    | ~45-60s    | 11    |
-| `profile`   | Profile lifecycle (install-profile/remove all) | ~90-120s   | 11    |
-| `all`       | All levels sequentially                        | ~2-3min    | 29    |
+| Level       | Purpose                                        | Duration | Tests |
+| ----------- | ---------------------------------------------- | -------- | ----- |
+| `quick`     | CLI validation only                            | ~10-15s  | 7     |
+| `extension` | Single extension lifecycle (install/remove)    | ~45-60s  | 11    |
+| `profile`   | Profile lifecycle (install-profile/remove all) | ~90-120s | 11    |
+| `all`       | All levels sequentially                        | ~2-3min  | 29    |
 
 **Note**: Extension and profile levels include idempotency testing (reinstall + revalidate).
 
@@ -102,17 +102,18 @@ The new YAML validation system provides comprehensive checks:
 
 **Individual YAML Tests:**
 
-| Script                      | Purpose                                      |
-| --------------------------- | -------------------------------------------- |
-| `test-extension-schemas.sh` | Validate extension.yaml files against schema |
-| `test-profile-schema.sh`    | Validate profiles.yaml                       |
-| `test-registry-schema.sh`   | Validate registry.yaml                       |
-| `test-categories-schema.sh` | Validate categories.yaml                     |
-| `test-templates-schema.sh`  | Validate project-templates.yaml              |
-| `test-vm-sizes-schema.sh`   | Validate vm-sizes.yaml                       |
-| `test-sindri-examples.sh`   | Validate all sindri.yaml examples            |
-| `test-cross-references.sh`  | Validate cross-file references               |
-| `test-yaml-lint.sh`         | Run yamllint on all YAML files               |
+| Script                         | Purpose                                       |
+| ------------------------------ | --------------------------------------------- |
+| `test-extension-schemas.sh`    | Validate extension.yaml files against schema  |
+| `test-profile-schema.sh`       | Validate profiles.yaml                        |
+| `test-registry-schema.sh`      | Validate registry.yaml                        |
+| `test-categories-schema.sh`    | Validate categories.yaml                      |
+| `test-templates-schema.sh`     | Validate project-templates.yaml               |
+| `test-vm-sizes-schema.sh`      | Validate vm-sizes.yaml                        |
+| `test-sindri-examples.sh`      | Validate all sindri.yaml examples             |
+| `test-cross-references.sh`     | Validate cross-file references                |
+| `test-domain-requirements.sh`  | Validate extension domain requirements        |
+| `test-yaml-lint.sh`            | Run yamllint on all YAML files                |
 
 **Quality Checks:**
 
@@ -132,6 +133,33 @@ The new YAML validation system provides comprehensive checks:
 - `docker/lib/schemas/categories.schema.json` - Category definitions
 - `docker/lib/schemas/project-templates.schema.json` - Project templates
 - `docker/lib/schemas/vm-sizes.schema.json` - VM size mappings across providers
+
+### Domain Requirements Validation
+
+Extensions declare `requirements.domains` to list external domains accessed during
+installation. The domain validation test (`test-domain-requirements.sh`) checks:
+
+| Check       | Behavior      | Description                                  |
+| ----------- | ------------- | -------------------------------------------- |
+| Format      | Hard fail     | Valid hostname syntax (RFC 1123)             |
+| Duplicates  | Hard fail     | No duplicate domain entries                  |
+| DNS         | Warning only  | Domains resolve (optional, off by default)   |
+| Undeclared  | Warning only  | Domains in scripts not declared (heuristic)  |
+
+**Running locally:**
+
+```bash
+# Via test script (format + duplicates only)
+./test/unit/yaml/test-domain-requirements.sh
+
+# Via extension-manager with DNS check
+extension-manager --check-dns validate-domains
+```
+
+**Environment variables:**
+
+- `VALIDATE_DNS=true` - Enable DNS resolution checks
+- `DNS_TIMEOUT=3` - DNS lookup timeout in seconds
 
 ### Shell Script Validation
 

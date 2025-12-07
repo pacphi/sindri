@@ -170,6 +170,25 @@ jobs:
       - name: Validate cross-references
         run: ./test/unit/yaml/test-cross-references.sh
 
+  domain-requirements:
+    name: Domain Requirements Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install yq
+        run: |
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Validate domain requirements
+        run: |
+          chmod +x test/unit/yaml/test-domain-requirements.sh
+          # Run format/duplicate validation (hard fail)
+          # DNS validation disabled in CI (network may be restricted)
+          VALIDATE_DNS=false ./test/unit/yaml/test-domain-requirements.sh
+
   extension-consistency:
     name: Extension Consistency
     runs-on: ubuntu-latest

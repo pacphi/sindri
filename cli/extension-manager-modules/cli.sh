@@ -29,6 +29,7 @@ COMMANDS:
     remove <name>           Remove extension
     validate <name>         Validate extension installation
     validate-all            Validate all installed extensions
+    validate-domains [name] Validate domain requirements (format, DNS)
     status [name]           Show extension status
     resolve <name>          Show dependency resolution order
     search <term>           Search extensions by name or description
@@ -44,6 +45,7 @@ OPTIONS:
     --category <name>       Filter by category
     --profile <name>        Use specific profile
     --format <format>       BOM output format (yaml|json|csv|cyclonedx|spdx)
+    --check-dns             Include DNS resolution check (validate-domains)
 
 EXAMPLES:
     extension-manager list
@@ -61,13 +63,14 @@ EOF
 }
 
 parse_args() {
-    # Global flags
-    export VERBOSE=false
-    export DRY_RUN=false
-    export FORCE_MODE=false
-    export FILTER_CATEGORY=""
-    export USE_PROFILE=""
-    export FORMAT="yaml"
+    # Global flags - initialize defaults
+    VERBOSE="${VERBOSE:-false}"
+    DRY_RUN="${DRY_RUN:-false}"
+    FORCE_MODE="${FORCE_MODE:-false}"
+    CHECK_DNS="${CHECK_DNS:-false}"
+    FILTER_CATEGORY="${FILTER_CATEGORY:-}"
+    USE_PROFILE="${USE_PROFILE:-}"
+    FORMAT="${FORMAT:-yaml}"
 
     # Parse global flags
     while [[ $# -gt 0 ]]; do
@@ -86,6 +89,10 @@ parse_args() {
                 ;;
             --force)
                 FORCE_MODE=true
+                shift
+                ;;
+            --check-dns)
+                CHECK_DNS=true
                 shift
                 ;;
             --category)
@@ -107,8 +114,9 @@ parse_args() {
         esac
     done
 
-    # Return remaining args
-    echo "$@"
+    # Store remaining args in global array (avoids subshell issue)
+    # shellcheck disable=SC2034  # Used by extension-manager main script
+    PARSED_ARGS=("$@")
 }
 
 # Export functions

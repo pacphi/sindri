@@ -11,7 +11,7 @@ approach that puts the `sindri` and `extension-manager` CLIs at the heart of all
   - [CI Test Configuration](#ci-test-configuration)
     - [Resource Allocation Strategy](#resource-allocation-strategy)
     - [autoInstall Setting](#autoinstall-setting)
-    - [Environment Variables](#environment-variables)
+    - [CI Mode Implementation](#ci-mode-implementation)
   - [Architecture Overview](#architecture-overview)
   - [Provider Support](#provider-support)
     - [Secret Management](#secret-management)
@@ -115,6 +115,7 @@ SKIP_AUTO_INSTALL=true  # Forces clean slate regardless of config
 ```
 
 **Usage**:
+
 ```bash
 # CI deployment (via deploy-provider action)
 ./deploy/adapters/docker-adapter.sh deploy --ci-mode --skip-build minimal.sindri.yaml

@@ -53,6 +53,9 @@ run_test "Sindri Examples Validation" "$SCRIPT_DIR/test-sindri-examples.sh"
 # Cross-reference validation
 run_test "Cross-Reference Validation" "$SCRIPT_DIR/test-cross-references.sh"
 
+# Domain requirements validation
+run_test "Domain Requirements Validation" "$SCRIPT_DIR/test-domain-requirements.sh"
+
 # Quality checks
 run_test "Extension Completeness" "$SCRIPT_DIR/test-extension-completeness.sh"
 run_test "Profile Dependencies" "$SCRIPT_DIR/test-profile-dependencies.sh"
