@@ -369,6 +369,11 @@ extension.yaml              (Definition)
             <td>Claude Code plugins</td>
         </tr>
         <tr>
+            <td class="highlight">claudeup</td>
+            <td>Claude Code management TUI</td>
+            <td>Plugins, MCPs, configuration</td>
+        </tr>
+        <tr>
             <td class="highlight">ruvnet-aliases</td>
             <td>Claude Flow & Agentic Flow</td>
             <td>AI workflow automation</td>
@@ -458,7 +463,7 @@ extension.yaml              (Definition)
 
 <!-- Profile Overview -->
 <section>
-    <h2>Available Profiles</h2>
+    <h2>Available Profiles (9)</h2>
     <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5em;">
         <div class="profile-card">
             <h4>minimal</h4>
@@ -490,27 +495,59 @@ extension.yaml              (Definition)
             All languages + docker + cloud-tools<br>
             <span class="small">~15GB | Multi-language</span>
         </div>
+        <div class="profile-card">
+            <h4>data-science</h4>
+            python, monitoring<br>
+            <span class="small">~2GB | Data analytics</span>
+        </div>
+        <div class="profile-card">
+            <h4>mobile</h4>
+            nodejs<br>
+            <span class="small">~1GB | Mobile development</span>
+        </div>
     </div>
 </section>
 
 <!-- Anthropic-Dev Profile -->
 <section>
     <h2>anthropic-dev Profile</h2>
-    <p class="small">The most comprehensive profile for Claude/AI development</p>
-    <div class="extension-grid">
-        <div class="ext-item">agent-manager</div>
-        <div class="ext-item">ai-toolkit</div>
-        <div class="ext-item">claude-code-mux</div>
-        <div class="ext-item">claude-marketplace</div>
-        <div class="ext-item">cloud-tools</div>
-        <div class="ext-item">openskills</div>
-        <div class="ext-item">nodejs-devtools</div>
-        <div class="ext-item">playwright</div>
-        <div class="ext-item">rust</div>
-        <div class="ext-item">ruvnet-aliases</div>
-        <div class="ext-item">tmux-workspace</div>
+    <p class="small">The most comprehensive profile for Claude/AI development (18 extensions)</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 1em; justify-content: center; font-size: 0.6em;">
+        <div style="text-align: left;">
+            <h4 style="color: #a371f7; margin: 0 0 0.3em 0;">AI & Agents (7)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">agent-manager</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ai-toolkit</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">claude-code-mux</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">claudeup</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">claudish</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">claude-marketplace</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">openskills</div>
+        </div>
+        <div style="text-align: left;">
+            <h4 style="color: #3fb950; margin: 0 0 0.3em 0;">Languages (3)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">golang</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">jvm</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">rust</div>
+        </div>
+        <div style="text-align: left;">
+            <h4 style="color: #58a6ff; margin: 0 0 0.3em 0;">Dev Tools (4)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">agentic-qe</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">nodejs-devtools</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">playwright</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">tmux-workspace</div>
+        </div>
+        <div style="text-align: left;">
+            <h4 style="color: #d29922; margin: 0 0 0.3em 0;">Infrastructure (2)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">cloud-tools</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">infra-tools</div>
+        </div>
+        <div style="text-align: left;">
+            <h4 style="color: #f85149; margin: 0 0 0.3em 0;">Research (2)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ruvnet-aliases</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ruvnet-research</div>
+        </div>
     </div>
-    <p class="small" style="margin-top: 1em;">~8-10GB | Advanced AI development</p>
+    <p class="small" style="margin-top: 1em;">~10-12GB | Advanced AI development</p>
 </section>
 
 <!-- Using Profiles -->
