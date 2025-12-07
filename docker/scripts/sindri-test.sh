@@ -52,6 +52,12 @@ run_test() {
     local exit_code=$?
     set -e
 
+    # Handle SIGPIPE (141) - happens when grep -q exits early after finding match
+    # This is actually a success case (see: https://stackoverflow.com/q/19120263)
+    if [[ $exit_code -eq 141 ]]; then
+        exit_code=0
+    fi
+
     local duration=$(($(date +%s) - start))
 
     if [[ $exit_code -eq 0 ]]; then

@@ -508,7 +508,11 @@ validate_extension() {
 
     # Get validation timeout from extension or use default
     local validation_timeout
-    validation_timeout=$(load_yaml "$ext_yaml" '.requirements.validationTimeout' 2>/dev/null || echo "${SINDRI_VALIDATION_TIMEOUT:-10}")
+    validation_timeout=$(load_yaml "$ext_yaml" '.requirements.validationTimeout' 2>/dev/null || echo "null")
+    # Handle null from yq (same issue as autoInstall bug)
+    if [[ "$validation_timeout" == "null" ]]; then
+        validation_timeout="${SINDRI_VALIDATION_TIMEOUT:-10}"
+    fi
 
     # Get list of validation commands
     local num_commands
@@ -557,9 +561,10 @@ validate_extension() {
         elif [[ $exit_code -ne 0 ]]; then
             print_error "✗ $cmd execution failed (exit code: $exit_code)"
             all_valid=false
-        elif [[ -n "$expected_pattern" ]]; then
+        elif [[ -n "$expected_pattern" ]] && [[ "$expected_pattern" != "null" ]]; then
             # Validate output against expected pattern if provided
-            if echo "$output" | grep -qE "$expected_pattern"; then
+            # Use grep -P for Perl regex support (\d, \s, etc.)
+            if echo "$output" | grep -qP "$expected_pattern"; then
                 [[ "${VERBOSE:-false}" == "true" ]] && print_success "✓ $cmd validated (pattern matched)"
             else
                 print_error "✗ $cmd output doesn't match expected pattern: $expected_pattern"

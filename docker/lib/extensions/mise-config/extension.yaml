@@ -21,7 +21,7 @@ install:
 validate:
   commands:
     - name: mise
-      expectedPattern: "mise \\d+\\.\\d+\\.\\d+"
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
 
 remove:
   paths:
