@@ -129,13 +129,11 @@ runs:
       if: inputs.provider == 'devpod-k8s'
       shell: bash
       run: |
-        echo "Setting up kind cluster with local registry for kubernetes testing..."
+        echo "Setting up kind cluster for kubernetes testing..."
 
         CLUSTER_NAME="sindri-ci"
-        REG_NAME="local-registry-${CLUSTER_NAME}"
-        REG_PORT="5001"
 
-        # Install kind if not present (use version compatible with registry config)
+        # Install kind if not present
         KIND_VERSION="v0.27.0"
         CURRENT_KIND_VERSION=$(kind version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "none")
         if [[ "$CURRENT_KIND_VERSION" != "$KIND_VERSION" ]]; then
@@ -146,48 +144,18 @@ runs:
         fi
         kind version
 
-        # Create local registry
-        if [ "$(docker inspect -f '{{.State.Running}}' "${REG_NAME}" 2>/dev/null || true)" != 'true' ]; then
-          echo "Creating local registry: ${REG_NAME} on port ${REG_PORT}"
-          docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" registry:2
-        fi
-
-        # Create kind config with registry support
-        cat > /tmp/kind-config.yaml << 'KINDEOF'
-        kind: Cluster
-        apiVersion: kind.x-k8s.io/v1alpha4
-        containerdConfigPatches:
-        - |-
-          [plugins."io.containerd.grpc.v1.cri".registry]
-            config_path = "/etc/containerd/certs.d"
-        nodes:
-        - role: control-plane
-        KINDEOF
-        sed -i 's/^        //' /tmp/kind-config.yaml
-
         # Create kind cluster
         echo "Creating kind cluster: ${CLUSTER_NAME}"
         kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
-        kind create cluster --name "$CLUSTER_NAME" --config /tmp/kind-config.yaml --wait 120s
+        kind create cluster --name "$CLUSTER_NAME" --wait 120s
 
-        # Connect registry to kind network
-        if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' "${REG_NAME}")" = 'null' ]; then
-          docker network connect "kind" "${REG_NAME}" || true
-        fi
+        # Load the CI image directly into kind's containerd
+        echo "Loading image into kind cluster..."
+        kind load docker-image "${{ inputs.image }}" --name "$CLUSTER_NAME"
 
-        # Configure containerd to use the local registry
-        REGISTRY_DIR="/etc/containerd/certs.d/localhost:${REG_PORT}"
-        for node in $(kind get nodes --name "$CLUSTER_NAME"); do
-          echo "Configuring registry on node: ${node}"
-          docker exec "${node}" mkdir -p "${REGISTRY_DIR}"
-          docker exec "${node}" bash -c "echo '[host.\"http://${REG_NAME}:5000\"]' > ${REGISTRY_DIR}/hosts.toml && echo '  capabilities = [\"pull\", \"resolve\", \"push\"]' >> ${REGISTRY_DIR}/hosts.toml"
-        done
-
-        # Tag and push image to local registry
-        LOCAL_IMAGE="localhost:${REG_PORT}/sindri:latest"
-        echo "Pushing image to local registry: ${LOCAL_IMAGE}"
-        docker tag "${{ inputs.image }}" "${LOCAL_IMAGE}"
-        docker push "${LOCAL_IMAGE}"
+        # Also tag and load as sindri:latest for devcontainer.json compatibility
+        docker tag "${{ inputs.image }}" sindri:latest
+        kind load docker-image sindri:latest --name "$CLUSTER_NAME"
 
         # Set up kubeconfig
         mkdir -p "$HOME/.kube"
@@ -197,8 +165,10 @@ runs:
         # Wait for cluster ready
         kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
-        echo "registry-url=localhost:${REG_PORT}" >> $GITHUB_OUTPUT
-        echo "✓ Kind cluster ready with local registry at localhost:${REG_PORT}"
+        # Create namespace for DevPod
+        kubectl create namespace sindri-test --dry-run=client -o yaml | kubectl apply -f -
+
+        echo "✓ Kind cluster ready with image loaded"
 
     - name: Install DevPod CLI
       if: startsWith(inputs.provider, 'devpod-')
@@ -271,9 +241,8 @@ runs:
             # Build extra flags for specific providers
             EXTRA_FLAGS=""
             if [[ "$PROVIDER" == "devpod-k8s" ]]; then
-              # For k8s, use the image from local registry (pushed in kind-setup step)
-              REGISTRY_URL="${{ steps.kind-setup.outputs.registry-url }}"
-              EXTRA_FLAGS="--skip-build --image ${REGISTRY_URL}/sindri:latest"
+              # For k8s, use sindri:latest which was loaded into kind's containerd
+              EXTRA_FLAGS="--skip-build --image sindri:latest"
             fi
 
             # Deploy using devpod adapter with --ci-mode (forces autoInstall=false)

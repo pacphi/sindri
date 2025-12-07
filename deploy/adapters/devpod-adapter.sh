@@ -605,19 +605,15 @@ generate_devcontainer() {
         "ms-python.python",
         "golang.go",
         "rust-lang.rust-analyzer"
-      ]
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
     }
-  },
-  "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   "postCreateCommand": "/docker/cli/extension-manager install-profile ${PROFILE}",
   "remoteUser": "developer",
-  "containerUser": "developer",
-  "mounts": ["source=sindri-home,target=/alt/home/developer,type=volume"],
-  "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined", "--cpus=${CPUS}", "--memory=${MEMORY}"],
-  "forwardPorts": [3000, 8080]
+  "containerUser": "developer"
 }
 EODC
 }
