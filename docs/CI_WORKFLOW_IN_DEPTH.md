@@ -83,34 +83,47 @@ If a profile-specific config doesn't exist, it falls back to minimal.
 
 ### autoInstall Setting
 
-For CI tests, **`autoInstall` must be set to `false`** in all test configurations:
+**Default Behavior**: `autoInstall` defaults to **`true`** for end users, automatically
+installing the configured extension profile on container startup.
+
+**CI Override**: When deploying with `--ci-mode` flag, all adapters force
+`autoInstall=false` to ensure clean slate testing, **regardless of the value in
+sindri.yaml**.
 
 ```yaml
-# examples/docker/ci-test.sindri.yaml
-name: sindri-ci-test
-provider: docker
+# examples/docker/minimal.sindri.yaml
 extensions:
   profile: minimal
-  autoInstall: false # CRITICAL: Disable auto-install for CI
+  # autoInstall defaults to true for end users
+  # In CI, --ci-mode flag forces this to false for clean testing
 ```
 
-**Why this matters**:
+**Why CI needs clean slate**:
 
 - **Predictable State**: Container starts clean without any extensions installed
 - **Explicit Testing**: Tests explicitly call `extension-manager install` commands
 - **Full Lifecycle Coverage**: We can test install, validate, and remove operations
 - **Failure Isolation**: If install fails, we know it's the install operation, not startup
+- **Pre-check Detection**: Tests verify NO extensions installed before starting
 
-### Environment Variables
+### CI Mode Implementation
 
-When `autoInstall: false`, the adapters set:
+When `--ci-mode` is enabled, adapters internally set:
 
 ```bash
-SKIP_AUTO_INSTALL=true  # Prevents entrypoint from auto-installing extensions
+SKIP_AUTO_INSTALL=true  # Forces clean slate regardless of config
 ```
 
-This ensures the container starts with only base tools (mise, yq, claude) and waits
-for explicit extension installation via the test script.
+**Usage**:
+```bash
+# CI deployment (via deploy-provider action)
+./deploy/adapters/docker-adapter.sh deploy --ci-mode --skip-build minimal.sindri.yaml
+./deploy/adapters/fly-adapter.sh deploy --ci-mode minimal.sindri.yaml
+./deploy/adapters/devpod-adapter.sh deploy --ci-mode minimal.sindri.yaml
+```
+
+**Note**: The `--ci-mode` flag is for CI environments only. End users should set
+`autoInstall: false` in sindri.yaml if they want manual control.
 
 ---
 
@@ -336,7 +349,7 @@ PASS: remove-all (4s)
 PASS: verify-removed (1s)
 
 RESULT:PASSED
-Summary: 27 passed, 0 failed
+Summary: 29 passed, 0 failed
 ```
 
 **On Pre-check Failure** (dirty state detected):

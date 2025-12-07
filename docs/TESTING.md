@@ -78,12 +78,14 @@ examples/
 
 ### Test Levels
 
-| Level       | Purpose                                        | Duration |
-| ----------- | ---------------------------------------------- | -------- |
-| `quick`     | CLI validation only                            | ~10-15s  |
-| `extension` | Single extension lifecycle (install/remove)    | ~30-45s  |
-| `profile`   | Profile lifecycle (install-profile/remove all) | ~60-90s  |
-| `all`       | All levels sequentially                        | ~2-3min  |
+| Level       | Purpose                                        | Duration   | Tests |
+| ----------- | ---------------------------------------------- | ---------- | ----- |
+| `quick`     | CLI validation only                            | ~10-15s    | 7     |
+| `extension` | Single extension lifecycle (install/remove)    | ~45-60s    | 11    |
+| `profile`   | Profile lifecycle (install-profile/remove all) | ~90-120s   | 11    |
+| `all`       | All levels sequentially                        | ~2-3min    | 29    |
+
+**Note**: Extension and profile levels include idempotency testing (reinstall + revalidate).
 
 See [CI_WORKFLOW_IN_DEPTH.md](CI_WORKFLOW_IN_DEPTH.md) for detailed test specifications.
 
@@ -205,6 +207,10 @@ The CI system uses these workflows:
 **Key Simplification**: All tests run INSIDE the container via a single unified
 script (`/docker/scripts/sindri-test.sh`), eliminating shell quoting issues and
 reducing complexity from 2,400 lines to ~550 lines.
+
+**CI Mode**: All provider deployments use `--ci-mode` flag to force `autoInstall=false`,
+ensuring clean slate testing regardless of the sindri.yaml configuration. This allows
+testing any profile/config combination without modifying files.
 
 ### Kubernetes Testing with Kind
 
