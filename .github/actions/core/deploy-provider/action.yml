@@ -209,7 +209,8 @@ runs:
             APP_NAME="sindri-ci-${RUN_ID}-${RUN_NUMBER}"
 
             # Deploy using fly adapter (CI mode, config as positional arg)
-            ./deploy/adapters/fly-adapter.sh deploy --ci-mode "$CONFIG"
+            # Pass --app-name to override the name from sindri.yaml with CI-specific name
+            ./deploy/adapters/fly-adapter.sh deploy --ci-mode --app-name "$APP_NAME" "$CONFIG"
 
             TARGET_ID="$APP_NAME"
             echo "✓ Deployed to Fly.io: $TARGET_ID"
