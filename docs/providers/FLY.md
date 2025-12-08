@@ -502,6 +502,50 @@ Automatically configured in fly.toml:
 
 **With auto-suspend, costs scale with actual usage!**
 
+## Deploying the FAQ Static Site
+
+The Sindri FAQ is a self-contained static HTML page hosted at [sindri-faq.fly.dev](https://sindri-faq.fly.dev).
+
+### Quick Deploy
+
+```bash
+cd docs/faq
+flyctl deploy
+```
+
+### Configuration
+
+The FAQ uses a minimal fly.toml optimized for cost:
+
+- **256MB RAM** - Minimum for static content
+- **Shared CPU** - No dedicated resources needed
+- **Auto-stop** - Stops when idle (free tier eligible)
+- **No volume** - Static content, no persistence needed
+
+Estimated cost: **$0-2/month** (often free with auto-suspend)
+
+### Manual Deployment Steps
+
+```bash
+# Navigate to FAQ directory
+cd docs/faq
+
+# Build the FAQ (if source files changed)
+pnpm build:faq
+
+# Deploy to Fly.io
+flyctl deploy
+
+# Verify deployment
+flyctl status -a sindri-faq
+```
+
+### Updating the FAQ
+
+1. Edit source files in `docs/faq/src/`
+2. Rebuild: `pnpm build:faq`
+3. Redeploy: `cd docs/faq && flyctl deploy`
+
 ## Related Documentation
 
 - [Deployment Overview](../DEPLOYMENT.md)
