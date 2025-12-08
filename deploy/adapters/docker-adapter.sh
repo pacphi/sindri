@@ -285,13 +285,44 @@ cmd_destroy() {
         print_warning "Container '$NAME' not found"
     fi
 
-    # Clean up docker-compose resources
+    # Clean up docker-compose resources (volumes and networks)
     if [[ -f "$OUTPUT_DIR/docker-compose.yml" ]]; then
         print_status "Cleaning up docker-compose resources..."
-        docker compose -f "$OUTPUT_DIR/docker-compose.yml" down -v 2>/dev/null || true
+        # Use --volumes to remove named volumes and --remove-orphans for stale containers
+        docker compose -f "$OUTPUT_DIR/docker-compose.yml" down --volumes --remove-orphans 2>/dev/null || true
         rm -f "$OUTPUT_DIR/docker-compose.yml"
         rm -f "$OUTPUT_DIR/.env.secrets"
     fi
+
+    # Clean up any remaining volumes for this deployment
+    # Docker Compose prefixes volumes with project name (directory name)
+    local project_name
+    project_name=$(basename "$OUTPUT_DIR")
+
+    # List of volume patterns to clean up
+    local volumes_to_remove=(
+        "${project_name}_${NAME}_home"
+        "${NAME}_home"
+    )
+
+    for vol in "${volumes_to_remove[@]}"; do
+        if docker volume inspect "$vol" &>/dev/null; then
+            print_status "Removing volume: $vol"
+            if ! docker volume rm "$vol" 2>&1; then
+                print_warning "Could not remove volume $vol (may still be in use)"
+            fi
+        fi
+    done
+
+    # Clean up orphaned sindri networks
+    for network in $(docker network ls --filter "name=sindri" -q 2>/dev/null); do
+        local network_name
+        network_name=$(docker network inspect "$network" --format '{{.Name}}' 2>/dev/null)
+        if [[ -n "$network_name" ]]; then
+            print_status "Removing network: $network_name"
+            docker network rm "$network" 2>/dev/null || true
+        fi
+    done
 
     print_success "Container destroyed"
 }

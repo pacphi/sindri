@@ -124,6 +124,10 @@ RUN /docker/scripts/setup-ssh-environment.sh
 # Create welcome script in /etc/skel for first-login message
 RUN /docker/scripts/create-welcome.sh
 
+# Create npm config in /etc/skel to suppress misleading registry notices
+# See: https://github.com/npm/cli/issues/8816
+RUN /docker/scripts/create-npmrc.sh
+
 # Setup MOTD banner
 RUN /docker/scripts/setup-motd.sh
 

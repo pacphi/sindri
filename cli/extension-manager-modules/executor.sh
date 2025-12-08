@@ -206,6 +206,25 @@ install_via_mise() {
     # This prevents failures in unrelated extensions from breaking this install
     local scoped_config="$mise_conf_dir/${ext_name}.toml"
 
+    # Ensure mise shims and installed tools are in PATH for npm backend
+    # This fixes "node not found" errors when installing npm: packages
+    # See: https://mise.jdx.dev/troubleshooting.html
+    local mise_shims="${home_dir}/.local/share/mise/shims"
+    if [[ -d "$mise_shims" ]] && [[ ":$PATH:" != *":$mise_shims:"* ]]; then
+        export PATH="$mise_shims:$PATH"
+    fi
+    # Also add node install path directly as fallback for npm wrapper scripts
+    local node_installs="${home_dir}/.local/share/mise/installs/node"
+    if [[ -d "$node_installs" ]]; then
+        local node_path
+        node_path=$(find "$node_installs" -maxdepth 2 -name "bin" -type d 2>/dev/null | head -1 || true)
+        if [[ -n "$node_path" ]] && [[ ":$PATH:" != *":$node_path:"* ]]; then
+            export PATH="$node_path:$PATH"
+        fi
+    fi
+    # Refresh command hash table
+    hash -r 2>/dev/null || true
+
     # Run mise install with timeout and retry logic
     # Use MISE_CONFIG_FILE to scope to this extension only
     if ! MISE_CONFIG_FILE="$scoped_config" timeout 300 mise install 2>&1 | while IFS= read -r line; do
@@ -459,6 +478,23 @@ configure_extension() {
                     ;;
                 append)
                     cat "$source_path" >> "$dest"
+                    ;;
+                skip-if-exists)
+                    if [[ ! -f "$dest" ]]; then
+                        cp "$source_path" "$dest"
+                    fi
+                    ;;
+                merge)
+                    # Merge YAML/JSON files using yq if available, otherwise overwrite
+                    if command_exists yq && [[ "$dest" =~ \.(yaml|yml|json)$ ]]; then
+                        if [[ -f "$dest" ]]; then
+                            yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' "$dest" "$source_path" > "${dest}.tmp" && mv "${dest}.tmp" "$dest"
+                        else
+                            cp "$source_path" "$dest"
+                        fi
+                    else
+                        cp "$source_path" "$dest"
+                    fi
                     ;;
                 *)
                     print_warning "Unknown template mode: $mode, using overwrite"
