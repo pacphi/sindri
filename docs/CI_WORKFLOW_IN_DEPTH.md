@@ -567,13 +567,13 @@ gh auth login
 
 ### Workflow Reference
 
-| Workflow | Purpose | When to Use |
-|----------|---------|-------------|
-| `ci.yml` | Full CI pipeline | Validate all changes before merging |
-| `test-extensions.yml` | Test individual extensions | Debugging extension issues or validating new extensions |
-| `test-profiles.yml` | Test sindri.yaml configs | Validating example configurations or profile changes |
-| `manual-deploy.yml` | Deploy to any provider | Creating persistent dev environments or testing deployments |
-| `deploy-sindri.yml` | Reusable deployment | Called by other workflows (rarely triggered directly) |
+| Workflow              | Purpose                    | When to Use                                                 |
+| --------------------- | -------------------------- | ----------------------------------------------------------- |
+| `ci.yml`              | Full CI pipeline           | Validate all changes before merging                         |
+| `test-extensions.yml` | Test individual extensions | Debugging extension issues or validating new extensions     |
+| `test-profiles.yml`   | Test sindri.yaml configs   | Validating example configurations or profile changes        |
+| `manual-deploy.yml`   | Deploy to any provider     | Creating persistent dev environments or testing deployments |
+| `deploy-sindri.yml`   | Reusable deployment        | Called by other workflows (rarely triggered directly)       |
 
 ### CI Workflow (`ci.yml`)
 

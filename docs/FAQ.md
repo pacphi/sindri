@@ -30,11 +30,11 @@ This combines the source files in `docs/faq/src/` into a single `docs/faq/index.
 
 ### Source Files
 
-| File | Purpose |
-|------|---------|
+| File                | Purpose                                  |
+| ------------------- | ---------------------------------------- |
 | `src/faq-data.json` | Questions, answers, categories, and tags |
-| `src/index.html` | HTML template with styles |
-| `src/faq.js` | Search, filtering, and UI logic |
+| `src/index.html`    | HTML template with styles                |
+| `src/faq.js`        | Search, filtering, and UI logic          |
 
 ### Adding Questions
 

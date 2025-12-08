@@ -35,8 +35,6 @@ git checkout v1.5.1
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.5.0...v1.5.1
 
-
-
 ## [1.5.0] - 2025-12-07
 
 ### :sparkles: Features
@@ -67,8 +65,6 @@ git checkout v1.5.0
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.4.0...v1.5.0
-
-
 
 ## [1.4.0] - 2025-12-05
 
