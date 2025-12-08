@@ -38,6 +38,7 @@ adapter_init "${BASH_SOURCE[0]}"
 
 # Docker-specific defaults
 SKIP_BUILD=false
+FORCE_REBUILD=false
 # shellcheck disable=SC2034  # Used via indirect expansion in adapter_parse_base_config
 CONTAINER_NAME_OVERRIDE=""
 
@@ -60,6 +61,7 @@ while [[ $# -gt 0 ]]; do
         --output-dir)     OUTPUT_DIR="$2"; shift 2 ;;
         --output-vars)    OUTPUT_VARS=true; shift ;;
         --skip-build)     SKIP_BUILD=true; shift ;;
+        --rebuild)        FORCE_REBUILD=true; shift ;;
         --container-name) CONTAINER_NAME_OVERRIDE="$2"; shift 2 ;;
         --ci-mode)        CI_MODE=true; shift ;;
         --force|-f)       FORCE=true; shift ;;
@@ -228,7 +230,12 @@ EOJSON
     # Build image unless skipped
     if [[ "$SKIP_BUILD" != "true" ]]; then
         print_status "Building Docker image..."
-        docker build -t sindri:latest -f Dockerfile .
+        if [[ "$FORCE_REBUILD" == "true" ]]; then
+            print_status "Forcing rebuild (--no-cache)..."
+            docker build --no-cache -t sindri:latest -f Dockerfile .
+        else
+            docker build -t sindri:latest -f Dockerfile .
+        fi
     fi
 
     # Start container
