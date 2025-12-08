@@ -15,6 +15,15 @@ alias gcl="gcloud auth login"
 alias gcp="gcloud config set project"
 alias gci="gcloud compute instances list"
 
+# Fly.io
+alias fly="flyctl"
+alias flyl="flyctl auth login"
+alias flyd="flyctl deploy"
+alias flys="flyctl status"
+alias flya="flyctl apps list"
+alias flylog="flyctl logs"
+alias flyssh="flyctl ssh console"
+
 # Oracle Cloud
 alias ocis="oci setup config"
 

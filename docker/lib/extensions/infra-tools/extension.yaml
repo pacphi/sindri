@@ -16,12 +16,16 @@ requirements:
     - get.helm.sh
     - raw.githubusercontent.com
     - github.com
+    - api.github.com
     - carvel.dev
     - pulumi.com
     - www.pulumi.com
   diskSpace: 2500
   memory: 256
   installTime: 120
+  # GITHUB_TOKEN is recommended for mise ubi: backend to avoid rate limits
+  secrets:
+    - github_token
 
 install:
   method: hybrid

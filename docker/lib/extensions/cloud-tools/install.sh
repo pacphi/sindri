@@ -59,6 +59,21 @@ else
   fi
 fi
 
+# Fly.io CLI
+print_status "Installing Fly.io CLI (flyctl)..."
+if command_exists flyctl; then
+  print_warning "Fly.io CLI already installed: $(flyctl version 2>/dev/null | head -1)"
+else
+  if curl -L https://fly.io/install.sh | sh 2>/dev/null; then
+    # Add to PATH for current session
+    export FLYCTL_INSTALL="${FLYCTL_INSTALL:-$HOME/.fly}"
+    export PATH="$FLYCTL_INSTALL/bin:$PATH"
+    print_success "Fly.io CLI installed"
+  else
+    print_warning "Failed to install Fly.io CLI"
+  fi
+fi
+
 # Check if running in CI mode
 if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   print_status "CI mode detected - skipping optional cloud CLIs (Oracle, Alibaba, DigitalOcean, IBM)"

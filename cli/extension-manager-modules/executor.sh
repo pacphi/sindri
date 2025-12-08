@@ -233,7 +233,13 @@ install_via_mise() {
 
     # Run mise install with timeout and retry logic
     # Use MISE_CONFIG_FILE to scope to this extension only
-    if ! MISE_CONFIG_FILE="$scoped_config" timeout 300 mise install 2>&1 | while IFS= read -r line; do
+    # Pass GITHUB_TOKEN as MISE_GITHUB_TOKEN for ubi: backend authentication
+    local mise_env="MISE_CONFIG_FILE=$scoped_config"
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        mise_env="$mise_env MISE_GITHUB_TOKEN=$GITHUB_TOKEN"
+    fi
+    # shellcheck disable=SC2086  # Word splitting intentional for env vars
+    if ! env $mise_env timeout 300 mise install 2>&1 | while IFS= read -r line; do
         # Indent mise output for better readability
         if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
             echo "     $line"
@@ -243,7 +249,8 @@ install_via_mise() {
     done; then
         print_warning "mise install failed or timed out, retrying with exponential backoff..."
         # Use existing retry_command from common.sh (3 attempts, 2s initial delay)
-        if ! retry_command 3 2 MISE_CONFIG_FILE="$scoped_config" timeout 300 mise install; then
+        # shellcheck disable=SC2086  # Word splitting intentional for env vars
+        if ! retry_command 3 2 env $mise_env timeout 300 mise install; then
             print_error "mise install failed after 3 attempts (total: 15min max)"
             return 1
         fi
@@ -407,8 +414,26 @@ install_via_script() {
         return 1
     fi
 
-    # Execute script
-    bash "$full_script_path"
+    # Get timeout from extension.yaml or use default (600s = 10 minutes)
+    local script_timeout
+    script_timeout=$(load_yaml "$ext_yaml" '.install.script.timeout' 2>/dev/null || echo "null")
+    if [[ "$script_timeout" == "null" ]] || [[ -z "$script_timeout" ]]; then
+        script_timeout="${SINDRI_SCRIPT_TIMEOUT:-600}"
+    fi
+
+    # Execute script with timeout
+    # Capture exit code before if statement - $? is consumed by 'local' declaration otherwise
+    timeout "$script_timeout" bash "$full_script_path"
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 ]]; then
+        if [[ $exit_code -eq 124 ]]; then
+            print_error "Script installation timed out after ${script_timeout}s for $ext_name"
+        else
+            print_error "Script installation failed for $ext_name (exit code: $exit_code)"
+        fi
+        return 1
+    fi
 }
 
 # Install hybrid
@@ -418,32 +443,60 @@ install_hybrid() {
 
     print_status "Installing $ext_name via hybrid method..."
 
-    # Get steps count
-    local steps_count
-    steps_count=$(load_yaml "$ext_yaml" '.install.steps | length' 2>/dev/null || echo "0")
+    local has_steps=false
 
-    if [[ "$steps_count" == "null" ]] || [[ "$steps_count" -eq 0 ]]; then
-        print_error "No installation steps specified"
-        return 1
+    # Check for direct mise/apt/script keys (preferred format)
+    local has_mise has_apt has_script
+    has_mise=$(load_yaml "$ext_yaml" '.install.mise' 2>/dev/null || echo "null")
+    has_apt=$(load_yaml "$ext_yaml" '.install.apt' 2>/dev/null || echo "null")
+    has_script=$(load_yaml "$ext_yaml" '.install.script' 2>/dev/null || echo "null")
+
+    # Execute mise installation if specified
+    if [[ "$has_mise" != "null" ]]; then
+        has_steps=true
+        install_via_mise "$ext_name" "$ext_yaml" || return 1
     fi
 
-    # Execute each step
-    for i in $(seq 0 $((steps_count - 1))); do
-        local method
-        method=$(load_yaml "$ext_yaml" ".install.steps[$i].method")
+    # Execute apt installation if specified
+    if [[ "$has_apt" != "null" ]]; then
+        has_steps=true
+        install_via_apt "$ext_name" "$ext_yaml" || return 1
+    fi
 
-        case "$method" in
-            mise)    install_via_mise "$ext_name" "$ext_yaml" ;;
-            apt)     install_via_apt "$ext_name" "$ext_yaml" ;;
-            binary)  install_via_binary "$ext_name" "$ext_yaml" ;;
-            npm)     install_via_npm "$ext_name" "$ext_yaml" ;;
-            script)  install_via_script "$ext_name" "$ext_yaml" ;;
-            *)
-                print_error "Unknown method in hybrid: $method"
-                return 1
-                ;;
-        esac
-    done
+    # Execute script installation if specified
+    if [[ "$has_script" != "null" ]]; then
+        has_steps=true
+        install_via_script "$ext_name" "$ext_yaml" || return 1
+    fi
+
+    # Fallback: check for legacy steps array format
+    if [[ "$has_steps" == "false" ]]; then
+        local steps_count
+        steps_count=$(load_yaml "$ext_yaml" '.install.steps | length' 2>/dev/null || echo "0")
+
+        if [[ "$steps_count" == "null" ]] || [[ "$steps_count" -eq 0 ]]; then
+            print_error "No installation steps specified"
+            return 1
+        fi
+
+        # Execute each step
+        for i in $(seq 0 $((steps_count - 1))); do
+            local method
+            method=$(load_yaml "$ext_yaml" ".install.steps[$i].method")
+
+            case "$method" in
+                mise)    install_via_mise "$ext_name" "$ext_yaml" ;;
+                apt)     install_via_apt "$ext_name" "$ext_yaml" ;;
+                binary)  install_via_binary "$ext_name" "$ext_yaml" ;;
+                npm)     install_via_npm "$ext_name" "$ext_yaml" ;;
+                script)  install_via_script "$ext_name" "$ext_yaml" ;;
+                *)
+                    print_error "Unknown method in hybrid: $method"
+                    return 1
+                    ;;
+            esac
+        done
+    fi
 
     return 0
 }

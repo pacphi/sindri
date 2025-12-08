@@ -31,7 +31,7 @@ configure:
       destination: ~/.bashrc
       mode: append
     - source: ssh-environment.template
-      destination: /etc/profile.d/00-ssh-environment.sh
+      destination: ~/.profile
       mode: append
     - source: development-ini.template
       destination: /etc/php/8.4/cli/conf.d/99-development.ini

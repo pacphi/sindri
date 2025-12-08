@@ -283,43 +283,60 @@ cmd_destroy() {
 
     print_header "Destroying Docker container: $NAME"
 
+    # IMPORTANT: Run docker compose down FIRST (before manual container removal)
+    # This ensures volumes are properly cleaned up. Manual removal after compose down
+    # breaks the association and volumes may be left behind (especially with OrbStack).
+    if [[ -f "$OUTPUT_DIR/docker-compose.yml" ]]; then
+        print_status "Cleaning up docker-compose resources (container, volumes, networks)..."
+        # Use --volumes to remove named volumes and --remove-orphans for stale containers
+        docker compose -f "$OUTPUT_DIR/docker-compose.yml" down --volumes --remove-orphans 2>/dev/null || true
+    fi
+
+    # Manual container cleanup as fallback (in case compose down didn't fully work)
     if docker ps -a --format '{{.Names}}' | grep -q "^${NAME}$"; then
         print_status "Stopping container..."
         docker stop "$NAME" 2>/dev/null || true
         print_status "Removing container..."
         docker rm "$NAME" 2>/dev/null || true
-    else
-        print_warning "Container '$NAME' not found"
     fi
 
-    # Clean up docker-compose resources (volumes and networks)
+    # Clean up generated files
     if [[ -f "$OUTPUT_DIR/docker-compose.yml" ]]; then
-        print_status "Cleaning up docker-compose resources..."
-        # Use --volumes to remove named volumes and --remove-orphans for stale containers
-        docker compose -f "$OUTPUT_DIR/docker-compose.yml" down --volumes --remove-orphans 2>/dev/null || true
         rm -f "$OUTPUT_DIR/docker-compose.yml"
         rm -f "$OUTPUT_DIR/.env.secrets"
     fi
 
-    # Clean up any remaining volumes for this deployment
-    # Docker Compose prefixes volumes with project name (directory name)
+    # Determine the Docker Compose project name
+    # Docker Compose uses the directory name where compose file lives as project name
     local project_name
-    project_name=$(basename "$OUTPUT_DIR")
+    if [[ "$OUTPUT_DIR" == "." ]]; then
+        project_name=$(basename "$(pwd)")
+    else
+        project_name=$(basename "$OUTPUT_DIR")
+    fi
 
-    # List of volume patterns to clean up
-    local volumes_to_remove=(
-        "${project_name}_${NAME}_home"
-        "${NAME}_home"
-    )
+    # Clean up any remaining volumes for this deployment
+    # Docker Compose creates volumes as: <project>_<volume_name>
+    # Our compose file defines volume as: ${NAME}_home
+    # So the actual volume name is: <project>_${NAME}_home
+    print_status "Checking for remaining volumes..."
 
-    for vol in "${volumes_to_remove[@]}"; do
-        if docker volume inspect "$vol" &>/dev/null; then
-            print_status "Removing volume: $vol"
-            if ! docker volume rm "$vol" 2>&1; then
-                print_warning "Could not remove volume $vol (may still be in use)"
+    # Find all volumes that match our deployment patterns
+    local volumes_found
+    volumes_found=$(docker volume ls --format '{{.Name}}' 2>/dev/null | grep -E "(^${project_name}_${NAME}_home$|^${NAME}_home$|_${NAME}_home$)" || true)
+
+    if [[ -n "$volumes_found" ]]; then
+        while IFS= read -r vol; do
+            if [[ -n "$vol" ]]; then
+                print_status "Removing volume: $vol"
+                if ! docker volume rm "$vol" 2>&1; then
+                    # Force removal - volume might be "in use" by stopped container reference
+                    print_warning "Standard removal failed, attempting force removal..."
+                    docker volume rm -f "$vol" 2>/dev/null || print_warning "Could not remove volume $vol"
+                fi
             fi
-        fi
-    done
+        done <<< "$volumes_found"
+    fi
 
     # Clean up orphaned sindri networks
     for network in $(docker network ls --filter "name=sindri" -q 2>/dev/null); do
@@ -331,7 +348,17 @@ cmd_destroy() {
         fi
     done
 
-    print_success "Container destroyed"
+    # Also clean up networks created by compose (project_default pattern)
+    for network in $(docker network ls --filter "name=${project_name}" -q 2>/dev/null); do
+        local network_name
+        network_name=$(docker network inspect "$network" --format '{{.Name}}' 2>/dev/null)
+        if [[ -n "$network_name" ]]; then
+            print_status "Removing network: $network_name"
+            docker network rm "$network" 2>/dev/null || true
+        fi
+    done
+
+    print_success "Container and volumes destroyed"
 }
 
 cmd_plan() {

@@ -18,6 +18,12 @@
 - **Authentication**: `gcloud auth login`
 - **Set Project**: `gcloud config set project PROJECT_ID`
 
+### Fly.io
+- **CLI**: `flyctl` (also aliased as `fly`)
+- **Documentation**: https://fly.io/docs/flyctl/
+- **Authentication**: `flyctl auth login`
+- **Deploy App**: `flyctl deploy`
+
 ### Oracle Cloud Infrastructure (OCI)
 - **CLI**: `oci`
 - **Documentation**: https://docs.oracle.com/iaas/tools/oci-cli/
@@ -44,6 +50,7 @@ cloud/
 ├── aws/            # AWS configurations and scripts
 ├── azure/          # Azure configurations and scripts
 ├── gcp/            # GCP configurations and scripts
+├── flyio/          # Fly.io configurations and scripts
 ├── oracle/         # Oracle Cloud configurations
 ├── alibaba/        # Alibaba Cloud configurations
 ├── digitalocean/   # DigitalOcean configurations
@@ -86,6 +93,33 @@ gcloud config set project my-project
 
 # List compute instances
 gcloud compute instances list
+```
+
+### Fly.io
+```bash
+# Authenticate
+flyctl auth login
+
+# Launch a new app
+flyctl launch
+
+# Deploy application
+flyctl deploy
+
+# List apps
+flyctl apps list
+
+# Check app status
+flyctl status
+
+# Open app in browser
+flyctl open
+
+# View logs
+flyctl logs
+
+# SSH into machine
+flyctl ssh console
 ```
 
 ### Oracle Cloud
