@@ -31,6 +31,7 @@ approach that puts the `sindri` and `extension-manager` CLIs at the heart of all
     - [Stage 1: Validation (Parallel)](#stage-1-validation-parallel)
     - [Stage 2: Build](#stage-2-build)
     - [Stage 3: Provider Testing (Parallel Matrix)](#stage-3-provider-testing-parallel-matrix)
+  - [Triggering Workflows with GitHub CLI](#triggering-workflows-with-github-cli)
   - [Key Files](#key-files)
   - [Related Documentation](#related-documentation)
 
@@ -544,6 +545,215 @@ For each provider in the matrix (docker, fly, devpod-\*):
 2. Deploy infrastructure
 3. **Run tests** (single remote call to `sindri-test.sh`)
 4. Cleanup resources
+
+---
+
+## Triggering Workflows with GitHub CLI
+
+All workflows can be triggered manually using the GitHub CLI (`gh`). This is useful for
+testing specific configurations, debugging issues, or running targeted tests without
+pushing commits.
+
+### Prerequisites
+
+```bash
+# Install GitHub CLI (if not already installed)
+brew install gh          # macOS
+sudo apt install gh      # Ubuntu/Debian
+
+# Authenticate with GitHub
+gh auth login
+```
+
+### Workflow Reference
+
+| Workflow | Purpose | When to Use |
+|----------|---------|-------------|
+| `ci.yml` | Full CI pipeline | Validate all changes before merging |
+| `test-extensions.yml` | Test individual extensions | Debugging extension issues or validating new extensions |
+| `test-profiles.yml` | Test sindri.yaml configs | Validating example configurations or profile changes |
+| `manual-deploy.yml` | Deploy to any provider | Creating persistent dev environments or testing deployments |
+| `deploy-sindri.yml` | Reusable deployment | Called by other workflows (rarely triggered directly) |
+
+### CI Workflow (`ci.yml`)
+
+The main CI pipeline runs validation, builds the image, and tests across providers.
+
+```bash
+# Run with defaults (docker, fly, devpod-k8s providers, profile level)
+gh workflow run ci.yml
+
+# Test specific providers
+gh workflow run ci.yml -f providers="docker,fly"
+
+# Test all providers
+gh workflow run ci.yml -f providers="all"
+
+# Run quick tests only (faster feedback)
+gh workflow run ci.yml -f test-level="quick"
+
+# Test a specific extension
+gh workflow run ci.yml -f test-level="extension" -f extension="python"
+
+# Test a specific profile
+gh workflow run ci.yml -f test-level="profile" -f extension-profile="fullstack"
+
+# Skip cleanup for debugging failed tests
+gh workflow run ci.yml -f skip-cleanup=true
+```
+
+**When to use:**
+
+- Before merging PRs to validate changes
+- After modifying extension definitions or schemas
+- When testing provider adapter changes
+
+### Test Extensions Workflow (`test-extensions.yml`)
+
+Tests individual extensions directly from the registry (Docker-only, no sindri.yaml needed).
+
+```bash
+# Test a single extension
+gh workflow run test-extensions.yml -f extensions="nodejs"
+
+# Test multiple extensions
+gh workflow run test-extensions.yml -f extensions="nodejs,python,golang"
+
+# Test all non-protected extensions (~29 extensions)
+gh workflow run test-extensions.yml -f extensions="all"
+
+# Keep containers running for debugging
+gh workflow run test-extensions.yml -f extensions="python" -f skip-cleanup=true
+```
+
+**When to use:**
+
+- Validating new extension definitions
+- Debugging extension installation failures
+- Testing extension upgrades or changes
+- Verifying dependency resolution
+
+### Test Profiles Workflow (`test-profiles.yml`)
+
+Tests sindri.yaml configuration files from the `examples/` directory.
+
+```bash
+# Test a specific config file
+gh workflow run test-profiles.yml -f config-path="examples/fly/minimal.sindri.yaml"
+
+# Test all Fly.io examples
+gh workflow run test-profiles.yml -f config-path="examples/fly/"
+
+# Test all Docker examples
+gh workflow run test-profiles.yml -f config-path="examples/docker/"
+
+# Test all examples (comprehensive)
+gh workflow run test-profiles.yml -f config-path="examples/"
+
+# Run profile-level tests (full lifecycle)
+gh workflow run test-profiles.yml \
+  -f config-path="examples/docker/fullstack.sindri.yaml" \
+  -f test-level="profile"
+```
+
+**When to use:**
+
+- Validating example configurations after schema changes
+- Testing profile definitions
+- Verifying provider-specific configurations
+
+### Manual Deploy Workflow (`manual-deploy.yml`)
+
+Creates a persistent deployment for development or testing.
+
+```bash
+# Deploy to Fly.io (production)
+gh workflow run manual-deploy.yml \
+  -f provider="fly" \
+  -f environment="production" \
+  -f extension-profile="fullstack" \
+  -f vm-size="medium" \
+  -f region="sjc"
+
+# Deploy to Docker locally
+gh workflow run manual-deploy.yml \
+  -f provider="docker" \
+  -f environment="development" \
+  -f extension-profile="minimal"
+
+# Deploy to AWS via DevPod
+gh workflow run manual-deploy.yml \
+  -f provider="devpod-aws" \
+  -f environment="staging" \
+  -f extension-profile="ai-dev" \
+  -f vm-size="large"
+
+# Deploy with auto-cleanup after 8 hours
+gh workflow run manual-deploy.yml \
+  -f provider="fly" \
+  -f environment="development" \
+  -f auto-cleanup="8"
+
+# Deploy and run tests
+gh workflow run manual-deploy.yml \
+  -f provider="fly" \
+  -f environment="staging" \
+  -f run-tests=true
+```
+
+**When to use:**
+
+- Creating development environments for extended testing
+- Provisioning staging environments for demos
+- Testing provider-specific functionality
+- Creating environments with specific resource configurations
+
+### Monitoring Workflow Runs
+
+```bash
+# List recent workflow runs
+gh run list --workflow=ci.yml
+
+# Watch a running workflow
+gh run watch
+
+# View workflow run details
+gh run view <run-id>
+
+# View workflow logs
+gh run view <run-id> --log
+
+# Download artifacts from a run
+gh run download <run-id>
+```
+
+### Common Patterns
+
+**Debug a failing extension:**
+
+```bash
+# 1. Run extension test with skip-cleanup
+gh workflow run test-extensions.yml -f extensions="failing-ext" -f skip-cleanup=true
+
+# 2. Watch the run
+gh run watch
+
+# 3. If it fails, SSH into the container (for Fly.io)
+flyctl ssh console -a sindri-ci-<run-id>
+
+# 4. Inspect logs
+cat /alt/home/developer/workspace/.system/logs/failing-ext-install.log
+```
+
+**Validate changes before PR:**
+
+```bash
+# Quick validation
+gh workflow run ci.yml -f test-level="quick" -f providers="docker"
+
+# Full validation
+gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
+```
 
 ---
 

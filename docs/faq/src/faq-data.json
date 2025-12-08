@@ -419,36 +419,60 @@
       "docs": ["docs/ARCHITECTURE.md", "docs/EXTENSION_AUTHORING.md"]
     },
     {
-      "id": "cicd-github-actions",
+      "id": "cicd-local-testing",
       "category": "cicd",
-      "question": "How do I deploy Sindri from GitHub Actions?",
-      "answer": "Use the deploy-sindri.yml reusable workflow or create a custom workflow. Set secrets (FLY_API_TOKEN, ANTHROPIC_API_KEY, etc.) in repository settings. Create .env.local from secrets in the workflow, then run 'sindri deploy --provider fly'. The test-provider.yml workflow shows comprehensive CI testing patterns.",
-      "tags": ["github", "actions", "ci", "workflow"],
+      "question": "How do I run tests locally before pushing?",
+      "answer": "Run tests inside a local container using sindri-test.sh. First build the image with 'pnpm build', then start a container with 'docker run -d --name test -e SKIP_AUTO_INSTALL=true sindri:local'. Run quick tests with 'docker exec test /docker/scripts/sindri-test.sh --level quick', extension tests with '--level extension', or profile tests with '--level profile --profile minimal'. This is the same test script used in CI.",
+      "tags": ["testing", "local", "docker", "sindri-test"],
+      "docs": ["docs/CI_WORKFLOW_IN_DEPTH.md", "docs/TESTING.md"]
+    },
+    {
+      "id": "cicd-workflows-overview",
+      "category": "cicd",
+      "question": "What GitHub Actions workflows are available?",
+      "answer": "Five main workflows: ci.yml (full CI pipeline - runs on push/PR), test-extensions.yml (test individual extensions from registry), test-profiles.yml (test sindri.yaml configs from examples/), manual-deploy.yml (deploy to any provider on-demand), and deploy-sindri.yml (reusable deployment workflow). Each can be triggered manually via GitHub UI or 'gh workflow run'.",
+      "tags": ["workflows", "github", "actions", "overview"],
       "docs": [".github/workflows/", "docs/CI_WORKFLOW_IN_DEPTH.md"]
     },
     {
-      "id": "cicd-testing",
+      "id": "cicd-trigger-workflows",
       "category": "cicd",
-      "question": "How do I run tests in CI/CD?",
-      "answer": "Use 'sindri test --suite <name>' with smoke (quick health checks), integration (full tests), or full (comprehensive). The CI workflow runs tests INSIDE the container via /docker/scripts/sindri-test.sh. Each provider gets tested with three levels: quick (CLI), extension (single extension lifecycle), and profile (profile lifecycle).",
-      "tags": ["testing", "ci", "smoke", "integration"],
-      "docs": ["docs/TESTING.md", "docs/CI_WORKFLOW_IN_DEPTH.md"]
+      "question": "How do I trigger CI workflows manually with gh CLI?",
+      "answer": "Use 'gh workflow run <workflow>.yml' with field flags. Examples: 'gh workflow run ci.yml -f providers=\"docker,fly\" -f test-level=\"quick\"' for quick CI, 'gh workflow run test-extensions.yml -f extensions=\"nodejs,python\"' to test extensions, 'gh workflow run test-profiles.yml -f config-path=\"examples/fly/\"' to test configs. Add '-f skip-cleanup=true' for debugging.",
+      "tags": ["gh", "cli", "trigger", "workflow"],
+      "docs": ["docs/CI_WORKFLOW_IN_DEPTH.md"]
+    },
+    {
+      "id": "cicd-test-levels",
+      "category": "cicd",
+      "question": "What are the different test levels in CI?",
+      "answer": "Three test levels: 'quick' (10-15s) validates CLI commands work (sindri --version, extension-manager list); 'extension' (45-60s) tests full extension lifecycle (install, validate, remove) with idempotency check; 'profile' (90-120s) tests full profile lifecycle (install-profile, validate-all, remove). All tests run inside the container via /docker/scripts/sindri-test.sh.",
+      "tags": ["testing", "levels", "quick", "extension", "profile"],
+      "docs": ["docs/CI_WORKFLOW_IN_DEPTH.md"]
     },
     {
       "id": "cicd-ci-mode",
       "category": "cicd",
       "question": "What is CI_MODE and when should I use it?",
-      "answer": "CI_MODE=true disables the SSH daemon and keeps the container alive with 'sleep infinity' instead. This avoids port conflicts with Fly.io's hallpass (port 22) and is designed for automated testing. For Fly.io, the fly.toml gets 'services = []' to disable SSH service. Access via 'flyctl ssh console' instead of direct SSH.",
+      "answer": "CI_MODE=true disables the SSH daemon and keeps the container alive with 'sleep infinity'. This avoids port conflicts with Fly.io's hallpass (port 22) and is designed for automated testing. CI mode also forces autoInstall=false for clean-slate testing. Access containers via 'flyctl ssh console' (Fly.io) or 'docker exec' (Docker) instead of direct SSH.",
       "tags": ["ci", "mode", "testing", "automated"],
       "docs": ["docs/CI_WORKFLOW_IN_DEPTH.md", "CLAUDE.md"]
     },
     {
       "id": "cicd-validation",
       "category": "cicd",
-      "question": "How do I validate YAML and shell scripts in CI?",
-      "answer": "Run 'pnpm validate' to run all validation (YAML, shell, markdown). Individual commands: 'pnpm lint:yaml' (yamllint --strict), 'pnpm lint:shell' (shellcheck -S warning), 'pnpm lint:md' (markdownlint). The validate-yaml.yml workflow runs comprehensive YAML validation including schema checks against all JSON schemas.",
+      "question": "How do I validate YAML and shell scripts?",
+      "answer": "Run 'pnpm validate' to run all validation (YAML, shell, markdown). Individual commands: 'pnpm lint:yaml' (yamllint --strict), 'pnpm lint:shell' (shellcheck -S warning), 'pnpm lint:md' (markdownlint). The CI workflow (ci.yml) runs these checks automatically on push/PR. Schema validation happens via validate-yaml.yml workflow.",
       "tags": ["validation", "lint", "yaml", "shell"],
       "docs": [".github/workflows/validate-yaml.yml", "CLAUDE.md"]
+    },
+    {
+      "id": "cicd-debug-failures",
+      "category": "cicd",
+      "question": "How do I debug CI test failures?",
+      "answer": "Add '-f skip-cleanup=true' when triggering workflows to keep containers running after failure. Use 'gh run view <run-id> --log' to see logs. For Fly.io, SSH in with 'flyctl ssh console -a <app-name>'. Check extension logs at /alt/home/developer/workspace/.system/logs/<extension>-install.log. Use 'gh run watch' to monitor running workflows.",
+      "tags": ["debug", "failures", "logs", "troubleshooting"],
+      "docs": ["docs/CI_WORKFLOW_IN_DEPTH.md", "docs/TROUBLESHOOTING.md"]
     }
   ]
 }
