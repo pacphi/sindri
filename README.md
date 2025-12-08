@@ -60,6 +60,7 @@ cd sindri
 ### Getting Started
 
 - **[Quickstart Guide](docs/QUICKSTART.md)** - Fast setup and deployment
+- **[FAQ](docs/FAQ.md)** - Searchable answers to common questions
 - **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and concepts
 - **[Configuration Reference](docs/CONFIGURATION.md)** - Complete sindri.yaml guide
 
