@@ -31,21 +31,21 @@ for ext in "$EXTENSIONS_DIR"/*/extension.yaml; do
   # Check for empty description
   if [[ -z "$desc" ]]; then
     echo -e "${YELLOW}WARN: $ext_name has empty description${NC}"
-    ((WARNINGS++))
+    ((WARNINGS++)) || true
     continue
   fi
 
   # Check minimum length
   if [[ ${#desc} -lt 10 ]]; then
     echo -e "${YELLOW}WARN: $ext_name has short description: '$desc'${NC}"
-    ((WARNINGS++))
+    ((WARNINGS++)) || true
   fi
 
   # Check for placeholder text (case-insensitive)
   desc_lower=$(echo "$desc" | tr '[:upper:]' '[:lower:]')
   if [[ "$desc_lower" =~ (todo|fixme|placeholder|description\ here|add\ description) ]]; then
     echo -e "${YELLOW}WARN: $ext_name may have placeholder description: '$desc'${NC}"
-    ((WARNINGS++))
+    ((WARNINGS++)) || true
   fi
 done
 
@@ -59,10 +59,10 @@ for profile in $(yq '.profiles | keys | .[]' "$PROFILES_FILE" 2>/dev/null); do
 
   if [[ -z "$desc" ]]; then
     echo -e "${YELLOW}WARN: Profile '$profile' has empty description${NC}"
-    ((WARNINGS++))
+    ((WARNINGS++)) || true
   elif [[ ${#desc} -lt 10 ]]; then
     echo -e "${YELLOW}WARN: Profile '$profile' has short description: '$desc'${NC}"
-    ((WARNINGS++))
+    ((WARNINGS++)) || true
   fi
 done
 

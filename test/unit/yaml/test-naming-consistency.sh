@@ -36,7 +36,7 @@ for ext_dir in "$EXTENSIONS_DIR"/*/; do
 
     if [[ -n "$yaml_name" ]] && [[ "$dir_name" != "$yaml_name" ]]; then
       echo -e "${RED}FAIL: Directory '$dir_name' doesn't match metadata.name '$yaml_name'${NC}"
-      ((FAILURES++))
+      ((FAILURES++)) || true
     fi
   fi
 done
@@ -55,7 +55,7 @@ for ext_dir in "$EXTENSIONS_DIR"/*/; do
     if [[ -n "$ext_category" ]] && [[ -n "$reg_category" ]] && \
        [[ "$ext_category" != "$reg_category" ]]; then
       echo -e "${RED}FAIL: $ext_name category mismatch: extension.yaml='$ext_category', registry.yaml='$reg_category'${NC}"
-      ((FAILURES++))
+      ((FAILURES++)) || true
     fi
   fi
 done

@@ -67,7 +67,7 @@ for profile in $(yq '.profiles | keys | .[]' "$PROFILES_FILE" 2>/dev/null); do
       # If dependency is in the list but comes after the extension
       if [[ $dep_position -gt $i ]]; then
         echo -e "${YELLOW}WARN: Profile '$profile': $ext depends on $dep which comes later (position $i vs $dep_position)${NC}"
-        ((WARNINGS++))
+        ((WARNINGS++)) || true
       fi
     done
   done

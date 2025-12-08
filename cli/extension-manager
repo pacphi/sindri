@@ -193,11 +193,11 @@ install_profile() {
             print_status "Installing base extension: $base_ext"
             if execute_extension "$base_ext" "install"; then
                 add_to_manifest "$base_ext" "base" true
-                ((installed_count++))
+                ((installed_count++)) || true
             else
                 print_warning "Base extension failed: $base_ext (continuing...)"
                 failed_extensions="${failed_extensions:+$failed_extensions, }$base_ext"
-                ((failed_count++))
+                ((failed_count++)) || true
             fi
         fi
     done
@@ -223,11 +223,11 @@ install_profile() {
 
         if execute_extension "$ext" "install"; then
             add_to_manifest "$ext" "$category"
-            ((installed_count++))
+            ((installed_count++)) || true
         else
             print_warning "Extension failed: $ext (continuing with remaining extensions...)"
             failed_extensions="${failed_extensions:+$failed_extensions, }$ext"
-            ((failed_count++))
+            ((failed_count++)) || true
         fi
     done
 
