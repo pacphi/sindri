@@ -36,6 +36,7 @@
     "security": "pnpm audit",
     "build": "docker build -t sindri:local -f Dockerfile .",
     "build:latest": "docker build -t sindri:latest -f Dockerfile .",
+    "build:faq": "node docs/faq/build.mjs",
     "deploy": "./cli/sindri deploy",
     "deploy:docker": "./cli/sindri deploy --provider docker",
     "deploy:fly": "./cli/sindri deploy --provider fly",
