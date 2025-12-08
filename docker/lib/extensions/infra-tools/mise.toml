@@ -1,20 +1,22 @@
 # Infra-tools mise configuration
-# Note: ubi: backend requires MISE_GITHUB_TOKEN or GITHUB_TOKEN to avoid rate limits
-# Versions are pinned to reduce GitHub API calls
+# Uses asdf backends for tools with aqua GitHub auth issues (mise bug #5418)
+# Uses aqua for HashiCorp tools (they use releases.hashicorp.com, not GitHub API)
+# See: https://mise.jdx.dev/dev-tools/backends/asdf.html
 
 [tools]
 # Infrastructure as Code
+# These work with aqua because they use releases.hashicorp.com
 terraform = "latest"
-"ubi:hashicorp/packer" = "1.14.3"
+packer = "latest"
 
 # Kubernetes tools
 kubectl = "latest"
 helm = "latest"
-"ubi:derailed/k9s" = "0.50.16"
+
+# Use asdf backends to avoid mise aqua GITHUB_TOKEN bug (#5418)
+"asdf:looztra/asdf-k9s" = "latest"
+"asdf:Banno/asdf-kustomize" = "latest"
+"asdf:sudermanjr/asdf-yq" = "latest"
 
 # Configuration management
 # Note: Ansible installed via apt due to Python dependencies
-
-# Additional K8s tools available via mise
-"ubi:kubernetes-sigs/kustomize" = "5.5.0"
-"ubi:mikefarah/yq" = "4.49.2"

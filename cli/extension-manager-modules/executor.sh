@@ -279,7 +279,9 @@ install_via_apt() {
     print_status "Installing $ext_name via apt..."
 
     # This requires root, check first
-    if [[ "$USER" != "root" ]]; then
+    local current_user
+    current_user="$(whoami 2>/dev/null || echo "${USER:-unknown}")"
+    if [[ "$current_user" != "root" ]]; then
         print_error "apt installation requires root privileges"
         return 1
     fi

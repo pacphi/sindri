@@ -7,7 +7,8 @@ source /docker/lib/common.sh
 print_status "Installing ruvnet-aliases extension"
 
 # Ensure we're in workspace directory
-cd /workspace || exit 1
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+cd "$WORKSPACE" || exit 1
 
 # Check if alias files exist in extension directory
 EXTENSION_DIR="/docker/lib/extensions/ruvnet-aliases"

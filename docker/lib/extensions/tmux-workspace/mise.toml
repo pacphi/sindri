@@ -1,0 +1,6 @@
+# tmux-workspace mise configuration
+# Uses asdf plugin for tmux installation
+
+[tools]
+# tmux via asdf plugin (avoids needing root for apt)
+"asdf:mise-plugins/mise-tmux" = "latest"

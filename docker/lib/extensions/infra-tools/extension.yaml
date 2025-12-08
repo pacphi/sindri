@@ -23,9 +23,6 @@ requirements:
   diskSpace: 2500
   memory: 256
   installTime: 120
-  # GITHUB_TOKEN is recommended for mise ubi: backend to avoid rate limits
-  secrets:
-    - github_token
 
 install:
   method: hybrid
@@ -75,9 +72,15 @@ validate:
     - name: helm
       versionFlag: "version --short"
       expectedPattern: "v\\d+\\.\\d+\\.\\d+"
+    - name: packer
+      versionFlag: "version"
+      expectedPattern: "Packer v\\d+\\.\\d+\\.\\d+"
+    - name: kustomize
+      versionFlag: "version"
+      expectedPattern: "v\\d+\\.\\d+\\.\\d+"
   mise:
-    tools: ["terraform", "kubectl", "helm", "ubi:derailed/k9s"]
-    minToolCount: 4
+    tools: ["terraform", "kubectl", "helm", "packer", "asdf:looztra/asdf-k9s", "asdf:Banno/asdf-kustomize", "asdf:sudermanjr/asdf-yq"]
+    minToolCount: 7
 
 remove:
   confirmation: true
@@ -87,10 +90,10 @@ remove:
       - terraform
       - kubectl
       - helm
-      - "ubi:derailed/k9s"
-      - "ubi:hashicorp/packer"
-      - "ubi:kubernetes-sigs/kustomize"
-      - "ubi:mikefarah/yq"
+      - packer
+      - "asdf:looztra/asdf-k9s"
+      - "asdf:Banno/asdf-kustomize"
+      - "asdf:sudermanjr/asdf-yq"
   apt:
     packages:
       - ansible

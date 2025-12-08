@@ -30,6 +30,9 @@ configure:
     - source: bashrc.template
       destination: ~/.bashrc
       mode: append
+    - source: profile.template
+      destination: ~/.profile
+      mode: append
 
 validate:
   commands:

@@ -7,7 +7,8 @@ set -euo pipefail
 # Source common utilities
 source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 
-CONFIG_FILE="/workspace/config/ccm-config.toml"
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+CONFIG_FILE="$WORKSPACE/config/ccm-config.toml"
 
 print_status "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 print_status "  Claude Code Mux - Quickstart Setup"
