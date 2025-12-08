@@ -13,16 +13,13 @@ requirements:
     - awscli.amazonaws.com
     - aka.ms
     - google.com
-    - packages.cloud
     - packages.cloud.google.com
     - github.com
     - api.github.com
-    - githubusercontent.com
     - raw.githubusercontent.com
     - alicdn.com
     - aliyuncli.alicdn.com
     - ibm.com
-    - clis.cloud
     - clis.cloud.ibm.com
   diskSpace: 2500
   memory: 256

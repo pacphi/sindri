@@ -11,6 +11,7 @@ else
 fi
 
 source "${MODULE_DIR}/dependency.sh"
+source "${MODULE_DIR}/manifest.sh"
 source "${MODULE_DIR}/bom.sh"
 
 # Execute extension action
@@ -104,6 +105,11 @@ install_extension() {
 
         # Mark as installed
         mark_installed "$ext_name"
+
+        # Add to manifest for tracking
+        local category
+        category=$(load_yaml "$ext_yaml" '.metadata.category' 2>/dev/null || echo "undefined")
+        add_to_manifest "$ext_name" "$category" false
 
         # Generate BOM
         generate_extension_bom "$ext_name"
