@@ -2,7 +2,7 @@
 metadata:
   name: cloud-tools
   version: 2.0.0
-  description: Cloud provider CLI tools (AWS, Azure, GCP, OCI, Alibaba, DO, IBM)
+  description: Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)
   category: infrastructure
   author: Sindri Team
   dependencies: []
@@ -13,16 +13,14 @@ requirements:
     - awscli.amazonaws.com
     - aka.ms
     - google.com
-    - packages.cloud
     - packages.cloud.google.com
+    - fly.io
     - github.com
     - api.github.com
-    - githubusercontent.com
     - raw.githubusercontent.com
     - alicdn.com
     - aliyuncli.alicdn.com
     - ibm.com
-    - clis.cloud
     - clis.cloud.ibm.com
   diskSpace: 2500
   memory: 256
@@ -34,6 +32,7 @@ requirements:
     - azure_client_id
     - azure_client_secret
     - azure_tenant_id
+    - fly_api_token
 
 install:
   method: script
@@ -44,7 +43,7 @@ install:
 configure:
   templates:
     - source: ssh-environment.template
-      destination: /etc/profile.d/00-ssh-environment.sh
+      destination: ~/.profile
       mode: append
     - source: bashrc.template
       destination: ~/.bashrc
@@ -59,6 +58,8 @@ validate:
       expectedPattern: "aws-cli"
     - name: az
     - name: gcloud
+    - name: flyctl
+      expectedPattern: "flyctl"
 
 remove:
   paths:
@@ -69,6 +70,7 @@ remove:
     - /usr/local/bin/doctl
     - /usr/local/ibmcloud
     - /usr/local/bin/ibmcloud
+    - ~/.fly
     - ~/extensions/cloud
 
 upgrade:
@@ -116,6 +118,13 @@ bom:
       license: Apache-2.0
       homepage: https://docs.digitalocean.com/reference/doctl
       purl: pkg:github/digitalocean/doctl
+    - name: flyctl
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://fly.io/docs/flyctl
+      purl: pkg:github/superfly/flyctl
     - name: ibmcloud
       version: dynamic
       source: script

@@ -1,0 +1,5 @@
+
+# SDKMAN - initialize for login shells (added by jvm extension)
+# This ensures JVM tools are available in SSH sessions and non-interactive contexts
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"

@@ -46,38 +46,22 @@ else
     fi
   fi
 
-  # Fabric - Git clone + Go build
-  print_status "Installing Fabric (git clone)..."
+  # Fabric - Go install (standard Go module installation)
+  print_status "Installing Fabric (go install)..."
   if command_exists fabric; then
     print_warning "Fabric already installed"
   elif ! command_exists go; then
     print_warning "Go not found - skipping Fabric (requires Go)"
     print_status "Install golang extension for Fabric"
   else
-    FABRIC_DIR="$HOME/.local/share/fabric"
     mkdir -p "$HOME/.local/bin"
-
-    if [[ -d "$FABRIC_DIR" ]]; then
-      print_warning "Fabric repository already exists"
+    # Use go install for proper Go module installation
+    # The fabric CLI binary is in cmd/fabric subdirectory
+    if timeout 300 go install github.com/danielmiessler/fabric/cmd/fabric@latest 2>&1; then
+      print_success "Fabric installed via go install"
+      print_status "Initialize with: fabric --setup"
     else
-      if git clone --depth 1 https://github.com/danielmiessler/fabric.git "$FABRIC_DIR" 2>&1; then
-        print_success "Fabric repository cloned"
-      else
-        print_warning "Failed to clone Fabric repository"
-      fi
-    fi
-
-    if [[ -d "$FABRIC_DIR" ]]; then
-      cd "$FABRIC_DIR" || exit 1
-      if go build -o fabric 2>&1; then
-        ln -sf "$FABRIC_DIR/fabric" "$HOME/.local/bin/fabric"
-        export PATH="$HOME/.local/bin:$PATH"
-        print_success "Fabric built and linked"
-        print_status "Initialize with: fabric --setup"
-      else
-        print_warning "Failed to build Fabric"
-      fi
-      cd - > /dev/null || true
+      print_warning "Failed to install Fabric"
     fi
   fi
 fi

@@ -20,7 +20,19 @@ extensions:
     - cloud-tools
     - monitoring
 
+# Cloud credentials for cloud-tools extension (configure as needed)
 secrets:
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+  - name: AZURE_CLIENT_ID
+    source: env
+  - name: AZURE_CLIENT_SECRET
+    source: env
+  - name: AZURE_TENANT_ID
+    source: env
+  # Security-specific secrets
   - name: VAULT_TOKEN
     source: env
   - name: SECURITY_SCANNER_KEY

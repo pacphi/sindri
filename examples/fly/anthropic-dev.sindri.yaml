@@ -16,6 +16,19 @@ deployment:
 extensions:
   profile: anthropic-dev
 
+# Cloud credentials for cloud-tools (included in anthropic-dev profile)
+secrets:
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+  - name: AZURE_CLIENT_ID
+    source: env
+  - name: AZURE_CLIENT_SECRET
+    source: env
+  - name: AZURE_TENANT_ID
+    source: env
+
 providers:
   fly:
     region: sjc

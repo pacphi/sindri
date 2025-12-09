@@ -16,6 +16,9 @@ requirements:
   installTime: 30
 
 install:
+  # tmux requires apt installation (needs ncurses, libevent system libraries)
+  # Building from source via mise requires too many build dependencies
+  # Note: Runs during entrypoint.sh as root, or manually with sudo
   method: apt
   apt:
     packages:

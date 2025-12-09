@@ -425,13 +425,13 @@ deploy() {
 
     case "$provider" in
         docker)
-            "$BASE_DIR/deploy/adapters/docker-adapter.sh" deploy "$config"
+            "$BASE_DIR/deploy/adapters/docker-adapter.sh" deploy $rebuild "$config"
             ;;
         fly)
-            "$BASE_DIR/deploy/adapters/fly-adapter.sh" deploy "$config"
+            "$BASE_DIR/deploy/adapters/fly-adapter.sh" deploy $rebuild "$config"
             ;;
         devpod)
-            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" deploy "$config"
+            "$BASE_DIR/deploy/adapters/devpod-adapter.sh" deploy $rebuild "$config"
             ;;
         *)
             print_error "Unknown provider: $provider"

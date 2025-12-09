@@ -21,6 +21,13 @@ extensions:
     - docker
     - cloud-tools
 
+# Cloud credentials for cloud-tools extension (configure as needed)
+secrets:
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+
 providers:
   devpod:
     type: aws

@@ -41,20 +41,24 @@ resolve_dependencies() {
     visit() {
         local ext="$1"
 
-        # Check for cycles
-        for s in "${seen[@]}"; do
-            if [[ "$s" == "$ext" ]]; then
-                print_error "Circular dependency detected: $ext"
-                return 1
-            fi
-        done
+        # Check for cycles (handle empty array with ${arr[@]+"${arr[@]}"} pattern)
+        if [[ ${#seen[@]} -gt 0 ]]; then
+            for s in "${seen[@]}"; do
+                if [[ "$s" == "$ext" ]]; then
+                    print_error "Circular dependency detected: $ext"
+                    return 1
+                fi
+            done
+        fi
 
-        # Already resolved
-        for r in "${resolved[@]}"; do
-            if [[ "$r" == "$ext" ]]; then
-                return 0
-            fi
-        done
+        # Already resolved (handle empty array)
+        if [[ ${#resolved[@]} -gt 0 ]]; then
+            for r in "${resolved[@]}"; do
+                if [[ "$r" == "$ext" ]]; then
+                    return 0
+                fi
+            done
+        fi
 
         seen+=("$ext")
 
@@ -67,10 +71,12 @@ resolve_dependencies() {
 
         # Remove from seen (backtrack)
         local new_seen=()
-        for s in "${seen[@]}"; do
-            [[ "$s" != "$ext" ]] && new_seen+=("$s")
-        done
-        seen=("${new_seen[@]}")
+        if [[ ${#seen[@]} -gt 0 ]]; then
+            for s in "${seen[@]}"; do
+                [[ "$s" != "$ext" ]] && new_seen+=("$s")
+            done
+        fi
+        seen=("${new_seen[@]+"${new_seen[@]}"}")
 
         resolved+=("$ext")
     }
@@ -80,8 +86,10 @@ resolve_dependencies() {
         visit "$ext" || return 1
     done
 
-    # Return resolved order
-    echo "${resolved[@]}"
+    # Return resolved order (handle empty array)
+    if [[ ${#resolved[@]} -gt 0 ]]; then
+        echo "${resolved[@]}"
+    fi
 }
 
 # Check if all dependencies are installed

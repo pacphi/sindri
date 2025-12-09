@@ -33,6 +33,8 @@ secrets:
     source: env
   - name: GOOGLE_GEMINI_API_KEY
     source: env
+  - name: FLY_API_TOKEN
+    source: env
 
 providers:
   fly:
