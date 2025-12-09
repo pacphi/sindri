@@ -533,6 +533,9 @@ cd docs/faq
 # Build the FAQ (if source files changed)
 pnpm build:faq
 
+# Create application
+flyctl apps create sindri-faq
+
 # Deploy to Fly.io
 flyctl deploy
 

@@ -278,12 +278,12 @@ install_via_apt() {
 
     print_status "Installing $ext_name via apt..."
 
-    # This requires root, check first
+    # Determine sudo prefix (use sudo if not root)
+    local sudo_cmd=""
     local current_user
     current_user="$(whoami 2>/dev/null || echo "${USER:-unknown}")"
     if [[ "$current_user" != "root" ]]; then
-        print_error "apt installation requires root privileges"
-        return 1
+        sudo_cmd="sudo"
     fi
 
     # Add repositories
@@ -297,11 +297,11 @@ install_via_apt() {
             sources=$(load_yaml "$ext_yaml" ".install.apt.repositories[$i].sources")
 
             if [[ -n "$gpg_key" ]] && [[ "$gpg_key" != "null" ]]; then
-                curl -fsSL "$gpg_key" | apt-key add -
+                curl -fsSL "$gpg_key" | $sudo_cmd apt-key add -
             fi
 
             if [[ -n "$sources" ]] && [[ "$sources" != "null" ]]; then
-                echo "$sources" >> "/etc/apt/sources.list.d/${ext_name}.list"
+                echo "$sources" | $sudo_cmd tee "/etc/apt/sources.list.d/${ext_name}.list" > /dev/null
             fi
         done
     fi
@@ -312,9 +312,9 @@ install_via_apt() {
 
     if [[ -n "$packages" ]] && [[ "$packages" != "null" ]]; then
         print_status "Installing packages: $packages"
-        apt-get update -qq
+        $sudo_cmd apt-get update -qq
         # shellcheck disable=SC2086
-        apt-get install -y $packages
+        $sudo_cmd apt-get install -y $packages
     fi
 
     return 0
