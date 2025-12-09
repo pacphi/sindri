@@ -121,7 +121,7 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      max-parallel: 2  # Reduced from 4 to limit concurrent memory usage
+      max-parallel: 2 # Reduced from 4 to limit concurrent memory usage
       matrix:
         extension: ${{ fromJson(needs.generate-matrix.outputs.extensions) }}
     steps:

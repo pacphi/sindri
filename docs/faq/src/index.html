@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sindri FAQ - Frequently Asked Questions</title>
+  <meta name="description" content="Comprehensive FAQ for Sindri - the declarative, provider-agnostic cloud development environment system">
+
+  <!-- Tailwind CSS 4 via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Anime-style fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;500;700;800&family=Zen+Maru+Gothic:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Custom Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            'anime': ['"M PLUS Rounded 1c"', '"Zen Maru Gothic"', 'system-ui', 'sans-serif'],
+            'anime-bold': ['"Zen Maru Gothic"', '"M PLUS Rounded 1c"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            'sindri': {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+              950: '#082f49',
+            },
+            'sakura': {
+              50: '#fdf2f8',
+              100: '#fce7f3',
+              200: '#fbcfe8',
+              300: '#f9a8d4',
+              400: '#f472b6',
+              500: '#ec4899',
+              600: '#db2777',
+              700: '#be185d',
+              800: '#9d174d',
+              900: '#831843',
+            }
+          },
+          animation: {
+            'bounce-slow': 'bounce 2s infinite',
+            'pulse-slow': 'pulse 3s infinite',
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'slide-down': 'slideDown 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(-10px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            slideDown: {
+              '0%': { opacity: '0', maxHeight: '0' },
+              '100%': { opacity: '1', maxHeight: '500px' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Styles -->
+  <style>
+    /* Anime-style text rendering */
+    .font-anime {
+      font-family: "M PLUS Rounded 1c", "Zen Maru Gothic", system-ui, sans-serif;
+      font-feature-settings: "palt";
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Smooth accordion transitions */
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+      opacity: 0;
+    }
+
+    .accordion-content.open {
+      max-height: 1000px;
+      opacity: 1;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+
+    /* Search highlight */
+    .highlight {
+      background: linear-gradient(120deg, #fef08a 0%, #fde047 100%);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    .dark .highlight {
+      background: linear-gradient(120deg, #854d0e 0%, #a16207 100%);
+      color: #fef9c3;
+    }
+
+    /* Glassmorphism effect */
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .dark .glass {
+      background: rgba(15, 23, 42, 0.7);
+    }
+
+    /* Category badge colors */
+    .badge-getting-started { @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300; }
+    .badge-configuration { @apply bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300; }
+    .badge-deployment { @apply bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300; }
+    .badge-extensions { @apply bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300; }
+    .badge-secrets { @apply bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300; }
+    .badge-troubleshooting { @apply bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300; }
+    .badge-architecture { @apply bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300; }
+    .badge-cicd { @apply bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300; }
+
+    /* Focus styles */
+    .faq-item:focus-within {
+      outline: 2px solid #0ea5e9;
+      outline-offset: 2px;
+    }
+
+    /* Print styles */
+    @media print {
+      .no-print { display: none !important; }
+      .accordion-content { max-height: none !important; opacity: 1 !important; }
+    }
+  </style>
+</head>
+
+<body class="font-anime bg-gradient-to-br from-slate-50 via-white to-sindri-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen transition-colors duration-300">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-slate-200/50 dark:border-slate-700/50 no-print">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Title -->
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white font-anime-bold tracking-tight">
+          Sindri FAQ
+        </h1>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2 sm:gap-4">
+          <!-- GitHub Link -->
+          <a href="https://github.com/pacphi/sindri" target="_blank" rel="noopener noreferrer"
+             class="p-2 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+             title="View on GitHub">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+          </a>
+
+          <!-- Theme Toggle -->
+          <button id="theme-toggle"
+                  class="p-2 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Toggle theme">
+            <svg id="theme-icon-light" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <svg id="theme-icon-dark" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
+    <!-- Hero Section -->
+    <section class="text-center mb-10 sm:mb-14">
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold font-anime-bold text-slate-900 dark:text-white mb-4 tracking-tight">
+        <span class="bg-gradient-to-r from-sindri-600 via-sindri-500 to-sakura-500 bg-clip-text text-transparent">
+          How can we help?
+        </span>
+      </h2>
+      <p class="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-light">
+        Find answers to common questions about Sindri's deployment, configuration, extensions, and more.
+      </p>
+    </section>
+
+    <!-- Search Section -->
+    <section class="mb-8 sm:mb-10 no-print">
+      <div class="relative max-w-2xl mx-auto">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <input type="text"
+               id="search-input"
+               placeholder="Search questions... (e.g., 'deploy', 'extension', 'secrets')"
+               class="w-full pl-12 pr-12 py-4 text-lg rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder-slate-400 focus:border-sindri-500 dark:focus:border-sindri-400 focus:ring-4 focus:ring-sindri-500/20 outline-none transition-all shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50"
+               autocomplete="off">
+        <button id="clear-search"
+                class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hidden"
+                title="Clear search">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div id="search-stats" class="text-center mt-3 text-sm text-slate-500 dark:text-slate-400 hidden">
+        <span id="result-count">0</span> results found
+      </div>
+    </section>
+
+    <!-- Category Filter Pills -->
+    <section class="mb-8 no-print">
+      <div id="category-filters" class="flex flex-wrap justify-center gap-2">
+        <button data-category="all"
+                class="category-pill active px-4 py-2 rounded-full text-sm font-medium transition-all bg-sindri-500 text-white shadow-lg shadow-sindri-500/25">
+          All Categories
+        </button>
+        <!-- Category pills will be dynamically inserted here -->
+      </div>
+    </section>
+
+    <!-- FAQ List -->
+    <section id="faq-container" class="space-y-4">
+      <!-- FAQ items will be dynamically inserted here -->
+      <div id="loading" class="text-center py-12">
+        <div class="inline-flex items-center gap-3 text-slate-500 dark:text-slate-400">
+          <svg class="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span class="font-medium">Loading FAQ...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- No Results Message -->
+    <section id="no-results" class="hidden text-center py-12">
+      <div class="inline-flex flex-col items-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+          <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">No results found</h3>
+          <p class="text-slate-500 dark:text-slate-400">Try adjusting your search or browse all categories</p>
+        </div>
+        <button id="reset-search" class="px-4 py-2 bg-sindri-500 text-white rounded-lg hover:bg-sindri-600 transition-colors">
+          Show all questions
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 dark:border-slate-800 mt-16 py-8 no-print">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-sm text-slate-500 dark:text-slate-400">
+          <span class="font-medium">Sindri</span> - Declarative Cloud Development Environments
+        </div>
+        <div class="flex items-center gap-6 text-sm">
+          <a href="https://github.com/pacphi/sindri/blob/main/docs/QUICKSTART.md"
+             class="text-slate-500 hover:text-sindri-600 dark:text-slate-400 dark:hover:text-sindri-400 transition-colors">
+            Quick Start
+          </a>
+          <a href="https://github.com/pacphi/sindri/blob/main/docs/CONFIGURATION.md"
+             class="text-slate-500 hover:text-sindri-600 dark:text-slate-400 dark:hover:text-sindri-400 transition-colors">
+            Configuration
+          </a>
+          <a href="https://github.com/pacphi/sindri/issues"
+             class="text-slate-500 hover:text-sindri-600 dark:text-slate-400 dark:hover:text-sindri-400 transition-colors">
+            Report Issue
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- FAQ JavaScript -->
+  <script src="faq.js"></script>
+</body>
+</html>

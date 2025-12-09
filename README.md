@@ -2,6 +2,7 @@
 
 [![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
 [![CI](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci.yml)
+[![FAQ](https://img.shields.io/badge/FAQ-on%20fly.dev-blue)](https://sindri-faq.fly.dev)
 
 A declarative, provider-agnostic cloud development environment system. Deploy consistent development environments to Fly.io, local Docker, or via DevPod to Kubernetes, AWS, GCP, Azure, and other cloud providers using YAML-defined extensions.
 
@@ -60,6 +61,7 @@ cd sindri
 ### Getting Started
 
 - **[Quickstart Guide](docs/QUICKSTART.md)** - Fast setup and deployment
+- **[FAQ](docs/FAQ.md)** - Searchable answers to common questions
 - **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and concepts
 - **[Configuration Reference](docs/CONFIGURATION.md)** - Complete sindri.yaml guide
 

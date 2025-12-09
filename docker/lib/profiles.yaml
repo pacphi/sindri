@@ -23,6 +23,7 @@ profiles:
     extensions:
       - nodejs
       - python
+      - golang
       - ai-toolkit
       - openskills
       - monitoring
