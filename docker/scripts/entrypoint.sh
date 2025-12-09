@@ -384,9 +384,25 @@ main() {
     setup_git_config
 
     # Auto-install extensions based on INSTALL_PROFILE/CUSTOM_EXTENSIONS
+    # Extensions are installed BEFORE starting SSH daemon to ensure health checks
+    # only pass after installation is complete. This prevents Fly.io auto-suspend
+    # from killing the machine mid-installation.
     if [[ -f "/docker/scripts/auto-install-extensions.sh" ]]; then
         source /docker/scripts/auto-install-extensions.sh
+
+        # Create marker indicating installation is in progress
+        local install_status_file="${WORKSPACE}/.system/install-status"
+        mkdir -p "$(dirname "$install_status_file")"
+        echo "installing" > "$install_status_file"
+        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
+
+        # Run extension installation
         install_extensions
+
+        # Mark installation as complete
+        echo "complete" > "$install_status_file"
+        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
+        print_success "Extension installation complete - starting services"
     fi
 
     # Check if a command was passed (interactive mode)

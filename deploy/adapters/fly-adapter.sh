@@ -233,11 +233,14 @@ EOFT
     port = ${SSH_EXTERNAL_PORT}
 
   # Health check - verifies SSH daemon is running
+  # Grace period is long to allow extension installation to complete before
+  # health checks start. SSH daemon only starts AFTER extensions are installed,
+  # so health checks will fail (and machine won't auto-suspend) during install.
   [[services.tcp_checks]]
-    interval = "15s"
-    timeout = "5s"
-    grace_period = "30s"
-    restart_limit = 3
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "15m"
+    restart_limit = 0
 
 EOFT
     fi
@@ -285,13 +288,15 @@ EOFT
     if [[ "$CI_MODE" != "true" ]]; then
         cat >> "$OUTPUT_DIR/fly.toml" << EOFT
 # Health checks
+# Long grace period allows extension installation to complete before checks start.
+# SSH daemon only starts after extensions are fully installed.
 [checks]
   [checks.ssh]
     type = "tcp"
     port = 2222
-    interval = "15s"
-    timeout = "5s"
-    grace_period = "30s"
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "15m"
 EOFT
     fi
 
