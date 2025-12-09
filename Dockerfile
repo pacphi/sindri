@@ -131,6 +131,9 @@ RUN /docker/scripts/create-npmrc.sh
 # Setup MOTD banner
 RUN /docker/scripts/setup-motd.sh
 
+# Setup installation status banner (shown on SSH login during extension install)
+RUN /docker/scripts/setup-install-status-banner.sh
+
 # Expose SSH port (internal port 2222)
 EXPOSE 2222
 

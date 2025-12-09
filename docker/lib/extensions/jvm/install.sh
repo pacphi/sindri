@@ -1,5 +1,6 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
+# Note: We don't use 'set -u' (nounset) because SDKMAN scripts have unbound variables
 
 # jvm install script - Simplified for YAML-driven architecture
 # Uses SDKMAN for most JVM tools + mise for Clojure/Leiningen
@@ -25,14 +26,12 @@ else
   fi
 fi
 
-# Source SDKMAN (with error handling for unbound variables)
-set +u  # Temporarily disable unbound variable check for SDKMAN
+# Source SDKMAN
 # shellcheck source=/dev/null
 source "$SDKMAN_DIR/bin/sdkman-init.sh" || {
   print_error "Failed to source SDKMAN init script"
   exit 1
 }
-set -u  # Re-enable unbound variable check
 
 # Verify SDKMAN is working
 if ! command -v sdk &>/dev/null; then
@@ -64,8 +63,9 @@ install_java() {
   java_list=$(sdk list java 2>/dev/null || true)
 
   # Try primary vendor first (Liberica)
+  # Note: Use { grep || true; } to prevent pipefail from causing script exit when no match
   local available_version
-  available_version=$(echo "$java_list" | grep "${major_version}\\..*${primary_vendor}" | head -1 | awk '{print $NF}' || true)
+  available_version=$(echo "$java_list" | { grep "${major_version}\\..*${primary_vendor}" || true; } | head -1 | awk '{print $NF}')
 
   if [[ -n "$available_version" && "$available_version" != "|" ]]; then
     print_status "Installing Java $available_version (Liberica - ARM optimized)..."
@@ -77,7 +77,7 @@ install_java() {
   fi
 
   # Try fallback vendor (Temurin)
-  available_version=$(echo "$java_list" | grep "${major_version}\\..*${fallback_vendor}" | head -1 | awk '{print $NF}' || true)
+  available_version=$(echo "$java_list" | { grep "${major_version}\\..*${fallback_vendor}" || true; } | head -1 | awk '{print $NF}')
   if [[ -n "$available_version" && "$available_version" != "|" ]]; then
     print_status "Fallback: Installing Java $available_version (Temurin)..."
     if echo "n" | sdk install java "$available_version"; then
@@ -87,12 +87,14 @@ install_java() {
   fi
 
   # Last resort: any vendor with this major version
-  available_version=$(echo "$java_list" | grep "${major_version}\\." | head -1 | awk '{print $NF}' || true)
+  available_version=$(echo "$java_list" | { grep "${major_version}\\." || true; } | head -1 | awk '{print $NF}')
   if [[ -n "$available_version" && "$available_version" != "|" ]]; then
     print_status "Last resort: Installing Java $available_version..."
     echo "n" | sdk install java "$available_version" || true
+    return 0
   else
     print_warning "No Java $major_version version found for this platform"
+    return 0  # Don't fail the entire script if a Java version isn't available
   fi
 }
 
@@ -103,7 +105,7 @@ install_java "11" "librca" "tem"   # Java 11 LTS (legacy support)
 
 # Set default Java version
 print_status "Setting default Java version..."
-default_java=$(sdk list java 2>/dev/null | grep "installed" | head -1 | awk '{print $NF}' || true)
+default_java=$(sdk list java 2>/dev/null | { grep "installed" || true; } | head -1 | awk '{print $NF}')
 if [[ -n "$default_java" ]]; then
   sdk default java "$default_java" 2>/dev/null || true
   print_success "Default Java: $default_java"

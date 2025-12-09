@@ -359,6 +359,53 @@ show_welcome() {
 }
 
 # ------------------------------------------------------------------------------
+# install_extensions_background - Run extension installation in background
+# ------------------------------------------------------------------------------
+# Runs extension installation asynchronously so SSH can accept connections
+# immediately. Users connecting during installation see a status banner.
+install_extensions_background() {
+    local install_status_file="${WORKSPACE}/.system/install-status"
+    local install_log_file="${WORKSPACE}/.system/logs/install.log"
+
+    # Ensure directories exist
+    mkdir -p "$(dirname "$install_status_file")"
+    mkdir -p "$(dirname "$install_log_file")"
+
+    # Create marker indicating installation is in progress
+    echo "installing" > "$install_status_file"
+    chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
+
+    # Source and run extension installation in background
+    if [[ -f "/docker/scripts/auto-install-extensions.sh" ]]; then
+        source /docker/scripts/auto-install-extensions.sh
+
+        # Run installation in background, logging output
+        (
+            print_status "Starting background extension installation..."
+            # Use set -o pipefail to capture install_extensions exit code through tee
+            set -o pipefail
+            if install_extensions 2>&1 | tee -a "$install_log_file"; then
+                echo "complete" > "$install_status_file"
+                print_success "Extension installation complete"
+            else
+                local exit_code=$?
+                echo "failed" > "$install_status_file"
+                print_error "Extension installation failed (exit code: $exit_code)"
+            fi
+            chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
+            chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_log_file" 2>/dev/null || true
+        ) &
+
+        print_status "Extension installation running in background (PID: $!)"
+        print_status "Monitor progress: tail -f ${install_log_file}"
+    else
+        # No extensions to install
+        echo "complete" > "$install_status_file"
+        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # main - Entry point that orchestrates container startup
 # ------------------------------------------------------------------------------
 main() {
@@ -383,28 +430,6 @@ main() {
     setup_ssh_keys
     setup_git_config
 
-    # Auto-install extensions based on INSTALL_PROFILE/CUSTOM_EXTENSIONS
-    # Extensions are installed BEFORE starting SSH daemon to ensure health checks
-    # only pass after installation is complete. This prevents Fly.io auto-suspend
-    # from killing the machine mid-installation.
-    if [[ -f "/docker/scripts/auto-install-extensions.sh" ]]; then
-        source /docker/scripts/auto-install-extensions.sh
-
-        # Create marker indicating installation is in progress
-        local install_status_file="${WORKSPACE}/.system/install-status"
-        mkdir -p "$(dirname "$install_status_file")"
-        echo "installing" > "$install_status_file"
-        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
-
-        # Run extension installation
-        install_extensions
-
-        # Mark installation as complete
-        echo "complete" > "$install_status_file"
-        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
-        print_success "Extension installation complete - starting services"
-    fi
-
     # Check if a command was passed (interactive mode)
     if [[ $# -gt 0 ]]; then
         # Interactive mode: execute command as developer user
@@ -423,8 +448,15 @@ main() {
         cd "$WORKSPACE"
         exec sudo -u "$DEVELOPER_USER" --preserve-env=HOME,PATH,WORKSPACE,ALT_HOME,MISE_DATA_DIR,MISE_CONFIG_DIR "$@"
     else
-        # Server mode: start SSH daemon
+        # Server mode: Start SSH daemon FIRST to pass health checks immediately
+        # This prevents Fly.io auto-suspend from killing the machine during
+        # extension installation. Extensions install in background.
         start_ssh_daemon
+
+        # Start extension installation in background
+        # Users connecting during installation see a status banner via /etc/profile.d/
+        install_extensions_background
+
         wait_for_shutdown
     fi
 }
