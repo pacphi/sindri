@@ -38,7 +38,6 @@ profiles:
       - claudeup
       - claudish
       - claude-marketplace
-      - cloud-tools
       - infra-tools
       - jvm
       - openskills
@@ -48,6 +47,7 @@ profiles:
       - ruvnet-aliases
       - ruvnet-research
       - tmux-workspace
+      - cloud-tools
 
   systems:
     description: Systems programming
@@ -81,8 +81,8 @@ profiles:
     extensions:
       - docker
       - infra-tools
-      - cloud-tools
       - monitoring
+      - cloud-tools
 
   mobile:
     description: Mobile development

@@ -9,7 +9,9 @@ source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 
 print_status "Installing Playwright..."
 
-cd /workspace || exit 1
+# Use WORKSPACE environment variable with fallback
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+cd "$WORKSPACE" || exit 1
 
 # Check if already installed
 if [[ -f "node_modules/.bin/playwright" ]]; then

@@ -30,7 +30,7 @@ echo "Checking registry -> extensions..."
 for ext in $(yq '.extensions | keys | .[]' docker/lib/registry.yaml 2>/dev/null); do
   if [[ ! -f "docker/lib/extensions/$ext/extension.yaml" ]]; then
     echo -e "${RED}FAIL: registry.yaml references '$ext' but no extension.yaml exists${NC}"
-    ((FAILURES++))
+    ((FAILURES++)) || true
   fi
 done
 echo -e "${GREEN}  Done${NC}"
@@ -41,7 +41,7 @@ for profile in $(yq '.profiles | keys | .[]' docker/lib/profiles.yaml 2>/dev/nul
   for ext in $(yq ".profiles.$profile.extensions[]" docker/lib/profiles.yaml 2>/dev/null); do
     if ! yq -e ".extensions.$ext" docker/lib/registry.yaml > /dev/null 2>&1; then
       echo -e "${RED}FAIL: profile '$profile' references extension '$ext' not in registry${NC}"
-      ((FAILURES++))
+      ((FAILURES++)) || true
     fi
   done
 done
@@ -53,7 +53,7 @@ for ext in $(yq '.extensions | keys | .[]' docker/lib/registry.yaml 2>/dev/null)
   category=$(yq ".extensions.$ext.category" docker/lib/registry.yaml 2>/dev/null)
   if [[ -n "$category" ]] && ! yq -e ".categories.$category" docker/lib/categories.yaml > /dev/null 2>&1; then
     echo -e "${RED}FAIL: extension '$ext' has category '$category' not in categories.yaml${NC}"
-    ((FAILURES++))
+    ((FAILURES++)) || true
   fi
 done
 echo -e "${GREEN}  Done${NC}"
@@ -70,7 +70,7 @@ for ext_dir in docker/lib/extensions/*/; do
     for dep in $deps; do
       if [[ -n "$dep" ]] && [[ ! -d "docker/lib/extensions/$dep" ]]; then
         echo -e "${RED}FAIL: $ext_name depends on '$dep' which doesn't exist${NC}"
-        ((FAILURES++))
+        ((FAILURES++)) || true
       fi
     done
   fi
@@ -83,7 +83,7 @@ for example in $(find examples -name "*.sindri.yaml" 2>/dev/null || true); do
   profile=$(yq '.extensions.profile // ""' "$example" 2>/dev/null)
   if [[ -n "$profile" ]] && ! yq -e ".profiles.$profile" docker/lib/profiles.yaml > /dev/null 2>&1; then
     echo -e "${RED}FAIL: $example references profile '$profile' not in profiles.yaml${NC}"
-    ((FAILURES++))
+    ((FAILURES++)) || true
   fi
 done
 echo -e "${GREEN}  Done${NC}"

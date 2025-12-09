@@ -1,8 +1,12 @@
 [tools]
 go = "1.24"
 
+# Use mise template syntax for proper variable expansion
+# See: https://mise.jdx.dev/environments/
+# Fix for: "GOMODCACHE entry is relative; must be absolute path"
+# caused by $HOME not being expanded in mise env values
 [env]
-GOPATH = "$HOME/go"
-GOMODCACHE = "$HOME/go/pkg/mod"
-GOBIN = "$HOME/go/bin"
-_.path = ["$HOME/go/bin"]
+GOPATH = "{{env.HOME}}/go"
+GOMODCACHE = "{{env.HOME}}/go/pkg/mod"
+GOBIN = "{{env.HOME}}/go/bin"
+_.path = ["{{env.HOME}}/go/bin"]

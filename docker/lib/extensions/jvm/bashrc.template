@@ -1,10 +1,11 @@
 
-# JVM aliases
-alias j11='sdk use java 11.0.28-librca'
-alias j17='sdk use java 17.0.16-librca'
-alias j21='sdk use java 21.0.7-librca'
-alias j25='sdk use java 25.0.1-librca'
+# JVM aliases - use 'sdk list java' to see installed versions
+# Switch Java versions dynamically (version numbers may vary)
+alias j11='sdk use java $(sdk list java 2>/dev/null | grep "11\..*installed" | awk "{print \$NF}" | head -1)'
+alias j17='sdk use java $(sdk list java 2>/dev/null | grep "17\..*installed" | awk "{print \$NF}" | head -1)'
+alias j21='sdk use java $(sdk list java 2>/dev/null | grep "21\..*installed" | awk "{print \$NF}" | head -1)'
 alias jv='java -version'
+alias jlist='sdk list java | grep installed'
 
 # Maven aliases
 alias mci='mvn clean install'

@@ -1,6 +1,6 @@
 # Cloud Tools
 
-Cloud provider CLI tools for AWS, Azure, GCP, OCI, Alibaba, DigitalOcean, and IBM Cloud.
+Cloud provider CLI tools for AWS, Azure, GCP, Fly.io, OCI, Alibaba, DigitalOcean, and IBM Cloud.
 
 ## Overview
 
@@ -14,7 +14,7 @@ Cloud provider CLI tools for AWS, Azure, GCP, OCI, Alibaba, DigitalOcean, and IB
 
 ## Description
 
-Cloud provider CLI tools (AWS, Azure, GCP, OCI, Alibaba, DO, IBM) - provides command-line interfaces for all major cloud providers.
+Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM) - provides command-line interfaces for all major cloud providers.
 
 ## Installed Tools
 
@@ -23,6 +23,7 @@ Cloud provider CLI tools (AWS, Azure, GCP, OCI, Alibaba, DO, IBM) - provides com
 | `aws`      | cli-tool | Amazon Web Services CLI |
 | `az`       | cli-tool | Microsoft Azure CLI     |
 | `gcloud`   | cli-tool | Google Cloud SDK        |
+| `flyctl`   | cli-tool | Fly.io CLI              |
 | `aliyun`   | cli-tool | Alibaba Cloud CLI       |
 | `doctl`    | cli-tool | DigitalOcean CLI        |
 | `ibmcloud` | cli-tool | IBM Cloud CLI           |
@@ -47,12 +48,14 @@ Cloud provider CLI tools (AWS, Azure, GCP, OCI, Alibaba, DO, IBM) - provides com
 | `azure_client_id`       | Azure    | Client ID         |
 | `azure_client_secret`   | Azure    | Client secret     |
 | `azure_tenant_id`       | Azure    | Tenant ID         |
+| `fly_api_token`         | Fly.io   | API token         |
 
 ## Network Requirements
 
 - `awscli.amazonaws.com` - AWS CLI
 - `aka.ms` - Azure CLI
 - `packages.cloud.google.com` - Google Cloud SDK
+- `fly.io` - Fly.io CLI
 - `github.com` - GitHub
 - `api.github.com` - GitHub API
 - `raw.githubusercontent.com` - GitHub raw
@@ -91,6 +94,16 @@ gcloud projects list
 gcloud compute instances list
 ```
 
+### Fly.io
+
+```bash
+flyctl auth login
+flyctl apps list
+flyctl deploy
+flyctl status
+flyctl logs
+```
+
 ### DigitalOcean
 
 ```bash
@@ -118,6 +131,7 @@ ibmcloud resource groups
 aws --version       # Expected: aws-cli/X.X.X
 az --version
 gcloud --version
+flyctl version      # Expected: flyctl/X.X.X
 aliyun --version
 doctl version
 ibmcloud --version

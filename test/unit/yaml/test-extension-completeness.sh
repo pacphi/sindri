@@ -31,7 +31,7 @@ for ext_dir in "$EXTENSIONS_DIR"/*/; do
   # Must have extension.yaml
   if [[ ! -f "$ext_file" ]]; then
     echo -e "${RED}FAIL: $ext_name missing extension.yaml${NC}"
-    ((FAILURES++))
+    ((FAILURES++)) || true
     continue
   fi
 
@@ -45,7 +45,7 @@ for ext_dir in "$EXTENSIONS_DIR"/*/; do
 
     if [[ -n "$mise_config" ]] && [[ ! -f "$ext_dir/$mise_config" ]]; then
       echo -e "${RED}FAIL: $ext_name uses mise but missing $mise_config${NC}"
-      ((FAILURES++))
+      ((FAILURES++)) || true
     elif [[ -z "$mise_config" ]] && [[ -z "$mise_inline" ]]; then
       echo -e "${YELLOW}WARN: $ext_name uses mise but no config found${NC}"
     fi
@@ -56,7 +56,7 @@ for ext_dir in "$EXTENSIONS_DIR"/*/; do
     script_path=$(yq '.install.script.path // ""' "$ext_file" 2>/dev/null || echo "")
     if [[ -n "$script_path" ]] && [[ ! -f "$ext_dir/$script_path" ]]; then
       echo -e "${RED}FAIL: $ext_name references script '$script_path' but file missing${NC}"
-      ((FAILURES++))
+      ((FAILURES++)) || true
     fi
   fi
 

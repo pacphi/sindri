@@ -27,11 +27,11 @@ run_test() {
   if "$test_script"; then
     echo ""
     echo -e "${GREEN}✓ $test_name PASSED${NC}"
-    ((PASSED++))
+    ((PASSED++)) || true
   else
     echo ""
     echo -e "${RED}✗ $test_name FAILED${NC}"
-    ((FAILURES++))
+    ((FAILURES++)) || true
   fi
   echo ""
 }

@@ -111,7 +111,8 @@ install_extensions() {
     export MISE_STATE_DIR="${ALT_HOME}/.local/state/mise"
 
     # List of variable names to preserve (not VAR=value, just names)
-    local env_vars="HOME,PATH,WORKSPACE,ALT_HOME,DOCKER_LIB,MISE_DATA_DIR,MISE_CONFIG_DIR,MISE_CACHE_DIR,MISE_STATE_DIR"
+    # Include secrets that extensions may need during installation
+    local env_vars="HOME,PATH,WORKSPACE,ALT_HOME,DOCKER_LIB,MISE_DATA_DIR,MISE_CONFIG_DIR,MISE_CACHE_DIR,MISE_STATE_DIR,GITHUB_TOKEN,ANTHROPIC_API_KEY,GIT_USER_NAME,GIT_USER_EMAIL"
 
     local install_success=true
     local installed_profile=""
