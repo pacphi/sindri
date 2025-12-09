@@ -267,6 +267,35 @@ providers:
     highAvailability: false    # Enable for multi-machine redundancy
 
   # ---------------------------------------------------------------------------
+  # VS Code Remote SSH (Fly.io)
+  # ---------------------------------------------------------------------------
+  # Connect to your Fly.io deployment from VS Code using Remote SSH extension:
+  #
+  # 1. Ensure AUTHORIZED_KEYS secret is set (see secrets section above)
+  #
+  # 2. Add to ~/.ssh/config on your local machine:
+  #    Host sindri-fly
+  #        HostName <app-name>.fly.dev
+  #        Port 10022
+  #        User developer
+  #        IdentityFile ~/.ssh/id_ed25519
+  #        TCPKeepAlive yes
+  #        ServerAliveInterval 30
+  #        ServerAliveCountMax 6
+  #        Compression yes
+  #        ControlMaster auto
+  #        ControlPath ~/.ssh/master-%r@%h:%p
+  #        ControlPersist 600
+  #
+  # 3. In VS Code: Cmd+Shift+P -> "Remote-SSH: Connect to Host" -> sindri-fly
+  #
+  # Alternative: Use flyctl proxy if direct SSH is blocked:
+  #    flyctl proxy 10022:2222 -a <app-name>
+  #    Then connect to localhost:10022 instead
+  #
+  # See: docs/providers/FLY.md for detailed setup instructions
+
+  # ---------------------------------------------------------------------------
   # Docker - Local container deployment
   # ---------------------------------------------------------------------------
   docker:

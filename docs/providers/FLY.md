@@ -433,6 +433,118 @@ flyctl scale count 2 -a my-app
 ./cli/sindri deploy
 ```
 
+## VS Code Remote SSH
+
+Connect to your Fly.io Sindri instance directly from VS Code using the Remote - SSH extension.
+
+### Prerequisites
+
+1. **VS Code** with [Remote - SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) installed
+2. **SSH key pair** (ed25519 recommended)
+3. **AUTHORIZED_KEYS** configured in sindri.yaml
+
+### Configuration
+
+#### 1. Configure SSH Key in sindri.yaml
+
+Ensure your public key is configured in the secrets section:
+
+```yaml
+secrets:
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+```
+
+#### 2. Add SSH Config Entry
+
+Add to `~/.ssh/config` on your local machine:
+
+```text
+Host sindri-fly
+    HostName my-sindri-dev.fly.dev
+    Port 10022
+    User developer
+    IdentityFile ~/.ssh/id_ed25519
+    # Keep connection alive (important for auto-suspend)
+    TCPKeepAlive yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 6
+    # Performance optimizations
+    Compression yes
+    # Connection multiplexing (reuse connections)
+    ControlMaster auto
+    ControlPath ~/.ssh/master-%r@%h:%p
+    ControlPersist 600
+```
+
+Replace `my-sindri-dev` with your actual app name from sindri.yaml.
+
+**Option explanations:**
+
+- **TCPKeepAlive/ServerAliveInterval** - Prevents connection drops and keeps Fly.io machine from auto-suspending during active sessions
+- **Compression** - Reduces bandwidth for remote editing
+- **ControlMaster/ControlPath/ControlPersist** - Reuses SSH connections, making VS Code faster when opening multiple files/terminals
+
+#### 3. Connect from VS Code
+
+1. Open VS Code
+2. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
+3. Select **Remote-SSH: Connect to Host...**
+4. Choose `sindri-fly` from the list
+5. VS Code opens a new window connected to your Sindri instance
+
+### Alternative: Using flyctl Proxy
+
+If direct SSH is blocked by corporate firewalls or NAT:
+
+```bash
+# Start the proxy in a terminal (keep it running)
+flyctl proxy 10022:2222 -a my-sindri-dev
+```
+
+Update `~/.ssh/config` to use localhost:
+
+```text
+Host sindri-fly-proxy
+    HostName localhost
+    Port 10022
+    User developer
+    IdentityFile ~/.ssh/id_ed25519
+    TCPKeepAlive yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 6
+    Compression yes
+    ControlMaster auto
+    ControlPath ~/.ssh/master-%r@%h:%p
+    ControlPersist 600
+```
+
+Then connect to `sindri-fly-proxy` in VS Code.
+
+### Troubleshooting VS Code Remote
+
+**Connection refused:**
+
+- Check if machine is suspended: `flyctl status -a my-sindri-dev`
+- Wait for auto-start (10-20 seconds) or manually start: `flyctl machine start <id> -a my-sindri-dev`
+
+**Permission denied:**
+
+- Verify AUTHORIZED_KEYS is set: `flyctl secrets list -a my-sindri-dev`
+- Check your key matches: `ssh-keygen -l -f ~/.ssh/id_ed25519.pub`
+
+**Timeout:**
+
+- Use flyctl proxy as alternative (see above)
+- Check firewall allows outbound connections to port 10022
+
+**Debug SSH connection:**
+
+```bash
+ssh -vvv developer@my-sindri-dev.fly.dev -p 10022
+```
+
 ## Advanced Features
 
 ### High Availability
@@ -513,7 +625,7 @@ cd docs/faq
 flyctl deploy
 ```
 
-### Configuration
+### FAQ Site Configuration
 
 The FAQ uses a minimal fly.toml optimized for cost:
 

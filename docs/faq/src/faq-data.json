@@ -473,6 +473,14 @@
       "answer": "Add '-f skip-cleanup=true' when triggering workflows to keep containers running after failure. Use 'gh run view <run-id> --log' to see logs. For Fly.io, SSH in with 'flyctl ssh console -a <app-name>'. Check extension logs at /alt/home/developer/workspace/.system/logs/<extension>-install.log. Use 'gh run watch' to monitor running workflows.",
       "tags": ["debug", "failures", "logs", "troubleshooting"],
       "docs": ["docs/CI_WORKFLOW_IN_DEPTH.md", "docs/TROUBLESHOOTING.md"]
+    },
+    {
+      "id": "vscode-remote-fly",
+      "category": "deployment",
+      "question": "How do I connect VS Code to my Fly.io Sindri instance?",
+      "answer": "Use the VS Code Remote - SSH extension. First, ensure your AUTHORIZED_KEYS secret is configured with your public key (fromFile: ~/.ssh/id_ed25519.pub). Then add an entry to ~/.ssh/config: 'Host sindri-fly' with 'HostName <app-name>.fly.dev', 'Port 10022', 'User developer', and 'IdentityFile ~/.ssh/id_ed25519'. In VS Code, open Command Palette (Cmd+Shift+P) and select 'Remote-SSH: Connect to Host', then choose 'sindri-fly'. If direct SSH is blocked by firewalls, use 'flyctl proxy 10022:2222 -a <app-name>' and connect to localhost:10022 instead.",
+      "tags": ["vscode", "remote", "ssh", "fly", "ide"],
+      "docs": ["docs/providers/FLY.md"]
     }
   ]
 }
