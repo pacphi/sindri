@@ -1,15 +1,14 @@
 #!/bin/bash
 # setup-ssh-environment.sh - Configure SSH for non-interactive sessions
-# Ensures environment variables and tool paths are available in SSH commands
-
 set -e
 
-echo "Configuring SSH environment for non-interactive sessions..."
+echo "Configuring SSH environment..."
 
 PROFILE_D_DIR="/etc/profile.d"
 SSHD_CONFIG_D="/etc/ssh/sshd_config.d"
 ENV_CONFIG_FILE="$SSHD_CONFIG_D/99-bash-env.conf"
 SSH_ENV_FILE="$PROFILE_D_DIR/00-ssh-environment.sh"
+CLI_PATH_FILE="$PROFILE_D_DIR/sindri-cli.sh"
 
 # Create sshd_config.d directory if it doesn't exist
 if [[ ! -d "$SSHD_CONFIG_D" ]]; then
@@ -65,4 +64,14 @@ Match User *
 EOF
 
 echo "  Created SSH daemon environment config: $ENV_CONFIG_FILE"
+
+# Add CLI tools to PATH for all login shells (SSH sessions)
+# Dockerfile ENV PATH only works for docker exec, not SSH
+echo "  Creating CLI PATH configuration..."
+cat > "$CLI_PATH_FILE" << 'EOF'
+export PATH="/docker/cli:$PATH"
+EOF
+chmod +x "$CLI_PATH_FILE"
+echo "  Created CLI PATH config: $CLI_PATH_FILE"
+
 echo "SSH environment configured successfully"
