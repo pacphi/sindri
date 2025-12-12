@@ -129,10 +129,15 @@ extensions:
     description: Claude agent management
     dependencies: []
 
-  ruvnet-aliases:
+  claude-flow:
     category: ai
-    description: Claude Flow and Agentic Flow aliases for enhanced AI workflows
-    dependencies: []
+    description: AI-powered multi-agent orchestration system for Claude Code workflows
+    dependencies: [nodejs]
+
+  agentic-flow:
+    category: ai
+    description: Multi-model AI agent framework for Claude Code with cost optimization
+    dependencies: [nodejs]
 
   ruvnet-research:
     category: ai
@@ -148,6 +153,11 @@ extensions:
     category: ai
     description: TUI for managing Claude Code plugins, MCPs, and configuration
     dependencies: [nodejs]
+
+  goose:
+    category: ai
+    description: Block's open-source AI agent for engineering task automation
+    dependencies: []
 
   # Monitoring
   monitoring:
