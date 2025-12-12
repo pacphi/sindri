@@ -50,7 +50,7 @@ cd sindri
 
 - **Modular Extension System** - YAML-driven with dependency resolution
 - **Fast Startup** - Optimized Docker images with pre-installed tools (10-15s cold start)
-- **Extension System** - 32 modular extensions for languages, tools, and infrastructure
+- **Extension System** - 68 modular extensions for languages, tools, and infrastructure
 - **Schema Validation** - All YAML validated against JSON schemas
 - **Provider Adapters** - Clean abstraction for Docker, Fly.io, and DevPod (with Kubernetes, AWS, GCP, Azure backends)
 - **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace

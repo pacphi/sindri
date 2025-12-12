@@ -1,0 +1,22 @@
+---
+# Sindri Configuration - VisionFlow Core Profile
+# Document processing and automation tools (9 extensions)
+version: "1.0"
+name: sindri-visionflow-core
+
+deployment:
+  provider: docker
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: visionflow-core
+
+providers:
+  docker:
+    ports:
+      - "10022:2222" # SSH

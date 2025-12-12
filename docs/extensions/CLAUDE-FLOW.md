@@ -4,17 +4,17 @@ AI-powered multi-agent orchestration system for Claude Code workflows.
 
 ## Overview
 
-| Property         | Value                                  |
-| ---------------- | -------------------------------------- |
-| **Category**     | ai                                     |
-| **Version**      | 1.0.0                                  |
-| **Installation** | script (npm)                           |
-| **Disk Space**   | 100 MB                                 |
-| **Memory**       | 128 MB                                 |
-| **Dependencies** | [nodejs](NODEJS.md)                    |
-| **Author**       | ruvnet                                 |
-| **License**      | MIT                                    |
-| **Homepage**     | https://github.com/ruvnet/claude-flow  |
+| Property         | Value                                 |
+| ---------------- | ------------------------------------- |
+| **Category**     | ai                                    |
+| **Version**      | 1.0.0                                 |
+| **Installation** | script (npm)                          |
+| **Disk Space**   | 100 MB                                |
+| **Memory**       | 128 MB                                |
+| **Dependencies** | [nodejs](NODEJS.md)                   |
+| **Author**       | ruvnet                                |
+| **License**      | MIT                                   |
+| **Homepage**     | https://github.com/ruvnet/claude-flow |
 
 ## Description
 
@@ -22,9 +22,9 @@ Claude Flow is an AI-powered multi-agent orchestration system for Claude Code wo
 
 ## Installed Tools
 
-| Tool          | Type     | Description            |
-| ------------- | -------- | ---------------------- |
-| `claude-flow` | cli-tool | Claude Flow CLI        |
+| Tool          | Type     | Description     |
+| ------------- | -------- | --------------- |
+| `claude-flow` | cli-tool | Claude Flow CLI |
 
 ## Claude Code Commands
 
@@ -36,11 +36,11 @@ The MetaSaver command analyzes prompt complexity and automatically routes tasks 
 
 #### Automatic Routing Logic
 
-| Complexity      | Score    | Routing Target      | Triggers                                       |
-| --------------- | -------- | ------------------- | ---------------------------------------------- |
-| 🔴 Ultra-Complex | ≥25      | Hive-Mind           | Multi-package, enterprise architecture, migrations |
-| 🟡 Medium-Complex | 7-24     | Claude Flow Swarm   | Multi-file implementations, API development    |
-| 🟢 Simple        | <7       | Enhanced Claude     | Single file work, debugging, quick fixes       |
+| Complexity        | Score | Routing Target    | Triggers                                           |
+| ----------------- | ----- | ----------------- | -------------------------------------------------- |
+| 🔴 Ultra-Complex  | ≥25   | Hive-Mind         | Multi-package, enterprise architecture, migrations |
+| 🟡 Medium-Complex | 7-24  | Claude Flow Swarm | Multi-file implementations, API development        |
+| 🟢 Simple         | <7    | Enhanced Claude   | Single file work, debugging, quick fixes           |
 
 #### Complexity Scoring
 
@@ -54,11 +54,11 @@ The command calculates complexity based on:
 
 For Claude-routed tasks, appropriate thinking depth is applied:
 
-| Level         | Use Case                                    |
-| ------------- | ------------------------------------------- |
-| `ultrathink`  | Architecture decisions, security analysis   |
-| `think-harder`| Refactoring, algorithm design, optimization |
-| `think`       | Straightforward implementations             |
+| Level          | Use Case                                    |
+| -------------- | ------------------------------------------- |
+| `ultrathink`   | Architecture decisions, security analysis   |
+| `think-harder` | Refactoring, algorithm design, optimization |
+| `think`        | Straightforward implementations             |
 
 #### Usage Examples
 
@@ -106,90 +106,90 @@ The extension installs extensive convenience aliases organized by category:
 
 #### Initialization & Setup
 
-| Alias             | Command                                                | Description                |
-| ----------------- | ------------------------------------------------------ | -------------------------- |
-| `cf-init`         | `claude-flow init --force`                             | Initialize project         |
-| `cf-init-verify`  | `claude-flow init --verify --pair --github-enhanced`   | Init with verification     |
-| `cf-init-project` | `claude-flow init --force --project-name`              | Init with project name     |
-| `cf-init-nexus`   | `claude-flow init --flow-nexus`                        | Init with Flow Nexus       |
+| Alias             | Command                                              | Description            |
+| ----------------- | ---------------------------------------------------- | ---------------------- |
+| `cf-init`         | `claude-flow init --force`                           | Initialize project     |
+| `cf-init-verify`  | `claude-flow init --verify --pair --github-enhanced` | Init with verification |
+| `cf-init-project` | `claude-flow init --force --project-name`            | Init with project name |
+| `cf-init-nexus`   | `claude-flow init --flow-nexus`                      | Init with Flow Nexus   |
 
 #### Hive-Mind Operations
 
-| Alias            | Command                                           | Description              |
-| ---------------- | ------------------------------------------------- | ------------------------ |
-| `cf-spawn`       | `claude-flow hive-mind spawn`                     | Spawn hive-mind          |
-| `cf-wizard`      | `claude-flow hive-mind wizard`                    | Interactive wizard       |
-| `cf-resume`      | `claude-flow hive-mind resume`                    | Resume session           |
-| `cf-status`      | `claude-flow hive-mind status`                    | Check status             |
-| `cf-sessions`    | `claude-flow hive-mind sessions`                  | List sessions            |
-| `cf-upgrade`     | `claude-flow hive-mind upgrade`                   | Upgrade hive-mind        |
-| `cf-github-hive` | `claude-flow hive-mind spawn --github-enhanced...`| GitHub-enhanced hive     |
+| Alias            | Command                                            | Description          |
+| ---------------- | -------------------------------------------------- | -------------------- |
+| `cf-spawn`       | `claude-flow hive-mind spawn`                      | Spawn hive-mind      |
+| `cf-wizard`      | `claude-flow hive-mind wizard`                     | Interactive wizard   |
+| `cf-resume`      | `claude-flow hive-mind resume`                     | Resume session       |
+| `cf-status`      | `claude-flow hive-mind status`                     | Check status         |
+| `cf-sessions`    | `claude-flow hive-mind sessions`                   | List sessions        |
+| `cf-upgrade`     | `claude-flow hive-mind upgrade`                    | Upgrade hive-mind    |
+| `cf-github-hive` | `claude-flow hive-mind spawn --github-enhanced...` | GitHub-enhanced hive |
 
 #### Swarm Operations
 
-| Alias              | Command                                | Description            |
-| ------------------ | -------------------------------------- | ---------------------- |
-| `cf-swarm`         | Context-aware swarm wrapper            | Launch swarm           |
-| `cf-continue`      | `claude-flow swarm --continue-session` | Continue session       |
-| `cf-swarm-temp`    | `claude-flow swarm --temp`             | Temporary swarm        |
-| `cf-swarm-namespace`| `claude-flow swarm --namespace`       | Namespaced swarm       |
+| Alias                | Command                                | Description      |
+| -------------------- | -------------------------------------- | ---------------- |
+| `cf-swarm`           | Context-aware swarm wrapper            | Launch swarm     |
+| `cf-continue`        | `claude-flow swarm --continue-session` | Continue session |
+| `cf-swarm-temp`      | `claude-flow swarm --temp`             | Temporary swarm  |
+| `cf-swarm-namespace` | `claude-flow swarm --namespace`        | Namespaced swarm |
 
 #### Memory Management
 
-| Alias             | Command                                      | Description          |
-| ----------------- | -------------------------------------------- | -------------------- |
-| `cf-memory-stats` | `claude-flow memory stats`                   | Memory statistics    |
-| `cf-memory-list`  | `claude-flow memory list`                    | List memories        |
-| `cf-memory-query` | `claude-flow memory query`                   | Query memory         |
-| `cf-memory-recent`| `claude-flow memory query --recent --limit 5`| Recent memories      |
-| `cf-memory-clear` | `claude-flow memory clear`                   | Clear memory         |
-| `cf-memory-export`| `claude-flow memory export`                  | Export memory        |
-| `cf-memory-import`| `claude-flow memory import`                  | Import memory        |
+| Alias              | Command                                       | Description       |
+| ------------------ | --------------------------------------------- | ----------------- |
+| `cf-memory-stats`  | `claude-flow memory stats`                    | Memory statistics |
+| `cf-memory-list`   | `claude-flow memory list`                     | List memories     |
+| `cf-memory-query`  | `claude-flow memory query`                    | Query memory      |
+| `cf-memory-recent` | `claude-flow memory query --recent --limit 5` | Recent memories   |
+| `cf-memory-clear`  | `claude-flow memory clear`                    | Clear memory      |
+| `cf-memory-export` | `claude-flow memory export`                   | Export memory     |
+| `cf-memory-import` | `claude-flow memory import`                   | Import memory     |
 
 #### Neural & Goal Operations
 
-| Alias             | Command                       | Description           |
-| ----------------- | ----------------------------- | --------------------- |
-| `cf-neural-train` | `claude-flow neural train`    | Train neural model    |
-| `cf-neural-predict`| `claude-flow neural predict` | Neural prediction     |
-| `cf-neural-status`| `claude-flow neural status`   | Neural status         |
-| `cf-goal-plan`    | `claude-flow goal plan`       | Plan goal             |
-| `cf-goal-execute` | `claude-flow goal execute`    | Execute goal          |
-| `cf-goal-status`  | `claude-flow goal status`     | Goal status           |
+| Alias               | Command                      | Description        |
+| ------------------- | ---------------------------- | ------------------ |
+| `cf-neural-train`   | `claude-flow neural train`   | Train neural model |
+| `cf-neural-predict` | `claude-flow neural predict` | Neural prediction  |
+| `cf-neural-status`  | `claude-flow neural status`  | Neural status      |
+| `cf-goal-plan`      | `claude-flow goal plan`      | Plan goal          |
+| `cf-goal-execute`   | `claude-flow goal execute`   | Execute goal       |
+| `cf-goal-status`    | `claude-flow goal status`    | Goal status        |
 
 #### GitHub Integration
 
-| Alias              | Command                        | Description             |
-| ------------------ | ------------------------------ | ----------------------- |
-| `cf-github-init`   | `claude-flow github init`      | Initialize GitHub       |
-| `cf-github-sync`   | `claude-flow github sync`      | Sync with GitHub        |
-| `cf-github-pr`     | `claude-flow github pr`        | Create pull request     |
-| `cf-github-issues` | `claude-flow github issues`    | View issues             |
-| `cf-github-analyze`| `claude-flow github analyze`   | Analyze repository      |
-| `cf-github-migrate`| `claude-flow github migrate`   | Migrate repository      |
+| Alias               | Command                      | Description         |
+| ------------------- | ---------------------------- | ------------------- |
+| `cf-github-init`    | `claude-flow github init`    | Initialize GitHub   |
+| `cf-github-sync`    | `claude-flow github sync`    | Sync with GitHub    |
+| `cf-github-pr`      | `claude-flow github pr`      | Create pull request |
+| `cf-github-issues`  | `claude-flow github issues`  | View issues         |
+| `cf-github-analyze` | `claude-flow github analyze` | Analyze repository  |
+| `cf-github-migrate` | `claude-flow github migrate` | Migrate repository  |
 
 #### Quick Shortcuts
 
-| Alias  | Full Command      | Description          |
-| ------ | ----------------- | -------------------- |
-| `cfs`  | `cf-swarm`        | Quick swarm          |
-| `cfh`  | `cf-hive`         | Quick hive spawn     |
-| `cfr`  | `cf-resume`       | Quick resume         |
-| `cfst` | `cf-status`       | Quick status         |
-| `cfm`  | `cf-memory-stats` | Quick memory stats   |
-| `cfa`  | `cf-agents-list`  | Quick agent list     |
-| `cfg`  | `cf-github-analyze`| Quick GitHub analysis|
-| `cfn`  | `cf-nexus-swarm`  | Quick Nexus swarm    |
+| Alias  | Full Command        | Description           |
+| ------ | ------------------- | --------------------- |
+| `cfs`  | `cf-swarm`          | Quick swarm           |
+| `cfh`  | `cf-hive`           | Quick hive spawn      |
+| `cfr`  | `cf-resume`         | Quick resume          |
+| `cfst` | `cf-status`         | Quick status          |
+| `cfm`  | `cf-memory-stats`   | Quick memory stats    |
+| `cfa`  | `cf-agents-list`    | Quick agent list      |
+| `cfg`  | `cf-github-analyze` | Quick GitHub analysis |
+| `cfn`  | `cf-nexus-swarm`    | Quick Nexus swarm     |
 
 ### Utility Functions
 
-| Function     | Usage                              | Description                        |
-| ------------ | ---------------------------------- | ---------------------------------- |
-| `cf-task`    | `cf-task "description"`            | Execute task with Claude swarm     |
-| `cf-hive-ns` | `cf-hive-ns "task" "namespace"`    | Spawn hive-mind with namespace     |
-| `cf-search`  | `cf-search "query"`                | Search memory with context         |
-| `cf-sandbox` | `cf-sandbox "template" "name"`     | Create Flow Nexus sandbox          |
-| `cf-session` | `cf-session [list|resume|status]`  | Manage sessions                    |
+| Function     | Usage                           | Description                    |
+| ------------ | ------------------------------- | ------------------------------ | -------- | --------------- |
+| `cf-task`    | `cf-task "description"`         | Execute task with Claude swarm |
+| `cf-hive-ns` | `cf-hive-ns "task" "namespace"` | Spawn hive-mind with namespace |
+| `cf-search`  | `cf-search "query"`             | Search memory with context     |
+| `cf-sandbox` | `cf-sandbox "template" "name"`  | Create Flow Nexus sandbox      |
+| `cf-session` | `cf-session [list               | resume                         | status]` | Manage sessions |
 
 ## Network Requirements
 

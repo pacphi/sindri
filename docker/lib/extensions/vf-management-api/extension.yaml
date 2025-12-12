@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-management-api
+  version: 1.0.0
+  description: HTTP REST API for task orchestration (from VisionFlow)
+  category: infrastructure
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 100
+  memory: 256
+  installTime: 120
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  environment:
+    - key: MANAGEMENT_API_KEY
+      value: "${MANAGEMENT_API_KEY:-change-this-secret-key}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-management-api
+
+remove:
+  paths:
+    - ~/extensions/vf-management-api
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: management-api
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-management-api

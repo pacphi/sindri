@@ -4,16 +4,16 @@ Block's open-source AI agent that automates engineering tasks.
 
 ## Overview
 
-| Property         | Value                                 |
-| ---------------- | ------------------------------------- |
-| **Category**     | ai                                    |
-| **Version**      | 1.0.0                                 |
-| **Installation** | script                                |
-| **Disk Space**   | 200 MB                                |
-| **Dependencies** | None                                  |
-| **Author**       | Block                                 |
-| **License**      | Apache-2.0                            |
-| **Homepage**     | https://block.github.io/goose/        |
+| Property         | Value                          |
+| ---------------- | ------------------------------ |
+| **Category**     | ai                             |
+| **Version**      | 1.0.0                          |
+| **Installation** | script                         |
+| **Disk Space**   | 200 MB                         |
+| **Dependencies** | None                           |
+| **Author**       | Block                          |
+| **License**      | Apache-2.0                     |
+| **Homepage**     | https://block.github.io/goose/ |
 
 ## Description
 
@@ -21,17 +21,17 @@ Goose is Block's open-source AI agent that automates engineering tasks - builds 
 
 ## Installed Tools
 
-| Tool    | Type     | Description                    |
-| ------- | -------- | ------------------------------ |
-| `goose` | cli-tool | Goose AI agent CLI             |
+| Tool    | Type     | Description        |
+| ------- | -------- | ------------------ |
+| `goose` | cli-tool | Goose AI agent CLI |
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable | Value                    | Scope  | Description    |
-| -------- | ------------------------ | ------ | -------------- |
-| `PATH`   | `$HOME/.local/bin:$PATH` | bashrc | Binary path    |
+| Variable | Value                    | Scope  | Description |
+| -------- | ------------------------ | ------ | ----------- |
+| `PATH`   | `$HOME/.local/bin:$PATH` | bashrc | Binary path |
 
 ## Network Requirements
 

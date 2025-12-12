@@ -88,3 +88,78 @@ profiles:
     description: Mobile development
     extensions:
       - nodejs
+
+  # =============================================================================
+  # VisionFlow Profiles (from github.com/DreamLab-AI/VisionFlow)
+  # =============================================================================
+
+  visionflow-core:
+    description: VisionFlow core document processing and automation tools
+    extensions:
+      - vf-imagemagick
+      - vf-ffmpeg-processing
+      - vf-latex-documents
+      - vf-pdf
+      - vf-docx
+      - vf-pptx
+      - vf-xlsx
+      - vf-playwright-mcp
+      - vf-jupyter-notebooks
+
+  visionflow-data-scientist:
+    description: VisionFlow AI research and ML tools
+    extensions:
+      - vf-perplexity
+      - vf-web-summary
+      - vf-deepseek-reasoning
+      - vf-pytorch-ml
+      - vf-comfyui
+      - vf-ontology-enrich
+      - vf-import-to-ontology
+
+  visionflow-creative:
+    description: VisionFlow 3D modeling and creative tools
+    extensions:
+      - vf-blender
+      - vf-qgis
+      - vf-pbr-rendering
+      - vf-canvas-design
+      - vf-algorithmic-art
+
+  visionflow-full:
+    description: All VisionFlow extensions (34 total)
+    extensions:
+      - vf-perplexity
+      - vf-web-summary
+      - vf-deepseek-reasoning
+      - vf-comfyui
+      - vf-pytorch-ml
+      - vf-ontology-enrich
+      - vf-import-to-ontology
+      - vf-gemini-flow
+      - vf-zai-service
+      - vf-playwright-mcp
+      - vf-chrome-devtools
+      - vf-jupyter-notebooks
+      - vf-webapp-testing
+      - vf-kicad
+      - vf-ngspice
+      - vf-mcp-builder
+      - vf-skill-creator
+      - vf-blender
+      - vf-qgis
+      - vf-pbr-rendering
+      - vf-canvas-design
+      - vf-vnc-desktop
+      - vf-imagemagick
+      - vf-ffmpeg-processing
+      - vf-latex-documents
+      - vf-pdf
+      - vf-docx
+      - vf-pptx
+      - vf-xlsx
+      - vf-wardley-maps
+      - vf-slack-gif-creator
+      - vf-algorithmic-art
+      - vf-docker-manager
+      - vf-management-api

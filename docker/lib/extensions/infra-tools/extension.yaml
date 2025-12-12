@@ -79,7 +79,16 @@ validate:
       versionFlag: "version"
       expectedPattern: "v\\d+\\.\\d+\\.\\d+"
   mise:
-    tools: ["terraform", "kubectl", "helm", "packer", "asdf:looztra/asdf-k9s", "asdf:Banno/asdf-kustomize", "asdf:sudermanjr/asdf-yq"]
+    tools:
+      [
+        "terraform",
+        "kubectl",
+        "helm",
+        "packer",
+        "asdf:looztra/asdf-k9s",
+        "asdf:Banno/asdf-kustomize",
+        "asdf:sudermanjr/asdf-yq",
+      ]
     minToolCount: 7
 
 remove:

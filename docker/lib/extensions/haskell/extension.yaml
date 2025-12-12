@@ -12,7 +12,7 @@ requirements:
     - hackage.haskell.org
     - stackage.org
     - downloads.haskell.org
-  diskSpace: 2000
+  diskSpace: 6000
   memory: 4096
   installTime: 180
 

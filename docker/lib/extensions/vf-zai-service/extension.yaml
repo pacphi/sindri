@@ -1,0 +1,54 @@
+---
+metadata:
+  name: vf-zai-service
+  version: 1.0.0
+  description: Cost-effective Claude API wrapper service (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - api.anthropic.com
+    - registry.npmjs.org
+  diskSpace: 100
+  memory: 256
+  installTime: 120
+  secrets:
+    - zai_anthropic_api_key
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  environment:
+    - key: ZAI_ANTHROPIC_API_KEY
+      value: "${ZAI_ANTHROPIC_API_KEY}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-zai-service
+
+remove:
+  paths:
+    - ~/extensions/vf-zai-service
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: zai-service
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-zai-service

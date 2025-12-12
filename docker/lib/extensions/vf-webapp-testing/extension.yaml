@@ -1,0 +1,52 @@
+---
+metadata:
+  name: vf-webapp-testing
+  version: 1.0.0
+  description: Web app testing framework with element discovery (from VisionFlow)
+  category: dev-tools
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+    - playwright
+
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 200
+  memory: 512
+  installTime: 180
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-webapp-testing/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-webapp-testing
+
+remove:
+  paths:
+    - ~/extensions/vf-webapp-testing
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: webapp-testing
+      version: 1.0.0
+      source: script
+      type: framework
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-webapp-testing

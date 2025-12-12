@@ -85,5 +85,4 @@ extension-manager remove ruvnet-research
 ## Related Extensions
 
 - [ai-toolkit](AI-TOOLKIT.md) - AI tools suite
-- [ruvnet-aliases](RUVNET-ALIASES.md) - Claude Flow & Agentic Flow aliases
 - [nodejs-devtools](NODEJS-DEVTOOLS.md) - Node.js development tools

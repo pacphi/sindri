@@ -1,0 +1,49 @@
+---
+metadata:
+  name: vf-skill-creator
+  version: 1.0.0
+  description: Claude Code skill scaffolding tool (from VisionFlow)
+  category: dev-tools
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies: []
+
+requirements:
+  domains: []
+  diskSpace: 50
+  memory: 128
+  installTime: 30
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 120
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-skill-creator/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-skill-creator
+
+remove:
+  paths:
+    - ~/extensions/vf-skill-creator
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: skill-creator
+      version: 1.0.0
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-skill-creator

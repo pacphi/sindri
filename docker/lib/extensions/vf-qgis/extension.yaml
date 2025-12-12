@@ -1,0 +1,52 @@
+---
+metadata:
+  name: vf-qgis
+  version: 1.0.0
+  description: QGIS GIS operations MCP server (from VisionFlow)
+  category: desktop
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - xfce-ubuntu
+
+requirements:
+  domains:
+    - qgis.org
+  diskSpace: 1500
+  memory: 2048
+  installTime: 300
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-qgis/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: qgis
+      versionFlag: --version
+      expectedPattern: "QGIS"
+
+remove:
+  paths:
+    - ~/extensions/vf-qgis
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: qgis
+      version: dynamic
+      source: apt
+      type: application
+      license: GPL-2.0
+      homepage: https://qgis.org
+      purl: pkg:deb/debian/qgis

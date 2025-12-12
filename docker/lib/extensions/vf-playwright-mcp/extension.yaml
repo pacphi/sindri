@@ -1,0 +1,53 @@
+---
+metadata:
+  name: vf-playwright-mcp
+  version: 1.0.0
+  description: Playwright browser automation MCP server (from VisionFlow)
+  category: dev-tools
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+    - playwright
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - playwright.azureedge.net
+  diskSpace: 200
+  memory: 512
+  installTime: 180
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-playwright-mcp/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-playwright-mcp/mcp-server
+
+remove:
+  paths:
+    - ~/extensions/vf-playwright-mcp
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: playwright-mcp
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:npm/playwright-mcp

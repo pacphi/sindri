@@ -16,7 +16,7 @@ sindri/
 ├── Dockerfile                # Optimized multi-stage build
 ├── docker/
 │   ├── lib/
-│   │   ├── extensions/       # Extension definitions (YAML) - 32 extensions
+│   │   ├── extensions/       # Extension definitions (YAML) - 68 extensions
 │   │   ├── schemas/          # JSON schemas for validation - 8 schemas
 │   │   ├── profiles.yaml     # Extension profiles
 │   │   ├── categories.yaml   # Category definitions

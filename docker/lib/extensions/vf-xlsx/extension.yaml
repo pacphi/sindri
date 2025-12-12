@@ -1,0 +1,52 @@
+---
+metadata:
+  name: vf-xlsx
+  version: 1.0.0
+  description: Excel processing with openpyxl (from VisionFlow)
+  category: utilities
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+  diskSpace: 50
+  memory: 128
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-xlsx/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: python3
+      versionFlag: -c "import openpyxl; print('ok')"
+      expectedPattern: "ok"
+
+remove:
+  paths:
+    - ~/extensions/vf-xlsx
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: openpyxl
+      version: dynamic
+      source: pip
+      type: library
+      license: MIT
+      homepage: https://openpyxl.readthedocs.io
+      purl: pkg:pypi/openpyxl

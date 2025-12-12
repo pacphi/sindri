@@ -181,3 +181,182 @@ extensions:
     category: utilities
     description: Tmux session management
     dependencies: []
+
+  # =============================================================================
+  # VisionFlow Extensions (from github.com/DreamLab-AI/VisionFlow)
+  # =============================================================================
+
+  # VisionFlow AI Extensions
+  vf-perplexity:
+    category: ai
+    description: Perplexity AI real-time web research MCP server
+    dependencies: [nodejs]
+
+  vf-web-summary:
+    category: ai
+    description: URL/YouTube summarization MCP server
+    dependencies: [nodejs]
+
+  vf-deepseek-reasoning:
+    category: ai
+    description: Deepseek reasoning MCP server
+    dependencies: [nodejs]
+
+  vf-comfyui:
+    category: ai
+    description: ComfyUI image generation MCP server (GPU required)
+    dependencies: [python]
+
+  vf-pytorch-ml:
+    category: ai
+    description: PyTorch deep learning framework
+    dependencies: [python]
+
+  vf-ontology-enrich:
+    category: ai
+    description: AI-powered ontology enrichment
+    dependencies: [python]
+
+  vf-import-to-ontology:
+    category: ai
+    description: Document to ontology import
+    dependencies: [python]
+
+  vf-gemini-flow:
+    category: ai
+    description: Gemini multi-agent orchestration
+    dependencies: [nodejs]
+
+  vf-zai-service:
+    category: ai
+    description: Cost-effective Claude API wrapper
+    dependencies: [nodejs]
+
+  # VisionFlow Dev-Tools Extensions
+  vf-playwright-mcp:
+    category: dev-tools
+    description: Playwright browser automation MCP server
+    dependencies: [nodejs, playwright]
+
+  vf-chrome-devtools:
+    category: dev-tools
+    description: Chrome DevTools Protocol MCP server
+    dependencies: [nodejs]
+
+  vf-jupyter-notebooks:
+    category: dev-tools
+    description: Jupyter notebook execution MCP server
+    dependencies: [python]
+
+  vf-webapp-testing:
+    category: dev-tools
+    description: Web app testing framework
+    dependencies: [nodejs, playwright]
+
+  vf-kicad:
+    category: dev-tools
+    description: KiCad PCB design MCP server
+    dependencies: [xfce-ubuntu]
+
+  vf-ngspice:
+    category: dev-tools
+    description: NGSpice circuit simulation MCP server
+    dependencies: []
+
+  vf-mcp-builder:
+    category: dev-tools
+    description: MCP server scaffolding tool
+    dependencies: [nodejs]
+
+  vf-skill-creator:
+    category: dev-tools
+    description: Claude Code skill scaffolding tool
+    dependencies: []
+
+  # VisionFlow Desktop Extensions
+  vf-blender:
+    category: desktop
+    description: Blender 3D modeling MCP server
+    dependencies: [xfce-ubuntu]
+
+  vf-qgis:
+    category: desktop
+    description: QGIS GIS operations MCP server
+    dependencies: [xfce-ubuntu]
+
+  vf-pbr-rendering:
+    category: desktop
+    description: PBR material generation MCP server (GPU required)
+    dependencies: [vf-blender]
+
+  vf-canvas-design:
+    category: desktop
+    description: Design system framework
+    dependencies: [nodejs]
+
+  vf-vnc-desktop:
+    category: desktop
+    description: VNC desktop server
+    dependencies: []
+
+  # VisionFlow Utilities Extensions
+  vf-imagemagick:
+    category: utilities
+    description: ImageMagick processing MCP server
+    dependencies: []
+
+  vf-ffmpeg-processing:
+    category: utilities
+    description: FFmpeg media processing
+    dependencies: []
+
+  vf-latex-documents:
+    category: utilities
+    description: LaTeX document system
+    dependencies: []
+
+  vf-pdf:
+    category: utilities
+    description: PDF manipulation tools
+    dependencies: [python]
+
+  vf-docx:
+    category: utilities
+    description: Word document tools
+    dependencies: [python]
+
+  vf-pptx:
+    category: utilities
+    description: PowerPoint tools
+    dependencies: [python]
+
+  vf-xlsx:
+    category: utilities
+    description: Excel tools
+    dependencies: [python]
+
+  vf-wardley-maps:
+    category: utilities
+    description: Strategic mapping visualization
+    dependencies: [nodejs]
+
+  vf-slack-gif-creator:
+    category: utilities
+    description: Slack GIF generation
+    dependencies: [nodejs, vf-ffmpeg-processing]
+
+  vf-algorithmic-art:
+    category: utilities
+    description: Generative algorithmic art
+    dependencies: [python]
+
+  # VisionFlow Infrastructure Extensions
+  vf-docker-manager:
+    category: infrastructure
+    description: Docker container management MCP server
+    dependencies: [docker]
+
+  vf-management-api:
+    category: infrastructure
+    description: HTTP task orchestration API
+    dependencies: [nodejs]

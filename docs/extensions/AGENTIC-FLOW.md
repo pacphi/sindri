@@ -4,17 +4,17 @@ Multi-model AI agent framework for Claude Code with cost optimization.
 
 ## Overview
 
-| Property         | Value                                      |
-| ---------------- | ------------------------------------------ |
-| **Category**     | ai                                         |
-| **Version**      | 1.0.0                                      |
-| **Installation** | script (npm)                               |
-| **Disk Space**   | 80 MB                                      |
-| **Memory**       | 128 MB                                     |
-| **Dependencies** | [nodejs](NODEJS.md)                        |
-| **Author**       | ruvnet                                     |
-| **License**      | MIT                                        |
-| **Homepage**     | https://github.com/ruvnet/agentic-flow     |
+| Property         | Value                                  |
+| ---------------- | -------------------------------------- |
+| **Category**     | ai                                     |
+| **Version**      | 1.0.0                                  |
+| **Installation** | script (npm)                           |
+| **Disk Space**   | 80 MB                                  |
+| **Memory**       | 128 MB                                 |
+| **Dependencies** | [nodejs](NODEJS.md)                    |
+| **Author**       | ruvnet                                 |
+| **License**      | MIT                                    |
+| **Homepage**     | https://github.com/ruvnet/agentic-flow |
 
 ## Description
 
@@ -22,9 +22,9 @@ Agentic Flow is a multi-model AI agent framework designed for Claude Code integr
 
 ## Installed Tools
 
-| Tool           | Type     | Description                     |
-| -------------- | -------- | ------------------------------- |
-| `agentic-flow` | cli-tool | Agentic Flow CLI                |
+| Tool           | Type     | Description      |
+| -------------- | -------- | ---------------- |
+| `agentic-flow` | cli-tool | Agentic Flow CLI |
 
 ## Configuration
 
@@ -38,26 +38,26 @@ Agentic Flow is a multi-model AI agent framework designed for Claude Code integr
 
 The extension installs convenience aliases:
 
-| Alias           | Command                                              | Description                |
-| --------------- | ---------------------------------------------------- | -------------------------- |
-| `af`            | `agentic-flow`                                       | Core command shortcut      |
-| `af-help`       | `agentic-flow --help`                                | Help command               |
-| `af-coder`      | `agentic-flow --agent coder --task`                  | Coding agent               |
-| `af-reviewer`   | `agentic-flow --agent reviewer --task`               | Code review agent          |
-| `af-researcher` | `agentic-flow --agent researcher --task`             | Research agent             |
-| `af-claude`     | `agentic-flow claude-code`                           | Claude Code integration    |
-| `af-openrouter` | `agentic-flow claude-code --provider openrouter`     | OpenRouter provider        |
-| `af-gemini`     | `agentic-flow claude-code --provider gemini`         | Gemini provider            |
-| `af-cost`       | `agentic-flow --optimize cost`                       | Cost-optimized mode        |
-| `af-speed`      | `agentic-flow --optimize speed`                      | Speed-optimized mode       |
-| `af-quality`    | `agentic-flow --optimize quality`                    | Quality-optimized mode     |
+| Alias           | Command                                          | Description             |
+| --------------- | ------------------------------------------------ | ----------------------- |
+| `af`            | `agentic-flow`                                   | Core command shortcut   |
+| `af-help`       | `agentic-flow --help`                            | Help command            |
+| `af-coder`      | `agentic-flow --agent coder --task`              | Coding agent            |
+| `af-reviewer`   | `agentic-flow --agent reviewer --task`           | Code review agent       |
+| `af-researcher` | `agentic-flow --agent researcher --task`         | Research agent          |
+| `af-claude`     | `agentic-flow claude-code`                       | Claude Code integration |
+| `af-openrouter` | `agentic-flow claude-code --provider openrouter` | OpenRouter provider     |
+| `af-gemini`     | `agentic-flow claude-code --provider gemini`     | Gemini provider         |
+| `af-cost`       | `agentic-flow --optimize cost`                   | Cost-optimized mode     |
+| `af-speed`      | `agentic-flow --optimize speed`                  | Speed-optimized mode    |
+| `af-quality`    | `agentic-flow --optimize quality`                | Quality-optimized mode  |
 
 ### Utility Functions
 
-| Function      | Usage                           | Description                           |
-| ------------- | ------------------------------- | ------------------------------------- |
-| `af-task`     | `af-task <agent> "task"`        | Execute task with specific agent      |
-| `af-provider` | `af-provider <provider> [args]` | Execute with specific provider        |
+| Function      | Usage                           | Description                      |
+| ------------- | ------------------------------- | -------------------------------- |
+| `af-task`     | `af-task <agent> "task"`        | Execute task with specific agent |
+| `af-provider` | `af-provider <provider> [args]` | Execute with specific provider   |
 
 ## Network Requirements
 

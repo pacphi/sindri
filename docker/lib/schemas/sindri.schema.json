@@ -113,7 +113,11 @@
             "enterprise",
             "data-science",
             "devops",
-            "mobile"
+            "mobile",
+            "visionflow-core",
+            "visionflow-data-scientist",
+            "visionflow-creative",
+            "visionflow-full"
           ],
           "description": "Extension profile to use as a base"
         },

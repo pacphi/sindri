@@ -1,0 +1,55 @@
+---
+metadata:
+  name: vf-ontology-enrich
+  version: 1.0.0
+  description: AI-powered ontology enrichment with OWL2 validation (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+    - api.perplexity.ai
+  diskSpace: 200
+  memory: 512
+  installTime: 180
+  secrets:
+    - perplexity_api_key
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-ontology-enrich/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: python3
+      versionFlag: -c "import rdflib; print('ok')"
+      expectedPattern: "ok"
+
+remove:
+  paths:
+    - ~/extensions/vf-ontology-enrich
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: rdflib
+      version: dynamic
+      source: pip
+      type: library
+      license: BSD-3-Clause
+      homepage: https://rdflib.readthedocs.io
+      purl: pkg:pypi/rdflib

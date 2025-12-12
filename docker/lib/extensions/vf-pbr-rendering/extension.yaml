@@ -1,0 +1,55 @@
+---
+metadata:
+  name: vf-pbr-rendering
+  version: 1.0.0
+  description: PBR material generation MCP server (from VisionFlow)
+  category: desktop
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - vf-blender
+
+requirements:
+  domains:
+    - pypi.org
+  diskSpace: 500
+  memory: 4096
+  installTime: 300
+  gpu:
+    required: true
+    type: nvidia
+    minMemory: 4096
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-pbr-rendering/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-pbr-rendering
+
+remove:
+  paths:
+    - ~/extensions/vf-pbr-rendering
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: pbr-rendering
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-pbr-rendering

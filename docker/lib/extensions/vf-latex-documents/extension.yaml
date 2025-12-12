@@ -1,0 +1,52 @@
+---
+metadata:
+  name: vf-latex-documents
+  version: 1.0.0
+  description: TeX Live with BibTeX and Beamer for academic documents (from VisionFlow)
+  category: utilities
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies: []
+
+requirements:
+  domains:
+    - tug.org
+    - ctan.org
+  diskSpace: 8500
+  memory: 512
+  installTime: 600
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-latex-documents/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: pdflatex
+      versionFlag: --version
+      expectedPattern: "pdfTeX"
+
+remove:
+  paths:
+    - ~/extensions/vf-latex-documents
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: texlive
+      version: dynamic
+      source: apt
+      type: framework
+      license: LPPL-1.3c
+      homepage: https://tug.org/texlive/
+      purl: pkg:deb/debian/texlive-full

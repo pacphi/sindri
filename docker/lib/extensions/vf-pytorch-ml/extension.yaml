@@ -1,0 +1,65 @@
+---
+metadata:
+  name: vf-pytorch-ml
+  version: 1.0.0
+  description: PyTorch deep learning framework with CUDA support (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+    - download.pytorch.org
+    - huggingface.co
+  diskSpace: 6000
+  memory: 8192
+  installTime: 600
+  gpu:
+    required: false
+    recommended: true
+    type: nvidia
+    minMemory: 8192
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 1200
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-pytorch-ml/SKILL.md
+      mode: overwrite
+  environment:
+    - key: CUDA_VISIBLE_DEVICES
+      value: "0"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: python3
+      versionFlag: -c "import torch; print(torch.__version__)"
+      expectedPattern: "\\d+\\.\\d+"
+
+remove:
+  paths:
+    - ~/extensions/vf-pytorch-ml
+    - ~/.cache/torch
+    - ~/.cache/huggingface
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: pytorch
+      version: dynamic
+      source: pip
+      type: framework
+      license: BSD-3-Clause
+      homepage: https://pytorch.org
+      purl: pkg:pypi/torch

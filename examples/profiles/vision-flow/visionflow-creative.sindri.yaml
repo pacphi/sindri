@@ -1,0 +1,27 @@
+---
+# Sindri Configuration - VisionFlow Creative Profile
+# 3D modeling and creative tools (5 extensions)
+version: "1.0"
+name: sindri-visionflow-creative
+
+deployment:
+  provider: docker
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 30GB
+  gpu:
+    enabled: true
+    type: nvidia
+    count: 1
+
+extensions:
+  profile: visionflow-creative
+
+providers:
+  docker:
+    ports:
+      - "10022:2222" # SSH
+      - "5901:5901" # VNC

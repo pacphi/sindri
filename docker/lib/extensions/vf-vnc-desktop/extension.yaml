@@ -1,0 +1,49 @@
+---
+metadata:
+  name: vf-vnc-desktop
+  version: 1.0.0
+  description: VNC desktop server with terminal grid (from VisionFlow)
+  category: desktop
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies: []
+
+requirements:
+  domains: []
+  diskSpace: 500
+  memory: 1024
+  installTime: 300
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/supervisord.unified.conf
+      destination: ~/extensions/vf-vnc-desktop/supervisord.conf
+      mode: overwrite
+
+validate:
+  commands:
+    - name: x11vnc
+      versionFlag: -version
+
+remove:
+  paths:
+    - ~/extensions/vf-vnc-desktop
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: x11vnc
+      version: dynamic
+      source: apt
+      type: server
+      license: GPL-2.0
+      homepage: https://github.com/LibVNC/x11vnc
+      purl: pkg:deb/debian/x11vnc
