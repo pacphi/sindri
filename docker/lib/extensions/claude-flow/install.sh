@@ -62,6 +62,25 @@ else
     exit 1
 fi
 
+# Install Claude Code commands
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+COMMANDS_SRC="$SCRIPT_DIR/commands"
+COMMANDS_DEST="$HOME/.claude/commands"
+
+if [[ -d "$COMMANDS_SRC" ]]; then
+    print_status "Installing Claude Code commands..."
+    mkdir -p "$COMMANDS_DEST"
+
+    for cmd_file in "$COMMANDS_SRC"/*.md; do
+        if [[ -f "$cmd_file" ]]; then
+            cmd_name=$(basename "$cmd_file")
+            cp "$cmd_file" "$COMMANDS_DEST/$cmd_name"
+            print_success "Installed command: /${cmd_name%.md}"
+        fi
+    done
+fi
+
 print_success "Claude Flow installation complete"
 print_status "Initialize in a project with: cf-init"
+print_status "Use /ms for intelligent task routing"
 print_status "Documentation: https://github.com/ruvnet/claude-flow/wiki"

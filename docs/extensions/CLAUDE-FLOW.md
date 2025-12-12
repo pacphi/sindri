@@ -26,6 +26,72 @@ Claude Flow is an AI-powered multi-agent orchestration system for Claude Code wo
 | ------------- | -------- | ---------------------- |
 | `claude-flow` | cli-tool | Claude Flow CLI        |
 
+## Claude Code Commands
+
+The extension installs the following Claude Code slash commands to `~/.claude/commands/`:
+
+### `/ms` - MetaSaver Intelligent Command Router
+
+The MetaSaver command analyzes prompt complexity and automatically routes tasks to the optimal execution method.
+
+#### Automatic Routing Logic
+
+| Complexity      | Score    | Routing Target      | Triggers                                       |
+| --------------- | -------- | ------------------- | ---------------------------------------------- |
+| 🔴 Ultra-Complex | ≥25      | Hive-Mind           | Multi-package, enterprise architecture, migrations |
+| 🟡 Medium-Complex | 7-24     | Claude Flow Swarm   | Multi-file implementations, API development    |
+| 🟢 Simple        | <7       | Enhanced Claude     | Single file work, debugging, quick fixes       |
+
+#### Complexity Scoring
+
+The command calculates complexity based on:
+
+- **Ultra-complex keywords** (+10-15 pts): "enterprise", "architecture", "monorepo", "system-wide", "migration"
+- **Medium-complex keywords** (+5-9 pts): "implement", "build", "API", "feature", "component", "testing"
+- **Scope indicators** (+3-8 pts): Multi-package scope, integration complexity
+
+#### Thinking Levels
+
+For Claude-routed tasks, appropriate thinking depth is applied:
+
+| Level         | Use Case                                    |
+| ------------- | ------------------------------------------- |
+| `ultrathink`  | Architecture decisions, security analysis   |
+| `think-harder`| Refactoring, algorithm design, optimization |
+| `think`       | Straightforward implementations             |
+
+#### Usage Examples
+
+```bash
+# Ultra-Complex → Routes to Hive-Mind
+/ms "Standardize error handling across all microservices in monorepo"
+
+# Medium-Complex → Routes to Swarm
+/ms "Build JWT auth API with refresh tokens and tests"
+
+# Simple → Routes to Enhanced Claude
+/ms "Fix TypeScript error in user.service.ts line 45"
+
+# Override automatic routing
+/ms "simple task" --force-hive-mind
+/ms "complex task" --force-claude
+
+# Explicit thinking levels
+/ms "design architecture" --ultrathink
+/ms "refactor code" --think-harder
+
+# Utility options
+/ms "any task" --dry-run          # Show routing decision only
+/ms "any task" --explain-routing  # Show why route was chosen
+```
+
+#### Value Proposition
+
+- **Single entry point** - One command for all task types
+- **Intelligent routing** - Automatically selects optimal execution path
+- **Consistent quality** - Tasks matched to appropriate processing power
+- **Time savings** - No manual decision-making about which tool to use
+
 ## Configuration
 
 ### Environment Variables

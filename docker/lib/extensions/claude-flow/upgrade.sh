@@ -34,4 +34,22 @@ else
     exit 1
 fi
 
+# Update Claude Code commands
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+COMMANDS_SRC="$SCRIPT_DIR/commands"
+COMMANDS_DEST="$HOME/.claude/commands"
+
+if [[ -d "$COMMANDS_SRC" ]]; then
+    print_status "Updating Claude Code commands..."
+    mkdir -p "$COMMANDS_DEST"
+
+    for cmd_file in "$COMMANDS_SRC"/*.md; do
+        if [[ -f "$cmd_file" ]]; then
+            cmd_name=$(basename "$cmd_file")
+            cp "$cmd_file" "$COMMANDS_DEST/$cmd_name"
+            print_success "Updated command: /${cmd_name%.md}"
+        fi
+    done
+fi
+
 print_success "Claude Flow upgrade complete"

@@ -29,6 +29,10 @@ configure:
     - source: claude-flow.aliases
       destination: ~/.bashrc
       mode: append
+  commands:
+    - source: commands/ms.md
+      destination: ~/.claude/commands/ms.md
+      description: MetaSaver intelligent command router for complexity-based task routing
   environment:
     - key: PATH
       value: "$HOME/.local/bin:$PATH"
