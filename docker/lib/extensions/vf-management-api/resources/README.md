@@ -14,7 +14,7 @@ The Management API provides a production-grade HTTP interface for:
 
 ## Architecture
 
-```
+```text
 Management API (port 9090)
   ├── Authentication Middleware (Bearer tokens)
   ├── Rate Limiting (100 req/min)
@@ -327,7 +327,7 @@ pm2 stop management-api
 
 Each task spawned via `POST /v1/tasks` runs in isolation:
 
-```
+```text
 /home/devuser/workspace/tasks/{taskId}/
   ├── .db files (SQLite databases)
   ├── generated code

@@ -108,7 +108,7 @@ map_html = generator.create_map(components, dependencies)
 
 ### Text-Based Map
 
-```
+```bash
 User Need
     |
     +-- [Visible Component] ------------> Product (0.7)

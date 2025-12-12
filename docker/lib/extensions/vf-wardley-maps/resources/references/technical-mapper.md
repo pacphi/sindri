@@ -104,7 +104,7 @@ import custom_lib  # Internal → Custom (0.3)
 
 ### On-Premise
 
-```
+```bash
 User Applications (0.9, varies)
     ↓
 Application Servers (0.5, 0.6)
@@ -116,7 +116,7 @@ Physical Servers (0.1, 0.7)
 
 ### Cloud-Native
 
-```
+```bash
 User Interface (0.9, 0.7)
     ↓
 API Layer (0.7, 0.8)

@@ -6,7 +6,7 @@ Ready-to-use templates for common research scenarios, optimized for UK context.
 
 ### Competitive Analysis
 
-```
+```text
 Research: [Company/Product] competitive landscape in UK market
 
 Context: [Your industry/sector]
@@ -25,7 +25,7 @@ Timeframe: Last 6 months
 
 ### Market Sizing
 
-```
+```text
 Calculate total addressable market (TAM) for [product/service] in UK
 
 Parameters:
@@ -41,7 +41,7 @@ Include: Growth projections, market trends, regulatory impact
 
 ### Financial Analysis
 
-```
+```text
 Analyze financial performance: [Company name] (UK-listed or operating in UK)
 
 Metrics to research:
@@ -60,7 +60,7 @@ Format: Executive summary with key financial highlights
 
 ### Feature Comparison
 
-```
+```text
 Compare: [Product A] vs [Product B] vs [Product C]
 
 Criteria:
@@ -77,7 +77,7 @@ Include UK-specific compliance (GDPR, data residency, etc.)
 
 ### Technology Stack Research
 
-```
+```text
 Research best practices for [technology/framework] in UK enterprise context
 
 Focus:
@@ -96,7 +96,7 @@ Sources: UK tech blogs, UK developer surveys, UK case studies
 
 ### UK Legal Research
 
-```
+```text
 Research UK legal requirements for [business activity]
 
 Scope:
@@ -113,7 +113,7 @@ Deliverable: Compliance checklist with source citations
 
 ### GDPR Compliance
 
-```
+```text
 GDPR compliance requirements for [specific use case] in UK
 
 Context: [Describe data processing activity]
@@ -132,7 +132,7 @@ Deliverable: Action plan with ICO source links
 
 ### Literature Review
 
-```
+```text
 Academic literature review: [research topic]
 
 Parameters:
@@ -150,7 +150,7 @@ Deliverable: Structured review with:
 
 ### Learning Resources
 
-```
+```text
 Find learning resources for [skill/topic] suitable for UK learners
 
 Requirements:
@@ -167,7 +167,7 @@ Deliverable: Curated list with UK pricing, accreditation status, and reviews
 
 ### Content Ideas
 
-```
+```text
 Generate content ideas for [industry/niche] targeting UK audience
 
 Context: [Your business/blog/channel]
@@ -186,7 +186,7 @@ Include: Keyword research for UK search behavior
 
 ### SEO Research
 
-```
+```text
 SEO keyword research for [topic/product] targeting UK market
 
 Parameters:
@@ -204,7 +204,7 @@ Include: UK-specific long-tail opportunities
 
 ### Investment Research
 
-```
+```text
 Research investment options: [asset class/sector] for UK retail investors
 
 Context: [Investment amount, risk tolerance, time horizon]
@@ -223,7 +223,7 @@ Include: Tax implications, platform recommendations
 
 ### Personal Finance
 
-```
+```text
 Research: [Financial product] options in UK market (e.g., mortgages, savings, pensions)
 
 Parameters:
@@ -245,7 +245,7 @@ Format: Decision matrix for UK consumers
 
 ### Career Research
 
-```
+```text
 Research career path: [Job title/Industry] in UK market
 
 Focus:
@@ -262,7 +262,7 @@ Include: UK salary data, job boards, professional associations
 
 ### UK Salary Benchmarking
 
-```
+```text
 Benchmark salary for [Job title] in [UK city/region]
 
 Context:
@@ -283,7 +283,7 @@ Deliverable: Salary range with percentiles (25th, 50th, 75th) in £
 
 ### Property Market Research
 
-```
+```text
 Research property market: [UK location/postcode area]
 
 Context: [Buying/Renting/Investing]
@@ -314,13 +314,13 @@ Include: UK mortgage affordability, stamp duty calculations
 
 ### Simple Query
 
-```
+```text
 Template: What are the current mortgage rates from major UK banks?
 ```
 
 ### Medium Complexity
 
-```
+```text
 Template: Research + Context + Constraints + Format
 
 Example:
@@ -332,7 +332,7 @@ Format: Table with company, revenue, funding, key features
 
 ### Complex Research
 
-```
+```text
 Template: Full five-element prompt
 
 Example:

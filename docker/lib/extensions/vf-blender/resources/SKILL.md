@@ -264,7 +264,7 @@ Import completed Hunyuan3D model.
 
 ### Example 1: Create Scene with PolyHaven Assets
 
-```
+```text
 Use the Blender skill to:
 1. Check PolyHaven status
 2. Download an HDRI for environment lighting
@@ -275,14 +275,14 @@ Use the Blender skill to:
 
 ### Example 2: Import Sketchfab Model
 
-```
+```text
 Search Sketchfab for "vintage car" and import the first downloadable result.
 Scale it to fit the scene and position at origin.
 ```
 
 ### Example 3: Generate AI Model with Hyper3D
 
-```
+```text
 Generate a 3D model of "a small wooden treasure chest with gold trim"
 using Hyper3D Rodin. Import it and add environment lighting.
 ```

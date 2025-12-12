@@ -33,19 +33,19 @@ docker exec -it agentic-workstation /bin/zsh
 
 Once inside the container with Claude Code:
 
-```
+```text
 Use Docker Manager to check VisionFlow status
 ```
 
-```
+```text
 Use Docker Manager to build and restart VisionFlow in dev mode
 ```
 
-```
+```text
 Use Docker Manager to show the last 50 lines of VisionFlow logs
 ```
 
-```
+```text
 Use Docker Manager to execute "npm run test" in VisionFlow
 ```
 
@@ -134,7 +134,7 @@ The skill wraps the existing `scripts/launch.sh`:
 
 ## Architecture Summary
 
-```
+```text
 ┌─────────────────────────────────────┐
 │   Your Machine (Host)               │
 │                                     │

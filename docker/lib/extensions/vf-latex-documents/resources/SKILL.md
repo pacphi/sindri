@@ -262,7 +262,7 @@ Screenshot analysis checks layout, margins, figure placement, and rendering qual
 
 ## File Structure
 
-```
+```text
 latex-documents/
 ├── SKILL.md
 ├── templates/beamer/

@@ -83,7 +83,7 @@ def porters_to_wardley(analysis):
 
 ### Red Ocean (Competitive)
 
-```
+```yaml
 Existing Market Need (0.9, 0.8)
     ↓
 Competitor A Solution (0.7, 0.7)
@@ -95,7 +95,7 @@ Shared Infrastructure (0.2, 0.9)
 
 ### Blue Ocean (Uncontested)
 
-```
+```yaml
 New Market Need (0.9, 0.2)
     ↓
 Our Innovation (0.7, 0.3)

@@ -28,7 +28,7 @@ URL content summarization and topic extraction via FastMCP, using Z.AI service f
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────┐
 │  Claude Code / VisionFlow   │
 │  (MCP Client)               │

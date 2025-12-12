@@ -146,14 +146,17 @@ generate_mcp_settings() {
     for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
         [ -f "$skill_md" ] || continue
 
-        local skill_dir=$(dirname "$skill_md")
-        local parsed=$(parse_skill_frontmatter "$skill_md")
+        local skill_dir
+        skill_dir=$(dirname "$skill_md")
+        local parsed
+        parsed=$(parse_skill_frontmatter "$skill_md")
 
         [ -z "$parsed" ] && continue
 
-        local name=$(echo "$parsed" | cut -d'|' -f1)
-        local protocol=$(echo "$parsed" | cut -d'|' -f2)
-        local entry_point=$(echo "$parsed" | cut -d'|' -f3)
+        local name protocol entry_point
+        name=$(echo "$parsed" | cut -d'|' -f1)
+        protocol=$(echo "$parsed" | cut -d'|' -f2)
+        entry_point=$(echo "$parsed" | cut -d'|' -f3)
         local full_path="$skill_dir/$entry_point"
 
         # Verify entry point exists
@@ -163,9 +166,10 @@ generate_mcp_settings() {
         fi
 
         # Get command configuration
-        local cmd_info=$(get_command_for_entry "$entry_point" "$protocol")
-        local command=$(echo "$cmd_info" | cut -d'|' -f1)
-        local extra_args=$(echo "$cmd_info" | cut -d'|' -f2)
+        local cmd_info command extra_args
+        cmd_info=$(get_command_for_entry "$entry_point" "$protocol")
+        command=$(echo "$cmd_info" | cut -d'|' -f1)
+        extra_args=$(echo "$cmd_info" | cut -d'|' -f2)
 
         # Comma handling
         if [ "$first" = "true" ]; then
@@ -183,7 +187,8 @@ generate_mcp_settings() {
         fi
 
         # Get environment variables
-        local env_vars=$(get_skill_env "$name")
+        local env_vars
+        env_vars=$(get_skill_env "$name")
 
         # Output skill entry
         echo -n "    \"$name\": {"

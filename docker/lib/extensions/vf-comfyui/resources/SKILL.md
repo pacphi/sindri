@@ -459,7 +459,7 @@ Works well with:
 
 ## Files and Directories
 
-```
+```text
 /home/devuser/ComfyUI/
   venv/           # Python virtual environment
   models/         # Model checkpoints
@@ -602,7 +602,7 @@ The skill can capture ComfyUI's UI on display :1 using Playwright for visual fee
 
 Use `chat_workflow` to generate ComfyUI workflows from natural language:
 
-```
+```bash
 chat_workflow: "Create an anime portrait with blue hair and golden eyes"
 ```
 
@@ -780,7 +780,7 @@ After FLUX2 image generation (copy image to input folder first):
 
 ### SAM3D Output Files
 
-```
+```text
 sam3d_inference_X/
 ├── gaussian.ply      # 3DGS splats (full Gaussian output, ~70MB)
 ├── mesh.glb          # Textured mesh with 4K UV map (~35MB)

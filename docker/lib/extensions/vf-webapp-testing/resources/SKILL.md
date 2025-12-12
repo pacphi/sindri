@@ -16,7 +16,7 @@ To test local web applications, write native Python Playwright scripts.
 
 ## Decision Tree: Choosing Your Approach
 
-```
+```text
 User task → Is it static HTML?
     ├─ Yes → Read HTML file directly to identify selectors
     │         ├─ Success → Write Playwright script using selectors

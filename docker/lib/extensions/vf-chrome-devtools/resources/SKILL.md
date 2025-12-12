@@ -33,7 +33,7 @@ Use this skill when you need to:
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────┐
 │   agentic-workstation container     │
 │  (Claude Code + Chrome DevTools)    │
@@ -64,7 +64,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Use Chrome DevTools to record a performance trace of http://localhost:3001
 ```
 
@@ -81,7 +81,7 @@ Returns:
 
 Example:
 
-```
+```text
 Use Chrome DevTools to analyze network requests on VisionFlow
 ```
 
@@ -96,7 +96,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Show console errors from VisionFlow application
 ```
 
@@ -111,7 +111,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Use Chrome DevTools to find all buttons with class "submit-btn"
 ```
 
@@ -125,7 +125,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Get computed styles for the header navigation
 ```
 
@@ -140,7 +140,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Use Chrome DevTools to execute: document.title
 ```
 
@@ -156,7 +156,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Take a full-page screenshot of VisionFlow
 ```
 
@@ -170,7 +170,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Start coverage analysis for VisionFlow
 ```
 
@@ -186,7 +186,7 @@ Returns:
 
 Example:
 
-```
+```text
 Stop coverage analysis and show unused CSS
 ```
 
@@ -194,7 +194,7 @@ Stop coverage analysis and show unused CSS
 
 ### Example 1: Debug VisionFlow Performance
 
-```
+```text
 Use Chrome DevTools to:
 1. Navigate to http://localhost:3001
 2. Start a performance trace for 10 seconds
@@ -204,7 +204,7 @@ Use Chrome DevTools to:
 
 ### Example 2: Diagnose Network Issues
 
-```
+```text
 Use Chrome DevTools to:
 1. Load VisionFlow application
 2. Get all network requests
@@ -214,7 +214,7 @@ Use Chrome DevTools to:
 
 ### Example 3: Inspect Console Errors
 
-```
+```text
 Use Chrome DevTools to:
 1. Navigate to VisionFlow
 2. Get all console errors
@@ -223,7 +223,7 @@ Use Chrome DevTools to:
 
 ### Example 4: Verify DOM Structure
 
-```
+```text
 Use Chrome DevTools to:
 1. Query for all <canvas> elements
 2. Get their computed styles
@@ -232,7 +232,7 @@ Use Chrome DevTools to:
 
 ### Example 5: Analyze Code Coverage
 
-```
+```text
 Use Chrome DevTools to:
 1. Start coverage analysis
 2. Navigate through VisionFlow UI
@@ -253,7 +253,7 @@ Use Chrome DevTools to:
 
 **Scenario 1: WebXR Not Initializing**
 
-```
+```text
 Use Chrome DevTools to:
 - Check console for WebXR errors
 - Verify canvas element exists
@@ -262,7 +262,7 @@ Use Chrome DevTools to:
 
 **Scenario 2: Slow Page Load**
 
-```
+```text
 Use Chrome DevTools to:
 - Record performance trace
 - Identify render-blocking resources
@@ -271,7 +271,7 @@ Use Chrome DevTools to:
 
 **Scenario 3: API Request Failures**
 
-```
+```text
 Use Chrome DevTools to:
 - Get network requests
 - Filter for failed requests (status >= 400)

@@ -32,21 +32,21 @@ extension-manager status nodejs
 
 Pre-configured bundles for common workflows. Profiles make it easy to set up complete development environments.
 
-| Profile                     | Extensions                                                                                                                                                           | Use Case                     |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **minimal**                 | nodejs, python                                                                                                                                                       | Lightweight scripting        |
-| **fullstack**               | nodejs, python, docker, nodejs-devtools                                                                                                                              | Web development              |
-| **ai-dev**                  | nodejs, python, ai-toolkit, openskills, monitoring                                                                                                                   | AI/ML development            |
-| **anthropic-dev**           | agent-manager, ai-toolkit, claude-code-mux, claudeup, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, tmux-workspace | Anthropic/Claude development |
-| **systems**                 | rust, golang, docker, infra-tools                                                                                                                                    | Systems programming          |
-| **enterprise**              | All languages + infrastructure                                                                                                                                       | Complete environment         |
-| **data-science**            | python, monitoring                                                                                                                                                   | Data analysis                |
-| **devops**                  | docker, infra-tools, cloud-tools, monitoring                                                                                                                         | Infrastructure               |
-| **mobile**                  | nodejs                                                                                                                                                               | Mobile development (WIP)     |
-| **visionflow-core**         | Document processing & automation (9 extensions)                                                                                                                      | Document workflows           |
-| **visionflow-data-scientist** | AI research & ML tools (7 extensions)                                                                                                                              | Data science & research      |
-| **visionflow-creative**     | 3D modeling & creative tools (5 extensions)                                                                                                                          | Creative development         |
-| **visionflow-full**         | All VisionFlow extensions (34 total)                                                                                                                                 | Complete VisionFlow suite    |
+| Profile                       | Extensions                                                                                                                                           | Use Case                     |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **minimal**                   | nodejs, python                                                                                                                                       | Lightweight scripting        |
+| **fullstack**                 | nodejs, python, docker, nodejs-devtools                                                                                                              | Web development              |
+| **ai-dev**                    | nodejs, python, ai-toolkit, openskills, monitoring                                                                                                   | AI/ML development            |
+| **anthropic-dev**             | agent-manager, ai-toolkit, claude-code-mux, claudeup, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, tmux-workspace | Anthropic/Claude development |
+| **systems**                   | rust, golang, docker, infra-tools                                                                                                                    | Systems programming          |
+| **enterprise**                | All languages + infrastructure                                                                                                                       | Complete environment         |
+| **data-science**              | python, monitoring                                                                                                                                   | Data analysis                |
+| **devops**                    | docker, infra-tools, cloud-tools, monitoring                                                                                                         | Infrastructure               |
+| **mobile**                    | nodejs                                                                                                                                               | Mobile development (WIP)     |
+| **visionflow-core**           | Document processing & automation (9 extensions)                                                                                                      | Document workflows           |
+| **visionflow-data-scientist** | AI research & ML tools (7 extensions)                                                                                                                | Data science & research      |
+| **visionflow-creative**       | 3D modeling & creative tools (5 extensions)                                                                                                          | Creative development         |
+| **visionflow-full**           | All VisionFlow extensions (34 total)                                                                                                                 | Complete VisionFlow suite    |
 
 ### Using Profiles
 
@@ -138,62 +138,62 @@ See [VisionFlow README](extensions/vision-flow/README.md) for implementation det
 
 ### VisionFlow AI Tools
 
-| Extension              | Purpose                                  | Docs                                                                      |
-| ---------------------- | ---------------------------------------- | ------------------------------------------------------------------------- |
-| vf-perplexity          | Perplexity AI real-time web research    | [VF-PERPLEXITY.md](extensions/vision-flow/VF-PERPLEXITY.md)               |
-| vf-web-summary         | URL/YouTube summarization MCP            | [VF-WEB-SUMMARY.md](extensions/vision-flow/VF-WEB-SUMMARY.md)             |
-| vf-deepseek-reasoning  | Deepseek reasoning MCP                   | [VF-DEEPSEEK-REASONING.md](extensions/vision-flow/VF-DEEPSEEK-REASONING.md) |
-| vf-comfyui             | ComfyUI image generation (GPU required)  | [VF-COMFYUI.md](extensions/vision-flow/VF-COMFYUI.md)                     |
-| vf-pytorch-ml          | PyTorch deep learning framework          | [VF-PYTORCH-ML.md](extensions/vision-flow/VF-PYTORCH-ML.md)               |
-| vf-ontology-enrich     | AI-powered ontology enrichment           | [VF-ONTOLOGY-ENRICH.md](extensions/vision-flow/VF-ONTOLOGY-ENRICH.md)     |
-| vf-import-to-ontology  | Document to ontology import              | [VF-IMPORT-TO-ONTOLOGY.md](extensions/vision-flow/VF-IMPORT-TO-ONTOLOGY.md) |
-| vf-gemini-flow         | Gemini multi-agent orchestration         | [VF-GEMINI-FLOW.md](extensions/vision-flow/VF-GEMINI-FLOW.md)             |
-| vf-zai-service         | Cost-effective Claude API wrapper        | [VF-ZAI-SERVICE.md](extensions/vision-flow/VF-ZAI-SERVICE.md)             |
+| Extension             | Purpose                                 | Docs                                                                        |
+| --------------------- | --------------------------------------- | --------------------------------------------------------------------------- |
+| vf-perplexity         | Perplexity AI real-time web research    | [VF-PERPLEXITY.md](extensions/vision-flow/VF-PERPLEXITY.md)                 |
+| vf-web-summary        | URL/YouTube summarization MCP           | [VF-WEB-SUMMARY.md](extensions/vision-flow/VF-WEB-SUMMARY.md)               |
+| vf-deepseek-reasoning | Deepseek reasoning MCP                  | [VF-DEEPSEEK-REASONING.md](extensions/vision-flow/VF-DEEPSEEK-REASONING.md) |
+| vf-comfyui            | ComfyUI image generation (GPU required) | [VF-COMFYUI.md](extensions/vision-flow/VF-COMFYUI.md)                       |
+| vf-pytorch-ml         | PyTorch deep learning framework         | [VF-PYTORCH-ML.md](extensions/vision-flow/VF-PYTORCH-ML.md)                 |
+| vf-ontology-enrich    | AI-powered ontology enrichment          | [VF-ONTOLOGY-ENRICH.md](extensions/vision-flow/VF-ONTOLOGY-ENRICH.md)       |
+| vf-import-to-ontology | Document to ontology import             | [VF-IMPORT-TO-ONTOLOGY.md](extensions/vision-flow/VF-IMPORT-TO-ONTOLOGY.md) |
+| vf-gemini-flow        | Gemini multi-agent orchestration        | [VF-GEMINI-FLOW.md](extensions/vision-flow/VF-GEMINI-FLOW.md)               |
+| vf-zai-service        | Cost-effective Claude API wrapper       | [VF-ZAI-SERVICE.md](extensions/vision-flow/VF-ZAI-SERVICE.md)               |
 
 ### VisionFlow Development Tools
 
-| Extension           | Purpose                               | Docs                                                                  |
-| ------------------- | ------------------------------------- | --------------------------------------------------------------------- |
-| vf-playwright-mcp   | Playwright browser automation MCP     | [VF-PLAYWRIGHT-MCP.md](extensions/vision-flow/VF-PLAYWRIGHT-MCP.md)   |
-| vf-chrome-devtools  | Chrome DevTools Protocol MCP          | [VF-CHROME-DEVTOOLS.md](extensions/vision-flow/VF-CHROME-DEVTOOLS.md) |
-| vf-jupyter-notebooks| Jupyter notebook execution MCP        | [VF-JUPYTER-NOTEBOOKS.md](extensions/vision-flow/VF-JUPYTER-NOTEBOOKS.md) |
-| vf-webapp-testing   | Web app testing framework             | [VF-WEBAPP-TESTING.md](extensions/vision-flow/VF-WEBAPP-TESTING.md)   |
-| vf-kicad            | KiCad PCB design MCP                  | [VF-KICAD.md](extensions/vision-flow/VF-KICAD.md)                     |
-| vf-ngspice          | NGSpice circuit simulation MCP        | [VF-NGSPICE.md](extensions/vision-flow/VF-NGSPICE.md)                 |
-| vf-mcp-builder      | MCP server scaffolding tool           | [VF-MCP-BUILDER.md](extensions/vision-flow/VF-MCP-BUILDER.md)         |
-| vf-skill-creator    | Claude Code skill scaffolding tool    | [VF-SKILL-CREATOR.md](extensions/vision-flow/VF-SKILL-CREATOR.md)     |
+| Extension            | Purpose                            | Docs                                                                      |
+| -------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| vf-playwright-mcp    | Playwright browser automation MCP  | [VF-PLAYWRIGHT-MCP.md](extensions/vision-flow/VF-PLAYWRIGHT-MCP.md)       |
+| vf-chrome-devtools   | Chrome DevTools Protocol MCP       | [VF-CHROME-DEVTOOLS.md](extensions/vision-flow/VF-CHROME-DEVTOOLS.md)     |
+| vf-jupyter-notebooks | Jupyter notebook execution MCP     | [VF-JUPYTER-NOTEBOOKS.md](extensions/vision-flow/VF-JUPYTER-NOTEBOOKS.md) |
+| vf-webapp-testing    | Web app testing framework          | [VF-WEBAPP-TESTING.md](extensions/vision-flow/VF-WEBAPP-TESTING.md)       |
+| vf-kicad             | KiCad PCB design MCP               | [VF-KICAD.md](extensions/vision-flow/VF-KICAD.md)                         |
+| vf-ngspice           | NGSpice circuit simulation MCP     | [VF-NGSPICE.md](extensions/vision-flow/VF-NGSPICE.md)                     |
+| vf-mcp-builder       | MCP server scaffolding tool        | [VF-MCP-BUILDER.md](extensions/vision-flow/VF-MCP-BUILDER.md)             |
+| vf-skill-creator     | Claude Code skill scaffolding tool | [VF-SKILL-CREATOR.md](extensions/vision-flow/VF-SKILL-CREATOR.md)         |
 
 ### VisionFlow Desktop & Creative
 
-| Extension          | Purpose                                  | Docs                                                              |
-| ------------------ | ---------------------------------------- | ----------------------------------------------------------------- |
-| vf-blender         | Blender 3D modeling MCP                  | [VF-BLENDER.md](extensions/vision-flow/VF-BLENDER.md)             |
-| vf-qgis            | QGIS GIS operations MCP                  | [VF-QGIS.md](extensions/vision-flow/VF-QGIS.md)                   |
-| vf-pbr-rendering   | PBR material generation (GPU required)   | [VF-PBR-RENDERING.md](extensions/vision-flow/VF-PBR-RENDERING.md) |
-| vf-canvas-design   | Design system framework                  | [VF-CANVAS-DESIGN.md](extensions/vision-flow/VF-CANVAS-DESIGN.md) |
-| vf-vnc-desktop     | VNC desktop server                       | [VF-VNC-DESKTOP.md](extensions/vision-flow/VF-VNC-DESKTOP.md)     |
+| Extension        | Purpose                                | Docs                                                              |
+| ---------------- | -------------------------------------- | ----------------------------------------------------------------- |
+| vf-blender       | Blender 3D modeling MCP                | [VF-BLENDER.md](extensions/vision-flow/VF-BLENDER.md)             |
+| vf-qgis          | QGIS GIS operations MCP                | [VF-QGIS.md](extensions/vision-flow/VF-QGIS.md)                   |
+| vf-pbr-rendering | PBR material generation (GPU required) | [VF-PBR-RENDERING.md](extensions/vision-flow/VF-PBR-RENDERING.md) |
+| vf-canvas-design | Design system framework                | [VF-CANVAS-DESIGN.md](extensions/vision-flow/VF-CANVAS-DESIGN.md) |
+| vf-vnc-desktop   | VNC desktop server                     | [VF-VNC-DESKTOP.md](extensions/vision-flow/VF-VNC-DESKTOP.md)     |
 
 ### VisionFlow Utilities
 
-| Extension              | Purpose                          | Docs                                                                      |
-| ---------------------- | -------------------------------- | ------------------------------------------------------------------------- |
-| vf-imagemagick         | ImageMagick processing MCP       | [VF-IMAGEMAGICK.md](extensions/vision-flow/VF-IMAGEMAGICK.md)             |
-| vf-ffmpeg-processing   | FFmpeg media processing          | [VF-FFMPEG-PROCESSING.md](extensions/vision-flow/VF-FFMPEG-PROCESSING.md) |
-| vf-latex-documents     | LaTeX document system            | [VF-LATEX-DOCUMENTS.md](extensions/vision-flow/VF-LATEX-DOCUMENTS.md)     |
-| vf-pdf                 | PDF document generation MCP      | [VF-PDF.md](extensions/vision-flow/VF-PDF.md)                             |
-| vf-docx                | Word document generation MCP     | [VF-DOCX.md](extensions/vision-flow/VF-DOCX.md)                           |
-| vf-pptx                | PowerPoint generation MCP        | [VF-PPTX.md](extensions/vision-flow/VF-PPTX.md)                           |
-| vf-xlsx                | Excel spreadsheet generation MCP | [VF-XLSX.md](extensions/vision-flow/VF-XLSX.md)                           |
-| vf-wardley-maps        | Wardley mapping MCP              | [VF-WARDLEY-MAPS.md](extensions/vision-flow/VF-WARDLEY-MAPS.md)           |
-| vf-slack-gif-creator   | Slack GIF creation tool          | [VF-SLACK-GIF-CREATOR.md](extensions/vision-flow/VF-SLACK-GIF-CREATOR.md) |
-| vf-algorithmic-art     | Generative art tools             | [VF-ALGORITHMIC-ART.md](extensions/vision-flow/VF-ALGORITHMIC-ART.md)     |
+| Extension            | Purpose                          | Docs                                                                      |
+| -------------------- | -------------------------------- | ------------------------------------------------------------------------- |
+| vf-imagemagick       | ImageMagick processing MCP       | [VF-IMAGEMAGICK.md](extensions/vision-flow/VF-IMAGEMAGICK.md)             |
+| vf-ffmpeg-processing | FFmpeg media processing          | [VF-FFMPEG-PROCESSING.md](extensions/vision-flow/VF-FFMPEG-PROCESSING.md) |
+| vf-latex-documents   | LaTeX document system            | [VF-LATEX-DOCUMENTS.md](extensions/vision-flow/VF-LATEX-DOCUMENTS.md)     |
+| vf-pdf               | PDF document generation MCP      | [VF-PDF.md](extensions/vision-flow/VF-PDF.md)                             |
+| vf-docx              | Word document generation MCP     | [VF-DOCX.md](extensions/vision-flow/VF-DOCX.md)                           |
+| vf-pptx              | PowerPoint generation MCP        | [VF-PPTX.md](extensions/vision-flow/VF-PPTX.md)                           |
+| vf-xlsx              | Excel spreadsheet generation MCP | [VF-XLSX.md](extensions/vision-flow/VF-XLSX.md)                           |
+| vf-wardley-maps      | Wardley mapping MCP              | [VF-WARDLEY-MAPS.md](extensions/vision-flow/VF-WARDLEY-MAPS.md)           |
+| vf-slack-gif-creator | Slack GIF creation tool          | [VF-SLACK-GIF-CREATOR.md](extensions/vision-flow/VF-SLACK-GIF-CREATOR.md) |
+| vf-algorithmic-art   | Generative art tools             | [VF-ALGORITHMIC-ART.md](extensions/vision-flow/VF-ALGORITHMIC-ART.md)     |
 
 ### VisionFlow Infrastructure
 
-| Extension          | Purpose                       | Docs                                                              |
-| ------------------ | ----------------------------- | ----------------------------------------------------------------- |
-| vf-docker-manager  | Docker container management   | [VF-DOCKER-MANAGER.md](extensions/vision-flow/VF-DOCKER-MANAGER.md) |
-| vf-management-api  | API management and monitoring | [VF-MANAGEMENT-API.md](extensions/vision-flow/VF-MANAGEMENT-API.md) |
+| Extension         | Purpose                       | Docs                                                                |
+| ----------------- | ----------------------------- | ------------------------------------------------------------------- |
+| vf-docker-manager | Docker container management   | [VF-DOCKER-MANAGER.md](extensions/vision-flow/VF-DOCKER-MANAGER.md) |
+| vf-management-api | API management and monitoring | [VF-MANAGEMENT-API.md](extensions/vision-flow/VF-MANAGEMENT-API.md) |
 
 ## Extension Features
 

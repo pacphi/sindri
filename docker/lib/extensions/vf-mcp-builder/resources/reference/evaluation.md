@@ -397,7 +397,7 @@ Remember to parallelize solving tasks to avoid running out of context, then accu
 
 ---
 
-# Running Evaluations
+## Running Evaluations
 
 After creating your evaluation file, you can use the provided evaluation harness to test your MCP server.
 
@@ -498,7 +498,7 @@ python scripts/evaluation.py \
 
 ## Command-Line Options
 
-```
+```text
 usage: evaluation.py [-h] [-t {stdio,sse,http}] [-m MODEL] [-c COMMAND]
                      [-a ARGS [ARGS ...]] [-e ENV [ENV ...]] [-u URL]
                      [-H HEADERS [HEADERS ...]] [-o OUTPUT]

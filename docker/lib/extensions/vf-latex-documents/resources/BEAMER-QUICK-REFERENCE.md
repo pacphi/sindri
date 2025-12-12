@@ -251,7 +251,7 @@ pdflatex presentation.tex
 
 ## File Locations
 
-```
+```text
 latex-documents/
 ├── templates/beamer/          # Templates
 │   ├── amurmaple-basic.tex

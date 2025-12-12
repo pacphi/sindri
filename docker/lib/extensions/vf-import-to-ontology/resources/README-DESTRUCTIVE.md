@@ -58,7 +58,7 @@ node ~/.claude/skills/import-to-ontology/destructive-import.js \
 
 Large files are processed one at a time or in small batches (default: 5):
 
-```
+```text
 📦 BATCH 1: Processing 5 files
 ────────────────────────────────
 
@@ -168,7 +168,7 @@ node destructive-import.js /sources/ /target/
 
 Errors don't stop the batch:
 
-```
+```text
 ❌ Error processing file3.md: Target not found
    ⏭️  Continuing with next file...
 ```
@@ -179,14 +179,14 @@ All errors logged to progress file.
 
 Missing assets are detected and warned:
 
-```
+```text
 ⚠️  Asset not found: diagram.png
    Kept original path as fallback
 ```
 
 ## Example Output
 
-```
+```text
 🚀 Starting DESTRUCTIVE import...
 
    Source: /home/user/sources
@@ -244,7 +244,7 @@ Duration: 47 minutes
 
 ### Issue: Index not found
 
-```bash
+```text
 Error: Index not found: .cache/ontology-index.json
 Run: node scripts/generate-index.js
 ```
@@ -353,7 +353,7 @@ ls -lh assets/ | wc -l
 
 ## Files
 
-```
+```text
 ~/.claude/skills/import-to-ontology/
 ├── SKILL.md                  # Full documentation
 ├── README.md                 # Quick start
@@ -366,5 +366,3 @@ ls -lh assets/ | wc -l
 ## See Also
 
 - [Main Skill Documentation](./SKILL.md)
--
--

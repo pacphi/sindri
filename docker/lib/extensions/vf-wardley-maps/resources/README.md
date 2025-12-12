@@ -344,21 +344,24 @@ Beyond visualization, the skill provides:
 "We're building an AI chatbot platform using GPT-4,
 with custom training on industry data, deployed on AWS"
 
-````
+```bash
+
 → Map shows GPT-4 as commodity, custom training as differentiator
 
 ### Digital Transformation```
+
 "Modernizing our legacy mainframe systems with cloud-native
 microservices and API-first architecture"```
 → Map reveals evolution gaps and transformation pathway
 
 ### Competitive Analysis
-````
+
+```
 
 "Competitors use standard CRM, we've built proprietary
 customer intelligence with predictive analytics"
 
-```
+```text
 → Map highlights competitive advantage in custom analytics
 
 ## 🛠️ Customization

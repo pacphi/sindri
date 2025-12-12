@@ -154,7 +154,7 @@
 
 ## Directory Structure
 
-```
+```text
 import-to-ontology/
 ├── SKILL.md                              (UPDATED - +200 lines)
 ├── README.md                             (EXISTING)

@@ -170,7 +170,7 @@ Create `.import-ontology.config.json` in project root:
 
 ## Output Example
 
-```
+```text
 📋 Analyzing research-notes.md...
 
 📊 DRY RUN REPORT
@@ -225,7 +225,7 @@ const enriched = await webSummarySkill({
 
 // Insert enriched content
 const formatted = `
-- **Source**: 
+- **Source**:
   - ${enriched.summary}
   - **Key Points**: ${enriched.keyPoints.join(", ")}
   - **Related**: ${enriched.semanticLinks.join(", ")}
@@ -250,7 +250,7 @@ const formatted = `
 
 ## Files
 
-```
+```text
 ~/.claude/skills/import-to-ontology/
 ├── SKILL.md                 # Full skill documentation
 ├── README.md                # This file

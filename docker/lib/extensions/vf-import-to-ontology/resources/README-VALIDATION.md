@@ -4,7 +4,7 @@ This document describes the integration between the `ontology-import` skill and 
 
 ## Architecture
 
-```
+```yaml
 ontology-import (Node.js)
     ↓
 validation_bridge.js (Node.js)
@@ -143,7 +143,7 @@ Result: ❌ Failed (post-validation-failed)
 
 ### Python Output (stdout)
 
-```
+```text
 ================================================================================
 OWL2 VALIDATION REPORT
 ================================================================================
@@ -192,7 +192,7 @@ Line 35: Property should use camelCase: ai:HasAlgorithm
 
 #### 1. Validator Not Found
 
-```
+```text
 Error: Validator not found at: /path/to/owl2_validator.py
 ```
 
@@ -204,7 +204,7 @@ ls /home/devuser/workspace/logseq/skills/ontology-augmenter/src/owl2_validator.p
 
 #### 2. Python Not Available
 
-```
+```text
 Error: Failed to spawn validator: spawn python3 ENOENT
 ```
 
@@ -217,7 +217,7 @@ which python3
 
 #### 3. Validation Parsing Failed
 
-```
+```text
 Error: Validation parsing failed: Cannot read property 'length' of undefined
 ```
 

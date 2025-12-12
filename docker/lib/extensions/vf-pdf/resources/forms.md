@@ -9,7 +9,7 @@ If the PDF has fillable form fields:
 
 - Run this script from this file's directory: `python scripts/extract_form_field_info.py <input.pdf> <field_info.json>`. It will create a JSON file with a list of fields in this format:
 
-```
+```bash
 [
   {
     "field_id": (unique ID for the field),
@@ -59,7 +59,7 @@ If the PDF has fillable form fields:
   Then analyze the images to determine the purpose of each form field (make sure to convert the bounding box PDF coordinates to image coordinates).
 - Create a `field_values.json` file in this format with the values to be entered for each field:
 
-```
+```bash
 [
   {
     "field_id": "last_name", // Must match the field_id from `extract_form_field_info.py`
@@ -101,7 +101,7 @@ These are some examples of form structures that you might see:
 
 _Label inside box_
 
-```
+```text
 ┌────────────────────────┐
 │ Name:                  │
 └────────────────────────┘
@@ -111,7 +111,7 @@ The input area should be to the right of the "Name" label and extend to the edge
 
 _Label before line_
 
-```
+```text
 Email: _______________________
 ```
 
@@ -119,7 +119,7 @@ The input area should be above the line and include its entire width.
 
 _Label under line_
 
-```
+```text
 _________________________
 Name
 ```
@@ -128,7 +128,7 @@ The input area should be above the line and include the entire width of the line
 
 _Label above line_
 
-```
+```text
 Please enter any special requests:
 ________________________________________________
 ```
@@ -137,7 +137,7 @@ The input area should extend from the bottom of the label to the line, and shoul
 
 _Checkboxes_
 
-```
+```text
 Are you a US citizen? Yes □  No □
 ```
 
@@ -151,7 +151,7 @@ For checkboxes:
 
 - Create a file named `fields.json` with information for the form fields and bounding boxes in this format:
 
-```
+```json
 {
   "pages": [
     {

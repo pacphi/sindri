@@ -12,6 +12,7 @@ Filling a PDF form involves these steps:
 3. Validate mapping (run validate_fields.py)
 4. Fill the form (run fill_form.py)
 5. Verify output (run verify_output.py)
+
 ```
 
 ## Conditional Workflows

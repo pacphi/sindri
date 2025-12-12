@@ -68,17 +68,17 @@ Unless otherwise stated by the user or existing template
   - "Source: Bloomberg Terminal, 8/15/2025, AAPL US Equity"
   - "Source: FactSet, 8/20/2025, Consensus Estimates Screen"
 
-# XLSX creation, editing, and analysis
+## XLSX creation, editing, and analysis
 
-## Overview
+### Overview
 
 A user may ask you to create, edit, or analyze the contents of an .xlsx file. You have different tools and workflows available for different tasks.
 
-## Important Requirements
+### Important Requirements
 
 **LibreOffice Required for Formula Recalculation**: You can assume LibreOffice is installed for recalculating formula values using the `recalc.py` script. The script automatically configures LibreOffice on first run
 
-## Reading and analyzing data
+### Reading and analyzing data
 
 ### Data analysis with pandas
 
@@ -147,6 +147,7 @@ This applies to ALL calculations - totals, percentages, ratios, differences, etc
    ```bash
    python recalc.py output.xlsx
    ```
+
 6. **Verify and fix any errors**:
    - The script returns JSON with error details
    - If `status` is `errors_found`, check `error_summary` for specific error types and locations

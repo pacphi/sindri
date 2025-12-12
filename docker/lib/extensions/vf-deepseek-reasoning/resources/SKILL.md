@@ -29,7 +29,7 @@ This skill provides:
 
 ## Architecture
 
-```
+```text
 Claude Code (devuser)
     ↓ MCP Protocol
 DeepSeek MCP Server

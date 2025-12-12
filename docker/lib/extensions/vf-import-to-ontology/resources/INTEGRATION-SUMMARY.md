@@ -151,7 +151,7 @@ Comprehensive integration tests:
 
 ### Layer 2 Skill Architecture
 
-```
+```bash
 ontology-import (Layer 2)
     ↓
     imports validation_bridge.js
@@ -385,7 +385,7 @@ node test/test-validation-integration.js
 
 ## File Structure
 
-```
+```text
 import-to-ontology/
 ├── SKILL.md                      # Updated with validation docs
 ├── README-VALIDATION.md          # New validation guide (NEW)

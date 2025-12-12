@@ -6,7 +6,7 @@ Inter-container Docker management skill for controlling VisionFlow from agentic-
 
 ### From Claude Code (inside agentic-workstation)
 
-```
+```text
 Use Docker Manager to build and start VisionFlow in dev mode
 ```
 
@@ -112,7 +112,7 @@ visionflow_ctl.sh discover
 
 **Scenario 1: Development Workflow**
 
-```
+```text
 I've updated the Rust backend code. Please:
 1. Use Docker Manager to rebuild VisionFlow with no cache
 2. Restart the container in dev mode
@@ -122,13 +122,13 @@ I've updated the Rust backend code. Please:
 
 **Scenario 2: Quick Test**
 
-```
+```text
 Use Docker Manager to execute "npm run test:unit" in VisionFlow and show me the results
 ```
 
 **Scenario 3: Debug Container**
 
-```
+```text
 VisionFlow isn't responding. Please use Docker Manager to:
 - Check container status and health
 - Show the last 100 log lines
@@ -137,7 +137,7 @@ VisionFlow isn't responding. Please use Docker Manager to:
 
 **Scenario 4: Full Deployment**
 
-```
+```text
 Deploy the latest changes to VisionFlow:
 1. Stop the current container
 2. Build with force rebuild
@@ -149,7 +149,7 @@ Deploy the latest changes to VisionFlow:
 
 ### File Structure
 
-```
+```text
 docker-manager/
 ├── SKILL.md                 # Skill documentation (for Claude)
 ├── README.md               # This file (for developers)
@@ -174,7 +174,7 @@ docker-manager/
 
 ### Authentication Flow
 
-```
+```yaml
 Claude Code Request
        ↓
 docker_manager.py (Python)

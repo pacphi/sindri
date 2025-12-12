@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/bin/bash
 # VisionFlow Control Wrapper
 # Provides convenient shell interface to docker_manager.py
 
@@ -14,8 +14,6 @@ NC='\033[0m' # No Color
 # Paths
 SCRIPT_DIR="${0:A:h}"
 DOCKER_MANAGER="$SCRIPT_DIR/docker_manager.py"
-PROJECT_ROOT="/home/devuser/workspace/project"
-LAUNCH_SCRIPT="$PROJECT_ROOT/scripts/launch.sh"
 
 # Logging
 log() {

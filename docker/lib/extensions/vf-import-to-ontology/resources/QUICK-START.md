@@ -159,7 +159,7 @@ The validation is automatic when using `import-engine.js`:
 
 ### Validation Fails
 
-```
+```text
 ❌ Post-move validation failed
    Errors: Unbalanced parentheses, Invalid namespace prefix: xyz
 
@@ -172,7 +172,7 @@ Result: ❌ Failed (post-validation-failed)
 
 ### Validator Not Found
 
-```
+```text
 Error: Validator not found at: /path/to/owl2_validator.py
 
 Fix: Check VALIDATOR_PATH in validation_bridge.js
@@ -180,7 +180,7 @@ Fix: Check VALIDATOR_PATH in validation_bridge.js
 
 ### Python Not Available
 
-```
+```text
 Error: spawn python3 ENOENT
 
 Fix: Install Python 3

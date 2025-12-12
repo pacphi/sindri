@@ -76,40 +76,40 @@ The command scores prompts based on:
 
 /ms "Standardize error handling across all microservices in monorepo"
 
-# → /hive-mind:hive-mind spawn + adaptive queen
+→ `/hive-mind:hive-mind spawn` + adaptive queen
 
 ### Medium-Complex → Swarm
 
 /ms "Build JWT auth API with refresh tokens and tests"
 
-# → /claude-flow-swarm + testing + review
+→ `/claude-flow-swarm` + testing + review
 
 ### Simple → Enhanced Claude
 
 /ms "Fix TypeScript error in user.service.ts line 45"
 
-# → Direct Claude processing with think level
+→ Direct Claude processing with think level
 
 ## Advanced Usage
 
-# Override automatic routing
+### Override automatic routing
 
 /ms "simple task" --force-hive-mind
 /ms "complex task" --force-claude
 
-# Explicit thinking levels (Claude commands)
+### Explicit thinking levels (Claude commands)
 
 /ms "design architecture" --ultrathink
-/ms "refactor code" --think-harder  
+/ms "refactor code" --think-harder
 /ms "simple fix" --think
 
-# Additional tools
+### Additional tools
 
 /ms "research React patterns" --context7
 /ms "analyze complex bug" --sequential-thinking
 /ms "build with new framework" --context7 --sequential-thinking
 
-# Utility options
+### Utility options
 
 /ms "any task" --dry-run # Show routing decision only
 /ms "any task" --explain-routing # Show why route was chosen

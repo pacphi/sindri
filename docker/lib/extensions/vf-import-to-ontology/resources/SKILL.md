@@ -505,7 +505,7 @@ async function enrichStubsWithWebContent(stubs: DetectedStub[]): Promise<Enriche
 function formatEnrichedContent(summary: WebSummarySummary, stub: DetectedStub): string {
   // Format as Logseq-compatible content
   return `
-- **Source**: 
+- **Source**:
   - ${summary.summary}
   - **Key Points**:
 ${summary.keyPoints.map((pt) => `    - ${pt}`).join("\n")}
@@ -531,7 +531,7 @@ async function executeSkill(skillName: string, params: any): Promise<any> {
 
 ## Content Block Parser
 
-````typescript
+```typescript
 interface ParsedContent {
   blocks: ContentBlock[];
   metadata: {
@@ -675,7 +675,7 @@ function determineAssertionType(text: string): Assertion["type"] {
   if (text.includes("for example") || text.includes("such as")) return "example";
   return "claim";
 }
-````
+```
 
 ## Dry Run Mode
 

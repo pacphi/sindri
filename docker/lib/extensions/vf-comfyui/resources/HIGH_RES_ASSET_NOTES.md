@@ -111,7 +111,7 @@ Compatible with:
 
 ### Recommended Workflow for Maximum Quality
 
-```
+```text
 1. FLUX2 @ 1536x1024 landscape (or 1024x1536 portrait)
    - steps: 32
    - guidance: 4
@@ -135,7 +135,7 @@ Compatible with:
 
 ### Files Generated
 
-```
+```text
 sam3d_inference_X/
 ├── gaussian.ply      # 3DGS splats (main Gaussian output)
 ├── mesh.glb          # Textured mesh with UV baked texture

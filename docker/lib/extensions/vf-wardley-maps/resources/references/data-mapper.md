@@ -116,7 +116,7 @@ def performance_to_evolution(perf_data):
 
 ### User Journey → Value Chain
 
-````python
+```python
 def journey_to_value_chain(journey_data):
     components = []
 
@@ -139,7 +139,8 @@ def journey_to_value_chain(journey_data):
             'evolution': evolution
         })
 
-    return components```
+    return components
+```
 
 ## Key Data Patterns
 
@@ -168,4 +169,3 @@ def journey_to_value_chain(journey_data):
 - Full automation
 - Universal standards
 - Utility pricing
-````

@@ -140,7 +140,7 @@ COMFYUI_MODELS_UPSCALE=/home/devuser/comfyui/models/upscale_models
 
 ## Architecture
 
-```
+```text
 Management API (Port 9090)
 ├── Fastify Server
 │   ├── Authentication Middleware (X-API-Key)

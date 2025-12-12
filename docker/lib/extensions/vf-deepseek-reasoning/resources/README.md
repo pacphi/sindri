@@ -104,7 +104,7 @@ docker exec -i agentic-workstation \
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │ Claude Code (devuser)                           │
 │ - Detects complex query needing reasoning       │
@@ -135,7 +135,7 @@ docker exec -i agentic-workstation \
 
 ## Files
 
-```
+```text
 deepseek-reasoning/
 ├── SKILL.md                # Skill documentation (read by Claude Code)
 ├── README.md               # Installation and usage
@@ -164,7 +164,7 @@ deepseek-reasoning/
 
 **Example:**
 
-```
+```text
 User: "Build a distributed lock manager"
   ↓
 Claude: [Detects complexity] → deepseek_plan()

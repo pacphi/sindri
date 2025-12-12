@@ -253,7 +253,7 @@ When you need to create a presentation that follows an existing template's desig
    - Select one option representing the **best** layout for each content section.
    - Save `outline.md` with content AND template mapping that leverages available designs
    - Example template mapping:
-     ```
+     ```python
      # Template slides to use (0-based indexing)
      # WARNING: Verify indices are within range! Template with 73 slides has indices 0-72
      # Mapping: slide numbers from outline -> template slide indices
@@ -386,25 +386,26 @@ When you need to create a presentation that follows an existing template's desig
    ]
    ```
 
-   **Shapes not listed in the replacement JSON are automatically cleared**:
+**Shapes not listed in the replacement JSON are automatically cleared**:
 
-   ```json
-   {
-     "slide-0": {
-       "shape-0": {
-         "paragraphs": [...] // This shape gets new text
-       }
-       // shape-1 and shape-2 from inventory will be cleared automatically
-     }
-   }
-   ```
+```json
+{
+  "slide-0": {
+    "shape-0": {
+      "paragraphs": [...] // This shape gets new text
+    }
+    // shape-1 and shape-2 from inventory will be cleared automatically
+  }
+}
+```
 
-   **Common formatting patterns for presentations**:
-   - Title slides: Bold text, sometimes centered
-   - Section headers within slides: Bold text
-   - Bullet lists: Each item needs `"bullet": true, "level": 0`
-   - Body text: Usually no special properties needed
-   - Quotes: May have special alignment or font properties
+**Common formatting patterns for presentations**:
+
+- Title slides: Bold text, sometimes centered
+- Section headers within slides: Bold text
+- Bullet lists: Each item needs `"bullet": true, "level": 0`
+- Body text: Usually no special properties needed
+- Quotes: May have special alignment or font properties
 
 7. **Apply replacements using the `replace.py` script**
 
@@ -423,13 +424,13 @@ When you need to create a presentation that follows an existing template's desig
 
    Example validation errors:
 
-   ```
+   ```text
    ERROR: Invalid shapes in replacement JSON:
      - Shape 'shape-99' not found on 'slide-0'. Available shapes: shape-0, shape-1, shape-4
      - Slide 'slide-999' not found in inventory
    ```
 
-   ```
+   ```text
    ERROR: Replacement text made overflow worse in these shapes:
      - slide-0/shape-2: overflow worsened by 1.25" (was 0.00", now 1.25")
    ```

@@ -38,7 +38,7 @@ python -m ontology_enrich.fix_links \
 
 **Layer 1 Skill**: Imports ontology-core (Layer 0) for all parsing/modification operations.
 
-```
+```text
 ontology-enrich/
 ├── src/
 │   ├── enrichment_workflow.py  # Main orchestration

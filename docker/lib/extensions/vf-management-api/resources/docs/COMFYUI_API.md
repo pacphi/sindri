@@ -30,7 +30,7 @@ ComfyUI workflow management has been integrated into the Management API on port 
 
 ### Base URL
 
-```
+```text
 http://localhost:9090
 ```
 
@@ -391,7 +391,7 @@ print("Workflow finished!")
 
 Interactive API documentation is available at:
 
-```
+```text
 http://localhost:9090/docs
 ```
 

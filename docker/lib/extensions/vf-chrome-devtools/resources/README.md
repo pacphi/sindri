@@ -6,15 +6,15 @@ Official Chrome DevTools MCP server integration for AI-assisted web debugging.
 
 ### From Claude Code
 
-```
+```text
 Use Chrome DevTools to check console errors on http://localhost:3001
 ```
 
-```
+```text
 Use Chrome DevTools to record a performance trace of VisionFlow
 ```
 
-```
+```text
 Take a screenshot of the VisionFlow homepage
 ```
 
@@ -45,7 +45,7 @@ npx -y chrome-devtools-mcp@latest
 
 ### Debug VisionFlow Application
 
-```
+```text
 Use Chrome DevTools to:
 1. Navigate to http://localhost:3001
 2. Get all console errors
@@ -55,7 +55,7 @@ Use Chrome DevTools to:
 
 ### Performance Analysis
 
-```
+```text
 Use Chrome DevTools to:
 1. Start performance trace
 2. Navigate to VisionFlow
@@ -65,7 +65,7 @@ Use Chrome DevTools to:
 
 ### DOM Inspection
 
-```
+```text
 Use Chrome DevTools to:
 1. Query for all canvas elements
 2. Get their computed styles
@@ -74,7 +74,7 @@ Use Chrome DevTools to:
 
 ### Network Debugging
 
-```
+```text
 Use Chrome DevTools to:
 1. Load VisionFlow
 2. Get all network requests
@@ -145,25 +145,25 @@ export CHROME_FLAGS="--headless,--disable-gpu,--no-sandbox"
 
 **Check Console Errors**
 
-```
+```text
 Use Chrome DevTools to show console errors from VisionFlow
 ```
 
 **Analyze Performance**
 
-```
+```text
 Use Chrome DevTools to record a 10-second performance trace of VisionFlow
 ```
 
 **Inspect Network Requests**
 
-```
+```text
 Use Chrome DevTools to analyze network requests on VisionFlow and check for failures
 ```
 
 **Take Screenshot**
 
-```
+```text
 Take a full-page screenshot of VisionFlow homepage
 ```
 
@@ -261,7 +261,7 @@ CHROME_PATH=/usr/bin/chromium DISPLAY=:1 npx -y chrome-devtools-mcp@latest
 
 ### Test from Claude Code
 
-```
+```text
 Use Chrome DevTools to navigate to https://example.com and take a screenshot
 ```
 

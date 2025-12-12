@@ -8,7 +8,7 @@ Advanced patterns for strategic analysis and decision-making with Wardley maps.
 
 **Pattern**: Accelerate evolution of competitor's differentiator
 
-```
+```bash
 Before:
 Competitor Advantage (0.7, 0.4) - Custom
     ↓
@@ -20,7 +20,9 @@ Market Solution (0.7, 0.7) - Product/Commodity
 
 ### 2. Innovation Play
 
-**Pattern**: Create new value at genesis while competitors fight in commodity```
+**Pattern**: Create new value at genesis while competitors fight in commodity
+
+```text
 Current Market:
 Price War Zone (0.5, 0.9) - Commodity
 
@@ -28,13 +30,13 @@ Your Move:
 New Capability (0.8, 0.1) - Genesis
 ↓
 Unique Value Prop (0.9, 0.3) - Custom
-
 ```
 
 ### 3. Ecosystem Play
-**Pattern**: Build platform at product stage to capture value
-```
 
+**Pattern**: Build platform at product stage to capture value
+
+```text
 Platform Strategy:
 Developer Ecosystem (0.9, 0.6)
 ↓
@@ -42,24 +44,26 @@ Your Platform (0.6, 0.6) - Product
 ↓ ↓
 3rd Party Core Services
 (0.5, 0.5) (0.4, 0.7)
-
-````
+```
 
 ## Doctrine Patterns
 
 ### Phase I - Stop the Bleeding
+
 1. **Know your users** - Map their needs
 2. **Focus on situational awareness** - Create first maps
 3. **Remove duplication** - Identify redundant components
 4. **Challenge assumptions** - Question everything
 
 ### Phase II - Becoming Competent
+
 1. **Use appropriate methods** - Match method to evolution
 2. **Think small teams** - Organize around components
 3. **Distribute power** - Decentralize decisions
 4. **Be transparent** - Share maps openly
 
 ### Phase III - Better for Less
+
 1. **Manage inertia** - Identify resistance to change
 2. **Exploit ecosystem** - Leverage external evolution
 3. **Design for constant evolution** - Build adaptability
@@ -67,6 +71,7 @@ Your Platform (0.6, 0.6) - Product
 ## Climatic Patterns (Forces of Change)
 
 ### Everything Evolves
+
 ```python
 def predict_evolution(component, time_horizon_years):
     """Predict component evolution over time"""
@@ -87,7 +92,7 @@ def predict_evolution(component, time_horizon_years):
 
     future = min(1.0, current + speed)
     return future
-````
+```
 
 ### Past Success Breeds Inertia
 
@@ -111,7 +116,7 @@ def predict_evolution(component, time_horizon_years):
 **Setup**: Competitor assumes component is commodity
 **Move**: Differentiate "commodity" component
 
-```
+```text
 Expected: Database (0.3, 0.9)
 Actual: Specialized DB (0.3, 0.5) with unique capabilities
 Result: Competitive advantage
@@ -121,7 +126,7 @@ Result: Competitive advantage
 
 **Setup**: Control scarce resource + build ecosystem
 
-```
+```text
 Scarce Resource (0.4, 0.3)
     ↑
 Ecosystem Barrier (0.6, 0.5)
@@ -133,7 +138,7 @@ User Lock-in (0.8, 0.6)
 
 **Setup**: Attack from both evolution extremes
 
-```
+```text
 Genesis Innovation (0.7, 0.1)
          ↓
     Target Market
@@ -147,7 +152,7 @@ Commodity Platform (0.3, 0.9)
 
 Long periods of stability, then rapid change
 
-```
+```text
 Stable Period (Years 1-5):
 - Component at 0.6, moving slowly
 
@@ -161,7 +166,7 @@ Disruption (Year 6):
 
 Components evolve together
 
-```
+```text
 If Mobile Apps (0.8, 0.7) evolve
 Then Mobile Frameworks (0.5, 0.6) must evolve
 And Development Tools (0.3, 0.5) follow

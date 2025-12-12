@@ -7,19 +7,19 @@
 - **Python**: `{service}_mcp` (e.g., `slack_mcp`)
 - **Node/TypeScript**: `{service}-mcp-server` (e.g., `slack-mcp-server`)
 
-### Tool Naming
+### Quick Tool Naming
 
 - Use snake_case with service prefix
 - Format: `{service}_{action}_{resource}`
 - Example: `slack_send_message`, `github_create_issue`
 
-### Response Formats
+### Quick Response Formats
 
 - Support both JSON and Markdown formats
 - JSON for programmatic processing
 - Markdown for human readability
 
-### Pagination
+### Quick Pagination
 
 - Always respect `limit` parameter
 - Return `has_more`, `next_offset`, `total_count`

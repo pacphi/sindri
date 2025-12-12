@@ -140,7 +140,7 @@ Quick reference card with:
 
 ### 5. Directory Structure
 
-```
+```text
 latex-documents/
 ├── SKILL.md                          # Updated with Beamer section
 ├── BEAMER-QUICK-REFERENCE.md         # Quick reference

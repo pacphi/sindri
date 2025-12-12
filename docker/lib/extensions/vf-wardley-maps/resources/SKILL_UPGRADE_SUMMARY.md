@@ -388,7 +388,7 @@ python -m spacy download en_core_web_sm
 
 ## 📋 File Structure
 
-```
+```text
 multi-agent-docker/skills/wardley-maps/
 ├── tools/
 │   ├── wardley_mapper.py              # MCP main entry (210 lines)

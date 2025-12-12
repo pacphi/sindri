@@ -339,7 +339,7 @@ bom:
 
 ### Directory Structure Per Extension
 
-```
+```text
 docker/lib/extensions/vf-{name}/
 ├── extension.yaml          # Sindri extension definition
 ├── install.sh              # Installation script

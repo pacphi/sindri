@@ -28,7 +28,7 @@ Use this skill when you need to:
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────┐
 │   agentic-workstation container     │
 │  (Claude Code + Docker Manager)     │
@@ -65,7 +65,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Use Docker Manager to build VisionFlow with no cache
 ```
 
@@ -80,7 +80,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Start VisionFlow in development mode
 ```
 
@@ -94,7 +94,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Stop VisionFlow container
 ```
 
@@ -109,7 +109,7 @@ Parameters:
 
 Example:
 
-```
+```bash
 Restart VisionFlow with rebuild
 ```
 
@@ -125,7 +125,7 @@ Parameters:
 
 Example:
 
-```
+```text
 Show last 50 lines of VisionFlow logs
 ```
 
@@ -144,7 +144,7 @@ Returns:
 
 Example:
 
-```
+```text
 Check VisionFlow container status
 ```
 
@@ -160,7 +160,7 @@ Parameters:
 
 Example:
 
-```
+```bash
 Execute "npm run test" in VisionFlow container
 ```
 
@@ -176,7 +176,7 @@ Returns:
 
 Example:
 
-```
+```text
 List all containers in docker_ragflow network
 ```
 
@@ -190,7 +190,7 @@ The skill uses the host's Docker socket mounted at `/var/run/docker.sock` in the
 
 The VisionFlow project repository is mounted at `/home/devuser/workspace/project/` inside agentic-workstation. The skill executes `scripts/launch.sh` directly from this path:
 
-```bash
+```text
 cd /home/devuser/workspace/project
 ./scripts/launch.sh build --no-cache
 ./scripts/launch.sh up -d
@@ -218,36 +218,47 @@ The skill identifies the VisionFlow container by:
 
 1. **Make Code Changes** (in project repository)
 
-   ```
-   Claude edits files in /mnt/mldata/githubs/AR-AI-Knowledge-Graph/
-   ```
+```text
+
+Claude edits files in /mnt/mldata/githubs/AR-AI-Knowledge-Graph/
+
+```
 
 2. **Rebuild Container**
 
-   ```
-   Use Docker Manager to rebuild VisionFlow with no cache
-   ```
+```text
+
+Use Docker Manager to rebuild VisionFlow with no cache
+
+```
 
 3. **Restart Application**
 
-   ```
-   Restart VisionFlow in dev mode
-   ```
+```text
+
+Restart VisionFlow in dev mode
+
+```
 
 4. **Check Status**
 
-   ```
-   Show VisionFlow status and recent logs
-   ```
+```text
+
+Show VisionFlow status and recent logs
+
+```
 
 5. **Test Functionality**
-   ```
-   Execute "npm run test" in VisionFlow
-   ```
+
+```text
+
+Execute "npm run test" in VisionFlow
+
+```
 
 ### Example: Full Deployment Workflow
 
-```
+```text
 I've updated the Rust backend. Please:
 1. Use Docker Manager to stop VisionFlow
 2. Rebuild VisionFlow with the latest changes
@@ -264,16 +275,16 @@ Stores container mappings and access credentials:
 
 ```json
 {
-  "containers": {
-    "visionflow": {
-      "name": "visionflow_container",
-      "network": "docker_ragflow",
-      "image_prefix": "ar-ai-knowledge-graph-webxr"
-    }
-  },
-  "docker_socket": "/var/run/docker.sock",
-  "project_path": "/home/devuser/workspace/project",
-  "launch_script": "scripts/launch.sh"
+"containers": {
+ "visionflow": {
+   "name": "visionflow_container",
+   "network": "docker_ragflow",
+   "image_prefix": "ar-ai-knowledge-graph-webxr"
+ }
+},
+"docker_socket": "/var/run/docker.sock",
+"project_path": "/home/devuser/workspace/project",
+"launch_script": "scripts/launch.sh"
 }
 ```
 
@@ -339,7 +350,7 @@ docker builder prune -f
 
 ### Example 1: Quick Restart After Code Change
 
-```
+```text
 I just updated backend/src/main.rs. Please restart VisionFlow to test the changes.
 ```
 
@@ -352,7 +363,7 @@ Docker Manager will:
 
 ### Example 2: Full Rebuild and Deploy
 
-```
+```text
 Use Docker Manager to:
 1. Stop VisionFlow
 2. Build with --no-cache and --force-rebuild
@@ -362,7 +373,7 @@ Use Docker Manager to:
 
 ### Example 3: Debug Container Issues
 
-```
+```text
 VisionFlow won't start. Please:
 1. Check container status
 2. Show last 200 log lines
@@ -372,7 +383,7 @@ VisionFlow won't start. Please:
 
 ### Example 4: Execute Tests in Container
 
-```
+```text
 Run the full test suite inside VisionFlow:
 docker_exec: "npm run test:all"
 ```

@@ -32,7 +32,7 @@ Browser automation and visual testing via MCP SDK, with direct browser control o
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────┐
 │  Claude Code / VisionFlow   │
 │  (MCP Client)               │

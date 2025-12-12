@@ -49,7 +49,7 @@ fi
 
 **File**: `docker/lib/extensions/vf-vnc-desktop/resources/entrypoint-unified.sh`
 
-```bash
+```text
 Repository: https://github.com/ChrisRoyse/610ClaudeSubagents
 ```
 
@@ -141,7 +141,7 @@ Extensions that use `apt-get install`:
 
 All extensions have resources copied from VisionFlow:
 
-```
+```text
 docker/lib/extensions/vf-*/resources/
 ├── SKILL.md              ✓ (34/34)
 ├── mcp-server/           ✓ (13/13 MCP servers)

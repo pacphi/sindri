@@ -32,7 +32,7 @@ Geospatial analysis and GIS operations via FastMCP protocol, communicating with 
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────┐
 │  Claude Code / VisionFlow   │
 │  (MCP Client)               │
