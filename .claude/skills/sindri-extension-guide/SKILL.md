@@ -10,6 +10,23 @@ allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 
 This skill guides you through creating declarative YAML extensions for Sindri. Extensions are **YAML files, not bash scripts** - all configuration is driven by declarative YAML definitions.
 
+## Documentation Locations
+
+**IMPORTANT:** After creating any extension, you must update the relevant documentation.
+
+### Key Documentation Files
+
+| Type | Path | Purpose |
+|------|------|---------|
+| **Schema** | `docker/lib/schemas/extension.schema.json` | Extension validation schema |
+| **Registry** | `docker/lib/registry.yaml` | Master extension registry |
+| **Profiles** | `docker/lib/profiles.yaml` | Extension profile definitions |
+| **Categories** | `docker/lib/categories.yaml` | Category definitions |
+| **Extension Docs** | `docs/extensions/{NAME}.md` | Individual extension documentation |
+| **Catalog** | `docs/EXTENSIONS.md` | Overview of all extensions |
+| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md` | Detailed authoring reference |
+| **Slides** | `docs/slides/extensions.html` | Visual presentation |
+
 ## Quick Start Checklist
 
 1. [ ] Create directory: `docker/lib/extensions/{name}/`
@@ -17,6 +34,7 @@ This skill guides you through creating declarative YAML extensions for Sindri. E
 3. [ ] Add to `docker/lib/registry.yaml`
 4. [ ] Validate: `./cli/extension-manager validate {name}`
 5. [ ] Test: `./cli/extension-manager install {name}`
+6. [ ] **Update documentation** (see Post-Extension Checklist below)
 
 ## Extension Directory Structure
 
@@ -78,6 +96,7 @@ metadata:
 - `dev-tools` - Development tools (linters, formatters)
 - `infrastructure` - Cloud/container tools (Docker, K8s, Terraform)
 - `ai` - AI/ML tools and frameworks
+- `agile` - Project management tools (Jira, Linear)
 - `database` - Database servers
 - `monitoring` - Observability tools
 - `mobile` - Mobile SDKs
@@ -349,6 +368,122 @@ echo "my-tool installed successfully"
 | Validation fails        | Check expectedPattern regex escaping      |
 | Permission denied       | Scripts must be executable                |
 
+---
+
+## Post-Extension Documentation Checklist
+
+**CRITICAL:** After creating or modifying an extension, you MUST complete these documentation updates:
+
+### Required Updates (Always Do These)
+
+- [ ] **Registry Entry** - Add to `docker/lib/registry.yaml`
+  ```yaml
+  extensions:
+    my-extension:
+      category: dev-tools
+      description: Short description
+      dependencies: []
+  ```
+
+- [ ] **Extension Documentation** - Create `docs/extensions/{NAME}.md`
+  - Use UPPERCASE for filename (e.g., `NODEJS.md`, `AI-TOOLKIT.md`)
+  - Include: overview, installation, configuration, usage examples
+  - For VisionFlow: `docs/extensions/vision-flow/VF-{NAME}.md`
+
+- [ ] **Extension Catalog** - Update `docs/EXTENSIONS.md`
+  - Add to appropriate category table
+  - Include link to extension doc
+
+### Conditional Updates (When Applicable)
+
+- [ ] **Profiles** - If adding extension to profiles:
+  - Update `docker/lib/profiles.yaml`
+  - Update relevant profile descriptions in `docs/EXTENSIONS.md`
+
+- [ ] **Categories** - If adding new category:
+  - Update `docker/lib/categories.yaml`
+  - Update `docker/lib/schemas/extension.schema.json` (category enum)
+  - Update category docs in `docs/EXTENSIONS.md`
+
+- [ ] **Schema** - If adding new extension fields:
+  - Update `docker/lib/schemas/extension.schema.json`
+  - Update `docs/SCHEMA.md`
+  - Update `REFERENCE.md` in this skill
+
+- [ ] **Slides** - If extension is notable/featured:
+  - Update `docs/slides/extensions.html`
+
+### VisionFlow-Specific Updates
+
+- [ ] Update `docs/extensions/vision-flow/README.md`
+- [ ] Update `docs/extensions/vision-flow/CAPABILITY-CATALOG.md`
+- [ ] Update VisionFlow profile if applicable
+
+### Validation After Updates
+
+```bash
+# Validate YAML files
+pnpm validate:yaml
+
+# Lint markdown
+pnpm lint:md
+
+# Validate extension
+./cli/extension-manager validate {name}
+```
+
+---
+
+## Extension Documentation Template
+
+When creating `docs/extensions/{NAME}.md`, use this template:
+
+```markdown
+# {Extension Name}
+
+{Brief description of what the extension provides.}
+
+## Overview
+
+{More detailed explanation of the extension's purpose and capabilities.}
+
+## Installation
+
+\`\`\`bash
+extension-manager install {name}
+\`\`\`
+
+## What Gets Installed
+
+- {Tool 1} - {purpose}
+- {Tool 2} - {purpose}
+
+## Configuration
+
+{Any configuration options or environment variables.}
+
+## Usage
+
+{Usage examples.}
+
+## Dependencies
+
+{List any extension dependencies.}
+
+## Requirements
+
+- **Disk Space:** {X} MB
+- **Network:** {domains accessed}
+- **Secrets:** {optional secrets}
+
+## Related Extensions
+
+- {Related extension 1}
+- {Related extension 2}
+```
+
+---
+
 ## Reference Files
 
 - **Schema**: `docker/lib/schemas/extension.schema.json`
@@ -359,3 +494,12 @@ echo "my-tool installed successfully"
 
 For detailed field reference, see REFERENCE.md.
 For complete examples, see EXAMPLES.md.
+
+**Tip:** Use `Glob` and `Grep` tools to discover current documentation files dynamically:
+```bash
+# Find all extension docs
+ls docs/extensions/*.md
+
+# Find VisionFlow docs
+ls docs/extensions/vision-flow/*.md
+```
