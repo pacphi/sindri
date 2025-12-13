@@ -39,7 +39,6 @@ on:
         type: choice
         options:
           - minimal
-          - data-science
           - mobile
           - fullstack
           - ai-dev
@@ -86,6 +85,11 @@ jobs:
           SHELLCHECK_OPTS: --severity=warning
         run: |
           find . -name "*.sh" -type f ! -path "./node_modules/*" | while read -r script; do
+            # Skip zsh scripts (shellcheck only supports sh/bash/dash/ksh)
+            if head -1 "$script" | grep -q "#!/bin/zsh"; then
+              echo "Skipping zsh script: $script"
+              continue
+            fi
             echo "Checking: $script"
             shellcheck "$script" || exit 1
           done

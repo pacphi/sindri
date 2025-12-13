@@ -96,7 +96,7 @@ jobs:
 
           # Profiles that are safe for GitHub Actions runners (~7GB RAM)
           # Other profiles require too much memory for standard CI runners
-          CI_SAFE_PROFILES="minimal data-science mobile"
+          CI_SAFE_PROFILES="minimal mobile"
 
           # Only validate for profile-level tests (extension tests use fullstack config)
           if [[ "$TEST_LEVEL" == "profile" ]]; then
@@ -105,7 +105,6 @@ jobs:
               echo ""
               echo "The following profiles are CI-safe for Docker provider:"
               echo "  - minimal (2GB)"
-              echo "  - data-science (extensions only need ~384MB)"
               echo "  - mobile (extensions only need ~256MB)"
               echo ""
               echo "Heavy profiles should be tested on:"

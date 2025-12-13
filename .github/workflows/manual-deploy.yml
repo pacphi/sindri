@@ -40,7 +40,6 @@ on:
           - anthropic-dev
           - systems
           - enterprise
-          - data-science
           - devops
           - mobile
       vm-size:

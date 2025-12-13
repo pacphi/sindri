@@ -29,7 +29,6 @@ Ready-to-use configuration files for deploying Sindri to various providers. **47
 | anthropic-dev | 2   | 1      | -      | -      | 3     |
 | systems       | 1   | 1      | 1      | -      | 3     |
 | devops        | 1   | 1      | 1      | -      | 3     |
-| data-science  | 2   | 1      | 1      | -      | 4     |
 | enterprise    | 1   | 1      | -      | -      | 2     |
 | mobile        | 1   | 1      | -      | -      | 2     |
 | **Custom**    | 2   | 2      | 1      | 2      | 7     |
@@ -61,7 +60,6 @@ Ready-to-use configuration files for deploying Sindri to various providers. **47
 | `profiles/anthropic-dev.sindri.yaml` | anthropic-dev | agent-manager, ai-toolkit, claude-code-mux, cloud-tools, etc. (12) |
 | `profiles/systems.sindri.yaml`       | systems       | rust, golang, docker, infra-tools (4)                              |
 | `profiles/devops.sindri.yaml`        | devops        | docker, infra-tools, cloud-tools, monitoring (4)                   |
-| `profiles/data-science.sindri.yaml`  | data-science  | python, monitoring (2)                                             |
 | `profiles/enterprise.sindri.yaml`    | enterprise    | nodejs, python, golang, rust, ruby, jvm, dotnet, docker, etc. (9)  |
 | `profiles/mobile.sindri.yaml`        | mobile        | nodejs (1+)                                                        |
 
@@ -87,8 +85,6 @@ fly/
 ├── systems.sindri.yaml               # Rust/Go systems programming (4GB RAM)
 ├── mobile.sindri.yaml                # Mobile development backend (6GB RAM)
 ├── devops.sindri.yaml                # DevOps tools (4GB RAM)
-├── data-science.sindri.yaml          # Data science (4GB RAM)
-├── data-science-high-mem.sindri.yaml # Data science with 16GB RAM
 ├── enterprise.sindri.yaml            # All languages (8GB RAM)
 └── regions/                          # Region-specific deployments
     ├── ord.sindri.yaml               # Chicago region
@@ -108,7 +104,6 @@ docker/
 ├── anthropic-dev.sindri.yaml  # Full Anthropic toolset (16GB RAM)
 ├── systems.sindri.yaml        # Rust/Go (6GB RAM)
 ├── devops.sindri.yaml         # DevOps tools with privileged mode (8GB RAM)
-├── data-science.sindri.yaml   # Data science with Jupyter (10GB RAM)
 ├── enterprise.sindri.yaml     # All languages (16GB RAM, multi-port)
 └── mobile.sindri.yaml         # Mobile development (8GB RAM, Expo ports)
 ```
@@ -134,7 +129,6 @@ devpod/
 │       └── europe-west1.sindri.yaml # Belgium region
 ├── azure/
 │   ├── minimal.sindri.yaml         # Standard_B2s basic setup
-│   ├── data-science.sindri.yaml    # Standard_D4s_v3 (16GB RAM)
 │   └── regions/
 │       └── westeurope.sindri.yaml  # Netherlands region
 ├── digitalocean/

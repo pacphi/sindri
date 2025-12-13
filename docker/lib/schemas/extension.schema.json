@@ -396,9 +396,9 @@
       "properties": {
         "strategy": {
           "type": "string",
-          "enum": ["automatic", "manual", "none"],
+          "enum": ["automatic", "manual", "none", "reinstall", "in-place"],
           "default": "automatic",
-          "description": "Upgrade strategy: automatic (use built-in upgrade), manual (custom script), none (no upgrade support)"
+          "description": "Upgrade strategy: automatic (use built-in upgrade), manual (custom script), none (no upgrade support), reinstall (remove and install), in-place (update existing)"
         },
         "mise": {
           "type": "object",
