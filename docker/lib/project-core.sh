@@ -150,7 +150,7 @@ _execute_dependency_config() {
     fi
 }
 
-init_claude_tools() {
+init_project_tools() {
     local tools_initialized=false
 
     # Initialize Claude Code project context
@@ -173,30 +173,6 @@ init_claude_tools() {
             fi
         else
             print_debug "GitHub spec-kit initialization skipped"
-        fi
-    fi
-
-    # Initialize Claude Flow if npx is available
-    if command_exists npx; then
-        print_status "Initializing Claude Flow..."
-        if npx claude-flow@alpha init --force 2>/dev/null; then
-            print_success "Claude Flow initialized"
-            tools_initialized=true
-        else
-            print_debug "Claude Flow initialization skipped"
-        fi
-    else
-        print_debug "Skipping Claude Flow initialization (npx not available)"
-    fi
-
-    # Check for agentic-flow availability
-    if command_exists npx; then
-        print_status "Checking agent-flow availability..."
-        if npx --yes agentic-flow --help >/dev/null 2>&1; then
-            print_success "agent-flow available"
-            tools_initialized=true
-        else
-            print_debug "agent-flow initialization skipped"
         fi
     fi
 
@@ -314,7 +290,7 @@ setup_project_enhancements() {
     fi
 
     if [[ "$skip_tools" == "false" ]]; then
-        init_claude_tools || print_warning "Claude tools initialization failed, continuing..."
+        init_project_tools || print_warning "Project tools initialization failed, continuing..."
     fi
 
     print_success "Project enhancements complete"
@@ -325,6 +301,6 @@ export -f install_project_dependencies
 export -f _install_template_dependencies
 export -f _scan_and_install_dependencies
 export -f _execute_dependency_config
-export -f init_claude_tools
+export -f init_project_tools
 export -f create_project_claude_md
 export -f setup_project_enhancements

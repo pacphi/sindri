@@ -1,0 +1,52 @@
+---
+metadata:
+  name: vf-web-summary
+  version: 1.0.0
+  description: URL and YouTube transcript summarization MCP server (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - pypi.org
+  diskSpace: 100
+  memory: 256
+  installTime: 120
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-web-summary/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-web-summary/mcp-server
+
+remove:
+  paths:
+    - ~/extensions/vf-web-summary
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: web-summary-mcp
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:npm/web-summary-mcp

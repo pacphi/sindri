@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-mcp-builder
+  version: 1.0.0
+  description: MCP server scaffolding and generation tool (from VisionFlow)
+  category: dev-tools
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 50
+  memory: 128
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-mcp-builder/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-mcp-builder
+
+remove:
+  paths:
+    - ~/extensions/vf-mcp-builder
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: mcp-builder
+      version: 1.0.0
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-mcp-builder

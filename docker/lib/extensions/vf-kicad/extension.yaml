@@ -1,0 +1,52 @@
+---
+metadata:
+  name: vf-kicad
+  version: 1.0.0
+  description: KiCad PCB design MCP server (from VisionFlow)
+  category: dev-tools
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - xfce-ubuntu
+
+requirements:
+  domains:
+    - kicad.org
+  diskSpace: 5000
+  memory: 1024
+  installTime: 300
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-kicad/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: kicad-cli
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+"
+
+remove:
+  paths:
+    - ~/extensions/vf-kicad
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: kicad
+      version: dynamic
+      source: apt
+      type: application
+      license: GPL-3.0
+      homepage: https://www.kicad.org
+      purl: pkg:deb/debian/kicad

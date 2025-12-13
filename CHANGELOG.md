@@ -37,8 +37,6 @@ git checkout v1.6.1
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.6.0...v1.6.1
 
-
-
 ## [1.6.0] - 2025-12-09
 
 ### :sparkles: Features
@@ -78,8 +76,6 @@ git checkout v1.6.0
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.5.1...v1.6.0
-
-
 
 ## [1.5.1] - 2025-12-07
 

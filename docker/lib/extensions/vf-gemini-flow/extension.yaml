@@ -1,0 +1,54 @@
+---
+metadata:
+  name: vf-gemini-flow
+  version: 1.0.0
+  description: Google Gemini multi-agent orchestration daemon (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - generativelanguage.googleapis.com
+    - registry.npmjs.org
+  diskSpace: 100
+  memory: 512
+  installTime: 120
+  secrets:
+    - google_gemini_api_key
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  environment:
+    - key: GOOGLE_GEMINI_API_KEY
+      value: "${GOOGLE_GEMINI_API_KEY}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-gemini-flow
+
+remove:
+  paths:
+    - ~/extensions/vf-gemini-flow
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: gemini-flow
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-gemini-flow

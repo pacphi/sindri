@@ -10,7 +10,7 @@ requirements:
   domains:
     - golang.org
     - proxy.golang.org
-  diskSpace: 500
+  diskSpace: 250
   memory: 256
   installTime: 60
 

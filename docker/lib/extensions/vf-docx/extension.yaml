@@ -1,0 +1,52 @@
+---
+metadata:
+  name: vf-docx
+  version: 1.0.0
+  description: Word document processing with python-docx (from VisionFlow)
+  category: utilities
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+  diskSpace: 50
+  memory: 128
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-docx/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: python3
+      versionFlag: -c "import docx; print('ok')"
+      expectedPattern: "ok"
+
+remove:
+  paths:
+    - ~/extensions/vf-docx
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: python-docx
+      version: dynamic
+      source: pip
+      type: library
+      license: MIT
+      homepage: https://python-docx.readthedocs.io
+      purl: pkg:pypi/python-docx

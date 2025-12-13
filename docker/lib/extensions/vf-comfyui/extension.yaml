@@ -1,0 +1,62 @@
+---
+metadata:
+  name: vf-comfyui
+  version: 1.0.0
+  description: ComfyUI node-based image generation MCP server (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+    - huggingface.co
+    - github.com
+  diskSpace: 6000
+  memory: 8192
+  installTime: 900
+  gpu:
+    required: true
+    type: nvidia
+    minMemory: 8192
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 1800
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-comfyui/SKILL.md
+      mode: overwrite
+  environment:
+    - key: CUDA_VISIBLE_DEVICES
+      value: "0"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-comfyui
+
+remove:
+  paths:
+    - ~/extensions/vf-comfyui
+    - ~/.cache/comfyui
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: comfyui
+      version: dynamic
+      source: script
+      type: server
+      license: GPL-3.0
+      homepage: https://github.com/comfyanonymous/ComfyUI
+      purl: pkg:github/comfyanonymous/ComfyUI

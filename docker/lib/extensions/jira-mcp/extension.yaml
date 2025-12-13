@@ -1,0 +1,71 @@
+---
+metadata:
+  name: jira-mcp
+  version: 1.0.0
+  description: Atlassian Jira and Confluence MCP server for AI-powered issue tracking
+  category: agile
+  author: Sindri Team
+  homepage: https://github.com/sooperset/mcp-atlassian
+  dependencies:
+    - docker
+
+requirements:
+  domains:
+    - atlassian.net
+    - atlassian.com
+    - mcp.atlassian.com
+    - ghcr.io
+  diskSpace: 500
+  memory: 512
+  installTime: 120
+  secrets:
+    - jira_url
+    - jira_username
+    - jira_api_token
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/jira-mcp/SKILL.md
+      mode: overwrite
+  environment:
+    - key: JIRA_URL
+      value: "${JIRA_URL}"
+      scope: bashrc
+    - key: JIRA_USERNAME
+      value: "${JIRA_USERNAME}"
+      scope: bashrc
+    - key: JIRA_API_TOKEN
+      value: "${JIRA_API_TOKEN}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: docker
+      versionFlag: image inspect ghcr.io/sooperset/mcp-atlassian:latest --format '{{.Id}}'
+
+remove:
+  paths:
+    - ~/extensions/jira-mcp
+  script:
+    path: uninstall.sh
+    timeout: 60
+
+upgrade:
+  strategy: manual
+
+bom:
+  tools:
+    - name: mcp-atlassian
+      version: dynamic
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/sooperset/mcp-atlassian
+      purl: pkg:docker/ghcr.io/sooperset/mcp-atlassian

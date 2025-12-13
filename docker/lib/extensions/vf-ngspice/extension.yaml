@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-ngspice
+  version: 1.0.0
+  description: NGSpice circuit simulation with MCP server (from VisionFlow)
+  category: dev-tools
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies: []
+
+requirements:
+  domains:
+    - ngspice.sourceforge.io
+  diskSpace: 100
+  memory: 256
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-ngspice/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: ngspice
+      versionFlag: --version
+      expectedPattern: "ngspice"
+
+remove:
+  paths:
+    - ~/extensions/vf-ngspice
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: ngspice
+      version: dynamic
+      source: apt
+      type: cli-tool
+      license: BSD-3-Clause
+      homepage: https://ngspice.sourceforge.io
+      purl: pkg:deb/debian/ngspice

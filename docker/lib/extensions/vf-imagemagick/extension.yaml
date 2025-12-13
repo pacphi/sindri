@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-imagemagick
+  version: 1.0.0
+  description: ImageMagick image processing with MCP server (from VisionFlow)
+  category: utilities
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies: []
+
+requirements:
+  domains:
+    - imagemagick.org
+  diskSpace: 100
+  memory: 256
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-imagemagick/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: convert
+      versionFlag: --version
+      expectedPattern: "ImageMagick"
+
+remove:
+  paths:
+    - ~/extensions/vf-imagemagick
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: imagemagick
+      version: dynamic
+      source: apt
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://imagemagick.org
+      purl: pkg:deb/debian/imagemagick

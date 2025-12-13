@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-import-to-ontology
+  version: 1.0.0
+  description: Document to ontology import and semantic indexing (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+  diskSpace: 200
+  memory: 512
+  installTime: 180
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-import-to-ontology/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-import-to-ontology
+
+remove:
+  paths:
+    - ~/extensions/vf-import-to-ontology
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: import-to-ontology
+      version: 1.0.0
+      source: script
+      type: framework
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-import-to-ontology

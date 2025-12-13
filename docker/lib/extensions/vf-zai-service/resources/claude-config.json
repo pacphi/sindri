@@ -1,0 +1,9 @@
+{
+  "apiConfiguration": {
+    "baseURL": "https://api.z.ai/api/paas/v4",
+    "apiKey": "${ZAI_API_KEY}"
+  },
+  "model": "glm-4.6",
+  "installMethod": "docker",
+  "autoUpdates": false
+}

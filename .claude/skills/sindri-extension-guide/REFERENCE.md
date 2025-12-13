@@ -17,6 +17,7 @@ Complete field-by-field reference for `extension.yaml` files.
 **Category Values:**
 
 - `base` - Core system components
+- `agile` - Project management tools (Jira, Linear)
 - `language` - Programming language runtimes
 - `dev-tools` - Development tools
 - `infrastructure` - Cloud/container tools

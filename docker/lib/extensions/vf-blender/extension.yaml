@@ -1,0 +1,59 @@
+---
+metadata:
+  name: vf-blender
+  version: 1.0.0
+  description: Blender 3D modeling with MCP server and addons (from VisionFlow)
+  category: desktop
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - xfce-ubuntu
+
+requirements:
+  domains:
+    - www.blender.org
+    - download.blender.org
+  diskSpace: 500
+  memory: 4096
+  installTime: 300
+  gpu:
+    required: false
+    recommended: true
+    type: nvidia
+    minMemory: 4096
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-blender/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: blender
+      versionFlag: --version
+      expectedPattern: "Blender \\d+\\.\\d+"
+
+remove:
+  paths:
+    - ~/extensions/vf-blender
+    - ~/.config/blender/4.0/scripts/addons/blender_mcp*
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: blender
+      version: dynamic
+      source: apt
+      type: application
+      license: GPL-3.0
+      homepage: https://www.blender.org
+      purl: pkg:deb/debian/blender

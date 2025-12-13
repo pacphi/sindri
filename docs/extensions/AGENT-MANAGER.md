@@ -96,4 +96,3 @@ Removes:
 ## Related Extensions
 
 - [ai-toolkit](AI-TOOLKIT.md) - AI tools suite
-- [ruvnet-aliases](RUVNET-ALIASES.md) - Flow aliases

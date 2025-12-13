@@ -1,0 +1,38 @@
+---
+# Sindri Configuration - VisionFlow Full Profile
+# All 34 VisionFlow extensions
+version: "1.0"
+name: sindri-visionflow-full
+
+deployment:
+  provider: docker
+  resources:
+    memory: 32GB
+    cpus: 8
+  volumes:
+    workspace:
+      size: 100GB
+  gpu:
+    enabled: true
+    type: nvidia
+    count: 1
+
+extensions:
+  profile: visionflow-full
+
+secrets:
+  - name: PERPLEXITY_API_KEY
+    source: env
+  - name: DEEPSEEK_API_KEY
+    source: env
+  - name: GOOGLE_GEMINI_API_KEY
+    source: env
+  - name: ZAI_ANTHROPIC_API_KEY
+    source: env
+
+providers:
+  docker:
+    ports:
+      - "10022:2222" # SSH
+      - "5901:5901" # VNC
+      - "9090:9090" # Management API
