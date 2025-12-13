@@ -164,6 +164,11 @@ extensions:
     description: Block's open-source AI agent for engineering task automation
     dependencies: []
 
+  mdflow:
+    category: ai
+    description: Multi-backend CLI transforming markdown files into executable AI agents
+    dependencies: [nodejs]
+
   linear-mcp:
     category: agile
     description: Linear MCP server for AI-powered project management integration

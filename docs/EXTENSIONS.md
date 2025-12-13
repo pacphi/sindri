@@ -112,6 +112,7 @@ Pre-installed foundational extensions:
 | claude-flow              | Multi-agent orchestration for Claude Code   | [CLAUDE-FLOW.md](extensions/CLAUDE-FLOW.md)                           |
 | agentic-flow             | Agentic workflow orchestration              | [AGENTIC-FLOW.md](extensions/AGENTIC-FLOW.md)                         |
 | goose                    | AI coding agent with tool use               | [GOOSE.md](extensions/GOOSE.md)                                       |
+| mdflow                   | Markdown to AI agent CLI                    | [MDFLOW.md](extensions/MDFLOW.md)                                     |
 | ruvnet-research          | AI research tools (Goalie, Research-Swarm)  | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md)                   |
 
 ### Infrastructure

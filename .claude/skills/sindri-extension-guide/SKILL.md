@@ -6,6 +6,25 @@ allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 
 # Sindri Extension Development Guide
 
+## Slash Commands (Recommended)
+
+For reliable extension creation with all documentation updates, use these commands:
+
+| Command | Purpose |
+|---------|---------|
+| `/extension/new <name> [source]` | Create new extension with complete documentation workflow |
+| `/extension/update-docs <name>` | Update documentation for existing extension |
+
+**Example:**
+```
+/extension/new mdflow https://github.com/johnlindquist/mdflow
+/extension/update-docs nodejs
+```
+
+These commands enforce the complete workflow including all required documentation updates.
+
+---
+
 ## Overview
 
 This skill guides you through creating declarative YAML extensions for Sindri. Extensions are **YAML files, not bash scripts** - all configuration is driven by declarative YAML definitions.

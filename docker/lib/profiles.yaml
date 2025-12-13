@@ -25,6 +25,7 @@ profiles:
       - python
       - golang
       - ai-toolkit
+      - mdflow
       - openskills
       - supabase-cli
       - linear-mcp
@@ -43,6 +44,7 @@ profiles:
       - claude-marketplace
       - infra-tools
       - jvm
+      - mdflow
       - openskills
       - nodejs-devtools
       - playwright
