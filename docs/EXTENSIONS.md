@@ -116,12 +116,20 @@ Pre-installed foundational extensions:
 
 ### Infrastructure
 
-| Extension   | Purpose                                          | Docs                                        |
-| ----------- | ------------------------------------------------ | ------------------------------------------- |
-| docker      | Docker Engine & Compose                          | [DOCKER.md](extensions/DOCKER.md)           |
-| infra-tools | Terraform, Kubernetes, Ansible, Pulumi + 10 more | [INFRA-TOOLS.md](extensions/INFRA-TOOLS.md) |
-| cloud-tools | AWS, Azure, GCP, OCI, Alibaba, DO, IBM CLIs      | [CLOUD-TOOLS.md](extensions/CLOUD-TOOLS.md) |
-| monitoring  | Claude usage monitoring (uv, claude-monitor)     | [MONITORING.md](extensions/MONITORING.md)   |
+| Extension    | Purpose                                           | Docs                                          |
+| ------------ | ------------------------------------------------- | --------------------------------------------- |
+| docker       | Docker Engine & Compose                           | [DOCKER.md](extensions/DOCKER.md)             |
+| infra-tools  | Terraform, Kubernetes, Ansible, Pulumi + 10 more  | [INFRA-TOOLS.md](extensions/INFRA-TOOLS.md)   |
+| cloud-tools  | AWS, Azure, GCP, OCI, Alibaba, DO, IBM CLIs       | [CLOUD-TOOLS.md](extensions/CLOUD-TOOLS.md)   |
+| supabase-cli | Supabase CLI for local dev, migrations, functions | [SUPABASE-CLI.md](extensions/SUPABASE-CLI.md) |
+| monitoring   | Claude usage monitoring (uv, claude-monitor)      | [MONITORING.md](extensions/MONITORING.md)     |
+
+### Agile
+
+| Extension  | Purpose                                     | Docs                                      |
+| ---------- | ------------------------------------------- | ----------------------------------------- |
+| linear-mcp | Linear MCP server for project management    | [LINEAR-MCP.md](extensions/LINEAR-MCP.md) |
+| jira-mcp   | Atlassian Jira/Confluence MCP server        | [JIRA-MCP.md](extensions/JIRA-MCP.md)     |
 
 ### Desktop & Utilities
 
@@ -201,24 +209,27 @@ See [VisionFlow README](extensions/vision-flow/README.md) for implementation det
 
 Extensions support different upgrade approaches:
 
-| Strategy    | Description               | Extensions                                                                        |
-| ----------- | ------------------------- | --------------------------------------------------------------------------------- |
-| `automatic` | Auto-upgrade via mise/apt | dotnet, ruby, nodejs-devtools, monitoring, xfce-ubuntu, agent-manager, openskills |
-| `manual`    | Custom upgrade script     | ai-toolkit, cloud-tools, jvm, infra-tools, claude-code-mux, playwright, guacamole |
-| `none`      | No upgrades (static)      | github-cli, claude-marketplace, workspace-structure, mise-config                  |
+| Strategy    | Description               | Extensions                                                                                                             |
+| ----------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `automatic` | Auto-upgrade via mise/apt | dotnet, ruby, nodejs-devtools, monitoring, xfce-ubuntu, agent-manager, openskills                                      |
+| `manual`    | Custom upgrade script     | ai-toolkit, cloud-tools, jvm, infra-tools, claude-code-mux, playwright, guacamole, linear-mcp, jira-mcp, supabase-cli  |
+| `none`      | No upgrades (static)      | github-cli, claude-marketplace, workspace-structure, mise-config                                                       |
 
 ### Secret Requirements
 
 Some extensions require API keys or credentials:
 
-| Extension                | Required Secrets                        |
-| ------------------------ | --------------------------------------- |
-| ai-toolkit               | `google_gemini_api_key`, `grok_api_key` |
-| cloud-tools              | AWS, Azure credentials                  |
-| claude-auth-with-api-key | `anthropic_api_key`                     |
-| claudish                 | `openrouter_api_key`                    |
-| github-cli               | `github_token`                          |
-| ruvnet-research          | `perplexity_api_key` (optional)         |
+| Extension                | Required Secrets                                        |
+| ------------------------ | ------------------------------------------------------- |
+| ai-toolkit               | `google_gemini_api_key`, `grok_api_key`                 |
+| cloud-tools              | AWS, Azure credentials                                  |
+| claude-auth-with-api-key | `anthropic_api_key`                                     |
+| claudish                 | `openrouter_api_key`                                    |
+| github-cli               | `github_token`                                          |
+| jira-mcp                 | `jira_url`, `jira_username`, `jira_api_token`           |
+| linear-mcp               | `linear_api_key`                                        |
+| ruvnet-research          | `perplexity_api_key` (optional)                         |
+| supabase-cli             | `supabase_access_token` (optional)                      |
 
 ### Removal Confirmation
 
@@ -290,6 +301,9 @@ ai-toolkit → nodejs, python, golang, github-cli
 monitoring → python
 ruvnet-research → nodejs
 claudish → nodejs
+linear-mcp → nodejs
+jira-mcp → docker
+supabase-cli → nodejs, docker
 ```
 
 ## Extension Storage

@@ -98,6 +98,11 @@ extensions:
     description: AWS, Azure, GCP CLIs
     dependencies: []
 
+  supabase-cli:
+    category: infrastructure
+    description: Supabase CLI for local development, migrations, and edge functions
+    dependencies: [nodejs, docker]
+
   # AI Tools
   ai-toolkit:
     category: ai
@@ -158,6 +163,16 @@ extensions:
     category: ai
     description: Block's open-source AI agent for engineering task automation
     dependencies: []
+
+  linear-mcp:
+    category: agile
+    description: Linear MCP server for AI-powered project management integration
+    dependencies: [nodejs]
+
+  jira-mcp:
+    category: agile
+    description: Atlassian Jira and Confluence MCP server for AI-powered issue tracking
+    dependencies: [docker]
 
   # Monitoring
   monitoring:

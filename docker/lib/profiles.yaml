@@ -26,6 +26,8 @@ profiles:
       - golang
       - ai-toolkit
       - openskills
+      - supabase-cli
+      - linear-mcp
       - monitoring
 
   anthropic-dev:
@@ -46,6 +48,8 @@ profiles:
       - playwright
       - rust
       - ruvnet-research
+      - linear-mcp
+      - supabase-cli
       - tmux-workspace
       - cloud-tools
 
@@ -68,13 +72,8 @@ profiles:
       - jvm
       - dotnet
       - docker
+      - jira-mcp
       - cloud-tools
-
-  data-science:
-    description: Data science and analytics
-    extensions:
-      - python
-      - monitoring
 
   devops:
     description: DevOps and infrastructure
@@ -88,6 +87,8 @@ profiles:
     description: Mobile development
     extensions:
       - nodejs
+      - linear-mcp
+      - supabase-cli
 
   # =============================================================================
   # VisionFlow Profiles (from github.com/DreamLab-AI/VisionFlow)
@@ -109,6 +110,7 @@ profiles:
   visionflow-data-scientist:
     description: VisionFlow AI research and ML tools
     extensions:
+      - python
       - vf-perplexity
       - vf-web-summary
       - vf-deepseek-reasoning
@@ -116,6 +118,7 @@ profiles:
       - vf-comfyui
       - vf-ontology-enrich
       - vf-import-to-ontology
+      - monitoring
 
   visionflow-creative:
     description: VisionFlow 3D modeling and creative tools

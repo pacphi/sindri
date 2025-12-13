@@ -10,56 +10,62 @@ categories:
     icon: 🔧
     priority: 1
 
+  agile:
+    name: Agile Development
+    description: Agile project management tools
+    icon: 📈
+    priority: 2
+
   language:
     name: Language Runtimes
     description: Programming language environments
     icon: 💻
-    priority: 2
+    priority: 3
 
   dev-tools:
     name: Development Tools
     description: IDE extensions, linters, formatters
     icon: 🛠️
-    priority: 3
+    priority: 4
 
   infrastructure:
     name: Infrastructure
     description: Cloud, containers, orchestration
     icon: ☁️
-    priority: 4
+    priority: 5
 
   ai:
     name: AI Tools
     description: AI/ML frameworks and assistants
     icon: 🤖
-    priority: 5
+    priority: 6
 
   database:
     name: Databases
     description: Database servers and clients
     icon: 🗄️
-    priority: 6
+    priority: 7
 
   monitoring:
     name: Monitoring
     description: Observability and debugging tools
     icon: 📊
-    priority: 7
+    priority: 8
 
   mobile:
     name: Mobile Development
     description: Mobile SDKs and tools
     icon: 📱
-    priority: 8
+    priority: 9
 
   desktop:
     name: Desktop Environment
     description: Remote desktop and GUI environments
     icon: 🖥️
-    priority: 9
+    priority: 10
 
   utilities:
     name: Utilities
     description: General purpose tools
     icon: 🔨
-    priority: 10
+    priority: 11

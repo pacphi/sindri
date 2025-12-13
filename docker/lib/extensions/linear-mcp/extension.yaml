@@ -1,0 +1,59 @@
+---
+metadata:
+  name: linear-mcp
+  version: 1.0.0
+  description: Linear MCP server for AI-powered project management integration
+  category: agile
+  author: Sindri Team
+  homepage: https://github.com/jerhadf/linear-mcp-server
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - api.linear.app
+    - linear.app
+    - registry.npmjs.org
+  diskSpace: 150
+  memory: 256
+  installTime: 60
+  secrets:
+    - linear_api_key
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/linear-mcp/SKILL.md
+      mode: overwrite
+  environment:
+    - key: LINEAR_API_KEY
+      value: "${LINEAR_API_KEY}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/linear-mcp
+
+remove:
+  paths:
+    - ~/extensions/linear-mcp
+
+upgrade:
+  strategy: manual
+
+bom:
+  tools:
+    - name: linear-mcp-server
+      version: dynamic
+      source: npm
+      type: server
+      license: MIT
+      homepage: https://github.com/jerhadf/linear-mcp-server
+      purl: pkg:npm/linear-mcp-server
