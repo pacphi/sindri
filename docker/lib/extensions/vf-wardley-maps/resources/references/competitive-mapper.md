@@ -85,11 +85,11 @@ def porters_to_wardley(analysis):
 
 ```yaml
 Existing Market Need (0.9, 0.8)
-    ↓
+↓
 Competitor A Solution (0.7, 0.7)
 Competitor B Solution (0.7, 0.7)
 Our Solution (0.7, 0.7)
-    ↓
+↓
 Shared Infrastructure (0.2, 0.9)
 ```
 
@@ -97,11 +97,11 @@ Shared Infrastructure (0.2, 0.9)
 
 ```yaml
 New Market Need (0.9, 0.2)
-    ↓
+↓
 Our Innovation (0.7, 0.3)
-    ↓
+↓
 Unique Capabilities (0.4, 0.3)
-    ↓
+↓
 Commodity Infrastructure (0.1, 0.9)
 ```
 

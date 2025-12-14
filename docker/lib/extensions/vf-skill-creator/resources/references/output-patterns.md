@@ -29,7 +29,6 @@ ALWAYS use this exact template structure:
 
 1. Specific actionable recommendation
 2. Specific actionable recommendation
-
 ```
 
 **For flexible guidance (when adaptation is useful):**

@@ -126,10 +126,10 @@ Pre-installed foundational extensions:
 
 ### Agile
 
-| Extension  | Purpose                                     | Docs                                      |
-| ---------- | ------------------------------------------- | ----------------------------------------- |
-| linear-mcp | Linear MCP server for project management    | [LINEAR-MCP.md](extensions/LINEAR-MCP.md) |
-| jira-mcp   | Atlassian Jira/Confluence MCP server        | [JIRA-MCP.md](extensions/JIRA-MCP.md)     |
+| Extension  | Purpose                                  | Docs                                      |
+| ---------- | ---------------------------------------- | ----------------------------------------- |
+| linear-mcp | Linear MCP server for project management | [LINEAR-MCP.md](extensions/LINEAR-MCP.md) |
+| jira-mcp   | Atlassian Jira/Confluence MCP server     | [JIRA-MCP.md](extensions/JIRA-MCP.md)     |
 
 ### Desktop & Utilities
 
@@ -209,27 +209,27 @@ See [VisionFlow README](extensions/vision-flow/README.md) for implementation det
 
 Extensions support different upgrade approaches:
 
-| Strategy    | Description               | Extensions                                                                                                             |
-| ----------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `automatic` | Auto-upgrade via mise/apt | dotnet, ruby, nodejs-devtools, monitoring, xfce-ubuntu, agent-manager, openskills                                      |
-| `manual`    | Custom upgrade script     | ai-toolkit, cloud-tools, jvm, infra-tools, claude-code-mux, playwright, guacamole, linear-mcp, jira-mcp, supabase-cli  |
-| `none`      | No upgrades (static)      | github-cli, claude-marketplace, workspace-structure, mise-config                                                       |
+| Strategy    | Description               | Extensions                                                                                                            |
+| ----------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `automatic` | Auto-upgrade via mise/apt | dotnet, ruby, nodejs-devtools, monitoring, xfce-ubuntu, agent-manager, openskills                                     |
+| `manual`    | Custom upgrade script     | ai-toolkit, cloud-tools, jvm, infra-tools, claude-code-mux, playwright, guacamole, linear-mcp, jira-mcp, supabase-cli |
+| `none`      | No upgrades (static)      | github-cli, claude-marketplace, workspace-structure, mise-config                                                      |
 
 ### Secret Requirements
 
 Some extensions require API keys or credentials:
 
-| Extension                | Required Secrets                                        |
-| ------------------------ | ------------------------------------------------------- |
-| ai-toolkit               | `google_gemini_api_key`, `grok_api_key`                 |
-| cloud-tools              | AWS, Azure credentials                                  |
-| claude-auth-with-api-key | `anthropic_api_key`                                     |
-| claudish                 | `openrouter_api_key`                                    |
-| github-cli               | `github_token`                                          |
-| jira-mcp                 | `jira_url`, `jira_username`, `jira_api_token`           |
-| linear-mcp               | `linear_api_key`                                        |
-| ruvnet-research          | `perplexity_api_key` (optional)                         |
-| supabase-cli             | `supabase_access_token` (optional)                      |
+| Extension                | Required Secrets                              |
+| ------------------------ | --------------------------------------------- |
+| ai-toolkit               | `google_gemini_api_key`, `grok_api_key`       |
+| cloud-tools              | AWS, Azure credentials                        |
+| claude-auth-with-api-key | `anthropic_api_key`                           |
+| claudish                 | `openrouter_api_key`                          |
+| github-cli               | `github_token`                                |
+| jira-mcp                 | `jira_url`, `jira_username`, `jira_api_token` |
+| linear-mcp               | `linear_api_key`                              |
+| ruvnet-research          | `perplexity_api_key` (optional)               |
+| supabase-cli             | `supabase_access_token` (optional)            |
 
 ### Removal Confirmation
 

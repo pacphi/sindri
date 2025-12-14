@@ -275,16 +275,16 @@ Stores container mappings and access credentials:
 
 ```json
 {
-"containers": {
- "visionflow": {
-   "name": "visionflow_container",
-   "network": "docker_ragflow",
-   "image_prefix": "ar-ai-knowledge-graph-webxr"
- }
-},
-"docker_socket": "/var/run/docker.sock",
-"project_path": "/home/devuser/workspace/project",
-"launch_script": "scripts/launch.sh"
+  "containers": {
+    "visionflow": {
+      "name": "visionflow_container",
+      "network": "docker_ragflow",
+      "image_prefix": "ar-ai-knowledge-graph-webxr"
+    }
+  },
+  "docker_socket": "/var/run/docker.sock",
+  "project_path": "/home/devuser/workspace/project",
+  "launch_script": "scripts/launch.sh"
 }
 ```
 

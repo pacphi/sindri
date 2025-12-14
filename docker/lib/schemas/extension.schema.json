@@ -27,7 +27,19 @@
         },
         "category": {
           "type": "string",
-          "enum": ["base", "agile", "language", "dev-tools", "infrastructure", "ai", "utilities", "desktop", "monitoring", "database", "mobile"]
+          "enum": [
+            "base",
+            "agile",
+            "language",
+            "dev-tools",
+            "infrastructure",
+            "ai",
+            "utilities",
+            "desktop",
+            "monitoring",
+            "database",
+            "mobile"
+          ]
         },
         "author": {
           "type": "string"

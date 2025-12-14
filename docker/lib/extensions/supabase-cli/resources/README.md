@@ -42,6 +42,7 @@ supabase start
 ```
 
 This starts:
+
 - PostgreSQL database
 - Auth server
 - Storage server
@@ -95,18 +96,18 @@ supabase link --project-ref your-project-ref
 
 ## Common Commands
 
-| Command | Description |
-| ------- | ----------- |
-| `supabase init` | Initialize a new Supabase project |
-| `supabase start` | Start local Supabase stack |
-| `supabase stop` | Stop local Supabase stack |
-| `supabase status` | Show status of local services |
-| `supabase db push` | Push migrations to database |
-| `supabase db reset` | Reset local database |
-| `supabase gen types` | Generate TypeScript types |
-| `supabase functions new` | Create new edge function |
-| `supabase functions serve` | Serve functions locally |
-| `supabase login` | Login to Supabase |
+| Command                    | Description                       |
+| -------------------------- | --------------------------------- |
+| `supabase init`            | Initialize a new Supabase project |
+| `supabase start`           | Start local Supabase stack        |
+| `supabase stop`            | Stop local Supabase stack         |
+| `supabase status`          | Show status of local services     |
+| `supabase db push`         | Push migrations to database       |
+| `supabase db reset`        | Reset local database              |
+| `supabase gen types`       | Generate TypeScript types         |
+| `supabase functions new`   | Create new edge function          |
+| `supabase functions serve` | Serve functions locally           |
+| `supabase login`           | Login to Supabase                 |
 
 ## Links
 

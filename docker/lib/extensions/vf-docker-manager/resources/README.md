@@ -176,13 +176,13 @@ docker-manager/
 
 ```yaml
 Claude Code Request
-       ↓
+↓
 docker_manager.py (Python)
-       ↓
+↓
 Docker Socket (/var/run/docker.sock)
-       ↓
+↓
 Docker Daemon (host)
-       ↓
+↓
 visionflow_container (target)
 ```
 

@@ -10,12 +10,13 @@ allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 
 For reliable extension creation with all documentation updates, use these commands:
 
-| Command | Purpose |
-|---------|---------|
+| Command                          | Purpose                                                   |
+| -------------------------------- | --------------------------------------------------------- |
 | `/extension/new <name> [source]` | Create new extension with complete documentation workflow |
-| `/extension/update-docs <name>` | Update documentation for existing extension |
+| `/extension/update-docs <name>`  | Update documentation for existing extension               |
 
 **Example:**
+
 ```
 /extension/new mdflow https://github.com/johnlindquist/mdflow
 /extension/update-docs nodejs
@@ -35,16 +36,16 @@ This skill guides you through creating declarative YAML extensions for Sindri. E
 
 ### Key Documentation Files
 
-| Type | Path | Purpose |
-|------|------|---------|
-| **Schema** | `docker/lib/schemas/extension.schema.json` | Extension validation schema |
-| **Registry** | `docker/lib/registry.yaml` | Master extension registry |
-| **Profiles** | `docker/lib/profiles.yaml` | Extension profile definitions |
-| **Categories** | `docker/lib/categories.yaml` | Category definitions |
-| **Extension Docs** | `docs/extensions/{NAME}.md` | Individual extension documentation |
-| **Catalog** | `docs/EXTENSIONS.md` | Overview of all extensions |
-| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md` | Detailed authoring reference |
-| **Slides** | `docs/slides/extensions.html` | Visual presentation |
+| Type                | Path                                       | Purpose                            |
+| ------------------- | ------------------------------------------ | ---------------------------------- |
+| **Schema**          | `docker/lib/schemas/extension.schema.json` | Extension validation schema        |
+| **Registry**        | `docker/lib/registry.yaml`                 | Master extension registry          |
+| **Profiles**        | `docker/lib/profiles.yaml`                 | Extension profile definitions      |
+| **Categories**      | `docker/lib/categories.yaml`               | Category definitions               |
+| **Extension Docs**  | `docs/extensions/{NAME}.md`                | Individual extension documentation |
+| **Catalog**         | `docs/EXTENSIONS.md`                       | Overview of all extensions         |
+| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md`              | Detailed authoring reference       |
+| **Slides**          | `docs/slides/extensions.html`              | Visual presentation                |
 
 ## Quick Start Checklist
 
@@ -396,6 +397,7 @@ echo "my-tool installed successfully"
 ### Required Updates (Always Do These)
 
 - [ ] **Registry Entry** - Add to `docker/lib/registry.yaml`
+
   ```yaml
   extensions:
     my-extension:
@@ -515,6 +517,7 @@ For detailed field reference, see REFERENCE.md.
 For complete examples, see EXAMPLES.md.
 
 **Tip:** Use `Glob` and `Grep` tools to discover current documentation files dynamically:
+
 ```bash
 # Find all extension docs
 ls docs/extensions/*.md

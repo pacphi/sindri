@@ -6,15 +6,15 @@ This document describes the integration between the `ontology-import` skill and 
 
 ```yaml
 ontology-import (Node.js)
-    ↓
+↓
 validation_bridge.js (Node.js)
-    ↓
+↓
 spawn('python3')
-    ↓
+↓
 owl2_validator.py (Python)
-    ↓
+↓
 ValidationReport (JSON-like output)
-    ↓
+↓
 Parse & Return to Node.js
 ```
 

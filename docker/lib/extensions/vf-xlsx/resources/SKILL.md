@@ -144,6 +144,7 @@ This applies to ALL calculations - totals, percentages, ratios, differences, etc
 3. **Modify**: Add/edit data, formulas, and formatting
 4. **Save**: Write to file
 5. **Recalculate formulas (MANDATORY IF USING FORMULAS)**: Use the recalc.py script
+
    ```bash
    python recalc.py output.xlsx
    ```

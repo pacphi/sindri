@@ -51,10 +51,15 @@ export JIRA_API_TOKEN="your_api_token"
     "atlassian": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "-e", "JIRA_URL",
-        "-e", "JIRA_USERNAME",
-        "-e", "JIRA_API_TOKEN",
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "JIRA_URL",
+        "-e",
+        "JIRA_USERNAME",
+        "-e",
+        "JIRA_API_TOKEN",
         "ghcr.io/sooperset/mcp-atlassian:latest"
       ],
       "env": {
@@ -100,22 +105,22 @@ Once configured, you can ask Claude to:
 
 ### Required (Docker method)
 
-| Variable | Description |
-| -------- | ----------- |
-| `JIRA_URL` | Your Jira instance URL (e.g., `https://company.atlassian.net`) |
-| `JIRA_USERNAME` | Your email address |
-| `JIRA_API_TOKEN` | API token from Atlassian |
+| Variable         | Description                                                    |
+| ---------------- | -------------------------------------------------------------- |
+| `JIRA_URL`       | Your Jira instance URL (e.g., `https://company.atlassian.net`) |
+| `JIRA_USERNAME`  | Your email address                                             |
+| `JIRA_API_TOKEN` | API token from Atlassian                                       |
 
 ### Optional
 
-| Variable | Description |
-| -------- | ----------- |
-| `CONFLUENCE_URL` | Confluence instance URL |
-| `CONFLUENCE_USERNAME` | Confluence username (usually same as Jira) |
-| `CONFLUENCE_API_TOKEN` | Confluence API token |
-| `JIRA_PROJECTS_FILTER` | Comma-separated project keys to limit access |
-| `CONFLUENCE_SPACES_FILTER` | Comma-separated space keys to limit access |
-| `READ_ONLY_MODE` | Set to `true` to disable write operations |
+| Variable                   | Description                                  |
+| -------------------------- | -------------------------------------------- |
+| `CONFLUENCE_URL`           | Confluence instance URL                      |
+| `CONFLUENCE_USERNAME`      | Confluence username (usually same as Jira)   |
+| `CONFLUENCE_API_TOKEN`     | Confluence API token                         |
+| `JIRA_PROJECTS_FILTER`     | Comma-separated project keys to limit access |
+| `CONFLUENCE_SPACES_FILTER` | Comma-separated space keys to limit access   |
+| `READ_ONLY_MODE`           | Set to `true` to disable write operations    |
 
 ## Available Tools
 

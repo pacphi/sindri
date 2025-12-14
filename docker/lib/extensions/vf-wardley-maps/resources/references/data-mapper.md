@@ -147,24 +147,28 @@ def journey_to_value_chain(journey_data):
 ### Signals of Evolution
 
 **Genesis (0.0-0.2)**
+
 - High variance in metrics
 - Frequent failures
 - Manual processes
 - No standards
 
 **Custom (0.2-0.5)**
+
 - Improving metrics
 - Some automation
 - Emerging patterns
 - Local optimization
 
 **Product (0.5-0.8)**
+
 - Stable metrics
 - Automated processes
 - Industry standards
 - Global optimization
 
 **Commodity (0.8-1.0)**
+
 - Predictable metrics
 - Full automation
 - Universal standards

@@ -9,6 +9,7 @@ argument-hint: "<extension-name> [install-source: github-url|npm-package|apt-pac
 Create a complete Sindri extension including all required documentation updates.
 
 **Arguments:** $ARGUMENTS
+
 - First argument: extension name (required)
 - Second argument: install source for research (optional)
   - GitHub URL: `https://github.com/org/repo`
@@ -21,6 +22,7 @@ Create a complete Sindri extension including all required documentation updates.
 You MUST complete ALL phases below. Use TodoWrite to track progress through each phase.
 
 ### Phase 1: Research & Planning
+
 1. If an install source is provided, fetch/research information about the tool
 2. Determine the appropriate:
    - Category (ai, dev-tools, language, infrastructure, utilities, etc.)
@@ -29,6 +31,7 @@ You MUST complete ALL phases below. Use TodoWrite to track progress through each
 3. Create a todo list with all tasks from all phases
 
 ### Phase 2: Create Extension Files
+
 1. Create directory: `docker/lib/extensions/{name}/`
 2. Create `extension.yaml` with all required sections:
    - metadata (name, version, description, category, dependencies)
@@ -43,12 +46,14 @@ You MUST complete ALL phases below. Use TodoWrite to track progress through each
 5. Mark this phase complete in todo list
 
 ### Phase 3: Update Registry (REQUIRED)
+
 1. Add extension to `docker/lib/registry.yaml`
    - Place in correct category section
    - Include category, description, dependencies
 2. Mark this phase complete in todo list
 
 ### Phase 4: Create Extension Documentation (REQUIRED)
+
 1. Create `docs/extensions/{NAME}.md` (uppercase filename)
 2. Use the standard template with:
    - Overview table (category, version, installation, disk space, dependencies)
@@ -63,12 +68,14 @@ You MUST complete ALL phases below. Use TodoWrite to track progress through each
 3. Mark this phase complete in todo list
 
 ### Phase 5: Update Extension Catalog (REQUIRED)
+
 1. Edit `docs/EXTENSIONS.md`
 2. Add extension to the appropriate category table
 3. Include link to the extension doc
 4. Mark this phase complete in todo list
 
 ### Phase 6: Update Slides (REQUIRED for AI/notable extensions)
+
 1. Edit `docs/slides/extensions.html`
 2. Add to appropriate category slide (e.g., AI & ML Extensions table)
 3. Update extension count (search for "Pre-built Tools" and update number)
@@ -76,12 +83,15 @@ You MUST complete ALL phases below. Use TodoWrite to track progress through each
 5. Mark this phase complete in todo list
 
 ### Phase 7: Consider Profile Inclusion
+
 1. Review `docker/lib/profiles.yaml`
 2. If extension fits existing profiles (ai-dev, anthropic-dev, etc.), add it
 3. Mark this phase complete in todo list
 
 ### Phase 8: Validate Everything (REQUIRED)
+
 Run ALL validation commands:
+
 ```bash
 pnpm validate:yaml
 pnpm lint:md
@@ -89,7 +99,9 @@ pnpm lint:md
 ```
 
 ### Phase 9: Summary Report
+
 Provide a final summary listing:
+
 - All files created
 - All files updated
 - Validation results

@@ -26,18 +26,18 @@ Key features:
 
 ## Installed Tools
 
-| Tool     | Type     | Description                                      |
-| -------- | -------- | ------------------------------------------------ |
-| `mdflow` | cli-tool | CLI for executing markdown files as AI agents    |
+| Tool     | Type     | Description                                   |
+| -------- | -------- | --------------------------------------------- |
+| `mdflow` | cli-tool | CLI for executing markdown files as AI agents |
 
 ## Supported Backends
 
-| Backend  | File Pattern       | Required Tool |
-| -------- | ------------------ | ------------- |
-| Claude   | `*.claude.md`      | Claude CLI    |
-| Codex    | `*.codex.md`       | Codex CLI     |
-| Gemini   | `*.gemini.md`      | Gemini CLI    |
-| Copilot  | `*.copilot.md`     | Copilot CLI   |
+| Backend | File Pattern   | Required Tool |
+| ------- | -------------- | ------------- |
+| Claude  | `*.claude.md`  | Claude CLI    |
+| Codex   | `*.codex.md`   | Codex CLI     |
+| Gemini  | `*.gemini.md`  | Gemini CLI    |
+| Copilot | `*.copilot.md` | Copilot CLI   |
 
 ## Network Requirements
 
@@ -79,12 +79,12 @@ Write a function that calculates the fibonacci sequence.
 
 ### Commands
 
-| Command          | Description                      |
-| ---------------- | -------------------------------- |
-| `mdflow <file>`  | Execute markdown file as prompt  |
-| `mdflow setup`   | Configure shell integration      |
-| `mdflow logs`    | Display log directory location   |
-| `mdflow help`    | Show help information            |
+| Command         | Description                     |
+| --------------- | ------------------------------- |
+| `mdflow <file>` | Execute markdown file as prompt |
+| `mdflow setup`  | Configure shell integration     |
+| `mdflow logs`   | Display log directory location  |
+| `mdflow help`   | Show help information           |
 
 ### Command-Line Flags
 
