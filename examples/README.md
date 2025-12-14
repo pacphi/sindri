@@ -52,13 +52,13 @@ Ready-to-use configuration files for deploying Sindri to various providers. **55
 
 ### By Extension Profile
 
-| File                               | Profile    | Extensions (count)                                                |
-| ---------------------------------- | ---------- | ----------------------------------------------------------------- |
-| `profiles/minimal.sindri.yaml`     | minimal    | nodejs, python (2)                                                |
-| `profiles/fullstack.sindri.yaml`   | fullstack  | nodejs, python, docker, nodejs-devtools (4)                       |
-| `profiles/ai-dev.sindri.yaml`      | ai-dev     | nodejs, python, ai-toolkit, openskills, monitoring (5)            |
-| `profiles/devops.sindri.yaml`      | devops     | docker, infra-tools, cloud-tools, monitoring (4)                  |
-| `profiles/enterprise.sindri.yaml`  | enterprise | nodejs, python, golang, rust, ruby, jvm, dotnet, docker, etc. (9) |
+| File                              | Profile    | Extensions (count)                                                |
+| --------------------------------- | ---------- | ----------------------------------------------------------------- |
+| `profiles/minimal.sindri.yaml`    | minimal    | nodejs, python (2)                                                |
+| `profiles/fullstack.sindri.yaml`  | fullstack  | nodejs, python, docker, nodejs-devtools (4)                       |
+| `profiles/ai-dev.sindri.yaml`     | ai-dev     | nodejs, python, ai-toolkit, openskills, monitoring (5)            |
+| `profiles/devops.sindri.yaml`     | devops     | docker, infra-tools, cloud-tools, monitoring (4)                  |
+| `profiles/enterprise.sindri.yaml` | enterprise | nodejs, python, golang, rust, ruby, jvm, dotnet, docker, etc. (9) |
 
 **Note:** Provider-specific examples for `anthropic-dev`, `systems`, and `mobile` profiles are in `fly/` and `docker/` directories.
 

@@ -179,8 +179,11 @@ deployment:
 extensions:
   # Option 1: Use a predefined profile
   profile: fullstack
-  # Available profiles: minimal, fullstack, ai-dev, anthropic-dev,
-  #                     systems, enterprise, devops, mobile
+  # Available profiles:
+  #   Standard:   minimal, fullstack, ai-dev, anthropic-dev,
+  #               systems, enterprise, devops, mobile
+  #   VisionFlow: visionflow-core, visionflow-data-scientist,
+  #               visionflow-creative, visionflow-full
   # See: docker/lib/profiles.yaml for contents of each profile
 
   # Option 2: List specific extensions (mutually exclusive with profile)

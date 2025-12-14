@@ -76,19 +76,30 @@ Use a curated profile that bundles multiple extensions:
 extensions:
   profile:
     string # enum: [minimal, fullstack, ai-dev, anthropic-dev,
-    #        systems, enterprise, devops, mobile]
+    #        systems, enterprise, devops, mobile,
+    #        visionflow-core, visionflow-data-scientist,
+    #        visionflow-creative, visionflow-full]
 ```
 
 **Available Profiles:**
 
+_Standard profiles:_
+
 - `minimal` - Basic Node.js + Python setup
 - `fullstack` - Full-stack development (Node.js, Python, Docker, devtools)
-- `ai-dev` - AI/ML development (Node.js, Python, AI toolkit, monitoring)
+- `ai-dev` - AI/ML development (Node.js, Python, AI toolkit, mdflow, monitoring)
 - `anthropic-dev` - Complete Anthropic development toolset
 - `systems` - Systems programming (Rust, Go, Docker, infrastructure tools)
-- `enterprise` - Multi-language enterprise stack
+- `enterprise` - Multi-language enterprise stack with Jira integration
 - `devops` - DevOps and infrastructure tools
-- `mobile` - Mobile development backend
+- `mobile` - Mobile development with Linear and Supabase
+
+_VisionFlow profiles:_
+
+- `visionflow-core` - Document processing and automation
+- `visionflow-data-scientist` - AI research and ML tools
+- `visionflow-creative` - 3D modeling and creative tools
+- `visionflow-full` - All 34 VisionFlow extensions
 
 #### Option 2: Custom Active List
 
