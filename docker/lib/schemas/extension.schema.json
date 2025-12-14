@@ -469,7 +469,7 @@
               },
               "source": {
                 "type": "string",
-                "enum": ["mise", "apt", "npm", "binary", "script", "github-release"],
+                "enum": ["mise", "apt", "npm", "pip", "binary", "script", "github-release"],
                 "description": "Installation source method"
               },
               "type": {
@@ -483,7 +483,8 @@
                   "framework",
                   "database",
                   "server",
-                  "utility"
+                  "utility",
+                  "application"
                 ],
                 "description": "Type of software component"
               },

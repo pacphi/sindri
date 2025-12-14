@@ -46,6 +46,10 @@ on:
           - devops
           - anthropic-dev
           - enterprise
+          - visionflow-core
+          - visionflow-data-scientist
+          - visionflow-creative
+          - visionflow-full
       extension:
         description: Extension to test (when test-level is 'extension')
         required: false

@@ -82,6 +82,11 @@ on:
           - examples/profiles/devops.sindri.yaml
           - examples/profiles/enterprise.sindri.yaml
           - examples/profiles/mobile.sindri.yaml
+          # Individual examples - VisionFlow Profiles
+          - examples/profiles/vision-flow/visionflow-core.sindri.yaml
+          - examples/profiles/vision-flow/visionflow-creative.sindri.yaml
+          - examples/profiles/vision-flow/visionflow-data-scientist.sindri.yaml
+          - examples/profiles/vision-flow/visionflow-full.sindri.yaml
           # Individual examples - Custom Extensions
           - examples/custom/python-ml.sindri.yaml
           - examples/custom/rust-wasm.sindri.yaml
@@ -103,6 +108,7 @@ on:
           - examples/devpod/kubernetes/
           - examples/devpod/
           - examples/profiles/
+          - examples/profiles/vision-flow/
           - examples/custom/
           - examples/k8s/
           - examples/ # All examples
