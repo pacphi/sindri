@@ -10,7 +10,7 @@ requirements:
   domains:
     - crates.io
     - rust-lang.org
-  diskSpace: 800
+  diskSpace: 1200
   memory: 2048
   installTime: 120
 

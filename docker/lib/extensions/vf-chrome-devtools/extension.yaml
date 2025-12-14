@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-chrome-devtools
+  version: 1.0.0
+  description: Chrome DevTools Protocol MCP server (from VisionFlow)
+  category: dev-tools
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 100
+  memory: 256
+  installTime: 120
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-chrome-devtools/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-chrome-devtools
+
+remove:
+  paths:
+    - ~/extensions/vf-chrome-devtools
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: chrome-devtools-mcp
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:npm/chrome-devtools-mcp

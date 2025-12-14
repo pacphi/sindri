@@ -15,7 +15,7 @@ requirements:
     - archive.apache.org
     - archive.ubuntu.com
     - security.ubuntu.com
-  diskSpace: 1000
+  diskSpace: 2000
   memory: 2048
   installTime: 180
 

@@ -68,6 +68,13 @@ extraKnownMarketplaces:
       source: github
       repo: severity1/claude-code-prompt-improver
 
+  # Spring Modernization - Automated Spring Boot 4.x migrations
+  # https://github.com/agentic-incubator/java-spring-modernization-marketplace
+  spring-m11n-marketplace:
+    source:
+      source: github
+      repo: agentic-incubator/java-spring-modernization-marketplace
+
   # ============================================================================
   # OTHER MARKETPLACES
   # ============================================================================
@@ -116,6 +123,7 @@ enabledPlugins:
   document-skills-pptx@awesome-claude-skills: true
   document-skills-xlsx@awesome-claude-skills: true
   prompt-improver@claude-code-marketplace: true
+  spring-m11n@spring-m11n-marketplace: true
 
   # ============================================================================
   # OTHER PLUGINS

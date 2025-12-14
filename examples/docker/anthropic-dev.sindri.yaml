@@ -29,6 +29,14 @@ secrets:
   - name: AZURE_TENANT_ID
     source: env
 
+  # Project management - linear-mcp (included in anthropic-dev profile)
+  - name: LINEAR_API_KEY
+    source: env
+
+  # Infrastructure - supabase-cli (included in anthropic-dev profile)
+  - name: SUPABASE_ACCESS_TOKEN
+    source: env
+
 providers:
   docker-compose:
     ports:

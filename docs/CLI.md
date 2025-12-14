@@ -321,15 +321,22 @@ sindri profiles list
 
 ```text
 Available profiles:
+
+Standard:
   minimal       - Basic Node.js + Python setup (2 extensions)
   fullstack     - Full-stack development (4 extensions)
-  ai-dev        - AI/ML development (5 extensions)
-  anthropic-dev - Complete Anthropic toolset (12 extensions)
+  ai-dev        - AI/ML development (9 extensions)
+  anthropic-dev - Complete Anthropic toolset (20 extensions)
   systems       - Systems programming (4 extensions)
-  enterprise    - Multi-language enterprise stack (9 extensions)
-  data-science  - Python + monitoring (2 extensions)
+  enterprise    - Multi-language enterprise stack (10 extensions)
   devops        - DevOps and infrastructure (4 extensions)
-  mobile        - Mobile development backend (1+ extensions)
+  mobile        - Mobile development backend (3 extensions)
+
+VisionFlow:
+  visionflow-core           - Document processing (9 extensions)
+  visionflow-data-scientist - AI research and ML (9 extensions)
+  visionflow-creative       - 3D modeling and creative (5 extensions)
+  visionflow-full           - All VisionFlow tools (34 extensions)
 ```
 
 ### sindri profiles show

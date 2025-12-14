@@ -13,7 +13,7 @@ requirements:
     - dist.nuget.org
     - archive.ubuntu.com
     - ppa.launchpadcontent.net
-  diskSpace: 2500
+  diskSpace: 1000
   memory: 512
   installTime: 120
 

@@ -40,9 +40,12 @@ on:
           - anthropic-dev
           - systems
           - enterprise
-          - data-science
           - devops
           - mobile
+          - visionflow-core
+          - visionflow-data-scientist
+          - visionflow-creative
+          - visionflow-full
       vm-size:
         description: VM/Instance size (provider-specific)
         required: false

@@ -16,6 +16,16 @@ deployment:
 extensions:
   profile: mobile
 
+# Project management and backend - included in mobile profile
+secrets:
+  # Linear.app - linear-mcp
+  - name: LINEAR_API_KEY
+    source: env
+
+  # Supabase - supabase-cli
+  - name: SUPABASE_ACCESS_TOKEN
+    source: env
+
 providers:
   docker-compose:
     ports:

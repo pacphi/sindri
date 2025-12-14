@@ -1,0 +1,63 @@
+---
+metadata:
+  name: agentic-flow
+  version: 1.0.0
+  description: Multi-model AI agent framework for Claude Code with cost optimization
+  category: ai
+  author: ruvnet
+  license: MIT
+  homepage: https://github.com/ruvnet/agentic-flow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+  diskSpace: 80
+  memory: 128
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: agentic-flow.aliases
+      destination: ~/.bashrc
+      mode: append
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: agentic-flow
+      expectedPattern: ".*"
+
+remove:
+  npm:
+    packages:
+      - agentic-flow
+    global: true
+  confirmation: true
+
+upgrade:
+  strategy: automatic
+  script:
+    path: upgrade.sh
+    timeout: 300
+
+bom:
+  tools:
+    - name: agentic-flow
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/ruvnet/agentic-flow
+      purl: pkg:npm/agentic-flow

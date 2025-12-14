@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-canvas-design
+  version: 1.0.0
+  description: Design system framework with fonts and brand guidelines (from VisionFlow)
+  category: desktop
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 200
+  memory: 512
+  installTime: 120
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-canvas-design/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-canvas-design
+
+remove:
+  paths:
+    - ~/extensions/vf-canvas-design
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: canvas-design
+      version: 1.0.0
+      source: script
+      type: framework
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-canvas-design

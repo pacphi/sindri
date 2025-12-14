@@ -179,8 +179,11 @@ deployment:
 extensions:
   # Option 1: Use a predefined profile
   profile: fullstack
-  # Available profiles: minimal, fullstack, ai-dev, anthropic-dev,
-  #                     systems, enterprise, data-science, devops, mobile
+  # Available profiles:
+  #   Standard:   minimal, fullstack, ai-dev, anthropic-dev,
+  #               systems, enterprise, devops, mobile
+  #   VisionFlow: visionflow-core, visionflow-data-scientist,
+  #               visionflow-creative, visionflow-full
   # See: docker/lib/profiles.yaml for contents of each profile
 
   # Option 2: List specific extensions (mutually exclusive with profile)
@@ -228,13 +231,31 @@ secrets:
   - name: GIT_USER_EMAIL
     source: env
 
-  # AI Tools (optional)
-  # - name: OPENROUTER_API_KEY
+  # AI Tools (optional) - see docs/SECRETS_MANAGEMENT.md for details
+  # - name: OPENROUTER_API_KEY    # OpenRouter multi-provider AI gateway (claudish)
   #   source: env
-  # - name: GOOGLE_GEMINI_API_KEY
+  # - name: GOOGLE_GEMINI_API_KEY # Google Gemini API (vf-gemini-flow, ai-toolkit)
   #   source: env
-  # - name: PERPLEXITY_API_KEY
+  # - name: PERPLEXITY_API_KEY    # Perplexity AI research (vf-perplexity, vf-ontology-enrich)
   #   source: env
+  # - name: DEEPSEEK_API_KEY      # DeepSeek AI reasoning (vf-deepseek-reasoning)
+  #   source: env
+  # - name: ZAI_ANTHROPIC_API_KEY # Cost-effective Claude wrapper (vf-zai-service)
+  #   source: env
+
+  # Project Management Tools (optional)
+  # - name: LINEAR_API_KEY        # Linear.app issue tracking (linear-mcp)
+  #   source: env
+  # - name: JIRA_URL              # Atlassian Jira base URL (jira-mcp)
+  #   source: env                 # Example: https://mycompany.atlassian.net
+  # - name: JIRA_USERNAME         # Atlassian account email (jira-mcp)
+  #   source: env
+  # - name: JIRA_API_TOKEN        # Atlassian API token (jira-mcp)
+  #   source: env                 # Create at: https://id.atlassian.com/manage-profile/security/api-tokens
+
+  # Infrastructure Tools (optional)
+  # - name: SUPABASE_ACCESS_TOKEN # Supabase CLI authentication (supabase-cli)
+  #   source: env                 # Create at: https://supabase.com/dashboard/account/tokens
 
   # File-based secrets (mount entire files into container)
   # - name: SSH_KEY

@@ -10,7 +10,7 @@ requirements:
   domains:
     - registry.npmjs.org
     - nodejs.org
-  diskSpace: 600
+  diskSpace: 300
   memory: 256
   installTime: 30
 

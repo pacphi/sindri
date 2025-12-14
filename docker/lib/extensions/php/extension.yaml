@@ -15,7 +15,7 @@ requirements:
     - ppa.launchpadcontent.net
     - symfony.com
     - get.symfony.com
-  diskSpace: 1000
+  diskSpace: 300
   memory: 256
   installTime: 60
 

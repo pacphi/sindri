@@ -1,0 +1,67 @@
+---
+metadata:
+  name: claude-flow
+  version: 1.0.0
+  description: AI-powered multi-agent orchestration system for Claude Code workflows
+  category: ai
+  author: ruvnet
+  license: MIT
+  homepage: https://github.com/ruvnet/claude-flow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+  diskSpace: 100
+  memory: 128
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: claude-flow.aliases
+      destination: ~/.bashrc
+      mode: append
+  commands:
+    - source: commands/ms.md
+      destination: ~/.claude/commands/ms.md
+      description: MetaSaver intelligent command router for complexity-based task routing
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: claude-flow
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  npm:
+    packages:
+      - claude-flow
+    global: true
+  confirmation: true
+
+upgrade:
+  strategy: automatic
+  script:
+    path: upgrade.sh
+    timeout: 300
+
+bom:
+  tools:
+    - name: claude-flow
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/ruvnet/claude-flow
+      purl: pkg:npm/claude-flow

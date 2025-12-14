@@ -149,7 +149,7 @@
 <section data-background-gradient="linear-gradient(135deg, #0d1117 0%, #21262d 100%)">
     <h1>Sindri Extensions</h1>
     <h3>Build Your Perfect Development Environment</h3>
-    <p class="small">32+ declarative YAML extensions for languages, tools, and AI frameworks</p>
+    <p class="small">72+ declarative YAML extensions for languages, tools, and AI frameworks</p>
     <p style="margin-top: 2em;">
         <span class="category-box category-language">Languages</span>
         <span class="category-box category-devtools">Dev Tools</span>
@@ -198,7 +198,7 @@ extension.yaml              (Definition)
 ├── extensions/                 Extension definitions
 │   ├── nodejs/extension.yaml
 │   ├── python/extension.yaml
-│   └── ... (32+ extensions)
+│   └── ... (71+ extensions)
 ├── registry.yaml               Extension registry
 ├── profiles.yaml               Profile definitions
 ├── categories.yaml             Category definitions
@@ -254,7 +254,7 @@ extension.yaml              (Definition)
 <!-- AVAILABLE EXTENSIONS SECTION -->
 <section data-background="#238636">
     <h1>Available Extensions</h1>
-    <h3>32+ Pre-built Tools</h3>
+    <h3>72+ Pre-built Tools</h3>
 </section>
 
 <!-- Language Extensions -->
@@ -374,11 +374,6 @@ extension.yaml              (Definition)
             <td>Plugins, MCPs, configuration</td>
         </tr>
         <tr>
-            <td class="highlight">ruvnet-aliases</td>
-            <td>Claude Flow & Agentic Flow</td>
-            <td>AI workflow automation</td>
-        </tr>
-        <tr>
             <td class="highlight">ruvnet-research</td>
             <td>AI research tools</td>
             <td>Goalie, Research-Swarm</td>
@@ -387,6 +382,26 @@ extension.yaml              (Definition)
             <td class="highlight">claudish</td>
             <td>OpenRouter model proxy</td>
             <td>Claude Code with OpenRouter models</td>
+        </tr>
+        <tr>
+            <td class="highlight">claude-flow</td>
+            <td>Multi-agent orchestration</td>
+            <td>Hive-mind, swarm, GOAP</td>
+        </tr>
+        <tr>
+            <td class="highlight">agentic-flow</td>
+            <td>Agentic workflow orchestration</td>
+            <td>Flow automation & coordination</td>
+        </tr>
+        <tr>
+            <td class="highlight">goose</td>
+            <td>AI coding agent</td>
+            <td>Tool use & code generation</td>
+        </tr>
+        <tr>
+            <td class="highlight">mdflow</td>
+            <td>Markdown to AI agents</td>
+            <td>Claude, Codex, Gemini, Copilot</td>
         </tr>
     </table>
 </section>
@@ -455,6 +470,65 @@ extension.yaml              (Definition)
     </table>
 </section>
 
+<!-- VisionFlow Extensions Section -->
+<section>
+    <section>
+        <h2>VisionFlow Extensions (34)</h2>
+        <p class="small">From <a href="https://github.com/DreamLab-AI/VisionFlow">VisionFlow Project</a> - AI workflows, document processing, creative tools</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1em; font-size: 0.65em;">
+            <div>
+                <h4 style="color: #a371f7; margin: 0.3em 0;">AI Tools (9)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-perplexity, vf-web-summary, vf-deepseek-reasoning,
+                    vf-comfyui, vf-pytorch-ml, vf-ontology-enrich,
+                    vf-import-to-ontology, vf-gemini-flow, vf-zai-service
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #58a6ff; margin: 0.3em 0;">Dev Tools (8)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-playwright-mcp, vf-chrome-devtools, vf-jupyter-notebooks,
+                    vf-webapp-testing, vf-kicad, vf-ngspice,
+                    vf-mcp-builder, vf-skill-creator
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #3fb950; margin: 0.3em 0;">Desktop & Creative (5)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-blender, vf-qgis, vf-pbr-rendering,
+                    vf-canvas-design, vf-vnc-desktop
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #d29922; margin: 0.3em 0;">Utilities (10)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-imagemagick, vf-ffmpeg-processing, vf-latex-documents,
+                    vf-pdf, vf-docx, vf-pptx, vf-xlsx,
+                    vf-wardley-maps, vf-slack-gif-creator, vf-algorithmic-art
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>VisionFlow Infrastructure (2)</h2>
+        <table class="comparison-table">
+            <tr>
+                <th>Extension</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>vf-docker-manager</td>
+                <td>Docker container management MCP</td>
+            </tr>
+            <tr>
+                <td>vf-management-api</td>
+                <td>API management and monitoring</td>
+            </tr>
+        </table>
+    </section>
+</section>
+
 <!-- PROFILES SECTION -->
 <section data-background="#1f6feb">
     <h1>Extension Profiles</h1>
@@ -463,7 +537,7 @@ extension.yaml              (Definition)
 
 <!-- Profile Overview -->
 <section>
-    <h2>Available Profiles (9)</h2>
+    <h2>Available Profiles (13)</h2>
     <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5em;">
         <div class="profile-card">
             <h4>minimal</h4>
@@ -496,14 +570,29 @@ extension.yaml              (Definition)
             <span class="small">~15GB | Multi-language</span>
         </div>
         <div class="profile-card">
-            <h4>data-science</h4>
-            python, monitoring<br>
-            <span class="small">~2GB | Data analytics</span>
-        </div>
-        <div class="profile-card">
             <h4>mobile</h4>
             nodejs<br>
             <span class="small">~1GB | Mobile development</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-core</h4>
+            9 extensions: Document processing & automation<br>
+            <span class="small">~3GB | Document workflows</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-data-scientist</h4>
+            7 extensions: AI research & ML tools<br>
+            <span class="small">~5GB | Data science</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-creative</h4>
+            5 extensions: 3D modeling & creative tools<br>
+            <span class="small">~4GB | Creative dev</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-full</h4>
+            All 34 VisionFlow extensions<br>
+            <span class="small">~12GB | Complete suite</span>
         </div>
     </div>
 </section>
@@ -542,8 +631,7 @@ extension.yaml              (Definition)
             <div class="ext-item" style="display: inline-block; margin: 0.1em;">infra-tools</div>
         </div>
         <div style="text-align: left;">
-            <h4 style="color: #f85149; margin: 0 0 0.3em 0;">Research (2)</h4>
-            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ruvnet-aliases</div>
+            <h4 style="color: #f85149; margin: 0 0 0.3em 0;">Research (1)</h4>
             <div class="ext-item" style="display: inline-block; margin: 0.1em;">ruvnet-research</div>
         </div>
     </div>
@@ -1132,8 +1220,8 @@ bom:
 <section>
     <h2>Summary</h2>
     <ul>
-        <li><span class="highlight">32+ Extensions</span> - Languages, AI, DevOps, Infrastructure</li>
-        <li><span class="highlight">9 Profiles</span> - minimal to enterprise</li>
+        <li><span class="highlight">72+ Extensions</span> - Languages, AI, DevOps, Infrastructure, VisionFlow</li>
+        <li><span class="highlight">13 Profiles</span> - minimal to enterprise + VisionFlow</li>
         <li><span class="highlight">6 Install Methods</span> - mise, apt, npm, binary, script, hybrid</li>
         <li><span class="highlight">YAML-First</span> - Declarative, schema-validated</li>
         <li><span class="highlight">Auto Dependencies</span> - Topological resolution</li>

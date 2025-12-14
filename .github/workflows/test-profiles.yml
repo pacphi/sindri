@@ -36,7 +36,6 @@ on:
           - examples/fly/anthropic-dev.sindri.yaml
           - examples/fly/systems.sindri.yaml
           - examples/fly/mobile.sindri.yaml
-          - examples/fly/data-science-high-mem.sindri.yaml
           - examples/fly/gpu-ml-training.sindri.yaml
           - examples/fly/regions/ord.sindri.yaml
           - examples/fly/regions/ams.sindri.yaml
@@ -48,7 +47,6 @@ on:
           - examples/docker/anthropic-dev.sindri.yaml
           - examples/docker/systems.sindri.yaml
           - examples/docker/devops.sindri.yaml
-          - examples/docker/data-science.sindri.yaml
           - examples/docker/enterprise.sindri.yaml
           - examples/docker/mobile.sindri.yaml
           - examples/docker/gpu-ai-dev.sindri.yaml
@@ -66,7 +64,6 @@ on:
           - examples/devpod/gcp/regions/europe-west1.sindri.yaml
           # Individual examples - DevPod Azure
           - examples/devpod/azure/minimal.sindri.yaml
-          - examples/devpod/azure/data-science.sindri.yaml
           - examples/devpod/azure/regions/westeurope.sindri.yaml
           # Individual examples - DevPod DigitalOcean
           - examples/devpod/digitalocean/minimal.sindri.yaml
@@ -80,12 +77,13 @@ on:
           - examples/profiles/minimal.sindri.yaml
           - examples/profiles/fullstack.sindri.yaml
           - examples/profiles/ai-dev.sindri.yaml
-          - examples/profiles/anthropic-dev.sindri.yaml
-          - examples/profiles/systems.sindri.yaml
           - examples/profiles/devops.sindri.yaml
-          - examples/profiles/data-science.sindri.yaml
           - examples/profiles/enterprise.sindri.yaml
-          - examples/profiles/mobile.sindri.yaml
+          # Individual examples - VisionFlow Profiles
+          - examples/profiles/vision-flow/visionflow-core.sindri.yaml
+          - examples/profiles/vision-flow/visionflow-creative.sindri.yaml
+          - examples/profiles/vision-flow/visionflow-data-scientist.sindri.yaml
+          - examples/profiles/vision-flow/visionflow-full.sindri.yaml
           # Individual examples - Custom Extensions
           - examples/custom/python-ml.sindri.yaml
           - examples/custom/rust-wasm.sindri.yaml
@@ -107,6 +105,7 @@ on:
           - examples/devpod/kubernetes/
           - examples/devpod/
           - examples/profiles/
+          - examples/profiles/vision-flow/
           - examples/custom/
           - examples/k8s/
           - examples/ # All examples

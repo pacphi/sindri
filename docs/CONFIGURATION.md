@@ -158,11 +158,23 @@ extensions:
 
 **Available profiles:**
 
+**Standard profiles:**
+
 - `minimal` - nodejs, python
-- `fullstack` - nodejs, python, docker, postgres, nodejs-devtools
-- `ai-dev` - nodejs, python, ai-toolkit, openskills, monitoring
+- `fullstack` - nodejs, python, docker, nodejs-devtools
+- `ai-dev` - nodejs, python, golang, ai-toolkit, mdflow, openskills, supabase-cli, linear-mcp, monitoring
+- `anthropic-dev` - Full Anthropic toolset (claude-flow, agentic-flow, ai-toolkit, etc.)
 - `systems` - rust, golang, docker, infra-tools
-- `enterprise` - All languages and infrastructure tools
+- `enterprise` - All languages + jira-mcp, cloud-tools
+- `devops` - docker, infra-tools, monitoring, cloud-tools
+- `mobile` - nodejs, linear-mcp, supabase-cli
+
+**VisionFlow profiles:**
+
+- `visionflow-core` - Document processing (pdf, docx, xlsx, imagemagick, ffmpeg)
+- `visionflow-data-scientist` - AI research and ML tools (perplexity, pytorch, comfyui)
+- `visionflow-creative` - 3D modeling and creative tools (blender, qgis, canvas-design)
+- `visionflow-full` - All 34 VisionFlow extensions
 
 ### Option 2: Individual Extensions
 

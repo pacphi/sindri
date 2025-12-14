@@ -347,7 +347,6 @@ Profiles are defined in `docker/lib/profiles.yaml` with varying resource require
 | Profile         | Extensions | Disk Required | Timeout |
 | --------------- | ---------- | ------------- | ------- |
 | `minimal`       | 2          | ~1.0 GB       | 15 min  |
-| `data-science`  | 2          | ~0.6 GB       | 15 min  |
 | `mobile`        | 1          | ~0.6 GB       | 15 min  |
 | `fullstack`     | 4          | ~2.2 GB       | 25 min  |
 | `ai-dev`        | 5          | ~3.3 GB       | 30 min  |

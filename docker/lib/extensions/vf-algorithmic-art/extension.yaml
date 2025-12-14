@@ -1,0 +1,51 @@
+---
+metadata:
+  name: vf-algorithmic-art
+  version: 1.0.0
+  description: Generative algorithmic art with p5.js patterns (from VisionFlow)
+  category: utilities
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+  diskSpace: 100
+  memory: 256
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-algorithmic-art/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-algorithmic-art
+
+remove:
+  paths:
+    - ~/extensions/vf-algorithmic-art
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: algorithmic-art
+      version: 1.0.0
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:generic/vf-algorithmic-art

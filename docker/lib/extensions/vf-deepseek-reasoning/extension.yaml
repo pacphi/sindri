@@ -1,0 +1,58 @@
+---
+metadata:
+  name: vf-deepseek-reasoning
+  version: 1.0.0
+  description: Deepseek AI reasoning MCP server (from VisionFlow)
+  category: ai
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - api.deepseek.com
+    - registry.npmjs.org
+  diskSpace: 100
+  memory: 256
+  installTime: 120
+  secrets:
+    - deepseek_api_key
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-deepseek-reasoning/SKILL.md
+      mode: overwrite
+  environment:
+    - key: DEEPSEEK_API_KEY
+      value: "${DEEPSEEK_API_KEY}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: test
+      versionFlag: -d ~/extensions/vf-deepseek-reasoning/mcp-server
+
+remove:
+  paths:
+    - ~/extensions/vf-deepseek-reasoning
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: deepseek-reasoning-mcp
+      version: 1.0.0
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/DreamLab-AI/VisionFlow
+      purl: pkg:npm/deepseek-reasoning-mcp

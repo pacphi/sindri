@@ -1,0 +1,59 @@
+---
+metadata:
+  name: vf-pdf
+  version: 1.0.0
+  description: PDF manipulation with PyMuPDF and pdfplumber (from VisionFlow)
+  category: utilities
+  author: VisionFlow/Sindri Team
+  homepage: https://github.com/DreamLab-AI/VisionFlow
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+  diskSpace: 100
+  memory: 256
+  installTime: 120
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/vf-pdf/SKILL.md
+      mode: overwrite
+
+validate:
+  commands:
+    - name: python3
+      versionFlag: -c "import pdfplumber; print('ok')"
+      expectedPattern: "ok"
+
+remove:
+  paths:
+    - ~/extensions/vf-pdf
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: pdfplumber
+      version: dynamic
+      source: pip
+      type: library
+      license: MIT
+      homepage: https://github.com/jsvine/pdfplumber
+      purl: pkg:pypi/pdfplumber
+    - name: pymupdf
+      version: dynamic
+      source: pip
+      type: library
+      license: AGPL-3.0
+      homepage: https://pymupdf.readthedocs.io
+      purl: pkg:pypi/pymupdf

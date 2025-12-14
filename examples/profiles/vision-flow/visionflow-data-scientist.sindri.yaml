@@ -1,0 +1,32 @@
+---
+# Sindri Configuration - VisionFlow Data Scientist Profile
+# AI research and ML tools (7 extensions)
+version: "1.0"
+name: sindri-visionflow-data-scientist
+
+deployment:
+  provider: docker
+  resources:
+    memory: 16GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+  gpu:
+    enabled: true
+    type: nvidia
+    count: 1
+
+extensions:
+  profile: visionflow-data-scientist
+
+secrets:
+  - name: PERPLEXITY_API_KEY
+    source: env
+  - name: DEEPSEEK_API_KEY
+    source: env
+
+providers:
+  docker:
+    ports:
+      - "10022:2222" # SSH

@@ -118,7 +118,7 @@
       "id": "available-profiles",
       "category": "configuration",
       "question": "What extension profiles are available?",
-      "answer": "Available profiles include: minimal (nodejs, python), fullstack (nodejs, python, docker, nodejs-devtools), ai-dev (nodejs, python, ai-toolkit, openskills, monitoring), anthropic-dev (comprehensive Claude/AI toolset), systems (rust, golang, docker, infra-tools), enterprise (all languages and infrastructure), data-science (python, monitoring), devops (docker, infra-tools, cloud-tools, monitoring), and mobile (nodejs).",
+      "answer": "Available profiles include: minimal (nodejs, python), fullstack (nodejs, python, docker, nodejs-devtools), ai-dev (nodejs, python, ai-toolkit, openskills, monitoring), anthropic-dev (comprehensive Claude/AI toolset), systems (rust, golang, docker, infra-tools), enterprise (all languages and infrastructure), devops (docker, infra-tools, cloud-tools, monitoring), and mobile (nodejs).",
       "tags": ["profiles", "list", "options"],
       "docs": ["docs/EXTENSIONS.md", "docker/lib/profiles.yaml"]
     },
@@ -214,7 +214,7 @@
       "id": "extension-install-profile",
       "category": "extensions",
       "question": "How do I install all extensions from a profile?",
-      "answer": "Run 'extension-manager install-profile <name>' (e.g., 'extension-manager install-profile fullstack'). This installs all extensions defined in the profile with their dependencies. Available profiles: minimal, fullstack, ai-dev, anthropic-dev, systems, enterprise, data-science, devops, mobile.",
+      "answer": "Run 'extension-manager install-profile <name>' (e.g., 'extension-manager install-profile fullstack'). This installs all extensions defined in the profile with their dependencies. Available profiles: minimal, fullstack, ai-dev, anthropic-dev, systems, enterprise, devops, mobile.",
       "tags": ["profile", "bundle", "install"],
       "docs": ["docs/EXTENSIONS.md"]
     },

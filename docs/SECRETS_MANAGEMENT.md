@@ -13,6 +13,7 @@ Comprehensive guide to managing secrets in Sindri across all deployment provider
 - [Provider-Specific Behavior](#provider-specific-behavior)
 - [Configuration Reference](#configuration-reference)
 - [Security Best Practices](#security-best-practices)
+- [Extension-Specific API Keys](#extension-specific-api-keys)
 - [Common Patterns](#common-patterns)
 - [Troubleshooting](#troubleshooting)
 
@@ -751,6 +752,74 @@ rules:
     resources: ["secrets"]
     resourceNames: ["sindri-secrets"] # Specific secret only
     verbs: ["get"]
+```
+
+## Extension-Specific API Keys
+
+Many Sindri extensions require API keys or tokens to function. This reference lists all extensions that need secrets configured.
+
+### AI & Machine Learning
+
+| Extension                  | Secret Name             | Description                              | Where to Get                                                  |
+| -------------------------- | ----------------------- | ---------------------------------------- | ------------------------------------------------------------- |
+| `claude-auth-with-api-key` | `ANTHROPIC_API_KEY`     | Claude API access                        | [Anthropic Console](https://console.anthropic.com/)           |
+| `vf-gemini-flow`           | `GOOGLE_GEMINI_API_KEY` | Google Gemini multi-agent orchestration  | [Google AI Studio](https://makersuite.google.com/app/apikey)  |
+| `vf-perplexity`            | `PERPLEXITY_API_KEY`    | Perplexity AI real-time web research     | [Perplexity Settings](https://www.perplexity.ai/settings/api) |
+| `vf-deepseek-reasoning`    | `DEEPSEEK_API_KEY`      | DeepSeek AI reasoning MCP server         | [DeepSeek Platform](https://platform.deepseek.com/)           |
+| `vf-zai-service`           | `ZAI_ANTHROPIC_API_KEY` | Cost-effective Claude API wrapper        | [Anthropic Console](https://console.anthropic.com/)           |
+| `vf-ontology-enrich`       | `PERPLEXITY_API_KEY`    | AI ontology enrichment (uses Perplexity) | [Perplexity Settings](https://www.perplexity.ai/settings/api) |
+| `ai-toolkit`               | `GOOGLE_GEMINI_API_KEY` | Multi-AI toolkit (Gemini support)        | [Google AI Studio](https://makersuite.google.com/app/apikey)  |
+| `claudish`                 | `OPENROUTER_API_KEY`    | OpenRouter multi-provider gateway        | [OpenRouter Keys](https://openrouter.ai/keys)                 |
+
+### Project Management
+
+| Extension    | Secret Name      | Description                              | Where to Get                                                                        |
+| ------------ | ---------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| `linear-mcp` | `LINEAR_API_KEY` | Linear.app AI-powered project management | [Linear API Settings](https://linear.app/settings/api)                              |
+| `jira-mcp`   | `JIRA_URL`       | Atlassian Jira base URL                  | Your Jira instance (e.g., `https://company.atlassian.net`)                          |
+| `jira-mcp`   | `JIRA_USERNAME`  | Atlassian account email                  | Your Atlassian account                                                              |
+| `jira-mcp`   | `JIRA_API_TOKEN` | Atlassian API token                      | [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
+
+### Infrastructure
+
+| Extension           | Secret Name             | Description                                     | Where to Get                                                        |
+| ------------------- | ----------------------- | ----------------------------------------------- | ------------------------------------------------------------------- |
+| `supabase-cli`      | `SUPABASE_ACCESS_TOKEN` | Supabase CLI authentication                     | [Supabase Dashboard](https://supabase.com/dashboard/account/tokens) |
+| `vf-management-api` | `MANAGEMENT_API_KEY`    | VisionFlow task orchestration API (has default) | Self-configured                                                     |
+
+### Example: AI Extensions Configuration
+
+```yaml
+secrets:
+  # Core Claude access
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  # Additional AI providers (enable as needed)
+  - name: GOOGLE_GEMINI_API_KEY
+    source: env
+  - name: PERPLEXITY_API_KEY
+    source: env
+  - name: DEEPSEEK_API_KEY
+    source: env
+```
+
+### Example: Project Management Configuration
+
+```yaml
+secrets:
+  # Linear integration
+  - name: LINEAR_API_KEY
+    source: env
+
+  # Jira integration (requires all three)
+  - name: JIRA_URL
+    source: env
+  - name: JIRA_USERNAME
+    source: env
+  - name: JIRA_API_TOKEN
+    source: env
 ```
 
 ## Common Patterns
