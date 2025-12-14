@@ -29,6 +29,15 @@ secrets:
   - name: AZURE_TENANT_ID
     source: env
 
+  # Atlassian Jira - jira-mcp (included in enterprise profile)
+  # Get token at: https://id.atlassian.com/manage-profile/security/api-tokens
+  - name: JIRA_URL
+    source: env
+  - name: JIRA_USERNAME
+    source: env
+  - name: JIRA_API_TOKEN
+    source: env
+
 providers:
   docker-compose:
     ports:

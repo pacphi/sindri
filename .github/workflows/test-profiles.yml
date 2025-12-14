@@ -77,11 +77,8 @@ on:
           - examples/profiles/minimal.sindri.yaml
           - examples/profiles/fullstack.sindri.yaml
           - examples/profiles/ai-dev.sindri.yaml
-          - examples/profiles/anthropic-dev.sindri.yaml
-          - examples/profiles/systems.sindri.yaml
           - examples/profiles/devops.sindri.yaml
           - examples/profiles/enterprise.sindri.yaml
-          - examples/profiles/mobile.sindri.yaml
           # Individual examples - VisionFlow Profiles
           - examples/profiles/vision-flow/visionflow-core.sindri.yaml
           - examples/profiles/vision-flow/visionflow-creative.sindri.yaml

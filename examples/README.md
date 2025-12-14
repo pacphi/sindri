@@ -1,6 +1,6 @@
 # Sindri Configuration Examples
 
-Ready-to-use configuration files for deploying Sindri to various providers. **47 examples** covering all profiles, providers, and configuration permutations.
+Ready-to-use configuration files for deploying Sindri to various providers. **55 examples** covering all profiles, providers, and configuration permutations.
 
 ## Quick Start
 
@@ -15,7 +15,7 @@ Ready-to-use configuration files for deploying Sindri to various providers. **47
 
 | Type                 | Count | Description                            |
 | -------------------- | ----- | -------------------------------------- |
-| **Profile-based**    | 40    | Use curated extension profiles         |
+| **Profile-based**    | 37    | Use curated extension profiles         |
 | **Custom**           | 7     | Hand-picked extensions (no profile)    |
 | **Provider-focused** | 24    | Provider-specific features and regions |
 
@@ -26,13 +26,13 @@ Ready-to-use configuration files for deploying Sindri to various providers. **47
 | minimal       | 4   | 1      | 11     | -      | 16    |
 | fullstack     | 2   | 1      | 2      | -      | 5     |
 | ai-dev        | 1   | 1      | 2      | -      | 4     |
-| anthropic-dev | 2   | 1      | -      | -      | 3     |
+| anthropic-dev | 1   | 1      | -      | -      | 2     |
 | systems       | 1   | 1      | 1      | -      | 3     |
 | devops        | 1   | 1      | 1      | -      | 3     |
-| enterprise    | 1   | 1      | -      | -      | 2     |
+| enterprise    | -   | 1      | -      | -      | 1     |
 | mobile        | 1   | 1      | -      | -      | 2     |
 | **Custom**    | 2   | 2      | 1      | 2      | 7     |
-| **Total**     | 17  | 11     | 19     | 2      | 47    |
+| **Total**     | 15  | 11     | 18     | 2      | 44    |
 
 ## Directory Structure
 
@@ -52,16 +52,15 @@ Ready-to-use configuration files for deploying Sindri to various providers. **47
 
 ### By Extension Profile
 
-| File                                 | Profile       | Extensions (count)                                                 |
-| ------------------------------------ | ------------- | ------------------------------------------------------------------ |
-| `profiles/minimal.sindri.yaml`       | minimal       | nodejs, python (2)                                                 |
-| `profiles/fullstack.sindri.yaml`     | fullstack     | nodejs, python, docker, nodejs-devtools (4)                        |
-| `profiles/ai-dev.sindri.yaml`        | ai-dev        | nodejs, python, ai-toolkit, openskills, monitoring (5)             |
-| `profiles/anthropic-dev.sindri.yaml` | anthropic-dev | agent-manager, ai-toolkit, claude-code-mux, cloud-tools, etc. (12) |
-| `profiles/systems.sindri.yaml`       | systems       | rust, golang, docker, infra-tools (4)                              |
-| `profiles/devops.sindri.yaml`        | devops        | docker, infra-tools, cloud-tools, monitoring (4)                   |
-| `profiles/enterprise.sindri.yaml`    | enterprise    | nodejs, python, golang, rust, ruby, jvm, dotnet, docker, etc. (9)  |
-| `profiles/mobile.sindri.yaml`        | mobile        | nodejs (1+)                                                        |
+| File                               | Profile    | Extensions (count)                                                |
+| ---------------------------------- | ---------- | ----------------------------------------------------------------- |
+| `profiles/minimal.sindri.yaml`     | minimal    | nodejs, python (2)                                                |
+| `profiles/fullstack.sindri.yaml`   | fullstack  | nodejs, python, docker, nodejs-devtools (4)                       |
+| `profiles/ai-dev.sindri.yaml`      | ai-dev     | nodejs, python, ai-toolkit, openskills, monitoring (5)            |
+| `profiles/devops.sindri.yaml`      | devops     | docker, infra-tools, cloud-tools, monitoring (4)                  |
+| `profiles/enterprise.sindri.yaml`  | enterprise | nodejs, python, golang, rust, ruby, jvm, dotnet, docker, etc. (9) |
+
+**Note:** Provider-specific examples for `anthropic-dev`, `systems`, and `mobile` profiles are in `fly/` and `docker/` directories.
 
 ## Example Files
 
@@ -346,9 +345,9 @@ You can manually trigger tests using GitHub Actions:
 
 **Available test targets:**
 
-- Individual files: All 52 examples are available
+- Individual files: All 55 examples are available
 - Directories: `examples/fly/`, `examples/docker/`, `examples/devpod/aws/`, etc.
-- All examples: `examples/` (tests all 52 configurations)
+- All examples: `examples/` (tests all 55 configurations)
 
 ## See Also
 
