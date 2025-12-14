@@ -17,11 +17,13 @@
 #   --output-vars    Output parsed variables as JSON (deploy only)
 #   --app-name       Override app name from sindri.yaml
 #   --ci-mode        Enable CI mode (empty services, set CI_MODE=true env)
+#   --rebuild        Force rebuild without Docker cache (deploy only)
 #   --force          Skip confirmation prompts (destroy only)
 #   --help           Show this help message
 #
 # Examples:
 #   fly-adapter.sh deploy                        # Deploy using ./sindri.yaml
+#   fly-adapter.sh deploy --rebuild              # Force full rebuild (no cache)
 #   fly-adapter.sh deploy --config-only          # Just generate fly.toml
 #   fly-adapter.sh deploy --ci-mode --config-only  # CI-compatible fly.toml
 #   fly-adapter.sh status                        # Show app status
@@ -39,6 +41,7 @@ adapter_init "${BASH_SOURCE[0]}"
 # Fly.io-specific defaults
 # shellcheck disable=SC2034  # Used via indirect expansion in adapter_parse_base_config
 APP_NAME_OVERRIDE=""
+REBUILD=false
 
 # Show help wrapper
 show_help() {
@@ -60,6 +63,7 @@ while [[ $# -gt 0 ]]; do
         --output-vars)  OUTPUT_VARS=true; shift ;;
         --app-name)     APP_NAME_OVERRIDE="$2"; shift 2 ;;
         --ci-mode)      CI_MODE=true; shift ;;
+        --rebuild)      REBUILD=true; shift ;;
         --force|-f)     FORCE=true; shift ;;
         --help|-h)      show_help ;;
         -*)             adapter_unknown_option "$1" ;;
@@ -633,7 +637,12 @@ EOJSON
 
     # Deploy
     print_status "Deploying application..."
-    flyctl deploy --ha=false --wait-timeout 600
+    local deploy_args=("--ha=false" "--wait-timeout" "600")
+    if [[ "$REBUILD" == "true" ]]; then
+        print_status "Forcing full rebuild (--no-cache)..."
+        deploy_args+=("--no-cache")
+    fi
+    flyctl deploy "${deploy_args[@]}"
 
     print_success "App '$NAME' deployed successfully"
     echo ""
