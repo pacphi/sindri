@@ -11,7 +11,7 @@
 
 tiers:
   small:
-    description: Lightweight workloads (minimal, data-science, mobile)
+    description: Lightweight workloads (minimal, mobile)
     memory_range: "0-2048 MB"
     disk_range: "0-2000 MB"
   medium:

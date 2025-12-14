@@ -76,7 +76,7 @@ Use a curated profile that bundles multiple extensions:
 extensions:
   profile:
     string # enum: [minimal, fullstack, ai-dev, anthropic-dev,
-    #        systems, enterprise, data-science, devops, mobile]
+    #        systems, enterprise, devops, mobile]
 ```
 
 **Available Profiles:**
@@ -87,7 +87,6 @@ extensions:
 - `anthropic-dev` - Complete Anthropic development toolset
 - `systems` - Systems programming (Rust, Go, Docker, infrastructure tools)
 - `enterprise` - Multi-language enterprise stack
-- `data-science` - Python + monitoring for data science
 - `devops` - DevOps and infrastructure tools
 - `mobile` - Mobile development backend
 

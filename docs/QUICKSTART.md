@@ -92,5 +92,4 @@ extension-manager validate-all
 - **anthropic-dev**: agent-manager, ai-toolkit, claude-code-mux, and more
 - **systems**: rust, golang, docker, infra-tools
 - **enterprise**: All languages and infrastructure
-- **data-science**: python, monitoring
 - **devops**: docker, infra-tools, cloud-tools, monitoring

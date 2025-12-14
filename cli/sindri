@@ -180,7 +180,7 @@ extensions:
   # Option 1: Use a predefined profile
   profile: fullstack
   # Available profiles: minimal, fullstack, ai-dev, anthropic-dev,
-  #                     systems, enterprise, data-science, devops, mobile
+  #                     systems, enterprise, devops, mobile
   # See: docker/lib/profiles.yaml for contents of each profile
 
   # Option 2: List specific extensions (mutually exclusive with profile)

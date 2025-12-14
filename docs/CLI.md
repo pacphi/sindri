@@ -327,7 +327,6 @@ Available profiles:
   anthropic-dev - Complete Anthropic toolset (12 extensions)
   systems       - Systems programming (4 extensions)
   enterprise    - Multi-language enterprise stack (9 extensions)
-  data-science  - Python + monitoring (2 extensions)
   devops        - DevOps and infrastructure (4 extensions)
   mobile        - Mobile development backend (1+ extensions)
 ```
