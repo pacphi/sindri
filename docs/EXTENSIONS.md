@@ -36,8 +36,8 @@ Pre-configured bundles for common workflows. Profiles make it easy to set up com
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | **minimal**                   | nodejs, python                                                                                                                                       | Lightweight scripting        |
 | **fullstack**                 | nodejs, python, docker, nodejs-devtools                                                                                                              | Web development              |
-| **ai-dev**                    | nodejs, python, ai-toolkit, openskills, monitoring                                                                                                   | AI/ML development            |
-| **anthropic-dev**             | agent-manager, ai-toolkit, claude-code-mux, claudeup, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, tmux-workspace | Anthropic/Claude development |
+| **ai-dev**                    | nodejs, python, ollama, ai-toolkit, openskills, monitoring                                                                                           | AI/ML development            |
+| **anthropic-dev**             | agent-manager, ollama, ai-toolkit, claude-code-mux, claudeup, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, tmux-workspace | Anthropic/Claude development |
 | **systems**                   | rust, golang, docker, infra-tools                                                                                                                    | Systems programming          |
 | **enterprise**                | All languages + infrastructure                                                                                                                       | Complete environment         |
 | **devops**                    | docker, infra-tools, cloud-tools, monitoring                                                                                                         | Infrastructure               |
@@ -81,7 +81,7 @@ Pre-installed foundational extensions:
 | golang    | Go                        | 1.24       | [GOLANG.md](extensions/GOLANG.md)   |
 | rust      | Rust                      | stable     | [RUST.md](extensions/RUST.md)       |
 | ruby      | Ruby                      | 3.4.7      | [RUBY.md](extensions/RUBY.md)       |
-| jvm       | Java/Kotlin/Scala/Clojure | Java 21    | [JVM.md](extensions/JVM.md)         |
+| jvm       | Java/Kotlin/Scala/Clojure | Java 25    | [JVM.md](extensions/JVM.md)         |
 | dotnet    | .NET                      | 10.0 & 8.0 | [DOTNET.md](extensions/DOTNET.md)   |
 | php       | PHP                       | 8.4        | [PHP.md](extensions/PHP.md)         |
 | haskell   | Haskell                   | GHC 9.x    | [HASKELL.md](extensions/HASKELL.md) |
@@ -101,7 +101,8 @@ Pre-installed foundational extensions:
 
 | Extension                | Purpose                                     | Docs                                                                  |
 | ------------------------ | ------------------------------------------- | --------------------------------------------------------------------- |
-| ai-toolkit               | AI CLI tools (Ollama, Gemini, Fabric, etc.) | [AI-TOOLKIT.md](extensions/AI-TOOLKIT.md)                             |
+| ollama                   | Local LLM runtime (Llama, Mistral, etc.)    | [OLLAMA.md](extensions/OLLAMA.md)                                     |
+| ai-toolkit               | AI CLI tools (Fabric, Codex, Gemini, etc.)  | [AI-TOOLKIT.md](extensions/AI-TOOLKIT.md)                             |
 | openskills               | Claude Code skills manager                  | [OPENSKILLS.md](extensions/OPENSKILLS.md)                             |
 | claude-code-mux          | AI routing proxy (18+ providers)            | [CLAUDE-CODE-MUX.md](extensions/CLAUDE-CODE-MUX.md)                   |
 | claude-auth-with-api-key | Claude API key authentication               | [CLAUDE-AUTH-WITH-API-KEY.md](extensions/CLAUDE-AUTH-WITH-API-KEY.md) |
@@ -212,6 +213,7 @@ Extensions support different upgrade approaches:
 | Strategy    | Description               | Extensions                                                                                                            |
 | ----------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `automatic` | Auto-upgrade via mise/apt | dotnet, ruby, nodejs-devtools, monitoring, xfce-ubuntu, agent-manager, openskills                                     |
+| `reinstall` | Full reinstallation       | ollama                                                                                                                |
 | `manual`    | Custom upgrade script     | ai-toolkit, cloud-tools, jvm, infra-tools, claude-code-mux, playwright, guacamole, linear-mcp, jira-mcp, supabase-cli |
 | `none`      | No upgrades (static)      | github-cli, claude-marketplace, workspace-structure, mise-config                                                      |
 
@@ -239,6 +241,7 @@ These extensions require confirmation before removal (destructive operation):
 - infra-tools
 - cloud-tools
 - claude-code-mux
+- ollama
 - openskills
 - agent-manager
 - tmux-workspace

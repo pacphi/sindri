@@ -27,24 +27,10 @@ mkdir -p "${GOPATH}" "${GOMODCACHE}" "${GOBIN}"
 
 # Check if running in CI mode
 if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  print_status "CI mode detected - skipping native tools (Ollama, Fabric)"
+  print_status "CI mode detected - skipping native tools (Fabric)"
 else
-  # Ollama - Native binary installation
-  print_status "Installing Ollama (native binary)..."
-  if command_exists ollama; then
-    print_warning "Ollama already installed"
-  else
-    if curl -fsSL https://ollama.com/install.sh | sh 2>&1; then
-      if command_exists ollama; then
-        print_success "Ollama installed"
-        print_status "Start with: nohup ollama serve > ~/ollama.log 2>&1 &"
-      else
-        print_warning "Failed to install Ollama - binary not found"
-      fi
-    else
-      print_warning "Failed to install Ollama"
-    fi
-  fi
+  # Note: Ollama is now a separate extension for better isolation
+  # Install it with: extension-manager install ollama
 
   # Fabric - Go install (standard Go module installation)
   print_status "Installing Fabric (go install)..."

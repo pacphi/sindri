@@ -56,6 +56,13 @@ cat > "${EXTENSION_DIR}/claude-mcp-config.json" << 'EOF'
 EOF
 
 print_success "linear-mcp installed successfully"
-print_warning "Requires LINEAR_API_KEY environment variable"
-print_status "Get your API key from: https://linear.app/YOUR-TEAM/settings/api"
+
+# Only warn if LINEAR_API_KEY is not set
+if [[ -z "${LINEAR_API_KEY:-}" ]]; then
+    print_warning "Requires LINEAR_API_KEY environment variable"
+    print_status "Get your API key from: https://linear.app/YOUR-TEAM/settings/api"
+else
+    print_success "LINEAR_API_KEY is configured"
+fi
+
 print_status "Claude Code config snippet saved to: ${EXTENSION_DIR}/claude-mcp-config.json"

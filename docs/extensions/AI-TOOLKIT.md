@@ -7,25 +7,26 @@ AI CLI tools and coding assistants.
 | Property         | Value                                                                                      |
 | ---------------- | ------------------------------------------------------------------------------------------ |
 | **Category**     | ai                                                                                         |
-| **Version**      | 2.0.0                                                                                      |
+| **Version**      | 2.1.0                                                                                      |
 | **Installation** | script                                                                                     |
-| **Disk Space**   | 2000 MB                                                                                    |
+| **Disk Space**   | 1000 MB                                                                                    |
 | **Dependencies** | [nodejs](NODEJS.md), [python](PYTHON.md), [golang](GOLANG.md), [github-cli](GITHUB-CLI.md) |
 
 ## Description
 
-AI CLI tools and coding assistants (Ollama, Fabric, Codex, Gemini, Hector, Droid, Grok, Copilot) - provides a comprehensive suite of AI-powered development tools.
+AI CLI tools and coding assistants (Fabric, Codex, Gemini, Hector, Droid, Grok, Copilot) - provides a comprehensive suite of AI-powered development tools.
+
+For local LLM capabilities, install the separate [ollama](OLLAMA.md) extension.
 
 ## Installed Tools
 
 | Tool     | Type     | Description              |
 | -------- | -------- | ------------------------ |
-| `ollama` | server   | Local LLM runtime        |
 | `fabric` | cli-tool | AI pattern executor      |
 | `codex`  | cli-tool | OpenAI Codex integration |
 | `gemini` | cli-tool | Google Gemini CLI        |
 | `hector` | cli-tool | Code review assistant    |
-| `droid`  | cli-tool | Android AI helper        |
+| `droid`  | cli-tool | Factory AI helper        |
 | `grok`   | cli-tool | xAI Grok integration     |
 
 ## Configuration
@@ -54,9 +55,9 @@ AI CLI tools and coding assistants (Ollama, Fabric, Codex, Gemini, Hector, Droid
 
 ## Network Requirements
 
-- `ollama.com` - Ollama downloads
 - `github.com` - GitHub dependencies
-- `app.factory.ai` - Factory AI
+- `factory.ai` - Factory AI
+- `app.factory.ai` - Factory AI CLI
 - `api.openai.com` - OpenAI API
 - `generativelanguage.googleapis.com` - Gemini API
 
@@ -69,7 +70,6 @@ extension-manager install ai-toolkit
 ## Validation
 
 ```bash
-ollama --version
 fabric --version
 codex --version
 gemini --version
@@ -96,5 +96,6 @@ Removes all AI tools and their configuration directories.
 
 ## Related Extensions
 
+- [ollama](OLLAMA.md) - Local LLM runtime (Llama, Mistral, CodeLlama)
 - [openskills](OPENSKILLS.md) - Claude Code skills
 - [claude-code-mux](CLAUDE-CODE-MUX.md) - AI routing proxy

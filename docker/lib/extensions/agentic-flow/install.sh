@@ -43,19 +43,55 @@ print_status "Installing agentic-flow via npm..."
 if npm install -g agentic-flow; then
     print_success "Agentic Flow installed successfully"
 
-    # Refresh mise shims so new command is discoverable
+    # Get the npm global bin directory and node version for reshimming
+    # Note: 'npm bin -g' was deprecated in npm 9+, use 'npm config get prefix' instead
+    NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "")
+    NPM_BIN="${NPM_PREFIX}/bin"
+    NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//')
+
+    # Refresh mise shims with explicit node version context
     if command -v mise >/dev/null 2>&1; then
+        print_status "Reshimming mise $NODE_VERSION..."
         mise reshim 2>/dev/null || true
+        # Also try reshimming with explicit tool
+        mise reshim node 2>/dev/null || true
     fi
+
+    # Clear shell's command hash table
     hash -r 2>/dev/null || true
 
-    # Verify installation
+    # Add npm global bin to PATH for immediate availability
+    if [[ -n "$NPM_BIN" && -d "$NPM_BIN" ]]; then
+        export PATH="$NPM_BIN:$PATH"
+    fi
+
+    # Also check mise shims directory
+    MISE_SHIMS="${HOME}/.local/share/mise/shims"
+    if [[ -d "$MISE_SHIMS" ]]; then
+        export PATH="$MISE_SHIMS:$PATH"
+    fi
+
+    # Ensure npm global bin is in PATH permanently
+    if [[ -n "$NPM_BIN" && -d "$NPM_BIN" ]]; then
+        if ! grep -q "NPM_GLOBAL_BIN" "$HOME/.bashrc" 2>/dev/null; then
+            echo "" >> "$HOME/.bashrc"
+            echo "# npm global bin (added by agentic-flow extension)" >> "$HOME/.bashrc"
+            echo "export NPM_GLOBAL_BIN=\"\$HOME/.npm-global/bin\"" >> "$HOME/.bashrc"
+            echo 'export PATH="$NPM_GLOBAL_BIN:$PATH"' >> "$HOME/.bashrc"
+            print_status "Added npm global bin to ~/.bashrc"
+        fi
+    fi
+
+    # Verify installation - check multiple locations
     if command -v agentic-flow >/dev/null 2>&1; then
         version=$(agentic-flow --version 2>/dev/null || echo "version check failed")
         print_success "Agentic Flow installed: $version"
+    elif [[ -n "$NPM_BIN" && -x "$NPM_BIN/agentic-flow" ]]; then
+        print_success "Agentic Flow installed at: $NPM_BIN/agentic-flow"
+        print_status "Restart your shell or run: source ~/.bashrc"
     else
         print_warning "Agentic Flow installed but command not found in PATH"
-        print_status "You may need to reload your shell or run: mise reshim"
+        print_status "You may need to reload your shell or run: source ~/.bashrc"
     fi
 else
     print_error "Failed to install Agentic Flow"

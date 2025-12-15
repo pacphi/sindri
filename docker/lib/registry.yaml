@@ -104,10 +104,15 @@ extensions:
     dependencies: [nodejs, docker]
 
   # AI Tools
+  ollama:
+    category: ai
+    description: Run large language models locally (Llama, Mistral, CodeLlama)
+    dependencies: []
+
   ai-toolkit:
     category: ai
-    description: Codex, Gemini, Ollama, etc.
-    dependencies: [nodejs, python]
+    description: AI CLI tools (Fabric, Codex, Gemini, Hector, Droid, Grok, Copilot)
+    dependencies: [nodejs, python, golang, github-cli]
 
   openskills:
     category: ai

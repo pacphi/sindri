@@ -1,10 +1,10 @@
 ---
 metadata:
   name: ai-toolkit
-  version: 2.0.0
+  version: 2.1.0
   description: >-
-    AI CLI tools and coding assistants (Ollama, Fabric, Codex, Gemini,
-    Hector, Droid, Grok, Copilot)
+    AI CLI tools and coding assistants (Fabric, Codex, Gemini,
+    Hector, Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
   category: ai
   author: Sindri Team
   dependencies:
@@ -15,14 +15,13 @@ metadata:
 
 requirements:
   domains:
-    - ollama.com
     - github.com
     - factory.ai
     - app.factory.ai
     - api.openai.com
     - generativelanguage.googleapis.com
-  diskSpace: 2000
-  memory: 8192
+  diskSpace: 1000
+  memory: 4096
   installTime: 300
   secrets:
     - google_gemini_api_key
@@ -32,7 +31,7 @@ install:
   method: script
   script:
     path: install.sh
-    timeout: 900
+    timeout: 600
 
 configure:
   templates:
@@ -55,7 +54,6 @@ configure:
 
 validate:
   commands:
-    - name: ollama
     - name: fabric
     - name: codex
     - name: gemini
@@ -65,7 +63,6 @@ validate:
 
 remove:
   paths:
-    - ~/.ollama
     - ~/.local/share/fabric
     - ~/.local/bin/fabric
     - ~/go/bin/hector
@@ -82,13 +79,6 @@ upgrade:
 
 bom:
   tools:
-    - name: ollama
-      version: dynamic
-      source: script
-      type: server
-      license: MIT
-      homepage: https://ollama.com
-      purl: pkg:generic/ollama
     - name: fabric
       version: dynamic
       source: script

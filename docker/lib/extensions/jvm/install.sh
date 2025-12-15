@@ -99,7 +99,8 @@ install_java() {
 }
 
 # Install Java LTS versions (Liberica preferred for ARM optimization)
-install_java "21" "librca" "tem"   # Java 21 LTS (current)
+install_java "25" "librca" "tem"   # Java 25 LTS (current)
+install_java "21" "librca" "tem"   # Java 21 LTS (previous)
 install_java "17" "librca" "tem"   # Java 17 LTS
 install_java "11" "librca" "tem"   # Java 11 LTS (legacy support)
 

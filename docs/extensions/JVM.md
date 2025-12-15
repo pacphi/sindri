@@ -20,7 +20,7 @@ JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise 
 
 | Tool      | Type     | Source | Description             |
 | --------- | -------- | ------ | ----------------------- |
-| `java`    | runtime  | SDKMAN | Java 21 LTS (OpenJDK)   |
+| `java`    | runtime  | SDKMAN | Java 25 LTS (OpenJDK)   |
 | `mvn`     | cli-tool | SDKMAN | Apache Maven build tool |
 | `gradle`  | cli-tool | SDKMAN | Gradle build tool       |
 | `kotlin`  | compiler | SDKMAN | Kotlin compiler         |

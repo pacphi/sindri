@@ -4,6 +4,7 @@
 alias j11='sdk use java $(sdk list java 2>/dev/null | grep "11\..*installed" | awk "{print \$NF}" | head -1)'
 alias j17='sdk use java $(sdk list java 2>/dev/null | grep "17\..*installed" | awk "{print \$NF}" | head -1)'
 alias j21='sdk use java $(sdk list java 2>/dev/null | grep "21\..*installed" | awk "{print \$NF}" | head -1)'
+alias j25='sdk use java $(sdk list java 2>/dev/null | grep "25\..*installed" | awk "{print \$NF}" | head -1)'
 alias jv='java -version'
 alias jlist='sdk list java | grep installed'
 
