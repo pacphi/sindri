@@ -107,8 +107,12 @@ The MCP server exposes these tools:
 ## Validation
 
 ```bash
-test -d ~/extensions/linear-mcp
+# Check that the extension directory exists
+test -d $HOME/extensions/linear-mcp && echo "linear-mcp installed"
 ```
+
+> **Note**: Use `$HOME` instead of `~` in scripts/automation, as tilde expansion
+> does not occur inside shell variables.
 
 ## Removal
 

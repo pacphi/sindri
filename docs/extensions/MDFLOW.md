@@ -107,7 +107,11 @@ Analyze the following code:
 ## Validation
 
 ```bash
-mdflow --version
+# mdflow uses 'help' for validation (does not support --version)
+mdflow help
+
+# Verify bun runtime (required by mdflow)
+bun --version
 ```
 
 ## Upgrade

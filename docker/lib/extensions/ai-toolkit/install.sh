@@ -71,6 +71,7 @@ if command_exists mise; then
     toml_content+="# npm-based tools\n"
     toml_content+='"npm:@openai/codex" = "latest"\n'
     toml_content+='"npm:@google/gemini-cli" = "latest"\n'
+    toml_content+='"npm:@vibe-kit/grok-cli" = "latest"\n'
     toml_content+="\n"
   fi
 
@@ -172,15 +173,9 @@ else
   print_warning "AWS CLI not found - Amazon Q unavailable"
 fi
 
-# Grok CLI
-if command_exists npm; then
-  print_status "Installing Grok CLI..."
-  if ! command_exists grok; then
-    npm install -g @vibe-kit/grok-cli 2>&1 && print_success "Grok CLI installed"
-  fi
-else
-  print_warning "npm not found - skipping Grok CLI"
-fi
+# Grok CLI - now installed via mise npm: backend (added to TOML above)
+# This ensures shims are created and grok is available in PATH during validation
+print_status "Grok CLI will be installed via mise npm: backend"
 
 # Create workspace
 WORKSPACE="${WORKSPACE:-${HOME}/workspace}"

@@ -681,6 +681,10 @@ validate_extension() {
     if [[ -d "$home_dir/.cargo/bin" ]] && [[ ":$PATH:" != *":$home_dir/.cargo/bin:"* ]]; then
         export PATH="$home_dir/.cargo/bin:$PATH"
     fi
+    # Add Fly.io CLI to PATH (installed to ~/.fly/bin by fly.io/install.sh)
+    if [[ -d "$home_dir/.fly/bin" ]] && [[ ":$PATH:" != *":$home_dir/.fly/bin:"* ]]; then
+        export PATH="$home_dir/.fly/bin:$PATH"
+    fi
     # Note: npm packages are now installed via mise npm: backend which creates shims
     # No need for complex node bin directory detection - mise shims handle this
     # Clear bash's command hash table so new commands are found

@@ -31,7 +31,7 @@ validate:
     - name: bun
       versionFlag: --version
     - name: mdflow
-      versionFlag: --version
+      versionFlag: help
   mise:
     tools:
       - bun

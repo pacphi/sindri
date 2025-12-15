@@ -96,7 +96,13 @@ gcloud compute instances list
 
 ### Fly.io
 
+The Fly.io CLI (`flyctl`) is installed to `~/.fly/bin/flyctl`. The extension
+automatically adds this to your PATH via the ssh-environment template.
+
 ```bash
+# Verify flyctl is in PATH
+which flyctl  # Should show ~/.fly/bin/flyctl
+
 flyctl auth login
 flyctl apps list
 flyctl deploy

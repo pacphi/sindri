@@ -4,3 +4,7 @@ export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
 export PATH="/opt/az/bin:$PATH"
 export PATH="/usr/local/google-cloud-sdk/bin:$PATH"
 export PATH="$HOME/bin:$PATH"
+
+# Fly.io CLI
+export FLYCTL_INSTALL="$HOME/.fly"
+export PATH="$FLYCTL_INSTALL/bin:$PATH"

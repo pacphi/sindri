@@ -15,11 +15,21 @@ Grok CLI provides a terminal-based AI assistant powered by X.AI's Grok models. I
 
 ## Installation
 
-Grok CLI is installed automatically as part of the ai-tools extension via npm:
+Grok CLI is installed automatically as part of the ai-toolkit extension via mise's npm backend:
 
 ```bash
+# Automatic installation (recommended)
+extension-manager install ai-toolkit
+
+# Manual installation via mise
+mise use npm:@vibe-kit/grok-cli@latest
+
+# Direct npm installation (not recommended - bypasses shim creation)
 npm install -g @vibe-kit/grok-cli
 ```
+
+> **Note**: The mise npm backend creates shims for the `grok` command, ensuring it's
+> available in PATH during validation and across shell sessions.
 
 ## API Key Setup
 

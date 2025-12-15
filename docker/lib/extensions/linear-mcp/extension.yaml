@@ -39,7 +39,7 @@ configure:
 validate:
   commands:
     - name: test
-      versionFlag: -d ~/extensions/linear-mcp
+      versionFlag: -d $HOME/extensions/linear-mcp
 
 remove:
   paths:
