@@ -4,13 +4,13 @@ Run large language models locally.
 
 ## Overview
 
-| Property         | Value                                      |
-| ---------------- | ------------------------------------------ |
-| **Category**     | ai                                         |
-| **Version**      | 1.0.0                                      |
-| **Installation** | script                                     |
-| **Disk Space**   | 1000 MB (plus models)                      |
-| **Dependencies** | none                                       |
+| Property         | Value                 |
+| ---------------- | --------------------- |
+| **Category**     | ai                    |
+| **Version**      | 1.0.0                 |
+| **Installation** | script                |
+| **Disk Space**   | 1000 MB (plus models) |
+| **Dependencies** | none                  |
 
 ## Description
 
@@ -20,17 +20,17 @@ This extension was factored out of `ai-toolkit` to provide better isolation and 
 
 ## Installed Tools
 
-| Tool     | Type   | Description                           |
-| -------- | ------ | ------------------------------------- |
-| `ollama` | server | Local LLM runtime and model manager   |
+| Tool     | Type   | Description                         |
+| -------- | ------ | ----------------------------------- |
+| `ollama` | server | Local LLM runtime and model manager |
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable      | Value            | Scope  | Description                |
-| ------------- | ---------------- | ------ | -------------------------- |
-| `OLLAMA_HOST` | `0.0.0.0:11434`  | bashrc | Ollama server bind address |
+| Variable      | Value           | Scope  | Description                |
+| ------------- | --------------- | ------ | -------------------------- |
+| `OLLAMA_HOST` | `0.0.0.0:11434` | bashrc | Ollama server bind address |
 
 ## Network Requirements
 
