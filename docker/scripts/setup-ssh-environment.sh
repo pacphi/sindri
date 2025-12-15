@@ -9,6 +9,11 @@ SSHD_CONFIG_D="/etc/ssh/sshd_config.d"
 ENV_CONFIG_FILE="$SSHD_CONFIG_D/99-bash-env.conf"
 SSH_ENV_FILE="$PROFILE_D_DIR/00-ssh-environment.sh"
 CLI_PATH_FILE="$PROFILE_D_DIR/sindri-cli.sh"
+MISE_ENV_FILE="$PROFILE_D_DIR/sindri-mise.sh"
+
+# Get ALT_HOME from environment or use default
+# This must match the Dockerfile ARG/ENV value
+ALT_HOME="${ALT_HOME:-/alt/home/developer}"
 
 # Create sshd_config.d directory if it doesn't exist
 if [[ ! -d "$SSHD_CONFIG_D" ]]; then
@@ -65,13 +70,51 @@ EOF
 
 echo "  Created SSH daemon environment config: $ENV_CONFIG_FILE"
 
-# Add CLI tools to PATH for all login shells (SSH sessions)
+# Add CLI tools and mise shims to PATH for all login shells (SSH sessions)
 # Dockerfile ENV PATH only works for docker exec, not SSH
+# This ensures SSH sessions have the same PATH as docker exec
 echo "  Creating CLI PATH configuration..."
-cat > "$CLI_PATH_FILE" << 'EOF'
-export PATH="/docker/cli:$PATH"
+cat > "$CLI_PATH_FILE" << EOF
+# Sindri PATH configuration for SSH sessions
+# Mirrors the Docker ENV PATH to ensure consistency
+# Order matters: CLI tools, workspace bin, mise shims, then system paths
+export PATH="/docker/cli:${ALT_HOME}/workspace/bin:${ALT_HOME}/.local/share/mise/shims:\$PATH"
 EOF
 chmod +x "$CLI_PATH_FILE"
 echo "  Created CLI PATH config: $CLI_PATH_FILE"
+
+# Create mise environment configuration for SSH sessions
+# These variables are critical for mise to work correctly:
+# - MISE_YES: auto-accept prompts (trust, install confirmations)
+# - MISE_TRUSTED_CONFIG_PATHS: auto-trust extension config files in conf.d
+# - MISE_DATA_DIR etc: point to persistent volume locations
+echo "  Creating mise environment configuration..."
+cat > "$MISE_ENV_FILE" << EOF
+# Sindri mise environment for SSH sessions
+# Mirrors the Docker ENV variables that SSH doesn't inherit
+# Required for mise tool manager to function correctly after restarts
+
+# Sindri home and workspace directories (on persistent volume)
+# ALT_HOME is the volume mount point, WORKSPACE is the main working area
+export ALT_HOME="${ALT_HOME}"
+export WORKSPACE="${ALT_HOME}/workspace"
+export DOCKER_LIB="/docker/lib"
+
+# Auto-accept all mise prompts (trust, install confirmations)
+# Without this, mise may hang waiting for input in non-interactive shells
+export MISE_YES=1
+
+# Auto-trust extension config files installed to conf.d
+# Without this, mise ignores configs and tools aren't activated
+export MISE_TRUSTED_CONFIG_PATHS="${ALT_HOME}/.config/mise:${ALT_HOME}/.config/mise/conf.d"
+
+# XDG directories for mise data (all on persistent volume)
+export MISE_DATA_DIR="${ALT_HOME}/.local/share/mise"
+export MISE_CONFIG_DIR="${ALT_HOME}/.config/mise"
+export MISE_CACHE_DIR="${ALT_HOME}/.cache/mise"
+export MISE_STATE_DIR="${ALT_HOME}/.local/state/mise"
+EOF
+chmod +x "$MISE_ENV_FILE"
+echo "  Created mise environment config: $MISE_ENV_FILE"
 
 echo "SSH environment configured successfully"

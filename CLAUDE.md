@@ -389,11 +389,17 @@ requirements:
 install:
   method: mise|script|apt
   mise:
-    configFile: mise.toml # For tool installation via mise
+    configFile: mise.toml # For tool installation via mise (see below)
   script:
     path: install.sh # Custom installation script
   apt:
     packages: [pkg1, pkg2] # APT packages
+
+# mise.toml supports multiple backends including npm:
+# [tools]
+# node = "22"               # Runtime from mise core
+# "npm:typescript" = "latest" # npm package via mise npm: backend
+# "npm:claude-flow" = "alpha" # npm package with version tag
 
 configure:
   environment:

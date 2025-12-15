@@ -1,0 +1,5 @@
+# claudeup - TUI tool for managing Claude Code plugins and MCPs
+# Uses mise npm: backend for proper shim management
+
+[tools]
+"npm:claudeup" = "latest"

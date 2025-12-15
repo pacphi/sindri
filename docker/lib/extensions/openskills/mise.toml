@@ -1,0 +1,5 @@
+# openskills - CLI for managing Claude Code skills from Anthropic's marketplace
+# Uses mise npm: backend for proper shim management
+
+[tools]
+"npm:openskills" = "latest"

@@ -7,7 +7,8 @@ Comprehensive guide to all available Sindri extensions. Each extension is docume
 Extensions are YAML-defined packages that install and configure development tools. Each extension:
 
 - Declares metadata, dependencies, and requirements
-- Uses declarative installation methods (mise, apt, npm, binary, script, hybrid)
+- Uses declarative installation methods (mise, apt, script)
+- mise supports multiple backends: core tools (node, python), npm packages (npm:), Go (go:), Rust (cargo:)
 - Validates successful installation
 - Integrates with the extension manifest system
 - Tracks installed software via Bill of Materials (BOM)

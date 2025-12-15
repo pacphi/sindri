@@ -19,10 +19,9 @@ requirements:
   installTime: 60
 
 install:
-  method: script
-  script:
-    path: install.sh
-    timeout: 300
+  method: mise
+  mise:
+    configFile: mise.toml
 
 configure:
   templates:
@@ -44,17 +43,14 @@ validate:
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
 
 remove:
-  npm:
-    packages:
-      - claude-flow
-    global: true
+  mise:
+    removeConfig: true
+    tools:
+      - "npm:claude-flow"
   confirmation: true
 
 upgrade:
-  strategy: automatic
-  script:
-    path: upgrade.sh
-    timeout: 300
+  strategy: reinstall
 
 bom:
   tools:

@@ -19,10 +19,9 @@ requirements:
   installTime: 60
 
 install:
-  method: script
-  script:
-    path: install.sh
-    timeout: 300
+  method: mise
+  mise:
+    configFile: mise.toml
 
 configure:
   templates:
@@ -40,17 +39,14 @@ validate:
       expectedPattern: ".*"
 
 remove:
-  npm:
-    packages:
-      - agentic-flow
-    global: true
+  mise:
+    removeConfig: true
+    tools:
+      - "npm:agentic-flow"
   confirmation: true
 
 upgrade:
-  strategy: automatic
-  script:
-    path: upgrade.sh
-    timeout: 300
+  strategy: reinstall
 
 bom:
   tools:

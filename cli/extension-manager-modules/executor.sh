@@ -224,21 +224,12 @@ install_via_mise() {
     # This prevents failures in unrelated extensions from breaking this install
     local scoped_config="$mise_conf_dir/${ext_name}.toml"
 
-    # Ensure mise shims and installed tools are in PATH for npm backend
-    # This fixes "node not found" errors when installing npm: packages
-    # See: https://mise.jdx.dev/troubleshooting.html
+    # Ensure mise shims are in PATH for npm backend and other tools
+    # mise creates shims for ALL managed tools including npm: packages
+    # See: https://mise.jdx.dev/dev-tools/shims.html
     local mise_shims="${home_dir}/.local/share/mise/shims"
     if [[ -d "$mise_shims" ]] && [[ ":$PATH:" != *":$mise_shims:"* ]]; then
         export PATH="$mise_shims:$PATH"
-    fi
-    # Also add node install path directly as fallback for npm wrapper scripts
-    local node_installs="${home_dir}/.local/share/mise/installs/node"
-    if [[ -d "$node_installs" ]]; then
-        local node_path
-        node_path=$(find "$node_installs" -maxdepth 2 -name "bin" -type d 2>/dev/null | head -1 || true)
-        if [[ -n "$node_path" ]] && [[ ":$PATH:" != *":$node_path:"* ]]; then
-            export PATH="$node_path:$PATH"
-        fi
     fi
     # Refresh command hash table
     hash -r 2>/dev/null || true
@@ -690,20 +681,8 @@ validate_extension() {
     if [[ -d "$home_dir/.cargo/bin" ]] && [[ ":$PATH:" != *":$home_dir/.cargo/bin:"* ]]; then
         export PATH="$home_dir/.cargo/bin:$PATH"
     fi
-    # Add npm global bin for Node.js-installed tools (npm install -g)
-    # For mise-managed Node.js, global packages are in ~/.local/share/mise/installs/node/<version>/bin
-    local node_installs="${home_dir}/.local/share/mise/installs/node"
-    if [[ -d "$node_installs" ]]; then
-        local node_path
-        node_path=$(find "$node_installs" -maxdepth 2 -name "bin" -type d 2>/dev/null | head -1 || true)
-        if [[ -n "$node_path" ]] && [[ ":$PATH:" != *":$node_path:"* ]]; then
-            export PATH="$node_path:$PATH"
-        fi
-    fi
-    # Also check for npm-global directory if user configured it
-    if [[ -d "$home_dir/.npm-global/bin" ]] && [[ ":$PATH:" != *":$home_dir/.npm-global/bin:"* ]]; then
-        export PATH="$home_dir/.npm-global/bin:$PATH"
-    fi
+    # Note: npm packages are now installed via mise npm: backend which creates shims
+    # No need for complex node bin directory detection - mise shims handle this
     # Clear bash's command hash table so new commands are found
     hash -r 2>/dev/null || true
 
