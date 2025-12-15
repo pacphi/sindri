@@ -58,6 +58,7 @@ validate:
     - name: codex
     - name: gemini
     - name: hector
+      versionFlag: "version"
     - name: droid
     - name: grok
 

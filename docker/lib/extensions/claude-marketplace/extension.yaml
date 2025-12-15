@@ -37,7 +37,7 @@ configure:
 validate:
   commands:
     - name: claude
-      expectedPattern: "claude"
+      expectedPattern: "\\d+\\.\\d+\\.\\d+.*Claude Code"
 
 remove:
   paths:
