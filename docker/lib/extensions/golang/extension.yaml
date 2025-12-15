@@ -38,6 +38,7 @@ configure:
 validate:
   commands:
     - name: go
+      versionFlag: version
       expectedPattern: "go version go\\d+\\.\\d+"
 
 remove:

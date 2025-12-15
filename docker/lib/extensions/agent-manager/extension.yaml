@@ -36,6 +36,7 @@ configure:
 validate:
   commands:
     - name: agent-manager
+      versionFlag: version
       expectedPattern: "version"
 
 remove:

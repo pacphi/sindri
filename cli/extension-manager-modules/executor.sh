@@ -103,7 +103,19 @@ install_extension() {
         # Configure extension
         configure_extension "$ext_name" "$ext_yaml"
 
-        # Mark as installed
+        # CRITICAL: Verify installation actually worked before marking as installed
+        # This prevents false-positive "installed" markers when tools don't actually work
+        if [[ "${SKIP_POST_INSTALL_VALIDATION:-false}" != "true" ]]; then
+            print_status "Verifying $ext_name installation..."
+            if ! validate_extension "$ext_name" "$ext_yaml"; then
+                print_error "Installation verification failed for $ext_name"
+                print_warning "The install command succeeded but the tools are not working"
+                print_status "Check logs and try manually: extension-manager validate $ext_name"
+                return 1
+            fi
+        fi
+
+        # Mark as installed (only after validation passes)
         mark_installed "$ext_name"
 
         # Add to manifest for tracking
@@ -114,7 +126,7 @@ install_extension() {
         # Generate BOM
         generate_extension_bom "$ext_name"
 
-        print_success "Installed $ext_name"
+        print_success "Installed and verified $ext_name"
     else
         print_error "Failed to install $ext_name"
         return 1
@@ -603,8 +615,46 @@ configure_extension() {
 validate_extension() {
     local ext_name="$1"
     local ext_yaml="$2"
+    local home_dir="${HOME:-/alt/home/developer}"
 
     print_status "Validating $ext_name..."
+
+    # Ensure mise shims are in PATH for validation
+    # This fixes "command not found" errors for mise-installed tools (npm:*, etc.)
+    # See: https://mise.jdx.dev/dev-tools/shims.html
+    local mise_shims="${home_dir}/.local/share/mise/shims"
+    if [[ -d "$mise_shims" ]] && [[ ":$PATH:" != *":$mise_shims:"* ]]; then
+        export PATH="$mise_shims:$PATH"
+    fi
+    # Also add workspace bin to PATH for script-installed tools
+    local workspace="${WORKSPACE:-$home_dir/workspace}"
+    if [[ -d "$workspace/bin" ]] && [[ ":$PATH:" != *":$workspace/bin:"* ]]; then
+        export PATH="$workspace/bin:$PATH"
+    fi
+    # Also add .local/bin for tools installed there (uv, claude-monitor, etc.)
+    if [[ -d "$home_dir/.local/bin" ]] && [[ ":$PATH:" != *":$home_dir/.local/bin:"* ]]; then
+        export PATH="$home_dir/.local/bin:$PATH"
+    fi
+    # Add go/bin for Go-installed tools
+    if [[ -d "$home_dir/go/bin" ]] && [[ ":$PATH:" != *":$home_dir/go/bin:"* ]]; then
+        export PATH="$home_dir/go/bin:$PATH"
+    fi
+    # Add SDKMAN candidates to PATH for JVM tools (java, kotlin, scala, mvn, gradle)
+    # SDKMAN uses ~/.sdkman/candidates/<tool>/current/bin
+    local sdkman_dir="${SDKMAN_DIR:-$home_dir/.sdkman}"
+    if [[ -d "$sdkman_dir/candidates" ]]; then
+        for candidate_dir in "$sdkman_dir/candidates"/*/current/bin; do
+            if [[ -d "$candidate_dir" ]] && [[ ":$PATH:" != *":$candidate_dir:"* ]]; then
+                export PATH="$candidate_dir:$PATH"
+            fi
+        done
+    fi
+    # Add cargo/bin for Rust-installed tools
+    if [[ -d "$home_dir/.cargo/bin" ]] && [[ ":$PATH:" != *":$home_dir/.cargo/bin:"* ]]; then
+        export PATH="$home_dir/.cargo/bin:$PATH"
+    fi
+    # Clear bash's command hash table so new commands are found
+    hash -r 2>/dev/null || true
 
     # Get validation timeout from extension or use default
     local validation_timeout
@@ -629,8 +679,14 @@ validate_extension() {
     while [[ $idx -lt $num_commands ]]; do
         local cmd
         local expected_pattern
+        local version_flag
         cmd=$(load_yaml "$ext_yaml" ".validate.commands[$idx].name" 2>/dev/null || true)
         expected_pattern=$(load_yaml "$ext_yaml" ".validate.commands[$idx].expectedPattern" 2>/dev/null || true)
+        # Support custom versionFlag from extension YAML (default: --version)
+        version_flag=$(load_yaml "$ext_yaml" ".validate.commands[$idx].versionFlag" 2>/dev/null || true)
+        if [[ -z "$version_flag" ]] || [[ "$version_flag" == "null" ]]; then
+            version_flag="--version"
+        fi
 
         if [[ -z "$cmd" ]]; then
             idx=$((idx + 1))
@@ -646,17 +702,31 @@ validate_extension() {
         fi
 
         # Execute command with timeout and validate output if pattern provided
-        local output
+        # FIX: Use temp file instead of command substitution to avoid hanging
+        # when commands spawn background processes that inherit stdout/stderr.
+        # The $() waits for ALL processes using the FD to close, not just timeout's child.
+        # See: https://mywiki.wooledge.org/ProcessSubstitution
+        local temp_output_file
+        temp_output_file=$(mktemp)
         local exit_code
-        if output=$(timeout "$validation_timeout" "$cmd" --version 2>&1); then
-            exit_code=0
-        else
-            exit_code=$?
-        fi
+
+        # Use -k 2 to send SIGKILL after 2 seconds if SIGTERM doesn't work
+        # Redirect to temp file to avoid command substitution FD inheritance issues
+        # shellcheck disable=SC2086  # Word splitting intentional for version_flag
+        timeout -k 2 "$validation_timeout" "$cmd" $version_flag > "$temp_output_file" 2>&1
+        exit_code=$?
+
+        local output
+        output=$(cat "$temp_output_file" 2>/dev/null || true)
+        rm -f "$temp_output_file"
 
         # Check if timeout occurred (exit code 124)
         if [[ $exit_code -eq 124 ]]; then
             print_error "✗ $cmd validation timed out after ${validation_timeout}s"
+            all_valid=false
+        elif [[ $exit_code -eq 137 ]]; then
+            # 137 = 128 + 9 (SIGKILL) - process had to be force killed
+            print_error "✗ $cmd validation force-killed after ${validation_timeout}s + 2s"
             all_valid=false
         elif [[ $exit_code -ne 0 ]]; then
             print_error "✗ $cmd execution failed (exit code: $exit_code)"

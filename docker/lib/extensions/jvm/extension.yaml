@@ -37,13 +37,18 @@ configure:
 validate:
   commands:
     - name: java
+      versionFlag: "-version"
       expectedPattern: "version \"\\d+\\.\\d+\\.\\d+\""
     - name: mvn
     - name: gradle
     - name: kotlin
+      versionFlag: "-version"
     - name: scala
+      versionFlag: "-version"
     - name: clojure
+      versionFlag: "--version"
     - name: lein
+      versionFlag: "version"
 
 remove:
   paths:
