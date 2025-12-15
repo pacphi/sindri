@@ -92,6 +92,8 @@ pnpm build:latest  # Build as sindri:latest
 ./cli/extension-manager install nodejs       # Install single extension
 ./cli/extension-manager install-profile full # Install profile
 ./cli/extension-manager install-all          # Install all active extensions
+./cli/extension-manager reinstall nodejs     # Remove and reinstall extension
+./cli/extension-manager reinstall-profile base # Reinstall all profile extensions
 ./cli/extension-manager remove nodejs        # Remove extension
 ./cli/extension-manager validate nodejs      # Validate extension
 ./cli/extension-manager validate-all         # Validate all extensions

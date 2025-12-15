@@ -26,6 +26,8 @@ COMMANDS:
     install <name>          Install specific extension
     install-profile <name>  Install extension profile
     install-all             Install all active extensions
+    reinstall <name>        Remove and reinstall extension
+    reinstall-profile <name> Remove and reinstall all extensions in profile
     remove <name>           Remove extension
     validate <name>         Validate extension installation
     validate-all            Validate all installed extensions
@@ -52,6 +54,8 @@ EXAMPLES:
     extension-manager list --category language
     extension-manager install nodejs
     extension-manager install-profile fullstack
+    extension-manager reinstall supabase-cli  # Remove and reinstall extension
+    extension-manager reinstall-profile base  # Reinstall all extensions in profile
     extension-manager search python
     extension-manager info docker
     extension-manager bom                    # Show complete BOM

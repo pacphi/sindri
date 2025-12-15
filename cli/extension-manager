@@ -69,6 +69,7 @@ main() {
             if [[ -n "$active_exts" ]]; then
                 # Resolve all dependencies
                 local resolved
+                # shellcheck disable=SC2086  # Word splitting intentional for multiple extensions
                 resolved=$(resolve_dependencies $active_exts)
                 # Install in order
                 for ext in $resolved; do
@@ -77,6 +78,35 @@ main() {
             else
                 print_warning "No active extensions in manifest"
             fi
+            ;;
+        reinstall)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager reinstall <name>"
+                return 1
+            fi
+            local ext_name="$1"
+            print_header "Reinstalling extension: $ext_name"
+            # Remove first (force mode to skip confirmation)
+            FORCE_MODE=true execute_extension "$ext_name" "remove" 2>/dev/null || true
+            remove_from_manifest "$ext_name" 2>/dev/null || true
+            # Clear installed marker
+            mark_uninstalled "$ext_name" 2>/dev/null || true
+            # Resolve dependencies and install
+            local resolved
+            resolved=$(resolve_dependencies "$ext_name")
+            for ext in $resolved; do
+                local category
+                category=$(load_yaml "${DOCKER_LIB}/registry.yaml" ".extensions.\"$ext\".category" 2>/dev/null || echo "unknown")
+                execute_extension "$ext" "install"
+                add_to_manifest "$ext" "$category"
+            done
+            ;;
+        reinstall-profile)
+            if [[ $# -eq 0 ]]; then
+                print_error "Usage: extension-manager reinstall-profile <profile>"
+                return 1
+            fi
+            reinstall_profile "$1"
             ;;
         remove)
             if [[ $# -eq 0 ]]; then
@@ -213,6 +243,7 @@ install_profile() {
 
     # Resolve dependencies for all extensions in profile
     local resolved
+    # shellcheck disable=SC2086  # Word splitting intentional for multiple extensions
     resolved=$(resolve_dependencies $extensions)
 
     # Install in order, continuing on failures
@@ -236,6 +267,107 @@ install_profile() {
         print_success "Installed profile: $profile ($installed_count extensions)"
     else
         print_warning "Profile $profile partially installed: $installed_count succeeded, $failed_count failed"
+        print_warning "Failed extensions: $failed_extensions"
+        return 1
+    fi
+}
+
+# Reinstall profile (removes and reinstalls all extensions in profile)
+reinstall_profile() {
+    local profile="$1"
+    local profiles_file="${DOCKER_LIB}/profiles.yaml"
+
+    if [[ ! -f "$profiles_file" ]]; then
+        print_error "Profiles file not found"
+        return 1
+    fi
+
+    # Check if profile exists
+    local profile_exists
+    profile_exists=$(load_yaml "$profiles_file" ".profiles.\"$profile\"" 2>/dev/null || echo "null")
+
+    if [[ "$profile_exists" == "null" ]]; then
+        print_error "Unknown profile: $profile"
+        print_status "Available profiles:"
+        load_yaml "$profiles_file" '.profiles | keys[]' 2>/dev/null | sed 's/^/  - /'
+        return 1
+    fi
+
+    print_header "Reinstalling profile: $profile"
+
+    # Get extensions from profile
+    local extensions
+    extensions=$(load_yaml "$profiles_file" ".profiles.\"$profile\".extensions[]" 2>/dev/null || echo "")
+
+    if [[ -z "$extensions" ]]; then
+        print_error "Profile has no extensions defined"
+        return 1
+    fi
+
+    # Resolve dependencies for all extensions in profile
+    local resolved
+    # shellcheck disable=SC2086  # Word splitting intentional for multiple extensions
+    resolved=$(resolve_dependencies $extensions)
+
+    # Remove all extensions first (in reverse order to handle dependencies)
+    local reversed_exts
+    reversed_exts=$(echo "$resolved" | tac)
+
+    print_status "Removing existing extensions..."
+    for ext in $reversed_exts; do
+        if is_extension_installed "$ext"; then
+            FORCE_MODE=true execute_extension "$ext" "remove" 2>/dev/null || true
+            remove_from_manifest "$ext" 2>/dev/null || true
+            mark_uninstalled "$ext" 2>/dev/null || true
+        fi
+    done
+
+    # Track installation results
+    local failed_extensions=""
+    local installed_count=0
+    local failed_count=0
+
+    # Install protected base extensions first
+    local protected_exts
+    protected_exts=$(load_yaml "${DOCKER_LIB}/registry.yaml" '.extensions | to_entries[] | select(.value.protected == true) | .key' 2>/dev/null || echo "mise-config")
+
+    for base_ext in $protected_exts; do
+        print_status "Reinstalling base extension: $base_ext"
+        # Remove first
+        FORCE_MODE=true execute_extension "$base_ext" "remove" 2>/dev/null || true
+        mark_uninstalled "$base_ext" 2>/dev/null || true
+        # Install
+        if execute_extension "$base_ext" "install"; then
+            add_to_manifest "$base_ext" "base" true
+            ((installed_count++)) || true
+        else
+            print_warning "Base extension failed: $base_ext (continuing...)"
+            failed_extensions="${failed_extensions:+$failed_extensions, }$base_ext"
+            ((failed_count++)) || true
+        fi
+    done
+
+    # Install in dependency order
+    print_status "Installing extensions..."
+    for ext in $resolved; do
+        local category
+        category=$(load_yaml "${DOCKER_LIB}/registry.yaml" ".extensions.\"$ext\".category" 2>/dev/null || echo "unknown")
+
+        if execute_extension "$ext" "install"; then
+            add_to_manifest "$ext" "$category"
+            ((installed_count++)) || true
+        else
+            print_warning "Extension failed: $ext (continuing with remaining extensions...)"
+            failed_extensions="${failed_extensions:+$failed_extensions, }$ext"
+            ((failed_count++)) || true
+        fi
+    done
+
+    # Report results
+    if [[ $failed_count -eq 0 ]]; then
+        print_success "Reinstalled profile: $profile ($installed_count extensions)"
+    else
+        print_warning "Profile $profile partially reinstalled: $installed_count succeeded, $failed_count failed"
         print_warning "Failed extensions: $failed_extensions"
         return 1
     fi

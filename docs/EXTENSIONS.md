@@ -286,6 +286,18 @@ extension-manager validate-all
 extension-manager upgrade nodejs
 ```
 
+### Reinstall Extensions
+
+Reinstall cleans up the existing installation and reinstalls fresh:
+
+```bash
+# Reinstall single extension
+extension-manager reinstall nodejs
+
+# Reinstall all extensions in a profile
+extension-manager reinstall-profile fullstack
+```
+
 ### Remove Extensions
 
 ```bash

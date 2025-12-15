@@ -243,6 +243,14 @@
       "docs": ["docs/CLI.md"]
     },
     {
+      "id": "extension-reinstall",
+      "category": "extensions",
+      "question": "How do I reinstall an extension?",
+      "answer": "Run 'extension-manager reinstall <name>' to remove and reinstall a single extension, or 'extension-manager reinstall-profile <profile>' to reinstall all extensions in a profile. This is useful after deploying an updated Sindri image with new extension definitions, or when troubleshooting broken installations. The reinstall command forces removal without confirmation, clears markers, and performs a fresh install.",
+      "tags": ["reinstall", "fix", "refresh", "update"],
+      "docs": ["docs/CLI.md"]
+    },
+    {
       "id": "extension-manager-where",
       "category": "extensions",
       "question": "Can I run extension-manager on my host machine or only inside the container?",

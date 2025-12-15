@@ -532,6 +532,69 @@ extension-manager install-all
 
 ---
 
+## Extension Reinstall Commands
+
+### extension-manager reinstall
+
+Remove and reinstall an extension. Useful when an extension definition has changed
+or when troubleshooting installation issues.
+
+```bash
+extension-manager reinstall <extension-name>
+```
+
+**Behavior:**
+
+1. Removes the existing installation (forced, no confirmation)
+2. Clears manifest entry and installation marker
+3. Resolves dependencies
+4. Reinstalls extension with fresh configuration
+
+**Examples:**
+
+```bash
+# Reinstall supabase-cli after extension definition update
+extension-manager reinstall supabase-cli
+
+# Reinstall nodejs to fix broken installation
+extension-manager reinstall nodejs
+```
+
+### extension-manager reinstall-profile
+
+Remove and reinstall all extensions in a profile. Useful after upgrading
+Sindri or when extension definitions have been updated.
+
+```bash
+extension-manager reinstall-profile <profile-name>
+```
+
+**Behavior:**
+
+1. Resolves all dependencies for profile extensions
+2. Removes extensions in reverse dependency order
+3. Reinstalls base/protected extensions first
+4. Reinstalls all profile extensions in dependency order
+5. Reports success/failure counts
+
+**Examples:**
+
+```bash
+# Reinstall all extensions in the base profile
+extension-manager reinstall-profile base
+
+# Reinstall the full development stack
+extension-manager reinstall-profile fullstack
+```
+
+**Use Case:**
+
+- After deploying updated Sindri image with new extension definitions
+- Recovering from broken extension installations
+- Applying updated extension configurations across a profile
+
+---
+
 ## Extension Removal Commands
 
 ### extension-manager remove

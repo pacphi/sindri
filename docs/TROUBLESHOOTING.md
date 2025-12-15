@@ -184,9 +184,12 @@ mise doctor
 **Solution:**
 
 ```bash
-# Reinstall extension
-extension-manager remove nodejs
-extension-manager install nodejs
+# Reinstall extension (single command)
+extension-manager reinstall nodejs
+
+# Or manually:
+# extension-manager remove nodejs
+# extension-manager install nodejs
 
 # Verify mise configuration
 cat ~/.config/mise/conf.d/nodejs.toml
