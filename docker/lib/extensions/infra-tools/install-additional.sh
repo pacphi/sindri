@@ -141,17 +141,17 @@ main() {
 
     print_success "Additional infrastructure tools installation complete"
 
-    # Show installed tools
+    # Show installed tools (use || true to prevent exit code propagation)
     print_status "Infrastructure tools available:"
-    command -v terraform > /dev/null 2>&1 && echo "  ✓ Terraform"
-    command -v ansible > /dev/null 2>&1 && echo "  ✓ Ansible"
-    command -v kubectl > /dev/null 2>&1 && echo "  ✓ kubectl"
-    command -v helm > /dev/null 2>&1 && echo "  ✓ Helm"
-    command -v k9s > /dev/null 2>&1 && echo "  ✓ k9s"
-    command -v pulumi > /dev/null 2>&1 && echo "  ✓ Pulumi"
-    command -v crossplane > /dev/null 2>&1 && echo "  ✓ Crossplane"
-    command -v kubectx > /dev/null 2>&1 && echo "  ✓ kubectx/kubens"
-    command -v kapp > /dev/null 2>&1 && echo "  ✓ Carvel suite"
+    command -v terraform > /dev/null 2>&1 && echo "  ✓ Terraform" || true
+    command -v ansible > /dev/null 2>&1 && echo "  ✓ Ansible" || true
+    command -v kubectl > /dev/null 2>&1 && echo "  ✓ kubectl" || true
+    command -v helm > /dev/null 2>&1 && echo "  ✓ Helm" || true
+    command -v k9s > /dev/null 2>&1 && echo "  ✓ k9s" || true
+    command -v pulumi > /dev/null 2>&1 && echo "  ✓ Pulumi" || true
+    command -v crossplane > /dev/null 2>&1 && echo "  ✓ Crossplane" || true
+    command -v kubectx > /dev/null 2>&1 && echo "  ✓ kubectx/kubens" || true
+    command -v kapp > /dev/null 2>&1 && echo "  ✓ Carvel suite" || true
 }
 
 main "$@"

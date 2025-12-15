@@ -62,8 +62,10 @@ configure:
 validate:
   commands:
     - name: tmux
+      versionFlag: "-V"
       expectedPattern: "tmux \\d+"
     - name: htop
+      versionFlag: "--version"
 
 remove:
   paths:

@@ -11,10 +11,27 @@ metadata:
 
 requirements:
   domains:
+    # SDKMAN core
     - sdkman.io
     - get.sdkman.io
     - api.sdkman.io
+    # Gradle distribution
+    - downloads.gradle-dn.com
+    - services.gradle.org
+    - plugins.gradle.org
+    # Temurin/Eclipse Java distribution (fallback for Liberica)
+    - adoptium.net
+    - api.adoptium.net
+    - download.eclipse.org
+    # Liberica JDK (BellSoft - primary ARM-optimized distribution)
+    - bell-sw.com
+    - download.bell-sw.com
+    # Maven Central
+    - repo.maven.apache.org
+    - repo1.maven.org
+    # GitHub (for various downloads)
     - github.com
+    - objects.githubusercontent.com
   diskSpace: 2000
   memory: 4096
   installTime: 180

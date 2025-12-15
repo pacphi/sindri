@@ -18,6 +18,7 @@ requirements:
   diskSpace: 300
   memory: 512
   installTime: 120
+  validationTimeout: 30
   secrets:
     - supabase_access_token
 
