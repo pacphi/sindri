@@ -317,7 +317,7 @@ jobs:
           echo "Cleanup configuration saved"
 
       - name: Upload cleanup config
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: cleanup-config-${{ env.DEPLOYMENT_ID }}
           path: cleanup-config.json
