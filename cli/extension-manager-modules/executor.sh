@@ -690,6 +690,20 @@ validate_extension() {
     if [[ -d "$home_dir/.cargo/bin" ]] && [[ ":$PATH:" != *":$home_dir/.cargo/bin:"* ]]; then
         export PATH="$home_dir/.cargo/bin:$PATH"
     fi
+    # Add npm global bin for Node.js-installed tools (npm install -g)
+    # For mise-managed Node.js, global packages are in ~/.local/share/mise/installs/node/<version>/bin
+    local node_installs="${home_dir}/.local/share/mise/installs/node"
+    if [[ -d "$node_installs" ]]; then
+        local node_path
+        node_path=$(find "$node_installs" -maxdepth 2 -name "bin" -type d 2>/dev/null | head -1 || true)
+        if [[ -n "$node_path" ]] && [[ ":$PATH:" != *":$node_path:"* ]]; then
+            export PATH="$node_path:$PATH"
+        fi
+    fi
+    # Also check for npm-global directory if user configured it
+    if [[ -d "$home_dir/.npm-global/bin" ]] && [[ ":$PATH:" != *":$home_dir/.npm-global/bin:"* ]]; then
+        export PATH="$home_dir/.npm-global/bin:$PATH"
+    fi
     # Clear bash's command hash table so new commands are found
     hash -r 2>/dev/null || true
 
