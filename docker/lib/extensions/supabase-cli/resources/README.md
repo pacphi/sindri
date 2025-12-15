@@ -2,6 +2,16 @@
 
 This extension installs the Supabase CLI for local development, database migrations, and edge functions deployment.
 
+## Installation Method
+
+This extension installs Supabase CLI via the official `.deb` package from GitHub releases:
+
+1. Downloads the latest release from `github.com/supabase/cli`
+2. Installs using `dpkg` for proper system integration
+3. Binary is available system-wide at `/usr/bin/supabase`
+
+> **Note**: As of 2025, npm global install (`npm install -g supabase`) is no longer supported by Supabase.
+
 ## Features
 
 - Local Supabase development environment
@@ -13,7 +23,6 @@ This extension installs the Supabase CLI for local development, database migrati
 ## Prerequisites
 
 - **Docker**: Required for running local Supabase services
-- **Node.js 20+**: Required for the npm-based CLI
 
 ## Configuration
 

@@ -1,22 +1,20 @@
 ---
 metadata:
   name: supabase-cli
-  version: 1.0.0
+  version: 2.0.0
   description: Supabase CLI for local development, migrations, and edge functions
   category: infrastructure
   author: Sindri Team
   homepage: https://github.com/supabase/cli
   dependencies:
-    - nodejs
     - docker
 
 requirements:
   domains:
     - supabase.com
     - api.supabase.com
-    - registry.npmjs.org
     - github.com
-    - raw.githubusercontent.com
+    - objects.githubusercontent.com
   diskSpace: 300
   memory: 512
   installTime: 120
@@ -41,24 +39,28 @@ configure:
 
 validate:
   commands:
-    - name: npx
-      versionFlag: supabase --version
+    - name: supabase
+      versionFlag: --version
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
 
 remove:
   paths:
     - ~/extensions/supabase-cli
     - ~/.supabase
+  script:
+    path: uninstall.sh
 
 upgrade:
-  strategy: manual
+  strategy: reinstall
+  script:
+    path: install.sh
 
 bom:
   tools:
     - name: supabase
       version: dynamic
-      source: npm
+      source: binary
       type: cli-tool
       license: MIT
       homepage: https://supabase.com/docs/guides/local-development/cli/getting-started
-      purl: pkg:npm/supabase
+      purl: pkg:github/supabase/cli

@@ -34,7 +34,8 @@ validate:
   commands:
     - name: ollama
       versionFlag: --version
-      expectedPattern: "ollama version"
+      # Ollama outputs "ollama version is X.Y.Z" or just version number
+      expectedPattern: "(ollama version|\\d+\\.\\d+\\.\\d+)"
 
 remove:
   confirmation: true

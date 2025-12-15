@@ -22,6 +22,7 @@ requirements:
   domains: # Required DNS domains
     - example.com
   diskSpace: 100 # Required disk space in MB
+  validationTimeout: 30 # Optional: seconds to wait for validation (default: 10)
   secrets: # Optional secrets
     - MY_API_KEY
 
@@ -75,7 +76,9 @@ MYTOOL_HOME = "~/.mytool"
 
 #### Method: apt
 
-For system packages:
+For system packages. The extension manager uses modern GPG keyring handling
+(stores keys in `/etc/apt/keyrings/` with `signed-by` option, avoiding
+deprecated `apt-key`):
 
 ```yaml
 install:
@@ -88,6 +91,10 @@ install:
       - mypackage
       - mypackage-cli
 ```
+
+> **Note**: The `gpgKey` URL is downloaded and stored in
+> `/etc/apt/keyrings/<extension>.gpg`. The sources line is automatically
+> updated to include `signed-by=/etc/apt/keyrings/<extension>.gpg`.
 
 #### Method: binary
 
@@ -265,6 +272,23 @@ validate:
   script:
     path: scripts/validate.sh
 ```
+
+### Validation Timeout
+
+Some tools (especially JVM-based like Scala, or tools that initialize on first
+run) may take longer than the default 10-second timeout. Set a custom timeout
+in the requirements section:
+
+```yaml
+requirements:
+  validationTimeout: 60 # Seconds (default: 10)
+```
+
+Use longer timeouts for:
+
+- JVM tools (Java, Scala, Kotlin) - recommend 60s
+- Tools that download on first run - recommend 30s
+- CLI tools that initialize config on first run - recommend 30s
 
 ## Environment Variables
 

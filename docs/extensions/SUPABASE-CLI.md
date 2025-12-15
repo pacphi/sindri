@@ -7,20 +7,24 @@ Supabase CLI for local development, migrations, and edge functions.
 | Property         | Value          |
 | ---------------- | -------------- |
 | **Category**     | infrastructure |
-| **Version**      | 1.0.0          |
-| **Installation** | script         |
+| **Version**      | 2.0.0          |
+| **Installation** | binary (deb)   |
 | **Disk Space**   | 300 MB         |
-| **Dependencies** | nodejs, docker |
+| **Dependencies** | docker         |
 
 ## Description
 
 This extension installs the Supabase CLI for local development, database migrations, and edge functions deployment.
 
+The extension downloads and installs the official `.deb` package from GitHub releases, ensuring you get the latest stable version with proper system integration.
+
+> **Note**: As of 2025, npm global install (`npm install -g supabase`) is no longer supported by Supabase. This extension uses the recommended binary installation method.
+
 ## Installed Tools
 
-| Tool       | Type     | Description        |
-| ---------- | -------- | ------------------ |
-| `supabase` | cli-tool | Supabase CLI (npm) |
+| Tool       | Type     | Description               |
+| ---------- | -------- | ------------------------- |
+| `supabase` | cli-tool | Supabase CLI (deb binary) |
 
 ## Secrets Required
 
@@ -47,6 +51,13 @@ secrets:
 ```bash
 extension-manager install supabase-cli
 ```
+
+The installer will:
+
+1. Detect your system architecture (amd64 or arm64)
+2. Download the latest `.deb` package from GitHub releases
+3. Install using `dpkg` (requires sudo)
+4. Verify the installation
 
 ## Features
 
@@ -141,8 +152,8 @@ supabase link --project-ref your-project-ref
 ## Validation
 
 ```bash
-npx supabase --version
-# Expected: semver pattern like 1.x.x
+supabase --version
+# Expected: semver pattern like 2.x.x
 ```
 
 ## Removal
@@ -153,6 +164,7 @@ extension-manager remove supabase-cli
 
 Removes:
 
+- Supabase CLI system package (via dpkg)
 - `~/extensions/supabase-cli`
 - `~/.supabase`
 

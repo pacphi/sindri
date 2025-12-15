@@ -13,6 +13,8 @@ requirements:
   diskSpace: 50
   memory: 0
   installTime: 30
+  # Claude CLI may be slow to respond on first run
+  validationTimeout: 30
 
 install:
   method: script

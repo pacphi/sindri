@@ -298,35 +298,59 @@ install_via_apt() {
         sudo_cmd="sudo"
     fi
 
-    # Add repositories
+    # Ensure keyrings directory exists (modern GPG key storage)
+    $sudo_cmd mkdir -p /etc/apt/keyrings
+
+    # Add repositories using modern GPG keyring method (apt-key is deprecated)
     local repos_count
     repos_count=$(load_yaml "$ext_yaml" '.install.apt.repositories | length' 2>/dev/null || echo "0")
 
     if [[ "$repos_count" != "null" ]] && [[ "$repos_count" -gt 0 ]]; then
         for i in $(seq 0 $((repos_count - 1))); do
-            local gpg_key sources
+            local gpg_key sources keyring_file
             gpg_key=$(load_yaml "$ext_yaml" ".install.apt.repositories[$i].gpgKey")
             sources=$(load_yaml "$ext_yaml" ".install.apt.repositories[$i].sources")
+            keyring_file="/etc/apt/keyrings/${ext_name}.gpg"
 
             if [[ -n "$gpg_key" ]] && [[ "$gpg_key" != "null" ]]; then
-                curl -fsSL "$gpg_key" | $sudo_cmd apt-key add -
+                # Use modern GPG keyring method instead of deprecated apt-key
+                # Download and dearmor the key to the keyrings directory
+                print_status "Adding GPG key for $ext_name..."
+                curl -fsSL "$gpg_key" | $sudo_cmd gpg --dearmor -o "$keyring_file" 2>/dev/null || {
+                    # If gpg --dearmor fails (key already dearmored), try direct download
+                    curl -fsSL "$gpg_key" | $sudo_cmd tee "$keyring_file" > /dev/null
+                }
+                $sudo_cmd chmod 644 "$keyring_file"
             fi
 
             if [[ -n "$sources" ]] && [[ "$sources" != "null" ]]; then
+                # Update sources to use signed-by with the keyring file
+                # If sources already contains signed-by, use as-is; otherwise add it
+                if [[ "$sources" != *"signed-by="* ]] && [[ -f "$keyring_file" ]]; then
+                    # Insert signed-by into the deb line after [arch=...]
+                    # Handle both "deb [arch=amd64]" and "deb [" formats
+                    if [[ "$sources" == *"deb ["* ]]; then
+                        # Insert signed-by before the closing bracket
+                        sources="${sources/\] / signed-by=$keyring_file] }"
+                    else
+                        # Add options block with signed-by
+                        sources="${sources/deb /deb [signed-by=$keyring_file] }"
+                    fi
+                fi
                 echo "$sources" | $sudo_cmd tee "/etc/apt/sources.list.d/${ext_name}.list" > /dev/null
             fi
         done
     fi
 
-    # Install packages
+    # Install packages with DEBIAN_FRONTEND=noninteractive to prevent interactive prompts
     local packages
     packages=$(load_yaml "$ext_yaml" '.install.apt.packages[]' 2>/dev/null | tr '\n' ' ')
 
     if [[ -n "$packages" ]] && [[ "$packages" != "null" ]]; then
         print_status "Installing packages: $packages"
-        $sudo_cmd apt-get update -qq
+        $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update -qq
         # shellcheck disable=SC2086
-        $sudo_cmd apt-get install -y $packages
+        $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $packages
     fi
 
     return 0
