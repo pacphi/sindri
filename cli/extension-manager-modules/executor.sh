@@ -624,6 +624,19 @@ configure_extension() {
             scope=$(load_yaml "$ext_yaml" ".configure.environment[$i].scope" 2>/dev/null || echo "bashrc")
 
             if [[ "$scope" == "bashrc" ]]; then
+                # Expand the value to check if it resolves to a non-empty string
+                # This prevents writing empty exports that would mask secrets injected
+                # by the provider (Fly.io secrets, Docker env, etc.)
+                # e.g., value="${LINEAR_API_KEY}" expands to empty if not set in this shell
+                local expanded_value
+                expanded_value=$(eval echo "$value" 2>/dev/null || echo "")
+
+                if [[ -z "$expanded_value" ]]; then
+                    # Don't write empty exports - let provider-injected secrets take effect
+                    [[ "${VERBOSE:-false}" == "true" ]] && print_warning "Skipping empty environment variable: $key (rely on provider secrets)"
+                    continue
+                fi
+
                 # Only add if not already present
                 if ! grep -q "^export ${key}=" "$bashrc_file" 2>/dev/null; then
                     echo "export ${key}=\"${value}\"" >> "$bashrc_file"
