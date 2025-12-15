@@ -187,6 +187,12 @@ jobs:
             PROVIDERS='["docker", "fly", "devpod-k8s"]'
           fi
 
+          # Skip fly provider for Dependabot PRs (no access to FLY_API_TOKEN secret)
+          if [[ "${{ github.actor }}" == "dependabot[bot]" ]]; then
+            PROVIDERS=$(echo "$PROVIDERS" | jq -c 'map(select(. != "fly"))')
+            echo "::notice title=Dependabot Detected::Skipping fly provider (no secret access)"
+          fi
+
           echo "providers=$PROVIDERS" >> $GITHUB_OUTPUT
           echo "::notice title=Test Providers::$PROVIDERS"
 
