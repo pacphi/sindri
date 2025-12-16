@@ -51,7 +51,7 @@ bom:
   tools:
     - name: linear-mcp
       version: remote
-      source: linear
+      source: script
       type: server
       license: MIT
       homepage: https://linear.app/docs/mcp

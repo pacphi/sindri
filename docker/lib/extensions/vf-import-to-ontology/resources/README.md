@@ -294,4 +294,4 @@ node scripts/generate-index.js
 
 -
 -
-- [Web Summary Skill](../vf-web-summary/resources/SKILL.md)
+- [Web Summary Skill](/docker/lib/extensions/vf-web-summary/resources/SKILL.md)
