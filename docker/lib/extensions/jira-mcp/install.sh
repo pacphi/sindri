@@ -2,14 +2,17 @@
 set -euo pipefail
 
 # Install script for jira-mcp
-# Atlassian Jira and Confluence MCP server for AI-powered issue tracking
+# Atlassian MCP server using Claude Code's native SSE transport
+# See: https://support.atlassian.com/atlassian-rovo-mcp-server/
 
 source "${DOCKER_LIB:-/docker/lib}/common.sh"
 
 EXTENSION_DIR="${HOME}/extensions/jira-mcp"
 RESOURCE_DIR="${DOCKER_LIB:-/docker/lib}/extensions/jira-mcp/resources"
+MCP_SERVER_NAME="atlassian"
+ATLASSIAN_MCP_URL="https://mcp.atlassian.com/v1/sse"
 
-print_status "Installing Atlassian MCP server (Jira/Confluence)..."
+print_status "Installing Atlassian MCP server (native SSE transport)..."
 
 # Create extension directory
 mkdir -p "${EXTENSION_DIR}"
@@ -19,122 +22,73 @@ if [[ -d "${RESOURCE_DIR}" ]]; then
     cp -r "${RESOURCE_DIR}"/* "${EXTENSION_DIR}/"
 fi
 
-# Pull the mcp-atlassian Docker image
-print_status "Pulling mcp-atlassian Docker image..."
-if docker pull ghcr.io/sooperset/mcp-atlassian:latest; then
-    print_success "Docker image pulled successfully"
+# Check if claude CLI is available
+if ! command -v claude &>/dev/null; then
+    print_error "Claude Code CLI not found"
+    print_status "Please ensure Claude Code is installed"
+    exit 1
+fi
+
+# Add Atlassian MCP server using native SSE transport
+# Claude Code supports direct SSE connections to remote MCP servers
+# See: https://docs.anthropic.com/en/docs/claude-code/mcp
+print_status "Adding Atlassian MCP to Claude Code (user scope, SSE transport)..."
+
+# Use claude mcp add with SSE transport - no mcp-remote wrapper needed
+if claude mcp add --transport sse --scope user "${MCP_SERVER_NAME}" "${ATLASSIAN_MCP_URL}" 2>/dev/null; then
+    print_success "Atlassian MCP added to user scope"
 else
-    print_warning "Failed to pull Docker image - will be pulled on first use"
-fi
-
-# Create a wrapper script for running the MCP server
-cat > "${EXTENSION_DIR}/run-jira-mcp.sh" << 'EOF'
-#!/usr/bin/env bash
-# Run Atlassian MCP server (Jira/Confluence)
-# Requires: JIRA_URL, JIRA_USERNAME, JIRA_API_TOKEN environment variables
-
-set -euo pipefail
-
-# Check required environment variables
-if [[ -z "${JIRA_URL:-}" ]]; then
-    echo "Error: JIRA_URL environment variable is not set"
-    echo "Example: https://your-company.atlassian.net"
-    exit 1
-fi
-
-if [[ -z "${JIRA_USERNAME:-}" ]]; then
-    echo "Error: JIRA_USERNAME environment variable is not set"
-    echo "This should be your email address"
-    exit 1
-fi
-
-if [[ -z "${JIRA_API_TOKEN:-}" ]]; then
-    echo "Error: JIRA_API_TOKEN environment variable is not set"
-    echo "Get your token from: https://id.atlassian.com/manage-profile/security/api-tokens"
-    exit 1
-fi
-
-# Run the MCP server
-exec docker run -i --rm \
-    -e JIRA_URL="${JIRA_URL}" \
-    -e JIRA_USERNAME="${JIRA_USERNAME}" \
-    -e JIRA_API_TOKEN="${JIRA_API_TOKEN}" \
-    ${CONFLUENCE_URL:+-e CONFLUENCE_URL="${CONFLUENCE_URL}"} \
-    ${CONFLUENCE_USERNAME:+-e CONFLUENCE_USERNAME="${CONFLUENCE_USERNAME}"} \
-    ${CONFLUENCE_API_TOKEN:+-e CONFLUENCE_API_TOKEN="${CONFLUENCE_API_TOKEN}"} \
-    ${JIRA_PROJECTS_FILTER:+-e JIRA_PROJECTS_FILTER="${JIRA_PROJECTS_FILTER}"} \
-    ${READ_ONLY_MODE:+-e READ_ONLY_MODE="${READ_ONLY_MODE}"} \
-    ghcr.io/sooperset/mcp-atlassian:latest "$@"
-EOF
-chmod +x "${EXTENSION_DIR}/run-jira-mcp.sh"
-
-# Create Claude Code MCP configuration snippet (Docker method)
-cat > "${EXTENSION_DIR}/claude-mcp-config-docker.json" << 'EOF'
+    # Fallback: Check if already exists
+    if claude mcp list --scope user 2>/dev/null | grep -q "${MCP_SERVER_NAME}"; then
+        print_warning "Atlassian MCP already configured in user scope"
+    else
+        # Try add-json as alternative
+        print_status "Trying add-json approach..."
+        MCP_CONFIG='{"type":"sse","url":"'"${ATLASSIAN_MCP_URL}"'"}'
+        if claude mcp add-json --scope user "${MCP_SERVER_NAME}" "${MCP_CONFIG}" 2>/dev/null; then
+            print_success "Atlassian MCP added via add-json"
+        else
+            print_warning "Could not add via CLI, creating config snippet for manual setup"
+            # Save config snippet for manual installation
+            cat > "${EXTENSION_DIR}/claude-mcp-config.json" << EOF
 {
   "mcpServers": {
-    "atlassian": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "JIRA_URL",
-        "-e", "JIRA_USERNAME",
-        "-e", "JIRA_API_TOKEN",
-        "ghcr.io/sooperset/mcp-atlassian:latest"
-      ],
-      "env": {
-        "JIRA_URL": "https://your-company.atlassian.net",
-        "JIRA_USERNAME": "your-email@company.com",
-        "JIRA_API_TOKEN": "your_api_token"
-      }
+    "${MCP_SERVER_NAME}": {
+      "type": "sse",
+      "url": "${ATLASSIAN_MCP_URL}"
     }
   }
 }
 EOF
+            print_status "Config saved to: ${EXTENSION_DIR}/claude-mcp-config.json"
+            print_status "To add manually: claude mcp add --transport sse --scope user ${MCP_SERVER_NAME} ${ATLASSIAN_MCP_URL}"
+        fi
+    fi
+fi
 
-# Create Claude Code MCP configuration snippet (Official Atlassian remote method)
-cat > "${EXTENSION_DIR}/claude-mcp-config-official.json" << 'EOF'
+# Save installation metadata
+cat > "${EXTENSION_DIR}/installation-info.json" << EOF
 {
-  "mcpServers": {
-    "atlassian": {
-      "command": "claude",
-      "args": ["mcp", "add", "--transport", "sse", "atlassian", "https://mcp.atlassian.com/v1/sse"]
-    }
-  }
+  "version": "2.0.0",
+  "type": "remote-mcp-sse",
+  "transport": "sse",
+  "url": "${ATLASSIAN_MCP_URL}",
+  "scope": "user",
+  "installed_at": "$(date -Iseconds)",
+  "auth_method": "oauth"
 }
-EOF
-
-# Create .env template
-cat > "${EXTENSION_DIR}/.env.template" << 'EOF'
-# Atlassian MCP Server Configuration
-# Copy this to .env and fill in your values
-
-# Required: Jira Cloud configuration
-JIRA_URL=https://your-company.atlassian.net
-JIRA_USERNAME=your-email@company.com
-JIRA_API_TOKEN=your_api_token_here
-
-# Optional: Confluence configuration
-#CONFLUENCE_URL=https://your-company.atlassian.net/wiki
-#CONFLUENCE_USERNAME=your-email@company.com
-#CONFLUENCE_API_TOKEN=your_api_token_here
-
-# Optional: Filtering
-#JIRA_PROJECTS_FILTER=PROJ1,PROJ2
-#CONFLUENCE_SPACES_FILTER=DEV,TEAM
-
-# Optional: Read-only mode (set to true to disable write operations)
-#READ_ONLY_MODE=false
 EOF
 
 print_success "jira-mcp installed successfully"
 print_status ""
-print_status "Configuration required:"
-print_status "  1. Get API token: https://id.atlassian.com/manage-profile/security/api-tokens"
-print_status "  2. Set environment variables:"
-print_status "     export JIRA_URL='https://your-company.atlassian.net'"
-print_status "     export JIRA_USERNAME='your-email@company.com'"
-print_status "     export JIRA_API_TOKEN='your_token'"
+print_status "To complete setup:"
+print_status "  1. Run '/mcp' in Claude Code to trigger OAuth authentication"
+print_status "  2. Click 'Connect Atlassian Account' and authorize in your browser"
+print_status "  3. Grant access to Jira and/or Confluence"
+print_status "  4. Start using Atlassian tools in Claude Code"
 print_status ""
-print_status "Two MCP options available:"
-print_status "  - Docker (self-hosted): See ${EXTENSION_DIR}/claude-mcp-config-docker.json"
-print_status "  - Official Atlassian (cloud): claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse"
+print_status "Available commands after authentication:"
+print_status "  - 'Search for open bugs in project BACKEND'"
+print_status "  - 'Create a new issue in [project]'"
+print_status "  - 'What issues are assigned to me?'"
+print_status "  - 'Find Confluence pages about [topic]'"

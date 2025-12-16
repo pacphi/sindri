@@ -1,128 +1,89 @@
-# Atlassian Jira/Confluence MCP Server
+# Atlassian MCP Server
 
-This extension provides integration with Atlassian Jira and Confluence via the Model Context Protocol (MCP).
+This extension provides integration with Atlassian Jira and Confluence via the official Atlassian Remote MCP server with OAuth authentication.
 
 ## Features
 
 ### Jira Operations
 
 - Search issues using JQL queries
-- Create, update, and delete issues
+- Create and update issues
 - Manage issue transitions and workflows
-- Add comments and attachments
-- Manage sprints and boards
-- Query project metadata
+- Add comments to issues
+- Query project and sprint information
+- Real-time access to issue tracking data
 
 ### Confluence Operations
 
 - Search pages and spaces
 - Create and update pages
-- Manage page comments and labels
 - Navigate documentation hierarchy
+- Summarize existing documentation
 
-## Installation Options
+### Key Benefits
 
-### Option 1: Docker-based MCP (Self-hosted)
+- **No API key required** - uses secure OAuth 2.1 flow
+- **No Docker dependencies** - native SSE transport
+- **Real-time access** - direct connection to Atlassian Cloud
 
-Uses the community [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) Docker image.
+## Authentication
 
-**Requirements:**
+This extension uses Atlassian's official OAuth-based MCP server. On first use:
 
-- Docker running
-- Atlassian API token
+1. Run `/mcp` in Claude Code
+2. Click "Connect Atlassian Account"
+3. Authorize the connection in your browser
+4. Grant access to Jira and/or Confluence
+5. Start using Atlassian tools immediately
 
-**Configuration:**
+The OAuth token is stored securely by Claude Code.
 
-1. Get your API token from: <https://id.atlassian.com/manage-profile/security/api-tokens>
+## Configuration
 
-2. Set environment variables:
-
-```bash
-export JIRA_URL="https://your-company.atlassian.net"
-export JIRA_USERNAME="your-email@company.com"
-export JIRA_API_TOKEN="your_api_token"
-```
-
-3. Add to Claude Code MCP configuration (`~/.claude/settings.json`):
+The Atlassian MCP server is automatically added to your user-scope configuration at `~/.claude.json`:
 
 ```json
 {
   "mcpServers": {
     "atlassian": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "JIRA_URL",
-        "-e",
-        "JIRA_USERNAME",
-        "-e",
-        "JIRA_API_TOKEN",
-        "ghcr.io/sooperset/mcp-atlassian:latest"
-      ],
-      "env": {
-        "JIRA_URL": "https://your-company.atlassian.net",
-        "JIRA_USERNAME": "your-email@company.com",
-        "JIRA_API_TOKEN": "your_token"
-      }
+      "type": "sse",
+      "url": "https://mcp.atlassian.com/v1/sse"
     }
   }
 }
 ```
 
-### Option 2: Official Atlassian Remote MCP (Cloud)
+### Manual Installation
 
-Uses Atlassian's official hosted MCP server with OAuth 2.1 authentication.
-
-**Requirements:**
-
-- Atlassian Cloud account (Jira/Confluence)
-- Claude for Teams or Claude Code
-
-**Setup:**
+If automatic installation fails, add manually:
 
 ```bash
-claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
+claude mcp add --transport sse --scope user atlassian https://mcp.atlassian.com/v1/sse
 ```
 
-This initiates an OAuth flow in your browser - no API tokens needed.
+## Usage
 
-## Usage Examples
+Once authenticated, you can ask Claude to:
 
-Once configured, you can ask Claude to:
+### Jira Examples
 
 - "Search for open bugs in project BACKEND"
 - "Create a new story for user authentication"
 - "What issues are assigned to me?"
 - "Update PROJ-123 to In Progress"
 - "Show me the sprint backlog"
+- "Add a comment to issue ABC-456"
+
+### Confluence Examples
+
 - "Find Confluence pages about API documentation"
 - "Create a new Confluence page with meeting notes"
-
-## Environment Variables
-
-### Required (Docker method)
-
-| Variable         | Description                                                    |
-| ---------------- | -------------------------------------------------------------- |
-| `JIRA_URL`       | Your Jira instance URL (e.g., `https://company.atlassian.net`) |
-| `JIRA_USERNAME`  | Your email address                                             |
-| `JIRA_API_TOKEN` | API token from Atlassian                                       |
-
-### Optional
-
-| Variable                   | Description                                  |
-| -------------------------- | -------------------------------------------- |
-| `CONFLUENCE_URL`           | Confluence instance URL                      |
-| `CONFLUENCE_USERNAME`      | Confluence username (usually same as Jira)   |
-| `CONFLUENCE_API_TOKEN`     | Confluence API token                         |
-| `JIRA_PROJECTS_FILTER`     | Comma-separated project keys to limit access |
-| `CONFLUENCE_SPACES_FILTER` | Comma-separated space keys to limit access   |
-| `READ_ONLY_MODE`           | Set to `true` to disable write operations    |
+- "Summarize the architecture documentation"
+- "What pages are in the DEV space?"
 
 ## Available Tools
+
+The MCP server exposes these tools:
 
 ### Jira Tools
 
@@ -130,13 +91,9 @@ Once configured, you can ask Claude to:
 - `jira_get_issue` - Get issue details
 - `jira_create_issue` - Create new issue
 - `jira_update_issue` - Update existing issue
-- `jira_delete_issue` - Delete issue
 - `jira_add_comment` - Add comment to issue
 - `jira_transition_issue` - Change issue status
-- `jira_get_transitions` - Get available transitions
 - `jira_get_projects` - List projects
-- `jira_get_boards` - List boards
-- `jira_get_sprints` - List sprints
 
 ### Confluence Tools
 
@@ -144,13 +101,49 @@ Once configured, you can ask Claude to:
 - `confluence_get_page` - Get page content
 - `confluence_create_page` - Create new page
 - `confluence_update_page` - Update page content
-- `confluence_delete_page` - Delete page
 - `confluence_get_spaces` - List spaces
+
+## Troubleshooting
+
+### Re-authenticate
+
+If you need to re-authenticate:
+
+1. Run `/mcp` in Claude Code
+2. Find the Atlassian server
+3. Click "Authenticate" or "Reconnect"
+
+### Check Status
+
+```bash
+claude mcp list --scope user
+```
+
+### Remove and Reinstall
+
+```bash
+claude mcp remove --scope user atlassian
+extension-manager reinstall jira-mcp
+```
+
+### Known Issues
+
+There's a [reported issue](https://github.com/anthropics/claude-code/issues/9133) where tools may not appear in conversations despite successful connection. Try:
+
+1. Starting a new conversation
+2. Running `/mcp` to refresh connections
+3. Updating to the latest Claude Code version
+
+## Rate Limits
+
+The Atlassian Remote MCP server has usage limits based on your Atlassian plan:
+
+- **Standard plan**: Moderate usage thresholds
+- **Premium/Enterprise**: Higher quotas (1,000 requests/hour plus per-user limits)
 
 ## Links
 
-- [mcp-atlassian (GitHub)](https://github.com/sooperset/mcp-atlassian)
-- [Official Atlassian MCP Server](https://support.atlassian.com/atlassian-rovo-mcp-server/)
-- [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-- [Jira REST API](https://developer.atlassian.com/cloud/jira/platform/rest/v3/)
-- [Confluence REST API](https://developer.atlassian.com/cloud/confluence/rest/v2/)
+- [Atlassian Remote MCP Server](https://support.atlassian.com/atlassian-rovo-mcp-server/)
+- [Getting Started Guide](https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/)
+- [Setting up Claude.ai](https://support.atlassian.com/atlassian-rovo-mcp-server/docs/setting-up-claude-ai/)
+- [MCP Protocol](https://modelcontextprotocol.io/)

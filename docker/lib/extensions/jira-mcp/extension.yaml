@@ -1,71 +1,58 @@
 ---
 metadata:
   name: jira-mcp
-  version: 1.0.0
-  description: Atlassian Jira and Confluence MCP server for AI-powered issue tracking
+  version: 2.0.0
+  description: >-
+    Atlassian MCP server using Claude Code's native SSE transport
+    (no API key required, no Docker dependencies)
   category: agile
   author: Sindri Team
-  homepage: https://github.com/sooperset/mcp-atlassian
-  dependencies:
-    - docker
+  homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/
+  dependencies: []
 
 requirements:
   domains:
     - atlassian.net
     - atlassian.com
     - mcp.atlassian.com
-    - ghcr.io
-  diskSpace: 500
-  memory: 512
-  installTime: 120
-  secrets:
-    - jira_url
-    - jira_username
-    - jira_api_token
+  diskSpace: 10
+  memory: 64
+  installTime: 10
+  # No secrets required - uses OAuth flow via Claude Code
 
 install:
   method: script
   script:
     path: install.sh
-    timeout: 300
+    timeout: 60
 
 configure:
   templates:
     - source: resources/SKILL.md
       destination: ~/extensions/jira-mcp/SKILL.md
       mode: overwrite
-  environment:
-    - key: JIRA_URL
-      value: "${JIRA_URL}"
-      scope: bashrc
-    - key: JIRA_USERNAME
-      value: "${JIRA_USERNAME}"
-      scope: bashrc
-    - key: JIRA_API_TOKEN
-      value: "${JIRA_API_TOKEN}"
-      scope: bashrc
 
 validate:
   commands:
-    - name: docker
-      versionFlag: image inspect ghcr.io/sooperset/mcp-atlassian:latest --format '{{.Id}}'
+    # Verify claude CLI is available
+    - name: claude
+      versionFlag: --version
 
 remove:
-  paths:
-    - ~/extensions/jira-mcp
   script:
     path: uninstall.sh
-    timeout: 60
+  paths:
+    - ~/extensions/jira-mcp
 
 upgrade:
-  strategy: manual
+  strategy: reinstall
 
 bom:
   tools:
-    - name: mcp-atlassian
-      version: dynamic
-      source: script
+    - name: atlassian-mcp
+      version: remote
+      source: atlassian
       type: server
       license: MIT
-      homepage: https://github.com/sooperset/mcp-atlassian
-      purl: pkg:docker/ghcr.io/sooperset/mcp-atlassian
+      homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/
+      purl: pkg:generic/atlassian-mcp-server

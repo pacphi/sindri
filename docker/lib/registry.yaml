@@ -176,16 +176,17 @@ extensions:
 
   linear-mcp:
     category: agile
-    description: Linear MCP server for AI-powered project management integration
-    dependencies: [nodejs]
+    description: Linear MCP server using native HTTP transport (OAuth, no npm)
+    dependencies: []
 
   jira-mcp:
     category: agile
-    description: Atlassian Jira and Confluence MCP server for AI-powered issue tracking
-    dependencies: [docker]
+    description: Atlassian MCP server using native SSE transport (OAuth, no Docker)
+    dependencies: []
 
   # Monitoring
   monitoring:
+  
     category: monitoring
     description: htop, ctop, glances
     dependencies: []
