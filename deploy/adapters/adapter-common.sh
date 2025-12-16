@@ -128,6 +128,10 @@ adapter_parse_base_config() {
     # shellcheck disable=SC2034  # Used by sourcing scripts
     CUSTOM_EXTENSIONS=$(yq '.extensions.active[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
 
+    # Additional extensions (on top of profile)
+    # shellcheck disable=SC2034  # Used by sourcing scripts
+    ADDITIONAL_EXTENSIONS=$(yq '.extensions.additional[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
+
     # Resource configuration (adapters may override/transform these)
     # shellcheck disable=SC2034  # Used by sourcing scripts
     MEMORY=$(yq '.deployment.resources.memory // "4GB"' "$SINDRI_YAML")

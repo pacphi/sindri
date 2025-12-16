@@ -129,6 +129,7 @@ EODC
     environment:
       - INIT_WORKSPACE=true
       - INSTALL_PROFILE=${PROFILE}
+      - ADDITIONAL_EXTENSIONS=${ADDITIONAL_EXTENSIONS}
       - SKIP_AUTO_INSTALL=${skip_auto_install}
 EODC
 
@@ -159,10 +160,12 @@ EODC
     fi
 
     # Add container settings and volume definition
+    # Note: Do NOT add 'command: sleep infinity' - the entrypoint handles this
+    # in daemon mode, and adding a command triggers interactive mode which
+    # bypasses background extension installation
     cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
     stdin_open: true
     tty: true
-    command: sleep infinity
 
 volumes:
   ${NAME}_home:

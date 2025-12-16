@@ -556,6 +556,7 @@ generate_devcontainer() {
     "MISE_STATE_DIR": "/alt/home/developer/.local/state/mise",
     "INSTALL_PROFILE": "${PROFILE}",
     "CUSTOM_EXTENSIONS": "${CUSTOM_EXTENSIONS}",
+    "ADDITIONAL_EXTENSIONS": "${ADDITIONAL_EXTENSIONS}",
     "SKIP_AUTO_INSTALL": "${skip_auto_install}",
     "INIT_WORKSPACE": "true"
   },

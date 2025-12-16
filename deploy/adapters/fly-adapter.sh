@@ -193,6 +193,7 @@ primary_region = "${REGION}"
   # Extension profile or custom list
   INSTALL_PROFILE = "${PROFILE}"
   CUSTOM_EXTENSIONS = "${CUSTOM_EXTENSIONS}"
+  ADDITIONAL_EXTENSIONS = "${ADDITIONAL_EXTENSIONS}"
   # Skip auto-install (set to true for manual control)
   SKIP_AUTO_INSTALL = "${skip_auto_install}"
   # Workspace initialization
