@@ -47,7 +47,6 @@ jobs:
             --include-fragments
             --exclude-path node_modules
             --exclude-path .git
-            --base '.'
             '**/*.md'
           format: markdown
           output: lychee-internal.md
