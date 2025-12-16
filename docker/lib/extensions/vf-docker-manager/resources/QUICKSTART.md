@@ -8,9 +8,9 @@ To rebuild with the new skill:
 
 ```bash
 cd /mnt/mldata/githubs/AR-AI-Knowledge-Graph/multi-agent-docker
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
+docker compose down
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ## Verification

@@ -118,7 +118,7 @@
       "id": "available-profiles",
       "category": "configuration",
       "question": "What extension profiles are available?",
-      "answer": "Available profiles include: minimal (nodejs, python), fullstack (nodejs, python, docker, nodejs-devtools), ai-dev (nodejs, python, ai-toolkit, openskills, monitoring), anthropic-dev (comprehensive Claude/AI toolset), systems (rust, golang, docker, infra-tools), enterprise (all languages and infrastructure), devops (docker, infra-tools, cloud-tools, monitoring), and mobile (nodejs).",
+      "answer": "Available profiles include: minimal (nodejs, python), fullstack (nodejs, python, docker, nodejs-devtools), ai-dev (nodejs, python, golang, ollama, ai-toolkit, mdflow, openskills, supabase-cli, linear-mcp, monitoring), anthropic-dev (comprehensive Claude/AI toolset with 21 extensions), systems (rust, golang, docker, infra-tools), enterprise (all languages and infrastructure), devops (docker, infra-tools, cloud-tools, monitoring), and mobile (nodejs).",
       "tags": ["profiles", "list", "options"],
       "docs": ["docs/EXTENSIONS.md", "docker/lib/profiles.yaml"]
     },
@@ -270,7 +270,7 @@
       "id": "create-extension",
       "category": "extensions",
       "question": "How do I create a custom extension?",
-      "answer": "Create a directory in docker/lib/extensions/<name>/ with an extension.yaml file. Define metadata (name, version, category), requirements (domains, diskSpace), install method (mise, apt, script, binary, npm, or hybrid), configure section for environment variables, and validate section with verification commands. Add it to docker/lib/registry.yaml and validate with 'extension-manager validate <name>'.",
+      "answer": "Create a directory in docker/lib/extensions/<name>/ with an extension.yaml file. Define metadata (name, version, category), requirements (domains, diskSpace), install method (mise, apt, script, npm, binary, or hybrid), configure section for environment variables, and validate section with verification commands. Add it to docker/lib/registry.yaml and validate with 'extension-manager validate <name>'. Use the comprehensive extension authoring checklist in docs/EXTENSION_AUTHORING.md to ensure completeness.",
       "tags": ["create", "custom", "authoring"],
       "docs": ["docs/EXTENSION_AUTHORING.md"]
     },
@@ -489,6 +489,54 @@
       "answer": "Use the VS Code Remote - SSH extension. First, ensure your AUTHORIZED_KEYS secret is configured with your public key (fromFile: ~/.ssh/id_ed25519.pub). Then add an entry to ~/.ssh/config: 'Host sindri-fly' with 'HostName <app-name>.fly.dev', 'Port 10022', 'User developer', and 'IdentityFile ~/.ssh/id_ed25519'. In VS Code, open Command Palette (Cmd+Shift+P) and select 'Remote-SSH: Connect to Host', then choose 'sindri-fly'. If direct SSH is blocked by firewalls, use 'flyctl proxy 10022:2222 -a <app-name>' and connect to localhost:10022 instead.",
       "tags": ["vscode", "remote", "ssh", "fly", "ide"],
       "docs": ["docs/providers/FLY.md"]
+    },
+    {
+      "id": "gpu-support",
+      "category": "configuration",
+      "question": "Does Sindri support GPU-accelerated workloads?",
+      "answer": "Yes! Sindri supports GPU configuration across multiple providers (Fly.io, AWS, GCP, Azure, Docker, Kubernetes). Configure GPUs in sindri.yaml under deployment.resources.gpu with properties: enabled (true/false), type (nvidia/amd), count (1-8), tier (gpu-small/medium/large/xlarge), and memory. GPU tiers abstract provider-specific GPU types for easier configuration. See docs/GPU.md for comprehensive examples, pricing, and use cases.",
+      "tags": ["gpu", "ml", "ai", "cuda", "acceleration"],
+      "docs": ["docs/GPU.md", "docs/CONFIGURATION.md"]
+    },
+    {
+      "id": "gpu-tiers",
+      "category": "configuration",
+      "question": "What GPU tiers are available and what do they map to?",
+      "answer": "Four GPU tiers: gpu-small (T4, 8-16GB, $0.50-1.00/hr) for inference and development; gpu-medium (A10G/L4, 16-24GB, $1.00-2.00/hr) for training and inference; gpu-large (A100-40GB/L40S, 40-48GB, $2.50-4.00/hr) for large model training; gpu-xlarge (A100-80GB/H100, 80GB+, $8.00-15.00/hr) for LLM training. Each tier maps to provider-specific GPU types automatically. See docs/GPU.md for complete mappings and cost comparisons.",
+      "tags": ["gpu", "tiers", "pricing", "instances"],
+      "docs": ["docs/GPU.md"]
+    },
+    {
+      "id": "region-selection",
+      "category": "configuration",
+      "question": "Which cloud region should I choose for my deployment?",
+      "answer": "Choose based on: proximity (lowest latency), GPU availability (us-west-2 for AWS, us-central1-a for GCP, eastus for Azure), and cost (varies by region). Fly.io regions: sjc (US West), iad (US East), lhr (London). AWS best: us-west-2, us-east-1. GCP best: us-central1-a/b. Azure best: eastus, westeurope. Test latency with 'ping compute.us-west-2.amazonaws.com'. Full region documentation in docs/CONFIGURATION.md under Cloud Provider Regions.",
+      "tags": ["regions", "zones", "location", "latency"],
+      "docs": ["docs/CONFIGURATION.md", "docs/GPU.md"]
+    },
+    {
+      "id": "test-suites",
+      "category": "cicd",
+      "question": "What test suites are available for deployed instances?",
+      "answer": "Three test suite levels: 'smoke' (~30s) for basic connectivity and health checks (container running, SSH works, commands execute); 'integration' (~5-10min) for full extension validation (runs extension-manager validate-all); 'full' (~10-15min) runs all suites sequentially including profile lifecycle tests. Run with 'sindri test --suite <name>'. Smoke tests are good after deployment, integration before production, full in CI/CD pipelines.",
+      "tags": ["testing", "suites", "smoke", "integration", "validation"],
+      "docs": ["CLAUDE.md", "docs/TESTING.md"]
+    },
+    {
+      "id": "manifest-schema",
+      "category": "extensions",
+      "question": "What is the manifest.json file and how does it work?",
+      "answer": "Extension manifests are JSON files in $WORKSPACE/.system/manifest/ that track installed extensions, their activation state, dependencies, and execution configuration. The extension-manager uses manifests to manage lifecycles. Each manifest contains version, extensions array (with name, active, protected, category, dependencies), and optional config (execution settings like parallel/failFast/timeout and validation settings like schemaValidation/dnsCheck/dependencyCheck). See docs/MANIFEST.md for complete reference.",
+      "tags": ["manifest", "json", "tracking", "state"],
+      "docs": ["docs/MANIFEST.md", "docs/SCHEMA.md"]
+    },
+    {
+      "id": "link-checking",
+      "category": "cicd",
+      "question": "How are documentation links validated?",
+      "answer": "Sindri uses automated link checking via .github/workflows/check-links.yml. Internal markdown links are checked on every PR, external URLs are checked weekly on schedule, and anchor links are validated for correctness. The workflow runs three jobs: check-internal-links (verifies file paths exist), check-external-links (uses markdown-link-check), and check-anchors (validates heading references). Manual checks available in docs/CONTRIBUTING.md.",
+      "tags": ["links", "validation", "documentation", "ci"],
+      "docs": ["docs/CONTRIBUTING.md", ".github/workflows/check-links.yml"]
     }
   ]
 }

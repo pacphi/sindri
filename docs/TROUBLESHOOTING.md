@@ -215,8 +215,8 @@ Error deploying to Docker
 docker ps
 docker images
 
-# Check docker-compose
-docker-compose config
+# Check docker compose
+docker compose config
 ```
 
 **Solution:**
@@ -226,7 +226,7 @@ docker-compose config
 pnpm build
 
 # Clean up old containers
-docker-compose down -v
+docker compose down -v
 
 # Redeploy
 ./cli/sindri deploy --provider docker
@@ -369,13 +369,13 @@ Error: No such container
 docker ps -a
 
 # Check container name
-docker-compose ps
+docker compose ps
 
 # Start container
-docker-compose start
+docker compose start
 
 # Or recreate
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Volume Issues
@@ -740,7 +740,7 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 echo ".env" >> .gitignore
 
 # Restart container
-docker-compose restart
+docker compose restart
 ```
 
 ## Mise Issues

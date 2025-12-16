@@ -51,7 +51,7 @@ bom:
   tools:
     - name: atlassian-mcp
       version: remote
-      source: atlassian
+      source: script
       type: server
       license: MIT
       homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/

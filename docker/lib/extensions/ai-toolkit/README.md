@@ -162,7 +162,7 @@ export GOOGLE_GEMINI_API_KEY=your_key
 gh copilot suggest "git command to undo last commit"
 
 # Explain commands
-gh copilot explain "docker-compose up -d"
+gh copilot explain "docker compose up -d"
 
 # Interactive mode
 gh copilot

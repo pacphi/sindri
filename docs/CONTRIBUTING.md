@@ -49,7 +49,7 @@ Follow the project structure:
 - **CLI tools:** `cli/`
 - **Deployment adapters:** `deploy/adapters/`
 - **Documentation:** `docs/`
-- **Tests:** `.github/scripts/`
+- **Tests:** `test/unit/yaml/`
 
 ### 3. Validate Changes
 
@@ -265,6 +265,47 @@ main "$@"
 - Format with `prettier`
 - Include code examples
 - Link to related documentation
+
+### Link Validation
+
+Validate internal and external links in markdown files:
+
+```bash
+# Check internal markdown links
+find docs -name "*.md" -o -name "README.md" | while read file; do
+  echo "Checking: $file"
+  grep -oP '\[.*?\]\(\K[^)]+(?=\))' "$file" | while read link; do
+    # Skip external URLs and anchors
+    if [[ ! "$link" =~ ^(https?://|mailto:|#) ]]; then
+      link_path="${link%%#*}"
+      if [[ -n "$link_path" ]]; then
+        dir=$(dirname "$file")
+        if [[ "$link_path" =~ ^/ ]]; then
+          target=".$link_path"
+        else
+          target="$dir/$link_path"
+        fi
+        if [[ ! -e "$target" ]]; then
+          echo "❌ BROKEN: $file -> $link"
+        fi
+      fi
+    fi
+  done
+done
+
+# Check external URLs (requires markdown-link-check)
+npm install -g markdown-link-check
+find docs -name "*.md" | xargs -n1 markdown-link-check -q
+
+# Automated CI check
+# Links are automatically validated on PR via .github/workflows/check-links.yml
+```
+
+**CI Integration:**
+
+- Internal links checked on every PR
+- External URLs checked weekly (scheduled)
+- Anchor links validated for correctness
 
 ## Documentation
 

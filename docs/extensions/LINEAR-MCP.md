@@ -4,15 +4,15 @@ Linear MCP server for AI-powered project management integration using OAuth auth
 
 ## Overview
 
-| Property         | Value                                    |
-| ---------------- | ---------------------------------------- |
-| **Category**     | agile                                    |
-| **Version**      | 2.1.0                                    |
-| **Installation** | script                                   |
-| **Disk Space**   | 10 MB                                    |
-| **Dependencies** | none                                     |
-| **Auth Method**  | OAuth (no API key required)              |
-| **Transport**    | Native HTTP (no mcp-remote needed)       |
+| Property         | Value                              |
+| ---------------- | ---------------------------------- |
+| **Category**     | agile                              |
+| **Version**      | 2.1.0                              |
+| **Installation** | script                             |
+| **Disk Space**   | 10 MB                              |
+| **Dependencies** | none                               |
+| **Auth Method**  | OAuth (no API key required)        |
+| **Transport**    | Native HTTP (no mcp-remote needed) |
 
 ## Description
 
@@ -38,6 +38,7 @@ extension-manager install linear-mcp
 ```
 
 The installer will:
+
 1. Add Linear MCP to your user-scope Claude Code configuration
 2. Use native HTTP transport (no npm packages needed)
 3. Merge with any existing MCP servers (non-destructive)

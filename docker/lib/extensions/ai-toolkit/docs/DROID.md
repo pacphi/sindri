@@ -1122,7 +1122,7 @@ jobs:
   droid-review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
 
       - name: Install Factory AI CLI
         run: curl -fsSL https://app.factory.ai/cli | bash

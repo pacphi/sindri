@@ -322,3 +322,145 @@ configure:
         - key: USER
           value: developer
 ```
+
+## Extension Authoring Checklist
+
+Use this checklist when creating or updating extensions to ensure completeness and quality.
+
+### Required Components
+
+- [ ] **extension.yaml** - Complete extension definition with all required fields
+- [ ] **Registry Entry** - Added to `docker/lib/registry.yaml` with category and description
+- [ ] **Category Assignment** - Valid category from `categories.yaml`
+- [ ] **Install Method** - One of: `mise`, `script`, `apt`, `npm`, `binary`, `hybrid`
+- [ ] **Validation Commands** - At least one command to verify installation
+- [ ] **Dependencies** - All required extensions listed (if any)
+
+### Installation Methods Coverage
+
+Check that your installation method is properly configured:
+
+- [ ] **mise**: `mise.toml` file exists and is valid
+- [ ] **script**: `install.sh` script exists, is executable, and handles errors
+- [ ] **apt**: All package names are correct and available in Ubuntu repos
+- [ ] **npm**: Package names are correct and published to npm
+- [ ] **binary**: Download URLs are stable and checksums verified
+- [ ] **hybrid**: Multiple methods work independently
+
+### Documentation
+
+- [ ] **Description** - Clear, concise description (10-200 characters)
+- [ ] **Requirements** - Disk space estimated accurately
+- [ ] **Domains** - All network domains declared in `requirements.domains`
+- [ ] **Dependencies** - Dependency relationships documented
+- [ ] **Optional: README** - Extension-specific README in `resources/` (for complex extensions)
+
+### Bill of Materials (BOM)
+
+- [ ] **BOM Section** - Added to `extension.yaml`
+- [ ] **Tool Entries** - All installed tools listed with versions
+- [ ] **Source Attribution** - Correct source (mise, apt, script) for each tool
+- [ ] **License Info** - Software licenses documented (optional but recommended)
+- [ ] **Homepage** - Project homepage URLs included (optional but recommended)
+
+### Configuration
+
+- [ ] **Templates** - Template files exist in extension directory if referenced
+- [ ] **Environment Variables** - All required env vars documented
+- [ ] **Scope** - Environment scope appropriate (`bashrc`, `profile`, or `session`)
+
+### Upgrade Strategy
+
+- [ ] **Upgrade Section** - Defined with appropriate strategy
+- [ ] **Strategy** - Correct strategy: `automatic`, `manual`, `reinstall`, `in-place`, or `none`
+- [ ] **Upgrade Script** - If using script strategy, script exists and works
+- [ ] **mise Upgrades** - If using mise, upgrade configuration specified
+- [ ] **Timeout** - Reasonable timeout set (default: 600s)
+
+### Removal/Cleanup
+
+- [ ] **Remove Section** - Defined with cleanup paths
+- [ ] **Paths** - All installed files/directories listed for removal
+- [ ] **mise Cleanup** - If using mise, removal configuration specified
+- [ ] **Confirmation** - Removal confirmation enabled unless intentionally disabled
+- [ ] **Test Removal** - Removal tested and verified clean
+
+### Validation & Testing
+
+- [ ] **Schema Validation** - Extension passes `./cli/extension-manager validate <name>`
+- [ ] **Local Test** - Tested in local Docker environment
+- [ ] **Installation Test** - Fresh install works without errors
+- [ ] **Validation Test** - Validation commands return expected output
+- [ ] **Dependency Test** - Dependencies install in correct order
+- [ ] **Removal Test** - Extension removes cleanly
+- [ ] **Domain Validation** - All domains in `requirements.domains` are accessible
+
+### Advanced Features (Optional)
+
+- [ ] **Custom Validation** - mise validation or custom script if needed
+- [ ] **Secrets Integration** - Uses secrets from `requirements.secrets` if applicable
+- [ ] **GPU Requirements** - GPU configuration if extension requires GPU
+- [ ] **Extended BOM** - Additional BOM fields (downloadUrl, checksum, purl, cpe) for security
+- [ ] **Optional Metadata** - Author, homepage, license in metadata section
+
+### Code Quality
+
+- [ ] **shellcheck** - All bash scripts pass `shellcheck -S warning`
+- [ ] **yamllint** - extension.yaml passes `yamllint --strict`
+- [ ] **Error Handling** - Scripts use `set -euo pipefail` and handle errors
+- [ ] **Common Functions** - Scripts source `common.sh` and use provided functions
+- [ ] **Exit Codes** - Scripts exit with appropriate codes (0=success, non-zero=failure)
+
+### Final Checks
+
+- [ ] **No Hardcoded Paths** - Uses `$HOME`, `$WORKSPACE`, environment variables
+- [ ] **idempotency** - Extension can be installed multiple times safely
+- [ ] **No Breaking Changes** - Backwards compatible with previous versions (or version bumped)
+- [ ] **CI Passes** - All CI checks pass (YAML validation, shellcheck, tests)
+- [ ] **Documentation Updated** - CLAUDE.md, CONFIGURATION.md updated if needed
+
+### Pre-Submission Checklist
+
+Before submitting your extension:
+
+```bash
+# 1. Validate YAML syntax
+./cli/extension-manager validate <extension-name>
+
+# 2. Test local installation
+./cli/extension-manager install <extension-name>
+
+# 3. Verify validation works
+./cli/extension-manager status <extension-name>
+
+# 4. Test removal
+./cli/extension-manager remove <extension-name>
+
+# 5. Reinstall to verify idempotency
+./cli/extension-manager install <extension-name>
+
+# 6. Run full validation
+pnpm validate
+
+# 7. Test in clean container
+pnpm build && docker run -it sindri:local
+```
+
+### Common Issues to Avoid
+
+- ❌ **Missing dependencies** - Causes installation failures
+- ❌ **Undeclared domains** - Triggers security warnings
+- ❌ **Wrong install method** - Use mise for version-managed tools
+- ❌ **Missing validation** - Extension appears installed but doesn't work
+- ❌ **Incomplete removal** - Leaves artifacts behind
+- ❌ **Hardcoded paths** - Breaks in different environments
+- ❌ **No error handling** - Silent failures
+- ❌ **Wrong category** - Makes extension hard to find
+- ❌ **Inadequate testing** - Fails in production
+
+### Getting Help
+
+- **Documentation** - Read [SCHEMA.md](SCHEMA.md) for complete reference
+- **Examples** - Browse `docker/lib/extensions/` for working examples
+- **Claude Code Skill** - Use the sindri-extension-guide skill for guidance
+- **Validation Errors** - Run with `-v` flag for detailed error messages
