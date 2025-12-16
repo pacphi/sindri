@@ -975,4 +975,4 @@ Create `.import-ontology.config.json` in project root:
 -
 -
 -
-- [Web Summary Skill](../vf-web-summary/resources/SKILL.md)
+- [Web Summary Skill](/docker/lib/extensions/vf-web-summary/resources/SKILL.md)
