@@ -96,6 +96,7 @@ Whether the extension is currently active/installed.
 If `true`, the extension cannot be deactivated or removed via extension-manager.
 
 **Protected extensions:**
+
 - System-critical extensions (base)
 - Dependency chain roots
 - Extensions marked protected in registry.yaml
@@ -117,6 +118,7 @@ If `true`, the extension cannot be deactivated or removed via extension-manager.
 Extension category from the official category list.
 
 **Valid Categories:**
+
 - `base` - Core system components
 - `agile` - Agile project management
 - `language` - Programming languages
@@ -146,6 +148,7 @@ List of extension names this extension depends on.
 ```
 
 The extension-manager ensures dependencies are:
+
 1. Installed before the extension
 2. Not removed while dependents are active
 3. Validated in topological order
@@ -176,6 +179,7 @@ Enable parallel extension installation for faster setup.
 ```
 
 **Trade-offs:**
+
 - **Enabled**: Faster installation (~2-3x speedup), but harder to debug
 - **Disabled**: Sequential installation, easier error tracking
 
@@ -219,6 +223,7 @@ Maximum time allowed for extension installation.
 ```
 
 **Use cases:**
+
 - Increase for slow networks or large extensions
 - Decrease for faster failure detection in CI
 
@@ -366,6 +371,7 @@ cat $WORKSPACE/.system/manifest/sindri.json
 ```
 
 Manual edits may cause:
+
 - State inconsistency
 - Broken dependency chains
 - Validation failures
@@ -382,6 +388,7 @@ fi
 ```
 
 **Lock behavior:**
+
 - Created: Before manifest modification
 - Removed: After successful operation
 - Stale lock detection: Timeout after 5 minutes
@@ -412,11 +419,11 @@ yq -oj eval manifest.json | \
 
 **Three levels of configuration:**
 
-| File | Purpose | Location | Format |
-|------|---------|----------|--------|
-| **extension.yaml** | Extension definition | `docker/lib/extensions/<name>/` | YAML |
-| **registry.yaml** | Extension catalog | `docker/lib/registry.yaml` | YAML |
-| **manifest.json** | Installed extensions | `$WORKSPACE/.system/manifest/` | JSON |
+| File               | Purpose              | Location                        | Format |
+| ------------------ | -------------------- | ------------------------------- | ------ |
+| **extension.yaml** | Extension definition | `docker/lib/extensions/<name>/` | YAML   |
+| **registry.yaml**  | Extension catalog    | `docker/lib/registry.yaml`      | YAML   |
+| **manifest.json**  | Installed extensions | `$WORKSPACE/.system/manifest/`  | JSON   |
 
 **Relationship:**
 
@@ -481,6 +488,7 @@ jq '{
 **Symptom:** Invalid JSON or schema validation fails
 
 **Fix:**
+
 ```bash
 # Backup corrupted manifest
 mv $WORKSPACE/.system/manifest/sindri.json \
@@ -495,6 +503,7 @@ mv $WORKSPACE/.system/manifest/sindri.json \
 **Symptom:** Extension fails to install due to missing dependencies
 
 **Diagnosis:**
+
 ```bash
 # Show dependency chain
 ./cli/extension-manager resolve <extension>
@@ -504,6 +513,7 @@ mv $WORKSPACE/.system/manifest/sindri.json \
 ```
 
 **Fix:**
+
 ```bash
 # Install missing dependencies first
 ./cli/extension-manager install <dependency>
@@ -517,6 +527,7 @@ mv $WORKSPACE/.system/manifest/sindri.json \
 **Symptom:** Extension-manager hangs or reports lock file exists
 
 **Fix:**
+
 ```bash
 # Check lock age
 stat -c %Y $WORKSPACE/.system/manifest/.manifest-lock

@@ -302,6 +302,7 @@ find docs -name "*.md" | xargs -n1 markdown-link-check -q
 ```
 
 **CI Integration:**
+
 - Internal links checked on every PR
 - External URLs checked weekly (scheduled)
 - Anchor links validated for correctness

@@ -32,16 +32,19 @@ su - "$DEVELOPER_USER" -c "git config --global credential.helper '${ALT_HOME}/.g
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Remote Code Execution as developer user
 - **Exploitability:** High - Attacker controls environment variables via sindri.yaml or provider secrets
 - **Attack Vector:** `GIT_USER_NAME="'; malicious_command #'"`
 
 **Remediation:**
+
 1. Use `printf %q` for shell quoting or pass variables as arguments
 2. Implement input validation (alphanumeric + limited special chars)
 3. Use `git config` with direct argument passing instead of shell interpolation
 
 **Recommended Fix:**
+
 ```bash
 if [[ -n "${GIT_USER_NAME:-}" ]]; then
     # Validate input
@@ -54,6 +57,7 @@ fi
 ```
 
 **References:**
+
 - [CWE-78: OS Command Injection](https://cwe.mitre.org/data/definitions/78.html)
 - [OWASP Top 10 2021: A03:2021 - Injection](https://owasp.org/Top10/A03_2021-Injection/)
 
@@ -72,22 +76,26 @@ expanded_value=$(eval echo "$value" 2>/dev/null || echo "")
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Arbitrary code execution during extension configuration
 - **Exploitability:** High - Attacker controls extension YAML values
 - **Attack Vector:** YAML with malicious environment value: `value: "$(rm -rf /)"`
 
 **Remediation:**
+
 1. Replace `eval` with safe variable expansion using `envsubst`
 2. Whitelist allowed environment variables
 3. Use schema validation to restrict value patterns
 
 **Recommended Fix:**
+
 ```bash
 # Use envsubst with explicit variable whitelist
 expanded_value=$(echo "$value" | envsubst '$HOME $USER $WORKSPACE' 2>/dev/null || echo "$value")
 ```
 
 **References:**
+
 - [CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code](https://cwe.mitre.org/data/definitions/95.html)
 - [OWASP: Code Injection](https://owasp.org/www-community/attacks/Code_Injection)
 
@@ -96,6 +104,7 @@ expanded_value=$(echo "$value" | envsubst '$HOME $USER $WORKSPACE' 2>/dev/null |
 ### C-3: Unvalidated curl Piped to Shell
 
 **Files:**
+
 - `docker/scripts/install-mise.sh` (line 23)
 - `docker/scripts/install-claude.sh` (line 75)
 
@@ -111,6 +120,7 @@ timeout $INSTALL_TIMEOUT bash -c 'set -o pipefail; curl -fsSL https://claude.ai/
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Complete container compromise during image build
 - **Exploitability:** Medium - Requires DNS hijacking or MITM attack
 - **Attack Scenarios:**
@@ -119,12 +129,14 @@ timeout $INSTALL_TIMEOUT bash -c 'set -o pipefail; curl -fsSL https://claude.ai/
   - DNS cache poisoning
 
 **Remediation:**
+
 1. Download installer to temporary file first
 2. Verify cryptographic hash (SHA256) against known good value
 3. Add TLS certificate pinning or use GPG signature verification
 4. Consider vendoring installers in repository
 
 **Recommended Fix:**
+
 ```bash
 # Secure installation with hash verification
 MISE_INSTALLER_URL="https://mise.run"
@@ -148,6 +160,7 @@ rm -f "$TEMP_INSTALLER"
 ```
 
 **References:**
+
 - [CWE-494: Download of Code Without Integrity Check](https://cwe.mitre.org/data/definitions/494.html)
 - [SLSA Framework: Supply Chain Security](https://slsa.dev/)
 
@@ -167,22 +180,26 @@ flyctl secrets set "${name}_BASE64=${content_b64}" -a "$app_name"
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Secret exposure to all users via `/proc/<pid>/cmdline`
 - **Exploitability:** Low - Requires local access to host
 - **Duration:** Secrets visible for duration of flyctl execution
 
 **Remediation:**
+
 1. Use stdin for all secret input (already done for import, but not for individual sets)
 2. Set process title to hide arguments
 3. Use temporary files with restricted permissions
 
 **Recommended Fix:**
+
 ```bash
 # Use stdin for individual secret setting
 echo "${name}_BASE64=${content_b64}" | flyctl secrets import -a "$app_name"
 ```
 
 **References:**
+
 - [CWE-214: Invocation of Process Using Visible Sensitive Information](https://cwe.mitre.org/data/definitions/214.html)
 - [OWASP: Sensitive Data Exposure](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/04-Authentication_Testing/04-Testing_for_Credentials_Transported_over_an_Encrypted_Channel)
 
@@ -201,16 +218,19 @@ developer ALL=(ALL) NOPASSWD:ALL
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Full root access from any compromise of developer account
 - **Exploitability:** High - Any vulnerability in user-space code grants root
 - **Attack Chain:** Command injection -> developer shell -> sudo su -> root
 
 **Remediation:**
+
 1. Restrict sudo to specific commands required for extension installation
 2. Require password for privilege escalation
 3. Use capabilities instead of sudo where possible
 
 **Recommended Fix:**
+
 ```bash
 # Restrict sudo to necessary commands only
 developer ALL=(ALL) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt, /usr/bin/systemctl
@@ -220,6 +240,7 @@ developer ALL=(ALL) ALL
 ```
 
 **References:**
+
 - [CWE-250: Execution with Unnecessary Privileges](https://cwe.mitre.org/data/definitions/250.html)
 - [CIS Docker Benchmark 4.1: Restrict sudo usage](https://www.cisecurity.org/benchmark/docker)
 
@@ -243,17 +264,20 @@ fi
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Arbitrary code execution during extension installation
 - **Exploitability:** High - Attacker can craft malicious extension YAML
 - **Attack Vector:** Extension with `install.script.path: "../../../etc/passwd"`
 
 **Remediation:**
+
 1. Validate script path contains no directory traversal sequences
 2. Canonicalize paths and ensure they remain within extension directory
 3. Execute scripts in restricted environment (firejail, bubblewrap)
 4. Implement extension signature verification
 
 **Recommended Fix:**
+
 ```bash
 # Validate script path for directory traversal
 if [[ "$script_path" =~ \.\. ]] || [[ "$script_path" =~ ^/ ]]; then
@@ -274,6 +298,7 @@ fi
 ```
 
 **References:**
+
 - [CWE-22: Path Traversal](https://cwe.mitre.org/data/definitions/22.html)
 - [CWE-73: External Control of File Name or Path](https://cwe.mitre.org/data/definitions/73.html)
 
@@ -299,17 +324,20 @@ GITCRED
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Token exposure enables unauthorized GitHub access
 - **Exploitability:** Medium - Requires read access to user home or process environment
 - **Scope:** Token has permissions of issuing user (potentially org-wide)
 
 **Remediation:**
+
 1. Use GitHub's credential helper with encrypted storage
 2. Implement token rotation
 3. Scope tokens to minimum required permissions
 4. Use short-lived tokens (1 hour) instead of long-lived PATs
 
 **Recommended Fix:**
+
 ```bash
 # Use GitHub CLI's credential helper instead
 su - "$DEVELOPER_USER" -c "gh auth login --with-token <<< '$GITHUB_TOKEN'"
@@ -317,6 +345,7 @@ su - "$DEVELOPER_USER" -c "git config --global credential.helper '$(gh auth git-
 ```
 
 **References:**
+
 - [CWE-522: Insufficiently Protected Credentials](https://cwe.mitre.org/data/definitions/522.html)
 - [GitHub: Token Security Best Practices](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/token-security)
 
@@ -343,17 +372,20 @@ fi
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Installation of trojaned binaries
 - **Exploitability:** Medium - Requires compromised download URL or MITM
 - **Attack Vectors:** Supply chain attack, CDN compromise, DNS hijacking
 
 **Remediation:**
+
 1. Add required `checksum` field to extension YAML schema
 2. Verify SHA256/SHA512 hash before extraction
 3. Validate file signatures where available
 4. Implement binary transparency logging
 
 **Recommended Fix:**
+
 ```bash
 local expected_checksum
 expected_checksum=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].checksum")
@@ -376,6 +408,7 @@ fi
 ```
 
 **References:**
+
 - [CWE-494: Download of Code Without Integrity Check](https://cwe.mitre.org/data/definitions/494.html)
 - [SLSA Framework: Supply Chain Security](https://slsa.dev/)
 
@@ -390,12 +423,14 @@ fi
 
 **Vulnerability Description:**
 SSH configuration lacks several hardening measures:
+
 - No rate limiting (MaxStartups not set)
 - No host-based authentication restrictions
 - Weak logging (INFO instead of VERBOSE)
 - No key type restrictions
 
 **Current Configuration:**
+
 ```text
 LogLevel INFO
 MaxAuthTries 6
@@ -403,11 +438,13 @@ MaxSessions 10
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Brute force attacks, session hijacking
 - **Exploitability:** Medium - Requires network access to SSH port
 - **Mitigation:** Fly.io firewall provides some protection
 
 **Remediation:**
+
 ```bash
 # Enhanced sshd_config
 LogLevel VERBOSE
@@ -426,6 +463,7 @@ KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-grou
 ```
 
 **References:**
+
 - [CWE-16: Configuration](https://cwe.mitre.org/data/definitions/16.html)
 - [Mozilla OpenSSH Guidelines](https://infosec.mozilla.org/guidelines/openssh)
 - [CIS OpenSSH Benchmark 5.2](https://www.cisecurity.org/benchmark/distribution_independent_linux)
@@ -446,17 +484,20 @@ FILE_SECRETS_CACHE="${TMPDIR:-/tmp}/sindri-file-secrets-$$"
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Secret exposure if system compromised
 - **Exploitability:** Low - Requires local access and proper timing
 - **Duration:** Files exist until process termination
 
 **Remediation:**
+
 1. Use in-memory tmpfs for secret storage
 2. Encrypt cache files with ephemeral keys
 3. Set umask 077 before creating files
 4. Use secure memory (mlock) where available
 
 **Recommended Fix:**
+
 ```bash
 # Create in-memory tmpfs (if available)
 if mountpoint -q /dev/shm; then
@@ -470,6 +511,7 @@ fi
 ```
 
 **References:**
+
 - [CWE-312: Cleartext Storage of Sensitive Information](https://cwe.mitre.org/data/definitions/312.html)
 - [OWASP: Cryptographic Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html)
 
@@ -489,16 +531,19 @@ yq eval -i ".extensions += [$entry]" "$MANIFEST_FILE"
 ```
 
 **Risk Assessment:**
+
 - **Impact:** YAML injection, manifest corruption
 - **Exploitability:** Medium - Requires malicious extension name
 - **Attack Vector:** Extension name: `" || .secrets = "leaked"`
 
 **Remediation:**
+
 1. Validate extension names match `^[a-z0-9-]+$` pattern
 2. Use yq's array index instead of string matching
 3. Sanitize inputs before passing to yq
 
 **Recommended Fix:**
+
 ```bash
 # Validate extension name format
 if [[ ! "$ext_name" =~ ^[a-z0-9-]+$ ]]; then
@@ -512,6 +557,7 @@ yq eval -i "(.extensions[] | select(.name == env(EXT_NAME))).active = true" \
 ```
 
 **References:**
+
 - [CWE-943: Improper Neutralization of Special Elements in Data Query Logic](https://cwe.mitre.org/data/definitions/943.html)
 - [YAML Injection Attacks](https://blog.rubygems.org/2013/01/31/data-verification.html)
 
@@ -530,17 +576,20 @@ chmod 666 /var/run/docker.sock
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Any user/process can control Docker daemon (root equivalent)
 - **Exploitability:** High - Complete host compromise
 - **Attack Vector:** Malicious container escapes via Docker API
 
 **Remediation:**
+
 1. Use Docker group membership instead of chmod 666
 2. Implement Docker socket proxy with authorization
 3. Use rootless Docker mode
 4. Never expose Docker socket in production
 
 **Recommended Fix:**
+
 ```bash
 # Add user to docker group instead of chmod 666
 usermod -aG docker "$USER"
@@ -549,6 +598,7 @@ chmod 660 /var/run/docker.sock
 ```
 
 **References:**
+
 - [CWE-732: Incorrect Permission Assignment for Critical Resource](https://cwe.mitre.org/data/definitions/732.html)
 - [CVE-2019-5736: Docker Container Escape](https://nvd.nist.gov/vuln/detail/CVE-2019-5736)
 - [Docker Security Best Practices](https://docs.docker.com/engine/security/)
@@ -569,11 +619,13 @@ echo "$sources" | $sudo_cmd tee "/etc/apt/sources.list.d/${ext_name}.list" > /de
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Arbitrary file write as root via directory traversal
 - **Exploitability:** Medium - Requires malicious extension
 - **Attack Vector:** Extension name: `../../../etc/passwd`
 
 **Remediation:**
+
 ```bash
 # Validate extension name before using in paths
 if [[ "$ext_name" =~ / ]] || [[ "$ext_name" =~ \.\. ]]; then
@@ -587,6 +639,7 @@ keyring_file="/etc/apt/keyrings/${ext_name_safe}.gpg"
 ```
 
 **References:**
+
 - [CWE-22: Path Traversal](https://cwe.mitre.org/data/definitions/22.html)
 - [OWASP: Path Traversal](https://owasp.org/www-community/attacks/Path_Traversal)
 
@@ -606,11 +659,13 @@ curl -fsSL -o "$temp_file" "$url" || return 1
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Symlink attacks, arbitrary file overwrite
 - **Exploitability:** Medium - Requires local access and timing
 - **Attack Scenario:** Attacker creates symlink: `/tmp/binary.download -> /etc/passwd`
 
 **Remediation:**
+
 ```bash
 # Use mktemp for secure temporary file creation
 local temp_file
@@ -622,6 +677,7 @@ curl -fsSL -o "$temp_file" "$url" || return 1
 ```
 
 **References:**
+
 - [CWE-377: Insecure Temporary File](https://cwe.mitre.org/data/definitions/377.html)
 - [CWE-367: Time-of-check Time-of-use (TOCTOU) Race Condition](https://cwe.mitre.org/data/definitions/367.html)
 
@@ -645,11 +701,13 @@ done
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Installation failures, potential for DNS hijacking
 - **Exploitability:** Low - Requires network compromise
 - **Issue:** Warning instead of error allows risky installations
 
 **Remediation:**
+
 ```bash
 # Make DNS validation mandatory for critical domains
 local dns_failures=0
@@ -667,6 +725,7 @@ fi
 ```
 
 **References:**
+
 - [CWE-350: Reliance on Reverse DNS Resolution for Security](https://cwe.mitre.org/data/definitions/350.html)
 - [NIST: DNS Security Guidelines](https://csrc.nist.gov/publications/detail/sp/800-81/2/final)
 
@@ -686,17 +745,20 @@ if [[ -z "${VAULT_TOKEN:-}" ]] && [[ ! -f ~/.vault-token ]]; then
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Unauthorized access to all secrets in Vault
 - **Exploitability:** Medium - Requires filesystem or environment access
 - **Issue:** No token encryption, no rotation, no expiry enforcement
 
 **Remediation:**
+
 1. Use Vault's token renewal mechanism
 2. Implement short-lived tokens (TTL < 1 hour)
 3. Use Vault agent for automatic token management
 4. Encrypt ~/.vault-token file
 
 **Recommended Fix:**
+
 ```bash
 # Check token is not expired
 if command -v vault &>/dev/null; then
@@ -711,6 +773,7 @@ fi
 ```
 
 **References:**
+
 - [CWE-522: Insufficiently Protected Credentials](https://cwe.mitre.org/data/definitions/522.html)
 - [HashiCorp Vault: Token Security](https://developer.hashicorp.com/vault/docs/concepts/tokens)
 
@@ -719,6 +782,7 @@ fi
 ### H-9: Command Injection via Provider Configuration
 
 **Files:**
+
 - `deploy/adapters/fly-adapter.sh`
 - `deploy/adapters/docker-adapter.sh`
 
@@ -732,11 +796,13 @@ MEMORY_MB=$(echo "$MEMORY" | bc)
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Command injection during deployment
 - **Exploitability:** High - User controls sindri.yaml
 - **Attack Vector:** `memory: "1GB; malicious_command"`
 
 **Remediation:**
+
 ```bash
 # Validate memory format before processing
 local memory_raw
@@ -752,6 +818,7 @@ MEMORY_MB=$(echo "$MEMORY" | bc)
 ```
 
 **References:**
+
 - [CWE-78: OS Command Injection](https://cwe.mitre.org/data/definitions/78.html)
 - [OWASP: Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Injection_Prevention_Cheat_Sheet.html)
 
@@ -773,11 +840,13 @@ services:
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Container can access host network and other containers
 - **Exploitability:** Medium - Requires container compromise
 - **Issue:** No network segmentation or egress filtering
 
 **Remediation:**
+
 ```yaml
 services:
   sindri:
@@ -800,10 +869,11 @@ services:
 networks:
   sindri_isolated:
     driver: bridge
-    internal: false  # Allow internet but isolate from other containers
+    internal: false # Allow internet but isolate from other containers
 ```
 
 **References:**
+
 - [CWE-653: Insufficient Compartmentalization](https://cwe.mitre.org/data/definitions/653.html)
 - [Docker Security Best Practices](https://docs.docker.com/engine/security/)
 - [CIS Docker Benchmark 5.28](https://www.cisecurity.org/benchmark/docker)
@@ -829,17 +899,20 @@ install)
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Denial of Service via CPU/bandwidth exhaustion
 - **Exploitability:** High - Any user can trigger
 - **Attack Vector:** Rapidly install/uninstall large extensions
 
 **Remediation:**
+
 1. Implement per-user rate limiting (5 installs per 5 minutes)
 2. Add cooldown period between operations
 3. Track installation attempts in manifest
 4. Implement resource quotas (disk, CPU time)
 
 **References:**
+
 - [CWE-400: Uncontrolled Resource Consumption](https://cwe.mitre.org/data/definitions/400.html)
 - [OWASP: Denial of Service](https://owasp.org/www-community/attacks/Denial_of_Service)
 
@@ -852,23 +925,27 @@ install)
 
 **Vulnerability Description:**
 Minimal security event logging makes incident response difficult:
+
 - No logging of failed authentication attempts
 - No audit trail for privilege escalation
 - No logging of extension installations
 - No tamper-evident logs
 
 **Risk Assessment:**
+
 - **Impact:** Inability to detect or investigate security incidents
 - **Exploitability:** N/A (Security control deficiency)
 - **Compliance:** Violates SOC 2, ISO 27001 logging requirements
 
 **Remediation:**
+
 1. Implement centralized logging (syslog, journald)
 2. Log security events: auth failures, sudo usage, config changes
 3. Use immutable logs (write-only, remote storage)
 4. Implement log integrity verification (signatures)
 
 **Recommended Fix:**
+
 ```bash
 # Add security event logging
 security_log() {
@@ -883,6 +960,7 @@ security_log() {
 ```
 
 **References:**
+
 - [CWE-778: Insufficient Logging](https://cwe.mitre.org/data/definitions/778.html)
 - [NIST SP 800-92: Guide to Computer Security Log Management](https://csrc.nist.gov/publications/detail/sp/800-92/final)
 - [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
@@ -897,24 +975,27 @@ security_log() {
 **Line:** 199
 
 **Vulnerability Description:**
-Developer account password is set to wildcard (*) instead of disabling password authentication completely:
+Developer account password is set to wildcard (\*) instead of disabling password authentication completely:
 
 ```bash
 usermod -p '*' "${DEVELOPER_USER}" 2>/dev/null || true
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Potential for password-based attacks if SSH config changes
 - **Exploitability:** Low - Requires SSH config modification
 - **Best Practice:** Use account locking instead of wildcard
 
 **Remediation:**
+
 ```bash
 # Lock account instead of using wildcard
 usermod -L "${DEVELOPER_USER}" 2>/dev/null || true
 ```
 
 **References:**
+
 - [CWE-521: Weak Password Requirements](https://cwe.mitre.org/data/definitions/521.html)
 - [NIST SP 800-63B: Authentication and Lifecycle Management](https://pages.nist.gov/800-63-3/sp800-63b.html)
 
@@ -934,11 +1015,13 @@ find /docker/cli -type f -exec chmod 755 {} \;
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Unauthorized script modification if directory permissions weak
 - **Exploitability:** Low - Requires write access to parent directory
 - **Issue:** Violates principle of least privilege
 
 **Remediation:**
+
 ```bash
 # Restrict execute permission to owner and group only
 find /docker/scripts -type f -name "*.sh" -exec chmod 750 {} \;
@@ -946,6 +1029,7 @@ find /docker/cli -type f -exec chmod 750 {} \;
 ```
 
 **References:**
+
 - [CWE-732: Incorrect Permission Assignment](https://cwe.mitre.org/data/definitions/732.html)
 - [CIS Benchmark: File Permissions](https://www.cisecurity.org/benchmark/distribution_independent_linux)
 
@@ -971,11 +1055,13 @@ fi
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Reading arbitrary files via path traversal
 - **Exploitability:** Medium - Requires crafted sindri.yaml
 - **Attack Vector:** `path: "../../../etc/shadow"`
 
 **Remediation:**
+
 ```bash
 # Validate resolved path stays within allowed directories
 local allowed_dirs=("$HOME" "/etc/ssl/certs" "/tmp")
@@ -995,6 +1081,7 @@ fi
 ```
 
 **References:**
+
 - [CWE-22: Path Traversal](https://cwe.mitre.org/data/definitions/22.html)
 - [OWASP: Path Traversal Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)
 
@@ -1015,11 +1102,13 @@ except jsonschema.ValidationError as e:
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Information leakage aids attacker reconnaissance
 - **Exploitability:** Low - Requires triggering specific errors
 - **Examples:** File paths, user names, internal structure
 
 **Remediation:**
+
 ```python
 # Sanitize error messages for external display
 except jsonschema.ValidationError as e:
@@ -1032,6 +1121,7 @@ except jsonschema.ValidationError as e:
 ```
 
 **References:**
+
 - [CWE-209: Information Exposure Through Error Messages](https://cwe.mitre.org/data/definitions/209.html)
 - [OWASP: Error Handling](https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html)
 
@@ -1050,17 +1140,20 @@ jitter=$((RANDOM % 3))
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Predictable backoff timing enables timing attacks
 - **Exploitability:** Low - Requires precise timing and multiple observations
 - **Issue:** $RANDOM is not cryptographically secure
 
 **Remediation:**
+
 ```bash
 # Use /dev/urandom for better entropy
 jitter=$(($(od -An -N2 -i /dev/urandom) % 3))
 ```
 
 **References:**
+
 - [CWE-330: Use of Insufficiently Random Values](https://cwe.mitre.org/data/definitions/330.html)
 - [OWASP: Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html)
 
@@ -1080,17 +1173,20 @@ curl -fsSL -o "$temp_file" "$url" || return 1
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Man-in-the-Middle attacks on downloads
 - **Exploitability:** Medium - Requires network position
 - **Issue:** No certificate pinning or strict verification
 
 **Remediation:**
+
 ```bash
 # Add certificate validation
 curl -fsSL --proto '=https' --tlsv1.2 --fail-early -o "$temp_file" "$url" || return 1
 ```
 
 **References:**
+
 - [CWE-295: Improper Certificate Validation](https://cwe.mitre.org/data/definitions/295.html)
 - [OWASP: Transport Layer Protection](https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html)
 
@@ -1109,11 +1205,13 @@ if ! env $mise_env timeout 300 mise install 2>&1 | while IFS= read -r line; do
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Resource exhaustion from hanging installations
 - **Exploitability:** Medium - Requires slow network or large package
 - **Issue:** No adaptive timeout based on package size
 
 **Remediation:**
+
 ```bash
 # Implement adaptive timeout based on expected size
 local timeout_seconds
@@ -1126,6 +1224,7 @@ timeout "$timeout_seconds" mise install
 ```
 
 **References:**
+
 - [CWE-400: Uncontrolled Resource Consumption](https://cwe.mitre.org/data/definitions/400.html)
 - [OWASP: Denial of Service](https://owasp.org/www-community/attacks/Denial_of_Service)
 
@@ -1147,20 +1246,22 @@ services:
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Easier container escape and privilege escalation
 - **Exploitability:** Medium - Requires container compromise first
 - **Issue:** No defense-in-depth
 
 **Remediation:**
+
 ```yaml
 services:
   sindri:
     image: sindri:latest
     security_opt:
       - no-new-privileges:true
-      - seccomp:unconfined  # or custom profile
+      - seccomp:unconfined # or custom profile
       - apparmor:docker-default
-    read_only: false  # Need writable for user data
+    read_only: false # Need writable for user data
     tmpfs:
       - /tmp:size=1G,mode=1777
     cap_drop:
@@ -1174,6 +1275,7 @@ services:
 ```
 
 **References:**
+
 - [CIS Docker Benchmark 5.25-5.31](https://www.cisecurity.org/benchmark/docker)
 - [Docker Security Best Practices](https://docs.docker.com/engine/security/)
 
@@ -1202,11 +1304,13 @@ load_yaml() {
 ```
 
 **Risk Assessment:**
+
 - **Impact:** Billion Laughs attack (XML bomb equivalent for YAML)
 - **Exploitability:** Medium - Requires malicious YAML file
 - **Attack Vector:** Nested aliases causing exponential expansion
 
 **Remediation:**
+
 ```bash
 load_yaml() {
     local yaml_file="$1"
@@ -1232,6 +1336,7 @@ load_yaml() {
 ```
 
 **References:**
+
 - [CWE-776: Unrestricted Recursive Entity References in DTDs](https://cwe.mitre.org/data/definitions/776.html)
 - [YAML Bomb Attacks](https://en.wikipedia.org/wiki/Billion_laughs_attack)
 
@@ -1271,16 +1376,19 @@ load_yaml() {
 ### Compliance Gaps
 
 **SOC 2 Type II:**
+
 - Insufficient audit logging (H-12)
 - Weak access controls (C-5, H-1)
 - Missing encryption at rest for secrets (H-2)
 
 **ISO 27001:**
+
 - No security awareness documentation
 - Missing risk assessment framework
 - Incomplete incident response procedures
 
 **CIS Docker Benchmark:**
+
 - Unrestricted sudo (C-5)
 - Missing security options (M-8)
 - Weak file permissions (M-2)
@@ -1294,6 +1402,7 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 **Recommended Deployment Stance:** DO NOT DEPLOY TO PRODUCTION until Critical and High severity findings are remediated. The current codebase is suitable for development/testing in isolated environments only.
 
 **Estimated Remediation Effort:**
+
 - Critical fixes: 40-60 hours
 - High severity fixes: 60-80 hours
 - Medium severity fixes: 30-40 hours
@@ -1301,6 +1410,7 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 - **Total:** 170-240 hours (4-6 weeks for one engineer)
 
 **Next Steps:**
+
 1. Prioritize Critical findings remediation
 2. Implement automated security testing in CI/CD
 3. Conduct code review with security focus
@@ -1309,5 +1419,5 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 
 ---
 
-*Report Prepared By: Security Audit Team*
-*Audit Completion: December 16, 2025*
+_Report Prepared By: Security Audit Team_
+_Audit Completion: December 16, 2025_

@@ -132,10 +132,10 @@ deployment:
   resources:
     gpu:
       enabled: true
-      type: nvidia       # nvidia | amd
-      count: 1           # Number of GPUs (1-8)
-      tier: gpu-medium   # gpu-small | gpu-medium | gpu-large | gpu-xlarge
-      memory: 16GB       # Minimum GPU memory (e.g., 16GB, 24GB)
+      type: nvidia # nvidia | amd
+      count: 1 # Number of GPUs (1-8)
+      tier: gpu-medium # gpu-small | gpu-medium | gpu-large | gpu-xlarge
+      memory: 16GB # Minimum GPU memory (e.g., 16GB, 24GB)
 ```
 
 **Quick Reference:**
@@ -147,6 +147,7 @@ deployment:
 - `memory` - Minimum GPU memory required
 
 **See [GPU Configuration Guide](GPU.md)** for comprehensive documentation including:
+
 - Provider-specific GPU configuration (Fly.io, AWS, GCP, Azure, Docker, Kubernetes)
 - GPU tier mappings and pricing
 - Use case examples (inference, training, rendering)
@@ -347,15 +348,15 @@ providers:
 
 **Recommended Regions:**
 
-| Region       | Location          | GPU Availability | Notes                  |
-| ------------ | ----------------- | ---------------- | ---------------------- |
-| us-east-1    | N. Virginia       | Excellent        | Largest, most services |
-| us-east-2    | Ohio              | Good             | Lower latency to Midwest |
-| us-west-2    | Oregon            | Excellent        | Best GPU availability  |
-| eu-west-1    | Ireland           | Good             | EU primary             |
-| eu-central-1 | Frankfurt         | Good             | EU central             |
-| ap-southeast-1 | Singapore       | Fair             | Asia Pacific           |
-| ap-northeast-1 | Tokyo           | Good             | Japan                  |
+| Region         | Location    | GPU Availability | Notes                    |
+| -------------- | ----------- | ---------------- | ------------------------ |
+| us-east-1      | N. Virginia | Excellent        | Largest, most services   |
+| us-east-2      | Ohio        | Good             | Lower latency to Midwest |
+| us-west-2      | Oregon      | Excellent        | Best GPU availability    |
+| eu-west-1      | Ireland     | Good             | EU primary               |
+| eu-central-1   | Frankfurt   | Good             | EU central               |
+| ap-southeast-1 | Singapore   | Fair             | Asia Pacific             |
+| ap-northeast-1 | Tokyo       | Good             | Japan                    |
 
 **Configuration:**
 
@@ -364,7 +365,7 @@ providers:
   devpod:
     type: aws
     aws:
-      region: us-west-2  # Choose based on proximity and GPU needs
+      region: us-west-2 # Choose based on proximity and GPU needs
       instanceType: t3.medium
 ```
 
@@ -374,14 +375,14 @@ providers:
 
 **Recommended Zones:**
 
-| Zone               | Location          | GPU Availability | Notes                       |
-| ------------------ | ----------------- | ---------------- | --------------------------- |
-| us-central1-a      | Iowa              | Excellent        | Best GPU availability       |
-| us-central1-b      | Iowa              | Excellent        | High availability           |
-| us-west1-b         | Oregon            | Good             | West Coast                  |
-| us-east1-c         | South Carolina    | Good             | East Coast                  |
-| europe-west4-a     | Netherlands       | Good             | EU primary                  |
-| asia-southeast1-c  | Singapore         | Fair             | Asia Pacific                |
+| Zone              | Location       | GPU Availability | Notes                 |
+| ----------------- | -------------- | ---------------- | --------------------- |
+| us-central1-a     | Iowa           | Excellent        | Best GPU availability |
+| us-central1-b     | Iowa           | Excellent        | High availability     |
+| us-west1-b        | Oregon         | Good             | West Coast            |
+| us-east1-c        | South Carolina | Good             | East Coast            |
+| europe-west4-a    | Netherlands    | Good             | EU primary            |
+| asia-southeast1-c | Singapore      | Fair             | Asia Pacific          |
 
 **Configuration:**
 
@@ -390,7 +391,7 @@ providers:
   devpod:
     type: gcp
     gcp:
-      zone: us-central1-a  # Best for GPU workloads
+      zone: us-central1-a # Best for GPU workloads
       machineType: e2-medium
 ```
 
@@ -402,16 +403,16 @@ providers:
 
 **Recommended Regions:**
 
-| Region         | Location        | GPU Availability | Notes                   |
-| -------------- | --------------- | ---------------- | ----------------------- |
-| eastus         | Virginia        | Excellent        | Largest Azure region    |
-| eastus2        | Virginia        | Good             | Backup to eastus        |
-| westus2        | Washington      | Good             | West Coast              |
-| southcentralus | Texas           | Good             | Central US              |
-| westeurope     | Netherlands     | Good             | EU primary              |
-| northeurope    | Ireland         | Good             | EU backup               |
-| southeastasia  | Singapore       | Fair             | Asia Pacific            |
-| japaneast      | Tokyo           | Fair             | Japan                   |
+| Region         | Location    | GPU Availability | Notes                |
+| -------------- | ----------- | ---------------- | -------------------- |
+| eastus         | Virginia    | Excellent        | Largest Azure region |
+| eastus2        | Virginia    | Good             | Backup to eastus     |
+| westus2        | Washington  | Good             | West Coast           |
+| southcentralus | Texas       | Good             | Central US           |
+| westeurope     | Netherlands | Good             | EU primary           |
+| northeurope    | Ireland     | Good             | EU backup            |
+| southeastasia  | Singapore   | Fair             | Asia Pacific         |
+| japaneast      | Tokyo       | Fair             | Japan                |
 
 **Configuration:**
 
@@ -420,7 +421,7 @@ providers:
   devpod:
     type: azure
     azure:
-      location: eastus  # Choose based on proximity and services
+      location: eastus # Choose based on proximity and services
       vmSize: Standard_B2s
 ```
 
@@ -430,17 +431,17 @@ providers:
 
 **Available Regions:**
 
-| Region | Location        | Notes                |
-| ------ | --------------- | -------------------- |
-| nyc1   | New York 1      | US East (older)      |
-| nyc3   | New York 3      | US East (newer)      |
-| sfo3   | San Francisco   | US West              |
-| tor1   | Toronto         | Canada               |
-| lon1   | London          | Europe               |
-| fra1   | Frankfurt       | Europe               |
-| ams3   | Amsterdam       | Europe               |
-| sgp1   | Singapore       | Asia Pacific         |
-| blr1   | Bangalore       | India                |
+| Region | Location      | Notes           |
+| ------ | ------------- | --------------- |
+| nyc1   | New York 1    | US East (older) |
+| nyc3   | New York 3    | US East (newer) |
+| sfo3   | San Francisco | US West         |
+| tor1   | Toronto       | Canada          |
+| lon1   | London        | Europe          |
+| fra1   | Frankfurt     | Europe          |
+| ams3   | Amsterdam     | Europe          |
+| sgp1   | Singapore     | Asia Pacific    |
+| blr1   | Bangalore     | India           |
 
 **Configuration:**
 
@@ -449,7 +450,7 @@ providers:
   devpod:
     type: digitalocean
     digitalocean:
-      region: nyc3  # Recommended for US East
+      region: nyc3 # Recommended for US East
       size: s-2vcpu-4gb
 ```
 
@@ -460,16 +461,19 @@ providers:
 ### Region Selection Guidelines
 
 **Latency Optimization:**
+
 - Choose region closest to your team's location
 - Use ping tests to verify latency
 - Consider data sovereignty requirements (GDPR, etc.)
 
 **Cost Optimization:**
+
 - Regions may have different pricing
 - GPU availability affects cost (scarcity = higher prices)
 - Consider data transfer costs between regions
 
 **Feature Availability:**
+
 - Not all VM types available in all regions
 - GPU types vary by region (see [GPU.md](GPU.md))
 - Some services/features are region-specific

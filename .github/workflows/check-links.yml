@@ -5,17 +5,17 @@ on:
   push:
     branches: [main]
     paths:
-      - '**.md'
-      - 'docs/**'
-      - '.github/workflows/check-links.yml'
+      - "**.md"
+      - "docs/**"
+      - ".github/workflows/check-links.yml"
   pull_request:
     branches: [main]
     paths:
-      - '**.md'
-      - 'docs/**'
+      - "**.md"
+      - "docs/**"
   schedule:
     # Run weekly on Mondays at 9 AM UTC to catch dead external links
-    - cron: '0 9 * * 1'
+    - cron: "0 9 * * 1"
   workflow_dispatch:
 
 jobs:
@@ -107,7 +107,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install markdown-link-check
         run: npm install -g markdown-link-check

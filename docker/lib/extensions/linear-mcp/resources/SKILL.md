@@ -73,6 +73,7 @@ The MCP server exposes these tools:
 ### Re-authenticate
 
 If you need to re-authenticate:
+
 1. Run `/mcp` in Claude Code
 2. Find the Linear server
 3. Click "Authenticate" or "Reconnect"

@@ -12,6 +12,7 @@ Sindri supports GPU-accelerated deployments across multiple providers using decl
 - **Scientific Computing** - CUDA-based computation and simulations
 
 **Supported GPU Vendors:**
+
 - NVIDIA (primary support: CUDA, TensorRT, cuDNN)
 - AMD (via ROCm, limited provider support)
 
@@ -21,7 +22,7 @@ Basic GPU configuration in `sindri.yaml`:
 
 ```yaml
 deployment:
-  provider: fly  # or: docker, devpod (aws/gcp/azure)
+  provider: fly # or: docker, devpod (aws/gcp/azure)
   resources:
     memory: 16GB
     cpus: 8
@@ -46,23 +47,23 @@ Deploy:
 deployment:
   resources:
     gpu:
-      enabled: boolean     # Enable GPU support (default: false)
-      type: string         # nvidia | amd (default: nvidia)
-      count: integer       # Number of GPUs: 1-8 (default: 1)
-      tier: string         # GPU tier (see tiers below)
-      memory: string       # Minimum GPU memory (e.g., "16GB", "40GB")
+      enabled: boolean # Enable GPU support (default: false)
+      type: string # nvidia | amd (default: nvidia)
+      count: integer # Number of GPUs: 1-8 (default: 1)
+      tier: string # GPU tier (see tiers below)
+      memory: string # Minimum GPU memory (e.g., "16GB", "40GB")
 ```
 
 ### GPU Tiers
 
 Sindri abstracts provider-specific GPU types into tiers for easier configuration:
 
-| Tier | GPU Memory | GPU Types | vCPU Range | Use Cases |
-|------|------------|-----------|------------|-----------|
-| **gpu-small** | 8-16 GB | T4, RTX 3060 | 4-8 | Inference, development, light training |
-| **gpu-medium** | 16-24 GB | A10G, L4, RTX 4070 | 8-16 | Training, inference, fine-tuning |
-| **gpu-large** | 40-48 GB | L40S, A100-40GB, RTX 4090 | 16-32 | Large model training, multi-model inference |
-| **gpu-xlarge** | 80+ GB | A100-80GB, H100 | 32-96 | LLM training, enterprise workloads |
+| Tier           | GPU Memory | GPU Types                 | vCPU Range | Use Cases                                   |
+| -------------- | ---------- | ------------------------- | ---------- | ------------------------------------------- |
+| **gpu-small**  | 8-16 GB    | T4, RTX 3060              | 4-8        | Inference, development, light training      |
+| **gpu-medium** | 16-24 GB   | A10G, L4, RTX 4070        | 8-16       | Training, inference, fine-tuning            |
+| **gpu-large**  | 40-48 GB   | L40S, A100-40GB, RTX 4090 | 16-32      | Large model training, multi-model inference |
+| **gpu-xlarge** | 80+ GB     | A100-80GB, H100           | 32-96      | LLM training, enterprise workloads          |
 
 **Tier Selection Guidelines:**
 
@@ -84,36 +85,39 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-medium  # Maps to a100-40gb
+      tier: gpu-medium # Maps to a100-40gb
       count: 1
 
 providers:
   fly:
-    region: ord  # Chicago - primary GPU region
+    region: ord # Chicago - primary GPU region
     # Also available: sjc (San Jose)
     cpuKind: performance
-    autoStopMachines: false  # Keep GPU instances running
+    autoStopMachines: false # Keep GPU instances running
 ```
 
 **Available Fly.io GPU Regions:**
+
 - `ord` (Chicago, IL) - Primary GPU availability
 - `sjc` (San Jose, CA) - Limited GPU availability
 
 **Fly.io GPU Tier Mappings:**
 
-| Tier | Fly.io GPU | Memory | vCPUs |
-|------|------------|--------|-------|
-| gpu-small | a100-40gb | 40 GB | 8 |
-| gpu-medium | a100-40gb | 40 GB | 16 |
-| gpu-large | l40s | 48 GB | 16 |
-| gpu-xlarge | a100-80gb | 80 GB | 32 |
+| Tier       | Fly.io GPU | Memory | vCPUs |
+| ---------- | ---------- | ------ | ----- |
+| gpu-small  | a100-40gb  | 40 GB  | 8     |
+| gpu-medium | a100-40gb  | 40 GB  | 16    |
+| gpu-large  | l40s       | 48 GB  | 16    |
+| gpu-xlarge | a100-80gb  | 80 GB  | 32    |
 
 **Cost Estimate (Fly.io):**
+
 - A100-40GB: ~$2.50/hr (~$1,800/mo continuous)
 - L40S: ~$3.00/hr (~$2,160/mo continuous)
 - A100-80GB: ~$4.50/hr (~$3,240/mo continuous)
 
 **Notes:**
+
 - Auto-stop not recommended for GPU instances (slow cold starts)
 - GPU instances incur charges even when idle if not stopped
 - Volume storage billed separately (~$0.15/GB/month)
@@ -133,7 +137,7 @@ deployment:
 
 providers:
   docker:
-    privileged: true  # Required for GPU access
+    privileged: true # Required for GPU access
 ```
 
 **Prerequisites:**
@@ -160,12 +164,12 @@ docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 
 Uses host GPU directly - tier names for consistency:
 
-| Tier | Typical GPUs |
-|------|--------------|
-| gpu-small | GTX 1080, RTX 3060, T4 |
-| gpu-medium | RTX 3090, RTX 4070, A10G |
-| gpu-large | RTX 4090, L40S, A100-40GB |
-| gpu-xlarge | A100-80GB, H100 |
+| Tier       | Typical GPUs              |
+| ---------- | ------------------------- |
+| gpu-small  | GTX 1080, RTX 3060, T4    |
+| gpu-medium | RTX 3090, RTX 4070, A10G  |
+| gpu-large  | RTX 4090, L40S, A100-40GB |
+| gpu-xlarge | A100-80GB, H100           |
 
 ### AWS (via DevPod)
 
@@ -183,24 +187,25 @@ deployment:
 providers:
   devpod:
     type: aws
-    buildRepository: ghcr.io/myorg/sindri  # Required for cloud
+    buildRepository: ghcr.io/myorg/sindri # Required for cloud
     aws:
       region: us-west-2
       # Instance type auto-selected based on tier
       diskSize: 100
-      useSpot: false  # Spot instances not recommended for GPU
+      useSpot: false # Spot instances not recommended for GPU
 ```
 
 **AWS GPU Tier Mappings:**
 
-| Tier | Instance Type | GPU | vCPUs | Memory | Cost (us-west-2) |
-|------|---------------|-----|-------|--------|------------------|
-| gpu-small | g4dn.xlarge | T4 (16GB) | 4 | 16 GB | ~$0.526/hr |
-| gpu-medium | g5.2xlarge | A10G (24GB) | 8 | 32 GB | ~$1.212/hr |
-| gpu-large | g5.4xlarge | A10G (24GB) | 16 | 64 GB | ~$1.624/hr |
-| gpu-xlarge | p4d.24xlarge | A100x8 (320GB) | 96 | 1152 GB | ~$32.77/hr |
+| Tier       | Instance Type | GPU            | vCPUs | Memory  | Cost (us-west-2) |
+| ---------- | ------------- | -------------- | ----- | ------- | ---------------- |
+| gpu-small  | g4dn.xlarge   | T4 (16GB)      | 4     | 16 GB   | ~$0.526/hr       |
+| gpu-medium | g5.2xlarge    | A10G (24GB)    | 8     | 32 GB   | ~$1.212/hr       |
+| gpu-large  | g5.4xlarge    | A10G (24GB)    | 16    | 64 GB   | ~$1.624/hr       |
+| gpu-xlarge | p4d.24xlarge  | A100x8 (320GB) | 96    | 1152 GB | ~$32.77/hr       |
 
 **Available AWS GPU Regions:**
+
 - us-east-1, us-east-2, us-west-2 (best GPU availability)
 - eu-west-1, eu-central-1
 - ap-southeast-1, ap-northeast-1
@@ -224,21 +229,22 @@ providers:
     buildRepository: ghcr.io/myorg/sindri
     gcp:
       project: my-project-id
-      zone: us-central1-a  # GPU availability varies by zone
+      zone: us-central1-a # GPU availability varies by zone
       diskSize: 100
-      diskType: pd-ssd  # Recommended for GPU workloads
+      diskType: pd-ssd # Recommended for GPU workloads
 ```
 
 **GCP GPU Tier Mappings:**
 
-| Tier | Machine Type | GPU Accelerator | vCPUs | Memory | Cost (us-central1) |
-|------|--------------|-----------------|-------|--------|---------------------|
-| gpu-small | n1-standard-4 | nvidia-tesla-t4 (x1) | 4 | 15 GB | ~$0.49/hr |
-| gpu-medium | n1-standard-8 | nvidia-tesla-a10g (x1) | 8 | 30 GB | ~$1.28/hr |
-| gpu-large | g2-standard-16 | nvidia-l4 (x1) | 16 | 64 GB | ~$1.65/hr |
-| gpu-xlarge | a2-megagpu-16g | nvidia-a100-80gb (x16) | 96 | 1360 GB | ~$55/hr |
+| Tier       | Machine Type   | GPU Accelerator        | vCPUs | Memory  | Cost (us-central1) |
+| ---------- | -------------- | ---------------------- | ----- | ------- | ------------------ |
+| gpu-small  | n1-standard-4  | nvidia-tesla-t4 (x1)   | 4     | 15 GB   | ~$0.49/hr          |
+| gpu-medium | n1-standard-8  | nvidia-tesla-a10g (x1) | 8     | 30 GB   | ~$1.28/hr          |
+| gpu-large  | g2-standard-16 | nvidia-l4 (x1)         | 16    | 64 GB   | ~$1.65/hr          |
+| gpu-xlarge | a2-megagpu-16g | nvidia-a100-80gb (x16) | 96    | 1360 GB | ~$55/hr            |
 
 **Available GCP GPU Zones:**
+
 - us-central1-a, us-central1-b, us-central1-c
 - us-west1-b, us-east1-c
 - europe-west4-a, asia-southeast1-c
@@ -269,14 +275,15 @@ providers:
 
 **Azure GPU Tier Mappings:**
 
-| Tier | VM Size | GPU | vCPUs | Memory | Cost (East US) |
-|------|---------|-----|-------|--------|----------------|
-| gpu-small | Standard_NC4as_T4_v3 | T4 (16GB) | 4 | 28 GB | ~$0.526/hr |
-| gpu-medium | Standard_NC8as_T4_v3 | T4 (16GB) | 8 | 56 GB | ~$0.904/hr |
-| gpu-large | Standard_NC24ads_A100_v4 | A100 (80GB) | 24 | 220 GB | ~$3.67/hr |
-| gpu-xlarge | Standard_ND96amsr_A100_v4 | A100x8 (640GB) | 96 | 1900 GB | ~$27.20/hr |
+| Tier       | VM Size                   | GPU            | vCPUs | Memory  | Cost (East US) |
+| ---------- | ------------------------- | -------------- | ----- | ------- | -------------- |
+| gpu-small  | Standard_NC4as_T4_v3      | T4 (16GB)      | 4     | 28 GB   | ~$0.526/hr     |
+| gpu-medium | Standard_NC8as_T4_v3      | T4 (16GB)      | 8     | 56 GB   | ~$0.904/hr     |
+| gpu-large  | Standard_NC24ads_A100_v4  | A100 (80GB)    | 24    | 220 GB  | ~$3.67/hr      |
+| gpu-xlarge | Standard_ND96amsr_A100_v4 | A100x8 (640GB) | 96    | 1900 GB | ~$27.20/hr     |
 
 **Available Azure GPU Regions:**
+
 - eastus, westus2, southcentralus
 - westeurope, northeurope
 - southeastasia, japaneast
@@ -318,12 +325,12 @@ kubectl get nodes -L nvidia.com/gpu
 
 **GPU Node Selectors:**
 
-| Tier | Node Selector | GPU Count |
-|------|---------------|-----------|
-| gpu-small | accelerator: nvidia-tesla-t4 | 1 |
-| gpu-medium | accelerator: nvidia-a10g | 1 |
-| gpu-large | accelerator: nvidia-l40s | 1 |
-| gpu-xlarge | accelerator: nvidia-a100 | 8 |
+| Tier       | Node Selector                | GPU Count |
+| ---------- | ---------------------------- | --------- |
+| gpu-small  | accelerator: nvidia-tesla-t4 | 1         |
+| gpu-medium | accelerator: nvidia-a10g     | 1         |
+| gpu-large  | accelerator: nvidia-l40s     | 1         |
+| gpu-xlarge | accelerator: nvidia-a100     | 8         |
 
 ## Use Case Examples
 
@@ -342,12 +349,12 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-small  # T4 sufficient for inference
+      tier: gpu-small # T4 sufficient for inference
       count: 1
 extensions:
-  profile: ai-dev  # Includes Python, PyTorch, TensorFlow
+  profile: ai-dev # Includes Python, PyTorch, TensorFlow
   additional:
-    - vf-comfyui  # Stable Diffusion UI
+    - vf-comfyui # Stable Diffusion UI
 ```
 
 **Cost**: ~$1.00/hr (~$720/mo)
@@ -367,11 +374,11 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-medium  # A10G/L4
+      tier: gpu-medium # A10G/L4
       count: 1
   volumes:
     workspace:
-      size: 500GB  # Large dataset storage
+      size: 500GB # Large dataset storage
 providers:
   devpod:
     type: aws
@@ -402,7 +409,7 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-large  # A100-40GB or L40S
+      tier: gpu-large # A100-40GB or L40S
       count: 1
   volumes:
     workspace:
@@ -420,7 +427,7 @@ extensions:
   profile: ai-dev
   additional:
     - vf-pytorch-ml
-    - vf-deepspeed  # Distributed training
+    - vf-deepspeed # Distributed training
 ```
 
 **Cost (GCP)**: ~$1.65/hr (~$1,188/mo)
@@ -433,14 +440,14 @@ GPU-accelerated 3D rendering and visualization:
 version: 1.0
 name: 3d-rendering
 deployment:
-  provider: docker  # Local workstation with RTX GPU
+  provider: docker # Local workstation with RTX GPU
   resources:
     memory: 32GB
     cpus: 16
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-large  # RTX 4090 or similar
+      tier: gpu-large # RTX 4090 or similar
       count: 1
 providers:
   docker:
@@ -469,7 +476,7 @@ deployment:
     gpu:
       enabled: true
       type: nvidia
-      tier: gpu-xlarge  # 8x A100
+      tier: gpu-xlarge # 8x A100
       count: 8
   volumes:
     workspace:
@@ -486,7 +493,7 @@ extensions:
   additional:
     - vf-pytorch-ml
     - vf-deepspeed
-    - vf-horovod  # Multi-GPU orchestration
+    - vf-horovod # Multi-GPU orchestration
 ```
 
 **Cost (AWS)**: ~$32.77/hr (~$23,600/mo)
@@ -528,11 +535,11 @@ These extensions require or benefit from GPU acceleration:
 
 Monthly cost estimate for continuous operation (730 hrs/month):
 
-| Tier | Fly.io | AWS | GCP | Azure |
-|------|--------|-----|-----|-------|
-| gpu-small | $1,825 | $384 | $358 | $384 |
-| gpu-medium | $1,825 | $885 | $934 | $660 |
-| gpu-large | $2,190 | $1,186 | $1,205 | $2,680 |
+| Tier       | Fly.io | AWS     | GCP     | Azure   |
+| ---------- | ------ | ------- | ------- | ------- |
+| gpu-small  | $1,825 | $384    | $358    | $384    |
+| gpu-medium | $1,825 | $885    | $934    | $660    |
+| gpu-large  | $2,190 | $1,186  | $1,205  | $2,680  |
 | gpu-xlarge | $3,285 | $23,922 | $40,150 | $19,856 |
 
 **Spot Instance Savings** (AWS/GCP/Azure): 50-90% discount, subject to interruption

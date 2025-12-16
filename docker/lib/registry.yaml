@@ -186,7 +186,6 @@ extensions:
 
   # Monitoring
   monitoring:
-
     category: monitoring
     description: Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli)
     dependencies: []
