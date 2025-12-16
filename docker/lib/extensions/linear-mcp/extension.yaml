@@ -1,32 +1,30 @@
 ---
 metadata:
   name: linear-mcp
-  version: 2.0.0
+  version: 2.1.0
   description: >-
-    Linear MCP server using official OAuth-based remote MCP
-    (no API key required)
+    Linear MCP server using Claude Code's native HTTP transport
+    (no API key required, no npm dependencies)
   category: agile
   author: Sindri Team
   homepage: https://linear.app/docs/mcp
-  dependencies:
-    - nodejs
+  dependencies: []
 
 requirements:
   domains:
     - api.linear.app
     - linear.app
     - mcp.linear.app
-    - registry.npmjs.org
-  diskSpace: 50
-  memory: 128
-  installTime: 30
-  # No secrets required - uses OAuth flow via mcp-remote
+  diskSpace: 10
+  memory: 64
+  installTime: 10
+  # No secrets required - uses OAuth flow via Claude Code
 
 install:
   method: script
   script:
     path: install.sh
-    timeout: 120
+    timeout: 60
 
 configure:
   templates:
@@ -39,9 +37,6 @@ validate:
     # Verify claude CLI is available
     - name: claude
       versionFlag: --version
-    # Verify mcp-remote package is cached
-    - name: npx
-      versionFlag: -y mcp-remote --version
 
 remove:
   script:
@@ -54,13 +49,6 @@ upgrade:
 
 bom:
   tools:
-    - name: mcp-remote
-      version: dynamic
-      source: npm
-      type: library
-      license: MIT
-      homepage: https://www.npmjs.com/package/mcp-remote
-      purl: pkg:npm/mcp-remote
     - name: linear-mcp
       version: remote
       source: linear

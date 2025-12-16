@@ -4,32 +4,32 @@ Linear MCP server for AI-powered project management integration using OAuth auth
 
 ## Overview
 
-| Property         | Value                       |
-| ---------------- | --------------------------- |
-| **Category**     | agile                       |
-| **Version**      | 2.0.0                       |
-| **Installation** | script                      |
-| **Disk Space**   | 50 MB                       |
-| **Dependencies** | nodejs                      |
-| **Auth Method**  | OAuth (no API key required) |
+| Property         | Value                                    |
+| ---------------- | ---------------------------------------- |
+| **Category**     | agile                                    |
+| **Version**      | 2.1.0                                    |
+| **Installation** | script                                   |
+| **Disk Space**   | 10 MB                                    |
+| **Dependencies** | none                                     |
+| **Auth Method**  | OAuth (no API key required)              |
+| **Transport**    | Native HTTP (no mcp-remote needed)       |
 
 ## Description
 
-This extension provides integration with Linear's project management system via the official [Linear Remote MCP server](https://linear.app/docs/mcp). It uses OAuth authentication, eliminating the need for manual API key management.
+This extension provides integration with Linear's project management system via the official [Linear Remote MCP server](https://linear.app/docs/mcp). It uses Claude Code's native HTTP transport and OAuth authentication, eliminating the need for API keys or npm wrapper packages.
 
-## Key Changes in v2.0.0
+## Key Changes in v2.1.0
 
-- **OAuth Authentication**: No more API keys - uses Linear's official OAuth flow
-- **Remote MCP**: Uses `mcp-remote` to connect to `https://mcp.linear.app/sse`
-- **User Scope**: Installs to `~/.claude.json` for availability across all projects
-- **Automatic Merge**: Preserves existing MCP servers when adding Linear
+- **Native HTTP Transport**: Uses Claude Code's built-in HTTP transport directly
+- **No npm Dependencies**: Removed mcp-remote wrapper - no Node.js required
+- **Faster Installation**: Simplified setup with no package downloads
+- **OAuth Authentication**: Uses Linear's official OAuth flow via Claude Code
 
 ## Installed Components
 
-| Component    | Type    | Description                       |
-| ------------ | ------- | --------------------------------- |
-| `mcp-remote` | npm     | Remote MCP proxy (pre-cached)     |
-| `linear`     | server  | Linear MCP in Claude Code config  |
+| Component | Type   | Description                      |
+| --------- | ------ | -------------------------------- |
+| `linear`  | server | Linear MCP in Claude Code config |
 
 ## Installation
 
@@ -38,8 +38,8 @@ extension-manager install linear-mcp
 ```
 
 The installer will:
-1. Pre-cache the `mcp-remote` npm package
-2. Add Linear MCP to your user-scope Claude Code configuration
+1. Add Linear MCP to your user-scope Claude Code configuration
+2. Use native HTTP transport (no npm packages needed)
 3. Merge with any existing MCP servers (non-destructive)
 
 ## First-Time Setup
@@ -73,14 +73,14 @@ Once authenticated, ask Claude:
 
 ## Configuration
 
-The extension uses `claude mcp add-json` with user scope. Configuration is stored in `~/.claude.json`:
+The extension uses `claude mcp add --transport http` with user scope. Configuration is stored in `~/.claude.json`:
 
 ```json
 {
   "mcpServers": {
     "linear": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
     }
   }
 }
@@ -91,7 +91,13 @@ The extension uses `claude mcp add-json` with user scope. Configuration is store
 If automatic installation fails:
 
 ```bash
-claude mcp add-json --scope user linear '{"command":"npx","args":["-y","mcp-remote","https://mcp.linear.app/sse"]}'
+claude mcp add --transport http --scope user linear https://mcp.linear.app/mcp
+```
+
+Or using JSON:
+
+```bash
+claude mcp add-json --scope user linear '{"type":"http","url":"https://mcp.linear.app/mcp"}'
 ```
 
 ## Available Tools
@@ -117,18 +123,20 @@ claude --version
 # Verify Linear MCP is configured
 claude mcp list --scope user
 
-# Test mcp-remote package
-npx -y mcp-remote --version
+# Get Linear MCP details
+claude mcp get linear
 ```
 
 ## Troubleshooting
 
 ### Re-authenticate
+
 ```bash
 # Run /mcp in Claude Code and click "Authenticate" on Linear
 ```
 
 ### Server Not Responding
+
 ```bash
 # Check status
 claude mcp get linear
@@ -139,6 +147,7 @@ extension-manager reinstall linear-mcp
 ```
 
 ### View Configuration
+
 ```bash
 cat ~/.claude.json | jq '.mcpServers.linear'
 ```
@@ -150,10 +159,19 @@ extension-manager remove linear-mcp
 ```
 
 This removes:
+
 - Linear MCP from Claude Code user configuration
 - Extension directory at `~/extensions/linear-mcp`
 
-## Migration from v1.x
+## Migration from v2.0.x
+
+If upgrading from the mcp-remote based version:
+
+1. Run: `extension-manager reinstall linear-mcp`
+2. The new version uses native HTTP transport (no npm packages needed)
+3. Complete OAuth flow in Claude Code
+
+## Migration from v1.x (API Key)
 
 If upgrading from the API-key based version:
 
@@ -166,8 +184,8 @@ If upgrading from the API-key based version:
 
 - [Linear MCP Documentation](https://linear.app/docs/mcp)
 - [Linear Changelog - MCP Server](https://linear.app/changelog/2025-05-01-mcp)
-- [Remote MCP in Claude Code](https://claude.com/blog/claude-code-remote-mcp)
 - [Claude Code MCP Docs](https://code.claude.com/docs/en/mcp)
+- [Remote MCP in Claude Code](https://claude.com/blog/claude-code-remote-mcp)
 - [MCP Protocol](https://modelcontextprotocol.io/)
 
 ## Related Extensions
