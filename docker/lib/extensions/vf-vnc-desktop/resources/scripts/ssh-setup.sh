@@ -73,7 +73,7 @@ cmd_status() {
         echo "To enable SSH credentials:"
         echo "  1. Ensure docker-compose.unified.yml has the volume mount:"
         echo "     - \${HOME}/.ssh:/home/devuser/.ssh:ro"
-        echo "  2. Restart container: docker-compose -f docker-compose.unified.yml restart"
+        echo "  2. Restart container: docker compose -f docker-compose.unified.yml restart"
     fi
 }
 

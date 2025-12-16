@@ -73,14 +73,84 @@ pnpm build:latest  # Build as sindri:latest
 ./cli/sindri k8s destroy --force        # Destroy local cluster
 
 # Project Management
-./cli/new-project <name> [template]     # Create new project from template
-./cli/clone-project <url> [path]        # Clone and setup project
+## new-project - Create new project from template
+./cli/new-project <project_name> [options]
+
+Options:
+  --type <type>              Specify project type explicitly (node, python, go, rust, etc.)
+  --list-types               Show all available project types with descriptions
+  --interactive              Force interactive type selection even if type detected
+  --git-name <name>          Git user name for this project (overrides global config)
+  --git-email <email>        Git user email for this project (overrides global config)
+
+Examples:
+  ./cli/new-project my-rails-app               # Auto-detects Rails from name
+  ./cli/new-project api-server                 # Prompts for API type
+  ./cli/new-project my-app --type python
+  ./cli/new-project my-app --type spring --git-name "John Doe"
+
+## clone-project - Clone or fork repository
+./cli/clone-project <repository-url> [options]
+
+Clones to $WORKSPACE/projects/<name> and applies Claude AI enhancements.
+
+Options:
+  --fork              Fork repo before cloning (requires gh CLI)
+  --branch <name>     Checkout specific branch after clone
+  --depth <n>         Shallow clone with n commits (faster for large repos)
+  --git-name <name>   Configure Git user name for this project
+  --git-email <email> Configure Git user email for this project
+  --feature <name>    Create and checkout feature branch after clone
+  --no-deps           Skip dependency installation (faster, manual install later)
+  --no-enhance        Skip all enhancements (just clone/fork)
+
+Examples:
+  ./cli/clone-project https://github.com/user/my-app
+  ./cli/clone-project https://github.com/original/project --fork
+  ./cli/clone-project https://github.com/original/project --fork --feature add-new-feature
+  ./cli/clone-project https://github.com/company/large-app --depth 1  # Shallow clone
 
 # Secrets Management
 ./cli/sindri secrets list               # List configured secrets
 ./cli/sindri secrets validate           # Validate secrets configuration
 ./cli/sindri secrets test-vault         # Test vault connectivity
 ./cli/sindri secrets encode-file        # Encode file as secret
+
+## Secrets Configuration in sindri.yaml
+
+Secrets can be injected into deployments via environment variables, file mounts, or HashiCorp Vault:
+
+```yaml
+secrets:
+  # Environment variable from local env, .env file, or file content
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+    fromFile: ~/.secrets/anthropic.key  # Optional: read from file
+
+  # File mount (e.g., SSH keys, certificates)
+  - name: SSH_PRIVATE_KEY
+    source: file
+    path: ~/.ssh/id_ed25519
+    mountPath: /home/developer/.ssh/id_ed25519
+    permissions: "0600"
+
+  # HashiCorp Vault integration
+  - name: DATABASE_PASSWORD
+    source: vault
+    vaultPath: secret/data/myapp
+    vaultKey: db_password
+    vaultMount: secret  # Default
+    required: true
+```
+
+**Secret Sources:**
+
+- `env` - Environment variable (falls back to .env files or `fromFile` if specified)
+- `file` - Mount file into container at specified path with optional permissions
+- `vault` - Fetch from HashiCorp Vault using vaultPath/vaultKey
+
+**Resolution Priority for `source: env`:** shell environment → .env.local → .env → fromFile
 
 # Extension Management
 ./cli/extension-manager list                 # List all extensions
@@ -130,7 +200,7 @@ sindri/
 │   │   ├── sshd_config            # SSH daemon configuration (port 2222)
 │   │   └── developer-sudoers      # Sudoers configuration for developer user
 │   ├── lib/                       # Immutable system files (baked into image)
-│   │   ├── extensions/            # 74 YAML extension definitions
+│   │   ├── extensions/            # 70+ YAML extension definitions
 │   │   ├── schemas/               # JSON schemas for validation
 │   │   │   ├── extension.schema.json
 │   │   │   ├── manifest.schema.json
@@ -379,7 +449,10 @@ metadata:
   name: myext
   version: 1.0.0
   description: Brief description
-  category: base|language|dev-tools|infrastructure|ai|utilities|desktop|monitoring
+  category: base|language|dev-tools|infrastructure|ai|utilities|desktop|monitoring|agile|database|mobile
+  author: Author Name           # Optional
+  homepage: https://example.com # Optional
+  license: MIT                  # Optional (e.g., MIT, Apache-2.0, GPL-3.0)
   dependencies: [] # List of extension names
 
 requirements:
@@ -387,7 +460,7 @@ requirements:
   diskSpace: 100 # MB required
 
 install:
-  method: mise|script|apt
+  method: mise|script|apt|npm|binary|hybrid
   mise:
     configFile: mise.toml # For tool installation via mise (see below)
   script:
@@ -402,34 +475,62 @@ install:
 # "npm:claude-flow" = "alpha" # npm package with version tag
 
 configure:
+  templates:  # Template file deployments
+    - source: config/example.conf
+      destination: ~/.config/myapp/example.conf
+      mode: overwrite|append|merge|skip-if-exists  # Default: overwrite
   environment:
     - key: VAR_NAME
       value: value
-      scope: bashrc|profile
+      scope: bashrc|profile|session  # Default: bashrc
 
 validate:
   commands:
     - name: mycmd
       expectedPattern: "v\\d+\\.\\d+\\.\\d+" # Optional regex
+  mise:                      # Optional: mise-specific validation
+    tools: [tool1, tool2]    # Validate specific mise tools are installed
+    minToolCount: 2          # Minimum number of mise tools required
 
 upgrade:
-  strategy: reinstall|in-place # How to handle version upgrades
+  strategy: automatic|manual|none|reinstall|in-place  # Default: automatic
+  mise:
+    upgradeAll: true  # Upgrade all mise-managed tools
+    tools: [tool1, tool2]  # Or specific tools only
+  apt:
+    packages: [pkg1, pkg2]  # APT packages to upgrade
+    updateFirst: true  # Run apt update first (default: true)
   script:
-    path: upgrade.sh # Optional upgrade script
+    path: upgrade.sh
+    timeout: 600  # Seconds, default: 600
 
 remove:
+  confirmation: true  # Prompt before removal (default: true)
   mise:
     removeConfig: true
-    tools: [tool1]
+    tools: [tool1, tool2]
+  apt:
+    packages: [pkg1, pkg2]
+    purge: false  # Use apt purge instead of remove
+  paths:  # Directories/files to delete
+    - ~/.config/myapp
+    - ~/bin/myapp
   script:
     path: uninstall.sh
+    timeout: 120  # Seconds, default: 120
 
 bom:
-  components: # Bill of Materials - auto-generated, do not edit manually
+  tools: # Bill of Materials - auto-generated, do not edit manually
     - name: tool-name
       version: "1.0.0"
       type: runtime|library|tool
       source: mise|apt|script
+      license: MIT                              # Optional: Software license (e.g., MIT, Apache-2.0)
+      homepage: https://example.com             # Optional: Project homepage URL
+      downloadUrl: https://example.com/dl       # Optional: Download location
+      checksum: sha256:abc123...                # Optional: Package checksum for verification
+      purl: pkg:npm/example@1.0.0               # Optional: Package URL (PURL) identifier
+      cpe: cpe:2.3:a:vendor:product:1.0.0       # Optional: Common Platform Enumeration
 ```
 
 ### Extension Profiles
@@ -454,14 +555,66 @@ profiles:
   - Local: `./cli/extension-manager validate-all` or `pnpm test:extensions`
   - CI: Integrated into `test-provider.yml` - Three test levels (quick, extension, profile) run via unified `sindri-test.sh` script
 
+### Test Suites
+
+Sindri provides three test suite levels for deployed instances:
+
+#### smoke (Quick Health Checks)
+
+Basic connectivity and health verification (~30 seconds):
+
+```bash
+./cli/sindri test --suite smoke
+```
+
+**Tests:**
+- Container/VM is running
+- SSH connectivity works
+- Basic commands execute (whoami, cat)
+- OS info readable
+
+**When to use:** After deployment, before committing to instance
+
+#### integration (Extension Validation)
+
+Full extension validation and integration tests (~5-10 minutes):
+
+```bash
+./cli/sindri test --suite integration
+```
+
+**Tests:**
+- Deploys if not running
+- Runs `extension-manager validate-all`
+- Verifies all installed extensions
+- Checks tool availability and versions
+
+**When to use:** Before production, after configuration changes
+
+#### full (Complete Test Suite)
+
+Runs all test suites sequentially (~10-15 minutes):
+
+```bash
+./cli/sindri test --suite full
+```
+
+**Includes:**
+- Smoke tests
+- Integration tests
+- Profile lifecycle tests
+
+**When to use:** CI/CD pipelines, major version changes
+
 ### GitHub Actions
 
-9 workflows in `.github/workflows/`:
+10 workflows in `.github/workflows/`:
 
 - `ci.yml` - Main CI orchestrator with unified provider testing
 - `validate-yaml.yml` - Comprehensive YAML validation with schema checks
 - `test-provider.yml` - Simplified provider testing (runs sindri-test.sh inside container)
-- `test-sindri-config.yml` - User configuration testing
+- `test-profiles.yml` - Profile testing workflow
+- `test-extensions.yml` - Extension testing workflow
 - `deploy-sindri.yml` - Reusable deployment workflow
 - `teardown-sindri.yml` - Reusable teardown workflow
 - `manual-deploy.yml` - Manual deployment trigger

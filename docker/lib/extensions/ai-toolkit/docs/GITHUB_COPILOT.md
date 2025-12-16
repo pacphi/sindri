@@ -67,7 +67,7 @@ gh copilot suggest "git command to undo last commit"
 
 ```bash
 # Explain complex command
-gh copilot explain "docker-compose up -d"
+gh copilot explain "docker compose up -d"
 gh copilot explain "kubectl get pods -A"
 gh copilot explain "awk '{print $1}' file.txt"
 

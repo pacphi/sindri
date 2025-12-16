@@ -61,8 +61,10 @@ deployment:
 
 - `fly` - Deploy to Fly.io
 - `kubernetes` - Deploy to Kubernetes cluster
-- `docker-compose` - Deploy locally with Docker Compose
+- `docker-compose` - Deploy locally with Docker Compose (alias: `docker`)
 - `devpod` - Deploy as DevContainer via DevPod
+
+**Note:** `docker` is an alias for `docker-compose` and can be used interchangeably.
 
 ### Extensions Configuration
 
@@ -205,6 +207,7 @@ providers:
 ```yaml
 providers:
   kubernetes:
+    context: string # Optional: Kubeconfig context name (defaults to current context)
     namespace: string # K8s namespace (default: default)
     storageClass: string # Storage class name (default: standard)
     ingress:
@@ -213,17 +216,22 @@ providers:
       annotations: object # Ingress annotations
 ```
 
+**context**: Specifies which kubeconfig context to use for DevPod Kubernetes deployments. If not specified, uses the current context from `~/.kube/config`.
+
 #### DevPod Provider
 
 ```yaml
 providers:
   devpod:
-    provider: string # Cloud provider (aws, gcp, azure, digitalocean, kubernetes)
+    type: string # Backend type (docker, aws, gcp, azure, digitalocean, kubernetes, ssh)
+    buildRepository: string # Optional: Container registry URL for cloud/K8s providers (e.g., ghcr.io/myorg/sindri)
     machine:
       type: string # Instance type (provider-specific)
       diskSize: integer # Disk size in GB
     region: string # Cloud region
 ```
+
+**buildRepository**: Required for cloud and Kubernetes providers. Specifies the container registry where the built image will be pushed for deployment. Not needed for local Docker deployments.
 
 ---
 
@@ -344,13 +352,12 @@ Schema for the extension registry in `docker/lib/registry.yaml`.
 ### Registry Structure
 
 ```yaml
-registry:
-  extensions:
-    extension-name:
-      path: string # Path to extension directory
-      category: string # Extension category
-      enabled: boolean # Whether extension is available
-      experimental: boolean # Whether extension is experimental
+extensions:
+  extension-name:
+    category: string # Extension category (base, language, dev-tools, infrastructure, ai, utilities, desktop, monitoring, agile, database, mobile)
+    description: string # Brief description of extension
+    protected: boolean # Optional, default: false - prevents removal
+    dependencies: [extension1, extension2] # Optional - required extensions
 ```
 
 ---

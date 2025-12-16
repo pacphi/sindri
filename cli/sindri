@@ -84,9 +84,12 @@ OPTIONS:
     -h, --help                   Show this help
     -V, --version                Show version information
     -c, --config <file>          Use specific config file (default: sindri.yaml)
-    -p, --provider <name>        Deployment provider (docker, fly, devpod)
-    -r, --rebuild                Force rebuild of Docker image
     -v, --verbose                Verbose output
+
+DEPLOY/DESTROY OPTIONS:
+    -p, --provider <name>        Override provider from config (docker, fly, devpod)
+    -r, --rebuild                Force rebuild of Docker image (deploy only)
+    -f, --force                  Skip confirmation prompt (destroy only)
 
 EXAMPLES:
     sindri config init

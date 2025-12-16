@@ -1,0 +1,252 @@
+---
+name: Check Links
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/check-links.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC to catch dead external links
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check-internal-links:
+    name: Check Internal Markdown Links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check internal links
+        run: |
+          echo "Checking internal markdown links..."
+
+          # Find all markdown files
+          mapfile -t md_files < <(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*")
+
+          echo "Found ${#md_files[@]} markdown files"
+
+          errors=0
+
+          for file in "${md_files[@]}"; do
+            echo "Checking: $file"
+
+            # Extract markdown links [text](path)
+            while IFS= read -r line; do
+              # Extract link path from [text](path) format
+              link=$(echo "$line" | grep -oP '\[.*?\]\(\K[^)]+(?=\))' || true)
+
+              if [[ -n "$link" ]]; then
+                # Skip external URLs
+                if [[ "$link" =~ ^https?:// || "$link" =~ ^mailto: ]]; then
+                  continue
+                fi
+
+                # Skip anchors-only links
+                if [[ "$link" =~ ^# ]]; then
+                  continue
+                fi
+
+                # Remove anchor from link
+                link_path="${link%%#*}"
+
+                # Skip empty paths
+                if [[ -z "$link_path" ]]; then
+                  continue
+                fi
+
+                # Resolve relative path
+                dir=$(dirname "$file")
+                if [[ "$link_path" =~ ^/ ]]; then
+                  # Absolute path from repo root
+                  target=".$link_path"
+                else
+                  # Relative path
+                  target="$dir/$link_path"
+                fi
+
+                # Normalize path
+                target=$(realpath -m "$target" 2>/dev/null || echo "$target")
+
+                # Check if file exists
+                if [[ ! -e "$target" ]]; then
+                  echo "❌ BROKEN: $file -> $link"
+                  ((errors++))
+                fi
+              fi
+            done < <(grep -o '\[.*\](.*\.md[^)]*)' "$file" 2>/dev/null || true)
+          done
+
+          if [[ $errors -gt 0 ]]; then
+            echo ""
+            echo "❌ Found $errors broken internal links"
+            exit 1
+          else
+            echo ""
+            echo "✅ All internal links are valid"
+          fi
+
+  check-external-links:
+    name: Check External URLs
+    runs-on: ubuntu-latest
+    # Only run on schedule or manual trigger to avoid rate limits
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check
+
+      - name: Create config
+        run: |
+          cat > .markdown-link-check.json << 'EOF'
+          {
+            "ignorePatterns": [
+              {
+                "pattern": "^http://localhost"
+              },
+              {
+                "pattern": "^https://localhost"
+              }
+            ],
+            "timeout": "10s",
+            "retryOn429": true,
+            "retryCount": 3,
+            "fallbackRetryDelay": "30s",
+            "aliveStatusCodes": [200, 206, 301, 302, 307, 308, 999]
+          }
+          EOF
+
+      - name: Check external links in documentation
+        run: |
+          echo "Checking external URLs in markdown files..."
+
+          # Check main docs
+          find docs -name "*.md" -print0 | xargs -0 -n1 markdown-link-check -c .markdown-link-check.json -q
+
+          # Check root markdown files
+          for file in *.md; do
+            if [[ -f "$file" ]]; then
+              markdown-link-check -c .markdown-link-check.json -q "$file"
+            fi
+          done
+
+  check-anchors:
+    name: Check Anchor Links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check anchor links
+        run: |
+          echo "Checking anchor links..."
+
+          errors=0
+
+          # Find all markdown files
+          mapfile -t md_files < <(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*")
+
+          for file in "${md_files[@]}"; do
+            # Extract links with anchors: [text](file.md#anchor)
+            while IFS= read -r line; do
+              # Extract full link
+              link=$(echo "$line" | grep -oP '\[.*?\]\(\K[^)]+(?=\))' || true)
+
+              if [[ "$link" =~ ^([^#]+)#(.+)$ ]]; then
+                link_file="${BASH_REMATCH[1]}"
+                anchor="${BASH_REMATCH[2]}"
+
+                # Skip external URLs
+                if [[ "$link_file" =~ ^https?:// ]]; then
+                  continue
+                fi
+
+                # If no file specified, check in current file
+                if [[ -z "$link_file" ]]; then
+                  target_file="$file"
+                else
+                  # Resolve relative path
+                  dir=$(dirname "$file")
+                  if [[ "$link_file" =~ ^/ ]]; then
+                    target_file=".$link_file"
+                  else
+                    target_file="$dir/$link_file"
+                  fi
+                  target_file=$(realpath -m "$target_file" 2>/dev/null || echo "$target_file")
+                fi
+
+                # Check if target file exists
+                if [[ ! -f "$target_file" ]]; then
+                  echo "❌ BROKEN: $file -> $link (file not found)"
+                  ((errors++))
+                  continue
+                fi
+
+                # Check if anchor exists in target file
+                # Convert anchor to header format (lowercase, spaces to hyphens)
+                header_anchor=$(echo "$anchor" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g')
+
+                # Search for matching heading
+                if ! grep -qiE "^#{1,6} .*${header_anchor}" "$target_file"; then
+                  echo "⚠️  WARNING: $file -> $link (anchor may not exist)"
+                  # Don't fail on anchor warnings, just warn
+                fi
+              fi
+            done < <(grep -o '\[.*\](.*#[^)]*)' "$file" 2>/dev/null || true)
+          done
+
+          if [[ $errors -gt 0 ]]; then
+            echo ""
+            echo "❌ Found $errors broken anchor links"
+            exit 1
+          else
+            echo ""
+            echo "✅ All anchor links appear valid"
+          fi
+
+  link-check-summary:
+    name: Link Check Summary
+    runs-on: ubuntu-latest
+    needs: [check-internal-links, check-anchors]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## Link Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.check-internal-links.result }}" == "success" ]]; then
+            echo "✅ Internal links: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Internal links: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.check-anchors.result }}" == "success" ]]; then
+            echo "✅ Anchor links: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Anchor links: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.check-external-links.result }}" == "success" ]]; then
+            echo "✅ External URLs: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.check-external-links.result }}" == "skipped" ]]; then
+            echo "⏭️  External URLs: SKIPPED (only runs on schedule)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ External URLs: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -33,12 +33,12 @@ extension-manager status nodejs
 
 Pre-configured bundles for common workflows. Profiles make it easy to set up complete development environments.
 
-| Profile                       | Extensions                                                                                                                                                   | Use Case                     |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
-| **minimal**                   | nodejs, python                                                                                                                                               | Lightweight scripting        |
-| **fullstack**                 | nodejs, python, docker, nodejs-devtools                                                                                                                      | Web development              |
-| **ai-dev**                    | nodejs, python, ollama, ai-toolkit, openskills, monitoring                                                                                                   | AI/ML development            |
-| **anthropic-dev**             | agent-manager, ollama, ai-toolkit, claude-code-mux, claudeup, claude-marketplace, cloud-tools, openskills, nodejs-devtools, playwright, rust, tmux-workspace | Anthropic/Claude development |
+| Profile                       | Extensions                                                                                                                                                                                                                                                           | Use Case                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **minimal**                   | nodejs, python                                                                                                                                                                                                                                                       | Lightweight scripting        |
+| **fullstack**                 | nodejs, python, docker, nodejs-devtools                                                                                                                                                                                                                              | Web development              |
+| **ai-dev**                    | nodejs, python, golang, ollama, ai-toolkit, mdflow, openskills, supabase-cli, linear-mcp, monitoring                                                                                                                                                                 | AI/ML development            |
+| **anthropic-dev**             | agent-manager, claude-flow, agentic-flow, agentic-qe, golang, ollama, ai-toolkit, claudish, claude-marketplace, infra-tools, jvm, mdflow, openskills, nodejs-devtools, playwright, rust, ruvnet-research, linear-mcp, supabase-cli, tmux-workspace, cloud-tools | Anthropic/Claude development |
 | **systems**                   | rust, golang, docker, infra-tools                                                                                                                            | Systems programming          |
 | **enterprise**                | All languages + infrastructure                                                                                                                               | Complete environment         |
 | **devops**                    | docker, infra-tools, cloud-tools, monitoring                                                                                                                 | Infrastructure               |
@@ -46,7 +46,7 @@ Pre-configured bundles for common workflows. Profiles make it easy to set up com
 | **visionflow-core**           | Document processing & automation (9 extensions)                                                                                                              | Document workflows           |
 | **visionflow-data-scientist** | AI research & ML tools (7 extensions)                                                                                                                        | Data science & research      |
 | **visionflow-creative**       | 3D modeling & creative tools (5 extensions)                                                                                                                  | Creative development         |
-| **visionflow-full**           | All VisionFlow extensions (34 total)                                                                                                                         | Complete VisionFlow suite    |
+| **visionflow-full**           | All VisionFlow extensions (33 total)                                                                                                                         | Complete VisionFlow suite    |
 
 ### Using Profiles
 
@@ -171,7 +171,6 @@ See [VisionFlow README](extensions/vision-flow/README.md) for implementation det
 | vf-kicad             | KiCad PCB design MCP               | [VF-KICAD.md](extensions/vision-flow/VF-KICAD.md)                         |
 | vf-ngspice           | NGSpice circuit simulation MCP     | [VF-NGSPICE.md](extensions/vision-flow/VF-NGSPICE.md)                     |
 | vf-mcp-builder       | MCP server scaffolding tool        | [VF-MCP-BUILDER.md](extensions/vision-flow/VF-MCP-BUILDER.md)             |
-| vf-skill-creator     | Claude Code skill scaffolding tool | [VF-SKILL-CREATOR.md](extensions/vision-flow/VF-SKILL-CREATOR.md)         |
 
 ### VisionFlow Desktop & Creative
 

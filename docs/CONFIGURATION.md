@@ -120,6 +120,39 @@ deployment:
     cpus: 2
 ```
 
+#### deployment.resources.gpu
+
+**Type:** object
+**Default:** `{ enabled: false }`
+
+GPU configuration for compute workloads requiring GPU acceleration (AI/ML, 3D rendering, etc.).
+
+```yaml
+deployment:
+  resources:
+    gpu:
+      enabled: true
+      type: nvidia       # nvidia | amd
+      count: 1           # Number of GPUs (1-8)
+      tier: gpu-medium   # gpu-small | gpu-medium | gpu-large | gpu-xlarge
+      memory: 16GB       # Minimum GPU memory (e.g., 16GB, 24GB)
+```
+
+**Quick Reference:**
+
+- `enabled` - Enable GPU support (default: `false`)
+- `type` - GPU vendor: `nvidia` or `amd`
+- `count` - Number of GPUs: 1-8
+- `tier` - GPU tier: `gpu-small` | `gpu-medium` | `gpu-large` | `gpu-xlarge`
+- `memory` - Minimum GPU memory required
+
+**See [GPU Configuration Guide](GPU.md)** for comprehensive documentation including:
+- Provider-specific GPU configuration (Fly.io, AWS, GCP, Azure, Docker, Kubernetes)
+- GPU tier mappings and pricing
+- Use case examples (inference, training, rendering)
+- Cost optimization strategies
+- Troubleshooting guide
+
 ### deployment.volumes
 
 Persistent volume configuration.
@@ -307,6 +340,148 @@ providers:
 | `digitalocean` | DigitalOcean Droplets  | `examples/devpod/digitalocean/` |
 | `kubernetes`   | Kubernetes pods        | `examples/devpod/kubernetes/`   |
 | `ssh`          | Any SSH host           | N/A                             |
+
+### Cloud Provider Regions
+
+#### AWS Regions
+
+**Recommended Regions:**
+
+| Region       | Location          | GPU Availability | Notes                  |
+| ------------ | ----------------- | ---------------- | ---------------------- |
+| us-east-1    | N. Virginia       | Excellent        | Largest, most services |
+| us-east-2    | Ohio              | Good             | Lower latency to Midwest |
+| us-west-2    | Oregon            | Excellent        | Best GPU availability  |
+| eu-west-1    | Ireland           | Good             | EU primary             |
+| eu-central-1 | Frankfurt         | Good             | EU central             |
+| ap-southeast-1 | Singapore       | Fair             | Asia Pacific           |
+| ap-northeast-1 | Tokyo           | Good             | Japan                  |
+
+**Configuration:**
+
+```yaml
+providers:
+  devpod:
+    type: aws
+    aws:
+      region: us-west-2  # Choose based on proximity and GPU needs
+      instanceType: t3.medium
+```
+
+**Full list:** https://aws.amazon.com/about-aws/global-infrastructure/regions_az/
+
+#### GCP Zones
+
+**Recommended Zones:**
+
+| Zone               | Location          | GPU Availability | Notes                       |
+| ------------------ | ----------------- | ---------------- | --------------------------- |
+| us-central1-a      | Iowa              | Excellent        | Best GPU availability       |
+| us-central1-b      | Iowa              | Excellent        | High availability           |
+| us-west1-b         | Oregon            | Good             | West Coast                  |
+| us-east1-c         | South Carolina    | Good             | East Coast                  |
+| europe-west4-a     | Netherlands       | Good             | EU primary                  |
+| asia-southeast1-c  | Singapore         | Fair             | Asia Pacific                |
+
+**Configuration:**
+
+```yaml
+providers:
+  devpod:
+    type: gcp
+    gcp:
+      zone: us-central1-a  # Best for GPU workloads
+      machineType: e2-medium
+```
+
+**Note:** GCP uses zones (region + availability zone). GPU availability varies significantly by zone.
+
+**Full list:** https://cloud.google.com/compute/docs/regions-zones
+
+#### Azure Regions
+
+**Recommended Regions:**
+
+| Region         | Location        | GPU Availability | Notes                   |
+| -------------- | --------------- | ---------------- | ----------------------- |
+| eastus         | Virginia        | Excellent        | Largest Azure region    |
+| eastus2        | Virginia        | Good             | Backup to eastus        |
+| westus2        | Washington      | Good             | West Coast              |
+| southcentralus | Texas           | Good             | Central US              |
+| westeurope     | Netherlands     | Good             | EU primary              |
+| northeurope    | Ireland         | Good             | EU backup               |
+| southeastasia  | Singapore       | Fair             | Asia Pacific            |
+| japaneast      | Tokyo           | Fair             | Japan                   |
+
+**Configuration:**
+
+```yaml
+providers:
+  devpod:
+    type: azure
+    azure:
+      location: eastus  # Choose based on proximity and services
+      vmSize: Standard_B2s
+```
+
+**Full list:** https://azure.microsoft.com/en-us/explore/global-infrastructure/geographies/
+
+#### DigitalOcean Regions
+
+**Available Regions:**
+
+| Region | Location        | Notes                |
+| ------ | --------------- | -------------------- |
+| nyc1   | New York 1      | US East (older)      |
+| nyc3   | New York 3      | US East (newer)      |
+| sfo3   | San Francisco   | US West              |
+| tor1   | Toronto         | Canada               |
+| lon1   | London          | Europe               |
+| fra1   | Frankfurt       | Europe               |
+| ams3   | Amsterdam       | Europe               |
+| sgp1   | Singapore       | Asia Pacific         |
+| blr1   | Bangalore       | India                |
+
+**Configuration:**
+
+```yaml
+providers:
+  devpod:
+    type: digitalocean
+    digitalocean:
+      region: nyc3  # Recommended for US East
+      size: s-2vcpu-4gb
+```
+
+**Note:** DigitalOcean does not offer GPU instances.
+
+**Full list:** https://docs.digitalocean.com/products/platform/availability-matrix/
+
+### Region Selection Guidelines
+
+**Latency Optimization:**
+- Choose region closest to your team's location
+- Use ping tests to verify latency
+- Consider data sovereignty requirements (GDPR, etc.)
+
+**Cost Optimization:**
+- Regions may have different pricing
+- GPU availability affects cost (scarcity = higher prices)
+- Consider data transfer costs between regions
+
+**Feature Availability:**
+- Not all VM types available in all regions
+- GPU types vary by region (see [GPU.md](GPU.md))
+- Some services/features are region-specific
+
+**Testing Latency:**
+
+```bash
+# Test ping to various regions
+ping -c 3 compute.us-west-2.amazonaws.com
+ping -c 3 us-central1.gce.cloud.google.com
+ping -c 3 eastus.management.azure.com
+```
 
 ## Kubernetes Deployment
 

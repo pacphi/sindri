@@ -158,13 +158,6 @@ Complete inventory of all capabilities extracted from VisionFlow multi-agent-doc
 - **Description**: Generate new MCP servers from templates.
 - **Dependencies**: nodejs
 
-### vf-skill-creator
-
-- **Type**: Tool
-- **Complexity**: Easy
-- **Source**: `/skills/skill-creator/`
-- **Description**: Scaffold new Claude Code skills with init, package, and validate commands.
-
 ---
 
 ## Category: Desktop (5 extensions)
@@ -352,7 +345,6 @@ Complete inventory of all capabilities extracted from VisionFlow multi-agent-doc
 | vf-kicad              |        |        | X           |        |     |
 | vf-ngspice            |        |        |             |        |     |
 | vf-mcp-builder        | X      |        |             |        |     |
-| vf-skill-creator      |        |        |             |        |     |
 | vf-blender            |        |        | X           |        | rec |
 | vf-qgis               |        |        | X           |        |     |
 | vf-pbr-rendering      |        |        | X           |        | X   |

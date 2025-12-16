@@ -53,9 +53,8 @@ Need API keys, external servers, or complex dependencies.
 | 5   | vf-chrome-devtools    | script (nodejs)       | 45 min    |
 | 6   | vf-jupyter-notebooks  | script (python)       | 45 min    |
 | 7   | vf-kicad              | hybrid (apt + script) | 60 min    |
-| 8   | vf-skill-creator      | script                | 30 min    |
-| 9   | vf-webapp-testing     | script (nodejs)       | 45 min    |
-| 10  | vf-docker-manager     | script                | 45 min    |
+| 8   | vf-webapp-testing     | script (nodejs)       | 45 min    |
+| 9   | vf-docker-manager     | script                | 45 min    |
 
 ### Tier 3: Desktop/GPU (7 extensions)
 
@@ -533,11 +532,6 @@ extensions:
     description: MCP server scaffolding tool
     dependencies: [nodejs]
 
-  vf-skill-creator:
-    category: dev-tools
-    description: Claude Code skill scaffolding tool
-    dependencies: []
-
   # VisionFlow Desktop Extensions
   vf-blender:
     category: desktop
@@ -689,7 +683,6 @@ profiles:
       - vf-kicad
       - vf-ngspice
       - vf-mcp-builder
-      - vf-skill-creator
       - vf-blender
       - vf-qgis
       - vf-pbr-rendering

@@ -65,10 +65,6 @@ Removes:
 
 - `~/extensions/vf-mcp-builder`
 
-## Related Extensions
-
-- [vf-skill-creator](VF-SKILL-CREATOR.md) - Skill scaffolding
-
 ## Additional Notes
 
 - Templates available in extension directory

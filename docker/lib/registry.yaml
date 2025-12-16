@@ -186,9 +186,9 @@ extensions:
 
   # Monitoring
   monitoring:
-  
+
     category: monitoring
-    description: htop, ctop, glances
+    description: Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli)
     dependencies: []
 
   # Desktop
@@ -293,11 +293,6 @@ extensions:
     category: dev-tools
     description: MCP server scaffolding tool
     dependencies: [nodejs]
-
-  vf-skill-creator:
-    category: dev-tools
-    description: Claude Code skill scaffolding tool
-    dependencies: []
 
   # VisionFlow Desktop Extensions
   vf-blender:
