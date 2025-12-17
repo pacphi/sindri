@@ -297,11 +297,24 @@ install_via_apt() {
     repos_count=$(load_yaml "$ext_yaml" '.install.apt.repositories | length' 2>/dev/null || echo "0")
 
     if [[ "$repos_count" != "null" ]] && [[ "$repos_count" -gt 0 ]]; then
+        # H-5 Security Fix: Sanitize extension name to prevent path traversal
+        local safe_ext_name
+        safe_ext_name=$(basename "$ext_name")
+
+        # Validate no directory traversal characters
+        if [[ "$ext_name" =~ / ]] || [[ "$ext_name" =~ \.\. ]]; then
+            print_error "Invalid extension name contains path separators: $ext_name"
+            return 1
+        fi
+
         for i in $(seq 0 $((repos_count - 1))); do
-            local gpg_key sources keyring_file
+            local gpg_key sources keyring_file sources_file
             gpg_key=$(load_yaml "$ext_yaml" ".install.apt.repositories[$i].gpgKey")
             sources=$(load_yaml "$ext_yaml" ".install.apt.repositories[$i].sources")
-            keyring_file="/etc/apt/keyrings/${ext_name}.gpg"
+
+            # Use sanitized name in file paths
+            keyring_file="/etc/apt/keyrings/${safe_ext_name}.gpg"
+            sources_file="/etc/apt/sources.list.d/${safe_ext_name}.list"
 
             if [[ -n "$gpg_key" ]] && [[ "$gpg_key" != "null" ]]; then
                 # Use modern GPG keyring method instead of deprecated apt-key
@@ -328,7 +341,7 @@ install_via_apt() {
                         sources="${sources/deb /deb [signed-by=$keyring_file] }"
                     fi
                 fi
-                echo "$sources" | $sudo_cmd tee "/etc/apt/sources.list.d/${ext_name}.list" > /dev/null
+                echo "$sources" | $sudo_cmd tee "$sources_file" > /dev/null
             fi
         done
     fi
@@ -369,7 +382,7 @@ install_via_binary() {
 
     # Download each binary
     for i in $(seq 0 $((downloads_count - 1))); do
-        local name url destination extract
+        local name url destination extract temp_file
         name=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].name")
         url=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].source.url")
         destination=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].destination" 2>/dev/null || echo "$workspace/bin")
@@ -379,15 +392,32 @@ install_via_binary() {
 
         ensure_directory "$destination"
 
-        local temp_file="/tmp/${name}.download"
-        curl -fsSL -o "$temp_file" "$url" || return 1
+        # H-6 Security Fix: Use mktemp for secure temporary file creation
+        temp_file=$(mktemp) || {
+            print_error "Failed to create temporary file"
+            return 1
+        }
+
+        # Ensure cleanup on exit
+        # shellcheck disable=SC2064
+        trap "rm -f \"$temp_file\"" EXIT ERR
+
+        if ! curl -fsSL -o "$temp_file" "$url"; then
+            rm -f "$temp_file"
+            print_error "Failed to download $name"
+            return 1
+        fi
 
         if [[ "$extract" == "true" ]]; then
             tar -xzf "$temp_file" -C "$destination"
+            rm -f "$temp_file"
         else
             mv "$temp_file" "$destination/$name"
             chmod +x "$destination/$name"
         fi
+
+        # Clear trap for this iteration
+        trap - EXIT ERR
     done
 
     return 0

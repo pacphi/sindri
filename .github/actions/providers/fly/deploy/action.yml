@@ -129,7 +129,8 @@ runs:
           echo "$SECRETS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | \
           while IFS='=' read -r key value; do
             echo "Setting secret: $key"
-            flyctl secrets set "$key=$value" -a "$APP_NAME" --stage || true
+            # Use stdin to prevent secrets exposure in process arguments (C-4 security fix)
+            echo "$key=$value" | flyctl secrets import -a "$APP_NAME" --stage || true
           done
         fi
 

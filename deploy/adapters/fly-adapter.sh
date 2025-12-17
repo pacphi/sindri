@@ -519,7 +519,8 @@ ensure_ssh_keys() {
         echo ""
         if [[ ! $REPLY =~ ^[Nn]$ ]]; then
             print_status "Configuring SSH key on Fly.io..."
-            flyctl secrets set "AUTHORIZED_KEYS=$ssh_key" -a "$app_name"
+            # Use stdin to prevent secrets exposure in process arguments (C-4 security fix)
+            echo "AUTHORIZED_KEYS=$ssh_key" | flyctl secrets import -a "$app_name"
             print_success "SSH key configured successfully"
             return 0
         fi
@@ -536,7 +537,8 @@ ensure_ssh_keys() {
             print_success "SSH key generated: $key_path"
 
             print_status "Configuring SSH key on Fly.io..."
-            flyctl secrets set "AUTHORIZED_KEYS=$ssh_key" -a "$app_name"
+            # Use stdin to prevent secrets exposure in process arguments (C-4 security fix)
+            echo "AUTHORIZED_KEYS=$ssh_key" | flyctl secrets import -a "$app_name"
             print_success "SSH key configured successfully"
 
             echo ""
