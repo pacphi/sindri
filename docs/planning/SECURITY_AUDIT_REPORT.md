@@ -5,7 +5,7 @@
 **Repository:** Sindri Cloud Development Environment System
 **Scope:** Comprehensive security assessment of cloud development environment system
 **Remediation Date:** December 16, 2025 - December 17, 2025
-**Remediation Status:** 20 of 29 findings remediated (10 Critical + 9 High + 1 Medium severity), 1 accepted risk (M-2)
+**Remediation Status:** 19 of 29 findings remediated (10 Critical + 9 High + 0 Medium severity), 2 accepted risks (M-1, M-2)
 
 ---
 
@@ -46,7 +46,6 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 | [**H-9**](#h-9-command-injection-via-provider-configuration--fixed)      | High     | Command Injection via Provider Configuration    | ✅ FIXED | Input validation for memory format                             |
 | [**H-11**](#h-11-missing-rate-limiting-on-extension-installation--fixed) | High     | Missing Rate Limiting on Extension Installation | ✅ FIXED | File-based rate limiting with `flock` (10 ops/5min)            |
 | [**H-12**](#h-12-insufficient-logging-and-audit-trail--fixed)            | High     | Insufficient Logging and Audit Trail            | ✅ FIXED | NIST SP 800-92 compliant structured logging                    |
-| [**M-1**](#m-1-weak-password-policies--fixed)                            | Medium   | Weak Password Policies                          | ✅ FIXED | Account locking with `usermod -L`                              |
 | [**M-3**](#m-3-missing-input-validation-on-file-paths--fixed)            | Medium   | Missing Input Validation on File Paths          | ✅ FIXED | Path canonicalization + boundary validation                    |
 | [**M-4**](#m-4-information-disclosure-in-error-messages--fixed)          | Medium   | Information Disclosure in Error Messages        | ✅ FIXED | Error sanitization + security logging                          |
 | [**M-5**](#m-5-insufficient-entropy-for-random-values--fixed)            | Medium   | Insufficient Entropy for Random Values          | ✅ FIXED | `/dev/urandom` instead of `$RANDOM`                            |
@@ -56,6 +55,7 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 
 | ID                                                                       | Severity | Finding                                    | Status           | Justification                                                   |
 | ------------------------------------------------------------------------ | -------- | ------------------------------------------ | ---------------- | --------------------------------------------------------------- |
+| [**M-1**](#m-1-weak-password-policies-accepted-risk)                     | Medium   | Weak Password Policies                     | ⚠️ ACCEPTED RISK | usermod -L incompatible with UsePAM SSH key auth, usermod -p '*' required |
 | [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority |
 
 ### ⏳ Outstanding Findings
@@ -1411,53 +1411,49 @@ security_log() {
 
 ## Medium Severity Findings
 
-### M-1: Weak Password Policies ✅ FIXED
+### M-1: Weak Password Policies ACCEPTED RISK
 
 **File:** `docker/scripts/entrypoint.sh`
 **Line:** 199
 
-**Status:** ✅ **REMEDIATED** (December 16, 2025)
+**Status:** ⚠️ **ACCEPTED RISK** (December 17, 2025)
 
 **Vulnerability Description:**
-Developer account password is set to wildcard (\*) instead of disabling password authentication completely:
+Developer account password is set to wildcard (\*) instead of using account locking:
 
 ```bash
 usermod -p '*' "${DEVELOPER_USER}" 2>/dev/null || true
 ```
 
-**Remediation Implemented:**
+**Remediation Attempted:**
 
-1. **Account Locking:** Replaced `usermod -p '*'` with `usermod -L` to lock password authentication
-2. **SSH Key Authentication:** Maintains SSH key-based authentication while preventing password logins
-3. **Security Best Practice:** Follows Linux security guidelines for key-only authentication
-4. **Implementation:** `docker/scripts/entrypoint.sh:195-199`
+Changed from `usermod -p '*'` to `usermod -L` to lock password authentication.
 
-**Verification:**
+**Test Results - INCOMPATIBILITY DETECTED:**
 
-```bash
-# Password authentication is locked
-passwd -S developer → developer L (locked)
-# SSH key authentication still works
-ssh -i key.pem developer@host → Connected successfully
-```
+Account locking (usermod -L) prevents SSH public key authentication when UsePAM yes is enabled in sshd_config. PAM's account validation (pam_unix.so in /etc/pam.d/common-account) blocks locked accounts even for key-based authentication.
 
-**Risk Assessment:**
+**Decision: Accept Risk and Use usermod -p '\*'**
 
-- **Impact:** Potential for password-based attacks if SSH config changes
-- **Exploitability:** Low - Requires SSH config modification
-- **Best Practice:** Use account locking instead of wildcard
+**Rationale:**
 
-**Remediation:**
+1. **Functional requirement** - SSH key authentication must work with UsePAM yes
+2. **Equivalent security** - Both usermod -L and usermod -p '\*' prevent password authentication
+3. **usermod -p '\*'** - Sets impossible password (cannot be matched) but account not locked
+4. **PAM compatibility** - Works with UsePAM yes in sshd_config for key-based auth
 
-```bash
-# Lock account instead of using wildcard
-usermod -L "${DEVELOPER_USER}" 2>/dev/null || true
-```
+**Security Justification:**
+
+- Wildcard password (\*) cannot be matched by any password input
+- PasswordAuthentication no in sshd_config prevents password attempts
+- KbdInteractiveAuthentication no prevents keyboard-interactive password prompts
+- SSH key authentication remains the only valid authentication method
 
 **References:**
 
+- [SSH and locked users - Silversmith](https://arlimus.github.io/articles/usepam/)
+- [How OpenSSH checks for locked Linux accounts](https://www.rodneybeede.com/security/how_openssh_checks_for_locked_linux_accounts.html)
 - [CWE-521: Weak Password Requirements](https://cwe.mitre.org/data/definitions/521.html)
-- [NIST SP 800-63B: Authentication and Lifecycle Management](https://pages.nist.gov/800-63-3/sp800-63b.html)
 
 ---
 
@@ -2020,17 +2016,17 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 
 - ✅ **Phase 1 Complete:** 3 of 8 Critical findings addressed (C-1, C-2, C-6)
 - ✅ **Phase 1 Complete:** 5 of 12 High severity findings addressed (H-1, H-4, H-9, H-11, H-12)
-- ✅ **Phase 2 Complete:** 4 of 9 Medium severity findings addressed (M-1, M-3, M-4, M-5)
+- ✅ **Phase 2 Complete:** 3 of 9 Medium severity findings addressed (M-3, M-4, M-5)
 - ✅ **Phase 3 Complete:** 1 additional Critical finding addressed (C-4)
 - ✅ **Phase 4 Complete:** 5 additional High severity findings addressed (H-2, H-3, H-5, H-6, H-8)
 - ✅ **Phase 5 Complete:** 1 Critical finding addressed (C-5), 1 Medium severity finding addressed (M-8), 1 accepted risk (M-2)
-- **Total:** 20 of 29 findings remediated (69% complete), 1 accepted risk
+- **Total:** 19 of 29 findings remediated (66% complete), 2 accepted risks
 
 **Severity Breakdown:**
 
 - Critical: 5 of 8 fixed (63%) - 3 remaining (C-3, C-7, C-8)
 - High: 10 of 12 fixed (83%) - 2 remaining (H-7, H-10)
-- Medium: 5 of 9 fixed (56%) - 3 remaining (M-6, M-7, M-9), 1 accepted risk (M-2)
+- Medium: 4 of 9 fixed (44%) - 3 remaining (M-6, M-7, M-9), 2 accepted risks (M-1, M-2)
 
 **Recent Accomplishments (Phase 5):**
 
