@@ -110,8 +110,11 @@ adapter_parse_base_config() {
     fi
 
     # Extension configuration
+    # Read profile WITHOUT default - we'll decide later whether to default to "minimal"
     # shellcheck disable=SC2034  # Used by sourcing scripts
-    PROFILE=$(yq '.extensions.profile // "minimal"' "$SINDRI_YAML")
+    PROFILE=$(yq '.extensions.profile' "$SINDRI_YAML")
+    # Treat "null" as empty
+    [[ "$PROFILE" == "null" ]] && PROFILE=""
 
     # Auto-install: default true for end users, false for CI testing
     # Read from config without default (returns 'null' if not set)
@@ -131,6 +134,12 @@ adapter_parse_base_config() {
     # Additional extensions (on top of profile)
     # shellcheck disable=SC2034  # Used by sourcing scripts
     ADDITIONAL_EXTENSIONS=$(yq '.extensions.additional[]? // ""' "$SINDRI_YAML" | tr '\n' ',' | sed 's/,$//')
+
+    # Only default to "minimal" if BOTH profile AND custom extensions are unspecified
+    # This allows users to specify ONLY custom extensions without getting a profile
+    if [[ -z "$PROFILE" && -z "$CUSTOM_EXTENSIONS" ]]; then
+        PROFILE="minimal"
+    fi
 
     # Resource configuration (adapters may override/transform these)
     # shellcheck disable=SC2034  # Used by sourcing scripts

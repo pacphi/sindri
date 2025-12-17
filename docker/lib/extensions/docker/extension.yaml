@@ -15,7 +15,7 @@ requirements:
   installTime: 120
 
 install:
-  method: apt
+  method: hybrid
   apt:
     repositories:
       - gpgKey: https://download.docker.com/linux/ubuntu/gpg
@@ -27,6 +27,9 @@ install:
       - docker-ce-cli
       - containerd.io
       - docker-compose-plugin
+  script:
+    path: install.sh
+    timeout: 60
 
 configure:
   environment:
@@ -41,6 +44,8 @@ validate:
 
 remove:
   confirmation: true
+  script:
+    path: remove.sh
   apt:
     packages:
       - docker-ce
