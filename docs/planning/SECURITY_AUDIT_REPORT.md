@@ -5,7 +5,7 @@
 **Repository:** Sindri Cloud Development Environment System
 **Scope:** Comprehensive security assessment of cloud development environment system
 **Remediation Date:** December 16, 2025 - December 17, 2025
-**Remediation Status:** 20 of 29 findings remediated (9 Critical + 9 High + 2 Medium severity)
+**Remediation Status:** 19 of 29 findings remediated (9 Critical + 9 High + 1 Medium severity), 1 accepted risk (M-2)
 
 ---
 
@@ -25,7 +25,7 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 **Remediation Phase 2 Completed:** December 16, 2025 (Medium severity password policies, path validation, error handling, entropy)
 **Remediation Phase 3 Completed:** December 17, 2025 (Critical severity secrets exposure in process arguments)
 **Remediation Phase 4 Completed:** December 17, 2025 (High severity secrets storage, YAML injection, path traversal, temp files, Vault tokens)
-**Remediation Phase 5 Completed:** December 17, 2025 (Medium severity file permissions, Docker security hardening)
+**Remediation Phase 5 Completed:** December 17, 2025 (Docker security hardening M-8; M-2 attempted but reverted due to functional requirements)
 
 ### ✅ Completed Remediations
 
@@ -46,13 +46,18 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 | [**H-11**](#h-11-missing-rate-limiting-on-extension-installation--fixed) | High     | Missing Rate Limiting on Extension Installation | ✅ FIXED | File-based rate limiting with `flock` (10 ops/5min)            |
 | [**H-12**](#h-12-insufficient-logging-and-audit-trail--fixed)            | High     | Insufficient Logging and Audit Trail            | ✅ FIXED | NIST SP 800-92 compliant structured logging                    |
 | [**M-1**](#m-1-weak-password-policies--fixed)                            | Medium   | Weak Password Policies                          | ✅ FIXED | Account locking with `usermod -L`                              |
-| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts--fixed)        | Medium   | Insecure File Permissions on Shell Scripts      | ✅ FIXED | Changed from 755 to 750 (owner+group only)                     |
 | [**M-3**](#m-3-missing-input-validation-on-file-paths--fixed)            | Medium   | Missing Input Validation on File Paths          | ✅ FIXED | Path canonicalization + boundary validation                    |
 | [**M-4**](#m-4-information-disclosure-in-error-messages--fixed)          | Medium   | Information Disclosure in Error Messages        | ✅ FIXED | Error sanitization + security logging                          |
 | [**M-5**](#m-5-insufficient-entropy-for-random-values--fixed)            | Medium   | Insufficient Entropy for Random Values          | ✅ FIXED | `/dev/urandom` instead of `$RANDOM`                            |
 | [**M-8**](#m-8-lack-of-security-headers-in-docker-configuration--fixed)  | Medium   | Lack of Security Headers in Docker Config       | ✅ FIXED | 5 capabilities + no-new-privileges + tmpfs security            |
 
-### ⏳ Outstanding Findings (Phase 5 Targets)
+### ⚠️ Accepted Risks
+
+| ID                                                              | Severity | Finding                                    | Status           | Justification                                                   |
+| --------------------------------------------------------------- | -------- | ------------------------------------------ | ---------------- | --------------------------------------------------------------- |
+| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority |
+
+### ⏳ Outstanding Findings
 
 | ID                                                        | Severity | Finding                                       | Priority   | Impact on Production         |
 | --------------------------------------------------------- | -------- | --------------------------------------------- | ---------- | ---------------------------- |
@@ -1281,49 +1286,88 @@ usermod -L "${DEVELOPER_USER}" 2>/dev/null || true
 
 ---
 
-### M-2: Insecure File Permissions on Shell Scripts ✅ FIXED
+### M-2: Insecure File Permissions on Shell Scripts ACCEPTED RISK
 
 **File:** `Dockerfile`
-**Lines:** 103-108 (fixed)
+**Lines:** 103-110
 
-**Status:** ✅ **REMEDIATED** (December 17, 2025)
+**Status:** ⚠️ **ACCEPTED RISK** (December 17, 2025)
 
 **Vulnerability Description:**
-Scripts were made executable for all users (755) instead of restricting to owner:
+Scripts are executable by all users (755) instead of restricting to owner and group:
 
 ```bash
 find /docker/scripts -type f -name "*.sh" -exec chmod 755 {} \;
 find /docker/cli -type f -exec chmod 755 {} \;
 ```
 
-**Remediation Implemented:**
+**Remediation Attempted:**
 
-Changed permissions from 755 (rwxr-xr-x) to 750 (rwxr-x---):
+Initial attempt changed permissions from 755 (rwxr-xr-x) to 750 (rwxr-x---):
 
 ```bash
-# Restrict execute permission to owner and group only
 find /docker/scripts -type f -name "*.sh" -exec chmod 750 {} \;
 find /docker/cli -type f -exec chmod 750 {} \;
 ```
 
-**Verification:**
+**Test Results - REGRESSION DETECTED:**
+
+CI/CD tests failed with permission denied errors ([GitHub Actions Run #20302566607](https://github.com/pacphi/sindri/actions/runs/20302566607)):
 
 ```bash
-# After build, scripts have owner+group execute only
-ls -la /docker/scripts/*.sh → -rwxr-x--- (750 permissions)
-ls -la /docker/cli/* → -rwxr-x--- (750 permissions)
+bash: line 1: /docker/scripts/sindri-test.sh: Permission denied
+bash: line 1: /docker/cli/extension-manager: Permission denied
 ```
+
+**Root Cause Analysis:**
+
+1. Scripts are owned by **root:root** (set during Docker build as root)
+2. Container runs as **developer user** (uid 1001, not in root group)
+3. 750 permissions (rwxr-x---) only allow owner (root) and group (root) to execute
+4. Developer user cannot execute scripts → functionality broken
+
+**Decision: Accept Risk and Use 755**
+
+**Rationale for 755 permissions:**
+
+1. **Scripts are owned by root** - Only root can modify them (write-protected)
+2. **Not world-writable** - The primary security concern is preventing unauthorized _modification_, not execution
+3. **Functional requirement** - Scripts must be executable by developer user
+4. **Defense-in-depth** - Parent directory permissions prevent unauthorized writes
+5. **Low priority finding** - Security audit classified this as LOW priority
+6. **Alternative complexity** - Using 750 would require changing group ownership and ensuring user group membership, adding operational complexity for minimal security gain
+
+**Current Implementation:**
+
+```bash
+# Scripts remain at 755 (rwxr-xr-x)
+# - Owner (root): read, write, execute
+# - Group (root): read, execute
+# - Others (developer): read, execute
+# - Still secure: only root can modify scripts
+find /docker/scripts -type f -name "*.sh" -exec chmod 755 {} \;
+find /docker/cli -type f -exec chmod 755 {} \;
+```
+
+**Security Justification:**
+
+- **CIS Benchmark**: Primary concern is preventing unauthorized modification (achieved via root ownership)
+- **Principle of Least Privilege**: Scripts execute with user's privileges, not elevated
+- **Immutable Infrastructure**: Scripts baked into image at build time, cannot be modified at runtime
+- **Risk Level**: LOW - Requires both directory write access AND ability to replace root-owned files
 
 **Risk Assessment:**
 
 - **Impact:** Unauthorized script modification if directory permissions weak
-- **Exploitability:** Low - Requires write access to parent directory
-- **Issue:** Violates principle of least privilege
+- **Exploitability:** Low - Requires write access to parent directory AND ability to replace root-owned files
+- **Actual Risk:** Very Low - Scripts are root-owned in read-only image layer
+- **Trade-off:** Functionality > Minimal security gain from 750
 
 **References:**
 
 - [CWE-732: Incorrect Permission Assignment](https://cwe.mitre.org/data/definitions/732.html)
 - [CIS Benchmark: File Permissions](https://www.cisecurity.org/benchmark/distribution_independent_linux)
+- [GitHub Actions Test Failure](https://github.com/pacphi/sindri/actions/runs/20302566607)
 
 ---
 
@@ -1787,7 +1831,7 @@ load_yaml() {
 
 **CIS Docker Benchmark:**
 
-- ✅ ~~Weak file permissions (M-2)~~ - **COMPLETED** (750 permissions)
+- ⚠️ Weak file permissions (M-2) - **ACCEPTED RISK** (755 required for functionality, root-owned scripts still secure)
 - ✅ ~~Missing security options (M-8)~~ - **COMPLETED** (5 capabilities + no-new-privileges)
 - Unrestricted sudo (C-5) - **DEFERRED**
 
@@ -1804,19 +1848,19 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 - ✅ **Phase 2 Complete:** 4 of 9 Medium severity findings addressed (M-1, M-3, M-4, M-5)
 - ✅ **Phase 3 Complete:** 1 additional Critical finding addressed (C-4)
 - ✅ **Phase 4 Complete:** 5 additional High severity findings addressed (H-2, H-3, H-5, H-6, H-8)
-- ✅ **Phase 5 Complete:** 2 additional Medium severity findings addressed (M-2, M-8)
-- **Total:** 20 of 29 findings remediated (69% complete)
+- ✅ **Phase 5 Complete:** 1 Medium severity finding addressed (M-8), 1 accepted risk (M-2)
+- **Total:** 19 of 29 findings remediated (66% complete), 1 accepted risk
 
 **Severity Breakdown:**
 
 - Critical: 4 of 8 fixed (50%) - 4 remaining (C-3, C-5, C-7, C-8)
 - High: 10 of 12 fixed (83%) - 2 remaining (H-7, H-10)
-- Medium: 6 of 9 fixed (67%) - 3 remaining (M-6, M-7, M-9)
+- Medium: 5 of 9 fixed (56%) - 3 remaining (M-6, M-7, M-9), 1 accepted risk (M-2)
 
 **Recent Accomplishments (Phase 5):**
 
-- **M-2:** Shell script permissions restricted to 750 (owner+group only)
 - **M-8:** Docker security hardening with minimal capability set (5 capabilities) based on comprehensive analysis of 74 extensions and core system operations
+- **M-2:** Attempted 750 permissions but reverted to 755 due to test failures (accepted risk with documented justification)
 
 **Remaining Critical Issues:**
 
@@ -1831,7 +1875,7 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 
 - ~~Critical fixes: 40-60 hours~~ → **10-20 hours remaining** (4 of 8 completed, C-5 deferred)
 - ~~High severity fixes: 60-80 hours~~ → **5-10 hours remaining** (10 of 12 completed)
-- ~~Medium severity fixes: 30-40 hours~~ → **10-15 hours remaining** (6 of 9 completed)
+- ~~Medium severity fixes: 30-40 hours~~ → **10-15 hours remaining** (5 of 9 completed, 1 accepted risk)
 - Testing and validation: 30-40 hours
 - **Remaining Total:** 55-85 hours (~1-2 weeks for one engineer)
 - **Already Invested:** ~120-160 hours
@@ -1841,7 +1885,7 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 1. ✅ ~~Prioritize Critical findings remediation~~ → Continue with C-3, C-7, C-8 (C-5 deferred)
 2. ✅ ~~Address High severity findings~~ → H-7, H-10 remaining
 3. Implement automated security testing in CI/CD
-4. ✅ ~~Complete Medium severity remediation~~ → M-6, M-7, M-9 remaining (M-2, M-8 complete)
+4. ✅ ~~Complete Medium severity remediation~~ → M-6, M-7, M-9 remaining (M-8 complete, M-2 accepted risk)
 5. Conduct comprehensive security testing
 6. Plan third-party penetration test after critical fixes complete
 

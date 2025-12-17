@@ -99,12 +99,14 @@ RUN /docker/scripts/install-mise.sh
 # Install Claude Code CLI system-wide
 RUN /docker/scripts/install-claude.sh
 
-# Set permissions for scripts and CLI tools (M-2: Restrict to owner+group only)
+# Set permissions for scripts and CLI tools
+# Note: Scripts use 755 (not 750) to allow developer user execution
+# See M-2 in security audit for rationale
 RUN chmod -R +r /docker/lib && \
     find /docker/lib -type f -exec chmod 644 {} \; && \
     find /docker/lib -type d -exec chmod 755 {} \; && \
-    find /docker/scripts -type f -name "*.sh" -exec chmod 750 {} \; && \
-    find /docker/cli -type f -exec chmod 750 {} \; && \
+    find /docker/scripts -type f -name "*.sh" -exec chmod 755 {} \; && \
+    find /docker/cli -type f -exec chmod 755 {} \; && \
     find /docker/config -type f -exec chmod 644 {} \;
 
 # Configure SSH daemon
