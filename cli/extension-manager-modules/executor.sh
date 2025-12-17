@@ -339,9 +339,10 @@ install_via_apt() {
 
     if [[ -n "$packages" ]] && [[ "$packages" != "null" ]]; then
         print_status "Installing packages: $packages"
-        $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update -qq
+        # Use env to pass DEBIAN_FRONTEND through sudo properly
+        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get update -qq
         # shellcheck disable=SC2086
-        $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $packages
+        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $packages
     fi
 
     return 0
@@ -825,6 +826,27 @@ remove_extension() {
 
     if [[ "$has_mise_removal" != "null" ]]; then
         rm -f "${MISE_CONFIG_DIR:-$home_dir/.config/mise}/conf.d/${ext_name}.toml"
+    fi
+
+    # Execute remove script if specified
+    local has_remove_script
+    has_remove_script=$(load_yaml "$ext_yaml" '.remove.script.path' 2>/dev/null || echo "null")
+
+    if [[ "$has_remove_script" != "null" ]]; then
+        local ext_dir
+        ext_dir=$(dirname "$ext_yaml")
+        local remove_script="$ext_dir/$has_remove_script"
+
+        if [[ -f "$remove_script" ]]; then
+            print_status "Running remove script..."
+            if bash "$remove_script"; then
+                print_status "Remove script completed successfully"
+            else
+                print_warning "Remove script failed (continuing...)"
+            fi
+        else
+            print_warning "Remove script not found: $remove_script"
+        fi
     fi
 
     # Remove paths
