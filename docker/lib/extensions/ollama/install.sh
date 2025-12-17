@@ -80,10 +80,11 @@ if command_exists ollama; then
     exit 0
 fi
 
-# Install Ollama via direct binary download to user-local directory (C-5 security compliance)
+# Install Ollama via direct tarball download to user-local directory (C-5 security compliance)
 # This avoids the official installer's internal sudo calls
-print_status "Downloading Ollama binary (this may take several minutes)..."
-print_status "The binary is approximately 800MB - download time depends on network speed"
+# Official docs: https://docs.ollama.com/linux
+print_status "Downloading Ollama tarball (this may take several minutes)..."
+print_status "The tarball is approximately 800MB - download time depends on network speed"
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -93,28 +94,45 @@ case "$ARCH" in
   *) print_error "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-OLLAMA_URL="https://ollama.com/download/ollama-linux-${OLLAMA_ARCH}"
+OLLAMA_URL="https://ollama.com/download/ollama-linux-${OLLAMA_ARCH}.tgz"
+OLLAMA_TARBALL="/tmp/ollama-linux-${OLLAMA_ARCH}.tgz"
 OLLAMA_BIN="$HOME/.local/bin/ollama"
 
 # Ensure user-local bin directory exists
 mkdir -p "$HOME/.local/bin"
 
-# Download ollama binary directly
-if curl -fsSL "$OLLAMA_URL" -o "$OLLAMA_BIN"; then
-    chmod +x "$OLLAMA_BIN"
-    if "$OLLAMA_BIN" --version &>/dev/null; then
-        installed_version=$("$OLLAMA_BIN" --version 2>/dev/null | head -1 || echo "unknown")
-        print_success "Ollama installed to ~/.local/bin: $installed_version"
-        print_status "Start Ollama server with: ollama serve"
-        print_status "Or run in background: nohup ollama serve > ~/ollama.log 2>&1 &"
-        print_status "Pull a model with: ollama pull llama3.2"
+# Download and extract ollama tarball
+if curl -fsSL "$OLLAMA_URL" -o "$OLLAMA_TARBALL"; then
+    # Extract just the ollama binary from the tarball (it's in bin/ollama)
+    if tar -xzf "$OLLAMA_TARBALL" -C /tmp; then
+        if [[ -f "/tmp/bin/ollama" ]]; then
+            mv /tmp/bin/ollama "$OLLAMA_BIN"
+            chmod +x "$OLLAMA_BIN"
+            rm -rf /tmp/bin "$OLLAMA_TARBALL"
+
+            if "$OLLAMA_BIN" --version &>/dev/null; then
+                installed_version=$("$OLLAMA_BIN" --version 2>/dev/null | head -1 || echo "unknown")
+                print_success "Ollama installed to ~/.local/bin: $installed_version"
+                print_status "Start Ollama server with: ollama serve"
+                print_status "Or run in background: nohup ollama serve > ~/ollama.log 2>&1 &"
+                print_status "Pull a model with: ollama pull llama3.2"
+            else
+                print_error "Ollama binary installed but verification failed"
+                rm -f "$OLLAMA_BIN"
+                exit 1
+            fi
+        else
+            print_error "Ollama binary not found in tarball at expected location /tmp/bin/ollama"
+            rm -rf /tmp/bin "$OLLAMA_TARBALL"
+            exit 1
+        fi
     else
-        print_error "Ollama binary downloaded but verification failed"
-        rm -f "$OLLAMA_BIN"
+        print_error "Failed to extract Ollama tarball"
+        rm -f "$OLLAMA_TARBALL"
         exit 1
     fi
 else
-    print_error "Failed to download Ollama binary"
+    print_error "Failed to download Ollama tarball from $OLLAMA_URL"
     exit 1
 fi
 
