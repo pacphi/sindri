@@ -1,93 +1,18 @@
 # ============================================================================
-# Sindri Sudoers Configuration - Restricted Developer Access
+# Sindri Sudoers Configuration - Development Environment
 # ============================================================================
-# Based on comprehensive analysis of 70+ extensions and their requirements
-# See Security Audit Report C-5 for detailed rationale and research findings
+# Simplified configuration for development containers
+#
+# Security Note: This grants full sudo access without password for developer user
+# - Acceptable for development environments where user already has root-equivalent access
+# - NOT recommended for production without additional security controls
+#
+# Context: Restricted sudo (C-5) caused functional issues with apt-get via env wrapper
+# Research showed standard practice for dev containers is NOPASSWD: ALL
+#
+# See Security Audit Report C-5 for full risk analysis and accepted risk justification
 # Last Updated: December 17, 2025
 # ============================================================================
 
-# Command Aliases for Grouping Related Operations
-Cmnd_Alias APT_COMMANDS = /usr/bin/apt-get update, \
-                          /usr/bin/apt-get install *, \
-                          /usr/bin/apt-get remove *, \
-                          /usr/bin/apt-get purge *, \
-                          /usr/bin/apt-get autoremove *, \
-                          /usr/bin/apt-get install -f *, \
-                          /usr/bin/apt, \
-                          /usr/bin/dpkg *
-
-# APT with env wrapper for non-interactive installs (DEBIAN_FRONTEND=noninteractive)
-Cmnd_Alias APT_ENV = /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get *, \
-                     /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt *
-
-Cmnd_Alias REPO_COMMANDS = /usr/bin/add-apt-repository *, \
-                           /usr/bin/apt-key add *, \
-                           /usr/bin/gpg --dearmor *, \
-                           /usr/bin/gpg --import *
-
-# Service Management - Pattern-based for scalability across all extensions
-# Supports: ollama, guacamole, xfce-ubuntu, docker, and any future services
-Cmnd_Alias SERVICE_MGMT = /usr/bin/systemctl daemon-reload, \
-                          /usr/bin/systemctl start *, \
-                          /usr/bin/systemctl stop *, \
-                          /usr/bin/systemctl restart *, \
-                          /usr/bin/systemctl reload *, \
-                          /usr/bin/systemctl enable *, \
-                          /usr/bin/systemctl disable *, \
-                          /usr/bin/systemctl status *, \
-                          /usr/bin/systemctl is-active *, \
-                          /usr/bin/systemctl is-enabled *, \
-                          /usr/bin/service * start, \
-                          /usr/bin/service * stop, \
-                          /usr/bin/service * restart, \
-                          /usr/bin/service * status
-
-# System Directory Creation (for extension installation)
-Cmnd_Alias SYS_DIRS = /usr/bin/mkdir -p /etc/apt/keyrings, \
-                      /usr/bin/mkdir -p /etc/apt/keyrings/*, \
-                      /usr/bin/mkdir -p /etc/apt/sources.list.d/*, \
-                      /usr/bin/mkdir -p /var/run/*, \
-                      /usr/bin/mkdir -p /usr/local/*, \
-                      /usr/bin/mkdir -p /etc/guacamole*, \
-                      /usr/bin/mkdir -p /etc/systemd/system/*, \
-                      /usr/bin/mkdir -p /var/lib/*, \
-                      /usr/bin/mkdir -p /usr/share/*
-
-# File Operations - Restricted to specific use cases
-Cmnd_Alias FILE_OPS = /usr/bin/chown -R developer\:developer /alt/home/developer/*, \
-                      /usr/bin/chmod [0-7][0-7][0-7] /alt/home/developer/*, \
-                      /usr/bin/chmod 644 /etc/apt/keyrings/*, \
-                      /usr/bin/tee /etc/systemd/system/*.service, \
-                      /usr/bin/tee /etc/apt/sources.list.d/*, \
-                      /usr/bin/tee /etc/guacamole/*
-
-# User/Group Management (required by guacamole, xfce-ubuntu, vf-vnc-desktop)
-Cmnd_Alias USER_MGMT = /usr/sbin/useradd *, \
-                       /usr/sbin/groupadd *, \
-                       /usr/sbin/usermod -aG * developer, \
-                       /usr/sbin/usermod -aG * devuser
-
-# Build Tools (required by guacamole for building from source)
-Cmnd_Alias BUILD_TOOLS = /usr/bin/make install, \
-                         /sbin/ldconfig
-
-# Firewall Configuration (optional - required by xfce-ubuntu if UFW active)
-Cmnd_Alias FIREWALL = /usr/sbin/ufw allow *, \
-                      /usr/sbin/ufw deny *, \
-                      /usr/sbin/ufw delete *
-
-# ============================================================================
-# Access Rules
-# ============================================================================
-
-# Allow developer user passwordless access to essential commands
-developer ALL=(ALL) NOPASSWD: APT_COMMANDS, APT_ENV, REPO_COMMANDS, SERVICE_MGMT, \
-                              SYS_DIRS, FILE_OPS, USER_MGMT, BUILD_TOOLS, FIREWALL
-
-# Require password for all other sudo operations not explicitly allowed
-# This implicitly blocks dangerous operations like:
-#   - systemctl mask/unmask (not in SERVICE_MGMT)
-#   - reboot/shutdown/halt/poweroff (not in any alias)
-#   - rm -rf / (not in any alias)
-#   - dd operations (not in any alias)
-developer ALL=(ALL) ALL
+# Allow developer user passwordless access to ALL commands
+developer ALL=(ALL) NOPASSWD: ALL

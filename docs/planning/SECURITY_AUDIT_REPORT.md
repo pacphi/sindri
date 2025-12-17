@@ -5,7 +5,7 @@
 **Repository:** Sindri Cloud Development Environment System
 **Scope:** Comprehensive security assessment of cloud development environment system
 **Remediation Date:** December 16, 2025 - December 17, 2025
-**Remediation Status:** 19 of 29 findings remediated (10 Critical + 9 High + 0 Medium severity), 2 accepted risks (M-1, M-2)
+**Remediation Status:** 18 of 29 findings remediated (9 Critical + 9 High + 0 Medium severity), 3 accepted risks (C-5, M-1, M-2)
 
 ---
 
@@ -15,7 +15,7 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 
 **Original Risk Level:** HIGH - Multiple critical vulnerabilities enable remote code execution and privilege escalation
 
-**Current Risk Level:** MEDIUM-LOW - Critical command injection and unsafe eval vulnerabilities remediated. High-severity SSH hardening, logging, and rate limiting implemented. Medium-severity password policies, path validation, error sanitization, and cryptographic randomness addressed. Remaining critical and high-severity items require attention before production deployment.
+**Current Risk Level:** MEDIUM - Critical command injection and unsafe eval vulnerabilities remediated. High-severity SSH hardening, logging, and rate limiting implemented. **C-5 (Unrestricted Sudo) accepted as risk for dev containers (industry standard).** Remaining critical items (C-3, C-7, C-8) require attention before production deployment.
 
 ---
 
@@ -34,7 +34,6 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 | [**C-1**](#c-1-command-injection-in-git-configuration--fixed)            | Critical | Command Injection in Git Configuration          | ✅ FIXED | Input validation + `printf %q` escaping                        |
 | [**C-2**](#c-2-unsafe-eval-in-environment-variable-expansion--fixed)     | Critical | Unsafe Eval in Environment Variable Expansion   | ✅ FIXED | Replaced with `envsubst` + whitelist                           |
 | [**C-4**](#c-4-secrets-exposure-in-process-arguments--fixed)             | Critical | Secrets Exposure in Process Arguments           | ✅ FIXED | Use `flyctl secrets import` with stdin instead of command args |
-| [**C-5**](#c-5-unrestricted-sudo-access--fixed)                          | Critical | Unrestricted Sudo Access                        | ✅ FIXED | Pattern-based command aliases (7 categories, 60 operations)    |
 | [**C-6**](#c-6-command-injection-in-extension-script-execution--fixed)   | Critical | Command Injection in Extension Script Execution | ✅ FIXED | Path traversal validation + `realpath` canonicalization        |
 | [**H-1**](#h-1-insufficient-ssh-hardening--fixed)                        | High     | Insufficient SSH Hardening                      | ✅ FIXED | Mozilla guidelines + 2025 quantum-resistant algorithms         |
 | [**H-2**](#h-2-secrets-stored-in-plaintext-cache--fixed)                 | High     | Secrets Stored in Plaintext Cache               | ✅ FIXED | tmpfs (in-memory) storage + umask 077 + secure cleanup         |
@@ -53,10 +52,11 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 
 ### ⚠️ Accepted Risks
 
-| ID                                                                       | Severity | Finding                                    | Status           | Justification                                                              |
-| ------------------------------------------------------------------------ | -------- | ------------------------------------------ | ---------------- | -------------------------------------------------------------------------- |
-| [**M-1**](#m-1-weak-password-policies-accepted-risk)                     | Medium   | Weak Password Policies                     | ⚠️ ACCEPTED RISK | usermod -L incompatible with UsePAM SSH key auth, usermod -p '\*' required |
-| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority            |
+| ID                                                                       | Severity | Finding                                    | Status           | Justification                                                                           |
+| ------------------------------------------------------------------------ | -------- | ------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------- |
+| [**C-5**](#c-5-unrestricted-sudo-access--accepted-risk)                  | Critical | Unrestricted Sudo Access                   | ⚠️ ACCEPTED RISK | Standard dev container practice; restricted sudo incompatible with apt-get via env      |
+| [**M-1**](#m-1-weak-password-policies-accepted-risk)                     | Medium   | Weak Password Policies                     | ⚠️ ACCEPTED RISK | usermod -L incompatible with UsePAM SSH key auth, usermod -p '\*' required              |
+| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority                         |
 
 ### ⏳ Outstanding Findings
 
@@ -71,7 +71,7 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 | [M-7](#m-7-hardcoded-timeouts)                            | Medium   | Hardcoded Timeouts                            | Low        | Resource exhaustion          |
 | [M-9](#m-9-unvalidated-yaml-parsing)                      | Medium   | Unvalidated YAML Parsing                      | Medium     | Billion laughs DoS           |
 
-**Production Readiness:** 🟡 **CAUTION** - 3 Critical findings remain (C-3, C-7, C-8) - significant progress made
+**Production Readiness:** 🟡 **CAUTION** - 3 Critical findings remain (C-3, C-7, C-8) + C-5 accepted risk (NOPASSWD: ALL sudo)
 
 ---
 
@@ -310,210 +310,111 @@ ps aux | grep flyctl → Shows "flyctl secrets import -a app-name"
 
 ---
 
-### C-5: Unrestricted Sudo Access ✅ FIXED
+### C-5: Unrestricted Sudo Access - ACCEPTED RISK
 
 **File:** `docker/config/developer-sudoers`
-**Lines:** 1-92 (completely rewritten)
+**Lines:** 1-18 (simplified for development containers)
 
-**Status:** ✅ **REMEDIATED** (December 17, 2025)
+**Status:** ⚠️ **ACCEPTED RISK** (December 17, 2025)
+
+**Decision Rationale:**
+Attempted restricted sudo implementation (60 specific operations) failed due to incompatibility with apt-get environment wrapper pattern. Standard practice for development containers is `NOPASSWD: ALL`. Risk accepted because:
+1. Development environment context (not production)
+2. User already has root-equivalent access (Docker socket, SSH, full filesystem)
+3. Other security controls remain in effect (C-1, C-2, C-4, C-6, H-1, H-2, H-11, H-12)
+4. Functional requirement - extensions must install successfully
 
 **Vulnerability Description:**
-The developer user had passwordless sudo for ALL commands:
+The developer user has passwordless sudo for ALL commands:
 
 ```bash
-developer ALL=(ALL) NOPASSWD:ALL
+# Current configuration (standard for dev containers)
+developer ALL=(ALL) NOPASSWD: ALL
 ```
 
-**Research Methodology:**
+**Attempted Remediation (December 17, 2025):**
 
-Conducted comprehensive analysis to ensure restrictions wouldn't break functionality:
+Implemented restricted sudo with pattern-based command aliases (7 categories, 60 operations). Research methodology:
 
 1. **Analyzed 70+ extensions** via 4 parallel research agents
 2. **Examined 62 installation scripts** for sudo usage patterns
-3. **Consulted official documentation** for 15+ software packages (Docker, Ollama, Guacamole, xRDP, Tomcat, etc.)
+3. **Consulted official documentation** for 15+ software packages
 4. **Identified actual requirements** vs. assumptions
 5. **Tested scalability** of pattern-based rules
 
-**Remediation Implemented:**
+**Why Remediation Failed:**
 
-Replaced unrestricted access with pattern-based command aliases (7 categories):
+Restricted sudo caused 6 extensions to fail on Fly.io deployment:
 
-```bash
-# Package Management (18 extensions require)
-Cmnd_Alias APT_COMMANDS = /usr/bin/apt-get update, \
-                          /usr/bin/apt-get install *, \
-                          /usr/bin/apt-get remove *, \
-                          /usr/bin/apt-get purge *, \
-                          /usr/bin/apt-get autoremove *, \
-                          /usr/bin/dpkg *
+| Extension | Failure Reason |
+|-----------|----------------|
+| **docker** | `sudo env DEBIAN_FRONTEND=noninteractive apt-get` pattern mismatch |
+| **tmux-workspace** | apt-get via env wrapper not whitelisted |
+| **infra-tools** | ansible/jq apt packages failed (mise/script succeeded) |
+| **cloud-tools** | AWS installer path not whitelisted (fixed with user-local install) |
+| **ollama** | Official installer's internal sudo calls not whitelisted (fixed with direct binary) |
+| **supabase-cli** | Dependency on docker failed |
 
-# Repository Management (3 extensions require)
-Cmnd_Alias REPO_COMMANDS = /usr/bin/add-apt-repository *, \
-                           /usr/bin/apt-key add *, \
-                           /usr/bin/gpg --dearmor *
+**Root Cause:**
 
-# Service Management (6 services across 3 extensions - SCALABLE)
-Cmnd_Alias SERVICE_MGMT = /usr/bin/systemctl daemon-reload, \
-                          /usr/bin/systemctl start *, \
-                          /usr/bin/systemctl stop *, \
-                          /usr/bin/systemctl restart *, \
-                          /usr/bin/systemctl enable *, \
-                          /usr/bin/systemctl disable *, \
-                          /usr/bin/systemctl status *
+The executor.sh uses `sudo env DEBIAN_FRONTEND=noninteractive apt-get` which doesn't match the sudoers pattern `/usr/bin/apt-get`. Even with expanded patterns (`APT_ENV` alias), sudo still requested passwords due to environment wrapper complexities.
 
-# System Directories (extension installation paths)
-Cmnd_Alias SYS_DIRS = /usr/bin/mkdir -p /etc/apt/keyrings/*, \
-                      /usr/bin/mkdir -p /etc/systemd/system/*, \
-                      /usr/bin/mkdir -p /var/run/*
-
-# File Operations (restricted to user home and config files)
-Cmnd_Alias FILE_OPS = /usr/bin/chown -R developer\:developer /alt/home/developer/*, \
-                      /usr/bin/tee /etc/systemd/system/*.service, \
-                      /usr/bin/tee /etc/apt/sources.list.d/*
-
-# User/Group Management (2 extensions: guacamole, xfce-ubuntu)
-Cmnd_Alias USER_MGMT = /usr/sbin/useradd *, \
-                       /usr/sbin/groupadd *, \
-                       /usr/sbin/usermod -aG *
-
-# Build Tools (1 extension: guacamole)
-Cmnd_Alias BUILD_TOOLS = /usr/bin/make install, \
-                         /sbin/ldconfig
-
-# Firewall (1 extension: xfce-ubuntu - optional)
-Cmnd_Alias FIREWALL = /usr/sbin/ufw allow *
-
-# Allow passwordless access to essential commands
-developer ALL=(ALL) NOPASSWD: APT_COMMANDS, REPO_COMMANDS, SERVICE_MGMT, \
-                              SYS_DIRS, FILE_OPS, USER_MGMT, BUILD_TOOLS, FIREWALL
-
-# Explicitly DENY dangerous operations
-developer ALL=(ALL) !NOPASSWD: /usr/bin/systemctl mask *, \
-                               /usr/sbin/reboot, /usr/sbin/shutdown
-
-# Require password for all other operations
-developer ALL=(ALL) ALL
-```
-
-**Extension Impact Analysis:**
-
-| Extension Category    | Count          | Sudo Requirements                       | Pattern Support | Breaks Functionality? |
-| --------------------- | -------------- | --------------------------------------- | --------------- | --------------------- |
-| **APT packages**      | 18             | apt-get update/install/remove           | ✅ APT_COMMANDS | ❌ No                 |
-| **Systemd services**  | 3 (6 services) | start/stop/enable/disable/daemon-reload | ✅ SERVICE_MGMT | ❌ No                 |
-| **User/group mgmt**   | 2              | useradd/groupadd/usermod                | ✅ USER_MGMT    | ❌ No                 |
-| **Build from source** | 1              | make install, ldconfig                  | ✅ BUILD_TOOLS  | ❌ No                 |
-| **Firewall config**   | 1              | ufw allow                               | ✅ FIREWALL     | ❌ No                 |
-| **User-space only**   | 55             | None                                    | N/A             | ❌ No                 |
-
-**Detailed Extension Research:**
-
-| Extension          | Services Managed   | systemctl Operations Needed                 | Special Requirements                              |
-| ------------------ | ------------------ | ------------------------------------------- | ------------------------------------------------- |
-| **ollama**         | ollama             | daemon-reload, enable, start                | Official installer auto-configures                |
-| **guacamole**      | guacd, tomcat9     | daemon-reload, enable, start, stop, disable | Creates systemd service files, builds from source |
-| **xfce-ubuntu**    | xrdp               | enable, start                               | Adds user to xrdp group                           |
-| **docker**         | docker, containerd | enable, start (auto via apt)                | Services start automatically on Ubuntu            |
-| **vf-vnc-desktop** | None               | N/A                                         | Uses supervisord instead of systemd               |
-| **supabase-cli**   | None               | N/A                                         | CLI tool, requires Docker daemon                  |
-
-**Scalability Verification:**
-
-✅ **Pattern-based rules eliminate per-extension maintenance:**
-
-- `systemctl start *` - Works for ollama, guacd, tomcat9, xrdp, docker, containerd, **and any future service**
-- `systemctl enable *` - No need to update sudoers when adding new service-based extensions
-- `apt-get install *` - Covers all current and future apt packages
-- `useradd *` - Supports any service user creation (tomcat, custom users, etc.)
-
-**Operations Explicitly Allowed:**
-
-1. **Package Management** (18 extensions):
-   - apt-get update/install/remove/purge/autoremove
-   - dpkg (for .deb packages like supabase-cli)
-   - add-apt-repository (for PPAs: php, dotnet)
-   - GPG key management (for repository signing)
-
-2. **Service Management** (3 extensions with 6 services):
-   - systemctl start/stop/restart/reload/status (runtime control)
-   - systemctl enable/disable (boot persistence)
-   - systemctl daemon-reload (after service file creation)
-   - service command (legacy compatibility)
-
-3. **User/Group Management** (2 extensions):
-   - useradd (guacamole: tomcat user, vf-vnc-desktop: multi-user environment)
-   - groupadd (guacamole: tomcat group)
-   - usermod -aG (xfce-ubuntu: xrdp group, vf-vnc-desktop: docker group)
-
-4. **Build Operations** (1 extension):
-   - make install (guacamole: compile from source)
-   - ldconfig (guacamole: update library cache)
-
-5. **File Operations** (restricted paths):
-   - chown within /alt/home/developer/\* only
-   - tee to /etc/systemd/system/\*.service (service file creation)
-   - tee to /etc/apt/sources.list.d/\* (repository configuration)
-   - mkdir for system directories (keyrings, systemd, var/run)
-
-6. **Firewall** (1 extension, optional):
-   - ufw allow/deny/delete (xfce-ubuntu: RDP port 3389)
-
-**Operations Explicitly DENIED:**
-
-- systemctl mask/unmask (prevents service disablement)
-- reboot/shutdown/halt/poweroff (system control)
-- rm -rf / (catastrophic deletion)
-- dd (disk operations)
-
-**Verification:**
+**Current Configuration (Accepted Risk):**
 
 ```bash
-# Test allowed operations
-sudo systemctl status docker → ✅ Allowed (status check)
-sudo systemctl start ollama → ✅ Allowed (service start)
-sudo apt-get install nodejs → ✅ Allowed (package install)
-sudo useradd testuser → ✅ Allowed (user creation)
-
-# Test denied operations
-sudo systemctl mask docker → ❌ Denied (requires password)
-sudo reboot → ❌ Denied (requires password)
-sudo rm -rf / → ❌ Denied (requires password)
-
-# Verify sudoers syntax
-sudo visudo -c -f /etc/sudoers.d/developer → No syntax errors
+# Simplified for development containers (standard practice)
+developer ALL=(ALL) NOPASSWD: ALL
 ```
 
-**Risk Assessment:**
+**Accepted Risk Justification:**
+
+1. **Industry Standard:** Standard practice for dev containers ([Docker docs](https://dev.to/emmanuelnk/using-sudo-without-password-prompt-as-non-root-docker-user-52bg), [Fly.io example](https://www.lambrospetrou.com/articles/flyio-cloud-dev-env/))
+2. **Already Root-Equivalent:** User has full access via:
+   - Docker socket (can mount host filesystem, create privileged containers)
+   - SSH key authentication (physical security boundary)
+   - Full filesystem access to /alt/home/developer
+   - Can modify ~/.bashrc to run arbitrary code
+3. **Other Controls Active:** C-1, C-2, C-4, C-6 command injection fixes, H-1 SSH hardening, H-2 secrets protection
+4. **Context:** Development environment, not production
+5. **Functional Requirement:** Extensions must install successfully
+
+**Test Results (Before Accepting Risk):**
+
+```bash
+# With restricted sudo - FAILED
+sudo env DEBIAN_FRONTEND=noninteractive apt-get update
+→ "sudo: a password is required"
+
+# With NOPASSWD: ALL - SUCCESS
+sudo apt-get install tmux
+→ Package installed successfully
+```
+
+**Risk Assessment (Accepted):**
 
 - **Impact:** Full root access from any compromise of developer account
+- **Likelihood:** Low in development context (trusted users, isolated environments)
 - **Exploitability:** High - Any vulnerability in user-space code grants root
-- **Attack Chain:** Command injection -> developer shell -> sudo su -> root
-- **Mitigated:** Restricted to specific operations, dangerous commands denied
+- **Attack Chain:** Command injection -> developer shell -> sudo [any command] -> root
+- **Mitigation:** Other security controls (C-1, C-2, C-4, C-6) prevent initial compromise
 
-**Security Improvements:**
+**Why This Risk is Acceptable:**
 
-1. **~95% reduction in sudo scope** - From ALL commands to 60 specific operations
-2. **Pattern-based scalability** - No per-extension updates needed
-3. **Defense in depth** - Explicit denials for dangerous operations
-4. **Auditability** - Clear documentation of what's allowed and why
-5. **Password requirement** - Unexpected operations require password
+1. **Development containers are inherently trusted environments** - Users have physical control
+2. **User already has root-equivalent access** - Can't meaningfully restrict further without breaking functionality
+3. **Industry-standard approach** - Most development containers use NOPASSWD: ALL
+4. **Defense-in-depth layers remain** - SSH hardening, command injection fixes, secrets protection
+5. **Clear documentation** - Users understand the security model
 
-**Limitations & Future Improvements:**
+**Future Production Hardening Options:**
 
-1. **Still allows usermod** - Could be further restricted to specific group additions
-2. **Still allows make install** - Could be eliminated by pre-building guacamole in Dockerfile
-3. **No command argument validation** - Sudoers doesn't validate apt package names or service names
-4. **Recommendation**: Consider moving 85% of operations to Docker build time (see detailed analysis below)
+If Sindri is used in production contexts, consider:
 
-**Build-Time Optimization Opportunity:**
-
-The following operations could be moved to Dockerfile RUN commands to eliminate sudo entirely:
-
-- All apt-get operations (18 extensions) → -40% sudo calls
-- User/group creation (guacamole, vf-vnc-desktop) → -15% sudo calls
-- Binary installations (cloud-tools, php, dotnet) → -20% sudo calls
-- Build operations (guacamole) → -10% sudo calls
-- **Result**: Only 15% runtime sudo needed (systemctl for services)
+1. **Pre-install packages in Dockerfile** - Eliminates 85% of runtime sudo needs
+2. **Rootless containers** - Use Podman or Docker Rootless Mode
+3. **AppArmor/SELinux profiles** - Additional MAC layer
+4. **Separate images** - Production image without sudo, dev image with sudo
+5. **Runtime security monitoring** - Falco, Sysdig for anomaly detection
 
 **References:**
 
@@ -1956,7 +1857,7 @@ load_yaml() {
 1. ✅ **Fix Command Injections** - Sanitize all user inputs before shell execution (C-1, C-6, H-9) - **COMPLETED**
 2. ✅ **Remove Unsafe Eval** - Replace eval with safe alternatives (C-2) - **COMPLETED**
 3. **Add Integrity Checks** - Verify checksums for all external downloads (C-3, C-8)
-4. **Restrict Sudo Access** - Limit developer sudo to specific commands only (C-5)
+4. ⚠️ **Restrict Sudo Access** - Limit developer sudo to specific commands only (C-5) - **ACCEPTED RISK** (NOPASSWD: ALL for dev containers)
 5. ✅ **Fix Docker Socket Permissions** - Use group membership instead of 666 (H-4) - **COMPLETED**
 6. ✅ **Harden SSH Configuration** - Add rate limiting, logging, key restrictions (H-1) - **COMPLETED**
 7. ✅ **Implement Rate Limiting** - Prevent resource exhaustion attacks (H-11) - **COMPLETED**
@@ -1992,7 +1893,7 @@ load_yaml() {
 
 - ✅ ~~Insufficient audit logging (H-12)~~ - **COMPLETED** (NIST SP 800-92 compliant structured logging)
 - ✅ ~~Missing encryption at rest for secrets (H-2)~~ - **COMPLETED** (tmpfs in-memory storage + secure cleanup)
-- ✅ ~~Weak access controls (C-5, H-1)~~ - **COMPLETED** (SSH hardening + sudo restrictions to 60 operations)
+- ⚠️ Weak access controls (C-5, H-1) - **PARTIAL** (H-1 SSH hardening completed; C-5 sudo accepted as risk for dev environments)
 
 **ISO 27001:**
 
@@ -2004,7 +1905,7 @@ load_yaml() {
 
 - ⚠️ Weak file permissions (M-2) - **ACCEPTED RISK** (755 required for functionality, root-owned scripts still secure)
 - ✅ ~~Missing security options (M-8)~~ - **COMPLETED** (5 capabilities + no-new-privileges)
-- ✅ ~~Unrestricted sudo (C-5)~~ - **COMPLETED** (Pattern-based restrictions, 95% scope reduction)
+- ⚠️ Unrestricted sudo (C-5) - **ACCEPTED RISK** (NOPASSWD: ALL standard for dev containers; restricted sudo incompatible with apt-get)
 
 ---
 
@@ -2019,20 +1920,21 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 - ✅ **Phase 2 Complete:** 3 of 9 Medium severity findings addressed (M-3, M-4, M-5)
 - ✅ **Phase 3 Complete:** 1 additional Critical finding addressed (C-4)
 - ✅ **Phase 4 Complete:** 5 additional High severity findings addressed (H-2, H-3, H-5, H-6, H-8)
-- ✅ **Phase 5 Complete:** 1 Critical finding addressed (C-5), 1 Medium severity finding addressed (M-8), 1 accepted risk (M-2)
-- **Total:** 19 of 29 findings remediated (66% complete), 2 accepted risks
+- ✅ **Phase 5 Complete:** C-5 attempted but accepted as risk, M-8 addressed, M-2 accepted as risk
+- **Total:** 18 of 29 findings remediated (62% complete), 3 accepted risks (C-5, M-1, M-2)
 
 **Severity Breakdown:**
 
-- Critical: 5 of 8 fixed (63%) - 3 remaining (C-3, C-7, C-8)
-- High: 10 of 12 fixed (83%) - 2 remaining (H-7, H-10)
-- Medium: 4 of 9 fixed (44%) - 3 remaining (M-6, M-7, M-9), 2 accepted risks (M-1, M-2)
+- Critical: 4 of 8 fixed (50%) - 3 remaining (C-3, C-7, C-8), 1 accepted risk (C-5)
+- High: 9 of 12 fixed (75%) - 2 remaining (H-7, H-10)
+- Medium: 5 of 9 fixed (56%) - 3 remaining (M-6, M-7, M-9), 2 accepted risks (M-1, M-2)
 
 **Recent Accomplishments (Phase 5):**
 
-- **C-5:** Sudo access restricted from ALL commands to 60 specific operations across 7 categories - pattern-based for scalability
+- **C-5:** Attempted restricted sudo (60 operations) but reverted to NOPASSWD: ALL - accepted as risk for dev containers (industry standard)
 - **M-8:** Docker security hardening with minimal capability set (5 capabilities) based on comprehensive analysis of 74 extensions
 - **M-2:** Attempted 750 permissions but reverted to 755 due to test failures (accepted risk with documented justification)
+- **Cloud-tools/Ollama:** Modified to use user-local installations (eliminates sudo for binaries)
 
 **Remaining Critical Issues:**
 
@@ -2044,11 +1946,11 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 
 **Estimated Remaining Effort:**
 
-- ~~Critical fixes: 40-60 hours~~ → **5-15 hours remaining** (5 of 8 completed)
-- ~~High severity fixes: 60-80 hours~~ → **5-10 hours remaining** (10 of 12 completed)
-- ~~Medium severity fixes: 30-40 hours~~ → **10-15 hours remaining** (5 of 9 completed, 1 accepted risk)
+- ~~Critical fixes: 40-60 hours~~ → **10-20 hours remaining** (4 of 8 completed, 1 accepted risk)
+- ~~High severity fixes: 60-80 hours~~ → **5-10 hours remaining** (9 of 12 completed)
+- ~~Medium severity fixes: 30-40 hours~~ → **10-15 hours remaining** (5 of 9 completed, 2 accepted risks)
 - Testing and validation: 30-40 hours
-- **Remaining Total:** 40-70 hours (~1-1.5 weeks for one engineer)
+- **Remaining Total:** 55-85 hours (~1.5-2 weeks for one engineer)
 - **Already Invested:** ~120-160 hours
 
 **Next Steps:**
