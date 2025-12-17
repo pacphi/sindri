@@ -192,15 +192,21 @@ setup_ssh_keys() {
         chmod 700 "${ALT_HOME}/.ssh"
         chmod 600 "${ALT_HOME}/.ssh/authorized_keys"
 
-        # Unlock the user account for SSH key authentication
-        # By default, useradd creates locked accounts (! in shadow)
-        # This prevents SSH login even with valid keys
-        # Setting password to '*' allows key auth while keeping password disabled
-        usermod -p '*' "${DEVELOPER_USER}" 2>/dev/null || true
+        # Lock password authentication while allowing SSH key authentication
+        # usermod -L prevents password logins but still allows SSH key auth
+        # This is more secure than using wildcard (*) password
+        # Reference: https://www.cyberciti.biz/faq/linux-locking-an-account/
+        usermod -L "${DEVELOPER_USER}" 2>/dev/null || true
+
+        # Security logging (H-12)
+        local key_type
+        key_type=$(echo "$AUTHORIZED_KEYS" | awk '{print $1}')
+        security_log_auth "ssh_keys_configured" "success" "SSH keys configured: $key_type"
 
         print_success "SSH keys configured"
     else
         print_warning "No SSH keys found in AUTHORIZED_KEYS environment variable"
+        security_log_auth "ssh_keys_missing" "failure" "No AUTHORIZED_KEYS provided"
     fi
 }
 
@@ -246,14 +252,31 @@ setup_git_config() {
     local configured=false
 
     if [[ -n "${GIT_USER_NAME:-}" ]]; then
-        su - "$DEVELOPER_USER" -c "git config --global user.name '$GIT_USER_NAME'"
+        # Validate input to prevent command injection
+        if [[ ! "$GIT_USER_NAME" =~ ^[a-zA-Z0-9._\ -]+$ ]]; then
+            print_error "Invalid GIT_USER_NAME: contains unsafe characters"
+            print_status "GIT_USER_NAME must contain only alphanumeric, dots, spaces, underscores, or hyphens"
+            security_log_config "git_user_name" "denied" "GIT_USER_NAME" "Invalid characters detected"
+            return 1
+        fi
+        # Use printf %q for safe shell quoting
+        su - "$DEVELOPER_USER" -c "$(printf 'git config --global user.name %q' "$GIT_USER_NAME")"
         print_status "Git user name configured: $GIT_USER_NAME"
+        security_log_config "git_user_name" "success" "GIT_USER_NAME" "$GIT_USER_NAME"
         configured=true
     fi
 
     if [[ -n "${GIT_USER_EMAIL:-}" ]]; then
-        su - "$DEVELOPER_USER" -c "git config --global user.email '$GIT_USER_EMAIL'"
+        # Validate email format to prevent command injection
+        if [[ ! "$GIT_USER_EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            print_error "Invalid GIT_USER_EMAIL: must be a valid email address"
+            security_log_config "git_user_email" "denied" "GIT_USER_EMAIL" "Invalid email format"
+            return 1
+        fi
+        # Use printf %q for safe shell quoting
+        su - "$DEVELOPER_USER" -c "$(printf 'git config --global user.email %q' "$GIT_USER_EMAIL")"
         print_status "Git user email configured: $GIT_USER_EMAIL"
+        security_log_config "git_user_email" "success" "GIT_USER_EMAIL" "$GIT_USER_EMAIL"
         configured=true
     fi
 
@@ -277,7 +300,10 @@ fi
 GITCRED
         chmod +x "${ALT_HOME}/.git-credential-helper.sh"
         chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "${ALT_HOME}/.git-credential-helper.sh"
-        su - "$DEVELOPER_USER" -c "git config --global credential.helper '${ALT_HOME}/.git-credential-helper.sh'"
+        # Use printf %q for safe path quoting
+        local safe_helper_path
+        safe_helper_path=$(printf '%q' "${ALT_HOME}/.git-credential-helper.sh")
+        su - "$DEVELOPER_USER" -c "git config --global credential.helper $safe_helper_path"
         print_status "Git credential helper configured"
         configured=true
     fi
@@ -333,6 +359,7 @@ HEADER
 
     if [[ $secrets_written -gt 0 ]]; then
         print_status "Propagated $secrets_written secret(s) to login shells"
+        security_log_config "secrets_propagated" "success" "/etc/profile.d/sindri-secrets.sh" "$secrets_written secrets"
     fi
 }
 

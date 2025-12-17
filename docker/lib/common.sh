@@ -143,7 +143,10 @@ validate_yaml_schema() {
 
     # Use Python's jsonschema if available
     if command_exists python3; then
-        python3 -c "
+        # Security (M-4): Capture detailed error for logging, show generic message to user
+        # Reference: https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+        local validation_output validation_error
+        validation_output=$(python3 -c "
 import json, sys
 try:
     import jsonschema
@@ -152,12 +155,41 @@ try:
     jsonschema.validate(data, schema)
     print('✓ Valid')
 except jsonschema.ValidationError as e:
-    print(f'✗ Validation error: {e.message}', file=sys.stderr)
+    # Print detailed error for logging (captured in bash)
+    print(f'VALIDATION_ERROR: {e.message} at path: {list(e.path)}', file=sys.stderr)
     sys.exit(1)
 except ImportError:
     print('⚠ jsonschema not installed, skipping validation', file=sys.stderr)
     sys.exit(0)
-" || return 1
+except Exception as e:
+    print(f'VALIDATION_ERROR: Unexpected error: {str(e)}', file=sys.stderr)
+    sys.exit(1)
+" 2>&1)
+        local exit_code=$?
+
+        if [[ $exit_code -eq 0 ]]; then
+            echo "$validation_output"
+            return 0
+        elif echo "$validation_output" | grep -q "VALIDATION_ERROR:"; then
+            # Extract and log detailed error message
+            validation_error=$(echo "$validation_output" | grep "VALIDATION_ERROR:" | sed 's/VALIDATION_ERROR: //')
+
+            # Log detailed error to security log for diagnostics
+            if command -v security_log_validation >/dev/null 2>&1; then
+                security_log_validation "schema_validation" "failure" "$(basename "$yaml_file")" "$validation_error"
+            fi
+
+            # Show generic error message to user (OWASP best practice)
+            print_error "✗ Configuration validation failed"
+            print_error "   File: $(basename "$yaml_file")"
+            print_error "   Check logs for details: \${WORKSPACE_LOGS:-/var/log}/sindri-security.log"
+
+            return 1
+        else
+            # Handle other cases (e.g., jsonschema not installed)
+            echo "$validation_output"
+            return 0
+        fi
     else
         print_warning "Python3 not available, skipping schema validation"
     fi
@@ -319,7 +351,9 @@ retry_command() {
 
         if [[ $attempt -lt $max_attempts ]]; then
             # Add jitter (0-3 seconds) to prevent synchronized retries
-            jitter=$((RANDOM % 3))
+            # Security (M-5): Use /dev/urandom for cryptographically secure randomness
+            # Reference: https://www.2uo.de/myths-about-urandom/
+            jitter=$(($(od -An -N2 -i /dev/urandom 2>/dev/null || echo "$((RANDOM))") % 3))
             sleep_time=$((delay + jitter))
             print_warning "Command failed (attempt $attempt/$max_attempts), retrying in ${sleep_time}s (delay: ${delay}s + jitter: ${jitter}s)..."
             sleep "$sleep_time"
@@ -484,8 +518,190 @@ check_extension_gpu_requirements() {
     return 0
 }
 
+# =============================================================================
+# Rate Limiting Functions (Security fix H-11)
+# =============================================================================
+# File-based rate limiting using flock for atomic operations
+# Prevents DoS attacks via rapid extension install/uninstall
+
+# Check rate limit for an operation
+# Usage: check_rate_limit <operation> <max_attempts> <time_window_seconds>
+# Returns: 0 if allowed, 1 if rate limited
+check_rate_limit() {
+    local operation="$1"
+    local max_attempts="${2:-5}"        # Default: 5 attempts
+    local time_window="${3:-300}"       # Default: 5 minutes (300 seconds)
+    local rate_limit_dir="${WORKSPACE_SYSTEM:-/tmp}/.rate-limits"
+
+    # Create rate limit directory if it doesn't exist
+    mkdir -p "$rate_limit_dir" 2>/dev/null || true
+
+    local rate_file="$rate_limit_dir/${operation}.lock"
+    local count_file="$rate_limit_dir/${operation}.count"
+
+    # Use flock for atomic file locking (prevents race conditions)
+    (
+        # Acquire exclusive lock with 200 file descriptor
+        flock -x 200 || {
+            print_warning "Could not acquire rate limit lock (skipping rate check)"
+            return 0
+        }
+
+        local current_time
+        current_time=$(date +%s)
+
+        # Read existing count and timestamp (if file exists)
+        local attempt_count=0
+        local first_attempt_time=$current_time
+
+        if [[ -f "$count_file" ]]; then
+            local stored_data
+            stored_data=$(cat "$count_file" 2>/dev/null || echo "0:$current_time")
+            attempt_count=$(echo "$stored_data" | cut -d: -f1)
+            first_attempt_time=$(echo "$stored_data" | cut -d: -f2)
+        fi
+
+        # Calculate time elapsed since first attempt in window
+        local elapsed=$((current_time - first_attempt_time))
+
+        # If time window has passed, reset counter
+        if [[ $elapsed -gt $time_window ]]; then
+            attempt_count=0
+            first_attempt_time=$current_time
+        fi
+
+        # Increment attempt count
+        attempt_count=$((attempt_count + 1))
+
+        # Check if rate limit exceeded
+        if [[ $attempt_count -gt $max_attempts ]]; then
+            local remaining=$((time_window - elapsed))
+            print_error "Rate limit exceeded for operation: $operation"
+            print_status "Maximum $max_attempts attempts per $time_window seconds"
+            print_status "Please wait $remaining seconds before trying again"
+            return 1
+        fi
+
+        # Update count file
+        echo "${attempt_count}:${first_attempt_time}" > "$count_file"
+
+        [[ "${VERBOSE:-false}" == "true" ]] && \
+            print_debug "Rate limit check: $operation ($attempt_count/$max_attempts)"
+
+        return 0
+
+    ) 200>"$rate_file"
+}
+
+# Clear rate limit for an operation (for testing or manual reset)
+# Usage: clear_rate_limit <operation>
+clear_rate_limit() {
+    local operation="$1"
+    local rate_limit_dir="${WORKSPACE_SYSTEM:-/tmp}/.rate-limits"
+
+    rm -f "$rate_limit_dir/${operation}.lock" \
+          "$rate_limit_dir/${operation}.count" 2>/dev/null || true
+
+    [[ "${VERBOSE:-false}" == "true" ]] && \
+        print_status "Rate limit cleared for: $operation"
+}
+
+# =============================================================================
+# End Rate Limiting Functions
+# =============================================================================
+
+# =============================================================================
+# Security Logging Functions (Security fix H-12)
+# =============================================================================
+# Comprehensive security event logging with syslog and local file support
+# Following NIST SP 800-92 and OWASP logging guidelines
+
+# Log security events with structured format
+# Usage: security_log <event_type> <action> <result> [resource] [details]
+# Example: security_log "auth" "ssh_key_setup" "success" "developer" "ED25519 key configured"
+security_log() {
+    local event_type="$1"      # auth, config, install, access, error
+    local action="$2"           # What action was performed
+    local result="$3"           # success, failure, denied
+    local resource="${4:-}"     # What resource was affected (optional)
+    local details="${5:-}"      # Additional details (optional)
+
+    # ISO 8601 timestamp in UTC
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null) || timestamp=$(date -Iseconds)
+
+    # Get actor (current user)
+    local actor="${USER:-unknown}"
+
+    # Structured log format (key-value pairs for easy parsing)
+    local log_entry="timestamp=$timestamp event_type=$event_type actor=$actor action=$action result=$result"
+
+    if [[ -n "$resource" ]]; then
+        log_entry="$log_entry resource=$resource"
+    fi
+
+    if [[ -n "$details" ]]; then
+        # Escape quotes in details for safe logging
+        local safe_details="${details//\"/\\\"}"
+        log_entry="$log_entry details=\"$safe_details\""
+    fi
+
+    # Log to local security log file
+    local security_log_file="${WORKSPACE_LOGS:-/var/log}/sindri-security.log"
+    if [[ -w "$(dirname "$security_log_file")" ]] || [[ -w "$security_log_file" ]]; then
+        echo "$log_entry" >> "$security_log_file" 2>/dev/null || true
+    fi
+
+    # Log to syslog if available (standard for SIEM integration)
+    if command_exists logger; then
+        # Use auth facility for security events, notice priority
+        logger -t "sindri-security" -p auth.notice "$log_entry" 2>/dev/null || true
+    fi
+
+    # Also log to stderr for immediate visibility if verbose mode
+    if [[ "${VERBOSE:-false}" == "true" ]] || [[ "$result" == "failure" ]] || [[ "$result" == "denied" ]]; then
+        echo "[SECURITY] $log_entry" >&2
+    fi
+}
+
+# Log authentication events
+# Usage: security_log_auth <action> <result> [details]
+security_log_auth() {
+    security_log "auth" "$1" "$2" "${USER:-unknown}" "$3"
+}
+
+# Log configuration changes
+# Usage: security_log_config <action> <result> <resource> [details]
+security_log_config() {
+    security_log "config" "$1" "$2" "$3" "$4"
+}
+
+# Log installation/extension events
+# Usage: security_log_install <action> <result> <extension> [details]
+security_log_install() {
+    security_log "install" "$1" "$2" "$3" "$4"
+}
+
+# Log access control events
+# Usage: security_log_access <action> <result> <resource> [details]
+security_log_access() {
+    security_log "access" "$1" "$2" "$3" "$4"
+}
+
+# Log validation events
+# Usage: security_log_validation <action> <result> <resource> [details]
+security_log_validation() {
+    security_log "validation" "$1" "$2" "$3" "$4"
+}
+
+# =============================================================================
+# End Security Logging Functions
+# =============================================================================
+
 # Export functions for use in subshells
-export -f print_status print_success print_warning print_error print_header print_step
+export -f print_status print_success print_warning print_error print_header print_step print_debug
 export -f command_exists is_user ensure_directory
 export -f load_yaml validate_yaml_schema check_dns check_disk_space retry_command
 export -f check_gpu_available get_gpu_count get_gpu_memory validate_gpu_config check_extension_gpu_requirements
+export -f check_rate_limit clear_rate_limit
+export -f security_log security_log_auth security_log_config security_log_install security_log_access

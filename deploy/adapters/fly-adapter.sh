@@ -85,8 +85,18 @@ parse_config() {
     # Parse base configuration
     adapter_parse_base_config "APP_NAME_OVERRIDE"
 
-    # Fly.io-specific: Convert memory to MB
-    MEMORY=$(yq '.deployment.resources.memory // "2GB"' "$SINDRI_YAML" | sed 's/GB/*1024/;s/MB//')
+    # Fly.io-specific: Convert memory to MB (security fix H-9)
+    local memory_raw
+    memory_raw=$(yq '.deployment.resources.memory // "2GB"' "$SINDRI_YAML")
+
+    # Validate memory format to prevent command injection
+    if [[ ! "$memory_raw" =~ ^[0-9]+[GM]B$ ]]; then
+        print_error "Invalid memory format: $memory_raw (expected format: 2GB, 512MB, etc.)"
+        exit 1
+    fi
+
+    # Safe conversion after validation
+    MEMORY=$(echo "$memory_raw" | sed 's/GB/*1024/;s/MB//')
     MEMORY_MB=$(echo "$MEMORY" | bc)
 
     # Fly.io-specific config

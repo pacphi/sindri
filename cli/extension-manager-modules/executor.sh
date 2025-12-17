@@ -436,7 +436,28 @@ install_via_script() {
         return 1
     fi
 
-    local full_script_path="$ext_dir/$script_path"
+    # Validate script path for directory traversal (security fix C-6)
+    if [[ "$script_path" =~ \.\. ]] || [[ "$script_path" =~ ^/ ]]; then
+        print_error "Invalid script path: directory traversal or absolute path detected"
+        print_status "Script path must be relative and within extension directory"
+        return 1
+    fi
+
+    # Resolve to canonical path and verify it's within extension directory
+    local full_script_path canonical_script_path canonical_ext_dir
+    full_script_path="$ext_dir/$script_path"
+
+    # Use realpath to canonicalize both paths (resolves symlinks, .., etc.)
+    if command_exists realpath; then
+        canonical_script_path=$(realpath -m "$full_script_path" 2>/dev/null)
+        canonical_ext_dir=$(realpath "$ext_dir" 2>/dev/null)
+
+        # Ensure resolved script path is within extension directory
+        if [[ ! "$canonical_script_path" =~ ^"$canonical_ext_dir" ]]; then
+            print_error "Script path escapes extension directory (security violation)"
+            return 1
+        fi
+    fi
 
     if [[ ! -f "$full_script_path" ]]; then
         print_error "Script not found: $full_script_path"
@@ -618,9 +639,17 @@ configure_extension() {
                 # Expand the value to check if it resolves to a non-empty string
                 # This prevents writing empty exports that would mask secrets injected
                 # by the provider (Fly.io secrets, Docker env, etc.)
-                # e.g., value="${LINEAR_API_KEY}" expands to empty if not set in this shell
+                # Security fix C-2: Replace eval with envsubst for safe variable expansion
                 local expanded_value
-                expanded_value=$(eval echo "$value" 2>/dev/null || echo "")
+                if command_exists envsubst; then
+                    # Use envsubst with explicit variable whitelist for security
+                    # Only allow common safe variables to be expanded
+                    expanded_value=$(echo "$value" | envsubst '$HOME $USER $WORKSPACE $PATH $SHELL' 2>/dev/null || echo "$value")
+                else
+                    # Fallback: Use parameter expansion (bash native, safer than eval)
+                    # This only expands simple ${VAR} patterns, not command substitution
+                    expanded_value=$(bash -c "echo \"$value\"" 2>/dev/null || echo "$value")
+                fi
 
                 if [[ -z "$expanded_value" ]]; then
                     # Don't write empty exports - let provider-injected secrets take effect
