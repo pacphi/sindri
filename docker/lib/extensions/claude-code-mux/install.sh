@@ -52,8 +52,17 @@ esac
 print_status "Detected platform: $OS-$ARCH"
 print_status "Downloading asset: $ASSET"
 
-# Download and extract CCM from latest release
-DOWNLOAD_URL="https://github.com/9j/claude-code-mux/releases/latest/download/${ASSET}"
+# Get latest version using standardized GitHub release version detection
+# Uses gh CLI with curl fallback for reliability
+CCM_VERSION=$(get_github_release_version "9j/claude-code-mux" true)
+if [[ -z "$CCM_VERSION" ]]; then
+    print_error "Failed to determine latest CCM version from GitHub"
+    exit 1
+fi
+print_status "Latest CCM version: $CCM_VERSION"
+
+# Download and extract CCM from specific release (more reliable than /latest/download)
+DOWNLOAD_URL="https://github.com/9j/claude-code-mux/releases/download/${CCM_VERSION}/${ASSET}"
 TMP_DIR=$(mktemp -d)
 
 trap 'rm -rf "$TMP_DIR"' EXIT

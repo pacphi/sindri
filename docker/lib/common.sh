@@ -369,6 +369,71 @@ retry_command() {
 }
 
 # =============================================================================
+# GitHub Release Version Detection Functions
+# =============================================================================
+# Standardized pattern for fetching latest GitHub release versions
+# Uses gh CLI as primary method with curl fallback for reliability
+
+# Get latest GitHub release version
+# Usage: get_github_release_version <owner/repo> [include_v_prefix] [include_prereleases]
+# Example: get_github_release_version "digitalocean/doctl" false false
+# Example: get_github_release_version "pacphi/claude-code-agent-manager" true true
+# Returns: version string (e.g., "1.2.3" or "v1.2.3" if include_v_prefix=true)
+get_github_release_version() {
+    local repo="$1"
+    local include_v="${2:-false}"
+    local include_prereleases="${3:-false}"
+    local version=""
+
+    # Method 1: gh CLI (handles auth automatically, avoids rate limits)
+    if command_exists gh; then
+        print_debug "Fetching version for $repo via gh CLI (prereleases=$include_prereleases)..."
+        if [[ "$include_prereleases" == "true" ]]; then
+            # Use gh release list to include prereleases, take the first (most recent)
+            version=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+        else
+            # Use gh release view for latest stable release only
+            version=$(gh release view --repo "$repo" --json tagName --jq '.tagName' 2>/dev/null || echo "")
+        fi
+        if [[ -n "$version" ]]; then
+            print_debug "Got version $version via gh CLI"
+        fi
+    fi
+
+    # Method 2: curl with GitHub API (fallback)
+    if [[ -z "$version" ]]; then
+        print_debug "Fetching version for $repo via GitHub API (prereleases=$include_prereleases)..."
+        local curl_args=(-fsSL)
+        if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+            curl_args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+        fi
+        if [[ "$include_prereleases" == "true" ]]; then
+            # Fetch all releases and take the first one (includes prereleases)
+            version=$(curl "${curl_args[@]}" "https://api.github.com/repos/${repo}/releases" 2>/dev/null | \
+                grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 || echo "")
+        else
+            # Fetch only the latest stable release
+            version=$(curl "${curl_args[@]}" "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+                grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 || echo "")
+        fi
+        if [[ -n "$version" ]]; then
+            print_debug "Got version $version via GitHub API"
+        fi
+    fi
+
+    # Strip 'v' prefix if not wanted
+    if [[ "$include_v" != "true" ]] && [[ "$version" == v* ]]; then
+        version="${version#v}"
+    fi
+
+    echo "$version"
+}
+
+# =============================================================================
+# End GitHub Release Version Detection Functions
+# =============================================================================
+
+# =============================================================================
 # GPU Detection and Validation Functions
 # =============================================================================
 
@@ -702,6 +767,7 @@ security_log_validation() {
 export -f print_status print_success print_warning print_error print_header print_step print_debug
 export -f command_exists is_user ensure_directory
 export -f load_yaml validate_yaml_schema check_dns check_disk_space retry_command
+export -f get_github_release_version
 export -f check_gpu_available get_gpu_count get_gpu_memory validate_gpu_config check_extension_gpu_requirements
 export -f check_rate_limit clear_rate_limit
 export -f security_log security_log_auth security_log_config security_log_install security_log_access

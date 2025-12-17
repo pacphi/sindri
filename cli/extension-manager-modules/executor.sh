@@ -352,10 +352,11 @@ install_via_apt() {
 
     if [[ -n "$packages" ]] && [[ "$packages" != "null" ]]; then
         print_status "Installing packages: $packages"
-        # Use env to pass DEBIAN_FRONTEND through sudo properly
-        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get update -qq
+        # Use full paths for env and apt-get to match sudoers patterns
+        # The APT_ENV alias in sudoers requires: /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get *
+        $sudo_cmd /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get update -qq
         # shellcheck disable=SC2086
-        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $packages
+        $sudo_cmd /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install -y -qq $packages
     fi
 
     return 0

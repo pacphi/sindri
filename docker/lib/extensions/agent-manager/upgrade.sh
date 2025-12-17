@@ -34,12 +34,13 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
-# Get latest release
-print_status "Fetching latest release..."
-tag_name=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases" | \
-           jq -r '.[0].tag_name' 2>/dev/null)
+# Get latest release using standardized GitHub release version detection
+# Uses gh CLI with curl fallback for reliability
+# Note: agent-manager uses prereleases, so we pass true for include_prereleases
+print_status "Fetching latest release (including prereleases)..."
+tag_name=$(get_github_release_version "${GITHUB_REPO}" true true)
 
-if [[ -z "$tag_name" ]] || [[ "$tag_name" == "null" ]]; then
+if [[ -z "$tag_name" ]]; then
     print_error "Could not fetch latest release from GitHub"
     exit 1
 fi

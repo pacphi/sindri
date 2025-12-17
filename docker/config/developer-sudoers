@@ -16,6 +16,10 @@ Cmnd_Alias APT_COMMANDS = /usr/bin/apt-get update, \
                           /usr/bin/apt, \
                           /usr/bin/dpkg *
 
+# APT with env wrapper for non-interactive installs (DEBIAN_FRONTEND=noninteractive)
+Cmnd_Alias APT_ENV = /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get *, \
+                     /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt *
+
 Cmnd_Alias REPO_COMMANDS = /usr/bin/add-apt-repository *, \
                            /usr/bin/apt-key add *, \
                            /usr/bin/gpg --dearmor *, \
@@ -39,7 +43,8 @@ Cmnd_Alias SERVICE_MGMT = /usr/bin/systemctl daemon-reload, \
                           /usr/bin/service * status
 
 # System Directory Creation (for extension installation)
-Cmnd_Alias SYS_DIRS = /usr/bin/mkdir -p /etc/apt/keyrings/*, \
+Cmnd_Alias SYS_DIRS = /usr/bin/mkdir -p /etc/apt/keyrings, \
+                      /usr/bin/mkdir -p /etc/apt/keyrings/*, \
                       /usr/bin/mkdir -p /etc/apt/sources.list.d/*, \
                       /usr/bin/mkdir -p /var/run/*, \
                       /usr/bin/mkdir -p /usr/local/*, \
@@ -51,6 +56,7 @@ Cmnd_Alias SYS_DIRS = /usr/bin/mkdir -p /etc/apt/keyrings/*, \
 # File Operations - Restricted to specific use cases
 Cmnd_Alias FILE_OPS = /usr/bin/chown -R developer\:developer /alt/home/developer/*, \
                       /usr/bin/chmod [0-7][0-7][0-7] /alt/home/developer/*, \
+                      /usr/bin/chmod 644 /etc/apt/keyrings/*, \
                       /usr/bin/tee /etc/systemd/system/*.service, \
                       /usr/bin/tee /etc/apt/sources.list.d/*, \
                       /usr/bin/tee /etc/guacamole/*
@@ -75,7 +81,7 @@ Cmnd_Alias FIREWALL = /usr/sbin/ufw allow *, \
 # ============================================================================
 
 # Allow developer user passwordless access to essential commands
-developer ALL=(ALL) NOPASSWD: APT_COMMANDS, REPO_COMMANDS, SERVICE_MGMT, \
+developer ALL=(ALL) NOPASSWD: APT_COMMANDS, APT_ENV, REPO_COMMANDS, SERVICE_MGMT, \
                               SYS_DIRS, FILE_OPS, USER_MGMT, BUILD_TOOLS, FIREWALL
 
 # Require password for all other sudo operations not explicitly allowed
