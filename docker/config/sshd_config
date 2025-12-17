@@ -10,6 +10,11 @@ PasswordAuthentication no
 PubkeyAuthentication yes
 StrictModes yes
 
+# PAM authentication - Required for SSH key auth with locked accounts (usermod -L)
+# Without this, locked accounts cannot authenticate even with valid SSH keys
+# Reference: https://arlimus.github.io/articles/usepam/
+UsePAM yes
+
 # Port configuration - use 2222 internally
 Port 2222
 
