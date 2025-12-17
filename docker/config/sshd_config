@@ -9,6 +9,13 @@ PermitRootLogin no
 PasswordAuthentication no
 PubkeyAuthentication yes
 StrictModes yes
+
+# Disable PAM - not needed for SSH key-only authentication
+# With UsePAM yes, locked accounts (usermod -L) cannot use SSH keys
+# We use usermod -p '*' instead of -L for password security
+# Reference: https://arlimus.github.io/articles/usepam/ (Security Audit M-1)
+UsePAM no
+
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
 

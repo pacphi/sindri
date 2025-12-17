@@ -192,11 +192,9 @@ setup_ssh_keys() {
         chmod 700 "${ALT_HOME}/.ssh"
         chmod 600 "${ALT_HOME}/.ssh/authorized_keys"
 
-        # Lock password authentication while allowing SSH key authentication
-        # usermod -L prevents password logins but still allows SSH key auth
-        # This is more secure than using wildcard (*) password
-        # Reference: https://www.cyberciti.biz/faq/linux-locking-an-account/
-        usermod -L "${DEVELOPER_USER}" 2>/dev/null || true
+        # Disable password authentication while allowing SSH key authentication
+        # usermod -p '*' sets impossible password (cannot be matched by any input)
+        usermod -p '*' "${DEVELOPER_USER}" 2>/dev/null || true
 
         # Security logging (H-12)
         local key_type
