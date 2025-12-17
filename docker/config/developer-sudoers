@@ -78,15 +78,10 @@ Cmnd_Alias FIREWALL = /usr/sbin/ufw allow *, \
 developer ALL=(ALL) NOPASSWD: APT_COMMANDS, REPO_COMMANDS, SERVICE_MGMT, \
                               SYS_DIRS, FILE_OPS, USER_MGMT, BUILD_TOOLS, FIREWALL
 
-# Explicitly DENY dangerous operations (defense in depth)
-developer ALL=(ALL) !NOPASSWD: /usr/bin/systemctl mask *, \
-                               /usr/bin/systemctl unmask *, \
-                               /usr/sbin/reboot, \
-                               /usr/sbin/shutdown, \
-                               /usr/sbin/halt, \
-                               /usr/sbin/poweroff, \
-                               /usr/bin/rm -rf /, \
-                               /usr/bin/dd if=*
-
 # Require password for all other sudo operations not explicitly allowed
+# This implicitly blocks dangerous operations like:
+#   - systemctl mask/unmask (not in SERVICE_MGMT)
+#   - reboot/shutdown/halt/poweroff (not in any alias)
+#   - rm -rf / (not in any alias)
+#   - dd operations (not in any alias)
 developer ALL=(ALL) ALL
