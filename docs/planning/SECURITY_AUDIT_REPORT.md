@@ -53,10 +53,10 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 
 ### ⚠️ Accepted Risks
 
-| ID                                                                       | Severity | Finding                                    | Status           | Justification                                                   |
-| ------------------------------------------------------------------------ | -------- | ------------------------------------------ | ---------------- | --------------------------------------------------------------- |
-| [**M-1**](#m-1-weak-password-policies-accepted-risk)                     | Medium   | Weak Password Policies                     | ⚠️ ACCEPTED RISK | usermod -L incompatible with UsePAM SSH key auth, usermod -p '*' required |
-| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority |
+| ID                                                                       | Severity | Finding                                    | Status           | Justification                                                              |
+| ------------------------------------------------------------------------ | -------- | ------------------------------------------ | ---------------- | -------------------------------------------------------------------------- |
+| [**M-1**](#m-1-weak-password-policies-accepted-risk)                     | Medium   | Weak Password Policies                     | ⚠️ ACCEPTED RISK | usermod -L incompatible with UsePAM SSH key auth, usermod -p '\*' required |
+| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority            |
 
 ### ⏳ Outstanding Findings
 
