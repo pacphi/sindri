@@ -15,6 +15,10 @@ StrictModes yes
 # Reference: https://arlimus.github.io/articles/usepam/
 UsePAM yes
 
+# Disable keyboard-interactive (password prompts) - only allow public key auth
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
+
 # Port configuration - use 2222 internally
 Port 2222
 
