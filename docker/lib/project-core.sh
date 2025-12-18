@@ -164,7 +164,8 @@ _is_aqe_initialized() {
 _append_claude_flow_to_claude_md() {
     if [[ -f "CLAUDE.md" ]]; then
         # Run cf-init-project to generate claude-flow CLAUDE.md in temp location
-        local temp_dir=$(mktemp -d)
+        local temp_dir
+        temp_dir=$(mktemp -d)
         (cd "$temp_dir" && cf-init-project 2>/dev/null)
 
         if [[ -f "$temp_dir/CLAUDE.md" ]]; then
@@ -194,6 +195,13 @@ init_project_tools() {
         print_success "Claude Code is available"
     fi
 
+    # Skip tools if --skip-tools flag is set
+    if [[ "$skip_tools" == "true" ]]; then
+        print_debug "Skipping tool initialization (--skip-tools)"
+        [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
+        return 0
+    fi
+
     # Initialize GitHub spec-kit if uv is available
     if command_exists uvx || command_exists uv; then
         print_status "Initializing GitHub spec-kit..."
@@ -208,13 +216,6 @@ init_project_tools() {
         else
             print_debug "GitHub spec-kit initialization skipped"
         fi
-    fi
-
-    # Skip agentic tools if --skip-tools flag is set
-    if [[ "$skip_tools" == "true" ]]; then
-        print_debug "Skipping agentic tool initialization (--skip-tools)"
-        [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
-        return 0
     fi
 
     # claude-flow initialization
