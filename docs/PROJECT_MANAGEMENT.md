@@ -213,7 +213,7 @@ When creating or cloning projects, Sindri automatically initializes installed ag
 |------|-----------|--------------|---------|
 | Claude Code | Built-in | - | Context awareness via CLAUDE.md |
 | GitHub spec-kit | Built-in (if uv installed) | `specify init --here` | `.github/spec.json` |
-| claude-flow | `extension-manager install claude-flow` | `cf-init-project` | Enhanced CLAUDE.md, `.claude/` directory |
+| claude-flow | `extension-manager install claude-flow` | `claude-flow init --force` | Enhanced CLAUDE.md, `.claude/` directory |
 | agentic-qe | `extension-manager install agentic-qe` | `aqe init` | `.agentic-qe/` or `aqe/` directory |
 | agentic-flow | `extension-manager install agentic-flow` | None (ready to use) | - |
 
@@ -223,6 +223,7 @@ When creating or cloning projects, Sindri automatically initializes installed ag
 - **Idempotency**: Re-running project creation will skip already initialized tools
 - **Graceful Failures**: Init failures log warnings but don't block project creation
 - **CLAUDE.md Handling**: claude-flow appends its content to existing CLAUDE.md (preserves Sindri's content while adding claude-flow features)
+- **Skip with --skip-tools**: All optional tools (GitHub spec-kit, claude-flow, agentic-qe, agentic-flow) can be skipped using the `--skip-tools` flag. Only Claude Code initialization always runs.
 
 ### Skip Tool Initialization
 
@@ -244,10 +245,13 @@ If you install tools after project creation, you can manually initialize them:
 cd ~/projects/my-app
 
 # Initialize claude-flow
-cf-init-project
+claude-flow init --force
 
 # Initialize agentic-qe
 aqe init
+
+# Initialize GitHub spec-kit
+uvx --from git+https://github.com/github/spec-kit.git specify init --here
 
 # agentic-flow is ready immediately after installation (no init needed)
 ```

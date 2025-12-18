@@ -163,10 +163,10 @@ _is_aqe_initialized() {
 # Append claude-flow content to existing CLAUDE.md
 _append_claude_flow_to_claude_md() {
     if [[ -f "CLAUDE.md" ]]; then
-        # Run cf-init-project to generate claude-flow CLAUDE.md in temp location
+        # Run claude-flow init to generate claude-flow CLAUDE.md in temp location
         local temp_dir
         temp_dir=$(mktemp -d)
-        (cd "$temp_dir" && cf-init-project 2>/dev/null)
+        (cd "$temp_dir" && claude-flow init --force 2>/dev/null)
 
         if [[ -f "$temp_dir/CLAUDE.md" ]]; then
             echo "" >> CLAUDE.md
@@ -180,7 +180,7 @@ _append_claude_flow_to_claude_md() {
         rm -rf "$temp_dir"
     else
         # No existing CLAUDE.md, just run init normally
-        cf-init-project 2>/dev/null
+        claude-flow init --force 2>/dev/null
     fi
 }
 
@@ -219,7 +219,7 @@ init_project_tools() {
     fi
 
     # claude-flow initialization
-    if command_exists cf-init-project; then
+    if command_exists claude-flow; then
         if _is_claude_flow_initialized; then
             print_debug "claude-flow already initialized in this project"
             tools_initialized=true
@@ -235,7 +235,7 @@ init_project_tools() {
                     git commit -m "feat: initialize claude-flow configuration" 2>/dev/null || true
                 fi
             else
-                print_warning "claude-flow initialization failed, you can run 'cf-init-project' manually"
+                print_warning "claude-flow initialization failed, you can run 'claude-flow init --force' manually"
             fi
         fi
     fi

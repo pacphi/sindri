@@ -233,7 +233,7 @@ echo "Initialized Tools:"
     cd "$PROJECT_DIR" || exit 1
     if command_exists claude; then echo "  ✓ Claude Code"; fi
     if command_exists uvx && [[ -f ".github/spec.json" ]]; then echo "  ✓ GitHub spec-kit"; fi
-    if command_exists cf-init-project && _is_claude_flow_initialized; then echo "  ✓ claude-flow"; fi
+    if command_exists claude-flow && _is_claude_flow_initialized; then echo "  ✓ claude-flow"; fi
     if command_exists aqe && _is_aqe_initialized; then echo "  ✓ agentic-qe"; fi
     if command_exists agentic-flow; then echo "  ✓ agentic-flow"; fi
 )
