@@ -150,7 +150,41 @@ _execute_dependency_config() {
     fi
 }
 
+# Check if claude-flow has already initialized this project
+_is_claude_flow_initialized() {
+    [[ -d ".claude" ]] || ([[ -f "CLAUDE.md" ]] && grep -q "claude-flow\|Claude Flow" CLAUDE.md 2>/dev/null)
+}
+
+# Check if agentic-qe has already initialized this project
+_is_aqe_initialized() {
+    [[ -d ".agentic-qe" ]] || [[ -d "aqe" ]]
+}
+
+# Append claude-flow content to existing CLAUDE.md
+_append_claude_flow_to_claude_md() {
+    if [[ -f "CLAUDE.md" ]]; then
+        # Run cf-init-project to generate claude-flow CLAUDE.md in temp location
+        local temp_dir=$(mktemp -d)
+        (cd "$temp_dir" && cf-init-project 2>/dev/null)
+
+        if [[ -f "$temp_dir/CLAUDE.md" ]]; then
+            echo "" >> CLAUDE.md
+            echo "---" >> CLAUDE.md
+            echo "" >> CLAUDE.md
+            echo "# Claude Flow Configuration" >> CLAUDE.md
+            echo "" >> CLAUDE.md
+            # Append claude-flow generated content (skip if it duplicates existing header)
+            tail -n +2 "$temp_dir/CLAUDE.md" >> CLAUDE.md
+        fi
+        rm -rf "$temp_dir"
+    else
+        # No existing CLAUDE.md, just run init normally
+        cf-init-project 2>/dev/null
+    fi
+}
+
 init_project_tools() {
+    local skip_tools="${1:-false}"
     local tools_initialized=false
 
     # Initialize Claude Code project context
@@ -174,6 +208,64 @@ init_project_tools() {
         else
             print_debug "GitHub spec-kit initialization skipped"
         fi
+    fi
+
+    # Skip agentic tools if --skip-tools flag is set
+    if [[ "$skip_tools" == "true" ]]; then
+        print_debug "Skipping agentic tool initialization (--skip-tools)"
+        [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
+        return 0
+    fi
+
+    # claude-flow initialization
+    if command_exists cf-init-project; then
+        if _is_claude_flow_initialized; then
+            print_debug "claude-flow already initialized in this project"
+            tools_initialized=true
+        else
+            print_status "Initializing claude-flow..."
+            if _append_claude_flow_to_claude_md; then
+                print_success "claude-flow initialized"
+                tools_initialized=true
+
+                # Commit changes if any
+                if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+                    git add . 2>/dev/null
+                    git commit -m "feat: initialize claude-flow configuration" 2>/dev/null || true
+                fi
+            else
+                print_warning "claude-flow initialization failed, you can run 'cf-init-project' manually"
+            fi
+        fi
+    fi
+
+    # agentic-qe initialization
+    if command_exists aqe; then
+        if _is_aqe_initialized; then
+            print_debug "agentic-qe already initialized in this project"
+            tools_initialized=true
+        else
+            print_status "Initializing agentic-qe..."
+            if aqe init 2>/dev/null; then
+                print_success "agentic-qe initialized"
+                tools_initialized=true
+
+                # Commit changes if any
+                if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+                    git add . 2>/dev/null
+                    git commit -m "feat: initialize agentic-qe testing framework" 2>/dev/null || true
+                fi
+            else
+                print_warning "agentic-qe initialization failed, you can run 'aqe init' manually"
+            fi
+        fi
+    fi
+
+    # agentic-flow availability check (no init needed)
+    if command_exists agentic-flow; then
+        print_status "Checking for agentic-flow..."
+        tools_initialized=true
+        print_success "agentic-flow is available"
     fi
 
     [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
@@ -259,7 +351,7 @@ setup_project_enhancements() {
                 skip_deps=true
                 shift
                 ;;
-            --skip-claude-tools)
+            --skip-tools)
                 skip_tools=true
                 shift
                 ;;
@@ -290,7 +382,9 @@ setup_project_enhancements() {
     fi
 
     if [[ "$skip_tools" == "false" ]]; then
-        init_project_tools || print_warning "Project tools initialization failed, continuing..."
+        init_project_tools "$skip_tools" || print_warning "Project tools initialization failed, continuing..."
+    else
+        init_project_tools "true" || print_warning "Project tools initialization failed, continuing..."
     fi
 
     print_success "Project enhancements complete"
@@ -301,6 +395,9 @@ export -f install_project_dependencies
 export -f _install_template_dependencies
 export -f _scan_and_install_dependencies
 export -f _execute_dependency_config
+export -f _is_claude_flow_initialized
+export -f _is_aqe_initialized
+export -f _append_claude_flow_to_claude_md
 export -f init_project_tools
 export -f create_project_claude_md
 export -f setup_project_enhancements

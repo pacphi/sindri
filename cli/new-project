@@ -28,6 +28,7 @@ PROJECT_TYPE=""
 AUTO_DETECT=true
 GIT_NAME=""
 GIT_EMAIL=""
+SKIP_TOOLS=false
 INTERACTIVE=false
 
 show_usage() {
@@ -39,6 +40,7 @@ show_usage() {
     echo "  --interactive              Force interactive type selection"
     echo "  --git-name <name>          Git user name for this project"
     echo "  --git-email <email>        Git user email for this project"
+    echo "  --skip-tools               Skip agentic tool initialization (claude-flow, aqe, etc.)"
     echo "  -h, --help                 Show this help message"
     echo ""
     echo "Examples:"
@@ -185,6 +187,10 @@ while [[ $# -gt 0 ]]; do
             GIT_EMAIL="$2"
             shift 2
             ;;
+        --skip-tools)
+            SKIP_TOOLS=true
+            shift
+            ;;
         -h|--help)
             show_usage
             ;;
@@ -264,7 +270,7 @@ fi
 git add .
 git commit -m "feat: initial project setup for $PROJECT_NAME"
 
-setup_project_enhancements ${GIT_NAME:+--git-name "$GIT_NAME"} ${GIT_EMAIL:+--git-email "$GIT_EMAIL"} || exit 1
+setup_project_enhancements ${SKIP_TOOLS:+--skip-tools} ${GIT_NAME:+--git-name "$GIT_NAME"} ${GIT_EMAIL:+--git-email "$GIT_EMAIL"} || exit 1
 
 print_success "Project $PROJECT_NAME created successfully"
 echo "📁 Location: $PROJECT_DIR"
@@ -272,6 +278,18 @@ echo "📝 Next steps:"
 echo "   1. cd $PROJECT_DIR"
 echo "   2. Edit CLAUDE.md with project details"
 echo "   3. Start coding with: claude"
+
+echo ""
+echo "Initialized Tools:"
+(
+    cd "$PROJECT_DIR" || exit 1
+    if command_exists claude; then echo "  ✓ Claude Code"; fi
+    if command_exists uvx && [[ -f ".github/spec.json" ]]; then echo "  ✓ GitHub spec-kit"; fi
+    if command_exists cf-init-project && _is_claude_flow_initialized; then echo "  ✓ claude-flow"; fi
+    if command_exists aqe && _is_aqe_initialized; then echo "  ✓ agentic-qe"; fi
+    if command_exists agentic-flow; then echo "  ✓ agentic-flow"; fi
+)
+
 echo ""
 echo "Git Configuration:"
 echo "   User: $(git config user.name) <$(git config user.email)>"

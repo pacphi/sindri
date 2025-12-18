@@ -203,6 +203,68 @@ Projects automatically activate relevant extensions:
 
 These extensions are installed using the `extension-manager` and configured for the project.
 
+## Automatic Tool Initialization
+
+When creating or cloning projects, Sindri automatically initializes installed agentic tools to enhance your development workflow.
+
+### Supported Tools
+
+| Tool | Extension | Init Command | Creates |
+|------|-----------|--------------|---------|
+| Claude Code | Built-in | - | Context awareness via CLAUDE.md |
+| GitHub spec-kit | Built-in (if uv installed) | `specify init --here` | `.github/spec.json` |
+| claude-flow | `extension-manager install claude-flow` | `cf-init-project` | Enhanced CLAUDE.md, `.claude/` directory |
+| agentic-qe | `extension-manager install agentic-qe` | `aqe init` | `.agentic-qe/` or `aqe/` directory |
+| agentic-flow | `extension-manager install agentic-flow` | None (ready to use) | - |
+
+### Initialization Behavior
+
+- **Automatic Detection**: If a tool is installed via mise/npm, it will be auto-initialized in new and cloned projects
+- **Idempotency**: Re-running project creation will skip already initialized tools
+- **Graceful Failures**: Init failures log warnings but don't block project creation
+- **CLAUDE.md Handling**: claude-flow appends its content to existing CLAUDE.md (preserves Sindri's content while adding claude-flow features)
+
+### Skip Tool Initialization
+
+To skip agentic tool initialization during project creation:
+
+```bash
+# Clone without tool initialization
+./cli/clone-project https://github.com/user/repo --skip-tools
+
+# Create new project without tool initialization
+./cli/new-project my-app --type node --skip-tools
+```
+
+### Manual Initialization
+
+If you install tools after project creation, you can manually initialize them:
+
+```bash
+cd ~/projects/my-app
+
+# Initialize claude-flow
+cf-init-project
+
+# Initialize agentic-qe
+aqe init
+
+# agentic-flow is ready immediately after installation (no init needed)
+```
+
+### Checking Initialized Tools
+
+After project creation, both `clone-project` and `new-project` display which tools were initialized:
+
+```text
+Initialized Tools:
+  ✓ Claude Code
+  ✓ GitHub spec-kit
+  ✓ claude-flow
+  ✓ agentic-qe
+  ✓ agentic-flow
+```
+
 ## Best Practices
 
 1. **Use Templates**: Let auto-detection work for you - name your projects descriptively

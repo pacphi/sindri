@@ -30,6 +30,7 @@ GIT_NAME=""
 GIT_EMAIL=""
 FEATURE_BRANCH=""
 SKIP_DEPS=false
+SKIP_TOOLS=false
 SKIP_ENHANCE=false
 PROJECT_NAME=""
 
@@ -46,6 +47,7 @@ show_usage() {
     echo "  --git-email <email> Configure Git user email for this project"
     echo "  --feature <name>    Create and checkout feature branch after clone"
     echo "  --no-deps           Skip dependency installation"
+    echo "  --skip-tools        Skip agentic tool initialization (claude-flow, aqe, etc.)"
     echo "  --no-enhance        Skip all enhancements (just clone/fork)"
     echo "  -h, --help          Show this help message"
     echo ""
@@ -107,6 +109,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-deps)
             SKIP_DEPS=true
+            shift
+            ;;
+        --skip-tools)
+            SKIP_TOOLS=true
             shift
             ;;
         --no-enhance)
@@ -201,6 +207,7 @@ if [[ "$SKIP_ENHANCE" != true ]]; then
 
     setup_project_enhancements \
         ${SKIP_DEPS:+--skip-deps} \
+        ${SKIP_TOOLS:+--skip-tools} \
         ${GIT_NAME:+--git-name "$GIT_NAME"} \
         ${GIT_EMAIL:+--git-email "$GIT_EMAIL"} || exit 1
 fi
@@ -219,6 +226,17 @@ if [[ ! -f "CLAUDE.md" ]] || [[ "$SKIP_ENHANCE" == true ]]; then
     echo "   2. Run 'claude /init' to set up project context"
 fi
 echo "   3. Start coding with: claude"
+
+echo ""
+echo "Initialized Tools:"
+(
+    cd "$PROJECT_DIR" || exit 1
+    if command_exists claude; then echo "  ✓ Claude Code"; fi
+    if command_exists uvx && [[ -f ".github/spec.json" ]]; then echo "  ✓ GitHub spec-kit"; fi
+    if command_exists cf-init-project && _is_claude_flow_initialized; then echo "  ✓ claude-flow"; fi
+    if command_exists aqe && _is_aqe_initialized; then echo "  ✓ agentic-qe"; fi
+    if command_exists agentic-flow; then echo "  ✓ agentic-flow"; fi
+)
 
 echo ""
 echo "Git Configuration:"
