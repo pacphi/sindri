@@ -114,6 +114,7 @@ Pre-installed foundational extensions:
 | agentic-flow             | Agentic workflow orchestration             | [AGENTIC-FLOW.md](extensions/AGENTIC-FLOW.md)                         |
 | goose                    | AI coding agent with tool use              | [GOOSE.md](extensions/GOOSE.md)                                       |
 | mdflow                   | Markdown to AI agent CLI                   | [MDFLOW.md](extensions/MDFLOW.md)                                     |
+| context7-mcp             | Context7 library documentation MCP         | [CONTEXT7-MCP.md](extensions/CONTEXT7-MCP.md)                         |
 | ruvnet-research          | AI research tools (Goalie, Research-Swarm) | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md)                   |
 
 ### Infrastructure

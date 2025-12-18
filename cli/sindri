@@ -245,6 +245,8 @@ secrets:
   #   source: env
   # - name: ZAI_ANTHROPIC_API_KEY # Cost-effective Claude wrapper (vf-zai-service)
   #   source: env
+  # - name: CONTEXT7_API_KEY      # Context7 library documentation MCP (context7-mcp)
+  #   source: env                 # Get key at: https://context7.com/dashboard (optional, enables higher rate limits)
 
   # Project Management Tools (optional)
   # - name: LINEAR_API_KEY        # Linear.app issue tracking (linear-mcp)
