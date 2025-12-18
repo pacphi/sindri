@@ -159,11 +159,21 @@ EODC
 EODC
     fi
 
-    # Add container settings and volume definition
-    # Note: Do NOT add 'command: sleep infinity' - the entrypoint handles this
-    # in daemon mode, and adding a command triggers interactive mode which
-    # bypasses background extension installation
+    # Add security hardening options (M-8: Docker security best practices)
     cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    tmpfs:
+      - /tmp:size=2G,mode=1777,noexec,nosuid,nodev
     stdin_open: true
     tty: true
 

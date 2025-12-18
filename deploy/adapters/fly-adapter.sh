@@ -85,8 +85,18 @@ parse_config() {
     # Parse base configuration
     adapter_parse_base_config "APP_NAME_OVERRIDE"
 
-    # Fly.io-specific: Convert memory to MB
-    MEMORY=$(yq '.deployment.resources.memory // "2GB"' "$SINDRI_YAML" | sed 's/GB/*1024/;s/MB//')
+    # Fly.io-specific: Convert memory to MB (security fix H-9)
+    local memory_raw
+    memory_raw=$(yq '.deployment.resources.memory // "2GB"' "$SINDRI_YAML")
+
+    # Validate memory format to prevent command injection
+    if [[ ! "$memory_raw" =~ ^[0-9]+[GM]B$ ]]; then
+        print_error "Invalid memory format: $memory_raw (expected format: 2GB, 512MB, etc.)"
+        exit 1
+    fi
+
+    # Safe conversion after validation
+    MEMORY=$(echo "$memory_raw" | sed 's/GB/*1024/;s/MB//')
     MEMORY_MB=$(echo "$MEMORY" | bc)
 
     # Fly.io-specific config
@@ -509,7 +519,8 @@ ensure_ssh_keys() {
         echo ""
         if [[ ! $REPLY =~ ^[Nn]$ ]]; then
             print_status "Configuring SSH key on Fly.io..."
-            flyctl secrets set "AUTHORIZED_KEYS=$ssh_key" -a "$app_name"
+            # Use stdin to prevent secrets exposure in process arguments (C-4 security fix)
+            echo "AUTHORIZED_KEYS=$ssh_key" | flyctl secrets import -a "$app_name"
             print_success "SSH key configured successfully"
             return 0
         fi
@@ -526,7 +537,8 @@ ensure_ssh_keys() {
             print_success "SSH key generated: $key_path"
 
             print_status "Configuring SSH key on Fly.io..."
-            flyctl secrets set "AUTHORIZED_KEYS=$ssh_key" -a "$app_name"
+            # Use stdin to prevent secrets exposure in process arguments (C-4 security fix)
+            echo "AUTHORIZED_KEYS=$ssh_key" | flyctl secrets import -a "$app_name"
             print_success "SSH key configured successfully"
 
             echo ""

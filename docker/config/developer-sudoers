@@ -1,3 +1,18 @@
-# Sudoers configuration for developer user
-# Allows passwordless sudo for all commands
-developer ALL=(ALL) NOPASSWD:ALL
+# ============================================================================
+# Sindri Sudoers Configuration - Development Environment
+# ============================================================================
+# Simplified configuration for development containers
+#
+# Security Note: This grants full sudo access without password for developer user
+# - Acceptable for development environments where user already has root-equivalent access
+# - NOT recommended for production without additional security controls
+#
+# Context: Restricted sudo (C-5) caused functional issues with apt-get via env wrapper
+# Research showed standard practice for dev containers is NOPASSWD: ALL
+#
+# See Security Audit Report C-5 for full risk analysis and accepted risk justification
+# Last Updated: December 17, 2025
+# ============================================================================
+
+# Allow developer user passwordless access to ALL commands
+developer ALL=(ALL) NOPASSWD: ALL

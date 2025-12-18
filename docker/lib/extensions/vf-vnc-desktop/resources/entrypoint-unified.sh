@@ -41,9 +41,24 @@ chown -R zai-user:zai-user /home/zai-user 2>/dev/null
 set -e
 
 # Configure Docker socket permissions for docker-manager skill
+# Security fix H-4: Use group membership instead of chmod 666
 if [ -S /var/run/docker.sock ]; then
-    chmod 666 /var/run/docker.sock
-    echo "✓ Docker socket permissions configured for docker-manager skill"
+    # Check if docker group exists, create if not
+    if ! getent group docker >/dev/null 2>&1; then
+        groupadd docker 2>/dev/null || echo "⚠️  Could not create docker group"
+    fi
+
+    # Add devuser to docker group
+    if getent group docker >/dev/null 2>&1; then
+        usermod -aG docker devuser 2>/dev/null || echo "⚠️  Could not add devuser to docker group"
+        # Set secure permissions: owner + group only (660)
+        chmod 660 /var/run/docker.sock
+        # Ensure socket is owned by root:docker
+        chown root:docker /var/run/docker.sock 2>/dev/null || true
+        echo "✓ Docker socket permissions configured securely (group-based access)"
+    else
+        echo "⚠️  Docker group unavailable, skipping socket configuration"
+    fi
 else
     echo "ℹ️  Docker socket not found (this is normal if not mounting host socket)"
 fi

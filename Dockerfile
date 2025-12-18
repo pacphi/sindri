@@ -100,6 +100,8 @@ RUN /docker/scripts/install-mise.sh
 RUN /docker/scripts/install-claude.sh
 
 # Set permissions for scripts and CLI tools
+# Note: Scripts use 755 (not 750) to allow developer user execution
+# See M-2 in security audit for rationale
 RUN chmod -R +r /docker/lib && \
     find /docker/lib -type f -exec chmod 644 {} \; && \
     find /docker/lib -type d -exec chmod 755 {} \; && \

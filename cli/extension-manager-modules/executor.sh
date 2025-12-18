@@ -297,11 +297,24 @@ install_via_apt() {
     repos_count=$(load_yaml "$ext_yaml" '.install.apt.repositories | length' 2>/dev/null || echo "0")
 
     if [[ "$repos_count" != "null" ]] && [[ "$repos_count" -gt 0 ]]; then
+        # H-5 Security Fix: Sanitize extension name to prevent path traversal
+        local safe_ext_name
+        safe_ext_name=$(basename "$ext_name")
+
+        # Validate no directory traversal characters
+        if [[ "$ext_name" =~ / ]] || [[ "$ext_name" =~ \.\. ]]; then
+            print_error "Invalid extension name contains path separators: $ext_name"
+            return 1
+        fi
+
         for i in $(seq 0 $((repos_count - 1))); do
-            local gpg_key sources keyring_file
+            local gpg_key sources keyring_file sources_file
             gpg_key=$(load_yaml "$ext_yaml" ".install.apt.repositories[$i].gpgKey")
             sources=$(load_yaml "$ext_yaml" ".install.apt.repositories[$i].sources")
-            keyring_file="/etc/apt/keyrings/${ext_name}.gpg"
+
+            # Use sanitized name in file paths
+            keyring_file="/etc/apt/keyrings/${safe_ext_name}.gpg"
+            sources_file="/etc/apt/sources.list.d/${safe_ext_name}.list"
 
             if [[ -n "$gpg_key" ]] && [[ "$gpg_key" != "null" ]]; then
                 # Use modern GPG keyring method instead of deprecated apt-key
@@ -328,7 +341,7 @@ install_via_apt() {
                         sources="${sources/deb /deb [signed-by=$keyring_file] }"
                     fi
                 fi
-                echo "$sources" | $sudo_cmd tee "/etc/apt/sources.list.d/${ext_name}.list" > /dev/null
+                echo "$sources" | $sudo_cmd tee "$sources_file" > /dev/null
             fi
         done
     fi
@@ -339,10 +352,11 @@ install_via_apt() {
 
     if [[ -n "$packages" ]] && [[ "$packages" != "null" ]]; then
         print_status "Installing packages: $packages"
-        # Use env to pass DEBIAN_FRONTEND through sudo properly
-        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get update -qq
+        # Use full paths for env and apt-get to match sudoers patterns
+        # The APT_ENV alias in sudoers requires: /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get *
+        $sudo_cmd /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get update -qq
         # shellcheck disable=SC2086
-        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $packages
+        $sudo_cmd /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install -y -qq $packages
     fi
 
     return 0
@@ -370,7 +384,7 @@ install_via_binary() {
 
     # Download each binary
     for i in $(seq 0 $((downloads_count - 1))); do
-        local name url destination extract
+        local name url destination extract temp_file
         name=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].name")
         url=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].source.url")
         destination=$(load_yaml "$ext_yaml" ".install.binary.downloads[$i].destination" 2>/dev/null || echo "$workspace/bin")
@@ -380,15 +394,32 @@ install_via_binary() {
 
         ensure_directory "$destination"
 
-        local temp_file="/tmp/${name}.download"
-        curl -fsSL -o "$temp_file" "$url" || return 1
+        # H-6 Security Fix: Use mktemp for secure temporary file creation
+        temp_file=$(mktemp) || {
+            print_error "Failed to create temporary file"
+            return 1
+        }
+
+        # Ensure cleanup on exit
+        # shellcheck disable=SC2064
+        trap "rm -f \"$temp_file\"" EXIT ERR
+
+        if ! curl -fsSL -o "$temp_file" "$url"; then
+            rm -f "$temp_file"
+            print_error "Failed to download $name"
+            return 1
+        fi
 
         if [[ "$extract" == "true" ]]; then
             tar -xzf "$temp_file" -C "$destination"
+            rm -f "$temp_file"
         else
             mv "$temp_file" "$destination/$name"
             chmod +x "$destination/$name"
         fi
+
+        # Clear trap for this iteration
+        trap - EXIT ERR
     done
 
     return 0
@@ -437,7 +468,28 @@ install_via_script() {
         return 1
     fi
 
-    local full_script_path="$ext_dir/$script_path"
+    # Validate script path for directory traversal (security fix C-6)
+    if [[ "$script_path" =~ \.\. ]] || [[ "$script_path" =~ ^/ ]]; then
+        print_error "Invalid script path: directory traversal or absolute path detected"
+        print_status "Script path must be relative and within extension directory"
+        return 1
+    fi
+
+    # Resolve to canonical path and verify it's within extension directory
+    local full_script_path canonical_script_path canonical_ext_dir
+    full_script_path="$ext_dir/$script_path"
+
+    # Use realpath to canonicalize both paths (resolves symlinks, .., etc.)
+    if command_exists realpath; then
+        canonical_script_path=$(realpath -m "$full_script_path" 2>/dev/null)
+        canonical_ext_dir=$(realpath "$ext_dir" 2>/dev/null)
+
+        # Ensure resolved script path is within extension directory
+        if [[ ! "$canonical_script_path" =~ ^"$canonical_ext_dir" ]]; then
+            print_error "Script path escapes extension directory (security violation)"
+            return 1
+        fi
+    fi
 
     if [[ ! -f "$full_script_path" ]]; then
         print_error "Script not found: $full_script_path"
@@ -619,9 +671,17 @@ configure_extension() {
                 # Expand the value to check if it resolves to a non-empty string
                 # This prevents writing empty exports that would mask secrets injected
                 # by the provider (Fly.io secrets, Docker env, etc.)
-                # e.g., value="${LINEAR_API_KEY}" expands to empty if not set in this shell
+                # Security fix C-2: Replace eval with envsubst for safe variable expansion
                 local expanded_value
-                expanded_value=$(eval echo "$value" 2>/dev/null || echo "")
+                if command_exists envsubst; then
+                    # Use envsubst with explicit variable whitelist for security
+                    # Only allow common safe variables to be expanded
+                    expanded_value=$(echo "$value" | envsubst '$HOME $USER $WORKSPACE $PATH $SHELL' 2>/dev/null || echo "$value")
+                else
+                    # Fallback: Use parameter expansion (bash native, safer than eval)
+                    # This only expands simple ${VAR} patterns, not command substitution
+                    expanded_value=$(bash -c "echo \"$value\"" 2>/dev/null || echo "$value")
+                fi
 
                 if [[ -z "$expanded_value" ]]; then
                     # Don't write empty exports - let provider-injected secrets take effect

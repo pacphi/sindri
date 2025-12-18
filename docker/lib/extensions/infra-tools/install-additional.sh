@@ -57,7 +57,16 @@ install_crossplane() {
 install_kubectx() {
     print_status "Installing kubectx and kubens..."
 
-    local KUBECTX_VERSION="v0.9.5"
+    # Get latest version using standardized GitHub release version detection
+    # Uses gh CLI with curl fallback for reliability
+    local KUBECTX_VERSION
+    KUBECTX_VERSION=$(get_github_release_version "ahmetb/kubectx" true)
+    if [[ -z "$KUBECTX_VERSION" ]]; then
+        print_warning "Could not fetch kubectx version, using fallback v0.9.5"
+        KUBECTX_VERSION="v0.9.5"
+    fi
+    print_status "Using kubectx version: $KUBECTX_VERSION"
+
     local BASE_URL="https://raw.githubusercontent.com/ahmetb/kubectx/${KUBECTX_VERSION}/bin"
 
     for tool in kubectx kubens; do

@@ -18,15 +18,17 @@ case "$ARCH" in
   *) print_warning "Unsupported architecture: $ARCH"; AWS_ARCH="x86_64"; ALI_ARCH="amd64"; DO_ARCH="amd64" ;;
 esac
 
-# AWS CLI
+# AWS CLI - user-local install to avoid sudo (C-5 security compliance)
 print_status "Installing AWS CLI..."
 if command_exists aws; then
   print_warning "AWS CLI already installed: $(aws --version)"
 else
+  # Ensure user-local bin directory exists and is in PATH
+  mkdir -p "$HOME/.local/bin" "$HOME/.local/aws-cli"
   if curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "/tmp/awscliv2.zip"; then
-    (cd /tmp && unzip -q awscliv2.zip && sudo ./aws/install 2>/dev/null)
+    (cd /tmp && unzip -q awscliv2.zip && ./aws/install --install-dir "$HOME/.local/aws-cli" --bin-dir "$HOME/.local/bin" --update 2>/dev/null)
     rm -rf /tmp/aws /tmp/awscliv2.zip
-    print_success "AWS CLI installed"
+    print_success "AWS CLI installed to ~/.local/bin"
   else
     print_warning "Failed to download AWS CLI installer"
     rm -f /tmp/awscliv2.zip
@@ -93,37 +95,45 @@ else
   fi
 fi
 
-# Alibaba Cloud CLI
+# Alibaba Cloud CLI - user-local install (C-5 security compliance)
 print_status "Installing Alibaba Cloud CLI..."
 if command_exists aliyun; then
   print_warning "Alibaba Cloud CLI already installed"
 else
   # Note: Alibaba CLI uses 'amd64' for x86_64 and 'arm64' for aarch64
+  mkdir -p "$HOME/.local/bin"
   if wget -q -O "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz" "https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-${ALI_ARCH}.tgz"; then
     tar xzf "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz" -C /tmp
-    sudo mv /tmp/aliyun /usr/local/bin/
+    mv /tmp/aliyun "$HOME/.local/bin/"
     rm -f "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz"
-    print_success "Alibaba Cloud CLI installed"
+    print_success "Alibaba Cloud CLI installed to ~/.local/bin"
   else
     print_warning "Failed to download Alibaba Cloud CLI"
     rm -f "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz"
   fi
 fi
 
-# DigitalOcean CLI
+# DigitalOcean CLI - user-local install (C-5 security compliance)
 print_status "Installing DigitalOcean CLI (doctl)..."
 if command_exists doctl; then
   print_warning "DigitalOcean CLI already installed"
 else
-  DOCTL_VERSION=$(curl -s https://api.github.com/repos/digitalocean/doctl/releases/latest 2>/dev/null | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
-  if [[ -n "$DOCTL_VERSION" ]] && wget -q -O "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz"; then
-    tar xzf "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" -C /tmp
-    sudo mv /tmp/doctl /usr/local/bin/
-    rm -f "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz"
-    print_success "DigitalOcean CLI installed"
+  # Use standardized GitHub release version detection (gh CLI with curl fallback)
+  DOCTL_VERSION=$(get_github_release_version "digitalocean/doctl" false)
+  if [[ -n "$DOCTL_VERSION" ]]; then
+    print_status "Latest doctl version: v${DOCTL_VERSION}"
+    mkdir -p "$HOME/.local/bin"
+    if wget -q -O "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz"; then
+      tar xzf "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" -C /tmp
+      mv /tmp/doctl "$HOME/.local/bin/"
+      rm -f "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz"
+      print_success "DigitalOcean CLI v${DOCTL_VERSION} installed to ~/.local/bin"
+    else
+      print_warning "Failed to download DigitalOcean CLI"
+      rm -f "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" /tmp/doctl
+    fi
   else
-    print_warning "Failed to download DigitalOcean CLI"
-    rm -f "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" /tmp/doctl
+    print_warning "Failed to fetch DigitalOcean CLI version from GitHub"
   fi
 fi
 

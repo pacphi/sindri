@@ -44,6 +44,15 @@ main() {
                 return 1
             fi
             local ext_name="$1"
+
+            # Security fix H-11: Rate limiting for individual installs (not profiles)
+            # Profiles are exempt as they're intentional batch operations
+            # Allow 10 individual install operations per 5 minutes
+            if ! check_rate_limit "extension-install-single" 10 300; then
+                print_status "Tip: Use 'install-profile' for batch installations (no rate limit)"
+                return 1
+            fi
+
             # Resolve dependencies first
             local resolved
             resolved=$(resolve_dependencies "$ext_name")
@@ -113,6 +122,13 @@ main() {
                 print_error "Usage: extension-manager remove <name>"
                 return 1
             fi
+
+            # Security fix H-11: Rate limiting for individual removes
+            # Allow 10 individual remove operations per 5 minutes
+            if ! check_rate_limit "extension-remove-single" 10 300; then
+                return 1
+            fi
+
             execute_extension "$1" "remove"
             remove_from_manifest "$1"
             ;;

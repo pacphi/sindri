@@ -13,6 +13,34 @@ fi
 # WORKSPACE_MANIFEST is set by common.sh (sourced above)
 MANIFEST_FILE="${WORKSPACE_MANIFEST}/active-extensions.yaml"
 
+#######################################
+# Validate extension name (H-3 security fix)
+# Prevents YAML injection by enforcing safe naming pattern
+# Arguments:
+#   $1 - Extension name to validate
+# Returns:
+#   0 if valid, 1 if invalid
+#######################################
+validate_extension_name() {
+    local ext_name="$1"
+
+    # Extension names must be lowercase alphanumeric with hyphens only
+    if [[ ! "$ext_name" =~ ^[a-z0-9-]+$ ]]; then
+        print_error "Invalid extension name: $ext_name"
+        print_error "Extension names must contain only lowercase letters, numbers, and hyphens"
+        return 1
+    fi
+
+    # Prevent names that are just hyphens
+    if [[ "$ext_name" =~ ^-+$ ]]; then
+        print_error "Invalid extension name: $ext_name"
+        print_error "Extension name cannot be only hyphens"
+        return 1
+    fi
+
+    return 0
+}
+
 # Read manifest
 read_manifest() {
     if [[ ! -f "$MANIFEST_FILE" ]]; then
@@ -61,6 +89,11 @@ add_to_manifest() {
     local category="${2:-undefined}"
     local protected="${3:-false}"
 
+    # H-3 Security Fix: Validate extension name to prevent YAML injection
+    if ! validate_extension_name "$ext_name"; then
+        return 1
+    fi
+
     if ! command_exists yq; then
         print_error "yq is required for manifest management"
         return 1
@@ -71,17 +104,17 @@ add_to_manifest() {
         initialize_manifest
     fi
 
-    # Check if already in manifest
+    # Check if already in manifest using environment variable (safe from injection)
     local exists
-    exists=$(load_yaml "$MANIFEST_FILE" ".extensions[] | select(.name == \"$ext_name\")" 2>/dev/null || echo "")
+    exists=$(EXT_NAME="$ext_name" yq eval '.extensions[] | select(.name == env(EXT_NAME))' "$MANIFEST_FILE" 2>/dev/null || echo "")
 
     if [[ -n "$exists" ]]; then
-        # Update to active
-        yq eval -i ".extensions[] |= (select(.name == \"$ext_name\").active = true)" "$MANIFEST_FILE"
+        # Update to active using environment variable
+        EXT_NAME="$ext_name" yq eval -i '(.extensions[] | select(.name == env(EXT_NAME))).active = true' "$MANIFEST_FILE"
     else
-        # Add new entry
-        local entry="{\"name\": \"$ext_name\", \"active\": true, \"category\": \"$category\", \"protected\": $protected}"
-        yq eval -i ".extensions += [$entry]" "$MANIFEST_FILE"
+        # Add new entry using environment variables for all dynamic values
+        EXT_NAME="$ext_name" CATEGORY="$category" PROTECTED="$protected" \
+            yq eval -i '.extensions += [{"name": env(EXT_NAME), "active": true, "category": env(CATEGORY), "protected": env(PROTECTED)}]' "$MANIFEST_FILE"
     fi
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Added $ext_name to manifest"
@@ -92,22 +125,27 @@ add_to_manifest() {
 remove_from_manifest() {
     local ext_name="$1"
 
+    # H-3 Security Fix: Validate extension name to prevent YAML injection
+    if ! validate_extension_name "$ext_name"; then
+        return 1
+    fi
+
     if ! command_exists yq; then
         print_error "yq is required for manifest management"
         return 1
     fi
 
-    # Check if protected
+    # Check if protected using environment variable (safe from injection)
     local is_protected
-    is_protected=$(load_yaml "$MANIFEST_FILE" ".extensions[] | select(.name == \"$ext_name\") | .protected // false" 2>/dev/null || echo "false")
+    is_protected=$(EXT_NAME="$ext_name" yq eval '.extensions[] | select(.name == env(EXT_NAME)) | .protected // false' "$MANIFEST_FILE" 2>/dev/null || echo "false")
 
     if [[ "$is_protected" == "true" ]]; then
         print_error "Cannot remove protected extension: $ext_name"
         return 1
     fi
 
-    # Set to inactive instead of removing
-    yq eval -i ".extensions[] |= (select(.name == \"$ext_name\").active = false)" "$MANIFEST_FILE"
+    # Set to inactive instead of removing using environment variable
+    EXT_NAME="$ext_name" yq eval -i '(.extensions[] | select(.name == env(EXT_NAME))).active = false' "$MANIFEST_FILE"
 
     [[ "${VERBOSE:-false}" == "true" ]] && print_success "Deactivated $ext_name in manifest"
     return 0

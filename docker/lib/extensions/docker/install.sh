@@ -9,9 +9,11 @@ source "${DOCKER_LIB:-/docker/lib}/common.sh"
 print_status "Configuring Docker..."
 
 # Add developer user to docker group for rootless access
-if ! groups "$USER" 2>/dev/null | grep -q docker; then
-    print_status "Adding $USER to docker group..."
-    sudo usermod -aG docker "$USER"
+# Use literal "developer" instead of $USER to match sudoers pattern:
+# /usr/sbin/usermod -aG * developer
+if ! groups developer 2>/dev/null | grep -q docker; then
+    print_status "Adding developer to docker group..."
+    sudo usermod -aG docker developer
     print_success "User added to docker group (re-login required for effect)"
 fi
 
