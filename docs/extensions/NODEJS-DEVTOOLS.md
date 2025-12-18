@@ -1,6 +1,6 @@
 # Node.js DevTools
 
-TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend.
+TypeScript, ESLint, Prettier, pnpm, and Node.js development tools via mise npm backend.
 
 ## Overview
 
@@ -14,7 +14,7 @@ TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend
 
 ## Description
 
-TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend - provides essential JavaScript/TypeScript development tooling.
+TypeScript, ESLint, Prettier, pnpm, and Node.js development tools via mise npm backend - provides essential JavaScript/TypeScript development tooling including a fast, disk-efficient package manager.
 
 ## Installed Tools
 
@@ -25,6 +25,7 @@ TypeScript, ESLint, Prettier, and Node.js development tools via mise npm backend
 | `prettier` | cli-tool | Code formatter               |
 | `eslint`   | cli-tool | JavaScript/TypeScript linter |
 | `nodemon`  | cli-tool | Auto-restart server          |
+| `pnpm`     | cli-tool | Fast package manager         |
 
 ## Configuration
 
@@ -63,6 +64,7 @@ ts-node --version
 prettier --version
 eslint --version
 nodemon --version
+pnpm --version
 ```
 
 ## Upgrade

@@ -10,6 +10,7 @@
 "npm:@typescript-eslint/eslint-plugin" = "latest"
 "npm:prettier" = "latest"
 "npm:nodemon" = "latest"
+"npm:pnpm" = "latest"
 
 [tasks.format]
 description = "Format code with Prettier"
