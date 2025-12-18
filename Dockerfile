@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
     direnv \
+    fontconfig \
     gettext-base \
     git \
     gnupg \
@@ -98,6 +99,12 @@ RUN /docker/scripts/install-mise.sh
 
 # Install Claude Code CLI system-wide
 RUN /docker/scripts/install-claude.sh
+
+# Install Nerd Fonts (prerequisite for starship)
+RUN /docker/scripts/install-nerd-fonts.sh
+
+# Install starship (shell prompt) system-wide
+RUN /docker/scripts/install-starship.sh
 
 # Set permissions for scripts and CLI tools
 # Note: Scripts use 755 (not 750) to allow developer user execution

@@ -121,10 +121,24 @@ if command -v mise >/dev/null 2>&1; then
     eval "$(mise activate bash)"
 fi
 
+# starship - cross-shell prompt
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init bash)"
+fi
+
 # Add CLI tools and workspace bin to PATH
 export PATH="/docker/cli:${HOME}/workspace/bin:${PATH}"
 EOF
             print_status "Created .bashrc"
+        fi
+
+        # Ensure starship init is in .bashrc (append snippet if not present)
+        # This follows the same pattern as JVM extension (mode: append)
+        if [[ -f "${ALT_HOME}/.bashrc" ]] && ! grep -q "starship init" "${ALT_HOME}/.bashrc" 2>/dev/null; then
+            if [[ -f "/etc/skel/.bashrc-starship" ]]; then
+                cat "/etc/skel/.bashrc-starship" >> "${ALT_HOME}/.bashrc"
+                print_status "Added starship initialization to .bashrc"
+            fi
         fi
 
         # Create .profile
