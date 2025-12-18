@@ -78,6 +78,7 @@ cd sindri
 - **[DevPod Integration](docs/providers/DEVPOD.md)** - DevContainer setup
 - **[Docker Deployment](docs/providers/DOCKER.md)** - Local Docker setup
 - **[Kubernetes Deployment](docs/providers/KUBERNETES.md)** - Enterprise K8s guide
+- **[IDE Integration](docs/ides/README.md)** - Connect with VS Code, IntelliJ, Zed, Eclipse, or Warp
 - **[Secrets Management](docs/SECRETS_MANAGEMENT.md)** - Managing secrets across providers
 
 ### Development & Operations

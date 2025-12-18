@@ -52,11 +52,11 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 
 ### ⚠️ Accepted Risks
 
-| ID                                                                       | Severity | Finding                                    | Status           | Justification                                                                           |
-| ------------------------------------------------------------------------ | -------- | ------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------- |
-| [**C-5**](#c-5-unrestricted-sudo-access---accepted-risk)                  | Critical | Unrestricted Sudo Access                   | ⚠️ ACCEPTED RISK | Standard dev container practice; restricted sudo incompatible with apt-get via env      |
-| [**M-1**](#m-1-weak-password-policies-accepted-risk)                     | Medium   | Weak Password Policies                     | ⚠️ ACCEPTED RISK | usermod -L incompatible with UsePAM SSH key auth, usermod -p '\*' required              |
-| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority                         |
+| ID                                                                       | Severity | Finding                                    | Status           | Justification                                                                      |
+| ------------------------------------------------------------------------ | -------- | ------------------------------------------ | ---------------- | ---------------------------------------------------------------------------------- |
+| [**C-5**](#c-5-unrestricted-sudo-access---accepted-risk)                 | Critical | Unrestricted Sudo Access                   | ⚠️ ACCEPTED RISK | Standard dev container practice; restricted sudo incompatible with apt-get via env |
+| [**M-1**](#m-1-weak-password-policies-accepted-risk)                     | Medium   | Weak Password Policies                     | ⚠️ ACCEPTED RISK | usermod -L incompatible with UsePAM SSH key auth, usermod -p '\*' required         |
+| [**M-2**](#m-2-insecure-file-permissions-on-shell-scripts-accepted-risk) | Medium   | Insecure File Permissions on Shell Scripts | ⚠️ ACCEPTED RISK | 755 secure (root-owned), 750 breaks functionality, LOW priority                    |
 
 ### ⏳ Outstanding Findings
 
@@ -319,6 +319,7 @@ ps aux | grep flyctl → Shows "flyctl secrets import -a app-name"
 
 **Decision Rationale:**
 Attempted restricted sudo implementation (60 specific operations) failed due to incompatibility with apt-get environment wrapper pattern. Standard practice for development containers is `NOPASSWD: ALL`. Risk accepted because:
+
 1. Development environment context (not production)
 2. User already has root-equivalent access (Docker socket, SSH, full filesystem)
 3. Other security controls remain in effect (C-1, C-2, C-4, C-6, H-1, H-2, H-11, H-12)
@@ -346,14 +347,14 @@ Implemented restricted sudo with pattern-based command aliases (7 categories, 60
 
 Restricted sudo caused 6 extensions to fail on Fly.io deployment:
 
-| Extension | Failure Reason |
-|-----------|----------------|
-| **docker** | `sudo env DEBIAN_FRONTEND=noninteractive apt-get` pattern mismatch |
-| **tmux-workspace** | apt-get via env wrapper not whitelisted |
-| **infra-tools** | ansible/jq apt packages failed (mise/script succeeded) |
-| **cloud-tools** | AWS installer path not whitelisted (fixed with user-local install) |
-| **ollama** | Official installer's internal sudo calls not whitelisted (fixed with direct binary) |
-| **supabase-cli** | Dependency on docker failed |
+| Extension          | Failure Reason                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| **docker**         | `sudo env DEBIAN_FRONTEND=noninteractive apt-get` pattern mismatch                  |
+| **tmux-workspace** | apt-get via env wrapper not whitelisted                                             |
+| **infra-tools**    | ansible/jq apt packages failed (mise/script succeeded)                              |
+| **cloud-tools**    | AWS installer path not whitelisted (fixed with user-local install)                  |
+| **ollama**         | Official installer's internal sudo calls not whitelisted (fixed with direct binary) |
+| **supabase-cli**   | Dependency on docker failed                                                         |
 
 **Root Cause:**
 

@@ -517,7 +517,7 @@ grype sbom:sbom.spdx
 
 ## Related Documentation
 
-- [Security Audit Report](planning/SECURITY_AUDIT_REPORT.md) - Comprehensive security assessment and remediation status
+- [Security Audit Report](security/SECURITY_AUDIT_REPORT.md) - Comprehensive security assessment and remediation status
 - [Bill of Materials](BOM.md)
 - [Deployment Guide](DEPLOYMENT.md)
 - [Configuration Reference](CONFIGURATION.md)
