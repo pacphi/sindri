@@ -179,7 +179,7 @@ This removes:
 
 ## Related Extensions
 
-- [linear-mcp](LINEAR-MCP.md) - Linear project management
-- [jira-mcp](JIRA-MCP.md) - Atlassian Jira/Confluence integration
-- [ai-toolkit](AI-TOOLKIT.md) - AI CLI tools suite
-- [ollama](OLLAMA.md) - Local LLM runtime
+- linear-mcp - Linear project management
+- jira-mcp - Atlassian Jira/Confluence integration
+- ai-toolkit - AI CLI tools suite
+- ollama - Local LLM runtime
