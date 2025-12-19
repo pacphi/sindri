@@ -1,8 +1,8 @@
 ---
 metadata:
   name: python
-  version: 1.0.0
-  description: Python 3.13 via mise
+  version: 1.1.0
+  description: Python 3.13 with uv package manager via mise
   category: language
   dependencies: []
 
@@ -10,9 +10,10 @@ requirements:
   domains:
     - pypi.org
     - python.org
-  diskSpace: 400
+    - github.com
+  diskSpace: 450
   memory: 128
-  installTime: 45
+  installTime: 60
 
 install:
   method: mise
@@ -31,11 +32,16 @@ validate:
     - name: python
       expectedPattern: "Python 3\\.\\d+\\.\\d+"
     - name: pip
+    - name: uv
+      expectedPattern: "uv \\d+\\.\\d+\\.\\d+"
+    - name: uvx
 
 remove:
   mise:
     removeConfig: true
-    tools: [python]
+    tools:
+      - python
+      - uv
 
 bom:
   tools:
@@ -53,3 +59,17 @@ bom:
       license: MIT
       homepage: https://pip.pypa.io
       purl: pkg:pypi/pip
+    - name: uv
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: Apache-2.0 OR MIT
+      homepage: https://docs.astral.sh/uv
+      purl: pkg:cargo/uv
+    - name: uvx
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: Apache-2.0 OR MIT
+      homepage: https://docs.astral.sh/uv
+      purl: pkg:cargo/uv

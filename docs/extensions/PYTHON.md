@@ -1,27 +1,29 @@
 # Python
 
-Python 3.13 runtime via mise.
+Python 3.13 runtime with uv package manager via mise.
 
 ## Overview
 
 | Property         | Value    |
 | ---------------- | -------- |
 | **Category**     | language |
-| **Version**      | 1.0.0    |
+| **Version**      | 1.1.0    |
 | **Installation** | mise     |
-| **Disk Space**   | 400 MB   |
+| **Disk Space**   | 450 MB   |
 | **Dependencies** | None     |
 
 ## Description
 
-Python 3.13 via mise - provides the Python runtime and pip package manager for Python development.
+Python 3.13 with uv package manager via mise - provides the Python runtime, pip, and Astral's uv for fast Python package management and project operations.
 
 ## Installed Tools
 
-| Tool     | Type            | Description              |
-| -------- | --------------- | ------------------------ |
-| `python` | runtime         | Python 3.13 interpreter  |
-| `pip`    | package-manager | Python package installer |
+| Tool     | Type            | Description                                    |
+| -------- | --------------- | ---------------------------------------------- |
+| `python` | runtime         | Python 3.13 interpreter                        |
+| `pip`    | package-manager | Python package installer                       |
+| `uv`     | package-manager | Fast Python package manager (Astral)           |
+| `uvx`    | cli-tool        | Execute packages from PyPI (like npx for node) |
 
 ## Configuration
 
@@ -36,12 +38,14 @@ Python 3.13 via mise - provides the Python runtime and pip package manager for P
 ```toml
 [tools]
 python = "3.13"
+uv = "latest"
 ```
 
 ## Network Requirements
 
 - `pypi.org` - Python Package Index
 - `python.org` - Python downloads
+- `github.com` - uv releases
 
 ## Installation
 
@@ -54,6 +58,24 @@ extension-manager install python
 ```bash
 python --version    # Expected: Python 3.X.X
 pip --version
+uv --version        # Expected: uv X.X.X
+uvx --version
+```
+
+## uv Usage Examples
+
+```bash
+# Install packages (faster than pip)
+uv pip install requests
+
+# Run a package without installing
+uvx ruff check .
+
+# Create a new Python project
+uv init my-project
+
+# Sync project dependencies
+uv sync
 ```
 
 ## Removal

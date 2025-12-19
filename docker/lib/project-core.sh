@@ -150,34 +150,93 @@ _execute_dependency_config() {
     fi
 }
 
+# Check if Claude Code is authenticated
+# Returns 0 if authenticated, 1 if not
+check_claude_auth() {
+    # Check if claude command exists first
+    if ! command_exists claude; then
+        return 1
+    fi
+
+    # Check for authentication files
+    # macOS: Credentials stored in Keychain (no file to check directly)
+    # Linux/Container: Check for auth files
+    if [[ -f "$HOME/.claude.json" ]] || [[ -f "$HOME/.config/claude-code/auth.json" ]]; then
+        return 0
+    fi
+
+    # If no auth files found, try running a simple claude command to check auth
+    # This will fail if not authenticated
+    if claude /doctor &>/dev/null; then
+        return 0
+    fi
+
+    return 1
+}
+
+# Check Claude Code authentication status (non-blocking)
+# Returns 0 if authenticated, 1 if not
+verify_claude_auth() {
+    if ! command_exists claude; then
+        print_debug "Claude Code CLI not found"
+        return 1
+    fi
+
+    if check_claude_auth; then
+        print_success "Claude Code is authenticated"
+        return 0
+    else
+        print_warning "⚠️  Claude Code is not authenticated"
+        echo ""
+        echo "Claude-specific tools (claude-flow, etc.) will be skipped."
+        echo "To authenticate later, run:"
+        echo "  • Interactive login:  claude"
+        echo "  • OAuth token:        claude setup-token"
+        echo "  • API key:            export ANTHROPIC_API_KEY=your-key"
+        echo ""
+        return 1
+    fi
+}
+
 # Check if claude-flow has already initialized this project
+# All conditions must be true: .claude dir exists AND CLAUDE.md exists AND contains claude-flow pattern
 _is_claude_flow_initialized() {
-    [[ -d ".claude" ]] || ([[ -f "CLAUDE.md" ]] && grep -q "claude-flow\|Claude Flow" CLAUDE.md 2>/dev/null)
+    [[ -d ".claude" ]] && [[ -f "CLAUDE.md" ]] && grep -q "claude-flow\|Claude Flow" CLAUDE.md 2>/dev/null
 }
 
 # Check if agentic-qe has already initialized this project
 _is_aqe_initialized() {
-    [[ -d ".agentic-qe" ]] || [[ -d "aqe" ]]
+    [[ -d ".agentic-qe" ]]
 }
 
-# Append claude-flow content to existing CLAUDE.md
-_append_claude_flow_to_claude_md() {
+# Preserve existing CLAUDE.md and append claude-flow content
+# claude-flow init --force overwrites CLAUDE.md, so we:
+# 1. Backup existing CLAUDE.md to CLAUDE.project.md
+# 2. Run claude-flow init --force (creates new CLAUDE.md)
+# 3. Append new CLAUDE.md to CLAUDE.project.md
+# 4. Replace CLAUDE.md with the combined file
+_initialize_claude_flow() {
     if [[ -f "CLAUDE.md" ]]; then
-        # Run claude-flow init to generate claude-flow CLAUDE.md in temp location
-        local temp_dir
-        temp_dir=$(mktemp -d)
-        (cd "$temp_dir" && claude-flow init --force 2>/dev/null)
+        # Backup existing CLAUDE.md
+        mv CLAUDE.md CLAUDE.project.md
 
-        if [[ -f "$temp_dir/CLAUDE.md" ]]; then
-            echo "" >> CLAUDE.md
-            echo "---" >> CLAUDE.md
-            echo "" >> CLAUDE.md
-            echo "# Claude Flow Configuration" >> CLAUDE.md
-            echo "" >> CLAUDE.md
-            # Append claude-flow generated content (skip if it duplicates existing header)
-            tail -n +2 "$temp_dir/CLAUDE.md" >> CLAUDE.md
+        # Run claude-flow init to generate new CLAUDE.md
+        claude-flow init --force 2>/dev/null
+
+        if [[ -f "CLAUDE.md" ]]; then
+            # Append claude-flow generated content to project CLAUDE.md
+            echo "" >> CLAUDE.project.md
+            echo "---" >> CLAUDE.project.md
+            echo "" >> CLAUDE.project.md
+            cat CLAUDE.md >> CLAUDE.project.md
+
+            # Replace with combined file
+            rm -f CLAUDE.md
+            mv CLAUDE.project.md CLAUDE.md
+        else
+            # claude-flow init failed, restore backup
+            mv CLAUDE.project.md CLAUDE.md
         fi
-        rm -rf "$temp_dir"
     else
         # No existing CLAUDE.md, just run init normally
         claude-flow init --force 2>/dev/null
@@ -188,24 +247,17 @@ init_project_tools() {
     local skip_tools="${1:-false}"
     local tools_initialized=false
 
-    # Initialize Claude Code project context
-    if command_exists claude; then
-        print_status "Checking for Claude Code..."
-        tools_initialized=true
-        print_success "Claude Code is available"
-    fi
-
-    # Skip tools if --skip-tools flag is set
+	# Skip tools if --skip-tools flag is set
     if [[ "$skip_tools" == "true" ]]; then
         print_debug "Skipping tool initialization (--skip-tools)"
         [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
         return 0
     fi
 
-    # Initialize GitHub spec-kit if uv is available
+	# Initialize GitHub spec-kit if uv is available
     if command_exists uvx || command_exists uv; then
         print_status "Initializing GitHub spec-kit..."
-        if uvx --from git+https://github.com/github/spec-kit.git specify init --here 2>/dev/null; then
+        if uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude --script sh 2>/dev/null; then
             print_success "GitHub spec-kit initialized"
             tools_initialized=true
 
@@ -218,55 +270,69 @@ init_project_tools() {
         fi
     fi
 
-    # claude-flow initialization
-    if command_exists claude-flow; then
-        if _is_claude_flow_initialized; then
-            print_debug "claude-flow already initialized in this project"
-            tools_initialized=true
-        else
-            print_status "Initializing claude-flow..."
-            if _append_claude_flow_to_claude_md; then
-                print_success "claude-flow initialized"
-                tools_initialized=true
-
-                # Commit changes if any
-                if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-                    git add . 2>/dev/null
-                    git commit -m "feat: initialize claude-flow configuration" 2>/dev/null || true
-                fi
-            else
-                print_warning "claude-flow initialization failed, you can run 'claude-flow init --force' manually"
-            fi
-        fi
+    # Initialize Claude Code project context
+    if command_exists claude; then
+        print_success "Claude Code is available"
     fi
 
-    # agentic-qe initialization
-    if command_exists aqe; then
-        if _is_aqe_initialized; then
-            print_debug "agentic-qe already initialized in this project"
-            tools_initialized=true
-        else
-            print_status "Initializing agentic-qe..."
-            if aqe init 2>/dev/null; then
-                print_success "agentic-qe initialized"
-                tools_initialized=true
-
-                # Commit changes if any
-                if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-                    git add . 2>/dev/null
-                    git commit -m "feat: initialize agentic-qe testing framework" 2>/dev/null || true
-                fi
-            else
-                print_warning "agentic-qe initialization failed, you can run 'aqe init' manually"
-            fi
-        fi
-    fi
-
-    # agentic-flow availability check (no init needed)
+	# agentic-flow availability check (no init needed)
     if command_exists agentic-flow; then
-        print_status "Checking for agentic-flow..."
-        tools_initialized=true
         print_success "agentic-flow is available"
+    fi
+
+    # Claude tools initialization (requires Claude authentication)
+    if verify_claude_auth; then
+        # Ensure mise is activated if available
+        if command_exists mise && [[ -z "${MISE_ACTIVATED:-}" ]]; then
+            eval "$(mise activate bash)" 2>/dev/null || true
+            export MISE_ACTIVATED=1
+        fi
+
+        if command_exists claude-flow; then
+            if _is_claude_flow_initialized; then
+                print_debug "claude-flow already initialized in this project"
+                tools_initialized=true
+            else
+                print_status "Initializing claude-flow..."
+                # Preserve existing CLAUDE.md and append claude-flow content
+                if _initialize_claude_flow; then
+                    # Verify .claude directory was created
+                    if [[ -d ".claude" ]]; then
+                        print_success "claude-flow initialized"
+                        tools_initialized=true
+                    else
+                        print_warning "claude-flow init succeeded but .claude directory not found"
+                    fi
+                else
+                    print_warning "claude-flow initialization failed, you can run 'claude-flow init --force' manually"
+                fi
+            fi
+        else
+            print_debug "claude-flow command not found (check if mise is activated and claude-flow extension is installed)"
+        fi
+
+		if command_exists aqe; then
+            if _is_aqe_initialized; then
+                print_debug "agentic-qe already initialized in this project"
+                tools_initialized=true
+            else
+                print_status "Initializing agentic-qe..."
+				# Run aqe init directly in project directory
+                if aqe init --yes 2>&1; then
+                    # Verify .agentic-qe directory was created
+                    if [[ -d ".agentic-qe" ]]; then
+                        print_success "agentic-qe initialized"
+                        tools_initialized=true
+                    else
+                        print_warning "aqe init succeeded but .agentic-qe directory not found"
+                    fi
+                else
+                    print_warning "agentic-qe initialization failed, you can run 'aqe init --yes' manually"
+                fi
+            fi
+        fi
+    else
+        print_debug "Skipping Claude tools initialization (Claude Code not authenticated)"
     fi
 
     [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
@@ -396,9 +462,11 @@ export -f install_project_dependencies
 export -f _install_template_dependencies
 export -f _scan_and_install_dependencies
 export -f _execute_dependency_config
+export -f check_claude_auth
+export -f verify_claude_auth
 export -f _is_claude_flow_initialized
 export -f _is_aqe_initialized
-export -f _append_claude_flow_to_claude_md
+export -f _initialize_claude_flow
 export -f init_project_tools
 export -f create_project_claude_md
 export -f setup_project_enhancements

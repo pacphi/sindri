@@ -206,8 +206,8 @@ if [[ "$SKIP_ENHANCE" != true ]]; then
     create_project_claude_md --from-cli || exit 1
 
     setup_project_enhancements \
-        ${SKIP_DEPS:+--skip-deps} \
-        ${SKIP_TOOLS:+--skip-tools} \
+        $([[ "$SKIP_DEPS" == "true" ]] && echo "--skip-deps") \
+        $([[ "$SKIP_TOOLS" == "true" ]] && echo "--skip-tools") \
         ${GIT_NAME:+--git-name "$GIT_NAME"} \
         ${GIT_EMAIL:+--git-email "$GIT_EMAIL"} || exit 1
 fi

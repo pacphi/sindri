@@ -270,7 +270,10 @@ fi
 git add .
 git commit -m "feat: initial project setup for $PROJECT_NAME"
 
-setup_project_enhancements ${SKIP_TOOLS:+--skip-tools} ${GIT_NAME:+--git-name "$GIT_NAME"} ${GIT_EMAIL:+--git-email "$GIT_EMAIL"} || exit 1
+setup_project_enhancements \
+    $([[ "$SKIP_TOOLS" == "true" ]] && echo "--skip-tools") \
+    ${GIT_NAME:+--git-name "$GIT_NAME"} \
+    ${GIT_EMAIL:+--git-email "$GIT_EMAIL"} || exit 1
 
 print_success "Project $PROJECT_NAME created successfully"
 echo "📁 Location: $PROJECT_DIR"

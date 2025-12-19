@@ -1,5 +1,6 @@
 [tools]
 python = "3.13"
+uv = "latest"
 
 [env]
 PYTHONDONTWRITEBYTECODE = "1"
