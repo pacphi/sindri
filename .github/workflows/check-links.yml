@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload internal link report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: lychee-internal-report
           path: lychee-internal.md
@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload external link report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: lychee-external-report
           path: lychee-external.md
