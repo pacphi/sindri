@@ -752,11 +752,13 @@ validate_extension() {
     hash -r 2>/dev/null || true
 
     # Get validation timeout from extension or use default
+    # Default is 30s to accommodate slower environments (e.g., Fly.io with network-attached volumes)
+    # where pip and other tools may take longer due to I/O latency
     local validation_timeout
     validation_timeout=$(load_yaml "$ext_yaml" '.requirements.validationTimeout' 2>/dev/null || echo "null")
     # Handle null from yq (same issue as autoInstall bug)
     if [[ "$validation_timeout" == "null" ]]; then
-        validation_timeout="${SINDRI_VALIDATION_TIMEOUT:-10}"
+        validation_timeout="${SINDRI_VALIDATION_TIMEOUT:-30}"
     fi
 
     # Get list of validation commands

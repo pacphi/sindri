@@ -90,8 +90,8 @@
         "validationTimeout": {
           "type": "integer",
           "minimum": 0,
-          "default": 10,
-          "description": "Maximum validation timeout in seconds (default: 10s)"
+          "default": 30,
+          "description": "Maximum validation timeout in seconds (default: 30s)"
         },
         "secrets": {
           "type": "array",

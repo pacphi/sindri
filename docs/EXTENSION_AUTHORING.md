@@ -22,7 +22,7 @@ requirements:
   domains: # Required DNS domains
     - example.com
   diskSpace: 100 # Required disk space in MB
-  validationTimeout: 30 # Optional: seconds to wait for validation (default: 10)
+  validationTimeout: 30 # Optional: seconds to wait for validation (default: 30)
   secrets: # Optional secrets
     - MY_API_KEY
 
@@ -276,12 +276,12 @@ validate:
 ### Validation Timeout
 
 Some tools (especially JVM-based like Scala, or tools that initialize on first
-run) may take longer than the default 10-second timeout. Set a custom timeout
+run) may take longer than the default 30-second timeout. Set a custom timeout
 in the requirements section:
 
 ```yaml
 requirements:
-  validationTimeout: 60 # Seconds (default: 10)
+  validationTimeout: 60 # Seconds (default: 30)
 ```
 
 Use longer timeouts for:

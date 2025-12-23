@@ -17,7 +17,7 @@ log_result() {
 # Validation function (runs in parallel via xargs)
 validate_one() {
     local ext="$1"
-    local timeout="${SINDRI_VALIDATION_TIMEOUT:-10}"
+    local timeout="${SINDRI_VALIDATION_TIMEOUT:-30}"
 
     if timeout "$timeout" extension-manager validate "$ext" >/dev/null 2>&1; then
         log_result "$ext" "PASSED"
