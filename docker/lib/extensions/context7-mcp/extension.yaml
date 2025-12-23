@@ -18,7 +18,7 @@ requirements:
   memory: 64
   installTime: 10
   secrets:
-    - context7_api_key  # Optional: enables higher rate limits and private repo access
+    - context7_api_key # Optional: enables higher rate limits and private repo access
 
 install:
   method: script

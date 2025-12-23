@@ -33,6 +33,7 @@ Context7 works **without an API key** (with standard rate limits). For higher li
 The Context7 MCP server is automatically added to your user-scope configuration at `~/.claude.json`:
 
 **Without API key:**
+
 ```json
 {
   "mcpServers": {
@@ -45,6 +46,7 @@ The Context7 MCP server is automatically added to your user-scope configuration 
 ```
 
 **With API key (higher rate limits):**
+
 ```json
 {
   "mcpServers": {
@@ -64,16 +66,19 @@ The Context7 MCP server is automatically added to your user-scope configuration 
 If automatic installation fails:
 
 **Without API key:**
+
 ```bash
 claude mcp add --transport http --scope user context7 https://mcp.context7.com/mcp
 ```
 
 **With API key:**
+
 ```bash
 claude mcp add --transport http --scope user --header "CONTEXT7_API_KEY: YOUR_KEY" context7 https://mcp.context7.com/mcp
 ```
 
 Or using JSON:
+
 ```bash
 claude mcp add-json --scope user context7 '{"type":"http","url":"https://mcp.context7.com/mcp"}'
 ```
@@ -92,18 +97,20 @@ Once installed, ask Claude:
 
 The MCP server exposes these tools:
 
-| Tool                 | Description                                            |
-| -------------------- | ------------------------------------------------------ |
+| Tool                 | Description                                           |
+| -------------------- | ----------------------------------------------------- |
 | `resolve-library-id` | Convert general library names to Context7 identifiers |
 | `get-library-docs`   | Retrieve version-specific docs with topic filtering   |
 
 ### Tool Examples
 
 **resolve-library-id:**
+
 - Input: "react", "pandas", "fastapi"
 - Output: Context7-compatible library identifier
 
 **get-library-docs:**
+
 - Parameters: library_id, topic (optional), page (1-10, optional)
 - Returns: Up-to-date documentation and code examples
 
@@ -157,6 +164,7 @@ cat ~/.claude.json | jq '.mcpServers.context7'
 ### Rate Limit Exceeded
 
 If you see rate limit errors without an API key:
+
 1. Get a free API key at [context7.com/dashboard](https://context7.com/dashboard)
 2. Follow "Add API Key After Installation" steps above
 
@@ -167,6 +175,7 @@ extension-manager remove context7-mcp
 ```
 
 This removes:
+
 - Context7 MCP from Claude Code user configuration
 - Extension directory at `~/extensions/context7-mcp`
 

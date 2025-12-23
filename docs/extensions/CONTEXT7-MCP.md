@@ -88,6 +88,7 @@ Once installed, ask Claude:
 The extension uses `claude mcp add --transport http` with user scope. Configuration is stored in `~/.claude.json`:
 
 **Without API key:**
+
 ```json
 {
   "mcpServers": {
@@ -100,6 +101,7 @@ The extension uses `claude mcp add --transport http` with user scope. Configurat
 ```
 
 **With API key:**
+
 ```json
 {
   "mcpServers": {
@@ -128,18 +130,18 @@ claude mcp add --transport http --scope user --header "CONTEXT7_API_KEY: YOUR_KE
 
 ## Available Tools
 
-| Tool                 | Description                                            |
-| -------------------- | ------------------------------------------------------ |
+| Tool                 | Description                                           |
+| -------------------- | ----------------------------------------------------- |
 | `resolve-library-id` | Convert general library names to Context7 identifiers |
 | `get-library-docs`   | Retrieve version-specific docs with topic filtering   |
 
 ## Rate Limits
 
-| Tier           | Limits  | Cost | Use Case               |
-| -------------- | ------- | ---- | ---------------------- |
-| No API key     | Standard| Free | Personal, testing      |
-| Free API key   | Higher  | Free | Development, teams     |
-| Paid API tiers | Premium | Paid | Production, enterprise |
+| Tier           | Limits   | Cost | Use Case               |
+| -------------- | -------- | ---- | ---------------------- |
+| No API key     | Standard | Free | Personal, testing      |
+| Free API key   | Higher   | Free | Development, teams     |
+| Paid API tiers | Premium  | Paid | Production, enterprise |
 
 Visit [context7.com/dashboard](https://context7.com/dashboard) for current rate limit details.
 
@@ -189,6 +191,7 @@ extension-manager remove context7-mcp
 ```
 
 This removes:
+
 - Context7 MCP from Claude Code user configuration
 - Extension directory at `~/extensions/context7-mcp`
 

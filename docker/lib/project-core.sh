@@ -209,6 +209,21 @@ _is_aqe_initialized() {
     [[ -d ".agentic-qe" ]]
 }
 
+# Check if claude-flow AgentDB backend is already initialized
+# AgentDB is initialized if memory backend is set to agentdb
+_is_claude_flow_agentdb_initialized() {
+    if ! command_exists claude-flow; then
+        return 1
+    fi
+
+    # Check if AgentDB backend is configured
+    if claude-flow memory backend info 2>/dev/null | grep -q "agentdb"; then
+        return 0
+    fi
+
+    return 1
+}
+
 # Preserve existing CLAUDE.md and append claude-flow content
 # claude-flow init --force overwrites CLAUDE.md, so we:
 # 1. Backup existing CLAUDE.md to CLAUDE.project.md
@@ -240,6 +255,32 @@ _initialize_claude_flow() {
     else
         # No existing CLAUDE.md, just run init normally
         claude-flow init --force 2>/dev/null
+    fi
+}
+
+# Initialize claude-flow with AgentDB backend
+# This should be called after basic claude-flow initialization is complete
+_initialize_claude_flow_agentdb() {
+    # Determine CLI directory
+    local cli_dir
+    if [[ -d "/docker/lib" ]]; then
+        cli_dir="/cli"
+    else
+        cli_dir="${SCRIPT_DIR}/../cli"
+    fi
+
+    local init_script="${cli_dir}/init-claude-flow-agentdb"
+
+    if [[ ! -x "$init_script" ]]; then
+        print_debug "AgentDB initialization script not found at $init_script"
+        return 1
+    fi
+
+    # Run the AgentDB initialization script
+    if "$init_script" 2>&1 | grep -v "^$"; then
+        return 0
+    else
+        return 1
     fi
 }
 
@@ -292,6 +333,18 @@ init_project_tools() {
             if _is_claude_flow_initialized; then
                 print_debug "claude-flow already initialized in this project"
                 tools_initialized=true
+
+                # Check if AgentDB backend needs initialization
+                if ! _is_claude_flow_agentdb_initialized; then
+                    print_status "Initializing AgentDB backend..."
+                    if _initialize_claude_flow_agentdb; then
+                        print_success "AgentDB backend initialized"
+                    else
+                        print_debug "AgentDB initialization skipped or failed"
+                    fi
+                else
+                    print_debug "AgentDB backend already initialized"
+                fi
             else
                 print_status "Initializing claude-flow..."
                 # Preserve existing CLAUDE.md and append claude-flow content
@@ -300,6 +353,14 @@ init_project_tools() {
                     if [[ -d ".claude" ]]; then
                         print_success "claude-flow initialized"
                         tools_initialized=true
+
+                        # Initialize AgentDB backend
+                        print_status "Initializing AgentDB backend..."
+                        if _initialize_claude_flow_agentdb; then
+                            print_success "AgentDB backend initialized"
+                        else
+                            print_debug "AgentDB initialization skipped or failed"
+                        fi
                     else
                         print_warning "claude-flow init succeeded but .claude directory not found"
                     fi
@@ -466,7 +527,9 @@ export -f check_claude_auth
 export -f verify_claude_auth
 export -f _is_claude_flow_initialized
 export -f _is_aqe_initialized
+export -f _is_claude_flow_agentdb_initialized
 export -f _initialize_claude_flow
+export -f _initialize_claude_flow_agentdb
 export -f init_project_tools
 export -f create_project_claude_md
 export -f setup_project_enhancements

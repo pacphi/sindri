@@ -209,13 +209,13 @@ When creating or cloning projects, Sindri automatically initializes installed ag
 
 ### Supported Tools
 
-| Tool | Extension | Init Command | Creates |
-|------|-----------|--------------|---------|
-| Claude Code | Built-in | - | Context awareness via CLAUDE.md |
-| GitHub spec-kit | Built-in (if uv installed) | `specify init --here` | `.github/spec.json` |
-| claude-flow | `extension-manager install claude-flow` | `claude-flow init --force` | Enhanced CLAUDE.md, `.claude/` directory |
-| agentic-qe | `extension-manager install agentic-qe` | `aqe init` | `.agentic-qe/` or `aqe/` directory |
-| agentic-flow | `extension-manager install agentic-flow` | None (ready to use) | - |
+| Tool            | Extension                                | Init Command               | Creates                                  |
+| --------------- | ---------------------------------------- | -------------------------- | ---------------------------------------- |
+| Claude Code     | Built-in                                 | -                          | Context awareness via CLAUDE.md          |
+| GitHub spec-kit | Built-in (if uv installed)               | `specify init --here`      | `.github/spec.json`                      |
+| claude-flow     | `extension-manager install claude-flow`  | `claude-flow init --force` | Enhanced CLAUDE.md, `.claude/` directory |
+| agentic-qe      | `extension-manager install agentic-qe`   | `aqe init`                 | `.agentic-qe/` or `aqe/` directory       |
+| agentic-flow    | `extension-manager install agentic-flow` | None (ready to use)        | -                                        |
 
 ### Initialization Behavior
 
