@@ -38,8 +38,6 @@ git checkout v1.12.1
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.12.0...v1.12.1
 
-
-
 ## [1.12.0] - 2025-12-19
 
 ### :sparkles: Features

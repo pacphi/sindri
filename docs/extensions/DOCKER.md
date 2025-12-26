@@ -18,12 +18,12 @@ Docker Engine and Compose - provides containerization capabilities with Docker C
 
 ## Installed Tools
 
-| Tool             | Type     | Description                              |
-| ---------------- | -------- | ---------------------------------------- |
-| `docker`         | server   | Docker daemon and CLI                    |
-| `docker-compose` | cli-tool | Multi-container orchestration            |
-| `containerd`     | server   | Container runtime                        |
-| `fuse-overlayfs` | utility  | FUSE-based overlay filesystem for DinD   |
+| Tool             | Type     | Description                            |
+| ---------------- | -------- | -------------------------------------- |
+| `docker`         | server   | Docker daemon and CLI                  |
+| `docker-compose` | cli-tool | Multi-container orchestration          |
+| `containerd`     | server   | Container runtime                      |
+| `fuse-overlayfs` | utility  | FUSE-based overlay filesystem for DinD |
 
 ## Configuration
 
@@ -104,18 +104,21 @@ Sindri v1.1.0+ provides comprehensive Docker-in-Docker support for running conta
 **Sysbox is a container runtime that must be installed on the HOST machine**, not inside the Sindri container. This is a one-time setup per host.
 
 **When to run the setup script:**
+
 - Local development machine (macOS is NOT supported - use privileged mode)
 - Cloud VMs (EC2, Azure VM, GCP Compute Engine)
 - CI runners you control
 - Kubernetes nodes
 
 **When you CANNOT use Sysbox:**
+
 - Fly.io (use privileged mode instead)
 - Managed Kubernetes (EKS, AKS, GKE) without node access
 - CI services you don't control (GitHub-hosted runners)
 - macOS or Windows hosts
 
 **Setup command:**
+
 ```bash
 # Run on the HOST machine (not inside Sindri)
 ./scripts/setup-sysbox-host.sh
@@ -126,27 +129,30 @@ docker info | grep sysbox-runc
 
 ### DinD Mode Comparison
 
-| Mode         | Security       | Performance    | Host Setup    | Use Case                           |
-| ------------ | -------------- | -------------- | ------------- | ---------------------------------- |
-| **sysbox**   | Excellent      | Native overlay2 | Required      | Production CI/CD, multi-tenant     |
-| **privileged** | Poor         | Slower (vfs)   | None          | Quick testing, single-tenant       |
-| **socket**   | Shared         | Native         | None          | Simple builds, shared environments |
-| **auto**     | Best available | Varies         | Optional      | Recommended default                |
+| Mode           | Security       | Performance     | Host Setup | Use Case                           |
+| -------------- | -------------- | --------------- | ---------- | ---------------------------------- |
+| **sysbox**     | Excellent      | Native overlay2 | Required   | Production CI/CD, multi-tenant     |
+| **privileged** | Poor           | Slower (vfs)    | None       | Quick testing, single-tenant       |
+| **socket**     | Shared         | Native          | None       | Simple builds, shared environments |
+| **auto**       | Best available | Varies          | Optional   | Recommended default                |
 
 ### Sysbox Mode (Recommended)
 
 Sysbox provides secure DinD without privileged containers by using Linux user namespaces for isolation.
 
 **Prerequisites:**
+
 - Sysbox installed on host machine
 - Ubuntu/Debian with kernel 5.12+ (5.19+ optimal)
 
 **Host Setup:**
+
 ```bash
 ./scripts/setup-sysbox-host.sh
 ```
 
 **Configuration:**
+
 ```yaml
 # sindri.yaml
 providers:
@@ -157,6 +163,7 @@ providers:
 ```
 
 **Benefits:**
+
 - No privileged mode required
 - Native overlay2 storage driver (full performance)
 - Full systemd support inside containers
@@ -167,6 +174,7 @@ providers:
 For hosts without Sysbox, privileged mode provides DinD capability at the cost of security.
 
 **Configuration:**
+
 ```yaml
 # sindri.yaml
 providers:
@@ -175,11 +183,12 @@ providers:
     dind:
       enabled: true
       mode: privileged
-      storageDriver: vfs  # or auto, fuse-overlayfs
+      storageDriver: vfs # or auto, fuse-overlayfs
       storageSize: 30GB
 ```
 
 **Limitations:**
+
 - Container has nearly full host access (security risk)
 - Uses vfs storage driver (no copy-on-write, slower)
 - Not suitable for multi-tenant environments
@@ -189,6 +198,7 @@ providers:
 Share the host's Docker daemon instead of running a nested daemon.
 
 **Configuration:**
+
 ```yaml
 # sindri.yaml
 providers:
@@ -199,11 +209,13 @@ providers:
 ```
 
 **How it works:**
+
 - Mounts `/var/run/docker.sock` from host
 - Docker commands use host's daemon
 - No nested daemon, no storage driver issues
 
 **Limitations:**
+
 - Containers visible on host (less isolation)
 - Cannot run different Docker versions
 - Actions affect host Docker environment
@@ -213,16 +225,18 @@ providers:
 Automatically detects and uses the best available DinD mode.
 
 **Configuration:**
+
 ```yaml
 # sindri.yaml
 providers:
   docker:
     dind:
       enabled: true
-      mode: auto  # Default
+      mode: auto # Default
 ```
 
 **Detection Order:**
+
 1. Sysbox (if `sysbox-runc` available)
 2. Privileged (if `privileged: true` set)
 3. Warning (DinD may not work)
@@ -231,27 +245,29 @@ providers:
 
 When using privileged mode, you can configure the inner Docker's storage driver:
 
-| Driver           | Performance | Compatibility | When to Use                       |
-| ---------------- | ----------- | ------------- | --------------------------------- |
-| `auto`           | Varies      | Best          | Let Sindri choose (default)       |
-| `overlay2`       | Best        | Limited       | Only if /var/lib/docker on ext4   |
-| `fuse-overlayfs` | Good        | Good          | Nested without privileged volume  |
-| `vfs`            | Slowest     | Universal     | Always works, fallback option     |
+| Driver           | Performance | Compatibility | When to Use                      |
+| ---------------- | ----------- | ------------- | -------------------------------- |
+| `auto`           | Varies      | Best          | Let Sindri choose (default)      |
+| `overlay2`       | Best        | Limited       | Only if /var/lib/docker on ext4  |
+| `fuse-overlayfs` | Good        | Good          | Nested without privileged volume |
+| `vfs`            | Slowest     | Universal     | Always works, fallback option    |
 
 **Configuration:**
+
 ```yaml
 providers:
   docker:
     dind:
       enabled: true
       mode: privileged
-      storageDriver: auto  # or overlay2, fuse-overlayfs, vfs
-      storageSize: 20GB    # Storage limit for vfs driver
+      storageDriver: auto # or overlay2, fuse-overlayfs, vfs
+      storageSize: 20GB # Storage limit for vfs driver
 ```
 
 ### Example Configurations
 
 See `examples/docker/` for complete configurations:
+
 - `dind-sysbox.sindri.yaml` - Secure DinD with Sysbox
 - `dind-privileged.sindri.yaml` - Legacy privileged DinD
 - `dind-socket.sindri.yaml` - Socket binding mode
@@ -260,19 +276,23 @@ See `examples/docker/` for complete configurations:
 ### Troubleshooting DinD
 
 **"failed to mount overlay filesystem"**
+
 - Cause: overlay2 driver can't run nested on CoW filesystems
 - Solution: Use Sysbox mode, or configure `storageDriver: vfs`
 
 **Docker daemon not starting**
+
 - Check: `sudo docker info` inside container
 - Logs: `~/.local/state/dockerd.log`
 - Verify DinD mode: `echo $SINDRI_DIND_MODE`
 
 **Slow container builds**
+
 - Cause: vfs storage driver (no copy-on-write)
 - Solution: Install Sysbox for native overlay2 support
 
 **Sysbox not detected**
+
 - Verify on host: `docker info | grep sysbox-runc`
 - Install: `./scripts/setup-sysbox-host.sh`
 
@@ -382,12 +402,12 @@ Running Docker inside a Sindri container presents challenges:
 
 **Storage Driver Selection:**
 
-| Environment | Recommended Driver | Rationale |
-|-------------|-------------------|-----------|
-| Sysbox | overlay2 | Native support via user namespaces |
-| Privileged + volume | overlay2 | Volume provides real filesystem |
-| Privileged + overlay fs | fuse-overlayfs | FUSE bypass for nested overlay |
-| Privileged (fallback) | vfs | Universal compatibility |
+| Environment             | Recommended Driver | Rationale                          |
+| ----------------------- | ------------------ | ---------------------------------- |
+| Sysbox                  | overlay2           | Native support via user namespaces |
+| Privileged + volume     | overlay2           | Volume provides real filesystem    |
+| Privileged + overlay fs | fuse-overlayfs     | FUSE bypass for nested overlay     |
+| Privileged (fallback)   | vfs                | Universal compatibility            |
 
 ### Version History
 
