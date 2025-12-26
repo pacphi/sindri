@@ -64,6 +64,7 @@ cd sindri
 - **[FAQ](docs/FAQ.md)** - Searchable answers to common questions
 - **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and concepts
 - **[Configuration Reference](docs/CONFIGURATION.md)** - Complete sindri.yaml guide
+- **[CLI Reference](docs/CLI.md)** - Complete command-line reference
 
 ### Extensions
 
@@ -84,6 +85,7 @@ cd sindri
 ### Development & Operations
 
 - **[Project Management](docs/PROJECT_MANAGEMENT.md)** - Using new-project and clone-project
+- **[Backup & Restore](docs/BACKUP_RESTORE.md)** - Workspace backup, migration, and recovery
 - **[Contributing Guide](docs/CONTRIBUTING.md)** - Development workflow and standards
 - **[Testing Guide](docs/TESTING.md)** - Running tests and CI/CD
 - **[Workflow Architecture](.github/WORKFLOW_ARCHITECTURE.md)** - CI/CD workflow structure and design
