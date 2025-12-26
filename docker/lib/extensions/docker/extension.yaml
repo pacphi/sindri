@@ -1,8 +1,8 @@
 ---
 metadata:
   name: docker
-  version: 1.0.0
-  description: Docker Engine and Compose
+  version: 1.1.0
+  description: Docker Engine and Compose with Docker-in-Docker support
   category: infrastructure
   dependencies: []
 
@@ -27,9 +27,10 @@ install:
       - docker-ce-cli
       - containerd.io
       - docker-compose-plugin
+      - fuse-overlayfs
   script:
     path: install.sh
-    timeout: 60
+    timeout: 90
 
 configure:
   environment:
@@ -52,6 +53,7 @@ remove:
       - docker-ce-cli
       - containerd.io
       - docker-compose-plugin
+      - fuse-overlayfs
 
 bom:
   tools:
@@ -77,3 +79,10 @@ bom:
       license: Apache-2.0
       homepage: https://containerd.io
       purl: pkg:deb/ubuntu/containerd.io
+    - name: fuse-overlayfs
+      version: dynamic
+      source: apt
+      type: utility
+      license: GPL-2.0
+      homepage: https://github.com/containers/fuse-overlayfs
+      purl: pkg:deb/ubuntu/fuse-overlayfs

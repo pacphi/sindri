@@ -330,9 +330,35 @@ providers:
     # ports:                   # Additional port mappings
     #   - "3000:3000"
     #   - "8080:8080"
-    # privileged: false        # Run in privileged mode (use with caution)
     # extraHosts:              # Add entries to /etc/hosts
     #   - "host.docker.internal:host-gateway"
+
+    # -------------------------------------------------------------------------
+    # Docker-in-Docker (DinD) Configuration
+    # -------------------------------------------------------------------------
+    # NOTE: These options only apply when using the 'docker' extension.
+    # The docker extension is included in: devops, enterprise, systems profiles
+    # Or install explicitly: extensions.active: [docker, ...]
+    #
+    # DinD enables running Docker commands INSIDE your Sindri container
+    # (e.g., docker-compose, container builds, integration tests).
+    #
+    # DinD Modes:
+    #   sysbox     - Secure (recommended). Requires host setup: ./scripts/setup-sysbox-host.sh
+    #   privileged - Works everywhere but less secure. Uses vfs storage driver.
+    #   socket     - Shares host Docker daemon. Simple but less isolated.
+    #   auto       - Auto-detect best available mode (default)
+    #
+    # See: docs/extensions/DOCKER.md for detailed DinD documentation
+    #
+    # dind:
+    #   enabled: true          # Enable Docker-in-Docker support
+    #   mode: auto             # sysbox, privileged, socket, or auto
+    #   storageDriver: auto    # overlay2, fuse-overlayfs, vfs, or auto (privileged mode only)
+    #   storageSize: 20GB      # Storage limit for vfs driver
+
+    # runtime: auto            # Container runtime: runc, sysbox-runc, or auto
+    # privileged: false        # Legacy: use dind.mode: privileged instead
 
   # ---------------------------------------------------------------------------
   # DevPod - Multi-provider DevContainer deployment

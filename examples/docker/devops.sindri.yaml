@@ -1,6 +1,15 @@
 ---
 # Sindri Configuration - Docker DevOps Example
-# Local DevOps and infrastructure development
+# Local DevOps and infrastructure development with Docker-in-Docker support
+#
+# DinD Mode Options:
+#   - sysbox: Secure DinD via Sysbox runtime (requires host setup)
+#   - privileged: Legacy DinD with privileged mode (works everywhere)
+#   - socket: Share host Docker daemon (simplest, least isolated)
+#   - auto: Auto-detect best available mode (recommended)
+#
+# For Sysbox setup, run: ./scripts/setup-sysbox-host.sh
+
 version: "1.0"
 name: sindri-docker-devops
 
@@ -30,8 +39,10 @@ secrets:
     source: env
 
 providers:
-  docker-compose:
-    privileged: true # Required for Docker-in-Docker
+  docker:
+    dind:
+      enabled: true
+      mode: auto # Uses sysbox if available, falls back to privileged
     ports:
       - "8080:8080" # Web UI
       - "9090:9090" # Prometheus

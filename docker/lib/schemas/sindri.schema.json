@@ -298,7 +298,7 @@
             "privileged": {
               "type": "boolean",
               "default": false,
-              "description": "Run container in privileged mode"
+              "description": "Run container in privileged mode (legacy DinD, security risk)"
             },
             "extraHosts": {
               "type": "array",
@@ -306,6 +306,42 @@
                 "type": "string"
               },
               "description": "Extra hosts to add to /etc/hosts (e.g., 'host.docker.internal:host-gateway')"
+            },
+            "runtime": {
+              "type": "string",
+              "enum": ["runc", "sysbox-runc", "auto"],
+              "default": "auto",
+              "description": "Container runtime. 'auto' uses sysbox-runc if available, falls back to runc"
+            },
+            "dind": {
+              "type": "object",
+              "description": "Docker-in-Docker configuration for running Docker inside Sindri containers",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable Docker-in-Docker support"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": ["sysbox", "privileged", "socket", "auto"],
+                  "default": "auto",
+                  "description": "DinD mode: sysbox (secure, requires host setup), privileged (legacy, uses vfs), socket (share host Docker daemon), auto (detect best available)"
+                },
+                "storageDriver": {
+                  "type": "string",
+                  "enum": ["auto", "overlay2", "fuse-overlayfs", "vfs"],
+                  "default": "auto",
+                  "description": "Storage driver for inner Docker daemon (only used in privileged mode)"
+                },
+                "storageSize": {
+                  "type": "string",
+                  "pattern": "^\\d+(MB|GB)$",
+                  "default": "20GB",
+                  "description": "Size limit for Docker storage volume (used with vfs driver)"
+                }
+              },
+              "additionalProperties": false
             }
           }
         },

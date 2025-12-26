@@ -1,0 +1,37 @@
+---
+# Sindri Configuration - Docker-in-Docker with Sysbox
+# Secure DinD without privileged mode using Sysbox runtime
+#
+# Prerequisites:
+#   - Sysbox installed on host: ./scripts/setup-sysbox-host.sh
+#   - Ubuntu/Debian host with kernel 5.12+
+#
+# Benefits:
+#   - No privileged mode (enhanced security)
+#   - Native overlay2 storage driver (full performance)
+#   - Full systemd support inside container
+#   - User-namespace isolation (root → unprivileged)
+
+version: "1.0"
+name: sindri-dind-sysbox
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  profile: devops
+
+providers:
+  docker:
+    runtime: sysbox-runc
+    dind:
+      enabled: true
+      mode: sysbox
+    ports:
+      - "8080:8080"
