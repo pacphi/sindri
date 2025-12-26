@@ -307,6 +307,103 @@ sindri test --suite full
 
 ---
 
+## Backup and Restore Commands
+
+### sindri backup
+
+Create a backup of the workspace with configurable profiles.
+
+```bash
+sindri backup [--profile <name>] [--output <path>] [--config <file>]
+```
+
+**Options:**
+
+- `--profile <name>` - Backup profile: `user-data`, `standard` (default), `full`
+- `--output <path>` - Output path (local or `s3://bucket/path`)
+- `--config <file>` - Sindri config file
+- `--exclude <pattern>` - Additional exclude pattern (repeatable)
+- `--dry-run` - Preview what would be backed up
+- `--list` - List backups on instance
+
+**Backup Profiles:**
+
+| Profile     | Contents                                            | Size   | Use Case          |
+| ----------- | --------------------------------------------------- | ------ | ----------------- |
+| `user-data` | Projects, scripts, Claude data, SSH keys, gitconfig | Small  | Migration         |
+| `standard`  | user-data + shell configs + app configs             | Medium | Regular backups   |
+| `full`      | Everything except caches                            | Large  | Disaster recovery |
+
+**Examples:**
+
+```bash
+# Standard backup
+sindri backup
+
+# User data only (smallest, for migration)
+sindri backup --profile user-data --output ./backups/
+
+# Backup to S3
+sindri backup --output s3://my-bucket/sindri-backups/
+
+# Preview backup
+sindri backup --dry-run
+
+# List backups on instance
+sindri backup list
+```
+
+### sindri restore
+
+Restore workspace from backup with collision handling.
+
+```bash
+sindri restore <source> [--mode <name>] [--config <file>]
+```
+
+**Arguments:**
+
+- `source` - Backup file: local path, `s3://bucket/path`, or `https://url`
+
+**Options:**
+
+- `--mode <name>` - Restore mode: `safe` (default), `merge`, `full`
+- `--config <file>` - Sindri config file
+- `--dry-run` - Preview restore without making changes
+- `--no-interactive` - Skip confirmation prompts
+
+**Restore Modes:**
+
+| Mode    | Behavior         | System Markers | Existing Files   |
+| ------- | ---------------- | -------------- | ---------------- |
+| `safe`  | Never overwrite  | Skipped        | Preserved        |
+| `merge` | Smart merge      | Skipped        | Backed up (.bak) |
+| `full`  | Complete restore | Optional       | Overwritten      |
+
+**Examples:**
+
+```bash
+# Safe restore (default)
+sindri restore ./backup.tar.gz
+
+# Preview restore
+sindri restore ./backup.tar.gz --dry-run
+
+# Merge with automatic backup of conflicts
+sindri restore ./backup.tar.gz --mode merge
+
+# Restore from S3
+sindri restore s3://my-bucket/backups/backup.tar.gz
+```
+
+**Important Notes:**
+
+- System markers (`.initialized`, `bootstrap.yaml`) are **never** restored to prevent breaking initialization
+- Use `--dry-run` to preview changes before restoring
+- See [Backup & Restore Guide](BACKUP_RESTORE.md) for detailed documentation
+
+---
+
 ## Profile Commands
 
 ### sindri profiles list
@@ -913,6 +1010,7 @@ sindri plan
 
 ## See Also
 
+- [Backup & Restore Guide](BACKUP_RESTORE.md) - Workspace backup and restore procedures
 - [Configuration Reference](CONFIGURATION.md) - Complete configuration guide
 - [Schema Reference](SCHEMA.md) - JSON schema documentation
 - [Extension Authoring](EXTENSION_AUTHORING.md) - Creating custom extensions

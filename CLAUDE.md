@@ -153,6 +153,7 @@ Never write provider-specific logic in core code. Use adapter pattern in `deploy
 | Topic                | Document                                                     |
 | -------------------- | ------------------------------------------------------------ |
 | Architecture         | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 |
+| Backup & Restore     | [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md)             |
 | CLI Reference        | [docs/CLI.md](docs/CLI.md)                                   |
 | Configuration        | [docs/CONFIGURATION.md](docs/CONFIGURATION.md)               |
 | Deployment           | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                     |

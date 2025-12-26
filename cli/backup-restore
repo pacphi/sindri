@@ -1,0 +1,1101 @@
+#!/bin/bash
+# ==============================================================================
+# Sindri Backup/Restore Manager
+# ==============================================================================
+# Handles backup and restore of Sindri workspace with smart profiles and modes.
+#
+# Backup Profiles:
+#   user-data  - Projects, scripts, Claude data, SSH keys, git config
+#   standard   - user-data + shell configs + app configs (default)
+#   full       - Everything except caches
+#
+# Restore Modes:
+#   safe       - Never overwrite existing files (default)
+#   merge      - Backup existing files, then restore
+#   full       - Overwrite everything (dangerous)
+# ==============================================================================
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Detect environment and source common functions
+if [[ -f "/docker/lib/common.sh" ]]; then
+    source /docker/lib/common.sh
+    BASE_DIR="/docker"
+    RUNNING_IN_CONTAINER=true
+else
+    BASE_DIR="$(dirname "$SCRIPT_DIR")"
+    source "$BASE_DIR/docker/lib/common.sh"
+    RUNNING_IN_CONTAINER=false
+fi
+
+# ==============================================================================
+# Constants
+# ==============================================================================
+
+ALT_HOME="${ALT_HOME:-/alt/home/developer}"
+WORKSPACE="${WORKSPACE:-${ALT_HOME}/workspace}"
+BACKUP_DIR="${WORKSPACE}/backups"
+
+# Files/directories that should NEVER be restored (system markers)
+NEVER_RESTORE=(
+    ".initialized"
+    ".welcome_shown"
+    "workspace/.system/bootstrap.yaml"
+    "workspace/.system/installed"
+    "workspace/.system/install-status"
+)
+
+# Files/directories to always exclude from backup (caches, regenerable)
+ALWAYS_EXCLUDE=(
+    ".cache"
+    ".local/share/mise/installs"
+    ".local/state/mise"
+    ".local/state"
+    "workspace/.system/logs"
+)
+
+# Profile definitions
+declare -A PROFILE_INCLUDES
+declare -A PROFILE_EXCLUDES
+
+# user-data profile: essential user files only
+PROFILE_INCLUDES[user-data]="workspace/projects workspace/config workspace/scripts workspace/bin .claude .ssh/host_keys .gitconfig"
+PROFILE_EXCLUDES[user-data]=".bashrc .profile .config .local"
+
+# standard profile: user-data + configs
+PROFILE_INCLUDES[standard]="workspace/projects workspace/config workspace/scripts workspace/bin .claude .ssh/host_keys .gitconfig .bashrc .profile .config .local/bin"
+PROFILE_EXCLUDES[standard]=".config/mise/shims .local/share/mise .local/state"
+
+# full profile: everything except caches
+PROFILE_INCLUDES[full]=""
+PROFILE_EXCLUDES[full]=""
+
+# ==============================================================================
+# Helper Functions
+# ==============================================================================
+
+show_backup_help() {
+    cat << 'EOF'
+sindri backup - Create workspace backup
+
+USAGE:
+    sindri backup [options]
+
+OPTIONS:
+    -o, --output <path>     Output location (directory or file path)
+                            Supports: local path, s3://bucket/path
+                            Default: ./sindri-backup-{name}-{timestamp}.tar.gz
+    -p, --profile <name>    Backup profile:
+                            - user-data: Projects, Claude data, git config (smallest)
+                            - standard:  user-data + shell/app configs (default)
+                            - full:      Everything except caches (largest)
+    -c, --config <file>     Sindri config file (default: sindri.yaml)
+    --exclude <pattern>     Additional exclude pattern (can repeat)
+    --dry-run               Show what would be backed up
+    --list                  List backups on instance
+    -v, --verbose           Verbose output
+    -h, --help              Show this help
+
+EXAMPLES:
+    sindri backup                                    # Standard backup
+    sindri backup --profile user-data -o ./backups/ # Small migration backup
+    sindri backup --dry-run                          # Preview backup
+    sindri backup --output s3://bucket/backups/      # Backup to S3
+EOF
+}
+
+show_restore_help() {
+    cat << 'EOF'
+sindri restore - Restore workspace from backup
+
+USAGE:
+    sindri restore <source> [options]
+
+ARGUMENTS:
+    source                  Backup file: local path, s3://bucket/path, https://url
+
+OPTIONS:
+    -m, --mode <name>       Restore mode:
+                            - safe:  Never overwrite existing (default)
+                            - merge: Backup existing, then restore
+                            - full:  Overwrite everything (dangerous)
+    -c, --config <file>     Sindri config file (default: sindri.yaml)
+    --dry-run               Preview restore without making changes
+    --no-interactive        Skip confirmation prompts
+    -v, --verbose           Verbose output
+    -h, --help              Show this help
+
+EXAMPLES:
+    sindri restore ./backup.tar.gz                   # Safe restore
+    sindri restore ./backup.tar.gz --mode merge      # Merge with backups
+    sindri restore ./backup.tar.gz --dry-run         # Preview changes
+    sindri restore s3://bucket/backup.tar.gz         # From S3
+EOF
+}
+
+# Get instance name from config
+get_instance_name() {
+    local config="${1:-sindri.yaml}"
+    if [[ -f "$config" ]]; then
+        yq '.name' "$config" 2>/dev/null || echo "sindri"
+    else
+        echo "sindri"
+    fi
+}
+
+# Get provider from config
+get_provider() {
+    local config="${1:-sindri.yaml}"
+    if [[ -f "$config" ]]; then
+        yq '.deployment.provider' "$config" 2>/dev/null || echo "docker"
+    else
+        echo "docker"
+    fi
+}
+
+# Generate backup filename
+generate_backup_filename() {
+    local name="$1"
+    local timestamp
+    timestamp=$(date +%Y%m%d-%H%M%S)
+    echo "sindri-backup-${name}-${timestamp}.tar.gz"
+}
+
+# Check if path is S3
+is_s3_path() {
+    [[ "$1" =~ ^s3:// ]]
+}
+
+# Check if path is URL
+is_url() {
+    [[ "$1" =~ ^https?:// ]]
+}
+
+# Build tar exclude arguments
+build_exclude_args() {
+    local profile="$1"
+    shift
+    local extra_excludes=("$@")
+    local args=()
+
+    # Always exclude these
+    for pattern in "${ALWAYS_EXCLUDE[@]}"; do
+        args+=("--exclude=$pattern")
+    done
+
+    # Profile-specific excludes
+    local profile_excl="${PROFILE_EXCLUDES[$profile]:-}"
+    for pattern in $profile_excl; do
+        args+=("--exclude=$pattern")
+    done
+
+    # Extra excludes from command line
+    for pattern in "${extra_excludes[@]}"; do
+        [[ -n "$pattern" ]] && args+=("--exclude=$pattern")
+    done
+
+    echo "${args[@]}"
+}
+
+# Build tar include arguments for user-data profile
+build_include_args() {
+    local profile="$1"
+    local includes="${PROFILE_INCLUDES[$profile]:-}"
+
+    if [[ -z "$includes" ]]; then
+        echo "."
+    else
+        echo "$includes"
+    fi
+}
+
+# ==============================================================================
+# Backup Functions
+# ==============================================================================
+
+# Execute backup on instance
+do_backup_local() {
+    local output="$1"
+    local profile="$2"
+    local dry_run="$3"
+    local verbose="$4"
+    shift 4
+    local extra_excludes=("$@")
+
+    local home_dir="${ALT_HOME}"
+
+    if [[ ! -d "$home_dir" ]]; then
+        print_error "Home directory not found: $home_dir"
+        return 1
+    fi
+
+    # Build exclude arguments
+    local exclude_args
+    exclude_args=$(build_exclude_args "$profile" "${extra_excludes[@]}")
+
+    # Build include arguments
+    local include_args
+    include_args=$(build_include_args "$profile")
+
+    if [[ "$dry_run" == "true" ]]; then
+        print_header "Backup Preview (profile: $profile)"
+        echo ""
+        echo "Would backup from: $home_dir"
+        echo "Output: $output"
+        echo ""
+        echo "Files to include:"
+        # shellcheck disable=SC2086
+        cd "$home_dir" && tar $exclude_args -cvf /dev/null $include_args 2>/dev/null | head -50
+        echo "..."
+        echo ""
+        echo "Run without --dry-run to create backup"
+        return 0
+    fi
+
+    # Ensure output directory exists
+    local output_dir
+    output_dir=$(dirname "$output")
+    mkdir -p "$output_dir"
+
+    print_status "Creating backup (profile: $profile)..."
+    [[ "$verbose" == "true" ]] && print_status "Excludes: $exclude_args"
+
+    # Create backup
+    # shellcheck disable=SC2086
+    cd "$home_dir" && tar $exclude_args -czf "$output" $include_args
+
+    local size
+    size=$(du -h "$output" | cut -f1)
+    print_success "Backup created: $output ($size)"
+}
+
+# Execute backup via Docker
+do_backup_docker() {
+    local container="$1"
+    local output="$2"
+    local profile="$3"
+    local dry_run="$4"
+    local verbose="$5"
+    shift 5
+    local extra_excludes=("$@")
+
+    # Build exclude arguments
+    local exclude_args
+    exclude_args=$(build_exclude_args "$profile" "${extra_excludes[@]}")
+
+    # Build include arguments
+    local include_args
+    include_args=$(build_include_args "$profile")
+
+    if [[ "$dry_run" == "true" ]]; then
+        print_header "Backup Preview (profile: $profile)"
+        echo ""
+        echo "Container: $container"
+        echo "Output: $output"
+        echo ""
+        echo "Files to include:"
+        # shellcheck disable=SC2086
+        docker exec "$container" bash -c "cd /alt/home/developer && tar $exclude_args -cvf /dev/null $include_args 2>/dev/null" | head -50
+        echo "..."
+        return 0
+    fi
+
+    print_status "Creating backup from Docker container (profile: $profile)..."
+
+    # Ensure output directory exists
+    local output_dir
+    output_dir=$(dirname "$output")
+    mkdir -p "$output_dir"
+
+    # Stream tar from container to local file
+    # shellcheck disable=SC2086
+    docker exec "$container" bash -c "cd /alt/home/developer && tar $exclude_args -czf - $include_args" > "$output"
+
+    local size
+    size=$(du -h "$output" | cut -f1)
+    print_success "Backup created: $output ($size)"
+}
+
+# Execute backup via Fly.io
+do_backup_fly() {
+    local app="$1"
+    local output="$2"
+    local profile="$3"
+    local dry_run="$4"
+    local verbose="$5"
+    shift 5
+    local extra_excludes=("$@")
+
+    # Build exclude arguments
+    local exclude_args
+    exclude_args=$(build_exclude_args "$profile" "${extra_excludes[@]}")
+
+    # Build include arguments
+    local include_args
+    include_args=$(build_include_args "$profile")
+
+    if [[ "$dry_run" == "true" ]]; then
+        print_header "Backup Preview (profile: $profile)"
+        echo ""
+        echo "Fly.io app: $app"
+        echo "Output: $output"
+        echo ""
+        echo "Files to include:"
+        # shellcheck disable=SC2086
+        flyctl ssh console -a "$app" -C "cd /alt/home/developer && tar $exclude_args -cvf /dev/null $include_args 2>/dev/null" | head -50
+        echo "..."
+        return 0
+    fi
+
+    print_status "Creating backup from Fly.io (profile: $profile)..."
+
+    # Create backup on instance first (more reliable than streaming)
+    local remote_backup="/tmp/sindri-backup-$$.tar.gz"
+
+    # shellcheck disable=SC2086
+    flyctl ssh console -a "$app" -C \
+        "cd /alt/home/developer && tar $exclude_args -czf $remote_backup $include_args"
+
+    # Download via sftp
+    print_status "Downloading backup..."
+    flyctl ssh sftp get -a "$app" "$remote_backup" "$output"
+
+    # Clean up remote
+    flyctl ssh console -a "$app" -C "rm -f $remote_backup"
+
+    local size
+    size=$(du -h "$output" | cut -f1)
+    print_success "Backup created: $output ($size)"
+}
+
+# Upload to S3
+upload_to_s3() {
+    local local_file="$1"
+    local s3_path="$2"
+
+    if ! command -v aws &>/dev/null; then
+        print_error "AWS CLI not installed. Install with: pip install awscli"
+        return 1
+    fi
+
+    print_status "Uploading to S3: $s3_path"
+    aws s3 cp "$local_file" "$s3_path"
+    print_success "Uploaded to S3"
+}
+
+# ==============================================================================
+# Restore Functions
+# ==============================================================================
+
+# Analyze backup contents and categorize files
+analyze_backup() {
+    local backup_file="$1"
+    local verbose="$2"
+
+    print_header "Analyzing Backup Contents"
+
+    local total_files=0
+    local user_data_files=0
+    local config_files=0
+    local system_marker_files=0
+    local will_skip=0
+
+    while IFS= read -r file; do
+        ((total_files++)) || true
+
+        # Check if this is a system marker (never restore)
+        local is_marker=false
+        for marker in "${NEVER_RESTORE[@]}"; do
+            if [[ "$file" == "$marker" ]] || [[ "$file" == "$marker/"* ]]; then
+                is_marker=true
+                ((system_marker_files++)) || true
+                ((will_skip++)) || true
+                [[ "$verbose" == "true" ]] && echo "  [SKIP] $file (system marker)"
+                break
+            fi
+        done
+
+        if [[ "$is_marker" == "false" ]]; then
+            # Categorize
+            if [[ "$file" == "workspace/projects/"* ]] || \
+               [[ "$file" == "workspace/scripts/"* ]] || \
+               [[ "$file" == "workspace/bin/"* ]] || \
+               [[ "$file" == ".claude/"* ]]; then
+                ((user_data_files++)) || true
+            else
+                ((config_files++)) || true
+            fi
+        fi
+    done < <(tar tzf "$backup_file" 2>/dev/null)
+
+    echo ""
+    echo "Backup Summary:"
+    echo "  Total files:        $total_files"
+    echo "  User data files:    $user_data_files"
+    echo "  Config files:       $config_files"
+    echo "  System markers:     $system_marker_files (will be skipped)"
+    echo ""
+}
+
+# Preview restore operation
+preview_restore() {
+    local backup_file="$1"
+    local target_dir="$2"
+    local mode="$3"
+    local verbose="$4"
+
+    print_header "Restore Preview (mode: $mode)"
+    echo ""
+    echo "Source: $backup_file"
+    echo "Target: $target_dir"
+    echo ""
+
+    local will_restore=0
+    local will_skip=0
+    local will_overwrite=0
+    local will_backup=0
+
+    while IFS= read -r file; do
+        # Skip directories
+        [[ "$file" == */ ]] && continue
+
+        # Check if system marker
+        local is_marker=false
+        for marker in "${NEVER_RESTORE[@]}"; do
+            if [[ "$file" == "$marker" ]] || [[ "$file" == "$marker/"* ]]; then
+                is_marker=true
+                ((will_skip++)) || true
+                [[ "$verbose" == "true" ]] && echo "  [SKIP]      $file (system marker)"
+                break
+            fi
+        done
+        [[ "$is_marker" == "true" ]] && continue
+
+        local target_path="$target_dir/$file"
+
+        if [[ -e "$target_path" ]]; then
+            case "$mode" in
+                safe)
+                    ((will_skip++)) || true
+                    [[ "$verbose" == "true" ]] && echo "  [SKIP]      $file (exists)"
+                    ;;
+                merge)
+                    ((will_backup++)) || true
+                    ((will_restore++)) || true
+                    [[ "$verbose" == "true" ]] && echo "  [BACKUP]    $file"
+                    ;;
+                full)
+                    ((will_overwrite++)) || true
+                    [[ "$verbose" == "true" ]] && echo "  [OVERWRITE] $file"
+                    ;;
+            esac
+        else
+            ((will_restore++)) || true
+            [[ "$verbose" == "true" ]] && echo "  [RESTORE]   $file"
+        fi
+    done < <(tar tzf "$backup_file" 2>/dev/null)
+
+    echo ""
+    echo "Restore Summary:"
+    echo "  Files to restore:   $will_restore"
+    echo "  Files to skip:      $will_skip"
+    [[ "$mode" == "merge" ]] && echo "  Files to backup:    $will_backup"
+    [[ "$mode" == "full" ]] && echo "  Files to overwrite: $will_overwrite"
+    echo ""
+    echo "Run without --dry-run to execute restore"
+}
+
+# Execute restore locally
+do_restore_local() {
+    local backup_file="$1"
+    local mode="$2"
+    local dry_run="$3"
+    local verbose="$4"
+    local interactive="$5"
+
+    local target_dir="${ALT_HOME}"
+
+    if [[ "$dry_run" == "true" ]]; then
+        preview_restore "$backup_file" "$target_dir" "$mode" "$verbose"
+        return 0
+    fi
+
+    # Show preview and confirm if interactive
+    if [[ "$interactive" == "true" ]]; then
+        analyze_backup "$backup_file" "$verbose"
+        echo ""
+        read -p "Proceed with restore? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Restore cancelled"
+            return 0
+        fi
+    fi
+
+    print_header "Restoring Backup (mode: $mode)"
+
+    # Create temp directory for extraction
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    trap "rm -rf $temp_dir" EXIT
+
+    # Extract backup
+    print_status "Extracting backup..."
+    tar xzf "$backup_file" -C "$temp_dir"
+
+    local restored=0
+    local skipped=0
+    local backed_up=0
+
+    # Process each file
+    while IFS= read -r -d '' file; do
+        local rel_path="${file#$temp_dir/}"
+
+        # Skip empty or root
+        [[ -z "$rel_path" ]] && continue
+
+        # Check if system marker
+        local is_marker=false
+        for marker in "${NEVER_RESTORE[@]}"; do
+            if [[ "$rel_path" == "$marker" ]] || [[ "$rel_path" == "$marker/"* ]]; then
+                is_marker=true
+                ((skipped++)) || true
+                [[ "$verbose" == "true" ]] && print_warning "Skipping system marker: $rel_path"
+                break
+            fi
+        done
+        [[ "$is_marker" == "true" ]] && continue
+
+        local target_path="$target_dir/$rel_path"
+        local target_parent
+        target_parent=$(dirname "$target_path")
+
+        # Handle based on mode
+        if [[ -e "$target_path" ]]; then
+            case "$mode" in
+                safe)
+                    ((skipped++)) || true
+                    [[ "$verbose" == "true" ]] && print_status "Skipping (exists): $rel_path"
+                    continue
+                    ;;
+                merge)
+                    # Backup existing file
+                    if [[ -f "$target_path" ]]; then
+                        mv "$target_path" "${target_path}.bak"
+                        ((backed_up++)) || true
+                        [[ "$verbose" == "true" ]] && print_status "Backed up: $rel_path"
+                    fi
+                    ;;
+                full)
+                    # Will overwrite
+                    [[ "$verbose" == "true" ]] && print_status "Overwriting: $rel_path"
+                    ;;
+            esac
+        fi
+
+        # Create parent directory if needed
+        mkdir -p "$target_parent"
+
+        # Copy file or directory
+        if [[ -d "$file" ]]; then
+            mkdir -p "$target_path"
+        else
+            cp -p "$file" "$target_path"
+            ((restored++)) || true
+        fi
+    done < <(find "$temp_dir" -mindepth 1 -print0)
+
+    echo ""
+    print_success "Restore complete!"
+    echo "  Files restored: $restored"
+    echo "  Files skipped:  $skipped"
+    [[ "$mode" == "merge" ]] && echo "  Files backed up: $backed_up (.bak)"
+}
+
+# Download from S3
+download_from_s3() {
+    local s3_path="$1"
+    local local_file="$2"
+
+    if ! command -v aws &>/dev/null; then
+        print_error "AWS CLI not installed. Install with: pip install awscli"
+        return 1
+    fi
+
+    print_status "Downloading from S3: $s3_path"
+    aws s3 cp "$s3_path" "$local_file"
+}
+
+# Download from URL
+download_from_url() {
+    local url="$1"
+    local local_file="$2"
+
+    print_status "Downloading: $url"
+    curl -fsSL -o "$local_file" "$url"
+}
+
+# Execute restore via Docker
+do_restore_docker() {
+    local container="$1"
+    local backup_file="$2"
+    local mode="$3"
+    local dry_run="$4"
+    local verbose="$5"
+    local interactive="$6"
+
+    if [[ "$dry_run" == "true" ]]; then
+        # Download and analyze locally for preview
+        analyze_backup "$backup_file" "$verbose"
+        preview_restore "$backup_file" "/alt/home/developer" "$mode" "$verbose"
+        return 0
+    fi
+
+    if [[ "$interactive" == "true" ]]; then
+        analyze_backup "$backup_file" "$verbose"
+        read -p "Proceed with restore? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Restore cancelled"
+            return 0
+        fi
+    fi
+
+    print_status "Uploading backup to container..."
+
+    # Copy backup to container
+    docker cp "$backup_file" "$container:/tmp/restore-backup.tar.gz"
+
+    # Run restore inside container
+    print_status "Executing restore (mode: $mode)..."
+
+    # Build exclude patterns for system markers
+    local exclude_args=""
+    for marker in "${NEVER_RESTORE[@]}"; do
+        exclude_args="$exclude_args --exclude=$marker"
+    done
+
+    case "$mode" in
+        safe)
+            # Extract with --keep-newer-files (skip existing)
+            docker exec "$container" bash -c \
+                "cd /alt/home/developer && tar xzf /tmp/restore-backup.tar.gz $exclude_args --keep-newer-files"
+            ;;
+        merge)
+            # More complex: backup existing, then extract
+            docker exec "$container" bash -c \
+                "cd /alt/home/developer && tar xzf /tmp/restore-backup.tar.gz $exclude_args --backup=simple"
+            ;;
+        full)
+            docker exec "$container" bash -c \
+                "cd /alt/home/developer && tar xzf /tmp/restore-backup.tar.gz $exclude_args"
+            ;;
+    esac
+
+    # Clean up
+    docker exec "$container" rm -f /tmp/restore-backup.tar.gz
+
+    # Fix permissions
+    docker exec "$container" chown -R developer:developer /alt/home/developer
+
+    print_success "Restore complete!"
+}
+
+# Execute restore via Fly.io
+do_restore_fly() {
+    local app="$1"
+    local backup_file="$2"
+    local mode="$3"
+    local dry_run="$4"
+    local verbose="$5"
+    local interactive="$6"
+
+    if [[ "$dry_run" == "true" ]]; then
+        analyze_backup "$backup_file" "$verbose"
+        preview_restore "$backup_file" "/alt/home/developer" "$mode" "$verbose"
+        return 0
+    fi
+
+    if [[ "$interactive" == "true" ]]; then
+        analyze_backup "$backup_file" "$verbose"
+        read -p "Proceed with restore? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Restore cancelled"
+            return 0
+        fi
+    fi
+
+    print_status "Uploading backup to Fly.io..."
+
+    # Upload via sftp
+    flyctl ssh sftp shell -a "$app" << EOF
+put $backup_file /tmp/restore-backup.tar.gz
+EOF
+
+    # Build exclude patterns
+    local exclude_args=""
+    for marker in "${NEVER_RESTORE[@]}"; do
+        exclude_args="$exclude_args --exclude=$marker"
+    done
+
+    print_status "Executing restore (mode: $mode)..."
+
+    case "$mode" in
+        safe)
+            flyctl ssh console -a "$app" -C \
+                "cd /alt/home/developer && tar xzf /tmp/restore-backup.tar.gz $exclude_args --keep-newer-files"
+            ;;
+        merge)
+            flyctl ssh console -a "$app" -C \
+                "cd /alt/home/developer && tar xzf /tmp/restore-backup.tar.gz $exclude_args --backup=simple"
+            ;;
+        full)
+            flyctl ssh console -a "$app" -C \
+                "cd /alt/home/developer && tar xzf /tmp/restore-backup.tar.gz $exclude_args"
+            ;;
+    esac
+
+    # Clean up
+    flyctl ssh console -a "$app" -C "rm -f /tmp/restore-backup.tar.gz"
+
+    # Fix permissions
+    flyctl ssh console -a "$app" -C "chown -R developer:developer /alt/home/developer"
+
+    print_success "Restore complete!"
+}
+
+# ==============================================================================
+# List Backups
+# ==============================================================================
+
+list_backups_local() {
+    local backup_dir="${WORKSPACE}/backups"
+
+    if [[ ! -d "$backup_dir" ]]; then
+        print_warning "No backups directory found at $backup_dir"
+        return 0
+    fi
+
+    print_header "Available Backups"
+    echo ""
+
+    local count=0
+    while IFS= read -r file; do
+        local size
+        size=$(du -h "$file" | cut -f1)
+        local date
+        date=$(stat -c %y "$file" 2>/dev/null || stat -f %Sm "$file" 2>/dev/null || echo "unknown")
+        echo "  $(basename "$file") ($size) - $date"
+        ((count++)) || true
+    done < <(find "$backup_dir" -name "*.tar.gz" -type f 2>/dev/null | sort -r)
+
+    if [[ $count -eq 0 ]]; then
+        echo "  No backups found"
+    fi
+    echo ""
+}
+
+list_backups_docker() {
+    local container="$1"
+
+    print_header "Available Backups on $container"
+    docker exec "$container" bash -c \
+        "ls -lh /alt/home/developer/workspace/backups/*.tar.gz 2>/dev/null || echo '  No backups found'"
+}
+
+list_backups_fly() {
+    local app="$1"
+
+    print_header "Available Backups on $app"
+    flyctl ssh console -a "$app" -C \
+        "ls -lh ~/workspace/backups/*.tar.gz 2>/dev/null || echo '  No backups found'"
+}
+
+# ==============================================================================
+# Main Entry Points
+# ==============================================================================
+
+backup_main() {
+    local output=""
+    local profile="standard"
+    local config="sindri.yaml"
+    local dry_run="false"
+    local verbose="false"
+    local list_mode="false"
+    local extra_excludes=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -o|--output)
+                output="$2"
+                shift 2
+                ;;
+            -p|--profile)
+                profile="$2"
+                if [[ ! "${PROFILE_INCLUDES[$profile]+isset}" ]]; then
+                    print_error "Unknown profile: $profile"
+                    echo "Available profiles: user-data, standard, full"
+                    exit 1
+                fi
+                shift 2
+                ;;
+            -c|--config)
+                config="$2"
+                shift 2
+                ;;
+            --exclude)
+                extra_excludes+=("$2")
+                shift 2
+                ;;
+            --dry-run)
+                dry_run="true"
+                shift
+                ;;
+            --list)
+                list_mode="true"
+                shift
+                ;;
+            -v|--verbose)
+                verbose="true"
+                shift
+                ;;
+            -h|--help)
+                show_backup_help
+                exit 0
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_backup_help
+                exit 1
+                ;;
+        esac
+    done
+
+    local name provider
+    name=$(get_instance_name "$config")
+    provider=$(get_provider "$config")
+
+    # Handle list mode
+    if [[ "$list_mode" == "true" ]]; then
+        if [[ "$RUNNING_IN_CONTAINER" == "true" ]]; then
+            list_backups_local
+        else
+            case "$provider" in
+                docker) list_backups_docker "$name" ;;
+                fly)    list_backups_fly "$name" ;;
+                *)      print_error "Unsupported provider: $provider" ;;
+            esac
+        fi
+        exit 0
+    fi
+
+    # Determine output path
+    if [[ -z "$output" ]]; then
+        output="./$(generate_backup_filename "$name")"
+    elif [[ -d "$output" ]]; then
+        output="$output/$(generate_backup_filename "$name")"
+    fi
+
+    local final_output="$output"
+    local is_s3=false
+
+    # Handle S3 output
+    if is_s3_path "$output"; then
+        is_s3=true
+        final_output=$(mktemp --suffix=.tar.gz)
+        trap "rm -f $final_output" EXIT
+    fi
+
+    # Execute backup based on context
+    if [[ "$RUNNING_IN_CONTAINER" == "true" ]]; then
+        do_backup_local "$final_output" "$profile" "$dry_run" "$verbose" "${extra_excludes[@]}"
+    else
+        case "$provider" in
+            docker)
+                do_backup_docker "$name" "$final_output" "$profile" "$dry_run" "$verbose" "${extra_excludes[@]}"
+                ;;
+            fly)
+                do_backup_fly "$name" "$final_output" "$profile" "$dry_run" "$verbose" "${extra_excludes[@]}"
+                ;;
+            devpod)
+                print_error "DevPod backup not yet implemented"
+                exit 1
+                ;;
+            *)
+                print_error "Unknown provider: $provider"
+                exit 1
+                ;;
+        esac
+    fi
+
+    # Upload to S3 if needed
+    if [[ "$is_s3" == "true" ]] && [[ "$dry_run" == "false" ]]; then
+        upload_to_s3 "$final_output" "$output"
+    fi
+}
+
+restore_main() {
+    local source=""
+    local mode="safe"
+    local config="sindri.yaml"
+    local dry_run="false"
+    local verbose="false"
+    local interactive="true"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -m|--mode)
+                mode="$2"
+                if [[ ! "$mode" =~ ^(safe|merge|full)$ ]]; then
+                    print_error "Unknown mode: $mode"
+                    echo "Available modes: safe, merge, full"
+                    exit 1
+                fi
+                shift 2
+                ;;
+            -c|--config)
+                config="$2"
+                shift 2
+                ;;
+            --dry-run)
+                dry_run="true"
+                shift
+                ;;
+            --no-interactive)
+                interactive="false"
+                shift
+                ;;
+            -v|--verbose)
+                verbose="true"
+                shift
+                ;;
+            -h|--help)
+                show_restore_help
+                exit 0
+                ;;
+            -*)
+                print_error "Unknown option: $1"
+                show_restore_help
+                exit 1
+                ;;
+            *)
+                if [[ -z "$source" ]]; then
+                    source="$1"
+                else
+                    print_error "Unexpected argument: $1"
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$source" ]]; then
+        print_error "Missing backup source"
+        show_restore_help
+        exit 1
+    fi
+
+    local name provider
+    name=$(get_instance_name "$config")
+    provider=$(get_provider "$config")
+
+    # Handle remote sources
+    local local_backup="$source"
+    local cleanup_backup="false"
+
+    if is_s3_path "$source"; then
+        local_backup=$(mktemp --suffix=.tar.gz)
+        cleanup_backup="true"
+        download_from_s3 "$source" "$local_backup"
+    elif is_url "$source"; then
+        local_backup=$(mktemp --suffix=.tar.gz)
+        cleanup_backup="true"
+        download_from_url "$source" "$local_backup"
+    fi
+
+    if [[ ! -f "$local_backup" ]]; then
+        print_error "Backup file not found: $local_backup"
+        exit 1
+    fi
+
+    # Warn about full mode
+    if [[ "$mode" == "full" ]] && [[ "$interactive" == "true" ]]; then
+        print_warning "Full mode will overwrite existing files!"
+        read -p "Are you sure? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Restore cancelled"
+            [[ "$cleanup_backup" == "true" ]] && rm -f "$local_backup"
+            exit 0
+        fi
+    fi
+
+    # Execute restore based on context
+    if [[ "$RUNNING_IN_CONTAINER" == "true" ]]; then
+        do_restore_local "$local_backup" "$mode" "$dry_run" "$verbose" "$interactive"
+    else
+        case "$provider" in
+            docker)
+                do_restore_docker "$name" "$local_backup" "$mode" "$dry_run" "$verbose" "$interactive"
+                ;;
+            fly)
+                do_restore_fly "$name" "$local_backup" "$mode" "$dry_run" "$verbose" "$interactive"
+                ;;
+            devpod)
+                print_error "DevPod restore not yet implemented"
+                [[ "$cleanup_backup" == "true" ]] && rm -f "$local_backup"
+                exit 1
+                ;;
+            *)
+                print_error "Unknown provider: $provider"
+                [[ "$cleanup_backup" == "true" ]] && rm -f "$local_backup"
+                exit 1
+                ;;
+        esac
+    fi
+
+    # Cleanup temp file
+    [[ "$cleanup_backup" == "true" ]] && rm -f "$local_backup"
+}
+
+# ==============================================================================
+# Script Entry Point
+# ==============================================================================
+
+main() {
+    local command="${1:-}"
+
+    case "$command" in
+        backup)
+            shift
+            backup_main "$@"
+            ;;
+        restore)
+            shift
+            restore_main "$@"
+            ;;
+        help|-h|--help)
+            echo "Sindri Backup/Restore Manager"
+            echo ""
+            echo "Usage:"
+            echo "  sindri backup [options]       Create workspace backup"
+            echo "  sindri restore <file> [opts]  Restore from backup"
+            echo ""
+            echo "Run 'sindri backup --help' or 'sindri restore --help' for details"
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            echo "Usage: sindri backup|restore [options]"
+            exit 1
+            ;;
+    esac
+}
+
+# Run if called directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

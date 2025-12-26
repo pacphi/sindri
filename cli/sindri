@@ -80,6 +80,12 @@ COMMANDS:
     config validate [--config <file>]
                                  Validate configuration against schema
 
+    backup [--profile <name>] [--output <path>]
+                                 Backup workspace (profiles: user-data, standard, full)
+    restore <file> [--mode <name>]
+                                 Restore from backup (modes: safe, merge, full)
+    backup list                  List backups on instance
+
 OPTIONS:
     -h, --help                   Show this help
     -V, --version                Show version information
@@ -102,6 +108,13 @@ EXAMPLES:
     sindri destroy --provider docker
     sindri destroy --force
     sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+
+    # Backup and restore
+    sindri backup                            # Standard backup
+    sindri backup --profile user-data        # User data only (migration)
+    sindri backup --output s3://bucket/path  # Backup to S3
+    sindri restore ./backup.tar.gz           # Safe restore
+    sindri restore ./backup.tar.gz --dry-run # Preview restore
 
     # Local Kubernetes cluster management
     sindri k8s create --provider kind
@@ -970,6 +983,14 @@ main() {
 
             # Execute k8s adapter
             "$BASE_DIR/deploy/adapters/k8s/k8s-adapter.sh" "${adapter_args[@]}"
+            ;;
+        backup)
+            # Delegate to backup-restore script
+            "$BASE_DIR/cli/backup-restore" backup "$@"
+            ;;
+        restore)
+            # Delegate to backup-restore script
+            "$BASE_DIR/cli/backup-restore" restore "$@"
             ;;
         help|-h|--help)
             show_help
