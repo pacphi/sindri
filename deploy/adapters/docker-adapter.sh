@@ -93,24 +93,172 @@ parse_config() {
 }
 
 # ============================================================================
+# DinD Mode Detection and Configuration
+# ============================================================================
+
+# Detect available DinD mode based on configuration and host capabilities
+detect_dind_mode() {
+    local requested_mode
+    requested_mode=$(yq '.providers.docker.dind.mode // .providers.docker-compose.dind.mode // "auto"' "$SINDRI_YAML")
+
+    case "$requested_mode" in
+        sysbox)
+            if docker info 2>/dev/null | grep -q "sysbox-runc"; then
+                echo "sysbox"
+            else
+                print_error "Sysbox requested but sysbox-runc not found on host"
+                print_status "Install Sysbox: https://github.com/nestybox/sysbox/releases/tag/v0.6.7"
+                print_status "Or run: scripts/setup-sysbox-host.sh"
+                exit 1
+            fi
+            ;;
+        privileged)
+            echo "privileged"
+            ;;
+        socket)
+            echo "socket"
+            ;;
+        auto)
+            # Auto-detect best available mode
+            if docker info 2>/dev/null | grep -q "sysbox-runc"; then
+                print_status "Auto-detected Sysbox runtime - using secure DinD"
+                echo "sysbox"
+            else
+                local privileged
+                privileged=$(yq '.providers.docker.privileged // .providers.docker-compose.privileged // false' "$SINDRI_YAML")
+                if [[ "$privileged" == "true" ]]; then
+                    print_status "Sysbox not available - using privileged mode with vfs driver"
+                    echo "privileged"
+                else
+                    print_warning "DinD enabled but Sysbox not available and privileged mode not enabled"
+                    print_status "Inner Docker may not work. Options:"
+                    print_status "  1. Install Sysbox on host: scripts/setup-sysbox-host.sh"
+                    print_status "  2. Enable privileged mode: providers.docker.privileged: true"
+                    echo "none"
+                fi
+            fi
+            ;;
+        *)
+            echo "none"
+            ;;
+    esac
+}
+
+# Get runtime configuration
+get_runtime() {
+    local requested_runtime
+    requested_runtime=$(yq '.providers.docker.runtime // .providers.docker-compose.runtime // "auto"' "$SINDRI_YAML")
+
+    case "$requested_runtime" in
+        sysbox-runc)
+            if docker info 2>/dev/null | grep -q "sysbox-runc"; then
+                echo "sysbox-runc"
+            else
+                print_warning "sysbox-runc requested but not available, using default runtime"
+                echo ""
+            fi
+            ;;
+        runc)
+            echo ""  # Default runtime, no need to specify
+            ;;
+        auto)
+            # Only use sysbox-runc if DinD is enabled and sysbox is available
+            local dind_enabled
+            dind_enabled=$(yq '.providers.docker.dind.enabled // .providers.docker-compose.dind.enabled // false' "$SINDRI_YAML")
+            if [[ "$dind_enabled" == "true" ]] && docker info 2>/dev/null | grep -q "sysbox-runc"; then
+                echo "sysbox-runc"
+            else
+                echo ""
+            fi
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+# ============================================================================
 # docker-compose.yml Generation
 # ============================================================================
 
 generate_compose() {
     mkdir -p "$OUTPUT_DIR"
 
+    # Check if DinD is enabled and detect mode
+    local dind_enabled
+    dind_enabled=$(yq '.providers.docker.dind.enabled // .providers.docker-compose.dind.enabled // false' "$SINDRI_YAML")
+
+    local dind_mode="none"
+    if [[ "$dind_enabled" == "true" ]]; then
+        dind_mode=$(detect_dind_mode)
+    fi
+
+    # Get runtime
+    local runtime
+    runtime=$(get_runtime)
+
+    # Get DinD storage configuration
+    local dind_storage_size
+    dind_storage_size=$(yq '.providers.docker.dind.storageSize // .providers.docker-compose.dind.storageSize // "20GB"' "$SINDRI_YAML")
+
+    local dind_storage_driver
+    dind_storage_driver=$(yq '.providers.docker.dind.storageDriver // .providers.docker-compose.dind.storageDriver // "auto"' "$SINDRI_YAML")
+
     # Start docker-compose.yml
     cat > "$OUTPUT_DIR/docker-compose.yml" << EODC
 # Docker Compose configuration for Sindri
 # Local development environment with persistent storage
+# DinD Mode: ${dind_mode}
 
 services:
   sindri:
     image: sindri:latest
     container_name: ${NAME}
+EODC
+
+    # Add runtime if specified (Sysbox)
+    if [[ -n "$runtime" ]]; then
+        cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    runtime: ${runtime}
+EODC
+    fi
+
+    # Configure volumes based on DinD mode
+    case "$dind_mode" in
+        sysbox)
+            # Sysbox mode - standard volume, no privileged needed
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
     volumes:
       - ${NAME}_home:/alt/home/developer
 EODC
+            ;;
+        privileged)
+            # Privileged mode - add dedicated Docker volume
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    privileged: true
+    volumes:
+      - ${NAME}_home:/alt/home/developer
+      - ${NAME}_docker:/var/lib/docker
+EODC
+            ;;
+        socket)
+            # Socket binding mode - mount host Docker socket
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    volumes:
+      - ${NAME}_home:/alt/home/developer
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - docker
+EODC
+            ;;
+        *)
+            # Standard mode - no DinD
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    volumes:
+      - ${NAME}_home:/alt/home/developer
+EODC
+            ;;
+    esac
 
     # Add env_file if secrets exist
     if [[ -f "$OUTPUT_DIR/.env.secrets" ]] && [[ -s "$OUTPUT_DIR/.env.secrets" ]]; then
@@ -132,6 +280,15 @@ EODC
       - ADDITIONAL_EXTENSIONS=${ADDITIONAL_EXTENSIONS}
       - SKIP_AUTO_INSTALL=${skip_auto_install}
 EODC
+
+    # Add DinD-specific environment variables
+    if [[ "$dind_mode" != "none" ]]; then
+        cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+      - SINDRI_DIND_MODE=${dind_mode}
+      - SINDRI_DIND_STORAGE_SIZE=${dind_storage_size}
+      - SINDRI_DIND_STORAGE_DRIVER=${dind_storage_driver}
+EODC
+    fi
 
     # Add GPU or standard resource configuration
     if [[ "$GPU_ENABLED" == "true" ]]; then
@@ -159,8 +316,43 @@ EODC
 EODC
     fi
 
-    # Add security hardening options (M-8: Docker security best practices)
-    cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    # Add security options based on DinD mode
+    case "$dind_mode" in
+        sysbox)
+            # Sysbox provides isolation - minimal security opts
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    # Sysbox provides user-namespace isolation - no privileged mode needed
+    tmpfs:
+      - /tmp:size=2G,mode=1777,noexec,nosuid,nodev
+    stdin_open: true
+    tty: true
+EODC
+            ;;
+        privileged)
+            # Privileged mode already set above - add tmpfs
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    # Privileged mode for legacy DinD - inner Docker uses vfs storage driver
+    tmpfs:
+      - /tmp:size=2G,mode=1777,noexec,nosuid,nodev
+    stdin_open: true
+    tty: true
+EODC
+            ;;
+        socket)
+            # Socket mode - standard security hardening
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+    # Socket binding mode - shares host Docker daemon
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=2G,mode=1777,noexec,nosuid,nodev
+    stdin_open: true
+    tty: true
+EODC
+            ;;
+        *)
+            # Standard security hardening (M-8: Docker security best practices)
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
     security_opt:
       - no-new-privileges:true
       - seccomp:unconfined
@@ -176,11 +368,31 @@ EODC
       - /tmp:size=2G,mode=1777,noexec,nosuid,nodev
     stdin_open: true
     tty: true
+EODC
+            ;;
+    esac
+
+    # Add volumes section
+    case "$dind_mode" in
+        privileged)
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+
+volumes:
+  ${NAME}_home:
+    driver: local
+  ${NAME}_docker:
+    driver: local
+EODC
+            ;;
+        *)
+            cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
 
 volumes:
   ${NAME}_home:
     driver: local
 EODC
+            ;;
+    esac
 }
 
 # ============================================================================

@@ -1,0 +1,41 @@
+---
+# Sindri Configuration - Docker Socket Binding
+# Share host Docker daemon instead of running nested Docker
+#
+# Use this configuration when:
+#   - You don't need true container isolation
+#   - You want the best performance
+#   - You're okay with containers being visible on host
+#
+# How it works:
+#   - Mounts /var/run/docker.sock from host
+#   - Docker commands inside container use host's daemon
+#   - No nested Docker daemon, no storage driver issues
+#
+# Limitations:
+#   - Containers created are siblings (visible on host)
+#   - Less isolation than true DinD
+#   - Cannot run different Docker versions
+
+version: "1.0"
+name: sindri-dind-socket
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: devops
+
+providers:
+  docker:
+    dind:
+      enabled: true
+      mode: socket
+    ports:
+      - "8080:8080"

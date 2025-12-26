@@ -1,0 +1,42 @@
+---
+# Sindri Configuration - Docker-in-Docker with Privileged Mode
+# Legacy DinD approach - works everywhere but less secure
+#
+# Use this configuration when:
+#   - Sysbox is not installed on the host
+#   - You need DinD to work immediately without host setup
+#   - Running on cloud VMs without Sysbox support
+#
+# Security Warning:
+#   Privileged mode grants the container nearly full host access.
+#   Only use in trusted environments.
+#
+# Performance Note:
+#   Uses vfs storage driver which is slower than overlay2.
+#   Increase storageSize if building large images.
+
+version: "1.0"
+name: sindri-dind-privileged
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  profile: devops
+
+providers:
+  docker:
+    privileged: true
+    dind:
+      enabled: true
+      mode: privileged
+      storageDriver: vfs
+      storageSize: 30GB
+    ports:
+      - "8080:8080"
