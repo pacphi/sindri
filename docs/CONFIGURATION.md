@@ -73,9 +73,18 @@ name: my-sindri-dev
 
 **Type:** string
 **Required:** Yes
-**Options:** `docker`, `fly`, `devpod`
+**Options:** `docker`, `fly`, `devpod`, `e2b`
 
 Target deployment platform. For Kubernetes deployments, use `devpod` with `type: kubernetes`.
+
+**Provider Comparison:**
+
+| Provider | Best For | Access Method |
+|----------|----------|---------------|
+| `docker` | Local development | Direct container |
+| `fly` | Remote cloud dev | SSH |
+| `devpod` | IDE integration, K8s, multi-cloud | SSH |
+| `e2b` | AI sandboxes, rapid prototyping | WebSocket PTY |
 
 ```yaml
 deployment:
@@ -315,6 +324,56 @@ providers:
       - ghcr.io/devcontainers/features/github-cli:1
       - ghcr.io/devcontainers/features/docker-in-docker:2
 ```
+
+### E2B Provider
+
+E2B provides ultra-fast cloud sandboxes with ~150ms startup times.
+
+```yaml
+providers:
+  e2b:
+    # Template configuration
+    templateAlias: my-sindri-template   # Custom template name
+    reuseTemplate: true                 # Reuse existing template
+
+    # Sandbox behavior
+    timeout: 3600                       # Timeout in seconds (default: 300)
+    autoPause: true                     # Pause on timeout (default: true)
+    autoResume: true                    # Resume paused on connect (default: true)
+
+    # Network configuration
+    internetAccess: true                # Enable outbound internet
+    allowedDomains:                     # Whitelist domains (empty = all)
+      - github.com
+      - "*.github.com"
+      - api.anthropic.com
+    blockedDomains: []                  # Blacklist domains
+    publicAccess: false                 # Public URL access to services
+
+    # Metadata for identification
+    metadata:
+      project: my-project
+      environment: development
+```
+
+**E2B Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `templateAlias` | string | `{name}` | Template identifier |
+| `reuseTemplate` | boolean | `true` | Reuse existing template |
+| `timeout` | integer | `300` | Sandbox timeout (60-86400 seconds) |
+| `autoPause` | boolean | `true` | Pause on timeout instead of kill |
+| `autoResume` | boolean | `true` | Auto-resume on connect |
+| `internetAccess` | boolean | `true` | Enable outbound internet |
+| `allowedDomains` | array | `[]` | Whitelist domains |
+| `blockedDomains` | array | `[]` | Blacklist domains |
+| `publicAccess` | boolean | `false` | Allow public URL access |
+| `metadata` | object | `{}` | Custom key-value pairs |
+
+**Important:** E2B does not support GPU. GPU configuration will be rejected.
+
+See [E2B Provider Guide](providers/E2B.md) for full documentation.
 
 ### DevPod Multi-Backend Support
 
@@ -685,7 +744,8 @@ docker/lib/schemas/sindri.schema.json
 
 - [Quickstart](QUICKSTART.md)
 - [Extension Catalog](EXTENSIONS.md)
+- [Docker Deployment](providers/DOCKER.md)
 - [Fly.io Deployment](providers/FLY.md)
 - [DevPod Integration](providers/DEVPOD.md)
-- [Docker Deployment](providers/DOCKER.md)
+- [E2B Cloud Sandboxes](providers/E2B.md)
 - [Kubernetes Deployment](providers/KUBERNETES.md)

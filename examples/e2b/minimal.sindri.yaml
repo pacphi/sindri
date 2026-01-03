@@ -1,0 +1,36 @@
+---
+# Sindri Configuration - E2B Minimal
+# Quick-start configuration with sensible defaults
+#
+# Features:
+#   - Fast startup (~150ms from snapshot)
+#   - Auto-pause after 5 minutes idle (cost saving)
+#   - Auto-resume on connect
+#
+# Usage:
+#   export E2B_API_KEY=your-api-key
+#   sindri deploy -f examples/e2b/minimal.sindri.yaml
+#   sindri connect
+
+version: "1.0"
+name: sindri-e2b-minimal
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 2GB
+    cpus: 2
+
+extensions:
+  profile: minimal
+
+secrets:
+  - name: E2B_API_KEY
+    source: env
+    required: true
+
+providers:
+  e2b:
+    timeout: 300          # 5 min idle timeout
+    autoPause: true       # Pause instead of kill (preserve state)
+    autoResume: true      # Auto-resume on connect

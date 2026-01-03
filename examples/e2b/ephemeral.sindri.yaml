@@ -1,0 +1,43 @@
+---
+# Sindri Configuration - E2B Ephemeral (Throwaway)
+# Disposable sandbox for testing risky operations
+#
+# Features:
+#   - No state preservation (auto-kill on timeout)
+#   - Short timeout (10 minutes)
+#   - Minimal footprint
+#   - Perfect for: testing, demos, one-off scripts
+#
+# Usage:
+#   export E2B_API_KEY=your-api-key
+#   sindri deploy -f examples/e2b/ephemeral.sindri.yaml --ephemeral
+#   # ... do your work ...
+#   # Sandbox auto-destroys after timeout
+
+version: "1.0"
+name: sindri-e2b-ephemeral
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 1GB           # Minimal resources
+    cpus: 1
+
+extensions:
+  profile: minimal
+
+secrets:
+  - name: E2B_API_KEY
+    source: env
+    required: true
+
+providers:
+  e2b:
+    timeout: 600          # 10 min - short session
+    autoPause: false      # Kill instead of pause (no state to preserve)
+    autoResume: false     # Not applicable for ephemeral
+    reuseTemplate: true   # Reuse template for fast startup
+
+    metadata:
+      type: ephemeral
+      disposable: "true"

@@ -1,0 +1,67 @@
+---
+# Sindri Configuration - E2B AI Development
+# Full AI development environment with Claude Code and supporting tools
+#
+# Features:
+#   - Claude Code pre-installed and ready
+#   - Full AI toolkit (LangChain, transformers, etc.)
+#   - Longer timeout for deep work sessions
+#   - All major AI API keys supported
+#
+# Usage:
+#   export E2B_API_KEY=your-api-key
+#   export ANTHROPIC_API_KEY=your-anthropic-key
+#   sindri deploy -f examples/e2b/ai-dev.sindri.yaml
+#   sindri connect
+
+version: "1.0"
+name: sindri-e2b-ai-dev
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 4GB           # More RAM for AI workloads
+    cpus: 4
+
+extensions:
+  profile: ai-dev
+  additional:
+    - python             # Ensure Python is available
+    - nodejs             # For JS/TS AI tools
+
+secrets:
+  # Required
+  - name: E2B_API_KEY
+    source: env
+    required: true
+
+  # Claude Code
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  # Git integration
+  - name: GITHUB_TOKEN
+    source: env
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+  # Optional AI keys
+  - name: OPENAI_API_KEY
+    source: env
+  - name: OPENROUTER_API_KEY
+    source: env
+
+providers:
+  e2b:
+    templateAlias: sindri-ai-dev
+    timeout: 1800         # 30 min timeout for focused work
+    autoPause: true
+    autoResume: true
+    internetAccess: true  # Required for API calls
+
+    metadata:
+      purpose: ai-development
+      profile: ai-dev

@@ -92,6 +92,13 @@ on:
           - examples/custom/frontend-only.sindri.yaml
           - examples/custom/minimal-golang.sindri.yaml
           - examples/custom/security-focused.sindri.yaml
+          # Individual examples - E2B
+          - examples/e2b/minimal.sindri.yaml
+          - examples/e2b/ai-dev.sindri.yaml
+          - examples/e2b/fullstack.sindri.yaml
+          - examples/e2b/ephemeral.sindri.yaml
+          - examples/e2b/cost-optimized.sindri.yaml
+          - examples/e2b/secure.sindri.yaml
           # Individual examples - Local Kubernetes (kind/k3d)
           - examples/k8s/kind-minimal.sindri.yaml
           - examples/k8s/k3d-with-registry.sindri.yaml
@@ -104,6 +111,7 @@ on:
           - examples/devpod/digitalocean/
           - examples/devpod/kubernetes/
           - examples/devpod/
+          - examples/e2b/
           - examples/profiles/
           - examples/profiles/vision-flow/
           - examples/custom/
@@ -205,6 +213,10 @@ jobs:
         if: steps.parse.outputs.provider == 'fly'
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Setup E2B CLI
+        if: steps.parse.outputs.provider == 'e2b'
+        run: npm install -g @e2b/cli
+
       - name: Validate configuration
         run: |
           ./cli/sindri config validate --config "${{ matrix.config }}"
@@ -215,6 +227,7 @@ jobs:
           ./cli/sindri deploy --config "${{ matrix.config }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -229,6 +242,7 @@ jobs:
           ./cli/sindri test --config "${{ matrix.config }}" --level "${{ inputs.test-level }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
 
       - name: Teardown
         if: always() && inputs.skip-cleanup != true
@@ -236,6 +250,7 @@ jobs:
           ./cli/sindri destroy --config "${{ matrix.config }}" --force
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}

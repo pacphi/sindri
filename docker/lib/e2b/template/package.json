@@ -1,0 +1,41 @@
+{
+  "name": "@sindri/e2b-template",
+  "version": "1.0.0",
+  "description": "E2B template builder for Sindri development environments",
+  "private": true,
+  "type": "module",
+  "main": "build.ts",
+  "scripts": {
+    "build": "npx tsx build.ts",
+    "build:minimal": "npx tsx build.ts --minimal",
+    "build:verbose": "npx tsx build.ts --verbose",
+    "build:dry-run": "npx tsx build.ts --dry-run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf node_modules .e2b"
+  },
+  "dependencies": {
+    "e2b": "^1.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "sindri",
+    "e2b",
+    "sandbox",
+    "template",
+    "cloud-development"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pacphi/sindri.git",
+    "directory": "docker/lib/e2b/template"
+  },
+  "license": "MIT"
+}

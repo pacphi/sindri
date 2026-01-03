@@ -21,7 +21,7 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod"],
+          "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod", "e2b"],
           "description": "Deployment provider (docker is an alias for docker-compose)"
         },
         "image": {
@@ -634,6 +634,76 @@
               }
             }
           }
+        },
+        "e2b": {
+          "type": "object",
+          "description": "E2B cloud sandbox provider options",
+          "properties": {
+            "templateAlias": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Custom template alias (auto-generated from name if omitted)"
+            },
+            "reuseTemplate": {
+              "type": "boolean",
+              "default": true,
+              "description": "Reuse existing template if available"
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 86400,
+              "default": 300,
+              "description": "Sandbox timeout in seconds (default: 5 minutes)"
+            },
+            "autoPause": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-pause sandbox on timeout instead of killing"
+            },
+            "autoResume": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-resume paused sandbox on connect"
+            },
+            "internetAccess": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable outbound internet access"
+            },
+            "allowedDomains": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": [],
+              "description": "Whitelist of allowed outbound domains (empty = all)"
+            },
+            "blockedDomains": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": [],
+              "description": "Blacklist of blocked outbound domains"
+            },
+            "publicAccess": {
+              "type": "boolean",
+              "default": false,
+              "description": "Allow public URL access to services running in sandbox"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Custom metadata for sandbox identification"
+            },
+            "team": {
+              "type": "string",
+              "description": "E2B team for billing (defaults to personal)"
+            },
+            "buildOnDeploy": {
+              "type": "boolean",
+              "default": false,
+              "description": "Force rebuild template on every deploy"
+            }
+          },
+          "additionalProperties": false
         }
       }
     }

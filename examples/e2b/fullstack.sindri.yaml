@@ -1,0 +1,55 @@
+---
+# Sindri Configuration - E2B Full Stack Development
+# Complete development environment for web applications
+#
+# Features:
+#   - Node.js, Python, and database tools
+#   - Longer timeout for active development
+#   - Public access for testing web apps
+#
+# Usage:
+#   export E2B_API_KEY=your-api-key
+#   sindri deploy -f examples/e2b/fullstack.sindri.yaml
+#   sindri connect
+
+version: "1.0"
+name: sindri-e2b-fullstack
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 4GB
+    cpus: 4
+
+extensions:
+  profile: fullstack
+
+secrets:
+  - name: E2B_API_KEY
+    source: env
+    required: true
+
+  - name: ANTHROPIC_API_KEY
+    source: env
+
+  - name: GITHUB_TOKEN
+    source: env
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+providers:
+  e2b:
+    templateAlias: sindri-fullstack
+    timeout: 3600             # 1 hour for active development
+    autoPause: true
+    autoResume: true
+
+    internetAccess: true
+    publicAccess: true        # Access web apps via public URL
+    # Public URLs format: https://<port>-<sandbox-id>.e2b.app
+
+    metadata:
+      purpose: fullstack-development
+      profile: fullstack

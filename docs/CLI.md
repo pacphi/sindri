@@ -24,7 +24,7 @@ Main deployment tool for managing Sindri environments across providers.
 ```bash
 -h, --help               Show help message
 -c, --config <file>      Use specific config file (default: sindri.yaml)
--p, --provider <name>    Deployment provider (docker, fly, devpod)
+-p, --provider <name>    Deployment provider (docker, fly, devpod, e2b)
 -r, --rebuild            Force rebuild of Docker image
 -v, --verbose            Verbose output
 ```
@@ -113,7 +113,7 @@ sindri deploy [--provider <name>] [--rebuild] [--config <file>]
 
 **Options:**
 
-- `--provider <name>` - Override provider from config (docker, fly, devpod)
+- `--provider <name>` - Override provider from config (docker, fly, devpod, e2b)
 - `--rebuild` - Force rebuild Docker image (useful for Fly.io)
 - `--config <file>` - Use specific config file
 
@@ -122,6 +122,7 @@ sindri deploy [--provider <name>] [--rebuild] [--config <file>]
 - **docker** - Deploys via Docker Compose locally
 - **fly** - Deploys to Fly.io cloud (requires flyctl)
 - **devpod** - Deploys as DevContainer (requires devpod CLI)
+- **e2b** - Deploys to E2B cloud sandbox (requires E2B_API_KEY)
 
 **Examples:**
 
@@ -140,6 +141,9 @@ sindri deploy --config examples/fly/minimal.sindri.yaml
 
 # Deploy DevPod environment
 sindri deploy --provider devpod
+
+# Deploy to E2B cloud sandbox
+sindri deploy --provider e2b
 ```
 
 **What Happens:**
@@ -238,6 +242,7 @@ sindri connect --config my-custom.sindri.yaml
 - **docker** - `docker exec` into container
 - **fly** - `flyctl ssh console` via proxy
 - **devpod** - `devpod ssh` into workspace
+- **e2b** - WebSocket connection to sandbox terminal
 
 ### sindri status
 
@@ -268,6 +273,7 @@ sindri status --config production.sindri.yaml
 - **docker** - Container state, resource usage (CPU/memory)
 - **fly** - Machine status, volumes, app state
 - **devpod** - Workspace status, Kubernetes pod state (if k8s backend)
+- **e2b** - Sandbox state, remaining timeout, template info
 
 ---
 
@@ -303,6 +309,71 @@ sindri test --config examples/fly/ai-dev.sindri.yaml --suite integration
 
 # Run full test suite
 sindri test --suite full
+```
+
+---
+
+## E2B-Specific Commands
+
+These commands are only available when using the E2B provider.
+
+### sindri pause
+
+Pause sandbox to preserve state. E2B sandboxes auto-terminate after timeout; pause saves state for later resume.
+
+```bash
+sindri pause [--config <file>]
+```
+
+**Options:**
+
+- `--config <file>` - Config file (default: `sindri.yaml`)
+
+**Examples:**
+
+```bash
+# Pause current E2B sandbox
+sindri pause
+
+# Pause with specific config
+sindri pause --config my-e2b.sindri.yaml
+```
+
+**Notes:**
+
+- Only available for E2B provider
+- Paused sandboxes can be resumed with `sindri deploy`
+- Preserves filesystem state and running processes
+
+### sindri template
+
+Manage E2B templates for faster sandbox startup.
+
+```bash
+sindri template <subcommand> [options]
+```
+
+**Subcommands:**
+
+- `list` - List available templates
+- `create` - Create template from current sandbox state
+- `delete` - Delete a template
+- `info` - Show template details
+
+**Examples:**
+
+```bash
+# List available templates
+sindri template list
+
+# Create template from running sandbox
+sindri template create --name my-dev-env
+
+# Delete a template
+sindri template delete my-dev-env
+
+# Show template info
+sindri template info my-dev-env
 ```
 
 ---

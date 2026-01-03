@@ -1,6 +1,6 @@
 # Sindri Configuration Examples
 
-Ready-to-use configuration files for deploying Sindri to various providers. **55 examples** covering all profiles, providers, and configuration permutations.
+Ready-to-use configuration files for deploying Sindri to various providers. **61 examples** covering all profiles, providers, and configuration permutations.
 
 ## Quick Start
 
@@ -21,28 +21,29 @@ Ready-to-use configuration files for deploying Sindri to various providers. **55
 
 ### Coverage Matrix (Profiles × Providers)
 
-| Profile       | Fly | Docker | DevPod | Custom | Total |
-| ------------- | --- | ------ | ------ | ------ | ----- |
-| minimal       | 4   | 1      | 11     | -      | 16    |
-| fullstack     | 2   | 1      | 2      | -      | 5     |
-| ai-dev        | 1   | 1      | 2      | -      | 4     |
-| anthropic-dev | 1   | 1      | -      | -      | 2     |
-| systems       | 1   | 1      | 1      | -      | 3     |
-| devops        | 1   | 1      | 1      | -      | 3     |
-| enterprise    | -   | 1      | -      | -      | 1     |
-| mobile        | 1   | 1      | -      | -      | 2     |
-| **Custom**    | 2   | 2      | 1      | 2      | 7     |
-| **Total**     | 15  | 11     | 18     | 2      | 44    |
+| Profile       | Fly | Docker | E2B | DevPod | Custom | Total |
+| ------------- | --- | ------ | --- | ------ | ------ | ----- |
+| minimal       | 4   | 1      | 1   | 11     | -      | 17    |
+| fullstack     | 2   | 1      | 1   | 2      | -      | 6     |
+| ai-dev        | 1   | 1      | 1   | 2      | -      | 5     |
+| anthropic-dev | 1   | 1      | -   | -      | -      | 2     |
+| systems       | 1   | 1      | -   | 1      | -      | 3     |
+| devops        | 1   | 1      | -   | 1      | -      | 3     |
+| enterprise    | -   | 1      | -   | -      | -      | 1     |
+| mobile        | 1   | 1      | -   | -      | -      | 2     |
+| **Custom**    | 2   | 2      | 3   | 1      | 2      | 10    |
+| **Total**     | 15  | 11     | 6   | 18     | 2      | 50    |
 
 ## Directory Structure
 
 ### By Provider
 
-| Directory              | Provider       | Examples | Description                             |
-| ---------------------- | -------------- | -------- | --------------------------------------- |
-| `fly/`                 | Fly.io         | 17       | Deploy to Fly.io's global edge network  |
-| `docker/`              | Docker Compose | 11       | Local development with Docker           |
-| `devpod/aws/`          | DevPod + AWS   | 5        | EC2-based development environments      |
+| Directory              | Provider       | Examples | Description                               |
+| ---------------------- | -------------- | -------- | ----------------------------------------- |
+| `fly/`                 | Fly.io         | 17       | Deploy to Fly.io's global edge network    |
+| `docker/`              | Docker Compose | 11       | Local development with Docker             |
+| `e2b/`                 | E2B            | 6        | Ultra-fast cloud sandboxes (~150ms start) |
+| `devpod/aws/`          | DevPod + AWS   | 5        | EC2-based development environments        |
 | `devpod/gcp/`          | DevPod + GCP   | 4        | GCE-based development environments      |
 | `devpod/azure/`        | DevPod + Azure | 3        | Azure VM-based development environments |
 | `devpod/digitalocean/` | DevPod + DO    | 2        | DigitalOcean droplet environments       |
@@ -106,6 +107,27 @@ docker/
 ├── enterprise.sindri.yaml     # All languages (16GB RAM, multi-port)
 └── mobile.sindri.yaml         # Mobile development (8GB RAM, Expo ports)
 ```
+
+### E2B Examples (6 examples)
+
+Ultra-fast cloud sandboxes with ~150ms startup. Perfect for AI agents and rapid prototyping.
+
+```text
+e2b/
+├── minimal.sindri.yaml        # Quick start with defaults (2GB RAM)
+├── ai-dev.sindri.yaml         # Full AI development (4GB RAM, Claude Code)
+├── fullstack.sindri.yaml      # Web development with public access (4GB RAM)
+├── ephemeral.sindri.yaml      # Throwaway sandbox (no persistence)
+├── cost-optimized.sindri.yaml # Maximum cost savings (short timeout)
+└── secure.sindri.yaml         # Network-restricted (domain allowlist)
+```
+
+**E2B-specific features:**
+
+- ~150ms startup (snapshot-based boot)
+- `sindri pause` - Pause sandbox (preserves state, stops billing)
+- WebSocket PTY terminal (no SSH required)
+- Per-second billing (~$0.13/hr for 2 vCPU, 2GB)
 
 ### DevPod Examples (19 examples)
 
