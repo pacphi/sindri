@@ -29,7 +29,7 @@ deployment:
 extensions:
   profile: minimal
   additional:
-    - security-tools     # Security scanning tools
+    - security-tools # Security scanning tools
 
 secrets:
   - name: E2B_API_KEY
@@ -43,13 +43,13 @@ secrets:
 providers:
   e2b:
     templateAlias: sindri-secure
-    timeout: 900              # 15 min timeout
+    timeout: 900 # 15 min timeout
     autoPause: true
     autoResume: true
 
     # Network restrictions
-    internetAccess: true      # Required for allowedDomains to work
-    publicAccess: false       # No public URL exposure
+    internetAccess: true # Required for allowedDomains to work
+    publicAccess: false # No public URL exposure
 
     # Explicit domain allowlist
     allowedDomains:

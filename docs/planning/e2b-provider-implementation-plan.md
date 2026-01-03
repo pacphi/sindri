@@ -34,36 +34,37 @@ This document outlines the technical implementation plan for integrating [E2B](h
 
 E2B is an open-source infrastructure platform that provides secure, isolated cloud sandboxes for executing code. Key characteristics:
 
-| Feature | Description |
-|---------|-------------|
-| **Startup Time** | ~150ms (snapshot-based boot) |
-| **Isolation** | Lightweight VMs with full Linux kernel |
-| **Languages** | Python, JavaScript/TypeScript, R, Java, Bash |
-| **Persistence** | Pause/Resume with full memory + filesystem preservation |
-| **Access** | SDK-based (Python/JS) or CLI |
-| **Networking** | Full internet access with configurable policies |
-| **Storage** | 10-20GB ephemeral (tier-dependent), snapshot persistence |
+| Feature          | Description                                              |
+| ---------------- | -------------------------------------------------------- |
+| **Startup Time** | ~150ms (snapshot-based boot)                             |
+| **Isolation**    | Lightweight VMs with full Linux kernel                   |
+| **Languages**    | Python, JavaScript/TypeScript, R, Java, Bash             |
+| **Persistence**  | Pause/Resume with full memory + filesystem preservation  |
+| **Access**       | SDK-based (Python/JS) or CLI                             |
+| **Networking**   | Full internet access with configurable policies          |
+| **Storage**      | 10-20GB ephemeral (tier-dependent), snapshot persistence |
 
 ### 1.2 E2B vs Traditional Cloud Providers
 
-| Aspect | Docker/Fly.io/DevPod | E2B |
-|--------|----------------------|-----|
-| Access Method | SSH/Terminal | SDK/CLI (no SSH) |
-| Persistence | Persistent volumes | Pause/Resume snapshots |
-| Startup | 10-60 seconds | ~150ms |
-| Boot Model | Container/VM boot | Snapshot restore |
-| Customization | Dockerfile | Template (Docker + snapshot) |
-| Primary Use Case | Long-running dev envs | AI agent sandboxes |
+| Aspect           | Docker/Fly.io/DevPod  | E2B                          |
+| ---------------- | --------------------- | ---------------------------- |
+| Access Method    | SSH/Terminal          | SDK/CLI (no SSH)             |
+| Persistence      | Persistent volumes    | Pause/Resume snapshots       |
+| Startup          | 10-60 seconds         | ~150ms                       |
+| Boot Model       | Container/VM boot     | Snapshot restore             |
+| Customization    | Dockerfile            | Template (Docker + snapshot) |
+| Primary Use Case | Long-running dev envs | AI agent sandboxes           |
 
 ### 1.3 E2B Pricing Model
 
-| Tier | Cost | Session Duration | Concurrent Sandboxes |
-|------|------|------------------|---------------------|
-| Hobby (Free) | $100 credits | Up to 1 hour | 20 max |
-| Pro | $150/month + usage | Up to 24 hours | 100 max |
-| Ultimate | Custom | Custom | Custom |
+| Tier         | Cost               | Session Duration | Concurrent Sandboxes |
+| ------------ | ------------------ | ---------------- | -------------------- |
+| Hobby (Free) | $100 credits       | Up to 1 hour     | 20 max               |
+| Pro          | $150/month + usage | Up to 24 hours   | 100 max              |
+| Ultimate     | Custom             | Custom           | Custom               |
 
 **Compute Pricing (per-second):**
+
 - 1 vCPU: $0.000014/s (~$0.05/hr)
 - 2 vCPUs (default): $0.000028/s (~$0.10/hr)
 - 4 vCPUs: $0.000056/s (~$0.20/hr)
@@ -103,14 +104,14 @@ E2B is an open-source infrastructure platform that provides secure, isolated clo
 
 ### 2.2 Component Mapping
 
-| Sindri Component | E2B Equivalent |
-|------------------|----------------|
+| Sindri Component     | E2B Equivalent                          |
+| -------------------- | --------------------------------------- |
 | `docker-compose.yml` | Template definition (`e2b.template.ts`) |
-| Persistent volume | Pause/Resume snapshot |
-| SSH connection | PTY via SDK/CLI or web terminal |
-| Docker build | E2B template build |
-| Container start | Sandbox create/resume |
-| Container stop | Sandbox pause/kill |
+| Persistent volume    | Pause/Resume snapshot                   |
+| SSH connection       | PTY via SDK/CLI or web terminal         |
+| Docker build         | E2B template build                      |
+| Container start      | Sandbox create/resume                   |
+| Container stop       | Sandbox pause/kill                      |
 
 ### 2.3 SDK Requirements
 
@@ -134,53 +135,63 @@ npm install e2b
 ### 3.1 Primary User Stories
 
 #### US-1: AI Developer Rapid Prototyping
+
 > **As an** AI developer
 > **I want to** spin up a Sindri environment on E2B in under a second
 > **So that** I can rapidly iterate on AI agent code without waiting for container boots
 
 **Acceptance Criteria:**
+
 - `sindri deploy --provider e2b` creates sandbox in <5 seconds
 - Pre-built template with Sindri tooling starts in <1 second
 - Environment includes Claude Code, mise, and configured extensions
 
 #### US-2: Cost-Effective Sporadic Development
+
 > **As a** developer working on multiple projects
 > **I want to** pause my development environment when not in use
 > **So that** I only pay for compute time I actually use
 
 **Acceptance Criteria:**
+
 - `sindri pause` suspends sandbox with full state preservation
 - `sindri connect` auto-resumes paused sandboxes
 - No charges during paused state (only storage)
 - Resume time < 2 seconds
 
 #### US-3: AI Agent Sandbox Orchestration
+
 > **As an** AI application developer
 > **I want to** programmatically create isolated Sindri environments for AI agents
 > **So that** agents can execute code safely without affecting my main development environment
 
 **Acceptance Criteria:**
+
 - Support for multiple concurrent sandboxes via metadata
 - Programmatic sandbox creation via SDK wrapper
 - Network policy configuration per sandbox
 - Automatic cleanup of abandoned sandboxes
 
 #### US-4: Remote Development Without SSH
+
 > **As a** developer behind restrictive firewalls
 > **I want to** connect to my Sindri environment without SSH
 > **So that** I can work from corporate networks that block custom ports
 
 **Acceptance Criteria:**
+
 - WebSocket-based terminal access (HTTPS/443 only)
 - Integration with VS Code via browser-based terminal
 - Support for file upload/download via SDK
 
 #### US-5: Quick Throwaway Environments
+
 > **As a** developer testing risky operations
 > **I want to** create disposable Sindri environments instantly
 > **So that** I can test destructive operations without risk to my main environment
 
 **Acceptance Criteria:**
+
 - `sindri deploy --provider e2b --ephemeral` creates non-persistent sandbox
 - Auto-destroy after configurable timeout
 - No snapshot storage charges for ephemeral sandboxes
@@ -188,31 +199,34 @@ npm install e2b
 ### 3.2 Secondary User Stories
 
 #### US-6: CI/CD Integration Testing
+
 > **As a** CI/CD pipeline
 > **I want to** spin up isolated test environments per PR
 > **So that** integration tests run in production-like Sindri environments
 
 #### US-7: Team Development Sharing
+
 > **As a** team lead
 > **I want to** share pre-configured Sindri templates with my team
 > **So that** everyone has consistent development environments
 
 #### US-8: Hybrid Cloud Development
+
 > **As a** developer
 > **I want to** use E2B for quick tasks and Fly.io for long-running work
 > **So that** I can optimize for cost and convenience based on the task
 
 ### 3.3 Use Case Matrix
 
-| Use Case | E2B Fit | Alternative Provider |
-|----------|---------|---------------------|
-| Quick prototyping (<1hr sessions) | Excellent | - |
-| AI agent sandboxing | Excellent | Docker (local) |
-| Long-running servers | Poor | Fly.io |
-| Persistent state across days | Good (pause/resume) | Fly.io (volumes) |
-| GPU workloads | Not supported | Fly.io, DevPod |
-| Offline development | Not supported | Docker |
-| Corporate network access | Excellent (WebSocket) | DevPod (SSH) |
+| Use Case                          | E2B Fit               | Alternative Provider |
+| --------------------------------- | --------------------- | -------------------- |
+| Quick prototyping (<1hr sessions) | Excellent             | -                    |
+| AI agent sandboxing               | Excellent             | Docker (local)       |
+| Long-running servers              | Poor                  | Fly.io               |
+| Persistent state across days      | Good (pause/resume)   | Fly.io (volumes)     |
+| GPU workloads                     | Not supported         | Fly.io, DevPod       |
+| Offline development               | Not supported         | Docker               |
+| Corporate network access          | Excellent (WebSocket) | DevPod (SSH)         |
 
 ---
 
@@ -244,21 +258,23 @@ sindri/
 ### 4.2 Dependency Requirements
 
 **Build-time:**
+
 - Node.js 18+ (for E2B SDK and template build)
 - `@e2b/cli` - E2B command-line interface
 - `e2b` - E2B SDK for template definition
 
 **Runtime:**
+
 - `@e2b/cli` - Sandbox management
 - (Optional) `e2b` SDK for programmatic access
 
 ### 4.3 Environment Variables
 
-| Variable | Purpose | Required |
-|----------|---------|----------|
-| `E2B_API_KEY` | E2B authentication | Yes |
-| `E2B_TEMPLATE_ID` | Pre-built template ID | No (generated) |
-| `E2B_DOMAIN` | Custom E2B domain (BYOC) | No |
+| Variable          | Purpose                  | Required       |
+| ----------------- | ------------------------ | -------------- |
+| `E2B_API_KEY`     | E2B authentication       | Yes            |
+| `E2B_TEMPLATE_ID` | Pre-built template ID    | No (generated) |
+| `E2B_DOMAIN`      | Custom E2B domain (BYOC) | No             |
 
 ---
 
@@ -272,33 +288,33 @@ version: "1.0"
 name: my-sindri-dev
 
 deployment:
-  provider: e2b  # New provider option
+  provider: e2b # New provider option
 
   resources:
-    memory: 2GB    # Maps to E2B RAM allocation (512MB-8GB)
-    cpus: 2        # Maps to E2B vCPU count (1-8)
+    memory: 2GB # Maps to E2B RAM allocation (512MB-8GB)
+    cpus: 2 # Maps to E2B vCPU count (1-8)
     # Note: GPU not supported on E2B
 
   volumes:
     workspace:
-      size: 10GB   # Ephemeral storage (affects snapshot size)
+      size: 10GB # Ephemeral storage (affects snapshot size)
 
 providers:
   e2b:
     # Template configuration
-    templateAlias: sindri-dev    # Custom template name (auto-generated if omitted)
-    reuseTemplate: true          # Reuse existing template if available
+    templateAlias: sindri-dev # Custom template name (auto-generated if omitted)
+    reuseTemplate: true # Reuse existing template if available
 
     # Sandbox behavior
-    timeout: 3600                # Sandbox timeout in seconds (default: 5 min = 300)
-    autoPause: true              # Auto-pause on timeout instead of kill
-    autoResume: true             # Auto-resume paused sandbox on connect
+    timeout: 3600 # Sandbox timeout in seconds (default: 5 min = 300)
+    autoPause: true # Auto-pause on timeout instead of kill
+    autoResume: true # Auto-resume paused sandbox on connect
 
     # Network configuration
-    internetAccess: true         # Enable outbound internet (default: true)
-    allowedDomains: []           # Whitelist domains (empty = all allowed)
-    blockedDomains: []           # Blacklist domains
-    publicAccess: false          # Allow public URL access to services
+    internetAccess: true # Enable outbound internet (default: true)
+    allowedDomains: [] # Whitelist domains (empty = all allowed)
+    blockedDomains: [] # Blacklist domains
+    publicAccess: false # Allow public URL access to services
 
     # Metadata for sandbox identification
     metadata:
@@ -620,35 +636,37 @@ connect_pty() {
 
 ```typescript
 // docker/lib/e2b/template/template.ts
-import { Template, waitForTimeout } from 'e2b';
+import { Template, waitForTimeout } from "e2b";
 
 export function createSindriTemplate(config: SindriConfig) {
-  return Template()
-    // Start from Sindri's base image
-    .fromDockerfile('../../../Dockerfile')
+  return (
+    Template()
+      // Start from Sindri's base image
+      .fromDockerfile("../../../Dockerfile")
 
-    // Set environment variables
-    .setEnvs({
-      HOME: '/alt/home/developer',
-      WORKSPACE: '/alt/home/developer/workspace',
-      INSTALL_PROFILE: config.profile,
-      ADDITIONAL_EXTENSIONS: config.additionalExtensions,
-      INIT_WORKSPACE: 'true',
-      // E2B-specific
-      E2B_PROVIDER: 'true',
-    })
+      // Set environment variables
+      .setEnvs({
+        HOME: "/alt/home/developer",
+        WORKSPACE: "/alt/home/developer/workspace",
+        INSTALL_PROFILE: config.profile,
+        ADDITIONAL_EXTENSIONS: config.additionalExtensions,
+        INIT_WORKSPACE: "true",
+        // E2B-specific
+        E2B_PROVIDER: "true",
+      })
 
-    // Set working directory
-    .setWorkdir('/alt/home/developer/workspace')
+      // Set working directory
+      .setWorkdir("/alt/home/developer/workspace")
 
-    // Set user
-    .setUser('developer')
+      // Set user
+      .setUser("developer")
 
-    // Run initialization
-    .runCmd('/docker/scripts/entrypoint.sh echo "Template initialized"')
+      // Run initialization
+      .runCmd('/docker/scripts/entrypoint.sh echo "Template initialized"')
 
-    // Set ready command (verify environment is ready)
-    .setReadyCmd('test -f /alt/home/developer/.initialized', waitForTimeout(30_000));
+      // Set ready command (verify environment is ready)
+      .setReadyCmd("test -f /alt/home/developer/.initialized", waitForTimeout(30_000))
+  );
 }
 ```
 
@@ -656,10 +674,10 @@ export function createSindriTemplate(config: SindriConfig) {
 
 ```typescript
 // docker/lib/e2b/template/build.ts
-import 'dotenv/config';
-import { Template, defaultBuildLogger } from 'e2b';
-import { createSindriTemplate } from './template';
-import { loadSindriConfig } from './config';
+import "dotenv/config";
+import { Template, defaultBuildLogger } from "e2b";
+import { createSindriTemplate } from "./template";
+import { loadSindriConfig } from "./config";
 
 async function main() {
   const config = loadSindriConfig();
@@ -682,7 +700,7 @@ main().catch(console.error);
 
 ### 7.3 Template Lifecycle
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Template Lifecycle                       │
 ├─────────────────────────────────────────────────────────────┤
@@ -726,12 +744,12 @@ main().catch(console.error);
 
 E2B sandboxes don't expose SSH. Connection options:
 
-| Method | Pros | Cons |
-|--------|------|------|
-| E2B CLI Terminal | Native, maintained by E2B | Requires CLI installed |
-| SDK PTY Proxy | Full control, scriptable | More complex setup |
-| Web Terminal | No local tools needed | Browser-dependent |
-| VS Code Extension | IDE integration | Extension needed |
+| Method            | Pros                      | Cons                   |
+| ----------------- | ------------------------- | ---------------------- |
+| E2B CLI Terminal  | Native, maintained by E2B | Requires CLI installed |
+| SDK PTY Proxy     | Full control, scriptable  | More complex setup     |
+| Web Terminal      | No local tools needed     | Browser-dependent      |
+| VS Code Extension | IDE integration           | Extension needed       |
 
 ### 8.2 Recommended Approach: CLI Terminal + PTY Proxy
 
@@ -746,15 +764,15 @@ e2b sandbox terminal "$SANDBOX_ID" --shell /bin/bash
 
 ```typescript
 // docker/lib/e2b/connect-proxy.ts
-import { Sandbox } from 'e2b';
-import { spawn } from 'node-pty';
+import { Sandbox } from "e2b";
+import { spawn } from "node-pty";
 
 async function connectToSandbox(sandboxId: string) {
   const sandbox = await Sandbox.connect(sandboxId);
 
   // Create PTY terminal
-  const terminal = spawn('bash', [], {
-    name: 'xterm-256color',
+  const terminal = spawn("bash", [], {
+    name: "xterm-256color",
     cols: 80,
     rows: 30,
   });
@@ -768,7 +786,7 @@ async function connectToSandbox(sandboxId: string) {
   });
 
   // Handle resize
-  process.stdout.on('resize', () => {
+  process.stdout.on("resize", () => {
     terminal.resize(process.stdout.columns, process.stdout.rows);
   });
 }
@@ -798,13 +816,13 @@ providers:
 
 ### 9.1 E2B Persistence vs Traditional Volumes
 
-| Aspect | Fly.io/Docker | E2B |
-|--------|---------------|-----|
-| Storage Type | Persistent volume | Snapshot (pause/resume) |
-| Data Location | Cloud/Local disk | E2B snapshot storage |
-| Survives Restart | Yes (always) | Only if paused |
-| Max Duration | Unlimited | 30 days from creation |
-| Access When Off | Volume mountable | Must resume sandbox |
+| Aspect           | Fly.io/Docker     | E2B                     |
+| ---------------- | ----------------- | ----------------------- |
+| Storage Type     | Persistent volume | Snapshot (pause/resume) |
+| Data Location    | Cloud/Local disk  | E2B snapshot storage    |
+| Survives Restart | Yes (always)      | Only if paused          |
+| Max Duration     | Unlimited         | 30 days from creation   |
+| Access When Off  | Volume mountable  | Must resume sandbox     |
 
 ### 9.2 Persistence Workflow
 
@@ -850,8 +868,9 @@ providers:
 # Recommended workflow for data safety
 providers:
   e2b:
-    autoPause: true        # Never kill on timeout - always pause
-    timeout: 3600          # 1 hour active timeout
+    autoPause: true # Never kill on timeout - always pause
+    timeout: 3600 # 1 hour active timeout
+
 
 # User workflow:
 # 1. Work in sandbox
@@ -867,12 +886,12 @@ providers:
 
 ### 10.1 Test Levels
 
-| Level | Scope | Tools |
-|-------|-------|-------|
-| Unit | Config parsing, schema validation | Shell tests, yq |
-| Integration | Adapter commands, E2B API | E2B CLI, mock server |
-| E2E | Full deploy/connect/destroy cycle | Real E2B account |
-| Smoke | Quick validation | Basic commands |
+| Level       | Scope                             | Tools                |
+| ----------- | --------------------------------- | -------------------- |
+| Unit        | Config parsing, schema validation | Shell tests, yq      |
+| Integration | Adapter commands, E2B API         | E2B CLI, mock server |
+| E2E         | Full deploy/connect/destroy cycle | Real E2B account     |
+| Smoke       | Quick validation                  | Basic commands       |
 
 ### 10.2 Test Cases
 
@@ -986,19 +1005,19 @@ deployment:
 
 ### 11.3 Feature Parity Matrix
 
-| Feature | Docker | Fly.io | DevPod | E2B |
-|---------|--------|--------|--------|-----|
-| deploy | ✅ | ✅ | ✅ | ✅ |
-| connect | ✅ | ✅ | ✅ | ✅ (PTY) |
-| destroy | ✅ | ✅ | ✅ | ✅ |
-| status | ✅ | ✅ | ✅ | ✅ |
-| plan | ✅ | ✅ | ✅ | ✅ |
-| pause | N/A | N/A | N/A | ✅ (new) |
-| GPU | ✅ | ✅ | ✅ | ❌ |
-| SSH | ✅ | ✅ | ✅ | ❌ |
-| Persistent Vol | ✅ | ✅ | ✅ | ❌ (pause/resume) |
-| Scale to Zero | ❌ | ✅ | ❌ | ✅ (pause) |
-| Offline | ✅ | ❌ | ✅ | ❌ |
+| Feature        | Docker | Fly.io | DevPod | E2B               |
+| -------------- | ------ | ------ | ------ | ----------------- |
+| deploy         | ✅     | ✅     | ✅     | ✅                |
+| connect        | ✅     | ✅     | ✅     | ✅ (PTY)          |
+| destroy        | ✅     | ✅     | ✅     | ✅                |
+| status         | ✅     | ✅     | ✅     | ✅                |
+| plan           | ✅     | ✅     | ✅     | ✅                |
+| pause          | N/A    | N/A    | N/A    | ✅ (new)          |
+| GPU            | ✅     | ✅     | ✅     | ❌                |
+| SSH            | ✅     | ✅     | ✅     | ❌                |
+| Persistent Vol | ✅     | ✅     | ✅     | ❌ (pause/resume) |
+| Scale to Zero  | ❌     | ✅     | ❌     | ✅ (pause)        |
+| Offline        | ✅     | ❌     | ✅     | ❌                |
 
 ---
 
@@ -1011,7 +1030,7 @@ deployment:
 secrets:
   - name: E2B_API_KEY
     source: env
-    required: true  # Fail deployment if missing
+    required: true # Fail deployment if missing
 ```
 
 ### 12.2 Network Isolation
@@ -1035,6 +1054,7 @@ providers:
 ### 12.3 Sandbox Isolation
 
 E2B provides strong isolation:
+
 - Each sandbox runs in a separate lightweight VM
 - Full kernel isolation (not container namespaces)
 - No shared state between sandboxes
@@ -1042,11 +1062,11 @@ E2B provides strong isolation:
 
 ### 12.4 Data Retention
 
-| State | Data Retention |
-|-------|----------------|
-| Running | Active, persistent |
-| Paused | 30 days from creation |
-| Killed | Immediately deleted |
+| State   | Data Retention        |
+| ------- | --------------------- |
+| Running | Active, persistent    |
+| Paused  | 30 days from creation |
+| Killed  | Immediately deleted   |
 
 **Recommendation:** For sensitive data, always explicitly destroy sandboxes rather than letting them expire.
 
@@ -1056,11 +1076,11 @@ E2B provides strong isolation:
 
 ### 13.1 Cost Comparison (1 hour session)
 
-| Provider | Configuration | Hourly Cost |
-|----------|--------------|-------------|
-| E2B | 2 vCPU, 2GB RAM | ~$0.13 |
-| Fly.io | shared-cpu-2x, 2GB | ~$0.02 (active) |
-| Docker | Local | $0 (electricity) |
+| Provider | Configuration      | Hourly Cost      |
+| -------- | ------------------ | ---------------- |
+| E2B      | 2 vCPU, 2GB RAM    | ~$0.13           |
+| Fly.io   | shared-cpu-2x, 2GB | ~$0.02 (active)  |
+| Docker   | Local              | $0 (electricity) |
 
 ### 13.2 E2B Cost Breakdown
 
@@ -1090,18 +1110,19 @@ Monthly estimates (8hr/day, 22 days):
 
 **Goal:** Basic deploy/connect/destroy functionality
 
-| Task | Effort | Priority |
-|------|--------|----------|
-| Update sindri.schema.json with e2b provider | 1d | P0 |
-| Create e2b-adapter.sh skeleton | 1d | P0 |
-| Implement config parsing | 1d | P0 |
-| Implement template generation | 2d | P0 |
-| Implement deploy command | 2d | P0 |
-| Implement connect command (CLI terminal) | 1d | P0 |
-| Implement destroy command | 0.5d | P0 |
-| Basic documentation | 1d | P0 |
+| Task                                        | Effort | Priority |
+| ------------------------------------------- | ------ | -------- |
+| Update sindri.schema.json with e2b provider | 1d     | P0       |
+| Create e2b-adapter.sh skeleton              | 1d     | P0       |
+| Implement config parsing                    | 1d     | P0       |
+| Implement template generation               | 2d     | P0       |
+| Implement deploy command                    | 2d     | P0       |
+| Implement connect command (CLI terminal)    | 1d     | P0       |
+| Implement destroy command                   | 0.5d   | P0       |
+| Basic documentation                         | 1d     | P0       |
 
 **Deliverables:**
+
 - `sindri deploy --provider e2b` works
 - `sindri connect` opens terminal
 - `sindri destroy` kills sandbox
@@ -1110,17 +1131,18 @@ Monthly estimates (8hr/day, 22 days):
 
 **Goal:** Pause/resume, status, better UX
 
-| Task | Effort | Priority |
-|------|--------|----------|
-| Implement pause command | 1d | P1 |
-| Implement auto-pause/resume | 1d | P1 |
-| Implement status command | 0.5d | P1 |
-| Implement plan command | 0.5d | P1 |
-| Sandbox metadata management | 1d | P1 |
-| Network configuration | 1d | P1 |
-| Secrets injection | 1d | P1 |
+| Task                        | Effort | Priority |
+| --------------------------- | ------ | -------- |
+| Implement pause command     | 1d     | P1       |
+| Implement auto-pause/resume | 1d     | P1       |
+| Implement status command    | 0.5d   | P1       |
+| Implement plan command      | 0.5d   | P1       |
+| Sandbox metadata management | 1d     | P1       |
+| Network configuration       | 1d     | P1       |
+| Secrets injection           | 1d     | P1       |
 
 **Deliverables:**
+
 - `sindri pause` preserves state
 - Auto-resume on connect
 - Full status visibility
@@ -1129,29 +1151,30 @@ Monthly estimates (8hr/day, 22 days):
 
 **Goal:** Production-ready with comprehensive tests
 
-| Task | Effort | Priority |
-|------|--------|----------|
-| Unit tests | 2d | P1 |
-| Integration tests | 2d | P1 |
-| E2E test suite | 1d | P2 |
-| CI/CD workflow | 1d | P1 |
-| Full documentation (docs/providers/E2B.md) | 2d | P1 |
-| Update CONFIGURATION.md | 0.5d | P1 |
+| Task                                       | Effort | Priority |
+| ------------------------------------------ | ------ | -------- |
+| Unit tests                                 | 2d     | P1       |
+| Integration tests                          | 2d     | P1       |
+| E2E test suite                             | 1d     | P2       |
+| CI/CD workflow                             | 1d     | P1       |
+| Full documentation (docs/providers/E2B.md) | 2d     | P1       |
+| Update CONFIGURATION.md                    | 0.5d   | P1       |
 
 **Deliverables:**
+
 - 80%+ test coverage
 - CI passing
 - Complete documentation
 
 ### Phase 4: Advanced Features (Future)
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| VS Code integration | Web-based VS Code in sandbox | P2 |
-| Template sharing | Share templates across team | P2 |
-| Custom PTY proxy | Enhanced terminal experience | P3 |
-| Multi-sandbox orchestration | Programmatic sandbox management | P3 |
-| BYOC support | Bring Your Own Cloud deployment | P3 |
+| Feature                     | Description                     | Priority |
+| --------------------------- | ------------------------------- | -------- |
+| VS Code integration         | Web-based VS Code in sandbox    | P2       |
+| Template sharing            | Share templates across team     | P2       |
+| Custom PTY proxy            | Enhanced terminal experience    | P3       |
+| Multi-sandbox orchestration | Programmatic sandbox management | P3       |
+| BYOC support                | Bring Your Own Cloud deployment | P3       |
 
 ---
 
@@ -1159,13 +1182,13 @@ Monthly estimates (8hr/day, 22 days):
 
 ### 15.1 Decisions Needed
 
-| Question | Options | Recommendation |
-|----------|---------|----------------|
-| How to handle no-SSH? | CLI terminal / PTY proxy / Web | CLI terminal (Phase 1), PTY proxy (Phase 2) |
-| Template storage location? | `.e2b/` / `docker/lib/e2b/` / Generated | `.e2b/` in project root |
-| Auto-pause default? | true / false | true (cost optimization) |
-| Default timeout? | 5min / 15min / 30min / 1hr | 5min with autoPause |
-| Rebuild strategy? | Always / Never / On config change | On config change (hash-based) |
+| Question                   | Options                                 | Recommendation                              |
+| -------------------------- | --------------------------------------- | ------------------------------------------- |
+| How to handle no-SSH?      | CLI terminal / PTY proxy / Web          | CLI terminal (Phase 1), PTY proxy (Phase 2) |
+| Template storage location? | `.e2b/` / `docker/lib/e2b/` / Generated | `.e2b/` in project root                     |
+| Auto-pause default?        | true / false                            | true (cost optimization)                    |
+| Default timeout?           | 5min / 15min / 30min / 1hr              | 5min with autoPause                         |
+| Rebuild strategy?          | Always / Never / On config change       | On config change (hash-based)               |
 
 ### 15.2 Open Questions
 
@@ -1228,6 +1251,6 @@ e2b sandbox files download <id> <remote> <local>
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2026-01-02*
-*Author: Claude Code*
+_Document Version: 1.0_
+_Last Updated: 2026-01-02_
+_Author: Claude Code_

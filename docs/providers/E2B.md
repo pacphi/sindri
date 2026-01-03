@@ -6,31 +6,32 @@
 
 ### Why Use E2B?
 
-| Feature | Benefit |
-|---------|---------|
-| **Ultra-fast startup** | ~150ms sandbox boot from snapshots |
-| **Pause/Resume** | Preserve full state (memory + filesystem) |
-| **Pay-per-second** | Only pay for active compute time |
-| **WebSocket access** | Works through corporate firewalls (no SSH) |
-| **AI-optimized** | Built for AI agent code execution |
-| **Strong isolation** | Lightweight VMs with full kernel separation |
+| Feature                | Benefit                                     |
+| ---------------------- | ------------------------------------------- |
+| **Ultra-fast startup** | ~150ms sandbox boot from snapshots          |
+| **Pause/Resume**       | Preserve full state (memory + filesystem)   |
+| **Pay-per-second**     | Only pay for active compute time            |
+| **WebSocket access**   | Works through corporate firewalls (no SSH)  |
+| **AI-optimized**       | Built for AI agent code execution           |
+| **Strong isolation**   | Lightweight VMs with full kernel separation |
 
 ### E2B vs Other Providers
 
-| Aspect | Docker | Fly.io | DevPod | E2B |
-|--------|--------|--------|--------|-----|
-| Startup time | 10-30s | 10-60s | 30-60s | ~150ms |
-| Access method | SSH | SSH | SSH | WebSocket PTY |
-| Persistence | Volumes | Volumes | Volumes | Pause/Resume |
-| GPU support | Yes | Yes | Yes | No |
-| Offline | Yes | No | Yes | No |
-| Best for | Local dev | Remote dev | IDE integration | AI sandboxes |
+| Aspect        | Docker    | Fly.io     | DevPod          | E2B           |
+| ------------- | --------- | ---------- | --------------- | ------------- |
+| Startup time  | 10-30s    | 10-60s     | 30-60s          | ~150ms        |
+| Access method | SSH       | SSH        | SSH             | WebSocket PTY |
+| Persistence   | Volumes   | Volumes    | Volumes         | Pause/Resume  |
+| GPU support   | Yes       | Yes        | Yes             | No            |
+| Offline       | Yes       | No         | Yes             | No            |
+| Best for      | Local dev | Remote dev | IDE integration | AI sandboxes  |
 
 ## Prerequisites
 
 ### 1. E2B Account
 
 Create a free E2B account at [e2b.dev](https://e2b.dev):
+
 - Hobby tier: $100 free credits
 - Pro tier: $150/month + usage
 - Ultimate tier: Custom pricing
@@ -82,9 +83,9 @@ extensions:
 
 providers:
   e2b:
-    timeout: 3600        # 1 hour
-    autoPause: true      # Pause on timeout
-    autoResume: true     # Resume on connect
+    timeout: 3600 # 1 hour
+    autoPause: true # Pause on timeout
+    autoResume: true # Resume on connect
 ```
 
 ### 2. Deploy
@@ -143,11 +144,11 @@ name: sindri-e2b-dev
 deployment:
   provider: e2b
   resources:
-    memory: 4GB          # 512MB - 8GB
-    cpus: 4              # 1 - 8 vCPUs
+    memory: 4GB # 512MB - 8GB
+    cpus: 4 # 1 - 8 vCPUs
   volumes:
     workspace:
-      size: 20GB         # Ephemeral storage
+      size: 20GB # Ephemeral storage
 
 extensions:
   profile: fullstack
@@ -158,23 +159,23 @@ extensions:
 providers:
   e2b:
     # Template configuration
-    templateAlias: my-sindri-template   # Custom template name
-    reuseTemplate: true                 # Reuse existing template
+    templateAlias: my-sindri-template # Custom template name
+    reuseTemplate: true # Reuse existing template
 
     # Sandbox behavior
-    timeout: 3600                       # Timeout in seconds (1 hour)
-    autoPause: true                     # Pause instead of kill on timeout
-    autoResume: true                    # Resume paused sandbox on connect
+    timeout: 3600 # Timeout in seconds (1 hour)
+    autoPause: true # Pause instead of kill on timeout
+    autoResume: true # Resume paused sandbox on connect
 
     # Network configuration
-    internetAccess: true                # Outbound internet access
-    allowedDomains:                     # Whitelist (empty = all allowed)
+    internetAccess: true # Outbound internet access
+    allowedDomains: # Whitelist (empty = all allowed)
       - github.com
       - "*.github.com"
       - registry.npmjs.org
       - api.anthropic.com
-    blockedDomains: []                  # Blacklist
-    publicAccess: false                 # Public URL access
+    blockedDomains: [] # Blacklist
+    publicAccess: false # Public URL access
 
     # Metadata
     metadata:
@@ -194,28 +195,28 @@ secrets:
 
 ### Provider Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `templateAlias` | string | `{name}` | Template identifier for sandbox creation |
-| `reuseTemplate` | boolean | `true` | Reuse existing template if available |
-| `timeout` | integer | `300` | Sandbox timeout in seconds (60-86400) |
-| `autoPause` | boolean | `true` | Pause on timeout instead of killing |
-| `autoResume` | boolean | `true` | Auto-resume paused sandbox on connect |
-| `internetAccess` | boolean | `true` | Enable outbound internet |
-| `allowedDomains` | array | `[]` | Whitelist domains (empty = all) |
-| `blockedDomains` | array | `[]` | Blacklist domains |
-| `publicAccess` | boolean | `false` | Allow public URL access to services |
-| `metadata` | object | `{}` | Custom key-value metadata |
-| `team` | string | - | E2B team for billing |
-| `buildOnDeploy` | boolean | `false` | Force template rebuild |
+| Option           | Type    | Default  | Description                              |
+| ---------------- | ------- | -------- | ---------------------------------------- |
+| `templateAlias`  | string  | `{name}` | Template identifier for sandbox creation |
+| `reuseTemplate`  | boolean | `true`   | Reuse existing template if available     |
+| `timeout`        | integer | `300`    | Sandbox timeout in seconds (60-86400)    |
+| `autoPause`      | boolean | `true`   | Pause on timeout instead of killing      |
+| `autoResume`     | boolean | `true`   | Auto-resume paused sandbox on connect    |
+| `internetAccess` | boolean | `true`   | Enable outbound internet                 |
+| `allowedDomains` | array   | `[]`     | Whitelist domains (empty = all)          |
+| `blockedDomains` | array   | `[]`     | Blacklist domains                        |
+| `publicAccess`   | boolean | `false`  | Allow public URL access to services      |
+| `metadata`       | object  | `{}`     | Custom key-value metadata                |
+| `team`           | string  | -        | E2B team for billing                     |
+| `buildOnDeploy`  | boolean | `false`  | Force template rebuild                   |
 
 ### Resource Limits
 
-| Resource | Minimum | Maximum | Default |
-|----------|---------|---------|---------|
-| Memory | 512MB | 8GB | 2GB |
-| vCPUs | 1 | 8 | 2 |
-| Storage | 10GB | 20GB | 10GB (tier-dependent) |
+| Resource | Minimum | Maximum | Default               |
+| -------- | ------- | ------- | --------------------- |
+| Memory   | 512MB   | 8GB     | 2GB                   |
+| vCPUs    | 1       | 8       | 2                     |
+| Storage  | 10GB    | 20GB    | 10GB (tier-dependent) |
 
 ## Commands
 
@@ -302,15 +303,16 @@ Unlike traditional providers that use persistent volumes, E2B uses a **pause/res
 
 ### State Preservation
 
-| State | Data Retained | Duration | Billable |
-|-------|---------------|----------|----------|
-| Running | All (RAM + disk) | Until timeout | Yes (compute) |
-| Paused | All (snapshot) | 30 days | No (storage only) |
-| Killed | None | - | No |
+| State   | Data Retained    | Duration      | Billable          |
+| ------- | ---------------- | ------------- | ----------------- |
+| Running | All (RAM + disk) | Until timeout | Yes (compute)     |
+| Paused  | All (snapshot)   | 30 days       | No (storage only) |
+| Killed  | None             | -             | No                |
 
 ### Pause Timing
 
 Pausing takes approximately **4 seconds per 1 GiB of RAM**:
+
 - 2GB RAM: ~8 seconds
 - 4GB RAM: ~16 seconds
 - 8GB RAM: ~32 seconds
@@ -383,14 +385,15 @@ providers:
 **Compute (per-second billing):**
 
 | vCPUs | Cost/second | Cost/hour |
-|-------|-------------|-----------|
-| 1 | $0.000014 | ~$0.05 |
-| 2 | $0.000028 | ~$0.10 |
-| 4 | $0.000056 | ~$0.20 |
+| ----- | ----------- | --------- |
+| 1     | $0.000014   | ~$0.05    |
+| 2     | $0.000028   | ~$0.10    |
+| 4     | $0.000056   | ~$0.20    |
 
 **RAM:** $0.0000045/GiB/second (~$0.016/GiB/hour)
 
 **Example: 2 vCPU, 2GB sandbox**
+
 - Per second: $0.000028 + $0.000009 = $0.000037
 - Per hour: ~$0.13
 - 8 hours/day, 22 days: ~$23/month
@@ -398,27 +401,31 @@ providers:
 ### Cost Reduction Tips
 
 1. **Use autoPause**
+
    ```yaml
    providers:
      e2b:
-       autoPause: true   # Pause instead of kill
-       timeout: 300      # 5 min idle timeout
+       autoPause: true # Pause instead of kill
+       timeout: 300 # 5 min idle timeout
    ```
 
 2. **Pause frequently**
+
    ```bash
    # Pause when stepping away
    ./cli/sindri pause
    ```
 
 3. **Right-size resources**
+
    ```yaml
    resources:
-     memory: 1GB   # Start small
-     cpus: 1       # Scale up if needed
+     memory: 1GB # Start small
+     cpus: 1 # Scale up if needed
    ```
 
 4. **Use ephemeral for testing**
+
    ```bash
    # Disposable sandbox - no pause costs
    ./cli/sindri deploy --ephemeral
@@ -432,12 +439,12 @@ providers:
 
 **8 hours active development per day, 22 days/month:**
 
-| Provider | Configuration | Monthly Cost |
-|----------|--------------|--------------|
-| E2B | 2 vCPU, 2GB, autoPause | ~$23 |
-| E2B (with 50% pause) | 2 vCPU, 2GB | ~$12 |
-| Fly.io | shared-cpu-2x, 2GB | ~$15 |
-| Docker | Local | $0 (electricity) |
+| Provider             | Configuration          | Monthly Cost     |
+| -------------------- | ---------------------- | ---------------- |
+| E2B                  | 2 vCPU, 2GB, autoPause | ~$23             |
+| E2B (with 50% pause) | 2 vCPU, 2GB            | ~$12             |
+| Fly.io               | shared-cpu-2x, 2GB     | ~$15             |
+| Docker               | Local                  | $0 (electricity) |
 
 ## Troubleshooting
 
@@ -446,6 +453,7 @@ providers:
 **Symptom:** Deploy fails or times out
 
 **Solutions:**
+
 1. Check API key: `echo $E2B_API_KEY`
 2. Verify E2B CLI: `e2b auth whoami`
 3. Check E2B status: [status.e2b.dev](https://status.e2b.dev)
@@ -456,6 +464,7 @@ providers:
 **Symptom:** `connect` command hangs or errors
 
 **Solutions:**
+
 1. Check sandbox status: `./cli/sindri status`
 2. If paused, sandbox should auto-resume - wait a few seconds
 3. Try direct E2B CLI: `e2b sandbox terminal <id>`
@@ -466,6 +475,7 @@ providers:
 **Symptom:** Data missing when resuming
 
 **Solutions:**
+
 1. Check 30-day retention limit
 2. Verify pause completed: `./cli/sindri status` should show "paused"
 3. Avoid using `destroy` - use `pause` instead
@@ -475,6 +485,7 @@ providers:
 **Symptom:** `template build` errors
 
 **Solutions:**
+
 1. Check Dockerfile syntax
 2. Ensure base image is accessible
 3. Check E2B build logs: `e2b template logs <alias>`
@@ -485,6 +496,7 @@ providers:
 **Symptom:** Commands run slowly in sandbox
 
 **Solutions:**
+
 1. Increase resources:
    ```yaml
    resources:
@@ -499,6 +511,7 @@ providers:
 **Symptom:** Deploy fails with GPU configuration
 
 **Solution:** E2B does not support GPU. Remove GPU configuration:
+
 ```yaml
 resources:
   memory: 4GB
@@ -512,14 +525,14 @@ Use Fly.io or DevPod for GPU workloads.
 
 ### Not Supported on E2B
 
-| Feature | Status | Alternative |
-|---------|--------|-------------|
-| GPU | Not available | Use Fly.io or DevPod |
-| SSH | Not supported | Use WebSocket PTY |
-| Persistent volumes | Not supported | Use pause/resume |
-| Offline access | Not possible | Use Docker locally |
-| Long-term storage | 30-day limit | Push to git frequently |
-| Custom kernels | Not available | Use standard configuration |
+| Feature            | Status        | Alternative                |
+| ------------------ | ------------- | -------------------------- |
+| GPU                | Not available | Use Fly.io or DevPod       |
+| SSH                | Not supported | Use WebSocket PTY          |
+| Persistent volumes | Not supported | Use pause/resume           |
+| Offline access     | Not possible  | Use Docker locally         |
+| Long-term storage  | 30-day limit  | Push to git frequently     |
+| Custom kernels     | Not available | Use standard configuration |
 
 ### Resource Limits
 

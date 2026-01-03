@@ -19,14 +19,14 @@ This directory contains example Sindri configurations for the E2B provider.
 
 ## Examples
 
-| Example | Description | Use Case |
-|---------|-------------|----------|
-| [minimal.sindri.yaml](minimal.sindri.yaml) | Basic configuration with defaults | Quick start, testing |
-| [ai-dev.sindri.yaml](ai-dev.sindri.yaml) | Full AI development environment | Claude Code, AI agents |
-| [fullstack.sindri.yaml](fullstack.sindri.yaml) | Web development with public access | Full-stack apps |
-| [ephemeral.sindri.yaml](ephemeral.sindri.yaml) | Throwaway sandbox (no persistence) | Demos, risky operations |
-| [cost-optimized.sindri.yaml](cost-optimized.sindri.yaml) | Maximum cost savings | Budget-conscious usage |
-| [secure.sindri.yaml](secure.sindri.yaml) | Network-restricted sandbox | Sensitive code, compliance |
+| Example                                                  | Description                        | Use Case                   |
+| -------------------------------------------------------- | ---------------------------------- | -------------------------- |
+| [minimal.sindri.yaml](minimal.sindri.yaml)               | Basic configuration with defaults  | Quick start, testing       |
+| [ai-dev.sindri.yaml](ai-dev.sindri.yaml)                 | Full AI development environment    | Claude Code, AI agents     |
+| [fullstack.sindri.yaml](fullstack.sindri.yaml)           | Web development with public access | Full-stack apps            |
+| [ephemeral.sindri.yaml](ephemeral.sindri.yaml)           | Throwaway sandbox (no persistence) | Demos, risky operations    |
+| [cost-optimized.sindri.yaml](cost-optimized.sindri.yaml) | Maximum cost savings               | Budget-conscious usage     |
+| [secure.sindri.yaml](secure.sindri.yaml)                 | Network-restricted sandbox         | Sensitive code, compliance |
 
 ## Quick Start
 
@@ -61,26 +61,27 @@ sindri template delete   # Delete a template
 
 ## Key Differences from Other Providers
 
-| Feature | Docker/Fly.io/DevPod | E2B |
-|---------|----------------------|-----|
-| Access | SSH | WebSocket PTY |
-| Persistence | Volumes | Pause/Resume snapshots |
-| Startup time | 10-60 seconds | ~150ms |
-| GPU support | Yes | No |
-| Max session | Unlimited | 24 hours active |
-| Data retention | Unlimited | 30 days |
+| Feature        | Docker/Fly.io/DevPod | E2B                    |
+| -------------- | -------------------- | ---------------------- |
+| Access         | SSH                  | WebSocket PTY          |
+| Persistence    | Volumes              | Pause/Resume snapshots |
+| Startup time   | 10-60 seconds        | ~150ms                 |
+| GPU support    | Yes                  | No                     |
+| Max session    | Unlimited            | 24 hours active        |
+| Data retention | Unlimited            | 30 days                |
 
 ## Cost Optimization
 
 E2B bills per-second for compute:
 
-| Resources | Cost/hour |
-|-----------|-----------|
-| 1 vCPU, 1GB RAM | ~$0.05 |
-| 2 vCPU, 2GB RAM | ~$0.13 |
-| 4 vCPU, 4GB RAM | ~$0.26 |
+| Resources       | Cost/hour |
+| --------------- | --------- |
+| 1 vCPU, 1GB RAM | ~$0.05    |
+| 2 vCPU, 2GB RAM | ~$0.13    |
+| 4 vCPU, 4GB RAM | ~$0.26    |
 
 **Tips:**
+
 - Use `autoPause: true` to pause automatically on timeout
 - Paused sandboxes have zero compute cost
 - Use `sindri pause` during breaks

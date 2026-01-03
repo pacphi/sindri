@@ -20,14 +20,14 @@ name: sindri-e2b-ai-dev
 deployment:
   provider: e2b
   resources:
-    memory: 4GB           # More RAM for AI workloads
+    memory: 4GB # More RAM for AI workloads
     cpus: 4
 
 extensions:
   profile: ai-dev
   additional:
-    - python             # Ensure Python is available
-    - nodejs             # For JS/TS AI tools
+    - python # Ensure Python is available
+    - nodejs # For JS/TS AI tools
 
 secrets:
   # Required
@@ -57,10 +57,10 @@ secrets:
 providers:
   e2b:
     templateAlias: sindri-ai-dev
-    timeout: 1800         # 30 min timeout for focused work
+    timeout: 1800 # 30 min timeout for focused work
     autoPause: true
     autoResume: true
-    internetAccess: true  # Required for API calls
+    internetAccess: true # Required for API calls
 
     metadata:
       purpose: ai-development

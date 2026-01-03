@@ -44,12 +44,12 @@ Ready-to-use configuration files for deploying Sindri to various providers. **61
 | `docker/`              | Docker Compose | 11       | Local development with Docker             |
 | `e2b/`                 | E2B            | 6        | Ultra-fast cloud sandboxes (~150ms start) |
 | `devpod/aws/`          | DevPod + AWS   | 5        | EC2-based development environments        |
-| `devpod/gcp/`          | DevPod + GCP   | 4        | GCE-based development environments      |
-| `devpod/azure/`        | DevPod + Azure | 3        | Azure VM-based development environments |
-| `devpod/digitalocean/` | DevPod + DO    | 2        | DigitalOcean droplet environments       |
-| `devpod/kubernetes/`   | DevPod + K8s   | 3        | Kubernetes pod-based environments       |
-| `k8s/`                 | Kind/K3d       | 2        | Local cluster creation + deployment     |
-| `custom/`              | Mixed          | 7        | Custom extension combinations           |
+| `devpod/gcp/`          | DevPod + GCP   | 4        | GCE-based development environments        |
+| `devpod/azure/`        | DevPod + Azure | 3        | Azure VM-based development environments   |
+| `devpod/digitalocean/` | DevPod + DO    | 2        | DigitalOcean droplet environments         |
+| `devpod/kubernetes/`   | DevPod + K8s   | 3        | Kubernetes pod-based environments         |
+| `k8s/`                 | Kind/K3d       | 2        | Local cluster creation + deployment       |
+| `custom/`              | Mixed          | 7        | Custom extension combinations             |
 
 ### By Extension Profile
 

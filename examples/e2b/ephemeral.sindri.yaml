@@ -20,7 +20,7 @@ name: sindri-e2b-ephemeral
 deployment:
   provider: e2b
   resources:
-    memory: 1GB           # Minimal resources
+    memory: 1GB # Minimal resources
     cpus: 1
 
 extensions:
@@ -33,10 +33,10 @@ secrets:
 
 providers:
   e2b:
-    timeout: 600          # 10 min - short session
-    autoPause: false      # Kill instead of pause (no state to preserve)
-    autoResume: false     # Not applicable for ephemeral
-    reuseTemplate: true   # Reuse template for fast startup
+    timeout: 600 # 10 min - short session
+    autoPause: false # Kill instead of pause (no state to preserve)
+    autoResume: false # Not applicable for ephemeral
+    reuseTemplate: true # Reuse template for fast startup
 
     metadata:
       type: ephemeral

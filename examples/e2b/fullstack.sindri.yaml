@@ -42,12 +42,12 @@ secrets:
 providers:
   e2b:
     templateAlias: sindri-fullstack
-    timeout: 3600             # 1 hour for active development
+    timeout: 3600 # 1 hour for active development
     autoPause: true
     autoResume: true
 
     internetAccess: true
-    publicAccess: true        # Access web apps via public URL
+    publicAccess: true # Access web apps via public URL
     # Public URLs format: https://<port>-<sandbox-id>.e2b.app
 
     metadata:

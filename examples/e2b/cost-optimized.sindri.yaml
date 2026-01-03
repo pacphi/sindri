@@ -27,11 +27,11 @@ name: sindri-e2b-cost-opt
 deployment:
   provider: e2b
   resources:
-    memory: 2GB           # Start small, can be increased
+    memory: 2GB # Start small, can be increased
     cpus: 2
 
 extensions:
-  profile: minimal        # Start minimal, add extensions as needed
+  profile: minimal # Start minimal, add extensions as needed
   # additional:           # Uncomment specific extensions you need
   #   - nodejs
   #   - python
@@ -45,13 +45,13 @@ providers:
   e2b:
     # Template settings
     templateAlias: sindri-cost-opt
-    reuseTemplate: true       # Never rebuild unless forced
-    buildOnDeploy: false      # Skip template rebuild
+    reuseTemplate: true # Never rebuild unless forced
+    buildOnDeploy: false # Skip template rebuild
 
     # Aggressive timeout for cost savings
-    timeout: 300              # 5 min - pause quickly when idle
-    autoPause: true           # ALWAYS pause, never kill
-    autoResume: true          # Seamless resume on connect
+    timeout: 300 # 5 min - pause quickly when idle
+    autoPause: true # ALWAYS pause, never kill
+    autoResume: true # Seamless resume on connect
 
     # Network (default is fine)
     internetAccess: true

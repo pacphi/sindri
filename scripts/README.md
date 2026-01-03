@@ -10,14 +10,14 @@ This directory contains utility scripts for Sindri administration.
 
 Run this script **on the host machine** (not inside Sindri) when you want to enable secure Docker-in-Docker without privileged mode.
 
-| Environment | Run This Script? | Notes |
-|-------------|------------------|-------|
-| Local Linux machine | ✅ Yes | One-time setup |
-| AWS EC2 / Azure VM / GCP | ✅ Yes | Run via SSH |
-| Self-hosted CI runners | ✅ Yes | Add to runner setup |
-| Fly.io | ❌ No | Use `mode: privileged` instead |
-| GitHub-hosted runners | ❌ No | Use `mode: privileged` instead |
-| macOS / Windows | ❌ No | Sysbox is Linux-only |
+| Environment              | Run This Script? | Notes                          |
+| ------------------------ | ---------------- | ------------------------------ |
+| Local Linux machine      | ✅ Yes           | One-time setup                 |
+| AWS EC2 / Azure VM / GCP | ✅ Yes           | Run via SSH                    |
+| Self-hosted CI runners   | ✅ Yes           | Add to runner setup            |
+| Fly.io                   | ❌ No            | Use `mode: privileged` instead |
+| GitHub-hosted runners    | ❌ No            | Use `mode: privileged` instead |
+| macOS / Windows          | ❌ No            | Sysbox is Linux-only           |
 
 ### Usage
 
@@ -59,7 +59,7 @@ providers:
   docker:
     dind:
       enabled: true
-      mode: sysbox  # or "auto" to auto-detect
+      mode: sysbox # or "auto" to auto-detect
 ```
 
 ### Verification
