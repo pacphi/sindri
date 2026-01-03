@@ -475,6 +475,56 @@ extension.yaml              (Definition)
     </table>
 </section>
 
+<section>
+    <h2>Docker Extension - DinD Support</h2>
+    <p><span class="highlight">Docker-in-Docker (DinD)</span> enables containerized workloads to build and run their own containers</p>
+    <table class="comparison-table">
+        <tr>
+            <th>Mode</th>
+            <th>Security</th>
+            <th>Performance</th>
+            <th>Requirements</th>
+            <th>Best For</th>
+        </tr>
+        <tr>
+            <td class="success">sysbox</td>
+            <td>Excellent</td>
+            <td>Fast (overlay2)</td>
+            <td>Host setup (kernel 5.12+)</td>
+            <td>Production CI/CD, multi-tenant</td>
+        </tr>
+        <tr>
+            <td class="warning">privileged</td>
+            <td>Poor</td>
+            <td>Slow (VFS)</td>
+            <td>None</td>
+            <td>Quick testing, single-tenant</td>
+        </tr>
+        <tr>
+            <td class="info">socket</td>
+            <td>Shared</td>
+            <td>Native</td>
+            <td>None</td>
+            <td>Simple builds, shared environments</td>
+        </tr>
+        <tr>
+            <td class="success">auto</td>
+            <td>Varies</td>
+            <td>Varies</td>
+            <td>Auto-detect</td>
+            <td>Automatic selection (recommended)</td>
+        </tr>
+    </table>
+    <pre><code class="language-yaml"># sindri.yaml - Configure DinD mode
+providers:
+  docker:
+    dind:
+      mode: auto          # sysbox, privileged, socket, or auto
+      driver: overlay2    # Storage driver
+      size: 20GB         # Storage allocation</code></pre>
+    <p class="small">See <code>docs/providers/DOCKER.md</code> for Sysbox setup: <code>./scripts/setup-sysbox-host.sh</code></p>
+</section>
+
 <!-- VisionFlow Extensions Section -->
 <section>
     <section>

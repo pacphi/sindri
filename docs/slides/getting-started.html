@@ -119,11 +119,12 @@
 <section data-background-gradient="linear-gradient(135deg, #0d1117 0%, #161b22 100%)">
     <h1>Sindri</h1>
     <h3>Declarative Cloud Development Environments</h3>
-    <p class="small">Deploy to Docker, Fly.io, or DevPod with a single YAML file</p>
+    <p class="small">Deploy to Docker, Fly.io, DevPod, or E2B with a single YAML file</p>
     <p style="margin-top: 2em;">
         <span class="provider-box">Docker</span>
         <span class="provider-box">Fly.io</span>
         <span class="provider-box">DevPod</span>
+        <span class="provider-box">E2B</span>
     </p>
     <p class="small">DevPod backends: Kubernetes, AWS, GCP, Azure, DigitalOcean, SSH</p>
 </section>
@@ -665,6 +666,106 @@ providers:
     </ul>
 </section>
 
+<!-- E2B SECTION -->
+<section data-background="#3fb950">
+    <h1>E2B</h1>
+    <h3>Ultra-Fast Cloud Sandboxes</h3>
+    <p class="cost-badge cost-low">$0.05-0.20/hour (pay per second)</p>
+</section>
+
+<section>
+    <h2>Deploy to E2B</h2>
+    <p><span class="highlight">~150ms startup</span> from snapshots - the fastest option available</p>
+    <pre><code class="language-bash"># Authenticate with E2B
+export E2B_API_KEY="e2b_..."
+
+# Deploy to E2B cloud sandbox
+./cli/sindri deploy --provider e2b
+
+# Connect via WebSocket PTY (firewall-friendly)
+./cli/sindri connect
+
+# Work in your sandbox
+claude  # Start Claude Code
+cd /workspace && git clone https://github.com/your/project.git</code></pre>
+    <p class="small">Best for: <span class="success">AI agents</span>, rapid prototyping, ephemeral testing environments</p>
+</section>
+
+<section>
+    <h2>E2B Configuration</h2>
+    <pre><code class="language-yaml">version: 1.0
+name: sindri-e2b-dev
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 2GB        # 512MB - 8GB
+    cpus: 2           # 1 - 8 vCPUs
+
+extensions:
+  profile: fullstack
+
+providers:
+  e2b:
+    timeout: 300       # 5 min idle timeout
+    autoPause: true    # Pause instead of kill
+    autoResume: true   # Resume on connect
+
+    # Network policies
+    allowedDomains:
+      - github.com
+      - api.anthropic.com</code></pre>
+</section>
+
+<section>
+    <h2>E2B Unique Features</h2>
+    <ul>
+        <li><span class="highlight">Pause/Resume</span> - Preserves memory + filesystem state</li>
+        <li><span class="highlight">Per-Second Billing</span> - $0.05-0.20/hour, only pay when active</li>
+        <li><span class="highlight">Template Management</span> - Create snapshots for instant reproduction</li>
+        <li><span class="highlight">Network Policies</span> - Domain allowlist/blocklist for security</li>
+        <li><span class="highlight">WebSocket PTY</span> - Works through corporate firewalls (no SSH)</li>
+    </ul>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">Tip:</span> Use <code>autoPause: true</code> to save costs during idle periods
+    </p>
+</section>
+
+<section>
+    <h2>E2B Commands</h2>
+    <pre><code class="language-bash"># Lifecycle management
+./cli/sindri deploy --provider e2b
+./cli/sindri connect              # Auto-resumes if paused
+./cli/sindri status
+./cli/sindri destroy
+
+# Pause/Resume (unique to E2B)
+./cli/sindri pause                # Pause to preserve state
+./cli/sindri resume               # Resume paused instance
+
+# Template management
+./cli/sindri template create      # Create template from current state
+./cli/sindri template list        # List available templates</code></pre>
+</section>
+
+<section>
+    <h2>E2B: When to Use</h2>
+    <h3>✅ Best For</h3>
+    <ul>
+        <li>AI agent code execution sandboxes</li>
+        <li>Rapid prototyping (sub-second startup)</li>
+        <li>CI/CD ephemeral test environments</li>
+        <li>Remote work through corporate firewalls</li>
+    </ul>
+    <h3 style="margin-top: 1em;">⚠️ Limitations</h3>
+    <ul>
+        <li>No GPU support</li>
+        <li>WebSocket PTY only (no SSH)</li>
+        <li>30-day pause retention limit</li>
+        <li>VS Code Remote SSH not supported</li>
+    </ul>
+</section>
+
 <!-- Provider Comparison -->
 <section>
     <h2>Provider Comparison</h2>
@@ -674,36 +775,49 @@ providers:
             <th>Docker</th>
             <th>Fly.io</th>
             <th>DevPod</th>
+            <th>E2B</th>
         </tr>
         <tr>
             <td>Best For</td>
             <td>Local dev</td>
             <td>Cloud dev</td>
             <td>IDE users</td>
+            <td>AI agents</td>
         </tr>
         <tr>
             <td>Cost</td>
             <td class="success">Free</td>
             <td>$6-50/mo</td>
             <td class="success">Free*</td>
+            <td>$0.05-0.20/hr</td>
+        </tr>
+        <tr>
+            <td>Startup Time</td>
+            <td>10-30s</td>
+            <td>10-60s</td>
+            <td>30-60s</td>
+            <td class="success">~150ms</td>
         </tr>
         <tr>
             <td>Setup Time</td>
             <td>&lt; 1 min</td>
             <td>&lt; 5 min</td>
             <td>&lt; 2 min</td>
+            <td>&lt; 3 min</td>
         </tr>
         <tr>
             <td>Auto-Suspend</td>
             <td>Manual</td>
             <td class="success">Yes</td>
             <td>Manual</td>
+            <td class="success">Pause/Resume</td>
         </tr>
         <tr>
             <td>Remote Access</td>
             <td>Local only</td>
             <td class="success">SSH/Web</td>
             <td>SSH/VSCode</td>
+            <td>WebSocket PTY</td>
         </tr>
     </table>
     <p class="small">* DevPod is free for local; cloud providers have their own costs</p>
@@ -725,7 +839,18 @@ sindri connect              # SSH to environment
 sindri status               # Check deployment status
 sindri plan                 # Show deployment plan (dry-run)
 sindri destroy              # Teardown
-sindri destroy --force      # Teardown without confirmation</code></pre>
+sindri destroy --force      # Teardown without confirmation
+
+# Backup & Restore
+sindri backup --profile standard --output ./backups/
+sindri restore ./backups/backup.tar.gz --mode safe --dry-run
+sindri restore ./backups/backup.tar.gz --mode merge
+
+# E2B Provider Commands
+sindri pause                # Pause E2B instance (preserves state)
+sindri resume               # Resume paused instance
+sindri template create      # Create template from current state
+sindri template list        # List available templates</code></pre>
     </section>
 
     <section>
@@ -892,6 +1017,118 @@ ssh developer@my-app.fly.dev -p 10022
         </ul>
         <p class="small">Never mount your personal private key - use dedicated deploy keys!</p>
     </section>
+</section>
+
+<!-- BACKUP & RESTORE SECTION -->
+<section data-background="#d29922">
+    <h1>Backup & Restore</h1>
+    <h3>Workspace Portability</h3>
+</section>
+
+<section>
+    <h2>Backup Your Workspace</h2>
+    <p>Preserve your projects, configs, and development environment</p>
+    <ul>
+        <li><span class="highlight">What's backed up:</span> Projects, SSH keys, Claude data, configs</li>
+        <li><span class="highlight">Why backup:</span> Migration, disaster recovery, multi-machine sync</li>
+        <li><span class="highlight">Three profiles:</span> user-data, standard, full</li>
+    </ul>
+    <pre><code class="language-bash"># Standard backup (recommended)
+./cli/sindri backup --output ./backups/
+
+# User data only (smallest, safest for migration)
+./cli/sindri backup --profile user-data --output ./backups/
+
+# Full backup (disaster recovery)
+./cli/sindri backup --profile full --output ./backups/</code></pre>
+</section>
+
+<section>
+    <h2>Backup Profiles</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Profile</th>
+            <th>Size</th>
+            <th>Includes</th>
+            <th>Best For</th>
+        </tr>
+        <tr>
+            <td class="success">user-data</td>
+            <td>Small (100MB-1GB)</td>
+            <td>Projects, scripts, SSH keys, Claude data</td>
+            <td>Migration to new instance</td>
+        </tr>
+        <tr>
+            <td class="info">standard</td>
+            <td>Medium (1-5GB)</td>
+            <td>user-data + shell RC + app configs</td>
+            <td>Regular backups (default)</td>
+        </tr>
+        <tr>
+            <td class="warning">full</td>
+            <td>Large (5-20GB)</td>
+            <td>Everything except caches</td>
+            <td>Disaster recovery</td>
+        </tr>
+    </table>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">Tip:</span> Use <code>user-data</code> for clean migrations, <code>standard</code> for regular backups
+    </p>
+</section>
+
+<section>
+    <h2>Restore Modes</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Mode</th>
+            <th>Behavior</th>
+            <th>Safety</th>
+        </tr>
+        <tr>
+            <td class="success">safe</td>
+            <td>Never overwrite existing files (default)</td>
+            <td>Safest - no data loss</td>
+        </tr>
+        <tr>
+            <td class="info">merge</td>
+            <td>Backup existing files before restoring</td>
+            <td>Safe - conflicts preserved</td>
+        </tr>
+        <tr>
+            <td class="warning">full</td>
+            <td>Overwrite everything from backup</td>
+            <td>Dangerous - replaces all files</td>
+        </tr>
+    </table>
+    <pre><code class="language-bash"># Preview what will happen (dry-run)
+./cli/sindri restore ./backups/backup.tar.gz --dry-run
+
+# Safe restore (default - won't overwrite)
+./cli/sindri restore ./backups/backup.tar.gz
+
+# Merge with existing (recommended)
+./cli/sindri restore ./backups/backup.tar.gz --mode merge</code></pre>
+</section>
+
+<section>
+    <h2>Backup & Restore Workflows</h2>
+    <h3>Migration Between Providers</h3>
+    <pre><code class="language-bash"># On Docker instance
+./cli/sindri backup --profile user-data --output ./backups/
+
+# Deploy to Fly.io
+./cli/sindri deploy --provider fly
+
+# Restore on Fly.io
+./cli/sindri restore ./backups/backup.tar.gz</code></pre>
+    <h3 style="margin-top: 1em;">Cloud Backup with S3</h3>
+    <pre><code class="language-bash"># Backup and upload to S3
+./cli/sindri backup --output ./backups/
+aws s3 cp ./backups/backup.tar.gz s3://my-bucket/
+
+# Download and restore from S3
+aws s3 cp s3://my-bucket/backup.tar.gz ./
+./cli/sindri restore ./backup.tar.gz --mode safe</code></pre>
 </section>
 
 <!-- Troubleshooting -->
