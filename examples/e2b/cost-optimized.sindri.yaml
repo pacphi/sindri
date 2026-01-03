@@ -1,0 +1,61 @@
+---
+# Sindri Configuration - E2B Cost Optimized
+# Maximum cost savings while maintaining usability
+#
+# Cost optimization strategies:
+#   1. Short timeout (5 min) with auto-pause
+#   2. Minimal resources (scale up only when needed)
+#   3. Template reuse (skip rebuild)
+#   4. Pause frequently (paused = no compute cost)
+#
+# Cost breakdown (2 vCPU, 2GB RAM):
+#   Active: ~$0.13/hour
+#   Paused: $0 (only snapshot storage)
+#
+# Usage:
+#   export E2B_API_KEY=your-api-key
+#   sindri deploy -f examples/e2b/cost-optimized.sindri.yaml
+#
+# Tips:
+#   - Run `sindri pause` when taking breaks
+#   - Use `sindri connect` to auto-resume
+#   - Check usage at https://e2b.dev/dashboard
+
+version: "1.0"
+name: sindri-e2b-cost-opt
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 2GB # Start small, can be increased
+    cpus: 2
+
+extensions:
+  profile: minimal # Start minimal, add extensions as needed
+  # additional:           # Uncomment specific extensions you need
+  #   - nodejs
+  #   - python
+
+secrets:
+  - name: E2B_API_KEY
+    source: env
+    required: true
+
+providers:
+  e2b:
+    # Template settings
+    templateAlias: sindri-cost-opt
+    reuseTemplate: true # Never rebuild unless forced
+    buildOnDeploy: false # Skip template rebuild
+
+    # Aggressive timeout for cost savings
+    timeout: 300 # 5 min - pause quickly when idle
+    autoPause: true # ALWAYS pause, never kill
+    autoResume: true # Seamless resume on connect
+
+    # Network (default is fine)
+    internetAccess: true
+
+    metadata:
+      optimization: cost
+      tier: hobby

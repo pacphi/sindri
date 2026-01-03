@@ -9,19 +9,21 @@ Sindri uses a **provider-agnostic architecture** where a single `sindri.yaml` co
 - **[Docker](providers/DOCKER.md)** - Local development and testing
 - **[Fly.io](providers/FLY.md)** - Cloud deployment with auto-suspend and cost optimization
 - **[DevPod](providers/DEVPOD.md)** - IDE-integrated containers, multi-cloud, and Kubernetes
+- **[E2B](providers/E2B.md)** - Ultra-fast cloud sandboxes for AI development
 
 ## Provider Comparison
 
-| Feature                | Docker         | Fly.io                | DevPod                          |
-| ---------------------- | -------------- | --------------------- | ------------------------------- |
-| **Best For**           | Local dev      | Individual developers | IDE users, K8s, multi-cloud     |
-| **Cost**               | Free (local)   | ~$6-50/mo             | Varies by backend               |
-| **Setup Time**         | < 1 min        | < 5 min               | < 2 min                         |
-| **Auto-Suspend**       | Manual         | Yes                   | Backend-dependent               |
-| **Persistent Storage** | Docker volumes | Fly volumes           | Volumes/PVCs                    |
-| **Remote Access**      | Local only     | SSH/Web               | SSH/VSCode                      |
-| **Scaling**            | Manual         | Auto/Manual           | Backend-dependent               |
-| **Prerequisites**      | Docker         | flyctl                | DevPod CLI + backend (optional) |
+| Feature                | Docker         | Fly.io                | DevPod                          | E2B                        |
+| ---------------------- | -------------- | --------------------- | ------------------------------- | -------------------------- |
+| **Best For**           | Local dev      | Individual developers | IDE users, K8s, multi-cloud     | AI sandboxes, prototyping  |
+| **Cost**               | Free (local)   | ~$6-50/mo             | Varies by backend               | ~$0.13/hr (pay-per-second) |
+| **Setup Time**         | < 1 min        | < 5 min               | < 2 min                         | < 1 sec (after template)   |
+| **Auto-Suspend**       | Manual         | Yes                   | Backend-dependent               | Yes (pause/resume)         |
+| **Persistent Storage** | Docker volumes | Fly volumes           | Volumes/PVCs                    | Pause snapshots (30 days)  |
+| **Remote Access**      | Local only     | SSH/Web               | SSH/VSCode                      | WebSocket PTY              |
+| **Scaling**            | Manual         | Auto/Manual           | Backend-dependent               | Per-sandbox                |
+| **GPU Support**        | Yes            | Yes                   | Yes                             | No                         |
+| **Prerequisites**      | Docker         | flyctl                | DevPod CLI + backend (optional) | E2B CLI + API key          |
 
 **Note:** Kubernetes deployment is handled via DevPod with `type: kubernetes`.
 See [Kubernetes Deployment Guide](providers/KUBERNETES.md).
@@ -73,7 +75,7 @@ version: 1.0
 name: my-dev-env
 
 deployment:
-  provider: fly # docker | fly | devpod
+  provider: fly # docker | fly | devpod | e2b
 
 extensions:
   profile: fullstack
@@ -152,6 +154,26 @@ extensions:
 
 **For Kubernetes specifically:** See [Kubernetes Deployment Guide](providers/KUBERNETES.md)
 
+### E2B
+
+**Use when:**
+
+- Need ultra-fast startup (~150ms)
+- Building AI agents that need isolated sandboxes
+- Want pay-per-second pricing
+- Working behind corporate firewalls (WebSocket access)
+- Need rapid prototyping environments
+- Don't require GPU or SSH access
+
+**Not recommended when:**
+
+- Need GPU acceleration
+- Require VS Code Remote SSH
+- Need persistent storage beyond 30 days
+- Prefer SSH access over WebSocket
+
+[E2B Provider Guide](providers/E2B.md)
+
 ## Secrets Management
 
 Each provider handles secrets differently:
@@ -162,6 +184,7 @@ Each provider handles secrets differently:
 | Fly.io     | `flyctl secrets`         | `flyctl secrets set ANTHROPIC_API_KEY=...` |
 | Kubernetes | Kubernetes secrets       | `kubectl create secret generic ...`        |
 | DevPod     | IDE settings/environment | VS Code settings or environment variables  |
+| E2B        | Environment variables    | Injected at sandbox creation               |
 
 See provider-specific guides for details.
 
@@ -211,6 +234,19 @@ devpod stop my-dev-env
 devpod delete my-dev-env
 ```
 
+**E2B:**
+
+```bash
+# Pause sandbox (preserve state)
+./cli/sindri pause
+
+# E2B CLI commands
+e2b sandbox list
+e2b sandbox terminal <sandbox-id>
+e2b sandbox pause <sandbox-id>
+e2b sandbox kill <sandbox-id>
+```
+
 ## Migration Between Providers
 
 Sindri's volume architecture makes migration straightforward:
@@ -243,6 +279,7 @@ Use different providers for different purposes:
 - **Remote collaboration:** Fly.io
 - **Production workloads:** Kubernetes
 - **IDE integration:** DevPod
+- **AI sandboxes/rapid prototyping:** E2B
 
 All use the same base image and extension system.
 
@@ -257,4 +294,5 @@ All use the same base image and extension system.
 - [Docker](providers/DOCKER.md)
 - [Fly.io](providers/FLY.md)
 - [DevPod](providers/DEVPOD.md)
+- [E2B](providers/E2B.md)
 - [Kubernetes (via DevPod)](providers/KUBERNETES.md)

@@ -8,7 +8,7 @@ on:
   workflow_call:
     inputs:
       provider:
-        description: Provider to test (docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s)
+        description: Provider to test (docker, fly, e2b, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s)
         required: true
         type: string
       test-level:
@@ -49,6 +49,8 @@ on:
 
     secrets:
       FLY_API_TOKEN:
+        required: false
+      E2B_API_KEY:
         required: false
       AWS_ACCESS_KEY_ID:
         required: false
@@ -122,6 +124,7 @@ jobs:
           source .github/scripts/providers/setup-credentials.sh "${{ inputs.provider }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -142,6 +145,7 @@ jobs:
           test-level: ${{ inputs.test-level }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -209,6 +213,7 @@ jobs:
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
 
       - name: Collect diagnostics on failure
         if: failure() && inputs.provider == 'docker'
@@ -246,6 +251,7 @@ jobs:
           force: true
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
 
       - name: Generate summary
         if: always()

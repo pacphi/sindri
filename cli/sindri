@@ -64,7 +64,7 @@ USAGE:
 
 COMMANDS:
     deploy [--provider <name>] [--rebuild] [--config <file>]
-                                 Deploy to provider (docker, fly, devpod)
+                                 Deploy to provider (docker, fly, devpod, e2b)
     plan [--config <file>]       Show deployment plan
     destroy [--provider <name>] [--force] [--config <file>]
                                  Destroy deployment
@@ -72,6 +72,8 @@ COMMANDS:
     status [--config <file>]     Show deployment status
     test [--config <file>] [--suite <name>]
                                  Run test suite on deployed instance
+    pause [--config <file>]      Pause sandbox to preserve state (e2b only)
+    template <subcommand>        Manage E2B templates (e2b only)
 
     profiles list                List available profiles
     profiles show <name>         Show profile details
@@ -93,7 +95,7 @@ OPTIONS:
     -v, --verbose                Verbose output
 
 DEPLOY/DESTROY OPTIONS:
-    -p, --provider <name>        Override provider from config (docker, fly, devpod)
+    -p, --provider <name>        Override provider from config (docker, fly, devpod, e2b)
     -r, --rebuild                Force rebuild of Docker image (deploy only)
     -f, --force                  Skip confirmation prompt (destroy only)
 
@@ -103,11 +105,14 @@ EXAMPLES:
     sindri deploy --provider fly
     sindri deploy --provider fly --rebuild  # Force rebuild on Fly.io
     sindri deploy --provider devpod
+    sindri deploy --provider e2b
     sindri deploy --config examples/fly/minimal.sindri.yaml
     sindri connect
     sindri destroy --provider docker
     sindri destroy --force
     sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+    sindri pause                             # E2B: pause sandbox
+    sindri template list                     # E2B: list templates
 
     # Backup and restore
     sindri backup                            # Standard backup
@@ -164,7 +169,7 @@ name: my-sindri-dev
 # DEPLOYMENT
 # =============================================================================
 deployment:
-  provider: docker  # Options: docker, fly, devpod
+  provider: docker  # Options: docker, fly, devpod, e2b
 
   resources:
     memory: 2GB     # RAM allocation (e.g., 1GB, 2GB, 4GB, 8GB)
@@ -448,6 +453,59 @@ providers:
   #   #     port: 5000
 
   # ---------------------------------------------------------------------------
+  # E2B - Ultra-fast cloud sandboxes for AI development
+  # ---------------------------------------------------------------------------
+  # E2B provides ~150ms startup time using snapshot-based boot.
+  # Best for: AI agent sandboxes, rapid prototyping, throwaway environments.
+  #
+  # Key differences from other providers:
+  #   - No SSH: Uses WebSocket PTY terminal (works behind firewalls)
+  #   - Persistence: Pause/Resume snapshots (not traditional volumes)
+  #   - Session limits: Max 24hr active, 30-day pause retention
+  #   - No GPU support
+  #
+  # Commands:
+  #   sindri pause              # Pause sandbox (preserve state, stop billing)
+  #   sindri template build     # Build/rebuild E2B template
+  #
+  # e2b:
+  #   templateAlias: my-sindri  # Custom template name (auto-generated if omitted)
+  #   reuseTemplate: true       # Reuse existing template (skip rebuild)
+  #
+  #   # Lifecycle settings
+  #   timeout: 300              # Auto-pause after N seconds idle (default: 5 min)
+  #   autoPause: true           # Pause on timeout instead of kill (preserves state)
+  #   autoResume: true          # Auto-resume paused sandbox on connect
+  #
+  #   # Network configuration
+  #   internetAccess: true      # Enable outbound internet
+  #   publicAccess: false       # Expose services via public URL
+  #   # allowedDomains:         # Whitelist domains (empty = all allowed)
+  #   #   - github.com
+  #   #   - api.anthropic.com
+  #   # blockedDomains: []      # Blacklist domains
+  #
+  #   # Metadata for identifying sandboxes
+  #   # metadata:
+  #   #   project: my-project
+  #   #   environment: dev
+  #
+  #   # Advanced
+  #   # team: my-team           # E2B team for billing
+  #   # buildOnDeploy: false    # Force template rebuild on every deploy
+  #
+  # Cost optimization tips:
+  #   - Use short timeouts (5-15 min) with autoPause: true
+  #   - Paused sandboxes incur no compute cost (only storage)
+  #   - Use --ephemeral flag for throwaway environments
+  #   - Monitor usage at: https://e2b.dev/dashboard
+  #
+  # Required secret:
+  #   E2B_API_KEY - Get at https://e2b.dev/dashboard
+  #
+  # See: docs/providers/E2B.md for detailed documentation
+
+  # ---------------------------------------------------------------------------
   # Kubernetes (native) - Note: use DevPod for K8s deployment
   # ---------------------------------------------------------------------------
   kubernetes:
@@ -527,9 +585,12 @@ deploy() {
         devpod)
             "$BASE_DIR/deploy/adapters/devpod-adapter.sh" deploy $rebuild "$config"
             ;;
+        e2b)
+            "$BASE_DIR/deploy/adapters/e2b-adapter.sh" deploy $rebuild "$config"
+            ;;
         *)
             print_error "Unknown provider: $provider"
-            echo "Available providers: docker, fly, devpod"
+            echo "Available providers: docker, fly, devpod, e2b"
             return 1
             ;;
     esac
@@ -556,6 +617,9 @@ connect() {
             ;;
         devpod)
             "$BASE_DIR/deploy/adapters/devpod-adapter.sh" connect "$config"
+            ;;
+        e2b)
+            "$BASE_DIR/deploy/adapters/e2b-adapter.sh" connect "$config"
             ;;
         *)
             print_error "Unknown provider: $provider"
@@ -591,9 +655,12 @@ destroy() {
         devpod)
             "$BASE_DIR/deploy/adapters/devpod-adapter.sh" destroy "$force_arg" "$config"
             ;;
+        e2b)
+            "$BASE_DIR/deploy/adapters/e2b-adapter.sh" destroy "$force_arg" "$config"
+            ;;
         *)
             print_error "Unknown provider: $provider"
-            echo "Available providers: docker, fly, devpod"
+            echo "Available providers: docker, fly, devpod, e2b"
             return 1
             ;;
     esac
@@ -652,6 +719,16 @@ test_suite() {
                     # Check SSH connectivity
                     devpod ssh "$name" "whoami" || { print_error "SSH test failed"; return 1; }
                     ;;
+                e2b)
+                    # Check sandbox is running via e2b-adapter
+                    if ! "$BASE_DIR/deploy/adapters/e2b-adapter.sh" status "$config" 2>/dev/null | grep -q "running"; then
+                        print_error "E2B sandbox $name is not running"
+                        return 1
+                    fi
+
+                    # Check basic commands work via sandbox exec
+                    "$BASE_DIR/deploy/adapters/e2b-adapter.sh" exec "$config" "whoami" || { print_error "Sandbox exec test failed"; return 1; }
+                    ;;
                 *)
                     print_error "Smoke tests not implemented for provider: $provider"
                     return 1
@@ -680,6 +757,9 @@ test_suite() {
                     ;;
                 devpod)
                     devpod ssh "$name" "/docker/cli/extension-manager validate-all"
+                    ;;
+                e2b)
+                    "$BASE_DIR/deploy/adapters/e2b-adapter.sh" exec "$config" "/docker/cli/extension-manager validate-all"
                     ;;
                 *)
                     print_error "Integration tests not implemented for provider: $provider"
@@ -726,6 +806,9 @@ plan() {
         devpod)
             "$BASE_DIR/deploy/adapters/devpod-adapter.sh" plan "$config"
             ;;
+        e2b)
+            "$BASE_DIR/deploy/adapters/e2b-adapter.sh" plan "$config"
+            ;;
         *)
             print_error "Unknown provider: $provider"
             ;;
@@ -754,10 +837,44 @@ status() {
         devpod)
             "$BASE_DIR/deploy/adapters/devpod-adapter.sh" status "$config"
             ;;
+        e2b)
+            "$BASE_DIR/deploy/adapters/e2b-adapter.sh" status "$config"
+            ;;
         *)
             print_error "Unknown provider: $provider"
             ;;
     esac
+}
+
+# Pause sandbox (E2B only)
+pause() {
+    local config="${1:-sindri.yaml}"
+
+    if [[ ! -f "$config" ]]; then
+        print_error "$config not found"
+        return 1
+    fi
+
+    local provider
+    provider=$(yq '.deployment.provider' "$config")
+
+    if [[ "$provider" != "e2b" ]]; then
+        print_error "pause command is only available for E2B provider"
+        echo "Current provider: $provider"
+        return 1
+    fi
+
+    "$BASE_DIR/deploy/adapters/e2b-adapter.sh" pause "$config"
+}
+
+# Template management (E2B only)
+template() {
+    local subcommand="${1:-}"
+    shift || true
+    local config="${2:-sindri.yaml}"
+
+    # For template commands, we route directly to the e2b-adapter
+    "$BASE_DIR/deploy/adapters/e2b-adapter.sh" template "$subcommand" "$@"
 }
 
 # Main
@@ -991,6 +1108,26 @@ main() {
         restore)
             # Delegate to backup-restore script
             "$BASE_DIR/cli/backup-restore" restore "$@"
+            ;;
+        pause)
+            # E2B-specific: pause sandbox to preserve state
+            local config="sindri.yaml"
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -c|--config)
+                        config="$2"
+                        shift 2
+                        ;;
+                    *)
+                        shift
+                        ;;
+                esac
+            done
+            pause "$config"
+            ;;
+        template)
+            # E2B-specific: template management
+            template "$@"
             ;;
         help|-h|--help)
             show_help

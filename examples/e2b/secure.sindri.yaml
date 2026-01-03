@@ -1,0 +1,82 @@
+---
+# Sindri Configuration - E2B Secure (Network Restricted)
+# Locked-down sandbox with restricted network access
+#
+# Security features:
+#   - Explicit domain allowlist
+#   - No public URL access
+#   - Minimal extensions
+#   - Isolated metadata
+#
+# Use cases:
+#   - Handling sensitive code
+#   - Compliance requirements
+#   - Air-gapped development (with exceptions)
+#
+# Usage:
+#   export E2B_API_KEY=your-api-key
+#   sindri deploy -f examples/e2b/secure.sindri.yaml
+
+version: "1.0"
+name: sindri-e2b-secure
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 2GB
+    cpus: 2
+
+extensions:
+  profile: minimal
+  additional:
+    - security-tools # Security scanning tools
+
+secrets:
+  - name: E2B_API_KEY
+    source: env
+    required: true
+
+  # Only essential secrets
+  - name: GITHUB_TOKEN
+    source: env
+
+providers:
+  e2b:
+    templateAlias: sindri-secure
+    timeout: 900 # 15 min timeout
+    autoPause: true
+    autoResume: true
+
+    # Network restrictions
+    internetAccess: true # Required for allowedDomains to work
+    publicAccess: false # No public URL exposure
+
+    # Explicit domain allowlist
+    allowedDomains:
+      # Package registries
+      - registry.npmjs.org
+      - pypi.org
+      - files.pythonhosted.org
+
+      # Git hosting
+      - github.com
+      - "*.github.com"
+      - gitlab.com
+
+      # AI APIs (add only what you need)
+      - api.anthropic.com
+
+      # Container registries
+      - ghcr.io
+      - docker.io
+      - "*.docker.io"
+
+    # Explicitly blocked domains (examples)
+    blockedDomains:
+      - analytics.google.com
+      - telemetry.microsoft.com
+
+    metadata:
+      security-level: restricted
+      network: allowlist-only
+      audit: enabled
