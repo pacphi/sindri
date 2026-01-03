@@ -132,7 +132,7 @@ assert_exit_code() {
   if [[ "$expected" == "$actual" ]]; then
     return 0
   else
-    echo "  Expected exit code: $expected, got: $actual"
+    echo "  $message: expected $expected, got $actual"
     return 1
   fi
 }

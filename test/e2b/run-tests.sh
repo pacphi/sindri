@@ -94,6 +94,12 @@ log_error() {
   echo -e "${RED}[ERROR]${NC} $*"
 }
 
+log_debug() {
+  if [[ "$VERBOSE" == "true" ]]; then
+    echo -e "${BLUE}[DEBUG]${NC} $*"
+  fi
+}
+
 # ============================================================================
 # Dependency Checks
 # ============================================================================
@@ -156,6 +162,7 @@ check_e2b_api_key() {
 
 run_smoke_tests() {
   log_info "Running smoke tests..."
+  log_debug "Working directory: $PROJECT_ROOT"
 
   local exit_code=0
 
@@ -171,7 +178,7 @@ run_smoke_tests() {
   # Run minimal unit tests
   "$SCRIPT_DIR/test-e2b-adapter.sh" unit || exit_code=$?
 
-  return $exit_code
+  return "$exit_code"
 }
 
 run_unit_tests() {
@@ -179,7 +186,7 @@ run_unit_tests() {
 
   local exit_code=0
   "$SCRIPT_DIR/test-e2b-adapter.sh" unit || exit_code=$?
-  return $exit_code
+  return "$exit_code"
 }
 
 run_integration_tests() {
@@ -199,7 +206,7 @@ run_integration_tests() {
 
   local exit_code=0
   "$SCRIPT_DIR/test-e2b-adapter.sh" integration || exit_code=$?
-  return $exit_code
+  return "$exit_code"
 }
 
 run_e2e_tests() {
@@ -223,7 +230,7 @@ run_e2e_tests() {
 
   local exit_code=0
   "$SCRIPT_DIR/test-e2b-adapter.sh" e2e || exit_code=$?
-  return $exit_code
+  return "$exit_code"
 }
 
 run_schema_tests() {
@@ -231,7 +238,7 @@ run_schema_tests() {
 
   local exit_code=0
   "$SCRIPT_DIR/test-e2b-adapter.sh" schema || exit_code=$?
-  return $exit_code
+  return "$exit_code"
 }
 
 run_all_tests() {
@@ -262,7 +269,7 @@ run_all_tests() {
     log_error "Failed test suites: ${failed_suites[*]}"
   fi
 
-  return $exit_code
+  return "$exit_code"
 }
 
 # ============================================================================
@@ -388,7 +395,7 @@ main() {
     log_error "Some tests failed"
   fi
 
-  exit $exit_code
+  exit "$exit_code"
 }
 
 # Run if executed directly
