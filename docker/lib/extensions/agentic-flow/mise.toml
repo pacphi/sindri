@@ -2,4 +2,4 @@
 # Uses mise npm: backend for proper shim management
 
 [tools]
-"npm:agentic-flow" = "latest"
+"npm:agentic-flow" = "alpha"

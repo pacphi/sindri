@@ -303,6 +303,14 @@ USER developer
 # E2B will wait for this to succeed before marking sandbox as ready
 EODF
 
+    # Add NPM_TOKEN if set (for CI or when passed from environment)
+    # This bypasses npm registry rate limits during extension installation
+    if [[ -n "${NPM_TOKEN:-}" ]]; then
+        # Insert NPM_TOKEN before WORKDIR line
+        sed -i.bak 's|^WORKDIR /alt/home/developer/workspace|ENV NPM_TOKEN="'"${NPM_TOKEN}"'"\nWORKDIR /alt/home/developer/workspace|' "$OUTPUT_DIR/template/e2b.Dockerfile"
+        rm -f "$OUTPUT_DIR/template/e2b.Dockerfile.bak"
+    fi
+
     print_status "Generated e2b.Dockerfile"
 }
 

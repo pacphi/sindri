@@ -188,6 +188,14 @@ Secrets flow from GitHub repository → workflow → environment variables:
 | `devpod-do`    | `DIGITALOCEAN_TOKEN`                                        | Deploy (DevPod)                      |
 | `devpod-k8s`   | `KUBECONFIG` (optional)                                     | Deploy (written to ~/.kube/config)   |
 
+**Optional Secrets (All Providers)**:
+
+| Secret      | Purpose                                                                |
+| ----------- | ---------------------------------------------------------------------- |
+| `NPM_TOKEN` | npm registry auth - bypasses rate limits during extension installation |
+
+> **Recommended**: Set `NPM_TOKEN` to avoid "timed out" errors when mise resolves npm package versions. Get a read-only Classic token from [npmjs.com/settings/~/tokens](https://www.npmjs.com/settings/~/tokens).
+
 **Secret Flow**:
 
 1. `ci.yml` declares `secrets: inherit`

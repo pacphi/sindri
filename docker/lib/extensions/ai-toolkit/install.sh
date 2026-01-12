@@ -75,13 +75,6 @@ if command_exists mise; then
     toml_content+="\n"
   fi
 
-  # Add Go-based tools if Go available
-  if command_exists go; then
-    toml_content+="# Go-based tools\n"
-    toml_content+='"go:github.com/kadirpekel/hector/cmd/hector" = "latest"\n'
-    toml_content+="\n"
-  fi
-
   echo -e "$toml_content" > "$TOML_FILE"
   print_success "Created mise config: $TOML_FILE"
 
@@ -110,17 +103,6 @@ else
     fi
   else
     print_warning "npm not found - skipping npm-based tools"
-  fi
-
-  # go install (GOPATH already configured at top of script)
-  if command_exists go; then
-    print_status "Installing Go-based tools (fallback)..."
-
-    if ! command_exists hector; then
-      timeout 300 go install github.com/kadirpekel/hector/cmd/hector@latest 2>&1 && print_success "Hector installed"
-    fi
-  else
-    print_warning "Go not found - skipping Go-based tools"
   fi
 fi
 

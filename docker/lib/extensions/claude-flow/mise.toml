@@ -2,4 +2,4 @@
 # Uses mise npm: backend for proper shim management
 
 [tools]
-"npm:claude-flow" = "alpha"
+"npm:claude-flow" = "v3alpha"

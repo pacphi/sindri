@@ -1,6 +1,6 @@
 # Agentic Flow
 
-Multi-model AI agent framework for Claude Code with cost optimization.
+Multi-model AI agent framework for Claude Code with cost optimization (alpha version).
 
 ## Overview
 
@@ -18,7 +18,7 @@ Multi-model AI agent framework for Claude Code with cost optimization.
 
 ## Description
 
-Agentic Flow is a multi-model AI agent framework designed for Claude Code integration with cost optimization capabilities. It provides specialized agents for coding, code review, and research tasks, with support for multiple AI providers and optimization strategies.
+Agentic Flow is a multi-model AI agent framework designed for Claude Code integration with cost optimization capabilities. This extension installs the **alpha** version (2.x). It provides specialized agents for coding, code review, and research tasks, with support for multiple AI providers and optimization strategies.
 
 ## Installed Tools
 

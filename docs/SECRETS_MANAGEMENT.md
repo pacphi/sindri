@@ -780,6 +780,15 @@ Many Sindri extensions require API keys or tokens to function. This reference li
 | `jira-mcp`   | `JIRA_USERNAME`  | Atlassian account email                  | Your Atlassian account                                                              |
 | `jira-mcp`   | `JIRA_API_TOKEN` | Atlassian API token                      | [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
 
+### Package Registries
+
+| Secret Name  | Description                                               | Where to Get                                                                           |
+| ------------ | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `NPM_TOKEN`  | npm registry auth (bypasses rate limits, **recommended**) | [npm Access Tokens](https://www.npmjs.com/settings/~/tokens) (read-only Classic token) |
+| `PYPI_TOKEN` | PyPI for publishing packages                              | [PyPI API Tokens](https://pypi.org/manage/account/token/)                              |
+
+> **Why NPM_TOKEN is recommended:** Anonymous npm requests are heavily rate-limited. During extension installation, mise resolves npm package versions which can timeout (20s default) when rate-limited. Setting `NPM_TOKEN` provides authenticated access with much higher limits, preventing "timed out" errors during tool installation.
+
 ### Infrastructure
 
 | Extension           | Secret Name             | Description                                     | Where to Get                                                        |
@@ -819,6 +828,15 @@ secrets:
   - name: JIRA_USERNAME
     source: env
   - name: JIRA_API_TOKEN
+    source: env
+```
+
+### Example: Package Registries Configuration
+
+```yaml
+secrets:
+  # npm authentication (recommended for reliable tool installation)
+  - name: NPM_TOKEN
     source: env
 ```
 

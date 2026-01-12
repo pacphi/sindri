@@ -1,16 +1,174 @@
 # Fly.io Deployment Guide
 
+Sindri's Fly.io adapter provides a complete deployment solution with cost optimization, persistent storage, and automatic installation protection.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Architecture](#architecture)
+  - [Fly Proxy and Auto-Suspend](#fly-proxy-and-auto-suspend)
+  - [Installation Protection via Machine Leases](#installation-protection-via-machine-leases)
+  - [Connection Patterns](#connection-patterns)
+- [Configuration](#configuration)
+  - [Basic Configuration](#basic-configuration)
+  - [Advanced Configuration](#advanced-configuration)
+  - [Generated fly.toml Features](#generated-flytoml-features)
+- [Deployment Workflow](#deployment-workflow)
+- [Secrets Management](#secrets-management)
+  - [Required Secrets](#required-secrets)
+  - [Optional Secrets](#optional-secrets)
+  - [Setting Secrets](#setting-secrets)
+- [Connecting to Your Instance](#connecting-to-your-instance)
+  - [Using flyctl Proxy (Recommended)](#using-flyctl-proxy-recommended)
+  - [Direct SSH Connection](#direct-ssh-connection)
+  - [VS Code Remote SSH](#vs-code-remote-ssh)
+- [Cost Optimization](#cost-optimization)
+- [Monitoring and Health Checks](#monitoring-and-health-checks)
+- [Troubleshooting](#troubleshooting)
+  - [Installation Issues](#installation-issues)
+  - [Connection Issues](#connection-issues)
+  - [Volume Issues](#volume-issues)
+  - [Resource Issues](#resource-issues)
+  - [VS Code Remote Issues](#vs-code-remote-issues)
+- [Advanced Features](#advanced-features)
+- [Cost Estimates](#cost-estimates)
+- [Related Documentation](#related-documentation)
+
+---
+
 ## Overview
 
 Sindri's Fly.io adapter generates comprehensive fly.toml configurations with:
 
-- Cost optimization (auto-suspend, scale-to-zero)
-- Persistent volumes with auto-extension
-- SSH access configuration
-- Health checks and monitoring
-- Comprehensive secrets management documentation
+- **Cost optimization** - Auto-suspend with scale-to-zero
+- **Installation protection** - Machine leases prevent premature suspension during extension installation
+- **Persistent volumes** - Auto-extension when capacity is reached
+- **SSH access** - Multiple connection methods (direct, proxy, hallpass)
+- **Health checks** - TCP-based monitoring for SSH daemon
 
-## Configuration Options
+---
+
+## Quick Start
+
+```bash
+# 1. Authenticate with Fly.io
+flyctl auth login
+
+# 2. Deploy
+./cli/sindri deploy --provider fly
+
+# 3. Enable installation protection (recommended)
+flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app-name>
+
+# 4. Connect
+flyctl ssh console -a <app-name>
+```
+
+---
+
+## Architecture
+
+### Fly Proxy and Auto-Suspend
+
+Fly.io uses a proxy layer to manage traffic routing and machine lifecycle:
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Fly.io Platform                             │
+│                                                                     │
+│  ┌─────────────────┐         ┌─────────────────────────────────┐    │
+│  │    Fly Proxy    │         │        Sindri Machine           │    │
+│  │                 │         │                                 │    │
+│  │ • Routes SSH    │◄───────►│ • SSH daemon (port 2222)        │    │
+│  │   (port 10022)  │         │ • Extension installation        │    │
+│  │ • Monitors      │         │ • Development environment       │    │
+│  │   connections   │         │                                 │    │
+│  │ • Auto-suspend  │         └─────────────────────────────────┘    │
+│  │   when idle     │                                                │
+│  └─────────────────┘                                                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**How auto-suspend works:**
+
+1. Fly Proxy monitors active connections through configured services
+2. When no connections exist for several minutes, the proxy triggers suspend
+3. Suspended machines preserve state and resume quickly on new connections
+
+**The problem:** Extension installation runs in the background after SSH daemon starts. If a user disconnects (or never connects), Fly Proxy sees "no connections" and suspends the machine—killing the installation process.
+
+### Installation Protection via Machine Leases
+
+Sindri uses Fly.io's [Machine Leases API](https://fly.io/docs/machines/api/machines-resource/) to prevent premature suspension during installation.
+
+**How it works:**
+
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│                    Installation Timeline                             │
+│                                                                      │
+│  Machine Start                                            Install    │
+│       │                                                   Complete   │
+│       ▼                                                      │       │
+│  ┌────┬────────────────────────────────────────────────────┬─┴──┐    │
+│  │    │◄──────── Lease Active (1 hour TTL) ───────────────►│    │    │
+│  │    │                                                    │    │    │
+│  │ SSH│  Extension Installation Running                    │Lease    │
+│  │Start                                                    │Released │
+│  └────┴────────────────────────────────────────────────────┴────┘    │
+│       │                    │                                │        │
+│       │                    │                                │        │
+│       │    Fly Proxy: "Can I suspend?"                      │        │
+│       │         │                                           │        │
+│       │         ▼                                           │        │
+│       │    Lease Check: "NO - lease held"                   │        │
+│       │         │                                           │        │
+│       │         ▼                                           ▼        │
+│       │    Machine stays running              Auto-suspend resumes   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation details:**
+
+- Lease acquired at installation start with 1-hour TTL
+- Background process renews lease every 30 minutes for long installations
+- Lease released immediately when installation completes (success or failure)
+- Graceful fallback if `FLY_API_TOKEN` is not configured
+
+**Requirements:**
+
+```bash
+# Enable installation protection by setting FLY_API_TOKEN
+flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app-name>
+```
+
+> **Note:** `FLY_API_TOKEN` is not auto-injected by Fly.io. You must set it explicitly. Without it, installation will proceed but may be interrupted by auto-suspend.
+
+**References:**
+
+- [Fly.io Machines API - Leases](https://fly.io/docs/machines/api/machines-resource/)
+- [Fly.io Autostop/Autostart](https://fly.io/docs/launch/autostop-autostart/)
+- [Machine Runtime Environment](https://fly.io/docs/machines/runtime-environment/)
+
+### Connection Patterns
+
+Fly.io offers multiple connection methods with different characteristics:
+
+| Method                    | Path                       | Auto-start | Proxy Traffic | Notes                         |
+| ------------------------- | -------------------------- | ---------- | ------------- | ----------------------------- |
+| Dedicated IPv4            | User → IPv4 → Machine      | Yes        | Yes           | Immediate, ~$2/month          |
+| Direct SSH (anycast)      | User → Fly Proxy → Machine | Yes        | Yes           | Requires 1-2hr edge propagation |
+| `flyctl proxy`            | User → WireGuard → Machine | Manual     | No            | Requires running proxy        |
+| `flyctl ssh console`      | User → Hallpass → Machine  | Manual     | No            | Built-in fallback             |
+
+**Key insight:** Only connections through Fly Proxy (direct SSH, dedicated IPv4) count toward the auto-suspend traffic calculation. Connections via `flyctl ssh console` or `flyctl proxy` bypass the proxy and don't prevent auto-suspend.
+
+**Recommended for VS Code Remote SSH:** Answer "Yes" when `flyctl deploy` prompts for dedicated IPv4 (~$2/month). The IP will be shown in the deploy output.
+
+---
+
+## Configuration
 
 ### Basic Configuration
 
@@ -62,24 +220,26 @@ providers:
     highAvailability: false # Multi-machine setup
 ```
 
-## Generated fly.toml Features
+> **Tip:** During first deploy, `flyctl deploy` will prompt to allocate a dedicated IPv4 (~$2/month). Answer "Yes" for immediate VS Code Remote SSH access.
 
-The adapter generates a fly.toml with:
+### Generated fly.toml Features
 
-### 1. **Volume Auto-Extension**
+The adapter generates a fly.toml with these features:
+
+**Volume Auto-Extension:**
 
 ```toml
-[mounts]
-  source = "workspace"
-  destination = "/workspace"
-  initial_size = "10gb"
-  snapshot_retention = 7           # Keep snapshots for 7 days
-  auto_extend_size_threshold = 80  # Extend at 80% full
+[[mounts]]
+  source = "home_data"
+  destination = "/alt/home/developer"
+  initial_size = "80gb"
+  snapshot_retention = 7
+  auto_extend_size_threshold = 80
   auto_extend_size_increment = "5GB"
   auto_extend_size_limit = "250GB"
 ```
 
-### 2. **Cost Optimization**
+**Cost Optimization:**
 
 ```toml
 [[services]]
@@ -88,90 +248,32 @@ The adapter generates a fly.toml with:
   min_machines_running = 0         # Scale to zero
 ```
 
-### 3. **Health Checks**
+**Health Checks:**
 
 ```toml
-# TCP health check for SSH
 [[services.tcp_checks]]
-  interval = "15s"
-  timeout = "2s"
-  grace_period = "10s"
-  restart_limit = 0
+  interval = "30s"
+  timeout = "10s"
+  grace_period = "30s"
 
-# Application health check
 [checks.ssh]
   type = "tcp"
   port = 2222
-  interval = "15s"
-  timeout = "2s"
+  interval = "30s"
+  timeout = "10s"
 ```
 
-### 4. **Swap Configuration**
-
-```toml
-[vm]
-  swap_size_mb = 2048  # Automatically calculated (1/2 of memory, min 2GB)
-```
-
-### 5. **Secrets Documentation**
-
-Comprehensive inline comments documenting all supported secrets:
-
-```toml
-# Security notes:
-# 5. Secrets management via Fly.io secrets:
-#    - ANTHROPIC_API_KEY: Claude API authentication
-#    - GITHUB_TOKEN: GitHub authentication for git operations
-#    - GIT_USER_NAME: Git config user.name
-#    - GIT_USER_EMAIL: Git config user.email
-#    - GITHUB_USER: GitHub username for gh CLI
-#    - OPENROUTER_API_KEY: OpenRouter API for cost-optimized models
-#    - GOOGLE_GEMINI_API_KEY: Google Gemini API for free-tier access
-#    - PERPLEXITY_API_KEY: Perplexity API for research assistant
-#    - XAI_API_KEY: xAI Grok SDK authentication
-#    - NPM_TOKEN: npm private package access (optional)
-#    - PYPI_TOKEN: PyPI package publishing (optional)
-```
-
-### 6. **Development Workflow Comments**
-
-```toml
-# Development workflow:
-# 1. Deploy: flyctl deploy
-# 2. Set secrets (optional):
-#    flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a ${NAME}
-#    flyctl secrets set GITHUB_TOKEN=ghp_... -a ${NAME}
-#    ...
-# 3. Connect: ssh developer@${NAME}.fly.dev -p ${SSH_EXTERNAL_PORT}
-# 4. Work: All files in /workspace are persistent
-# 5. Idle: VM automatically suspends after inactivity
-# 6. Resume: VM starts automatically on next connection
-```
+---
 
 ## Deployment Workflow
 
-### 1. Initialize Configuration
-
-```bash
-cd /Users/cphillipson/Documents/development/ai/sindri
-
-# Create sindri.yaml
-./cli/sindri config init
-
-# Edit for Fly.io
-vim sindri.yaml
-# Set: deployment.provider = fly
-# Set: providers.fly.region = sjc
-# Set: extensions.profile = fullstack
-```
-
-### 2. Authenticate with Fly.io
+### 1. Authenticate with Fly.io
 
 ```bash
 flyctl auth login
 ```
 
-### 3. Deploy
+### 2. Deploy
 
 ```bash
 ./cli/sindri deploy --provider fly
@@ -179,108 +281,50 @@ flyctl auth login
 
 This will:
 
-- Parse sindri.yaml
-- Generate comprehensive fly.toml
+- Parse sindri.yaml and generate fly.toml
 - Create Fly.io app if needed
 - Create persistent volume
 - Deploy Docker image
-- Configure health checks
-- Set up auto-suspend/resume
+- Configure health checks and auto-suspend
 
-### 4. Configure Secrets (Optional)
-
-```bash
-# Claude Code authentication
-flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-dev-env
-
-# GitHub integration
-flyctl secrets set GITHUB_TOKEN=ghp_... -a my-dev-env
-flyctl secrets set GIT_USER_NAME="Your Name" -a my-dev-env
-flyctl secrets set GIT_USER_EMAIL="you@example.com" -a my-dev-env
-
-# AI Tools (optional)
-flyctl secrets set OPENROUTER_API_KEY=sk-or-... -a my-dev-env
-flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a my-dev-env
-flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a my-dev-env
-```
-
-### 5. Connect
+### 3. Configure Secrets
 
 ```bash
-# SSH access
-ssh developer@my-dev-env.fly.dev -p 10022
+# Required for installation protection
+flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app-name>
 
-# Or via Fly.io hallpass
-flyctl ssh console -a my-dev-env
+# Core authentication
+flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a <app-name>
+flyctl secrets set GITHUB_TOKEN=ghp_... -a <app-name>
+flyctl secrets set GIT_USER_NAME="Your Name" -a <app-name>
+flyctl secrets set GIT_USER_EMAIL="you@example.com" -a <app-name>
 ```
 
-### 6. Verify Installation
+### 4. Connect and Verify
 
 ```bash
-# Check machine status
-flyctl status -a my-dev-env
+# Connect to the machine
+flyctl ssh console -a <app-name>
 
-# View logs
-flyctl logs -a my-dev-env
+# Monitor installation progress
+tail -f ~/workspace/.system/logs/install.log
 
-# Check volume
-flyctl volumes list -a my-dev-env
-
-# Monitor resource usage
-flyctl dashboard -a my-dev-env
+# Check installation status
+cat ~/workspace/.system/install-status
 ```
 
-## Cost Optimization
-
-### Auto-Suspend Configuration
-
-```yaml
-providers:
-  fly:
-    autoStopMachines: true # Suspend after 5 minutes idle
-    autoStartMachines: true # Resume on connection
-```
-
-**Savings:** Pay only for active usage time
-
-### Resource Tiers
-
-```yaml
-# Minimal (1GB RAM, 1 vCPU)
-resources:
-  memory: 1GB
-  cpus: 1
-# Cost: ~$5-10/month (with auto-suspend)
-
-# Standard (2GB RAM, 1 vCPU)
-resources:
-  memory: 2GB
-  cpus: 1
-# Cost: ~$10-15/month
-
-# Performance (4GB RAM, 2 vCPU)
-resources:
-  memory: 4GB
-  cpus: 2
-providers:
-  fly:
-    cpuKind: performance
-# Cost: ~$30-40/month
-```
-
-### Volume Pricing
-
-```yaml
-volumes:
-  workspace:
-    size: 10GB   # ~$1.50/month
-    size: 30GB   # ~$4.50/month
-    size: 100GB  # ~$15/month
-```
+---
 
 ## Secrets Management
 
-### Supported Secrets
+### Required Secrets
+
+| Secret            | Purpose                                            |
+| ----------------- | -------------------------------------------------- |
+| `FLY_API_TOKEN`   | Enables installation protection via machine leases |
+| `AUTHORIZED_KEYS` | SSH public key for key-based authentication        |
+
+### Optional Secrets
 
 **Core Authentication:**
 
@@ -299,218 +343,77 @@ volumes:
 
 **Package Registries:**
 
-- `NPM_TOKEN` - Private npm packages
+- `NPM_TOKEN` - npm authentication (bypasses rate limits)
 - `PYPI_TOKEN` - PyPI publishing
 
 ### Setting Secrets
 
 ```bash
 # Set single secret
-flyctl secrets set ANTHROPIC_API_KEY=sk-ant-xxx -a my-app
+flyctl secrets set ANTHROPIC_API_KEY=sk-ant-xxx -a <app-name>
 
 # Set multiple secrets
 flyctl secrets set \
   GITHUB_TOKEN=ghp_xxx \
   GIT_USER_NAME="Your Name" \
   GIT_USER_EMAIL="you@example.com" \
-  -a my-app
+  -a <app-name>
 
 # List secrets
-flyctl secrets list -a my-app
+flyctl secrets list -a <app-name>
 
 # Unset secret
-flyctl secrets unset ANTHROPIC_API_KEY -a my-app
+flyctl secrets unset ANTHROPIC_API_KEY -a <app-name>
 ```
 
-### Secrets in Extensions
+---
 
-Extensions can reference secrets:
+## Connecting to Your Instance
 
-```yaml
-# extension.yaml
-requirements:
-  secrets:
-    - ANTHROPIC_API_KEY
-    - GITHUB_TOKEN
-```
+### Using flyctl Proxy (Recommended)
 
-The fly.toml includes documentation for all supported secrets.
-
-## Health Checks
-
-### SSH Health Check
-
-Automatically configured in generated fly.toml:
-
-```toml
-[[services.tcp_checks]]
-  interval = "15s"      # Check every 15 seconds
-  timeout = "2s"        # 2 second timeout
-  grace_period = "10s"  # Wait 10s after start
-  restart_limit = 0     # No restart on health check failure
-
-[checks.ssh]
-  type = "tcp"
-  port = 2222          # Internal SSH port
-  interval = "15s"
-  timeout = "2s"
-```
-
-## Monitoring
-
-### Metrics Endpoint
-
-```toml
-[metrics]
-  port = 9090
-  path = "/metrics"
-```
-
-### Fly.io Dashboard
+The `flyctl proxy` command creates a reliable SSH tunnel through Fly.io's WireGuard network:
 
 ```bash
-# Open web dashboard
-flyctl dashboard -a my-app
+# Terminal 1: Start the proxy (keep running)
+flyctl proxy 10022:2222 -a <app-name>
 
-# View metrics
-flyctl metrics -a my-app
-
-# Check machine status
-flyctl machine list -a my-app
+# Terminal 2: Connect via SSH
+ssh developer@localhost -p 10022
 ```
 
-## Troubleshooting
-
-### Connection Issues
-
-```bash
-# Check app status
-flyctl status -a my-app
-
-# View logs
-flyctl logs -a my-app
-
-# Restart machine
-flyctl machine restart <machine-id> -a my-app
-
-# Debug SSH
-ssh -vvv developer@my-app.fly.dev -p 10022
-```
-
-### Volume Issues
-
-```bash
-# List volumes
-flyctl volumes list -a my-app
-
-# View volume usage
-flyctl ssh console -a my-app
-df -h /workspace
-
-# Create snapshot
-flyctl volumes snapshots create <volume-id>
-
-# List snapshots
-flyctl volumes snapshots list <volume-id>
-```
-
-### Resource Constraints
-
-```bash
-# Check current resources
-flyctl scale show -a my-app
-
-# Scale up memory
-flyctl scale memory 4096 -a my-app
-
-# Scale up CPUs
-flyctl scale count 2 -a my-app
-
-# Change CPU type
-# Edit sindri.yaml:
-#   providers.fly.cpuKind: performance
-# Redeploy:
-./cli/sindri deploy
-```
-
-## VS Code Remote SSH
-
-Connect to your Fly.io Sindri instance directly from VS Code using the Remote - SSH extension.
-
-### Prerequisites
-
-1. **VS Code** with [Remote - SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) installed
-2. **SSH key pair** (ed25519 recommended)
-3. **AUTHORIZED_KEYS** configured in sindri.yaml
-
-### Configuration
-
-#### 1. Configure SSH Key in sindri.yaml
-
-Ensure your public key is configured in the secrets section:
-
-```yaml
-secrets:
-  - name: AUTHORIZED_KEYS
-    source: env
-    fromFile: ~/.ssh/id_ed25519.pub
-```
-
-#### 2. Add SSH Config Entry
-
-Add to `~/.ssh/config` on your local machine:
+**SSH config for proxy:**
 
 ```text
-Host sindri-fly
-    HostName my-sindri-dev.fly.dev
-    Port 10022
-    User developer
-    IdentityFile ~/.ssh/id_ed25519
-    # Keep connection alive (important for auto-suspend)
-    TCPKeepAlive yes
-    ServerAliveInterval 30
-    ServerAliveCountMax 6
-    # Performance optimizations
-    Compression yes
-    # Connection multiplexing (reuse connections)
-    ControlMaster auto
-    ControlPath ~/.ssh/master-%r@%h:%p
-    ControlPersist 600
-```
-
-Replace `my-sindri-dev` with your actual app name from sindri.yaml.
-
-**Option explanations:**
-
-- **TCPKeepAlive/ServerAliveInterval** - Prevents connection drops and keeps Fly.io machine from auto-suspending during active sessions
-- **Compression** - Reduces bandwidth for remote editing
-- **ControlMaster/ControlPath/ControlPersist** - Reuses SSH connections, making VS Code faster when opening multiple files/terminals
-
-#### 3. Connect from VS Code
-
-1. Open VS Code
-2. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
-3. Select **Remote-SSH: Connect to Host...**
-4. Choose `sindri-fly` from the list
-5. VS Code opens a new window connected to your Sindri instance
-
-### Alternative: Using flyctl Proxy
-
-If direct SSH is blocked by corporate firewalls or NAT:
-
-```bash
-# Start the proxy in a terminal (keep it running)
-flyctl proxy 10022:2222 -a my-sindri-dev
-```
-
-Update `~/.ssh/config` to use localhost:
-
-```text
-Host sindri-fly-proxy
+Host sindri-proxy
     HostName localhost
     Port 10022
     User developer
     IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+    TCPKeepAlive yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 6
+    Compression yes
+```
+
+### Direct SSH Connection
+
+After edge network propagation (1-2 hours):
+
+```bash
+ssh developer@<app-name>.fly.dev -p 10022
+```
+
+**SSH config for direct connection:**
+
+```text
+Host sindri-direct
+    HostName <app-name>.fly.dev
+    Port 10022
+    User developer
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
     TCPKeepAlive yes
     ServerAliveInterval 30
     ServerAliveCountMax 6
@@ -520,30 +423,307 @@ Host sindri-fly-proxy
     ControlPersist 600
 ```
 
-Then connect to `sindri-fly-proxy` in VS Code.
+### VS Code Remote SSH
 
-### Troubleshooting VS Code Remote
+VS Code Remote SSH requires standard SSH access.
 
-**Connection refused:**
+#### Setup
 
-- Check if machine is suspended: `flyctl status -a my-sindri-dev`
-- Wait for auto-start (10-20 seconds) or manually start: `flyctl machine start <id> -a my-sindri-dev`
+1. During first `flyctl deploy`, answer **"Yes"** when prompted for dedicated IPv4 (~$2/month)
+2. The deploy output will show your SSH config:
 
-**Permission denied:**
+```text
+VS Code Remote SSH config:
+  Host sindri
+      HostName <dedicated-ip>
+      Port 10022
+      User developer
+```
 
-- Verify AUTHORIZED_KEYS is set: `flyctl secrets list -a my-sindri-dev`
-- Check your key matches: `ssh-keygen -l -f ~/.ssh/id_ed25519.pub`
+3. Add to `~/.ssh/config`:
 
-**Timeout:**
+```text
+Host sindri
+    HostName <dedicated-ip>
+    Port 10022
+    User developer
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+```
 
-- Use flyctl proxy as alternative (see above)
-- Check firewall allows outbound connections to port 10022
+4. In VS Code: `Cmd+Shift+P` → "Remote-SSH: Connect to Host..." → sindri
 
-**Debug SSH connection:**
+#### Alternative: flyctl Proxy
+
+If you declined dedicated IPv4, use `flyctl proxy` in a separate terminal:
 
 ```bash
-ssh -vvv developer@my-sindri-dev.fly.dev -p 10022
+# Terminal 1: Keep running
+flyctl proxy 10022:2222 -a <app-name>
+
+# Then SSH to localhost:10022
 ```
+
+---
+
+## Cost Optimization
+
+### Auto-Suspend Configuration
+
+```yaml
+providers:
+  fly:
+    autoStopMachines: true # Suspend after idle period
+    autoStartMachines: true # Resume on connection
+```
+
+### Resource Tiers
+
+| Tier        | Memory | CPUs | CPU Type    | Est. Cost    |
+| ----------- | ------ | ---- | ----------- | ------------ |
+| Minimal     | 1GB    | 1    | shared      | $5-10/month  |
+| Standard    | 2GB    | 1    | shared      | $10-15/month |
+| Performance | 4GB    | 2    | performance | $30-40/month |
+
+### Volume Pricing
+
+| Size  | Monthly Cost |
+| ----- | ------------ |
+| 10GB  | ~$1.50       |
+| 30GB  | ~$4.50       |
+| 100GB | ~$15         |
+
+### Dedicated IPv4 Pricing
+
+| Feature        | Monthly Cost | Notes                                 |
+| -------------- | ------------ | ------------------------------------- |
+| Dedicated IPv4 | ~$2          | Enables immediate direct SSH access   |
+
+---
+
+## Monitoring and Health Checks
+
+```bash
+# Check app status
+flyctl status -a <app-name>
+
+# View logs
+flyctl logs -a <app-name>
+
+# Check machine state
+flyctl machines list -a <app-name>
+
+# Open dashboard
+flyctl dashboard -a <app-name>
+```
+
+---
+
+## Troubleshooting
+
+### Installation Issues
+
+#### Machine suspends during installation
+
+**Symptom:** Installation logs stop mid-way, machine state shows "suspended"
+
+**Cause:** `FLY_API_TOKEN` not configured, so installation protection is disabled
+
+**Solution:**
+
+```bash
+# Set the API token to enable installation protection
+flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app-name>
+
+# Restart the machine to retry installation
+flyctl machine start <machine-id> -a <app-name>
+```
+
+#### Installation failed
+
+**Symptom:** `cat ~/workspace/.system/install-status` shows "failed"
+
+**Solution:**
+
+```bash
+# Check installation logs
+cat ~/workspace/.system/logs/install.log
+
+# Retry installation manually
+/docker/cli/extension-manager install --profile <profile-name>
+```
+
+#### Lease acquisition failed
+
+**Symptom:** Warning in logs: "Could not acquire lease"
+
+**Cause:** `FLY_API_TOKEN` missing or invalid
+
+**Solution:**
+
+```bash
+# Verify token is set
+flyctl secrets list -a <app-name>
+
+# Regenerate and set token
+flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app-name>
+```
+
+### Connection Issues
+
+#### Connection timeout on new deployment
+
+**Symptom:** `ssh: connect to host ... port 10022: Operation timed out`
+
+**Cause:** Edge network propagation delay (can take 1-2 hours)
+
+**Solution:** Use `flyctl proxy` instead:
+
+```bash
+flyctl proxy 10022:2222 -a <app-name>
+ssh developer@localhost -p 10022
+```
+
+#### Connection refused
+
+**Symptom:** `ssh: connect to host ... port 10022: Connection refused`
+
+**Cause:** Machine is suspended or stopping
+
+**Solution:**
+
+```bash
+# Check machine state
+flyctl machines list -a <app-name>
+
+# Start if suspended
+flyctl machine start <machine-id> -a <app-name>
+
+# Wait for SSH daemon (5-10 seconds)
+sleep 10 && ssh developer@localhost -p 10022
+```
+
+#### Permission denied
+
+**Symptom:** `Permission denied (publickey)`
+
+**Cause:** SSH key mismatch
+
+**Solution:**
+
+```bash
+# Verify AUTHORIZED_KEYS is set
+flyctl secrets list -a <app-name>
+
+# Update with your public key
+flyctl secrets set "AUTHORIZED_KEYS=$(cat ~/.ssh/id_ed25519.pub)" -a <app-name>
+```
+
+#### Debug SSH connection
+
+```bash
+# Test TCP connectivity
+nc -zv <app-name>.fly.dev 10022 -w 5
+
+# Verbose SSH output
+ssh -vvv developer@<app-name>.fly.dev -p 10022
+```
+
+### Volume Issues
+
+#### Volume full
+
+**Symptom:** "No space left on device" errors
+
+**Solution:**
+
+```bash
+# Check volume usage
+flyctl ssh console -a <app-name>
+df -h /alt/home/developer
+
+# Volume auto-extends at 80% capacity
+# If needed, extend manually:
+flyctl volumes extend <volume-id> --size 100 -a <app-name>
+```
+
+#### Volume not mounted
+
+**Symptom:** Data not persisting between restarts
+
+**Solution:**
+
+```bash
+# List volumes
+flyctl volumes list -a <app-name>
+
+# Verify mount in fly.toml
+grep -A5 "mounts" fly.toml
+```
+
+#### Create volume snapshot
+
+```bash
+flyctl volumes snapshots create <volume-id>
+flyctl volumes snapshots list <volume-id>
+```
+
+### Resource Issues
+
+#### Out of memory
+
+**Symptom:** Process killed, "OOM" in logs
+
+**Solution:**
+
+```bash
+# Scale up memory
+flyctl scale memory 4096 -a <app-name>
+
+# Or update sindri.yaml and redeploy
+```
+
+#### Slow performance
+
+**Symptom:** Commands sluggish, high CPU usage
+
+**Solution:**
+
+```bash
+# Check current resources
+flyctl scale show -a <app-name>
+
+# Upgrade to performance CPU
+# Edit sindri.yaml: providers.fly.cpuKind: performance
+./cli/sindri deploy
+```
+
+### VS Code Remote Issues
+
+#### Connection reset by peer
+
+**Cause:** Machine suspended during connection attempt
+
+**Solution:**
+
+```bash
+# Check machine state
+flyctl machines list -a <app-name>
+
+# Start if needed
+flyctl machine start <machine-id> -a <app-name>
+
+# Wait and retry
+sleep 10
+```
+
+#### kex_exchange_identification errors
+
+**Cause:** Edge network not propagated
+
+**Solution:** Use `flyctl proxy` method instead of direct connection
+
+---
 
 ## Advanced Features
 
@@ -556,14 +736,12 @@ providers:
     region: sjc
 ```
 
-Deploys to multiple machines for redundancy.
-
 ### Custom SSH Port
 
 ```yaml
 providers:
   fly:
-    sshPort: 2222 # Use different port
+    sshPort: 2222
 ```
 
 ### Organization
@@ -571,95 +749,34 @@ providers:
 ```yaml
 providers:
   fly:
-    organization: my-org # Deploy to specific org
+    organization: my-org
 ```
 
-### Volume Auto-Extension
+### GPU Support
 
-Automatically configured in fly.toml:
+```yaml
+providers:
+  fly:
+    region: ord # GPU-enabled region
+deployment:
+  gpu:
+    enabled: true
+    tier: gpu-small # gpu-small | gpu-medium | gpu-large
+```
 
-- Extends at 80% capacity
-- Grows by 5GB increments
-- Max limit: 250GB
-
-## Best Practices
-
-1. **Start small** - Use minimal profile and 1GB RAM, scale up as needed
-2. **Enable auto-suspend** - Saves cost during idle periods
-3. **Set secrets** - Configure API keys for full functionality
-4. **Monitor usage** - Use `flyctl dashboard` regularly
-5. **Backup volumes** - Create snapshots before major changes
-6. **Use shared CPU** - Performance CPU only if needed
-7. **Test locally first** - Use Docker adapter before deploying to Fly
+---
 
 ## Cost Estimates
 
-**Minimal Setup (1GB, shared CPU, 10GB volume):**
+| Setup                          | Compute | Volume | Total                  |
+| ------------------------------ | ------- | ------ | ---------------------- |
+| Minimal (1GB, shared, 10GB)    | $5-10   | $1.50  | **$6.50-11.50/month**  |
+| Standard (2GB, shared, 30GB)   | $10-15  | $4.50  | **$14.50-19.50/month** |
+| Performance (4GB, perf, 100GB) | $30-40  | $15    | **$45-55/month**       |
 
-- Compute: ~$5-10/month (with auto-suspend)
-- Volume: ~$1.50/month
-- **Total: ~$6.50-11.50/month**
+> **Note:** With auto-suspend enabled, costs scale with actual usage. Suspended machines only incur storage charges.
 
-**Standard Setup (2GB, shared CPU, 30GB volume):**
-
-- Compute: ~$10-15/month
-- Volume: ~$4.50/month
-- **Total: ~$14.50-19.50/month**
-
-**Performance Setup (4GB, performance CPU, 100GB volume):**
-
-- Compute: ~$30-40/month
-- Volume: ~$15/month
-- **Total: ~$45-55/month**
-
-**With auto-suspend, costs scale with actual usage!**
-
-## Deploying the FAQ Static Site
-
-The Sindri FAQ is a self-contained static HTML page hosted at [sindri-faq.fly.dev](https://sindri-faq.fly.dev).
-
-### Quick Deploy
-
-```bash
-cd docs/faq
-flyctl deploy
-```
-
-### FAQ Site Configuration
-
-The FAQ uses a minimal fly.toml optimized for cost:
-
-- **256MB RAM** - Minimum for static content
-- **Shared CPU** - No dedicated resources needed
-- **Auto-stop** - Stops when idle (free tier eligible)
-- **No volume** - Static content, no persistence needed
-
-Estimated cost: **$0-2/month** (often free with auto-suspend)
-
-### Manual Deployment Steps
-
-```bash
-# Navigate to FAQ directory
-cd docs/faq
-
-# Build the FAQ (if source files changed)
-pnpm build:faq
-
-# Create application
-flyctl apps create sindri-faq
-
-# Deploy to Fly.io
-flyctl deploy
-
-# Verify deployment
-flyctl status -a sindri-faq
-```
-
-### Updating the FAQ
-
-1. Edit source files in `docs/faq/src/`
-2. Rebuild: `pnpm build:faq`
-3. Redeploy: `cd docs/faq && flyctl deploy`
+---
 
 ## Related Documentation
 
@@ -667,3 +784,4 @@ flyctl status -a sindri-faq
 - [Configuration Reference](../CONFIGURATION.md)
 - [Secrets Management](../SECRETS_MANAGEMENT.md)
 - [Troubleshooting](../TROUBLESHOOTING.md)
+- [Fly.io Official Docs](https://fly.io/docs/)

@@ -212,6 +212,8 @@ jobs:
       - name: Deploy to Docker
         if: github.event.inputs.provider == 'docker'
         id: deploy-docker
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           ./cli/sindri deploy --provider docker
           echo "url=http://localhost:8080" >> $GITHUB_OUTPUT
@@ -235,6 +237,8 @@ jobs:
           fly-api-token: ${{ secrets.FLY_API_TOKEN }}
           vm-size: ${{ needs.validate-inputs.outputs.vm-size }}
           extension-profile: ${{ github.event.inputs.extension-profile }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # DevPod deployments
       - name: Setup DevPod provider
@@ -247,6 +251,7 @@ jobs:
           provider-type: ${{ github.event.inputs.provider }}
           provider-name: ${{ github.event.inputs.provider }}-${{ github.event.inputs.environment }}
         env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
@@ -266,6 +271,8 @@ jobs:
         with:
           workspace-id: ${{ needs.validate-inputs.outputs.app-name }}
           provider-id: ${{ github.event.inputs.provider }}-${{ github.event.inputs.environment }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Consolidate deployment outputs
       - name: Set deployment outputs

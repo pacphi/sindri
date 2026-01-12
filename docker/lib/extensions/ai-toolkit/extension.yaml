@@ -4,7 +4,7 @@ metadata:
   version: 2.1.0
   description: >-
     AI CLI tools and coding assistants (Fabric, Codex, Gemini,
-    Hector, Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
+    Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
   category: ai
   author: Sindri Team
   dependencies:
@@ -57,8 +57,6 @@ validate:
     - name: fabric
     - name: codex
     - name: gemini
-    - name: hector
-      versionFlag: "version"
     - name: droid
     - name: grok
 
@@ -66,7 +64,6 @@ remove:
   paths:
     - ~/.local/share/fabric
     - ~/.local/bin/fabric
-    - ~/go/bin/hector
     - ~/.factory
     - ~/.grok
     - ~/.config/gemini
@@ -101,13 +98,6 @@ bom:
       license: Apache-2.0
       homepage: https://ai.google.dev
       purl: pkg:pypi/google-generativeai
-    - name: hector
-      version: dynamic
-      source: script
-      type: cli-tool
-      license: MIT
-      homepage: https://github.com/hector-ai/hector
-      purl: pkg:golang/hector
     - name: droid
       version: dynamic
       source: script

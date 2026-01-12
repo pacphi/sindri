@@ -33,7 +33,7 @@ extensions:
 
   golang:
     category: language
-    description: Go 1.24 via mise
+    description: Go 1.25 via mise
     dependencies: []
 
   rust:
@@ -111,7 +111,7 @@ extensions:
 
   ai-toolkit:
     category: ai
-    description: AI CLI tools (Fabric, Codex, Gemini, Hector, Droid, Grok, Copilot)
+    description: AI CLI tools (Fabric, Codex, Gemini, Droid, Grok, Copilot)
     dependencies: [nodejs, python, golang, github-cli]
 
   openskills:
@@ -141,12 +141,12 @@ extensions:
 
   claude-flow:
     category: ai
-    description: AI-powered multi-agent orchestration system for Claude Code workflows
+    description: AI-powered multi-agent orchestration system for Claude Code workflows (v3alpha)
     dependencies: [nodejs]
 
   agentic-flow:
     category: ai
-    description: Multi-model AI agent framework for Claude Code with cost optimization
+    description: Multi-model AI agent framework for Claude Code with cost optimization (alpha)
     dependencies: [nodejs]
 
   ruvnet-research:

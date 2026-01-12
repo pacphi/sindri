@@ -2,7 +2,7 @@
 metadata:
   name: agentic-flow
   version: 1.0.0
-  description: Multi-model AI agent framework for Claude Code with cost optimization
+  description: Multi-model AI agent framework for Claude Code with cost optimization (alpha)
   category: ai
   author: ruvnet
   license: MIT

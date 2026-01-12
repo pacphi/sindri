@@ -27,6 +27,11 @@ prefer-offline=true
 
 # Default registry
 registry=https://registry.npmjs.org/
+
+# Authentication token for npm registry (bypasses rate limits)
+# Set NPM_TOKEN environment variable to use authenticated requests
+# Get a token at: https://www.npmjs.com/settings/~/tokens
+//registry.npmjs.org/:_authToken=${NPM_TOKEN}
 EOF
 
 chmod 644 /etc/skel/.npmrc

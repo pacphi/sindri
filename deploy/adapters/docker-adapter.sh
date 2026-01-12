@@ -290,6 +290,14 @@ EODC
 EODC
     fi
 
+    # Add NPM_TOKEN if set (for CI or when passed from environment)
+    # This bypasses npm registry rate limits during extension installation
+    if [[ -n "${NPM_TOKEN:-}" ]]; then
+        cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC
+      - NPM_TOKEN=${NPM_TOKEN}
+EODC
+    fi
+
     # Add GPU or standard resource configuration
     if [[ "$GPU_ENABLED" == "true" ]]; then
         cat >> "$OUTPUT_DIR/docker-compose.yml" << EODC

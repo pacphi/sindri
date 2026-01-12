@@ -154,6 +154,16 @@ validate_fly_gpu_region() {
     return 1
 }
 
+# Get dedicated IPv4 address if allocated
+# Returns the IPv4 address on stdout, or empty if none allocated
+# Note: This should be called AFTER flyctl deploy, which may allocate the IP
+get_dedicated_ipv4() {
+    local app_name="$1"
+
+    # Check if dedicated IPv4 exists
+    flyctl ips list -a "$app_name" --json 2>/dev/null | yq -r '.[] | select(.Type == "v4") | .Address' | head -1
+}
+
 # ============================================================================
 # fly.toml Generation
 # ============================================================================
@@ -354,7 +364,7 @@ EOFT
 #    - GOOGLE_GEMINI_API_KEY: Google Gemini API for free-tier access
 #    - PERPLEXITY_API_KEY: Perplexity API for research assistant
 #    - XAI_API_KEY: xAI Grok SDK authentication
-#    - NPM_TOKEN: npm private package access (optional)
+#    - NPM_TOKEN: npm authentication (bypasses rate limits, required for reliable installs)
 #    - PYPI_TOKEN: PyPI package publishing (optional)
 
 # Scaling notes:
@@ -374,6 +384,7 @@ EOFT
 #    flyctl secrets set OPENROUTER_API_KEY=sk-or-... -a ${NAME}
 #    flyctl secrets set GOOGLE_GEMINI_API_KEY=... -a ${NAME}
 #    flyctl secrets set PERPLEXITY_API_KEY=pplx-... -a ${NAME}
+#    flyctl secrets set NPM_TOKEN=npm_... -a ${NAME}
 # 3. Connect: ssh developer@${NAME}.fly.dev -p ${SSH_EXTERNAL_PORT}
 #    (External port ${SSH_EXTERNAL_PORT} maps to internal SSH daemon on port 2222)
 #    Alternative: flyctl ssh console -a ${NAME} (uses Fly.io's hallpass service)
@@ -657,13 +668,35 @@ EOJSON
     fi
     flyctl deploy "${deploy_args[@]}"
 
+    # Set NPM_TOKEN if available in environment (for CI or manual override)
+    # This bypasses npm registry rate limits during extension installation
+    if [[ -n "${NPM_TOKEN:-}" ]]; then
+        print_status "Setting NPM_TOKEN for npm registry authentication..."
+        echo "NPM_TOKEN=$NPM_TOKEN" | flyctl secrets import -a "$NAME"
+    fi
+
+    # Get dedicated IPv4 if allocated (flyctl deploy may have allocated it)
+    local dedicated_ip=""
+    dedicated_ip=$(get_dedicated_ipv4 "$NAME")
+
     print_success "App '$NAME' deployed successfully"
     echo ""
     echo "Connect:"
     echo "  sindri connect"
     echo "  flyctl ssh console -a $NAME"
     if [[ "$CI_MODE" != "true" ]]; then
+        if [[ -n "$dedicated_ip" ]]; then
+            echo "  ssh developer@$dedicated_ip -p $SSH_EXTERNAL_PORT  (dedicated IPv4)"
+        fi
         echo "  ssh developer@$NAME.fly.dev -p $SSH_EXTERNAL_PORT"
+    fi
+    if [[ -n "$dedicated_ip" ]]; then
+        echo ""
+        echo "VS Code Remote SSH config:"
+        echo "  Host sindri"
+        echo "      HostName $dedicated_ip"
+        echo "      Port $SSH_EXTERNAL_PORT"
+        echo "      User developer"
     fi
     echo ""
     echo "Manage:"

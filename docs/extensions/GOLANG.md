@@ -1,6 +1,6 @@
 # Go (Golang)
 
-Go 1.24 compiler and toolchain via mise.
+Go 1.25 compiler and toolchain via mise.
 
 ## Overview
 
@@ -14,7 +14,7 @@ Go 1.24 compiler and toolchain via mise.
 
 ## Description
 
-Go 1.24 via mise - provides the Go compiler and development toolchain for systems programming.
+Go 1.25 via mise - provides the Go compiler and development toolchain for systems programming.
 
 ## Installed Tools
 
@@ -34,7 +34,7 @@ Go 1.24 via mise - provides the Go compiler and development toolchain for system
 
 ```toml
 [tools]
-go = "1.24"
+go = "1.25"
 ```
 
 ## Network Requirements

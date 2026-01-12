@@ -2,5 +2,6 @@
 rust = "stable"
 
 [env]
-CARGO_HOME = "~/.cargo"
-_.path = ["~/.cargo/bin"]
+RUSTUP_HOME = "{{env.HOME}}/.rustup"
+CARGO_HOME = "{{env.HOME}}/.cargo"
+_.path = ["{{env.HOME}}/.cargo/bin"]

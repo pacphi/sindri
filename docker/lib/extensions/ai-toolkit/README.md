@@ -16,11 +16,10 @@ Complete collection of AI-powered development tools and coding assistants for Si
 
 ### Autonomous Coding Agents
 
-| Tool                 | Command  | Description                                                   | Documentation               |
-| -------------------- | -------- | ------------------------------------------------------------- | --------------------------- |
-| **Factory AI Droid** | `droid`  | AI-powered development agent with complete development cycles | [DROID.md](docs/DROID.md)   |
-| **Codex CLI**        | `codex`  | Multi-mode AI assistant (suggest/edit/run)                    | [CODEX.md](docs/CODEX.md)   |
-| **Hector**           | `hector` | Pure A2A-Native declarative AI agent platform                 | [HECTOR.md](docs/HECTOR.md) |
+| Tool                 | Command | Description                                                   | Documentation             |
+| -------------------- | ------- | ------------------------------------------------------------- | ------------------------- |
+| **Factory AI Droid** | `droid` | AI-powered development agent with complete development cycles | [DROID.md](docs/DROID.md) |
+| **Codex CLI**        | `codex` | Multi-mode AI assistant (suggest/edit/run)                    | [CODEX.md](docs/CODEX.md) |
 
 ### Major Platform CLIs
 
@@ -95,29 +94,6 @@ codex run "create a REST API"
 ```
 
 **Requirements**: API key (configuration during installation)
-
-### Hector
-
-**Command**: `hector`
-**Prerequisites**: Go (via golang extension)
-
-Pure A2A-Native declarative AI agent platform using YAML configuration.
-
-**Usage**:
-
-```bash
-# Start agent server
-hector serve --config agent.yaml
-
-# Interactive chat
-hector chat assistant
-
-# Execute single task
-hector call assistant "implement feature X"
-
-# List available agents
-hector list
-```
 
 ### Gemini CLI
 
@@ -420,10 +396,6 @@ droid
 **Code Review**:
 
 ```bash
-# Via Hector
-hector chat assistant
-> Review this pull request for security issues
-
 # Via Factory AI Droid
 droid
 > Analyze these changes for potential bugs and security vulnerabilities
@@ -520,7 +492,6 @@ codex suggest "optimize this function for memory usage instead of speed"
 | Local/private code    | Ollama                  |
 | Git operations        | GitHub Copilot          |
 | AWS infrastructure    | AWS Q                   |
-| Workflow automation   | Hector                  |
 | Pattern-based tasks   | Fabric                  |
 | Interactive debugging | Grok CLI                |
 
@@ -633,7 +604,6 @@ extension-manager remove ai-tools
 - **Gemini CLI**: [GEMINI.md](docs/GEMINI.md) - Complete Gemini CLI guide
 - **Grok CLI**: [GROK.md](docs/GROK.md) - Complete Grok CLI guide
 - **Ollama**: [OLLAMA.md](docs/OLLAMA.md) - Complete Ollama guide
-- **Hector**: [HECTOR.md](docs/HECTOR.md) - Complete Hector guide
 - **Fabric**: [FABRIC.md](docs/FABRIC.md) - Complete Fabric guide
 - **GitHub Copilot**: [GITHUB_COPILOT.md](docs/GITHUB_COPILOT.md) - Complete GitHub Copilot CLI guide
 - **AWS Q**: [AWS_Q.md](docs/AWS_Q.md) - Complete AWS Q Developer guide
@@ -659,8 +629,9 @@ For individual tool issues, consult their respective documentation links above.
 
 ## Version History
 
+- **2.1.0** - Removed Hector (project went private)
 - **2.0.0** - Added Factory AI Droid and Grok CLI, replaced xAI Grok SDK with Grok CLI, comprehensive documentation
-- **1.0.0** - Initial release with Ollama, Codex, Gemini, Hector, Fabric
+- **1.0.0** - Initial release with Ollama, Codex, Gemini, Fabric
 
 ---
 

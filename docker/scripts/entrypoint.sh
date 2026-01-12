@@ -446,10 +446,162 @@ show_welcome() {
 }
 
 # ------------------------------------------------------------------------------
+# Fly.io Lease Management - Prevents auto-suspend during installation
+# ------------------------------------------------------------------------------
+# Fly.io's auto-suspend feature monitors traffic through Fly Proxy and suspends
+# machines when idle. During extension installation, the machine may appear idle
+# (no SSH connections through the proxy) even though installation is in progress.
+#
+# Machine leases provide an exclusive lock that prevents Fly Proxy from
+# stopping or suspending the machine. We acquire a lease before installation
+# and release it when complete.
+#
+# Requirements:
+#   - FLY_API_TOKEN must be set as a secret (not auto-injected by Fly.io)
+#   - Set with: flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app>
+#
+# References:
+#   - Machines API: https://fly.io/docs/machines/api/machines-resource/
+#   - Auto-suspend: https://fly.io/docs/launch/autostop-autostart/
+# ------------------------------------------------------------------------------
+
+# Fly.io internal API endpoint (accessible from within machines)
+FLY_API_BASE="http://_api.internal:4280/v1/apps"
+
+# Acquire a lease to prevent Fly.io from auto-suspending during installation
+# Args: $1 - TTL in seconds (default: 3600 = 1 hour)
+# Returns: 0 on success, 1 on failure (installation proceeds without protection)
+acquire_install_lease() {
+    local ttl="${1:-3600}"
+    local lease_nonce_file="${WORKSPACE}/.system/.lease_nonce"
+    local lease_renewal_pid_file="${WORKSPACE}/.system/.lease_renewal_pid"
+
+    # Skip if not running on Fly.io
+    if [[ -z "${FLY_MACHINE_ID:-}" ]]; then
+        print_status "Not running on Fly.io, skipping lease acquisition"
+        return 0
+    fi
+
+    # Check if FLY_API_TOKEN is available
+    if [[ -z "${FLY_API_TOKEN:-}" ]]; then
+        print_warning "FLY_API_TOKEN not set - machine may suspend during installation"
+        print_status "To enable installation protection, set the token:"
+        print_status "  flyctl secrets set FLY_API_TOKEN=\"\$(fly tokens deploy)\" -a ${FLY_APP_NAME}"
+        return 1
+    fi
+
+    print_status "Acquiring installation protection lease (TTL: ${ttl}s)..."
+
+    local response http_code nonce
+    local max_retries=3
+    local retry_delay=2
+    local attempt=1
+
+    while [[ $attempt -le $max_retries ]]; do
+        print_status "  Attempt $attempt/$max_retries: ${FLY_API_BASE}/${FLY_APP_NAME}/machines/${FLY_MACHINE_ID}/lease"
+
+        response=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"description\": \"sindri-extension-install\", \"ttl\": ${ttl}}" \
+            "${FLY_API_BASE}/${FLY_APP_NAME}/machines/${FLY_MACHINE_ID}/lease" 2>&1)
+
+        # Extract HTTP code from last line
+        http_code=$(echo "$response" | tail -1)
+        response=$(echo "$response" | sed '$d')
+
+        nonce=$(echo "$response" | jq -r '.data.nonce // empty' 2>/dev/null)
+
+        if [[ -n "$nonce" ]] && [[ "$http_code" =~ ^2 ]]; then
+            break
+        fi
+
+        if [[ $attempt -lt $max_retries ]]; then
+            print_status "  Lease request failed (HTTP ${http_code}), retrying in ${retry_delay}s..."
+            sleep "$retry_delay"
+            retry_delay=$((retry_delay * 2))
+        fi
+        ((attempt++))
+    done
+
+    if [[ -n "$nonce" ]] && [[ "$http_code" =~ ^2 ]]; then
+        # Save nonce for later release
+        echo "$nonce" > "$lease_nonce_file"
+        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$lease_nonce_file" 2>/dev/null || true
+
+        print_success "Installation lease acquired (nonce: ${nonce:0:8}...)"
+
+        # Start background lease renewal (every 30 minutes)
+        (
+            while [[ -f "$lease_nonce_file" ]]; do
+                sleep 1800  # 30 minutes
+                if [[ -f "$lease_nonce_file" ]]; then
+                    curl -sf \
+                        -X POST \
+                        -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+                        -H "Content-Type: application/json" \
+                        -H "fly-machine-lease-nonce: $nonce" \
+                        -d "{\"description\": \"sindri-extension-install\", \"ttl\": ${ttl}}" \
+                        "${FLY_API_BASE}/${FLY_APP_NAME}/machines/${FLY_MACHINE_ID}/lease" >/dev/null 2>&1
+                fi
+            done
+        ) &
+        echo $! > "$lease_renewal_pid_file"
+
+        return 0
+    else
+        print_warning "Could not acquire lease (HTTP ${http_code}): ${response}"
+        print_status "Installation will proceed without auto-suspend protection"
+        return 1
+    fi
+}
+
+# Release the installation lease, allowing normal auto-suspend behavior
+release_install_lease() {
+    local lease_nonce_file="${WORKSPACE}/.system/.lease_nonce"
+    local lease_renewal_pid_file="${WORKSPACE}/.system/.lease_renewal_pid"
+
+    # Skip if not running on Fly.io or no lease was acquired
+    if [[ -z "${FLY_MACHINE_ID:-}" ]] || [[ ! -f "$lease_nonce_file" ]]; then
+        return 0
+    fi
+
+    local nonce
+    nonce=$(cat "$lease_nonce_file" 2>/dev/null)
+
+    if [[ -n "$nonce" ]]; then
+        print_status "Releasing installation protection lease..."
+
+        # Stop the lease renewal background process
+        if [[ -f "$lease_renewal_pid_file" ]]; then
+            local renewal_pid
+            renewal_pid=$(cat "$lease_renewal_pid_file")
+            kill "$renewal_pid" 2>/dev/null || true
+            rm -f "$lease_renewal_pid_file"
+        fi
+
+        # Release the lease
+        curl -sf \
+            -X DELETE \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            -H "fly-machine-lease-nonce: $nonce" \
+            "${FLY_API_BASE}/${FLY_APP_NAME}/machines/${FLY_MACHINE_ID}/lease" >/dev/null 2>&1
+
+        rm -f "$lease_nonce_file"
+        print_success "Installation lease released - machine can now auto-suspend"
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # install_extensions_background - Run extension installation in background
 # ------------------------------------------------------------------------------
 # Runs extension installation asynchronously so SSH can accept connections
 # immediately. Users connecting during installation see a status banner.
+#
+# On Fly.io, this function also manages a machine lease to prevent auto-suspend
+# during installation. The lease is acquired before installation starts and
+# released when installation completes (success or failure).
 install_extensions_background() {
     local install_status_file="${WORKSPACE}/.system/install-status"
     local install_log_file="${WORKSPACE}/.system/logs/install.log"
@@ -468,6 +620,10 @@ install_extensions_background() {
 
         # Run installation in background, logging output
         (
+            # Acquire lease to prevent Fly.io auto-suspend during installation
+            # This is a no-op on non-Fly.io environments or if FLY_API_TOKEN is not set
+            acquire_install_lease 3600  # 1 hour initial TTL
+
             print_status "Starting background extension installation..."
             # Use set -o pipefail to capture install_extensions exit code through tee
             set -o pipefail
@@ -481,6 +637,9 @@ install_extensions_background() {
             fi
             chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_status_file"
             chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_log_file" 2>/dev/null || true
+
+            # Release lease to allow normal auto-suspend behavior
+            release_install_lease
         ) &
 
         print_status "Extension installation running in background (PID: $!)"

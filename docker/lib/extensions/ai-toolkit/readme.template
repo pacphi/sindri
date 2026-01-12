@@ -15,18 +15,6 @@
   ```
 
 
-#### Hector
-- **Command**: `hector`
-- **Prerequisites**: Requires Go
-- **Description**: Pure A2A-Native declarative AI agent platform using YAML
-- **Usage**:
-  ```bash
-  hector serve --config agent.yaml
-  hector chat assistant
-  hector call assistant "task"
-  hector list
-  ```
-
 ### Major Platform CLIs
 
 #### Gemini CLI
@@ -132,7 +120,6 @@ gemini chat "help me debug this"
 **Development Tasks:**
 ```bash
 codex run "add JWT authentication"
-hector chat assistant
 ```
 
 ## Best Practices

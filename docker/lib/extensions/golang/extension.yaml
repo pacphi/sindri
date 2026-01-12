@@ -2,7 +2,7 @@
 metadata:
   name: golang
   version: 1.0.0
-  description: Go 1.24 via mise
+  description: Go 1.25 via mise
   category: language
   dependencies: []
 

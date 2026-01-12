@@ -10,6 +10,3 @@ ruby = "3.4.7"
 GEM_HOME = "{{config_root}}/gems"
 GEM_PATH = "{{config_root}}/gems"
 BUNDLE_PATH = "{{config_root}}/bundle"
-
-[settings]
-experimental = true

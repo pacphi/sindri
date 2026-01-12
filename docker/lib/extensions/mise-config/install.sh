@@ -29,7 +29,11 @@ experimental = true
 always_keep_download = false
 always_keep_install = false
 plugin_autoupdate_last_check_duration = "7d"
-jobs = 4
+# Serial installation to avoid npm registry rate limits
+jobs = 1
+# Increase timeout for npm version resolution (default 20s)
+# 180s handles slow npm registry responses and rate limiting
+http_timeout = "180s"
 # Auto-accept prompts for CI/automated environments
 yes = true
 # Auto-trust extension config files
@@ -37,6 +41,14 @@ trusted_config_paths = ["${MISE_HOME}/.config/mise/conf.d"]
 
 [env]
 MISE_USE_TOML = "1"
+# npm timeout configuration (in milliseconds)
+# These apply globally to all npm-based tool installations
+npm_config_fetch_timeout = "300000"
+npm_config_fetch_retries = "2"
+npm_config_fetch_retry_mintimeout = "10000"
+npm_config_fetch_retry_maxtimeout = "60000"
+npm_config_maxsockets = "10"
+npm_config_prefer_offline = "true"
 EOF
 
 # Trust the config file so mise can read it (required even for global configs in some scenarios)

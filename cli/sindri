@@ -276,6 +276,12 @@ secrets:
   # - name: JIRA_API_TOKEN        # Atlassian API token (jira-mcp)
   #   source: env                 # Create at: https://id.atlassian.com/manage-profile/security/api-tokens
 
+  # Package Registries (recommended for reliable tool installation)
+  # - name: NPM_TOKEN             # npm registry auth (bypasses rate limits)
+  #   source: env                 # Create at: https://www.npmjs.com/settings/~/tokens (read-only)
+  # - name: PYPI_TOKEN            # PyPI for publishing packages
+  #   source: env
+
   # Infrastructure Tools (optional)
   # - name: SUPABASE_ACCESS_TOKEN # Supabase CLI authentication (supabase-cli)
   #   source: env                 # Create at: https://supabase.com/dashboard/account/tokens
@@ -317,9 +323,12 @@ providers:
   #
   # 1. Ensure AUTHORIZED_KEYS secret is set (see secrets section above)
   #
-  # 2. Add to ~/.ssh/config on your local machine:
+  # 2. During first deploy, answer "Yes" when prompted for dedicated IPv4 (~$2/month)
+  #    The dedicated IP will be shown in deploy output for your SSH config
+  #
+  # 3. Add to ~/.ssh/config on your local machine:
   #    Host sindri-fly
-  #        HostName <app-name>.fly.dev
+  #        HostName <dedicated-ip>   # Shown in deploy output, or use <app-name>.fly.dev
   #        Port 10022
   #        User developer
   #        IdentityFile ~/.ssh/id_ed25519
@@ -331,7 +340,7 @@ providers:
   #        ControlPath ~/.ssh/master-%r@%h:%p
   #        ControlPersist 600
   #
-  # 3. In VS Code: Cmd+Shift+P -> "Remote-SSH: Connect to Host" -> sindri-fly
+  # 4. In VS Code: Cmd+Shift+P -> "Remote-SSH: Connect to Host" -> sindri-fly
   #
   # Alternative: Use flyctl proxy if direct SSH is blocked:
   #    flyctl proxy 10022:2222 -a <app-name>

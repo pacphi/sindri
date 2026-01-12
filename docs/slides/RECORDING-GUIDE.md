@@ -150,12 +150,12 @@ Since Camtasia doesn't have a live "Now Playing" feature, you'll need to add it 
 
 Current configuration: `autoSlide: 5000` (5 seconds per slide)
 
-| Slide Deck                  | Estimated Slides | Duration      | Changes                                         |
-| --------------------------- | ---------------- | ------------- | ----------------------------------------------- |
-| getting-started.html        | ~45              | ~3 min 45 sec | Added: 6 E2B slides + 5 Backup/Restore slides   |
-| extensions.html             | ~39              | ~3 min 15 sec | Added: 1 Docker DinD slide                      |
-| workspace-and-projects.html | ~33              | ~2 min 45 sec | No changes                                      |
-| **Total**                   | ~117             | **~9 min 45 sec** | **+11 slides, +45 seconds**                 |
+| Slide Deck                  | Estimated Slides | Duration          | Changes                                       |
+| --------------------------- | ---------------- | ----------------- | --------------------------------------------- |
+| getting-started.html        | ~45              | ~3 min 45 sec     | Added: 6 E2B slides + 5 Backup/Restore slides |
+| extensions.html             | ~39              | ~3 min 15 sec     | Added: 1 Docker DinD slide                    |
+| workspace-and-projects.html | ~33              | ~2 min 45 sec     | No changes                                    |
+| **Total**                   | ~117             | **~9 min 45 sec** | **+11 slides, +45 seconds**                   |
 
 To adjust timing, edit the `autoSlide` value in each HTML file:
 

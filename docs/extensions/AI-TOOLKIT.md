@@ -14,7 +14,7 @@ AI CLI tools and coding assistants.
 
 ## Description
 
-AI CLI tools and coding assistants (Fabric, Codex, Gemini, Hector, Droid, Grok, Copilot) - provides a comprehensive suite of AI-powered development tools.
+AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot) - provides a comprehensive suite of AI-powered development tools.
 
 For local LLM capabilities, install the separate [ollama](OLLAMA.md) extension.
 
@@ -25,7 +25,6 @@ For local LLM capabilities, install the separate [ollama](OLLAMA.md) extension.
 | `fabric` | cli-tool | AI pattern executor      |
 | `codex`  | cli-tool | OpenAI Codex integration |
 | `gemini` | cli-tool | Google Gemini CLI        |
-| `hector` | cli-tool | Code review assistant    |
 | `droid`  | cli-tool | Factory AI helper        |
 | `grok`   | cli-tool | xAI Grok integration     |
 
@@ -73,7 +72,6 @@ extension-manager install ai-toolkit
 fabric --version
 codex --version
 gemini --version
-hector --version
 droid --version
 grok --version
 ```

@@ -1,6 +1,6 @@
 # Claude Flow
 
-AI-powered multi-agent orchestration system for Claude Code workflows.
+AI-powered multi-agent orchestration system for Claude Code workflows (v3alpha).
 
 ## Overview
 
@@ -18,7 +18,7 @@ AI-powered multi-agent orchestration system for Claude Code workflows.
 
 ## Description
 
-Claude Flow is an AI-powered multi-agent orchestration system for Claude Code workflows. It provides advanced features including hive-mind operations, swarm orchestration, memory management, neural operations, goal planning (GOAP), GitHub integration, and Flow Nexus cloud capabilities.
+Claude Flow is an AI-powered multi-agent orchestration system for Claude Code workflows. This extension installs the **v3alpha** version. It provides advanced features including hive-mind operations, swarm orchestration, memory management, neural operations, goal planning (GOAP), GitHub integration, and Flow Nexus cloud capabilities.
 
 ## Installed Tools
 

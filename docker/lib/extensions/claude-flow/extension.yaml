@@ -2,7 +2,7 @@
 metadata:
   name: claude-flow
   version: 1.0.0
-  description: AI-powered multi-agent orchestration system for Claude Code workflows
+  description: AI-powered multi-agent orchestration system for Claude Code workflows (v3alpha)
   category: ai
   author: ruvnet
   license: MIT

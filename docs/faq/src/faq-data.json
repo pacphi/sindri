@@ -483,6 +483,14 @@
       "docs": ["docs/providers/E2B.md", "docs/TROUBLESHOOTING.md"]
     },
     {
+      "id": "troubleshoot-npm-timeout",
+      "category": "troubleshooting",
+      "question": "Extension installation fails with 'timed out' errors from npm. How do I fix this?",
+      "answer": "This is caused by npm registry rate limiting for anonymous requests. Set an NPM_TOKEN secret to authenticate and bypass rate limits. Create a read-only Classic token at npmjs.com/settings/~/tokens, then add it: for Fly.io use 'flyctl secrets set NPM_TOKEN=npm_... -a app-name', for Docker add to .env.local, or add to sindri.yaml secrets section. Recent Sindri versions also increase mise http_timeout to 180s to help with slow responses.",
+      "tags": ["npm", "timeout", "rate-limit", "extension", "mise", "NPM_TOKEN"],
+      "docs": ["docs/SECRETS_MANAGEMENT.md", "docs/TROUBLESHOOTING.md"]
+    },
+    {
       "id": "architecture-volumes",
       "category": "architecture",
       "question": "How does Sindri's volume architecture work?",

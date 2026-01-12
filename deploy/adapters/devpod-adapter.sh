@@ -585,6 +585,14 @@ generate_devcontainer() {
   "containerUser": "developer"
 }
 EODC
+
+    # Add NPM_TOKEN to containerEnv if set (for CI or when passed from environment)
+    # This bypasses npm registry rate limits during extension installation
+    if [[ -n "${NPM_TOKEN:-}" ]]; then
+        local json_file="$OUTPUT_DIR/.devcontainer/devcontainer.json"
+        local tmp_file="${json_file}.tmp"
+        jq --arg token "$NPM_TOKEN" '.containerEnv.NPM_TOKEN = $token' "$json_file" > "$tmp_file" && mv "$tmp_file" "$json_file"
+    fi
 }
 
 # ============================================================================
