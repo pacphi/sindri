@@ -64,14 +64,16 @@ if command_exists mise; then
   TOML_FILE="$MISE_CONF_DIR/ai-toolkit.toml"
 
   # Build toml content dynamically
+  # IMPORTANT: Use pinned versions instead of "latest" to avoid npm registry
+  # query timeouts that can poison subsequent mise operations.
   toml_content="# AI Toolkit - mise configuration\n\n[tools]\n"
 
   # Add npm-based tools if Node.js available
   if command_exists npm || command_exists node; then
-    toml_content+="# npm-based tools\n"
-    toml_content+='"npm:@openai/codex" = "latest"\n'
-    toml_content+='"npm:@google/gemini-cli" = "latest"\n'
-    toml_content+='"npm:@vibe-kit/grok-cli" = "latest"\n'
+    toml_content+="# npm-based tools - pinned versions for stability\n"
+    toml_content+='"npm:@openai/codex" = "0.80"\n'
+    toml_content+='"npm:@google/gemini-cli" = "0.22"\n'
+    toml_content+='"npm:@vibe-kit/grok-cli" = "0.0.34"\n'
     toml_content+="\n"
   fi
 

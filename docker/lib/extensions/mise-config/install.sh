@@ -31,9 +31,10 @@ always_keep_install = false
 plugin_autoupdate_last_check_duration = "7d"
 # Serial installation to avoid npm registry rate limits
 jobs = 1
-# Increase timeout for npm version resolution (default 20s)
+# Increase timeouts for npm registry (defaults: http_timeout=30s, fetch_remote_versions_timeout=20s)
 # 180s handles slow npm registry responses and rate limiting
 http_timeout = "180s"
+fetch_remote_versions_timeout = "180s"
 # Auto-accept prompts for CI/automated environments
 yes = true
 # Auto-trust extension config files

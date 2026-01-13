@@ -622,7 +622,8 @@ install_extensions_background() {
         (
             # Acquire lease to prevent Fly.io auto-suspend during installation
             # This is a no-op on non-Fly.io environments or if FLY_API_TOKEN is not set
-            acquire_install_lease 3600  # 1 hour initial TTL
+            # Note: || true prevents set -e from killing subshell if lease acquisition fails
+            acquire_install_lease 3600 || true  # 1 hour initial TTL
 
             print_status "Starting background extension installation..."
             # Use set -o pipefail to capture install_extensions exit code through tee
@@ -639,7 +640,7 @@ install_extensions_background() {
             chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$install_log_file" 2>/dev/null || true
 
             # Release lease to allow normal auto-suspend behavior
-            release_install_lease
+            release_install_lease || true
         ) &
 
         print_status "Extension installation running in background (PID: $!)"

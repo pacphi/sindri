@@ -126,7 +126,7 @@ df -h /workspace
    ./cli/extension-manager show nodejs
 
    # Install dependencies first
-   extension-manager install workspace-structure
+   extension-manager install mise-config
    ```
 
 3. **Network issues:**

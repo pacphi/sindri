@@ -18,10 +18,12 @@ AI research tools including Goalie goal management and Research-Swarm multi-agen
 
 ## Installed Tools
 
-| Tool             | Type     | Description                       |
-| ---------------- | -------- | --------------------------------- |
-| `goalie`         | cli-tool | Goal management and tracking      |
-| `research-swarm` | cli-tool | Multi-agent AI research framework |
+| Tool             | Type     | Pinned Version | Description                       |
+| ---------------- | -------- | -------------- | --------------------------------- |
+| `goalie`         | cli-tool | 1.3            | Goal management and tracking      |
+| `research-swarm` | cli-tool | 1.2            | Multi-agent AI research framework |
+
+> **Note:** `research-swarm` has native dependencies (`better-sqlite3`) that require node-gyp compilation. Ensure build tools (gcc, python3, make) are available if installation fails.
 
 ## Secrets (Optional)
 

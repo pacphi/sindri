@@ -18,14 +18,18 @@ TypeScript, ESLint, Prettier, pnpm, and Node.js development tools via mise npm b
 
 ## Installed Tools
 
-| Tool       | Type     | Description                  |
-| ---------- | -------- | ---------------------------- |
-| `tsc`      | compiler | TypeScript compiler          |
-| `ts-node`  | cli-tool | TypeScript execution         |
-| `prettier` | cli-tool | Code formatter               |
-| `eslint`   | cli-tool | JavaScript/TypeScript linter |
-| `nodemon`  | cli-tool | Auto-restart server          |
-| `pnpm`     | cli-tool | Fast package manager         |
+| Tool       | Type     | Pinned Version | Description                  |
+| ---------- | -------- | -------------- | ---------------------------- |
+| `tsc`      | compiler | 5.9            | TypeScript compiler          |
+| `ts-node`  | cli-tool | 10.9           | TypeScript execution         |
+| `prettier` | cli-tool | 3.6            | Code formatter               |
+| `eslint`   | cli-tool | 9              | JavaScript/TypeScript linter |
+| `nodemon`  | cli-tool | 3.1            | Auto-restart server          |
+| `pnpm`     | cli-tool | 10             | Fast package manager         |
+
+Additional packages installed:
+- `@typescript-eslint/parser` (8.x)
+- `@typescript-eslint/eslint-plugin` (8.x)
 
 ## Configuration
 

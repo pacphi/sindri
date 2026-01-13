@@ -460,7 +460,6 @@ extensions: all
 When `all` is specified, these base extensions are excluded:
 
 - `mise-config`
-- `workspace-structure`
 - `github-cli`
 
 ### test-profiles.yml (Config-Based)

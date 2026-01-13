@@ -4,13 +4,13 @@ Python 3.13 runtime with uv package manager via mise.
 
 ## Overview
 
-| Property         | Value    |
-| ---------------- | -------- |
-| **Category**     | language |
-| **Version**      | 1.1.0    |
-| **Installation** | mise     |
-| **Disk Space**   | 450 MB   |
-| **Dependencies** | None     |
+| Property         | Value                           |
+| ---------------- | ------------------------------- |
+| **Category**     | language                        |
+| **Version**      | 1.1.1                           |
+| **Installation** | mise                            |
+| **Disk Space**   | 450 MB                          |
+| **Dependencies** | [mise-config](MISE-CONFIG.md)   |
 
 ## Description
 

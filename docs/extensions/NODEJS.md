@@ -4,13 +4,13 @@ Node.js LTS runtime with npm package manager.
 
 ## Overview
 
-| Property         | Value    |
-| ---------------- | -------- |
-| **Category**     | language |
-| **Version**      | 1.0.0    |
-| **Installation** | mise     |
-| **Disk Space**   | 600 MB   |
-| **Dependencies** | None     |
+| Property         | Value                           |
+| ---------------- | ------------------------------- |
+| **Category**     | language                        |
+| **Version**      | 1.0.1                           |
+| **Installation** | mise                            |
+| **Disk Space**   | 600 MB                          |
+| **Dependencies** | [mise-config](MISE-CONFIG.md)   |
 
 ## Description
 
@@ -28,9 +28,12 @@ Node.js LTS via mise - provides the Node.js runtime and npm package manager for 
 
 ### Environment Variables
 
-| Variable   | Value         | Scope  |
-| ---------- | ------------- | ------ |
-| `NODE_ENV` | `development` | bashrc |
+| Variable            | Value              | Scope  | Description                       |
+| ------------------- | ------------------ | ------ | --------------------------------- |
+| `NODE_ENV`          | `development`      | bashrc | Node.js runtime mode              |
+| `npm_config_python` | `/usr/bin/python3` | bashrc | Python for node-gyp native builds |
+
+> **Note:** The `npm_config_python` setting ensures node-gyp uses system Python (3.12) for native module compilation. mise-managed Python 3.13 doesn't include `distutils` (removed in Python 3.12), which causes build failures for packages with native dependencies like `better-sqlite3`.
 
 ### mise.toml
 

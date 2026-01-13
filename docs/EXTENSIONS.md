@@ -68,10 +68,9 @@ extension-manager install-profile fullstack
 
 Pre-installed foundational extensions:
 
-| Extension           | Description               | Docs                                                        |
-| ------------------- | ------------------------- | ----------------------------------------------------------- |
-| workspace-structure | Base directory structure  | [WORKSPACE-STRUCTURE.md](extensions/WORKSPACE-STRUCTURE.md) |
-| mise-config         | Mise tool version manager | [MISE-CONFIG.md](extensions/MISE-CONFIG.md)                 |
+| Extension   | Description               | Docs                                        |
+| ----------- | ------------------------- | ------------------------------------------- |
+| mise-config | Mise tool version manager | [MISE-CONFIG.md](extensions/MISE-CONFIG.md) |
 
 ### Language Runtimes
 
@@ -216,7 +215,7 @@ Extensions support different upgrade approaches:
 | `automatic` | Auto-upgrade via mise/apt | dotnet, ruby, nodejs-devtools, monitoring, xfce-ubuntu, agent-manager, openskills                                     |
 | `reinstall` | Full reinstallation       | ollama                                                                                                                |
 | `manual`    | Custom upgrade script     | ai-toolkit, cloud-tools, jvm, infra-tools, claude-code-mux, playwright, guacamole, linear-mcp, jira-mcp, supabase-cli |
-| `none`      | No upgrades (static)      | github-cli, claude-marketplace, workspace-structure, mise-config                                                      |
+| `none`      | No upgrades (static)      | github-cli, claude-marketplace, mise-config                                                                           |
 
 ### Secret Requirements
 

@@ -1,9 +1,12 @@
 # agentic-qe.toml - Agentic Quality Engineering framework configuration for mise
 # Requires nodejs extension to be installed first
+#
+# IMPORTANT: Use pinned versions instead of "latest" to avoid npm registry
+# query timeouts that can poison subsequent mise operations.
 
 [tools]
-# Agentic QE CLI tool
-"npm:agentic-qe" = "latest"
+# Agentic QE CLI tool - pinned to major.minor
+"npm:agentic-qe" = "2.8"
 
 [tasks.init]
 description = "Initialize AQE in current project"

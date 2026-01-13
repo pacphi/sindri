@@ -10,11 +10,6 @@ extensions:
     description: mise tool manager configuration
     protected: true
 
-  workspace-structure:
-    category: base
-    description: Workspace directory structure
-    protected: true
-
   github-cli:
     category: base
     description: GitHub CLI authentication and workflow configuration
@@ -24,22 +19,22 @@ extensions:
   nodejs:
     category: language
     description: Node.js LTS via mise
-    dependencies: []
+    dependencies: [mise-config]
 
   python:
     category: language
     description: Python 3.13 with uv package manager via mise
-    dependencies: []
+    dependencies: [mise-config]
 
   golang:
     category: language
     description: Go 1.25 via mise
-    dependencies: []
+    dependencies: [mise-config]
 
   rust:
     category: language
     description: Rust stable via mise
-    dependencies: []
+    dependencies: [mise-config]
 
   ruby:
     category: language
@@ -64,7 +59,7 @@ extensions:
   haskell:
     category: language
     description: Haskell with GHC, Cabal, Stack, and HLS
-    dependencies: []
+    dependencies: [mise-config]
 
   # Development Tools
   nodejs-devtools:

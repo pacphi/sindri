@@ -1,5 +1,8 @@
 # claudeup - TUI tool for managing Claude Code plugins and MCPs
 # Uses mise npm: backend for proper shim management
+#
+# IMPORTANT: Use pinned versions instead of "latest" to avoid npm registry
+# query timeouts that can poison subsequent mise operations.
 
 [tools]
-"npm:claudeup" = "latest"
+"npm:claudeup" = "1.8"

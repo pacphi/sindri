@@ -329,7 +329,7 @@ skip-cleanup: false          # Cleanup after tests
 
 - **Docker-only**: Tests run locally in Docker containers (fast feedback)
 - **Matrix execution**: Each extension runs as a separate job
-- **Protected exclusion**: Base extensions (mise-config, workspace-structure, github-cli) excluded from "all"
+- **Protected exclusion**: Base extensions (mise-config, github-cli) excluded from "all"
 - **Max parallel**: 4 concurrent extension tests
 
 ### Running CI Locally

@@ -1,10 +1,11 @@
 ---
 metadata:
   name: python
-  version: 1.1.0
+  version: 1.1.1
   description: Python 3.13 with uv package manager via mise
   category: language
-  dependencies: []
+  dependencies:
+    - mise-config
 
 requirements:
   domains:

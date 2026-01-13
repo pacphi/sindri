@@ -25,9 +25,9 @@ Claudeup is a terminal user interface (TUI) tool that streamlines Claude Code se
 
 ## Installed Tools
 
-| Tool       | Type     | Description                       |
-| ---------- | -------- | --------------------------------- |
-| `claudeup` | cli-tool | TUI for Claude Code configuration |
+| Tool       | Type     | Pinned Version | Description                       |
+| ---------- | -------- | -------------- | --------------------------------- |
+| `claudeup` | cli-tool | 1.8            | TUI for Claude Code configuration |
 
 ## Configuration
 

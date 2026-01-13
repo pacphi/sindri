@@ -134,7 +134,7 @@ Registry-based extension testing that runs in Docker (fast, local):
 - **Reads** extensions directly from `docker/lib/registry.yaml`
 - **Supports** single extension, comma-separated list, or `all`
 - **Matrix** runs each extension as a separate job (max 4 parallel)
-- **Excludes** protected base extensions from `all` (mise-config, workspace-structure, github-cli)
+- **Excludes** protected base extensions from `all` (mise-config, github-cli)
 
 ```yaml
 # Example: Test specific extensions

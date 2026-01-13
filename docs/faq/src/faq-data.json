@@ -486,8 +486,8 @@
       "id": "troubleshoot-npm-timeout",
       "category": "troubleshooting",
       "question": "Extension installation fails with 'timed out' errors from npm. How do I fix this?",
-      "answer": "This is caused by npm registry rate limiting for anonymous requests. Set an NPM_TOKEN secret to authenticate and bypass rate limits. Create a read-only Classic token at npmjs.com/settings/~/tokens, then add it: for Fly.io use 'flyctl secrets set NPM_TOKEN=npm_... -a app-name', for Docker add to .env.local, or add to sindri.yaml secrets section. Recent Sindri versions also increase mise http_timeout to 180s to help with slow responses.",
-      "tags": ["npm", "timeout", "rate-limit", "extension", "mise", "NPM_TOKEN"],
+      "answer": "This is caused by npm registry queries for version resolution. Sindri now uses pinned versions (e.g., typescript=5.9, eslint=9) instead of 'latest' to avoid registry queries during installation. If you still see timeouts: (1) ensure you're using the latest Sindri image with pinned versions, (2) set NPM_TOKEN secret to authenticate and bypass rate limits (create at npmjs.com/settings/~/tokens), (3) for Fly.io use 'flyctl secrets set NPM_TOKEN=npm_... -a app-name', for Docker add to .env.local. Recent Sindri versions also increase mise http_timeout to 180s to help with slow responses.",
+      "tags": ["npm", "timeout", "rate-limit", "extension", "mise", "NPM_TOKEN", "pinned-versions"],
       "docs": ["docs/SECRETS_MANAGEMENT.md", "docs/TROUBLESHOOTING.md"]
     },
     {

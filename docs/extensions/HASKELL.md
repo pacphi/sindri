@@ -4,14 +4,14 @@ Haskell development environment with GHC, Cabal, Stack, and HLS via mise.
 
 ## Overview
 
-| Property         | Value    |
-| ---------------- | -------- |
-| **Category**     | language |
-| **Version**      | 1.0.0    |
-| **Installation** | mise     |
-| **Disk Space**   | 2000 MB  |
-| **Memory**       | 4096 MB  |
-| **Dependencies** | None     |
+| Property         | Value                           |
+| ---------------- | ------------------------------- |
+| **Category**     | language                        |
+| **Version**      | 1.0.1                           |
+| **Installation** | mise                            |
+| **Disk Space**   | 2000 MB                         |
+| **Memory**       | 4096 MB                         |
+| **Dependencies** | [mise-config](MISE-CONFIG.md)   |
 
 ## Description
 

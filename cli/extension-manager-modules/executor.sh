@@ -255,6 +255,13 @@ install_via_mise() {
         # shellcheck disable=SC2086  # Word splitting intentional for env vars
         if ! retry_command 3 2 env $mise_env timeout 300 mise install; then
             print_error "mise install failed after 3 attempts (total: 15min max)"
+            # CLEANUP: Remove conf.d config to prevent poisoning subsequent installs
+            # Failed extensions with @latest versions cause every mise operation to
+            # attempt resolving those packages, leading to cascading timeouts
+            if [[ -f "$mise_conf_dir/${ext_name}.toml" ]]; then
+                print_warning "Removing failed extension config from conf.d to prevent cascading failures"
+                rm -f "$mise_conf_dir/${ext_name}.toml"
+            fi
             return 1
         fi
     fi

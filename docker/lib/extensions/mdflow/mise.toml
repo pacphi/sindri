@@ -3,10 +3,14 @@
 #
 # IMPORTANT: mdflow uses #!/usr/bin/env bun shebang, requiring bun at runtime.
 # Bun must be installed BEFORE npm:mdflow so it's available when mdflow runs.
+#
+# NOTE: Use pinned versions instead of "latest" to avoid npm registry
+# query timeouts that can poison subsequent mise operations.
 
 [tools]
 # Bun runtime - required for mdflow execution (shebang: #!/usr/bin/env bun)
-bun = "latest"
+# Pinned to major version for stability
+bun = "1"
 
 # mdflow CLI - transform markdown files into executable AI agents
-"npm:mdflow" = "latest"
+"npm:mdflow" = "2.33"

@@ -1,10 +1,11 @@
 ---
 metadata:
   name: nodejs
-  version: 1.0.0
+  version: 1.0.1
   description: Node.js LTS via mise
   category: language
-  dependencies: []
+  dependencies:
+    - mise-config
 
 requirements:
   domains:
@@ -24,6 +25,11 @@ configure:
   environment:
     - key: NODE_ENV
       value: development
+      scope: bashrc
+    # Use system Python for node-gyp native module compilation
+    # Python 3.13 (mise) doesn't have distutils, but system Python 3.12 does
+    - key: npm_config_python
+      value: /usr/bin/python3
       scope: bashrc
 
 validate:

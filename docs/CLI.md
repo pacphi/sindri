@@ -654,7 +654,7 @@ extension-manager install <extension-name>
 **Examples:**
 
 ```bash
-# Install Node.js (includes workspace-structure, mise-config dependencies)
+# Install Node.js (includes mise-config dependency)
 extension-manager install nodejs
 
 # Install AI toolkit (includes nodejs, python, golang, github-cli dependencies)
@@ -867,7 +867,7 @@ Extension: nodejs
 Status: installed
 Version: 1.0.0
 Category: language
-Dependencies: workspace-structure, mise-config
+Dependencies: mise-config
 Installed: 2024-01-15T10:30:00Z
 ```
 
@@ -904,7 +904,6 @@ Requirements:
   - Domains: nodejs.org, npmjs.com
 
 Dependencies:
-  - workspace-structure
   - mise-config
 
 Install Method: mise

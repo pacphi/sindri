@@ -26,9 +26,10 @@ Key features:
 
 ## Installed Tools
 
-| Tool     | Type     | Description                                   |
-| -------- | -------- | --------------------------------------------- |
-| `mdflow` | cli-tool | CLI for executing markdown files as AI agents |
+| Tool     | Type     | Pinned Version | Description                                   |
+| -------- | -------- | -------------- | --------------------------------------------- |
+| `mdflow` | cli-tool | 2.33           | CLI for executing markdown files as AI agents |
+| `bun`    | runtime  | 1.x            | JavaScript runtime (required by mdflow)       |
 
 ## Supported Backends
 

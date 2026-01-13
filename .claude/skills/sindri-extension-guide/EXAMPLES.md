@@ -424,12 +424,15 @@ node = "lts"
 
 ```toml
 # docker/lib/extensions/nodejs-devtools/mise.toml
+# IMPORTANT: Use pinned major.minor versions instead of "latest"
+# "latest" requires npm registry queries which can timeout and poison
+# subsequent mise operations if they fail.
 [tools]
-"npm:typescript" = "latest"
-"npm:ts-node" = "latest"
-"npm:nodemon" = "latest"
-"npm:prettier" = "latest"
-"npm:eslint" = "latest"
+"npm:typescript" = "5.9"
+"npm:ts-node" = "10.9"
+"npm:nodemon" = "3.1"
+"npm:prettier" = "3.6"
+"npm:eslint" = "9"
 ```
 
 ### Specific Versions

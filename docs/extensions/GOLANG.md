@@ -4,13 +4,13 @@ Go 1.25 compiler and toolchain via mise.
 
 ## Overview
 
-| Property         | Value    |
-| ---------------- | -------- |
-| **Category**     | language |
-| **Version**      | 1.0.0    |
-| **Installation** | mise     |
-| **Disk Space**   | 500 MB   |
-| **Dependencies** | None     |
+| Property         | Value                           |
+| ---------------- | ------------------------------- |
+| **Category**     | language                        |
+| **Version**      | 1.0.1                           |
+| **Installation** | mise                            |
+| **Disk Space**   | 500 MB                          |
+| **Dependencies** | [mise-config](MISE-CONFIG.md)   |
 
 ## Description
 

@@ -18,9 +18,9 @@ OpenSkills CLI for managing Claude Code skills from Anthropic's marketplace - pr
 
 ## Installed Tools
 
-| Tool         | Type     | Description                |
-| ------------ | -------- | -------------------------- |
-| `openskills` | cli-tool | Skills CLI for Claude Code |
+| Tool         | Type     | Pinned Version | Description                |
+| ------------ | -------- | -------------- | -------------------------- |
+| `openskills` | cli-tool | 1.3            | Skills CLI for Claude Code |
 
 ## Configuration
 

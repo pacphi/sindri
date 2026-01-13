@@ -1,16 +1,21 @@
 # nodejs-devtools.toml - npm global dev tools configuration for mise
 # Requires nodejs.toml to be installed first
+#
+# IMPORTANT: Use pinned major.minor versions instead of "latest"
+# "latest" requires npm registry queries which can timeout and poison
+# subsequent mise operations if they fail. Pinned versions are cached
+# and don't require network calls to resolve.
 
 [tools]
-# npm global development tools
-"npm:typescript" = "latest"
-"npm:ts-node" = "latest"
-"npm:eslint" = "latest"
-"npm:@typescript-eslint/parser" = "latest"
-"npm:@typescript-eslint/eslint-plugin" = "latest"
-"npm:prettier" = "latest"
-"npm:nodemon" = "latest"
-"npm:pnpm" = "latest"
+# npm global development tools - pinned to major.minor for stability
+"npm:typescript" = "5.9"
+"npm:ts-node" = "10.9"
+"npm:eslint" = "9"
+"npm:@typescript-eslint/parser" = "8"
+"npm:@typescript-eslint/eslint-plugin" = "8"
+"npm:prettier" = "3.6"
+"npm:nodemon" = "3.1"
+"npm:pnpm" = "10"
 
 [tasks.format]
 description = "Format code with Prettier"

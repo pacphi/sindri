@@ -26,9 +26,9 @@ Perfect for:
 
 ## Installed Tools
 
-| Tool       | Type     | Description                            |
-| ---------- | -------- | -------------------------------------- |
-| `claudish` | cli-tool | OpenRouter model proxy for Claude Code |
+| Tool       | Type     | Pinned Version | Description                            |
+| ---------- | -------- | -------------- | -------------------------------------- |
+| `claudish` | cli-tool | 3.2            | OpenRouter model proxy for Claude Code |
 
 ## Secrets (Required)
 

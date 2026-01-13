@@ -57,10 +57,10 @@ Extensions are YAML-defined packages that install and configure development tool
 ```yaml
 metadata:
   name: nodejs
-  version: 1.0.0
+  version: 1.0.1
   description: Node.js LTS via mise
   category: language
-  dependencies: []
+  dependencies: [mise-config]
 
 requirements:
   domains: [registry.npmjs.org]

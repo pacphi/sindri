@@ -20,13 +20,15 @@ For local LLM capabilities, install the separate [ollama](OLLAMA.md) extension.
 
 ## Installed Tools
 
-| Tool     | Type     | Description              |
-| -------- | -------- | ------------------------ |
-| `fabric` | cli-tool | AI pattern executor      |
-| `codex`  | cli-tool | OpenAI Codex integration |
-| `gemini` | cli-tool | Google Gemini CLI        |
-| `droid`  | cli-tool | Factory AI helper        |
-| `grok`   | cli-tool | xAI Grok integration     |
+| Tool     | Type     | Pinned Version | Description              |
+| -------- | -------- | -------------- | ------------------------ |
+| `fabric` | cli-tool | latest (Go)    | AI pattern executor      |
+| `codex`  | cli-tool | 0.80           | OpenAI Codex integration |
+| `gemini` | cli-tool | 0.22           | Google Gemini CLI        |
+| `droid`  | cli-tool | latest         | Factory AI helper        |
+| `grok`   | cli-tool | 0.0.34         | xAI Grok integration     |
+
+> **Note:** npm-based tools (codex, gemini, grok) use pinned versions to avoid npm registry query timeouts.
 
 ## Configuration
 
