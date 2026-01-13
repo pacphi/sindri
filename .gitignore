@@ -8,6 +8,7 @@
 *.env.production
 *.env.staging
 .env.*
+!.env.example
 .env.secrets
 secrets/
 keys/
