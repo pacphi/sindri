@@ -92,8 +92,8 @@ install_extension() {
     fi
 
     # Source hooks manager if available
-    if [[ -f "${LIB_DIR}/hooks-manager.sh" ]]; then
-        source "${LIB_DIR}/hooks-manager.sh"
+    if [[ -f "${DOCKER_LIB}/hooks-manager.sh" ]]; then
+        source "${DOCKER_LIB}/hooks-manager.sh"
         # Execute pre-install hook
         execute_hook "$ext_name" "pre-install" 2>/dev/null || true
     fi
@@ -116,7 +116,7 @@ install_extension() {
     local install_status=$?
 
     # Execute post-install hook
-    if [[ -f "${LIB_DIR}/hooks-manager.sh" ]] && [[ $install_status -eq 0 ]]; then
+    if [[ -f "${DOCKER_LIB}/hooks-manager.sh" ]] && [[ $install_status -eq 0 ]]; then
         execute_hook "$ext_name" "post-install" 2>/dev/null || true
     fi
 

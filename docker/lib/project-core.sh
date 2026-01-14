@@ -199,10 +199,10 @@ init_project_tools() {
     fi
 
     # Source capability management modules
-    source "${LIB_DIR}/capability-manager.sh"
-    source "${LIB_DIR}/auth-manager.sh"
-    source "${LIB_DIR}/hooks-manager.sh"
-    source "${LIB_DIR}/mcp-manager.sh"
+    source "${DOCKER_LIB}/capability-manager.sh"
+    source "${DOCKER_LIB}/auth-manager.sh"
+    source "${DOCKER_LIB}/hooks-manager.sh"
+    source "${DOCKER_LIB}/mcp-manager.sh"
 
     # NOTE: spec-kit is now a proper extension with project-init capability
     # No hardcoded initialization needed - capability-manager handles it automatically
@@ -250,7 +250,7 @@ init_project_tools() {
 
         # Check for collision with existing installation
         local ext_version
-        ext_version=$(yq eval ".metadata.version" "${LIB_DIR}/extensions/${ext}/extension.yaml" 2>/dev/null || echo "unknown")
+        ext_version=$(yq eval ".metadata.version" "${DOCKER_LIB}/extensions/${ext}/extension.yaml" 2>/dev/null || echo "unknown")
 
         if ! handle_collision "$ext" "$ext_version"; then
             print_debug "Skipping ${ext} initialization due to collision"
