@@ -44,6 +44,9 @@ remove:
     - ~/node_modules/playwright
     - ~/node_modules/@playwright
     - ~/.cache/ms-playwright
+    - ~/playwright.config.ts
+    - ~/tests/example.spec.ts
+    - ~/tsconfig.json
 
 upgrade:
   strategy: manual

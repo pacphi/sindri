@@ -28,7 +28,6 @@ configure:
     - source: claude-flow.aliases
       destination: ~/.bashrc
       mode: append
-  commands:
     - source: commands/ms.md
       destination: ~/.claude/commands/ms.md
       description: MetaSaver intelligent command router for complexity-based task routing
@@ -47,6 +46,8 @@ remove:
     removeConfig: true
     tools:
       - "npm:claude-flow"
+  paths:
+    - ~/.claude/commands/ms.md
   confirmation: true
 
 upgrade:

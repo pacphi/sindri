@@ -51,6 +51,7 @@ remove:
     - ~/.dotnet
     - ~/.nuget
     - ~/templates/Directory.Build.props
+    - ~/templates/.editorconfig
     - ~/templates/global.json
     - ~/templates/nuget.config
 

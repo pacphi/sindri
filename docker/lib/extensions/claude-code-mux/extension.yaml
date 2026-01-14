@@ -56,6 +56,8 @@ remove:
   paths:
     - ~/bin/ccm
     - ~/bin/ccmctl
+    - ~/bin/ccm-quickstart
+    - ~/config/ccm-config.toml
     - ~/.claude-code-mux
   confirmation: true
 

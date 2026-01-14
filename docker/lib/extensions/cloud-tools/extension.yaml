@@ -67,6 +67,7 @@ remove:
     - /usr/local/bin/aws
     - /usr/local/bin/aws_completer
     - /usr/local/bin/aliyun
+    - ~/extensions/cloud
     - /usr/local/bin/doctl
     - /usr/local/ibmcloud
     - /usr/local/bin/ibmcloud

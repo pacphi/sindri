@@ -28,6 +28,15 @@ configure:
     - source: claude-flow-v3.aliases
       destination: ~/.bashrc
       mode: append
+    - source: commands/prd-to-docs.md
+      destination: ~/.claude/commands/prd-to-docs.md
+      description: Convert PRD to comprehensive documentation
+    - source: commands/github/check-ci.md
+      destination: ~/.claude/commands/github/check-ci.md
+      description: Check GitHub Actions workflow status
+    - source: commands/git/commit.md
+      destination: ~/.claude/commands/git/commit.md
+      description: Analyze git changes and create intelligent commit
   environment:
     - key: CLAUDE_FLOW_VERSION
       value: "3"
@@ -64,6 +73,10 @@ remove:
     removeConfig: true
     tools:
       - "npm:claude-flow"
+  paths:
+    - ~/.claude/commands/prd-to-docs.md
+    - ~/.claude/commands/github/check-ci.md
+    - ~/.claude/commands/git/commit.md
   confirmation: true
 
 upgrade:
