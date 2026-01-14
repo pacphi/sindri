@@ -146,7 +146,18 @@
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["mise", "apt", "binary", "npm", "script", "hybrid"]
+          "enum": ["mise", "apt", "binary", "npm", "npm-global", "script", "hybrid"]
+        },
+        "npm": {
+          "type": "object",
+          "description": "NPM global installation configuration (for npm-global method)",
+          "properties": {
+            "package": {
+              "type": "string",
+              "description": "NPM package name with optional version (e.g., 'package@1.0.0' or 'package@latest')"
+            }
+          },
+          "required": ["package"]
         },
         "mise": {
           "type": "object",
@@ -457,6 +468,488 @@
               "default": 600
             }
           }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Optional capabilities for project initialization, authentication, hooks, and MCP integration",
+      "properties": {
+        "project-init": {
+          "type": "object",
+          "description": "Project initialization commands and state markers",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "commands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "requiresAuth": {
+                    "type": "string",
+                    "enum": ["anthropic", "openai", "github", "none"],
+                    "default": "none"
+                  },
+                  "conditional": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": ["command", "description"]
+              }
+            },
+            "state-markers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": ["directory", "file", "symlink"]
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": ["path", "type"]
+              }
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "expectedPattern": {
+                  "type": "string"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0
+                }
+              },
+              "required": ["command"]
+            }
+          },
+          "required": ["enabled"]
+        },
+        "auth": {
+          "type": "object",
+          "description": "Authentication requirements",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai", "github", "custom"]
+            },
+            "required": {
+              "type": "boolean",
+              "default": false
+            },
+            "methods": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["api-key", "cli-auth"]
+              },
+              "description": "Accepted authentication methods (defaults to both if not specified)"
+            },
+            "envVars": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "validator": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0
+                }
+              },
+              "required": ["command"]
+            },
+            "features": {
+              "type": "array",
+              "description": "Feature-level authentication requirements",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Feature name"
+                  },
+                  "requiresApiKey": {
+                    "type": "boolean",
+                    "description": "Whether this feature requires API key specifically"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Feature description"
+                  }
+                },
+                "required": ["name", "requiresApiKey", "description"]
+              }
+            }
+          },
+          "required": ["provider"]
+        },
+        "hooks": {
+          "type": "object",
+          "description": "Lifecycle hooks",
+          "properties": {
+            "pre-install": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-install": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "pre-project-init": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-project-init": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "description": "MCP server registration",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "server": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": ["command"]
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "description"]
+              }
+            }
+          },
+          "required": ["enabled"]
+        },
+        "project-context": {
+          "type": "object",
+          "description": "Project context file management",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "mergeFile": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "strategy": {
+                  "enum": ["append", "prepend", "merge", "replace", "append-if-missing"]
+                }
+              },
+              "required": ["source", "target", "strategy"]
+            }
+          },
+          "required": ["enabled"]
+        },
+        "features": {
+          "type": "object",
+          "description": "Feature flags and configuration for advanced capabilities",
+          "properties": {
+            "core": {
+              "type": "object",
+              "description": "Core feature flags",
+              "properties": {
+                "daemon_autostart": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Automatically start daemon on initialization"
+                },
+                "flash_attention": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable flash attention optimizations"
+                },
+                "unified_config": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Use unified configuration file"
+                }
+              }
+            },
+            "swarm": {
+              "type": "object",
+              "description": "Swarm coordination configuration",
+              "properties": {
+                "default_topology": {
+                  "type": "string",
+                  "enum": ["hierarchical-mesh", "hierarchical", "mesh", "ring"],
+                  "default": "hierarchical-mesh",
+                  "description": "Default swarm topology"
+                },
+                "consensus_algorithm": {
+                  "type": "string",
+                  "enum": ["raft", "paxos", "gossip", "crdt", "byzantine"],
+                  "default": "raft",
+                  "description": "Consensus algorithm for swarm coordination"
+                }
+              }
+            },
+            "llm": {
+              "type": "object",
+              "description": "LLM provider configuration",
+              "properties": {
+                "default_provider": {
+                  "type": "string",
+                  "enum": ["anthropic", "openai", "google", "cohere", "local", "custom"],
+                  "default": "anthropic",
+                  "description": "Default LLM provider"
+                },
+                "load_balancing": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable load balancing across providers"
+                }
+              }
+            },
+            "advanced": {
+              "type": "object",
+              "description": "Advanced feature flags",
+              "properties": {
+                "sona_learning": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable SONA self-optimizing neural architecture"
+                },
+                "security_scanning": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable security vulnerability scanning"
+                },
+                "claims_system": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable work claims and authorization"
+                },
+                "plugin_system": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable plugin system"
+                }
+              }
+            },
+            "mcp": {
+              "type": "object",
+              "description": "MCP server configuration",
+              "properties": {
+                "transport": {
+                  "type": "string",
+                  "enum": ["stdio", "http", "websocket"],
+                  "default": "stdio",
+                  "description": "MCP transport protocol"
+                }
+              }
+            }
+          }
+        },
+        "collision-handling": {
+          "type": "object",
+          "description": "Declarative collision detection and resolution for cloned projects with existing configurations",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collision handling for this extension"
+            },
+            "version-markers": {
+              "type": "array",
+              "description": "Markers to detect installed version from directory structure",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Path to check (relative to project root)"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["file", "directory", "symlink"],
+                    "description": "Type of marker to check"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "Version identifier if this marker is found"
+                  },
+                  "detection": {
+                    "type": "object",
+                    "description": "Detection method configuration",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": ["file-exists", "directory-exists", "content-match"],
+                        "description": "Detection method"
+                      },
+                      "patterns": {
+                        "type": "array",
+                        "description": "Regex patterns for content-match method",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "match-any": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "True=any pattern matches, False=all patterns must match"
+                      },
+                      "exclude-if": {
+                        "type": "array",
+                        "description": "Paths that exclude this detection (for directory-exists)",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": ["method"]
+                  }
+                },
+                "required": ["path", "type", "version", "detection"]
+              }
+            },
+            "scenarios": {
+              "type": "array",
+              "description": "Collision resolution scenarios",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Scenario identifier"
+                  },
+                  "detected-version": {
+                    "type": "string",
+                    "description": "Version detected in project"
+                  },
+                  "installing-version": {
+                    "type": "string",
+                    "description": "Version being installed"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": ["stop", "skip", "proceed", "backup", "prompt"],
+                    "description": "Action to take when scenario matches"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Message to display to user"
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "Options for prompt action",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "description": "Option label"
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": ["skip", "backup", "merge"],
+                          "description": "Action for this option"
+                        },
+                        "backup-suffix": {
+                          "type": "string",
+                          "description": "Suffix for backup directory (supports {timestamp})"
+                        }
+                      },
+                      "required": ["label", "action"]
+                    }
+                  }
+                },
+                "required": ["name", "detected-version", "installing-version", "action", "message"]
+              }
+            }
+          },
+          "required": ["enabled"]
         }
       }
     },

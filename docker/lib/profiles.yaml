@@ -24,6 +24,7 @@ profiles:
       - nodejs
       - python
       - golang
+      - spec-kit
       - ollama
       - ai-toolkit
       - mdflow
@@ -33,10 +34,10 @@ profiles:
       - monitoring
 
   anthropic-dev:
-    description: AI development with Anthropic toolset bias
+    description: AI development with Anthropic toolset bias (v3 default - 10x performance)
     extensions:
       - agent-manager
-      - claude-flow
+      - claude-flow-v3
       - agentic-flow
       - agentic-qe
       - golang

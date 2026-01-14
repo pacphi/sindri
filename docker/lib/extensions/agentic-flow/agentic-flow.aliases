@@ -1,28 +1,28 @@
 #!/bin/bash
 # agentic-flow.aliases - Multi-model AI integration aliases
-# Installed by agentic-flow extension
+# Auto-loaded by direnv when in project directories with .sindri-enhanced marker
 
 # ============================================================================
 # AGENT-FLOW (MULTI-MODEL AI)
 # ============================================================================
 
 # Core Commands
-alias af="agentic-flow"
-alias af-help="agentic-flow --help"
-alias af-coder="agentic-flow --agent coder --task"
-alias af-reviewer="agentic-flow --agent reviewer --task"
-alias af-researcher="agentic-flow --agent researcher --task"
+alias af="npx agentic-flow"
+alias af-help="npx agentic-flow --help"
+alias af-coder="npx agentic-flow --agent coder --task"
+alias af-reviewer="npx agentic-flow --agent reviewer --task"
+alias af-researcher="npx agentic-flow --agent researcher --task"
 
 # Provider Integration
-alias af-claude="agentic-flow claude-code"
-alias af-openrouter="agentic-flow claude-code --provider openrouter"
-alias af-gemini="agentic-flow claude-code --provider gemini"
+alias af-claude="npx agentic-flow claude-code"
+alias af-openrouter="npx agentic-flow claude-code --provider openrouter"
+alias af-gemini="npx agentic-flow claude-code --provider gemini"
 
 # Model-Specific Shortcuts (Cost-Optimized)
-alias af-llama="agentic-flow --model meta-llama/llama-3.1-8b-instruct"
-alias af-cost="agentic-flow --optimize cost"
-alias af-speed="agentic-flow --optimize speed"
-alias af-quality="agentic-flow --optimize quality"
+alias af-llama="npx agentic-flow --model meta-llama/llama-3.1-8b-instruct"
+alias af-cost="npx agentic-flow --optimize cost"
+alias af-speed="npx agentic-flow --optimize speed"
+alias af-quality="npx agentic-flow --optimize quality"
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -30,12 +30,12 @@ alias af-quality="agentic-flow --optimize quality"
 
 # Execute task with specific agent and balanced optimization
 af-task() {
-    agentic-flow --agent "${1:-coder}" --task "$2" --optimize balanced
+    npx agentic-flow --agent "${1:-coder}" --task "$2" --optimize balanced
 }
 
 # Execute command with specific provider
 af-provider() {
     local provider="${1:-openrouter}"
     shift
-    agentic-flow claude-code --provider "$provider" "$@"
+    npx agentic-flow claude-code --provider "$provider" "$@"
 }

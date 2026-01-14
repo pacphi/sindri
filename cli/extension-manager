@@ -190,6 +190,59 @@ main() {
         bom-regenerate)
             regenerate_all_boms
             ;;
+        mcp)
+            # Source MCP manager
+            if [[ -f "${DOCKER_LIB}/mcp-manager.sh" ]]; then
+                source "${DOCKER_LIB}/mcp-manager.sh"
+            else
+                print_error "MCP manager not found"
+                return 1
+            fi
+
+            local mcp_command="${1:-}"
+            shift || true
+
+            case "$mcp_command" in
+                list)
+                    list_mcp_extensions
+                    ;;
+                registered)
+                    list_registered_mcp_servers
+                    ;;
+                register)
+                    if [[ $# -eq 0 ]]; then
+                        print_error "Usage: extension-manager mcp register <extension>"
+                        return 1
+                    fi
+                    register_mcp_server "$1"
+                    ;;
+                unregister)
+                    if [[ $# -eq 0 ]]; then
+                        print_error "Usage: extension-manager mcp unregister <extension>"
+                        return 1
+                    fi
+                    unregister_mcp_server "$1"
+                    ;;
+                show)
+                    if [[ $# -eq 0 ]]; then
+                        print_error "Usage: extension-manager mcp show <extension>"
+                        return 1
+                    fi
+                    show_mcp_server_details "$1"
+                    ;;
+                *)
+                    print_error "Unknown mcp command: $mcp_command"
+                    echo ""
+                    echo "Available mcp commands:"
+                    echo "  list              List extensions with MCP capabilities"
+                    echo "  registered        List registered MCP servers in Claude Code"
+                    echo "  register <ext>    Register extension as MCP server"
+                    echo "  unregister <ext>  Unregister extension from MCP servers"
+                    echo "  show <ext>        Show MCP server details for extension"
+                    return 1
+                    ;;
+            esac
+            ;;
         help|-h|--help)
             show_help
             ;;

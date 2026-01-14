@@ -138,4 +138,3 @@ Removes mise configuration and skill files from `~/.claude/skills/claudish-usage
 
 - [claude-code-mux](CLAUDE-CODE-MUX.md) - AI routing proxy (18+ providers)
 - [ai-toolkit](AI-TOOLKIT.md) - AI tools suite
-- [claude-auth-with-api-key](CLAUDE-AUTH-WITH-API-KEY.md) - Claude API key authentication

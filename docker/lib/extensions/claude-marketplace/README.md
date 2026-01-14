@@ -20,7 +20,7 @@ It provides:
 ## Prerequisites
 
 - **Claude CLI** (pre-installed in base Docker image) - **Required**
-- **Claude Authentication** (via `claude-auth-with-api-key` extension or manual auth) - **Required**
+- **Claude Authentication** (API key or Max/Pro plan) - **Required**
 - **yq** (YAML processor) - **Required** (pre-installed in base image)
 - **jq** (JSON processor) - **Required** (pre-installed in base image)
 

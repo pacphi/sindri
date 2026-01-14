@@ -626,7 +626,7 @@ gh workflow run test-extensions.yml -f extensions="nodejs"
 # Test multiple extensions
 gh workflow run test-extensions.yml -f extensions="nodejs,python,golang"
 
-# Test all non-protected extensions (~29 extensions)
+# Test all non-protected extensions (70+)
 gh workflow run test-extensions.yml -f extensions="all"
 
 # Keep containers running for debugging

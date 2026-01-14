@@ -1,10 +1,21 @@
 ---
 name: sindri-extension-guide
-description: Guide users through creating Sindri extensions. Use when creating new extensions, understanding extension.yaml structure, validating extensions against schemas, or learning about extension installation methods (mise, apt, binary, npm, script, hybrid). Helps with extension development, registry updates, and category assignment.
+description: Guide users through creating Sindri extensions. Use when creating new extensions, understanding extension.yaml structure, validating extensions against schemas, or learning about extension installation methods (mise, apt, binary, npm, script, hybrid). Includes NEW capabilities system for project-init, authentication (multi-method API key + CLI auth), lifecycle hooks, and MCP integration. Helps with extension development, registry updates, and category assignment.
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 ---
 
 # Sindri Extension Development Guide
+
+## What's New: Extension Capabilities System
+
+**Recent Addition (Jan 2026):** Sindri now supports an optional **capabilities system** for advanced extensions:
+
+- **Project Initialization** - Commands to set up new projects (`project-init`)
+- **Multi-Method Authentication** - Support both API key and CLI auth (`auth`)
+- **Lifecycle Hooks** - Pre/post install and project-init hooks (`hooks`)
+- **MCP Integration** - Register as Model Context Protocol servers (`mcp`)
+
+**Most extensions don't need capabilities** - they're only for extensions that extend project management functionality (like Claude Flow, Agentic QE, Spec-Kit). Regular extensions (nodejs, python, docker) work exactly as before.
 
 ## Slash Commands (Recommended)
 
@@ -93,6 +104,10 @@ validate:
 ```
 
 ## Extension YAML Sections
+
+Extensions consist of required sections (metadata, install, validate) and optional sections (requirements, configure, remove, upgrade, bom, **capabilities**).
+
+**IMPORTANT: Capabilities are OPTIONAL** - Most extensions (nodejs, python, docker, etc.) don't need capabilities. Only extensions requiring project initialization, authentication, lifecycle hooks, or MCP integration need the capabilities section.
 
 ### 1. Metadata (Required)
 
@@ -291,6 +306,111 @@ bom:
       homepage: https://nodejs.org
 ```
 
+### 9. Capabilities (Optional - Advanced Extensions Only)
+
+**Use capabilities when your extension needs:**
+
+- **Project initialization** - Commands to set up a new project (e.g., `claude-flow init`, `spec-kit init`)
+- **Authentication** - Validate API keys or CLI authentication before running
+- **Lifecycle hooks** - Pre/post install or project-init commands
+- **MCP integration** - Register as a Model Context Protocol server for Claude Code
+
+**Most extensions don't need capabilities.** Only use this for extensions that extend project management functionality.
+
+```yaml
+capabilities:
+  # Project initialization (optional)
+  project-init:
+    enabled: true
+    commands:
+      - command: "mytool init --force"
+        description: "Initialize mytool project"
+        requiresAuth: anthropic # or: openai, github, none
+        conditional: false # true = only run if condition met
+
+    state-markers:
+      - path: ".mytool"
+        type: directory
+        description: "Mytool configuration directory"
+      - path: ".mytool/config.json"
+        type: file
+        description: "Mytool config file"
+
+    validation:
+      command: "mytool --version"
+      expectedPattern: "^\\d+\\.\\d+\\.\\d+"
+      expectedExitCode: 0
+
+  # Authentication (optional)
+  auth:
+    provider: anthropic # or: openai, github, custom
+    required: false # true = block installation without auth
+    methods:
+      - api-key # API key in environment variable
+      - cli-auth # CLI authentication (e.g., Max/Pro plan)
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+    features:
+      - name: agent-spawn
+        requiresApiKey: false
+        description: "CLI-based features"
+      - name: api-integration
+        requiresApiKey: true
+        description: "Direct API features"
+
+  # Lifecycle hooks (optional)
+  hooks:
+    pre-install:
+      command: "echo 'Preparing installation...'"
+      description: "Pre-installation checks"
+    post-install:
+      command: "mytool --version"
+      description: "Verify installation"
+    pre-project-init:
+      command: "mytool doctor --check"
+      description: "Pre-init health check"
+    post-project-init:
+      command: "echo 'Project initialized'"
+      description: "Post-init notification"
+
+  # MCP server registration (optional)
+  mcp:
+    enabled: true
+    server:
+      command: "npx"
+      args:
+        - "-y"
+        - "@mytool/mcp-server"
+        - "start"
+      env:
+        MYTOOL_MCP_MODE: "1"
+    tools:
+      - name: "mytool-action"
+        description: "Perform mytool action"
+      - name: "mytool-query"
+        description: "Query mytool data"
+
+  # Feature configuration (optional, V3+ extensions)
+  features:
+    core:
+      daemon_autostart: true
+      unified_config: true
+    advanced:
+      plugin_system: true
+      security_scanning: false
+```
+
+**Capability Guidelines:**
+
+1. **Keep it simple** - Only add capabilities you actually need
+2. **State markers** - Define files/directories created by project-init for idempotency
+3. **Conditional commands** - Use `conditional: true` for optional setup steps
+4. **Multi-method auth** - Support both API key and CLI auth when possible
+5. **Feature-level auth** - Some features may work without API key (use `features` array)
+
 ## Adding to Registry
 
 After creating your extension, add it to `docker/lib/registry.yaml`:
@@ -332,6 +452,7 @@ Best for: Node.js, Python, Go, Rust, Ruby
 - Use `method: mise` with a `mise.toml` config file
 - Set appropriate environment variables in configure section
 - Validate with version command
+- **No capabilities needed** - just install tools
 
 ### Development Tool (npm-based)
 
@@ -356,6 +477,29 @@ Best for: Desktop environments, multi-step installs
 - Use `method: hybrid` with ordered steps
 - Combine apt + script for flexibility
 - Include cleanup in remove section
+- **No capabilities needed** unless it requires project initialization
+
+### AI/Project Management Tool (with capabilities)
+
+Best for: Claude Flow, Agentic QE, Spec-Kit
+
+- Use appropriate install method (mise, script, npm)
+- **Add capabilities section** for project initialization
+- Define state markers for idempotency (`.claude/`, `.agentic-qe/`, `.github/spec.json`)
+- Include authentication configuration (anthropic, openai, github, or none)
+- Add lifecycle hooks for post-install/post-init actions
+- Register MCP server if extension provides Claude Code tools
+- Example extensions: `claude-flow-v3`, `spec-kit`, `agentic-qe`
+
+**Current Extensions Using Capabilities:**
+
+| Extension      | project-init | auth      | hooks | mcp | Notes                            |
+| -------------- | ------------ | --------- | ----- | --- | -------------------------------- |
+| claude-flow-v2 | ✓            | anthropic | ✓     | ✓   | Stable, 158+ aliases             |
+| claude-flow-v3 | ✓            | anthropic | ✓     | ✓   | Alpha, 10x performance, 15 tools |
+| agentic-qe     | ✓            | anthropic | ✓     | ✓   | AI-powered testing               |
+| spec-kit       | ✓            | none      | ✓     | -   | GitHub spec documentation        |
+| agentic-flow   | ✓            | anthropic | ✓     | ✓   | Multi-agent workflows            |
 
 ## Script Guidelines
 

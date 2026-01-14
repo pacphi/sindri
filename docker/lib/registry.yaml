@@ -67,6 +67,11 @@ extensions:
     description: TypeScript, ESLint, Prettier
     dependencies: [nodejs]
 
+  spec-kit:
+    category: dev-tools
+    description: GitHub specification kit for AI-powered workflows
+    dependencies: [python]
+
   playwright:
     category: dev-tools
     description: Browser automation testing
@@ -114,11 +119,6 @@ extensions:
     description: Claude Code skills manager
     dependencies: [nodejs]
 
-  claude-auth-with-api-key:
-    category: ai
-    description: Claude API key authentication
-    dependencies: []
-
   claude-marketplace:
     category: ai
     description: Claude Code marketplace configuration
@@ -134,10 +134,19 @@ extensions:
     description: Claude agent management
     dependencies: []
 
-  claude-flow:
+  claude-flow-v2:
     category: ai
-    description: AI-powered multi-agent orchestration system for Claude Code workflows (v3alpha)
+    description: Claude Flow v2 stable - Multi-agent orchestration (proven reliability)
     dependencies: [nodejs]
+    conflicts:
+      - claude-flow-v3
+
+  claude-flow-v3:
+    category: ai
+    description: Claude Flow v3 alpha - 10x performance, modular packages, 150x faster search
+    dependencies: [nodejs]
+    conflicts:
+      - claude-flow-v2
 
   agentic-flow:
     category: ai

@@ -389,6 +389,175 @@ extensions:
 | `dependencies` | array[string] | No       | Other extension names                 |
 | `protected`    | boolean       | No       | Prevent modification (default: false) |
 
+## Capabilities Section (Optional)
+
+**IMPORTANT:** Capabilities are optional and only needed for extensions requiring project initialization, authentication, hooks, or MCP integration. Most extensions (nodejs, python, docker) don't need this section.
+
+### Project-Init Capability
+
+```yaml
+capabilities:
+  project-init:
+    enabled: true
+    commands:
+      - command: "mytool init --force"
+        description: "Initialize mytool"
+        requiresAuth: anthropic
+        conditional: false
+    state-markers:
+      - path: ".mytool"
+        type: directory
+        description: "Config directory"
+    validation:
+      command: "mytool --version"
+      expectedPattern: "^\\d+\\.\\d+"
+      expectedExitCode: 0
+```
+
+| Field                         | Type    | Required | Values                                  | Description                        |
+| ----------------------------- | ------- | -------- | --------------------------------------- | ---------------------------------- |
+| `enabled`                     | boolean | Yes      | -                                       | Enable project initialization      |
+| `commands[].command`          | string  | Yes      | -                                       | Command to execute                 |
+| `commands[].description`      | string  | Yes      | -                                       | Human-readable description         |
+| `commands[].requiresAuth`     | enum    | No       | `anthropic`, `openai`, `github`, `none` | Auth required before running       |
+| `commands[].conditional`      | boolean | No       | default: false                          | Only run if conditions met         |
+| `state-markers[].path`        | string  | Yes      | -                                       | File/directory path                |
+| `state-markers[].type`        | enum    | Yes      | `directory`, `file`, `symlink`          | Type of marker                     |
+| `state-markers[].description` | string  | No       | -                                       | Description of marker              |
+| `validation.command`          | string  | Yes      | -                                       | Command to validate initialization |
+| `validation.expectedPattern`  | string  | No       | -                                       | Regex pattern for validation       |
+| `validation.expectedExitCode` | integer | No       | default: 0                              | Expected exit code                 |
+
+### Auth Capability
+
+```yaml
+capabilities:
+  auth:
+    provider: anthropic
+    required: false
+    methods:
+      - api-key
+      - cli-auth
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+    features:
+      - name: agent-spawn
+        requiresApiKey: false
+        description: "CLI-based features"
+```
+
+| Field                        | Type          | Required | Values                                    | Description                    |
+| ---------------------------- | ------------- | -------- | ----------------------------------------- | ------------------------------ |
+| `provider`                   | enum          | Yes      | `anthropic`, `openai`, `github`, `custom` | Auth provider                  |
+| `required`                   | boolean       | No       | default: false                            | Block without auth             |
+| `methods`                    | array[enum]   | No       | `api-key`, `cli-auth`                     | Accepted auth methods          |
+| `envVars`                    | array[string] | No       | -                                         | Environment variables to check |
+| `validator.command`          | string        | No       | -                                         | Command to validate auth       |
+| `validator.expectedExitCode` | integer       | No       | default: 0                                | Expected exit code             |
+| `features[].name`            | string        | Yes      | -                                         | Feature name                   |
+| `features[].requiresApiKey`  | boolean       | Yes      | -                                         | Whether feature needs API key  |
+| `features[].description`     | string        | Yes      | -                                         | Feature description            |
+
+### Hooks Capability
+
+```yaml
+capabilities:
+  hooks:
+    pre-install:
+      command: "echo 'Pre-install'"
+      description: "Pre-installation checks"
+    post-install:
+      command: "mytool --version"
+      description: "Verify installation"
+    pre-project-init:
+      command: "mytool doctor"
+      description: "Health check"
+    post-project-init:
+      command: "echo 'Done'"
+      description: "Completion message"
+```
+
+| Field                           | Type   | Required | Description            |
+| ------------------------------- | ------ | -------- | ---------------------- |
+| `pre-install.command`           | string | Yes      | Command before install |
+| `pre-install.description`       | string | No       | Hook description       |
+| `post-install.command`          | string | Yes      | Command after install  |
+| `post-install.description`      | string | No       | Hook description       |
+| `pre-project-init.command`      | string | Yes      | Command before init    |
+| `pre-project-init.description`  | string | No       | Hook description       |
+| `post-project-init.command`     | string | Yes      | Command after init     |
+| `post-project-init.description` | string | No       | Hook description       |
+
+### MCP Capability
+
+```yaml
+capabilities:
+  mcp:
+    enabled: true
+    server:
+      command: "npx"
+      args:
+        - "-y"
+        - "@mytool/mcp"
+        - "start"
+      env:
+        MYTOOL_MODE: "mcp"
+    tools:
+      - name: "mytool-action"
+        description: "Perform action"
+```
+
+| Field                 | Type          | Required | Description             |
+| --------------------- | ------------- | -------- | ----------------------- |
+| `enabled`             | boolean       | Yes      | Enable MCP server       |
+| `server.command`      | string        | Yes      | Command to start server |
+| `server.args`         | array[string] | No       | Command arguments       |
+| `server.env`          | object        | No       | Environment variables   |
+| `tools[].name`        | string        | Yes      | Tool name               |
+| `tools[].description` | string        | Yes      | Tool description        |
+
+### Features Capability (V3+ Extensions)
+
+```yaml
+capabilities:
+  features:
+    core:
+      daemon_autostart: true
+      flash_attention: true
+      unified_config: true
+    swarm:
+      default_topology: hierarchical-mesh
+      consensus_algorithm: raft
+    llm:
+      default_provider: anthropic
+      load_balancing: false
+    advanced:
+      sona_learning: false
+      security_scanning: true
+      claims_system: false
+      plugin_system: true
+    mcp:
+      transport: stdio
+```
+
+| Field                        | Type    | Values                                                       | Default           | Description              |
+| ---------------------------- | ------- | ------------------------------------------------------------ | ----------------- | ------------------------ |
+| `core.daemon_autostart`      | boolean | -                                                            | true              | Auto-start daemon        |
+| `core.flash_attention`       | boolean | -                                                            | true              | Enable flash attention   |
+| `core.unified_config`        | boolean | -                                                            | true              | Use unified config       |
+| `swarm.default_topology`     | enum    | `hierarchical-mesh`, `hierarchical`, `mesh`, `ring`          | hierarchical-mesh | Default swarm topology   |
+| `swarm.consensus_algorithm`  | enum    | `raft`, `paxos`, `gossip`, `crdt`, `byzantine`               | raft              | Consensus algorithm      |
+| `llm.default_provider`       | enum    | `anthropic`, `openai`, `google`, `cohere`, `local`, `custom` | anthropic         | Default LLM provider     |
+| `llm.load_balancing`         | boolean | -                                                            | false             | Enable load balancing    |
+| `advanced.sona_learning`     | boolean | -                                                            | false             | Enable SONA learning     |
+| `advanced.security_scanning` | boolean | -                                                            | false             | Enable security scanning |
+| `advanced.claims_system`     | boolean | -                                                            | false             | Enable work claims       |
+| `advanced.plugin_system`     | boolean | -                                                            | true              | Enable plugin system     |
+| `mcp.transport`              | enum    | `stdio`, `http`, `websocket`                                 | stdio             | MCP transport protocol   |
+
 ## Environment Variables Available
 
 These variables are available in scripts and templates:

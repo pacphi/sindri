@@ -1,0 +1,68 @@
+# Claude Flow v3 - Next-gen Multi-Agent Orchestration
+# Performance: 2.49x-7.47x faster | Search: 150x-12,500x faster | Memory: 83% reduction
+#
+# v3 Innovations:
+# - 18 modular packages (@claude-flow/*)
+# - UnifiedSwarmCoordinator (replaces 6 implementations)
+# - Flash Attention + SONA neural learning
+# - HNSW vector search (150x-12,500x faster)
+# - 17 lifecycle hooks + 12 background workers
+# - Plugin SDK for extensibility
+# - Cross-platform (Windows/Mac/Linux)
+# - Security scanning with CVE remediation
+
+# === CORE OPERATIONS ===
+alias cf-init="claude-flow init --force"
+alias cf-doctor="claude-flow doctor --fix"
+alias cf-version="claude-flow --version"
+alias cf-help="claude-flow --help"
+alias cf-status="claude-flow status"
+
+# === SWARM COORDINATION (UnifiedSwarmCoordinator - NEW in v3) ===
+alias cf-swarm="claude-flow swarm init --topology hierarchical-mesh"
+alias cf-swarm-status="claude-flow swarm status --watch"
+alias cf-swarm-spawn="claude-flow swarm spawn --agents 15"
+alias cf-swarm-parallel="claude-flow swarm execute --parallel"
+
+# === AGENT MANAGEMENT (15-agent hierarchy) ===
+alias cf-agent="claude-flow agent spawn"
+alias cf-agent-list="claude-flow agent list"
+alias cf-agent-status="claude-flow agent status"
+
+# === MEMORY OPERATIONS (HNSW-indexed, 150x-12,500x faster) ===
+alias cf-memory="claude-flow memory search"
+alias cf-memory-store="claude-flow memory store"
+alias cf-memory-stats="claude-flow memory stats"
+alias cf-memory-clear="claude-flow memory clear"
+
+# === HOOKS SYSTEM (17 hooks + 12 background workers - NEW in v3) ===
+alias cf-hooks="claude-flow hooks list"
+alias cf-hooks-session="claude-flow hooks session-start"
+alias cf-hooks-worker="claude-flow hooks worker list"
+alias cf-hooks-dispatch="claude-flow hooks worker dispatch"
+
+# === PERFORMANCE & BENCHMARKING (NEW in v3) ===
+alias cf-benchmark="claude-flow performance benchmark --suite all"
+alias cf-profile="claude-flow performance profile"
+alias cf-optimize="claude-flow performance optimize"
+
+# === SECURITY SCANNING (NEW in v3) ===
+alias cf-security="claude-flow security scan --depth full"
+alias cf-cve="claude-flow security cve --fix"
+alias cf-audit="claude-flow security audit"
+
+# === MCP TOOLS (100+ tools) ===
+alias cf-mcp="claude-flow mcp tools"
+alias cf-mcp-start="claude-flow mcp start"
+
+# === NEURAL INTELLIGENCE (SONA - NEW in v3) ===
+alias cf-neural="claude-flow neural status"
+alias cf-learn="claude-flow neural train"
+
+# === QUICK SHORTCUTS ===
+alias cfs="claude-flow status"
+alias cfh="claude-flow --help"
+alias cfd="claude-flow doctor --fix"
+alias cfb="claude-flow performance benchmark"
+alias cfm="claude-flow memory search"
+alias cfhooks="claude-flow hooks list"

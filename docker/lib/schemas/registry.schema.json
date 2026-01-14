@@ -49,6 +49,13 @@
               "type": "string"
             },
             "description": "List of extension names this extension depends on"
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of extension names that conflict with this extension (mutually exclusive)"
           }
         },
         "additionalProperties": false

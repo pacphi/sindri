@@ -346,9 +346,216 @@ bom:
 
 ---
 
+## 5. Extension WITH Capabilities (Project Initialization)
+
+**Pattern:** Extension that initializes projects and requires authentication
+**Use case:** AI tools, project management extensions
+
+```yaml
+# docker/lib/extensions/spec-kit/extension.yaml
+---
+metadata:
+  name: spec-kit
+  version: 1.0.0
+  description: GitHub specification kit for AI-powered repository documentation
+  category: dev-tools
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - github.com
+    - raw.githubusercontent.com
+  diskSpace: 50
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 60
+
+validate:
+  commands:
+    - name: uvx
+      expectedPattern: "uv \\d+\\.\\d+\\.\\d+"
+
+# CAPABILITIES SECTION - NEW!
+capabilities:
+  project-init:
+    enabled: true
+    commands:
+      - command: "uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude --script sh"
+        description: "Initialize GitHub spec-kit for AI-powered workflows"
+        requiresAuth: none
+        conditional: false
+
+    state-markers:
+      - path: ".github/spec.json"
+        type: file
+        description: "GitHub spec-kit configuration file"
+
+    validation:
+      command: "test -f .github/spec.json"
+      expectedExitCode: 0
+
+  hooks:
+    post-project-init:
+      command: "bash scripts/commit-spec-kit.sh"
+      description: "Commit spec-kit initialization files"
+
+bom:
+  tools:
+    - name: spec-kit
+      version: dynamic
+      source: github
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/github/spec-kit
+```
+
+**Key points:**
+
+- Uses `capabilities.project-init` to run initialization commands
+- State markers ensure idempotency (won't re-run if `.github/spec.json` exists)
+- Post-project-init hook automatically commits generated files
+- No authentication required (`requiresAuth: none`)
+
+---
+
+## 6. Advanced Extension WITH Full Capabilities
+
+**Pattern:** Extension with project-init, auth, hooks, and MCP integration
+**Use case:** Claude Flow V3, Agentic QE, advanced AI tools
+
+```yaml
+# docker/lib/extensions/claude-flow-v3/extension.yaml (simplified)
+---
+metadata:
+  name: claude-flow-v3
+  version: 3.0.0
+  description: Next-gen multi-agent orchestration with 10x performance
+  category: ai
+  dependencies:
+    - nodejs
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+
+configure:
+  environment:
+    - key: CLAUDE_FLOW_VERSION
+      value: "3"
+      scope: bashrc
+    - key: CF_SWARM_TOPOLOGY
+      value: "hierarchical-mesh"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: claude-flow
+      expectedPattern: "^3\\.\\d+\\.\\d+"
+
+# FULL CAPABILITIES - ALL FOUR TYPES!
+capabilities:
+  # 1. Project initialization
+  project-init:
+    enabled: true
+    commands:
+      - command: "claude-flow init --full"
+        description: "Initialize Claude Flow v3"
+        requiresAuth: anthropic
+        conditional: false
+
+      - command: "claude-flow swarm init --topology ${CF_SWARM_TOPOLOGY}"
+        description: "Initialize UnifiedSwarmCoordinator"
+        requiresAuth: none
+        conditional: true
+
+    state-markers:
+      - path: ".claude"
+        type: directory
+        description: "Claude Code configuration"
+      - path: ".claude/config.json"
+        type: file
+        description: "V3 unified config"
+
+    validation:
+      command: "claude-flow --version && claude-flow doctor --check"
+      expectedPattern: "^3\\.\\d+\\.\\d+"
+
+  # 2. Authentication (multi-method)
+  auth:
+    provider: anthropic
+    required: false
+    methods:
+      - api-key
+      - cli-auth
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+    features:
+      - name: agent-spawn
+        requiresApiKey: false
+        description: "CLI-based agent spawning"
+      - name: api-integration
+        requiresApiKey: true
+        description: "Direct API features"
+
+  # 3. Lifecycle hooks
+  hooks:
+    post-install:
+      command: "claude-flow --version | grep -q '^3\\.'"
+      description: "Verify v3 installation"
+    post-project-init:
+      command: "echo 'Claude Flow v3 initialized - enjoy 10x performance!'"
+      description: "v3 initialization complete"
+
+  # 4. MCP server registration
+  mcp:
+    enabled: true
+    server:
+      command: "npx"
+      args:
+        - "-y"
+        - "@claude-flow/cli@alpha"
+        - "mcp"
+        - "start"
+      env:
+        CLAUDE_FLOW_MCP_MODE: "1"
+    tools:
+      - name: "claude-flow-agent-spawn"
+        description: "Spawn specialized agents"
+      - name: "claude-flow-swarm-coordinate"
+        description: "Coordinate multi-agent swarms"
+      - name: "claude-flow-neural-sona"
+        description: "SONA self-optimizing neural architecture"
+
+bom:
+  tools:
+    - name: claude-flow
+      version: "3.0.0-alpha"
+      source: npm
+      type: cli-tool
+```
+
+**Key points:**
+
+- **Project-init**: Multiple commands (some conditional)
+- **Auth**: Supports BOTH API key AND CLI auth (flexible for Max/Pro users)
+- **Features**: Some features work without API key, others require it
+- **Hooks**: Post-install and post-project-init lifecycle events
+- **MCP**: Registers 15 tools with Claude Code via MCP server
+- **State markers**: Prevents re-initialization if already configured
+
+---
+
 ## Directory Structure Examples
 
-### Minimal Extension (mise-based)
+### Minimal Extension (mise-based) - NO CAPABILITIES
 
 ```text
 docker/lib/extensions/my-language/
@@ -356,7 +563,7 @@ docker/lib/extensions/my-language/
 └── mise.toml
 ```
 
-### Full Extension (script-based)
+### Full Extension (script-based) - NO CAPABILITIES
 
 ```text
 docker/lib/extensions/my-tool/
@@ -369,6 +576,18 @@ docker/lib/extensions/my-tool/
 └── templates/
     ├── config.template
     └── rc.template
+```
+
+### Extension WITH Capabilities (project-init)
+
+```text
+docker/lib/extensions/spec-kit/
+├── extension.yaml         # Includes capabilities section
+├── scripts/
+│   ├── install.sh
+│   └── commit-spec-kit.sh # Post-project-init hook
+└── templates/
+    └── spec-template.json
 ```
 
 ---
@@ -539,3 +758,57 @@ validate:
     path: scripts/validate.sh
     timeout: 60
 ```
+
+---
+
+## Understanding Capabilities
+
+### When to Use Capabilities
+
+**Use capabilities when your extension:**
+
+1. **Needs project initialization** - Runs setup commands when creating a new project (e.g., `claude-flow init`, `spec-kit init`)
+2. **Requires authentication** - Validates API keys or CLI authentication before running
+3. **Has lifecycle hooks** - Needs to run commands pre/post install or project-init
+4. **Provides MCP tools** - Registers as an MCP server for Claude Code integration
+
+**Don't use capabilities when your extension:**
+
+1. **Just installs tools** - Language runtimes (nodejs, python, go, rust)
+2. **Provides development utilities** - Linters, formatters, build tools
+3. **Installs system packages** - Docker, database clients, system tools
+
+### Capability Examples in Sindri
+
+| Extension          | Purpose          | Capabilities Used              | When to Use Similar Pattern           |
+| ------------------ | ---------------- | ------------------------------ | ------------------------------------- |
+| **nodejs**         | Node.js runtime  | None                           | Language runtimes, dev tools          |
+| **docker**         | Docker Engine    | None                           | Infrastructure tools, system packages |
+| **spec-kit**       | GitHub spec docs | project-init, hooks            | Project initialization without auth   |
+| **claude-flow-v3** | Multi-agent AI   | project-init, auth, hooks, mcp | AI tools with authentication and MCP  |
+| **agentic-qe**     | AI testing       | project-init, auth, hooks, mcp | AI tools requiring Anthropic API      |
+
+### Multi-Method Authentication
+
+Modern extensions support both API key and CLI authentication:
+
+```yaml
+capabilities:
+  auth:
+    provider: anthropic
+    required: false
+    methods:
+      - api-key # Traditional API key in env var
+      - cli-auth # CLI authentication (Max/Pro plan)
+    features:
+      - name: cli-features
+        requiresApiKey: false # Works with CLI auth
+      - name: api-features
+        requiresApiKey: true # Requires API key
+```
+
+**Benefits:**
+
+- Max/Pro users can use extensions without setting API keys
+- Feature-level auth requirements (some features work without API key)
+- Graceful degradation when API key unavailable

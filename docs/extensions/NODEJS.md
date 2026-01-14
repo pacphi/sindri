@@ -4,13 +4,13 @@ Node.js LTS runtime with npm and pnpm package managers.
 
 ## Overview
 
-| Property         | Value                           |
-| ---------------- | ------------------------------- |
-| **Category**     | language                        |
-| **Version**      | 1.1.0                           |
-| **Installation** | hybrid (mise + script)          |
-| **Disk Space**   | 600 MB                          |
-| **Dependencies** | [mise-config](MISE-CONFIG.md)   |
+| Property         | Value                         |
+| ---------------- | ----------------------------- |
+| **Category**     | language                      |
+| **Version**      | 1.1.0                         |
+| **Installation** | hybrid (mise + script)        |
+| **Disk Space**   | 600 MB                        |
+| **Dependencies** | [mise-config](MISE-CONFIG.md) |
 
 ## Description
 
@@ -18,11 +18,11 @@ Node.js LTS via mise - provides the Node.js runtime, npm, and pnpm package manag
 
 ## Installed Tools
 
-| Tool   | Type            | Description                |
-| ------ | --------------- | -------------------------- |
-| `node` | runtime         | Node.js JavaScript runtime |
-| `npm`  | package-manager | Node Package Manager       |
-| `npx`  | cli-tool        | Execute npm packages       |
+| Tool   | Type            | Description                                    |
+| ------ | --------------- | ---------------------------------------------- |
+| `node` | runtime         | Node.js JavaScript runtime                     |
+| `npm`  | package-manager | Node Package Manager                           |
+| `npx`  | cli-tool        | Execute npm packages                           |
 | `pnpm` | package-manager | Fast, disk-efficient package manager (default) |
 
 ## Configuration

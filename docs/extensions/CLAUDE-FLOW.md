@@ -1,332 +1,298 @@
 # Claude Flow
 
-AI-powered multi-agent orchestration system for Claude Code workflows (v3alpha).
+AI-powered multi-agent orchestration system for Claude Code workflows.
 
-## Overview
+## Version Selection
 
-| Property         | Value                                 |
-| ---------------- | ------------------------------------- |
-| **Category**     | ai                                    |
-| **Version**      | 1.0.0                                 |
-| **Installation** | script (npm)                          |
-| **Disk Space**   | 100 MB                                |
-| **Memory**       | 128 MB                                |
-| **Dependencies** | [nodejs](NODEJS.md)                   |
-| **Author**       | ruvnet                                |
-| **License**      | MIT                                   |
-| **Homepage**     | https://github.com/ruvnet/claude-flow |
+Claude Flow is available in two versions with different features and stability levels:
 
-## Description
+| Version | Status    | Documentation                          | Recommendation          |
+| ------- | --------- | -------------------------------------- | ----------------------- |
+| **V2**  | ✅ Stable | [CLAUDE-FLOW-V2.md](CLAUDE-FLOW-V2.md) | Production use          |
+| **V3**  | ⚠️ Alpha  | [CLAUDE-FLOW-V3.md](CLAUDE-FLOW-V3.md) | Early adopters, testing |
 
-Claude Flow is an AI-powered multi-agent orchestration system for Claude Code workflows. This extension installs the **v3alpha** version. It provides advanced features including hive-mind operations, swarm orchestration, memory management, neural operations, goal planning (GOAP), GitHub integration, and Flow Nexus cloud capabilities.
+## Quick Comparison
 
-## Installed Tools
+### When to Use V2 (Stable)
 
-| Tool          | Type     | Description     |
-| ------------- | -------- | --------------- |
-| `claude-flow` | cli-tool | Claude Flow CLI |
+✅ **Use V2 if you need:**
 
-## Claude Code Commands
+- Production-ready, stable release
+- Extensive command aliases (158+)
+- Proven reliability
+- Flow Nexus cloud integration
+- MetaSaver intelligent routing
+- AgentDB optional integration
 
-The extension installs the following Claude Code slash commands to `~/.claude/commands/`:
-
-### `/ms` - MetaSaver Intelligent Command Router
-
-The MetaSaver command analyzes prompt complexity and automatically routes tasks to the optimal execution method.
-
-#### Automatic Routing Logic
-
-| Complexity        | Score | Routing Target    | Triggers                                           |
-| ----------------- | ----- | ----------------- | -------------------------------------------------- |
-| 🔴 Ultra-Complex  | ≥25   | Hive-Mind         | Multi-package, enterprise architecture, migrations |
-| 🟡 Medium-Complex | 7-24  | Claude Flow Swarm | Multi-file implementations, API development        |
-| 🟢 Simple         | <7    | Enhanced Claude   | Single file work, debugging, quick fixes           |
-
-#### Complexity Scoring
-
-The command calculates complexity based on:
-
-- **Ultra-complex keywords** (+10-15 pts): "enterprise", "architecture", "monorepo", "system-wide", "migration"
-- **Medium-complex keywords** (+5-9 pts): "implement", "build", "API", "feature", "component", "testing"
-- **Scope indicators** (+3-8 pts): Multi-package scope, integration complexity
-
-#### Thinking Levels
-
-For Claude-routed tasks, appropriate thinking depth is applied:
-
-| Level          | Use Case                                    |
-| -------------- | ------------------------------------------- |
-| `ultrathink`   | Architecture decisions, security analysis   |
-| `think-harder` | Refactoring, algorithm design, optimization |
-| `think`        | Straightforward implementations             |
-
-#### Usage Examples
+**Install:**
 
 ```bash
-# Ultra-Complex → Routes to Hive-Mind
-/ms "Standardize error handling across all microservices in monorepo"
-
-# Medium-Complex → Routes to Swarm
-/ms "Build JWT auth API with refresh tokens and tests"
-
-# Simple → Routes to Enhanced Claude
-/ms "Fix TypeScript error in user.service.ts line 45"
-
-# Override automatic routing
-/ms "simple task" --force-hive-mind
-/ms "complex task" --force-claude
-
-# Explicit thinking levels
-/ms "design architecture" --ultrathink
-/ms "refactor code" --think-harder
-
-# Utility options
-/ms "any task" --dry-run          # Show routing decision only
-/ms "any task" --explain-routing  # Show why route was chosen
+extension-manager install claude-flow-v2
 ```
 
-#### Value Proposition
+**Documentation:** [CLAUDE-FLOW-V2.md](CLAUDE-FLOW-V2.md)
 
-- **Single entry point** - One command for all task types
-- **Intelligent routing** - Automatically selects optimal execution path
-- **Consistent quality** - Tasks matched to appropriate processing power
-- **Time savings** - No manual decision-making about which tool to use
+### When to Use V3 (Alpha)
 
-## Configuration
+⚠️ **Use V3 if you want:**
 
-### Environment Variables
+- Cutting-edge features (alpha quality)
+- 10x performance improvements
+- 150x-12,500x faster memory search
+- Self-learning capabilities (SONA)
+- Advanced security scanning
+- Flexible authentication (API key OR Max/Pro plan)
+- Modular architecture (18 packages)
+- 15 MCP tools (vs 3 in V2)
 
-| Variable | Value                    | Scope  | Description |
-| -------- | ------------------------ | ------ | ----------- |
-| `PATH`   | `$HOME/.local/bin:$PATH` | bashrc | Binary path |
+**Install:**
 
-### Shell Aliases
+```bash
+extension-manager install claude-flow-v3
+```
 
-The extension installs extensive convenience aliases organized by category:
+**Documentation:** [CLAUDE-FLOW-V3.md](CLAUDE-FLOW-V3.md)
 
-#### Initialization & Setup
+## Feature Comparison
 
-| Alias             | Command                                              | Description            |
-| ----------------- | ---------------------------------------------------- | ---------------------- |
-| `cf-init`         | `claude-flow init --force`                           | Initialize project     |
-| `cf-init-verify`  | `claude-flow init --verify --pair --github-enhanced` | Init with verification |
-| `cf-init-project` | `claude-flow init --force --project-name`            | Init with project name |
-| `cf-init-nexus`   | `claude-flow init --flow-nexus`                      | Init with Flow Nexus   |
+| Feature                     | V2 Stable               | V3 Alpha                     |
+| --------------------------- | ----------------------- | ---------------------------- |
+| **Version**                 | 2.7.47                  | 3.0.0-alpha                  |
+| **Architecture**            | Monolithic              | Modular (18 packages)        |
+| **Performance**             | Baseline                | 2.49x-7.47x faster           |
+| **Memory Search**           | Baseline                | 150x-12,500x faster (HNSW)   |
+| **Aliases**                 | 158+                    | 58 (simplified)              |
+| **Swarm Topologies**        | 1 (basic)               | 4 (adaptive)                 |
+| **Consensus Algorithms**    | None                    | 5 types                      |
+| **Self-Learning**           | Manual                  | SONA (9 RL algorithms)       |
+| **Catastrophic Forgetting** | Not prevented           | EWC++ prevents               |
+| **Security Scanning**       | None                    | CVE remediation              |
+| **Background Workers**      | 2 daemons               | 12 auto-triggered            |
+| **Hook Events**             | None                    | 31 events                    |
+| **MCP Tools**               | 3                       | 15                           |
+| **Health Check**            | Manual                  | `doctor` with auto-fix       |
+| **Auth Methods**            | API key OR Max/Pro plan | API key OR Max/Pro plan      |
+| **Flash Attention**         | Not available           | 2.49x-7.47x speedup          |
+| **LLM Providers**           | Anthropic only          | 6 with load balancing        |
+| **Installation Size**       | 100 MB                  | 150 MB                       |
+| **Memory Overhead**         | 128 MB                  | 256 MB                       |
+| **Upgrade Strategy**        | reinstall               | automatic                    |
+| **Stability**               | ✅ Production-ready     | ⚠️ Alpha, active development |
 
-#### Hive-Mind Operations
+## Architecture Differences
 
-| Alias            | Command                                            | Description          |
-| ---------------- | -------------------------------------------------- | -------------------- |
-| `cf-spawn`       | `claude-flow hive-mind spawn`                      | Spawn hive-mind      |
-| `cf-wizard`      | `claude-flow hive-mind wizard`                     | Interactive wizard   |
-| `cf-resume`      | `claude-flow hive-mind resume`                     | Resume session       |
-| `cf-status`      | `claude-flow hive-mind status`                     | Check status         |
-| `cf-sessions`    | `claude-flow hive-mind sessions`                   | List sessions        |
-| `cf-upgrade`     | `claude-flow hive-mind upgrade`                    | Upgrade hive-mind    |
-| `cf-github-hive` | `claude-flow hive-mind spawn --github-enhanced...` | GitHub-enhanced hive |
+### V2: Monolithic
 
-#### Swarm Operations
+- Single npm package
+- All features in one bundle
+- Simple deployment
+- AgentDB via optional script
+- Proven stable architecture
 
-| Alias                | Command                                | Description      |
-| -------------------- | -------------------------------------- | ---------------- |
-| `cf-swarm`           | Context-aware swarm wrapper            | Launch swarm     |
-| `cf-continue`        | `claude-flow swarm --continue-session` | Continue session |
-| `cf-swarm-temp`      | `claude-flow swarm --temp`             | Temporary swarm  |
-| `cf-swarm-namespace` | `claude-flow swarm --namespace`        | Namespaced swarm |
+### V3: Modular
 
-#### Memory Management
+- 18 separate packages:
+  - `@claude-flow/swarm`
+  - `@claude-flow/embeddings`
+  - `@claude-flow/memory`
+  - `@claude-flow/security`
+  - `@claude-flow/plugins`
+  - `@claude-flow/mcp`
+  - `@claude-flow/cli`
+  - `@claude-flow/neural`
+  - `@claude-flow/hooks`
+  - And 9 more specialized modules
+- Built-in AgentDB (no script needed)
+- Better tree-shaking and optimization
+- Independent module upgrades
 
-| Alias              | Command                                       | Description       |
-| ------------------ | --------------------------------------------- | ----------------- |
-| `cf-memory-stats`  | `claude-flow memory stats`                    | Memory statistics |
-| `cf-memory-list`   | `claude-flow memory list`                     | List memories     |
-| `cf-memory-query`  | `claude-flow memory query`                    | Query memory      |
-| `cf-memory-recent` | `claude-flow memory query --recent --limit 5` | Recent memories   |
-| `cf-memory-clear`  | `claude-flow memory clear`                    | Clear memory      |
-| `cf-memory-export` | `claude-flow memory export`                   | Export memory     |
-| `cf-memory-import` | `claude-flow memory import`                   | Import memory     |
+## Key V3 Innovations
 
-#### Neural & Goal Operations
+### 🚀 UnifiedSwarmCoordinator
 
-| Alias               | Command                      | Description        |
-| ------------------- | ---------------------------- | ------------------ |
-| `cf-neural-train`   | `claude-flow neural train`   | Train neural model |
-| `cf-neural-predict` | `claude-flow neural predict` | Neural prediction  |
-| `cf-neural-status`  | `claude-flow neural status`  | Neural status      |
-| `cf-goal-plan`      | `claude-flow goal plan`      | Plan goal          |
-| `cf-goal-execute`   | `claude-flow goal execute`   | Execute goal       |
-| `cf-goal-status`    | `claude-flow goal status`    | Goal status        |
+**Revolutionary multi-agent orchestration:**
 
-#### GitHub Integration
+- 4 adaptive topologies vs 1 basic in V2
+- 5 consensus algorithms for coordination
+- 2.8-4.4x faster task execution
+- <100ms coordination latency
+- Scale to 15-100+ agents
 
-| Alias               | Command                      | Description         |
-| ------------------- | ---------------------------- | ------------------- |
-| `cf-github-init`    | `claude-flow github init`    | Initialize GitHub   |
-| `cf-github-sync`    | `claude-flow github sync`    | Sync with GitHub    |
-| `cf-github-pr`      | `claude-flow github pr`      | Create pull request |
-| `cf-github-issues`  | `claude-flow github issues`  | View issues         |
-| `cf-github-analyze` | `claude-flow github analyze` | Analyze repository  |
-| `cf-github-migrate` | `claude-flow github migrate` | Migrate repository  |
+### 🧠 SONA (Self-Optimizing Neural Architecture)
 
-#### Quick Shortcuts
+**Learns from every interaction:**
 
-| Alias  | Full Command        | Description           |
-| ------ | ------------------- | --------------------- |
-| `cfs`  | `cf-swarm`          | Quick swarm           |
-| `cfh`  | `cf-hive`           | Quick hive spawn      |
-| `cfr`  | `cf-resume`         | Quick resume          |
-| `cfst` | `cf-status`         | Quick status          |
-| `cfm`  | `cf-memory-stats`   | Quick memory stats    |
-| `cfa`  | `cf-agents-list`    | Quick agent list      |
-| `cfg`  | `cf-github-analyze` | Quick GitHub analysis |
-| `cfn`  | `cf-nexus-swarm`    | Quick Nexus swarm     |
+- 9 RL algorithms (PPO, A2C, DQN, etc.)
+- <0.05ms adaptation speed
+- EWC++ prevents catastrophic forgetting
+- 89%+ accuracy in task-to-agent matching
+- Pattern consolidation and quality tracking
 
-### Utility Functions
+### 💾 HNSW-Indexed Memory
 
-| Function     | Usage                           | Description                    |
-| ------------ | ------------------------------- | ------------------------------ | -------- | --------------- |
-| `cf-task`    | `cf-task "description"`         | Execute task with Claude swarm |
-| `cf-hive-ns` | `cf-hive-ns "task" "namespace"` | Spawn hive-mind with namespace |
-| `cf-search`  | `cf-search "query"`             | Search memory with context     |
-| `cf-sandbox` | `cf-sandbox "template" "name"`  | Create Flow Nexus sandbox      |
-| `cf-session` | `cf-session [list               | resume                         | status]` | Manage sessions |
+**Ultra-fast semantic search:**
 
-## Network Requirements
+- 150x-12,500x faster than V2
+- Hybrid SQLite + AgentDB backend
+- Vector quantization (up to 32x compression)
+- 4 distance metrics
+- Cross-agent memory sharing
 
-- `registry.npmjs.org` - npm package registry
-- `github.com` - Source code repository
+### 🔒 Security Module
+
+**Production-ready security (new in V3):**
+
+- CVE remediation (CVE-2, CVE-3, HIGH-1, HIGH-2)
+- bcrypt password hashing (12-14 rounds)
+- Command injection protection
+- Path traversal prevention
+- 12 validation schemas
+
+### 🎯 Plugin System
+
+**Extensible architecture (new in V3):**
+
+- 31 hook events for complete lifecycle
+- 12 auto-triggered background workers
+- PluginBuilder for custom plugins
+- MCPToolBuilder for MCP tool creation
+- WorkerPool with auto-scaling
+
+### ⚡ Flash Attention
+
+**Massive performance gains (new in V3):**
+
+- 2.49x-7.47x speedup in attention computations
+- Multi-head attention (8 heads)
+- Linear attention for long sequences
+- Hyperbolic attention for hierarchies
+- GraphRoPE topology-aware encoding
+
+### 🌐 Multi-Provider LLM
+
+**6 providers with load balancing (new in V3):**
+
+- Anthropic Claude
+- OpenAI GPT-4o, GPT-4 Turbo, GPT-3.5
+- Google Gemini 2.0 Flash, 1.5 Pro
+- Cohere Command R+, R, Light
+- Ollama Local models
+- RuVector Custom (WASM)
+- Cost-based load balancing (85%+ savings)
+
+## Authentication
+
+**Both V2 and V3 support flexible authentication:**
+
+```bash
+# Option 1: API key (full access)
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Option 2: Max/Pro plan (CLI access, no API key needed)
+claude  # Authenticate via browser
+```
+
+**Benefits:**
+
+- Max/Pro plan users don't need an API key
+- Graceful feature degradation
+- Clear messaging about which features need API key
+- Better user experience for Max/Pro subscribers
+
+## Migration Path: V2 → V3
+
+### Memory Migration
+
+```bash
+# Install V3
+extension-manager install claude-flow-v3
+
+# Migrate V2 AgentDB to V3 HNSW
+cf-memory-migrate --from v2 --to v3
+
+# Verify migration
+cf-memory-stats
+```
+
+### Configuration Migration
+
+```bash
+# V3 automatically detects V2 config
+cf-doctor-fix
+```
+
+### Alias Changes
+
+Most V2 aliases work in V3 with updated behavior. Key changes:
+
+- **Removed:** Flow Nexus cloud integration aliases (simplified in V3)
+- **Added:** Swarm topology, consensus, SONA, security, daemon management
+- **Simplified:** 158+ aliases → 58 well-organized aliases
+
+### Feature Compatibility
+
+| V2 Feature         | V3 Equivalent             | Status     |
+| ------------------ | ------------------------- | ---------- |
+| Hive-Mind          | UnifiedSwarmCoordinator   | Enhanced   |
+| Basic swarm        | 4 swarm topologies        | Enhanced   |
+| AgentDB script     | Built-in HNSW             | Simplified |
+| Basic memory       | 150x-12,500x faster       | Enhanced   |
+| Manual scaling     | SONA auto-scaling         | Automated  |
+| No security        | CVE remediation           | New        |
+| No workers         | 12 auto-triggered workers | New        |
+| 3 MCP tools        | 15 MCP tools              | Enhanced   |
+| API key OR Max/Pro | API key OR Max/Pro plan   | Same       |
+| MetaSaver routing  | Plugin system             | Enhanced   |
+| Flow Nexus         | Simplified                | Changed    |
+
+## Choosing the Right Version
+
+### Choose V2 if:
+
+- ✅ You need production stability
+- ✅ You're risk-averse
+- ✅ You use Flow Nexus cloud features extensively
+- ✅ You prefer extensive aliases (158+)
+- ✅ You want proven reliability
+
+### Choose V3 if:
+
+- ⚡ You want 10x performance
+- 🧠 You need self-learning capabilities
+- 🔒 You want security scanning
+- 🎯 You need flexible authentication (Max/Pro plan support)
+- 🚀 You're an early adopter willing to test alpha features
+- 📊 You need ultra-fast memory search (150x-12,500x)
+
+### Run Both? No.
+
+V2 and V3 are **mutually exclusive**. They conflict and cannot be installed simultaneously. Choose one based on your needs.
 
 ## Installation
 
-```bash
-# Install with dependency
-extension-manager install claude-flow
-
-# Node.js is installed automatically as a dependency
-```
-
-## Validation
+### V2 (Stable)
 
 ```bash
-claude-flow --version    # Expected: X.X.X
+extension-manager install claude-flow-v2
 ```
 
-## Usage
-
-### Initialize a Project
+### V3 (Alpha)
 
 ```bash
-# Basic initialization
-cf-init
-
-# Initialize with verification and pairing
-cf-init-verify
-
-# Initialize with Flow Nexus
-cf-init-nexus
+extension-manager install claude-flow-v3
 ```
-
-### Swarm Operations
-
-```bash
-# Launch a swarm for a task
-cf-swarm "implement new feature"
-
-# Continue a previous session
-cf-continue
-
-# Quick swarm shortcut
-cfs "fix bug in authentication"
-```
-
-### Hive-Mind Operations
-
-```bash
-# Spawn a hive-mind
-cf-spawn
-
-# Use the interactive wizard
-cf-wizard
-
-# Resume a previous session
-cf-resume
-
-# Check status
-cf-status
-```
-
-### Memory Management
-
-```bash
-# View memory statistics
-cf-memory-stats
-
-# Query recent memories
-cf-memory-recent
-
-# Search memory
-cf-search "authentication implementation"
-
-# Export/import memory
-cf-memory-export backup.json
-cf-memory-import backup.json
-```
-
-### GitHub Integration
-
-```bash
-# Analyze a repository
-cf-github-analyze
-
-# Create a pull request
-cf-github-pr
-
-# View issues
-cf-github-issues
-```
-
-### Flow Nexus Cloud
-
-```bash
-# Login to Flow Nexus
-cf-nexus-login
-
-# Create a sandbox
-cf-sandbox "basic" "my-sandbox"
-
-# Deploy to cloud
-cf-nexus-deploy
-```
-
-## Upgrade
-
-**Strategy:** automatic
-
-```bash
-extension-manager upgrade claude-flow
-```
-
-## Removal
-
-### Requires confirmation
-
-```bash
-extension-manager remove claude-flow
-```
-
-Removes:
-
-- Global npm package `claude-flow`
-- Shell aliases from `~/.bashrc`
 
 ## Resources
 
-- [Documentation](https://github.com/ruvnet/claude-flow/wiki)
+- [V2 Documentation (Stable)](CLAUDE-FLOW-V2.md)
+- [V3 Documentation (Alpha)](CLAUDE-FLOW-V3.md)
+- [GitHub Repository](https://github.com/ruvnet/claude-flow)
+- [Wiki Documentation](https://github.com/ruvnet/claude-flow/wiki)
 - [Examples](https://github.com/ruvnet/claude-flow/tree/main/examples)
 
 ## Related Extensions
 
-- [nodejs](NODEJS.md) - Required Node.js runtime
+- [nodejs](NODEJS.md) - Required Node.js runtime (auto-installed)
 - [agentic-flow](AGENTIC-FLOW.md) - Multi-model AI framework
 - [ai-toolkit](AI-TOOLKIT.md) - AI tools suite
 - [goose](GOOSE.md) - Block's AI agent

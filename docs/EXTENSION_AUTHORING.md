@@ -1,5 +1,7 @@
 # Extension Authoring Guide
 
+This guide covers creating extensions for Sindri. For architectural background on the capability system, see [ADR-001: Extension Capabilities System](architecture/adr/ADR-001-extension-capabilities-system.md).
+
 ## Creating a New Extension
 
 ### 1. Create Directory Structure
