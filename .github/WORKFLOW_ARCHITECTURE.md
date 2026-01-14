@@ -612,7 +612,7 @@ extensions: nodejs
 # Multiple extensions
 extensions: nodejs,python,golang
 
-# All non-protected extensions (~29)
+# All non-protected extensions (70+)
 extensions: all
 ```
 

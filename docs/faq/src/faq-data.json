@@ -550,8 +550,8 @@
       "id": "agentdb-init",
       "category": "architecture",
       "question": "How is claude-flow AgentDB automatically initialized?",
-      "answer": "When creating or cloning a project with claude-flow (via new-project or clone-project with '--use-claude-flow' or '--use-agentic-qe'), Sindri automatically detects and initializes the AgentDB backend for persistent memory storage. After claude-flow initialization, the init-claude-flow-agentdb script runs, which checks for AgentDB support, creates the database directory, configures connection settings, and verifies the backend is functional. This provides claude-flow sessions with automatic memory persistence without manual setup. The AgentDB data is stored in your persistent workspace volume, surviving container restarts.",
-      "tags": ["claude-flow", "agentdb", "memory", "persistence", "automation"],
+      "answer": "When creating or cloning a project with claude-flow (v2 or v3) via new-project or clone-project with '--use-claude-flow' or '--use-agentic-qe', Sindri automatically detects and initializes the AgentDB backend for persistent memory storage. After claude-flow initialization, the init-claude-flow-agentdb script runs, which checks for AgentDB support, creates the database directory, configures connection settings, and verifies the backend is functional. This provides claude-flow sessions with automatic memory persistence without manual setup. The AgentDB data is stored in your persistent workspace volume, surviving container restarts.",
+      "tags": ["claude-flow", "claude-flow-v2", "claude-flow-v3", "agentdb", "memory", "persistence", "automation"],
       "docs": ["docs/PROJECT_MANAGEMENT.md", "cli/init-claude-flow-agentdb"]
     },
     {

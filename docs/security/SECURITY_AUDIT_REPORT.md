@@ -1719,7 +1719,7 @@ services:
 
 **Remediation Implemented:**
 
-Based on comprehensive analysis of all 74 extensions and core system operations, implemented minimal capability set:
+Based on comprehensive analysis of 70+ extensions and core system operations, implemented minimal capability set:
 
 ```yaml
 services:
@@ -1742,7 +1742,7 @@ services:
 
 **Analysis Methodology:**
 
-1. Analyzed all 74 extensions for installation methods and system requirements
+1. Analyzed 70+ extensions for installation methods and system requirements
 2. Examined core system operations (entrypoint.sh, executor.sh, install scripts)
 3. Determined minimal capabilities needed:
    - **19 extensions (26%)** require elevated capabilities (apt, dpkg, system services)
@@ -1933,7 +1933,7 @@ The Sindri project demonstrates good architectural decisions (container isolatio
 **Recent Accomplishments (Phase 5):**
 
 - **C-5:** Attempted restricted sudo (60 operations) but reverted to NOPASSWD: ALL - accepted as risk for dev containers (industry standard)
-- **M-8:** Docker security hardening with minimal capability set (5 capabilities) based on comprehensive analysis of 74 extensions
+- **M-8:** Docker security hardening with minimal capability set (5 capabilities) based on comprehensive analysis of 73 extensions
 - **M-2:** Attempted 750 permissions but reverted to 755 due to test failures (accepted risk with documented justification)
 - **Cloud-tools/Ollama:** Modified to use user-local installations (eliminates sudo for binaries)
 

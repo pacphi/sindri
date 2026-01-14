@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-Sindri includes an interactive FAQ page with 40+ searchable questions covering setup, configuration, deployment, extensions, secrets, troubleshooting, architecture, and CI/CD.
+Sindri includes an interactive FAQ page with 60+ searchable questions covering setup, configuration, deployment, extensions, secrets, troubleshooting, architecture, and CI/CD.
 
 ## Viewing the FAQ
 
