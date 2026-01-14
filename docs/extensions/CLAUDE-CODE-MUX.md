@@ -120,4 +120,3 @@ Removes:
 ## Related Extensions
 
 - [ai-toolkit](AI-TOOLKIT.md) - AI tools suite
-- [claude-auth-with-api-key](CLAUDE-AUTH-WITH-API-KEY.md) - API key auth

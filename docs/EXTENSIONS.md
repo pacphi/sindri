@@ -221,17 +221,16 @@ Extensions support different upgrade approaches:
 
 Some extensions require API keys or credentials:
 
-| Extension                | Required Secrets                              |
-| ------------------------ | --------------------------------------------- |
-| ai-toolkit               | `google_gemini_api_key`, `grok_api_key`       |
-| cloud-tools              | AWS, Azure credentials                        |
-| claude-auth-with-api-key | `anthropic_api_key`                           |
-| claudish                 | `openrouter_api_key`                          |
-| github-cli               | `github_token`                                |
-| jira-mcp                 | `jira_url`, `jira_username`, `jira_api_token` |
-| linear-mcp               | `linear_api_key`                              |
-| ruvnet-research          | `perplexity_api_key` (optional)               |
-| supabase-cli             | `supabase_access_token` (optional)            |
+| Extension       | Required Secrets                              |
+| --------------- | --------------------------------------------- |
+| ai-toolkit      | `google_gemini_api_key`, `grok_api_key`       |
+| cloud-tools     | AWS, Azure credentials                        |
+| claudish        | `openrouter_api_key`                          |
+| github-cli      | `github_token`                                |
+| jira-mcp        | `jira_url`, `jira_username`, `jira_api_token` |
+| linear-mcp      | `linear_api_key`                              |
+| ruvnet-research | `perplexity_api_key` (optional)               |
+| supabase-cli    | `supabase_access_token` (optional)            |
 
 ### Removal Confirmation
 

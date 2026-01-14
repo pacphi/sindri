@@ -760,16 +760,15 @@ Many Sindri extensions require API keys or tokens to function. This reference li
 
 ### AI & Machine Learning
 
-| Extension                  | Secret Name             | Description                              | Where to Get                                                  |
-| -------------------------- | ----------------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| `claude-auth-with-api-key` | `ANTHROPIC_API_KEY`     | Claude API access                        | [Anthropic Console](https://console.anthropic.com/)           |
-| `vf-gemini-flow`           | `GOOGLE_GEMINI_API_KEY` | Google Gemini multi-agent orchestration  | [Google AI Studio](https://makersuite.google.com/app/apikey)  |
-| `vf-perplexity`            | `PERPLEXITY_API_KEY`    | Perplexity AI real-time web research     | [Perplexity Settings](https://www.perplexity.ai/settings/api) |
-| `vf-deepseek-reasoning`    | `DEEPSEEK_API_KEY`      | DeepSeek AI reasoning MCP server         | [DeepSeek Platform](https://platform.deepseek.com/)           |
-| `vf-zai-service`           | `ZAI_ANTHROPIC_API_KEY` | Cost-effective Claude API wrapper        | [Anthropic Console](https://console.anthropic.com/)           |
-| `vf-ontology-enrich`       | `PERPLEXITY_API_KEY`    | AI ontology enrichment (uses Perplexity) | [Perplexity Settings](https://www.perplexity.ai/settings/api) |
-| `ai-toolkit`               | `GOOGLE_GEMINI_API_KEY` | Multi-AI toolkit (Gemini support)        | [Google AI Studio](https://makersuite.google.com/app/apikey)  |
-| `claudish`                 | `OPENROUTER_API_KEY`    | OpenRouter multi-provider gateway        | [OpenRouter Keys](https://openrouter.ai/keys)                 |
+| Extension               | Secret Name             | Description                              | Where to Get                                                  |
+| ----------------------- | ----------------------- | ---------------------------------------- | ------------------------------------------------------------- |
+| `vf-gemini-flow`        | `GOOGLE_GEMINI_API_KEY` | Google Gemini multi-agent orchestration  | [Google AI Studio](https://makersuite.google.com/app/apikey)  |
+| `vf-perplexity`         | `PERPLEXITY_API_KEY`    | Perplexity AI real-time web research     | [Perplexity Settings](https://www.perplexity.ai/settings/api) |
+| `vf-deepseek-reasoning` | `DEEPSEEK_API_KEY`      | DeepSeek AI reasoning MCP server         | [DeepSeek Platform](https://platform.deepseek.com/)           |
+| `vf-zai-service`        | `ZAI_ANTHROPIC_API_KEY` | Cost-effective Claude API wrapper        | [Anthropic Console](https://console.anthropic.com/)           |
+| `vf-ontology-enrich`    | `PERPLEXITY_API_KEY`    | AI ontology enrichment (uses Perplexity) | [Perplexity Settings](https://www.perplexity.ai/settings/api) |
+| `ai-toolkit`            | `GOOGLE_GEMINI_API_KEY` | Multi-AI toolkit (Gemini support)        | [Google AI Studio](https://makersuite.google.com/app/apikey)  |
+| `claudish`              | `OPENROUTER_API_KEY`    | OpenRouter multi-provider gateway        | [OpenRouter Keys](https://openrouter.ai/keys)                 |
 
 ### Project Management
 

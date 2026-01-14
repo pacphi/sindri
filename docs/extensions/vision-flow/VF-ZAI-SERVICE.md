@@ -75,7 +75,6 @@ Removes:
 ## Related Extensions
 
 - [vf-web-summary](VF-WEB-SUMMARY.md) - Uses Z.AI for summarization
-- [claude-auth-with-api-key](../CLAUDE-AUTH-WITH-API-KEY.md) - Claude authentication
 
 ## Additional Notes
 

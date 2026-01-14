@@ -75,4 +75,3 @@ Removes:
 ## Related Extensions
 
 - [openskills](OPENSKILLS.md) - Skills management
-- [claude-auth-with-api-key](CLAUDE-AUTH-WITH-API-KEY.md) - API key auth

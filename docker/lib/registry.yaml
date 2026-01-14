@@ -119,11 +119,6 @@ extensions:
     description: Claude Code skills manager
     dependencies: [nodejs]
 
-  claude-auth-with-api-key:
-    category: ai
-    description: Claude API key authentication
-    dependencies: []
-
   claude-marketplace:
     category: ai
     description: Claude Code marketplace configuration
