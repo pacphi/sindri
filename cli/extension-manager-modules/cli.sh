@@ -38,6 +38,11 @@ COMMANDS:
     info <name>             Show detailed extension information
     bom [name]              Show Bill of Materials (BOM) for extension or all
     bom-regenerate          Regenerate all BOMs
+    mcp list                List extensions with MCP capabilities
+    mcp registered          List registered MCP servers in Claude Code
+    mcp register <name>     Register extension as MCP server
+    mcp unregister <name>   Unregister extension from MCP servers
+    mcp show <name>         Show MCP server details for extension
 
 OPTIONS:
     -h, --help              Show this help message

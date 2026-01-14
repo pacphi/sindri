@@ -1,0 +1,132 @@
+---
+metadata:
+  name: claude-flow-v2
+  version: 2.7.47
+  description: AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable)
+  category: ai
+  author: ruvnet
+  license: MIT
+  homepage: https://github.com/ruvnet/claude-flow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+  diskSpace: 100
+  memory: 128
+  installTime: 60
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+
+configure:
+  templates:
+    - source: claude-flow.aliases
+      destination: ~/.bashrc
+      mode: append
+  commands:
+    - source: commands/ms.md
+      destination: ~/.claude/commands/ms.md
+      description: MetaSaver intelligent command router for complexity-based task routing
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: claude-flow
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - "npm:claude-flow"
+  confirmation: true
+
+upgrade:
+  strategy: reinstall
+
+capabilities:
+  # Project initialization capability
+  project-init:
+    enabled: true
+    commands:
+      - command: "claude-flow init --force"
+        description: "Initialize Claude Code flow with memory and context"
+        requiresAuth: anthropic
+      - command: "bash scripts/init-agentdb.sh"
+        description: "Initialize AgentDB backend for enhanced memory"
+        conditional: true
+
+    state-markers:
+      - path: ".claude"
+        type: directory
+        description: "Claude Code configuration directory"
+      - path: "CLAUDE.md"
+        type: file
+        description: "Claude Code project context file"
+
+    validation:
+      command: "claude-flow --version"
+      expectedPattern: "^\\d+\\.\\d+\\.\\d+"
+
+  # Authentication requirements
+  auth:
+    provider: anthropic
+    required: true
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+
+  # Lifecycle hooks
+  hooks:
+    pre-install:
+      command: "echo 'Preparing claude-flow installation...'"
+      description: "Pre-installation checks"
+    post-install:
+      command: "claude-flow --version"
+      description: "Verify claude-flow installation"
+    pre-project-init:
+      command: "echo 'Initializing claude-flow project context...'"
+      description: "Pre-initialization setup"
+    post-project-init:
+      command: "echo 'Claude-flow project initialized successfully'"
+      description: "Post-initialization cleanup"
+
+  # MCP server registration
+  mcp:
+    enabled: true
+    server:
+      command: "npx"
+      args:
+        - "-y"
+        - "@claude-flow/cli@alpha"
+        - "mcp"
+        - "start"
+      env:
+        CLAUDE_FLOW_MCP_MODE: "1"
+    tools:
+      - name: "claude-flow-agent-spawn"
+        description: "Spawn specialized AI agents"
+      - name: "claude-flow-memory-store"
+        description: "Store patterns in unified memory"
+      - name: "claude-flow-swarm-coordinate"
+        description: "Coordinate multi-agent swarms"
+
+bom:
+  tools:
+    - name: claude-flow
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/ruvnet/claude-flow
+      purl: pkg:npm/claude-flow

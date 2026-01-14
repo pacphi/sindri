@@ -2,4 +2,4 @@
 # Uses mise pnpm backend for proper shim management
 
 [tools]
-"npm:claude-flow" = "v3alpha"
+"npm:claude-flow" = "2.7.47"

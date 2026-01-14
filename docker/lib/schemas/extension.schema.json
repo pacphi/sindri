@@ -146,7 +146,18 @@
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["mise", "apt", "binary", "npm", "script", "hybrid"]
+          "enum": ["mise", "apt", "binary", "npm", "npm-global", "script", "hybrid"]
+        },
+        "npm": {
+          "type": "object",
+          "description": "NPM global installation configuration (for npm-global method)",
+          "properties": {
+            "package": {
+              "type": "string",
+              "description": "NPM package name with optional version (e.g., 'package@1.0.0' or 'package@latest')"
+            }
+          },
+          "required": ["package"]
         },
         "mise": {
           "type": "object",
@@ -457,6 +468,239 @@
               "default": 600
             }
           }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Optional capabilities for project initialization, authentication, hooks, and MCP integration",
+      "properties": {
+        "project-init": {
+          "type": "object",
+          "description": "Project initialization commands and state markers",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "commands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "requiresAuth": {
+                    "type": "string",
+                    "enum": ["anthropic", "openai", "github", "none"],
+                    "default": "none"
+                  },
+                  "conditional": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": ["command", "description"]
+              }
+            },
+            "state-markers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": ["directory", "file", "symlink"]
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": ["path", "type"]
+              }
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "expectedPattern": {
+                  "type": "string"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0
+                }
+              },
+              "required": ["command"]
+            }
+          },
+          "required": ["enabled"]
+        },
+        "auth": {
+          "type": "object",
+          "description": "Authentication requirements",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai", "github", "custom"]
+            },
+            "required": {
+              "type": "boolean",
+              "default": false
+            },
+            "envVars": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "validator": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0
+                }
+              },
+              "required": ["command"]
+            }
+          },
+          "required": ["provider"]
+        },
+        "hooks": {
+          "type": "object",
+          "description": "Lifecycle hooks",
+          "properties": {
+            "pre-install": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-install": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "pre-project-init": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-project-init": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "description": "MCP server registration",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "server": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": ["command"]
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "description"]
+              }
+            }
+          },
+          "required": ["enabled"]
+        },
+        "project-context": {
+          "type": "object",
+          "description": "Project context file management",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "mergeFile": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "strategy": {
+                  "enum": ["append", "prepend", "merge", "replace", "append-if-missing"]
+                }
+              },
+              "required": ["source", "target", "strategy"]
+            }
+          },
+          "required": ["enabled"]
         }
       }
     },

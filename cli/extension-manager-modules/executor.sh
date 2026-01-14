@@ -71,6 +71,14 @@ install_extension() {
         check_dependencies "$ext_name" || return 1
     fi
 
+    # Check for conflicts with other extensions
+    if [[ -f "${MODULE_DIR}/conflict-checker.sh" ]]; then
+        source "${MODULE_DIR}/conflict-checker.sh"
+        if ! check_conflicts "$ext_name"; then
+            return 1
+        fi
+    fi
+
     # Check requirements
     check_requirements "$ext_name" "$ext_yaml" || return 1
 
@@ -83,14 +91,22 @@ install_extension() {
         return 0
     fi
 
+    # Source hooks manager if available
+    if [[ -f "${LIB_DIR}/hooks-manager.sh" ]]; then
+        source "${LIB_DIR}/hooks-manager.sh"
+        # Execute pre-install hook
+        execute_hook "$ext_name" "pre-install" 2>/dev/null || true
+    fi
+
     # Execute installation based on method
     case "$install_method" in
-        mise)    install_via_mise "$ext_name" "$ext_yaml" ;;
-        apt)     install_via_apt "$ext_name" "$ext_yaml" ;;
-        binary)  install_via_binary "$ext_name" "$ext_yaml" ;;
-        npm)     install_via_npm "$ext_name" "$ext_yaml" ;;
-        script)  install_via_script "$ext_name" "$ext_yaml" ;;
-        hybrid)  install_hybrid "$ext_name" "$ext_yaml" ;;
+        mise)       install_via_mise "$ext_name" "$ext_yaml" ;;
+        apt)        install_via_apt "$ext_name" "$ext_yaml" ;;
+        binary)     install_via_binary "$ext_name" "$ext_yaml" ;;
+        npm)        install_via_npm "$ext_name" "$ext_yaml" ;;
+        npm-global) install_via_npm_global "$ext_name" "$ext_yaml" ;;
+        script)     install_via_script "$ext_name" "$ext_yaml" ;;
+        hybrid)     install_hybrid "$ext_name" "$ext_yaml" ;;
         *)
             print_error "Unknown install method: $install_method"
             return 1
@@ -98,6 +114,11 @@ install_extension() {
     esac
 
     local install_status=$?
+
+    # Execute post-install hook
+    if [[ -f "${LIB_DIR}/hooks-manager.sh" ]] && [[ $install_status -eq 0 ]]; then
+        execute_hook "$ext_name" "post-install" 2>/dev/null || true
+    fi
 
     if [[ $install_status -eq 0 ]]; then
         # Configure extension
@@ -460,6 +481,41 @@ install_via_npm() {
     return 0
 }
 
+# Install via npm global (NEW - for npm-global method)
+# Unlike install_via_npm which uses mise npm: backend, this directly runs npm install -g
+install_via_npm_global() {
+    local ext_name="$1"
+    local ext_yaml="$2"
+
+    print_status "Installing $ext_name via npm global install..."
+
+    # Check npm is available
+    if ! command_exists npm; then
+        print_error "npm is not available (install nodejs extension first)"
+        return 1
+    fi
+
+    # Get package name from .install.npm.package (singular)
+    local package_name
+    package_name=$(load_yaml "$ext_yaml" '.install.npm.package' 2>/dev/null)
+
+    if [[ -z "$package_name" ]] || [[ "$package_name" == "null" ]]; then
+        print_error "No npm package specified in .install.npm.package"
+        return 1
+    fi
+
+    print_status "Installing npm package globally: $package_name"
+
+    # Execute global install
+    if npm install -g "$package_name"; then
+        print_success "Successfully installed $package_name globally"
+        return 0
+    else
+        print_error "Failed to install $package_name globally"
+        return 1
+    fi
+}
+
 # Install via script
 install_via_script() {
     local ext_name="$1"
@@ -576,11 +632,12 @@ install_hybrid() {
             method=$(load_yaml "$ext_yaml" ".install.steps[$i].method")
 
             case "$method" in
-                mise)    install_via_mise "$ext_name" "$ext_yaml" ;;
-                apt)     install_via_apt "$ext_name" "$ext_yaml" ;;
-                binary)  install_via_binary "$ext_name" "$ext_yaml" ;;
-                npm)     install_via_npm "$ext_name" "$ext_yaml" ;;
-                script)  install_via_script "$ext_name" "$ext_yaml" ;;
+                mise)       install_via_mise "$ext_name" "$ext_yaml" ;;
+                apt)        install_via_apt "$ext_name" "$ext_yaml" ;;
+                binary)     install_via_binary "$ext_name" "$ext_yaml" ;;
+                npm)        install_via_npm "$ext_name" "$ext_yaml" ;;
+                npm-global) install_via_npm_global "$ext_name" "$ext_yaml" ;;
+                script)     install_via_script "$ext_name" "$ext_yaml" ;;
                 *)
                     print_error "Unknown method in hybrid: $method"
                     return 1

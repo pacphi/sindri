@@ -48,6 +48,17 @@ remove:
 upgrade:
   strategy: reinstall
 
+capabilities:
+  # Authentication requirements (optional for multi-model AI operations)
+  auth:
+    provider: anthropic
+    required: false
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+
 bom:
   tools:
     - name: agentic-flow

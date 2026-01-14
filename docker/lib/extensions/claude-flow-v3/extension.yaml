@@ -1,0 +1,135 @@
+---
+metadata:
+  name: claude-flow-v3
+  version: 3.0.0
+  description: Next-gen multi-agent orchestration with modular packages, 10x performance, 150x faster search (v3 alpha)
+  category: ai
+  author: ruvnet
+  license: MIT
+  homepage: https://github.com/ruvnet/claude-flow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+  diskSpace: 150
+  memory: 256
+  installTime: 90
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+
+configure:
+  templates:
+    - source: claude-flow-v3.aliases
+      destination: ~/.bashrc
+      mode: append
+  environment:
+    - key: CLAUDE_FLOW_VERSION
+      value: "3"
+      scope: bashrc
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: claude-flow
+      expectedPattern: "^3\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - "npm:claude-flow"
+  confirmation: true
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+    tools:
+      - "npm:claude-flow"
+
+capabilities:
+  # Project initialization capability (v3 features)
+  project-init:
+    enabled: true
+    commands:
+      - command: "claude-flow init --force"
+        description: "Initialize Claude Flow v3 with modular architecture"
+        requiresAuth: anthropic
+      - command: "claude-flow doctor --fix"
+        description: "Run v3 health check and auto-fix common issues"
+        conditional: true
+
+    state-markers:
+      - path: ".claude"
+        type: directory
+        description: "Claude Code configuration directory"
+      - path: ".claude/config.json"
+        type: file
+        description: "V3 unified config (replaces multiple settings files)"
+
+    validation:
+      command: "claude-flow --version"
+      expectedPattern: "^3\\.\\d+\\.\\d+"
+
+  # Authentication requirements
+  auth:
+    provider: anthropic
+    required: true
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+
+  # Lifecycle hooks (v3-specific)
+  hooks:
+    post-install:
+      command: "claude-flow --version | grep -q '^3\\.' && echo 'Claude Flow v3 installed successfully'"
+      description: "Verify v3 installation"
+    post-project-init:
+      command: "echo 'Claude Flow v3 initialized - enjoy 10x performance!'"
+      description: "v3 initialization complete"
+
+  # MCP server registration (v3 modular CLI)
+  mcp:
+    enabled: true
+    server:
+      command: "npx"
+      args:
+        - "-y"
+        - "@claude-flow/cli@alpha"
+        - "mcp"
+        - "start"
+      env:
+        CLAUDE_FLOW_MCP_MODE: "1"
+    tools:
+      - name: "claude-flow-agent-spawn"
+        description: "Spawn specialized AI agents (15-agent hierarchy)"
+      - name: "claude-flow-memory-store"
+        description: "Store patterns in unified memory (150x-12,500x faster HNSW)"
+      - name: "claude-flow-swarm-coordinate"
+        description: "Coordinate multi-agent swarms (UnifiedSwarmCoordinator)"
+      - name: "claude-flow-hooks-dispatch"
+        description: "Dispatch background workers (17 hooks + 12 workers)"
+      - name: "claude-flow-security-scan"
+        description: "Security scanning with CVE remediation"
+      - name: "claude-flow-performance-benchmark"
+        description: "Performance benchmarking (Flash Attention, SONA)"
+
+bom:
+  tools:
+    - name: claude-flow
+      version: "3.0.0-alpha"
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/ruvnet/claude-flow
+      purl: pkg:npm/claude-flow@v3alpha

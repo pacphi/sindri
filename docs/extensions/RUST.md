@@ -4,13 +4,13 @@ Rust stable toolchain via mise.
 
 ## Overview
 
-| Property         | Value                           |
-| ---------------- | ------------------------------- |
-| **Category**     | language                        |
-| **Version**      | 1.0.1                           |
-| **Installation** | mise                            |
-| **Disk Space**   | 800 MB                          |
-| **Dependencies** | [mise-config](MISE-CONFIG.md)   |
+| Property         | Value                         |
+| ---------------- | ----------------------------- |
+| **Category**     | language                      |
+| **Version**      | 1.0.1                         |
+| **Installation** | mise                          |
+| **Disk Space**   | 800 MB                        |
+| **Dependencies** | [mise-config](MISE-CONFIG.md) |
 
 ## Description
 

@@ -18,16 +18,17 @@ Essential JavaScript/TypeScript development tooling installed via pnpm for faste
 
 ## Installed Tools
 
-| Tool       | Type     | Pinned Version | Description                  |
-| ---------- | -------- | -------------- | ---------------------------- |
-| `tsc`      | compiler | 5.9            | TypeScript compiler          |
-| `ts-node`  | cli-tool | 10.9           | TypeScript execution         |
-| `prettier` | cli-tool | 3.6            | Code formatter               |
-| `eslint`   | cli-tool | 9              | JavaScript/TypeScript linter |
-| `nodemon`  | cli-tool | 3.1            | Auto-restart server          |
+| Tool       | Type     | Pinned Version | Description                                 |
+| ---------- | -------- | -------------- | ------------------------------------------- |
+| `tsc`      | compiler | 5.9            | TypeScript compiler                         |
+| `ts-node`  | cli-tool | 10.9           | TypeScript execution                        |
+| `prettier` | cli-tool | 3.6            | Code formatter                              |
+| `eslint`   | cli-tool | 9              | JavaScript/TypeScript linter                |
+| `nodemon`  | cli-tool | 3.1            | Auto-restart server                         |
 | `pnpm`     | pkg-mgr  | 10             | Fast package manager (via nodejs bootstrap) |
 
 Additional packages installed:
+
 - `@typescript-eslint/parser` (8.x)
 - `@typescript-eslint/eslint-plugin` (8.x)
 

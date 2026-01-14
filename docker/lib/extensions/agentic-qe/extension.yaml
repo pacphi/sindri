@@ -59,6 +59,49 @@ upgrade:
     tools:
       - npm:agentic-qe
 
+capabilities:
+  # Project initialization capability
+  project-init:
+    enabled: true
+    commands:
+      - command: "aqe init --yes"
+        description: "Initialize Agentic Quality Engineering framework"
+        requiresAuth: anthropic
+
+    state-markers:
+      - path: ".agentic-qe"
+        type: directory
+        description: "Agentic QE configuration directory"
+
+    validation:
+      command: "aqe --version"
+      expectedPattern: "^\\d+\\.\\d+\\.\\d+"
+
+  # Authentication requirements (requires Anthropic API for AI-powered test generation)
+  auth:
+    provider: anthropic
+    required: true
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+
+  # Lifecycle hooks
+  hooks:
+    pre-install:
+      command: "echo 'Preparing agentic-qe installation...'"
+      description: "Pre-installation checks"
+    post-install:
+      command: "aqe --version"
+      description: "Verify agentic-qe installation"
+    pre-project-init:
+      command: "echo 'Initializing agentic-qe project...'"
+      description: "Pre-initialization setup"
+    post-project-init:
+      command: "echo 'Agentic-qe initialized successfully'"
+      description: "Post-initialization cleanup"
+
 bom:
   tools:
     - name: agentic-qe

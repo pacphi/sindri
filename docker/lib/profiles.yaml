@@ -33,10 +33,35 @@ profiles:
       - monitoring
 
   anthropic-dev:
-    description: AI development with Anthropic toolset bias
+    description: AI development with Anthropic toolset bias (v3 default - 10x performance)
     extensions:
       - agent-manager
-      - claude-flow
+      - claude-flow-v3
+      - agentic-flow
+      - agentic-qe
+      - golang
+      - ollama
+      - ai-toolkit
+      - claudish
+      - claude-marketplace
+      - infra-tools
+      - jvm
+      - mdflow
+      - openskills
+      - nodejs-devtools
+      - playwright
+      - rust
+      - ruvnet-research
+      - linear-mcp
+      - supabase-cli
+      - tmux-workspace
+      - cloud-tools
+
+  anthropic-dev-v2:
+    description: AI development with Anthropic toolset bias (v2 stable)
+    extensions:
+      - agent-manager
+      - claude-flow-v2
       - agentic-flow
       - agentic-qe
       - golang

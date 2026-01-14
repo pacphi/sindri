@@ -155,12 +155,12 @@ flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app-name>
 
 Fly.io offers multiple connection methods with different characteristics:
 
-| Method                    | Path                       | Auto-start | Proxy Traffic | Notes                         |
-| ------------------------- | -------------------------- | ---------- | ------------- | ----------------------------- |
-| Dedicated IPv4            | User → IPv4 → Machine      | Yes        | Yes           | Immediate, ~$2/month          |
-| Direct SSH (anycast)      | User → Fly Proxy → Machine | Yes        | Yes           | Requires 1-2hr edge propagation |
-| `flyctl proxy`            | User → WireGuard → Machine | Manual     | No            | Requires running proxy        |
-| `flyctl ssh console`      | User → Hallpass → Machine  | Manual     | No            | Built-in fallback             |
+| Method               | Path                       | Auto-start | Proxy Traffic | Notes                           |
+| -------------------- | -------------------------- | ---------- | ------------- | ------------------------------- |
+| Dedicated IPv4       | User → IPv4 → Machine      | Yes        | Yes           | Immediate, ~$2/month            |
+| Direct SSH (anycast) | User → Fly Proxy → Machine | Yes        | Yes           | Requires 1-2hr edge propagation |
+| `flyctl proxy`       | User → WireGuard → Machine | Manual     | No            | Requires running proxy          |
+| `flyctl ssh console` | User → Hallpass → Machine  | Manual     | No            | Built-in fallback               |
 
 **Key insight:** Only connections through Fly Proxy (direct SSH, dedicated IPv4) count toward the auto-suspend traffic calculation. Connections via `flyctl ssh console` or `flyctl proxy` bypass the proxy and don't prevent auto-suspend.
 
@@ -495,9 +495,9 @@ providers:
 
 ### Dedicated IPv4 Pricing
 
-| Feature        | Monthly Cost | Notes                                 |
-| -------------- | ------------ | ------------------------------------- |
-| Dedicated IPv4 | ~$2          | Enables immediate direct SSH access   |
+| Feature        | Monthly Cost | Notes                               |
+| -------------- | ------------ | ----------------------------------- |
+| Dedicated IPv4 | ~$2          | Enables immediate direct SSH access |
 
 ---
 

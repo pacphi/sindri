@@ -176,126 +176,35 @@ check_claude_auth() {
 
 # Check Claude Code authentication status (non-blocking)
 # Returns 0 if authenticated, 1 if not
-verify_claude_auth() {
-    if ! command_exists claude; then
-        print_debug "Claude Code CLI not found"
-        return 1
-    fi
-
-    if check_claude_auth; then
-        print_success "Claude Code is authenticated"
-        return 0
-    else
-        print_warning "⚠️  Claude Code is not authenticated"
-        echo ""
-        echo "Claude-specific tools (claude-flow, etc.) will be skipped."
-        echo "To authenticate later, run:"
-        echo "  • Interactive login:  claude"
-        echo "  • OAuth token:        claude setup-token"
-        echo "  • API key:            export ANTHROPIC_API_KEY=your-key"
-        echo ""
-        return 1
-    fi
-}
-
-# Check if claude-flow has already initialized this project
-# All conditions must be true: .claude dir exists AND CLAUDE.md exists AND contains claude-flow pattern
-_is_claude_flow_initialized() {
-    [[ -d ".claude" ]] && [[ -f "CLAUDE.md" ]] && grep -q "claude-flow\|Claude Flow" CLAUDE.md 2>/dev/null
-}
-
-# Check if agentic-qe has already initialized this project
-_is_aqe_initialized() {
-    [[ -d ".agentic-qe" ]]
-}
-
-# Check if claude-flow AgentDB backend is already initialized
-# AgentDB is initialized if memory backend is set to agentdb
-_is_claude_flow_agentdb_initialized() {
-    if ! command_exists claude-flow; then
-        return 1
-    fi
-
-    # Check if AgentDB backend is configured
-    if claude-flow memory backend info 2>/dev/null | grep -q "agentdb"; then
-        return 0
-    fi
-
-    return 1
-}
-
-# Preserve existing CLAUDE.md and append claude-flow content
-# claude-flow init --force overwrites CLAUDE.md, so we:
-# 1. Backup existing CLAUDE.md to CLAUDE.project.md
-# 2. Run claude-flow init --force (creates new CLAUDE.md)
-# 3. Append new CLAUDE.md to CLAUDE.project.md
-# 4. Replace CLAUDE.md with the combined file
-_initialize_claude_flow() {
-    if [[ -f "CLAUDE.md" ]]; then
-        # Backup existing CLAUDE.md
-        mv CLAUDE.md CLAUDE.project.md
-
-        # Run claude-flow init to generate new CLAUDE.md
-        claude-flow init --force 2>/dev/null
-
-        if [[ -f "CLAUDE.md" ]]; then
-            # Append claude-flow generated content to project CLAUDE.md
-            echo "" >> CLAUDE.project.md
-            echo "---" >> CLAUDE.project.md
-            echo "" >> CLAUDE.project.md
-            cat CLAUDE.md >> CLAUDE.project.md
-
-            # Replace with combined file
-            rm -f CLAUDE.md
-            mv CLAUDE.project.md CLAUDE.md
-        else
-            # claude-flow init failed, restore backup
-            mv CLAUDE.project.md CLAUDE.md
-        fi
-    else
-        # No existing CLAUDE.md, just run init normally
-        claude-flow init --force 2>/dev/null
-    fi
-}
-
-# Initialize claude-flow with AgentDB backend
-# This should be called after basic claude-flow initialization is complete
-_initialize_claude_flow_agentdb() {
-    # Determine CLI directory
-    local cli_dir
-    if [[ -d "/docker/lib" ]]; then
-        cli_dir="/cli"
-    else
-        cli_dir="${SCRIPT_DIR}/../cli"
-    fi
-
-    local init_script="${cli_dir}/init-claude-flow-agentdb"
-
-    if [[ ! -x "$init_script" ]]; then
-        print_debug "AgentDB initialization script not found at $init_script"
-        return 1
-    fi
-
-    # Run the AgentDB initialization script
-    if "$init_script" 2>&1 | grep -v "^$"; then
-        return 0
-    else
-        return 1
-    fi
-}
+# LEGACY FUNCTIONS REMOVED - Replaced by capability-manager.sh, auth-manager.sh
+# See docs/EXTENSION_CAPABILITIES_ARCHITECTURE.md for details on the new architecture
+#
+# Removed functions:
+# - verify_claude_auth() → auth-manager.sh:validate_anthropic_auth()
+# - _is_claude_flow_initialized() → capability-manager.sh:check_state_markers()
+# - _is_aqe_initialized() → capability-manager.sh:check_state_markers()
+# - _is_claude_flow_agentdb_initialized() → capability-manager.sh:check_state_markers()
+# - _initialize_claude_flow() → capability-manager.sh:execute_project_init()
+# - _initialize_claude_flow_agentdb() → capability-manager.sh:execute_project_init()
 
 init_project_tools() {
     local skip_tools="${1:-false}"
     local tools_initialized=false
 
-	# Skip tools if --skip-tools flag is set
+    # Skip tools if --skip-tools flag is set
     if [[ "$skip_tools" == "true" ]]; then
         print_debug "Skipping tool initialization (--skip-tools)"
-        [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
+        [[ "$tools_initialized" == "false" ]] && print_warning "No tools were initialized"
         return 0
     fi
 
-	# Initialize GitHub spec-kit if uv is available
+    # Source capability management modules
+    source "${LIB_DIR}/capability-manager.sh"
+    source "${LIB_DIR}/auth-manager.sh"
+    source "${LIB_DIR}/hooks-manager.sh"
+    source "${LIB_DIR}/mcp-manager.sh"
+
+    # Initialize GitHub spec-kit if uv is available (non-extension tool)
     if command_exists uvx || command_exists uv; then
         print_status "Initializing GitHub spec-kit..."
         if uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude --script sh 2>/dev/null; then
@@ -311,92 +220,81 @@ init_project_tools() {
         fi
     fi
 
-    # Initialize Claude Code project context
+    # Check Claude Code availability (non-extension tool)
     if command_exists claude; then
         print_success "Claude Code is available"
     fi
 
-	# agentic-flow availability check (no init needed)
+    # Check agentic-flow availability (extension without project-init)
     if command_exists agentic-flow; then
         print_success "agentic-flow is available"
     fi
 
-    # Claude tools initialization (requires Claude authentication)
-    if verify_claude_auth; then
-        # Ensure mise is activated if available
-        if command_exists mise && [[ -z "${MISE_ACTIVATED:-}" ]]; then
-            eval "$(mise activate bash)" 2>/dev/null || true
-            export MISE_ACTIVATED=1
-        fi
-
-        if command_exists claude-flow; then
-            if _is_claude_flow_initialized; then
-                print_debug "claude-flow already initialized in this project"
-                tools_initialized=true
-
-                # Check if AgentDB backend needs initialization
-                if ! _is_claude_flow_agentdb_initialized; then
-                    print_status "Initializing AgentDB backend..."
-                    if _initialize_claude_flow_agentdb; then
-                        print_success "AgentDB backend initialized"
-                    else
-                        print_debug "AgentDB initialization skipped or failed"
-                    fi
-                else
-                    print_debug "AgentDB backend already initialized"
-                fi
-            else
-                print_status "Initializing claude-flow..."
-                # Preserve existing CLAUDE.md and append claude-flow content
-                if _initialize_claude_flow; then
-                    # Verify .claude directory was created
-                    if [[ -d ".claude" ]]; then
-                        print_success "claude-flow initialized"
-                        tools_initialized=true
-
-                        # Initialize AgentDB backend
-                        print_status "Initializing AgentDB backend..."
-                        if _initialize_claude_flow_agentdb; then
-                            print_success "AgentDB backend initialized"
-                        else
-                            print_debug "AgentDB initialization skipped or failed"
-                        fi
-                    else
-                        print_warning "claude-flow init succeeded but .claude directory not found"
-                    fi
-                else
-                    print_warning "claude-flow initialization failed, you can run 'claude-flow init --force' manually"
-                fi
-            fi
-        else
-            print_debug "claude-flow command not found (check if mise is activated and claude-flow extension is installed)"
-        fi
-
-		if command_exists aqe; then
-            if _is_aqe_initialized; then
-                print_debug "agentic-qe already initialized in this project"
-                tools_initialized=true
-            else
-                print_status "Initializing agentic-qe..."
-				# Run aqe init directly in project directory
-                if aqe init --yes 2>&1; then
-                    # Verify .agentic-qe directory was created
-                    if [[ -d ".agentic-qe" ]]; then
-                        print_success "agentic-qe initialized"
-                        tools_initialized=true
-                    else
-                        print_warning "aqe init succeeded but .agentic-qe directory not found"
-                    fi
-                else
-                    print_warning "agentic-qe initialization failed, you can run 'aqe init --yes' manually"
-                fi
-            fi
-        fi
-    else
-        print_debug "Skipping Claude tools initialization (Claude Code not authenticated)"
+    # Ensure mise is activated if available
+    if command_exists mise && [[ -z "${MISE_ACTIVATED:-}" ]]; then
+        eval "$(mise activate bash)" 2>/dev/null || true
+        export MISE_ACTIVATED=1
     fi
 
-    [[ "$tools_initialized" == "false" ]] && print_warning "No Claude tools were initialized"
+    # Discover extensions with project-init capabilities
+    local extensions
+    extensions=$(discover_project_capabilities "project-init")
+
+    if [[ -z "$extensions" ]]; then
+        print_debug "No extensions with project-init capabilities found"
+        [[ "$tools_initialized" == "false" ]] && print_warning "No tools were initialized"
+        return 0
+    fi
+
+    print_debug "Found extensions with project-init: ${extensions}"
+
+    # Initialize each extension with project-init capability
+    for ext in $extensions; do
+        print_status "Initializing ${ext}..."
+
+        # Execute pre-project-init hook
+        execute_hook "$ext" "pre-project-init"
+
+        # Check authentication requirements FIRST
+        if ! check_extension_auth "$ext"; then
+            print_warning "Skipping ${ext} due to missing authentication"
+            continue
+        fi
+
+        # Check if already initialized (via state markers)
+        if check_state_markers "$ext"; then
+            print_debug "${ext} already initialized (state markers found)"
+            tools_initialized=true
+
+            # Still execute post-project-init hook for already-initialized extensions
+            execute_hook "$ext" "post-project-init"
+            continue
+        fi
+
+        # Execute project initialization
+        if execute_project_init "$ext"; then
+            # Validate initialization
+            if validate_project_capability "$ext"; then
+                print_success "${ext} initialized successfully"
+                tools_initialized=true
+
+                # Merge project context files if capability is enabled
+                merge_project_context "$ext"
+
+                # Register MCP server if capability is enabled
+                register_mcp_server "$ext"
+            else
+                print_warning "${ext} initialization succeeded but validation failed"
+            fi
+        else
+            print_warning "${ext} initialization failed"
+        fi
+
+        # Execute post-project-init hook
+        execute_hook "$ext" "post-project-init"
+    done
+
+    [[ "$tools_initialized" == "false" ]] && print_warning "No tools were initialized"
     return 0
 }
 
