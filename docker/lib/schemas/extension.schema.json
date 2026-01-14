@@ -555,6 +555,14 @@
               "type": "boolean",
               "default": false
             },
+            "methods": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["api-key", "cli-auth"]
+              },
+              "description": "Accepted authentication methods (defaults to both if not specified)"
+            },
             "envVars": {
               "type": "array",
               "items": {
@@ -573,6 +581,28 @@
                 }
               },
               "required": ["command"]
+            },
+            "features": {
+              "type": "array",
+              "description": "Feature-level authentication requirements",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Feature name"
+                  },
+                  "requiresApiKey": {
+                    "type": "boolean",
+                    "description": "Whether this feature requires API key specifically"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Feature description"
+                  }
+                },
+                "required": ["name", "requiresApiKey", "description"]
+              }
             }
           },
           "required": ["provider"]
@@ -701,6 +731,106 @@
             }
           },
           "required": ["enabled"]
+        },
+        "features": {
+          "type": "object",
+          "description": "Feature flags and configuration for advanced capabilities",
+          "properties": {
+            "core": {
+              "type": "object",
+              "description": "Core feature flags",
+              "properties": {
+                "daemon_autostart": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Automatically start daemon on initialization"
+                },
+                "flash_attention": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable flash attention optimizations"
+                },
+                "unified_config": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Use unified configuration file"
+                }
+              }
+            },
+            "swarm": {
+              "type": "object",
+              "description": "Swarm coordination configuration",
+              "properties": {
+                "default_topology": {
+                  "type": "string",
+                  "enum": ["hierarchical-mesh", "hierarchical", "mesh", "ring"],
+                  "default": "hierarchical-mesh",
+                  "description": "Default swarm topology"
+                },
+                "consensus_algorithm": {
+                  "type": "string",
+                  "enum": ["raft", "paxos", "gossip", "crdt", "byzantine"],
+                  "default": "raft",
+                  "description": "Consensus algorithm for swarm coordination"
+                }
+              }
+            },
+            "llm": {
+              "type": "object",
+              "description": "LLM provider configuration",
+              "properties": {
+                "default_provider": {
+                  "type": "string",
+                  "enum": ["anthropic", "openai", "google", "cohere", "local", "custom"],
+                  "default": "anthropic",
+                  "description": "Default LLM provider"
+                },
+                "load_balancing": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable load balancing across providers"
+                }
+              }
+            },
+            "advanced": {
+              "type": "object",
+              "description": "Advanced feature flags",
+              "properties": {
+                "sona_learning": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable SONA self-optimizing neural architecture"
+                },
+                "security_scanning": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable security vulnerability scanning"
+                },
+                "claims_system": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable work claims and authorization"
+                },
+                "plugin_system": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable plugin system"
+                }
+              }
+            },
+            "mcp": {
+              "type": "object",
+              "description": "MCP server configuration",
+              "properties": {
+                "transport": {
+                  "type": "string",
+                  "enum": ["stdio", "http", "websocket"],
+                  "default": "stdio",
+                  "description": "MCP transport protocol"
+                }
+              }
+            }
+          }
         }
       }
     },

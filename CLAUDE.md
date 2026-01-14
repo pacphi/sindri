@@ -96,6 +96,7 @@ pnpm build                   # Build Docker image
 - Dependencies are automatically resolved
 
 **Example Extensions:**
+
 - `spec-kit` - Project-init capability, no auth, git auto-commit hook
 - `agentic-qe` - Project-init capability, requires anthropic auth
 - `claude-flow-v2` - Full capabilities (project-init, auth, hooks, mcp)

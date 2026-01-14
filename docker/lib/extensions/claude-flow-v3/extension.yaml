@@ -35,6 +35,24 @@ configure:
     - key: PATH
       value: "$HOME/.local/bin:$PATH"
       scope: bashrc
+    - key: CF_SWARM_TOPOLOGY
+      value: "hierarchical-mesh"
+      scope: bashrc
+    - key: CF_CONSENSUS_ALGO
+      value: "raft"
+      scope: bashrc
+    - key: CF_LLM_PROVIDER
+      value: "anthropic"
+      scope: bashrc
+    - key: CF_DAEMON_AUTOSTART
+      value: "true"
+      scope: bashrc
+    - key: CF_FLASH_ATTENTION
+      value: "true"
+      scope: bashrc
+    - key: CF_MCP_TRANSPORT
+      value: "stdio"
+      scope: bashrc
 
 validate:
   commands:
@@ -60,11 +78,34 @@ capabilities:
   project-init:
     enabled: true
     commands:
-      - command: "claude-flow init --force"
-        description: "Initialize Claude Flow v3 with modular architecture"
+      - command: "claude-flow init --full"
+        description: "Initialize Claude Flow v3 with full feature set"
         requiresAuth: anthropic
+        conditional: false
+
       - command: "claude-flow doctor --fix"
         description: "Run v3 health check and auto-fix common issues"
+        requiresAuth: none
+        conditional: false
+
+      - command: "claude-flow swarm init --topology ${CF_SWARM_TOPOLOGY:-hierarchical-mesh}"
+        description: "Initialize UnifiedSwarmCoordinator with configured topology"
+        requiresAuth: none
+        conditional: true
+
+      - command: "claude-flow hooks pretrain"
+        description: "Initialize hook system (31 events + 12 background workers)"
+        requiresAuth: none
+        conditional: true
+
+      - command: 'test "${CF_DAEMON_AUTOSTART:-true}" = "true" && claude-flow daemon start --background || true'
+        description: "Start background daemon (if autostart enabled)"
+        requiresAuth: none
+        conditional: true
+
+      - command: "claude-flow mcp start --transport ${CF_MCP_TRANSPORT:-stdio} --background"
+        description: "Start MCP server with configured transport"
+        requiresAuth: none
         conditional: true
 
     state-markers:
@@ -74,20 +115,37 @@ capabilities:
       - path: ".claude/config.json"
         type: file
         description: "V3 unified config (replaces multiple settings files)"
+      - path: ".claude/swarm.state"
+        type: file
+        description: "Swarm coordinator state (created if swarm initialized)"
+      - path: ".claude/hooks"
+        type: directory
+        description: "Hook system directory (created if hooks initialized)"
 
     validation:
-      command: "claude-flow --version"
+      command: "claude-flow --version && claude-flow doctor --check"
       expectedPattern: "^3\\.\\d+\\.\\d+"
+      expectedExitCode: 0
 
   # Authentication requirements
   auth:
     provider: anthropic
-    required: true
+    required: false
+    methods:
+      - api-key
+      - cli-auth
     envVars:
       - ANTHROPIC_API_KEY
     validator:
       command: "claude --version"
       expectedExitCode: 0
+    features:
+      - name: agent-spawn
+        requiresApiKey: false
+        description: "CLI-based agent spawning"
+      - name: api-integration
+        requiresApiKey: true
+        description: "Direct API features"
 
   # Lifecycle hooks (v3-specific)
   hooks:
@@ -108,9 +166,14 @@ capabilities:
         - "@claude-flow/cli@alpha"
         - "mcp"
         - "start"
+        - "--transport"
+        - "${CF_MCP_TRANSPORT:-stdio}"
       env:
         CLAUDE_FLOW_MCP_MODE: "1"
+        CF_SWARM_TOPOLOGY: "${CF_SWARM_TOPOLOGY:-hierarchical-mesh}"
+        CF_CONSENSUS_ALGO: "${CF_CONSENSUS_ALGO:-raft}"
     tools:
+      # Core V3 tools (existing)
       - name: "claude-flow-agent-spawn"
         description: "Spawn specialized AI agents (15-agent hierarchy)"
       - name: "claude-flow-memory-store"
@@ -118,11 +181,33 @@ capabilities:
       - name: "claude-flow-swarm-coordinate"
         description: "Coordinate multi-agent swarms (UnifiedSwarmCoordinator)"
       - name: "claude-flow-hooks-dispatch"
-        description: "Dispatch background workers (17 hooks + 12 workers)"
+        description: "Dispatch background workers (31 hooks + 12 workers)"
       - name: "claude-flow-security-scan"
         description: "Security scanning with CVE remediation"
       - name: "claude-flow-performance-benchmark"
         description: "Performance benchmarking (Flash Attention, SONA)"
+
+      # Essential V3 tools (new)
+      - name: "claude-flow-swarm-topology"
+        description: "Configure swarm topology (hierarchical-mesh, mesh, ring, hierarchical)"
+      - name: "claude-flow-daemon-control"
+        description: "Control background daemon and workers"
+      - name: "claude-flow-goal-planning"
+        description: "Goal-oriented action planning (GOAP)"
+
+      # Advanced V3 tools (new)
+      - name: "claude-flow-consensus"
+        description: "Select consensus algorithm (raft, paxos, gossip, crdt, byzantine)"
+      - name: "claude-flow-plugin-manage"
+        description: "Plugin lifecycle management"
+      - name: "claude-flow-llm-provider"
+        description: "Configure LLM provider (anthropic, openai, google, cohere, local)"
+      - name: "claude-flow-neural-sona"
+        description: "SONA self-optimizing neural architecture"
+      - name: "claude-flow-flash-attention"
+        description: "Flash Attention optimization controls"
+      - name: "claude-flow-claims-manage"
+        description: "Work claims and authorization"
 
 bom:
   tools:

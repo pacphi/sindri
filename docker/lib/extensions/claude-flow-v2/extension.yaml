@@ -79,12 +79,22 @@ capabilities:
   # Authentication requirements
   auth:
     provider: anthropic
-    required: true
+    required: false
+    methods:
+      - api-key
+      - cli-auth
     envVars:
       - ANTHROPIC_API_KEY
     validator:
       command: "claude --version"
       expectedExitCode: 0
+    features:
+      - name: agent-spawn
+        requiresApiKey: false
+        description: "CLI-based agent spawning"
+      - name: api-integration
+        requiresApiKey: true
+        description: "Direct API features"
 
   # Lifecycle hooks
   hooks:

@@ -25,29 +25,60 @@ fi
 # Provider-Specific Validation Functions
 ###############################################################################
 
+# Detect Anthropic authentication method
+# Returns: "api-key", "cli-auth", or "none"
+# Exit code: 0 if authenticated (any method), 1 if not authenticated
+detect_anthropic_auth_method() {
+    # Check API key first (most permissive - includes full API access)
+    if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+        # Validate the API key works by checking Claude CLI
+        if claude --version &>/dev/null; then
+            echo "api-key"
+            return 0
+        else
+            # API key set but invalid
+            echo "none"
+            return 1
+        fi
+    fi
+
+    # Check CLI authentication (Max/Pro plan without API key)
+    if command_exists claude; then
+        if claude --version &>/dev/null; then
+            echo "cli-auth"
+            return 0
+        fi
+    fi
+
+    # No authentication found
+    echo "none"
+    return 1
+}
+
 # Validate Anthropic API authentication
-# Checks: ANTHROPIC_API_KEY environment variable, claude CLI availability
+# Supports both API key and CLI authentication (Max/Pro plan)
 # Returns: 0 if valid, 1 if invalid
 validate_anthropic_auth() {
-    # Check if ANTHROPIC_API_KEY is set
-    if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-        print_warning "ANTHROPIC_API_KEY environment variable is not set"
-        return 1
-    fi
+    local auth_method
+    auth_method=$(detect_anthropic_auth_method)
 
-    # Verify Claude CLI is available and working
-    if ! command_exists claude; then
-        print_warning "Claude Code CLI not found in PATH"
-        return 1
-    fi
-
-    # Simple validation: check if claude CLI responds
-    if ! claude --version &>/dev/null; then
-        print_warning "Claude Code CLI not responding or API key invalid"
-        return 1
-    fi
-
-    return 0
+    case "$auth_method" in
+        api-key)
+            print_success "Anthropic authentication: API key"
+            return 0
+            ;;
+        cli-auth)
+            print_success "Anthropic authentication: Max/Pro plan (CLI)"
+            return 0
+            ;;
+        none)
+            print_warning "No Anthropic authentication detected"
+            print_info "Options:"
+            print_info "  1. Set ANTHROPIC_API_KEY environment variable"
+            print_info "  2. Authenticate Claude CLI with Max/Pro plan"
+            return 1
+            ;;
+    esac
 }
 
 # Validate OpenAI API authentication
@@ -183,28 +214,54 @@ check_extension_auth() {
         auth_required="false"
     fi
 
-    # Check required environment variables (if defined)
-    env_vars=$(get_extension_capability "$ext" "auth.envVars")
-    if [[ -n "$env_vars" && "$env_vars" != "null" ]]; then
-        # Parse env vars array
-        local env_var_count
-        env_var_count=$(echo "$env_vars" | yq eval 'length' - 2>/dev/null || echo "0")
+    # Get accepted authentication methods (defaults to both if not specified)
+    local accepted_methods
+    accepted_methods=$(get_extension_capability "$ext" "auth.methods")
 
-        for ((i=0; i<env_var_count; i++)); do
-            local env_var
-            env_var=$(echo "$env_vars" | yq eval ".[$i]" - 2>/dev/null || echo "")
+    if [[ -z "$accepted_methods" || "$accepted_methods" == "null" ]]; then
+        # Default: accept both methods (backward compatible)
+        accepted_methods='["api-key", "cli-auth"]'
+    fi
 
-            if [[ -n "$env_var" ]]; then
-                if [[ -z "${!env_var:-}" ]]; then
-                    if [[ "$auth_required" == "true" ]]; then
-                        print_error "${ext} requires ${env_var} environment variable"
-                        return 1
-                    else
-                        print_warning "${ext} recommends ${env_var} environment variable (continuing without)"
-                    fi
-                fi
+    # Detect current authentication method (only for anthropic provider)
+    if [[ "$auth_provider" == "anthropic" ]]; then
+        local current_method
+        current_method=$(detect_anthropic_auth_method)
+
+        if [[ "$current_method" == "none" ]]; then
+            if [[ "$auth_required" == "true" ]]; then
+                print_error "${ext} requires authentication (API key or Max/Pro plan)"
+                return 1
+            else
+                print_warning "${ext} recommends authentication (continuing without)"
+                return 0
+            fi
+        fi
+
+        # Check if current method is accepted
+        local method_count
+        method_count=$(echo "$accepted_methods" | yq eval 'length' - 2>/dev/null || echo "0")
+
+        local method_accepted=false
+        for ((i=0; i<method_count; i++)); do
+            local accepted_method
+            accepted_method=$(echo "$accepted_methods" | yq eval ".[$i]" - 2>/dev/null)
+
+            if [[ "$accepted_method" == "$current_method" ]]; then
+                method_accepted=true
+                break
             fi
         done
+
+        if [[ "$method_accepted" == "false" ]]; then
+            if [[ "$auth_required" == "true" ]]; then
+                print_error "${ext} requires authentication method not available"
+                print_error "Current: ${current_method}, Accepted: ${accepted_methods}"
+                return 1
+            else
+                print_warning "${ext} prefers different authentication method (continuing)"
+            fi
+        fi
     fi
 
     # Validate using provider-specific validator
@@ -242,11 +299,29 @@ get_auth_status() {
     echo "Authentication Status:"
     echo "====================="
 
-    if validate_anthropic_auth &>/dev/null; then
-        echo "  ✓ Anthropic (Claude API)"
-    else
-        echo "  ✗ Anthropic (Claude API) - not configured"
-    fi
+    # Anthropic with detailed method detection
+    local anthropic_method
+    anthropic_method=$(detect_anthropic_auth_method)
+
+    case "$anthropic_method" in
+        api-key)
+            echo "  ✓ Anthropic (Claude API) - API Key"
+            echo "    - Direct API calls: Available"
+            echo "    - CLI commands: Available"
+            ;;
+        cli-auth)
+            echo "  ✓ Anthropic (Claude CLI) - Max/Pro Plan"
+            echo "    - CLI commands: Available"
+            echo "    - Direct API calls: Requires API key"
+            ;;
+        none)
+            echo "  ✗ Anthropic - Not authenticated"
+            echo "    - Set ANTHROPIC_API_KEY for API access"
+            echo "    - Or authenticate Claude CLI for Max/Pro plan"
+            ;;
+    esac
+
+    echo ""
 
     if validate_openai_auth &>/dev/null; then
         echo "  ✓ OpenAI (GPT API)"
