@@ -345,11 +345,94 @@ validate:
 - Auth System: `/docker/lib/auth-manager.sh`
 - Extension Authoring Guide: `/docs/EXTENSION_AUTHORING.md`
 
+## Collision Handling Enhancement (January 2026)
+
+### Problem: Cloned Projects with Existing Configurations
+
+When users run `clone-project`, the cloned repository may already contain configuration directories (`.claude/`, `.agentic-qe/`, etc.) from previous development. This creates collision scenarios when Sindri attempts project initialization.
+
+**Scenarios:**
+
+- V2 → V3 upgrade: Cloned project has claude-flow v2, user installs v3
+- Same version: Project already initialized with same version
+- Unknown origin: Configuration directory exists but doesn't match known structure
+
+### Solution: Declarative Collision Handling
+
+We added a new optional `collision-handling` capability that extensions can declare in their YAML. **All collision logic stays in the extension YAML** - no extension-specific code in `capability-manager.sh`.
+
+**Schema Definition:**
+
+```yaml
+capabilities:
+  collision-handling:
+    enabled: true
+    version-markers: # Detect installed version
+      - path: ".claude/config.json"
+        type: file
+        version: "v3"
+        detection:
+          method: content-match
+          patterns: ['"swarm"', '"sona"']
+          match-any: true
+    scenarios: # Resolution scenarios
+      - name: "v2-to-v3-upgrade"
+        detected-version: "v2"
+        installing-version: "3.0.0"
+        action: stop
+        message: |
+          ⚠️  Claude Flow V2 detected
+          To migrate: cf-memory-migrate --from v2 --to v3
+```
+
+**Generic Implementation:**
+
+Three generic functions in `capability-manager.sh`:
+
+1. `detect_collision_version()` - Detects version using markers from YAML
+2. `handle_collision()` - Matches scenarios and executes actions
+3. `backup_state_markers()` - Backs up with timestamps
+
+**Integration:**
+
+Added to `project-core.sh:init_project_tools()`:
+
+```bash
+# Check for collision with existing installation
+if ! handle_collision "$ext" "$ext_version"; then
+    continue  # Skip initialization
+fi
+```
+
+**Benefits:**
+
+- **No extension-specific logic** in core code
+- **Fully declarative** - all rules in extension.yaml
+- **Version-aware** - distinguishes V2 vs V3 vs unknown
+- **Actionable messages** - tells users exactly what to do
+- **Safe by default** - skips when uncertain
+
+**Current Extensions Using Collision Handling:**
+
+- claude-flow-v2: Detects V2/V3/unknown, guides migration
+- claude-flow-v3: Detects V2/V3/unknown, guides migration
+- agentic-qe: Detects if already initialized
+- agentic-flow: Detects if already initialized
+
+**Documentation:**
+
+- Schema: `/docker/lib/schemas/extension.schema.json` (lines 835-953)
+- Examples: `/docs/extensions/COLLISION_HANDLING_EXAMPLES.md`
+- Implementation: `/docker/lib/capability-manager.sh` (lines 427-668)
+
 ## Future Enhancements
 
 Potential improvements (not yet implemented):
 
-1. Capability composition - Extensions depend on capabilities from others
-2. Capability versioning - Semantic versioning for capability definitions
-3. Plugin SDK - Inspired by claude-flow v3 plugin architecture
-4. Extension marketplace - Community-contributed extensions with standardized capabilities
+1. **Interactive prompts** - Ask user to choose resolution (skip/backup/merge)
+2. **Merge strategies** - Intelligently merge new files into existing configurations
+3. **Environment variable control** - `COLLISION_STRATEGY=backup|skip|prompt`
+4. **Capability composition** - Extensions depend on capabilities from others
+5. **Capability versioning** - Semantic versioning for capability definitions
+6. **Plugin SDK** - Inspired by claude-flow v3 plugin architecture
+7. **Extension marketplace** - Community-contributed extensions with standardized capabilities

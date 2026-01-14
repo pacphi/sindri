@@ -33,20 +33,20 @@ extension-manager status nodejs
 
 Pre-configured bundles for common workflows. Profiles make it easy to set up complete development environments.
 
-| Profile                       | Extensions                                                                                                                                                                                                                                                      | Use Case                     |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **minimal**                   | nodejs, python                                                                                                                                                                                                                                                  | Lightweight scripting        |
-| **fullstack**                 | nodejs, python, docker, nodejs-devtools                                                                                                                                                                                                                         | Web development              |
-| **ai-dev**                    | nodejs, python, golang, ollama, ai-toolkit, mdflow, openskills, supabase-cli, linear-mcp, monitoring                                                                                                                                                            | AI/ML development            |
+| Profile                       | Extensions                                                                                                                                                                                                                                                         | Use Case                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| **minimal**                   | nodejs, python                                                                                                                                                                                                                                                     | Lightweight scripting        |
+| **fullstack**                 | nodejs, python, docker, nodejs-devtools                                                                                                                                                                                                                            | Web development              |
+| **ai-dev**                    | nodejs, python, golang, ollama, ai-toolkit, mdflow, openskills, supabase-cli, linear-mcp, monitoring                                                                                                                                                               | AI/ML development            |
 | **anthropic-dev**             | agent-manager, claude-flow-v3, agentic-flow, agentic-qe, golang, ollama, ai-toolkit, claudish, claude-marketplace, infra-tools, jvm, mdflow, openskills, nodejs-devtools, playwright, rust, ruvnet-research, linear-mcp, supabase-cli, tmux-workspace, cloud-tools | Anthropic/Claude development |
-| **systems**                   | rust, golang, docker, infra-tools                                                                                                                                                                                                                               | Systems programming          |
-| **enterprise**                | All languages + infrastructure                                                                                                                                                                                                                                  | Complete environment         |
-| **devops**                    | docker, infra-tools, cloud-tools, monitoring                                                                                                                                                                                                                    | Infrastructure               |
-| **mobile**                    | nodejs                                                                                                                                                                                                                                                          | Mobile development (WIP)     |
-| **visionflow-core**           | Document processing & automation (9 extensions)                                                                                                                                                                                                                 | Document workflows           |
-| **visionflow-data-scientist** | AI research & ML tools (7 extensions)                                                                                                                                                                                                                           | Data science & research      |
-| **visionflow-creative**       | 3D modeling & creative tools (5 extensions)                                                                                                                                                                                                                     | Creative development         |
-| **visionflow-full**           | All VisionFlow extensions (33 total)                                                                                                                                                                                                                            | Complete VisionFlow suite    |
+| **systems**                   | rust, golang, docker, infra-tools                                                                                                                                                                                                                                  | Systems programming          |
+| **enterprise**                | All languages + infrastructure                                                                                                                                                                                                                                     | Complete environment         |
+| **devops**                    | docker, infra-tools, cloud-tools, monitoring                                                                                                                                                                                                                       | Infrastructure               |
+| **mobile**                    | nodejs                                                                                                                                                                                                                                                             | Mobile development (WIP)     |
+| **visionflow-core**           | Document processing & automation (9 extensions)                                                                                                                                                                                                                    | Document workflows           |
+| **visionflow-data-scientist** | AI research & ML tools (7 extensions)                                                                                                                                                                                                                              | Data science & research      |
+| **visionflow-creative**       | 3D modeling & creative tools (5 extensions)                                                                                                                                                                                                                        | Creative development         |
+| **visionflow-full**           | All VisionFlow extensions (33 total)                                                                                                                                                                                                                               | Complete VisionFlow suite    |
 
 ### Using Profiles
 
@@ -99,22 +99,22 @@ Pre-installed foundational extensions:
 
 ### AI Tools
 
-| Extension                | Purpose                                    | Docs                                                                  |
-| ------------------------ | ------------------------------------------ | --------------------------------------------------------------------- |
-| ollama                   | Local LLM runtime (Llama, Mistral, etc.)   | [OLLAMA.md](extensions/OLLAMA.md)                                     |
-| ai-toolkit               | AI CLI tools (Fabric, Codex, Gemini, etc.) | [AI-TOOLKIT.md](extensions/AI-TOOLKIT.md)                             |
-| openskills               | Claude Code skills manager                 | [OPENSKILLS.md](extensions/OPENSKILLS.md)                             |
-| claude-code-mux          | AI routing proxy (18+ providers)           | [CLAUDE-CODE-MUX.md](extensions/CLAUDE-CODE-MUX.md)                   |
-| claudish                 | OpenRouter model proxy for Claude Code     | [CLAUDISH.md](extensions/CLAUDISH.md)                                 |
-| claudeup                 | TUI for Claude Code plugins & MCP config   | [CLAUDEUP.md](extensions/CLAUDEUP.md)                                 |
-| agent-manager            | AI agent orchestration                     | [AGENT-MANAGER.md](extensions/AGENT-MANAGER.md)                       |
-| claude-flow-v2           | Multi-agent orchestration (stable)         | [CLAUDE-FLOW-V2.md](extensions/CLAUDE-FLOW-V2.md)                     |
-| claude-flow-v3           | Multi-agent orchestration (alpha, 10x faster) | [CLAUDE-FLOW-V3.md](extensions/CLAUDE-FLOW-V3.md)                  |
-| agentic-flow             | Agentic workflow orchestration             | [AGENTIC-FLOW.md](extensions/AGENTIC-FLOW.md)                         |
-| goose                    | AI coding agent with tool use              | [GOOSE.md](extensions/GOOSE.md)                                       |
-| mdflow                   | Markdown to AI agent CLI                   | [MDFLOW.md](extensions/MDFLOW.md)                                     |
-| context7-mcp             | Context7 library documentation MCP         | [CONTEXT7-MCP.md](extensions/CONTEXT7-MCP.md)                         |
-| ruvnet-research          | AI research tools (Goalie, Research-Swarm) | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md)                   |
+| Extension       | Purpose                                       | Docs                                                |
+| --------------- | --------------------------------------------- | --------------------------------------------------- |
+| ollama          | Local LLM runtime (Llama, Mistral, etc.)      | [OLLAMA.md](extensions/OLLAMA.md)                   |
+| ai-toolkit      | AI CLI tools (Fabric, Codex, Gemini, etc.)    | [AI-TOOLKIT.md](extensions/AI-TOOLKIT.md)           |
+| openskills      | Claude Code skills manager                    | [OPENSKILLS.md](extensions/OPENSKILLS.md)           |
+| claude-code-mux | AI routing proxy (18+ providers)              | [CLAUDE-CODE-MUX.md](extensions/CLAUDE-CODE-MUX.md) |
+| claudish        | OpenRouter model proxy for Claude Code        | [CLAUDISH.md](extensions/CLAUDISH.md)               |
+| claudeup        | TUI for Claude Code plugins & MCP config      | [CLAUDEUP.md](extensions/CLAUDEUP.md)               |
+| agent-manager   | AI agent orchestration                        | [AGENT-MANAGER.md](extensions/AGENT-MANAGER.md)     |
+| claude-flow-v2  | Multi-agent orchestration (stable)            | [CLAUDE-FLOW-V2.md](extensions/CLAUDE-FLOW-V2.md)   |
+| claude-flow-v3  | Multi-agent orchestration (alpha, 10x faster) | [CLAUDE-FLOW-V3.md](extensions/CLAUDE-FLOW-V3.md)   |
+| agentic-flow    | Agentic workflow orchestration                | [AGENTIC-FLOW.md](extensions/AGENTIC-FLOW.md)       |
+| goose           | AI coding agent with tool use                 | [GOOSE.md](extensions/GOOSE.md)                     |
+| mdflow          | Markdown to AI agent CLI                      | [MDFLOW.md](extensions/MDFLOW.md)                   |
+| context7-mcp    | Context7 library documentation MCP            | [CONTEXT7-MCP.md](extensions/CONTEXT7-MCP.md)       |
+| ruvnet-research | AI research tools (Goalie, Research-Swarm)    | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md) |
 
 ### Infrastructure
 

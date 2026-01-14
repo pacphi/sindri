@@ -831,6 +831,125 @@
               }
             }
           }
+        },
+        "collision-handling": {
+          "type": "object",
+          "description": "Declarative collision detection and resolution for cloned projects with existing configurations",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collision handling for this extension"
+            },
+            "version-markers": {
+              "type": "array",
+              "description": "Markers to detect installed version from directory structure",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Path to check (relative to project root)"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["file", "directory", "symlink"],
+                    "description": "Type of marker to check"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "Version identifier if this marker is found"
+                  },
+                  "detection": {
+                    "type": "object",
+                    "description": "Detection method configuration",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": ["file-exists", "directory-exists", "content-match"],
+                        "description": "Detection method"
+                      },
+                      "patterns": {
+                        "type": "array",
+                        "description": "Regex patterns for content-match method",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "match-any": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "True=any pattern matches, False=all patterns must match"
+                      },
+                      "exclude-if": {
+                        "type": "array",
+                        "description": "Paths that exclude this detection (for directory-exists)",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": ["method"]
+                  }
+                },
+                "required": ["path", "type", "version", "detection"]
+              }
+            },
+            "scenarios": {
+              "type": "array",
+              "description": "Collision resolution scenarios",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Scenario identifier"
+                  },
+                  "detected-version": {
+                    "type": "string",
+                    "description": "Version detected in project"
+                  },
+                  "installing-version": {
+                    "type": "string",
+                    "description": "Version being installed"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": ["stop", "skip", "proceed", "backup", "prompt"],
+                    "description": "Action to take when scenario matches"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Message to display to user"
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "Options for prompt action",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "description": "Option label"
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": ["skip", "backup", "merge"],
+                          "description": "Action for this option"
+                        },
+                        "backup-suffix": {
+                          "type": "string",
+                          "description": "Suffix for backup directory (supports {timestamp})"
+                        }
+                      },
+                      "required": ["label", "action"]
+                    }
+                  }
+                },
+                "required": ["name", "detected-version", "installing-version", "action", "message"]
+              }
+            }
+          },
+          "required": ["enabled"]
         }
       }
     },

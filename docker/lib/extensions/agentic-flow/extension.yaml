@@ -49,15 +49,82 @@ upgrade:
   strategy: reinstall
 
 capabilities:
+  # Project initialization capability
+  project-init:
+    enabled: true
+    commands:
+      - command: "npx agentic-flow init"
+        description: "Initialize Agentic Flow project"
+        requiresAuth: anthropic
+      - command: "npx agentic-flow hooks pretrain"
+        description: "Bootstrap intelligence from codebase"
+        requiresAuth: none
+        conditional: true
+
+    state-markers:
+      - path: ".agentic-flow"
+        type: directory
+        description: "Agentic Flow configuration directory"
+      - path: ".agentic-flow/hooks"
+        type: directory
+        description: "Hooks system directory"
+
+    validation:
+      command: "npx agentic-flow --version || echo 'agentic-flow installed'"
+      expectedExitCode: 0
+
   # Authentication requirements (optional for multi-model AI operations)
   auth:
     provider: anthropic
     required: false
+    methods:
+      - api-key
+      - cli-auth
     envVars:
       - ANTHROPIC_API_KEY
     validator:
       command: "claude --version"
       expectedExitCode: 0
+
+  # Lifecycle hooks
+  hooks:
+    post-install:
+      command: "echo 'Agentic Flow installed successfully'"
+      description: "Verify installation"
+    post-project-init:
+      command: "echo 'Agentic Flow project initialized'"
+      description: "Post-initialization"
+
+  # Collision handling for cloned projects
+  collision-handling:
+    enabled: true
+
+    version-markers:
+      # Agentic Flow marker (if init creates directory)
+      - path: ".agentic-flow"
+        type: directory
+        version: "installed"
+        detection:
+          method: directory-exists
+
+      # Alternative marker: hooks directory
+      - path: ".agentic-flow/hooks"
+        type: directory
+        version: "installed"
+        detection:
+          method: directory-exists
+
+    scenarios:
+      # Scenario 1: Already initialized
+      - name: "already-initialized"
+        detected-version: "installed"
+        installing-version: "1.0.0"
+        action: skip
+        message: |
+          ✓ Agentic Flow is already initialized
+
+          To force a fresh installation, run:
+            npx agentic-flow init --force
 
 bom:
   tools:

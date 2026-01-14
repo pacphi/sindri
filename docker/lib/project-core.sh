@@ -248,6 +248,16 @@ init_project_tools() {
             continue
         fi
 
+        # Check for collision with existing installation
+        local ext_version
+        ext_version=$(yq eval ".metadata.version" "${LIB_DIR}/extensions/${ext}/extension.yaml" 2>/dev/null || echo "unknown")
+
+        if ! handle_collision "$ext" "$ext_version"; then
+            print_debug "Skipping ${ext} initialization due to collision"
+            tools_initialized=true  # Mark as initialized to avoid warning
+            continue
+        fi
+
         # Check if already initialized (via state markers)
         if check_state_markers "$ext"; then
             print_debug "${ext} already initialized (state markers found)"

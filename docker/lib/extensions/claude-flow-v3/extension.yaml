@@ -209,6 +209,101 @@ capabilities:
       - name: "claude-flow-claims-manage"
         description: "Work claims and authorization"
 
+  # Collision handling for cloned projects
+  collision-handling:
+    enabled: true
+
+    version-markers:
+      # V3 marker: unified config with swarm/sona
+      - path: ".claude/config.json"
+        type: file
+        version: "v3"
+        detection:
+          method: content-match
+          patterns:
+            - '"swarm"'
+            - '"sona"'
+          match-any: true
+
+      # V2 marker: memory.db
+      - path: ".claude/memory.db"
+        type: file
+        version: "v2"
+        detection:
+          method: file-exists
+
+      # V2 marker: memory directory
+      - path: ".claude/memory"
+        type: directory
+        version: "v2"
+        detection:
+          method: directory-exists
+
+      # Unknown marker
+      - path: ".claude"
+        type: directory
+        version: "unknown"
+        detection:
+          method: directory-exists
+          exclude-if:
+            - ".claude/config.json"
+            - ".claude/memory.db"
+            - ".claude/memory"
+
+    scenarios:
+      # Scenario 1: V2 detected when installing V3 (upgrade)
+      - name: "v2-to-v3-upgrade"
+        detected-version: "v2"
+        installing-version: "3.0.0"
+        action: stop
+        message: |
+          ⚠️  Claude Flow V2 installation detected
+
+          Your project has an existing Claude Flow V2 setup.
+          To migrate to V3, please run these commands manually:
+
+            1. Install claude-flow-v3:
+               extension-manager install claude-flow-v3
+
+            2. Migrate memory (AgentDB → HNSW):
+               cf-memory-migrate --from v2 --to v3
+
+            3. Migrate configuration:
+               cf-doctor-fix
+
+          📖 Full migration guide:
+             https://github.com/ruvnet/claude-flow/wiki/Migrating-to-V3
+
+          Skipping automatic initialization to prevent data loss.
+
+      # Scenario 2: Same version already installed
+      - name: "same-version-v3"
+        detected-version: "v3"
+        installing-version: "3.0.0"
+        action: skip
+        message: |
+          ✓ Claude Flow V3 is already initialized
+
+          To force a fresh V3 installation, run:
+            claude-flow init --full --force
+
+      # Scenario 3: Unknown .claude directory
+      - name: "unknown-origin"
+        detected-version: "unknown"
+        installing-version: "3.0.0"
+        action: stop
+        message: |
+          ⚠️  Existing .claude directory detected (unknown origin)
+
+          Your project has a .claude directory that doesn't match
+          known Claude Flow V2 or V3 structure.
+
+          Options:
+            1. Backup and reinitialize: mv .claude .claude.backup && claude-flow init --full --force
+            2. Skip initialization: (do nothing)
+
+          Skipping automatic initialization for safety.
+
 bom:
   tools:
     - name: claude-flow

@@ -131,6 +131,95 @@ capabilities:
       - name: "claude-flow-swarm-coordinate"
         description: "Coordinate multi-agent swarms"
 
+  # Collision handling for cloned projects
+  collision-handling:
+    enabled: true
+
+    version-markers:
+      # V2 marker: memory.db file
+      - path: ".claude/memory.db"
+        type: file
+        version: "v2"
+        detection:
+          method: file-exists
+
+      # V2 marker: memory subdirectory
+      - path: ".claude/memory"
+        type: directory
+        version: "v2"
+        detection:
+          method: directory-exists
+
+      # V3 marker (for cross-version detection)
+      - path: ".claude/config.json"
+        type: file
+        version: "v3"
+        detection:
+          method: content-match
+          patterns:
+            - '"swarm"'
+            - '"sona"'
+          match-any: true
+
+      # Unknown marker
+      - path: ".claude"
+        type: directory
+        version: "unknown"
+        detection:
+          method: directory-exists
+          exclude-if:
+            - ".claude/memory.db"
+            - ".claude/memory"
+            - ".claude/config.json"
+
+    scenarios:
+      # Scenario 1: Same version already installed
+      - name: "same-version-v2"
+        detected-version: "v2"
+        installing-version: "2.7.47"
+        action: skip
+        message: |
+          ✓ Claude Flow V2 is already initialized
+
+          To force a fresh V2 installation, run:
+            claude-flow init --force
+
+      # Scenario 2: V3 detected when installing V2 (downgrade)
+      - name: "v3-to-v2-downgrade"
+        detected-version: "v3"
+        installing-version: "2.7.47"
+        action: stop
+        message: |
+          ⚠️  Claude Flow V3 installation detected
+
+          Your project has Claude Flow V3 installed.
+          Downgrading to V2 is not recommended and may cause data loss.
+
+          If you really want V2:
+            1. Backup .claude directory
+            2. Remove claude-flow-v3: extension-manager remove claude-flow-v3
+            3. Install claude-flow-v2: extension-manager install claude-flow-v2
+            4. Run: claude-flow init --force
+
+          Skipping automatic initialization to prevent conflicts.
+
+      # Scenario 3: Unknown .claude directory
+      - name: "unknown-origin"
+        detected-version: "unknown"
+        installing-version: "2.7.47"
+        action: stop
+        message: |
+          ⚠️  Existing .claude directory detected (unknown origin)
+
+          Your project has a .claude directory that doesn't match
+          known Claude Flow V2 or V3 structure.
+
+          Options:
+            1. Backup and reinitialize: mv .claude .claude.backup && claude-flow init --force
+            2. Skip initialization: (do nothing)
+
+          Skipping automatic initialization for safety.
+
 bom:
   tools:
     - name: claude-flow

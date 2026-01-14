@@ -102,6 +102,30 @@ capabilities:
       command: "echo 'Agentic-qe initialized successfully'"
       description: "Post-initialization cleanup"
 
+  # Collision handling for cloned projects
+  collision-handling:
+    enabled: true
+
+    version-markers:
+      # Agentic QE marker
+      - path: ".agentic-qe"
+        type: directory
+        version: "installed"
+        detection:
+          method: directory-exists
+
+    scenarios:
+      # Scenario 1: Already installed
+      - name: "already-initialized"
+        detected-version: "installed"
+        installing-version: "1.0.0"
+        action: skip
+        message: |
+          ✓ Agentic QE is already initialized
+
+          To force a fresh installation, run:
+            aqe init --yes --force
+
 bom:
   tools:
     - name: agentic-qe

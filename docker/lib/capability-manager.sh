@@ -424,6 +424,250 @@ report_initialized_extensions() {
 }
 
 ###############################################################################
+# Collision Handling (Generic, No Extension-Specific Logic)
+###############################################################################
+
+# Detect installed version from collision-handling markers
+# Usage: detect_collision_version <extension_name>
+# Returns: version string (e.g., "v2", "v3", "installed", "unknown") or "none"
+detect_collision_version() {
+    local ext="$1"
+    local project_dir="${PWD}"
+
+    # Check if collision handling is enabled
+    local enabled
+    enabled=$(get_extension_capability "$ext" "collision-handling.enabled")
+
+    if [[ "$enabled" != "true" ]]; then
+        echo "none"
+        return 0
+    fi
+
+    # Get version-markers from extension
+    local version_markers
+    version_markers=$(get_extension_capability "$ext" "collision-handling.version-markers")
+
+    if [[ -z "$version_markers" || "$version_markers" == "null" ]]; then
+        echo "none"
+        return 0
+    fi
+
+    # Parse and check each version marker (in order)
+    local marker_count
+    marker_count=$(echo "$version_markers" | yq eval 'length' - 2>/dev/null || echo "0")
+
+    for ((i=0; i<marker_count; i++)); do
+        local path version method
+        path=$(echo "$version_markers" | yq eval ".[$i].path" - 2>/dev/null)
+        version=$(echo "$version_markers" | yq eval ".[$i].version" - 2>/dev/null)
+        method=$(echo "$version_markers" | yq eval ".[$i].detection.method" - 2>/dev/null)
+
+        if [[ -z "$path" || -z "$version" || -z "$method" ]]; then
+            continue
+        fi
+
+        local full_path="${project_dir}/${path}"
+
+        case "$method" in
+            file-exists)
+                if [[ -f "$full_path" ]]; then
+                    echo "$version"
+                    return 0
+                fi
+                ;;
+
+            directory-exists)
+                if [[ -d "$full_path" ]]; then
+                    # Check exclude-if conditions
+                    local excludes
+                    excludes=$(echo "$version_markers" | yq eval ".[$i].detection.exclude-if" - 2>/dev/null)
+
+                    if [[ "$excludes" != "null" && -n "$excludes" ]]; then
+                        local has_excludes=false
+                        local exclude_count
+                        exclude_count=$(echo "$excludes" | yq eval 'length' - 2>/dev/null || echo "0")
+
+                        for ((j=0; j<exclude_count; j++)); do
+                            local exclude_path
+                            exclude_path=$(echo "$excludes" | yq eval ".[$j]" - 2>/dev/null)
+                            if [[ -e "${project_dir}/${exclude_path}" ]]; then
+                                has_excludes=true
+                                break
+                            fi
+                        done
+
+                        # Only return version if NO excludes found
+                        if [[ "$has_excludes" == "false" ]]; then
+                            echo "$version"
+                            return 0
+                        fi
+                    else
+                        # No excludes, directory exists = match
+                        echo "$version"
+                        return 0
+                    fi
+                fi
+                ;;
+
+            content-match)
+                if [[ -f "$full_path" ]]; then
+                    local patterns match_any
+                    patterns=$(echo "$version_markers" | yq eval ".[$i].detection.patterns" - 2>/dev/null)
+                    match_any=$(echo "$version_markers" | yq eval ".[$i].detection.match-any" - 2>/dev/null)
+
+                    if [[ "$patterns" == "null" ]]; then
+                        continue
+                    fi
+
+                    local pattern_count
+                    pattern_count=$(echo "$patterns" | yq eval 'length' - 2>/dev/null || echo "0")
+
+                    local all_matched=true
+                    local any_matched=false
+
+                    for ((j=0; j<pattern_count; j++)); do
+                        local pattern
+                        pattern=$(echo "$patterns" | yq eval ".[$j]" - 2>/dev/null)
+
+                        if grep -q "$pattern" "$full_path" 2>/dev/null; then
+                            any_matched=true
+                        else
+                            all_matched=false
+                        fi
+                    done
+
+                    # Check match condition
+                    if [[ "$match_any" == "true" && "$any_matched" == "true" ]]; then
+                        echo "$version"
+                        return 0
+                    elif [[ "$match_any" != "true" && "$all_matched" == "true" ]]; then
+                        echo "$version"
+                        return 0
+                    fi
+                fi
+                ;;
+        esac
+    done
+
+    echo "none"
+    return 0
+}
+
+# Backup state markers with timestamp
+# Usage: backup_state_markers <extension_name>
+backup_state_markers() {
+    local ext="$1"
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+
+    # Get state markers from project-init
+    local state_markers
+    state_markers=$(get_extension_capability "$ext" "project-init.state-markers")
+
+    if [[ -z "$state_markers" || "$state_markers" == "null" ]]; then
+        return 0
+    fi
+
+    local marker_count
+    marker_count=$(echo "$state_markers" | yq eval 'length' - 2>/dev/null || echo "0")
+
+    for ((i=0; i<marker_count; i++)); do
+        local path type
+        path=$(echo "$state_markers" | yq eval ".[$i].path" - 2>/dev/null)
+        type=$(echo "$state_markers" | yq eval ".[$i].type" - 2>/dev/null)
+
+        if [[ -z "$path" ]]; then
+            continue
+        fi
+
+        local full_path="${PWD}/${path}"
+
+        if [[ "$type" == "directory" && -d "$full_path" ]]; then
+            local backup_path="${full_path}.backup.${timestamp}"
+            mv "$full_path" "$backup_path"
+            print_info "Backed up: ${path} → ${path}.backup.${timestamp}"
+        elif [[ "$type" == "file" && -f "$full_path" ]]; then
+            local backup_path="${full_path}.backup.${timestamp}"
+            mv "$full_path" "$backup_path"
+            print_info "Backed up: ${path} → ${path}.backup.${timestamp}"
+        fi
+    done
+}
+
+# Generic collision handling (no extension-specific logic)
+# Usage: handle_collision <extension_name> <installing_version>
+# Returns: 0 = proceed with init, 1 = skip init
+handle_collision() {
+    local ext="$1"
+    local installing_version="$2"
+
+    # Check if collision handling is enabled
+    local enabled
+    enabled=$(get_extension_capability "$ext" "collision-handling.enabled")
+
+    if [[ "$enabled" != "true" ]]; then
+        return 0  # No collision handling, proceed normally
+    fi
+
+    # Detect installed version
+    local detected_version
+    detected_version=$(detect_collision_version "$ext")
+
+    if [[ "$detected_version" == "none" ]]; then
+        return 0  # No collision detected, proceed
+    fi
+
+    # Find matching scenario
+    local scenarios
+    scenarios=$(get_extension_capability "$ext" "collision-handling.scenarios")
+
+    if [[ -z "$scenarios" || "$scenarios" == "null" ]]; then
+        return 0  # No scenarios defined, proceed
+    fi
+
+    local scenario_count
+    scenario_count=$(echo "$scenarios" | yq eval 'length' - 2>/dev/null || echo "0")
+
+    for ((i=0; i<scenario_count; i++)); do
+        local detected_check installing_check action message
+        detected_check=$(echo "$scenarios" | yq eval ".[$i].detected-version" - 2>/dev/null)
+        installing_check=$(echo "$scenarios" | yq eval ".[$i].installing-version" - 2>/dev/null)
+
+        if [[ "$detected_check" == "$detected_version" ]] && [[ "$installing_check" == "$installing_version" ]]; then
+            action=$(echo "$scenarios" | yq eval ".[$i].action" - 2>/dev/null)
+            message=$(echo "$scenarios" | yq eval ".[$i].message" - 2>/dev/null)
+
+            case "$action" in
+                stop|skip)
+                    print_warning "$(echo "$message" | sed 's/^/  /')"
+                    return 1  # Stop/skip initialization
+                    ;;
+                proceed)
+                    if [[ -n "$message" ]]; then
+                        print_info "$(echo "$message" | sed 's/^/  /')"
+                    fi
+                    return 0  # Proceed with initialization
+                    ;;
+                backup)
+                    print_info "$(echo "$message" | sed 's/^/  /')"
+                    backup_state_markers "$ext"
+                    return 0  # Proceed after backup
+                    ;;
+                prompt)
+                    # Interactive prompt (future enhancement)
+                    print_warning "$(echo "$message" | sed 's/^/  /')"
+                    print_info "  Interactive prompts not yet implemented. Skipping for safety."
+                    return 1  # Default: skip for safety
+                    ;;
+            esac
+        fi
+    done
+
+    # No matching scenario found, proceed
+    return 0
+}
+
+###############################################################################
 # Main Entry Point (for testing)
 ###############################################################################
 
