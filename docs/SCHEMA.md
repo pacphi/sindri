@@ -358,6 +358,7 @@ extensions:
     description: string # Brief description of extension
     protected: boolean # Optional, default: false - prevents removal
     dependencies: [extension1, extension2] # Optional - required extensions
+    conflicts: [extension3, extension4] # Optional - mutually exclusive extensions
 ```
 
 ---

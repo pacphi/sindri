@@ -37,7 +37,7 @@ get_conflicts() {
 
     # Query registry for conflicts
     local conflicts
-    conflicts=$(yq eval ".extensions[] | select(.name == \"${ext_name}\") | .conflicts[]" \
+    conflicts=$(yq eval ".extensions.\"${ext_name}\".conflicts[]" \
         "$REGISTRY_FILE" 2>/dev/null || echo "")
 
     echo "$conflicts"

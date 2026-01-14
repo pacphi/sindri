@@ -138,12 +138,6 @@ extensions:
     category: ai
     description: Claude Flow v2 stable - Multi-agent orchestration (proven reliability)
     dependencies: [nodejs]
-    tags:
-      - ai
-      - agents
-      - orchestration
-      - v2
-      - stable
     conflicts:
       - claude-flow-v3
 
@@ -151,13 +145,6 @@ extensions:
     category: ai
     description: Claude Flow v3 alpha - 10x performance, modular packages, 150x faster search
     dependencies: [nodejs]
-    tags:
-      - ai
-      - agents
-      - orchestration
-      - v3
-      - alpha
-      - performance
     conflicts:
       - claude-flow-v2
 
