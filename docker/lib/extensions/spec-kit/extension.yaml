@@ -55,7 +55,7 @@ bom:
   tools:
     - name: spec-kit
       version: dynamic
-      source: github
+      source: github-release
       type: cli-tool
       license: MIT
       homepage: https://github.com/github/spec-kit

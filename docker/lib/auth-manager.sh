@@ -200,7 +200,6 @@ check_extension_auth() {
     # Check if extension has auth capability defined
     local auth_provider
     local auth_required
-    local env_vars
 
     auth_provider=$(get_extension_capability "$ext" "auth.provider")
 
