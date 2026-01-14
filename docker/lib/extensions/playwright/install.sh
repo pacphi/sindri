@@ -41,12 +41,12 @@ npx playwright install-deps || print_warning "Some system dependencies may be mi
 if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   print_status "CI mode: Installing Playwright (browsers skipped)..."
   export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-  npm install -D playwright @playwright/test --prefer-offline --no-audit --no-fund || exit 1
+  pnpm add -D playwright @playwright/test --prefer-offline || exit 1
   print_success "Playwright packages installed (browsers skipped for CI)"
 else
   # Full installation with browsers
   print_status "Installing Playwright packages..."
-  npm install -D playwright @playwright/test || exit 1
+  pnpm add -D playwright @playwright/test || exit 1
   print_success "Playwright packages installed"
 
   print_status "Installing Chromium browser..."
@@ -55,7 +55,7 @@ fi
 
 # Install TypeScript
 print_status "Installing TypeScript..."
-npm install -D typescript @types/node && print_success "TypeScript installed"
+pnpm add -D typescript @types/node && print_success "TypeScript installed"
 
 # Create tests directory
 mkdir -p tests

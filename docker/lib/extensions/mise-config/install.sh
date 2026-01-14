@@ -23,6 +23,7 @@ MISE_HOME="${HOME:-/alt/home/developer}"
 # Create global mise config
 # - yes = true: auto-accept all prompts (trust, install confirmations)
 # - trusted_config_paths: auto-trust extension configs in conf.d
+# - npm.package_manager = "pnpm": use pnpm for all npm: backend packages (faster, more reliable)
 cat > ~/.config/mise/config.toml << EOF
 [settings]
 experimental = true
@@ -39,6 +40,12 @@ fetch_remote_versions_timeout = "180s"
 yes = true
 # Auto-trust extension config files
 trusted_config_paths = ["${MISE_HOME}/.config/mise/conf.d"]
+
+[settings.npm]
+# Use pnpm for all npm: backend package installations
+# pnpm is faster, more disk-efficient, and more secure than npm
+# Requires pnpm to be installed first (handled by nodejs extension bootstrap)
+package_manager = "pnpm"
 
 [env]
 MISE_USE_TOML = "1"

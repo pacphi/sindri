@@ -1,10 +1,9 @@
 ---
 metadata:
   name: nodejs-devtools
-  version: 2.1.0
+  version: 2.2.0
   description: >-
-    TypeScript, ESLint, Prettier, and Node.js development tools via mise
-    npm backend
+    TypeScript, ESLint, Prettier, and Node.js development tools via pnpm
   category: dev-tools
   author: Sindri Team
   dependencies:

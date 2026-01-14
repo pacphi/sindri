@@ -4,7 +4,7 @@
 # IMPORTANT: mdflow uses #!/usr/bin/env bun shebang, requiring bun at runtime.
 # Bun must be installed BEFORE npm:mdflow so it's available when mdflow runs.
 #
-# NOTE: Use pinned versions instead of "latest" to avoid npm registry
+# NOTE: Use pinned versions instead of "latest" for reliable installations
 # query timeouts that can poison subsequent mise operations.
 
 [tools]

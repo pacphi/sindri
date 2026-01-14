@@ -294,7 +294,7 @@ find docs -name "*.md" -o -name "README.md" | while read file; do
 done
 
 # Check external URLs (requires markdown-link-check)
-npm install -g markdown-link-check
+pnpm add -g markdown-link-check
 find docs -name "*.md" | xargs -n1 markdown-link-check -q
 
 # Automated CI check

@@ -1,20 +1,20 @@
 # Node.js
 
-Node.js LTS runtime with npm package manager.
+Node.js LTS runtime with npm and pnpm package managers.
 
 ## Overview
 
 | Property         | Value                           |
 | ---------------- | ------------------------------- |
 | **Category**     | language                        |
-| **Version**      | 1.0.1                           |
-| **Installation** | mise                            |
+| **Version**      | 1.1.0                           |
+| **Installation** | hybrid (mise + script)          |
 | **Disk Space**   | 600 MB                          |
 | **Dependencies** | [mise-config](MISE-CONFIG.md)   |
 
 ## Description
 
-Node.js LTS via mise - provides the Node.js runtime and npm package manager for JavaScript/TypeScript development.
+Node.js LTS via mise - provides the Node.js runtime, npm, and pnpm package managers for JavaScript/TypeScript development. pnpm is bootstrapped via npm and configured globally as the default package manager for all npm: backend installations.
 
 ## Installed Tools
 
@@ -23,6 +23,7 @@ Node.js LTS via mise - provides the Node.js runtime and npm package manager for 
 | `node` | runtime         | Node.js JavaScript runtime |
 | `npm`  | package-manager | Node Package Manager       |
 | `npx`  | cli-tool        | Execute npm packages       |
+| `pnpm` | package-manager | Fast, disk-efficient package manager (default) |
 
 ## Configuration
 
@@ -58,7 +59,10 @@ extension-manager install nodejs
 ```bash
 node --version    # Expected: vX.X.X
 npm --version
+pnpm --version    # Expected: X.X.X
 ```
+
+> **Note:** pnpm is the default package manager for all npm: backend installations. Packages installed via mise npm backend automatically use pnpm for faster, more reliable installations.
 
 ## Removal
 

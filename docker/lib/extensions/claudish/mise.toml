@@ -1,7 +1,7 @@
 # claudish.toml - OpenRouter model proxy for Claude Code
 # Requires nodejs extension to be installed first
 #
-# IMPORTANT: Use pinned versions instead of "latest" to avoid npm registry
+# IMPORTANT: Use pinned versions instead of "latest" for reliable installations
 # query timeouts that can poison subsequent mise operations.
 
 [tools]

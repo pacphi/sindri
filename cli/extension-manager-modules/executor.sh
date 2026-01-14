@@ -202,14 +202,13 @@ install_via_mise() {
         return 1
     fi
 
-    # Copy mise config to user's XDG config directory
+    # IMPORTANT: Do NOT copy config to conf.d before install!
+    # mise reads ALL conf.d files regardless of MISE_CONFIG_FILE setting.
+    # If we copy first, uninstalled npm packages in this config will cause
+    # ALL mise operations to hang while trying to resolve versions.
+    # Instead: install first using the original config path, then copy on success.
     local mise_conf_dir="${MISE_CONFIG_DIR:-$home_dir/.config/mise}/conf.d"
     ensure_directory "$mise_conf_dir"
-    cp "$config_path" "$mise_conf_dir/${ext_name}.toml" || {
-        print_error "Failed to copy mise config to $mise_conf_dir"
-        return 1
-    }
-    [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]] && echo "     Configuration copied to $mise_conf_dir"
 
     # Install tools
     cd "$workspace" || return 1
@@ -220,12 +219,12 @@ install_via_mise() {
         echo "     This step may take several minutes for large tools like Node.js or Python"
     fi
 
-    # Scope mise install to THIS extension's config only (not all conf.d files)
-    # This prevents failures in unrelated extensions from breaking this install
-    local scoped_config="$mise_conf_dir/${ext_name}.toml"
+    # Use the ORIGINAL extension config path for install (not conf.d)
+    # This prevents poisoning conf.d with uninstalled packages if install fails
+    local scoped_config="$config_path"
 
-    # Ensure mise shims are in PATH for npm backend and other tools
-    # mise creates shims for ALL managed tools including npm: packages
+    # Ensure mise shims are in PATH for pnpm backend and other tools
+    # mise creates shims for ALL managed tools including npm: packages (installed via pnpm)
     # See: https://mise.jdx.dev/dev-tools/shims.html
     local mise_shims="${home_dir}/.local/share/mise/shims"
     if [[ -d "$mise_shims" ]] && [[ ":$PATH:" != *":$mise_shims:"* ]]; then
@@ -255,16 +254,19 @@ install_via_mise() {
         # shellcheck disable=SC2086  # Word splitting intentional for env vars
         if ! retry_command 3 2 env $mise_env timeout 300 mise install; then
             print_error "mise install failed after 3 attempts (total: 15min max)"
-            # CLEANUP: Remove conf.d config to prevent poisoning subsequent installs
-            # Failed extensions with @latest versions cause every mise operation to
-            # attempt resolving those packages, leading to cascading timeouts
-            if [[ -f "$mise_conf_dir/${ext_name}.toml" ]]; then
-                print_warning "Removing failed extension config from conf.d to prevent cascading failures"
-                rm -f "$mise_conf_dir/${ext_name}.toml"
-            fi
+            # No conf.d cleanup needed - we haven't copied there yet (install-then-copy pattern)
             return 1
         fi
     fi
+
+    # SUCCESS: Now copy config to conf.d for future mise operations
+    # This is done AFTER install succeeds to prevent poisoning conf.d with uninstalled packages
+    cp "$config_path" "$mise_conf_dir/${ext_name}.toml" || {
+        print_warning "Failed to copy mise config to conf.d (install succeeded, but config won't persist)"
+    }
+    # Trust the config file (required by mise 2024+)
+    mise trust "$mise_conf_dir/${ext_name}.toml" 2>/dev/null || true
+    [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]] && echo "     Configuration saved to $mise_conf_dir"
 
     # Progress indicator: Step 4 - Reshim (always run to ensure shims exist)
     if [[ "${SINDRI_ENABLE_PROGRESS_INDICATORS:-true}" == "true" ]]; then
@@ -753,7 +755,7 @@ validate_extension() {
     if [[ -d "$home_dir/.fly/bin" ]] && [[ ":$PATH:" != *":$home_dir/.fly/bin:"* ]]; then
         export PATH="$home_dir/.fly/bin:$PATH"
     fi
-    # Note: npm packages are now installed via mise npm: backend which creates shims
+    # Note: npm: packages are installed via mise pnpm backend which creates shims
     # No need for complex node bin directory detection - mise shims handle this
     # Clear bash's command hash table so new commands are found
     hash -r 2>/dev/null || true

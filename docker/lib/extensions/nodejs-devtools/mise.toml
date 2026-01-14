@@ -2,12 +2,15 @@
 # Requires nodejs.toml to be installed first
 #
 # IMPORTANT: Use pinned major.minor versions instead of "latest"
-# "latest" requires npm registry queries which can timeout and poison
-# subsequent mise operations if they fail. Pinned versions are cached
-# and don't require network calls to resolve.
+# Pinned versions provide reliable, reproducible installations without
+# requiring network queries. pnpm's content-addressable store handles
+# version resolution efficiently.
 
 [tools]
 # npm global development tools - pinned to major.minor for stability
+# Installed via pnpm (configured in mise-config as npm.package_manager = "pnpm")
+# NOTE: pnpm itself is NOT listed here - it's bootstrapped by nodejs extension
+#       to avoid circular dependency (mise using pnpm to install pnpm)
 "npm:typescript" = "5.9"
 "npm:ts-node" = "10.9"
 "npm:eslint" = "9"
@@ -15,7 +18,6 @@
 "npm:@typescript-eslint/eslint-plugin" = "8"
 "npm:prettier" = "3.6"
 "npm:nodemon" = "3.1"
-"npm:pnpm" = "10"
 
 [tasks.format]
 description = "Format code with Prettier"

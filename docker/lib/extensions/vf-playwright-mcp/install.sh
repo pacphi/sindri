@@ -23,9 +23,9 @@ fi
 if [[ -d "${EXTENSION_DIR}/mcp-server" ]]; then
     cd "${EXTENSION_DIR}/mcp-server"
     if [[ -f "package.json" ]]; then
-        npm install --production
+        pnpm install --prod
     else
-        npm install @modelcontextprotocol/sdk playwright
+        pnpm add @modelcontextprotocol/sdk playwright
     fi
 fi
 

@@ -1,20 +1,20 @@
 # Node.js DevTools
 
-TypeScript, ESLint, Prettier, pnpm, and Node.js development tools via mise npm backend.
+TypeScript, ESLint, Prettier, and Node.js development tools installed via pnpm.
 
 ## Overview
 
 | Property         | Value               |
 | ---------------- | ------------------- |
 | **Category**     | dev-tools           |
-| **Version**      | 2.1.0               |
-| **Installation** | mise                |
+| **Version**      | 2.2.0               |
+| **Installation** | mise (pnpm backend) |
 | **Disk Space**   | 150 MB              |
 | **Dependencies** | [nodejs](NODEJS.md) |
 
 ## Description
 
-TypeScript, ESLint, Prettier, pnpm, and Node.js development tools via mise npm backend - provides essential JavaScript/TypeScript development tooling including a fast, disk-efficient package manager.
+Essential JavaScript/TypeScript development tooling installed via pnpm for faster, more reliable package management. All npm: packages in Sindri now use pnpm as the package manager (configured globally in mise-config).
 
 ## Installed Tools
 
@@ -25,7 +25,7 @@ TypeScript, ESLint, Prettier, pnpm, and Node.js development tools via mise npm b
 | `prettier` | cli-tool | 3.6            | Code formatter               |
 | `eslint`   | cli-tool | 9              | JavaScript/TypeScript linter |
 | `nodemon`  | cli-tool | 3.1            | Auto-restart server          |
-| `pnpm`     | cli-tool | 10             | Fast package manager         |
+| `pnpm`     | pkg-mgr  | 10             | Fast package manager (via nodejs bootstrap) |
 
 Additional packages installed:
 - `@typescript-eslint/parser` (8.x)
@@ -75,7 +75,7 @@ pnpm --version
 
 **Strategy:** automatic
 
-Automatically upgrades all mise-managed npm tools.
+Automatically upgrades all mise-managed tools (installed via pnpm).
 
 ## Removal
 

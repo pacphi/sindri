@@ -165,7 +165,7 @@
         <li><span class="highlight">Declarative YAML</span> - Not bash scripts</li>
         <li><span class="highlight">Schema-Validated</span> - JSON Schema enforcement</li>
         <li><span class="highlight">Dependency Aware</span> - Automatic resolution</li>
-        <li><span class="highlight">Multiple Methods</span> - mise, apt, npm, binary, script</li>
+        <li><span class="highlight">Multiple Methods</span> - mise (via pnpm), apt, binary, script, hybrid</li>
         <li><span class="highlight">BOM Tracking</span> - Software bill of materials</li>
     </ul>
     <p class="small" style="margin-top: 1.5em;">
@@ -182,7 +182,7 @@ extension.yaml              (Definition)
     │
     ├── metadata            Name, version, description, category
     ├── requirements        Domains, disk space, secrets
-    ├── install             Method: mise | apt | npm | binary | script | hybrid
+    ├── install             Method: mise | apt | binary | script | hybrid
     ├── configure           Environment variables, templates
     ├── validate            Commands to verify installation
     ├── upgrade             Strategy and scripts
@@ -234,9 +234,9 @@ extension.yaml              (Definition)
             <td>Docker, PHP, .NET</td>
         </tr>
         <tr>
-            <td><span class="method-badge method-npm">npm</span></td>
-            <td>Node.js packages</td>
-            <td>TypeScript, ESLint</td>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>Node.js packages (via pnpm)</td>
+            <td>TypeScript, ESLint, Prettier</td>
         </tr>
         <tr>
             <td><span class="method-badge method-binary">binary</span></td>

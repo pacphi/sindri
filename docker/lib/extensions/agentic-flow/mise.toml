@@ -1,5 +1,5 @@
 # agentic-flow - Multi-model AI agent framework for Claude Code
-# Uses mise npm: backend for proper shim management
+# Uses mise pnpm backend for proper shim management
 
 [tools]
 "npm:agentic-flow" = "alpha"

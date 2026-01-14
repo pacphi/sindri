@@ -1,8 +1,8 @@
 ---
 metadata:
   name: nodejs
-  version: 1.0.1
-  description: Node.js LTS via mise
+  version: 1.1.0
+  description: Node.js LTS via mise with pnpm package manager
   category: language
   dependencies:
     - mise-config
@@ -16,10 +16,13 @@ requirements:
   installTime: 30
 
 install:
-  method: mise
+  method: hybrid
   mise:
     configFile: mise.toml
     reshimAfterInstall: true
+  script:
+    path: bootstrap-pnpm.sh
+    timeout: 60
 
 configure:
   environment:
@@ -37,6 +40,8 @@ validate:
     - name: node
       expectedPattern: "v\\d+\\.\\d+\\.\\d+"
     - name: npm
+    - name: pnpm
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
 
 remove:
   mise:
@@ -65,3 +70,10 @@ bom:
       type: cli-tool
       license: Artistic-2.0
       homepage: https://www.npmjs.com
+    - name: pnpm
+      version: dynamic
+      source: npm
+      type: package-manager
+      license: MIT
+      homepage: https://pnpm.io
+      purl: pkg:npm/pnpm

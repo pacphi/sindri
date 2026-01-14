@@ -149,7 +149,7 @@ Clone or fork existing repositories and automatically apply Claude AI enhancemen
    - **Git Hooks**: Pre-commit and commit-msg hooks
    - **CLAUDE.md**: Creates project context file (via `claude /init` if available)
    - **Dependency Installation**: Automatically detects and installs:
-     - npm install (for package.json)
+     - pnpm install (for package.json)
      - pip3 install (for requirements.txt)
      - go mod download (for go.mod)
      - cargo build (for Cargo.toml)
