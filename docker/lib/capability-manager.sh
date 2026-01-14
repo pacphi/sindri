@@ -15,6 +15,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
+# Source dependency module for install state checking
+if [[ -f "${SCRIPT_DIR}/../cli/extension-manager-modules/dependency.sh" ]]; then
+    source "${SCRIPT_DIR}/../cli/extension-manager-modules/dependency.sh"
+fi
+
 # Constants
 REGISTRY_FILE="${SCRIPT_DIR}/registry.yaml"
 EXTENSIONS_DIR="${SCRIPT_DIR}/extensions"
@@ -64,6 +69,11 @@ discover_project_capabilities() {
     while IFS= read -r ext; do
         if [[ -z "$ext" ]]; then
             continue
+        fi
+
+        # ADDED: Check if extension is actually installed
+        if ! is_extension_installed "$ext" 2>/dev/null; then
+            continue  # Skip uninstalled extensions
         fi
 
         local extension_file="${EXTENSIONS_DIR}/${ext}/extension.yaml"

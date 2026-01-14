@@ -24,6 +24,7 @@ profiles:
       - nodejs
       - python
       - golang
+      - spec-kit
       - ollama
       - ai-toolkit
       - mdflow
@@ -37,31 +38,6 @@ profiles:
     extensions:
       - agent-manager
       - claude-flow-v3
-      - agentic-flow
-      - agentic-qe
-      - golang
-      - ollama
-      - ai-toolkit
-      - claudish
-      - claude-marketplace
-      - infra-tools
-      - jvm
-      - mdflow
-      - openskills
-      - nodejs-devtools
-      - playwright
-      - rust
-      - ruvnet-research
-      - linear-mcp
-      - supabase-cli
-      - tmux-workspace
-      - cloud-tools
-
-  anthropic-dev-v2:
-    description: AI development with Anthropic toolset bias (v2 stable)
-    extensions:
-      - agent-manager
-      - claude-flow-v2
       - agentic-flow
       - agentic-qe
       - golang

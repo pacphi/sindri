@@ -95,6 +95,11 @@ pnpm build                   # Build Docker image
 - All extensions must validate against JSON schema
 - Dependencies are automatically resolved
 
+**Example Extensions:**
+- `spec-kit` - Project-init capability, no auth, git auto-commit hook
+- `agentic-qe` - Project-init capability, requires anthropic auth
+- `claude-flow-v2` - Full capabilities (project-init, auth, hooks, mcp)
+
 🔧 **Complete Extension Guide:** [docs/EXTENSION_AUTHORING.md](docs/EXTENSION_AUTHORING.md)
 
 ## Testing

@@ -204,21 +204,8 @@ init_project_tools() {
     source "${LIB_DIR}/hooks-manager.sh"
     source "${LIB_DIR}/mcp-manager.sh"
 
-    # Initialize GitHub spec-kit if uv is available (non-extension tool)
-    if command_exists uvx || command_exists uv; then
-        print_status "Initializing GitHub spec-kit..."
-        if uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude --script sh 2>/dev/null; then
-            print_success "GitHub spec-kit initialized"
-            tools_initialized=true
-
-            if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-                git add . 2>/dev/null
-                git commit -m "feat: add GitHub spec-kit configuration" 2>/dev/null || true
-            fi
-        else
-            print_debug "GitHub spec-kit initialization skipped"
-        fi
-    fi
+    # NOTE: spec-kit is now a proper extension with project-init capability
+    # No hardcoded initialization needed - capability-manager handles it automatically
 
     # Check Claude Code availability (non-extension tool)
     if command_exists claude; then

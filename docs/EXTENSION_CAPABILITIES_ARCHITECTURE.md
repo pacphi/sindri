@@ -1385,6 +1385,19 @@ This refactoring will be successful when:
 
 ---
 
+## Current Extensions with Project-Init Capabilities
+
+The following extensions have been migrated to use the capability system:
+
+| Extension      | project-init | Auth Required | State Markers        | Notes                            |
+|----------------|--------------|---------------|----------------------|----------------------------------|
+| claude-flow-v2 | ✓            | anthropic     | .claude/, CLAUDE.md  | Enterprise multi-agent platform  |
+| claude-flow-v3 | ✓            | anthropic     | .claude/, CLAUDE.md  | High-performance v3 (10x faster) |
+| agentic-qe     | ✓            | anthropic     | .agentic-qe/         | AI-powered testing framework     |
+| spec-kit       | ✓            | none          | .github/spec.json    | AI-powered documentation system  |
+
+---
+
 ## Future Enhancements (Out of Scope)
 
 Once this refactoring is complete, future work could include:

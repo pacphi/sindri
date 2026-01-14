@@ -1,0 +1,62 @@
+---
+metadata:
+  name: spec-kit
+  version: 1.0.0
+  description: GitHub specification kit for AI-powered repository documentation and workflows
+  category: dev-tools
+  author: GitHub
+  homepage: https://github.com/github/spec-kit
+  dependencies:
+    - python  # Provides uvx command
+
+requirements:
+  domains:
+    - github.com
+    - raw.githubusercontent.com
+  diskSpace: 50
+  memory: 64
+  installTime: 30
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 60
+
+validate:
+  commands:
+    - name: uvx
+      expectedPattern: "uv \\d+\\.\\d+\\.\\d+"
+
+capabilities:
+  project-init:
+    enabled: true
+    commands:
+      - command: "uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude --script sh"
+        description: "Initialize GitHub spec-kit for AI-powered workflows"
+        requiresAuth: none
+        conditional: false
+
+    state-markers:
+      - path: ".github/spec.json"
+        type: file
+        description: "GitHub spec-kit configuration file"
+
+    validation:
+      command: "test -f .github/spec.json"
+      expectedExitCode: 0
+
+  hooks:
+    post-project-init:
+      command: "bash scripts/commit-spec-kit.sh"
+      description: "Commit spec-kit initialization files"
+
+bom:
+  tools:
+    - name: spec-kit
+      version: dynamic
+      source: github
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/github/spec-kit
+      purl: pkg:github/github/spec-kit

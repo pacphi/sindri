@@ -67,6 +67,11 @@ extensions:
     description: TypeScript, ESLint, Prettier
     dependencies: [nodejs]
 
+  spec-kit:
+    category: dev-tools
+    description: GitHub specification kit for AI-powered workflows
+    dependencies: [python]
+
   playwright:
     category: dev-tools
     description: Browser automation testing
