@@ -763,10 +763,38 @@ security_log_validation() {
 # End Security Logging Functions
 # =============================================================================
 
+# =============================================================================
+# Disk Space Management
+# =============================================================================
+
+# Clean up APT caches and temporary files to free disk space
+# This is critical on disk-constrained environments like Fly.io (8GB root FS)
+# Usage: cleanup_apt_cache
+cleanup_apt_cache() {
+    print_status "Cleaning up APT caches to free disk space..."
+
+    # Clean apt cache (safe to run without sudo if no packages to clean)
+    if command_exists apt-get; then
+        sudo apt-get clean 2>/dev/null || true
+        sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+        sudo rm -rf /var/cache/apt/archives/* 2>/dev/null || true
+    fi
+
+    # Clean up temporary files
+    sudo rm -rf /tmp/* 2>/dev/null || true
+    sudo rm -rf /var/tmp/* 2>/dev/null || true
+
+    print_success "APT cache cleanup complete"
+}
+
+# =============================================================================
+# End Disk Space Management
+# =============================================================================
+
 # Export functions for use in subshells
 export -f print_status print_success print_warning print_error print_header print_step print_debug
 export -f command_exists is_user ensure_directory
-export -f load_yaml validate_yaml_schema check_dns check_disk_space retry_command
+export -f load_yaml validate_yaml_schema check_dns check_disk_space retry_command cleanup_apt_cache
 export -f get_github_release_version
 export -f check_gpu_available get_gpu_count get_gpu_memory validate_gpu_config check_extension_gpu_requirements
 export -f check_rate_limit clear_rate_limit

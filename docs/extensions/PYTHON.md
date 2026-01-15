@@ -38,7 +38,7 @@ Python 3.13 with uv package manager via mise - provides the Python runtime, pip,
 ```toml
 [tools]
 python = "3.13"
-uv = "latest"
+uv = "0.9"
 ```
 
 ## Network Requirements

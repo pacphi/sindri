@@ -6,17 +6,17 @@
 [tools]
 # Infrastructure as Code
 # These work with aqua because they use releases.hashicorp.com
-terraform = "latest"
-packer = "latest"
+terraform = "1.14"
+packer = "1.14"
 
 # Kubernetes tools
 kubectl = "latest"
-helm = "latest"
+helm = "4.0"
 
 # Use asdf backends to avoid mise aqua GITHUB_TOKEN bug (#5418)
-"asdf:looztra/asdf-k9s" = "latest"
-"asdf:Banno/asdf-kustomize" = "latest"
-"asdf:sudermanjr/asdf-yq" = "latest"
+"asdf:looztra/asdf-k9s" = "0.50"
+"asdf:Banno/asdf-kustomize" = "5.7.1"
+"asdf:sudermanjr/asdf-yq" = "4.50"
 
 # Configuration management
 # Note: Ansible installed via apt due to Python dependencies

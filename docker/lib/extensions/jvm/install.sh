@@ -146,7 +146,7 @@ install_sdk_tool sbt
 if ! command_exists clojure; then
   if command_exists mise; then
     print_status "Installing Clojure via mise..."
-    if mise use -g clojure@latest 2>/dev/null && mise install clojure 2>/dev/null; then
+    if mise use -g clojure@1.12 2>/dev/null && mise install clojure 2>/dev/null; then
       print_success "Clojure installed via mise"
     else
       print_warning "Failed to install Clojure via mise"
@@ -160,7 +160,7 @@ fi
 if ! command_exists lein; then
   if command_exists mise; then
     print_status "Installing Leiningen via mise..."
-    if mise use -g leiningen@latest 2>/dev/null && mise install leiningen 2>/dev/null; then
+    if mise use -g leiningen@2.12 2>/dev/null && mise install leiningen 2>/dev/null; then
       print_success "Leiningen installed via mise"
     else
       print_warning "Failed to install Leiningen via mise"

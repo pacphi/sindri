@@ -29,6 +29,12 @@ configure:
     - key: OLLAMA_HOST
       value: "0.0.0.0:11434"
       scope: bashrc
+    - key: OLLAMA_MODELS
+      value: "$HOME/.ollama/models"
+      scope: bashrc
+    - key: OLLAMA_TMPDIR
+      value: "$HOME/.ollama/tmp"
+      scope: bashrc
 
 validate:
   commands:

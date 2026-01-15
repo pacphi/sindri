@@ -101,6 +101,21 @@ OLLAMA_BIN="$HOME/.local/bin/ollama"
 # Ensure user-local bin directory exists
 mkdir -p "$HOME/.local/bin"
 
+# Check if zstd is available, install if needed
+if ! command_exists zstd; then
+    print_status "Installing zstd for tarball extraction..."
+    if command_exists apt-get; then
+        sudo apt-get update -qq && sudo apt-get install -y -qq zstd
+        cleanup_apt_cache
+    elif command_exists yum; then
+        sudo yum install -y -q zstd
+        sudo yum clean all 2>/dev/null || true
+    else
+        print_error "Cannot install zstd - package manager not found"
+        exit 1
+    fi
+fi
+
 # Download and extract ollama tarball
 if curl -fsSL "$OLLAMA_URL" -o "$OLLAMA_TARBALL"; then
     # Extract just the ollama binary from the tarball (it's in bin/ollama)

@@ -74,6 +74,7 @@ else
     # dpkg might fail due to missing dependencies, try to fix
     print_warning "dpkg install had issues, attempting to fix dependencies..."
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -f -y -qq
+    cleanup_apt_cache
     # Retry dpkg
     if ! sudo DEBIAN_FRONTEND=noninteractive dpkg -i "$DEB_FILE"; then
         print_error "Failed to install Supabase CLI .deb package"
@@ -82,8 +83,9 @@ else
     fi
 fi
 
-# Clean up
+# Clean up deb file and APT caches
 rm -f "$DEB_FILE"
+cleanup_apt_cache
 
 # Create extension directory and copy resources
 mkdir -p "${EXTENSION_DIR}"

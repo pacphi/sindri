@@ -32,8 +32,8 @@ Complete Haskell development environment providing the Glasgow Haskell Compiler 
 
 ```toml
 [tools]
-haskell = "latest"
-hls = "latest"
+haskell = "9.8"
+hls = "2.12.0.0"
 ```
 
 ### Environment Variables

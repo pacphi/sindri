@@ -3,8 +3,9 @@ metadata:
   name: agentic-qe
   version: 1.0.0
   description: >-
-    Agentic Quality Engineering framework with AI-powered test generation,
-    coverage analysis, and multi-agent testing workflows
+    Agentic Quality Engineering v3 framework with AI-powered test generation,
+    coverage analysis, and multi-agent testing workflows. Uses @agentic-qe/v3
+    package which provides the 'aqe' command (same binary name as v2).
   category: dev-tools
   author: Sindri Team
   homepage: https://github.com/proffesor-for-testing/agentic-qe
@@ -36,10 +37,10 @@ validate:
   commands:
     - name: aqe
       versionFlag: --version
-      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+      expectedPattern: "3\\.\\d+\\.\\d+"
   mise:
     tools:
-      - npm:agentic-qe
+      - npm:@agentic-qe/v3
     minToolCount: 1
 
 remove:
@@ -47,7 +48,7 @@ remove:
   mise:
     removeConfig: true
     tools:
-      - npm:agentic-qe
+      - npm:@agentic-qe/v3
   paths:
     - ~/.agentic-qe
     - ./.agentic-qe
@@ -57,7 +58,7 @@ upgrade:
   mise:
     upgradeAll: true
     tools:
-      - npm:agentic-qe
+      - npm:@agentic-qe/v3
 
 capabilities:
   # Project initialization capability
@@ -65,7 +66,7 @@ capabilities:
     enabled: true
     commands:
       - command: "aqe init --yes"
-        description: "Initialize Agentic Quality Engineering framework"
+        description: "Initialize Agentic Quality Engineering framework v3"
         requiresAuth: anthropic
 
     state-markers:
@@ -75,7 +76,7 @@ capabilities:
 
     validation:
       command: "aqe --version"
-      expectedPattern: "^\\d+\\.\\d+\\.\\d+"
+      expectedPattern: "^3\\.\\d+\\.\\d+"
 
   # Authentication requirements (requires Anthropic API for AI-powered test generation)
   auth:
@@ -93,8 +94,8 @@ capabilities:
       command: "echo 'Preparing agentic-qe installation...'"
       description: "Pre-installation checks"
     post-install:
-      command: "cd ~/.local/share/mise/installs/npm-agentic-qe/*/5 && pnpm rebuild hnswlib-node && aqe --version"
-      description: "Rebuild native bindings and verify agentic-qe installation"
+      command: "mise reshim && sleep 2"
+      description: "Refresh shims after installation"
     pre-project-init:
       command: "echo 'Initializing agentic-qe project...'"
       description: "Pre-initialization setup"
@@ -134,4 +135,4 @@ bom:
       type: framework
       license: MIT
       homepage: https://github.com/proffesor-for-testing/agentic-qe
-      purl: pkg:npm/agentic-qe
+      purl: pkg:npm/%40agentic-qe/v3

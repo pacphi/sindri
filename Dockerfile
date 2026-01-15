@@ -1,5 +1,29 @@
 # Sindri Development Environment
 # Provider-agnostic cloud dev environment with extensible tooling
+# Optimized with multi-stage builds and aggressive cache cleanup
+
+# =============================================================================
+# Stage 1: Builder - Download and prepare external tools
+# =============================================================================
+FROM ubuntu:24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install minimal build tools in builder stage
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Download yq
+RUN wget -qO /tmp/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
+    chmod +x /tmp/yq
+
+# =============================================================================
+# Stage 2: Final - Production image
+# =============================================================================
 FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.title="Sindri Development Environment"
@@ -33,8 +57,9 @@ RUN useradd -M -d ${ALT_HOME} -s /bin/bash -u 1001 -G sudo developer && \
     mkdir -p ${ALT_HOME} && \
     chown developer:developer ${ALT_HOME}
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies in a single layer with aggressive cleanup
+# This is the key optimization - all apt operations in one RUN command
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bind9-dnsutils \
     build-essential \
     ca-certificates \
@@ -69,23 +94,21 @@ RUN apt-get update && apt-get install -y \
     wget \
     zip \
     zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
 
-# Install yq for YAML parsing
-RUN wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
-    chmod +x /usr/local/bin/yq
+# Copy yq from builder stage
+COPY --from=builder /tmp/yq /usr/local/bin/yq
 
-# Install GitHub CLI
+# Install GitHub CLI in a single layer with cleanup
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
     wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
     apt-get update && \
-    apt-get install -y gh
-
-# Clean up to reduce layer size
-RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    apt-get install -y --no-install-recommends gh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
 
 # Copy extension system, CLI tools, and configurations
 COPY docker/ /docker/
@@ -95,16 +118,20 @@ COPY deploy /docker/deploy
 # Install mise (tool version manager) binary only
 # Tools are installed by users via extensions at runtime (stored on persistent volume)
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN /docker/scripts/install-mise.sh
+RUN /docker/scripts/install-mise.sh && \
+    rm -rf /tmp/* /var/tmp/*
 
 # Install Claude Code CLI system-wide
-RUN /docker/scripts/install-claude.sh
+RUN /docker/scripts/install-claude.sh && \
+    rm -rf /tmp/* /var/tmp/*
 
 # Install Nerd Fonts (prerequisite for starship)
-RUN /docker/scripts/install-nerd-fonts.sh
+RUN /docker/scripts/install-nerd-fonts.sh && \
+    rm -rf /tmp/* /var/tmp/*
 
 # Install starship (shell prompt) system-wide
-RUN /docker/scripts/install-starship.sh
+RUN /docker/scripts/install-starship.sh && \
+    rm -rf /tmp/* /var/tmp/*
 
 # Set permissions for scripts and CLI tools
 # Note: Scripts use 755 (not 750) to allow developer user execution
@@ -142,6 +169,11 @@ RUN /docker/scripts/setup-motd.sh
 
 # Setup installation status banner (shown on SSH login during extension install)
 RUN /docker/scripts/setup-install-status-banner.sh
+
+# Final cleanup to minimize image size
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/* \
+    /root/.cache /root/.npm /root/.local
 
 # Expose SSH port (internal port 2222)
 EXPOSE 2222

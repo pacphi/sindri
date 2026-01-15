@@ -70,7 +70,7 @@ Create `mise.toml`:
 
 ```toml
 [tools]
-mytool = "latest"
+mytool = "1.0"  # Pin to specific version for reliability
 
 [env]
 MYTOOL_HOME = "~/.mytool"
