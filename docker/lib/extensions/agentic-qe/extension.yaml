@@ -93,8 +93,8 @@ capabilities:
       command: "echo 'Preparing agentic-qe installation...'"
       description: "Pre-installation checks"
     post-install:
-      command: "aqe --version"
-      description: "Verify agentic-qe installation"
+      command: "cd ~/.local/share/mise/installs/npm-agentic-qe/*/5 && pnpm rebuild hnswlib-node && aqe --version"
+      description: "Rebuild native bindings and verify agentic-qe installation"
     pre-project-init:
       command: "echo 'Initializing agentic-qe project...'"
       description: "Pre-initialization setup"

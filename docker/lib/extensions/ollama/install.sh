@@ -94,8 +94,8 @@ case "$ARCH" in
   *) print_error "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-OLLAMA_URL="https://ollama.com/download/ollama-linux-${OLLAMA_ARCH}.tgz"
-OLLAMA_TARBALL="/tmp/ollama-linux-${OLLAMA_ARCH}.tgz"
+OLLAMA_URL="https://ollama.com/download/ollama-linux-${OLLAMA_ARCH}.tar.zst"
+OLLAMA_TARBALL="/tmp/ollama-linux-${OLLAMA_ARCH}.tar.zst"
 OLLAMA_BIN="$HOME/.local/bin/ollama"
 
 # Ensure user-local bin directory exists
@@ -104,7 +104,7 @@ mkdir -p "$HOME/.local/bin"
 # Download and extract ollama tarball
 if curl -fsSL "$OLLAMA_URL" -o "$OLLAMA_TARBALL"; then
     # Extract just the ollama binary from the tarball (it's in bin/ollama)
-    if tar -xzf "$OLLAMA_TARBALL" -C /tmp; then
+    if tar -I zstd -xf "$OLLAMA_TARBALL" -C /tmp; then
         if [[ -f "/tmp/bin/ollama" ]]; then
             mv /tmp/bin/ollama "$OLLAMA_BIN"
             chmod +x "$OLLAMA_BIN"
