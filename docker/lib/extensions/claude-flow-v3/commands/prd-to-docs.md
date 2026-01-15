@@ -300,17 +300,19 @@ graph LR
 | Commerce        | Canvas     | Shared Kernel      | Product entity shared            |
 | Payment Gateway | Commerce   | ACL                | Anti-corruption layer for Stripe |
 | Platform        | Client     | Published Language | Theme/module API contracts       |
-
 ````
 
 **Saga Format:**
+
 ```markdown
 ## SAGA-001: Checkout Process
 
 ### Trigger
+
 CartCheckoutInitiated event
 
 ### Steps
+
 1. **Validate Cart** → CartValidated | CartValidationFailed
 2. **Reserve Inventory** → InventoryReserved | InventoryUnavailable
 3. **Process Payment** → PaymentProcessed | PaymentFailed
@@ -318,15 +320,17 @@ CartCheckoutInitiated event
 5. **Send Confirmation** → ConfirmationSent
 
 ### Compensation (Rollback)
-| Step Failed | Compensating Actions |
-|-------------|---------------------|
-| Payment | Release inventory reservation |
-| Inventory | Cancel cart checkout |
+
+| Step Failed | Compensating Actions          |
+| ----------- | ----------------------------- |
+| Payment     | Release inventory reservation |
+| Inventory   | Cancel cart checkout          |
 
 ### Related
+
 - Aggregates: Cart, Order, Inventory
 - Events: CartCheckoutInitiated, OrderCreated, PaymentProcessed
-````
+```
 
 ---
 
@@ -1020,7 +1024,7 @@ docs/
   mcp__claude-flow__swarm_init({ topology: "hierarchical-mesh", maxAgents: 8 })
   mcp__claude-flow__memory__store({ content: "[PRD]", type: "semantic", category: "prd-source", namespace: "prd-docs-session" })
   Bash "mkdir -p docs/{specification,ddd,adr,sparc,implementation/{milestones,epics,tasks}}"
-````
+```
 
 ### Step 2: Parallel Phase Execution
 
