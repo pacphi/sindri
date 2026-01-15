@@ -63,14 +63,14 @@ Before any documentation work, initialize the swarm:
 
 ### Agent Assignment by Phase
 
-| Phase | Primary Agent | Supporting Agents | Parallel With |
-|-------|---------------|-------------------|---------------|
-| Phase 1: Specification | `researcher` | `security-architect` | - |
-| Phase 2: DDD | `code-analyzer` | `reviewer` | Phase 1 |
-| Phase 3: ADR | `reviewer` | `security-architect` | Phase 1, 2 |
-| Phase 4: SPARC | `planner` | `tester` | Phase 3 |
-| Phase 5: Summary | `planner` | - | After 1-4 |
-| Phase 6: Implementation | `coder` | `planner` | After 1-4 |
+| Phase                   | Primary Agent   | Supporting Agents    | Parallel With |
+| ----------------------- | --------------- | -------------------- | ------------- |
+| Phase 1: Specification  | `researcher`    | `security-architect` | -             |
+| Phase 2: DDD            | `code-analyzer` | `reviewer`           | Phase 1       |
+| Phase 3: ADR            | `reviewer`      | `security-architect` | Phase 1, 2    |
+| Phase 4: SPARC          | `planner`       | `tester`             | Phase 3       |
+| Phase 5: Summary        | `planner`       | -                    | After 1-4     |
+| Phase 6: Implementation | `coder`         | `planner`            | After 1-4     |
 
 ### Parallel Execution Strategy
 
@@ -202,52 +202,60 @@ Execute the following phases using the swarm orchestration protocol above.
 1. Read and analyze the provided PRD thoroughly
 2. Create `docs/specification/` directory with:
 
-| File | Purpose |
-|------|---------|
-| `requirements.md` | Functional requirements extracted from PRD (with REQ-XXX IDs) |
-| `non-functional.md` | NFRs (performance, security, scalability targets) |
-| `user-stories.md` | **NEW** - User stories in "As a [role], I want [feature], so that [benefit]" format |
-| `api-contracts.md` | **NEW** - API endpoint specifications (OpenAPI-style) |
-| `security-model.md` | **NEW** - Threat model, authentication flows, security requirements |
-| `edge-cases.md` | Edge cases and boundary conditions |
-| `constraints.md` | Technical and business constraints |
-| `glossary.md` | Domain terminology definitions |
+| File                | Purpose                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `requirements.md`   | Functional requirements extracted from PRD (with REQ-XXX IDs)                       |
+| `non-functional.md` | NFRs (performance, security, scalability targets)                                   |
+| `user-stories.md`   | **NEW** - User stories in "As a [role], I want [feature], so that [benefit]" format |
+| `api-contracts.md`  | **NEW** - API endpoint specifications (OpenAPI-style)                               |
+| `security-model.md` | **NEW** - Threat model, authentication flows, security requirements                 |
+| `edge-cases.md`     | Edge cases and boundary conditions                                                  |
+| `constraints.md`    | Technical and business constraints                                                  |
+| `glossary.md`       | Domain terminology definitions                                                      |
 
 **User Stories Format:**
+
 ```markdown
 ## US-001: [Story Title]
+
 **As a** [role]
 **I want** [feature/capability]
 **So that** [benefit/value]
 
 ### Acceptance Criteria
+
 - [ ] Criterion 1
 - [ ] Criterion 2
 
 ### Related
+
 - Requirements: REQ-001, REQ-002
 - Epic: EPIC-XXX
 ```
 
 **API Contracts Format:**
+
 ```markdown
 ## POST /api/v1/resource
 
 ### Request
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | Yes | Resource name |
+
+| Field | Type   | Required | Description   |
+| ----- | ------ | -------- | ------------- |
+| name  | string | Yes      | Resource name |
 
 ### Response (200)
-| Field | Type | Description |
-|-------|------|-------------|
-| id | uuid | Created resource ID |
+
+| Field | Type | Description         |
+| ----- | ---- | ------------------- |
+| id    | uuid | Created resource ID |
 
 ### Errors
-| Code | Description |
-|------|-------------|
-| 400 | Validation error |
-| 401 | Unauthorized |
+
+| Code | Description      |
+| ---- | ---------------- |
+| 400  | Validation error |
+| 401  | Unauthorized     |
 ```
 
 ---
@@ -259,22 +267,23 @@ Execute the following phases using the swarm orchestration protocol above.
 1. Identify bounded contexts from the requirements
 2. Create `docs/ddd/` directory with:
 
-| File | Purpose |
-|------|---------|
-| `domain-model.md` | Core domain model overview and strategic design |
-| `bounded-contexts.md` | Context boundaries, responsibilities, and ownership |
-| `context-map.md` | **NEW** - Relationships between contexts (ACL, Shared Kernel, Conformist, etc.) |
-| `ubiquitous-language.md` | **NEW** - Per-context language dictionary |
-| `aggregates.md` | Aggregate roots and consistency boundaries |
-| `entities.md` | Domain entities with identity |
-| `value-objects.md` | Immutable value objects |
-| `domain-events.md` | Event catalog with triggers and handlers |
-| `sagas.md` | **NEW** - Long-running processes and process managers |
-| `repositories.md` | Repository interfaces |
-| `services.md` | Domain and application services |
+| File                     | Purpose                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `domain-model.md`        | Core domain model overview and strategic design                                 |
+| `bounded-contexts.md`    | Context boundaries, responsibilities, and ownership                             |
+| `context-map.md`         | **NEW** - Relationships between contexts (ACL, Shared Kernel, Conformist, etc.) |
+| `ubiquitous-language.md` | **NEW** - Per-context language dictionary                                       |
+| `aggregates.md`          | Aggregate roots and consistency boundaries                                      |
+| `entities.md`            | Domain entities with identity                                                   |
+| `value-objects.md`       | Immutable value objects                                                         |
+| `domain-events.md`       | Event catalog with triggers and handlers                                        |
+| `sagas.md`               | **NEW** - Long-running processes and process managers                           |
+| `repositories.md`        | Repository interfaces                                                           |
+| `services.md`            | Domain and application services                                                 |
 
 **Context Map Format:**
-```markdown
+
+````markdown
 ## Context Relationships
 
 ```mermaid
@@ -286,12 +295,13 @@ graph LR
 
 ### Relationship Types
 
-| Upstream | Downstream | Type | Description |
-|----------|------------|------|-------------|
-| Commerce | Canvas | Shared Kernel | Product entity shared |
-| Payment Gateway | Commerce | ACL | Anti-corruption layer for Stripe |
-| Platform | Client | Published Language | Theme/module API contracts |
-```
+| Upstream        | Downstream | Type               | Description                      |
+| --------------- | ---------- | ------------------ | -------------------------------- |
+| Commerce        | Canvas     | Shared Kernel      | Product entity shared            |
+| Payment Gateway | Commerce   | ACL                | Anti-corruption layer for Stripe |
+| Platform        | Client     | Published Language | Theme/module API contracts       |
+
+````
 
 **Saga Format:**
 ```markdown
@@ -316,7 +326,7 @@ CartCheckoutInitiated event
 ### Related
 - Aggregates: Cart, Order, Inventory
 - Events: CartCheckoutInitiated, OrderCreated, PaymentProcessed
-```
+````
 
 ---
 
@@ -331,6 +341,7 @@ CartCheckoutInitiated event
 # ADR-XXX: [Decision Title]
 
 ## Metadata
+
 - **Status**: [Proposed | Accepted | Deprecated | Superseded by ADR-YYY]
 - **Date**: YYYY-MM-DD
 - **Deciders**: Claude (AI Developer)
@@ -338,51 +349,60 @@ CartCheckoutInitiated event
 - **Bounded Contexts**: [Which contexts this affects]
 
 ## Context
+
 [What is the issue we're addressing?]
 
 ## Decision
+
 [What is the change we're proposing?]
 
 ## Consequences
+
 ### Positive
+
 - [Benefits]
 
 ### Negative
+
 - [Trade-offs]
 
 ## Alternatives Considered
+
 1. **[Alternative Name]**
    - Pros: [...]
    - Cons: [...]
    - Why rejected: [...]
 
 ## Impact Radius
-| Affected Area | Impact Level | Notes |
-|---------------|--------------|-------|
+
+| Affected Area    | Impact Level    | Notes     |
+| ---------------- | --------------- | --------- |
 | [Module/Context] | High/Medium/Low | [Details] |
 
 ## Related Decisions
+
 - **Depends on**: ADR-XXX
 - **Supersedes**: ADR-YYY
 - **Related to**: ADR-ZZZ
 
 ## Review
+
 - **Review Date**: YYYY-MM-DD (6 months from acceptance)
 ```
 
 3. Generate ADRs for these **mandatory categories**:
 
-| Category | Required ADRs |
-|----------|---------------|
-| **Architecture** | System architecture style, module boundaries, binary distribution |
-| **Database** | Database technology, schema design, multi-tenancy approach |
-| **API** | API design style (REST/GraphQL), versioning, error handling |
-| **Security** | Authentication, authorization, RLS, secrets management |
-| **Infrastructure** | Deployment architecture, CDN, storage |
-| **Integration** | External services (payments, email, storage) |
-| **Frontend** | UI framework, state management, visual editor |
-| **Testing** | Testing strategy, coverage targets, E2E approach |
-| **Observability** | Logging, monitoring, error tracking |
+| Category           | Required ADRs                                                     |
+| ------------------ | ----------------------------------------------------------------- |
+| **Architecture**   | System architecture style, module boundaries, binary distribution |
+| **Database**       | Database technology, schema design, multi-tenancy approach        |
+| **API**            | API design style (REST/GraphQL), versioning, error handling       |
+| **Security**       | Authentication, authorization, RLS, secrets management            |
+| **Infrastructure** | Deployment architecture, CDN, storage                             |
+| **Integration**    | External services (payments, email, storage)                      |
+| **Frontend**       | UI framework, state management, visual editor                     |
+| **Testing**        | Testing strategy, coverage targets, E2E approach                  |
+| **Observability**  | Logging, monitoring, error tracking                               |
 
 4. Create `docs/adr/index.md` with:
    - ADR registry table (ID, Title, Status, Category, Date)
@@ -397,23 +417,24 @@ CartCheckoutInitiated event
 
 1. Create `docs/sparc/` directory with:
 
-| File | Purpose |
-|------|---------|
-| `01-specification.md` | Detailed specifications with acceptance criteria |
-| `02-pseudocode.md` | High-level algorithms and flow logic |
-| `03-architecture.md` | System architecture with diagrams |
-| `04-refinement.md` | TDD anchors and test specifications |
-| `05-completion.md` | Integration checklist and deployment guide |
-| `traceability-matrix.md` | **NEW** - Requirement to implementation mapping |
+| File                     | Purpose                                          |
+| ------------------------ | ------------------------------------------------ |
+| `01-specification.md`    | Detailed specifications with acceptance criteria |
+| `02-pseudocode.md`       | High-level algorithms and flow logic             |
+| `03-architecture.md`     | System architecture with diagrams                |
+| `04-refinement.md`       | TDD anchors and test specifications              |
+| `05-completion.md`       | Integration checklist and deployment guide       |
+| `traceability-matrix.md` | **NEW** - Requirement to implementation mapping  |
 
 **Traceability Matrix Format:**
+
 ```markdown
 ## Traceability Matrix
 
-| Requirement | User Story | DDD Artifact | ADR | Task | Test |
-|-------------|------------|--------------|-----|------|------|
-| REQ-001 | US-001 | Order Aggregate | ADR-003 | TASK-045 | order.test.ts |
-| REQ-002 | US-002 | CheckoutService | ADR-008 | TASK-046 | checkout.test.ts |
+| Requirement | User Story | DDD Artifact    | ADR     | Task     | Test             |
+| ----------- | ---------- | --------------- | ------- | -------- | ---------------- |
+| REQ-001     | US-001     | Order Aggregate | ADR-003 | TASK-045 | order.test.ts    |
+| REQ-002     | US-002     | CheckoutService | ADR-008 | TASK-046 | checkout.test.ts |
 ```
 
 ---
@@ -481,42 +502,54 @@ Generate `docs/build-system.md` with the following structure:
     - Documentation validation
 
 **Template Structure:**
+
 ```markdown
 # [Project Name] Build System - Resumable SPARC + TDD Workflow
 
 > **Single Entry Point**: Read this file to resume development at any time
 
 ## Quick Start
+
 [How to resume in one sentence]
 
 ## Current Project State
+
 [Milestone table, current task, progress]
 
 ## What's Completed ✅
+
 [Detailed breakdown by milestone/epic]
 
 ## What's Needed Next ⏳
+
 [Next tasks with instructions]
 
 ## Resumable Workflow
+
 [Step-by-step resume commands for each task]
 
 ## SPARC Methodology Reference
+
 [Quick reference to 5 phases]
 
 ## Quick Commands
+
 [Build, test, run commands]
 
 ## Documentation Cross-Reference
+
 [Navigation table]
 
 ## Requirements Coverage Tracker
+
 [Coverage by domain]
 
 ## Quality Metrics
+
 [Current metrics vs targets]
 
 ## Troubleshooting
+
 [Common issues and fixes]
 
 **Last Updated:** [timestamp]
@@ -524,6 +557,7 @@ Generate `docs/build-system.md` with the following structure:
 ```
 
 **This file serves as:**
+
 - Single source of truth for project state
 - Resume point for new Claude sessions
 - Progress tracker for humans
@@ -548,7 +582,7 @@ Generate `docs/build-system.md` with the following structure:
 
 1. Create `docs/implementation/` directory structure:
 
-```
+```text
 docs/implementation/
 ├── STATUS.md                    # Session continuity tracker (CRITICAL)
 ├── roadmap.md                   # Master implementation plan
@@ -576,6 +610,7 @@ docs/implementation/
 # Implementation Status
 
 ## Current State
+
 **Last Updated**: YYYY-MM-DD HH:MM
 **Current Milestone**: M1-MVP
 **Overall Progress**: XX/YY tasks complete (ZZ%)
@@ -583,31 +618,36 @@ docs/implementation/
 ## Session Summary (YYYY-MM-DD)
 
 ### Completed This Session
+
 - [x] TASK-XXX: Description
 - [x] TASK-YYY: Description
 
 ### In Progress (Partial)
+
 - [ ] TASK-ZZZ: Description
   - **Progress**: XX% - [what's done]
   - **Remaining**: [what's left]
   - **Files touched**: `path/to/file.rs`
 
 ### Blocked
+
 - [ ] TASK-AAA: Description
   - **Blocker**: [what's blocking]
   - **Unblocked by**: [what would unblock]
 
 ## Next Session Actions
+
 1. **Continue**: TASK-ZZZ (finish [specific work])
 2. **Start**: TASK-BBB
 3. **Review**: [anything needing review]
 
 ## Quick Stats
+
 | Milestone | Total | Done | In Progress | Blocked |
-|-----------|-------|------|-------------|---------|
-| M0 | X | X | 0 | 0 |
-| M1 | X | X | X | X |
-| M2 | X | 0 | 0 | 0 |
+| --------- | ----- | ---- | ----------- | ------- |
+| M0        | X     | X    | 0           | 0       |
+| M1        | X     | X    | X           | X       |
+| M2        | X     | 0    | 0           | 0       |
 ```
 
 3. **Epic Format** (Business-level features):
@@ -616,28 +656,34 @@ docs/implementation/
 # EPIC-XXX: [Feature Name]
 
 ## Business Value
+
 [Why this matters to users/business]
 
 ## User Story
+
 As a [role], I want [capability], so that [benefit].
 
 ## Bounded Context
+
 [Which DDD context this belongs to]
 
 ## Constituent Tasks
-| Task | Description | Status | Dependencies |
-|------|-------------|--------|--------------|
-| TASK-001 | [Technical task] | Not Started | None |
-| TASK-002 | [Technical task] | Not Started | TASK-001 |
+
+| Task     | Description      | Status      | Dependencies |
+| -------- | ---------------- | ----------- | ------------ |
+| TASK-001 | [Technical task] | Not Started | None         |
+| TASK-002 | [Technical task] | Not Started | TASK-001     |
 
 ## Document References
-| Type | Document | Relevant Section |
-|------|----------|------------------|
-| DDD | aggregates.md | [Aggregate name] |
-| ADR | ADR-XXX | [Decision] |
-| Spec | requirements.md | REQ-XXX |
+
+| Type | Document        | Relevant Section |
+| ---- | --------------- | ---------------- |
+| DDD  | aggregates.md   | [Aggregate name] |
+| ADR  | ADR-XXX         | [Decision]       |
+| Spec | requirements.md | REQ-XXX          |
 
 ## Definition of Done
+
 - [ ] All constituent tasks complete
 - [ ] Integration test passes
 - [ ] Deployed to staging
@@ -650,6 +696,7 @@ As a [role], I want [capability], so that [benefit].
 # TASK-XXX: [Technical Task Name]
 
 ## Metadata
+
 - **Epic**: EPIC-XXX
 - **Milestone**: M1-MVP
 - **Priority**: P1 (Critical) | P2 (High) | P3 (Medium) | P4 (Low)
@@ -657,38 +704,48 @@ As a [role], I want [capability], so that [benefit].
 - **Status**: Not Started | In Progress | Blocked | Done
 
 ## Description
+
 [What needs to be built]
 
 ## Dependencies
+
 ### Blocks (must complete these first)
+
 - TASK-YYY: [Why needed]
 
 ### Blocked By (waiting on these)
+
 - TASK-ZZZ: [What we're waiting for]
 
 ## Document References
-| Type | Document | Section | Why Relevant |
-|------|----------|---------|--------------|
-| ADR | ADR-XXX.md | Decision | [Reason] |
-| DDD | aggregates.md | [Name] | [Reason] |
-| DDD | services.md | [Name] | [Reason] |
-| Spec | api-contracts.md | [Endpoint] | [Reason] |
+
+| Type | Document         | Section    | Why Relevant |
+| ---- | ---------------- | ---------- | ------------ |
+| ADR  | ADR-XXX.md       | Decision   | [Reason]     |
+| DDD  | aggregates.md    | [Name]     | [Reason]     |
+| DDD  | services.md      | [Name]     | [Reason]     |
+| Spec | api-contracts.md | [Endpoint] | [Reason]     |
 
 ## Scope
+
 ### Files to Create/Modify
+
 - `src/domain/aggregates/order.rs` - Create
 - `src/api/routes/orders.rs` - Create
 
 ### Out of Scope
+
 - [What this task does NOT include]
 
 ## Acceptance Criteria
+
 - [ ] Criterion 1
 - [ ] Criterion 2
 - [ ] Unit tests pass (>80% coverage)
 - [ ] Integration test passes
 
 ## Definition of Done
+
 [Reference appropriate DoD template from definition-of-done.md]
 ```
 
@@ -696,58 +753,59 @@ As a [role], I want [capability], so that [benefit].
 
 For each DDD artifact, generate corresponding tasks:
 
-| DDD Artifact | Generated Task(s) |
-|--------------|-------------------|
-| Aggregate | `Implement [Name] Aggregate` + `Create [Name]Repository` |
-| Domain Service | `Implement [Name]Service` |
-| Application Service | `Implement [Name]AppService` |
-| Domain Event | `Implement [Name] Event + Handler` |
-| Saga | `Implement [Name] Saga/Process Manager` |
-| Repository | `Implement [Name]Repository` |
-| API Endpoint (from api-contracts.md) | `Create [METHOD] [path] Endpoint` |
-| UI Feature (from user-stories.md) | `Build [Feature] UI Component` |
+| DDD Artifact                         | Generated Task(s)                                        |
+| ------------------------------------ | -------------------------------------------------------- |
+| Aggregate                            | `Implement [Name] Aggregate` + `Create [Name]Repository` |
+| Domain Service                       | `Implement [Name]Service`                                |
+| Application Service                  | `Implement [Name]AppService`                             |
+| Domain Event                         | `Implement [Name] Event + Handler`                       |
+| Saga                                 | `Implement [Name] Saga/Process Manager`                  |
+| Repository                           | `Implement [Name]Repository`                             |
+| API Endpoint (from api-contracts.md) | `Create [METHOD] [path] Endpoint`                        |
+| UI Feature (from user-stories.md)    | `Build [Feature] UI Component`                           |
 
 6. **ADR Auto-Linking Rules**:
 
 Auto-link ADRs to tasks based on keywords:
 
-| ADR Topic | Keywords to Match in Task |
-|-----------|---------------------------|
-| Database/RLS | tenant, store, rls, isolation, multi-tenant |
-| Payment | payment, checkout, stripe, order, transaction |
-| Authentication | auth, login, session, token, jwt |
-| Visual Editor | canvas, editor, grapesjs, blocks, visual |
-| WASM | wasm, validator, image processing, search |
-| API Design | endpoint, route, api, rest |
+| ADR Topic      | Keywords to Match in Task                     |
+| -------------- | --------------------------------------------- |
+| Database/RLS   | tenant, store, rls, isolation, multi-tenant   |
+| Payment        | payment, checkout, stripe, order, transaction |
+| Authentication | auth, login, session, token, jwt              |
+| Visual Editor  | canvas, editor, grapesjs, blocks, visual      |
+| WASM           | wasm, validator, image processing, search     |
+| API Design     | endpoint, route, api, rest                    |
 
 7. **Dependency Inference Rules**:
 
 Auto-infer dependencies from:
 
-| Source | Dependency Type |
-|--------|-----------------|
-| Context Map | Upstream context tasks block downstream |
-| Aggregate references | Referencing aggregate must exist first |
+| Source               | Dependency Type                                |
+| -------------------- | ---------------------------------------------- |
+| Context Map          | Upstream context tasks block downstream        |
+| Aggregate references | Referencing aggregate must exist first         |
 | Service dependencies | Services depend on their injected repositories |
-| API → Service | API endpoints depend on backing services |
-| UI → API | UI components depend on API endpoints |
+| API → Service        | API endpoints depend on backing services       |
+| UI → API             | UI components depend on API endpoints          |
 
 8. **Risk Register Format** (`risks.md`):
 
 ```markdown
 # Risk Register
 
-| ID | Task(s) | Risk Description | Likelihood | Impact | Mitigation |
-|----|---------|------------------|------------|--------|------------|
-| R1 | TASK-044 | External API changes | Low | High | Pin SDK version, integration tests |
-| R2 | TASK-060 | Complex customization | Medium | Medium | Prototype first, validate approach |
+| ID  | Task(s)  | Risk Description      | Likelihood | Impact | Mitigation                         |
+| --- | -------- | --------------------- | ---------- | ------ | ---------------------------------- |
+| R1  | TASK-044 | External API changes  | Low        | High   | Pin SDK version, integration tests |
+| R2  | TASK-060 | Complex customization | Medium     | Medium | Prototype first, validate approach |
 
 ## Risk Matrix
+
 |            | Low Impact | Medium Impact | High Impact |
-|------------|------------|---------------|-------------|
-| **High**   | Monitor | Mitigate | Avoid |
-| **Medium** | Accept | Monitor | Mitigate |
-| **Low**    | Accept | Accept | Monitor |
+| ---------- | ---------- | ------------- | ----------- |
+| **High**   | Monitor    | Mitigate      | Avoid       |
+| **Medium** | Accept     | Monitor       | Mitigate    |
+| **Low**    | Accept     | Accept        | Monitor     |
 ```
 
 9. **Definition of Done Templates** (`definition-of-done.md`):
@@ -756,6 +814,7 @@ Auto-infer dependencies from:
 # Definition of Done Templates
 
 ## Aggregate Implementation
+
 - [ ] Struct with all fields defined
 - [ ] Constructor with validation
 - [ ] Domain methods implemented
@@ -764,6 +823,7 @@ Auto-infer dependencies from:
 - [ ] Documentation comments
 
 ## Domain Service
+
 - [ ] Service struct implemented
 - [ ] All methods from DDD spec
 - [ ] Dependencies injected via constructor
@@ -771,6 +831,7 @@ Auto-infer dependencies from:
 - [ ] Error handling complete
 
 ## API Endpoint
+
 - [ ] Route handler implemented
 - [ ] Request/Response DTOs defined
 - [ ] Input validation
@@ -780,6 +841,7 @@ Auto-infer dependencies from:
 - [ ] OpenAPI spec updated
 
 ## UI Component
+
 - [ ] React component implemented
 - [ ] TypeScript props interface
 - [ ] Responsive design (mobile, tablet, desktop)
@@ -788,6 +850,7 @@ Auto-infer dependencies from:
 - [ ] Component tests
 
 ## WASM Module
+
 - [ ] Rust implementation complete
 - [ ] wasm-bindgen exports defined
 - [ ] JavaScript wrapper/bridge
@@ -798,7 +861,7 @@ Auto-infer dependencies from:
 
 10. **Dependency Graph** (`dependency-graph.md`):
 
-```markdown
+````markdown
 # Dependency Graph
 
 ## Visual DAG
@@ -823,86 +886,91 @@ graph TD
     T010 --> T011
     T011 --> T012
 ```
+````
 
 ## Critical Path
+
 The longest dependency chain determining minimum completion time:
+
 1. TASK-001 → TASK-003 → TASK-010 → TASK-011 → TASK-012
 
 ## Parallelizable Tasks
+
 Tasks with no dependencies between them:
+
 - TASK-001 and TASK-002 (both M0, no interdependency)
 - TASK-020 and TASK-030 (different epics)
 
 ## Blocked Tasks
-| Task | Blocked By | Blocker Type |
-|------|------------|--------------|
-| TASK-012 | TASK-011 | Technical dependency |
+
+| Task     | Blocked By | Blocker Type              |
+| -------- | ---------- | ------------------------- |
+| TASK-012 | TASK-011   | Technical dependency      |
 | TASK-044 | User input | External (needs API keys) |
-```
 
 ---
 
 ## Output Structure
 
-```
+```text
 docs/
-├── README.md                           # Documentation overview
+├── README.md # Documentation overview
 │
 ├── specification/
-│   ├── requirements.md                 # Functional requirements (REQ-XXX)
-│   ├── non-functional.md               # NFRs with targets
-│   ├── user-stories.md                 # User stories (US-XXX)
-│   ├── api-contracts.md                # API specifications
-│   ├── security-model.md               # Security requirements
-│   ├── edge-cases.md                   # Edge cases
-│   ├── constraints.md                  # Constraints
-│   └── glossary.md                     # Terminology
+│ ├── requirements.md # Functional requirements (REQ-XXX)
+│ ├── non-functional.md # NFRs with targets
+│ ├── user-stories.md # User stories (US-XXX)
+│ ├── api-contracts.md # API specifications
+│ ├── security-model.md # Security requirements
+│ ├── edge-cases.md # Edge cases
+│ ├── constraints.md # Constraints
+│ └── glossary.md # Terminology
 │
 ├── ddd/
-│   ├── domain-model.md                 # Strategic design overview
-│   ├── bounded-contexts.md             # Context definitions
-│   ├── context-map.md                  # Context relationships
-│   ├── ubiquitous-language.md          # Per-context language
-│   ├── aggregates.md                   # Aggregate roots
-│   ├── entities.md                     # Entities
-│   ├── value-objects.md                # Value objects
-│   ├── domain-events.md                # Events
-│   ├── sagas.md                        # Process managers
-│   ├── repositories.md                 # Repository interfaces
-│   └── services.md                     # Services
+│ ├── domain-model.md # Strategic design overview
+│ ├── bounded-contexts.md # Context definitions
+│ ├── context-map.md # Context relationships
+│ ├── ubiquitous-language.md # Per-context language
+│ ├── aggregates.md # Aggregate roots
+│ ├── entities.md # Entities
+│ ├── value-objects.md # Value objects
+│ ├── domain-events.md # Events
+│ ├── sagas.md # Process managers
+│ ├── repositories.md # Repository interfaces
+│ └── services.md # Services
 │
 ├── adr/
-│   ├── index.md                        # ADR registry + dependency graph
-│   ├── ADR-001-*.md
-│   └── ...
+│ ├── index.md # ADR registry + dependency graph
+│ ├── ADR-001-\*.md
+│ └── ...
 │
 ├── sparc/
-│   ├── 01-specification.md
-│   ├── 02-pseudocode.md
-│   ├── 03-architecture.md
-│   ├── 04-refinement.md
-│   ├── 05-completion.md
-│   └── traceability-matrix.md          # Requirement → Code mapping
+│ ├── 01-specification.md
+│ ├── 02-pseudocode.md
+│ ├── 03-architecture.md
+│ ├── 04-refinement.md
+│ ├── 05-completion.md
+│ └── traceability-matrix.md # Requirement → Code mapping
 │
 └── implementation/
-    ├── STATUS.md                       # Session continuity (UPDATE EVERY SESSION)
-    ├── roadmap.md                      # Master plan
-    ├── dependency-graph.md             # Task dependencies DAG
-    ├── risks.md                        # Risk register
-    ├── definition-of-done.md           # DoD templates
-    │
-    ├── milestones/
-    │   ├── M0-foundation.md
-    │   ├── M1-mvp.md
-    │   ├── M2-release.md
-    │   └── M3-enhanced.md
-    │
-    ├── epics/
-    │   └── EPIC-XXX-[name].md
-    │
-    └── tasks/
-        ├── index.md                    # Task registry
-        └── TASK-XXX-[name].md
+├── STATUS.md # Session continuity (UPDATE EVERY SESSION)
+├── roadmap.md # Master plan
+├── dependency-graph.md # Task dependencies DAG
+├── risks.md # Risk register
+├── definition-of-done.md # DoD templates
+│
+├── milestones/
+│ ├── M0-foundation.md
+│ ├── M1-mvp.md
+│ ├── M2-release.md
+│ └── M3-enhanced.md
+│
+├── epics/
+│ └── EPIC-XXX-[name].md
+│
+└── tasks/
+├── index.md # Task registry
+└── TASK-XXX-[name].md
 ```
 
 ---
@@ -952,7 +1020,7 @@ docs/
   mcp__claude-flow__swarm_init({ topology: "hierarchical-mesh", maxAgents: 8 })
   mcp__claude-flow__memory__store({ content: "[PRD]", type: "semantic", category: "prd-source", namespace: "prd-docs-session" })
   Bash "mkdir -p docs/{specification,ddd,adr,sparc,implementation/{milestones,epics,tasks}}"
-```
+````
 
 ### Step 2: Parallel Phase Execution
 
@@ -1000,6 +1068,7 @@ After Phases 1-3 complete:
 ### Completion Summary
 
 Upon completion, provide:
+
 - Summary of all generated documents (with file paths)
 - Total task count by milestone
 - Critical path identification (from dependency-graph.md)
