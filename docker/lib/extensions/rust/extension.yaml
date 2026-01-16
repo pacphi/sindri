@@ -33,14 +33,14 @@ bom:
   tools:
     - name: rustc
       version: dynamic
-      source: rustup
+      source: script
       type: compiler
       license: MIT OR Apache-2.0
       homepage: https://www.rust-lang.org
       purl: pkg:generic/rust
     - name: cargo
       version: dynamic
-      source: rustup
+      source: script
       type: package-manager
       license: MIT OR Apache-2.0
       homepage: https://doc.rust-lang.org/cargo
