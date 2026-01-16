@@ -38,8 +38,8 @@ profiles:
     extensions:
       - agent-manager
       - claude-flow-v3
-      - agentic-flow
       - agentic-qe
+      - ralph
       - golang
       - ollama
       - ai-toolkit

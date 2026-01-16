@@ -31,7 +31,7 @@ configure:
       scope: bashrc
     # Use system Python for node-gyp native module compilation
     # Python 3.13 (mise) doesn't have distutils, but system Python 3.12 does
-    - key: npm_config_python
+    - key: PYTHON
       value: /usr/bin/python3
       scope: bashrc
 

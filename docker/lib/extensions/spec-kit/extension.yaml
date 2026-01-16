@@ -31,6 +31,7 @@ validate:
 capabilities:
   project-init:
     enabled: true
+    priority: 10
     commands:
       - command: "uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude --script sh"
         description: "Initialize GitHub spec-kit for AI-powered workflows"

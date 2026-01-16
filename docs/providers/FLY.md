@@ -31,6 +31,14 @@ Sindri's Fly.io adapter provides a complete deployment solution with cost optimi
   - [Volume Issues](#volume-issues)
   - [Resource Issues](#resource-issues)
   - [VS Code Remote Issues](#vs-code-remote-issues)
+- [Applying Updates and Hotfixes](#applying-updates-and-hotfixes)
+  - [Overview](#overview-1)
+  - [Option 1: Direct SSH Edits (Fast Testing)](#option-1-direct-ssh-edits-fast-testing)
+  - [Option 2: SFTP File Transfer (Structured Updates)](#option-2-sftp-file-transfer-structured-updates)
+  - [Option 3: Rebuild and Redeploy (Production-Ready)](#option-3-rebuild-and-redeploy-production-ready)
+  - [Decision Matrix](#decision-matrix)
+  - [Important Notes](#important-notes)
+  - [Example: Fixing Extension Initialization](#example-fixing-extension-initialization)
 - [Advanced Features](#advanced-features)
 - [Cost Estimates](#cost-estimates)
 - [Related Documentation](#related-documentation)
@@ -722,6 +730,190 @@ sleep 10
 **Cause:** Edge network not propagated
 
 **Solution:** Use `flyctl proxy` method instead of direct connection
+
+---
+
+## Applying Updates and Hotfixes
+
+### Overview
+
+When you need to apply local code changes to a running Sindri instance, you have three approaches depending on whether you need temporary fixes (testing) or permanent changes (production).
+
+### Option 1: Direct SSH Edits (Fast Testing)
+
+Best for quick testing and temporary fixes.
+
+**When to use:** Testing bug fixes, debugging configuration issues
+
+**Pros:** Immediate effect, no rebuild needed
+**Cons:** Changes lost on next deployment/restart
+
+```bash
+# 1. Connect to the machine
+flyctl ssh console -a <app-name>
+
+# 2. Edit files directly
+nano /docker/lib/common.sh
+nano /docker/lib/extensions/agentic-qe/extension.yaml
+
+# 3. Changes take effect immediately for new operations
+# Extensions: Affects new project initialization
+# Scripts: Affects next execution
+```
+
+### Option 2: SFTP File Transfer (Structured Updates)
+
+Best for transferring multiple files systematically.
+
+**When to use:** Applying multiple file changes, maintaining file structure
+
+**Important:** `flyctl ssh sftp shell` has limited command support (only: `cd`, `ls`, `get`, `put`, `chmod`). It does **not** support `rm`, `mkdir`, or other standard SFTP commands.
+
+**Approach A: Use SSH + SFTP (Two terminals)**
+
+```bash
+# Terminal 1 (SSH) - Remove existing files
+flyctl ssh console -a <app-name>
+sudo rm -f /docker/lib/common.sh
+sudo rm -f /docker/lib/extensions/agentic-qe/extension.yaml
+# Keep this terminal open
+
+# Terminal 2 (SFTP) - Upload new files
+flyctl ssh sftp shell -a <app-name>
+sftp> cd /docker/lib
+sftp> put docker/lib/common.sh
+
+sftp> cd extensions/agentic-qe
+sftp> put docker/lib/extensions/agentic-qe/extension.yaml
+
+sftp> exit
+```
+
+**Approach B: Use standard SFTP client (Full command support)**
+
+```bash
+# Terminal 1 - Start flyctl proxy
+flyctl proxy 10022:2222 -a <app-name>
+
+# Terminal 2 - Use standard sftp (supports rm, mkdir, etc.)
+sftp -P 10022 developer@localhost
+sftp> cd /docker/lib
+sftp> rm common.sh
+sftp> put docker/lib/common.sh
+sftp> exit
+```
+
+### Option 3: Rebuild and Redeploy (Production-Ready)
+
+Best for permanent changes that should persist across deployments.
+
+**When to use:** Bug fixes, feature updates, any production changes
+
+**Workflow:**
+
+```bash
+# 1. Make local changes
+vim docker/lib/common.sh
+vim docker/lib/extensions/agentic-qe/extension.yaml
+
+# 2. Test locally (optional but recommended)
+pnpm build
+docker run -it sindri:local bash
+
+# 3. Commit changes
+git add docker/lib/
+git commit -m "fix: add print_info function and fix extension hooks"
+
+# 4. Rebuild and deploy
+./cli/sindri deploy --provider fly
+
+# 5. Verify deployment
+flyctl status -a <app-name>
+flyctl ssh console -a <app-name>
+```
+
+**Timeline:**
+
+- Build: ~3-5 minutes
+- Push image: ~2-3 minutes
+- Deploy: ~1-2 minutes
+- **Total: ~8-10 minutes**
+
+### Decision Matrix
+
+| Scenario                      | Recommended Approach | Why                            |
+| ----------------------------- | -------------------- | ------------------------------ |
+| Testing a bug fix             | Direct SSH Edit      | Fast feedback, easy to revert  |
+| Applying hotfix to production | SFTP → then Redeploy | Quick fix now, permanent later |
+| Adding new feature            | Rebuild and Redeploy | Ensures changes persist        |
+| Emergency fix                 | Direct SSH Edit      | Fastest path to resolution     |
+| Multiple file changes         | SFTP or Redeploy     | Maintains consistency          |
+
+### Important Notes
+
+**Scope of Changes:**
+
+- **System files** (`/docker/lib/*`): Affect all future operations, not existing projects
+- **Extensions** (`/docker/lib/extensions/*`): Only affect new project initialization
+- **User workspace** (`/alt/home/developer/*`): Persistent across deployments
+
+**When changes take effect:**
+
+```text
+Direct edit → Immediately on next execution
+SFTP upload → Immediately on next execution
+Redeploy → After machine restart (~2-3 minutes)
+```
+
+**Change persistence:**
+
+```text
+/docker/lib/* (Direct SSH/SFTP) → Lost on redeploy
+/docker/lib/* (Rebuild) → Permanent (baked into image)
+/alt/home/developer/* → Always persistent (volume-backed)
+```
+
+**SFTP file overwrite behavior:**
+
+```text
+SFTP put → Fails if file exists ("file exists on VM")
+flyctl sftp → Does NOT support "rm" command (limited: cd, ls, get, put, chmod)
+Workaround 1 → SSH "sudo rm -f" in separate terminal, then SFTP "put"
+Workaround 2 → Use standard sftp client via flyctl proxy (supports full SFTP)
+```
+
+### Example: Fixing Extension Initialization
+
+Real-world example fixing the agentic-qe initialization issues:
+
+```bash
+# Local changes made:
+# - Added print_info to common.sh
+# - Fixed aqe init command
+# - Removed misleading success messages
+
+# 1. Quick test (Option 1)
+flyctl ssh console -a sindri-dev01
+nano /docker/lib/common.sh  # Add print_info function
+nano /docker/lib/extensions/agentic-qe/extension.yaml  # Fix command
+exit
+
+# Test: Clone a new project and verify fixes work
+
+# 2. Permanent fix (Option 3)
+git add docker/lib/
+git commit -m "fix: extension initialization bugs"
+./cli/sindri deploy --provider fly
+
+# Deploy completes in ~8-10 minutes
+# All future deployments now include the fix
+```
+
+### Related Sections
+
+- [Connecting to Your Instance](#connecting-to-your-instance)
+- [Troubleshooting](#troubleshooting)
+- [Deployment Workflow](#deployment-workflow)
 
 ---
 

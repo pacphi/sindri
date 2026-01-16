@@ -77,11 +77,11 @@ get_extension_capability() {
 # Discover all extensions with a specific capability type
 # Usage: discover_project_capabilities <capability_type>
 # Example: discover_project_capabilities "project-init"
-# Returns: Space-separated list of extension names that have this capability enabled
+# Returns: Space-separated list of extension names sorted by priority (lower = earlier)
 discover_project_capabilities() {
     local capability_type="$1"
     local extensions
-    local result=()
+    local extensions_with_priority=""
 
     # Get all registered extensions (extension names are keys in the YAML)
     extensions=$(yq eval '.extensions | keys | .[]' "${REGISTRY_FILE}" 2>/dev/null || echo "")
@@ -90,7 +90,7 @@ discover_project_capabilities() {
         return 0
     fi
 
-    # Check each extension for the capability
+    # Check each extension for the capability and collect priority
     while IFS= read -r ext; do
         if [[ -z "$ext" ]]; then
             continue
@@ -118,13 +118,23 @@ discover_project_capabilities() {
         local enabled
         enabled=$(yq eval ".capabilities.${capability_type}.enabled // false" "$extension_file" 2>/dev/null || echo "false")
 
-        if [[ "$enabled" == "true" ]]; then
-            result+=("$ext")
+        if [[ "$enabled" != "true" ]]; then
+            continue
         fi
+
+        # Get priority (default: 100)
+        local priority
+        priority=$(yq eval ".capabilities.${capability_type}.priority // 100" "$extension_file" 2>/dev/null || echo "100")
+
+        # Format: "priority:extension_name"
+        extensions_with_priority="${extensions_with_priority}${priority}:${ext}
+"
     done <<< "$extensions"
 
-    # Return space-separated list
-    echo "${result[@]}"
+    # Sort by priority (numeric), extract extension names, return space-separated
+    if [[ -n "$extensions_with_priority" ]]; then
+        echo "$extensions_with_priority" | sort -t: -k1 -n | cut -d: -f2 | tr '\n' ' '
+    fi
 }
 
 # Check if extension's state markers exist (indicates already initialized)
@@ -697,6 +707,380 @@ handle_collision() {
     done
 
     # No matching scenario found, proceed
+    return 0
+}
+
+###############################################################################
+# Conflict Resolution (Generic File/Directory Handling)
+###############################################################################
+
+# Main conflict resolution entry point
+# Called AFTER extension init completes
+# Usage: resolve_conflicts_post_init <extension_name> <snapshot_marker_file>
+# Returns: 0 on success
+resolve_conflicts_post_init() {
+    local ext="$1"
+    local snapshot_marker="$2"
+    local project_dir="${PWD}"
+
+    # Get conflict rules from extension YAML
+    local conflict_rules
+    conflict_rules=$(get_extension_capability "$ext" "collision-handling.conflict-rules")
+
+    if [[ -z "$conflict_rules" || "$conflict_rules" == "null" ]]; then
+        return 0  # No conflict rules defined
+    fi
+
+    # Get list of files modified after snapshot
+    local modified_files
+    if [[ -f "$snapshot_marker" ]]; then
+        modified_files=$(find "$project_dir" -type f -newer "$snapshot_marker" 2>/dev/null || echo "")
+    else
+        return 0  # No snapshot marker, skip conflict resolution
+    fi
+
+    # Process each conflict rule
+    local rule_count
+    rule_count=$(echo "$conflict_rules" | yq eval 'length' - 2>/dev/null || echo "0")
+
+    for ((i=0; i<rule_count; i++)); do
+        local path type rule
+        path=$(echo "$conflict_rules" | yq eval ".[$i].path" - 2>/dev/null)
+        type=$(echo "$conflict_rules" | yq eval ".[$i].type" - 2>/dev/null)
+
+        if [[ -z "$path" || -z "$type" ]]; then
+            continue
+        fi
+
+        local full_path="${project_dir}/${path}"
+
+        # Check if this path was modified by extension
+        if echo "$modified_files" | grep -q "^${full_path}$" || [[ -e "$full_path" ]]; then
+            print_debug "Checking conflict rule for: ${path} (type: ${type})"
+
+            # Extract the full rule for this item
+            rule=$(echo "$conflict_rules" | yq eval ".[$i]" - 2>/dev/null)
+
+            if [[ "$type" == "file" ]]; then
+                handle_file_conflict "$ext" "$path" "$rule" || true
+            elif [[ "$type" == "directory" ]]; then
+                handle_directory_conflict "$ext" "$path" "$rule" || true
+            fi
+        fi
+    done
+
+    return 0
+}
+
+# Handle file-level conflict
+# Called AFTER extension created/modified the file
+# Usage: handle_file_conflict <extension_name> <file_path> <rule_yaml>
+handle_file_conflict() {
+    local ext="$1"
+    local file_path="$2"
+    local rule="$3"
+    local project_dir="${PWD}"
+    local full_path="${project_dir}/${file_path}"
+
+    # Check if file exists
+    if [[ ! -f "$full_path" ]]; then
+        return 0  # File doesn't exist, no conflict
+    fi
+
+    # Extract conflict action and separator
+    local action separator
+    action=$(echo "$rule" | yq eval '.on-conflict.action' - 2>/dev/null)
+    separator=$(echo "$rule" | yq eval '.on-conflict.separator // ""' - 2>/dev/null)
+
+    # Environment variable override: EXTENSION_CONFLICT_STRATEGY
+    # Takes precedence over extension-defined action
+    if [[ -n "${EXTENSION_CONFLICT_STRATEGY:-}" ]]; then
+        print_debug "Using EXTENSION_CONFLICT_STRATEGY=${EXTENSION_CONFLICT_STRATEGY} for ${file_path}"
+        action="${EXTENSION_CONFLICT_STRATEGY}"
+    fi
+
+    # Environment variable override: EXTENSION_CONFLICT_PROMPT
+    # If false, replace 'prompt' action with 'skip' (safe default)
+    if [[ "${EXTENSION_CONFLICT_PROMPT:-true}" == "false" && "$action" == "prompt" ]]; then
+        print_debug "EXTENSION_CONFLICT_PROMPT=false, changing action from 'prompt' to 'skip' for ${file_path}"
+        action="skip"
+    fi
+
+    # Check if this is the FIRST extension to write this file
+    # If .original doesn't exist, this is the first write, no conflict
+    local original_file="${full_path}.original-before-${ext}"
+    local preserved_original="${full_path}.original"
+
+    if [[ ! -f "$preserved_original" ]]; then
+        # First extension to write this file, no conflict
+        print_debug "No conflict for ${file_path} - first extension to write it"
+        return 0
+    fi
+
+    print_info "Resolving conflict: ${file_path} (action: ${action})"
+
+    # Backup current state
+    cp "$full_path" "${full_path}.new-from-${ext}"
+    cp "$preserved_original" "$original_file"
+
+    local new_file="${full_path}.new-from-${ext}"
+
+    case "$action" in
+        overwrite)
+            print_info "Overwriting ${file_path} with ${ext} content"
+            # New content already in place, nothing to do
+            ;;
+
+        append)
+            print_info "Appending ${ext} content to ${file_path}"
+            {
+                cat "$original_file"
+                if [[ -n "$separator" ]]; then
+                    echo -e "$separator"
+                fi
+                cat "$new_file"
+            } > "${full_path}.tmp"
+            mv "${full_path}.tmp" "$full_path"
+            ;;
+
+        prepend)
+            print_info "Prepending ${ext} content to ${file_path}"
+            {
+                cat "$new_file"
+                if [[ -n "$separator" ]]; then
+                    echo -e "$separator"
+                fi
+                cat "$original_file"
+            } > "${full_path}.tmp"
+            mv "${full_path}.tmp" "$full_path"
+            ;;
+
+        merge-json)
+            if command -v jq &>/dev/null; then
+                print_info "Merging JSON: ${file_path}"
+                jq -s '.[0] * .[1]' "$original_file" "$new_file" > "${full_path}.tmp" 2>/dev/null
+                if [[ $? -eq 0 ]]; then
+                    mv "${full_path}.tmp" "$full_path"
+                else
+                    print_warning "JSON merge failed for ${file_path}, keeping new content"
+                fi
+            else
+                print_warning "jq not available, cannot merge JSON for ${file_path}"
+            fi
+            ;;
+
+        merge-yaml)
+            if command -v yq &>/dev/null; then
+                print_info "Merging YAML: ${file_path}"
+                yq eval-all '. as $item ireduce ({}; . * $item)' "$original_file" "$new_file" > "${full_path}.tmp" 2>/dev/null
+                if [[ $? -eq 0 ]]; then
+                    mv "${full_path}.tmp" "$full_path"
+                else
+                    print_warning "YAML merge failed for ${file_path}, keeping new content"
+                fi
+            else
+                print_warning "yq not available, cannot merge YAML for ${file_path}"
+            fi
+            ;;
+
+        prompt)
+            prompt_user_file_action "$ext" "$file_path" "$original_file" "$new_file"
+            ;;
+
+        skip)
+            print_info "Skipping ${file_path} - keeping original"
+            mv "$original_file" "$full_path"
+            ;;
+
+        *)
+            print_warning "Unknown action '${action}' for ${file_path}, keeping new content"
+            ;;
+    esac
+
+    # Cleanup temp files
+    rm -f "$original_file" "$new_file" "${full_path}.tmp"
+
+    return 0
+}
+
+# Handle directory-level conflict
+# Usage: handle_directory_conflict <extension_name> <dir_path> <rule_yaml>
+handle_directory_conflict() {
+    local ext="$1"
+    local dir_path="$2"
+    local rule="$3"
+    local project_dir="${PWD}"
+    local full_path="${project_dir}/${dir_path}"
+
+    # Check if directory exists
+    if [[ ! -d "$full_path" ]]; then
+        return 0  # Directory doesn't exist, no conflict
+    fi
+
+    # Extract action and options
+    local action backup_enabled backup_suffix
+    action=$(echo "$rule" | yq eval '.on-conflict.action' - 2>/dev/null)
+    backup_enabled=$(echo "$rule" | yq eval '.on-conflict.backup // false' - 2>/dev/null)
+    backup_suffix=$(echo "$rule" | yq eval '.on-conflict.backup-suffix // ".backup"' - 2>/dev/null)
+
+    # Environment variable override: EXTENSION_CONFLICT_STRATEGY
+    # Takes precedence over extension-defined action
+    if [[ -n "${EXTENSION_CONFLICT_STRATEGY:-}" ]]; then
+        print_debug "Using EXTENSION_CONFLICT_STRATEGY=${EXTENSION_CONFLICT_STRATEGY} for ${dir_path}"
+        action="${EXTENSION_CONFLICT_STRATEGY}"
+    fi
+
+    # Environment variable override: EXTENSION_CONFLICT_PROMPT
+    # If false, replace 'prompt' and 'prompt-per-file' actions with 'skip' (safe default)
+    if [[ "${EXTENSION_CONFLICT_PROMPT:-true}" == "false" ]]; then
+        if [[ "$action" == "prompt" || "$action" == "prompt-per-file" ]]; then
+            print_debug "EXTENSION_CONFLICT_PROMPT=false, changing action from '${action}' to 'skip' for ${dir_path}"
+            action="skip"
+        fi
+    fi
+
+    print_info "Resolving directory conflict: ${dir_path} (action: ${action})"
+
+    case "$action" in
+        backup)
+            if [[ -d "$full_path" ]]; then
+                local timestamp
+                timestamp=$(date +%Y%m%d_%H%M%S)
+                local backup_path="${full_path}${backup_suffix}.${timestamp}"
+                print_info "Backing up ${dir_path} to ${backup_path}"
+                cp -r "$full_path" "$backup_path"
+            fi
+            ;;
+
+        backup-and-replace)
+            if [[ -d "$full_path" ]]; then
+                local timestamp
+                timestamp=$(date +%Y%m%d_%H%M%S)
+                local backup_path="${full_path}${backup_suffix}.${timestamp}"
+                print_info "Backup and replace: ${dir_path}"
+                mv "$full_path" "$backup_path"
+                # Extension initialization will create fresh directory
+            fi
+            ;;
+
+        merge)
+            if [[ "$backup_enabled" == "true" ]]; then
+                local timestamp
+                timestamp=$(date +%Y%m%d_%H%M%S)
+                local backup_path="${full_path}${backup_suffix}.${timestamp}"
+                print_info "Backing up before merge: ${dir_path}"
+                cp -r "$full_path" "$backup_path"
+            fi
+            print_info "Merging into ${dir_path}"
+            # Extension writes files, existing files preserved unless overwritten
+            ;;
+
+        prompt-per-file)
+            prompt_directory_conflict "$ext" "$dir_path" "$rule"
+            ;;
+
+        skip)
+            print_info "Skipping ${dir_path} (already exists)"
+            ;;
+
+        *)
+            print_warning "Unknown action '${action}' for ${dir_path}, proceeding with merge"
+            ;;
+    esac
+
+    return 0
+}
+
+# Prompt user for file-level decision
+# Usage: prompt_user_file_action <extension_name> <file_path> <original_file> <new_file>
+prompt_user_file_action() {
+    local ext="$1"
+    local file_path="$2"
+    local original_file="$3"
+    local new_file="$4"
+
+    # Check if prompting is disabled
+    if [[ "${EXTENSION_CONFLICT_PROMPT:-true}" == "false" ]]; then
+        print_info "EXTENSION_CONFLICT_PROMPT=false, skipping ${file_path} (keeping original)"
+        mv "$original_file" "$file_path"
+        return 0
+    fi
+
+    print_warning "File conflict detected: ${file_path}"
+    print_info "Extension ${ext} wants to modify this file."
+    echo ""
+
+    PS3="Choose action: "
+    select action in "Overwrite" "Append" "Prepend" "Skip" "Backup then Overwrite"; do
+        case "$action" in
+            "Overwrite")
+                cp "$new_file" "$file_path"
+                print_success "Overwritten ${file_path}"
+                break;;
+            "Append")
+                cat "$new_file" >> "$file_path"
+                print_success "Appended to ${file_path}"
+                break;;
+            "Prepend")
+                local temp
+                temp=$(mktemp)
+                cat "$new_file" "$original_file" > "$temp"
+                mv "$temp" "$file_path"
+                print_success "Prepended to ${file_path}"
+                break;;
+            "Skip")
+                mv "$original_file" "$file_path"
+                print_info "Skipped ${file_path}"
+                break;;
+            "Backup then Overwrite")
+                local timestamp
+                timestamp=$(date +%Y%m%d_%H%M%S)
+                mv "$file_path" "${file_path}.backup.${timestamp}"
+                cp "$new_file" "$file_path"
+                print_success "Backed up and overwritten ${file_path}"
+                break;;
+        esac
+    done
+}
+
+# Prompt for directory merge (prompts per-file)
+# Usage: prompt_directory_conflict <extension_name> <dir_path> <rule_yaml>
+prompt_directory_conflict() {
+    local ext="$1"
+    local dir_path="$2"
+    local rule="$3"
+
+    # Check if prompting is disabled
+    if [[ "${EXTENSION_CONFLICT_PROMPT:-true}" == "false" ]]; then
+        print_info "EXTENSION_CONFLICT_PROMPT=false, skipping ${dir_path} (keeping existing)"
+        return 1  # Signal to skip extension
+    fi
+
+    print_warning "Directory conflict detected: ${dir_path}"
+    print_info "Extension ${ext} wants to write to this directory."
+    echo ""
+
+    PS3="Choose action: "
+    select action in "Merge (prompt per file)" "Backup and Replace" "Skip"; do
+        case "$action" in
+            "Merge (prompt per file)")
+                print_info "Will prompt for each file conflict during initialization"
+                # Set flag for extension to prompt on each file write
+                export PROMPT_ON_FILE_CONFLICT=true
+                break;;
+            "Backup and Replace")
+                local timestamp
+                timestamp=$(date +%Y%m%d_%H%M%S)
+                local full_path="${PWD}/${dir_path}"
+                mv "$full_path" "${full_path}.backup.${timestamp}"
+                print_success "Backed up to ${dir_path}.backup.${timestamp}"
+                break;;
+            "Skip")
+                print_info "Skipping ${dir_path} - extension will not initialize"
+                return 1;;  # Signal to skip extension
+        esac
+    done
+
     return 0
 }
 

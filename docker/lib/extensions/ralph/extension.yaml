@@ -54,8 +54,9 @@ capabilities:
   # Project initialization capability
   project-init:
     enabled: true
+    priority: 70
     commands:
-      - command: "npx ralph-inferno install"
+      - command: "bash scripts/init-project.sh"
         description: "Initialize Ralph Inferno autonomous development system"
         requiresAuth: anthropic
 
@@ -103,12 +104,20 @@ capabilities:
       command: "echo 'Initializing Ralph Inferno project...'"
       description: "Pre-initialization setup"
     post-project-init:
-      command: "echo 'Ralph Inferno initialized successfully. Use /ralph: commands to begin.'"
+      command: "true"
       description: "Post-initialization completion"
 
   # Collision handling for cloned projects
   collision-handling:
     enabled: true
+
+    conflict-rules:
+      # Ralph only writes to .claude/commands/ - no CLAUDE.md or JSON conflicts
+      - path: ".claude/commands"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false # Ralph commands are uniquely named (ralph:*)
 
     version-markers:
       # Ralph marker

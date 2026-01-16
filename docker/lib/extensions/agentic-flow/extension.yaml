@@ -52,6 +52,7 @@ capabilities:
   # Project initialization capability
   project-init:
     enabled: true
+    priority: 60
     commands:
       - command: "npx agentic-flow init"
         description: "Initialize Agentic Flow project"
@@ -92,12 +93,69 @@ capabilities:
       command: "echo 'Agentic Flow installed successfully'"
       description: "Verify installation"
     post-project-init:
-      command: "echo 'Agentic Flow project initialized'"
+      command: "true"
       description: "Post-initialization"
 
   # Collision handling for cloned projects
   collision-handling:
     enabled: true
+
+    conflict-rules:
+      - path: "CLAUDE.md"
+        type: file
+        on-conflict:
+          action: append
+          separator: "\n\n---\n\n"
+
+      # Critical JSON merges
+      - path: ".claude/mcp.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      - path: ".claude/settings.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      # Statusline conflict with claude-flow
+      - path: ".claude/statusline.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version (priority 20 runs first)
+
+      # Directory merge
+      - path: ".claude"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+
+      # Helper scripts - potential name conflicts
+      - path: ".claude/helpers/checkpoint-manager.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/github-setup.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/quick-start.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/setup-mcp.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/standard-checkpoint-hooks.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
 
     version-markers:
       # Agentic Flow marker (if init creates directory)

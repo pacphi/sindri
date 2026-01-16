@@ -126,7 +126,7 @@
       "id": "available-profiles",
       "category": "configuration",
       "question": "What extension profiles are available?",
-      "answer": "Available profiles include: minimal (nodejs, python), fullstack (nodejs, python, docker, nodejs-devtools), ai-dev (nodejs, python, golang, ollama, ai-toolkit, mdflow, openskills, supabase-cli, linear-mcp, monitoring), anthropic-dev (comprehensive Claude/AI toolset with 21 extensions), systems (rust, golang, docker, infra-tools), enterprise (all languages and infrastructure), devops (docker, infra-tools, cloud-tools, monitoring), and mobile (nodejs).",
+      "answer": "Sindri includes 12 extension profiles: minimal (nodejs, python), fullstack (nodejs, python, docker, nodejs-devtools), ai-dev (nodejs, python, golang, ollama, ai-toolkit, mdflow, openskills, supabase-cli, linear-mcp, monitoring), anthropic-dev (comprehensive Claude/AI toolset with 20 extensions), systems (rust, golang, docker, infra-tools), enterprise (all languages and infrastructure), devops (docker, infra-tools, cloud-tools, monitoring), mobile (nodejs), and 4 VisionFlow profiles (visionflow-core, visionflow-data-scientist, visionflow-creative, visionflow-full).",
       "tags": ["profiles", "list", "options"],
       "docs": ["docs/EXTENSIONS.md", "docker/lib/profiles.yaml"]
     },

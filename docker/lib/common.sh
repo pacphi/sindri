@@ -76,6 +76,10 @@ print_debug() {
     fi
 }
 
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
 print_header() {
     echo -e "${CYAN}==>${NC} ${1}"
 }

@@ -29,12 +29,12 @@ Node.js LTS via mise - provides the Node.js runtime, npm, and pnpm package manag
 
 ### Environment Variables
 
-| Variable            | Value              | Scope  | Description                       |
-| ------------------- | ------------------ | ------ | --------------------------------- |
-| `NODE_ENV`          | `development`      | bashrc | Node.js runtime mode              |
-| `npm_config_python` | `/usr/bin/python3` | bashrc | Python for node-gyp native builds |
+| Variable   | Value              | Scope  | Description                       |
+| ---------- | ------------------ | ------ | --------------------------------- |
+| `NODE_ENV` | `development`      | bashrc | Node.js runtime mode              |
+| `PYTHON`   | `/usr/bin/python3` | bashrc | Python for node-gyp native builds |
 
-> **Note:** The `npm_config_python` setting ensures node-gyp uses system Python (3.12) for native module compilation. mise-managed Python 3.13 doesn't include `distutils` (removed in Python 3.12), which causes build failures for packages with native dependencies like `better-sqlite3`.
+> **Note:** The `PYTHON` environment variable ensures node-gyp uses system Python (3.12) for native module compilation. mise-managed Python 3.13 doesn't include `distutils` (removed in Python 3.12), which causes build failures for packages with native dependencies like `better-sqlite3`.
 
 ### mise.toml
 

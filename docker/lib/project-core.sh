@@ -279,8 +279,16 @@ init_project_tools() {
             continue
         fi
 
+        # Create snapshot marker BEFORE init (for conflict detection)
+        local snapshot_marker
+        snapshot_marker=$(mktemp)
+        touch "$snapshot_marker"
+
         # Execute project initialization
         if execute_project_init "$ext"; then
+            # Resolve conflicts AFTER init (merge extension's output with existing files)
+            resolve_conflicts_post_init "$ext" "$snapshot_marker"
+
             # Validate initialization
             if validate_project_capability "$ext"; then
                 print_success "${ext} initialized successfully"
@@ -297,6 +305,9 @@ init_project_tools() {
         else
             print_warning "${ext} initialization failed"
         fi
+
+        # Cleanup snapshot marker
+        rm -f "$snapshot_marker"
 
         # Execute post-project-init hook
         execute_hook "$ext" "post-project-init"

@@ -482,6 +482,12 @@
             "enabled": {
               "type": "boolean"
             },
+            "priority": {
+              "type": "integer",
+              "description": "Initialization priority. Lower number = earlier execution. Default: 100.",
+              "default": 100,
+              "minimum": 1
+            },
             "commands": {
               "type": "array",
               "items": {
@@ -839,6 +845,71 @@
             "enabled": {
               "type": "boolean",
               "description": "Enable collision handling for this extension"
+            },
+            "conflict-rules": {
+              "type": "array",
+              "description": "Generic conflict resolution rules for files and directories",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File or directory path (relative to project root)"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["file", "directory"],
+                    "description": "Type of resource"
+                  },
+                  "on-conflict": {
+                    "type": "object",
+                    "description": "Action to take when conflict is detected",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "overwrite",
+                          "append",
+                          "prepend",
+                          "merge-json",
+                          "merge-yaml",
+                          "backup",
+                          "backup-and-replace",
+                          "merge",
+                          "prompt",
+                          "prompt-per-file",
+                          "skip"
+                        ],
+                        "description": "Conflict resolution action"
+                      },
+                      "separator": {
+                        "type": "string",
+                        "description": "Separator for append/prepend actions (e.g., '\\n\\n---\\n\\n')"
+                      },
+                      "backup-suffix": {
+                        "type": "string",
+                        "default": ".backup",
+                        "description": "Suffix for backup files/directories"
+                      },
+                      "backup": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether to backup before merge (for directory merge action)"
+                      },
+                      "prompt-options": {
+                        "type": "array",
+                        "description": "Options to present in prompt action",
+                        "items": {
+                          "type": "string",
+                          "enum": ["merge", "overwrite", "skip", "backup"]
+                        }
+                      }
+                    },
+                    "required": ["action"]
+                  }
+                },
+                "required": ["path", "type", "on-conflict"]
+              }
             },
             "version-markers": {
               "type": "array",

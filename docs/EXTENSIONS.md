@@ -330,6 +330,108 @@ supabase-cli → nodejs, docker
 | `/workspace/.system/logs/`     | Extension installation logs   |
 | `/workspace/.system/bom/`      | Bill of Materials tracking    |
 
+## Conflict Resolution
+
+When cloning projects or initializing multiple extensions, conflicts may occur with existing files or directories. Sindri provides automatic conflict resolution with configurable strategies.
+
+### Environment Variables
+
+Control conflict resolution behavior using these environment variables:
+
+#### `EXTENSION_CONFLICT_STRATEGY`
+
+Global default action for all conflicts. Overrides extension-defined conflict rules.
+
+**Valid values:**
+
+- `append` - Add new content to end of file
+- `prepend` - Add new content to beginning of file
+- `overwrite` - Replace existing file with new content
+- `merge-json` - Deep merge JSON files (requires `jq`)
+- `merge-yaml` - Deep merge YAML files (requires `yq`)
+- `backup` - Backup existing before proceeding
+- `skip` - Keep existing, ignore new content
+
+**Example:**
+
+```bash
+# Force all conflicts to append (useful for CLAUDE.md)
+EXTENSION_CONFLICT_STRATEGY=append clone-project https://github.com/user/repo
+
+# Backup all conflicts for safety
+EXTENSION_CONFLICT_STRATEGY=backup clone-project https://github.com/user/repo
+```
+
+#### `EXTENSION_CONFLICT_PROMPT`
+
+Control interactive prompts for conflict resolution. Set to `false` to disable prompts in CI/CD.
+
+**Valid values:**
+
+- `true` (default) - Allow interactive prompts
+- `false` - Disable prompts, use safe defaults (skip)
+
+**Example:**
+
+```bash
+# CI/CD: Disable prompts, skip conflicts
+EXTENSION_CONFLICT_PROMPT=false clone-project https://github.com/user/repo
+
+# CI/CD: Disable prompts, backup conflicts
+EXTENSION_CONFLICT_STRATEGY=backup EXTENSION_CONFLICT_PROMPT=false clone-project https://github.com/user/repo
+```
+
+### Conflict Resolution Priority
+
+Extensions initialize in priority order (lower number = earlier):
+
+| Extension      | Priority | Behavior                                   |
+| -------------- | -------- | ------------------------------------------ |
+| spec-kit       | 10       | Creates .github/spec.json, no conflicts    |
+| claude-flow-v3 | 20       | Primary framework, creates .claude/        |
+| claude-flow-v2 | 20       | Primary framework, creates .claude/        |
+| agentic-qe     | 50       | Appends to CLAUDE.md, merges into .claude/ |
+| agentic-flow   | 60       | Appends to CLAUDE.md                       |
+| ralph          | 70       | Appends to CLAUDE.md                       |
+
+### Common Conflict Scenarios
+
+**Scenario 1: Cloning repo with existing CLAUDE.md**
+
+```bash
+# Result: All extensions append their sections with separators
+clone-project https://github.com/user/repo
+
+# CLAUDE.md contains:
+# <Original content from repo>
+#
+# ---
+#
+# <claude-flow-v3 content>
+#
+# ---
+#
+# <agentic-qe content>
+```
+
+**Scenario 2: CI/CD Pipeline**
+
+```bash
+# GitHub Actions workflow
+- name: Clone project
+  env:
+    EXTENSION_CONFLICT_STRATEGY: backup
+    EXTENSION_CONFLICT_PROMPT: false
+  run: clone-project https://github.com/user/repo
+```
+
+**Scenario 3: Force overwrite in CI**
+
+```bash
+# Replace all conflicting files (dangerous!)
+EXTENSION_CONFLICT_STRATEGY=overwrite EXTENSION_CONFLICT_PROMPT=false clone-project https://github.com/user/repo
+```
+
 ## Related Documentation
 
 - [Extension Authoring](EXTENSION_AUTHORING.md) - Create custom extensions

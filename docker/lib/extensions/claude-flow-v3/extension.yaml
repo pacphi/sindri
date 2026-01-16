@@ -72,7 +72,7 @@ configure:
 validate:
   commands:
     - name: claude-flow
-      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+\\.\\d+)?"
+      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
 
 remove:
   mise:
@@ -96,6 +96,7 @@ capabilities:
   # Project initialization capability (v3 features)
   project-init:
     enabled: true
+    priority: 20
     commands:
       - command: "claude-flow init --full"
         description: "Initialize Claude Flow v3 with full feature set"
@@ -143,7 +144,7 @@ capabilities:
 
     validation:
       command: "claude-flow --version && claude-flow doctor --check"
-      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+\\.\\d+)?"
+      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
       expectedExitCode: 0
 
   # Authentication requirements
@@ -172,7 +173,7 @@ capabilities:
       command: "claude-flow --version | grep -q 'v3\\.' && echo 'Claude Flow v3 installed successfully'"
       description: "Verify v3 installation"
     post-project-init:
-      command: "echo 'Claude Flow v3 initialized - enjoy 10x performance!'"
+      command: "true"
       description: "v3 initialization complete"
 
   # MCP server registration (v3 modular CLI)
@@ -231,6 +232,43 @@ capabilities:
   # Collision handling for cloned projects
   collision-handling:
     enabled: true
+
+    conflict-rules:
+      - path: "CLAUDE.md"
+        type: file
+        on-conflict:
+          action: append
+          separator: "\n\n---\n\n"
+
+      # Critical JSON files - must merge
+      - path: ".claude/mcp.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      - path: ".claude/settings.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      # Root MCP config (only claude-flow creates this)
+      - path: ".mcp.json"
+        type: file
+        on-conflict:
+          action: overwrite # claude-flow owns this
+
+      # Directories - merge strategy
+      - path: ".claude"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false # No backup needed, merge is safe
+
+      - path: ".claude-flow"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
 
     version-markers:
       # V3 marker: unified config with swarm/sona

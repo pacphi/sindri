@@ -40,7 +40,7 @@ configure:
 validate:
   commands:
     - name: claude-flow
-      expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+"
+      expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
 
 remove:
   mise:
@@ -58,6 +58,7 @@ capabilities:
   # Project initialization capability
   project-init:
     enabled: true
+    priority: 20
     commands:
       - command: "claude-flow init --force"
         description: "Initialize Claude Code flow with memory and context"
@@ -76,7 +77,7 @@ capabilities:
 
     validation:
       command: "claude-flow --version"
-      expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+"
+      expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
 
   # Authentication requirements
   auth:
@@ -110,7 +111,7 @@ capabilities:
       command: "echo 'Initializing claude-flow project context...'"
       description: "Pre-initialization setup"
     post-project-init:
-      command: "echo 'Claude-flow project initialized successfully'"
+      command: "true"
       description: "Post-initialization cleanup"
 
   # MCP server registration
@@ -136,6 +137,37 @@ capabilities:
   # Collision handling for cloned projects
   collision-handling:
     enabled: true
+
+    conflict-rules:
+      - path: "CLAUDE.md"
+        type: file
+        on-conflict:
+          action: append
+          separator: "\n\n---\n\n"
+
+      # Critical JSON files - must merge
+      - path: ".claude/mcp.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      - path: ".claude/settings.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      # Directories - merge strategy
+      - path: ".claude"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false # No backup needed, merge is safe
+
+      - path: ".claude-flow"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
 
     version-markers:
       # V2 marker: memory.db file
