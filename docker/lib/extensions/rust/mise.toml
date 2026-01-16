@@ -2,6 +2,7 @@
 rust = "stable"
 
 [env]
+TMPDIR = "{{env.HOME}}/.cache/tmp"
 RUSTUP_HOME = "{{env.HOME}}/.rustup"
 CARGO_HOME = "{{env.HOME}}/.cargo"
 _.path = ["{{env.HOME}}/.cargo/bin"]

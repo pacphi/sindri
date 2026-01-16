@@ -1,11 +1,9 @@
 ---
 metadata:
   name: rust
-  version: 1.0.1
-  description: Rust stable via mise
+  version: 1.0.2
+  description: Rust stable via rustup
   category: language
-  dependencies:
-    - mise-config
 
 requirements:
   domains:
@@ -16,10 +14,9 @@ requirements:
   installTime: 120
 
 install:
-  method: mise
-  mise:
-    configFile: mise.toml
-    reshimAfterInstall: true
+  method: script
+  script:
+    path: install.sh
 
 validate:
   commands:
@@ -28,22 +25,22 @@ validate:
     - name: cargo
 
 remove:
-  mise:
-    removeConfig: true
-    tools: [rust]
+  method: script
+  script:
+    path: remove.sh
 
 bom:
   tools:
     - name: rustc
       version: dynamic
-      source: mise
+      source: rustup
       type: compiler
       license: MIT OR Apache-2.0
       homepage: https://www.rust-lang.org
       purl: pkg:generic/rust
     - name: cargo
       version: dynamic
-      source: mise
+      source: rustup
       type: package-manager
       license: MIT OR Apache-2.0
       homepage: https://doc.rust-lang.org/cargo

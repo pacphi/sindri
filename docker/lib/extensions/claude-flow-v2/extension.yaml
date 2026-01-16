@@ -30,6 +30,7 @@ configure:
       mode: append
     - source: commands/ms.md
       destination: ~/.claude/commands/ms.md
+      mode: overwrite
       description: MetaSaver intelligent command router for complexity-based task routing
   environment:
     - key: PATH
@@ -39,7 +40,7 @@ configure:
 validate:
   commands:
     - name: claude-flow
-      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+      expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+"
 
 remove:
   mise:
@@ -75,7 +76,7 @@ capabilities:
 
     validation:
       command: "claude-flow --version"
-      expectedPattern: "^\\d+\\.\\d+\\.\\d+"
+      expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+"
 
   # Authentication requirements
   auth:

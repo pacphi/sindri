@@ -648,6 +648,58 @@ Choose one:
   extension-manager install claude-flow-v3  # Alpha
 ```
 
+### 7. Custom Extensions Support (CUSTOM_EXTENSIONS)
+
+**Benefit:** Augment profile extensions without modifying core configuration
+
+Users can now define custom extensions via environment variable, allowing personal extension sets to layer on top of standard profiles:
+
+```bash
+# Deploy with profile + custom extensions
+export CUSTOM_EXTENSIONS="my-ext-1,my-ext-2,my-ext-3"
+./cli/sindri deploy --provider docker
+
+# Inside container, both profile and custom extensions are installed
+extension-manager list
+# Shows: profile extensions + my-ext-1, my-ext-2, my-ext-3
+```
+
+**Use Cases:**
+
+- Personal tooling overlays on team profiles
+- Organization-specific extensions without forking profiles
+- Local development customizations
+- Extension testing without profile modification
+
+**Environment Variable:**
+
+```yaml
+# docker-compose.yml (auto-generated)
+environment:
+  - INSTALL_PROFILE=ai-dev
+  - CUSTOM_EXTENSIONS=ralph,my-tools
+  - ADDITIONAL_EXTENSIONS= # Still supported for backward compatibility
+```
+
+### 8. New Extension: Ralph
+
+**Benefit:** AI-driven autonomous development system with discovery, planning, and deployment
+
+Ralph is a comprehensive AI development orchestration system featuring:
+
+- **Discovery Phase:** Automatic project structure analysis and requirement extraction
+- **Planning Phase:** Intelligent task breakdown and dependency mapping
+- **Development Phase:** AI-assisted code generation and refactoring
+- **Deployment Phase:** Automated build, test, and deployment workflows
+
+**Installation:**
+
+```bash
+extension-manager install ralph
+```
+
+**Documentation:** [docs/extensions/RALPH.md](docs/extensions/RALPH.md)
+
 ---
 
 ## 🚀 Performance Improvements
@@ -729,12 +781,18 @@ pnpm: 2 seconds (content-addressable store)
    - AI-powered workflow automation
    - Auto-commit lifecycle hook
 
+6. **[Ralph Extension](docs/extensions/RALPH.md)**
+   - AI-driven autonomous development system
+   - Discovery, planning, development, and deployment workflows
+   - Integration patterns and best practices
+
 ### Updated Documentation
 
 - [Extension Authoring Guide](docs/EXTENSION_AUTHORING.md) - Capability examples
 - [Architecture Guide](docs/ARCHITECTURE.md) - ADR references
 - [Secrets Management](docs/SECRETS_MANAGEMENT.md) - Multi-method auth
-- [Extensions Catalog](docs/EXTENSIONS.md) - Updated extension counts
+- [Extensions Catalog](docs/EXTENSIONS.md) - Updated with Ralph extension
+- [Rust Extension](docs/extensions/RUST.md) - Comprehensive troubleshooting for `/tmp` noexec issue, rustup migration details
 - [FAQ](docs/FAQ.md) - 60+ questions (was 40+)
 
 ---
@@ -958,6 +1016,28 @@ capabilities:
 7. **Three extension installation failures** (commit: baaac1e)
    - Fixed installation issues for undisclosed extensions
    - Impact: Specific extensions failed to install
+
+8. **Rust extension `/tmp` noexec installation failure** (commit: d170c89)
+   - Root cause: rustup requires executable `/tmp` directory, conflicts with security-hardened containers
+   - Fix: Migrated from mise to custom rustup installation using `$HOME/.cache/tmp` executable directory
+   - Added workaround script setting `TMPDIR=$HOME/.cache/tmp` before rustup installation
+   - Impact: Rust extension now installs successfully on OrbStack and security-hardened Docker environments
+   - Documentation: Added comprehensive troubleshooting guide to [docs/extensions/RUST.md](docs/extensions/RUST.md)
+
+### Enhancement Fixes
+
+9. **Improved capability-manager robustness** (commit: d170c89)
+   - Enhanced dependency.sh sourcing with fallback paths (container and local dev environments)
+   - Made extension installation checks defensive with availability detection
+   - Fixed registry extension discovery to use YAML keys instead of incorrect `.extensions[].name` path
+   - Added debug logging throughout for better troubleshooting
+   - Impact: Prevents cascading failures when optional modules unavailable
+
+10. **Claude Flow extension updates** (commit: d170c89)
+    - claude-flow-v2: Fixed validation regex pattern, set ms.md command to overwrite mode
+    - claude-flow-v3: Renamed prd-to-docs → prd2build, updated validation for alpha versions
+    - claude-flow-v3: Added CF_MCP_AUTOSTART=false to disable automatic MCP server startup
+    - Impact: Better version detection and user control over MCP server lifecycle
 
 ---
 

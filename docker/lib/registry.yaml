@@ -178,6 +178,11 @@ extensions:
     description: Multi-backend CLI transforming markdown files into executable AI agents
     dependencies: [nodejs]
 
+  ralph:
+    category: ai
+    description: AI-driven autonomous development system with discovery, planning, and deployment
+    dependencies: [nodejs]
+
   context7-mcp:
     category: ai
     description: Context7 MCP server for up-to-date library documentation

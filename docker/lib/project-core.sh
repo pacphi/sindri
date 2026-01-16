@@ -225,7 +225,18 @@ init_project_tools() {
 
     # Discover extensions with project-init capabilities
     local extensions
+    print_debug "Running discover_project_capabilities..."
+    print_debug "SCRIPT_DIR: ${SCRIPT_DIR:-<not set>}"
+    print_debug "DOCKER_LIB: ${DOCKER_LIB:-<not set>}"
+
+    if ! command -v discover_project_capabilities &>/dev/null; then
+        print_error "discover_project_capabilities function not found - capability-manager.sh may not have been sourced"
+        [[ "$tools_initialized" == "false" ]] && print_warning "No tools were initialized"
+        return 0
+    fi
+
     extensions=$(discover_project_capabilities "project-init")
+    print_debug "Discovery returned: [$extensions]"
 
     if [[ -z "$extensions" ]]; then
         print_debug "No extensions with project-init capabilities found"
@@ -419,12 +430,6 @@ export -f _install_template_dependencies
 export -f _scan_and_install_dependencies
 export -f _execute_dependency_config
 export -f check_claude_auth
-export -f verify_claude_auth
-export -f _is_claude_flow_initialized
-export -f _is_aqe_initialized
-export -f _is_claude_flow_agentdb_initialized
-export -f _initialize_claude_flow
-export -f _initialize_claude_flow_agentdb
 export -f init_project_tools
 export -f create_project_claude_md
 export -f setup_project_enhancements

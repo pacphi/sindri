@@ -16,8 +16,33 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
 # Source dependency module for install state checking
+# Container path: /docker/lib -> /docker/cli/extension-manager-modules/dependency.sh
+# Local dev path: /Users/.../sindri/docker/lib -> /Users/.../sindri/cli/extension-manager-modules/dependency.sh
+
+DEPENDENCY_SOURCED=false
+
+# Try container path pattern (up one level to /docker, then into cli/)
 if [[ -f "${SCRIPT_DIR}/../cli/extension-manager-modules/dependency.sh" ]]; then
-    source "${SCRIPT_DIR}/../cli/extension-manager-modules/dependency.sh"
+    if source "${SCRIPT_DIR}/../cli/extension-manager-modules/dependency.sh" 2>/dev/null; then
+        DEPENDENCY_SOURCED=true
+    fi
+# Try local development path pattern (up two levels to project root, then into cli/)
+elif [[ -f "${SCRIPT_DIR}/../../cli/extension-manager-modules/dependency.sh" ]]; then
+    if source "${SCRIPT_DIR}/../../cli/extension-manager-modules/dependency.sh" 2>/dev/null; then
+        DEPENDENCY_SOURCED=true
+    fi
+fi
+
+# Debug logging to help diagnose sourcing issues
+if [[ "${DEPENDENCY_SOURCED}" == "true" ]]; then
+    # Only log in debug mode to avoid noise
+    [[ "${DEBUG:-}" == "1" ]] && echo "[DEBUG] dependency.sh sourced successfully" >&2
+else
+    # Always warn if dependency.sh couldn't be sourced
+    echo "[WARN] dependency.sh not found or failed to source - extension installation checks disabled" >&2
+    echo "[WARN] Attempted paths:" >&2
+    echo "[WARN]   ${SCRIPT_DIR}/../cli/extension-manager-modules/dependency.sh" >&2
+    echo "[WARN]   ${SCRIPT_DIR}/../../cli/extension-manager-modules/dependency.sh" >&2
 fi
 
 # Constants
@@ -58,8 +83,8 @@ discover_project_capabilities() {
     local extensions
     local result=()
 
-    # Get all registered extensions
-    extensions=$(yq eval '.extensions[].name' "${REGISTRY_FILE}" 2>/dev/null || echo "")
+    # Get all registered extensions (extension names are keys in the YAML)
+    extensions=$(yq eval '.extensions | keys | .[]' "${REGISTRY_FILE}" 2>/dev/null || echo "")
 
     if [[ -z "$extensions" ]]; then
         return 0
@@ -71,9 +96,17 @@ discover_project_capabilities() {
             continue
         fi
 
-        # ADDED: Check if extension is actually installed
-        if ! is_extension_installed "$ext" 2>/dev/null; then
-            continue  # Skip uninstalled extensions
+        # Check if extension is actually installed (defensive check)
+        # This check is OPTIONAL - if dependency.sh wasn't sourced, we skip this check
+        # and rely on registry.yaml which should only list actually installed extensions.
+        if command -v is_extension_installed &>/dev/null; then
+            if ! is_extension_installed "$ext" 2>/dev/null; then
+                [[ "${DEBUG:-}" == "1" ]] && echo "[DEBUG] Skipping $ext - not installed" >&2
+                continue  # Skip uninstalled extensions
+            fi
+        else
+            # Function not available, proceed with all registered extensions
+            [[ "${DEBUG:-}" == "1" ]] && echo "[DEBUG] Skipping installation check for $ext (is_extension_installed not available)" >&2
         fi
 
         local extension_file="${EXTENSIONS_DIR}/${ext}/extension.yaml"
@@ -204,7 +237,7 @@ execute_project_init() {
 
         # Print description if available
         if [[ -n "$description" ]]; then
-            print_info "${description}"
+            print_status "${description}"
         fi
 
         # Check auth requirement (delegated to auth-manager.sh if loaded)
@@ -369,7 +402,7 @@ merge_project_context() {
                     cat "$full_source" >> "$full_target"
                     print_success "Appended ${source_file} to ${target_file} (content was missing)"
                 else
-                    print_info "${target_file} already contains content from ${source_file}"
+                    print_status "${target_file} already contains content from ${source_file}"
                 fi
             fi
             ;;
@@ -391,7 +424,7 @@ merge_project_context() {
                     cat "$temp_file" >> "$full_target"
                     print_success "Merged new lines from ${source_file} to ${target_file}"
                 else
-                    print_info "${target_file} already contains all lines from ${source_file}"
+                    print_status "${target_file} already contains all lines from ${source_file}"
                 fi
                 rm "$temp_file"
             fi
@@ -585,11 +618,11 @@ backup_state_markers() {
         if [[ "$type" == "directory" && -d "$full_path" ]]; then
             local backup_path="${full_path}.backup.${timestamp}"
             mv "$full_path" "$backup_path"
-            print_info "Backed up: ${path} → ${path}.backup.${timestamp}"
+            print_status "Backed up: ${path} → ${path}.backup.${timestamp}"
         elif [[ "$type" == "file" && -f "$full_path" ]]; then
             local backup_path="${full_path}.backup.${timestamp}"
             mv "$full_path" "$backup_path"
-            print_info "Backed up: ${path} → ${path}.backup.${timestamp}"
+            print_status "Backed up: ${path} → ${path}.backup.${timestamp}"
         fi
     done
 }
@@ -644,19 +677,19 @@ handle_collision() {
                     ;;
                 proceed)
                     if [[ -n "$message" ]]; then
-                        print_info "$(echo "$message" | sed 's/^/  /')"
+                        print_status "$(echo "$message" | sed 's/^/  /')"
                     fi
                     return 0  # Proceed with initialization
                     ;;
                 backup)
-                    print_info "$(echo "$message" | sed 's/^/  /')"
+                    print_status "$(echo "$message" | sed 's/^/  /')"
                     backup_state_markers "$ext"
                     return 0  # Proceed after backup
                     ;;
                 prompt)
                     # Interactive prompt (future enhancement)
                     print_warning "$(echo "$message" | sed 's/^/  /')"
-                    print_info "  Interactive prompts not yet implemented. Skipping for safety."
+                    print_status "  Interactive prompts not yet implemented. Skipping for safety."
                     return 1  # Default: skip for safety
                     ;;
             esac

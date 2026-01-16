@@ -28,14 +28,17 @@ configure:
     - source: claude-flow-v3.aliases
       destination: ~/.bashrc
       mode: append
-    - source: commands/prd-to-docs.md
-      destination: ~/.claude/commands/prd-to-docs.md
+    - source: commands/prd2build.md
+      destination: ~/.claude/commands/prd2build.md
+      mode: overwrite
       description: Convert PRD to comprehensive documentation
     - source: commands/github/check-ci.md
       destination: ~/.claude/commands/github/check-ci.md
+      mode: overwrite
       description: Check GitHub Actions workflow status
     - source: commands/git/commit.md
       destination: ~/.claude/commands/git/commit.md
+      mode: overwrite
       description: Analyze git changes and create intelligent commit
   environment:
     - key: CLAUDE_FLOW_VERSION
@@ -62,11 +65,14 @@ configure:
     - key: CF_MCP_TRANSPORT
       value: "stdio"
       scope: bashrc
+    - key: CF_MCP_AUTOSTART
+      value: "false"
+      scope: bashrc
 
 validate:
   commands:
     - name: claude-flow
-      expectedPattern: "3\\.\\d+\\.\\d+"
+      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+\\.\\d+)?"
 
 remove:
   mise:
@@ -74,7 +80,7 @@ remove:
     tools:
       - "npm:claude-flow"
   paths:
-    - ~/.claude/commands/prd-to-docs.md
+    - ~/.claude/commands/prd2build.md
     - ~/.claude/commands/github/check-ci.md
     - ~/.claude/commands/git/commit.md
   confirmation: true
@@ -116,8 +122,8 @@ capabilities:
         requiresAuth: none
         conditional: true
 
-      - command: "claude-flow mcp start --transport ${CF_MCP_TRANSPORT:-stdio} --background"
-        description: "Start MCP server with configured transport"
+      - command: 'test "${CF_MCP_AUTOSTART:-false}" = "true" && claude-flow mcp start --transport ${CF_MCP_TRANSPORT:-stdio} --background || echo "MCP server configuration complete (start manually with: claude-flow mcp start)"'
+        description: "Start MCP server with configured transport (if autostart enabled)"
         requiresAuth: none
         conditional: true
 
@@ -137,7 +143,7 @@ capabilities:
 
     validation:
       command: "claude-flow --version && claude-flow doctor --check"
-      expectedPattern: "^3\\.\\d+\\.\\d+"
+      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+\\.\\d+)?"
       expectedExitCode: 0
 
   # Authentication requirements
@@ -163,7 +169,7 @@ capabilities:
   # Lifecycle hooks (v3-specific)
   hooks:
     post-install:
-      command: "claude-flow --version | grep -q '^3\\.' && echo 'Claude Flow v3 installed successfully'"
+      command: "claude-flow --version | grep -q 'v3\\.' && echo 'Claude Flow v3 installed successfully'"
       description: "Verify v3 installation"
     post-project-init:
       command: "echo 'Claude Flow v3 initialized - enjoy 10x performance!'"

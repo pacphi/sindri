@@ -17,6 +17,7 @@ if [[ -d "/docker/lib" ]]; then
 else
     DOCKER_LIB="$(cd "${SCRIPT_DIR}/../docker/lib" && pwd)"
 fi
+export DOCKER_LIB
 
 source "${DOCKER_LIB}/common.sh"
 source "${DOCKER_LIB}/git.sh"

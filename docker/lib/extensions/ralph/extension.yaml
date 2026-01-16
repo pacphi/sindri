@@ -1,0 +1,141 @@
+---
+metadata:
+  name: ralph
+  version: 1.0.0
+  description: >-
+    AI-driven autonomous development system. Build software projects with minimal
+    intervention using Claude. Supports discovery, planning, deployment, and review.
+  category: dev-tools
+  author: Sindri Team
+  homepage: https://github.com/sandstream/ralph-inferno
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+    - api.anthropic.com
+  diskSpace: 300
+  memory: 512
+  installTime: 90
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 120
+
+configure:
+  environment:
+    - key: RALPH_HOME
+      value: $HOME/.ralph
+      scope: bashrc
+
+validate:
+  script:
+    path: scripts/validate.sh
+    timeout: 30
+
+remove:
+  confirmation: true
+  script:
+    path: scripts/uninstall.sh
+  paths:
+    - ~/.ralph
+    - ./.ralph
+
+upgrade:
+  strategy: manual
+  script:
+    path: scripts/upgrade.sh
+
+capabilities:
+  # Project initialization capability
+  project-init:
+    enabled: true
+    commands:
+      - command: "npx ralph-inferno install"
+        description: "Initialize Ralph Inferno autonomous development system"
+        requiresAuth: anthropic
+
+    state-markers:
+      - path: ".ralph"
+        type: directory
+        description: "Ralph configuration directory"
+      - path: ".ralph/config.json"
+        type: file
+        description: "Ralph configuration file"
+
+    validation:
+      command: "test -f .ralph/config.json"
+      expectedExitCode: 0
+
+  # Authentication requirements (requires both Anthropic API and GitHub)
+  auth:
+    provider: anthropic
+    required: true
+    methods:
+      - api-key
+      - cli-auth
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+    features:
+      - name: autonomous-development
+        requiresApiKey: true
+        description: "AI-driven autonomous development features"
+      - name: vm-deployment
+        requiresApiKey: false
+        description: "Remote VM deployment capabilities"
+
+  # Lifecycle hooks
+  hooks:
+    pre-install:
+      command: "echo 'Preparing Ralph Inferno installation...'"
+      description: "Pre-installation checks"
+    post-install:
+      command: "echo 'Ralph Inferno installed. Run npx ralph-inferno install to initialize.'"
+      description: "Installation completion message"
+    pre-project-init:
+      command: "echo 'Initializing Ralph Inferno project...'"
+      description: "Pre-initialization setup"
+    post-project-init:
+      command: "echo 'Ralph Inferno initialized successfully. Use /ralph: commands to begin.'"
+      description: "Post-initialization completion"
+
+  # Collision handling for cloned projects
+  collision-handling:
+    enabled: true
+
+    version-markers:
+      # Ralph marker
+      - path: ".ralph"
+        type: directory
+        version: "installed"
+        detection:
+          method: directory-exists
+
+    scenarios:
+      # Scenario 1: Already installed
+      - name: "already-initialized"
+        detected-version: "installed"
+        installing-version: "1.0.0"
+        action: skip
+        message: |
+          ✓ Ralph Inferno is already initialized
+
+          To update configuration, run:
+            npx ralph-inferno install
+
+bom:
+  tools:
+    - name: ralph-inferno
+      version: dynamic
+      source: npm
+      type: framework
+      license: MIT
+      homepage: https://github.com/sandstream/ralph-inferno
+      purl: pkg:npm/ralph-inferno
