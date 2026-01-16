@@ -122,7 +122,7 @@ capabilities:
         requiresAuth: none
         conditional: true
 
-      - command: 'test "${CF_MCP_AUTOSTART:-false}" = "true" && claude-flow mcp start --transport ${CF_MCP_TRANSPORT:-stdio} --background || echo "MCP server configuration complete (start manually with: claude-flow mcp start)"'
+      - command: 'test "${CF_MCP_AUTOSTART:-false}" = "true" && claude-flow mcp start --transport ${CF_MCP_TRANSPORT:-stdio} --background || echo "MCP ready (start: claude-flow mcp start)"'
         description: "Start MCP server with configured transport (if autostart enabled)"
         requiresAuth: none
         conditional: true
