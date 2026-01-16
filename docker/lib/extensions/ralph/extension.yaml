@@ -5,7 +5,7 @@ metadata:
   description: >-
     AI-driven autonomous development system. Build software projects with minimal
     intervention using Claude. Supports discovery, planning, deployment, and review.
-  category: dev-tools
+  category: ai
   author: Sindri Team
   homepage: https://github.com/sandstream/ralph-inferno
   dependencies:
