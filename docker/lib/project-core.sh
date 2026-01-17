@@ -279,10 +279,17 @@ init_project_tools() {
         snapshot_marker=$(mktemp)
         touch "$snapshot_marker"
 
+        # Preserve existing files BEFORE init so they can be merged after
+        # This is critical for multi-extension scenarios (e.g., claude-flow-v3 + agentic-qe)
+        preserve_files_for_conflict_resolution "$ext"
+
         # Execute project initialization
         if execute_project_init "$ext"; then
             # Resolve conflicts AFTER init (merge extension's output with existing files)
             resolve_conflicts_post_init "$ext" "$snapshot_marker"
+
+            # Cleanup preserved files after successful conflict resolution
+            cleanup_preserved_files "$ext"
 
             # Validate initialization
             if validate_project_capability "$ext"; then
@@ -299,6 +306,8 @@ init_project_tools() {
             fi
         else
             print_warning "${ext} initialization failed"
+            # Cleanup preserved files even on failure
+            cleanup_preserved_files "$ext"
         fi
 
         # Cleanup snapshot marker

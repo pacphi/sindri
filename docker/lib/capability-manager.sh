@@ -714,6 +714,88 @@ handle_collision() {
 # Conflict Resolution (Generic File/Directory Handling)
 ###############################################################################
 
+# Preserve existing files BEFORE extension init runs
+# This allows post-init conflict resolution to properly merge files
+# Usage: preserve_files_for_conflict_resolution <extension_name>
+# Returns: 0 on success
+preserve_files_for_conflict_resolution() {
+    local ext="$1"
+    local project_dir="${PWD}"
+
+    # Get conflict rules from extension YAML
+    local conflict_rules
+    conflict_rules=$(get_extension_capability "$ext" "collision-handling.conflict-rules")
+
+    if [[ -z "$conflict_rules" || "$conflict_rules" == "null" ]]; then
+        return 0  # No conflict rules defined
+    fi
+
+    # Process each conflict rule
+    local rule_count
+    rule_count=$(echo "$conflict_rules" | yq eval 'length' - 2>/dev/null || echo "0")
+
+    for ((i=0; i<rule_count; i++)); do
+        local path type
+        path=$(echo "$conflict_rules" | yq eval ".[$i].path" - 2>/dev/null)
+        type=$(echo "$conflict_rules" | yq eval ".[$i].type" - 2>/dev/null)
+
+        if [[ -z "$path" || -z "$type" ]]; then
+            continue
+        fi
+
+        local full_path="${project_dir}/${path}"
+        local preserved_original="${full_path}.original"
+
+        # Only preserve files (not directories) that exist and haven't been preserved yet
+        if [[ "$type" == "file" && -f "$full_path" && ! -f "$preserved_original" ]]; then
+            print_debug "Preserving ${path} to ${path}.original for conflict resolution"
+            cp "$full_path" "$preserved_original"
+        fi
+    done
+
+    return 0
+}
+
+# Cleanup preserved .original files after conflict resolution
+# Usage: cleanup_preserved_files <extension_name>
+# Returns: 0 on success
+cleanup_preserved_files() {
+    local ext="$1"
+    local project_dir="${PWD}"
+
+    # Get conflict rules from extension YAML
+    local conflict_rules
+    conflict_rules=$(get_extension_capability "$ext" "collision-handling.conflict-rules")
+
+    if [[ -z "$conflict_rules" || "$conflict_rules" == "null" ]]; then
+        return 0
+    fi
+
+    # Process each conflict rule
+    local rule_count
+    rule_count=$(echo "$conflict_rules" | yq eval 'length' - 2>/dev/null || echo "0")
+
+    for ((i=0; i<rule_count; i++)); do
+        local path type
+        path=$(echo "$conflict_rules" | yq eval ".[$i].path" - 2>/dev/null)
+        type=$(echo "$conflict_rules" | yq eval ".[$i].type" - 2>/dev/null)
+
+        if [[ -z "$path" || "$type" != "file" ]]; then
+            continue
+        fi
+
+        local full_path="${project_dir}/${path}"
+
+        # Cleanup temp files from conflict resolution
+        rm -f "${full_path}.original" \
+              "${full_path}.original-before-${ext}" \
+              "${full_path}.new-from-${ext}" \
+              "${full_path}.tmp" 2>/dev/null || true
+    done
+
+    return 0
+}
+
 # Main conflict resolution entry point
 # Called AFTER extension init completes
 # Usage: resolve_conflicts_post_init <extension_name> <snapshot_marker_file>
