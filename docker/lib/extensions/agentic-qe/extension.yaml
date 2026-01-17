@@ -76,7 +76,7 @@ capabilities:
 
     validation:
       command: "aqe --version"
-      expectedPattern: "^3\\.\\d+\\.\\d+(-[a-z]+(\\.[0-9]+)?)?"
+      expectedPattern: "3\\.\\d+\\.\\d+(-[a-z]+(\\.[0-9]+)?)?"
 
   # Authentication requirements (requires Anthropic API for AI-powered test generation)
   auth:

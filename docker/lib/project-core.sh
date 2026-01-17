@@ -212,11 +212,6 @@ init_project_tools() {
         print_success "Claude Code is available"
     fi
 
-    # Check agentic-flow availability (extension without project-init)
-    if command_exists agentic-flow; then
-        print_success "agentic-flow is available"
-    fi
-
     # Ensure mise is activated if available
     if command_exists mise && [[ -z "${MISE_ACTIVATED:-}" ]]; then
         eval "$(mise activate bash)" 2>/dev/null || true

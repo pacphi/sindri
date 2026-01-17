@@ -297,9 +297,6 @@ echo "Initialized Tools:"
         source "${SCRIPT_DIR}/../docker/lib/capability-manager.sh"
         report_initialized_extensions
     fi
-
-    # Extensions without project-init capability (passive availability check)
-    if command_exists agentic-flow; then echo "  ✓ agentic-flow"; fi
 )
 
 echo ""

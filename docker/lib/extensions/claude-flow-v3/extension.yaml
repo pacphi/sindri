@@ -72,7 +72,7 @@ configure:
 validate:
   commands:
     - name: claude-flow
-      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
+      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\.\\d+)?)?"
 
 remove:
   mise:
@@ -144,7 +144,7 @@ capabilities:
 
     validation:
       command: "claude-flow --version && claude-flow doctor --check"
-      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
+      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\.\\d+)?)?"
       expectedExitCode: 0
 
   # Authentication requirements
