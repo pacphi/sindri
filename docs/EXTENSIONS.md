@@ -116,6 +116,7 @@ Pre-installed foundational extensions:
 | goose           | AI coding agent with tool use                 | [GOOSE.md](extensions/GOOSE.md)                     |
 | mdflow          | Markdown to AI agent CLI                      | [MDFLOW.md](extensions/MDFLOW.md)                   |
 | ralph           | AI-driven autonomous development system       | [RALPH.md](extensions/RALPH.md)                     |
+| pal-mcp-server  | AI orchestration MCP with 18 tools            | [PAL-MCP-SERVER.md](extensions/PAL-MCP-SERVER.md)   |
 | context7-mcp    | Context7 library documentation MCP            | [CONTEXT7-MCP.md](extensions/CONTEXT7-MCP.md)       |
 | ruvnet-research | AI research tools (Goalie, Research-Swarm)    | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md) |
 

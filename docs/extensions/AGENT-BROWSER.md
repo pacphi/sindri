@@ -4,12 +4,12 @@ Headless browser automation CLI for AI agents with snapshot-based element select
 
 ## Overview
 
-| Property         | Value                                    |
-| ---------------- | ---------------------------------------- |
-| **Category**     | dev-tools                                |
-| **Version**      | 0.6.0                                    |
-| **Installation** | mise                                     |
-| **Disk Space**   | 200 MB                                   |
+| Property         | Value                                            |
+| ---------------- | ------------------------------------------------ |
+| **Category**     | dev-tools                                        |
+| **Version**      | 0.6.0                                            |
+| **Installation** | mise                                             |
+| **Disk Space**   | 200 MB                                           |
 | **Dependencies** | [nodejs](NODEJS.md), [playwright](PLAYWRIGHT.md) |
 
 ## Description
@@ -30,23 +30,23 @@ agent-browser provides a fast, AI-friendly headless browser automation CLI built
 
 ## Installed Tools
 
-| Tool             | Type | Description                    |
-| ---------------- | ---- | ------------------------------ |
-| `agent-browser`  | cli  | Browser automation for AI agents |
+| Tool            | Type | Description                      |
+| --------------- | ---- | -------------------------------- |
+| `agent-browser` | cli  | Browser automation for AI agents |
 
 ## Configuration
 
 ### Templates
 
-| Template              | Destination                                    | Description            |
-| --------------------- | ---------------------------------------------- | ---------------------- |
-| `resources/SKILL.md`  | `/workspace/extensions/agent-browser/SKILL.md` | Claude Code skill file |
+| Template             | Destination                                    | Description            |
+| -------------------- | ---------------------------------------------- | ---------------------- |
+| `resources/SKILL.md` | `/workspace/extensions/agent-browser/SKILL.md` | Claude Code skill file |
 
 ### Environment Variables
 
-| Variable                         | Value                                             | Description               |
-| -------------------------------- | ------------------------------------------------- | ------------------------- |
-| `AGENT_BROWSER_EXECUTABLE_PATH`  | `~/.cache/ms-playwright/chromium-*/chrome-linux/chrome` | Shared Chromium path |
+| Variable                        | Value                                                   | Description          |
+| ------------------------------- | ------------------------------------------------------- | -------------------- |
+| `AGENT_BROWSER_EXECUTABLE_PATH` | `~/.cache/ms-playwright/chromium-*/chrome-linux/chrome` | Shared Chromium path |
 
 ## Network Requirements
 

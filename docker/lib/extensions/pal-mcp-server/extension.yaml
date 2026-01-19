@@ -1,0 +1,61 @@
+---
+metadata:
+  name: pal-mcp-server
+  version: 9.8.2
+  description: AI orchestration and multi-model collaboration MCP server with 18 specialized tools
+  category: ai
+  author: BeehiveInnovations
+  license: MIT
+  homepage: https://github.com/BeehiveInnovations/pal-mcp-server
+  dependencies:
+    - python
+    - mise-config
+
+requirements:
+  domains:
+    - github.com
+    - raw.githubusercontent.com
+    - pypi.org
+    - files.pythonhosted.org
+  diskSpace: 150
+  memory: 256
+  installTime: 180
+  installTimeout: 600
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 600
+
+validate:
+  script:
+    path: scripts/validate.sh
+    timeout: 30
+
+remove:
+  script:
+    path: scripts/uninstall.sh
+  paths:
+    - ~/extensions/pal-mcp-server
+  confirmation: true
+  warning: |
+    This will remove the pal-mcp-server MCP server and its configuration.
+    Your MCP client configuration (~/.claude/settings.json) will be updated
+    to remove the pal server entry.
+
+upgrade:
+  strategy: reinstall
+  script:
+    path: scripts/install.sh
+    timeout: 600
+
+bom:
+  tools:
+    - name: pal-mcp-server
+      version: 9.8.2
+      source: github
+      type: mcp-server
+      license: MIT
+      homepage: https://github.com/BeehiveInnovations/pal-mcp-server
+      purl: pkg:github/BeehiveInnovations/pal-mcp-server@v9.8.2

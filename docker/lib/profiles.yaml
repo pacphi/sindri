@@ -29,6 +29,7 @@ profiles:
       - ai-toolkit
       - mdflow
       - openskills
+      - pal-mcp-server
       - supabase-cli
       - linear-mcp
       - monitoring
@@ -49,6 +50,7 @@ profiles:
       - jvm
       - mdflow
       - openskills
+      - pal-mcp-server
       - nodejs-devtools
       - playwright
       - agent-browser

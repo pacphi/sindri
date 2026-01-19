@@ -4,14 +4,14 @@ Production-grade TDD-enforced development environment for Claude Code with autom
 
 ## Overview
 
-| Property         | Value                                                                       |
-| ---------------- | --------------------------------------------------------------------------- |
-| **Category**     | ai                                                                          |
-| **Version**      | 4.5.29                                                                      |
-| **Installation** | script                                                                      |
-| **Disk Space**   | 350 MB                                                                      |
+| Property         | Value                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| **Category**     | ai                                                                                                   |
+| **Version**      | 4.5.29                                                                                               |
+| **Installation** | script                                                                                               |
+| **Disk Space**   | 350 MB                                                                                               |
 | **Dependencies** | [python](PYTHON.md), [nodejs](NODEJS.md), [github-cli](GITHUB-CLI.md), [mise-config](MISE-CONFIG.md) |
-| **License**      | Proprietary (Free tier available)                                           |
+| **License**      | Proprietary (Free tier available)                                                                    |
 
 ## Description
 
@@ -53,16 +53,16 @@ Claude CodePro is a comprehensive, opinionated development environment system th
 
 ## Installed Tools
 
-| Tool           | Type   | Description                       |
-| -------------- | ------ | --------------------------------- |
-| `ccp`          | binary | Claude CodePro CLI wrapper        |
-| `claude-code`  | npm    | Claude Code (pinned version)      |
-| `ruff`         | python | Python linter/formatter           |
-| `basedpyright` | python | Python type checker               |
-| `vexor`        | python | Semantic code search              |
-| `qlty`         | binary | Multi-language quality tool       |
-| `mcp-cli`      | npm    | MCP server interaction tool       |
-| `bun`          | binary | JavaScript runtime                |
+| Tool           | Type   | Description                  |
+| -------------- | ------ | ---------------------------- |
+| `ccp`          | binary | Claude CodePro CLI wrapper   |
+| `claude-code`  | npm    | Claude Code (pinned version) |
+| `ruff`         | python | Python linter/formatter      |
+| `basedpyright` | python | Python type checker          |
+| `vexor`        | python | Semantic code search         |
+| `qlty`         | binary | Multi-language quality tool  |
+| `mcp-cli`      | npm    | MCP server interaction tool  |
+| `bun`          | binary | JavaScript runtime           |
 
 ## Configuration
 
@@ -106,11 +106,11 @@ Claude CodePro is a comprehensive, opinionated development environment system th
 
 ### Environment Variables
 
-| Variable              | Value                       | Description                  |
-| --------------------- | --------------------------- | ---------------------------- |
-| `OPENAI_API_KEY`      | (optional)                  | For Vexor OpenAI embeddings  |
-| `FIRECRAWL_API_KEY`   | (optional)                  | For web scraping features    |
-| `ANTHROPIC_API_KEY`   | (required by Claude Code)   | Claude Code authentication   |
+| Variable            | Value                     | Description                 |
+| ------------------- | ------------------------- | --------------------------- |
+| `OPENAI_API_KEY`    | (optional)                | For Vexor OpenAI embeddings |
+| `FIRECRAWL_API_KEY` | (optional)                | For web scraping features   |
+| `ANTHROPIC_API_KEY` | (required by Claude Code) | Claude Code authentication  |
 
 ## Network Requirements
 
@@ -210,6 +210,7 @@ Claude CodePro enforces TDD via pre-edit hooks:
    - Pre-edit hook allows test changes
 
 2. **Run Tests** (ensure they fail):
+
    ```bash
    pytest tests/
    # or
@@ -290,29 +291,32 @@ Removes:
 
 Claude CodePro **CANNOT coexist** with:
 
-| Extension       | Reason                                    |
-| --------------- | ----------------------------------------- |
-| claude-flow-v3  | Both manage `.claude/` directory          |
-| claude-flow-v2  | Both manage `.claude/` directory          |
-| agentic-flow    | Both manage `.claude/` directory          |
-| agentic-qe      | Both manage `.claude/` directory          |
-| ralph           | ralph uses `.claude/commands/` subdirectory |
+| Extension      | Reason                                      |
+| -------------- | ------------------------------------------- |
+| claude-flow-v3 | Both manage `.claude/` directory            |
+| claude-flow-v2 | Both manage `.claude/` directory            |
+| agentic-flow   | Both manage `.claude/` directory            |
+| agentic-qe     | Both manage `.claude/` directory            |
+| ralph          | ralph uses `.claude/commands/` subdirectory |
 
 ### Migration from Other Extensions
 
 If migrating from another Claude extension:
 
 1. **Backup existing configuration**:
+
    ```bash
    mv ~/.claude ~/.claude.backup
    ```
 
 2. **Remove conflicting extension**:
+
    ```bash
    extension-manager remove <conflicting-extension>
    ```
 
 3. **Install Claude CodePro**:
+
    ```bash
    extension-manager install claude-codepro
    ```
@@ -349,6 +353,7 @@ Core features work with any language. Enhanced quality checks are optimized for 
 ### What's included in the free tier?
 
 Free tier includes all features for:
+
 - Personal projects
 - Student projects
 - Nonprofit organizations

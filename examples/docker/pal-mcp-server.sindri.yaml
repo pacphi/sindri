@@ -1,0 +1,70 @@
+---
+# Sindri Configuration - PAL MCP Server
+# AI orchestration and multi-model collaboration MCP server
+version: "1.0"
+name: sindri-pal-mcp
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 15GB
+
+extensions:
+  active:
+    - mise-config    # Required for tool management
+    - python         # Required for MCP server
+    - pal-mcp-server # AI orchestration MCP with 18 tools
+
+providers:
+  docker-compose:
+    ports:
+      - "8080:8080"
+
+metadata:
+  description: AI orchestration environment with multi-model collaboration
+  author: Sindri
+  tags:
+    - mcp-server
+    - ai-orchestration
+    - multi-model
+    - code-review
+    - debugging
+  notes: |
+    PAL MCP provides 18 specialized MCP tools:
+
+    Core Collaboration:
+    - chat: Multi-model conversations with code generation
+    - thinkdeep: Extended reasoning with configurable thinking modes
+    - planner: Strategic planning and project breakdown
+    - consensus: Multi-model debate and decision-making
+
+    Code Quality:
+    - codereview: Professional code reviews with severity levels
+    - precommit: Pre-commit validation and regression prevention
+    - debug: Systematic investigation and root cause analysis
+
+    Advanced:
+    - clink: CLI-to-CLI bridge (spawn subagents in isolated contexts)
+    - analyze: Codebase architecture analysis
+    - refactor: Intelligent code refactoring
+    - testgen: Test generation with edge cases
+    - secaudit: Security audits with OWASP analysis
+
+    Setup:
+      sindri deploy --provider docker --config pal-mcp-server.sindri.yaml
+      sindri connect
+
+    Configure API keys:
+      cd ~/extensions/pal-mcp-server
+      nano .env
+      # Add: GEMINI_API_KEY, OPENAI_API_KEY, or other provider keys
+
+    Usage:
+      Use chat with gemini pro to discuss the architecture
+      Perform codereview using o3 and gemini flash
+      Use consensus with gpt-5 and gemini pro to decide next feature
+      clink with codex codereviewer to audit auth module

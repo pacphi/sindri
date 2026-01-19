@@ -105,6 +105,7 @@ agent-browser click @e1                   # Perform actions
 agent-browser record stop                 # Stop and save video
 agent-browser record restart ./take2.webm # Stop current + start new recording
 ```
+
 Recording creates a fresh context but preserves cookies/storage from your session. If no URL is provided, it automatically returns to your current page. For smooth demos, explore first, then start recording.
 
 ### Wait
@@ -244,6 +245,7 @@ agent-browser session list
 ## JSON output (for parsing)
 
 Add `--json` for machine-readable output:
+
 ```bash
 agent-browser snapshot -i --json
 agent-browser get text @e1 --json

@@ -126,6 +126,11 @@ extensions:
     description: Claude Code skills manager
     dependencies: [nodejs]
 
+  pal-mcp-server:
+    category: ai
+    description: AI orchestration MCP server with 18 tools for multi-model collaboration
+    dependencies: [python, mise-config]
+
   claude-marketplace:
     category: ai
     description: Claude Code marketplace configuration
