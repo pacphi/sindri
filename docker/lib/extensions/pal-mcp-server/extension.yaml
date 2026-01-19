@@ -54,8 +54,8 @@ bom:
   tools:
     - name: pal-mcp-server
       version: 9.8.2
-      source: github
-      type: mcp-server
+      source: github-release
+      type: server
       license: MIT
       homepage: https://github.com/BeehiveInnovations/pal-mcp-server
       purl: pkg:github/BeehiveInnovations/pal-mcp-server@v9.8.2

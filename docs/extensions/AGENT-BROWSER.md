@@ -151,5 +151,4 @@ Removes:
 ## Related Extensions
 
 - [playwright](PLAYWRIGHT.md) - Provides the Chromium browser used by agent-browser
-- [vf-playwright-mcp](VF-PLAYWRIGHT-MCP.md) - Alternative Playwright MCP server
 - [agentic-qe](AGENTIC-QE.md) - AI-powered test generation framework

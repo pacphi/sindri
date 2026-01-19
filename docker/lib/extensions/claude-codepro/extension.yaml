@@ -66,7 +66,7 @@ capabilities:
     commands:
       - command: "source ~/.bashrc && ccp setup"
         description: "Initialize Claude CodePro development environment"
-        requiresAuth: license
+        requiresAuth: none
         conditional: false
 
     state-markers:
@@ -86,10 +86,8 @@ capabilities:
 
   # Authentication requirements
   auth:
-    provider: proprietary
+    provider: custom
     required: true
-    methods:
-      - license-key
     envVars:
       - OPENAI_API_KEY # Optional for Vexor
       - FIRECRAWL_API_KEY # Optional
@@ -121,7 +119,7 @@ capabilities:
       - path: ".claude"
         type: directory
         on-conflict:
-          action: stop
+          action: skip
           message: |
             ⚠️  CRITICAL CONFLICT: .claude directory exists
 
@@ -145,7 +143,7 @@ capabilities:
       - path: "CLAUDE.md"
         type: file
         on-conflict:
-          action: stop
+          action: skip
           message: |
             ⚠️  CONFLICT: CLAUDE.md exists
 
@@ -176,7 +174,7 @@ bom:
     - name: claude-codepro
       version: 4.5.29
       source: github-release
-      type: development-environment
+      type: utility
       license: Proprietary
       homepage: https://github.com/maxritter/claude-codepro
       purl: pkg:github/maxritter/claude-codepro@v4.5.29
