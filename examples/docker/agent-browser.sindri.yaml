@@ -1,0 +1,49 @@
+---
+# Sindri Configuration - agent-browser Browser Automation
+# Headless browser automation CLI for AI agents with Playwright
+version: "1.0"
+name: sindri-agent-browser
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 15GB
+
+extensions:
+  active:
+    - nodejs          # Required: Node.js runtime
+    - playwright      # Required: Provides Chromium browser (~700MB)
+    - agent-browser   # Browser automation CLI with snapshot-based element selection
+    - python          # Optional: For test scripts
+
+providers:
+  docker-compose:
+    ports:
+      - "8080:8080"   # For web application testing
+
+metadata:
+  description: Browser automation environment for AI agents
+  author: Sindri
+  tags:
+    - browser-automation
+    - testing
+    - ai-agents
+    - playwright
+  notes: |
+    agent-browser provides fast browser automation with:
+    - Snapshot-based accessibility tree with AI-friendly refs (@e1, @e2)
+    - Form filling, navigation, screenshot capture
+    - Multi-tab and session support
+    - Network interception and mocking
+    - Cookie and storage management
+
+    Usage:
+      sindri deploy --provider docker --config agent-browser.sindri.yaml
+      sindri connect
+      agent-browser open https://example.com
+      agent-browser snapshot -i
+      agent-browser click @e1

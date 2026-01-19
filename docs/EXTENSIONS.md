@@ -93,6 +93,7 @@ Pre-installed foundational extensions:
 | nodejs-devtools    | TypeScript, ESLint, Prettier   | [NODEJS-DEVTOOLS.md](extensions/NODEJS-DEVTOOLS.md)       |
 | github-cli         | GitHub CLI (`gh`)              | [GITHUB-CLI.md](extensions/GITHUB-CLI.md)                 |
 | playwright         | Browser automation testing     | [PLAYWRIGHT.md](extensions/PLAYWRIGHT.md)                 |
+| agent-browser      | Browser automation for AI      | [AGENT-BROWSER.md](extensions/AGENT-BROWSER.md)           |
 | agentic-qe         | AI-powered test generation     | [AGENTIC-QE.md](extensions/AGENTIC-QE.md)                 |
 | tmux-workspace     | Terminal multiplexer workspace | [TMUX-WORKSPACE.md](extensions/TMUX-WORKSPACE.md)         |
 | claude-marketplace | Claude Code plugin marketplace | [CLAUDE-MARKETPLACE.md](extensions/CLAUDE-MARKETPLACE.md) |
@@ -101,6 +102,7 @@ Pre-installed foundational extensions:
 
 | Extension       | Purpose                                       | Docs                                                |
 | --------------- | --------------------------------------------- | --------------------------------------------------- |
+| claude-codepro  | TDD-enforced Claude Code environment          | [CLAUDE-CODEPRO.md](extensions/CLAUDE-CODEPRO.md)   |
 | ollama          | Local LLM runtime (Llama, Mistral, etc.)      | [OLLAMA.md](extensions/OLLAMA.md)                   |
 | ai-toolkit      | AI CLI tools (Fabric, Codex, Gemini, etc.)    | [AI-TOOLKIT.md](extensions/AI-TOOLKIT.md)           |
 | openskills      | Claude Code skills manager                    | [OPENSKILLS.md](extensions/OPENSKILLS.md)           |
@@ -114,6 +116,7 @@ Pre-installed foundational extensions:
 | goose           | AI coding agent with tool use                 | [GOOSE.md](extensions/GOOSE.md)                     |
 | mdflow          | Markdown to AI agent CLI                      | [MDFLOW.md](extensions/MDFLOW.md)                   |
 | ralph           | AI-driven autonomous development system       | [RALPH.md](extensions/RALPH.md)                     |
+| pal-mcp-server  | AI orchestration MCP with 18 tools            | [PAL-MCP-SERVER.md](extensions/PAL-MCP-SERVER.md)   |
 | context7-mcp    | Context7 library documentation MCP            | [CONTEXT7-MCP.md](extensions/CONTEXT7-MCP.md)       |
 | ruvnet-research | AI research tools (Goalie, Research-Swarm)    | [RUVNET-RESEARCH.md](extensions/RUVNET-RESEARCH.md) |
 

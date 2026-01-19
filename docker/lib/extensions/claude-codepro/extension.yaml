@@ -1,0 +1,180 @@
+---
+metadata:
+  name: claude-codepro
+  version: 4.5.29
+  description: Production-grade TDD-enforced development environment for Claude Code with automated quality checks
+  category: ai
+  author: Max Ritter
+  license: Proprietary (Free tier available)
+  homepage: https://github.com/maxritter/claude-codepro
+  dependencies:
+    - python
+    - nodejs
+    - github-cli
+    - mise-config
+
+requirements:
+  domains:
+    - raw.githubusercontent.com
+    - github.com
+    - registry.npmjs.org
+    - pypi.org
+  diskSpace: 350
+  memory: 512
+  installTime: 300
+  installTimeout: 600
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 600
+
+validate:
+  commands:
+    - name: ccp
+      expectedPattern: ".*"
+
+remove:
+  paths:
+    - ~/.claude
+    - ~/.claude-mem
+    - ~/.vexor
+    - ~/.qlty
+    - ~/.config/ccstatusline
+  confirmation: true
+  warning: |
+    WARNING: This will remove your entire .claude configuration directory
+    and all Claude CodePro settings. This includes:
+    - All custom rules in .claude/rules/custom/
+    - Claude Code settings
+    - Claude MEM data
+    - Vexor search indices
+    - QLTY configuration
+
+upgrade:
+  strategy: reinstall
+  warning: |
+    This will reinstall Claude CodePro from scratch.
+    Your .claude/rules/custom/ directory will be preserved.
+
+capabilities:
+  # Project initialization capability
+  project-init:
+    enabled: true
+    priority: 5
+    commands:
+      - command: "source ~/.bashrc && ccp setup"
+        description: "Initialize Claude CodePro development environment"
+        requiresAuth: none
+        conditional: false
+
+    state-markers:
+      - path: ".claude"
+        type: directory
+        description: "Claude Code configuration directory (managed by CodePro)"
+      - path: ".claude/bin/ccp"
+        type: file
+        description: "Claude CodePro binary wrapper"
+      - path: ".claude/hooks"
+        type: directory
+        description: "TDD enforcement and quality check hooks"
+
+    validation:
+      command: "test -f .claude/bin/ccp && .claude/bin/ccp status"
+      expectedExitCode: 0
+
+  # Authentication requirements
+  auth:
+    provider: custom
+    required: true
+    envVars:
+      - OPENAI_API_KEY # Optional for Vexor
+      - FIRECRAWL_API_KEY # Optional
+    validator:
+      command: "source ~/.bashrc && ccp status"
+      expectedExitCode: 0
+    features:
+      - name: tdd-enforcement
+        requiresApiKey: false
+        description: "TDD workflow enforcement via pre-edit hooks"
+      - name: quality-checks
+        requiresApiKey: false
+        description: "Automated Python/TypeScript quality checks"
+      - name: semantic-search
+        requiresApiKey: false
+        description: "Vexor semantic search (local or OpenAI)"
+
+  # Lifecycle hooks
+  hooks:
+    post-install:
+      command: "echo 'Claude CodePro installed. Run: ccp register'"
+      description: "License registration prompt"
+
+  # Collision handling - CRITICAL CONFLICTS
+  collision-handling:
+    enabled: true
+
+    conflict-rules:
+      - path: ".claude"
+        type: directory
+        on-conflict:
+          action: skip
+          message: |
+            ⚠️  CRITICAL CONFLICT: .claude directory exists
+
+            Claude CodePro requires FULL CONTROL of the .claude/ directory.
+            It will overwrite all settings, hooks, and rules.
+
+            Conflicting extensions detected. Claude CodePro is INCOMPATIBLE with:
+            - claude-flow-v3
+            - claude-flow-v2
+            - agentic-flow
+            - agentic-qe
+            - Any extension that uses .claude/ directory
+
+            To use Claude CodePro:
+            1. Backup .claude/ directory: mv .claude .claude.backup
+            2. Remove conflicting extensions
+            3. Install claude-codepro
+
+            Aborting installation for safety.
+
+      - path: "CLAUDE.md"
+        type: file
+        on-conflict:
+          action: skip
+          message: |
+            ⚠️  CONFLICT: CLAUDE.md exists
+
+            Claude CodePro manages project rules via .claude/rules/
+            and conflicts with CLAUDE.md-based configurations.
+
+            Please resolve manually before installing.
+
+    version-markers:
+      - path: ".claude/bin/ccp"
+        type: file
+        version: "installed"
+        detection:
+          method: file-exists
+
+    scenarios:
+      - name: "already-installed"
+        detected-version: "installed"
+        installing-version: "4.5.29"
+        action: skip
+        message: |
+          ✓ Claude CodePro is already installed
+
+          To reinstall: extension-manager upgrade claude-codepro
+
+bom:
+  tools:
+    - name: claude-codepro
+      version: 4.5.29
+      source: github-release
+      type: utility
+      license: Proprietary
+      homepage: https://github.com/maxritter/claude-codepro
+      purl: pkg:github/maxritter/claude-codepro@v4.5.29

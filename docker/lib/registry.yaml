@@ -81,6 +81,13 @@ extensions:
     category: dev-tools
     description: AI-powered test generation and quality engineering framework
     dependencies: [nodejs]
+    conflicts:
+      - claude-codepro
+
+  agent-browser:
+    category: dev-tools
+    description: Headless browser automation CLI for AI agents
+    dependencies: [nodejs, playwright]
 
   # Infrastructure
   docker:
@@ -119,6 +126,11 @@ extensions:
     description: Claude Code skills manager
     dependencies: [nodejs]
 
+  pal-mcp-server:
+    category: ai
+    description: AI orchestration MCP server with 18 tools for multi-model collaboration
+    dependencies: [python, mise-config]
+
   claude-marketplace:
     category: ai
     description: Claude Code marketplace configuration
@@ -134,12 +146,24 @@ extensions:
     description: Claude agent management
     dependencies: []
 
+  claude-codepro:
+    category: ai
+    description: Production-grade TDD-enforced Claude Code environment with quality checks
+    dependencies: [python, nodejs, github-cli, mise-config]
+    conflicts:
+      - claude-flow-v2
+      - claude-flow-v3
+      - agentic-flow
+      - agentic-qe
+      - ralph
+
   claude-flow-v2:
     category: ai
     description: Claude Flow v2 stable - Multi-agent orchestration (proven reliability)
     dependencies: [nodejs]
     conflicts:
       - claude-flow-v3
+      - claude-codepro
 
   claude-flow-v3:
     category: ai
@@ -147,11 +171,14 @@ extensions:
     dependencies: [nodejs]
     conflicts:
       - claude-flow-v2
+      - claude-codepro
 
   agentic-flow:
     category: ai
     description: Multi-model AI agent framework for Claude Code with cost optimization (alpha)
     dependencies: [nodejs]
+    conflicts:
+      - claude-codepro
 
   ruvnet-research:
     category: ai
@@ -182,6 +209,8 @@ extensions:
     category: ai
     description: AI-driven autonomous development system with discovery, planning, and deployment
     dependencies: [nodejs]
+    conflicts:
+      - claude-codepro
 
   context7-mcp:
     category: ai
