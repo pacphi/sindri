@@ -51,6 +51,7 @@ profiles:
       - openskills
       - nodejs-devtools
       - playwright
+      - agent-browser
       - rust
       - ruvnet-research
       - linear-mcp

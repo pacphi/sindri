@@ -1,0 +1,76 @@
+---
+# Sindri Configuration - Claude CodePro
+# Production-grade TDD-enforced Claude Code environment
+# ⚠️ IMPORTANT: claude-codepro is INCOMPATIBLE with:
+#    - claude-flow-v3, claude-flow-v2, agentic-flow, agentic-qe, ralph
+#    These extensions all manage the .claude/ directory and cannot coexist
+version: "1.0"
+name: sindri-claude-codepro
+
+deployment:
+  provider: docker-compose
+  resources:
+    memory: 6GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  active:
+    # Core dependencies (required by claude-codepro)
+    - mise-config     # Tool version manager
+    - python          # Required for hooks and quality checks
+    - nodejs          # Required for Claude Code and npm tools
+    - github-cli      # Required for GitHub integrations
+
+    # Main extension
+    - claude-codepro  # TDD-enforced development environment
+
+    # Compatible optional tools (NO CONFLICTS)
+    - docker          # Docker support
+    - golang          # Additional language support
+    - rust            # Additional language support
+
+providers:
+  docker-compose:
+    ports:
+      - "8080:8080"
+
+metadata:
+  description: Production-grade TDD-enforced Claude Code environment
+  author: Sindri
+  tags:
+    - claude-code
+    - tdd
+    - quality-checks
+    - ai-development
+  notes: |
+    Claude CodePro provides:
+    - Spec-driven development workflow (Plan → Approve → Implement → Verify)
+    - TDD enforcement via pre-edit hooks
+    - Automated quality checks (Python: ruff, basedpyright / TypeScript: eslint, tsc, prettier)
+    - Semantic code search (Vexor)
+    - Persistent memory (claude-mem)
+    - Browser automation integration
+
+    ⚠️  CRITICAL CONFLICTS:
+    Claude CodePro takes FULL CONTROL of the .claude/ directory and is
+    INCOMPATIBLE with other Claude-based extensions that manage .claude/:
+    - claude-flow-v3, claude-flow-v2
+    - agentic-flow, agentic-qe
+    - ralph
+
+    Post-Installation:
+      sindri deploy --provider docker --config claude-codepro.sindri.yaml
+      sindri connect
+      ccp register       # Register license (free tier available)
+      ccp activate <key> # Activate license
+      ccp status         # Verify installation
+      ccp setup          # Initialize project
+
+    Usage:
+      /spec              # Create feature specifications
+      ccp setup          # Generate project documentation
+
+    License: Proprietary (free tier for personal/student/nonprofit/OSS projects)
