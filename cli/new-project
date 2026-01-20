@@ -81,24 +81,41 @@ select_project_type() {
     if [[ "$detected" == ambiguous:* ]]; then
         local suggestions="${detected#ambiguous:}"
 
-        print_status "Multiple project types match. Which do you prefer?"
-        echo "Suggested types:"
-        get_type_suggestions "$suggestions"
-        echo ""
+        print_status "Multiple project types match. Which do you prefer?" >&2
+        echo "Suggested types:" >&2
+        get_type_suggestions "$suggestions" >&2
+        echo "" >&2
 
         local count
         count=$(echo "$suggestions" | tr ',' '\n' | wc -l | tr -d ' ')
-        read -r -p "Enter choice (1-${count}) or type name: " choice
+
+        # Clear stdin to avoid buffer pollution
+        while read -r -t 0; do read -r; done 2>/dev/null
+
+        local choice
+        read -r -p "Enter choice (1-${count}) or type name: " choice </dev/tty
+
+        # Strip ANSI escape codes and whitespace
+        choice=$(echo "$choice" | sed 's/\x1b\[[0-9;]*m//g' | tr -d '[:space:]' | tr -d '[:cntrl:]')
 
         local resolved
         resolved=$(resolve_type_choice "$choice" "$suggestions")
         echo "$resolved"
     else
         # No detection - show all available types
-        print_status "Available project types:"
-        get_template_types | pr -t -3
-        echo ""
-        read -r -p "Enter project type [default: node]: " input
+        print_status "Available project types:" >&2
+        get_template_types | pr -t -3 >&2
+        echo "" >&2
+
+        # Clear stdin to avoid buffer pollution
+        while read -r -t 0; do read -r; done 2>/dev/null
+
+        local input
+        read -r -p "Enter project type [default: node]: " input </dev/tty
+
+        # Strip ANSI escape codes and whitespace
+        input=$(echo "$input" | sed 's/\x1b\[[0-9;]*m//g' | tr -d '[:space:]' | tr -d '[:cntrl:]')
+
         echo "${input:-node}"
     fi
 }
