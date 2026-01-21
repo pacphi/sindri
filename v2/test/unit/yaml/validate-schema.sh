@@ -6,7 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SCHEMAS_DIR="$PROJECT_ROOT/docker/lib/schemas"
+SCHEMAS_DIR="$PROJECT_ROOT/v2/docker/lib/schemas"
 
 # Colors for output (disabled in CI by default)
 if [[ -t 1 ]] && [[ "${NO_COLOR:-}" != "1" ]]; then
@@ -115,7 +115,7 @@ validate_single_file() {
 #######################################
 # Validate multiple YAML files against a schema
 # Arguments:
-#   $1 - File glob pattern (e.g., "docker/lib/extensions/*/extension.yaml")
+#   $1 - File glob pattern (e.g., "v2/docker/lib/extensions/*/extension.yaml")
 #   $2 - JSON schema file path
 #   $3 - Description for output (e.g., "extension(s)")
 # Returns: 0 if all pass, 1 if any fail
@@ -196,7 +196,7 @@ run_all_validations() {
   # 1. Extension schemas
   echo "--- Extension Schemas ---"
   if ! validate_multiple_files \
-    "docker/lib/extensions/*/extension.yaml" \
+    "v2/docker/lib/extensions/*/extension.yaml" \
     "$SCHEMAS_DIR/extension.schema.json" \
     "extension(s)"; then
     exit_code=1
@@ -218,7 +218,7 @@ run_all_validations() {
   # 3. profiles.yaml
   echo "--- Profiles Schema ---"
   if ! validate_single_file \
-    "$PROJECT_ROOT/docker/lib/profiles.yaml" \
+    "$PROJECT_ROOT/v2/docker/lib/profiles.yaml" \
     "$SCHEMAS_DIR/profiles.schema.json"; then
     exit_code=1
   fi
@@ -227,7 +227,7 @@ run_all_validations() {
   # 4. registry.yaml
   echo "--- Registry Schema ---"
   if ! validate_single_file \
-    "$PROJECT_ROOT/docker/lib/registry.yaml" \
+    "$PROJECT_ROOT/v2/docker/lib/registry.yaml" \
     "$SCHEMAS_DIR/registry.schema.json"; then
     exit_code=1
   fi
@@ -236,7 +236,7 @@ run_all_validations() {
   # 5. categories.yaml
   echo "--- Categories Schema ---"
   if ! validate_single_file \
-    "$PROJECT_ROOT/docker/lib/categories.yaml" \
+    "$PROJECT_ROOT/v2/docker/lib/categories.yaml" \
     "$SCHEMAS_DIR/categories.schema.json"; then
     exit_code=1
   fi
@@ -245,7 +245,7 @@ run_all_validations() {
   # 6. project-templates.yaml
   echo "--- Project Templates Schema ---"
   if ! validate_single_file \
-    "$PROJECT_ROOT/docker/lib/project-templates.yaml" \
+    "$PROJECT_ROOT/v2/docker/lib/project-templates.yaml" \
     "$SCHEMAS_DIR/project-templates.schema.json"; then
     exit_code=1
   fi
@@ -254,7 +254,7 @@ run_all_validations() {
   # 7. vm-sizes.yaml
   echo "--- VM Sizes Schema ---"
   if ! validate_single_file \
-    "$PROJECT_ROOT/docker/lib/vm-sizes.yaml" \
+    "$PROJECT_ROOT/v2/docker/lib/vm-sizes.yaml" \
     "$SCHEMAS_DIR/vm-sizes.schema.json"; then
     exit_code=1
   fi
@@ -288,8 +288,8 @@ Options:
 Examples:
   $(basename "$0")
   $(basename "$0") all
-  $(basename "$0") single docker/lib/profiles.yaml docker/lib/schemas/profiles.schema.json
-  $(basename "$0") multiple "docker/lib/extensions/*/extension.yaml" docker/lib/schemas/extension.schema.json "extension(s)"
+  $(basename "$0") single v2/docker/lib/profiles.yaml v2/docker/lib/schemas/profiles.schema.json
+  $(basename "$0") multiple "v2/docker/lib/extensions/*/extension.yaml" v2/docker/lib/schemas/extension.schema.json "extension(s)"
 EOF
 }
 

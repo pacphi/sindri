@@ -6,7 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-EXTENSIONS_DIR="$PROJECT_ROOT/docker/lib/extensions"
+EXTENSIONS_DIR="$PROJECT_ROOT/v2/docker/lib/extensions"
 WARNINGS=0
 
 # Colors for output
@@ -53,7 +53,7 @@ done
 echo ""
 echo "Checking profile descriptions..."
 
-PROFILES_FILE="$PROJECT_ROOT/docker/lib/profiles.yaml"
+PROFILES_FILE="$PROJECT_ROOT/v2/docker/lib/profiles.yaml"
 for profile in $(yq '.profiles | keys | .[]' "$PROFILES_FILE" 2>/dev/null); do
   desc=$(yq ".profiles.$profile.description // \"\"" "$PROFILES_FILE" 2>/dev/null || echo "")
 

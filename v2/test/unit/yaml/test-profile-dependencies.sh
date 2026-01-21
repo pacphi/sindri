@@ -6,8 +6,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-PROFILES_FILE="$PROJECT_ROOT/docker/lib/profiles.yaml"
-EXTENSIONS_DIR="$PROJECT_ROOT/docker/lib/extensions"
+PROFILES_FILE="$PROJECT_ROOT/v2/docker/lib/profiles.yaml"
+EXTENSIONS_DIR="$PROJECT_ROOT/v2/docker/lib/extensions"
 WARNINGS=0
 
 # Colors for output

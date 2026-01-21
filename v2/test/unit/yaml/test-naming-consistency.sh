@@ -6,8 +6,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-EXTENSIONS_DIR="$PROJECT_ROOT/docker/lib/extensions"
-REGISTRY_FILE="$PROJECT_ROOT/docker/lib/registry.yaml"
+EXTENSIONS_DIR="$PROJECT_ROOT/v2/docker/lib/extensions"
+REGISTRY_FILE="$PROJECT_ROOT/v2/docker/lib/registry.yaml"
 FAILURES=0
 
 # Colors for output
