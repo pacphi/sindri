@@ -1,0 +1,60 @@
+[package]
+name = "sindri-backup"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Workspace dependencies
+sindri-core = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Archive and compression
+tar = { workspace = true }
+flate2 = { workspace = true }
+
+# Checksum
+sha2 = "0.10"
+
+# File system operations
+walkdir = "2.4"
+globset = { workspace = true }
+
+# Date/time
+chrono = { workspace = true }
+
+# Progress reporting
+indicatif = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Version parsing
+semver = { workspace = true }
+
+# Async trait support
+async-trait = "0.1"
+
+# UUID for snapshot IDs
+uuid = { workspace = true }
+
+# Path handling
+camino = { workspace = true }
+
+# Temporary files
+tempfile = "3.8"
+
+[dev-dependencies]
+tempfile = "3.8"

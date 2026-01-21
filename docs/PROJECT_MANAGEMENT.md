@@ -6,13 +6,13 @@ Sindri provides two powerful commands for project management: `clone-project` an
 
 ```bash
 # Create a new Node.js project
-./cli/new-project my-app --type node
+./v2/cli/new-project my-app --type node
 
 # Clone and enhance an existing repository
-./cli/clone-project https://github.com/user/repo
+./v2/cli/clone-project https://github.com/user/repo
 
 # Fork a repository and set up for contributions
-./cli/clone-project https://github.com/upstream/repo --fork
+./v2/cli/clone-project https://github.com/upstream/repo --fork
 ```
 
 ## `new-project` - Create Projects from Templates
@@ -22,7 +22,7 @@ Create new projects with intelligent type detection, pre-configured templates, a
 ### new-project Usage
 
 ```bash
-./cli/new-project <project_name> [options]
+./v2/cli/new-project <project_name> [options]
 ```
 
 ### new-project Options
@@ -38,16 +38,16 @@ Create new projects with intelligent type detection, pre-configured templates, a
 
 ```bash
 # Auto-detect from project name
-./cli/new-project my-rails-app
+./v2/cli/new-project my-rails-app
 
 # Explicitly specify type
-./cli/new-project my-api --type python
+./v2/cli/new-project my-api --type python
 
 # Interactive selection with custom Git config
-./cli/new-project my-app --interactive --git-name "Jane Doe" --git-email "jane@example.com"
+./v2/cli/new-project my-app --interactive --git-name "Jane Doe" --git-email "jane@example.com"
 
 # List all available templates
-./cli/new-project --list-types
+./v2/cli/new-project --list-types
 ```
 
 ### new-project How It Works
@@ -102,7 +102,7 @@ Clone or fork existing repositories and automatically apply Claude AI enhancemen
 ### clone-project Usage
 
 ```bash
-./cli/clone-project <repository-url> [options]
+./v2/cli/clone-project <repository-url> [options]
 ```
 
 ### clone-project Options
@@ -121,19 +121,19 @@ Clone or fork existing repositories and automatically apply Claude AI enhancemen
 
 ```bash
 # Simple clone with enhancements
-./cli/clone-project https://github.com/user/my-app
+./v2/cli/clone-project https://github.com/user/my-app
 
 # Fork for contribution
-./cli/clone-project https://github.com/original/project --fork
+./v2/cli/clone-project https://github.com/original/project --fork
 
 # Fork and create feature branch
-./cli/clone-project https://github.com/original/project --fork --feature add-new-feature
+./v2/cli/clone-project https://github.com/original/project --fork --feature add-new-feature
 
 # Clone with custom Git config
-./cli/clone-project https://github.com/company/app --git-name "John Doe" --git-email "john@company.com"
+./v2/cli/clone-project https://github.com/company/app --git-name "John Doe" --git-email "john@company.com"
 
 # Shallow clone without enhancements
-./cli/clone-project https://github.com/large/repo --depth 1 --no-enhance
+./v2/cli/clone-project https://github.com/large/repo --depth 1 --no-enhance
 ```
 
 ### clone-project How It Works
@@ -231,10 +231,10 @@ To skip agentic tool initialization during project creation:
 
 ```bash
 # Clone without tool initialization
-./cli/clone-project https://github.com/user/repo --skip-tools
+./v2/cli/clone-project https://github.com/user/repo --skip-tools
 
 # Create new project without tool initialization
-./cli/new-project my-app --type node --skip-tools
+./v2/cli/new-project my-app --type node --skip-tools
 ```
 
 ### Manual Initialization
@@ -309,7 +309,7 @@ gh auth login
 
 ### Custom Templates
 
-Templates are defined in `docker/lib/project-templates.yaml`. You can add your own:
+Templates are defined in `v2/docker/lib/project-templates.yaml`. You can add your own:
 
 ```yaml
 templates:

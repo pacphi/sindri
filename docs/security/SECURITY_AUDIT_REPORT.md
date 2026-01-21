@@ -79,7 +79,7 @@ This security audit identified **8 Critical**, **12 High**, and **9 Medium** sev
 
 ### C-1: Command Injection in Git Configuration ✅ FIXED
 
-**File:** `docker/scripts/entrypoint.sh`
+**File:** `v2/docker/scripts/entrypoint.sh`
 **Lines:** 249, 255, 280
 
 **Status:** ✅ **REMEDIATED** (December 16, 2025)
@@ -92,7 +92,7 @@ The `setup_git_config()` function directly interpolates environment variables `G
 1. **Input Validation:** Added regex validation for `GIT_USER_NAME` (`^[a-zA-Z0-9._\ -]+$`) and `GIT_USER_EMAIL` (RFC 5322 email format)
 2. **Safe Shell Quoting:** Replaced string interpolation with `printf %q` for proper shell escaping
 3. **Security Logging:** All validation failures and configuration changes are logged to `sindri-security.log` and syslog
-4. **Implementation:** `docker/scripts/entrypoint.sh:248-310`
+4. **Implementation:** `v2/docker/scripts/entrypoint.sh:248-310`
 
 **Verification:**
 
@@ -201,8 +201,8 @@ expanded_value=$(echo "$value" | envsubst '$HOME $USER $WORKSPACE' 2>/dev/null |
 
 **Files:**
 
-- `docker/scripts/install-mise.sh` (line 23)
-- `docker/scripts/install-claude.sh` (line 75)
+- `v2/docker/scripts/install-mise.sh` (line 23)
+- `v2/docker/scripts/install-claude.sh` (line 75)
 
 **Vulnerability Description:**
 Both installation scripts download and execute code from external URLs without integrity verification:
@@ -265,7 +265,7 @@ rm -f "$TEMP_INSTALLER"
 ### C-4: Secrets Exposure in Process Arguments ✅ FIXED
 
 **File:** `cli/secrets-manager`
-**Lines:** 414-419 (fixed), `deploy/adapters/fly-adapter.sh` lines 522-523, 540-541 (fixed), `.github/actions/providers/fly/deploy/action.yml` line 132-133 (fixed)
+**Lines:** 414-419 (fixed), `v2/deploy/adapters/fly-adapter.sh` lines 522-523, 540-541 (fixed), `.github/actions/providers/fly/deploy/action.yml` line 132-133 (fixed)
 
 **Status:** ✅ **REMEDIATED** (December 17, 2025)
 
@@ -284,7 +284,7 @@ flyctl secrets set "${name}_BASE64=${content_b64}" -a "$app_name"
 4. **CI/CD Pipeline:** GitHub Actions workflow updated to use stdin for user-provided secrets
 5. **Implementation:**
    - `cli/secrets-manager:414-419` - File secrets batch piped to stdin
-   - `deploy/adapters/fly-adapter.sh:522-523, 540-541` - SSH key configuration
+   - `v2/deploy/adapters/fly-adapter.sh:522-523, 540-541` - SSH key configuration
    - `.github/actions/providers/fly/deploy/action.yml:132-133` - CI secret injection
 
 **Verification:**
@@ -507,7 +507,7 @@ fi
 
 ### C-7: Insecure GITHUB_TOKEN Propagation
 
-**File:** `docker/scripts/entrypoint.sh`
+**File:** `v2/docker/scripts/entrypoint.sh`
 **Lines:** 262-277, 300-337
 
 **Vulnerability Description:**
@@ -790,7 +790,7 @@ extension-manager install "my-extension" → Accepted
 
 ### H-4: Insecure Docker Socket Permissions ✅ FIXED
 
-**File:** `docker/lib/extensions/vf-vnc-desktop/resources/entrypoint-unified.sh`
+**File:** `v2/docker/lib/extensions/vf-vnc-desktop/resources/entrypoint-unified.sh`
 **Line:** 45
 
 **Status:** ✅ **REMEDIATED** (December 16, 2025)
@@ -805,7 +805,7 @@ Following [Docker Security Best Practices](https://docs.docker.com/engine/securi
 2. **Secure Permissions:** `chmod 660` (owner + group) instead of world-writable `666`
 3. **Proper Ownership:** Sets socket to `root:docker`
 4. **Graceful Degradation:** Handles missing docker group gracefully
-5. **Implementation:** `docker/lib/extensions/vf-vnc-desktop/resources/entrypoint-unified.sh:43-64`
+5. **Implementation:** `v2/docker/lib/extensions/vf-vnc-desktop/resources/entrypoint-unified.sh:43-64`
 
 **Verification:**
 
@@ -1046,8 +1046,8 @@ VAULT_TOKEN=valid_token_low_ttl sindri secrets validate → "Renewing Vault toke
 
 **Files:**
 
-- `deploy/adapters/fly-adapter.sh`
-- `deploy/adapters/docker-adapter.sh`
+- `v2/deploy/adapters/fly-adapter.sh`
+- `v2/deploy/adapters/docker-adapter.sh`
 
 **Status:** ✅ **REMEDIATED** (December 16, 2025)
 
@@ -1059,7 +1059,7 @@ Configuration values from `sindri.yaml` are used in shell commands without sanit
 1. **Format Validation:** Regex validation `^[0-9]+[GM]B$` for memory values before processing
 2. **Early Rejection:** Invalid formats rejected before reaching `bc` command
 3. **Clear Error Messages:** User-friendly error with expected format
-4. **Implementation:** `deploy/adapters/fly-adapter.sh:88-100`
+4. **Implementation:** `v2/deploy/adapters/fly-adapter.sh:88-100`
 
 **Verification:**
 
@@ -1108,7 +1108,7 @@ MEMORY_MB=$(echo "$MEMORY" | bc)
 
 ### H-10: Unrestricted Container Networking
 
-**File:** `deploy/adapters/docker-adapter.sh`
+**File:** `v2/deploy/adapters/docker-adapter.sh`
 **Lines:** 110-113
 
 **Vulnerability Description:**
@@ -1181,7 +1181,7 @@ Following [Bash Hackers mutex patterns](https://bash-hackers.gabe565.com/howto/m
 4. **Profile Exemption:** Batch profile installs NOT rate limited (legitimate operations)
 5. **Graceful Degradation:** If locking fails, operation proceeds (availability over strict enforcement)
 6. **Implementation:**
-   - Framework: `docker/lib/common.sh:487-573`
+   - Framework: `v2/docker/lib/common.sh:487-573`
    - Integration: `cli/extension-manager:48-54, 126-130`
 
 **Verification:**
@@ -1228,7 +1228,7 @@ install)
 
 ### H-12: Insufficient Logging and Audit Trail ✅ FIXED
 
-**File:** `docker/scripts/entrypoint.sh`
+**File:** `v2/docker/scripts/entrypoint.sh`
 **Lines:** 1-519
 
 **Status:** ✅ **REMEDIATED** (December 16, 2025)
@@ -1251,8 +1251,8 @@ Following [NIST SP 800-92](https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspeci
    - Installation: Extension operations (via rate limiting)
 5. **Helper Functions:** `security_log_auth()`, `security_log_config()`, `security_log_install()`, `security_log_access()`
 6. **Implementation:**
-   - Framework: `docker/lib/common.sh:579-655`
-   - Integration: `docker/scripts/entrypoint.sh:201-209, 259-279, 362`
+   - Framework: `v2/docker/lib/common.sh:579-655`
+   - Integration: `v2/docker/scripts/entrypoint.sh:201-209, 259-279, 362`
 
 **Log Entry Format:**
 
@@ -1315,7 +1315,7 @@ security_log() {
 
 ### M-1: Weak Password Policies ACCEPTED RISK
 
-**File:** `docker/scripts/entrypoint.sh`
+**File:** `v2/docker/scripts/entrypoint.sh`
 **Line:** 199
 
 **Status:** ⚠️ **ACCEPTED RISK** (December 17, 2025)
@@ -1388,7 +1388,7 @@ find /docker/cli -type f -exec chmod 750 {} \;
 CI/CD tests failed with permission denied errors ([GitHub Actions Run #20302566607](https://github.com/pacphi/sindri/actions/runs/20302566607)):
 
 ```bash
-bash: line 1: /docker/scripts/sindri-test.sh: Permission denied
+bash: line 1: /v2/docker/scripts/sindri-test.sh: Permission denied
 bash: line 1: /docker/cli/extension-manager: Permission denied
 ```
 
@@ -1519,7 +1519,7 @@ fi
 
 ### M-4: Information Disclosure in Error Messages ✅ FIXED
 
-**File:** `docker/lib/common.sh`
+**File:** `v2/docker/lib/common.sh`
 **Lines:** 142-160
 
 **Status:** ✅ **REMEDIATED** (December 16, 2025)
@@ -1539,7 +1539,7 @@ except jsonschema.ValidationError as e:
 2. **Dual Logging:** Detailed errors written to `sindri-security.log` and syslog for diagnostics
 3. **Validation Logging:** Added `security_log_validation()` helper function for structured logging
 4. **OWASP Compliance:** Follows OWASP Error Handling Cheat Sheet recommendations
-5. **Implementation:** `docker/lib/common.sh:130-198, 657-661`
+5. **Implementation:** `v2/docker/lib/common.sh:130-198, 657-661`
 
 **Verification:**
 
@@ -1581,7 +1581,7 @@ except jsonschema.ValidationError as e:
 
 ### M-5: Insufficient Entropy for Random Values ✅ FIXED
 
-**File:** `docker/lib/common.sh`
+**File:** `v2/docker/lib/common.sh`
 **Line:** 322
 
 **Status:** ✅ **REMEDIATED** (December 16, 2025)
@@ -1598,7 +1598,7 @@ jitter=$((RANDOM % 3))
 1. **Cryptographic Randomness:** Replaced `$RANDOM` with `/dev/urandom` for secure random generation
 2. **Standard Approach:** Uses `od -An -N2 -i /dev/urandom` to read random bytes
 3. **Fallback Protection:** Gracefully falls back to `$RANDOM` if `/dev/urandom` unavailable (defensive programming)
-4. **Implementation:** `docker/lib/common.sh:356`
+4. **Implementation:** `v2/docker/lib/common.sh:356`
 
 **Verification:**
 
@@ -1702,7 +1702,7 @@ timeout "$timeout_seconds" mise install
 
 ### M-8: Lack of Security Headers in Docker Configuration ✅ FIXED
 
-**File:** `deploy/adapters/docker-adapter.sh`, `docker-compose.yml`
+**File:** `v2/deploy/adapters/docker-adapter.sh`, `docker-compose.yml`
 **Lines:** 162-183 (fixed)
 
 **Status:** ✅ **REMEDIATED** (December 17, 2025)
@@ -1792,7 +1792,7 @@ docker inspect <container> | jq '.[0].HostConfig.Tmpfs'
 
 ### M-9: Unvalidated YAML Parsing
 
-**File:** `docker/lib/common.sh`
+**File:** `v2/docker/lib/common.sh`
 **Lines:** 118-128
 
 **Vulnerability Description:**

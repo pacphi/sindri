@@ -92,7 +92,7 @@ capabilities:
    # See examples: claude-flow-v2, agentic-qe, spec-kit
 
    # Validate your updated extension
-   ./cli/extension-manager validate <extension-name>
+   ./v2/cli/extension-manager validate <extension-name>
    ```
 
 2. **For users with custom profiles:**
@@ -129,15 +129,15 @@ Three extensions have been removed and replaced with improved alternatives:
 
 ```bash
 # OLD (v1.x)
-./cli/extension-manager install claude-flow
+./v2/cli/extension-manager install claude-flow
 
 # NEW (v2.0) - Choose your version:
 
 # Option A: Stable version (recommended)
-./cli/extension-manager install claude-flow-v2
+./v2/cli/extension-manager install claude-flow-v2
 
 # Option B: Alpha version (advanced features)
-./cli/extension-manager install claude-flow-v3
+./v2/cli/extension-manager install claude-flow-v3
 ```
 
 **Scenario 2: Profile with `claude-auth-with-api-key`**
@@ -169,8 +169,8 @@ grep -q '"swarm"' .claude/config.json  # V3 marker
 grep -q '"sona"' .claude/config.json   # V3 marker
 
 # Install matching version
-./cli/extension-manager install claude-flow-v2  # If V2 markers
-./cli/extension-manager install claude-flow-v3  # If V3 markers
+./v2/cli/extension-manager install claude-flow-v2  # If V2 markers
+./v2/cli/extension-manager install claude-flow-v3  # If V3 markers
 ```
 
 **Action Required:**
@@ -183,14 +183,14 @@ grep -q '"sona"' .claude/config.json   # V3 marker
 
    # Replace removed extension names
    # Validate profile
-   ./cli/sindri profiles list
+   ./v2/cli/sindri profiles list
    ```
 
 2. **Check deployed instances:**
 
    ```bash
    # List installed extensions
-   ./cli/sindri connect
+   ./v2/cli/sindri connect
    extension-manager list
 
    # If using removed extensions, reinstall profiles
@@ -377,7 +377,7 @@ init-claude-flow-agentdb
 
 # NEW (v2.0)
 # Option 1: Use extension's project-init capability
-./cli/clone-project https://github.com/user/repo
+./v2/cli/clone-project https://github.com/user/repo
 # AgentDB initialized automatically if claude-flow-v2 installed
 
 # Option 2: Call script directly
@@ -510,7 +510,7 @@ fi
 When cloning repositories with existing extension configurations, Sindri detects versions and prevents conflicts:
 
 ```bash
-./cli/clone-project https://github.com/user/repo-with-claude-flow
+./v2/cli/clone-project https://github.com/user/repo-with-claude-flow
 
 # Sindri detects existing .claude/ directory
 # Checks for V2 markers: .claude/memory.db
@@ -657,7 +657,7 @@ Users can now define custom extensions via environment variable, allowing person
 ```bash
 # Deploy with profile + custom extensions
 export CUSTOM_EXTENSIONS="my-ext-1,my-ext-2,my-ext-3"
-./cli/sindri deploy --provider docker
+./v2/cli/sindri deploy --provider docker
 
 # Inside container, both profile and custom extensions are installed
 extension-manager list
@@ -814,11 +814,11 @@ pnpm: 2 seconds (content-addressable store)
 - [ ] Update extension version (major bump if breaking changes)
 - [ ] Validate updated extension:
   ```bash
-  ./cli/extension-manager validate <extension-name>
+  ./v2/cli/extension-manager validate <extension-name>
   ```
 - [ ] Test installation and project initialization:
   ```bash
-  ./cli/new-project test-project
+  ./v2/cli/new-project test-project
   # Verify project-init runs correctly
   ```
 - [ ] Update extension documentation with capability details
@@ -885,7 +885,7 @@ capabilities:
 
 - [ ] Check which extensions you currently use:
   ```bash
-  ./cli/sindri connect
+  ./v2/cli/sindri connect
   extension-manager list
   ```
 - [ ] Identify if you use removed extensions:
@@ -896,7 +896,7 @@ capabilities:
 
   ```bash
   # Option 1: Fresh install with new extensions
-  ./cli/sindri deploy --provider <your-provider>
+  ./v2/cli/sindri deploy --provider <your-provider>
   extension-manager install-profile <profile-name>
 
   # Option 2: In-place migration
@@ -908,7 +908,7 @@ capabilities:
   ```bash
   vim docker/lib/profiles.yaml
   # Replace removed extension names
-  ./cli/sindri profiles list  # Validate
+  ./v2/cli/sindri profiles list  # Validate
   ```
 - [ ] If you clone repositories with existing configurations:
   - [ ] Read [Collision Handling Examples](docs/extensions/COLLISION_HANDLING_EXAMPLES.md)
@@ -918,7 +918,7 @@ capabilities:
   - [ ] Update scripts if needed (optional - npm still works)
 - [ ] Test your workflows after upgrade:
   ```bash
-  ./cli/new-project test-project-v2
+  ./v2/cli/new-project test-project-v2
   cd test-project-v2
   # Verify project initialization works correctly
   ```
@@ -1051,7 +1051,7 @@ capabilities:
 
 2. **Capability schema validation strictness**
    - Extensions with malformed capabilities fail validation
-   - Workaround: Use `./cli/extension-manager validate <ext>` before deployment
+   - Workaround: Use `./v2/cli/extension-manager validate <ext>` before deployment
 
 3. **Collision handling for unknown versions**
    - Extensions may skip initialization if version detection fails
@@ -1077,12 +1077,12 @@ cd sindri
 git checkout v2.0.0
 
 # Deploy to your preferred provider
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 
 # Install extensions
-./cli/sindri connect
+./v2/cli/sindri connect
 extension-manager install-profile ai-dev
 ```
 
@@ -1092,27 +1092,27 @@ extension-manager install-profile ai-dev
 
 ```bash
 # Backup existing data (if needed)
-./cli/sindri backup create
+./v2/cli/sindri backup create
 
 # Destroy old deployment
-./cli/sindri destroy --provider <your-provider>
+./v2/cli/sindri destroy --provider <your-provider>
 
 # Pull latest code
 git pull origin main
 git checkout v2.0.0
 
 # Deploy fresh instance
-./cli/sindri deploy --provider <your-provider>
+./v2/cli/sindri deploy --provider <your-provider>
 
 # Restore data (if needed)
-./cli/sindri restore <backup-file>
+./v2/cli/sindri restore <backup-file>
 ```
 
 **Option 2: In-place upgrade (advanced users)**
 
 ```bash
 # Connect to running instance
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # Pull latest code in container
 cd /sindri
@@ -1136,17 +1136,17 @@ extension-manager validate-all
 
 ```bash
 # Deploy v2.0.0 to new instance
-./cli/sindri deploy --provider fly --app sindri-v2
+./v2/cli/sindri deploy --provider fly --app sindri-v2
 
 # Test v2.0.0 thoroughly
-./cli/sindri connect --app sindri-v2
+./v2/cli/sindri connect --app sindri-v2
 # Run tests...
 
 # Switch traffic to v2.0.0
 # Update DNS/load balancer
 
 # Destroy v1.13.0 instance
-./cli/sindri destroy --app sindri-v1
+./v2/cli/sindri destroy --app sindri-v1
 ```
 
 ---

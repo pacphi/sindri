@@ -8,16 +8,16 @@ DevPod support enables Sindri environments to run as DevContainers with full VS 
 
 ```bash
 # Deploy to DevPod (auto-detects provider type from sindri.yaml)
-./cli/sindri deploy --provider devpod
+./v2/cli/sindri deploy --provider devpod
 
 # Check status
-./cli/sindri status
+./v2/cli/sindri status
 
 # Connect
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # Destroy
-./cli/sindri destroy
+./v2/cli/sindri destroy
 ```
 
 ## What Happens on Deploy
@@ -46,10 +46,10 @@ When you run `sindri deploy --provider devpod`, the adapter:
 
 ```bash
 # Full deployment with automatic provider setup
-./cli/sindri deploy --provider devpod
+./v2/cli/sindri deploy --provider devpod
 
 # Connect
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # Or use devpod directly after sindri creates the workspace
 devpod ssh my-sindri-dev
@@ -59,7 +59,7 @@ devpod ssh my-sindri-dev
 
 ```bash
 # Generate config only (no deployment)
-./deploy/adapters/devpod-adapter.sh deploy --config-only sindri.yaml
+./v2/deploy/adapters/devpod-adapter.sh deploy --config-only sindri.yaml
 
 # Open VS Code
 code .
@@ -72,7 +72,7 @@ code .
 
 ```bash
 # Generate DevContainer config
-./deploy/adapters/devpod-adapter.sh deploy --config-only sindri.yaml
+./v2/deploy/adapters/devpod-adapter.sh deploy --config-only sindri.yaml
 
 # Push repository with .devcontainer
 git add .devcontainer
@@ -243,7 +243,7 @@ Sindri automatically detects local Kubernetes clusters and handles image loading
 
 ```bash
 # Just deploy - kind/k3d auto-detected
-./cli/sindri deploy --provider devpod
+./v2/cli/sindri deploy --provider devpod
 
 # What happens behind the scenes:
 # 1. Detects kind-* or k3d-* context
@@ -258,7 +258,7 @@ For external clusters, configure a registry where the image can be pushed:
 #### Option 1: CLI flag
 
 ```bash
-./cli/sindri deploy --provider devpod --build-repository ghcr.io/myorg/sindri
+./v2/cli/sindri deploy --provider devpod --build-repository ghcr.io/myorg/sindri
 ```
 
 #### Option 2: sindri.yaml configuration
@@ -294,7 +294,7 @@ Sindri looks for registry credentials in this order:
 Use `sindri plan` to see what image strategy will be used:
 
 ```bash
-./cli/sindri plan --provider devpod
+./v2/cli/sindri plan --provider devpod
 
 # Output shows:
 # Image Strategy:

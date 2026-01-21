@@ -49,7 +49,7 @@ Added `collision-handling` capability with:
 - Three detection methods: `file-exists`, `directory-exists`, `content-match`
 - Five actions: `stop`, `skip`, `proceed`, `backup`, `prompt`
 
-**Location:** `/docker/lib/schemas/extension.schema.json` (lines 835-953)
+**Location:** `/v2/docker/lib/schemas/extension.schema.json` (lines 835-953)
 
 ### 2. Generic Collision Handlers (`capability-manager.sh`)
 
@@ -71,7 +71,7 @@ handle_collision()  # Lines 600-668
   - Displays user messages
 ```
 
-**Location:** `/docker/lib/capability-manager.sh` (lines 427-668)
+**Location:** `/v2/docker/lib/capability-manager.sh` (lines 427-668)
 
 ### 3. Integration (`project-core.sh`)
 
@@ -87,7 +87,7 @@ if ! handle_collision "$ext" "$ext_version"; then
 fi
 ```
 
-**Location:** `/docker/lib/project-core.sh` (lines 251-259)
+**Location:** `/v2/docker/lib/project-core.sh` (lines 251-259)
 
 ### 4. Documentation
 
@@ -298,12 +298,12 @@ Initializing claude-flow-v2...
 
 ### Core Implementation ✅ COMPLETE
 
-- ✅ `/docker/lib/schemas/extension.schema.json` - Added collision-handling schema (+119 lines)
-- ✅ `/docker/lib/capability-manager.sh` - Added 3 generic functions (+243 lines)
+- ✅ `/v2/docker/lib/schemas/extension.schema.json` - Added collision-handling schema (+119 lines)
+- ✅ `/v2/docker/lib/capability-manager.sh` - Added 3 generic functions (+243 lines)
   - `detect_collision_version()` (lines 433-554)
   - `backup_state_markers()` (lines 558-595)
   - `handle_collision()` (lines 600-668)
-- ✅ `/docker/lib/project-core.sh` - Integrated collision checking (+9 lines at 251-259)
+- ✅ `/v2/docker/lib/project-core.sh` - Integrated collision checking (+9 lines at 251-259)
 
 ### Documentation ✅ COMPLETE
 
@@ -313,10 +313,10 @@ Initializing claude-flow-v2...
 
 ### Extensions ✅ COMPLETE
 
-- ✅ `/docker/lib/extensions/claude-flow-v2/extension.yaml` - Added collision-handling (+88 lines)
-- ✅ `/docker/lib/extensions/claude-flow-v3/extension.yaml` - Added collision-handling (+94 lines)
-- ✅ `/docker/lib/extensions/agentic-qe/extension.yaml` - Added collision-handling (+23 lines)
-- ✅ `/docker/lib/extensions/agentic-flow/extension.yaml` - Added project-init + collision-handling (+76 lines)
+- ✅ `/v2/docker/lib/extensions/claude-flow-v2/extension.yaml` - Added collision-handling (+88 lines)
+- ✅ `/v2/docker/lib/extensions/claude-flow-v3/extension.yaml` - Added collision-handling (+94 lines)
+- ✅ `/v2/docker/lib/extensions/agentic-qe/extension.yaml` - Added collision-handling (+23 lines)
+- ✅ `/v2/docker/lib/extensions/agentic-flow/extension.yaml` - Added project-init + collision-handling (+76 lines)
 
 ## Testing Checklist
 
@@ -340,9 +340,9 @@ Initializing claude-flow-v2...
 
 - **ADR**: `../architecture/adr/ADR-001-extension-capabilities-system.md`
 - **Examples**: `COLLISION_HANDLING_EXAMPLES.md` (same directory)
-- **Schema**: `/docker/lib/schemas/extension.schema.json` (lines 835-953)
-- **Implementation**: `/docker/lib/capability-manager.sh` (lines 427-668)
-- **Integration**: `/docker/lib/project-core.sh` (lines 251-259)
+- **Schema**: `/v2/docker/lib/schemas/extension.schema.json` (lines 835-953)
+- **Implementation**: `/v2/docker/lib/capability-manager.sh` (lines 427-668)
+- **Integration**: `/v2/docker/lib/project-core.sh` (lines 251-259)
 
 ## Questions?
 

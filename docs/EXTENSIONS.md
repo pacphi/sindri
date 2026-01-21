@@ -328,7 +328,7 @@ supabase-cli → nodejs, docker
 
 | Location                       | Purpose                       |
 | ------------------------------ | ----------------------------- |
-| `/docker/lib/extensions/`      | Extension definitions (YAML)  |
+| `/v2/docker/lib/extensions/`      | Extension definitions (YAML)  |
 | `/workspace/.system/manifest/` | Installed extension manifests |
 | `/workspace/.system/logs/`     | Extension installation logs   |
 | `/workspace/.system/bom/`      | Bill of Materials tracking    |

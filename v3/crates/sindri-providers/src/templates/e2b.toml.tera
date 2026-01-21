@@ -1,0 +1,19 @@
+# E2B Template Configuration for Sindri
+# Generated from sindri.yaml
+
+# Template identification
+[template]
+name = "{{ e2b_template_alias }}"
+dockerfile = "e2b.Dockerfile"
+
+# Resource configuration
+[resources]
+cpu_count = {{ cpus }}
+memory_mb = {{ e2b_memory_mb }}
+
+# Build configuration
+[build]
+start_cmd = "/docker/scripts/entrypoint.sh echo 'Sindri environment ready'"
+
+# Network configuration (applied at sandbox creation)
+# Note: These are informational; actual config is passed via SDK/CLI

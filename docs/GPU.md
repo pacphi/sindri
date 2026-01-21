@@ -36,7 +36,7 @@ deployment:
 Deploy:
 
 ```bash
-./cli/sindri deploy
+./v2/cli/sindri deploy
 ```
 
 ## Configuration Reference
@@ -630,7 +630,7 @@ nvidia-smi | grep "Driver Version"
 - [Configuration Reference](CONFIGURATION.md) - Full sindri.yaml reference
 - [Provider Guides](providers/) - Provider-specific documentation
 - [AI/ML Extensions](EXTENSIONS.md#ai-tools) - GPU-accelerated extensions
-- [vm-sizes.yaml](../docker/lib/vm-sizes.yaml) - Complete GPU tier mappings
+- [vm-sizes.yaml](../v2/docker/lib/vm-sizes.yaml) - Complete GPU tier mappings
 
 ## GPU Pricing References
 

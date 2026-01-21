@@ -26,9 +26,9 @@ cd sindri
 git checkout v2.2.1
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v2.2.0...v2.2.1
@@ -54,9 +54,9 @@ cd sindri
 git checkout v2.2.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v2.1.0...v2.2.0
@@ -91,9 +91,9 @@ cd sindri
 git checkout v2.1.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v2.0.0...v2.1.0
@@ -142,9 +142,9 @@ cd sindri
 git checkout v2.0.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.13.0...v2.0.0
@@ -175,9 +175,9 @@ cd sindri
 git checkout v1.13.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.12.1...v1.13.0
@@ -206,9 +206,9 @@ cd sindri
 git checkout v1.12.1
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.12.0...v1.12.1
@@ -237,9 +237,9 @@ cd sindri
 git checkout v1.12.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.11.0...v1.12.0
@@ -268,9 +268,9 @@ cd sindri
 git checkout v1.11.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.10.0...v1.11.0
@@ -299,9 +299,9 @@ cd sindri
 git checkout v1.10.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.9.0...v1.10.0
@@ -326,9 +326,9 @@ cd sindri
 git checkout v1.9.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.8.0...v1.9.0
@@ -381,9 +381,9 @@ cd sindri
 git checkout v1.8.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.7.1...v1.8.0
@@ -407,9 +407,9 @@ cd sindri
 git checkout v1.7.1
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.7.0...v1.7.1
@@ -437,9 +437,9 @@ cd sindri
 git checkout v1.7.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.6.1...v1.7.0
@@ -448,7 +448,7 @@ git checkout v1.7.0
 
 ### :bug: Bug Fixes
 
-- fix: add /docker/cli to PATH for SSH sessions (28c96b1)
+- fix: add /v2/docker/cli to PATH for SSH sessions (28c96b1)
 
 ### :books: Documentation
 
@@ -467,9 +467,9 @@ cd sindri
 git checkout v1.6.1
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.6.0...v1.6.1
@@ -507,9 +507,9 @@ cd sindri
 git checkout v1.6.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.5.1...v1.6.0
@@ -535,9 +535,9 @@ cd sindri
 git checkout v1.5.1
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.5.0...v1.5.1
@@ -551,7 +551,7 @@ git checkout v1.5.1
 ### :bug: Bug Fixes
 
 - fix: use POSIX-compliant arithmetic in cleanup workflow (10d6878)
-- fix: add /docker/cli to PATH in generated .bashrc (5e772f2)
+- fix: add /v2/docker/cli to PATH in generated .bashrc (5e772f2)
 
 ### :wrench: Maintenance
 
@@ -566,9 +566,9 @@ cd sindri
 git checkout v1.5.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.4.0...v1.5.0
@@ -596,9 +596,9 @@ cd sindri
 git checkout v1.4.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.3.0...v1.4.0
@@ -635,9 +635,9 @@ cd sindri
 git checkout v1.3.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.2.0...v1.3.0
@@ -663,9 +663,9 @@ cd sindri
 git checkout v1.2.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.1.0...v1.2.0
@@ -696,9 +696,9 @@ cd sindri
 git checkout v1.1.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v1.0.0...v1.1.0
@@ -757,7 +757,7 @@ cd sindri
 git checkout v1.0.0
 
 # Deploy (choose your provider)
-./cli/sindri deploy --provider docker   # Local Docker
-./cli/sindri deploy --provider fly      # Fly.io
-./cli/sindri deploy --provider devpod   # DevContainer
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
 ```

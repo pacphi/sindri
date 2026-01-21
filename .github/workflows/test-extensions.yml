@@ -44,7 +44,7 @@ jobs:
 
       - name: Install yq
         run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/lav2/test/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
       - name: Generate extension matrix
@@ -59,7 +59,7 @@ jobs:
           if [[ "$INPUT" == "all" ]]; then
             # Get all non-protected extensions from registry
             ALL_EXTENSIONS=$(yq '.extensions | to_entries | .[] | select(.value.protected != true) | .key' \
-              docker/lib/registry.yaml)
+              v2/docker/lib/registry.yaml)
 
             # Filter out high-memory extensions
             FILTERED=""
@@ -128,7 +128,7 @@ jobs:
       - name: Checkout for extension info
         uses: actions/checkout@v6
         with:
-          sparse-checkout: docker/lib/extensions
+          sparse-checkout: v2/docker/lib/extensions
 
       - name: Download image artifact
         uses: actions/download-artifact@v7
@@ -143,7 +143,7 @@ jobs:
         id: resources
         run: |
           EXT="${{ matrix.extension }}"
-          EXT_YAML="docker/lib/extensions/$EXT/extension.yaml"
+          EXT_YAML="v2/docker/lib/extensions/$EXT/extension.yaml"
 
           # Default values
           MEMORY="4g"
@@ -203,7 +203,7 @@ jobs:
         run: |
           echo "Testing extension: ${{ matrix.extension }}"
           docker exec sindri-test \
-            /docker/scripts/sindri-test.sh --level extension --extension ${{ matrix.extension }}
+            /v2/docker/scripts/sindri-test.sh --level extension --extension ${{ matrix.extension }}
 
       - name: Collect logs on failure
         if: failure()

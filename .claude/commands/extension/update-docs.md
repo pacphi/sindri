@@ -18,13 +18,13 @@ Use TodoWrite to track progress through each step.
 
 ### Step 1: Verify Extension Exists
 
-1. Check `docker/lib/extensions/{name}/extension.yaml` exists
+1. Check `v2/docker/lib/extensions/{name}/extension.yaml` exists
 2. Read the extension.yaml to understand:
    - Category
    - Description
    - Dependencies
    - Installation method
-3. Run `./cli/extension-manager info {name}` to verify registration
+3. Run `./v2/cli/extension-manager info {name}` to verify registration
 
 ### Step 2: Check Current Documentation State
 
@@ -35,7 +35,7 @@ Identify which documentation needs to be created or updated:
 ls -la docs/extensions/{NAME}.md 2>/dev/null || echo "MISSING: Extension doc"
 
 # Check registry entry
-grep -A3 "^  {name}:" docker/lib/registry.yaml || echo "MISSING: Registry entry"
+grep -A3 "^  {name}:" v2/docker/lib/registry.yaml || echo "MISSING: Registry entry"
 
 # Check EXTENSIONS.md catalog
 grep "{name}" docs/EXTENSIONS.md || echo "MISSING: Catalog entry"
@@ -44,7 +44,7 @@ grep "{name}" docs/EXTENSIONS.md || echo "MISSING: Catalog entry"
 grep "{name}" docs/slides/extensions.html || echo "MISSING: Slides entry"
 
 # Check profiles
-grep "{name}" docker/lib/profiles.yaml || echo "Not in profiles (may be intentional)"
+grep "{name}" v2/docker/lib/profiles.yaml || echo "Not in profiles (may be intentional)"
 ```
 
 ### Step 3: Create/Update Extension Documentation
@@ -58,7 +58,7 @@ If `docs/extensions/{NAME}.md` is missing or outdated:
 
 If registry entry is missing or incorrect:
 
-1. Add/update entry in `docker/lib/registry.yaml`
+1. Add/update entry in `v2/docker/lib/registry.yaml`
 
 ### Step 5: Update Extension Catalog
 
@@ -77,14 +77,14 @@ If extension is in AI category or notable:
 ### Step 7: Consider Profile Inclusion
 
 1. Check if extension should be in any profiles
-2. Update `docker/lib/profiles.yaml` if appropriate
+2. Update `v2/docker/lib/profiles.yaml` if appropriate
 
 ### Step 8: Validate
 
 ```bash
 pnpm validate:yaml
 pnpm lint:md
-./cli/extension-manager info {name}
+./v2/cli/extension-manager info {name}
 ```
 
 ### Step 9: Summary

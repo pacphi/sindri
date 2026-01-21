@@ -7,7 +7,7 @@ Ready-to-use configuration files for deploying Sindri to various providers. **61
 1. Browse the examples below
 2. Copy one that matches your needs: `cp examples/fly/minimal.sindri.yaml my-sindri.yaml`
 3. Customize with your settings
-4. Deploy: `./cli/sindri deploy --config my-sindri.yaml`
+4. Deploy: `./v2/cli/sindri deploy --config my-sindri.yaml`
 
 ## Overview
 
@@ -183,11 +183,11 @@ k8s/
 
 ```bash
 # Option 1: Use k8s/ configs (creates cluster + deploys)
-./cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+./v2/cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
 
 # Option 2: Create cluster separately, then use devpod/kubernetes
 kind create cluster --name my-cluster
-./cli/sindri deploy --config examples/devpod/kubernetes/minimal.sindri.yaml
+./v2/cli/sindri deploy --config examples/devpod/kubernetes/minimal.sindri.yaml
 ```
 
 **CI Testing Note:** The CI workflow uses `devpod/kubernetes/` configs because it handles
@@ -308,24 +308,24 @@ deployment:
 
 ```bash
 # Deploy using your config
-./cli/sindri deploy --config my-sindri.yaml
+./v2/cli/sindri deploy --config my-sindri.yaml
 
 # Or deploy an example directly (for testing)
-./cli/sindri deploy --config examples/fly/minimal.sindri.yaml
+./v2/cli/sindri deploy --config examples/fly/minimal.sindri.yaml
 ```
 
 ### Teardown
 
 ```bash
 # Teardown using the same config
-./cli/sindri destroy --config my-sindri.yaml
+./v2/cli/sindri destroy --config my-sindri.yaml
 ```
 
 ### Validate (before deploy)
 
 ```bash
 # Validate your config against the schema
-./cli/sindri config validate --config my-sindri.yaml
+./v2/cli/sindri config validate --config my-sindri.yaml
 ```
 
 ### Test (for contributors)
@@ -336,23 +336,23 @@ All examples are tested automatically in CI using the `test-sindri-config.yml` w
 
 ```bash
 # Test a single example locally
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+./v2/cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
 
 # Test with validation only
-./cli/sindri config validate --config examples/docker/ai-dev.sindri.yaml
+./v2/cli/sindri config validate --config examples/docker/ai-dev.sindri.yaml
 ```
 
 #### Test Multiple Examples
 
 ```bash
 # Test all examples for a provider
-./cli/sindri test --config examples/fly/ --suite smoke
+./v2/cli/sindri test --config examples/fly/ --suite smoke
 
 # Test all examples in a directory
-./cli/sindri test --config examples/profiles/ --suite smoke
+./v2/cli/sindri test --config examples/profiles/ --suite smoke
 
 # Test all custom extension examples
-./cli/sindri test --config examples/custom/ --suite smoke
+./v2/cli/sindri test --config examples/custom/ --suite smoke
 ```
 
 #### Test via GitHub Actions

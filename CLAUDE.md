@@ -28,21 +28,21 @@ pnpm test                    # Run all tests
 
 # Build and deploy
 pnpm build                   # Build Docker image
-./cli/sindri deploy          # Deploy to configured provider
-./cli/sindri status          # Check deployment status
-./cli/sindri connect         # Connect to deployed instance
+./v2/cli/sindri deploy          # Deploy to configured provider
+./v2/cli/sindri status          # Check deployment status
+./v2/cli/sindri connect         # Connect to deployed instance
 ```
 
-📖 **Full CLI Reference:** [docs/CLI.md](docs/CLI.md)
+📖 **Full CLI Reference:** [v2/docs/CLI.md](v2/docs/CLI.md)
 
 ### Key CLI Tools
 
 | Tool                      | Purpose                    | Full Documentation                                       |
 | ------------------------- | -------------------------- | -------------------------------------------------------- |
-| `./cli/sindri`            | Deployment & configuration | [docs/CLI.md](docs/CLI.md)                               |
-| `./cli/extension-manager` | Extension management       | [docs/EXTENSIONS.md](docs/EXTENSIONS.md)                 |
-| `./cli/new-project`       | Project templates          | [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md) |
-| `./cli/clone-project`     | Repository cloning         | [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md) |
+| `./v2/cli/sindri`            | Deployment & configuration | [v2/docs/CLI.md](v2/docs/CLI.md)                               |
+| `./v2/cli/extension-manager` | Extension management       | [docs/EXTENSIONS.md](docs/EXTENSIONS.md)                 |
+| `./v2/cli/new-project`       | Project templates          | [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md) |
+| `./v2/cli/clone-project`     | Repository cloning         | [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md) |
 
 ## Architecture Overview
 
@@ -50,10 +50,10 @@ pnpm build                   # Build Docker image
 
 **Directory Layout:**
 
-- `cli/` - Command-line tools (sindri, extension-manager)
-- `docker/lib/` - Immutable system files (extensions, schemas, profiles)
-- `docker/scripts/` - Container initialization scripts
-- `deploy/adapters/` - Provider-specific deployment logic
+- `v2/cli/` - Command-line tools (sindri, extension-manager)
+- `v2/docker/lib/` - Immutable system files (extensions, schemas, profiles)
+- `v2/docker/scripts/` - Container initialization scripts
+- `v2/deploy/adapters/` - Provider-specific deployment logic
 - `examples/` - Example configurations
 
 **Extension System:**
@@ -83,10 +83,10 @@ pnpm build                   # Build Docker image
 
 **Quick Steps:**
 
-1. Create `docker/lib/extensions/myext/extension.yaml`
+1. Create `v2/docker/lib/extensions/myext/extension.yaml`
 2. Define metadata, requirements, install method, validation
-3. Add to `docker/lib/registry.yaml`
-4. Validate: `./cli/extension-manager validate myext`
+3. Add to `v2/docker/lib/registry.yaml`
+4. Validate: `./v2/cli/extension-manager validate myext`
 
 **Key Principles:**
 
@@ -117,10 +117,10 @@ pnpm build                   # Build Docker image
 pnpm test                    # Run all tests
 pnpm test:unit               # YAML validation
 pnpm test:extensions         # Extension validation
-./cli/sindri test --suite smoke  # Test deployed instance
+./v2/cli/sindri test --suite smoke  # Test deployed instance
 ```
 
-🧪 **Complete Testing Guide:** [docs/TESTING.md](docs/TESTING.md)
+🧪 **Complete Testing Guide:** [v2/docs/TESTING.md](v2/docs/TESTING.md)
 
 ## Code Standards
 
@@ -134,7 +134,7 @@ Run `pnpm validate` before committing.
 
 ### Schema-Driven Development
 
-All YAML files validate against JSON schemas in `docker/lib/schemas/`. When modifying:
+All YAML files validate against JSON schemas in `v2/docker/lib/schemas/`. When modifying:
 
 1. Update schema first
 2. Update YAML files
@@ -150,7 +150,7 @@ Extensions declare dependencies in YAML. The `dependency.sh` module builds a DAG
 
 ### Provider Abstraction
 
-Never write provider-specific logic in core code. Use adapter pattern in `deploy/adapters/` for provider-specific concerns.
+Never write provider-specific logic in core code. Use adapter pattern in `v2/deploy/adapters/` for provider-specific concerns.
 
 ---
 
@@ -160,17 +160,17 @@ Never write provider-specific logic in core code. Use adapter pattern in `deploy
 | -------------------- | ------------------------------------------------------------ |
 | Architecture         | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 |
 | Backup & Restore     | [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md)             |
-| CLI Reference        | [docs/CLI.md](docs/CLI.md)                                   |
+| CLI Reference        | [v2/docs/CLI.md](v2/docs/CLI.md)                                   |
 | Configuration        | [docs/CONFIGURATION.md](docs/CONFIGURATION.md)               |
 | Deployment           | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                     |
 | Extensions           | [docs/EXTENSIONS.md](docs/EXTENSIONS.md)                     |
 | Extension Authoring  | [docs/EXTENSION_AUTHORING.md](docs/EXTENSION_AUTHORING.md)   |
 | Project Management   | [docs/PROJECT_MANAGEMENT.md](docs/PROJECT_MANAGEMENT.md)     |
 | Secrets Management   | [docs/SECRETS_MANAGEMENT.md](docs/SECRETS_MANAGEMENT.md)     |
-| Testing              | [docs/TESTING.md](docs/TESTING.md)                           |
+| Testing              | [v2/docs/TESTING.md](v2/docs/TESTING.md)                           |
 | Schemas              | [docs/SCHEMA.md](docs/SCHEMA.md)                             |
-| Troubleshooting      | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)           |
-| CI/CD Workflows      | [docs/CI_WORKFLOW_IN_DEPTH.md](docs/CI_WORKFLOW_IN_DEPTH.md) |
+| Troubleshooting      | [v2/docs/TROUBLESHOOTING.md](v2/docs/TROUBLESHOOTING.md)           |
+| CI/CD Workflows      | [v2/docs/CI_WORKFLOW_IN_DEPTH.md](v2/docs/CI_WORKFLOW_IN_DEPTH.md) |
 | Provider: Docker     | [docs/providers/DOCKER.md](docs/providers/DOCKER.md)         |
 | Provider: Fly.io     | [docs/providers/FLY.md](docs/providers/FLY.md)               |
 | Provider: DevPod     | [docs/providers/DEVPOD.md](docs/providers/DEVPOD.md)         |

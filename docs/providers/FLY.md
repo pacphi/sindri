@@ -64,7 +64,7 @@ Sindri's Fly.io adapter generates comprehensive fly.toml configurations with:
 flyctl auth login
 
 # 2. Deploy
-./cli/sindri deploy --provider fly
+./v2/cli/sindri deploy --provider fly
 
 # 3. Enable installation protection (recommended)
 flyctl secrets set FLY_API_TOKEN="$(fly tokens deploy)" -a <app-name>
@@ -284,7 +284,7 @@ flyctl auth login
 ### 2. Deploy
 
 ```bash
-./cli/sindri deploy --provider fly
+./v2/cli/sindri deploy --provider fly
 ```
 
 This will:
@@ -703,7 +703,7 @@ flyctl scale show -a <app-name>
 
 # Upgrade to performance CPU
 # Edit sindri.yaml: providers.fly.cpuKind: performance
-./cli/sindri deploy
+./v2/cli/sindri deploy
 ```
 
 ### VS Code Remote Issues
@@ -753,8 +753,8 @@ Best for quick testing and temporary fixes.
 flyctl ssh console -a <app-name>
 
 # 2. Edit files directly
-nano /docker/lib/common.sh
-nano /docker/lib/extensions/agentic-qe/extension.yaml
+nano /v2/docker/lib/common.sh
+nano /v2/docker/lib/extensions/agentic-qe/extension.yaml
 
 # 3. Changes take effect immediately for new operations
 # Extensions: Affects new project initialization
@@ -774,17 +774,17 @@ Best for transferring multiple files systematically.
 ```bash
 # Terminal 1 (SSH) - Remove existing files
 flyctl ssh console -a <app-name>
-sudo rm -f /docker/lib/common.sh
-sudo rm -f /docker/lib/extensions/agentic-qe/extension.yaml
+sudo rm -f /v2/docker/lib/common.sh
+sudo rm -f /v2/docker/lib/extensions/agentic-qe/extension.yaml
 # Keep this terminal open
 
 # Terminal 2 (SFTP) - Upload new files
 flyctl ssh sftp shell -a <app-name>
 sftp> cd /docker/lib
-sftp> put docker/lib/common.sh
+sftp> put v2/docker/lib/common.sh
 
 sftp> cd extensions/agentic-qe
-sftp> put docker/lib/extensions/agentic-qe/extension.yaml
+sftp> put v2/docker/lib/extensions/agentic-qe/extension.yaml
 
 sftp> exit
 ```
@@ -799,7 +799,7 @@ flyctl proxy 10022:2222 -a <app-name>
 sftp -P 10022 developer@localhost
 sftp> cd /docker/lib
 sftp> rm common.sh
-sftp> put docker/lib/common.sh
+sftp> put v2/docker/lib/common.sh
 sftp> exit
 ```
 
@@ -813,19 +813,19 @@ Best for permanent changes that should persist across deployments.
 
 ```bash
 # 1. Make local changes
-vim docker/lib/common.sh
-vim docker/lib/extensions/agentic-qe/extension.yaml
+vim v2/docker/lib/common.sh
+vim v2/docker/lib/extensions/agentic-qe/extension.yaml
 
 # 2. Test locally (optional but recommended)
 pnpm build
 docker run -it sindri:local bash
 
 # 3. Commit changes
-git add docker/lib/
+git add v2/docker/lib/
 git commit -m "fix: add print_info function and fix extension hooks"
 
 # 4. Rebuild and deploy
-./cli/sindri deploy --provider fly
+./v2/cli/sindri deploy --provider fly
 
 # 5. Verify deployment
 flyctl status -a <app-name>
@@ -853,8 +853,8 @@ flyctl ssh console -a <app-name>
 
 **Scope of Changes:**
 
-- **System files** (`/docker/lib/*`): Affect all future operations, not existing projects
-- **Extensions** (`/docker/lib/extensions/*`): Only affect new project initialization
+- **System files** (`/v2/docker/lib/*`): Affect all future operations, not existing projects
+- **Extensions** (`/v2/docker/lib/extensions/*`): Only affect new project initialization
 - **User workspace** (`/alt/home/developer/*`): Persistent across deployments
 
 **When changes take effect:**
@@ -868,8 +868,8 @@ Redeploy → After machine restart (~2-3 minutes)
 **Change persistence:**
 
 ```text
-/docker/lib/* (Direct SSH/SFTP) → Lost on redeploy
-/docker/lib/* (Rebuild) → Permanent (baked into image)
+/v2/docker/lib/* (Direct SSH/SFTP) → Lost on redeploy
+/v2/docker/lib/* (Rebuild) → Permanent (baked into image)
 /alt/home/developer/* → Always persistent (volume-backed)
 ```
 
@@ -894,16 +894,16 @@ Real-world example fixing the agentic-qe initialization issues:
 
 # 1. Quick test (Option 1)
 flyctl ssh console -a sindri-dev01
-nano /docker/lib/common.sh  # Add print_info function
-nano /docker/lib/extensions/agentic-qe/extension.yaml  # Fix command
+nano /v2/docker/lib/common.sh  # Add print_info function
+nano /v2/docker/lib/extensions/agentic-qe/extension.yaml  # Fix command
 exit
 
 # Test: Clone a new project and verify fixes work
 
 # 2. Permanent fix (Option 3)
-git add docker/lib/
+git add v2/docker/lib/
 git commit -m "fix: extension initialization bugs"
-./cli/sindri deploy --provider fly
+./v2/cli/sindri deploy --provider fly
 
 # Deploy completes in ~8-10 minutes
 # All future deployments now include the fix

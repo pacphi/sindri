@@ -32,16 +32,16 @@ git clone https://github.com/pacphi/sindri
 cd sindri
 
 # Initialize configuration
-./cli/sindri config init
+./v2/cli/sindri config init
 
 # Edit sindri.yaml for your needs
 # See examples/ directory for templates
 
 # Deploy locally
-./cli/sindri deploy --provider docker
+./v2/cli/sindri deploy --provider docker
 
 # Or deploy to Fly.io
-./cli/sindri deploy --provider fly
+./v2/cli/sindri deploy --provider fly
 ```
 
 **Prerequisites:** [Docker](https://www.docker.com/get-started/), [yq](https://github.com/mikefarah/yq). For Fly.io: [flyctl](https://fly.io/docs/flyctl/install/) CLI. For DevPod: [devpod](https://devpod.sh/) CLI.

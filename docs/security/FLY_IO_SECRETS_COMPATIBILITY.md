@@ -31,7 +31,7 @@ secrets_resolve_all sindri.yaml
 ### 2. Secret Injection (Deployment)
 
 ```bash
-# deploy/adapters/fly-adapter.sh
+# v2/deploy/adapters/fly-adapter.sh
 secrets_inject_fly
 
 # Internally calls:
@@ -56,7 +56,7 @@ flyctl secrets import -a my-app < /dev/stdin
 # Fly.io VM starts container with environment variables:
 GITHUB_TOKEN=ghp_abc123...
 
-# docker/scripts/entrypoint.sh runs as PID 1
+# v2/docker/scripts/entrypoint.sh runs as PID 1
 # Line 282: Checks for ${GITHUB_TOKEN:-}
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     # Current implementation: Create credential helper script
@@ -139,7 +139,7 @@ git clone https://github.com/user/repo.git
 **Proposed Flow:**
 
 ```bash
-# docker/scripts/entrypoint.sh - Line 282 replacement
+# v2/docker/scripts/entrypoint.sh - Line 282 replacement
 
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     print_status "Configuring GitHub authentication..."
@@ -203,7 +203,7 @@ fi
 **Proposed Flow:**
 
 ```bash
-# docker/scripts/entrypoint.sh - Line 282 replacement
+# v2/docker/scripts/entrypoint.sh - Line 282 replacement
 
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     # Store token in tmpfs (memory-only, not disk)
@@ -388,7 +388,7 @@ The `cli/secrets-manager` module already handles Fly.io correctly:
 2. .env.local
 3. .env
 
-# deploy/adapters/fly-adapter.sh
+# v2/deploy/adapters/fly-adapter.sh
 # Calls: secrets_inject_fly
 # Which runs: flyctl secrets import -a my-app < stdin
 ```
@@ -399,7 +399,7 @@ The `cli/secrets-manager` module already handles Fly.io correctly:
 
 ### entrypoint.sh Changes Only
 
-All C-7 remediation changes are confined to `docker/scripts/entrypoint.sh` lines 282-307:
+All C-7 remediation changes are confined to `v2/docker/scripts/entrypoint.sh` lines 282-307:
 
 **Current Code:**
 

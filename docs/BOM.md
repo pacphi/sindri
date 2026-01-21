@@ -21,7 +21,7 @@ The BOM system automatically tracks:
 Show BOM for all installed extensions:
 
 ```bash
-./cli/extension-manager bom
+./v2/cli/extension-manager bom
 ```
 
 ### View Extension-Specific BOM
@@ -29,7 +29,7 @@ Show BOM for all installed extensions:
 Show BOM for a single extension:
 
 ```bash
-./cli/extension-manager bom nodejs
+./v2/cli/extension-manager bom nodejs
 ```
 
 ### Export Formats
@@ -37,19 +37,19 @@ Show BOM for a single extension:
 #### YAML (default)
 
 ```bash
-./cli/extension-manager bom --format yaml
+./v2/cli/extension-manager bom --format yaml
 ```
 
 #### JSON
 
 ```bash
-./cli/extension-manager bom --format json
+./v2/cli/extension-manager bom --format json
 ```
 
 #### CSV
 
 ```bash
-./cli/extension-manager bom --format csv > bom.csv
+./v2/cli/extension-manager bom --format csv > bom.csv
 ```
 
 #### CycloneDX SBOM
@@ -57,7 +57,7 @@ Show BOM for a single extension:
 Industry-standard SBOM format:
 
 ```bash
-./cli/extension-manager bom --format cyclonedx > sbom.cdx.json
+./v2/cli/extension-manager bom --format cyclonedx > sbom.cdx.json
 ```
 
 #### SPDX SBOM
@@ -65,7 +65,7 @@ Industry-standard SBOM format:
 Software Package Data Exchange format:
 
 ```bash
-./cli/extension-manager bom --format spdx > sbom.spdx
+./v2/cli/extension-manager bom --format spdx > sbom.spdx
 ```
 
 ### Regenerate BOMs
@@ -73,7 +73,7 @@ Software Package Data Exchange format:
 Force regeneration of all BOMs:
 
 ```bash
-./cli/extension-manager bom-regenerate
+./v2/cli/extension-manager bom-regenerate
 ```
 
 ## BOM Storage
@@ -295,7 +295,7 @@ Export BOM and scan for vulnerabilities:
 
 ```bash
 # Export as CycloneDX
-./cli/extension-manager bom --format cyclonedx > sbom.cdx.json
+./v2/cli/extension-manager bom --format cyclonedx > sbom.cdx.json
 
 # Scan with dependency-track, grype, or other SBOM scanners
 grype sbom:sbom.cdx.json
@@ -306,7 +306,7 @@ grype sbom:sbom.cdx.json
 Generate SPDX SBOM for compliance requirements:
 
 ```bash
-./cli/extension-manager bom --format spdx > sbom.spdx
+./v2/cli/extension-manager bom --format spdx > sbom.spdx
 ```
 
 ### Environment Reproducibility
@@ -314,7 +314,7 @@ Generate SPDX SBOM for compliance requirements:
 Export complete BOM to recreate exact environment:
 
 ```bash
-./cli/extension-manager bom --format yaml > environment-bom.yaml
+./v2/cli/extension-manager bom --format yaml > environment-bom.yaml
 ```
 
 ### License Tracking
@@ -322,7 +322,7 @@ Export complete BOM to recreate exact environment:
 Export CSV for license compliance review:
 
 ```bash
-./cli/extension-manager bom --format csv | grep -v "^Extension" | cut -d',' -f6 | sort -u
+./v2/cli/extension-manager bom --format csv | grep -v "^Extension" | cut -d',' -f6 | sort -u
 ```
 
 ## Integration with CI/CD
@@ -377,5 +377,5 @@ BOMs are automatically generated:
 ## Related Documentation
 
 - [Extension Development](./EXTENSIONS.md)
-- [Extension Schema](../docker/lib/schemas/extension.schema.json)
+- [Extension Schema](../v2/docker/lib/schemas/extension.schema.json)
 - [Security Best Practices](./SECURITY.md)

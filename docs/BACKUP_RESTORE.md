@@ -67,26 +67,26 @@ The Sindri home directory (`/alt/home/developer`) contains multiple categories o
 
 ```bash
 # Standard backup (recommended for most users)
-./cli/sindri backup --output ./backups/
+./v2/cli/sindri backup --output ./backups/
 
 # User data only (smallest, safest for migration)
-./cli/sindri backup --profile user-data --output ./backups/
+./v2/cli/sindri backup --profile user-data --output ./backups/
 
 # Full backup (disaster recovery)
-./cli/sindri backup --profile full --output ./backups/
+./v2/cli/sindri backup --profile full --output ./backups/
 ```
 
 ### Restore to New Instance
 
 ```bash
 # Safe restore (default - won't overwrite existing files)
-./cli/sindri restore ./backups/sindri-backup-2025-01-15.tar.gz
+./v2/cli/sindri restore ./backups/sindri-backup-2025-01-15.tar.gz
 
 # Preview what will happen
-./cli/sindri restore ./backups/backup.tar.gz --dry-run
+./v2/cli/sindri restore ./backups/backup.tar.gz --dry-run
 
 # Merge with existing (backs up conflicts first)
-./cli/sindri restore ./backups/backup.tar.gz --mode merge
+./v2/cli/sindri restore ./backups/backup.tar.gz --mode merge
 ```
 
 ---
@@ -116,7 +116,7 @@ Excludes:
 - Shell RC files (regenerated on new instance)
 
 ```bash
-./cli/sindri backup --profile user-data --output ./backups/
+./v2/cli/sindri backup --profile user-data --output ./backups/
 ```
 
 ### `standard` Profile (Default)
@@ -131,9 +131,9 @@ Includes everything in `user-data` plus:
 - `.local/bin/` - Locally installed binaries
 
 ```bash
-./cli/sindri backup --output ./backups/
+./v2/cli/sindri backup --output ./backups/
 # or explicitly:
-./cli/sindri backup --profile standard --output ./backups/
+./v2/cli/sindri backup --profile standard --output ./backups/
 ```
 
 ### `full` Profile (Disaster Recovery)
@@ -150,7 +150,7 @@ Includes everything except:
 **Warning**: Restoring a full backup to a different instance may cause issues.
 
 ```bash
-./cli/sindri backup --profile full --output ./backups/
+./v2/cli/sindri backup --profile full --output ./backups/
 ```
 
 ---
@@ -169,9 +169,9 @@ The safest option - never overwrites existing files.
 - Conflicts: Reported but not modified
 
 ```bash
-./cli/sindri restore ./backup.tar.gz
+./v2/cli/sindri restore ./backup.tar.gz
 # or explicitly:
-./cli/sindri restore ./backup.tar.gz --mode safe
+./v2/cli/sindri restore ./backup.tar.gz --mode safe
 ```
 
 **Best for**: Migration to new instance, adding missing files
@@ -188,7 +188,7 @@ Smart merge with automatic backup of conflicts.
 - Creates rollback capability
 
 ```bash
-./cli/sindri restore ./backup.tar.gz --mode merge
+./v2/cli/sindri restore ./backup.tar.gz --mode merge
 ```
 
 **Best for**: Updating existing instance, recovering from partial data loss
@@ -204,7 +204,7 @@ Complete restore - overwrites everything.
 - No conflict preservation
 
 ```bash
-./cli/sindri restore ./backup.tar.gz --mode full
+./v2/cli/sindri restore ./backup.tar.gz --mode full
 ```
 
 **Warning**: Only use for disaster recovery on the SAME instance. Using on a different instance may break initialization.
@@ -216,7 +216,7 @@ Complete restore - overwrites everything.
 ### Backup Command
 
 ```bash
-./cli/sindri backup [options]
+./v2/cli/sindri backup [options]
 
 Options:
   -o, --output <path>     Output location (directory or file path)
@@ -238,7 +238,7 @@ Examples:
 ### Restore Command
 
 ```bash
-./cli/sindri restore <source> [options]
+./v2/cli/sindri restore <source> [options]
 
 Arguments:
   source                  Backup file: local path, s3://bucket/path, or https://url
@@ -260,7 +260,7 @@ Examples:
 ### List Backups Command
 
 ```bash
-./cli/sindri backup list [options]
+./v2/cli/sindri backup list [options]
 
 Options:
   -c, --config <file>     Sindri config file (default: sindri.yaml)
@@ -278,7 +278,7 @@ Lists backups stored on the Sindri instance in ~/workspace/backups/
 
 ```bash
 # Via CLI (recommended)
-./cli/sindri backup --output ./backups/
+./v2/cli/sindri backup --output ./backups/
 
 # Manual method
 docker exec sindri-docker tar czf - \
@@ -295,7 +295,7 @@ docker exec sindri-docker tar czf - \
 
 ```bash
 # Via CLI (recommended)
-./cli/sindri restore ./backup.tar.gz
+./v2/cli/sindri restore ./backup.tar.gz
 
 # Manual method - stop container first
 docker compose stop
@@ -310,7 +310,7 @@ docker compose start
 
 ```bash
 # Via CLI (recommended)
-./cli/sindri backup --output ./backups/
+./v2/cli/sindri backup --output ./backups/
 
 # Using Fly.io native snapshots (for disaster recovery)
 flyctl volumes list -a my-sindri-dev
@@ -321,7 +321,7 @@ flyctl volumes snapshots create vol_abc123
 
 ```bash
 # Via CLI (recommended)
-./cli/sindri restore ./backup.tar.gz
+./v2/cli/sindri restore ./backup.tar.gz
 
 # From Fly.io snapshot (creates new volume)
 flyctl volumes create workspace \
@@ -380,13 +380,13 @@ export AWS_PROFILE=sindri-backup
 ### Backup to S3
 
 ```bash
-./cli/sindri backup --output s3://my-bucket/sindri-backups/
+./v2/cli/sindri backup --output s3://my-bucket/sindri-backups/
 ```
 
 ### Restore from S3
 
 ```bash
-./cli/sindri restore s3://my-bucket/sindri-backups/backup-2025-01-15.tar.gz
+./v2/cli/sindri restore s3://my-bucket/sindri-backups/backup-2025-01-15.tar.gz
 ```
 
 ### S3-Compatible Storage
@@ -395,7 +395,7 @@ For MinIO, Wasabi, DigitalOcean Spaces:
 
 ```bash
 export AWS_ENDPOINT_URL=https://s3.wasabisys.com
-./cli/sindri backup --output s3://my-bucket/backups/
+./v2/cli/sindri backup --output s3://my-bucket/backups/
 ```
 
 ---
@@ -406,28 +406,28 @@ export AWS_ENDPOINT_URL=https://s3.wasabisys.com
 
 ```bash
 # Create user-data backup (recommended for migration)
-./cli/sindri backup --profile user-data --output ./migration-backup.tar.gz
+./v2/cli/sindri backup --profile user-data --output ./migration-backup.tar.gz
 ```
 
 ### Step 2: Deploy New Instance
 
 ```bash
 # Create new sindri.yaml or modify existing
-./cli/sindri config init
+./v2/cli/sindri config init
 vim sindri.yaml
 
 # Deploy
-./cli/sindri deploy
+./v2/cli/sindri deploy
 ```
 
 ### Step 3: Restore to New Instance
 
 ```bash
 # Safe restore (won't conflict with new instance setup)
-./cli/sindri restore ./migration-backup.tar.gz
+./v2/cli/sindri restore ./migration-backup.tar.gz
 
 # Verify
-./cli/sindri connect
+./v2/cli/sindri connect
 ls ~/workspace/projects/
 ```
 
@@ -455,7 +455,7 @@ The new instance will auto-install extensions based on `sindri.yaml`. Your user 
 BACKUP_DIR="$HOME/sindri-backups"
 KEEP_DAYS=7
 
-./cli/sindri backup --output "$BACKUP_DIR/"
+./v2/cli/sindri backup --output "$BACKUP_DIR/"
 find "$BACKUP_DIR" -name "sindri-backup-*.tar.gz" -mtime +$KEEP_DAYS -delete
 ```
 
@@ -514,10 +514,10 @@ rm ~/.initialized
 
 ```bash
 # Use user-data profile
-./cli/sindri backup --profile user-data --output ./backup.tar.gz
+./v2/cli/sindri backup --profile user-data --output ./backup.tar.gz
 
 # Or add exclusions
-./cli/sindri backup --exclude 'node_modules' --exclude '.venv'
+./v2/cli/sindri backup --exclude 'node_modules' --exclude '.venv'
 ```
 
 ### Dry Run Shows Unexpected Files
@@ -527,7 +527,7 @@ rm ~/.initialized
 tar tzf backup.tar.gz | head -50
 
 # Check categories
-./cli/sindri restore backup.tar.gz --dry-run --verbose
+./v2/cli/sindri restore backup.tar.gz --dry-run --verbose
 ```
 
 ---

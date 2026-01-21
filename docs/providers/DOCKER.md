@@ -65,7 +65,7 @@ providers:
 ### Deploy
 
 ```bash
-./cli/sindri deploy --provider docker
+./v2/cli/sindri deploy --provider docker
 ```
 
 This will:
@@ -80,7 +80,7 @@ This will:
 
 ```bash
 # Interactive shell (via entrypoint - sets up environment, switches to developer user)
-docker exec -it sindri-docker /docker/scripts/entrypoint.sh /bin/bash
+docker exec -it sindri-docker /v2/docker/scripts/entrypoint.sh /bin/bash
 ```
 
 ### Lifecycle Management

@@ -727,17 +727,17 @@ providers:
 Validate your configuration:
 
 ```bash
-./cli/sindri config validate
+./v2/cli/sindri config validate
 ```
 
-Validates against JSON schema: `docker/lib/schemas/sindri.schema.json`
+Validates against JSON schema: `v2/docker/lib/schemas/sindri.schema.json`
 
 ## Schema Location
 
 JSON schema for validation:
 
 ```text
-docker/lib/schemas/sindri.schema.json
+v2/docker/lib/schemas/sindri.schema.json
 ```
 
 ## Related Documentation

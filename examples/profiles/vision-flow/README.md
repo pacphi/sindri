@@ -16,7 +16,7 @@ Example configurations for VisionFlow extension profiles.
 ### VisionFlow Core (Document Processing)
 
 ```bash
-./cli/sindri deploy --config examples/profiles/vision-flow/visionflow-core.sindri.yaml
+./v2/cli/sindri deploy --config examples/profiles/vision-flow/visionflow-core.sindri.yaml
 ```
 
 **Includes**:
@@ -29,7 +29,7 @@ Example configurations for VisionFlow extension profiles.
 ### VisionFlow Data Scientist (AI/ML)
 
 ```bash
-./cli/sindri deploy --config examples/profiles/vision-flow/visionflow-data-scientist.sindri.yaml
+./v2/cli/sindri deploy --config examples/profiles/vision-flow/visionflow-data-scientist.sindri.yaml
 ```
 
 **Includes**:
@@ -49,7 +49,7 @@ Example configurations for VisionFlow extension profiles.
 ### VisionFlow Creative (3D/Design)
 
 ```bash
-./cli/sindri deploy --config examples/profiles/vision-flow/visionflow-creative.sindri.yaml
+./v2/cli/sindri deploy --config examples/profiles/vision-flow/visionflow-creative.sindri.yaml
 ```
 
 **Includes**:
@@ -65,7 +65,7 @@ Example configurations for VisionFlow extension profiles.
 ### VisionFlow Full (Everything)
 
 ```bash
-./cli/sindri deploy --config examples/profiles/vision-flow/visionflow-full.sindri.yaml
+./v2/cli/sindri deploy --config examples/profiles/vision-flow/visionflow-full.sindri.yaml
 ```
 
 **Includes**: All 34 VisionFlow extensions
@@ -83,13 +83,13 @@ Test each profile configuration:
 
 ```bash
 # Validate configuration
-./cli/sindri config validate --config examples/profiles/vision-flow/visionflow-core.sindri.yaml
+./v2/cli/sindri config validate --config examples/profiles/vision-flow/visionflow-core.sindri.yaml
 
 # Run quick test (CLI validation)
-./cli/sindri test --config examples/profiles/vision-flow/visionflow-core.sindri.yaml --level quick
+./v2/cli/sindri test --config examples/profiles/vision-flow/visionflow-core.sindri.yaml --level quick
 
 # Run profile test (full lifecycle)
-./cli/sindri test --config examples/profiles/vision-flow/visionflow-core.sindri.yaml --level profile
+./v2/cli/sindri test --config examples/profiles/vision-flow/visionflow-core.sindri.yaml --level profile
 ```
 
 ## Resource Requirements

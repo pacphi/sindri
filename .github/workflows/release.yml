@@ -128,9 +128,9 @@ jobs:
           changelog+="cd sindri"$'\n'
           changelog+="git checkout $current_tag"$'\n\n'
           changelog+="# Deploy (choose your provider)"$'\n'
-          changelog+="./cli/sindri deploy --provider docker   # Local Docker"$'\n'
-          changelog+="./cli/sindri deploy --provider fly      # Fly.io"$'\n'
-          changelog+="./cli/sindri deploy --provider devpod   # DevContainer"$'\n'
+          changelog+="./v2/v2/cli/sindri deploy --provider docker   # Local Docker"$'\n'
+          changelog+="./v2/v2/cli/sindri deploy --provider fly      # Fly.io"$'\n'
+          changelog+="./v2/v2/cli/sindri deploy --provider devpod   # DevContainer"$'\n'
           changelog+='```'$'\n\n'
 
           # Add diff link if previous tag exists
@@ -276,7 +276,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: v2/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -335,9 +335,9 @@ jobs:
           echo "Sindri VERSION_PLACEHOLDER installed successfully!"
           echo ""
           echo "To deploy, run one of:"
-          echo "  ./cli/sindri deploy --provider docker   # Local Docker"
-          echo "  ./cli/sindri deploy --provider fly      # Fly.io"
-          echo "  ./cli/sindri deploy --provider devpod   # DevContainer"
+          echo "  ./v2/v2/cli/sindri deploy --provider docker   # Local Docker"
+          echo "  ./v2/v2/cli/sindri deploy --provider fly      # Fly.io"
+          echo "  ./v2/v2/cli/sindri deploy --provider devpod   # DevContainer"
           echo ""
           INSTALL_EOF
 
@@ -357,27 +357,27 @@ jobs:
           ## Configuration
 
           ```bash
-          ./cli/sindri config init        # Create sindri.yaml
-          ./cli/sindri config validate    # Validate configuration
+          ./v2/v2/cli/sindri config init        # Create sindri.yaml
+          ./v2/v2/cli/sindri config validate    # Validate configuration
           ```
 
           ## Deployment
 
           ```bash
-          ./cli/sindri deploy --provider docker   # Local Docker
-          ./cli/sindri deploy --provider fly      # Fly.io
-          ./cli/sindri deploy --provider devpod   # DevContainer
+          ./v2/v2/cli/sindri deploy --provider docker   # Local Docker
+          ./v2/v2/cli/sindri deploy --provider fly      # Fly.io
+          ./v2/v2/cli/sindri deploy --provider devpod   # DevContainer
           ```
 
           ## Extension Management
 
           ```bash
-          ./cli/extension-manager list               # List all extensions
-          ./cli/extension-manager list-profiles      # List extension profiles
-          ./cli/extension-manager install <ext>      # Install extension
-          ./cli/extension-manager install-profile <profile>  # Install profile
-          ./cli/extension-manager validate <ext>     # Validate extension
-          ./cli/extension-manager status <ext>       # Check extension status
+          ./v2/cli/extension-manager list               # List all extensions
+          ./v2/cli/extension-manager list-profiles      # List extension profiles
+          ./v2/cli/extension-manager install <ext>      # Install extension
+          ./v2/cli/extension-manager install-profile <profile>  # Install profile
+          ./v2/cli/extension-manager validate <ext>     # Validate extension
+          ./v2/cli/extension-manager status <ext>       # Check extension status
           ```
 
           ## Docker Image

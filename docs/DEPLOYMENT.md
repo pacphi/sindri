@@ -64,7 +64,7 @@ a local kind cluster is automatically created for testing.
 ### 1. Initialize Configuration
 
 ```bash
-./cli/sindri config init
+./v2/cli/sindri config init
 ```
 
 ### 2. Edit Configuration
@@ -84,27 +84,27 @@ extensions:
 ### 3. Validate
 
 ```bash
-./cli/sindri config validate
+./v2/cli/sindri config validate
 ```
 
 ### 4. Deploy
 
 ```bash
 # Use provider from config
-./cli/sindri deploy
+./v2/cli/sindri deploy
 
 # Or override provider
-./cli/sindri deploy --provider docker
+./v2/cli/sindri deploy --provider docker
 ```
 
 ### 5. Connect
 
 ```bash
 # Universal (auto-detects provider)
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # Or provider-specific commands:
-# Docker: docker exec -it my-dev-env /docker/scripts/entrypoint.sh /bin/bash
+# Docker: docker exec -it my-dev-env /v2/docker/scripts/entrypoint.sh /bin/bash
 # Fly.io: ssh developer@my-dev-env.fly.dev -p 10022
 # DevPod: devpod ssh my-dev-env
 ```
@@ -112,7 +112,7 @@ extensions:
 ### 6. Check Status
 
 ```bash
-./cli/sindri status
+./v2/cli/sindri status
 ```
 
 ## Choosing a Provider
@@ -194,17 +194,17 @@ See provider-specific guides for details.
 
 ```bash
 # Check status (any provider)
-./cli/sindri status
+./v2/cli/sindri status
 
 # Connect to environment (any provider)
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # Show deployment plan (dry-run)
-./cli/sindri plan
+./v2/cli/sindri plan
 
 # Teardown (any provider)
-./cli/sindri destroy         # With confirmation
-./cli/sindri destroy --force # Skip confirmation
+./v2/cli/sindri destroy         # With confirmation
+./v2/cli/sindri destroy --force # Skip confirmation
 ```
 
 ### Provider-Specific Commands
@@ -238,7 +238,7 @@ devpod delete my-dev-env
 
 ```bash
 # Pause sandbox (preserve state)
-./cli/sindri pause
+./v2/cli/sindri pause
 
 # E2B CLI commands
 e2b sandbox list

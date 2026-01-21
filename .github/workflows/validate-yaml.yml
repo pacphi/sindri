@@ -8,13 +8,13 @@ on:
     paths:
       - "**.yaml"
       - "**.yml"
-      - "docker/lib/schemas/*.json"
+      - "v2/docker/lib/schemas/*.json"
   push:
     branches: [main]
     paths:
       - "**.yaml"
       - "**.yml"
-      - "docker/lib/schemas/*.json"
+      - "v2/docker/lib/schemas/*.json"
   workflow_dispatch:
   workflow_call:
 
@@ -32,8 +32,8 @@ jobs:
       - name: Run yamllint
         run: |
           yamllint --strict \
-            docker/lib/*.yaml \
-            docker/lib/extensions/*/extension.yaml \
+            v2/docker/lib/*.yaml \
+            v2/docker/lib/extensions/*/extension.yaml \
             examples/**/*.yaml \
             .github/workflows/*.yml
 
@@ -53,11 +53,11 @@ jobs:
       - name: Install tools
         run: |
           npm install -g ajv-cli ajv-formats
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          wget https://github.com/mikefarah/yq/releases/lav2/test/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
       - name: Validate all schemas
-        run: ./test/unit/yaml/validate-schema.sh all
+        run: ./v2/test/unit/yaml/validate-schema.sh all
 
   cross-references:
     name: Cross-Reference Validation
@@ -68,11 +68,11 @@ jobs:
 
       - name: Install yq
         run: |
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          wget https://github.com/mikefarah/yq/releases/lav2/test/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
       - name: Validate cross-references
-        run: ./test/unit/yaml/test-cross-references.sh
+        run: ./v2/test/unit/yaml/test-cross-references.sh
 
   domain-requirements:
     name: Domain Requirements Validation
@@ -83,15 +83,15 @@ jobs:
 
       - name: Install yq
         run: |
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          wget https://github.com/mikefarah/yq/releases/lav2/test/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
       - name: Validate domain requirements
         run: |
-          chmod +x test/unit/yaml/test-domain-requirements.sh
+          chmod +x v2/test/unit/yaml/test-domain-requirements.sh
           # Run format/duplicate validation (hard fail)
           # DNS validation disabled in CI (network may be restricted)
-          VALIDATE_DNS=false ./test/unit/yaml/test-domain-requirements.sh
+          VALIDATE_DNS=false ./v2/test/unit/yaml/test-domain-requirements.sh
 
   extension-consistency:
     name: Extension Consistency
@@ -102,14 +102,14 @@ jobs:
 
       - name: Install yq
         run: |
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          wget https://github.com/mikefarah/yq/releases/lav2/test/download/yq_linux_amd64 -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
       - name: Check extension naming consistency
         run: |
           # Extension directory name must match metadata.name
           FAILURES=0
-          for ext_dir in docker/lib/extensions/*/; do
+          for ext_dir in v2/docker/lib/extensions/*/; do
             if [[ -f "$ext_dir/extension.yaml" ]]; then
               dir_name=$(basename "$ext_dir")
               yaml_name=$(yq '.metadata.name' "$ext_dir/extension.yaml")
@@ -131,11 +131,11 @@ jobs:
         run: |
           # Extension category must match registry entry
           FAILURES=0
-          for ext_dir in docker/lib/extensions/*/; do
+          for ext_dir in v2/docker/lib/extensions/*/; do
             if [[ -f "$ext_dir/extension.yaml" ]]; then
               ext_name=$(basename "$ext_dir")
               ext_category=$(yq '.metadata.category // ""' "$ext_dir/extension.yaml")
-              reg_category=$(yq ".extensions.$ext_name.category // \"\"" docker/lib/registry.yaml)
+              reg_category=$(yq ".extensions.$ext_name.category // \"\"" v2/docker/lib/registry.yaml)
 
               if [[ -n "$ext_category" ]] && [[ -n "$reg_category" ]] && \
                  [[ "$ext_category" != "$reg_category" ]]; then

@@ -32,10 +32,10 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │   ├── core/                     # Core functionality
 │   │   ├── setup-sindri/         # Environment setup, config parsing
 │   │   ├── build-image/          # Docker image building with caching
-│   │   └── test-cli/             # CLI command testing
+│   │   └── test-v2/cli/             # CLI command testing
 │   │
 │   └── providers/                # Provider-specific actions
-│       ├── docker/
+│       ├── v2/docker/
 │       │   └── setup/            # Docker/Buildx setup
 │       ├── fly/
 │       │   ├── setup/            # Fly CLI install, app creation
@@ -60,7 +60,7 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 examples/                         # Test fixtures AND user examples
 ├── fly/
 │   └── regions/                  # Region-specific examples
-├── docker/
+├── v2/docker/
 ├── devpod/
 │   ├── aws/
 │   │   └── regions/
@@ -131,7 +131,7 @@ Comprehensive YAML validation:
 
 Registry-based extension testing that runs in Docker (fast, local):
 
-- **Reads** extensions directly from `docker/lib/registry.yaml`
+- **Reads** extensions directly from `v2/docker/lib/registry.yaml`
 - **Supports** single extension, comma-separated list, or `all`
 - **Matrix** runs each extension as a separate job (max 4 parallel)
 - **Excludes** protected base extensions from `all` (mise-config, github-cli)
@@ -216,7 +216,7 @@ Two deployment workflows serve different use cases:
 - uses: ./.github/actions/providers/fly/deploy
 
 # deploy-sindri: Direct CLI calls
-./cli/sindri deploy --config "$CONFIG" --provider fly
+./v2/cli/sindri deploy --config "$CONFIG" --provider fly
 ```
 
 **When to Use Each:**
@@ -342,7 +342,7 @@ Extension testing is **profile-driven**: the selected profile determines which e
 
 ### Available Profiles
 
-Profiles are defined in `docker/lib/profiles.yaml` with varying resource requirements:
+Profiles are defined in `v2/docker/lib/profiles.yaml` with varying resource requirements:
 
 | Profile         | Extensions | Disk Required | Timeout |
 | --------------- | ---------- | ------------- | ------- |
@@ -361,9 +361,9 @@ The `test-provider.yml` workflow calculates resource requirements based on the s
 
 1. **Resource Aggregation**: Sums `diskSpace`, `memory`, and `installTime` from all extensions in a profile
 2. **Tier Classification**: Maps totals to resource tiers (small/medium/large/xlarge)
-3. **Provider Mapping**: Translates tiers to provider-specific VM sizes using `docker/lib/vm-sizes.yaml`
+3. **Provider Mapping**: Translates tiers to provider-specific VM sizes using `v2/docker/lib/vm-sizes.yaml`
 
-**VM Size Mappings** (`docker/lib/vm-sizes.yaml`):
+**VM Size Mappings** (`v2/docker/lib/vm-sizes.yaml`):
 
 | Provider     | Small         | Medium        | Large           | XLarge          |
 | ------------ | ------------- | ------------- | --------------- | --------------- |
@@ -394,7 +394,7 @@ The `sindri.yaml` file specifies the extension profile to deploy:
 
 ```yaml
 extensions:
-  profile: fullstack # Uses profile from docker/lib/profiles.yaml
+  profile: fullstack # Uses profile from v2/docker/lib/profiles.yaml
 ```
 
 ## Scripts Directory
@@ -623,11 +623,11 @@ extensions: all
 ./test/unit/yaml/run-all-yaml-tests.sh
 
 # Test specific config
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+./v2/cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
 
 # Deploy and connect
-./cli/sindri deploy --config examples/fly/minimal.sindri.yaml
-./cli/sindri connect --config examples/fly/minimal.sindri.yaml
+./v2/cli/sindri deploy --config examples/fly/minimal.sindri.yaml
+./v2/cli/sindri connect --config examples/fly/minimal.sindri.yaml
 ```
 
 ## Adding New Test Scenarios
@@ -645,8 +645,8 @@ extensions: all
 
 Extensions are automatically tested via `test-extensions.yml`:
 
-1. Add new extension to `docker/lib/registry.yaml`
-2. Create extension definition in `docker/lib/extensions/<name>/extension.yaml`
+1. Add new extension to `v2/docker/lib/registry.yaml`
+2. Create extension definition in `v2/docker/lib/extensions/<name>/extension.yaml`
 3. Test individually: trigger workflow with `extensions: <name>`
 4. Test with all: trigger workflow with `extensions: all` (excludes protected extensions)
 
@@ -671,7 +671,7 @@ Extensions are automatically tested via `test-extensions.yml`:
 ```bash
 # Local debugging
 export DEBUG=true
-./cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+./v2/cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
 ```
 
 ## References

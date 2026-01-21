@@ -371,7 +371,7 @@ bom:
 ## Registry Entry Format
 
 ```yaml
-# docker/lib/registry.yaml
+# v2/docker/lib/registry.yaml
 extensions:
   my-extension:
     category: dev-tools

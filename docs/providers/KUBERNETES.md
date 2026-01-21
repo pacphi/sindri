@@ -25,30 +25,30 @@ Pod, PVC, and Service creation while providing DevContainer compatibility and ID
 cp examples/devpod/kubernetes/minimal.sindri.yaml sindri.yaml
 
 # 2. Deploy
-./cli/sindri deploy
+./v2/cli/sindri deploy
 
 # 3. Connect
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # 4. When done
-./cli/sindri destroy
+./v2/cli/sindri destroy
 ```
 
 ### Deploy to Local Cluster (kind/k3d)
 
 ```bash
 # 1. Create a local kind cluster
-./cli/sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
+./v2/cli/sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
 
 # 2. Deploy Sindri to it
-./cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+./v2/cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
 
 # 3. Connect
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # 4. Cleanup
-./cli/sindri destroy
-./cli/sindri k8s destroy --name sindri-kind-local
+./v2/cli/sindri destroy
+./v2/cli/sindri k8s destroy --name sindri-kind-local
 ```
 
 ## Prerequisites
@@ -186,16 +186,16 @@ Sindri can create and manage local Kubernetes clusters for development.
 
 ```bash
 # List local clusters (kind and k3d)
-./cli/sindri k8s list
+./v2/cli/sindri k8s list
 
 # Create cluster from config
-./cli/sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
+./v2/cli/sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
 
 # Get kubeconfig for external tools
-./cli/sindri k8s config --name sindri-kind-local
+./v2/cli/sindri k8s config --name sindri-kind-local
 
 # Destroy cluster
-./cli/sindri k8s destroy --name sindri-kind-local
+./v2/cli/sindri k8s destroy --name sindri-kind-local
 ```
 
 ### kind Cluster Configuration

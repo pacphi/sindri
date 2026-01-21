@@ -15,7 +15,7 @@ Comprehensive review of all VisionFlow extensions for external references and po
 
 ### Issue 1: ComfyUI External Clone
 
-**File**: `docker/lib/extensions/vf-comfyui/install.sh:28`
+**File**: `v2/docker/lib/extensions/vf-comfyui/install.sh:28`
 
 ```bash
 git clone https://github.com/comfyanonymous/ComfyUI.git "${EXTENSION_DIR}/ComfyUI" || true
@@ -47,7 +47,7 @@ fi
 
 ### Issue 2: External Repository Reference in Documentation
 
-**File**: `docker/lib/extensions/vf-vnc-desktop/resources/entrypoint-unified.sh`
+**File**: `v2/docker/lib/extensions/vf-vnc-desktop/resources/entrypoint-unified.sh`
 
 ```text
 Repository: https://github.com/ChrisRoyse/610ClaudeSubagents
@@ -142,7 +142,7 @@ Extensions that use `apt-get install`:
 All extensions have resources copied from VisionFlow:
 
 ```text
-docker/lib/extensions/vf-*/resources/
+v2/docker/lib/extensions/vf-*/resources/
 ├── SKILL.md              ✓ (34/34)
 ├── mcp-server/           ✓ (13/13 MCP servers)
 ├── tools/                ✓ (8/8 with tools)
@@ -216,11 +216,11 @@ All documentation follows Sindri format correctly:
 
 ```bash
 # Validate all extensions
-./cli/extension-manager validate-all
+./v2/cli/extension-manager validate-all
 
 # Test ComfyUI fix
-./cli/extension-manager install vf-comfyui
+./v2/cli/extension-manager install vf-comfyui
 
 # Check for external URLs in install scripts
-grep -r "https\?://" docker/lib/extensions/vf-*/install.sh
+grep -r "https\?://" v2/docker/lib/extensions/vf-*/install.sh
 ```

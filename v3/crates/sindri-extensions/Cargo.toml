@@ -1,0 +1,34 @@
+[package]
+name = "sindri-extensions"
+description = "Extension management for Sindri CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+sindri-core = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+petgraph = { workspace = true }
+duct = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+semver = { workspace = true }
+url = { workspace = true }
+octocrab = { workspace = true }
+directories = { workspace = true }
+camino = { workspace = true }
+uuid = { workspace = true }
+tar = { workspace = true }
+flate2 = { workspace = true }
+dirs = "5.0"
+
+[dev-dependencies]
+tempfile = "3.8"

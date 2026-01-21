@@ -1,0 +1,21 @@
+[package]
+name = "sindri-update"
+description = "Self-update functionality for Sindri CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+sindri-core = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+semver = { workspace = true }
+self_update = { workspace = true }
+octocrab = { workspace = true }

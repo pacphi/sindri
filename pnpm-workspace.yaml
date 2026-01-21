@@ -1,8 +1,7 @@
 # pnpm workspace configuration
-# Allows for potential future monorepo structure
+# Monorepo structure with v2 (bash/TypeScript) and v3 (Rust) implementations
 
 packages:
   - "."
-  - "cli/**"
-  - "extensions/**"
-  - "test/**"
+  - "v2"
+  - "v3"

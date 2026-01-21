@@ -92,13 +92,13 @@ providers:
 
 ```bash
 # Deploy to E2B
-./cli/sindri deploy --provider e2b
+./v2/cli/sindri deploy --provider e2b
 
 # Check status
-./cli/sindri status
+./v2/cli/sindri status
 
 # Connect
-./cli/sindri connect
+./v2/cli/sindri connect
 ```
 
 ### 3. Work
@@ -114,7 +114,7 @@ git clone https://github.com/your/project.git
 
 ```bash
 # Pause to preserve state (from host)
-./cli/sindri pause
+./v2/cli/sindri pause
 
 # Or let it auto-pause after timeout
 ```
@@ -123,14 +123,14 @@ git clone https://github.com/your/project.git
 
 ```bash
 # Resume where you left off
-./cli/sindri connect  # Auto-resumes if paused
+./v2/cli/sindri connect  # Auto-resumes if paused
 ```
 
 ### 6. Cleanup
 
 ```bash
 # Destroy sandbox (loses state)
-./cli/sindri destroy
+./v2/cli/sindri destroy
 ```
 
 ## Configuration Reference
@@ -224,32 +224,32 @@ secrets:
 
 ```bash
 # Deploy / create sandbox
-./cli/sindri deploy --provider e2b
+./v2/cli/sindri deploy --provider e2b
 
 # Check status
-./cli/sindri status
+./v2/cli/sindri status
 
 # Connect to sandbox
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # Show deployment plan
-./cli/sindri plan
+./v2/cli/sindri plan
 
 # Destroy sandbox
-./cli/sindri destroy
-./cli/sindri destroy --force  # Skip confirmation
+./v2/cli/sindri destroy
+./v2/cli/sindri destroy --force  # Skip confirmation
 ```
 
 ### E2B-Specific Commands
 
 ```bash
 # Pause sandbox (preserve state)
-./cli/sindri pause
+./v2/cli/sindri pause
 
 # Template management
-./cli/sindri template build     # Build template from Dockerfile
-./cli/sindri template list      # List available templates
-./cli/sindri template delete    # Delete a template
+./v2/cli/sindri template build     # Build template from Dockerfile
+./v2/cli/sindri template list      # List available templates
+./v2/cli/sindri template delete    # Delete a template
 ```
 
 ### Direct E2B CLI Usage
@@ -332,7 +332,7 @@ git commit -m "Work in progress"
 git push origin feature-branch
 
 # Pause (don't destroy) to preserve state
-./cli/sindri pause
+./v2/cli/sindri pause
 
 # Use GitHub for persistent storage
 ```
@@ -345,7 +345,7 @@ E2B sandboxes don't support SSH. Instead, Sindri provides terminal access via We
 
 ```bash
 # Connect via Sindri CLI (recommended)
-./cli/sindri connect
+./v2/cli/sindri connect
 
 # Or via E2B CLI directly
 e2b sandbox terminal <sandbox-id>

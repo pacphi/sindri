@@ -49,10 +49,10 @@ Six parallel research agents conducted comprehensive analysis:
 Scripts download and execute code without integrity verification:
 
 ```bash
-# docker/scripts/install-mise.sh
+# v2/docker/scripts/install-mise.sh
 curl -fsSL https://mise.run | MISE_INSTALL_PATH="$MISE_INSTALL_PATH" sh
 
-# docker/scripts/install-claude.sh
+# v2/docker/scripts/install-claude.sh
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
@@ -80,7 +80,7 @@ curl -fsSL https://claude.ai/install.sh | bash
 
 ```bash
 #!/bin/bash
-# docker/scripts/install-mise.sh - Secure version
+# v2/docker/scripts/install-mise.sh - Secure version
 
 set -euo pipefail
 
@@ -153,7 +153,7 @@ jobs:
           INSTALLER_URL="https://mise.run/install.sh"
           NEW_HASH=$(curl -fsSL "$INSTALLER_URL" | sha256sum | cut -d' ' -f1)
 
-          sed -i "s/MISE_SHA256=\"[^\"]*\"/MISE_SHA256=\"${NEW_HASH}\"/" docker/scripts/install-mise.sh
+          sed -i "s/MISE_SHA256=\"[^\"]*\"/MISE_SHA256=\"${NEW_HASH}\"/" v2/docker/scripts/install-mise.sh
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
@@ -234,7 +234,7 @@ jobs:
 Tokens stored and propagated insecurely:
 
 ```bash
-# docker/scripts/entrypoint.sh:262-277
+# v2/docker/scripts/entrypoint.sh:262-277
 cat > "${ALT_HOME}/.git-credential-helper.sh" << 'GITCRED'
 #!/bin/bash
 if [ "$1" = "get" ]; then
@@ -284,7 +284,7 @@ export GITHUB_TOKEN="${GITHUB_TOKEN}"  # ⚠️ VISIBLE IN PROCESS LIST
 
 ```bash
 #!/bin/bash
-# docker/scripts/entrypoint.sh - Enhanced GitHub authentication
+# v2/docker/scripts/entrypoint.sh - Enhanced GitHub authentication
 
 setup_github_authentication() {
     local developer_user="${DEVELOPER_USER:-developer}"
@@ -342,7 +342,7 @@ setup_github_authentication() {
 
 ```bash
 #!/bin/bash
-# docker/scripts/entrypoint.sh - Minimal security improvement
+# v2/docker/scripts/entrypoint.sh - Minimal security improvement
 
 setup_github_authentication() {
     local developer_user="${DEVELOPER_USER:-developer}"
@@ -661,7 +661,7 @@ install_via_binary() {
 #### Example Extension Usage
 
 ```yaml
-# docker/lib/extensions/example-binary/extension.yaml
+# v2/docker/lib/extensions/example-binary/extension.yaml
 metadata:
   name: example-binary
   version: "1.0.0"
@@ -685,7 +685,7 @@ install:
 **Files to Modify:**
 
 1. `cli/extension-manager-modules/executor.sh` - Add checksum verification logic
-2. `docker/lib/schemas/extension.schema.json` - Add integrity property
+2. `v2/docker/lib/schemas/extension.schema.json` - Add integrity property
 3. `docs/EXTENSION_AUTHORING.md` - Document integrity verification
 
 **Testing:**
@@ -735,7 +735,7 @@ done
 
 ```bash
 #!/bin/bash
-# docker/lib/common.sh - Enhanced DNS validation
+# v2/docker/lib/common.sh - Enhanced DNS validation
 
 retry_dns_with_backoff() {
     local domain="$1"
@@ -1061,7 +1061,7 @@ volumes:
 #### Deploy Adapter Updates
 
 ```bash
-# deploy/adapters/docker-adapter.sh
+# v2/deploy/adapters/docker-adapter.sh
 
 generate_docker_compose() {
     # ... existing code ...
@@ -1099,7 +1099,7 @@ docker exec sindri-dev ping other-container  # Should fail (isolated)
 **Files to Modify:**
 
 1. `docker-compose.yml` - Add networks section
-2. `deploy/adapters/docker-adapter.sh` - Generate network in Compose file
+2. `v2/deploy/adapters/docker-adapter.sh` - Generate network in Compose file
 3. `.devcontainer/devcontainer.json` - Add --network run arg
 4. `docs/DEPLOYMENT.md` - Document network isolation
 

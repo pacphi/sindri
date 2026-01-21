@@ -1,0 +1,287 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/project-capabilities.schema.json",
+  "title": "Extension Project Capabilities",
+  "description": "Schema for extension project capabilities including initialization, authentication, hooks, and MCP server registration",
+  "type": "object",
+  "properties": {
+    "capabilities": {
+      "type": "object",
+      "description": "Optional capabilities that extensions can declare for project initialization, auth, hooks, and MCP integration",
+      "properties": {
+        "project-init": {
+          "type": "object",
+          "description": "Project initialization commands and state markers",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether project initialization is enabled"
+            },
+            "commands": {
+              "type": "array",
+              "description": "Commands to run during project initialization",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "Shell command to execute"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Human-readable description of what this command does"
+                  },
+                  "requiresAuth": {
+                    "type": "string",
+                    "enum": ["anthropic", "openai", "github", "none"],
+                    "default": "none",
+                    "description": "Authentication provider required for this command"
+                  },
+                  "conditional": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether this command is conditional (runs only if dependencies available)"
+                  }
+                },
+                "required": ["command", "description"]
+              }
+            },
+            "state-markers": {
+              "type": "array",
+              "description": "Files or directories that indicate successful initialization",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Relative path to the state marker"
+                  },
+                  "type": {
+                    "enum": ["directory", "file", "symlink"],
+                    "description": "Type of state marker"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Human-readable description of this state marker"
+                  }
+                },
+                "required": ["path", "type"]
+              }
+            },
+            "validation": {
+              "type": "object",
+              "description": "Command to validate successful initialization",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Shell command to run for validation"
+                },
+                "expectedPattern": {
+                  "type": "string",
+                  "description": "Regex pattern that output should match"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0,
+                  "description": "Expected exit code for successful validation"
+                }
+              },
+              "required": ["command"]
+            }
+          },
+          "required": ["enabled"]
+        },
+        "auth": {
+          "type": "object",
+          "description": "Authentication requirements for the extension",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai", "github", "custom"],
+              "description": "Authentication provider"
+            },
+            "required": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether authentication is required (vs optional)"
+            },
+            "envVars": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Required environment variables (e.g., ANTHROPIC_API_KEY)"
+            },
+            "validator": {
+              "type": "object",
+              "description": "Custom validation command",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Command to validate authentication"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0,
+                  "description": "Expected exit code for successful auth validation"
+                }
+              },
+              "required": ["command"]
+            }
+          },
+          "required": ["provider"]
+        },
+        "hooks": {
+          "type": "object",
+          "description": "Lifecycle hooks for installation and initialization",
+          "properties": {
+            "pre-install": {
+              "type": "object",
+              "description": "Hook executed before extension installation",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Shell command to execute"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Human-readable description"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-install": {
+              "type": "object",
+              "description": "Hook executed after extension installation",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Shell command to execute"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Human-readable description"
+                }
+              },
+              "required": ["command"]
+            },
+            "pre-project-init": {
+              "type": "object",
+              "description": "Hook executed before project initialization",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Shell command to execute"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Human-readable description"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-project-init": {
+              "type": "object",
+              "description": "Hook executed after project initialization",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Shell command to execute"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Human-readable description"
+                }
+              },
+              "required": ["command"]
+            }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "description": "MCP (Model Context Protocol) server registration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether MCP server registration is enabled"
+            },
+            "server": {
+              "type": "object",
+              "description": "MCP server configuration",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Command to start MCP server (e.g., npx)"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Additional command-line arguments"
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Environment variables for MCP server"
+                }
+              },
+              "required": ["command"]
+            },
+            "tools": {
+              "type": "array",
+              "description": "List of MCP tools this extension provides",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Tool name"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Tool description"
+                  }
+                },
+                "required": ["name", "description"]
+              }
+            }
+          },
+          "required": ["enabled"]
+        },
+        "project-context": {
+          "type": "object",
+          "description": "Project context file management (e.g., CLAUDE.md merging)",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether project context management is enabled"
+            },
+            "mergeFile": {
+              "type": "object",
+              "description": "File merging configuration",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "Source file (from extension directory)"
+                },
+                "target": {
+                  "type": "string",
+                  "description": "Target file (in project directory)"
+                },
+                "strategy": {
+                  "enum": ["append", "prepend", "merge", "replace", "append-if-missing"],
+                  "description": "Merge strategy"
+                }
+              },
+              "required": ["source", "target", "strategy"]
+            }
+          },
+          "required": ["enabled"]
+        }
+      }
+    }
+  }
+}

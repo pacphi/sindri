@@ -1,0 +1,711 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/sindri.schema.json",
+  "title": "Sindri Configuration",
+  "description": "Provider-agnostic Sindri deployment configuration",
+  "type": "object",
+  "required": ["version", "name", "deployment", "extensions"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Deployment name"
+    },
+    "deployment": {
+      "type": "object",
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod", "e2b"],
+          "description": "Deployment provider (docker is an alias for docker-compose)"
+        },
+        "image": {
+          "type": "string",
+          "description": "Docker image to deploy"
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^\\d+(MB|GB)$"
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "gpu": {
+              "type": "object",
+              "description": "GPU configuration for compute workloads",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable GPU support for this deployment"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["nvidia", "amd"],
+                  "default": "nvidia",
+                  "description": "GPU vendor type"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8,
+                  "default": 1,
+                  "description": "Number of GPUs to request"
+                },
+                "tier": {
+                  "type": "string",
+                  "enum": ["gpu-small", "gpu-medium", "gpu-large", "gpu-xlarge"],
+                  "description": "GPU tier for automatic instance selection"
+                },
+                "memory": {
+                  "type": "string",
+                  "pattern": "^\\d+(GB|MB)$",
+                  "description": "Minimum GPU memory required (e.g., 16GB, 24GB)"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "volumes": {
+          "type": "object",
+          "properties": {
+            "workspace": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "default": "/alt/home/developer/workspace",
+                  "description": "Container path for workspace volume"
+                },
+                "size": {
+                  "type": "string",
+                  "pattern": "^\\d+(MB|GB)$",
+                  "default": "10GB"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Extension configuration: use profile, active list, or profile with additional extensions",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": [
+            "minimal",
+            "fullstack",
+            "ai-dev",
+            "anthropic-dev",
+            "systems",
+            "enterprise",
+            "devops",
+            "mobile",
+            "visionflow-core",
+            "visionflow-data-scientist",
+            "visionflow-creative",
+            "visionflow-full"
+          ],
+          "description": "Extension profile to use as a base"
+        },
+        "active": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Explicit list of extensions to install (mutually exclusive with profile)"
+        },
+        "additional": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional extensions to install on top of a profile"
+        },
+        "autoInstall": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-install extensions on container startup (default: true). Set to false for manual control or CI testing."
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": ["profile"],
+          "not": { "required": ["active"] }
+        },
+        {
+          "required": ["active"],
+          "allOf": [{ "not": { "required": ["profile"] } }, { "not": { "required": ["additional"] } }]
+        }
+      ]
+    },
+    "secrets": {
+      "type": "array",
+      "description": "Secrets to inject into the deployment",
+      "items": {
+        "type": "object",
+        "required": ["name", "source"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Environment variable name for the secret",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["env", "file", "vault"],
+            "description": "Source type: env (environment/file), file (file mount), vault (HashiCorp Vault)"
+          },
+          "fromFile": {
+            "type": "string",
+            "description": "Read secret value from file content (for source: env). Supports ~ expansion. Falls back to env var if file not found."
+          },
+          "required": {
+            "type": "boolean",
+            "default": false,
+            "description": "Fail deployment if secret is not available"
+          },
+          "path": {
+            "type": "string",
+            "description": "File path (for source: file)"
+          },
+          "mountPath": {
+            "type": "string",
+            "description": "Container destination path (for source: file)"
+          },
+          "permissions": {
+            "type": "string",
+            "pattern": "^0[0-7]{3}$",
+            "default": "0644",
+            "description": "Unix file permissions in octal (for source: file)"
+          },
+          "vaultPath": {
+            "type": "string",
+            "description": "Vault KV path (for source: vault)"
+          },
+          "vaultKey": {
+            "type": "string",
+            "description": "Key within the Vault secret (for source: vault)"
+          },
+          "vaultMount": {
+            "type": "string",
+            "default": "secret",
+            "description": "Vault mount point (for source: vault)"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "source": { "const": "file" } }
+            },
+            "then": {
+              "required": ["path", "mountPath"]
+            }
+          },
+          {
+            "if": {
+              "properties": { "source": { "const": "vault" } }
+            },
+            "then": {
+              "required": ["vaultPath", "vaultKey"]
+            }
+          }
+        ]
+      }
+    },
+    "providers": {
+      "type": "object",
+      "properties": {
+        "fly": {
+          "type": "object",
+          "properties": {
+            "region": {
+              "type": "string",
+              "default": "sjc",
+              "description": "Fly.io region code (e.g., sjc, ord, iad, ams)"
+            },
+            "autoStopMachines": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-suspend machines when idle (cost optimization)"
+            },
+            "autoStartMachines": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-start machines on incoming connections"
+            },
+            "cpuKind": {
+              "type": "string",
+              "enum": ["shared", "performance"],
+              "default": "shared",
+              "description": "CPU type: shared (cost-effective) or performance (dedicated)"
+            },
+            "sshPort": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65535,
+              "default": 10022,
+              "description": "External SSH port"
+            },
+            "organization": {
+              "type": "string",
+              "description": "Fly.io organization name"
+            },
+            "highAvailability": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable high availability (multiple machines)"
+            }
+          }
+        },
+        "docker": {
+          "type": "object",
+          "description": "Docker Compose provider options",
+          "properties": {
+            "network": {
+              "type": "string",
+              "enum": ["bridge", "host", "none"],
+              "default": "bridge",
+              "description": "Docker network mode"
+            },
+            "restart": {
+              "type": "string",
+              "enum": ["no", "always", "on-failure", "unless-stopped"],
+              "default": "unless-stopped",
+              "description": "Container restart policy"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^\\d+:\\d+$"
+              },
+              "description": "Additional port mappings (e.g., '3000:3000')"
+            },
+            "privileged": {
+              "type": "boolean",
+              "default": false,
+              "description": "Run container in privileged mode (legacy DinD, security risk)"
+            },
+            "extraHosts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Extra hosts to add to /etc/hosts (e.g., 'host.docker.internal:host-gateway')"
+            },
+            "runtime": {
+              "type": "string",
+              "enum": ["runc", "sysbox-runc", "auto"],
+              "default": "auto",
+              "description": "Container runtime. 'auto' uses sysbox-runc if available, falls back to runc"
+            },
+            "dind": {
+              "type": "object",
+              "description": "Docker-in-Docker configuration for running Docker inside Sindri containers",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable Docker-in-Docker support"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": ["sysbox", "privileged", "socket", "auto"],
+                  "default": "auto",
+                  "description": "DinD mode: sysbox (secure, requires host setup), privileged (legacy, uses vfs), socket (share host Docker daemon), auto (detect best available)"
+                },
+                "storageDriver": {
+                  "type": "string",
+                  "enum": ["auto", "overlay2", "fuse-overlayfs", "vfs"],
+                  "default": "auto",
+                  "description": "Storage driver for inner Docker daemon (only used in privileged mode)"
+                },
+                "storageSize": {
+                  "type": "string",
+                  "pattern": "^\\d+(MB|GB)$",
+                  "default": "20GB",
+                  "description": "Size limit for Docker storage volume (used with vfs driver)"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "kubernetes": {
+          "type": "object",
+          "properties": {
+            "namespace": {
+              "type": "string",
+              "default": "default"
+            },
+            "storageClass": {
+              "type": "string"
+            },
+            "ingress": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "hostname": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "devpod": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["aws", "gcp", "azure", "digitalocean", "kubernetes", "ssh", "docker"],
+              "description": "DevPod provider type"
+            },
+            "buildRepository": {
+              "type": "string",
+              "description": "Docker registry URL for image push (required for non-local Kubernetes and cloud providers). Example: ghcr.io/myorg/sindri"
+            },
+            "aws": {
+              "type": "object",
+              "description": "AWS EC2 provider options",
+              "properties": {
+                "region": {
+                  "type": "string",
+                  "default": "us-west-2",
+                  "description": "AWS region"
+                },
+                "instanceType": {
+                  "type": "string",
+                  "default": "c5.xlarge",
+                  "description": "EC2 instance type"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "default": 40,
+                  "description": "Root volume size in GB"
+                },
+                "useSpot": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Use spot instances for cost savings"
+                },
+                "subnetId": {
+                  "type": "string",
+                  "description": "VPC subnet ID for instance placement"
+                },
+                "securityGroupId": {
+                  "type": "string",
+                  "description": "Security group ID to attach"
+                }
+              }
+            },
+            "gcp": {
+              "type": "object",
+              "description": "GCP Compute Engine provider options",
+              "properties": {
+                "project": {
+                  "type": "string",
+                  "description": "GCP project ID"
+                },
+                "zone": {
+                  "type": "string",
+                  "default": "us-central1-a",
+                  "description": "GCP zone"
+                },
+                "machineType": {
+                  "type": "string",
+                  "default": "e2-standard-4",
+                  "description": "GCE machine type"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "default": 40,
+                  "description": "Boot disk size in GB"
+                },
+                "diskType": {
+                  "type": "string",
+                  "enum": ["pd-standard", "pd-balanced", "pd-ssd"],
+                  "default": "pd-balanced",
+                  "description": "Persistent disk type"
+                }
+              }
+            },
+            "azure": {
+              "type": "object",
+              "description": "Azure VM provider options",
+              "properties": {
+                "subscription": {
+                  "type": "string",
+                  "description": "Azure subscription ID"
+                },
+                "resourceGroup": {
+                  "type": "string",
+                  "default": "devpod-resources",
+                  "description": "Resource group name"
+                },
+                "location": {
+                  "type": "string",
+                  "default": "eastus",
+                  "description": "Azure region"
+                },
+                "vmSize": {
+                  "type": "string",
+                  "default": "Standard_D4s_v3",
+                  "description": "VM size"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "default": 40,
+                  "description": "OS disk size in GB"
+                }
+              }
+            },
+            "digitalocean": {
+              "type": "object",
+              "description": "DigitalOcean Droplet provider options",
+              "properties": {
+                "region": {
+                  "type": "string",
+                  "default": "nyc3",
+                  "description": "DigitalOcean region"
+                },
+                "size": {
+                  "type": "string",
+                  "default": "s-4vcpu-8gb",
+                  "description": "Droplet size"
+                },
+                "diskSize": {
+                  "type": "integer",
+                  "description": "Block storage size in GB (optional)"
+                }
+              }
+            },
+            "kubernetes": {
+              "type": "object",
+              "description": "Kubernetes pod provider options",
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "default": "devpod",
+                  "description": "Kubernetes namespace"
+                },
+                "storageClass": {
+                  "type": "string",
+                  "description": "Storage class for persistent volumes"
+                },
+                "context": {
+                  "type": "string",
+                  "description": "Kubernetes context to use"
+                },
+                "nodeSelector": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "Node selector labels"
+                }
+              }
+            },
+            "ssh": {
+              "type": "object",
+              "description": "SSH provider options for existing machines",
+              "properties": {
+                "host": {
+                  "type": "string",
+                  "description": "SSH host address"
+                },
+                "user": {
+                  "type": "string",
+                  "default": "root",
+                  "description": "SSH user"
+                },
+                "port": {
+                  "type": "integer",
+                  "default": 22,
+                  "description": "SSH port"
+                },
+                "keyPath": {
+                  "type": "string",
+                  "default": "~/.ssh/id_rsa",
+                  "description": "Path to SSH private key"
+                }
+              }
+            },
+            "docker": {
+              "type": "object",
+              "description": "Local Docker provider options",
+              "properties": {
+                "dockerHost": {
+                  "type": "string",
+                  "description": "Docker host URL (defaults to local socket)"
+                }
+              }
+            }
+          }
+        },
+        "k8s": {
+          "type": "object",
+          "description": "Local Kubernetes cluster configuration (kind, k3d)",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["kind", "k3d"],
+              "default": "kind",
+              "description": "Local K8s provider: kind (Kubernetes IN Docker) or k3d (K3s in Docker)"
+            },
+            "clusterName": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Cluster name (defaults to sindri.yaml name)"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^v?\\d+\\.\\d+\\.\\d+$",
+              "default": "v1.31.0",
+              "description": "Kubernetes version"
+            },
+            "nodes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 1,
+              "description": "Number of nodes (1 = single node, >1 = multi-node with workers)"
+            },
+            "kind": {
+              "type": "object",
+              "description": "kind-specific options",
+              "properties": {
+                "image": {
+                  "type": "string",
+                  "description": "Custom kind node image (e.g., kindest/node:v1.31.0)"
+                },
+                "configFile": {
+                  "type": "string",
+                  "description": "Path to kind cluster config YAML"
+                }
+              }
+            },
+            "k3d": {
+              "type": "object",
+              "description": "k3d-specific options",
+              "properties": {
+                "image": {
+                  "type": "string",
+                  "description": "Custom k3s image"
+                },
+                "registry": {
+                  "type": "object",
+                  "description": "Local registry configuration",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Create a local registry with the cluster"
+                    },
+                    "name": {
+                      "type": "string",
+                      "default": "k3d-registry",
+                      "description": "Registry name"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "default": 5000,
+                      "description": "Registry port"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "e2b": {
+          "type": "object",
+          "description": "E2B cloud sandbox provider options",
+          "properties": {
+            "templateAlias": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Custom template alias (auto-generated from name if omitted)"
+            },
+            "reuseTemplate": {
+              "type": "boolean",
+              "default": true,
+              "description": "Reuse existing template if available"
+            },
+            "timeout": {
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 86400,
+              "default": 300,
+              "description": "Sandbox timeout in seconds (default: 5 minutes)"
+            },
+            "autoPause": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-pause sandbox on timeout instead of killing"
+            },
+            "autoResume": {
+              "type": "boolean",
+              "default": true,
+              "description": "Auto-resume paused sandbox on connect"
+            },
+            "internetAccess": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable outbound internet access"
+            },
+            "allowedDomains": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": [],
+              "description": "Whitelist of allowed outbound domains (empty = all)"
+            },
+            "blockedDomains": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": [],
+              "description": "Blacklist of blocked outbound domains"
+            },
+            "publicAccess": {
+              "type": "boolean",
+              "default": false,
+              "description": "Allow public URL access to services running in sandbox"
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Custom metadata for sandbox identification"
+            },
+            "team": {
+              "type": "string",
+              "description": "E2B team for billing (defaults to personal)"
+            },
+            "buildOnDeploy": {
+              "type": "boolean",
+              "default": false,
+              "description": "Force rebuild template on every deploy"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

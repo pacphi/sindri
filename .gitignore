@@ -228,3 +228,9 @@ hive-mind-prompt-*.txt
 # Mise cache and runtime files
 .mise.local.toml
 mise.local.toml
+
+# Rust
+target/
+
+# Archives
+.archived/

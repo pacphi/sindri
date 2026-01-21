@@ -305,7 +305,7 @@ Track all installed software:
 
 ```bash
 # Generate SBOM
-./cli/extension-manager bom --format cyclonedx > sbom.cdx.json
+./v2/cli/extension-manager bom --format cyclonedx > sbom.cdx.json
 
 # Scan for vulnerabilities
 grype sbom:sbom.cdx.json
@@ -353,10 +353,10 @@ pnpm build
 
 ```bash
 # Validate all extensions
-./cli/extension-manager validate-all
+./v2/cli/extension-manager validate-all
 
 # Check BOM for vulnerabilities
-./cli/extension-manager bom --format cyclonedx | grype sbom:-
+./v2/cli/extension-manager bom --format cyclonedx | grype sbom:-
 ```
 
 ### Package Registry Security
@@ -407,7 +407,7 @@ cat ~/.bash_history
 
 ```bash
 # SBOM in SPDX format
-./cli/extension-manager bom --format spdx > sbom.spdx
+./v2/cli/extension-manager bom --format spdx > sbom.spdx
 
 # Scan against CVE database
 grype sbom:sbom.spdx

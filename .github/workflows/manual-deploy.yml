@@ -215,7 +215,7 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          ./cli/sindri deploy --provider docker
+          ./v2/v2/cli/sindri deploy --provider docker
           echo "url=http://localhost:8080" >> $GITHUB_OUTPUT
           echo "status=success" >> $GITHUB_OUTPUT
 
