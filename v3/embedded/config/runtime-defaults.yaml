@@ -1,0 +1,98 @@
+# Default Runtime Configuration for Sindri
+# These values match the hard-coded defaults from the original implementation
+# This file is embedded in the binary and serves as the base configuration
+
+network:
+  # HTTP request timeout in seconds
+  http-timeout-secs: 300  # 5 minutes
+
+  # Download operation timeout in seconds
+  download-timeout-secs: 300  # 5 minutes
+
+  # Deploy operation timeout in seconds
+  deploy-timeout-secs: 600  # 10 minutes
+
+  # Download chunk size in bytes
+  download-chunk-size: 1048576  # 1 MB
+
+  # User agent string for HTTP requests
+  user-agent: "sindri/{version} ({os}; {arch})"
+
+retry-policies:
+  # Default retry policy (used when no specific policy is defined)
+  default:
+    max-attempts: 3
+    strategy: exponential-backoff
+    backoff-multiplier: 2.0
+    initial-delay-ms: 1000
+    max-delay-ms: 30000
+
+  # Operation-specific retry policies
+  operations:
+    # Download operations use exponential backoff
+    download:
+      max-attempts: 3
+      strategy: exponential-backoff
+      backoff-multiplier: 2.0
+      initial-delay-ms: 1000
+      max-delay-ms: 30000
+
+github:
+  # Repository owner
+  repo-owner: "pacphi"
+
+  # Repository name
+  repo-name: "sindri"
+
+  # GitHub API base URL
+  api-url: "https://api.github.com"
+
+  # GitHub raw content base URL
+  raw-url: "https://raw.githubusercontent.com"
+
+backup:
+  # Maximum number of backup files to keep
+  max-backups: 2
+
+  # Backup file extension
+  backup-extension: ".bak"
+
+  # Include timestamp in backup filename
+  include-timestamp: true
+
+  # Timestamp format (chrono format string)
+  timestamp-format: "%Y%m%d_%H%M%S"
+
+git-workflow:
+  # Default branch name for new repositories
+  default-branch: "main"
+
+  # Default initial commit message
+  initial-commit-message: "chore: initial commit"
+
+  # Default remote name for origin
+  origin-remote: "origin"
+
+  # Default remote name for upstream
+  upstream-remote: "upstream"
+
+  # Common main branch names to check
+  main-branch-names:
+    - "main"
+    - "master"
+
+display:
+  # Number of lines to show in output previews
+  preview-lines: 10
+
+  # Number of context lines before a match
+  context-lines-before: 2
+
+  # Number of context lines after a match
+  context-lines-after: 2
+
+  # Enable colored output
+  color-enabled: true
+
+  # Enable verbose output by default
+  verbose: false

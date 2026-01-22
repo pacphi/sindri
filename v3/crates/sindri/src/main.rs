@@ -35,6 +35,8 @@ async fn main() -> Result<()> {
         Commands::Secrets(args) => commands::secrets::run(args).await,
         Commands::Backup(args) => commands::backup::run(args).await,
         Commands::Restore(args) => commands::restore::run(args).await,
+        Commands::New(args) => commands::project::new_project(args).await,
+        Commands::Clone(args) => commands::project::clone_project(args).await,
     }
 }
 

@@ -19,3 +19,21 @@ reqwest = { workspace = true }
 semver = { workspace = true }
 self_update = { workspace = true }
 octocrab = { workspace = true }
+sha2 = "0.10"
+indicatif = { workspace = true }
+tempfile = "3.8"
+futures-util = "0.3"
+bytes = "1.5"
+chrono = { workspace = true }
+uuid = { workspace = true }
+flate2 = { workspace = true }
+tar = { workspace = true }
+directories = { workspace = true }
+owo-colors = { workspace = true }
+
+[dev-dependencies]
+wiremock = "0.6"
+tokio-test = "0.4"
+tracing-subscriber = { workspace = true }
+hex = "0.4"
+clap = { workspace = true }

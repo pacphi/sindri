@@ -1,0 +1,208 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/runtime-config.schema.json",
+  "title": "Sindri Runtime Configuration",
+  "description": "Runtime configuration for operational parameters like network timeouts, retry policies, etc.",
+  "type": "object",
+  "properties": {
+    "network": {
+      "type": "object",
+      "description": "Network and HTTP configuration",
+      "properties": {
+        "http-timeout-secs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "HTTP request timeout in seconds"
+        },
+        "download-timeout-secs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Download operation timeout in seconds"
+        },
+        "deploy-timeout-secs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7200,
+          "description": "Deploy operation timeout in seconds"
+        },
+        "download-chunk-size": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 10485760,
+          "description": "Download chunk size in bytes"
+        },
+        "user-agent": {
+          "type": "string",
+          "description": "User agent string for HTTP requests"
+        }
+      }
+    },
+    "retry-policies": {
+      "type": "object",
+      "description": "Retry policy configurations",
+      "properties": {
+        "default": {
+          "$ref": "#/definitions/retry-policy"
+        },
+        "operations": {
+          "type": "object",
+          "description": "Per-operation retry policies",
+          "additionalProperties": {
+            "$ref": "#/definitions/retry-policy"
+          }
+        }
+      }
+    },
+    "github": {
+      "type": "object",
+      "description": "GitHub repository settings",
+      "properties": {
+        "repo-owner": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Repository owner"
+        },
+        "repo-name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Repository name"
+        },
+        "api-url": {
+          "type": "string",
+          "format": "uri",
+          "description": "GitHub API base URL"
+        },
+        "raw-url": {
+          "type": "string",
+          "format": "uri",
+          "description": "GitHub raw content base URL"
+        }
+      }
+    },
+    "backup": {
+      "type": "object",
+      "description": "Backup and restore policies",
+      "properties": {
+        "max-backups": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Maximum number of backup files to keep"
+        },
+        "backup-extension": {
+          "type": "string",
+          "pattern": "^\\.[a-zA-Z0-9]+$",
+          "description": "Backup file extension"
+        },
+        "include-timestamp": {
+          "type": "boolean",
+          "description": "Include timestamp in backup filename"
+        },
+        "timestamp-format": {
+          "type": "string",
+          "description": "Timestamp format (chrono format string)"
+        }
+      }
+    },
+    "git-workflow": {
+      "type": "object",
+      "description": "Git workflow defaults",
+      "properties": {
+        "default-branch": {
+          "type": "string",
+          "description": "Default branch name for new repositories"
+        },
+        "initial-commit-message": {
+          "type": "string",
+          "description": "Default initial commit message"
+        },
+        "origin-remote": {
+          "type": "string",
+          "description": "Default remote name for origin"
+        },
+        "upstream-remote": {
+          "type": "string",
+          "description": "Default remote name for upstream"
+        },
+        "main-branch-names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Common main branch names to check"
+        }
+      }
+    },
+    "display": {
+      "type": "object",
+      "description": "Display and output settings",
+      "properties": {
+        "preview-lines": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Number of lines to show in output previews"
+        },
+        "context-lines-before": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Number of context lines before a match"
+        },
+        "context-lines-after": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Number of context lines after a match"
+        },
+        "color-enabled": {
+          "type": "boolean",
+          "description": "Enable colored output"
+        },
+        "verbose": {
+          "type": "boolean",
+          "description": "Enable verbose output by default"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "retry-policy": {
+      "type": "object",
+      "description": "Retry policy for an operation",
+      "properties": {
+        "max-attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Maximum number of retry attempts"
+        },
+        "strategy": {
+          "type": "string",
+          "enum": ["none", "fixed-delay", "exponential-backoff", "linear-backoff"],
+          "description": "Retry strategy"
+        },
+        "backoff-multiplier": {
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 10.0,
+          "description": "Backoff multiplier for exponential strategies"
+        },
+        "initial-delay-ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "Initial delay in milliseconds"
+        },
+        "max-delay-ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 300000,
+          "description": "Maximum delay in milliseconds"
+        }
+      }
+    }
+  }
+}

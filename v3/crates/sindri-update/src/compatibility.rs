@@ -2,8 +2,10 @@
 
 use anyhow::{anyhow, Result};
 use semver::{Version, VersionReq};
-use sindri_core::types::CompatibilityMatrix;
+use sindri_core::config::HierarchicalConfigLoader;
+use sindri_core::types::{CompatibilityMatrix, GitHubConfig, InstallManifest, RuntimeConfig};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Compatibility check result
 #[derive(Debug, Clone)]
@@ -41,12 +43,56 @@ pub struct IncompatibleExtension {
 pub struct CompatibilityChecker {
     /// Compatibility matrix
     matrix: Option<CompatibilityMatrix>,
+
+    /// Path to manifest file
+    manifest_path: PathBuf,
+
+    /// GitHub configuration
+    github_config: GitHubConfig,
+
+    /// Runtime configuration (for user agent, etc.)
+    runtime_config: RuntimeConfig,
 }
 
 impl CompatibilityChecker {
     /// Create a new checker
     pub fn new() -> Self {
-        Self { matrix: None }
+        let home = directories::BaseDirs::new()
+            .map(|base| base.home_dir().to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let manifest_path = home.join(".sindri").join("manifest.yaml");
+
+        // Load configuration
+        let config_loader = HierarchicalConfigLoader::new()
+            .expect("Failed to create config loader");
+        let runtime_config = config_loader
+            .load_runtime_config()
+            .expect("Failed to load runtime config");
+
+        Self {
+            matrix: None,
+            manifest_path,
+            github_config: runtime_config.github.clone(),
+            runtime_config,
+        }
+    }
+
+    /// Create a new checker with custom manifest path
+    pub fn with_manifest_path(manifest_path: PathBuf) -> Self {
+        // Load configuration
+        let config_loader = HierarchicalConfigLoader::new()
+            .expect("Failed to create config loader");
+        let runtime_config = config_loader
+            .load_runtime_config()
+            .expect("Failed to load runtime config");
+
+        Self {
+            matrix: None,
+            manifest_path,
+            github_config: runtime_config.github.clone(),
+            runtime_config,
+        }
     }
 
     /// Load compatibility matrix from URL
@@ -68,6 +114,68 @@ impl CompatibilityChecker {
     pub fn load_matrix_from_str(&mut self, content: &str) -> Result<()> {
         self.matrix = Some(serde_yaml::from_str(content)?);
         Ok(())
+    }
+
+    /// Fetch compatibility matrix from GitHub releases
+    pub async fn fetch_matrix_from_github(&mut self, version: &str) -> Result<()> {
+        let url = format!(
+            "https://github.com/{}/{}/releases/download/v{}/compatibility-matrix.yaml",
+            self.github_config.repo_owner,
+            self.github_config.repo_name,
+            version
+        );
+
+        let client = reqwest::Client::new();
+        let response = client
+            .get(&url)
+            .header("User-Agent", &self.runtime_config.network.user_agent)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(anyhow!(
+                "Failed to fetch compatibility matrix from GitHub: HTTP {}",
+                response.status()
+            ));
+        }
+
+        let content = response.text().await?;
+        self.load_matrix_from_str(&content)?;
+
+        Ok(())
+    }
+
+    /// Load installed extensions from manifest file
+    pub fn load_installed_extensions(&self) -> Result<HashMap<String, String>> {
+        if !self.manifest_path.exists() {
+            // No manifest file means no extensions installed
+            return Ok(HashMap::new());
+        }
+
+        let content = std::fs::read_to_string(&self.manifest_path).map_err(|e| {
+            anyhow!(
+                "Failed to read manifest file at {}: {}",
+                self.manifest_path.display(),
+                e
+            )
+        })?;
+
+        let manifest: InstallManifest = serde_yaml::from_str(&content).map_err(|e| {
+            anyhow!(
+                "Failed to parse manifest file at {}: {}",
+                self.manifest_path.display(),
+                e
+            )
+        })?;
+
+        // Convert InstallManifest to HashMap<String, String>
+        let extensions: HashMap<String, String> = manifest
+            .extensions
+            .into_iter()
+            .map(|(name, ext)| (name, ext.version))
+            .collect();
+
+        Ok(extensions)
     }
 
     /// Check compatibility for an upgrade
@@ -162,5 +270,114 @@ impl CompatibilityChecker {
 impl Default for CompatibilityChecker {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Display methods for compatibility results
+impl CompatResult {
+    /// Print compatibility warnings with colored output
+    pub fn print_warnings(&self, force_enabled: bool) {
+        use owo_colors::OwoColorize;
+
+        if self.compatible {
+            println!("{} All extensions are compatible!", "✓".green().bold());
+            return;
+        }
+
+        println!(
+            "\n{} Extension Compatibility Issues Detected\n",
+            "⚠".yellow().bold()
+        );
+
+        if !self.incompatible_extensions.is_empty() {
+            println!("{}", "Incompatible Extensions:".red().bold());
+            println!();
+
+            // Create a table header
+            println!(
+                "  {:<25} {:<15} {:<20}",
+                "Extension".bold(),
+                "Current".bold(),
+                "Required".bold()
+            );
+            println!("  {}", "─".repeat(60).dimmed());
+
+            for ext in &self.incompatible_extensions {
+                println!(
+                    "  {:<25} {:<15} {:<20}",
+                    ext.name.yellow(),
+                    ext.current_version.red(),
+                    ext.required_range.green()
+                );
+                println!("    → {}", ext.reason.dimmed());
+            }
+            println!();
+        }
+
+        if !self.breaking_changes.is_empty() {
+            println!("{}", "Breaking Changes:".yellow().bold());
+            println!();
+            for change in &self.breaking_changes {
+                println!("  {} {}", "•".yellow(), change);
+            }
+            println!();
+        }
+
+        if !self.warnings.is_empty() {
+            println!("{}", "Warnings:".blue().bold());
+            println!();
+            for warning in &self.warnings {
+                println!("  {} {}", "•".blue(), warning);
+            }
+            println!();
+        }
+
+        if force_enabled {
+            println!(
+                "{} {} compatibility checks with --force flag",
+                "⚠".yellow().bold(),
+                "Bypassing".yellow().bold()
+            );
+            println!("  {} This may result in broken functionality!\n", "⚠".red());
+        } else {
+            println!(
+                "{} Use {} to bypass these checks (not recommended)\n",
+                "ℹ".blue(),
+                "--force".cyan().bold()
+            );
+        }
+    }
+
+    /// Print a summary of compatibility check
+    pub fn print_summary(&self) {
+        use owo_colors::OwoColorize;
+
+        if self.compatible {
+            println!(
+                "{} Compatibility check passed",
+                "✓".green().bold()
+            );
+        } else {
+            println!(
+                "{} Found {} incompatible extension(s)",
+                "✗".red().bold(),
+                self.incompatible_extensions.len()
+            );
+        }
+    }
+}
+
+/// Display method for incompatible extensions
+impl IncompatibleExtension {
+    /// Format as a table row
+    pub fn format_row(&self) -> String {
+        use owo_colors::OwoColorize;
+
+        format!(
+            "{:<25} {:<15} {:<20}",
+            self.name.yellow(),
+            self.current_version.red(),
+            self.required_range.green()
+        )
     }
 }

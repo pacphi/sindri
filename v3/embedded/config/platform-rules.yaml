@@ -1,0 +1,64 @@
+# Platform Support Matrix
+# Defines supported platforms, target triples, and asset naming patterns
+# This file is embedded in the binary and serves as the base platform configuration
+
+platforms:
+  # Linux x86_64
+  linux-x86_64:
+    os: "linux"
+    arch: "x86_64"
+    target: "x86_64-unknown-linux-musl"
+    asset-pattern: "sindri-{version}-x86_64-unknown-linux-musl.tar.gz"
+    priority: 10
+    aliases:
+      - "linux-amd64"
+    enabled: true
+
+  # Linux ARM64
+  linux-aarch64:
+    os: "linux"
+    arch: "aarch64"
+    target: "aarch64-unknown-linux-musl"
+    asset-pattern: "sindri-{version}-aarch64-unknown-linux-musl.tar.gz"
+    priority: 9
+    aliases:
+      - "linux-arm64"
+    enabled: true
+
+  # macOS x86_64 (Intel)
+  macos-x86_64:
+    os: "macos"
+    arch: "x86_64"
+    target: "x86_64-apple-darwin"
+    asset-pattern: "sindri-{version}-x86_64-apple-darwin.tar.gz"
+    priority: 8
+    aliases:
+      - "darwin-amd64"
+      - "osx-x86_64"
+    enabled: true
+
+  # macOS ARM64 (Apple Silicon)
+  macos-aarch64:
+    os: "macos"
+    arch: "aarch64"
+    target: "aarch64-apple-darwin"
+    asset-pattern: "sindri-{version}-aarch64-apple-darwin.tar.gz"
+    priority: 9
+    aliases:
+      - "darwin-arm64"
+      - "osx-arm64"
+    enabled: true
+
+  # Windows x86_64
+  windows-x86_64:
+    os: "windows"
+    arch: "x86_64"
+    target: "x86_64-pc-windows-msvc"
+    asset-pattern: "sindri-{version}-x86_64-pc-windows-msvc.zip"
+    priority: 7
+    aliases:
+      - "windows-amd64"
+    enabled: true
+
+# Default platform (fallback)
+default-platform: "linux-x86_64"

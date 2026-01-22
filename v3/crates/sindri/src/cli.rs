@@ -5,6 +5,7 @@ use clap::{Args, Parser, Subcommand};
 
 // Re-export command types for convenience
 pub use crate::commands::backup::BackupArgs;
+pub use crate::commands::project::{CloneProjectArgs, NewProjectArgs};
 pub use crate::commands::restore::RestoreArgs;
 pub use crate::commands::secrets::SecretsCommands;
 
@@ -71,6 +72,12 @@ pub enum Commands {
 
     /// Restore workspace
     Restore(RestoreArgs),
+
+    /// Create a new project from template
+    New(NewProjectArgs),
+
+    /// Clone a project repository
+    Clone(CloneProjectArgs),
 }
 
 // Version command
@@ -380,6 +387,18 @@ pub struct UpgradeArgs {
     /// Include prereleases
     #[arg(long)]
     pub prerelease: bool,
+
+    /// Allow downgrade to older version
+    #[arg(long)]
+    pub allow_downgrade: bool,
+
+    /// Skip confirmation prompts
+    #[arg(short = 'y', long)]
+    pub yes: bool,
+
+    /// Force upgrade even if extensions are incompatible
+    #[arg(short, long)]
+    pub force: bool,
 }
 
 // Profile commands

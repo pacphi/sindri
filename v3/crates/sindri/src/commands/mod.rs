@@ -7,6 +7,7 @@ pub mod deploy;
 pub mod destroy;
 pub mod extension;
 pub mod profile;
+pub mod project;
 pub mod restore;
 pub mod secrets;
 pub mod secrets_s3;

@@ -54,5 +54,10 @@ walkdir = "2.4"
 rand = "0.8"
 vaultrs = "0.7"
 
+# Archive extraction for upgrades
+flate2 = "1.0"
+tar = "0.4"
+reqwest = { workspace = true }
+
 [build-dependencies]
 chrono = "0.4"

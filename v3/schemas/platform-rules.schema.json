@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/platform-rules.schema.json",
+  "title": "Platform Support Matrix",
+  "description": "Platform detection, target mappings, and asset patterns for multi-platform binary distribution",
+  "type": "object",
+  "required": ["platforms"],
+  "properties": {
+    "platforms": {
+      "type": "object",
+      "description": "Platform definitions",
+      "additionalProperties": {
+        "$ref": "#/definitions/platform-definition"
+      },
+      "minProperties": 1
+    },
+    "default-platform": {
+      "type": "string",
+      "description": "Default platform key (fallback)"
+    }
+  },
+  "definitions": {
+    "platform-definition": {
+      "type": "object",
+      "required": ["os", "arch", "target"],
+      "properties": {
+        "os": {
+          "type": "string",
+          "description": "Operating system (linux, macos, windows)",
+          "enum": ["linux", "macos", "windows"]
+        },
+        "arch": {
+          "type": "string",
+          "description": "CPU architecture (x86_64, aarch64)",
+          "enum": ["x86_64", "aarch64"]
+        },
+        "target": {
+          "type": "string",
+          "description": "Rust target triple",
+          "pattern": "^[a-z0-9_-]+$"
+        },
+        "asset-pattern": {
+          "type": "string",
+          "description": "Asset filename pattern (supports {version} placeholder)"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Priority for platform selection (higher = preferred)"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Alternative names for this platform"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this platform is enabled"
+        }
+      }
+    }
+  }
+}

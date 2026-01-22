@@ -3,9 +3,9 @@
 use anyhow::{anyhow, Result};
 use semver::Version;
 use serde::Deserialize;
+use sindri_core::config::HierarchicalConfigLoader;
+use sindri_core::types::{GitHubConfig, PlatformMatrix};
 use tracing::{debug, info};
-
-use crate::{REPO_NAME, REPO_OWNER};
 
 /// Release information
 #[derive(Debug, Clone, Deserialize)]
@@ -52,17 +52,35 @@ pub struct ReleaseManager {
 
     /// Include prereleases
     include_prerelease: bool,
+
+    /// GitHub configuration
+    github_config: GitHubConfig,
+
+    /// Platform support matrix
+    platform_matrix: PlatformMatrix,
 }
 
 impl ReleaseManager {
     /// Create a new release manager
     pub fn new() -> Self {
+        // Load configuration
+        let config_loader = HierarchicalConfigLoader::new()
+            .expect("Failed to create config loader");
+        let runtime_config = config_loader
+            .load_runtime_config()
+            .expect("Failed to load runtime config");
+        let platform_matrix = config_loader
+            .load_platform_matrix()
+            .expect("Failed to load platform matrix");
+
         Self {
             client: reqwest::Client::builder()
-                .user_agent("sindri-cli")
+                .user_agent(&runtime_config.network.user_agent)
                 .build()
                 .expect("Failed to create HTTP client"),
             include_prerelease: false,
+            github_config: runtime_config.github,
+            platform_matrix,
         }
     }
 
@@ -75,8 +93,10 @@ impl ReleaseManager {
     /// Get latest release
     pub async fn get_latest(&self) -> Result<Release> {
         let url = format!(
-            "https://api.github.com/repos/{}/{}/releases/latest",
-            REPO_OWNER, REPO_NAME
+            "{}/repos/{}/{}/releases/latest",
+            self.github_config.api_url,
+            self.github_config.repo_owner,
+            self.github_config.repo_name
         );
 
         debug!("Fetching latest release from: {}", url);
@@ -94,8 +114,11 @@ impl ReleaseManager {
     /// List all releases
     pub async fn list_releases(&self, limit: usize) -> Result<Vec<Release>> {
         let url = format!(
-            "https://api.github.com/repos/{}/{}/releases?per_page={}",
-            REPO_OWNER, REPO_NAME, limit
+            "{}/repos/{}/{}/releases?per_page={}",
+            self.github_config.api_url,
+            self.github_config.repo_owner,
+            self.github_config.repo_name,
+            limit
         );
 
         let response = self.client.get(&url).send().await?;
@@ -115,8 +138,11 @@ impl ReleaseManager {
     /// Get release by tag
     pub async fn get_release(&self, tag: &str) -> Result<Release> {
         let url = format!(
-            "https://api.github.com/repos/{}/{}/releases/tags/{}",
-            REPO_OWNER, REPO_NAME, tag
+            "{}/repos/{}/{}/releases/tags/{}",
+            self.github_config.api_url,
+            self.github_config.repo_owner,
+            self.github_config.repo_name,
+            tag
         );
 
         let response = self.client.get(&url).send().await?;
@@ -152,23 +178,21 @@ impl ReleaseManager {
 
     /// Get appropriate asset for current platform
     pub fn get_platform_asset<'a>(&self, release: &'a Release) -> Option<&'a ReleaseAsset> {
-        let target = std::env::consts::OS;
+        let os = std::env::consts::OS;
         let arch = std::env::consts::ARCH;
 
-        // Map Rust targets to release asset naming
-        let platform_pattern = match (target, arch) {
-            ("linux", "x86_64") => "x86_64-unknown-linux-musl",
-            ("linux", "aarch64") => "aarch64-unknown-linux-musl",
-            ("macos", "x86_64") => "x86_64-apple-darwin",
-            ("macos", "aarch64") => "aarch64-apple-darwin",
-            ("windows", "x86_64") => "x86_64-pc-windows-msvc",
-            _ => return None,
-        };
+        // Find platform definition from matrix
+        let platform = self.platform_matrix.find_platform(os, arch)?;
+
+        debug!(
+            "Detected platform: {}-{} -> target: {}",
+            os, arch, platform.target
+        );
 
         release
             .assets
             .iter()
-            .find(|a| a.name.contains(platform_pattern))
+            .find(|a| a.name.contains(&platform.target))
     }
 }
 
