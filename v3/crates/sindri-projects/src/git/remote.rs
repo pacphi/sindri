@@ -204,7 +204,10 @@ pub async fn setup_fork_remotes_with_config(
     // Check if upstream exists, if not add it
     if !remote_exists(path, upstream_remote).await? {
         add_remote(path, upstream_remote, upstream_url).await?;
-        info!("Upstream remote '{}' configured: {}", upstream_remote, upstream_url);
+        info!(
+            "Upstream remote '{}' configured: {}",
+            upstream_remote, upstream_url
+        );
     } else {
         let existing_url = get_remote_url(path, upstream_remote).await?.unwrap();
         if existing_url != upstream_url {

@@ -184,10 +184,7 @@ pub async fn branch_exists(path: &Utf8Path, branch_name: &str) -> Result<bool> {
 ///
 /// # Returns
 /// The detected main branch name, or the default from config
-pub async fn detect_main_branch(
-    path: &Utf8Path,
-    git_config: &GitWorkflowConfig,
-) -> Result<String> {
+pub async fn detect_main_branch(path: &Utf8Path, git_config: &GitWorkflowConfig) -> Result<String> {
     for branch_name in &git_config.main_branch_names {
         if branch_exists(path, branch_name).await? {
             debug!("Detected main branch: {}", branch_name);

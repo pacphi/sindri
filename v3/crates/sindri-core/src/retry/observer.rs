@@ -241,7 +241,8 @@ impl StatsObserver {
 
     /// Get the number of attempt starts
     pub fn attempt_starts(&self) -> u32 {
-        self.attempt_starts.load(std::sync::atomic::Ordering::SeqCst)
+        self.attempt_starts
+            .load(std::sync::atomic::Ordering::SeqCst)
     }
 
     /// Get the number of failures

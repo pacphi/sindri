@@ -7,9 +7,7 @@ use std::path::PathBuf;
 /// Get the path to the fixtures directory
 fn fixtures_dir() -> PathBuf {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    PathBuf::from(manifest_dir)
-        .join("tests")
-        .join("fixtures")
+    PathBuf::from(manifest_dir).join("tests").join("fixtures")
 }
 
 /// Load a fixture file as a string

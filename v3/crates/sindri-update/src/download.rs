@@ -232,7 +232,8 @@ impl BinaryDownloader {
         // Execute download with retry logic
         let result = executor
             .execute(|| {
-                let attempt = attempt_counter_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                let attempt =
+                    attempt_counter_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
                 self.download_asset(asset, attempt)
             })
             .await;
@@ -258,9 +259,16 @@ impl BinaryDownloader {
                     RetryError::NonRetryable(source) => {
                         Err(anyhow!("Download failed (non-retryable): {}", source))
                     }
-                    RetryError::Cancelled { attempts, last_error } => {
+                    RetryError::Cancelled {
+                        attempts,
+                        last_error,
+                    } => {
                         if let Some(err) = last_error {
-                            Err(anyhow!("Download cancelled after {} attempts: {}", attempts, err))
+                            Err(anyhow!(
+                                "Download cancelled after {} attempts: {}",
+                                attempts,
+                                err
+                            ))
                         } else {
                             Err(anyhow!("Download cancelled after {} attempts", attempts))
                         }

@@ -298,8 +298,9 @@ Beyond the TODO items tracked in code comments, we completed several significant
 **Files Created:**
 
 Test Infrastructure (`v3/crates/sindri-update/tests/common/`):
+
 - `mod.rs` (39 lines) - Module re-exports
-- `constants.rs` (60 lines) - VERSION_*, PLATFORM_*, FAKE_BINARY_CONTENT
+- `constants.rs` (60 lines) - VERSION*\*, PLATFORM*\*, FAKE_BINARY_CONTENT
 - `builders.rs` (261 lines) - ReleaseBuilder, ReleaseAssetBuilder
 - `extensions.rs` (107 lines) - standard_extensions(), extensions_from_pairs()
 - `mock_server.rs` (78 lines) - mock_binary_download(), mock_flaky_download()
@@ -308,6 +309,7 @@ Test Infrastructure (`v3/crates/sindri-update/tests/common/`):
 - `updater_helpers.rs` (77 lines) - create_fake_binary(), create_version_script()
 
 Test Fixtures (`v3/crates/sindri-update/tests/fixtures/`):
+
 - `compatibility_matrix_v1.yaml`
 - `compatibility_matrix_conflicts.yaml`
 - `compatibility_matrix_complex.yaml`
@@ -323,11 +325,11 @@ Test Fixtures (`v3/crates/sindri-update/tests/fixtures/`):
 
 **Metrics:**
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Test file lines | 1,552 | 1,236 | -20% |
-| Infrastructure lines | 0 | 805 | (reusable) |
-| Duplicated patterns | 70+ | 0 | -100% |
+| Metric               | Before | After | Change     |
+| -------------------- | ------ | ----- | ---------- |
+| Test file lines      | 1,552  | 1,236 | -20%       |
+| Infrastructure lines | 0      | 805   | (reusable) |
+| Duplicated patterns  | 70+    | 0     | -100%      |
 
 **Key Infrastructure Components:**
 

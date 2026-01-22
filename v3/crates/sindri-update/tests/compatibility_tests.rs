@@ -234,7 +234,9 @@ fn test_wildcard_does_not_match_different_minor() {
 #[test]
 fn test_major_version_upgrade_breaking_changes() {
     let mut checker = CompatibilityChecker::new();
-    checker.load_matrix_from_str(&load_matrix_conflicts()).unwrap();
+    checker
+        .load_matrix_from_str(&load_matrix_conflicts())
+        .unwrap();
 
     let result = checker
         .check_compatibility(VERSION_4_0_0, &empty_extensions())
@@ -289,15 +291,21 @@ fn test_multiple_cli_versions_in_matrix() {
     let installed = v3_1_extensions();
 
     // Should be compatible with 3.1.0
-    let result = checker.check_compatibility(VERSION_3_1_0, &installed).unwrap();
+    let result = checker
+        .check_compatibility(VERSION_3_1_0, &installed)
+        .unwrap();
     assert_compatible(&result);
 
     // Should NOT be compatible with 3.0.0 (requires ^1.0.0)
-    let result = checker.check_compatibility(VERSION_3_0_0, &installed).unwrap();
+    let result = checker
+        .check_compatibility(VERSION_3_0_0, &installed)
+        .unwrap();
     assert_compatible(&result); // Actually ^1.0.0 includes 1.1.5
 
     // Should be compatible with 3.2.0 if ^1.2.0 includes 1.1.5
-    let result = checker.check_compatibility(VERSION_3_2_0, &installed).unwrap();
+    let result = checker
+        .check_compatibility(VERSION_3_2_0, &installed)
+        .unwrap();
     assert_incompatible(&result); // ^1.2.0 does not include 1.1.5
 }
 
@@ -350,7 +358,9 @@ fn test_schema_version_field() {
 #[test]
 fn test_complex_version_requirements() {
     let mut checker = CompatibilityChecker::new();
-    checker.load_matrix_from_str(&load_matrix_complex()).unwrap();
+    checker
+        .load_matrix_from_str(&load_matrix_complex())
+        .unwrap();
 
     let result = checker
         .check_compatibility(VERSION_3_5_0, &complex_extensions())

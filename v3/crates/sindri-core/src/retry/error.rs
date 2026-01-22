@@ -71,7 +71,10 @@ impl<E: fmt::Display> fmt::Display for RetryError<E> {
                     source
                 )
             }
-            RetryError::Cancelled { attempts, last_error } => {
+            RetryError::Cancelled {
+                attempts,
+                last_error,
+            } => {
                 if let Some(err) = last_error {
                     write!(f, "retry cancelled after {} attempts: {}", attempts, err)
                 } else {
@@ -200,7 +203,10 @@ impl<E> RetryError<E> {
                 source: f(source),
                 total_duration,
             },
-            RetryError::Cancelled { attempts, last_error } => RetryError::Cancelled {
+            RetryError::Cancelled {
+                attempts,
+                last_error,
+            } => RetryError::Cancelled {
                 attempts,
                 last_error: last_error.map(f),
             },
@@ -243,8 +249,7 @@ mod tests {
 
     #[test]
     fn test_timeout_error() {
-        let err: RetryError<io::Error> =
-            RetryError::attempt_timeout(1, Duration::from_millis(500));
+        let err: RetryError<io::Error> = RetryError::attempt_timeout(1, Duration::from_millis(500));
 
         assert!(err.is_timeout());
         assert_eq!(err.attempts(), 1);
@@ -272,7 +277,9 @@ mod tests {
         let err: RetryError<i32> = RetryError::exhausted(3, 42, Duration::from_secs(1));
 
         let mapped = err.map_err(|n| format!("error code: {}", n));
-        assert!(matches!(mapped, RetryError::Exhausted { source, .. } if source == "error code: 42"));
+        assert!(
+            matches!(mapped, RetryError::Exhausted { source, .. } if source == "error code: 42")
+        );
     }
 
     #[test]

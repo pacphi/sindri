@@ -43,7 +43,10 @@ use super::strategies::{calculate_delay, AlwaysRetry, RetryPredicate};
 ///     }).await;
 /// }
 /// ```
-pub async fn retry_with_policy<F, Fut, T, E>(policy: &RetryPolicy, op: F) -> Result<T, RetryError<E>>
+pub async fn retry_with_policy<F, Fut, T, E>(
+    policy: &RetryPolicy,
+    op: F,
+) -> Result<T, RetryError<E>>
 where
     F: FnMut() -> Fut,
     Fut: Future<Output = Result<T, E>>,
@@ -215,10 +218,7 @@ where
         }
 
         // This should not be reached, but handle it gracefully
-        Err(RetryError::cancelled(
-            self.policy.max_attempts,
-            last_error,
-        ))
+        Err(RetryError::cancelled(self.policy.max_attempts, last_error))
     }
 }
 
@@ -321,7 +321,8 @@ where
                     let delay = calculate_delay(&self.policy, attempt, self.jitter);
 
                     let display_err = DisplayError(format!("{}", err));
-                    self.observer.on_attempt_failed(attempt, &display_err, delay);
+                    self.observer
+                        .on_attempt_failed(attempt, &display_err, delay);
 
                     last_error = Some(err);
 
@@ -334,10 +335,7 @@ where
         }
 
         // This should not be reached, but handle it gracefully
-        Err(RetryError::cancelled(
-            self.policy.max_attempts,
-            last_error,
-        ))
+        Err(RetryError::cancelled(self.policy.max_attempts, last_error))
     }
 }
 
@@ -434,9 +432,7 @@ mod tests {
             .with_observer(observer.clone())
             .with_jitter(false)
             .build()
-            .execute(|| async {
-                Err(io::Error::new(io::ErrorKind::TimedOut, "always fails"))
-            })
+            .execute(|| async { Err(io::Error::new(io::ErrorKind::TimedOut, "always fails")) })
             .await;
 
         assert!(result.is_err());

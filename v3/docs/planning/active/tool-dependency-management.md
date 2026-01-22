@@ -76,6 +76,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 > **So that** I can prepare my environment without encountering errors mid-workflow
 
 **Acceptance Criteria:**
+
 - Running `sindri doctor` shows all potentially needed tools
 - Each missing tool shows installation instructions for my OS
 - Available tools show their detected versions
@@ -88,6 +89,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 > **So that** I don't waste time installing Docker if I won't use it
 
 **Acceptance Criteria:**
+
 - Running `sindri doctor --provider fly` shows only Fly.io requirements
 - Includes authentication status (e.g., `flyctl auth` state)
 - Differentiates between "tool missing" and "tool present but not configured"
@@ -99,6 +101,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 > **So that** I can set up just what I need for my immediate use case
 
 **Acceptance Criteria:**
+
 - Running `sindri doctor --command project` shows git/gh requirements
 - Shows optional vs required dependencies clearly
 - Explains what functionality is lost without optional tools
@@ -110,6 +113,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 > **So that** I understand which extensions I can install
 
 **Acceptance Criteria:**
+
 - Shows status of mise, npm, apt-get availability
 - Indicates which extension installation methods are supported
 - Warns if no installation backends are available
@@ -121,6 +125,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 > **So that** I can get started quickly without manual setup
 
 **Acceptance Criteria:**
+
 - Running `sindri doctor --fix` attempts to install missing tools
 - Asks for confirmation before each installation
 - Uses appropriate package manager for the platform
@@ -137,6 +142,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 **Preconditions:** Sindri CLI is installed
 
 **Flow:**
+
 1. User runs `sindri doctor`
 2. System detects OS and architecture
 3. System checks for all known tools in PATH
@@ -162,6 +168,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 **Preconditions:** User knows which provider they want to use
 
 **Flow:**
+
 1. User runs `sindri doctor --provider docker`
 2. System checks only tools required by Docker provider
 3. System also checks Docker-specific configurations:
@@ -182,6 +189,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 **Preconditions:** User has project URL
 
 **Flow:**
+
 1. User runs `sindri doctor --command project`
 2. System checks:
    - git (required)
@@ -200,6 +208,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 **Preconditions:** User knows which extensions they want
 
 **Flow:**
+
 1. User runs `sindri doctor --command extension`
 2. System checks all extension installation backends:
    - mise (for mise-based extensions)
@@ -220,6 +229,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 **Preconditions:** CI environment exists
 
 **Flow:**
+
 1. Engineer adds `sindri doctor --ci --provider docker` to pipeline
 2. System runs checks with machine-readable output (`--format json`)
 3. System exits with non-zero code if critical tools missing
@@ -236,6 +246,7 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 **Preconditions:** User has missing tools, Homebrew installed
 
 **Flow:**
+
 1. User runs `sindri doctor --fix`
 2. System detects macOS and Homebrew availability
 3. For each missing tool:
@@ -253,38 +264,38 @@ Each provider implements `check_prerequisites()`, but this is only invoked at de
 
 ### 4.1 Core Tools
 
-| Tool | Required For | Min Version | Detection | Notes |
-|------|--------------|-------------|-----------|-------|
-| `git` | project clone/new, version control | 2.0+ | `git --version` | Nearly universal |
+| Tool  | Required For                       | Min Version | Detection       | Notes            |
+| ----- | ---------------------------------- | ----------- | --------------- | ---------------- |
+| `git` | project clone/new, version control | 2.0+        | `git --version` | Nearly universal |
 
 ### 4.2 Provider Tools
 
-| Tool | Provider | Required | Min Version | Detection | Auth Check |
-|------|----------|----------|-------------|-----------|------------|
-| `docker` | Docker, DockerCompose | Yes | 20.10+ | `docker --version` | `docker info` |
-| Docker Compose v2 | Docker, DockerCompose | Yes | 2.0+ | `docker compose version` | N/A |
-| `flyctl` | Fly | Yes | 0.1.0+ | `flyctl version` | `flyctl auth whoami` |
-| `devpod` | DevPod | Yes | 0.4+ | `devpod version` | N/A |
-| `e2b` | E2B | Yes | - | `e2b --version` | `e2b auth status` |
-| `kubectl` | Kubernetes | Yes | 1.20+ | `kubectl version --client` | `kubectl cluster-info` |
+| Tool              | Provider              | Required | Min Version | Detection                  | Auth Check             |
+| ----------------- | --------------------- | -------- | ----------- | -------------------------- | ---------------------- |
+| `docker`          | Docker, DockerCompose | Yes      | 20.10+      | `docker --version`         | `docker info`          |
+| Docker Compose v2 | Docker, DockerCompose | Yes      | 2.0+        | `docker compose version`   | N/A                    |
+| `flyctl`          | Fly                   | Yes      | 0.1.0+      | `flyctl version`           | `flyctl auth whoami`   |
+| `devpod`          | DevPod                | Yes      | 0.4+        | `devpod version`           | N/A                    |
+| `e2b`             | E2B                   | Yes      | -           | `e2b --version`            | `e2b auth status`      |
+| `kubectl`         | Kubernetes            | Yes      | 1.20+       | `kubectl version --client` | `kubectl cluster-info` |
 
 ### 4.3 Extension Installation Backends
 
-| Tool | Installation Method | Platform | Detection | Notes |
-|------|---------------------|----------|-----------|-------|
-| `mise` | mise | All | `mise --version` | Preferred for cross-platform |
-| `npm` | npm | All | `npm --version` | Requires Node.js |
-| `apt-get` | apt | Debian/Ubuntu | `which apt-get` | Linux only |
-| `brew` | Homebrew | macOS/Linux | `brew --version` | Future: auto-install |
-| `winget` | Windows Package Manager | Windows | `winget --version` | Future: auto-install |
-| `choco` | Chocolatey | Windows | `choco --version` | Future: auto-install |
+| Tool      | Installation Method     | Platform      | Detection          | Notes                        |
+| --------- | ----------------------- | ------------- | ------------------ | ---------------------------- |
+| `mise`    | mise                    | All           | `mise --version`   | Preferred for cross-platform |
+| `npm`     | npm                     | All           | `npm --version`    | Requires Node.js             |
+| `apt-get` | apt                     | Debian/Ubuntu | `which apt-get`    | Linux only                   |
+| `brew`    | Homebrew                | macOS/Linux   | `brew --version`   | Future: auto-install         |
+| `winget`  | Windows Package Manager | Windows       | `winget --version` | Future: auto-install         |
+| `choco`   | Chocolatey              | Windows       | `choco --version`  | Future: auto-install         |
 
 ### 4.4 Optional Enhancement Tools
 
-| Tool | Enables | Detection | Notes |
-|------|---------|-----------|-------|
-| `gh` | GitHub fork workflows | `gh --version` | Auth: `gh auth status` |
-| `vault` | HashiCorp Vault secrets | `vault --version` | Auth: `vault status` |
+| Tool    | Enables                 | Detection         | Notes                  |
+| ------- | ----------------------- | ----------------- | ---------------------- |
+| `gh`    | GitHub fork workflows   | `gh --version`    | Auth: `gh auth status` |
+| `vault` | HashiCorp Vault secrets | `vault --version` | Auth: `vault status`   |
 
 ### 4.5 Dependency Graph by Command
 
@@ -1320,16 +1331,16 @@ fn detect_package_managers() -> Vec<PackageManager> {
 
 ### 7.2 Installation Instructions Matrix
 
-| Tool | macOS (Homebrew) | Debian/Ubuntu (apt) | Fedora (dnf) | Windows (winget) | Manual |
-|------|------------------|---------------------|--------------|------------------|--------|
-| **git** | `brew install git` | `sudo apt install git` | `sudo dnf install git` | `winget install Git.Git` | https://git-scm.com |
-| **docker** | `brew install --cask docker` | `curl -fsSL https://get.docker.com \| sh` | `sudo dnf install docker-ce` | Docker Desktop | https://docker.com |
-| **flyctl** | `brew install flyctl` | `curl -L https://fly.io/install.sh \| sh` | `curl -L https://fly.io/install.sh \| sh` | `scoop install flyctl` | https://fly.io |
-| **mise** | `brew install mise` | `curl https://mise.run \| sh` | `curl https://mise.run \| sh` | `scoop install mise` | https://mise.jdx.dev |
-| **gh** | `brew install gh` | `sudo apt install gh` | `sudo dnf install gh` | `winget install GitHub.cli` | https://cli.github.com |
-| **kubectl** | `brew install kubectl` | via apt repo | `sudo dnf install kubernetes-client` | `winget install Kubernetes.kubectl` | https://kubernetes.io |
-| **devpod** | `brew install devpod` | via .deb package | via .rpm package | `winget install loft-sh.devpod` | https://devpod.sh |
-| **npm** | `brew install node` | `sudo apt install nodejs npm` | `sudo dnf install nodejs npm` | `winget install OpenJS.NodeJS` | https://nodejs.org |
+| Tool        | macOS (Homebrew)             | Debian/Ubuntu (apt)                       | Fedora (dnf)                              | Windows (winget)                    | Manual                 |
+| ----------- | ---------------------------- | ----------------------------------------- | ----------------------------------------- | ----------------------------------- | ---------------------- |
+| **git**     | `brew install git`           | `sudo apt install git`                    | `sudo dnf install git`                    | `winget install Git.Git`            | https://git-scm.com    |
+| **docker**  | `brew install --cask docker` | `curl -fsSL https://get.docker.com \| sh` | `sudo dnf install docker-ce`              | Docker Desktop                      | https://docker.com     |
+| **flyctl**  | `brew install flyctl`        | `curl -L https://fly.io/install.sh \| sh` | `curl -L https://fly.io/install.sh \| sh` | `scoop install flyctl`              | https://fly.io         |
+| **mise**    | `brew install mise`          | `curl https://mise.run \| sh`             | `curl https://mise.run \| sh`             | `scoop install mise`                | https://mise.jdx.dev   |
+| **gh**      | `brew install gh`            | `sudo apt install gh`                     | `sudo dnf install gh`                     | `winget install GitHub.cli`         | https://cli.github.com |
+| **kubectl** | `brew install kubectl`       | via apt repo                              | `sudo dnf install kubernetes-client`      | `winget install Kubernetes.kubectl` | https://kubernetes.io  |
+| **devpod**  | `brew install devpod`        | via .deb package                          | via .rpm package                          | `winget install loft-sh.devpod`     | https://devpod.sh      |
+| **npm**     | `brew install node`          | `sudo apt install nodejs npm`             | `sudo dnf install nodejs npm`             | `winget install OpenJS.NodeJS`      | https://nodejs.org     |
 
 ### 7.3 Future: Auto-Installation
 
@@ -1410,6 +1421,7 @@ impl ToolInstaller {
 ### Phase 1: Core Doctor Command (MVP)
 
 **Scope:**
+
 - Create `sindri-doctor` crate
 - Implement platform detection
 - Implement tool registry with all known tools
@@ -1420,6 +1432,7 @@ impl ToolInstaller {
 - Add `--format json` for CI
 
 **Deliverables:**
+
 - `sindri doctor` shows all tools status
 - Platform-specific install instructions displayed
 - JSON output for CI pipelines
@@ -1429,6 +1442,7 @@ impl ToolInstaller {
 ### Phase 2: Enhanced Diagnostics
 
 **Scope:**
+
 - Add authentication status checking
 - Add Docker daemon status check
 - Add version comparison logic
@@ -1437,6 +1451,7 @@ impl ToolInstaller {
 - Add verbose mode with timing info
 
 **Deliverables:**
+
 - Auth status shown for flyctl, gh, vault
 - Docker-specific checks (daemon, compose v2)
 - Better CI integration
@@ -1446,6 +1461,7 @@ impl ToolInstaller {
 ### Phase 3: Auto-Installation (Future)
 
 **Scope:**
+
 - Implement installer module
 - Support Homebrew, apt, dnf on Linux/macOS
 - Support winget, chocolatey on Windows
@@ -1454,6 +1470,7 @@ impl ToolInstaller {
 - Handle sudo requirements safely
 
 **Deliverables:**
+
 - `sindri doctor --fix` installs missing tools
 - Respects user confirmation preferences
 - Logs all installation actions
@@ -1463,12 +1480,14 @@ impl ToolInstaller {
 ### Phase 4: Extension-Specific Checks (Future)
 
 **Scope:**
+
 - Query extension registry for tool requirements
 - `sindri doctor --extension <name>` shows specific requirements
 - Profile-level dependency checking
 - Integration with extension install command
 
 **Deliverables:**
+
 - Extension-aware dependency checking
 - Profile dependency rollup
 
@@ -1480,28 +1499,28 @@ impl ToolInstaller {
 
 ### 9.1 Technical Risks
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Version parsing variations | Medium | Flexible regex, graceful fallback |
-| Tool detection on exotic platforms | Low | Provide manual instructions fallback |
-| Package manager command failures | High (Phase 3) | Dry-run mode, detailed error reporting |
-| Authentication check timeouts | Medium | Configurable timeouts, async execution |
+| Risk                               | Impact         | Mitigation                             |
+| ---------------------------------- | -------------- | -------------------------------------- |
+| Version parsing variations         | Medium         | Flexible regex, graceful fallback      |
+| Tool detection on exotic platforms | Low            | Provide manual instructions fallback   |
+| Package manager command failures   | High (Phase 3) | Dry-run mode, detailed error reporting |
+| Authentication check timeouts      | Medium         | Configurable timeouts, async execution |
 
 ### 9.2 User Experience Risks
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Information overload | Medium | Default to relevant tools only, use `--all` for everything |
-| Confusing install instructions | High | Test on all platforms, link to official docs |
-| Auto-install breaks system | High (Phase 3) | Confirm prompts, dry-run by default, detailed logging |
+| Risk                           | Impact         | Mitigation                                                 |
+| ------------------------------ | -------------- | ---------------------------------------------------------- |
+| Information overload           | Medium         | Default to relevant tools only, use `--all` for everything |
+| Confusing install instructions | High           | Test on all platforms, link to official docs               |
+| Auto-install breaks system     | High (Phase 3) | Confirm prompts, dry-run by default, detailed logging      |
 
 ### 9.3 Maintenance Risks
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Tool install URLs change | Medium | Link to official docs, update registry periodically |
-| New tools added to Sindri | Low | Registry pattern makes additions straightforward |
-| Platform detection drift | Low | Monitor OS release patterns |
+| Risk                      | Impact | Mitigation                                          |
+| ------------------------- | ------ | --------------------------------------------------- |
+| Tool install URLs change  | Medium | Link to official docs, update registry periodically |
+| New tools added to Sindri | Low    | Registry pattern makes additions straightforward    |
+| Platform detection drift  | Low    | Monitor OS release patterns                         |
 
 ---
 
@@ -1659,4 +1678,4 @@ Deploying with Docker provider...
 
 ---
 
-*Document last updated: 2026-01-22*
+_Document last updated: 2026-01-22_

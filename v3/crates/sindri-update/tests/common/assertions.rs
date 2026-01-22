@@ -42,7 +42,10 @@ pub fn assert_incompatible_count(result: &CompatResult, expected: usize) {
 /// Assert that a specific extension is in the incompatible list
 pub fn assert_extension_incompatible(result: &CompatResult, name: &str) {
     assert!(
-        result.incompatible_extensions.iter().any(|e| e.name == name),
+        result
+            .incompatible_extensions
+            .iter()
+            .any(|e| e.name == name),
         "Expected extension '{}' to be incompatible, but it wasn't found in: {:?}",
         name,
         result.incompatible_extensions
@@ -119,7 +122,10 @@ pub fn assert_has_warning(result: &CompatResult, pattern: &str) {
 }
 
 /// Assert that an error message contains the expected pattern
-pub fn assert_error_contains<T: std::fmt::Debug, E: std::fmt::Display>(result: &Result<T, E>, pattern: &str) {
+pub fn assert_error_contains<T: std::fmt::Debug, E: std::fmt::Display>(
+    result: &Result<T, E>,
+    pattern: &str,
+) {
     assert!(result.is_err(), "Expected error but got Ok");
     let error_msg = result.as_ref().unwrap_err().to_string();
     assert!(

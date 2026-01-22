@@ -54,9 +54,7 @@ pub fn calculate_delay(policy: &RetryPolicy, attempt: u32, jitter: bool) -> Dura
             (policy.initial_delay_ms as f64 * multiplier) as u64
         }
 
-        RetryStrategy::LinearBackoff => {
-            policy.initial_delay_ms * (attempt_index as u64 + 1)
-        }
+        RetryStrategy::LinearBackoff => policy.initial_delay_ms * (attempt_index as u64 + 1),
     };
 
     // Apply max delay cap
@@ -454,7 +452,10 @@ mod tests {
     #[test]
     fn test_closure_predicate() {
         let predicate = ClosurePredicate::new(|err: &io::Error| {
-            matches!(err.kind(), io::ErrorKind::TimedOut | io::ErrorKind::Interrupted)
+            matches!(
+                err.kind(),
+                io::ErrorKind::TimedOut | io::ErrorKind::Interrupted
+            )
         });
 
         let timeout_err = io::Error::new(io::ErrorKind::TimedOut, "timeout");

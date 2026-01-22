@@ -278,18 +278,12 @@ fn test_closure_predicate_selective() {
 
     // Should retry
     assert!(predicate.should_retry(&io::Error::new(io::ErrorKind::TimedOut, "timeout")));
-    assert!(predicate.should_retry(&io::Error::new(
-        io::ErrorKind::ConnectionRefused,
-        "refused"
-    )));
+    assert!(predicate.should_retry(&io::Error::new(io::ErrorKind::ConnectionRefused, "refused")));
     assert!(predicate.should_retry(&io::Error::new(io::ErrorKind::ConnectionReset, "reset")));
 
     // Should not retry
     assert!(!predicate.should_retry(&io::Error::new(io::ErrorKind::NotFound, "not found")));
-    assert!(!predicate.should_retry(&io::Error::new(
-        io::ErrorKind::PermissionDenied,
-        "denied"
-    )));
+    assert!(!predicate.should_retry(&io::Error::new(io::ErrorKind::PermissionDenied, "denied")));
 }
 
 #[test]
@@ -302,10 +296,7 @@ fn test_message_predicate_network_errors() {
         io::ErrorKind::Other,
         "Connection Reset by peer"
     )));
-    assert!(predicate.should_retry(&io::Error::new(
-        io::ErrorKind::Other,
-        "network unreachable"
-    )));
+    assert!(predicate.should_retry(&io::Error::new(io::ErrorKind::Other, "network unreachable")));
 
     // Should not retry (no network patterns)
     assert!(!predicate.should_retry(&io::Error::new(io::ErrorKind::Other, "file not found")));
@@ -498,10 +489,16 @@ async fn test_simple_executor_with_predicate() {
                 async move {
                     let attempt = attempts.fetch_add(1, Ordering::SeqCst) + 1;
                     if attempt == 1 {
-                        Err(io::Error::new(io::ErrorKind::TimedOut, "timeout - retryable"))
+                        Err(io::Error::new(
+                            io::ErrorKind::TimedOut,
+                            "timeout - retryable",
+                        ))
                     } else {
                         // Second attempt returns non-retryable error
-                        Err(io::Error::new(io::ErrorKind::NotFound, "not found - not retryable"))
+                        Err(io::Error::new(
+                            io::ErrorKind::NotFound,
+                            "not found - not retryable",
+                        ))
                     }
                 }
             })
@@ -599,8 +596,7 @@ fn test_retry_error_display_formats() {
     assert!(display.contains("retry cancelled"));
     assert!(display.contains("2 attempts"));
 
-    let timeout: RetryError<io::Error> =
-        RetryError::attempt_timeout(1, Duration::from_millis(500));
+    let timeout: RetryError<io::Error> = RetryError::attempt_timeout(1, Duration::from_millis(500));
     let display = format!("{}", timeout);
     assert!(display.contains("attempt 1"));
     assert!(display.contains("timed out"));
