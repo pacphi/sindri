@@ -21,10 +21,10 @@ authors = ["Sindri Team"]
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1.35", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 
 # CLI framework
-clap = { version = "4.4", features = ["derive", "env", "wrap_help", "string"] }
+clap = { version = "4.5", features = ["derive", "env", "wrap_help", "string"] }
 
 # Error handling
 anyhow = "1.0"
@@ -39,7 +39,7 @@ serde_yaml = "0.9"
 jsonschema = "0.17"
 
 # Template rendering
-tera = "1.19"
+tera = "1.20"
 
 # HTTP client & self-update
 reqwest = { version = "0.11", features = ["json", "rustls-tls", "stream"], default-features = false }
@@ -53,13 +53,13 @@ duct = "0.13"
 # Terminal UI
 indicatif = "0.17"
 dialoguer = "0.11"
-owo-colors = "4.0"
+owo-colors = "4.2"
 tabled = "0.14"
 console = "0.15"
 
 # Filesystem
 directories = "5.0"
-camino = "1.1"
+camino = "1.2"
 globset = "0.4"
 
 # Logging
@@ -67,13 +67,13 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # Embedding resources
-rust-embed = { version = "8.2", features = ["interpolate-folder-path"] }
+rust-embed = { version = "8.11", features = ["interpolate-folder-path"] }
 
 # Date/time
 chrono = { version = "0.4", features = ["serde"] }
 
 # Regex
-regex = "1.10"
+regex = "1.12"
 
 # TOML parsing (for mise.toml)
 toml = "0.8"
@@ -85,14 +85,14 @@ url = "2.5"
 petgraph = "0.6"
 
 # UUID for unique identifiers
-uuid = { version = "1.6", features = ["v4"] }
+uuid = { version = "1.19", features = ["v4"] }
 
 # Archive handling (for binary downloads)
 tar = "0.4"
-flate2 = "1.0"
+flate2 = "1.1"
 
 # File traversal
-walkdir = "2.4"
+walkdir = "2.5"
 
 # Workspace crates
 sindri-core = { path = "crates/sindri-core" }

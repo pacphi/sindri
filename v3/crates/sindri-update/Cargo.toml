@@ -21,9 +21,9 @@ self_update = { workspace = true }
 octocrab = { workspace = true }
 sha2 = "0.10"
 indicatif = { workspace = true }
-tempfile = "3.8"
+tempfile = "3.24"
 futures-util = "0.3"
-bytes = "1.5"
+bytes = "1.11"
 chrono = { workspace = true }
 uuid = { workspace = true }
 flate2 = { workspace = true }

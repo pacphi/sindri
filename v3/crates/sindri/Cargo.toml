@@ -50,12 +50,12 @@ serde_yaml = { workspace = true }
 base64 = "0.21"
 chrono = { workspace = true }
 globset = { workspace = true }
-walkdir = "2.4"
+walkdir = "2.5"
 rand = "0.8"
 vaultrs = "0.7"
 
 # Archive extraction for upgrades
-flate2 = "1.0"
+flate2 = "1.1"
 tar = "0.4"
 reqwest = { workspace = true }
 

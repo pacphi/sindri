@@ -25,10 +25,10 @@
     "deps:upgrade:npm:minor": "ncu -u --target minor",
     "deps:upgrade:npm:patch": "ncu -u --target patch",
     "deps:upgrade:npm:interactive": "ncu -i",
-    "deps:upgrade:cargo": "cd v3 && cargo upgrade --workspace",
-    "deps:upgrade:cargo:compatible": "cd v3 && cargo upgrade --workspace --compatible",
-    "deps:upgrade:cargo:incompatible": "cd v3 && cargo upgrade --workspace --incompatible",
-    "deps:upgrade:cargo:interactive": "cd v3 && cargo upgrade --workspace --dry-run",
+    "deps:upgrade:cargo": "cd v3 && cargo upgrade",
+    "deps:upgrade:cargo:compatible": "cd v3 && cargo upgrade --compatible",
+    "deps:upgrade:cargo:incompatible": "cd v3 && cargo upgrade --incompatible",
+    "deps:upgrade:cargo:interactive": "cd v3 && cargo upgrade --dry-run",
     "audit": "pnpm audit",
     "audit:fix": "pnpm audit --fix",
     "v2:ci": "pnpm v2:validate && pnpm v2:build",
@@ -77,13 +77,13 @@
     "build:faq": "node docs/faq/build.mjs"
   },
   "devDependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/exec": "^1.1.1",
-    "@actions/github": "^6.0.1",
+    "@actions/core": "^2.0.2",
+    "@actions/exec": "^2.0.0",
+    "@actions/github": "^7.0.0",
     "js-yaml": "^4.1.1",
-    "markdownlint-cli": "^0.46.0",
-    "npm-check-updates": "^19.1.2",
-    "prettier": "^3.7.1",
+    "markdownlint-cli": "^0.47.0",
+    "npm-check-updates": "^19.3.1",
+    "prettier": "^3.8.0",
     "yaml-lint": "^1.7.0"
   },
   "keywords": [
@@ -100,5 +100,10 @@
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": ">=6.23.0"
+    }
   }
 }

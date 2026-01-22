@@ -117,7 +117,7 @@ define check_optional_tool
 					gh) echo "    brew install gh" ;; \
 					cargo-outdated) echo "    cargo install cargo-outdated" ;; \
 					cargo-audit) echo "    cargo install cargo-audit" ;; \
-					cargo-edit) echo "    cargo install cargo-edit" ;; \
+					cargo-upgrade) echo "    cargo install cargo-edit" ;; \
 					lychee) echo "    cargo install lychee" ;; \
 					devpod) echo "    See https://devpod.sh/docs/getting-started/install" ;; \
 					*) echo "    cargo install $(1)" ;; \
@@ -128,7 +128,7 @@ define check_optional_tool
 					gh) echo "    See https://cli.github.com/ for installation" ;; \
 					cargo-outdated) echo "    cargo install cargo-outdated" ;; \
 					cargo-audit) echo "    cargo install cargo-audit" ;; \
-					cargo-edit) echo "    cargo install cargo-edit" ;; \
+					cargo-upgrade) echo "    cargo install cargo-edit" ;; \
 					lychee) echo "    cargo install lychee" ;; \
 					devpod) echo "    See https://devpod.sh/docs/getting-started/install" ;; \
 					*) echo "    cargo install $(1)" ;; \
@@ -139,7 +139,7 @@ define check_optional_tool
 					gh) echo "    choco install gh (or winget install GitHub.cli)" ;; \
 					cargo-outdated) echo "    cargo install cargo-outdated" ;; \
 					cargo-audit) echo "    cargo install cargo-audit" ;; \
-					cargo-edit) echo "    cargo install cargo-edit" ;; \
+					cargo-upgrade) echo "    cargo install cargo-edit" ;; \
 					lychee) echo "    cargo install lychee" ;; \
 					devpod) echo "    See https://devpod.sh/docs/getting-started/install" ;; \
 					*) echo "    cargo install $(1)" ;; \
@@ -341,7 +341,7 @@ deps-check-optional:
 	@echo "$(BOLD)Rust cargo extensions:$(RESET)"
 	$(call check_optional_tool,cargo-outdated,)
 	$(call check_optional_tool,cargo-audit,)
-	$(call check_optional_tool,cargo-edit,)
+	$(call check_optional_tool,cargo-upgrade,)
 	@echo ""
 	@echo "$(BOLD)Link checking:$(RESET)"
 	$(call check_optional_tool,lychee,)
