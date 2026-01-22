@@ -13,6 +13,7 @@
 //! - rollback: Rollback to previous version
 
 use anyhow::{anyhow, Context, Result};
+use camino::Utf8PathBuf;
 use semver::Version;
 use serde_json;
 use tabled::{Table, Tabled};
@@ -73,8 +74,28 @@ pub async fn run(cmd: ExtensionCommands) -> Result<()> {
 /// - Skip dependencies: `--no-deps`
 /// - Skip confirmation: `--yes` (for profile mode)
 async fn install(args: ExtensionInstallArgs) -> Result<()> {
-    // Install extension by name
-    install_by_name(args.name, args.version, args.force, args.no_deps).await
+    match (&args.from_config, &args.profile, &args.name) {
+        // Mode 1: From config file
+        (Some(config_path), None, None) => {
+            install_from_config(config_path.clone(), args.force, args.no_deps, args.yes).await
+        }
+        // Mode 2: From profile
+        (None, Some(profile_name), None) => {
+            install_from_profile(profile_name.clone(), args.yes).await
+        }
+        // Mode 3: By name
+        (None, None, Some(name)) => {
+            install_by_name(name.clone(), args.version, args.force, args.no_deps).await
+        }
+        // Error: No source specified
+        (None, None, None) => {
+            Err(anyhow!(
+                "Must specify extension name, --from-config, or --profile"
+            ))
+        }
+        // Defensive: multiple sources (clap should catch this)
+        _ => Err(anyhow!("Conflicting options specified")),
+    }
 }
 
 /// Install a single extension by name
@@ -172,6 +193,75 @@ async fn install_by_name(
             Err(e)
         }
     }
+}
+
+/// Install extensions from a sindri.yaml config file
+async fn install_from_config(
+    config_path: Utf8PathBuf,
+    force: bool,
+    no_deps: bool,
+    yes: bool,
+) -> Result<()> {
+    use dialoguer::Confirm;
+    use sindri_core::config::SindriConfig;
+
+    output::info(&format!("Loading configuration from: {}", config_path));
+    let config = SindriConfig::load(Some(&config_path))?;
+    let ext_config = config.extensions();
+
+    // If profile specified in config, delegate to profile install
+    if let Some(profile_name) = &ext_config.profile {
+        return install_from_profile(profile_name.clone(), yes).await;
+    }
+
+    // Collect extensions from active + additional lists
+    let mut extensions = Vec::new();
+    if let Some(active) = &ext_config.active {
+        extensions.extend(active.iter().cloned());
+    }
+    if let Some(additional) = &ext_config.additional {
+        extensions.extend(additional.iter().cloned());
+    }
+
+    if extensions.is_empty() {
+        output::warning("No extensions specified in config file");
+        return Ok(());
+    }
+
+    // Confirmation prompt (unless --yes)
+    if !yes {
+        output::info(&format!("Installing {} extension(s):", extensions.len()));
+        for ext in &extensions {
+            println!("  - {}", ext);
+        }
+        let confirmed = Confirm::new()
+            .with_prompt("Continue?")
+            .default(true)
+            .interact()?;
+        if !confirmed {
+            output::info("Cancelled");
+            return Ok(());
+        }
+    }
+
+    // Install each extension
+    for ext in &extensions {
+        install_by_name(ext.clone(), None, force, no_deps).await?;
+    }
+    Ok(())
+}
+
+/// Install extensions from a profile (delegates to profile::install)
+async fn install_from_profile(profile_name: String, yes: bool) -> Result<()> {
+    use crate::cli::ProfileInstallArgs;
+    use crate::commands::profile;
+
+    let profile_args = ProfileInstallArgs {
+        profile: profile_name,
+        yes,
+        continue_on_error: true,
+    };
+    profile::install(profile_args).await
 }
 
 // ============================================================================
