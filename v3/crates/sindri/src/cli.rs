@@ -5,7 +5,6 @@ use clap::{Args, Parser, Subcommand};
 
 // Re-export command types for convenience
 pub use crate::commands::backup::BackupArgs;
-pub use crate::commands::project::{CloneProjectArgs, NewProjectArgs};
 pub use crate::commands::restore::RestoreArgs;
 pub use crate::commands::secrets::SecretsCommands;
 
@@ -73,11 +72,9 @@ pub enum Commands {
     /// Restore workspace
     Restore(RestoreArgs),
 
-    /// Create a new project from template
-    New(NewProjectArgs),
-
-    /// Clone a project repository
-    Clone(CloneProjectArgs),
+    /// Project management
+    #[command(subcommand)]
+    Project(ProjectCommands),
 }
 
 // Version command
@@ -235,19 +232,11 @@ pub enum ExtensionCommands {
 #[derive(Args, Debug)]
 pub struct ExtensionInstallArgs {
     /// Extension name (with optional @version)
-    pub name: Option<String>,
+    pub name: String,
 
     /// Specific version to install
     #[arg(short, long)]
     pub version: Option<String>,
-
-    /// Install extensions from sindri.yaml config file
-    #[arg(long, conflicts_with_all = ["name", "profile"])]
-    pub from_config: Option<Utf8PathBuf>,
-
-    /// Install all extensions from a profile
-    #[arg(long, conflicts_with_all = ["name", "from_config"])]
-    pub profile: Option<String>,
 
     /// Force reinstall if already installed
     #[arg(short, long)]
@@ -256,10 +245,6 @@ pub struct ExtensionInstallArgs {
     /// Skip dependency installation
     #[arg(long)]
     pub no_deps: bool,
-
-    /// Skip confirmation prompt (for profile installation)
-    #[arg(short = 'y', long)]
-    pub yes: bool,
 }
 
 #[derive(Args, Debug)]
@@ -469,4 +454,82 @@ pub struct ProfileStatusArgs {
     /// Output as JSON
     #[arg(long)]
     pub json: bool,
+}
+
+// Project commands
+#[derive(Subcommand, Debug)]
+pub enum ProjectCommands {
+    /// Create a new project from template
+    New(NewProjectArgs),
+
+    /// Clone a project repository
+    Clone(CloneProjectArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct NewProjectArgs {
+    /// Project name
+    pub name: String,
+
+    /// Project type (auto-detected if not specified)
+    #[arg(short = 't', long)]
+    pub project_type: Option<String>,
+
+    /// Force interactive type selection
+    #[arg(short, long)]
+    pub interactive: bool,
+
+    /// Git user name
+    #[arg(long)]
+    pub git_name: Option<String>,
+
+    /// Git user email
+    #[arg(long)]
+    pub git_email: Option<String>,
+
+    /// Skip agentic tools
+    #[arg(long)]
+    pub skip_tools: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct CloneProjectArgs {
+    /// Repository URL
+    pub repository: String,
+
+    /// Fork before cloning
+    #[arg(short, long)]
+    pub fork: bool,
+
+    /// Branch to checkout
+    #[arg(short, long)]
+    pub branch: Option<String>,
+
+    /// Clone depth
+    #[arg(short, long)]
+    pub depth: Option<u32>,
+
+    /// Git user name
+    #[arg(long)]
+    pub git_name: Option<String>,
+
+    /// Git user email
+    #[arg(long)]
+    pub git_email: Option<String>,
+
+    /// Feature branch to create
+    #[arg(long)]
+    pub feature: Option<String>,
+
+    /// Skip dependency installation
+    #[arg(long)]
+    pub no_deps: bool,
+
+    /// Skip agentic tools
+    #[arg(long)]
+    pub skip_tools: bool,
+
+    /// Skip enhancements
+    #[arg(long)]
+    pub no_enhance: bool,
 }

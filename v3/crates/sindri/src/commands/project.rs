@@ -2,40 +2,22 @@
 
 use anyhow::{anyhow, Context, Result};
 use camino::Utf8PathBuf;
-use clap::Args;
 use std::process::Command;
 
+use crate::cli::{CloneProjectArgs, NewProjectArgs, ProjectCommands};
 use crate::output;
+
+/// Run project subcommands
+pub async fn run(cmd: ProjectCommands) -> Result<()> {
+    match cmd {
+        ProjectCommands::New(args) => new_project(args).await,
+        ProjectCommands::Clone(args) => clone_project(args).await,
+    }
+}
 
 //====================================
 // NEW PROJECT COMMAND
 //====================================
-
-#[derive(Args, Debug)]
-pub struct NewProjectArgs {
-    /// Project name
-    pub name: String,
-
-    /// Project type (auto-detected if not specified)
-    #[arg(short = 't', long)]
-    pub project_type: Option<String>,
-
-    /// Force interactive type selection
-    #[arg(short, long)]
-    pub interactive: bool,
-
-    /// Git user name
-    #[arg(long)]
-    pub git_name: Option<String>,
-
-    /// Git user email
-    #[arg(long)]
-    pub git_email: Option<String>,
-
-    /// Skip agentic tools
-    #[arg(long)]
-    pub skip_tools: bool,
-}
 
 /// Create a new project from template
 pub async fn new_project(args: NewProjectArgs) -> Result<()> {
@@ -147,48 +129,6 @@ pub async fn new_project(args: NewProjectArgs) -> Result<()> {
 //====================================
 // CLONE PROJECT COMMAND
 //====================================
-
-#[derive(Args, Debug)]
-pub struct CloneProjectArgs {
-    /// Repository URL
-    pub repository: String,
-
-    /// Fork before cloning
-    #[arg(short, long)]
-    pub fork: bool,
-
-    /// Branch to checkout
-    #[arg(short, long)]
-    pub branch: Option<String>,
-
-    /// Clone depth
-    #[arg(short, long)]
-    pub depth: Option<u32>,
-
-    /// Git user name
-    #[arg(long)]
-    pub git_name: Option<String>,
-
-    /// Git user email
-    #[arg(long)]
-    pub git_email: Option<String>,
-
-    /// Feature branch to create
-    #[arg(long)]
-    pub feature: Option<String>,
-
-    /// Skip dependency installation
-    #[arg(long)]
-    pub no_deps: bool,
-
-    /// Skip agentic tools
-    #[arg(long)]
-    pub skip_tools: bool,
-
-    /// Skip enhancements
-    #[arg(long)]
-    pub no_enhance: bool,
-}
 
 pub async fn clone_project(args: CloneProjectArgs) -> Result<()> {
     output::header("Clone Project");
