@@ -3,14 +3,12 @@ metadata:
   name: ralph
   version: 1.0.0
   description: >-
-    AI-driven autonomous development system. Build software projects with minimal
-    intervention using Claude. Supports discovery, planning, deployment, and review.
-  category: ai
+    AI-driven autonomous development system. Build software projects with minimal intervention using Claude. Supports discovery, planning, deployment, and review.
+  category: productivity
   author: Sindri Team
   homepage: https://github.com/sandstream/ralph-inferno
   dependencies:
     - nodejs
-
 requirements:
   domains:
     - registry.npmjs.org
@@ -19,24 +17,20 @@ requirements:
   diskSpace: 300
   memory: 512
   installTime: 90
-
 install:
   method: script
   script:
     path: scripts/install.sh
     timeout: 120
-
 configure:
   environment:
     - key: RALPH_HOME
       value: $HOME/.ralph
       scope: bashrc
-
 validate:
   script:
     path: scripts/validate.sh
     timeout: 30
-
 remove:
   confirmation: true
   script:
@@ -44,12 +38,10 @@ remove:
   paths:
     - ~/.ralph
     - ./.ralph
-
 upgrade:
   strategy: manual
   script:
     path: scripts/upgrade.sh
-
 capabilities:
   # Project initialization capability
   project-init:
@@ -59,7 +51,6 @@ capabilities:
       - command: "bash scripts/init-project.sh"
         description: "Initialize Ralph Inferno autonomous development system"
         requiresAuth: anthropic
-
     state-markers:
       - path: ".ralph"
         type: directory
@@ -67,11 +58,9 @@ capabilities:
       - path: ".ralph/config.json"
         type: file
         description: "Ralph configuration file"
-
     validation:
       command: "test -f .ralph/config.json"
       expectedExitCode: 0
-
   # Authentication requirements (requires both Anthropic API and GitHub)
   auth:
     provider: anthropic
@@ -91,7 +80,6 @@ capabilities:
       - name: vm-deployment
         requiresApiKey: false
         description: "Remote VM deployment capabilities"
-
   # Lifecycle hooks
   hooks:
     pre-install:
@@ -106,11 +94,9 @@ capabilities:
     post-project-init:
       command: "true"
       description: "Post-initialization completion"
-
   # Collision handling for cloned projects
   collision-handling:
     enabled: true
-
     conflict-rules:
       # Ralph only writes to .claude/commands/ - no CLAUDE.md or JSON conflicts
       - path: ".claude/commands"
@@ -118,7 +104,6 @@ capabilities:
         on-conflict:
           action: merge
           backup: false # Ralph commands are uniquely named (ralph:*)
-
     version-markers:
       # Ralph marker
       - path: ".ralph"
@@ -126,7 +111,6 @@ capabilities:
         version: "installed"
         detection:
           method: directory-exists
-
     scenarios:
       # Scenario 1: Already installed
       - name: "already-initialized"
@@ -138,7 +122,6 @@ capabilities:
 
           To update configuration, run:
             npx ralph-inferno install
-
 bom:
   tools:
     - name: ralph-inferno

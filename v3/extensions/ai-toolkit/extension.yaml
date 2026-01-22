@@ -3,16 +3,14 @@ metadata:
   name: ai-toolkit
   version: 2.1.0
   description: >-
-    AI CLI tools and coding assistants (Fabric, Codex, Gemini,
-    Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
-  category: ai
+    AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
+  category: ai-dev
   author: Sindri Team
   dependencies:
     - nodejs
     - python
     - golang
     - github-cli
-
 requirements:
   domains:
     - github.com
@@ -26,13 +24,11 @@ requirements:
   secrets:
     - google_gemini_api_key
     - grok_api_key
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 600
-
 configure:
   templates:
     - source: bashrc.template
@@ -51,7 +47,6 @@ configure:
     - key: PATH
       value: "$HOME/.factory/bin:$PATH"
       scope: bashrc
-
 validate:
   commands:
     - name: fabric
@@ -59,7 +54,6 @@ validate:
     - name: gemini
     - name: droid
     - name: grok
-
 remove:
   paths:
     - ~/.local/share/fabric
@@ -68,13 +62,11 @@ remove:
     - ~/.grok
     - ~/.config/gemini
     - ~/extensions/ai-tools
-
 upgrade:
   strategy: manual
   script:
     path: upgrade.sh
     timeout: 900
-
 bom:
   tools:
     - name: fabric

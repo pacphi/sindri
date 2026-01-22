@@ -3,8 +3,7 @@ metadata:
   name: rust
   version: 1.0.2
   description: Rust stable via rustup
-  category: language
-
+  category: languages
 requirements:
   domains:
     - crates.io
@@ -12,23 +11,19 @@ requirements:
   diskSpace: 1200
   memory: 2048
   installTime: 120
-
 install:
   method: script
   script:
     path: install.sh
-
 validate:
   commands:
     - name: rustc
       expectedPattern: "rustc \\d+\\.\\d+\\.\\d+"
     - name: cargo
-
 remove:
   method: script
   script:
     path: remove.sh
-
 bom:
   tools:
     - name: rustc

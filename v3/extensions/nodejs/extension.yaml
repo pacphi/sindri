@@ -3,10 +3,9 @@ metadata:
   name: nodejs
   version: 1.1.0
   description: Node.js LTS via mise with pnpm package manager
-  category: language
+  category: languages
   dependencies:
     - mise-config
-
 requirements:
   domains:
     - registry.npmjs.org
@@ -14,7 +13,6 @@ requirements:
   diskSpace: 300
   memory: 256
   installTime: 30
-
 install:
   method: hybrid
   mise:
@@ -23,7 +21,6 @@ install:
   script:
     path: bootstrap-pnpm.sh
     timeout: 60
-
 configure:
   environment:
     - key: NODE_ENV
@@ -34,7 +31,6 @@ configure:
     - key: PYTHON
       value: /usr/bin/python3
       scope: bashrc
-
 validate:
   commands:
     - name: node
@@ -42,12 +38,10 @@ validate:
     - name: npm
     - name: pnpm
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
-
 remove:
   mise:
     removeConfig: true
     tools: [nodejs]
-
 bom:
   tools:
     - name: node

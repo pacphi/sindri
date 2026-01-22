@@ -3,37 +3,31 @@ metadata:
   name: openskills
   version: 2.0.0
   description: >-
-    OpenSkills CLI for managing Claude Code skills from Anthropic's
-    marketplace
-  category: ai
+    OpenSkills CLI for managing Claude Code skills from Anthropic's marketplace
+  category: productivity
   author: Sindri Team
   license: MIT
   dependencies:
     - nodejs
-
 requirements:
   domains:
     - registry.npmjs.org
   diskSpace: 100
   memory: 0
   installTime: 30
-
 install:
   method: mise
   mise:
     configFile: mise.toml
-
 configure:
   environment:
     - key: PATH
       value: "$HOME/.local/bin:$PATH"
       scope: bashrc
-
 validate:
   commands:
     - name: openskills
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
-
 remove:
   paths:
     - ~/.openskills
@@ -42,10 +36,8 @@ remove:
     tools:
       - "npm:openskills"
   confirmation: true
-
 upgrade:
   strategy: reinstall
-
 bom:
   tools:
     - name: openskills

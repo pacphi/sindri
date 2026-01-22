@@ -3,11 +3,10 @@ metadata:
   name: claude-code-mux
   version: 1.0.0
   description: High-performance AI routing proxy with automatic failover across 18+ providers (Anthropic, OpenAI, Gemini, etc.)
-  category: ai
+  category: claude
   author: 9j
   homepage: https://github.com/9j/claude-code-mux
   dependencies: []
-
 requirements:
   domains:
     - github.com
@@ -17,13 +16,11 @@ requirements:
   diskSpace: 20
   memory: 256
   installTime: 30
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 300
-
 configure:
   templates:
     - source: ccmctl.sh
@@ -45,13 +42,11 @@ configure:
     - key: PATH
       value: "${WORKSPACE:-${HOME}/workspace}/bin:$PATH"
       scope: bashrc
-
 validate:
   commands:
     - name: ccm
       versionFlag: --version
       expectedPattern: "ccm \\d+\\.\\d+\\.\\d+"
-
 remove:
   paths:
     - ~/bin/ccm
@@ -60,13 +55,11 @@ remove:
     - ~/config/ccm-config.toml
     - ~/.claude-code-mux
   confirmation: true
-
 upgrade:
   strategy: manual
   script:
     path: upgrade.sh
     timeout: 300
-
 bom:
   tools:
     - name: claude-code-mux

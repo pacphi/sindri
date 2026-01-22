@@ -3,10 +3,9 @@ metadata:
   name: haskell
   version: 1.0.1
   description: Haskell development environment with GHC, Cabal, Stack, and HLS
-  category: language
+  category: languages
   dependencies:
     - mise-config
-
 requirements:
   domains:
     - haskell.org
@@ -16,13 +15,11 @@ requirements:
   diskSpace: 6000
   memory: 4096
   installTime: 180
-
 install:
   method: mise
   mise:
     configFile: mise.toml
     reshimAfterInstall: true
-
 configure:
   environment:
     - key: CABAL_DIR
@@ -31,7 +28,6 @@ configure:
     - key: STACK_ROOT
       value: "~/.stack"
       scope: bashrc
-
 validate:
   commands:
     - name: ghc
@@ -42,12 +38,10 @@ validate:
       expectedPattern: "Version"
     - name: haskell-language-server-wrapper
       expectedPattern: "haskell-language-server"
-
 remove:
   mise:
     removeConfig: true
     tools: [haskell, hls]
-
 bom:
   tools:
     - name: ghc

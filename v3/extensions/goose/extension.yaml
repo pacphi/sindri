@@ -3,13 +3,11 @@ metadata:
   name: goose
   version: 1.0.0
   description: >-
-    Block's open-source AI agent that automates engineering tasks - builds
-    projects, executes code, debugs, and orchestrates workflows with any LLM
-  category: ai
+    Block's open-source AI agent that automates engineering tasks - builds projects, executes code, debugs, and orchestrates workflows with any LLM
+  category: ai-dev
   author: Block
   homepage: https://block.github.io/goose/
   dependencies: []
-
 requirements:
   domains:
     - github.com
@@ -18,37 +16,31 @@ requirements:
     - openrouter.ai
   diskSpace: 200
   installTime: 120
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 300
-
 configure:
   environment:
     - key: PATH
       value: "$HOME/.local/bin:$PATH"
       scope: bashrc
-
 validate:
   commands:
     - name: goose
       versionFlag: --version
       expectedPattern: "goose \\d+\\.\\d+\\.\\d+"
-
 remove:
   paths:
     - ~/.local/bin/goose
     - ~/.config/goose
     - ~/.local/share/goose
-
 upgrade:
   strategy: manual
   script:
     path: install.sh
     timeout: 300
-
 bom:
   tools:
     - name: goose

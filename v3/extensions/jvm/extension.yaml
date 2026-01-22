@@ -3,12 +3,10 @@ metadata:
   name: jvm
   version: 2.0.0
   description: >-
-    JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen
-    with mise
-  category: language
+    JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise
+  category: languages
   author: Sindri Team
   dependencies: []
-
 requirements:
   domains:
     # SDKMAN core
@@ -37,13 +35,11 @@ requirements:
   installTime: 180
   # JVM tools (especially Scala) have slow cold start times
   validationTimeout: 60
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 900
-
 configure:
   templates:
     - source: bashrc.template
@@ -52,7 +48,6 @@ configure:
     - source: profile.template
       destination: ~/.profile
       mode: append
-
 validate:
   commands:
     - name: java
@@ -68,19 +63,16 @@ validate:
       versionFlag: "--version"
     - name: lein
       versionFlag: "version"
-
 remove:
   paths:
     - ~/.sdkman
     - ~/.m2
     - ~/.gradle
-
 upgrade:
   strategy: manual
   script:
     path: upgrade.sh
     timeout: 600
-
 bom:
   tools:
     - name: java

@@ -3,10 +3,9 @@ metadata:
   name: claude-marketplace
   version: 2.0.0
   description: Claude Code plugin marketplace integration via YAML configuration
-  category: ai
+  category: claude
   author: Sindri Team
   dependencies: []
-
 requirements:
   domains:
     - schemastore.org
@@ -15,13 +14,11 @@ requirements:
   installTime: 30
   # Claude CLI may be slow to respond on first run
   validationTimeout: 30
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 300
-
 configure:
   templates:
     - source: marketplaces.yml.example
@@ -33,20 +30,16 @@ configure:
     - source: default-settings.json
       destination: ~/.claude/settings.json
       mode: merge
-
 validate:
   commands:
     - name: claude
       expectedPattern: "\\d+\\.\\d+\\.\\d+.*Claude Code"
-
 remove:
   paths:
     - ~/config/marketplaces.yml
     - ~/config/marketplaces.ci.yml
-
 upgrade:
   strategy: none
-
 bom:
   tools:
     - name: claude-code

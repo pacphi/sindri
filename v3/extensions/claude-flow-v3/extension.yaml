@@ -3,13 +3,12 @@ metadata:
   name: claude-flow-v3
   version: 3.0.0
   description: Next-gen multi-agent orchestration with modular packages, 10x performance, 150x faster search (v3 alpha)
-  category: ai
+  category: claude
   author: ruvnet
   license: MIT
   homepage: https://github.com/ruvnet/claude-flow
   dependencies:
     - nodejs
-
 requirements:
   domains:
     - registry.npmjs.org
@@ -17,12 +16,10 @@ requirements:
   diskSpace: 150
   memory: 256
   installTime: 90
-
 install:
   method: mise
   mise:
     configFile: mise.toml
-
 configure:
   templates:
     - source: claude-flow-v3.aliases
@@ -68,12 +65,10 @@ configure:
     - key: CF_MCP_AUTOSTART
       value: "false"
       scope: bashrc
-
 validate:
   commands:
     - name: claude-flow
       expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\.\\d+)?)?"
-
 remove:
   mise:
     removeConfig: true
@@ -84,14 +79,12 @@ remove:
     - ~/.claude/commands/github/check-ci.md
     - ~/.claude/commands/git/commit.md
   confirmation: true
-
 upgrade:
   strategy: automatic
   mise:
     upgradeAll: true
     tools:
       - "npm:claude-flow"
-
 capabilities:
   # Project initialization capability (v3 features)
   project-init:
@@ -102,32 +95,26 @@ capabilities:
         description: "Initialize Claude Flow v3 with full feature set"
         requiresAuth: anthropic
         conditional: false
-
       - command: "claude-flow doctor --fix"
         description: "Run v3 health check and auto-fix common issues"
         requiresAuth: none
         conditional: false
-
       - command: "claude-flow swarm init --topology ${CF_SWARM_TOPOLOGY:-hierarchical-mesh}"
         description: "Initialize UnifiedSwarmCoordinator with configured topology"
         requiresAuth: none
         conditional: true
-
       - command: "claude-flow hooks pretrain"
         description: "Initialize hook system (31 events + 12 background workers)"
         requiresAuth: none
         conditional: true
-
       - command: 'test "${CF_DAEMON_AUTOSTART:-true}" = "true" && claude-flow daemon start --background || true'
         description: "Start background daemon (if autostart enabled)"
         requiresAuth: none
         conditional: true
-
       - command: 'test "${CF_MCP_AUTOSTART:-false}" = "true" && claude-flow mcp start --transport ${CF_MCP_TRANSPORT:-stdio} --background || echo "MCP ready (start: claude-flow mcp start)"'
         description: "Start MCP server with configured transport (if autostart enabled)"
         requiresAuth: none
         conditional: true
-
     state-markers:
       - path: ".claude"
         type: directory
@@ -141,12 +128,10 @@ capabilities:
       - path: ".claude/hooks"
         type: directory
         description: "Hook system directory (created if hooks initialized)"
-
     validation:
       command: "claude-flow --version && claude-flow doctor --check"
       expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\.\\d+)?)?"
       expectedExitCode: 0
-
   # Authentication requirements
   auth:
     provider: anthropic
@@ -166,7 +151,6 @@ capabilities:
       - name: api-integration
         requiresApiKey: true
         description: "Direct API features"
-
   # Lifecycle hooks (v3-specific)
   hooks:
     post-install:
@@ -175,7 +159,6 @@ capabilities:
     post-project-init:
       command: "true"
       description: "v3 initialization complete"
-
   # MCP server registration (v3 modular CLI)
   mcp:
     enabled: true
@@ -206,7 +189,6 @@ capabilities:
         description: "Security scanning with CVE remediation"
       - name: "claude-flow-performance-benchmark"
         description: "Performance benchmarking (Flash Attention, SONA)"
-
       # Essential V3 tools (new)
       - name: "claude-flow-swarm-topology"
         description: "Configure swarm topology (hierarchical-mesh, mesh, ring, hierarchical)"
@@ -214,7 +196,6 @@ capabilities:
         description: "Control background daemon and workers"
       - name: "claude-flow-goal-planning"
         description: "Goal-oriented action planning (GOAP)"
-
       # Advanced V3 tools (new)
       - name: "claude-flow-consensus"
         description: "Select consensus algorithm (raft, paxos, gossip, crdt, byzantine)"
@@ -228,48 +209,40 @@ capabilities:
         description: "Flash Attention optimization controls"
       - name: "claude-flow-claims-manage"
         description: "Work claims and authorization"
-
   # Collision handling for cloned projects
   collision-handling:
     enabled: true
-
     conflict-rules:
       - path: "CLAUDE.md"
         type: file
         on-conflict:
           action: append
           separator: "\n\n---\n\n"
-
       # Critical JSON files - must merge
       - path: ".claude/mcp.json"
         type: file
         on-conflict:
           action: merge-json
-
       - path: ".claude/settings.json"
         type: file
         on-conflict:
           action: merge-json
-
       # Root MCP config (only claude-flow creates this)
       - path: ".mcp.json"
         type: file
         on-conflict:
           action: overwrite # claude-flow owns this
-
       # Directories - merge strategy
       - path: ".claude"
         type: directory
         on-conflict:
           action: merge
           backup: false # No backup needed, merge is safe
-
       - path: ".claude-flow"
         type: directory
         on-conflict:
           action: merge
           backup: false
-
     version-markers:
       # V3 marker: unified config with swarm/sona
       - path: ".claude/config.json"
@@ -281,21 +254,18 @@ capabilities:
             - '"swarm"'
             - '"sona"'
           match-any: true
-
       # V2 marker: memory.db
       - path: ".claude/memory.db"
         type: file
         version: "v2"
         detection:
           method: file-exists
-
       # V2 marker: memory directory
       - path: ".claude/memory"
         type: directory
         version: "v2"
         detection:
           method: directory-exists
-
       # Unknown marker
       - path: ".claude"
         type: directory
@@ -306,33 +276,13 @@ capabilities:
             - ".claude/config.json"
             - ".claude/memory.db"
             - ".claude/memory"
-
     scenarios:
       # Scenario 1: V2 detected when installing V3 (upgrade)
       - name: "v2-to-v3-upgrade"
         detected-version: "v2"
         installing-version: "3.0.0"
         action: stop
-        message: |
-          ⚠️  Claude Flow V2 installation detected
-
-          Your project has an existing Claude Flow V2 setup.
-          To migrate to V3, please run these commands manually:
-
-            1. Install claude-flow-v3:
-               extension-manager install claude-flow-v3
-
-            2. Migrate memory (AgentDB → HNSW):
-               cf-memory-migrate --from v2 --to v3
-
-            3. Migrate configuration:
-               cf-doctor-fix
-
-          📖 Full migration guide:
-             https://github.com/ruvnet/claude-flow/wiki/Migrating-to-V3
-
-          Skipping automatic initialization to prevent data loss.
-
+        message: "⚠️  Claude Flow V2 installation detected\n\nYour project has an existing Claude Flow V2 setup.\nTo migrate to V3, please run these commands manually:\n\n  1. Install claude-flow-v3:\n     extension-manager install claude-flow-v3\n\n  2. Migrate memory (AgentDB → HNSW):\n     cf-memory-migrate --from v2 --to v3\n\n  3. Migrate configuration:\n     cf-doctor-fix\n\n\U0001F4D6 Full migration guide:\n   https://github.com/ruvnet/claude-flow/wiki/Migrating-to-V3\n\nSkipping automatic initialization to prevent data loss.\n"
       # Scenario 2: Same version already installed
       - name: "same-version-v3"
         detected-version: "v3"
@@ -343,7 +293,6 @@ capabilities:
 
           To force a fresh V3 installation, run:
             claude-flow init --full --force
-
       # Scenario 3: Unknown .claude directory
       - name: "unknown-origin"
         detected-version: "unknown"
@@ -360,7 +309,6 @@ capabilities:
             2. Skip initialization: (do nothing)
 
           Skipping automatic initialization for safety.
-
 bom:
   tools:
     - name: claude-flow

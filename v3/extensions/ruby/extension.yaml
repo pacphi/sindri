@@ -3,10 +3,9 @@ metadata:
   name: ruby
   version: 2.0.0
   description: Ruby 3.4.7 via mise with Rails and Bundler
-  category: language
+  category: languages
   author: Sindri Team
   dependencies: []
-
 requirements:
   domains:
     - rubygems.org
@@ -14,13 +13,11 @@ requirements:
   diskSpace: 2500
   memory: 512
   installTime: 90
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 900
-
 configure:
   templates:
     - source: bashrc-aliases.template
@@ -32,14 +29,12 @@ configure:
     - source: rubocop-config.template
       destination: ~/templates/.rubocop.yml
       mode: overwrite
-
 validate:
   commands:
     - name: ruby
       expectedPattern: "ruby \\d+\\.\\d+\\.\\d+"
     - name: gem
     - name: bundle
-
 remove:
   mise:
     removeConfig: true
@@ -47,12 +42,10 @@ remove:
   paths:
     - ~/templates/Gemfile
     - ~/templates/.rubocop.yml
-
 upgrade:
   strategy: automatic
   mise:
     upgradeAll: true
-
 bom:
   tools:
     - name: ruby

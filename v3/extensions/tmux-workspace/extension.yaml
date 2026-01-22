@@ -3,18 +3,15 @@ metadata:
   name: tmux-workspace
   version: 2.0.0
   description: >-
-    Tmux workspace management with helper scripts and auto-start
-    functionality
-  category: utilities
+    Tmux workspace management with helper scripts and auto-start functionality
+  category: productivity
   author: Sindri Team
   license: MIT
   dependencies: []
-
 requirements:
   diskSpace: 50
   memory: 64
   installTime: 30
-
 install:
   # tmux requires apt installation (needs ncurses, libevent system libraries)
   # Building from source via mise requires too many build dependencies
@@ -24,7 +21,6 @@ install:
     packages:
       - tmux
       - htop
-
 configure:
   templates:
     - source: tmux.conf.template
@@ -47,18 +43,14 @@ configure:
       command: "ln -sf ${WORKSPACE:-${HOME}/workspace}/config/tmux.conf ~/.tmux.conf"
     - description: "Source tmux helpers in bashrc"
       command: >-
-        grep -q 'tmux-helpers.sh' ~/.bashrc ||
-        echo 'source ${WORKSPACE:-${HOME}/workspace}/scripts/tmux-helpers.sh 2>/dev/null'
-        >> ~/.bashrc
+        grep -q 'tmux-helpers.sh' ~/.bashrc || echo 'source ${WORKSPACE:-${HOME}/workspace}/scripts/tmux-helpers.sh 2>/dev/null' >> ~/.bashrc
     - description: "Add tmux scripts to PATH"
       command: >-
-        grep -q 'scripts' ~/.bashrc ||
-        echo 'export PATH="${WORKSPACE:-${HOME}/workspace}/scripts:$PATH"' >> ~/.bashrc
+        grep -q 'scripts' ~/.bashrc || echo 'export PATH="${WORKSPACE:-${HOME}/workspace}/scripts:$PATH"' >> ~/.bashrc
   environment:
     - key: TMUX_SESSION_NAME
       value: sindri-workspace
       scope: profile
-
 validate:
   commands:
     - name: tmux
@@ -66,7 +58,6 @@ validate:
       expectedPattern: "tmux \\d+"
     - name: htop
       versionFlag: "--version"
-
 remove:
   paths:
     - ~/config/tmux.conf
@@ -75,10 +66,8 @@ remove:
     - ~/scripts/tmux-auto-start.sh
     - ~/.tmux.conf
   confirmation: true
-
 upgrade:
   strategy: manual
-
 bom:
   tools:
     - name: tmux

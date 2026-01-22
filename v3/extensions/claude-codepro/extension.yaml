@@ -3,7 +3,7 @@ metadata:
   name: claude-codepro
   version: 4.5.29
   description: Production-grade TDD-enforced development environment for Claude Code with automated quality checks
-  category: ai
+  category: claude
   author: Max Ritter
   license: Proprietary (Free tier available)
   homepage: https://github.com/maxritter/claude-codepro
@@ -12,7 +12,6 @@ metadata:
     - nodejs
     - github-cli
     - mise-config
-
 requirements:
   domains:
     - raw.githubusercontent.com
@@ -23,18 +22,15 @@ requirements:
   memory: 512
   installTime: 300
   installTimeout: 600
-
 install:
   method: script
   script:
     path: scripts/install.sh
     timeout: 600
-
 validate:
   commands:
     - name: ccp
       expectedPattern: ".*"
-
 remove:
   paths:
     - ~/.claude
@@ -51,13 +47,11 @@ remove:
     - Claude MEM data
     - Vexor search indices
     - QLTY configuration
-
 upgrade:
   strategy: reinstall
   warning: |
     This will reinstall Claude CodePro from scratch.
     Your .claude/rules/custom/ directory will be preserved.
-
 capabilities:
   # Project initialization capability
   project-init:
@@ -68,7 +62,6 @@ capabilities:
         description: "Initialize Claude CodePro development environment"
         requiresAuth: none
         conditional: false
-
     state-markers:
       - path: ".claude"
         type: directory
@@ -79,11 +72,9 @@ capabilities:
       - path: ".claude/hooks"
         type: directory
         description: "TDD enforcement and quality check hooks"
-
     validation:
       command: "test -f .claude/bin/ccp && .claude/bin/ccp status"
       expectedExitCode: 0
-
   # Authentication requirements
   auth:
     provider: custom
@@ -104,17 +95,14 @@ capabilities:
       - name: semantic-search
         requiresApiKey: false
         description: "Vexor semantic search (local or OpenAI)"
-
   # Lifecycle hooks
   hooks:
     post-install:
       command: "echo 'Claude CodePro installed. Run: ccp register'"
       description: "License registration prompt"
-
   # Collision handling - CRITICAL CONFLICTS
   collision-handling:
     enabled: true
-
     conflict-rules:
       - path: ".claude"
         type: directory
@@ -139,7 +127,6 @@ capabilities:
             3. Install claude-codepro
 
             Aborting installation for safety.
-
       - path: "CLAUDE.md"
         type: file
         on-conflict:
@@ -151,14 +138,12 @@ capabilities:
             and conflicts with CLAUDE.md-based configurations.
 
             Please resolve manually before installing.
-
     version-markers:
       - path: ".claude/bin/ccp"
         type: file
         version: "installed"
         detection:
           method: file-exists
-
     scenarios:
       - name: "already-installed"
         detected-version: "installed"
@@ -168,7 +153,6 @@ capabilities:
           ✓ Claude CodePro is already installed
 
           To reinstall: extension-manager upgrade claude-codepro
-
 bom:
   tools:
     - name: claude-codepro

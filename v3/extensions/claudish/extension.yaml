@@ -3,14 +3,12 @@ metadata:
   name: claudish
   version: 1.0.0
   description: >-
-    Claude Code CLI proxy for OpenRouter models - run Claude Code with any
-    OpenRouter model via local Anthropic API proxy
-  category: ai
+    Claude Code CLI proxy for OpenRouter models - run Claude Code with any OpenRouter model via local Anthropic API proxy
+  category: claude
   author: MadAppGang
   homepage: https://github.com/MadAppGang/claudish
   dependencies:
     - nodejs
-
 requirements:
   domains:
     - registry.npmjs.org
@@ -21,19 +19,16 @@ requirements:
   installTime: 30
   secrets:
     - openrouter_api_key
-
 install:
   method: mise
   mise:
     configFile: mise.toml
     reshimAfterInstall: true
-
 configure:
   environment:
     - key: ANTHROPIC_API_KEY
       value: placeholder
       scope: bashrc
-
 validate:
   commands:
     - name: claudish
@@ -42,7 +37,6 @@ validate:
     tools:
       - npm:claudish
     minToolCount: 1
-
 remove:
   mise:
     removeConfig: true
@@ -50,12 +44,10 @@ remove:
       - npm:claudish
   paths:
     - ~/.claude/skills/claudish-usage
-
 upgrade:
   strategy: automatic
   mise:
     upgradeAll: true
-
 bom:
   tools:
     - name: claudish

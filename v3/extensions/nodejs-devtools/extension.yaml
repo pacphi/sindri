@@ -4,24 +4,21 @@ metadata:
   version: 2.2.0
   description: >-
     TypeScript, ESLint, Prettier, and Node.js development tools via pnpm
-  category: dev-tools
+  category: languages
   author: Sindri Team
   dependencies:
     - nodejs
-
 requirements:
   domains:
     - registry.npmjs.org
   diskSpace: 150
   memory: 256
   installTime: 60
-
 install:
   method: mise
   mise:
     configFile: mise.toml
     reshimAfterInstall: true
-
 configure:
   templates:
     - source: prettierrc.template
@@ -33,7 +30,6 @@ configure:
     - source: tsconfig.template
       destination: ~/templates/tsconfig.json
       mode: overwrite
-
 validate:
   commands:
     - name: tsc
@@ -48,7 +44,6 @@ validate:
       - npm:prettier
       - npm:eslint
     minToolCount: 3
-
 remove:
   mise:
     removeConfig: true
@@ -64,12 +59,10 @@ remove:
     - ~/templates/.prettierrc
     - ~/templates/.eslintrc.json
     - ~/templates/tsconfig.json
-
 upgrade:
   strategy: automatic
   mise:
     upgradeAll: true
-
 bom:
   tools:
     - name: typescript

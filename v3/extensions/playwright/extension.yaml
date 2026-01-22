@@ -3,11 +3,10 @@ metadata:
   name: playwright
   version: 2.0.0
   description: Playwright browser automation framework with Chromium
-  category: dev-tools
+  category: testing
   author: Sindri Team
   dependencies:
     - nodejs
-
 requirements:
   domains:
     - registry.npmjs.org
@@ -15,13 +14,11 @@ requirements:
   diskSpace: 1000
   memory: 2048
   installTime: 120
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 900
-
 configure:
   templates:
     - source: playwright-config.template
@@ -33,12 +30,10 @@ configure:
     - source: tsconfig.template
       destination: ~/tsconfig.json
       mode: overwrite
-
 validate:
   commands:
     - name: npx
       versionFlag: playwright --version
-
 remove:
   paths:
     - ~/node_modules/playwright
@@ -47,13 +42,11 @@ remove:
     - ~/playwright.config.ts
     - ~/tests/example.spec.ts
     - ~/tsconfig.json
-
 upgrade:
   strategy: manual
   script:
     path: upgrade.sh
     timeout: 600
-
 bom:
   tools:
     - name: playwright

@@ -3,13 +3,11 @@ metadata:
   name: context7-mcp
   version: 1.0.0
   description: >-
-    Context7 MCP server for up-to-date, version-specific library documentation
-    (optional API key for higher rate limits)
-  category: ai
+    Context7 MCP server for up-to-date, version-specific library documentation (optional API key for higher rate limits)
+  category: mcp
   author: Sindri Team
   homepage: https://github.com/upstash/context7
   dependencies: []
-
 requirements:
   domains:
     - mcp.context7.com
@@ -19,34 +17,28 @@ requirements:
   installTime: 10
   secrets:
     - context7_api_key # Optional: enables higher rate limits and private repo access
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 60
-
 configure:
   templates:
     - source: resources/SKILL.md
       destination: ~/extensions/context7-mcp/SKILL.md
       mode: overwrite
-
 validate:
   commands:
     # Verify claude CLI is available
     - name: claude
       versionFlag: --version
-
 remove:
   script:
     path: uninstall.sh
   paths:
     - ~/extensions/context7-mcp
-
 upgrade:
   strategy: reinstall
-
 bom:
   tools:
     - name: context7-mcp

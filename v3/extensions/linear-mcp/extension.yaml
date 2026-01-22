@@ -3,13 +3,11 @@ metadata:
   name: linear-mcp
   version: 2.1.0
   description: >-
-    Linear MCP server using Claude Code's native HTTP transport
-    (no API key required, no npm dependencies)
-  category: agile
+    Linear MCP server using Claude Code's native HTTP transport (no API key required, no npm dependencies)
+  category: mcp
   author: Sindri Team
   homepage: https://linear.app/docs/mcp
   dependencies: []
-
 requirements:
   domains:
     - api.linear.app
@@ -19,34 +17,28 @@ requirements:
   memory: 64
   installTime: 10
   # No secrets required - uses OAuth flow via Claude Code
-
 install:
   method: script
   script:
     path: install.sh
     timeout: 60
-
 configure:
   templates:
     - source: resources/SKILL.md
       destination: ~/extensions/linear-mcp/SKILL.md
       mode: overwrite
-
 validate:
   commands:
     # Verify claude CLI is available
     - name: claude
       versionFlag: --version
-
 remove:
   script:
     path: uninstall.sh
   paths:
     - ~/extensions/linear-mcp
-
 upgrade:
   strategy: reinstall
-
 bom:
   tools:
     - name: linear-mcp

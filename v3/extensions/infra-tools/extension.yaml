@@ -3,11 +3,10 @@ metadata:
   name: infra-tools
   version: 2.0.0
   description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
-  category: infrastructure
+  category: devops
   author: Sindri Team
   homepage: https://sindri.dev
   dependencies: []
-
 requirements:
   domains:
     - releases.hashicorp.com
@@ -23,7 +22,6 @@ requirements:
   diskSpace: 2500
   memory: 256
   installTime: 120
-
 install:
   method: hybrid
   mise:
@@ -41,7 +39,6 @@ install:
     path: install-additional.sh
     timeout: 600
     args: []
-
 configure:
   templates:
     - source: infra-tools.bashrc.template
@@ -57,7 +54,6 @@ configure:
     - key: ANSIBLE_HOST_KEY_CHECKING
       value: "False"
       scope: bashrc
-
 validate:
   commands:
     - name: terraform
@@ -79,18 +75,8 @@ validate:
       versionFlag: "version"
       expectedPattern: "v\\d+\\.\\d+\\.\\d+"
   mise:
-    tools:
-      [
-        "terraform",
-        "kubectl",
-        "helm",
-        "packer",
-        "asdf:looztra/asdf-k9s",
-        "asdf:Banno/asdf-kustomize",
-        "asdf:sudermanjr/asdf-yq",
-      ]
+    tools: ["terraform", "kubectl", "helm", "packer", "asdf:looztra/asdf-k9s", "asdf:Banno/asdf-kustomize", "asdf:sudermanjr/asdf-yq"]
     minToolCount: 7
-
 remove:
   confirmation: true
   mise:
@@ -119,7 +105,6 @@ remove:
     - /usr/local/bin/kbld
     - /usr/local/bin/vendir
     - /usr/local/bin/imgpkg
-
 upgrade:
   strategy: automatic
   mise:
@@ -127,7 +112,6 @@ upgrade:
   apt:
     packages: ["ansible", "ansible-lint"]
     updateFirst: true
-
 bom:
   tools:
     - name: terraform

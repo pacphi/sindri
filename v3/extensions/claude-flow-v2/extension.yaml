@@ -3,13 +3,12 @@ metadata:
   name: claude-flow-v2
   version: 2.7.47
   description: AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable)
-  category: ai
+  category: claude
   author: ruvnet
   license: MIT
   homepage: https://github.com/ruvnet/claude-flow
   dependencies:
     - nodejs
-
 requirements:
   domains:
     - registry.npmjs.org
@@ -17,12 +16,10 @@ requirements:
   diskSpace: 100
   memory: 128
   installTime: 60
-
 install:
   method: mise
   mise:
     configFile: mise.toml
-
 configure:
   templates:
     - source: claude-flow.aliases
@@ -36,12 +33,10 @@ configure:
     - key: PATH
       value: "$HOME/.local/bin:$PATH"
       scope: bashrc
-
 validate:
   commands:
     - name: claude-flow
       expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
-
 remove:
   mise:
     removeConfig: true
@@ -50,10 +45,8 @@ remove:
   paths:
     - ~/.claude/commands/ms.md
   confirmation: true
-
 upgrade:
   strategy: reinstall
-
 capabilities:
   # Project initialization capability
   project-init:
@@ -66,7 +59,6 @@ capabilities:
       - command: "bash scripts/init-agentdb.sh"
         description: "Initialize AgentDB backend for enhanced memory"
         conditional: true
-
     state-markers:
       - path: ".claude"
         type: directory
@@ -74,11 +66,9 @@ capabilities:
       - path: "CLAUDE.md"
         type: file
         description: "Claude Code project context file"
-
     validation:
       command: "claude-flow --version"
       expectedPattern: "claude-flow v\\d+\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
-
   # Authentication requirements
   auth:
     provider: anthropic
@@ -98,7 +88,6 @@ capabilities:
       - name: api-integration
         requiresApiKey: true
         description: "Direct API features"
-
   # Lifecycle hooks
   hooks:
     pre-install:
@@ -113,7 +102,6 @@ capabilities:
     post-project-init:
       command: "true"
       description: "Post-initialization cleanup"
-
   # MCP server registration
   mcp:
     enabled: true
@@ -133,42 +121,35 @@ capabilities:
         description: "Store patterns in unified memory"
       - name: "claude-flow-swarm-coordinate"
         description: "Coordinate multi-agent swarms"
-
   # Collision handling for cloned projects
   collision-handling:
     enabled: true
-
     conflict-rules:
       - path: "CLAUDE.md"
         type: file
         on-conflict:
           action: append
           separator: "\n\n---\n\n"
-
       # Critical JSON files - must merge
       - path: ".claude/mcp.json"
         type: file
         on-conflict:
           action: merge-json
-
       - path: ".claude/settings.json"
         type: file
         on-conflict:
           action: merge-json
-
       # Directories - merge strategy
       - path: ".claude"
         type: directory
         on-conflict:
           action: merge
           backup: false # No backup needed, merge is safe
-
       - path: ".claude-flow"
         type: directory
         on-conflict:
           action: merge
           backup: false
-
     version-markers:
       # V2 marker: memory.db file
       - path: ".claude/memory.db"
@@ -176,14 +157,12 @@ capabilities:
         version: "v2"
         detection:
           method: file-exists
-
       # V2 marker: memory subdirectory
       - path: ".claude/memory"
         type: directory
         version: "v2"
         detection:
           method: directory-exists
-
       # V3 marker (for cross-version detection)
       - path: ".claude/config.json"
         type: file
@@ -194,7 +173,6 @@ capabilities:
             - '"swarm"'
             - '"sona"'
           match-any: true
-
       # Unknown marker
       - path: ".claude"
         type: directory
@@ -205,7 +183,6 @@ capabilities:
             - ".claude/memory.db"
             - ".claude/memory"
             - ".claude/config.json"
-
     scenarios:
       # Scenario 1: Same version already installed
       - name: "same-version-v2"
@@ -217,7 +194,6 @@ capabilities:
 
           To force a fresh V2 installation, run:
             claude-flow init --force
-
       # Scenario 2: V3 detected when installing V2 (downgrade)
       - name: "v3-to-v2-downgrade"
         detected-version: "v3"
@@ -236,7 +212,6 @@ capabilities:
             4. Run: claude-flow init --force
 
           Skipping automatic initialization to prevent conflicts.
-
       # Scenario 3: Unknown .claude directory
       - name: "unknown-origin"
         detected-version: "unknown"
@@ -253,7 +228,6 @@ capabilities:
             2. Skip initialization: (do nothing)
 
           Skipping automatic initialization for safety.
-
 bom:
   tools:
     - name: claude-flow
