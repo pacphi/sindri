@@ -10,7 +10,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 /// Backup profile determines what data is included in the backup.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BackupProfile {
     /// User data only: projects, Claude data, git config
@@ -21,6 +21,7 @@ pub enum BackupProfile {
     /// Standard backup: user-data + shell/app configs
     /// Size: 1-5GB
     /// Use case: Regular backups, disaster recovery
+    #[default]
     Standard,
 
     /// Full backup: everything except caches and mise installs
@@ -120,20 +121,23 @@ impl BackupProfile {
         ]
     }
 
-    /// Parses a profile from a string.
-    pub fn from_str(s: &str) -> Option<BackupProfile> {
-        match s.to_lowercase().as_str() {
-            "user-data" | "userdata" => Some(BackupProfile::UserData),
-            "standard" => Some(BackupProfile::Standard),
-            "full" => Some(BackupProfile::Full),
-            _ => None,
-        }
+    /// Parses a profile from a string (legacy method).
+    /// Prefer using `str::parse()` via `FromStr` trait.
+    pub fn parse_profile(s: &str) -> Option<BackupProfile> {
+        s.parse().ok()
     }
 }
 
-impl Default for BackupProfile {
-    fn default() -> Self {
-        BackupProfile::Standard
+impl std::str::FromStr for BackupProfile {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "user-data" | "userdata" => Ok(BackupProfile::UserData),
+            "standard" => Ok(BackupProfile::Standard),
+            "full" => Ok(BackupProfile::Full),
+            _ => Err(format!("Unknown backup profile: {}", s)),
+        }
     }
 }
 
@@ -186,19 +190,19 @@ mod tests {
     #[test]
     fn test_profile_from_str() {
         assert_eq!(
-            BackupProfile::from_str("user-data"),
-            Some(BackupProfile::UserData)
+            "user-data".parse::<BackupProfile>(),
+            Ok(BackupProfile::UserData)
         );
         assert_eq!(
-            BackupProfile::from_str("userdata"),
-            Some(BackupProfile::UserData)
+            "userdata".parse::<BackupProfile>(),
+            Ok(BackupProfile::UserData)
         );
         assert_eq!(
-            BackupProfile::from_str("standard"),
-            Some(BackupProfile::Standard)
+            "standard".parse::<BackupProfile>(),
+            Ok(BackupProfile::Standard)
         );
-        assert_eq!(BackupProfile::from_str("full"), Some(BackupProfile::Full));
-        assert_eq!(BackupProfile::from_str("unknown"), None);
+        assert_eq!("full".parse::<BackupProfile>(), Ok(BackupProfile::Full));
+        assert!("unknown".parse::<BackupProfile>().is_err());
     }
 
     #[test]

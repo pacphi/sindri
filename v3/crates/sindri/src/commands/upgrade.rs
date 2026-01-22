@@ -9,10 +9,8 @@ use sindri_update::{CompatibilityChecker, ReleaseManager, VERSION};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
 use std::process::Command;
 
 use crate::cli::UpgradeArgs;

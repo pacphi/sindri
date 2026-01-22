@@ -260,13 +260,11 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
         let json = serde_json::to_string_pretty(&extensions)
             .context("Failed to serialize extensions to JSON")?;
         println!("{}", json);
+    } else if extensions.is_empty() {
+        output::warn("No extensions found matching criteria");
     } else {
-        if extensions.is_empty() {
-            output::warn("No extensions found matching criteria");
-        } else {
-            let table = Table::new(extensions);
-            println!("{}", table);
-        }
+        let table = Table::new(extensions);
+        println!("{}", table);
     }
 
     Ok(())
@@ -353,13 +351,13 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
     let manifest =
         ManifestManager::load_default().context("Failed to load installation manifest")?;
 
-    let entries = manifest.list_extensions();
+    let entries = manifest.list_all();
 
     // Filter by name if specified
     let entries: Vec<_> = if let Some(filter_name) = &args.name {
         entries
             .into_iter()
-            .filter(|e| &e.name == filter_name)
+            .filter(|(name, _)| name == filter_name)
             .collect()
     } else {
         entries
@@ -381,11 +379,11 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
     // Convert to status rows
     let statuses: Vec<StatusRow> = entries
         .into_iter()
-        .map(|entry| StatusRow {
-            name: entry.name,
-            version: entry.version,
-            status: "installed".to_string(), // Could validate with validation commands
-            installed_at: entry.installed_at.format("%Y-%m-%d %H:%M").to_string(),
+        .map(|(name, ext)| StatusRow {
+            name: name.to_string(),
+            version: ext.version.clone(),
+            status: format!("{:?}", ext.state).to_lowercase(),
+            installed_at: ext.installed_at.format("%Y-%m-%d %H:%M").to_string(),
         })
         .collect();
 
@@ -935,11 +933,12 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
         .await
         .context("Failed to find latest compatible version")?;
 
+    let latest_str = latest_compatible.to_string();
     let mut version_rows = vec![VersionRow {
-        version: latest_compatible.to_string(),
+        version: latest_str.clone(),
         compatible: "yes".to_string(),
         status: if installed_version
-            .map(|v| v == &latest_compatible.to_string())
+            .map(|v| v == latest_str)
             .unwrap_or(false)
         {
             "installed (latest)".to_string()
@@ -951,7 +950,7 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
 
     // Add installed version if different
     if let Some(installed_ver) = installed_version {
-        if installed_ver != &latest_compatible.to_string() {
+        if installed_ver != latest_str {
             version_rows.push(VersionRow {
                 version: installed_ver.to_string(),
                 compatible: if compatible_range.matches(&Version::parse(installed_ver)?) {

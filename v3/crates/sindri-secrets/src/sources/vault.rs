@@ -8,7 +8,7 @@ use sindri_core::types::{SecretConfig, SecretSource as ConfigSecretSource};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 use vaultrs::client::{Client, VaultClient, VaultClientSettingsBuilder};
 use vaultrs::{kv2, token};
 

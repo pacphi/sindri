@@ -21,6 +21,12 @@ pub struct SecretCache {
     secrets: HashMap<String, ResolvedSecret>,
 }
 
+impl Default for SecretCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SecretCache {
     pub fn new() -> Self {
         Self {

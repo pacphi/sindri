@@ -129,7 +129,8 @@ pub struct BinaryDownloader {
     /// Platform support matrix
     platform_matrix: PlatformMatrix,
 
-    /// Runtime configuration
+    /// Runtime configuration (kept for future use)
+    #[allow(dead_code)]
     runtime_config: RuntimeConfig,
 }
 

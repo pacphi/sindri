@@ -11,10 +11,11 @@ use std::path::Path;
 use tracing::{debug, info};
 
 /// Bill of Materials format
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum BomFormat {
     /// JSON format
+    #[default]
     Json,
     /// YAML format
     Yaml,
@@ -22,12 +23,6 @@ pub enum BomFormat {
     CycloneDx,
     /// SPDX format
     Spdx,
-}
-
-impl Default for BomFormat {
-    fn default() -> Self {
-        Self::Json
-    }
 }
 
 /// Bill of Materials document

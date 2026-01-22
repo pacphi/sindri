@@ -58,6 +58,16 @@ impl SecretValue {
         }
     }
 
+    /// Get the length of the secret value in bytes
+    pub fn len(&self) -> usize {
+        self.as_bytes().len()
+    }
+
+    /// Check if the secret value is empty
+    pub fn is_empty(&self) -> bool {
+        self.as_bytes().is_empty()
+    }
+
     /// Create from environment variable
     pub fn from_env(value: String) -> Self {
         SecretValue::Env(value)

@@ -268,7 +268,7 @@ mod tests {
         let renderer = TemplateRenderer::new();
         let vars = TemplateVars::new("my-rails-app".to_string());
 
-        let mut template = ProjectTemplate {
+        let template = ProjectTemplate {
             description: "Rails app".to_string(),
             aliases: vec![],
             extensions: vec![],

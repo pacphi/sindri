@@ -91,15 +91,15 @@ impl HierarchicalConfigLoader {
     /// Load an embedded configuration file
     fn load_embedded_config<T: DeserializeOwned>(filename: &str) -> Result<T> {
         let embedded_file = EmbeddedConfigs::get(filename).ok_or_else(|| {
-            Error::config_not_found(&format!("Embedded config not found: {}", filename))
+            Error::config_not_found(format!("Embedded config not found: {}", filename))
         })?;
 
         let content = std::str::from_utf8(&embedded_file.data).map_err(|_| {
-            Error::invalid_config(&format!("Invalid UTF-8 in embedded config: {}", filename))
+            Error::invalid_config(format!("Invalid UTF-8 in embedded config: {}", filename))
         })?;
 
         let config: T = serde_yaml::from_str(content).map_err(|e| {
-            Error::invalid_config(&format!(
+            Error::invalid_config(format!(
                 "Failed to parse embedded config {}: {}",
                 filename, e
             ))
@@ -112,7 +112,7 @@ impl HierarchicalConfigLoader {
     fn load_yaml_file<T: DeserializeOwned>(&self, path: &Utf8Path) -> Result<T> {
         let content = fs::read_to_string(path)?;
         let config: T = serde_yaml::from_str(&content)
-            .map_err(|e| Error::invalid_config(&format!("Failed to parse {}: {}", path, e)))?;
+            .map_err(|e| Error::invalid_config(format!("Failed to parse {}: {}", path, e)))?;
         Ok(config)
     }
 

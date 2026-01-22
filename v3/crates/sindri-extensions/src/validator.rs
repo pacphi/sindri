@@ -226,10 +226,8 @@ impl<'a> ExtensionValidator<'a> {
 
         // Validate MCP if enabled
         if let Some(mcp) = &capabilities.mcp {
-            if mcp.enabled {
-                if mcp.server.is_none() {
-                    anyhow::bail!("MCP capability is enabled but has no server configuration");
-                }
+            if mcp.enabled && mcp.server.is_none() {
+                anyhow::bail!("MCP capability is enabled but has no server configuration");
             }
         }
 

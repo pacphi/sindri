@@ -1,10 +1,9 @@
 //! Secrets management commands
 
 use anyhow::{Context, Result};
-use camino::Utf8PathBuf;
 use clap::{Args, Subcommand};
 use sindri_core::config::SindriConfig;
-use sindri_secrets::SecretResolver;
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::path::PathBuf;
 
 use super::secrets_s3;
@@ -100,7 +99,12 @@ async fn validate(args: ValidateArgs) -> Result<()> {
     output::header(&format!("Validating {} secrets", secrets.len()));
 
     let spinner = output::spinner("Resolving secrets...");
-    let resolver = SecretResolver::new();
+    // Create resolution context from config directory or current directory
+    let config_dir = dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".sindri");
+    let context = ResolutionContext::new(config_dir);
+    let resolver = SecretResolver::new(context);
     let results = resolver.resolve_all(secrets).await;
     spinner.finish_and_clear();
 
@@ -114,17 +118,17 @@ async fn validate(args: ValidateArgs) -> Result<()> {
 
             for (name, secret) in resolved {
                 let value_display = if args.show_values {
-                    secret.value.clone()
+                    secret.value.as_string().unwrap_or("[binary]").to_string()
                 } else {
                     "*".repeat(secret.value.len().min(8))
                 };
 
                 println!(
                     "  {} {} = {} ({})",
-                    style_source(&secret.source.to_string()),
+                    style_source(&secret.metadata.source_type.to_string()),
                     console::style(&name).cyan(),
                     console::style(value_display).dim(),
-                    console::style(format!("{} chars", secret.value.len())).dim()
+                    console::style(format!("{} bytes", secret.value.len())).dim()
                 );
             }
 
@@ -203,43 +207,56 @@ async fn list(args: ListArgs) -> Result<()> {
                 console::style(&secret.name).cyan()
             );
 
-            // Show source-specific details
-            match &secret.source {
-                sindri_core::types::SecretSource::Env { var, .. } => {
+            // Show source-specific details based on source type
+            match secret.source {
+                sindri_core::types::SecretSource::Env => {
+                    // For env, the name IS the var name
                     println!(
                         "    {} {}",
                         console::style("var:").dim(),
-                        console::style(var).yellow()
+                        console::style(&secret.name).yellow()
                     );
-                }
-                sindri_core::types::SecretSource::File { path, .. } => {
-                    println!(
-                        "    {} {}",
-                        console::style("path:").dim(),
-                        console::style(path).yellow()
-                    );
-                }
-                sindri_core::types::SecretSource::Vault { path, key, .. } => {
-                    println!(
-                        "    {} {}",
-                        console::style("path:").dim(),
-                        console::style(path).yellow()
-                    );
-                    if let Some(k) = key {
+                    if let Some(ref from_file) = secret.from_file {
                         println!(
                             "    {} {}",
-                            console::style("key:").dim(),
-                            console::style(k).yellow()
+                            console::style("fromFile:").dim(),
+                            console::style(from_file).yellow()
                         );
                     }
                 }
-                sindri_core::types::SecretSource::S3 { bucket, key, .. } => {
-                    println!(
-                        "    {} s3://{}/{}",
-                        console::style("location:").dim(),
-                        console::style(bucket).yellow(),
-                        console::style(key).yellow()
-                    );
+                sindri_core::types::SecretSource::File => {
+                    if let Some(ref path) = secret.path {
+                        println!(
+                            "    {} {}",
+                            console::style("path:").dim(),
+                            console::style(path).yellow()
+                        );
+                    }
+                }
+                sindri_core::types::SecretSource::Vault => {
+                    if let Some(ref path) = secret.vault_path {
+                        println!(
+                            "    {} {}",
+                            console::style("path:").dim(),
+                            console::style(path).yellow()
+                        );
+                    }
+                    if let Some(ref key) = secret.vault_key {
+                        println!(
+                            "    {} {}",
+                            console::style("key:").dim(),
+                            console::style(key).yellow()
+                        );
+                    }
+                }
+                sindri_core::types::SecretSource::S3 => {
+                    if let Some(ref s3_path) = secret.s3_path {
+                        println!(
+                            "    {} {}",
+                            console::style("s3Path:").dim(),
+                            console::style(s3_path).yellow()
+                        );
+                    }
                 }
             }
         }
@@ -295,7 +312,7 @@ async fn test_vault(args: TestVaultArgs) -> Result<()> {
     let spinner = output::spinner("Testing authentication...");
 
     // Test by reading token info
-    match vaultrs::api::auth::token::lookup(&client).await {
+    match vaultrs::token::lookup(&client, &vault_token).await {
         Ok(_) => {
             spinner.finish_and_clear();
             output::success("Vault connection successful");

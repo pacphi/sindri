@@ -133,7 +133,7 @@ fi
 fn test_backup_info_ordering() {
     use std::time::{Duration, SystemTime};
 
-    let mut backups = vec![
+    let mut backups = [
         BackupInfo {
             path: PathBuf::from("/backup1"),
             size: 100,
@@ -230,7 +230,7 @@ fn test_backup_creation_and_cleanup() {
     assert!(backup_path3.exists());
 
     // Simulate cleanup: keep only 2 most recent
-    let mut backups = vec![
+    let mut backups = [
         backup_path.clone(),
         backup_path2.clone(),
         backup_path3.clone(),
@@ -409,8 +409,10 @@ fn test_permissions_preserved_on_backup() {
 fn test_max_backups_constant() {
     // Verify the MAX_BACKUPS constant is reasonable
     const TEST_MAX_BACKUPS: usize = 2;
-    assert!(TEST_MAX_BACKUPS > 0);
-    assert!(TEST_MAX_BACKUPS <= 10); // Reasonable upper bound
+    const _: () = {
+        assert!(TEST_MAX_BACKUPS > 0);
+        assert!(TEST_MAX_BACKUPS <= 10); // Reasonable upper bound
+    };
 }
 
 #[cfg(unix)]

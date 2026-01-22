@@ -347,7 +347,7 @@ async fn sync(args: SyncArgs) -> Result<()> {
     // Placeholder results
     let to_push = vec!["DB_PASSWORD", "API_KEY"];
     let to_pull = vec!["REDIS_URL"];
-    let conflicts = vec![];
+    let conflicts: Vec<&str> = vec![];
 
     if !to_push.is_empty() {
         output::info(&format!("To push ({}):", to_push.len()));
@@ -479,7 +479,7 @@ async fn rotate(args: RotateArgs) -> Result<()> {
     output::info(&format!("Found {} secrets to rotate", secret_count));
 
     let pb = output::progress_bar(secret_count, "Rotating secrets");
-    for i in 0..secret_count {
+    for _i in 0..secret_count {
         tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         pb.inc(1);
     }

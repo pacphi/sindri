@@ -1,9 +1,8 @@
 //! Restore command
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use camino::Utf8PathBuf;
 use clap::{Args, ValueEnum};
-use sindri_core::config::SindriConfig;
 
 use crate::output;
 
@@ -313,7 +312,7 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     Ok(())
 }
 
-async fn download_backup(source: &str) -> Result<Utf8PathBuf> {
+async fn download_backup(_source: &str) -> Result<Utf8PathBuf> {
     // TODO: Implement S3 and HTTPS download
     let temp_file = std::env::temp_dir().join("sindri-restore.tar.gz");
 
@@ -324,7 +323,7 @@ async fn download_backup(source: &str) -> Result<Utf8PathBuf> {
     }
     pb.finish_and_clear();
 
-    Ok(Utf8PathBuf::from_path_buf(temp_file).map_err(|_| anyhow::anyhow!("Invalid temp path"))?)
+    Utf8PathBuf::from_path_buf(temp_file).map_err(|_| anyhow::anyhow!("Invalid temp path"))
 }
 
 async fn decrypt_backup(
@@ -334,7 +333,7 @@ async fn decrypt_backup(
     // TODO: Implement age decryption
     let decrypted = std::env::temp_dir().join("sindri-restore-decrypted.tar.gz");
     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-    Ok(Utf8PathBuf::from_path_buf(decrypted).map_err(|_| anyhow::anyhow!("Invalid temp path"))?)
+    Utf8PathBuf::from_path_buf(decrypted).map_err(|_| anyhow::anyhow!("Invalid temp path"))
 }
 
 fn verify_backup(_archive: &Utf8PathBuf) -> Result<()> {

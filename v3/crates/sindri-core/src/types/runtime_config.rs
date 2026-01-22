@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Complete runtime configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RuntimeConfig {
     /// Network and HTTP configuration
@@ -33,19 +33,6 @@ pub struct RuntimeConfig {
     /// Display and output settings
     #[serde(default)]
     pub display: DisplayConfig,
-}
-
-impl Default for RuntimeConfig {
-    fn default() -> Self {
-        Self {
-            network: NetworkConfig::default(),
-            retry_policies: RetryPoliciesConfig::default(),
-            github: GitHubConfig::default(),
-            backup: BackupConfig::default(),
-            git_workflow: GitWorkflowConfig::default(),
-            display: DisplayConfig::default(),
-        }
-    }
 }
 
 /// Network and HTTP configuration

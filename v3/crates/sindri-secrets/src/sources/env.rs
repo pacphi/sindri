@@ -8,7 +8,7 @@
 
 use crate::sources::SecretSource;
 use crate::types::{ResolutionContext, ResolvedFrom, ResolvedSecret, SecretMetadata, SecretValue};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use sindri_core::types::{SecretConfig, SecretSource as ConfigSecretSource};
 use std::collections::HashMap;

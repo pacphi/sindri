@@ -1,6 +1,6 @@
 //! Backup command
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use camino::Utf8PathBuf;
 use clap::{Args, ValueEnum};
 use sindri_core::config::SindriConfig;
@@ -200,7 +200,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     );
     println!(
         "  Compression ratio:  {}%",
-        console::style((estimated_compressed * 100 / total_size.max(1))).cyan()
+        console::style(estimated_compressed * 100 / total_size.max(1)).cyan()
     );
     println!();
 

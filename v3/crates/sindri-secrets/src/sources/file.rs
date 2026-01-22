@@ -12,7 +12,7 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use sindri_core::types::{SecretConfig, SecretSource as ConfigSecretSource};
 use std::path::{Path, PathBuf};
-use tracing::{debug, warn};
+use tracing::debug;
 
 pub struct FileSource {
     /// Allowed base directories for security

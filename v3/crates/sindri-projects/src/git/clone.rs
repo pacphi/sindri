@@ -257,10 +257,10 @@ async fn verify_fork_remotes(path: &Utf8Path) -> Result<()> {
 
     let upstream_url = get_remote_url(path, "upstream").await?;
 
-    if upstream_url.is_none() {
-        warn!("Upstream remote not configured. Fork may not have been set up correctly.");
+    if let Some(url) = upstream_url {
+        info!("Fork configured with upstream: {}", url);
     } else {
-        info!("Fork configured with upstream: {}", upstream_url.unwrap());
+        warn!("Upstream remote not configured. Fork may not have been set up correctly.");
     }
 
     Ok(())

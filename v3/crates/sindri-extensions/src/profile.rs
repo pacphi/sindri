@@ -12,6 +12,9 @@ use crate::executor::ExtensionExecutor;
 use crate::manifest::ManifestManager;
 use crate::registry::ExtensionRegistry;
 
+/// Progress callback type for profile installations
+pub type ProgressCallback<'a> = Option<&'a dyn Fn(usize, usize, &str)>;
+
 /// Result of a profile installation
 #[derive(Debug)]
 pub struct ProfileInstallResult {
@@ -74,7 +77,7 @@ impl ProfileInstaller {
     pub async fn install_profile(
         &mut self,
         profile_name: &str,
-        progress_callback: Option<&dyn Fn(usize, usize, &str)>,
+        progress_callback: ProgressCallback<'_>,
     ) -> Result<ProfileInstallResult> {
         info!("Installing profile: {}", profile_name);
 
@@ -243,7 +246,7 @@ impl ProfileInstaller {
     pub async fn reinstall_profile(
         &mut self,
         profile_name: &str,
-        progress_callback: Option<&dyn Fn(usize, usize, &str)>,
+        progress_callback: ProgressCallback<'_>,
     ) -> Result<ProfileInstallResult> {
         info!("Reinstalling profile: {}", profile_name);
 

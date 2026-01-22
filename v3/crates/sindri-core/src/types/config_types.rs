@@ -280,6 +280,17 @@ pub enum SecretSource {
     S3,
 }
 
+impl std::fmt::Display for SecretSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SecretSource::Env => write!(f, "env"),
+            SecretSource::File => write!(f, "file"),
+            SecretSource::Vault => write!(f, "vault"),
+            SecretSource::S3 => write!(f, "s3"),
+        }
+    }
+}
+
 /// Provider-specific configurations
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProvidersConfig {

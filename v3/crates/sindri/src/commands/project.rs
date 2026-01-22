@@ -256,8 +256,8 @@ fn is_valid_repo_url(url: &str) -> bool {
 fn extract_project_name(url: &str) -> Result<String> {
     let name = url
         .trim_end_matches('/')
-        .split('/')
-        .last()
+        .rsplit('/')
+        .next()
         .ok_or_else(|| anyhow!("Could not determine project name from URL"))?
         .trim_end_matches(".git");
 
@@ -461,7 +461,7 @@ fn checkout_branch(branch: &str) -> Result<()> {
             .arg("checkout")
             .arg("-b")
             .arg(branch)
-            .arg(&format!("upstream/{}", branch))
+            .arg(format!("upstream/{}", branch))
             .output()
             .context("Failed to checkout branch from upstream")?;
 
@@ -671,85 +671,78 @@ fn install_dependencies(project_dir: &Utf8PathBuf) -> Result<()> {
     let mut installed = false;
 
     // Node.js projects
-    if project_dir.join("package.json").exists() {
-        if is_command_available("npm") {
-            output::info("Installing Node.js dependencies...");
-            let output = Command::new("npm")
-                .arg("install")
-                .current_dir(project_dir)
-                .output()
-                .context("Failed to run npm install")?;
+    if project_dir.join("package.json").exists() && is_command_available("npm") {
+        output::info("Installing Node.js dependencies...");
+        let output = Command::new("npm")
+            .arg("install")
+            .current_dir(project_dir)
+            .output()
+            .context("Failed to run npm install")?;
 
-            if output.status.success() {
-                output::success("Node.js dependencies installed");
-                installed = true;
-            } else {
-                output::warning("Failed to install Node.js dependencies");
-            }
+        if output.status.success() {
+            output::success("Node.js dependencies installed");
+            installed = true;
+        } else {
+            output::warning("Failed to install Node.js dependencies");
         }
     }
 
     // Python projects
-    if project_dir.join("requirements.txt").exists() || project_dir.join("pyproject.toml").exists()
-    {
-        if is_command_available("pip") {
-            output::info("Installing Python dependencies...");
+    let has_python_deps = project_dir.join("requirements.txt").exists()
+        || project_dir.join("pyproject.toml").exists();
+    if has_python_deps && is_command_available("pip") {
+        output::info("Installing Python dependencies...");
 
-            if project_dir.join("requirements.txt").exists() {
-                let output = Command::new("pip")
-                    .arg("install")
-                    .arg("-r")
-                    .arg("requirements.txt")
-                    .current_dir(project_dir)
-                    .output()
-                    .context("Failed to run pip install")?;
+        if project_dir.join("requirements.txt").exists() {
+            let output = Command::new("pip")
+                .arg("install")
+                .arg("-r")
+                .arg("requirements.txt")
+                .current_dir(project_dir)
+                .output()
+                .context("Failed to run pip install")?;
 
-                if output.status.success() {
-                    output::success("Python dependencies installed");
-                    installed = true;
-                } else {
-                    output::warning("Failed to install Python dependencies");
-                }
+            if output.status.success() {
+                output::success("Python dependencies installed");
+                installed = true;
+            } else {
+                output::warning("Failed to install Python dependencies");
             }
         }
     }
 
     // Rust projects
-    if project_dir.join("Cargo.toml").exists() {
-        if is_command_available("cargo") {
-            output::info("Fetching Rust dependencies...");
-            let output = Command::new("cargo")
-                .arg("fetch")
-                .current_dir(project_dir)
-                .output()
-                .context("Failed to run cargo fetch")?;
+    if project_dir.join("Cargo.toml").exists() && is_command_available("cargo") {
+        output::info("Fetching Rust dependencies...");
+        let output = Command::new("cargo")
+            .arg("fetch")
+            .current_dir(project_dir)
+            .output()
+            .context("Failed to run cargo fetch")?;
 
-            if output.status.success() {
-                output::success("Rust dependencies fetched");
-                installed = true;
-            } else {
-                output::warning("Failed to fetch Rust dependencies");
-            }
+        if output.status.success() {
+            output::success("Rust dependencies fetched");
+            installed = true;
+        } else {
+            output::warning("Failed to fetch Rust dependencies");
         }
     }
 
     // Go projects
-    if project_dir.join("go.mod").exists() {
-        if is_command_available("go") {
-            output::info("Installing Go dependencies...");
-            let output = Command::new("go")
-                .arg("mod")
-                .arg("download")
-                .current_dir(project_dir)
-                .output()
-                .context("Failed to run go mod download")?;
+    if project_dir.join("go.mod").exists() && is_command_available("go") {
+        output::info("Installing Go dependencies...");
+        let output = Command::new("go")
+            .arg("mod")
+            .arg("download")
+            .current_dir(project_dir)
+            .output()
+            .context("Failed to run go mod download")?;
 
-            if output.status.success() {
-                output::success("Go dependencies installed");
-                installed = true;
-            } else {
-                output::warning("Failed to install Go dependencies");
-            }
+        if output.status.success() {
+            output::success("Go dependencies installed");
+            installed = true;
+        } else {
+            output::warning("Failed to install Go dependencies");
         }
     }
 
@@ -1272,26 +1265,26 @@ fn init_git_repo(project_name: &str) -> Result<()> {
     }
 
     // Set default branch name
-    let _ = Command::new("git").args(&["branch", "-M", "main"]).output();
+    let _ = Command::new("git").args(["branch", "-M", "main"]).output();
 
     // Configure git user if not already configured globally
     let user_name = Command::new("git")
-        .args(&["config", "user.name"])
+        .args(["config", "user.name"])
         .output()?;
 
     if user_name.stdout.is_empty() {
         let _ = Command::new("git")
-            .args(&["config", "user.name", "Developer"])
+            .args(["config", "user.name", "Developer"])
             .output();
     }
 
     let user_email = Command::new("git")
-        .args(&["config", "user.email"])
+        .args(["config", "user.email"])
         .output()?;
 
     if user_email.stdout.is_empty() {
         let _ = Command::new("git")
-            .args(&["config", "user.email", "developer@localhost"])
+            .args(["config", "user.email", "developer@localhost"])
             .output();
     }
 
@@ -1311,7 +1304,7 @@ struct TemplateVariables {
 /// Collect template variables for substitution
 fn collect_template_variables(project_name: &str) -> Result<TemplateVariables> {
     let user_name = Command::new("git")
-        .args(&["config", "user.name"])
+        .args(["config", "user.name"])
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -1441,14 +1434,14 @@ fn substitute_variables(content: &str, variables: &TemplateVariables) -> String 
 fn commit_initial_project(project_name: &str) -> Result<()> {
     // Add all files
     Command::new("git")
-        .args(&["add", "."])
+        .args(["add", "."])
         .output()
         .context("Failed to run git add")?;
 
     // Commit
     let message = format!("feat: initial project setup for {}", project_name);
     let output = Command::new("git")
-        .args(&["commit", "-m", &message])
+        .args(["commit", "-m", &message])
         .output()
         .context("Failed to run git commit")?;
 
@@ -1537,15 +1530,15 @@ fn show_new_project_tools(project_dir: &Utf8PathBuf) -> Result<()> {
 /// Show git configuration for new project
 fn show_new_project_git_config() -> Result<()> {
     let user_name = Command::new("git")
-        .args(&["config", "user.name"])
+        .args(["config", "user.name"])
         .output()?;
 
     let user_email = Command::new("git")
-        .args(&["config", "user.email"])
+        .args(["config", "user.email"])
         .output()?;
 
     let branch = Command::new("git")
-        .args(&["branch", "--show-current"])
+        .args(["branch", "--show-current"])
         .output()?;
 
     let name_str = String::from_utf8_lossy(&user_name.stdout)
