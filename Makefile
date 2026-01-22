@@ -383,7 +383,7 @@ deps-upgrade-interactive:
 .PHONY: format
 format:
 	@echo "$(BLUE)Formatting all files...$(RESET)"
-	@echo "$(BLUE)  → Running Prettier (JSON/YAML/MD)...$(RESET)"
+	@echo "$(BLUE)  → Running Prettier (JSON/MD)...$(RESET)"
 	@pnpm format
 	@echo "$(BLUE)  → Running cargo fmt (Rust)...$(RESET)"
 	@cd $(V3_DIR) && cargo fmt --all
