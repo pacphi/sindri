@@ -88,11 +88,9 @@ async fn install(args: ExtensionInstallArgs) -> Result<()> {
             install_by_name(name.clone(), args.version, args.force, args.no_deps).await
         }
         // Error: No source specified
-        (None, None, None) => {
-            Err(anyhow!(
-                "Must specify extension name, --from-config, or --profile"
-            ))
-        }
+        (None, None, None) => Err(anyhow!(
+            "Must specify extension name, --from-config, or --profile"
+        )),
         // Defensive: multiple sources (clap should catch this)
         _ => Err(anyhow!("Conflicting options specified")),
     }
@@ -377,7 +375,9 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
 /// 4. Validate dependency references
 /// 5. Check for conflicts with installed extensions
 async fn validate(args: ExtensionValidateArgs) -> Result<()> {
-    use sindri_extensions::{DependencyResolver, ExtensionRegistry, ExtensionValidator, ManifestManager};
+    use sindri_extensions::{
+        DependencyResolver, ExtensionRegistry, ExtensionValidator, ManifestManager,
+    };
     use std::collections::HashSet;
     use tracing::debug;
 
@@ -466,9 +466,9 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
             ));
 
             // We can still validate dependencies and conflicts from registry entry
-            let entry = registry.get_entry(&args.name).ok_or_else(|| {
-                anyhow!("Extension '{}' not found in registry", args.name)
-            })?;
+            let entry = registry
+                .get_entry(&args.name)
+                .ok_or_else(|| anyhow!("Extension '{}' not found in registry", args.name))?;
 
             output::success(&format!(
                 "Registry entry for '{}' is valid (category: {}, description: {})",
@@ -600,7 +600,9 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
             "Conflicts with installed extensions: {}",
             active_conflicts.join(", ")
         ));
-        output::warning("Installing this extension may cause issues with the conflicting extensions");
+        output::warning(
+            "Installing this extension may cause issues with the conflicting extensions",
+        );
     } else {
         output::success("No conflicts with installed extensions");
     }
@@ -1254,91 +1256,105 @@ struct VersionRow {
 ///
 /// Displays version compatibility with current CLI version
 /// and indicates which version is currently installed
+///
+/// Lists all available versions from GitHub releases, showing:
+/// - Version number
+/// - Compatibility with current CLI version
+/// - Installation status (installed, latest, update available)
+/// - Release date
 async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
-    use semver::{Version, VersionReq};
-    use sindri_extensions::{ExtensionDistributor, ManifestManager};
+    use semver::VersionReq;
+    use sindri_extensions::{ExtensionDistributor, ExtensionRegistry, ManifestManager};
 
-    output::info(&format!("Available versions for extension: {}", args.name));
+    output::info(&format!("Fetching versions for extension: {}", args.name));
 
     // 1. Initialize ExtensionDistributor
     let cache_dir = get_cache_dir()?;
     let extensions_dir = get_extensions_dir()?;
     let cli_version = get_cli_version()?;
 
-    let distributor = ExtensionDistributor::new(cache_dir, extensions_dir, cli_version.clone())
-        .context("Failed to initialize extension distributor")?;
+    let distributor =
+        ExtensionDistributor::new(cache_dir.clone(), extensions_dir, cli_version.clone())
+            .context("Failed to initialize extension distributor")?;
 
-    // 2. Fetch compatibility matrix
+    // 2. Verify extension exists in registry
+    let spinner = output::spinner("Loading extension registry...");
+    let registry = ExtensionRegistry::load_from_github(cache_dir, "main")
+        .await
+        .context("Failed to load extension registry")?;
+    spinner.finish_and_clear();
+
+    if !registry.has_extension(&args.name) {
+        return Err(anyhow!("Extension '{}' not found in registry", args.name));
+    }
+
+    // 3. Fetch compatibility matrix and get compatible version range
+    let spinner = output::spinner("Fetching compatibility information...");
     let matrix = distributor
         .get_compatibility_matrix()
         .await
         .context("Failed to fetch compatibility matrix")?;
+    spinner.finish_and_clear();
 
-    // 3. Get compatible version range for current CLI
-    let compatible_range = {
+    let compatible_range: Option<VersionReq> = {
         let cli_pattern = format!("{}.{}.x", cli_version.major, cli_version.minor);
-        let compat = matrix.cli_versions.get(&cli_pattern).ok_or_else(|| {
-            anyhow!(
-                "CLI version {} not found in compatibility matrix",
-                cli_version
-            )
-        })?;
-
-        let range_str = compat
-            .compatible_extensions
-            .get(&args.name)
-            .ok_or_else(|| {
-                anyhow!(
-                    "Extension '{}' not found in compatibility matrix for CLI {}",
-                    args.name,
-                    cli_pattern
-                )
-            })?;
-
-        VersionReq::parse(range_str)
-            .context(format!("Invalid version requirement: {}", range_str))?
+        matrix
+            .cli_versions
+            .get(&cli_pattern)
+            .and_then(|compat| compat.compatible_extensions.get(&args.name))
+            .and_then(|range_str| VersionReq::parse(range_str).ok())
     };
 
-    // 4. Get installed version
+    // 4. Get installed version from manifest
     let manifest = ManifestManager::load_default().context("Failed to load manifest")?;
     let installed_version = manifest.get_version(&args.name);
 
-    // 5. For now, we'll show a simplified version list
-    // TODO: Full implementation would require exposing release listing from distributor
-    let latest_compatible = distributor
-        .find_latest_compatible(&args.name, &compatible_range)
+    // 5. Fetch all available versions from GitHub releases
+    let spinner = output::spinner("Fetching available versions from GitHub...");
+    let available_versions = distributor
+        .list_available_versions(&args.name, compatible_range.as_ref())
         .await
-        .context("Failed to find latest compatible version")?;
+        .context("Failed to fetch available versions")?;
+    spinner.finish_and_clear();
 
-    let latest_str = latest_compatible.to_string();
-    let mut version_rows = vec![VersionRow {
-        version: latest_str.clone(),
-        compatible: "yes".to_string(),
-        status: if installed_version
-            .map(|v| v == latest_str)
-            .unwrap_or(false)
-        {
-            "installed (latest)".to_string()
-        } else {
-            "latest".to_string()
-        },
-        released: "available".to_string(),
-    }];
+    if available_versions.is_empty() {
+        output::warn(&format!(
+            "No versions found for extension '{}' in GitHub releases",
+            args.name
+        ));
+        output::info("The extension may not have any published releases yet.");
+        return Ok(());
+    }
 
-    // Add installed version if different
-    if let Some(installed_ver) = installed_version {
-        if installed_ver != latest_str {
-            version_rows.push(VersionRow {
-                version: installed_ver.to_string(),
-                compatible: if compatible_range.matches(&Version::parse(installed_ver)?) {
-                    "yes".to_string()
-                } else {
-                    "no".to_string()
-                },
-                status: "installed".to_string(),
-                released: "-".to_string(),
-            });
-        }
+    // 6. Build version rows
+    let mut version_rows: Vec<VersionRow> = Vec::new();
+    let latest_version = available_versions.first().map(|(v, _, _)| v.to_string());
+
+    for (version, released_at, is_compatible) in &available_versions {
+        let version_str = version.to_string();
+        let is_installed = installed_version.map(|v| v == version_str).unwrap_or(false);
+        let is_latest = latest_version
+            .as_ref()
+            .map(|l| l == &version_str)
+            .unwrap_or(false);
+
+        let status = match (is_installed, is_latest) {
+            (true, true) => "installed (latest)".to_string(),
+            (true, false) => "installed".to_string(),
+            (false, true) => "latest".to_string(),
+            (false, false) => "-".to_string(),
+        };
+
+        version_rows.push(VersionRow {
+            version: version_str,
+            compatible: if *is_compatible {
+                "yes".to_string()
+            } else {
+                "no".to_string()
+            },
+            status,
+            released: released_at.format("%Y-%m-%d").to_string(),
+        });
     }
 
     // 7. Output results
@@ -1346,7 +1362,9 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
         let json_output = serde_json::json!({
             "extension": args.name,
             "cli_version": cli_version.to_string(),
-            "compatible_range": compatible_range.to_string(),
+            "compatible_range": compatible_range.as_ref().map(|r| r.to_string()),
+            "installed_version": installed_version,
+            "latest_version": latest_version,
             "versions": version_rows.iter().map(|v| {
                 serde_json::json!({
                     "version": v.version,
@@ -1358,17 +1376,40 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
         });
         println!("{}", serde_json::to_string_pretty(&json_output)?);
     } else {
-        if version_rows.is_empty() {
-            output::warn(&format!("No versions found for extension '{}'", args.name));
-            return Ok(());
-        }
+        println!();
+        output::header(&format!("Available Versions: {}", args.name));
+        println!();
 
-        let table = Table::new(version_rows);
+        let table = Table::new(&version_rows);
         println!("{}", table);
 
         println!();
-        output::info(&format!("Compatible range: {}", compatible_range));
+        if let Some(range) = &compatible_range {
+            output::info(&format!("Compatible range: {}", range));
+        } else {
+            output::warning("No compatibility information found for current CLI version");
+        }
         output::info(&format!("Current CLI version: {}", cli_version));
+
+        // Show upgrade hint if installed version is not the latest
+        if let (Some(installed), Some(latest)) = (installed_version, &latest_version) {
+            if installed != latest {
+                let compatible_with_latest = version_rows
+                    .iter()
+                    .find(|v| &v.version == latest)
+                    .map(|v| v.compatible == "yes")
+                    .unwrap_or(false);
+
+                if compatible_with_latest {
+                    println!();
+                    output::info(&format!("Upgrade available: {} -> {}", installed, latest));
+                    output::info(&format!(
+                        "Run 'sindri extension upgrade {}' to upgrade",
+                        args.name
+                    ));
+                }
+            }
+        }
     }
 
     Ok(())
@@ -1534,19 +1575,166 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
 /// Rollback an extension to a previous version
 ///
 /// Restores the extension to its previous installed version
-/// from the manifest history
+/// from the manifest history.
+///
+/// The rollback process:
+/// 1. Checks if a previous version exists in the manifest history
+/// 2. Confirms the rollback with the user (unless --yes is provided)
+/// 3. Installs the previous version
+/// 4. Updates the manifest to track the rollback
+///
+/// This follows the pattern from ADR-010 (GitHub Distribution) which specifies:
+/// - Get current installed version from manifest
+/// - Get previous version from version history
+/// - Uninstall current, install previous
 async fn rollback(args: ExtensionRollbackArgs) -> Result<()> {
+    use dialoguer::Confirm;
+    use semver::Version;
+    use sindri_extensions::{ExtensionDistributor, ExtensionManifest};
+
     output::info(&format!("Rolling back extension: {}", args.name));
 
-    // TODO: Implement rollback functionality
-    // 1. Load manifest and get previous version from history
-    // 2. Check if previous version exists
-    // 3. Confirm with user
-    // 4. Install previous version
-    // 5. Update manifest
+    // 1. Initialize ExtensionDistributor
+    let cache_dir = get_cache_dir()?;
+    let extensions_dir = get_extensions_dir()?;
+    let cli_version = get_cli_version()?;
 
-    output::error("Rollback functionality not yet implemented");
-    Err(anyhow!("Rollback not yet implemented"))
+    let distributor = ExtensionDistributor::new(
+        cache_dir.clone(),
+        extensions_dir.clone(),
+        cli_version.clone(),
+    )
+    .context("Failed to initialize extension distributor")?;
+
+    // 2. Load manifest to get current version and version history
+    let manifest_path = extensions_dir.parent().unwrap().join("manifest.yaml");
+
+    if !manifest_path.exists() {
+        return Err(anyhow!(
+            "No manifest found. Extension '{}' may not be installed.",
+            args.name
+        ));
+    }
+
+    let manifest_content = tokio::fs::read_to_string(&manifest_path)
+        .await
+        .context("Failed to read manifest")?;
+
+    let manifest: ExtensionManifest =
+        serde_yaml::from_str(&manifest_content).context("Failed to parse manifest")?;
+
+    let ext_entry = manifest.extensions.get(&args.name).ok_or_else(|| {
+        anyhow!(
+            "Extension '{}' is not installed. Cannot rollback.",
+            args.name
+        )
+    })?;
+
+    let current = Version::parse(&ext_entry.version)
+        .context(format!("Invalid current version: {}", ext_entry.version))?;
+
+    // 3. Check for previous version in history
+    let previous_version_str = ext_entry.previous_versions.first().ok_or_else(|| {
+        anyhow!(
+            "No previous version available for '{}'. Rollback requires version history.",
+            args.name
+        )
+    })?;
+
+    let previous = Version::parse(previous_version_str).context(format!(
+        "Invalid previous version: {}",
+        previous_version_str
+    ))?;
+
+    // 4. Show rollback plan and confirm
+    println!();
+    output::header("Rollback Plan");
+    println!();
+    output::kv("Extension", &args.name);
+    output::kv("Current Version", &current.to_string());
+    output::kv("Rollback To", &previous.to_string());
+
+    // Show version history if available
+    if ext_entry.previous_versions.len() > 1 {
+        println!();
+        output::info("Version history:");
+        for (i, v) in ext_entry.previous_versions.iter().enumerate() {
+            if i == 0 {
+                println!("  {} (rollback target)", v);
+            } else {
+                println!("  {}", v);
+            }
+        }
+    }
+    println!();
+
+    // 5. Confirm with user (unless --yes)
+    if !args.yes {
+        let confirmed = Confirm::new()
+            .with_prompt(format!(
+                "Rollback {} from {} to {}?",
+                args.name, current, previous
+            ))
+            .default(false)
+            .interact()
+            .context("Failed to get user confirmation")?;
+
+        if !confirmed {
+            output::info("Rollback cancelled");
+            return Ok(());
+        }
+    }
+
+    // 6. Perform rollback using distributor
+    let spinner = output::spinner(&format!(
+        "Rolling back {} from {} to {}...",
+        args.name, current, previous
+    ));
+
+    // The distributor.rollback method handles:
+    // - Finding the previous version in the extensions directory
+    // - Updating the manifest to point to the previous version
+    match distributor.rollback(&args.name).await {
+        Ok(()) => {
+            spinner.finish_and_clear();
+            output::success(&format!(
+                "Successfully rolled back {} from {} to {}",
+                args.name, current, previous
+            ));
+
+            // Show hint about re-upgrading
+            println!();
+            output::info(&format!(
+                "To upgrade back to {}, run: sindri extension upgrade {}",
+                current, args.name
+            ));
+        }
+        Err(e) => {
+            spinner.finish_and_clear();
+
+            // Check if the error is due to missing version directory
+            let prev_version_dir = extensions_dir.join(&args.name).join(previous.to_string());
+            if !prev_version_dir.exists() {
+                output::error(&format!(
+                    "Previous version {} is not available locally",
+                    previous
+                ));
+                output::info(&format!(
+                    "Try installing it explicitly: sindri extension install {}@{}",
+                    args.name, previous
+                ));
+                return Err(anyhow!(
+                    "Rollback failed: version {} not found locally. Use 'sindri extension install {}@{}' instead.",
+                    previous, args.name, previous
+                ));
+            }
+
+            output::error(&format!("Rollback failed: {}", e));
+            return Err(e);
+        }
+    }
+
+    Ok(())
 }
 
 // ============================================================================

@@ -1,12 +1,14 @@
 //! Secrets management for Sindri
 //!
 //! This crate provides a comprehensive secrets management system with:
-//! - **Multi-source resolution**: Environment variables, files, HashiCorp Vault
+//! - **Multi-source resolution**: Environment variables, files, HashiCorp Vault, S3
 //! - **Security**: Memory zeroing with zeroize, audit logging, path validation
+//! - **Encryption**: ChaCha20-Poly1305 + age envelope encryption for S3 secrets
 //! - **Performance**: Async resolution, caching, retry logic
 
 // Core modules
 pub mod resolver;
+pub mod s3;
 pub mod security;
 pub mod sources;
 pub mod types;

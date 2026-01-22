@@ -31,6 +31,7 @@ This directory contains Architecture Decision Records documenting key architectu
 | [023](023-phase-7-project-management-architecture.md)    | Phase 7 Project Management Architecture    | 7     | Accepted |
 | [024](024-template-based-project-scaffolding.md)         | Template-Based Project Scaffolding         | 7     | Accepted |
 | [025](025-git-operations-repository-management.md)       | Git Operations and Repository Management   | 7     | Accepted |
+| [026](026-extension-version-lifecycle-management.md)     | Extension Version Lifecycle Management     | 4     | Accepted |
 
 ## By Phase
 
@@ -59,6 +60,7 @@ This directory contains Architecture Decision Records documenting key architectu
 - **ADR-012**: Registry vs manifest dual-state architecture
 - **ADR-013**: Three-level schema validation strategy
 - **ADR-014**: SBOM generation with SPDX/CycloneDX
+- **ADR-026**: Extension version lifecycle (versions, rollback, history tracking)
 
 ### Phase 5: Secrets & Backup (Weeks 15-17) ✨ **COMPLETE**
 
@@ -82,11 +84,11 @@ This directory contains Architecture Decision Records documenting key architectu
 
 ## ADR Statistics
 
-- **Total ADRs**: 25
-- **Total Lines**: 11,500+ lines
-- **Total Size**: ~350KB
+- **Total ADRs**: 26
+- **Total Lines**: 12,000+ lines
+- **Total Size**: ~370KB
 - **Phases Covered**: 1-7 (of 8)
-- **Implementation Status**: Phases 1-5 complete, Phase 6-7 in progress
+- **Implementation Status**: Phases 1-7 complete
 
 ## Key Architectural Themes
 
@@ -129,7 +131,7 @@ This directory contains Architecture Decision Records documenting key architectu
 
 When adding new ADRs:
 
-1. Use sequential numbering (next: 026)
+1. Use sequential numbering (next: 027)
 2. Follow template structure (Context → Decision → Consequences)
 3. Include implementation details and code examples
 4. Link to related ADRs

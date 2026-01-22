@@ -16,6 +16,7 @@ sindri-providers = { workspace = true }
 sindri-extensions = { workspace = true }
 sindri-secrets = { workspace = true }
 sindri-update = { workspace = true }
+sindri-projects = { workspace = true }
 
 # CLI
 clap = { workspace = true }
@@ -50,9 +51,11 @@ serde_yaml = { workspace = true }
 base64 = "0.21"
 chrono = { workspace = true }
 globset = { workspace = true }
+glob = "0.3"
 walkdir = "2.5"
 rand = "0.8"
 vaultrs = "0.7"
+regex = { workspace = true }
 
 # Archive extraction for upgrades
 flate2 = "1.1"

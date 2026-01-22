@@ -1,4 +1,12 @@
 //! Project management commands (new, clone)
+//!
+//! Implements project scaffolding with:
+//! - Template-based project creation from project-templates.yaml
+//! - Intelligent project type detection from names
+//! - Extension activation for language/framework support
+//! - Dependency detection and installation
+//!
+//! References ADR-024: Template-Based Project Scaffolding
 
 use anyhow::{anyhow, Context, Result};
 use camino::Utf8PathBuf;
@@ -6,6 +14,60 @@ use std::process::Command;
 
 use crate::cli::{CloneProjectArgs, NewProjectArgs, ProjectCommands};
 use crate::output;
+
+// Import template system from sindri-projects
+use sindri_projects::templates::{
+    parser::DetectionResult as TemplateDetectionResult, DependencyConfig, TemplateManager,
+};
+
+// Import extension management from sindri-extensions
+use sindri_extensions::{ExtensionDistributor, ManifestManager};
+
+//====================================
+// EXTENSION ACTIVATION HELPER
+//====================================
+
+/// Activate an extension by installing it via the extension manager
+///
+/// This function:
+/// 1. Checks if the extension is already installed
+/// 2. If not, downloads and installs it via ExtensionDistributor
+/// 3. Updates the manifest to track installation
+async fn activate_extension(extension_name: &str) -> Result<()> {
+    // Get home directory for paths
+    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+    let cache_dir = home.join(".sindri").join("cache");
+    let extensions_dir = home.join(".sindri").join("extensions");
+
+    // Check if already installed
+    let manifest = ManifestManager::load_default().unwrap_or_else(|_| {
+        // Create new manifest if it doesn't exist
+        let manifest_path = home.join(".sindri").join("manifest.yaml");
+        ManifestManager::new(manifest_path).expect("Failed to create manifest")
+    });
+
+    if manifest.is_installed(extension_name) {
+        tracing::debug!("Extension {} is already installed", extension_name);
+        return Ok(());
+    }
+
+    // Parse CLI version for compatibility checking
+    let cli_version =
+        semver::Version::parse(env!("CARGO_PKG_VERSION")).context("Failed to parse CLI version")?;
+
+    // Initialize distributor for installation
+    let distributor = ExtensionDistributor::new(cache_dir, extensions_dir, cli_version)
+        .context("Failed to initialize extension distributor")?;
+
+    // Install the extension (latest compatible version)
+    distributor
+        .install(extension_name, None)
+        .await
+        .context(format!("Failed to install extension: {}", extension_name))?;
+
+    output::success(&format!("    Activated: {}", extension_name));
+    Ok(())
+}
 
 /// Run project subcommands
 pub async fn run(cmd: ProjectCommands) -> Result<()> {
@@ -48,7 +110,7 @@ pub async fn new_project(args: NewProjectArgs) -> Result<()> {
     output::info(&format!("Loading template: {}", project_type));
     let template = load_template(&project_type)?;
 
-    // Activate extensions
+    // Activate extensions via extension-manager
     if !template.extensions.is_empty() {
         output::info(&format!(
             "Activating {} extension(s)...",
@@ -56,9 +118,10 @@ pub async fn new_project(args: NewProjectArgs) -> Result<()> {
         ));
         for ext in &template.extensions {
             output::info(&format!("  Activating: {}", ext));
-            // TODO: Call extension-manager to install extension
-            // For now, just log the intention
-            tracing::debug!("Would activate extension: {}", ext);
+            if let Err(e) = activate_extension(ext).await {
+                output::warning(&format!("Failed to activate extension {}: {}", ext, e));
+                tracing::warn!("Extension activation failed for {}: {}", ext, e);
+            }
         }
     }
 
@@ -907,100 +970,238 @@ fn determine_project_type(
     }
 }
 
+/// Internal detection result enum for type detection
 enum DetectionResult {
     Unambiguous(String),
     Ambiguous(Vec<String>),
 }
 
-/// Detect project type from name using pattern matching
-/// TODO: Implement using project-templates.yaml detection rules
+/// Detect project type from name using project-templates.yaml detection rules
+///
+/// Implements pattern matching with priority-based disambiguation:
+/// - Exact pattern matches take precedence
+/// - Multiple matches result in Ambiguous result for user selection
 fn detect_type_from_name(name: &str) -> Option<DetectionResult> {
+    // Load template configuration for detection rules
+    let template_manager = match TemplateManager::new() {
+        Ok(mgr) => mgr,
+        Err(e) => {
+            tracing::warn!("Failed to load template manager for detection: {}", e);
+            return detect_type_from_name_fallback(name);
+        }
+    };
+
+    // Use the template detector with YAML-driven rules
+    let result = template_manager.detect_type(name);
+
+    match result {
+        TemplateDetectionResult::Single(type_name) => Some(DetectionResult::Unambiguous(type_name)),
+        TemplateDetectionResult::Ambiguous(types) => Some(DetectionResult::Ambiguous(types)),
+        TemplateDetectionResult::None => {
+            // Fall back to simple pattern matching for basic cases
+            detect_type_from_name_fallback(name)
+        }
+    }
+}
+
+/// Fallback detection using simple substring matching
+/// Used when YAML-driven detection doesn't match
+fn detect_type_from_name_fallback(name: &str) -> Option<DetectionResult> {
     let name_lower = name.to_lowercase();
 
-    // Simple detection rules (will be replaced with YAML-driven detection)
+    // Framework-specific patterns (high confidence)
+    if name_lower.contains("rails") {
+        return Some(DetectionResult::Unambiguous("rails".to_string()));
+    }
+    if name_lower.contains("django") {
+        return Some(DetectionResult::Unambiguous("django".to_string()));
+    }
+    if name_lower.contains("spring") {
+        return Some(DetectionResult::Unambiguous("spring".to_string()));
+    }
+
+    // Language-specific patterns
     if name_lower.contains("node") || name_lower.contains("npm") || name_lower.contains("express") {
         return Some(DetectionResult::Unambiguous("node".to_string()));
     }
     if name_lower.contains("python")
-        || name_lower.contains("django")
         || name_lower.contains("flask")
+        || name_lower.contains("fastapi")
     {
         return Some(DetectionResult::Unambiguous("python".to_string()));
     }
     if name_lower.contains("rust") || name_lower.contains("cargo") {
         return Some(DetectionResult::Unambiguous("rust".to_string()));
     }
-    if name_lower.contains("go") {
+    if name_lower.contains("golang") {
         return Some(DetectionResult::Unambiguous("go".to_string()));
     }
 
-    // Check for ambiguous patterns
-    if name_lower.contains("api") || name_lower.contains("service") {
+    // Ambiguous patterns (multiple possible types)
+    if name_lower.contains("api")
+        || name_lower.contains("service")
+        || name_lower.contains("microservice")
+    {
         return Some(DetectionResult::Ambiguous(vec![
             "node".to_string(),
-            "python".to_string(),
             "go".to_string(),
+            "python".to_string(),
             "rust".to_string(),
+        ]));
+    }
+    if name_lower.contains("web") {
+        return Some(DetectionResult::Ambiguous(vec![
+            "node".to_string(),
+            "rails".to_string(),
+            "django".to_string(),
         ]));
     }
 
     None
 }
 
-/// Resolve template alias to canonical name
-/// TODO: Implement using project-templates.yaml aliases
+/// Resolve template alias to canonical name using project-templates.yaml aliases
+///
+/// Aliases defined in templates include:
+/// - nodejs, javascript, js -> node
+/// - py, python3 -> python
+/// - golang -> go
+/// - rs -> rust
+/// - ruby, ror -> rails
 fn resolve_template_alias(input: &str) -> String {
     let input_lower = input.to_lowercase();
 
+    // Try to use the template loader for alias resolution
+    if let Ok(template_manager) = TemplateManager::new() {
+        if let Some(resolved) = template_manager.resolve_alias(&input_lower) {
+            return resolved;
+        }
+    }
+
+    // Fallback alias resolution if template loading fails
     match input_lower.as_str() {
         "nodejs" | "javascript" | "js" => "node".to_string(),
         "py" | "python3" => "python".to_string(),
+        "golang" => "go".to_string(),
+        "rs" => "rust".to_string(),
+        "ruby" | "ror" => "rails".to_string(),
+        "csharp" | "c#" | ".net" => "dotnet".to_string(),
+        "spring-boot" | "spring-web" => "spring".to_string(),
+        "tf" | "infra" | "infrastructure" => "terraform".to_string(),
+        "container" | "containerized" => "docker".to_string(),
         _ => input_lower,
     }
 }
 
-/// Interactive project type selection
+/// Interactive project type selection using available types from project-templates.yaml
 fn select_project_type_interactive(suggestions: Option<Vec<String>>) -> Result<String> {
     use dialoguer::Select;
 
     let available_types = if let Some(types) = suggestions {
         types
     } else {
-        // All available types
-        // TODO: Load from project-templates.yaml
-        vec![
-            "node".to_string(),
-            "python".to_string(),
-            "rust".to_string(),
-            "go".to_string(),
-            "ruby".to_string(),
-            "java".to_string(),
-        ]
+        // Load all available types from project-templates.yaml
+        get_available_template_types()
     };
+
+    // Build items with descriptions for better UX
+    let items_with_desc = get_types_with_descriptions(&available_types);
 
     let selection = Select::new()
         .with_prompt("Select project type")
-        .items(&available_types)
+        .items(&items_with_desc)
         .default(0)
         .interact()?;
 
     Ok(available_types[selection].clone())
 }
 
-/// Project template structure
+/// Get all available template types from project-templates.yaml
+fn get_available_template_types() -> Vec<String> {
+    match TemplateManager::new() {
+        Ok(mgr) => mgr.available_types(),
+        Err(_) => {
+            // Fallback to default list if template loading fails
+            vec![
+                "node".to_string(),
+                "python".to_string(),
+                "rust".to_string(),
+                "go".to_string(),
+                "rails".to_string(),
+                "django".to_string(),
+                "spring".to_string(),
+                "dotnet".to_string(),
+                "terraform".to_string(),
+                "docker".to_string(),
+            ]
+        }
+    }
+}
+
+/// Get types with descriptions for interactive selection
+fn get_types_with_descriptions(types: &[String]) -> Vec<String> {
+    match TemplateManager::new() {
+        Ok(mgr) => types
+            .iter()
+            .map(|t| {
+                if let Some(template) = mgr.get_template(t) {
+                    format!("{:12} - {}", t, template.description)
+                } else {
+                    t.clone()
+                }
+            })
+            .collect(),
+        Err(_) => types.to_vec(),
+    }
+}
+
+/// Internal project template structure for rendering
+/// Wraps the sindri-projects ProjectTemplate with additional context
 #[derive(Debug)]
-struct ProjectTemplate {
+struct InternalProjectTemplate {
     extensions: Vec<String>,
     setup_commands: Vec<String>,
     files: Vec<(String, String)>,
     claude_md_template: Option<String>,
+    #[allow(dead_code)] // Used for future dependency installation enhancements
+    dependencies: Option<DependencyConfig>,
 }
 
-/// Load project template from configuration
-/// TODO: Implement using project-templates.yaml loader
-fn load_template(project_type: &str) -> Result<ProjectTemplate> {
-    // Placeholder implementation
-    // This will be replaced with actual template loading from YAML
+/// Load project template from project-templates.yaml
+///
+/// Uses the embedded YAML configuration via sindri-projects TemplateLoader
+fn load_template(project_type: &str) -> Result<InternalProjectTemplate> {
+    // Try to load from embedded project-templates.yaml
+    let template_manager =
+        TemplateManager::new().context("Failed to initialize template manager")?;
+
+    if let Some(template) = template_manager.get_template(project_type) {
+        // Convert sindri-projects template to internal format
+        let files: Vec<(String, String)> = template
+            .files
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+
+        Ok(InternalProjectTemplate {
+            extensions: template.extensions.clone(),
+            setup_commands: template.setup_commands.clone(),
+            files,
+            claude_md_template: template.claude_md_template.clone(),
+            dependencies: template.dependencies.clone(),
+        })
+    } else {
+        // Fallback to generated template for unknown types
+        tracing::warn!(
+            "Template '{}' not found in project-templates.yaml, using fallback",
+            project_type
+        );
+        load_template_fallback(project_type)
+    }
+}
+
+/// Fallback template generation for types not in YAML
+fn load_template_fallback(project_type: &str) -> Result<InternalProjectTemplate> {
     let (setup_commands, files, claude_template) = match project_type {
         "node" => (
             vec!["npm init -y".to_string()],
@@ -1038,11 +1239,12 @@ fn load_template(project_type: &str) -> Result<ProjectTemplate> {
         ),
     };
 
-    Ok(ProjectTemplate {
+    Ok(InternalProjectTemplate {
         extensions: vec![project_type.to_string()],
         setup_commands,
         files,
         claude_md_template: claude_template,
+        dependencies: None,
     })
 }
 
@@ -1268,9 +1470,7 @@ fn init_git_repo(project_name: &str) -> Result<()> {
     let _ = Command::new("git").args(["branch", "-M", "main"]).output();
 
     // Configure git user if not already configured globally
-    let user_name = Command::new("git")
-        .args(["config", "user.name"])
-        .output()?;
+    let user_name = Command::new("git").args(["config", "user.name"]).output()?;
 
     if user_name.stdout.is_empty() {
         let _ = Command::new("git")
@@ -1327,7 +1527,10 @@ fn collect_template_variables(project_name: &str) -> Result<TemplateVariables> {
 }
 
 /// Execute template setup commands
-fn execute_template_setup(template: &ProjectTemplate, variables: &TemplateVariables) -> Result<()> {
+fn execute_template_setup(
+    template: &InternalProjectTemplate,
+    variables: &TemplateVariables,
+) -> Result<()> {
     for cmd in &template.setup_commands {
         let resolved_cmd = substitute_variables(cmd, variables);
         tracing::debug!("Running setup command: {}", resolved_cmd);
@@ -1361,7 +1564,10 @@ fn execute_template_setup(template: &ProjectTemplate, variables: &TemplateVariab
 }
 
 /// Create template files with variable substitution
-fn create_template_files(template: &ProjectTemplate, variables: &TemplateVariables) -> Result<()> {
+fn create_template_files(
+    template: &InternalProjectTemplate,
+    variables: &TemplateVariables,
+) -> Result<()> {
     for (filepath, content) in &template.files {
         let resolved_path = substitute_variables(filepath, variables);
         let resolved_content = substitute_variables(content, variables);
@@ -1383,7 +1589,7 @@ fn create_template_files(template: &ProjectTemplate, variables: &TemplateVariabl
 
 /// Create CLAUDE.md file for new project
 fn create_project_claude_md(
-    template: &ProjectTemplate,
+    template: &InternalProjectTemplate,
     variables: &TemplateVariables,
 ) -> Result<()> {
     if std::path::Path::new("CLAUDE.md").exists() {
@@ -1456,20 +1662,285 @@ fn commit_initial_project(project_name: &str) -> Result<()> {
 fn setup_new_project_enhancements(skip_tools: bool) -> Result<()> {
     output::info("Setting up project enhancements...");
 
-    // Install dependencies
-    // TODO: Implement dependency detection and installation
+    // Detect and install dependencies based on project files
+    detect_and_install_dependencies()?;
 
-    // Initialize project tools (claude-flow, aqe, etc.)
+    // Initialize project tools using capability-manager
     if !skip_tools {
         output::info("  Initializing project tools...");
-        // TODO: Call capability-manager to discover and initialize extensions
-        // with project-init capabilities
-        tracing::debug!("Would initialize project tools");
+        initialize_project_tools()?;
     } else {
         output::info("  Skipping project tools (--skip-tools)");
     }
 
     Ok(())
+}
+
+/// Detect project dependencies and install them
+///
+/// Uses project-templates.yaml dependency configuration to:
+/// 1. Detect dependency files (package.json, requirements.txt, etc.)
+/// 2. Run appropriate install commands
+fn detect_and_install_dependencies() -> Result<()> {
+    let current_dir = std::env::current_dir().context("Failed to get current directory")?;
+
+    // Try to load template manager for dependency rules
+    let template_manager = match TemplateManager::new() {
+        Ok(mgr) => mgr,
+        Err(e) => {
+            tracing::debug!(
+                "Template manager not available for dependency detection: {}",
+                e
+            );
+            // Fall back to basic detection
+            return install_dependencies_basic(&Utf8PathBuf::try_from(current_dir)?);
+        }
+    };
+
+    // Check each template's dependency configuration
+    for template_type in template_manager.available_types() {
+        if let Some(template) = template_manager.get_template(&template_type) {
+            if let Some(dep_config) = &template.dependencies {
+                // Check if dependency files exist
+                let files_exist = dep_config.detect.patterns().iter().any(|pattern| {
+                    if pattern.contains('*') {
+                        // Glob pattern - check for any matching files
+                        let glob_pattern = current_dir.join(pattern);
+                        glob::glob(&glob_pattern.to_string_lossy())
+                            .map(|paths| paths.count() > 0)
+                            .unwrap_or(false)
+                    } else {
+                        current_dir.join(pattern).exists()
+                    }
+                });
+
+                if files_exist {
+                    output::info(&format!("  Detected {}", dep_config.description));
+
+                    // Check if required tool is available
+                    if is_command_available(&dep_config.requires) {
+                        output::info(&format!("  Installing {}...", dep_config.description));
+
+                        let result = Command::new("sh")
+                            .arg("-c")
+                            .arg(&dep_config.command)
+                            .current_dir(&current_dir)
+                            .output();
+
+                        match result {
+                            Ok(output) if output.status.success() => {
+                                output::success(&format!("  {} installed", dep_config.description));
+                            }
+                            Ok(output) => {
+                                let stderr = String::from_utf8_lossy(&output.stderr);
+                                output::warning(&format!(
+                                    "  Failed to install {}: {}",
+                                    dep_config.description, stderr
+                                ));
+                            }
+                            Err(e) => {
+                                output::warning(&format!(
+                                    "  Failed to run {}: {}",
+                                    dep_config.command, e
+                                ));
+                            }
+                        }
+                    } else {
+                        output::warning(&format!(
+                            "  {} not available, skipping {}",
+                            dep_config.requires, dep_config.description
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Basic dependency installation fallback
+fn install_dependencies_basic(project_dir: &Utf8PathBuf) -> Result<()> {
+    // Node.js
+    if project_dir.join("package.json").exists() && is_command_available("npm") {
+        output::info("  Installing Node.js dependencies...");
+        let _ = Command::new("npm")
+            .arg("install")
+            .current_dir(project_dir)
+            .output();
+    }
+
+    // Python
+    if project_dir.join("requirements.txt").exists() && is_command_available("pip3") {
+        output::info("  Installing Python dependencies...");
+        let _ = Command::new("pip3")
+            .args(["install", "-r", "requirements.txt"])
+            .current_dir(project_dir)
+            .output();
+    }
+
+    // Rust
+    if project_dir.join("Cargo.toml").exists() && is_command_available("cargo") {
+        output::info("  Fetching Rust dependencies...");
+        let _ = Command::new("cargo")
+            .arg("fetch")
+            .current_dir(project_dir)
+            .output();
+    }
+
+    // Go
+    if project_dir.join("go.mod").exists() && is_command_available("go") {
+        output::info("  Downloading Go dependencies...");
+        let _ = Command::new("go")
+            .args(["mod", "download"])
+            .current_dir(project_dir)
+            .output();
+    }
+
+    Ok(())
+}
+
+/// Initialize project tools using capability-manager
+///
+/// Discovers installed extensions with project-init capabilities and runs
+/// their initialization commands in the project directory.
+fn initialize_project_tools() -> Result<()> {
+    // Load manifest to get installed extensions
+    let manifest = match ManifestManager::load_default() {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::debug!("Failed to load manifest for tool initialization: {}", e);
+            return Ok(());
+        }
+    };
+
+    // Get home directory for extension paths
+    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+    let extensions_dir = home.join(".sindri").join("extensions");
+    let workspace_dir = std::env::current_dir().context("Failed to get current directory")?;
+
+    // Create executor for running project-init capabilities (reserved for future use)
+    let _executor =
+        sindri_extensions::ExtensionExecutor::new(&extensions_dir, &workspace_dir, &home);
+
+    // Iterate through installed extensions looking for project-init capabilities
+    let mut initialized_count = 0;
+    for (name, ext_info) in manifest.list_installed() {
+        let ext_yaml_path = extensions_dir
+            .join(name)
+            .join(&ext_info.version)
+            .join("extension.yaml");
+
+        if !ext_yaml_path.exists() {
+            continue;
+        }
+
+        // Load extension definition
+        let content = match std::fs::read_to_string(&ext_yaml_path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        let extension: sindri_core::types::Extension = match serde_yaml::from_str(&content) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        // Check for project-init capability
+        if let Some(capabilities) = &extension.capabilities {
+            if let Some(project_init) = &capabilities.project_init {
+                if project_init.enabled {
+                    tracing::debug!("Running project-init for extension: {}", name);
+
+                    // Execute project-init commands
+                    for cmd_config in &project_init.commands {
+                        // Check if auth is required
+                        let auth_ok = match cmd_config.requires_auth {
+                            sindri_core::types::AuthProvider::None => true,
+                            _ => {
+                                // Check if auth is configured
+                                check_auth_configured(&extension, &cmd_config.requires_auth)
+                            }
+                        };
+
+                        if !auth_ok && cmd_config.conditional {
+                            tracing::debug!(
+                                "Skipping {} command (requires auth): {}",
+                                name,
+                                cmd_config.description
+                            );
+                            continue;
+                        }
+
+                        output::info(&format!("    Running: {}", cmd_config.description));
+
+                        let result = Command::new("sh")
+                            .arg("-c")
+                            .arg(&cmd_config.command)
+                            .current_dir(&workspace_dir)
+                            .output();
+
+                        match result {
+                            Ok(output) if output.status.success() => {
+                                initialized_count += 1;
+                            }
+                            Ok(output) => {
+                                let stderr = String::from_utf8_lossy(&output.stderr);
+                                tracing::debug!(
+                                    "Project-init command failed for {}: {}",
+                                    name,
+                                    stderr
+                                );
+                            }
+                            Err(e) => {
+                                tracing::debug!(
+                                    "Failed to run project-init command for {}: {}",
+                                    name,
+                                    e
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if initialized_count > 0 {
+        output::success(&format!("  Initialized {} tool(s)", initialized_count));
+    }
+
+    Ok(())
+}
+
+/// Check if authentication is configured for a given provider
+fn check_auth_configured(
+    extension: &sindri_core::types::Extension,
+    _required_auth: &sindri_core::types::AuthProvider,
+) -> bool {
+    if let Some(capabilities) = &extension.capabilities {
+        if let Some(auth) = &capabilities.auth {
+            // Check environment variables for auth
+            for env_var in &auth.env_vars {
+                if std::env::var(env_var).is_ok() {
+                    return true;
+                }
+            }
+
+            // Run validator if configured
+            if let Some(validator) = &auth.validator {
+                if let Ok(output) = Command::new("sh")
+                    .arg("-c")
+                    .arg(&validator.command)
+                    .output()
+                {
+                    return output.status.code() == Some(validator.expected_exit_code);
+                }
+            }
+        }
+    }
+
+    false
 }
 
 /// Apply git config for new project
@@ -1512,26 +1983,115 @@ fn apply_new_project_git_config(name: Option<&str>, email: Option<&str>) -> Resu
 }
 
 /// Show initialized tools for new project
+///
+/// Queries the extension manager for installed extensions and displays
+/// their capabilities relevant to the project.
 fn show_new_project_tools(project_dir: &Utf8PathBuf) -> Result<()> {
+    // Always show Claude Code if available
     if is_command_available("claude") {
-        println!("  ✓ Claude Code");
+        println!("  [ok] Claude Code");
     }
 
+    // Show spec-kit if configured
     if project_dir.join(".github/spec.json").exists() && is_command_available("uvx") {
-        println!("  ✓ GitHub spec-kit");
+        println!("  [ok] GitHub spec-kit");
     }
 
-    // TODO: Query extension manager for initialized extensions
-    // and display their capabilities
+    // Query extension manager for initialized extensions with project-relevant capabilities
+    let initialized_extensions = get_initialized_extensions_for_project(project_dir)?;
+
+    for (name, description) in initialized_extensions {
+        println!("  [ok] {} - {}", name, description);
+    }
 
     Ok(())
 }
 
+/// Get initialized extensions with project-relevant capabilities
+///
+/// Queries the manifest and extension definitions to find extensions that:
+/// 1. Are installed and active
+/// 2. Have project-init, project-context, or MCP capabilities
+fn get_initialized_extensions_for_project(
+    _project_dir: &Utf8PathBuf,
+) -> Result<Vec<(String, String)>> {
+    let mut results = Vec::new();
+
+    // Load manifest
+    let manifest = match ManifestManager::load_default() {
+        Ok(m) => m,
+        Err(_) => return Ok(results),
+    };
+
+    // Get home directory for extension paths
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => return Ok(results),
+    };
+    let extensions_dir = home.join(".sindri").join("extensions");
+
+    // Check each installed extension for relevant capabilities
+    for (name, ext_info) in manifest.list_installed() {
+        let ext_yaml_path = extensions_dir
+            .join(name)
+            .join(&ext_info.version)
+            .join("extension.yaml");
+
+        if !ext_yaml_path.exists() {
+            continue;
+        }
+
+        // Load extension definition
+        let content = match std::fs::read_to_string(&ext_yaml_path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        let extension: sindri_core::types::Extension = match serde_yaml::from_str(&content) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        // Check for project-relevant capabilities
+        if let Some(capabilities) = &extension.capabilities {
+            let mut capability_descriptions = Vec::new();
+
+            // Project-init capability
+            if let Some(project_init) = &capabilities.project_init {
+                if project_init.enabled {
+                    capability_descriptions.push("project-init");
+                }
+            }
+
+            // Project-context capability
+            if let Some(project_context) = &capabilities.project_context {
+                if project_context.enabled {
+                    capability_descriptions.push("context");
+                }
+            }
+
+            // MCP capability
+            if let Some(mcp) = &capabilities.mcp {
+                if mcp.enabled {
+                    capability_descriptions.push("MCP tools");
+                }
+            }
+
+            if !capability_descriptions.is_empty() {
+                results.push((
+                    extension.metadata.name.clone(),
+                    capability_descriptions.join(", "),
+                ));
+            }
+        }
+    }
+
+    Ok(results)
+}
+
 /// Show git configuration for new project
 fn show_new_project_git_config() -> Result<()> {
-    let user_name = Command::new("git")
-        .args(["config", "user.name"])
-        .output()?;
+    let user_name = Command::new("git").args(["config", "user.name"]).output()?;
 
     let user_email = Command::new("git")
         .args(["config", "user.email"])

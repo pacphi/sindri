@@ -355,6 +355,79 @@ impl ExtensionDistributor {
         })
     }
 
+    /// List all available versions for an extension from GitHub releases
+    ///
+    /// Returns a list of (Version, DateTime<Utc>, bool) tuples where:
+    /// - Version: The semantic version
+    /// - DateTime<Utc>: The release date
+    /// - bool: Whether this version is compatible with the current CLI
+    ///
+    /// # Arguments
+    /// * `name` - Extension name
+    /// * `compatible_range` - Optional version requirement to check compatibility
+    pub async fn list_available_versions(
+        &self,
+        name: &str,
+        compatible_range: Option<&VersionReq>,
+    ) -> Result<Vec<(Version, DateTime<Utc>, bool)>> {
+        debug!("Listing available versions for {}", name);
+
+        let (owner, repo) = self.parse_repo()?;
+        let releases = self
+            .github_client
+            .repos(owner, repo)
+            .releases()
+            .list()
+            .per_page(100)
+            .send()
+            .await
+            .context("Failed to fetch releases from GitHub")?;
+
+        let prefix = format!("{}@", name);
+
+        let mut versions: Vec<(Version, DateTime<Utc>, bool)> = releases
+            .items
+            .iter()
+            .filter(|r| r.tag_name.starts_with(&prefix))
+            .filter_map(|r| {
+                let version_str = r.tag_name.trim_start_matches(&prefix);
+                let version = Version::parse(version_str).ok()?;
+                let published_at = r.published_at.unwrap_or_else(Utc::now);
+                let is_compatible = compatible_range
+                    .map(|req| req.matches(&version))
+                    .unwrap_or(true);
+                Some((version, published_at, is_compatible))
+            })
+            .collect();
+
+        // Sort by version descending (newest first)
+        versions.sort_by(|a, b| b.0.cmp(&a.0));
+
+        Ok(versions)
+    }
+
+    /// Get the previous version of an extension from the manifest
+    ///
+    /// Returns the most recent previous version if available
+    ///
+    /// # Arguments
+    /// * `name` - Extension name
+    pub fn get_previous_version(&self, name: &str) -> Result<Option<Version>> {
+        let manifest = self.load_manifest_sync()?;
+
+        if let Some(ext_entry) = manifest.extensions.get(name) {
+            if let Some(prev_version_str) = ext_entry.previous_versions.first() {
+                let version = Version::parse(prev_version_str).context(format!(
+                    "Invalid previous version in manifest: {}",
+                    prev_version_str
+                ))?;
+                return Ok(Some(version));
+            }
+        }
+
+        Ok(None)
+    }
+
     /// Download an extension archive from GitHub releases
     async fn download_extension(&self, name: &str, version: &Version) -> Result<PathBuf> {
         debug!("Downloading {} version {}", name, version);
@@ -441,8 +514,8 @@ impl ExtensionDistributor {
     /// use `validate_extension_with_registry` instead.
     fn validate_extension(&self, extension: &Extension) -> Result<()> {
         // 1. Structural and semantic validation using ExtensionValidator
-        let schema_validator = SchemaValidator::new()
-            .context("Failed to create schema validator")?;
+        let schema_validator =
+            SchemaValidator::new().context("Failed to create schema validator")?;
         let ext_validator = crate::validator::ExtensionValidator::new(&schema_validator);
         ext_validator
             .validate_extension_struct(extension)

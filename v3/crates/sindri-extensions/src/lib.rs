@@ -21,7 +21,9 @@ pub mod validator;
 
 pub use bom::BomGenerator;
 pub use dependency::DependencyResolver;
-pub use distribution::{CompatibilityMatrix, ExtensionDistributor};
+pub use distribution::{
+    CompatibilityMatrix, ExtensionDistributor, ExtensionManifest, ManifestEntry,
+};
 pub use executor::ExtensionExecutor;
 pub use manifest::ManifestManager;
 pub use profile::{ProfileInstallResult, ProfileInstaller, ProfileStatus};

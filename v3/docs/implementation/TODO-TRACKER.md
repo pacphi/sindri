@@ -1,7 +1,7 @@
 # v3 TODO Tracker
 
-**Last Updated:** 2026-01-22 (High Priority Validation Implementation Complete)
-**Status:** Active Development - Phase 2/5 Complete, All High Priority TODOs ✅
+**Last Updated:** 2026-01-22 (Medium Priority Implementation Complete)
+**Status:** Active Development - Phase 2/5 Complete, All High + Medium Priority TODOs ✅
 **Document Location:** `/alt/home/developer/workspace/projects/sindri/v3/docs/implementation/TODO-TRACKER.md`
 
 This document tracks all TODO comments in the v3 codebase, categorized by priority and status.
@@ -478,66 +478,86 @@ v3/crates/sindri-update/tests/
 
 ---
 
-## 📋 Medium Priority TODOs (Target: v3.1.0)
+## ✅ Medium Priority TODOs - COMPLETED (2026-01-22)
 
-### Extension Commands
+### Extension Commands ✅ COMPLETE
 
-- [ ] **extension.rs:930** - Implement versions command
-  - **Description**: List available versions from registry/GitHub releases
-  - **Workaround**: Users can check GitHub releases manually
-  - **Estimated Effort**: 2 hours
+- [x] **extension.rs:930** - Implement versions command - **COMPLETED** (2026-01-22)
+  - **Files Modified**: `v3/crates/sindri/src/commands/extension.rs`, `v3/crates/sindri-extensions/src/distribution.rs`
+  - **Implementation**: Lists all available versions from GitHub releases with compatibility info
+    - Shows version, release date, compatibility status, and installation state
+    - Supports JSON output format (`--json` flag)
+    - Sorted newest first with upgrade hints
 
-- [ ] **extension.rs:1164** - Implement rollback functionality
-  - **Description**: Rollback to previous version of an extension
-  - **Dependencies**: Version history tracking in manifest
-  - **Estimated Effort**: 3-4 hours
+- [x] **extension.rs:1164** - Implement rollback functionality - **COMPLETED** (2026-01-22)
+  - **Files Modified**: `v3/crates/sindri/src/commands/extension.rs`, `v3/crates/sindri-extensions/src/distribution.rs`
+  - **Implementation**: Restores extension to previous version from manifest history
+    - Gets current/previous versions from manifest
+    - User confirmation prompt (skippable with `--yes`)
+    - Uses `ExtensionDistributor.rollback()` for the operation
 
-### Enhancement Module (NEW - sindri-projects)
+### Enhancement Module ✅ COMPLETE
 
-The enhancement module (`sindri-projects/src/enhancement/mod.rs`) is a stub that needs full implementation:
+The enhancement module (`sindri-projects/src/enhancement/mod.rs`) has been fully implemented:
 
-- [ ] **enhancement/mod.rs:25** - Implement enhancement manager initialization
-- [ ] **enhancement/mod.rs:34** - Implement extension activation
-- [ ] **enhancement/mod.rs:44** - Implement dependency installation
-- [ ] **enhancement/mod.rs:54** - Implement CLAUDE.md creation
-- [ ] **enhancement/mod.rs:63** - Implement enhancement setup
-- [ ] **enhancement/mod.rs:68** - Implement auth check
-- [ ] **enhancement/mod.rs:73** - Implement command check
-  - **Description**: Full project enhancement system for Claude tools and extensions
-  - **Module Location**: `v3/crates/sindri-projects/src/enhancement/mod.rs`
-  - **Dependencies**: Extension manager, capability system
-  - **Estimated Effort**: 8-12 hours
-  - **Note**: Marked as "Agent 4" in code comments
+- [x] **enhancement/mod.rs:40-45** - Enhancement manager initialization - **COMPLETED** (2026-01-22)
+- [x] **enhancement/mod.rs:65-128** - Extension activation - **COMPLETED** (2026-01-22)
+- [x] **enhancement/mod.rs:164-231** - Dependency installation - **COMPLETED** (2026-01-22)
+- [x] **enhancement/mod.rs:281-329** - CLAUDE.md creation - **COMPLETED** (2026-01-22)
+- [x] **enhancement/mod.rs:379-411** - Enhancement setup orchestration - **COMPLETED** (2026-01-22)
+- [x] **enhancement/mod.rs:442-480** - Claude auth check - **COMPLETED** (2026-01-22)
+- [x] **enhancement/mod.rs:491-511** - Command existence verification - **COMPLETED** (2026-01-22)
+  - **Files Modified**: `v3/crates/sindri-projects/src/enhancement/mod.rs`
+  - **Implementation**: Full enhancement system with:
+    - `EnhancementManager::new()` - Template manager initialization
+    - `activate_extensions()` - Extension validation and activation tracking
+    - `install_dependencies()` - Dependency detection with glob patterns
+    - `create_claude_md()` - Template-based CLAUDE.md generation
+    - `setup_enhancements()` - Full orchestration flow
+    - `check_claude_auth()` - Claude CLI authentication verification
+    - `command_exists()` - Cross-platform command availability check
+  - **Tests Added**: 10 unit tests covering all functionality
 
-### Project Templates System (NEW)
+### Project Templates System ✅ COMPLETE
 
-Project command template system needs YAML-driven configuration:
+Project command template system with YAML-driven configuration:
 
-- [ ] **project.rs:59** - Call extension-manager to install extension
-- [ ] **project.rs:916** - Implement using project-templates.yaml detection rules
-- [ ] **project.rs:951** - Implement using project-templates.yaml aliases
-- [ ] **project.rs:970** - Load from project-templates.yaml
-- [ ] **project.rs:1000** - Implement using project-templates.yaml loader
-- [ ] **project.rs:1460** - Implement dependency detection and installation
-- [ ] **project.rs:1465** - Call capability-manager to discover and initialize extensions
-- [ ] **project.rs:1524** - Query extension manager for initialized extensions
-  - **Description**: Project template system for `sindri project new` command
-  - **File Location**: `v3/crates/sindri/src/commands/project.rs`
-  - **Dependencies**: project-templates.yaml, extension manager, capability system
-  - **Estimated Effort**: 6-8 hours
-  - **Note**: Currently uses hard-coded template logic
+- [x] **project.rs** - Extension manager integration - **COMPLETED** (2026-01-22)
+- [x] **project.rs** - Type detection using project-templates.yaml - **COMPLETED** (2026-01-22)
+- [x] **project.rs** - Template alias resolution - **COMPLETED** (2026-01-22)
+- [x] **project.rs** - Template loading from embedded YAML - **COMPLETED** (2026-01-22)
+- [x] **project.rs** - Dependency detection and installation - **COMPLETED** (2026-01-22)
+- [x] **project.rs** - Capability manager integration - **COMPLETED** (2026-01-22)
+- [x] **project.rs** - Extension manager query for initialized extensions - **COMPLETED** (2026-01-22)
+  - **Files Modified**: `v3/crates/sindri/src/commands/project.rs`, `v3/crates/sindri/Cargo.toml`
+  - **Dependencies Added**: `sindri-projects`, `glob`, `regex`
+  - **Implementation**: YAML-driven template system with:
+    - `activate_extension()` - Extension installation via distributor
+    - `detect_type_from_name()` - Fuzzy type detection from project names
+    - `resolve_template_alias()` - Alias resolution (nodejs→node, py→python, etc.)
+    - `load_template()` - Template loading from embedded YAML
+    - `detect_and_install_dependencies()` - Auto dependency installation
+    - `initialize_project_tools()` - Capability-based tool initialization
+    - `get_initialized_extensions_for_project()` - Manifest query for active extensions
 
-### Secrets Management (S3)
+### Secrets Management (S3) ✅ COMPLETE
 
-- [ ] **secrets_s3.rs:195** - Implement S3 client initialization
-- [ ] **secrets_s3.rs:277** - Check if secret exists (S3)
-- [ ] **secrets_s3.rs:283** - Implement S3 upload with encryption
-- [ ] **secrets_s3.rs:303** - Implement S3 download with decryption
-- [ ] **secrets_s3.rs:342** - Implement sync logic
-  - **Description**: Full S3 backend for secrets management
-  - **Dependencies**: AWS SDK, encryption library integration
-  - **Estimated Effort**: 8-10 hours
-  - **Note**: HashiCorp Vault is primary secrets backend, S3 is optional
+- [x] **S3 client initialization** - **COMPLETED** (2026-01-22)
+- [x] **Secret exists check** - **COMPLETED** (2026-01-22)
+- [x] **S3 upload with encryption** - **COMPLETED** (2026-01-22)
+- [x] **S3 download with decryption** - **COMPLETED** (2026-01-22)
+- [x] **Sync logic** - **COMPLETED** (2026-01-22)
+  - **Files Created**:
+    - `v3/crates/sindri-secrets/src/s3/types.rs` - S3 configuration and metadata types
+    - `v3/crates/sindri-secrets/src/s3/encryption.rs` - ChaCha20-Poly1305 + age envelope encryption
+    - `v3/crates/sindri-secrets/src/s3/backend.rs` - S3 client wrapper with CRUD operations
+    - `v3/crates/sindri-secrets/src/s3/cache.rs` - TTL-based local secret cache
+    - `v3/crates/sindri-secrets/src/s3/resolver.rs` - Orchestrator combining backend + encryption + cache
+  - **Files Modified**: `v3/crates/sindri-secrets/src/s3/mod.rs`, `v3/crates/sindri/src/commands/secrets_s3.rs`
+  - **Architecture** (per ADR-020):
+    - Envelope encryption: Random DEK per secret → ChaCha20-Poly1305 → age X25519
+    - 5 security layers: S3 SSE, client-side encryption, master key encryption, IAM, TLS
+    - Local cache with TTL, sync with conflict detection, key rotation support
 
 ---
 
@@ -591,31 +611,33 @@ These are not code TODOs but documentation placeholders:
 
 ## Implementation Strategy
 
-### For v3.0.0 Release
+### For v3.0.0 Release ✅ COMPLETE
 
 Focus on:
 
 1. ✅ Core extension installation (DONE)
 2. ✅ Profile-based installation (DONE)
 3. ✅ Config file installation (DONE)
-4. Full validation for extension install
-5. Comprehensive distribution validation
+4. ✅ Full validation for extension install (DONE)
+5. ✅ Comprehensive distribution validation (DONE)
 
-### For v3.1.0 Release
+### For v3.1.0 Release ✅ COMPLETE
 
-Add:
+All medium priority items implemented:
 
-1. Rollback functionality
-2. Version listing and management
-3. S3 secrets backend (if demand exists)
+1. ✅ Rollback functionality (DONE)
+2. ✅ Version listing and management (DONE)
+3. ✅ S3 secrets backend (DONE)
+4. ✅ Enhancement module (DONE)
+5. ✅ Project templates system (DONE)
 
 ### For v3.2.0+ Releases
 
-Implement:
+Remaining items:
 
-1. Self-update capability
-2. Full backup/restore system
-3. Advanced secrets management features
+1. ✅ Self-update capability (ALREADY DONE - `sindri upgrade`)
+2. Low Priority: Full backup/restore system (8 TODOs)
+3. Phase 3-5: Configuration refactoring (Retry policies, Git workflows, Test refactoring)
 
 ---
 
@@ -652,19 +674,21 @@ Implement:
 ### Current Status (2026-01-22)
 
 **Total TODOs**: 45 (30 existing + 15 newly discovered from codebase audit)
-**Completed**: 15 (5 code + 6 infrastructure + 2 refactoring phases + 2 high priority validation)
+**Completed**: 37 (15 previous + 22 medium priority) 🎉
 **High Priority**: 0 ✅ (all complete)
-**Medium Priority**: 22 (2 extension + 7 enhancement + 8 project + 5 secrets)
+**Medium Priority**: 0 ✅ (all complete - 2 extension + 7 enhancement + 8 project + 5 secrets)
 **Low Priority**: 8 (1 backup + 7 restore)
-**Completion Rate**: 33.3% ⬆️ (increased due to high priority completions)
+**Completion Rate**: 82.2% ⬆️⬆️ (massive increase from medium priority completions)
 
-### Newly Discovered TODOs (2026-01-22 Audit)
+### Medium Priority Completion (2026-01-22)
 
-| Category | Count | Location |
-|----------|-------|----------|
-| Enhancement Module | 7 | `sindri-projects/src/enhancement/mod.rs` |
-| Project Templates | 8 | `sindri/src/commands/project.rs` |
-| **Total New** | **15** | |
+| Category           | Count  | Status      | Location                                 |
+| ------------------ | ------ | ----------- | ---------------------------------------- |
+| Extension Commands | 2      | ✅ Complete | `sindri/src/commands/extension.rs`       |
+| Enhancement Module | 7      | ✅ Complete | `sindri-projects/src/enhancement/mod.rs` |
+| Project Templates  | 8      | ✅ Complete | `sindri/src/commands/project.rs`         |
+| S3 Secrets         | 5      | ✅ Complete | `sindri-secrets/src/s3/*.rs`             |
+| **Total**          | **22** | ✅ Complete |                                          |
 
 ### Configuration Refactoring Progress
 
@@ -672,38 +696,43 @@ Implement:
 **Completed**: 2 (Phase 1: Foundation, Phase 2: Platform Config)
 **In Progress**: 0
 **Remaining**: 3 (Phase 3-5)
-**Overall Progress**: 40% ⬆️
+**Overall Progress**: 40%
 
-### v3.0.0 Progress
+### v3.1.0 Progress
 
-**Target for v3.0.0**: 100% of high priority TODOs
-**Current Progress**: 100% ✅ (2/2 completed) - All high priority validation tasks complete
+**Target for v3.1.0**: 100% of medium priority TODOs
+**Current Progress**: 100% ✅ (22/22 completed) - All medium priority tasks complete!
 
 ### Recent Activity
 
+- **2026-01-22 (Comprehensive Medium Priority Implementation)**: ALL MEDIUM PRIORITY COMPLETE 🎉
+  - Implemented **Extension Commands** (2 TODOs):
+    - `versions` command - Lists available versions from GitHub with compatibility info
+    - `rollback` command - Restores previous version from manifest history
+  - Implemented **Enhancement Module** (7 TODOs):
+    - Full `EnhancementManager` with template integration
+    - Extension activation, dependency installation, CLAUDE.md generation
+    - Claude auth checking, command verification
+    - 10 unit tests added
+  - Implemented **Project Templates System** (8 TODOs):
+    - YAML-driven template loading and type detection
+    - Fuzzy pattern matching for project name → type inference
+    - Alias resolution, dependency auto-detection
+    - Capability manager integration
+  - Implemented **S3 Secrets Management** (5 TODOs):
+    - Full S3 backend with envelope encryption (ChaCha20-Poly1305 + age)
+    - Local TTL-based cache, sync with conflict detection
+    - Key rotation support, 5 security layers per ADR-020
+  - **Build Status**: ✅ All lint checks pass, release build successful
+  - **Lines Added**: ~2,500+ lines of production code
 - **2026-01-22 (Late Night)**: High Priority Validation Implementation
   - Completed **extension.rs:379** - Full validation in CLI validate command
-    - Registry validation, dependency checking, conflict detection
-    - 300+ lines of implementation with helper functions
   - Completed **distribution.rs:442** - Comprehensive validation in distribution
-    - Three-tiered validation: basic, with-registry, with-checksum
-    - SHA256 checksum verification added
-    - 140+ lines of implementation
-  - All 36 sindri-extensions tests passing
-  - Build verified for both sindri and sindri-extensions packages
 - **2026-01-22 (Night)**: Codebase TODO audit and tracker sync
-  - Discovered 15 previously untracked TODOs in enhancement module and project commands
-  - Marked `sindri upgrade` command as COMPLETED (was listed as pending)
-  - Updated line numbers for 10 existing tracked items (code shifts from refactoring)
-  - Added new sections for Enhancement Module and Project Templates
 - **2026-01-22 (Evening)**: Completed Phases 1-2 of configuration refactoring
-  - Created 7 new files (1,800+ lines of code)
-  - Refactored 3 critical files (download.rs, releases.rs, compatibility.rs)
-  - All tests passing (75 tests in sindri-core + sindri-update)
-  - Zero breaking changes, fully backward compatible
-- **2026-01-22 (Afternoon)**: Completed 6 major enhancements (CLI flags, status command, ARM64 support, health checks, TODO tracking)
-- **Completion Velocity**: 13 TODOs completed
-- **Next Milestone**: Phase 3 (Retry & Network Policies) for v3.1.0 release
+- **2026-01-22 (Afternoon)**: Completed 6 major enhancements
+- **Completion Velocity**: 35 TODOs completed in single day 🚀
+- **Next Milestone**: Phase 3 (Retry & Network Policies) OR Low Priority items
 
 ---
 
@@ -773,6 +802,33 @@ When reviewing TODOs:
 
 ## Document Changelog
 
+### 2026-01-22 (v1.5.0) - Medium Priority Implementation Complete 🎉
+
+- ✅ **COMPLETED**: All medium priority TODOs (22/22)
+- ✅ Implemented Extension Commands:
+  - `versions` command with GitHub release integration
+  - `rollback` command with manifest version history
+- ✅ Implemented Enhancement Module (7 TODOs):
+  - Full `EnhancementManager` class with template integration
+  - Extension activation, dependency installation, CLAUDE.md creation
+  - Claude auth checking, command verification
+  - 10 unit tests for comprehensive coverage
+- ✅ Implemented Project Templates System (8 TODOs):
+  - YAML-driven template loading from embedded config
+  - Fuzzy type detection with pattern matching
+  - Alias resolution and template inheritance
+  - Dependency detection and auto-installation
+  - Capability manager and extension manager integration
+- ✅ Implemented S3 Secrets Management (5 TODOs):
+  - Full S3 backend with envelope encryption
+  - ChaCha20-Poly1305 + age X25519 encryption
+  - Local TTL-based cache with sync support
+  - Key rotation and conflict detection
+- ✅ All clippy lint checks pass
+- ✅ Release build successful
+- ✅ Updated metrics: 82.2% completion rate (up from 33.3%)
+- ✅ v3.1.0 medium priority progress: 100% complete
+
 ### 2026-01-22 (v1.4.0) - High Priority Validation Implementation
 
 - ✅ **COMPLETED**: All high priority TODOs (0 remaining)
@@ -838,7 +894,7 @@ When reviewing TODOs:
 
 ---
 
-**Document Version:** 1.4.0
+**Document Version:** 1.5.0
 **Document Owner:** Sindri Core Team
 **Review Frequency:** Weekly (High Priority), Monthly (Medium/Low Priority)
 **Last Review:** 2026-01-22

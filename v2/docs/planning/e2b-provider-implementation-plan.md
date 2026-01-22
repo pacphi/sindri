@@ -871,6 +871,7 @@ providers:
     autoPause: true # Never kill on timeout - always pause
     timeout: 3600 # 1 hour active timeout
 
+
 # User workflow:
 # 1. Work in sandbox
 # 2. Commit and push code to git regularly
