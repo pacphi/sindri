@@ -390,9 +390,11 @@ mod tests {
         init_repository(path, &options, &git_config).await.unwrap();
 
         // Custom config with different remote names
-        let mut custom_config = GitWorkflowConfig::default();
-        custom_config.origin_remote = "fork".to_string();
-        custom_config.upstream_remote = "source".to_string();
+        let custom_config = GitWorkflowConfig {
+            origin_remote: "fork".to_string(),
+            upstream_remote: "source".to_string(),
+            ..Default::default()
+        };
 
         // Setup fork remotes with custom names
         let result = setup_fork_remotes_with_config(

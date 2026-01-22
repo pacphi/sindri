@@ -536,7 +536,7 @@ If critical issues are found post-deployment:
 
 - **Implementation Plan**: See original plan provided by user
 - **Architecture Decisions**: See `v3/docs/architecture/adr/` directory
-- **Rust CLI Migration**: See `v3/docs/rust-cli-migration-v3.md`
+- **Rust CLI Migration**: See `../active/rust-cli-migration-v3.md`
 - **v2 Comparison**: See `v2/docs/ARCHITECTURE.md`
 
 ---

@@ -1,6 +1,6 @@
 # v3 TODO Tracker
 
-**Last Updated:** 2026-01-22 (Configuration Refactoring Complete)
+**Last Updated:** 2026-01-22 (Tool Dependency Management & Clippy Cleanup)
 **Status:** Active Development - Phase 5/5 Complete, All High + Medium Priority TODOs ✅
 **Document Location:** `/alt/home/developer/workspace/projects/sindri/v3/docs/planning/active/TODO-TRACKER.md`
 
@@ -8,8 +8,8 @@ This document tracks all TODO comments in the v3 codebase, categorized by priori
 
 For detailed implementation notes, see:
 
-- [v3 Enhancements Implementation Summary](./v3-enhancements-implementation-summary.md)
-- [v3 Dockerfile Validation Checklist](./v3-dockerfile-validation-checklist.md)
+- [v3 Enhancements Implementation Summary](../complete/v3-enhancements-implementation-summary.md)
+- [v3 Dockerfile Validation Checklist](../complete/v3-dockerfile-validation-checklist.md)
 
 ---
 
@@ -650,13 +650,13 @@ Remaining items:
 
 ### Implementation Guides
 
-- **[v3 Enhancements Implementation Summary](./v3-enhancements-implementation-summary.md)**
+- **[v3 Enhancements Implementation Summary](../complete/v3-enhancements-implementation-summary.md)**
   - Complete documentation of 2026-01-22 enhancements
   - Detailed implementation notes for CLI flags, ARM64 support, health checks
   - Testing recommendations and validation steps
   - Migration notes from v2 to v3
 
-- **[v3 Dockerfile Validation Checklist](./v3-dockerfile-validation-checklist.md)**
+- **[v3 Dockerfile Validation Checklist](../complete/v3-dockerfile-validation-checklist.md)**
   - Comprehensive testing checklist for Docker implementation
   - 11 detailed test scenarios with expected results
   - Performance benchmarks and metrics
@@ -664,7 +664,7 @@ Remaining items:
 
 ### Architecture Documents
 
-- **[v3 Architecture ADRs](../architecture/adr/README.md)**
+- **[v3 Architecture ADRs](../../architecture/adr/README.md)**
   - Design decisions and technical rationale
   - Provider architecture (ADR-002, ADR-003, ADR-005, ADR-007)
   - Extension system architecture (ADR-008 through ADR-013)
@@ -672,7 +672,7 @@ Remaining items:
 
 ### Planning Documents
 
-- **[Rust CLI Migration Plan](../planning/rust-cli-migration-v3.md)**
+- **[Rust CLI Migration Plan](./rust-cli-migration-v3.md)**
   - Original v3 migration strategy
   - Phase-by-phase implementation plan
   - Comparison with v2 architecture
@@ -707,14 +707,23 @@ The following `#[allow(dead_code)]` and `#[allow(unused_imports)]` statements we
 
 ### Unused Imports Allow Statements (`#[allow(unused_imports)]`)
 
-| File                               | Line | Comment/Context |
-| ---------------------------------- | ---- | --------------- |
-| `sindri-secrets/src/s3/backend.rs` | 411  | No comment      |
+| File                                | Line | Comment/Context                                        |
+| ----------------------------------- | ---- | ------------------------------------------------------ |
+| `sindri-secrets/src/s3/backend.rs`  | 411  | No comment                                             |
+| `sindri-update/tests/common/mod.rs` | 25   | Module-level allow for test infrastructure scaffolding |
+
+### Module-Level Allow Statements (`#![allow(...)]`)
+
+| File                                | Line | Directive                   | Comment/Context                                             |
+| ----------------------------------- | ---- | --------------------------- | ----------------------------------------------------------- |
+| `sindri-update/tests/common/mod.rs` | 24   | `#![allow(dead_code)]`      | Test infrastructure scaffolded for future tests             |
+| `sindri-update/tests/common/mod.rs` | 25   | `#![allow(unused_imports)]` | Re-exports for convenience, not all used in every test file |
 
 ### Summary
 
 - **Total `#[allow(dead_code)]`**: 15 occurrences across 8 files
-- **Total `#[allow(unused_imports)]`**: 1 occurrence
+- **Total `#[allow(unused_imports)]`**: 2 occurrences across 2 files
+- **Total `#![allow(...)]` (module-level)**: 2 occurrences in 1 file (test infrastructure)
 
 ### Cleanup Priority
 
@@ -765,6 +774,23 @@ When reviewing TODOs:
 ---
 
 ## Document Changelog
+
+### 2026-01-22 (v1.7.0) - Tool Dependency Management & Clippy Cleanup
+
+- ✅ **COMPLETED**: sindri-doctor crate implementation (all 4 phases)
+  - Phase 1: Core doctor command with platform detection, tool registry, parallel checking
+  - Phase 2: Authentication checking, version comparison, CI mode, verbose output
+  - Phase 3: Auto-installation with `--fix`, `--yes`, `--dry-run` flags
+  - Phase 4: Extension-specific tool checking with `--check-extensions` and `--extension` flags
+  - 47 tests passing in sindri-doctor
+- ✅ **COMPLETED**: Clippy warning cleanup across workspace
+  - Fixed collapsible if in `sindri-doctor/src/reporter.rs`
+  - Fixed 18 `io::Error::new(io::ErrorKind::Other, ...)` → `io::Error::other(...)` in sindri-core
+  - Fixed 3 `field_reassign_with_default` warnings in sindri-projects git module
+  - Added module-level `#![allow(dead_code)]` and `#![allow(unused_imports)]` to sindri-update test infrastructure
+- ✅ Updated allow annotations tracking table with new entries
+- ✅ All clippy warnings resolved - clean compile
+- ✅ Full test suite passing
 
 ### 2026-01-22 (v1.6.0) - Configuration Refactoring Complete 🎉
 
@@ -885,7 +911,7 @@ When reviewing TODOs:
 
 ---
 
-**Document Version:** 1.6.0
+**Document Version:** 1.7.0
 **Document Owner:** Sindri Core Team
 **Review Frequency:** Weekly (High Priority), Monthly (Medium/Low Priority)
 **Last Review:** 2026-01-22

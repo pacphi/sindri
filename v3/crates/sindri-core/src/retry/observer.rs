@@ -347,7 +347,7 @@ mod tests {
     #[test]
     fn test_noop_observer() {
         let observer = NoOpObserver;
-        let error = io::Error::new(io::ErrorKind::Other, "test");
+        let error = io::Error::other("test");
 
         // These should all be no-ops
         observer.on_attempt_start(1, 3);
@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn test_stats_observer() {
         let observer = StatsObserver::new();
-        let error = io::Error::new(io::ErrorKind::Other, "test");
+        let error = io::Error::other("test");
 
         observer.on_attempt_start(1, 3);
         observer.on_attempt_start(2, 3);
@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn test_stats_observer_exhaustion() {
         let observer = StatsObserver::new();
-        let error = io::Error::new(io::ErrorKind::Other, "test");
+        let error = io::Error::other("test");
 
         observer.on_attempt_start(1, 3);
         observer.on_attempt_failed(1, &error, Duration::from_millis(100));
@@ -402,7 +402,7 @@ mod tests {
     #[test]
     fn test_arc_observer() {
         let observer = std::sync::Arc::new(StatsObserver::new());
-        let error = io::Error::new(io::ErrorKind::Other, "test");
+        let error = io::Error::other("test");
 
         observer.on_attempt_start(1, 3);
         observer.on_attempt_failed(1, &error, Duration::from_millis(100));

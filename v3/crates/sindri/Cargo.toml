@@ -17,6 +17,7 @@ sindri-extensions = { workspace = true }
 sindri-secrets = { workspace = true }
 sindri-update = { workspace = true }
 sindri-projects = { workspace = true }
+sindri-doctor = { workspace = true }
 
 # CLI
 clap = { workspace = true }

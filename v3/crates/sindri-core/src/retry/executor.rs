@@ -498,10 +498,8 @@ mod tests {
             ..test_policy()
         };
 
-        let result: Result<&str, RetryError<io::Error>> = retry_with_policy(&policy, || async {
-            Err(io::Error::new(io::ErrorKind::Other, "error"))
-        })
-        .await;
+        let result: Result<&str, RetryError<io::Error>> =
+            retry_with_policy(&policy, || async { Err(io::Error::other("error")) }).await;
 
         // With 0 max attempts, we should get a cancelled error
         assert!(result.is_err());
@@ -519,7 +517,7 @@ mod tests {
             .with_policy(policy)
             .with_observer(observer.clone())
             .build()
-            .execute(|| async { Err(io::Error::new(io::ErrorKind::Other, "error")) })
+            .execute(|| async { Err(io::Error::other("error")) })
             .await;
 
         assert!(result.is_err());

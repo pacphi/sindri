@@ -502,7 +502,7 @@ mod tests {
         let never = NeverRetry;
         let combined = AndPredicate::new(always, never);
 
-        let error = io::Error::new(io::ErrorKind::Other, "test");
+        let error = io::Error::other("test");
         assert!(!combined.should_retry(&error)); // true && false = false
     }
 
@@ -512,7 +512,7 @@ mod tests {
         let never = NeverRetry;
         let combined = OrPredicate::new(always, never);
 
-        let error = io::Error::new(io::ErrorKind::Other, "test");
+        let error = io::Error::other("test");
         assert!(combined.should_retry(&error)); // true || false = true
     }
 }

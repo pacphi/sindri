@@ -291,16 +291,13 @@ fn test_message_predicate_network_errors() {
     let predicate = MessagePredicate::network_errors();
 
     // Should retry (contains network-related patterns)
-    assert!(predicate.should_retry(&io::Error::new(io::ErrorKind::Other, "connection timeout")));
-    assert!(predicate.should_retry(&io::Error::new(
-        io::ErrorKind::Other,
-        "Connection Reset by peer"
-    )));
-    assert!(predicate.should_retry(&io::Error::new(io::ErrorKind::Other, "network unreachable")));
+    assert!(predicate.should_retry(&io::Error::other("connection timeout")));
+    assert!(predicate.should_retry(&io::Error::other("Connection Reset by peer")));
+    assert!(predicate.should_retry(&io::Error::other("network unreachable")));
 
     // Should not retry (no network patterns)
-    assert!(!predicate.should_retry(&io::Error::new(io::ErrorKind::Other, "file not found")));
-    assert!(!predicate.should_retry(&io::Error::new(io::ErrorKind::Other, "invalid input")));
+    assert!(!predicate.should_retry(&io::Error::other("file not found")));
+    assert!(!predicate.should_retry(&io::Error::other("invalid input")));
 }
 
 // ============================================================================
@@ -310,7 +307,7 @@ fn test_message_predicate_network_errors() {
 #[test]
 fn test_noop_observer_compiles() {
     let observer = NoOpObserver;
-    let error = io::Error::new(io::ErrorKind::Other, "test");
+    let error = io::Error::other("test");
 
     // Just verify these don't panic
     observer.on_attempt_start(1, 3);
@@ -324,7 +321,7 @@ fn test_noop_observer_compiles() {
 #[test]
 fn test_stats_observer_counts() {
     let observer = StatsObserver::new();
-    let error = io::Error::new(io::ErrorKind::Other, "test");
+    let error = io::Error::other("test");
 
     assert_eq!(observer.attempt_starts(), 0);
     assert_eq!(observer.failures(), 0);
@@ -457,7 +454,7 @@ async fn test_executor_all_attempts_exhausted() {
         .with_observer(observer.clone())
         .with_jitter(false)
         .build()
-        .execute(|| async { Err(io::Error::new(io::ErrorKind::Other, "always fails")) })
+        .execute(|| async { Err(io::Error::other("always fails")) })
         .await;
 
     assert!(result.is_err());
@@ -523,7 +520,7 @@ async fn test_retry_with_policy_convenience_function() {
         async move {
             let attempt = attempts.fetch_add(1, Ordering::SeqCst) + 1;
             if attempt < 2 {
-                Err(io::Error::new(io::ErrorKind::Other, "fail once"))
+                Err(io::Error::other("fail once"))
             } else {
                 Ok("done")
             }
@@ -545,7 +542,7 @@ async fn test_executor_single_attempt_policy() {
         .with_policy(policy)
         .with_observer(observer.clone())
         .build()
-        .execute(|| async { Err(io::Error::new(io::ErrorKind::Other, "single try")) })
+        .execute(|| async { Err(io::Error::other("single try")) })
         .await;
 
     assert!(result.is_err());

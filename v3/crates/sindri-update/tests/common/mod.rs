@@ -21,6 +21,10 @@
 //! - `fixtures`: YAML fixture loading helpers
 //! - `updater_helpers`: Helpers for updater/binary testing
 
+// Allow unused code in test infrastructure - these are scaffolded for future tests
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 pub mod assertions;
 pub mod builders;
 pub mod constants;

@@ -2,7 +2,7 @@
 
 **Status**: Accepted
 **Date**: 2026-01-21
-**Related**: [Rust Migration Plan](../../planning/rust-cli-migration-v3.md), [ADR-015](015-secrets-resolver-core-architecture.md), [ADR-016](016-vault-integration-architecture.md), [ADR-017](017-backup-system-architecture.md), [ADR-018](018-restore-system-architecture.md)
+**Related**: [Rust Migration Plan](../../planning/active/rust-cli-migration-v3.md), [ADR-015](015-secrets-resolver-core-architecture.md), [ADR-016](016-vault-integration-architecture.md), [ADR-017](017-backup-system-architecture.md), [ADR-018](018-restore-system-architecture.md)
 
 ## Context
 

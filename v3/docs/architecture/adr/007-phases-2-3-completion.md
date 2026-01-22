@@ -8,7 +8,7 @@
 
 ## Context
 
-Per the [Rust Migration Plan v3](../../planning/rust-cli-migration-v3.md), Phases 2 & 3 encompass:
+Per the [Rust Migration Plan v3](../../planning/active/rust-cli-migration-v3.md), Phases 2 & 3 encompass:
 
 **Phase 2: Provider Framework** (Weeks 3-6)
 
@@ -245,7 +245,7 @@ Phases 2 & 3 are **production-ready**:
 
 ## References
 
-- Migration Plan: [docs/planning/rust-cli-migration-v3.md](../../planning/rust-cli-migration-v3.md)
+- Migration Plan: [docs/planning/active/rust-cli-migration-v3.md](../../planning/active/rust-cli-migration-v3.md)
 - Workspace: `sindri-rs/`
 - Providers: `crates/sindri-providers/src/`
 - Templates: `crates/sindri-providers/src/templates/`

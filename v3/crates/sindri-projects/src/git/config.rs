@@ -386,10 +386,12 @@ mod tests {
         init_repository(path, &options, &git_config).await.unwrap();
 
         // Custom config
-        let mut custom_config = GitWorkflowConfig::default();
-        custom_config.default_branch = "develop".to_string();
-        custom_config.upstream_remote = "source".to_string();
-        custom_config.origin_remote = "fork".to_string();
+        let custom_config = GitWorkflowConfig {
+            default_branch: "develop".to_string(),
+            upstream_remote: "source".to_string(),
+            origin_remote: "fork".to_string(),
+            ..Default::default()
+        };
 
         // Setup aliases with custom config
         let result = setup_fork_aliases_with_config(path, &custom_config).await;

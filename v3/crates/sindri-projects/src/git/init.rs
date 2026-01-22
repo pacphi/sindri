@@ -305,9 +305,11 @@ mod tests {
         let path = Utf8Path::from_path(temp_dir.path()).unwrap();
 
         let options = InitOptions::default();
-        let mut git_config = GitWorkflowConfig::default();
-        git_config.default_branch = "trunk".to_string();
-        git_config.initial_commit_message = "Initial setup".to_string();
+        let git_config = GitWorkflowConfig {
+            default_branch: "trunk".to_string(),
+            initial_commit_message: "Initial setup".to_string(),
+            ..Default::default()
+        };
 
         let result = init_repository(path, &options, &git_config).await;
 

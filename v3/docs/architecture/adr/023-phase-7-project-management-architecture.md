@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-22
 **Deciders**: Core Team
-**Related**: [ADR-001: Rust Migration Workspace Architecture](001-rust-migration-workspace-architecture.md), [ADR-003: Template-Based Configuration](003-template-based-configuration.md), [ADR-008: Extension Type System YAML Deserialization](008-extension-type-system-yaml-deserialization.md), [ADR-011: Multi-Method Extension Installation](011-multi-method-extension-installation.md), [Rust Migration Plan](../../planning/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21)
+**Related**: [ADR-001: Rust Migration Workspace Architecture](001-rust-migration-workspace-architecture.md), [ADR-003: Template-Based Configuration](003-template-based-configuration.md), [ADR-008: Extension Type System YAML Deserialization](008-extension-type-system-yaml-deserialization.md), [ADR-011: Multi-Method Extension Installation](011-multi-method-extension-installation.md), [Rust Migration Plan](../../planning/active/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21)
 
 ## Context
 
@@ -33,7 +33,7 @@ In v2, project management is handled by bash scripts:
 
 ### Requirements from Phase 7 Specification
 
-The [Rust Migration Plan Phase 7](../../planning/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21) defines:
+The [Rust Migration Plan Phase 7](../../planning/active/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21) defines:
 
 **Commands**:
 

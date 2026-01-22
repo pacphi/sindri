@@ -75,6 +75,9 @@ pub enum Commands {
     /// Project management
     #[command(subcommand)]
     Project(ProjectCommands),
+
+    /// Check system for required tools and dependencies
+    Doctor(DoctorArgs),
 }
 
 // Version command
@@ -546,4 +549,56 @@ pub struct CloneProjectArgs {
     /// Skip enhancements
     #[arg(long)]
     pub no_enhance: bool,
+}
+
+// Doctor command
+#[derive(Args, Debug)]
+pub struct DoctorArgs {
+    /// Check tools for a specific provider (docker, fly, devpod, e2b, k8s)
+    #[arg(short, long)]
+    pub provider: Option<String>,
+
+    /// Check tools for a specific command (project, extension, secrets, deploy)
+    #[arg(long)]
+    pub command: Option<String>,
+
+    /// Check all tools regardless of current usage
+    #[arg(short, long)]
+    pub all: bool,
+
+    /// Exit with non-zero code if required tools are missing (for CI)
+    #[arg(long)]
+    pub ci: bool,
+
+    /// Output format: human (default), json, yaml
+    #[arg(long, default_value = "human")]
+    pub format: String,
+
+    /// Show detailed information including timing
+    #[arg(long)]
+    pub verbose_output: bool,
+
+    /// Check authentication status for tools that require it
+    #[arg(long)]
+    pub check_auth: bool,
+
+    /// Attempt to install missing tools
+    #[arg(long)]
+    pub fix: bool,
+
+    /// Skip confirmation prompts when installing (use with --fix)
+    #[arg(short = 'y', long)]
+    pub yes: bool,
+
+    /// Show what would be installed without actually installing (use with --fix)
+    #[arg(long)]
+    pub dry_run: bool,
+
+    /// Check tools required by installed extensions
+    #[arg(long)]
+    pub check_extensions: bool,
+
+    /// Check a specific extension's tool requirements
+    #[arg(long, value_name = "NAME")]
+    pub extension: Option<String>,
 }

@@ -349,9 +349,10 @@ async fn fork_repository(
 ) -> Result<()> {
     // Check if gh CLI is available
     if !is_command_available("gh") {
-        return Err(anyhow!(
-            "GitHub CLI (gh) is required for forking. Please install it first."
-        ));
+        output::error("GitHub CLI (gh) is required for forking.");
+        output::info("");
+        output::info("Run 'sindri doctor --command project' for installation instructions");
+        return Err(anyhow!("GitHub CLI (gh) not installed"));
     }
 
     // Check if gh is authenticated
@@ -362,9 +363,11 @@ async fn fork_repository(
         .context("Failed to check gh auth status")?;
 
     if !auth_status.status.success() {
-        return Err(anyhow!(
-            "GitHub CLI is not authenticated. Please run: gh auth login"
-        ));
+        output::error("GitHub CLI is not authenticated.");
+        output::info("Run: gh auth login");
+        output::info("");
+        output::info("Run 'sindri doctor --command project --check-auth' for more details");
+        return Err(anyhow!("GitHub CLI not authenticated"));
     }
 
     // Fork and clone

@@ -1554,8 +1554,8 @@ impl ToolInstaller {
 
 ### 10.5 Related Sindri Documentation
 
-- [ADR-011: Multi-Method Extension Installation](../architecture/adr/011-multi-method-extension-installation.md)
-- [ADR-002: Provider Abstraction Layer](../architecture/adr/002-provider-abstraction-layer.md)
+- [ADR-011: Multi-Method Extension Installation](../../architecture/adr/011-multi-method-extension-installation.md)
+- [ADR-002: Provider Abstraction Layer](../../architecture/adr/002-provider-abstraction-layer.md)
 
 ---
 

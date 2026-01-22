@@ -14,6 +14,21 @@ pub async fn run(args: StatusArgs) -> Result<()> {
     // Create provider
     let provider = create_provider(config.provider())?;
 
+    // Check prerequisites
+    let prereqs = provider.check_prerequisites()?;
+    if !prereqs.satisfied {
+        output::error("Missing prerequisites:");
+        for p in &prereqs.missing {
+            output::kv(&p.name, &p.description);
+        }
+        output::info("");
+        output::info(&format!(
+            "Run 'sindri doctor --provider {}' for detailed installation instructions",
+            config.provider()
+        ));
+        return Err(anyhow::anyhow!("Prerequisites not satisfied"));
+    }
+
     loop {
         // Get status
         let status = provider.status(&config).await?;

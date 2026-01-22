@@ -9,6 +9,7 @@ members = [
     "crates/sindri-update",
     "crates/sindri-backup",
     "crates/sindri-projects",
+    "crates/sindri-doctor",
 ]
 
 [workspace.package]
@@ -95,6 +96,14 @@ flate2 = "1.1"
 # File traversal
 walkdir = "2.5"
 
+# Tool detection
+which = "6.0"
+futures = "0.3"
+dirs = "5.0"
+
+# Testing
+tempfile = "3.24"
+
 # Workspace crates
 sindri-core = { path = "crates/sindri-core" }
 sindri-providers = { path = "crates/sindri-providers" }
@@ -103,6 +112,7 @@ sindri-secrets = { path = "crates/sindri-secrets" }
 sindri-update = { path = "crates/sindri-update" }
 sindri-backup = { path = "crates/sindri-backup" }
 sindri-projects = { path = "crates/sindri-projects" }
+sindri-doctor = { path = "crates/sindri-doctor" }
 
 [profile.release]
 lto = true

@@ -31,6 +31,11 @@ pub async fn run(args: DeployArgs) -> Result<()> {
                 output::info(&format!("  Install: {}", hint));
             }
         }
+        output::info("");
+        output::info(&format!(
+            "Run 'sindri doctor --provider {}' for detailed installation instructions",
+            config.provider()
+        ));
         return Err(anyhow::anyhow!("Prerequisites not satisfied"));
     }
 

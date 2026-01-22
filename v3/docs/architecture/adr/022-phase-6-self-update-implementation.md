@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-22
 **Deciders**: Core Team
-**Related**: [ADR-001: Rust Migration Workspace Architecture](001-rust-migration-workspace-architecture.md), [ADR-010: GitHub Extension Distribution](010-github-extension-distribution.md), [ADR-011: Multi-Method Extension Installation](011-multi-method-extension-installation.md), [ADR-012: Registry Manifest Dual-State Architecture](012-registry-manifest-dual-state-architecture.md), [ADR-021: Bifurcated CI/CD Pipeline](021-bifurcated-ci-cd-v2-v3.md), [Rust Migration Plan](../../planning/rust-cli-migration-v3.md#7-upgrade-system)
+**Related**: [ADR-001: Rust Migration Workspace Architecture](001-rust-migration-workspace-architecture.md), [ADR-010: GitHub Extension Distribution](010-github-extension-distribution.md), [ADR-011: Multi-Method Extension Installation](011-multi-method-extension-installation.md), [ADR-012: Registry Manifest Dual-State Architecture](012-registry-manifest-dual-state-architecture.md), [ADR-021: Bifurcated CI/CD Pipeline](021-bifurcated-ci-cd-v2-v3.md), [Rust Migration Plan](../../planning/active/rust-cli-migration-v3.md#7-upgrade-system)
 
 ## Context
 
@@ -23,7 +23,7 @@ In v2 (bash-based CLI), users faced:
 
 ### Requirements from Phase 6 Specification
 
-The [Rust Migration Plan Phase 6](../../planning/rust-cli-migration-v3.md#phase-6-self-update-weeks-18-19) defines these requirements:
+The [Rust Migration Plan Phase 6](../../planning/active/rust-cli-migration-v3.md#phase-6-self-update-weeks-18-19) defines these requirements:
 
 **Commands**:
 
