@@ -93,8 +93,12 @@ jobs:
       - name: Install tools
         run: |
           npm install -g ajv-cli ajv-formats
+          # Install yq with verification
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
+          # Verify installation
+          yq --version
+          echo "Testing yq: $(echo 'test: value' | yq -o=json)"
 
       - name: Validate v2 schemas
         run: |
@@ -120,8 +124,12 @@ jobs:
       - name: Install tools
         run: |
           npm install -g ajv-cli ajv-formats
+          # Install yq with verification
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
+          # Verify installation
+          yq --version
+          echo "Testing yq: $(echo 'test: value' | yq -o=json)"
 
       - name: Validate v3 extension schemas
         run: |
@@ -140,10 +148,11 @@ jobs:
             if [[ -f "$ext_dir/extension.yaml" ]]; then
               ext_name=$(basename "$ext_dir")
               echo "Validating v3 extension: $ext_name"
+              # Note: Schema uses draft-07, ajv auto-detects from $schema field
               ajv validate \
+                -c ajv-formats \
                 -s v3/schemas/extension.schema.json \
                 -d "$ext_dir/extension.yaml" \
-                --spec=draft2020 \
                 || exit 1
             fi
           done

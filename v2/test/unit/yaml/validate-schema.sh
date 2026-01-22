@@ -98,8 +98,10 @@ validate_single_file() {
 
   echo "Validating: $rel_path"
 
-  if ! yq -o=json "$yaml_file" > "$GLOBAL_TMPFILE" 2>/dev/null; then
+  local yq_error
+  if ! yq_error=$(yq -o=json "$yaml_file" 2>&1 > "$GLOBAL_TMPFILE"); then
     echo -e "${RED}FAIL: $rel_path - Invalid YAML syntax${NC}"
+    echo "  Error: $yq_error"
     return 1
   fi
 
@@ -150,8 +152,10 @@ validate_multiple_files() {
     local rel_path="${file#"$PROJECT_ROOT"/}"
     echo "Validating: $rel_path"
 
-    if ! yq -o=json "$file" > "$GLOBAL_TMPFILE" 2>/dev/null; then
+    local yq_error
+    if ! yq_error=$(yq -o=json "$file" 2>&1 > "$GLOBAL_TMPFILE"); then
       echo -e "${RED}FAIL: $rel_path - Invalid YAML syntax${NC}"
+      echo "  Error: $yq_error"
       ((failures++)) || true
       continue
     fi
