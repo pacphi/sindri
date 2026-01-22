@@ -679,6 +679,60 @@ Remaining items:
 
 ---
 
+## 🧹 Rust Code Cleanup Opportunities
+
+The following `#[allow(dead_code)]` and `#[allow(unused_imports)]` statements were identified in the codebase. These represent cleanup opportunities once we fully understand the purpose of each item.
+
+**Scan Date:** 2026-01-22
+
+### Dead Code Allow Statements (`#[allow(dead_code)]`)
+
+| File                                  | Line | Comment/Context                                      |
+| ------------------------------------- | ---- | ---------------------------------------------------- |
+| `sindri/src/commands/project.rs`      | 1166 | Used for future dependency installation enhancements |
+| `sindri/src/output.rs`                | 55   | Reserved for future use                              |
+| `sindri-providers/src/kubernetes.rs`  | 905  | No comment                                           |
+| `sindri-providers/src/kubernetes.rs`  | 913  | No comment                                           |
+| `sindri-providers/src/fly.rs`         | 721  | Used in plan() for resource details                  |
+| `sindri-providers/src/docker.rs`      | 291  | No comment                                           |
+| `sindri-providers/src/utils.rs`       | 32   | Reserved for future use                              |
+| `sindri-providers/src/utils.rs`       | 52   | Reserved for future use                              |
+| `sindri-providers/src/utils.rs`       | 75   | Reserved for future use                              |
+| `sindri-providers/src/utils.rs`       | 94   | Reserved for future use                              |
+| `sindri-update/src/download.rs`       | 132  | No comment                                           |
+| `sindri-core/src/retry/strategies.rs` | 229  | No comment                                           |
+| `sindri-core/src/retry/strategies.rs` | 235  | No comment                                           |
+| `sindri-core/src/retry/strategies.rs` | 255  | No comment                                           |
+| `sindri-core/src/retry/strategies.rs` | 261  | No comment                                           |
+
+### Unused Imports Allow Statements (`#[allow(unused_imports)]`)
+
+| File                               | Line | Comment/Context |
+| ---------------------------------- | ---- | --------------- |
+| `sindri-secrets/src/s3/backend.rs` | 411  | No comment      |
+
+### Summary
+
+- **Total `#[allow(dead_code)]`**: 15 occurrences across 8 files
+- **Total `#[allow(unused_imports)]`**: 1 occurrence
+
+### Cleanup Priority
+
+| Priority   | Criteria                                    | Count |
+| ---------- | ------------------------------------------- | ----- |
+| **High**   | Items without comments (need investigation) | 10    |
+| **Medium** | Items marked "Reserved for future use"      | 4     |
+| **Low**    | Items with specific use-case comments       | 2     |
+
+### Action Items
+
+1. **Investigate uncommented items** - Determine if the code is truly dead or if comments are missing
+2. **Review "future use" items** - Evaluate if still needed or if feature was abandoned
+3. **Verify commented items** - Confirm the stated purpose is still valid
+4. **Remove dead code** - Once understood, remove genuinely unused code
+
+---
+
 ## Contributing
 
 When adding a TODO:
