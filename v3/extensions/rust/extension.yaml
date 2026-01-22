@@ -1,0 +1,47 @@
+---
+metadata:
+  name: rust
+  version: 1.0.2
+  description: Rust stable via rustup
+  category: language
+
+requirements:
+  domains:
+    - crates.io
+    - rust-lang.org
+  diskSpace: 1200
+  memory: 2048
+  installTime: 120
+
+install:
+  method: script
+  script:
+    path: install.sh
+
+validate:
+  commands:
+    - name: rustc
+      expectedPattern: "rustc \\d+\\.\\d+\\.\\d+"
+    - name: cargo
+
+remove:
+  method: script
+  script:
+    path: remove.sh
+
+bom:
+  tools:
+    - name: rustc
+      version: dynamic
+      source: script
+      type: compiler
+      license: MIT OR Apache-2.0
+      homepage: https://www.rust-lang.org
+      purl: pkg:generic/rust
+    - name: cargo
+      version: dynamic
+      source: script
+      type: package-manager
+      license: MIT OR Apache-2.0
+      homepage: https://doc.rust-lang.org/cargo
+      purl: pkg:cargo/cargo

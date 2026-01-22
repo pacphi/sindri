@@ -1,0 +1,79 @@
+---
+metadata:
+  name: nodejs
+  version: 1.1.0
+  description: Node.js LTS via mise with pnpm package manager
+  category: language
+  dependencies:
+    - mise-config
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - nodejs.org
+  diskSpace: 300
+  memory: 256
+  installTime: 30
+
+install:
+  method: hybrid
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+  script:
+    path: bootstrap-pnpm.sh
+    timeout: 60
+
+configure:
+  environment:
+    - key: NODE_ENV
+      value: development
+      scope: bashrc
+    # Use system Python for node-gyp native module compilation
+    # Python 3.13 (mise) doesn't have distutils, but system Python 3.12 does
+    - key: PYTHON
+      value: /usr/bin/python3
+      scope: bashrc
+
+validate:
+  commands:
+    - name: node
+      expectedPattern: "v\\d+\\.\\d+\\.\\d+"
+    - name: npm
+    - name: pnpm
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [nodejs]
+
+bom:
+  tools:
+    - name: node
+      version: dynamic
+      source: mise
+      type: runtime
+      license: MIT
+      homepage: https://nodejs.org
+      purl: pkg:generic/nodejs
+    - name: npm
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: Artistic-2.0
+      homepage: https://www.npmjs.com
+      purl: pkg:npm/npm
+    - name: npx
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: Artistic-2.0
+      homepage: https://www.npmjs.com
+    - name: pnpm
+      version: dynamic
+      source: npm
+      type: package-manager
+      license: MIT
+      homepage: https://pnpm.io
+      purl: pkg:npm/pnpm

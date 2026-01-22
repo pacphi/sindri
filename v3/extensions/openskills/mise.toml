@@ -1,0 +1,8 @@
+# openskills - CLI for managing Claude Code skills from Anthropic's marketplace
+# Uses mise pnpm backend for proper shim management
+#
+# IMPORTANT: Use pinned versions instead of "latest" to avoid npm registry
+# query timeouts that can poison subsequent mise operations.
+
+[tools]
+"npm:openskills" = "1.3"

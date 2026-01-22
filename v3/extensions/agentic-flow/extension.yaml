@@ -1,0 +1,195 @@
+---
+metadata:
+  name: agentic-flow
+  version: 1.0.0
+  description: Multi-model AI agent framework for Claude Code with cost optimization (alpha)
+  category: ai
+  author: ruvnet
+  license: MIT
+  homepage: https://github.com/ruvnet/agentic-flow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+  diskSpace: 80
+  memory: 128
+  installTime: 60
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+
+configure:
+  templates:
+    - source: agentic-flow.aliases
+      destination: ~/.bashrc
+      mode: append
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: agentic-flow
+      expectedPattern: ".*"
+
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - "npm:agentic-flow"
+  confirmation: true
+
+upgrade:
+  strategy: reinstall
+
+capabilities:
+  # Project initialization capability
+  project-init:
+    enabled: true
+    priority: 60
+    commands:
+      - command: "npx agentic-flow init"
+        description: "Initialize Agentic Flow project"
+        requiresAuth: anthropic
+      - command: "npx agentic-flow hooks pretrain"
+        description: "Bootstrap intelligence from codebase"
+        requiresAuth: none
+        conditional: true
+
+    state-markers:
+      - path: ".agentic-flow"
+        type: directory
+        description: "Agentic Flow configuration directory"
+      - path: ".agentic-flow/hooks"
+        type: directory
+        description: "Hooks system directory"
+
+    validation:
+      command: "npx agentic-flow --version || echo 'agentic-flow installed'"
+      expectedExitCode: 0
+
+  # Authentication requirements (optional for multi-model AI operations)
+  auth:
+    provider: anthropic
+    required: false
+    methods:
+      - api-key
+      - cli-auth
+    envVars:
+      - ANTHROPIC_API_KEY
+    validator:
+      command: "claude --version"
+      expectedExitCode: 0
+
+  # Lifecycle hooks
+  hooks:
+    post-install:
+      command: "echo 'Agentic Flow installed successfully'"
+      description: "Verify installation"
+    post-project-init:
+      command: "true"
+      description: "Post-initialization"
+
+  # Collision handling for cloned projects
+  collision-handling:
+    enabled: true
+
+    conflict-rules:
+      - path: "CLAUDE.md"
+        type: file
+        on-conflict:
+          action: append
+          separator: "\n\n---\n\n"
+
+      # Critical JSON merges
+      - path: ".claude/mcp.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      - path: ".claude/settings.json"
+        type: file
+        on-conflict:
+          action: merge-json
+
+      # Statusline conflict with claude-flow
+      - path: ".claude/statusline.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version (priority 20 runs first)
+
+      # Directory merge
+      - path: ".claude"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+
+      # Helper scripts - potential name conflicts
+      - path: ".claude/helpers/checkpoint-manager.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/github-setup.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/quick-start.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/setup-mcp.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+      - path: ".claude/helpers/standard-checkpoint-hooks.sh"
+        type: file
+        on-conflict:
+          action: skip # Keep claude-flow's version
+
+    version-markers:
+      # Agentic Flow marker (if init creates directory)
+      - path: ".agentic-flow"
+        type: directory
+        version: "installed"
+        detection:
+          method: directory-exists
+
+      # Alternative marker: hooks directory
+      - path: ".agentic-flow/hooks"
+        type: directory
+        version: "installed"
+        detection:
+          method: directory-exists
+
+    scenarios:
+      # Scenario 1: Already initialized
+      - name: "already-initialized"
+        detected-version: "installed"
+        installing-version: "1.0.0"
+        action: skip
+        message: |
+          ✓ Agentic Flow is already initialized
+
+          To force a fresh installation, run:
+            npx agentic-flow init --force
+
+bom:
+  tools:
+    - name: agentic-flow
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/ruvnet/agentic-flow
+      purl: pkg:npm/agentic-flow

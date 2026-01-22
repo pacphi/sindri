@@ -157,7 +157,7 @@ async fn list(args: ProfileListArgs) -> Result<()> {
 // ============================================================================
 
 /// Install all extensions in a profile
-async fn install(args: ProfileInstallArgs) -> Result<()> {
+pub async fn install(args: ProfileInstallArgs) -> Result<()> {
     output::header(&format!("Installing profile: {}", args.profile));
 
     // Load components

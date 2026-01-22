@@ -539,6 +539,6 @@ rm -f $WORKSPACE/.system/manifest/.manifest-lock
 ## See Also
 
 - [Extension Schema Reference](SCHEMA.md#extensionschemajson) - Extension YAML structure
-- [Extension Authoring Guide](EXTENSION_AUTHORING.md) - Creating extensions
-- [Extension Registry](../../docker/lib/registry.yaml) - Available extensions
+- [Extension Authoring Guide](../../docs/EXTENSION_AUTHORING.md) - Creating extensions
+- [Extension Registry](../../v2/docker/lib/registry.yaml) - Available extensions
 - [Profiles Reference](SCHEMA.md#profilesschemajson) - Profile definitions

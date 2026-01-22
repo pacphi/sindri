@@ -1,0 +1,600 @@
+name: Release v3
+
+# v3 Rust Binary Release Pipeline
+# Triggers on tags matching v3.*.* (e.g., v3.0.0, v3.1.0-alpha.1)
+
+on:
+  push:
+    tags:
+      - "v3.*.*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Job 1: Validate the release tag format and detect prerelease
+  validate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      is_prerelease: ${{ steps.validate.outputs.is_prerelease }}
+    steps:
+      - name: Validate semantic version tag
+        id: validate
+        run: |
+          tag_name="${GITHUB_REF#refs/tags/}"
+          echo "Tag name: $tag_name"
+
+          # Validate format: v3.0.0 or v3.0.0-alpha.1
+          if [[ ! $tag_name =~ ^v3\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid tag format: $tag_name"
+            echo "Tag must match pattern: v3.{MINOR}.{PATCH} or v3.{MINOR}.{PATCH}-{prerelease}"
+            exit 1
+          fi
+
+          # Extract version without 'v' prefix
+          version="${tag_name#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          # Detect prerelease (alpha, beta, rc)
+          if [[ $version =~ -[a-zA-Z] ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Detected prerelease version: $version"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Detected stable version: $version"
+          fi
+
+  # Job 2: Generate changelog from commits since last tag
+  generate-changelog:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      changelog_file: ${{ steps.changelog.outputs.changelog_file }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          current_tag="v$version"
+
+          # Get previous v3 tag
+          previous_tag=$(git tag -l "v3.*" --sort=-version:refname | grep -A 1 "^$current_tag$" | tail -1 || echo "")
+
+          if [[ -z "$previous_tag" ]] || [[ "$previous_tag" == "$current_tag" ]]; then
+            echo "No previous v3 tag found, using all v3 commits"
+            commit_range="$current_tag"
+          else
+            echo "Generating changelog from $previous_tag to $current_tag"
+            commit_range="$previous_tag..$current_tag"
+          fi
+
+          # Initialize changelog sections
+          features=""
+          fixes=""
+          docs=""
+          deps=""
+          perf=""
+          refactor=""
+          chore=""
+          tests=""
+          other=""
+
+          # Parse commits in v3 directory only
+          while IFS= read -r commit; do
+            [[ -z "$commit" ]] && continue
+
+            # Extract commit hash and message
+            hash="${commit:0:7}"
+            message="${commit:8}"
+
+            # Categorize by conventional commit prefix
+            case "$message" in
+              feat:*|feat\(*) features+="- $message ($hash)"$'\n' ;;
+              fix:*|fix\(*)   fixes+="- $message ($hash)"$'\n' ;;
+              docs:*|docs\(*) docs+="- $message ($hash)"$'\n' ;;
+              deps:*|deps\(*) deps+="- $message ($hash)"$'\n' ;;
+              perf:*|perf\(*) perf+="- $message ($hash)"$'\n' ;;
+              refactor:*|refactor\(*) refactor+="- $message ($hash)"$'\n' ;;
+              chore:*|chore\(*) chore+="- $message ($hash)"$'\n' ;;
+              test:*|test\(*) tests+="- $message ($hash)"$'\n' ;;
+              ci:*|ci\(*)     chore+="- $message ($hash)"$'\n' ;;
+              style:*|style\(*) chore+="- $message ($hash)"$'\n' ;;
+              *)              other+="- $message ($hash)"$'\n' ;;
+            esac
+          done < <(git log --oneline "$commit_range" -- v3/ 2>/dev/null || git log --oneline -- v3/)
+
+          # Build changelog content
+          changelog="## [$version] - $(date +%Y-%m-%d)"$'\n\n'
+
+          [[ -n "$features" ]] && changelog+="### :sparkles: Features"$'\n\n'"$features"$'\n'
+          [[ -n "$fixes" ]] && changelog+="### :bug: Bug Fixes"$'\n\n'"$fixes"$'\n'
+          [[ -n "$docs" ]] && changelog+="### :books: Documentation"$'\n\n'"$docs"$'\n'
+          [[ -n "$deps" ]] && changelog+="### :package: Dependencies"$'\n\n'"$deps"$'\n'
+          [[ -n "$perf" ]] && changelog+="### :zap: Performance"$'\n\n'"$perf"$'\n'
+          [[ -n "$refactor" ]] && changelog+="### :recycle: Refactoring"$'\n\n'"$refactor"$'\n'
+          [[ -n "$tests" ]] && changelog+="### :white_check_mark: Tests"$'\n\n'"$tests"$'\n'
+          [[ -n "$chore" ]] && changelog+="### :wrench: Maintenance"$'\n\n'"$chore"$'\n'
+          [[ -n "$other" ]] && changelog+="### :gear: Other Changes"$'\n\n'"$other"$'\n'
+
+          # Add installation instructions
+          changelog+="### Installation"$'\n\n'
+          changelog+="#### Docker Image"$'\n'
+          changelog+='```bash'$'\n'
+          changelog+="# Pull the Docker image"$'\n'
+          changelog+="docker pull ghcr.io/${{ github.repository }}:$version"$'\n\n'
+          changelog+="# Run a container"$'\n'
+          changelog+="docker run -d --name sindri \\"$'\n'
+          changelog+="  -e SINDRI_PROFILE=minimal \\"$'\n'
+          changelog+="  -v sindri_home:/alt/home/developer \\"$'\n'
+          changelog+="  ghcr.io/${{ github.repository }}:$version"$'\n'
+          changelog+='```'$'\n\n'
+          changelog+="#### CLI Binary"$'\n'
+          changelog+='```bash'$'\n'
+          changelog+="# Download and install from release assets"$'\n'
+          changelog+="# Linux (x86_64)"$'\n'
+          changelog+="wget https://github.com/${{ github.repository }}/releases/download/v$version/sindri-v$version-linux-x86_64.tar.gz"$'\n'
+          changelog+="tar -xzf sindri-v$version-linux-x86_64.tar.gz"$'\n'
+          changelog+="sudo mv sindri /usr/local/bin/"$'\n\n'
+          changelog+="# macOS (Apple Silicon)"$'\n'
+          changelog+="wget https://github.com/${{ github.repository }}/releases/download/v$version/sindri-v$version-macos-aarch64.tar.gz"$'\n'
+          changelog+="tar -xzf sindri-v$version-macos-aarch64.tar.gz"$'\n'
+          changelog+="sudo mv sindri /usr/local/bin/"$'\n'
+          changelog+='```'$'\n\n'
+
+          # Add diff link if previous tag exists
+          if [[ -n "$previous_tag" ]] && [[ "$previous_tag" != "$current_tag" ]]; then
+            changelog+="**Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...$current_tag"$'\n'
+          fi
+
+          # Save changelog to file for artifact
+          echo "$changelog" > changelog.md
+
+          # Output for GitHub Actions (escape newlines)
+          {
+            echo "changelog<<CHANGELOG_EOF"
+            echo "$changelog"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "changelog_file=changelog.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: changelog-v3
+          path: changelog.md
+
+  # Job 3: Build release binaries for multiple platforms
+  build-binaries:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    needs: validate-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            platform: linux-x86_64
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            platform: linux-aarch64
+            cross: true
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            platform: macos-x86_64
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            platform: macos-aarch64
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows-x86_64
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools
+        if: matrix.cross
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            v3/target/
+          key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles('v3/**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: |
+          cd v3
+
+          if [[ "${{ matrix.cross }}" == "true" ]]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+        shell: bash
+
+      - name: Package binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cd v3/target/${{ matrix.target }}/release
+
+          if [[ -f sindri ]]; then
+            tar -czf sindri-v$version-${{ matrix.platform }}.tar.gz sindri
+            mv sindri-v$version-${{ matrix.platform }}.tar.gz $GITHUB_WORKSPACE/
+          fi
+        shell: bash
+
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cd v3/target/${{ matrix.target }}/release
+
+          if (Test-Path sindri.exe) {
+            Compress-Archive -Path sindri.exe -DestinationPath sindri-v$version-${{ matrix.platform }}.zip
+            Move-Item sindri-v$version-${{ matrix.platform }}.zip $env:GITHUB_WORKSPACE/
+          }
+        shell: pwsh
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-${{ matrix.platform }}
+          path: |
+            sindri-*.tar.gz
+            sindri-*.zip
+          retention-days: 1
+
+  # Job 4: Build and push Docker image (multi-architecture)
+  build-docker-image:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, build-binaries]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub (optional)
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/sindri', secrets.DOCKERHUB_USERNAME) || '' }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.validate-tag.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.validate-tag.outputs.version }}
+            type=semver,pattern={{major}},value=v${{ needs.validate-tag.outputs.version }},enable=${{ !needs.validate-tag.outputs.is_prerelease }}
+            type=raw,value=latest,enable=${{ !needs.validate-tag.outputs.is_prerelease }}
+          labels: |
+            org.opencontainers.image.title=Sindri v3
+            org.opencontainers.image.description=Declarative Cloud Development Environments (Rust CLI)
+            org.opencontainers.image.vendor=Sindri Project
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: v3/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            BUILD_FROM_SOURCE=false
+            SINDRI_VERSION=${{ needs.validate-tag.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate image digest
+        id: digest
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "image=ghcr.io/${{ github.repository }}:${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Output image tags
+        run: |
+          echo "Docker images published:"
+          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
+            echo "  - $tag"
+          done
+
+  # Job 5: Update CHANGELOG.md and Cargo.toml
+  update-version-files:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: changelog-v3
+
+      - name: Update v3/CHANGELOG.md
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          changelog_header='# Changelog - Sindri v3
+
+          All notable changes to Sindri v3 (Rust) will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          <!-- Entries below are auto-generated by release workflow -->'
+
+          # Create v3/CHANGELOG.md if it doesn't exist
+          if [[ ! -f v3/CHANGELOG.md ]]; then
+            echo "$changelog_header" > v3/CHANGELOG.md
+            echo "" >> v3/CHANGELOG.md
+          fi
+
+          # Check if this version already exists
+          if grep -q "## \[$version\]" v3/CHANGELOG.md; then
+            echo "Version $version already exists in v3/CHANGELOG.md, skipping update"
+            exit 0
+          fi
+
+          # Read existing content after header
+          if grep -q "<!-- Entries below are auto-generated" v3/CHANGELOG.md; then
+            existing_content=$(sed -n '/<!-- Entries below are auto-generated/,$ p' v3/CHANGELOG.md | tail -n +2)
+          else
+            existing_content=$(cat v3/CHANGELOG.md 2>/dev/null || echo "")
+          fi
+
+          # Rebuild CHANGELOG.md with new version at top
+          {
+            echo "$changelog_header"
+            echo ""
+            cat changelog.md
+            echo ""
+            echo "$existing_content"
+          } > v3/CHANGELOG.md.new
+
+          mv v3/CHANGELOG.md.new v3/CHANGELOG.md
+
+      - name: Update v3/Cargo.toml version
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          # Update workspace version in v3/Cargo.toml
+          sed -i 's/^version = ".*"$/version = "'"$version"'"/' v3/Cargo.toml
+
+          echo "Updated v3/Cargo.toml to version $version"
+
+      - name: Commit version updates
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes to commit
+          if git diff --quiet v3/CHANGELOG.md v3/Cargo.toml; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add v3/CHANGELOG.md v3/Cargo.toml
+          git commit -m "chore(release): update v3 CHANGELOG and Cargo.toml for v$version
+
+          [skip ci]"
+          git push origin main
+
+  # Job 6: Create GitHub Release
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog, build-binaries, build-docker-image]
+    permissions:
+      contents: write
+    outputs:
+      release_url: ${{ steps.release.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Download changelog
+        uses: actions/download-artifact@v7
+        with:
+          name: changelog-v3
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name "sindri-*.tar.gz" -exec cp {} release-assets/ \;
+          find artifacts -name "sindri-*.zip" -exec cp {} release-assets/ \;
+
+          ls -lh release-assets/
+
+      - name: Create install.sh script
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cat > release-assets/install-v3.sh << 'INSTALL_EOF'
+          #!/usr/bin/env bash
+          # Sindri v3 Installation Script
+          # Generated for version: VERSION_PLACEHOLDER
+          set -euo pipefail
+
+          VERSION="VERSION_PLACEHOLDER"
+          REPO="REPO_PLACEHOLDER"
+
+          echo "Installing Sindri v3 $VERSION..."
+
+          # Detect OS and architecture
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+
+          case "$OS" in
+            linux)
+              case "$ARCH" in
+                x86_64) PLATFORM="linux-x86_64" ;;
+                aarch64|arm64) PLATFORM="linux-aarch64" ;;
+                *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+              esac
+              EXT="tar.gz"
+              ;;
+            darwin)
+              case "$ARCH" in
+                x86_64) PLATFORM="macos-x86_64" ;;
+                arm64) PLATFORM="macos-aarch64" ;;
+                *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+              esac
+              EXT="tar.gz"
+              ;;
+            mingw*|msys*|cygwin*)
+              PLATFORM="windows-x86_64"
+              EXT="zip"
+              ;;
+            *)
+              echo "Unsupported OS: $OS"
+              exit 1
+              ;;
+          esac
+
+          FILENAME="sindri-v${VERSION}-${PLATFORM}.${EXT}"
+          URL="https://github.com/${REPO}/releases/download/v${VERSION}/${FILENAME}"
+
+          echo "Downloading $FILENAME..."
+          curl -L -o "$FILENAME" "$URL"
+
+          echo "Extracting..."
+          if [[ "$EXT" == "tar.gz" ]]; then
+            tar -xzf "$FILENAME"
+          else
+            unzip "$FILENAME"
+          fi
+
+          echo "Installing to /usr/local/bin..."
+          sudo mv sindri /usr/local/bin/ || mv sindri /usr/local/bin/
+
+          echo ""
+          echo "Sindri v3 $VERSION installed successfully!"
+          echo "Run 'sindri --version' to verify installation."
+          INSTALL_EOF
+
+          sed -i "s/VERSION_PLACEHOLDER/$version/g" release-assets/install-v3.sh
+          sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" release-assets/install-v3.sh
+          chmod +x release-assets/install-v3.sh
+
+      - name: Create GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Sindri v${{ needs.validate-tag.outputs.version }} (Rust)
+          body_path: changelog.md
+          prerelease: ${{ needs.validate-tag.outputs.is_prerelease }}
+          files: |
+            release-assets/*
+
+  # Job 7: Notify on success or failure
+  notify-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, create-release, update-version-files, build-docker-image]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Notify success
+        if: needs.create-release.result == 'success'
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "::notice::Release v$version (v3 Rust) published successfully!"
+          echo "Release URL: ${{ needs.create-release.outputs.release_url }}"
+
+      - name: Create failure issue
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const version = '${{ needs.validate-tag.outputs.version }}';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Release v${version} (v3 Rust) failed`,
+              body: `## Release Failure
+
+            The automated release for **v${version}** (v3 Rust binaries) failed.
+
+            ### Details
+
+            - **Tag**: v${version}
+            - **Workflow Run**: ${runUrl}
+            - **Triggered by**: @${context.actor}
+
+            ### Next Steps
+
+            1. Review the [workflow logs](${runUrl})
+            2. Fix any issues
+            3. Delete the tag and recreate it, or create a new patch version
+
+            \`\`\`bash
+            # To retry with same version:
+            git tag -d v${version}
+            git push origin :refs/tags/v${version}
+            # Fix issues...
+            git tag v${version}
+            git push origin v${version}
+            \`\`\`
+            `,
+              labels: ['release-failure', 'automated', 'v3']
+            });

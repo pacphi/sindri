@@ -1,0 +1,7 @@
+[tools]
+python = "3.13"
+uv = "0.9"
+
+[env]
+PYTHONDONTWRITEBYTECODE = "1"
+PYTHONUNBUFFERED = "1"

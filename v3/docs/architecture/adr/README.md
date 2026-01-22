@@ -26,6 +26,7 @@ This directory contains Architecture Decision Records documenting key architectu
 | [018](018-restore-system-architecture.md) | Restore System Architecture | 5 | Accepted |
 | [019](019-phase-5-secrets-backup-integration.md) | Phase 5 Integration Strategy | 5 | Accepted |
 | [020](020-s3-encrypted-secret-storage.md) | S3 Encrypted Secret Storage | 5 | Proposed |
+| [021](021-bifurcated-ci-cd-v2-v3.md) | Bifurcated CI/CD Pipeline for v2 and v3 | 6 | Accepted |
 
 ## By Phase
 
@@ -59,13 +60,16 @@ This directory contains Architecture Decision Records documenting key architectu
 - **ADR-019**: Phase 5 integration strategy and timeline
 - **ADR-020**: S3 encrypted secret storage (ChaCha20-Poly1305 + age)
 
+### Phase 6: CI/CD & DevOps (Weeks 18-19)
+- **ADR-021**: Bifurcated CI/CD pipeline for v2 and v3 parallel development
+
 ## ADR Statistics
 
-- **Total ADRs**: 20
-- **Total Lines**: 7,235 lines
-- **Total Size**: ~220KB
-- **Phases Covered**: 1-5 (of 8)
-- **Implementation Status**: Phases 1-5 complete
+- **Total ADRs**: 21
+- **Total Lines**: 7,900+ lines
+- **Total Size**: ~235KB
+- **Phases Covered**: 1-6 (of 8)
+- **Implementation Status**: Phases 1-5 complete, Phase 6 in progress
 
 ## Key Architectural Themes
 
@@ -98,15 +102,11 @@ This directory contains Architecture Decision Records documenting key architectu
 ## Related Documentation
 
 - [Rust Migration Plan](../../planning/rust-cli-migration-v3.md)
-- [Architecture Guide](../../ARCHITECTURE.md)
-- [Extension Authoring](../../EXTENSION_AUTHORING.md)
-- [Secrets Management](../../SECRETS_MANAGEMENT.md)
-- [Backup & Restore](../../BACKUP_RESTORE.md)
 
 ## Contributing
 
 When adding new ADRs:
-1. Use sequential numbering (next: 021)
+1. Use sequential numbering (next: 022)
 2. Follow template structure (Context → Decision → Consequences)
 3. Include implementation details and code examples
 4. Link to related ADRs

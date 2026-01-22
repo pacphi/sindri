@@ -289,9 +289,3 @@ node scripts/generate-index.js
   }
 }
 ```
-
-## See Also
-
--
--
-- [Web Summary Skill](/docker/lib/extensions/vf-web-summary/resources/SKILL.md)

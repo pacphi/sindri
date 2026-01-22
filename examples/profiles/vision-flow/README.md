@@ -151,4 +151,4 @@ providers:
 
 - [VisionFlow Extension Docs](../../../docs/extensions/vision-flow/) - Individual extension documentation
 - [Profiles Documentation](../../../docs/EXTENSIONS.md#extension-profiles) - Profile system overview
-- [Testing Guide](../../../docs/TESTING.md) - Testing strategies
+- [Testing Guide](../../../v2/docs/TESTING.md) - Testing strategies

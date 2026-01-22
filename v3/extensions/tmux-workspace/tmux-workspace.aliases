@@ -1,0 +1,143 @@
+#!/bin/bash
+# tmux-workspace.aliases - Tmux session management aliases
+# Sourced by tmux-workspace extension
+# shellcheck disable=SC2142  # Allow aliases to reference functions
+
+# Set up WORKSPACE variable if not set
+WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
+
+# ============================================================================
+# SESSION MANAGEMENT (Tmux)
+# ============================================================================
+
+# Session management
+alias tmux-workspace="\${WORKSPACE}/scripts/tmux-workspace.sh"
+alias tmux-start="tmux-workspace"
+alias tmux-new="tmux-workspace --new"
+alias tmux-attach="tmux attach -t sindri-workspace"
+alias tmux-detach="tmux detach"
+
+# Session utilities
+alias tmux-status="source \${WORKSPACE}/scripts/tmux-helpers.sh && tmux_status"
+alias tmux-cleanup="source \${WORKSPACE}/scripts/tmux-helpers.sh && tmux_cleanup"
+alias tmux-list="tmux list-sessions"
+
+# Window management
+alias tmux-windows="tmux list-windows"
+alias tmux-panes="tmux list-panes"
+
+# Quick navigation (when inside tmux)
+alias t0="tmux select-window -t 0"  # Main
+alias t1="tmux select-window -t 1"  # Tasks
+alias t2="tmux select-window -t 2"  # Monitor
+alias t3="tmux select-window -t 3"  # htop
+
+# Development shortcuts
+alias main="tmux select-window -t 0"
+alias tasks="tmux select-window -t 1"
+alias monitor="tmux select-window -t 2"
+alias top="tmux select-window -t 3"
+
+# Enhanced tmux helpers (using externalized functions)
+alias tmux-dev-layout="source \${WORKSPACE}/scripts/tmux-helpers.sh && tmux_dev_layout"
+alias tmux-save="source \${WORKSPACE}/scripts/tmux-helpers.sh && tmux_save_session"
+alias tmux-restore="source \${WORKSPACE}/scripts/tmux-helpers.sh && tmux_restore_session"
+alias tmux-new-window="source \${WORKSPACE}/scripts/tmux-helpers.sh && tmux_new_window"
+
+# Configuration management
+alias tmux-config="nano \${WORKSPACE}/config/tmux.conf"
+alias tmux-reload="tmux source-file ~/.tmux.conf && echo 'Tmux config reloaded!'"
+
+# Project-specific session management
+tmux-project() {
+    local name="$1"
+    if [[ -z "$name" ]]; then
+        echo "Usage: tmux-project <name>"
+        return 1
+    fi
+    tmux new-session -d -s "$name" -c "${WORKSPACE}" && echo "✅ Created project session: $name"
+}
+
+tmux-switch() {
+    local sessions
+    sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null)
+    if [[ -z "$sessions" ]]; then
+        echo "No sessions found"
+        return 1
+    fi
+    echo "Available sessions:"
+    echo "$sessions"
+    read -rp "Switch to: " choice
+    tmux switch-client -t "$choice" 2>/dev/null || tmux attach -t "$choice"
+}
+
+# Development workflow helpers
+alias tmux-main="tmux-workspace && tmux select-window -t 0"
+
+# Session backup and restore
+tmux-backup-all() {
+    local backup_dir="${WORKSPACE}/backups/tmux-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$backup_dir"
+    tmux list-sessions -F "#{session_name}" | while read -r session; do
+        tmux list-windows -t "$session" -F "#{session_name}:#{window_index}:#{window_name}:#{pane_current_path}" > "$backup_dir/${session}.save"
+    done
+    echo "✅ All sessions backed up to $backup_dir"
+}
+
+# Enhanced restoration helpers
+tmux-restore-last() {
+    local backup_dir
+    backup_dir=$(find "${WORKSPACE}/backups" -name "shutdown-*" -type d 2>/dev/null | sort -r | head -1)
+    if [[ -n "$backup_dir" ]]; then
+        echo "🔄 Restoring from: $backup_dir"
+        find "$backup_dir" -name "*.save" | while read -r save_file; do
+            local session_name
+            session_name=$(basename "$save_file" .save)
+            echo "Restoring session: $session_name"
+            tmux new-session -d -s "$session_name" 2>/dev/null || true
+        done
+        echo "✅ Sessions restored - use tmux-list to see available sessions"
+    else
+        echo "❌ No shutdown backups found"
+    fi
+}
+
+tmux-find-backups() {
+    echo "🔍 Available session backups:"
+    echo ""
+    echo "Shutdown backups:"
+    find "${WORKSPACE}/backups" -name "shutdown-*" -type d 2>/dev/null | sort -r | head -5 | while read -r dir; do
+        local date_str save_count
+        date_str=$(basename "$dir" | sed "s/shutdown-//")
+        save_count=$(find "$dir" -name "*.save" 2>/dev/null | wc -l)
+        echo "  📁 $date_str ($save_count sessions)"
+    done
+    echo ""
+    echo "Session saves:"
+    find "${WORKSPACE}" -name ".tmux-session-*.save" 2>/dev/null | sort -r | head -5 | while read -r file; do
+        local session_name
+        session_name=$(basename "$file" .save | sed "s/.tmux-session-//")
+        echo "  📄 $session_name"
+    done
+}
+
+# Development session management
+tmux-dev-quick() {
+    if ! tmux has-session -t dev 2>/dev/null; then
+        tmux new-session -d -s dev -c "${WORKSPACE}"
+        tmux split-window -h -t dev -c "${WORKSPACE}"
+        tmux split-window -v -t dev.1 -c "${WORKSPACE}"
+        tmux select-pane -t dev.0
+    fi
+    tmux attach -t dev
+}
+
+tmux-resume-workspace() {
+    if tmux has-session -t sindri-workspace 2>/dev/null; then
+        echo "Resuming existing workspace..."
+        tmux attach -t sindri-workspace
+    else
+        echo "No existing workspace found, starting new..."
+        tmux-workspace
+    fi
+}

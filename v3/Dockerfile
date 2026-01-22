@@ -1,0 +1,271 @@
+# ==============================================================================
+# Sindri v3 Dockerfile
+# ==============================================================================
+# Multi-stage build for Sindri v3 with Rust CLI
+#
+# Build modes:
+#   1. Pre-compiled binary (default, BUILD_FROM_SOURCE=false)
+#      - Downloads binary from GitHub releases (~5 min build)
+#      - Smaller build context, faster builds
+#      - Production-ready binaries
+#
+#   2. Build from source (BUILD_FROM_SOURCE=true)
+#      - Builds from Rust source code (~8 min build)
+#      - Supports custom features, architectures
+#      - Development and testing
+#
+# Key differences from v2:
+#   - No bundled extensions (all installed at runtime via sindri CLI)
+#   - Removed jq, yq, python3-jsonschema (replaced by Rust CLI)
+#   - Smaller base image (~800MB vs v2's 2.5GB)
+#   - Faster builds (5-8 min vs v2's 15-20 min)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Build Arguments
+# ------------------------------------------------------------------------------
+ARG UBUNTU_VERSION=24.04
+ARG RUST_VERSION=1.75
+ARG SINDRI_VERSION=3.0.0
+ARG SINDRI_REPO=https://github.com/pacphi/sindri
+ARG BUILD_FROM_SOURCE=false
+
+# ==============================================================================
+# Stage 1a: Build from Source (conditional)
+# ==============================================================================
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder-source
+
+ARG SINDRI_VERSION
+ARG SINDRI_REPO
+ARG BUILD_FROM_SOURCE
+ARG TARGETARCH
+
+# Only build if BUILD_FROM_SOURCE=true
+RUN if [ "$BUILD_FROM_SOURCE" = "true" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            git \
+            pkg-config \
+            libssl-dev \
+            ca-certificates && \
+        rm -rf /var/lib/apt/lists/* && \
+        echo "Building sindri from source for ${TARGETARCH}..." && \
+        git clone --depth 1 --branch "v${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
+        cd /tmp/sindri/v3 && \
+        cargo build --release --bin sindri && \
+        mkdir -p /output && \
+        cp target/release/sindri /output/sindri && \
+        chmod +x /output/sindri; \
+    else \
+        mkdir -p /output && \
+        touch /output/.skip; \
+    fi
+
+# ==============================================================================
+# Stage 1b: Download Pre-compiled Binary (default)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS builder-binary
+
+ARG SINDRI_VERSION
+ARG BUILD_FROM_SOURCE
+ARG TARGETARCH
+
+# Only download if BUILD_FROM_SOURCE=false
+RUN if [ "$BUILD_FROM_SOURCE" != "true" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            wget \
+            ca-certificates && \
+        rm -rf /var/lib/apt/lists/* && \
+        mkdir -p /output && \
+        # Determine architecture for binary download
+        case "${TARGETARCH}" in \
+            amd64) ARCH_SUFFIX="x86_64" ;; \
+            arm64) ARCH_SUFFIX="aarch64" ;; \
+            *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+        esac && \
+        echo "Downloading sindri binary for linux-${ARCH_SUFFIX}..." && \
+        wget -qO /tmp/sindri.tar.gz \
+            "https://github.com/pacphi/sindri/releases/download/v${SINDRI_VERSION}/sindri-v${SINDRI_VERSION}-linux-${ARCH_SUFFIX}.tar.gz" && \
+        tar -xzf /tmp/sindri.tar.gz -C /output && \
+        chmod +x /output/sindri && \
+        rm /tmp/sindri.tar.gz; \
+    else \
+        mkdir -p /output && \
+        touch /output/.skip; \
+    fi
+
+# ==============================================================================
+# Stage 2: Merge Binaries (choose appropriate binary based on build mode)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS binary-merge
+
+ARG BUILD_FROM_SOURCE
+
+COPY --from=builder-source /output /tmp/source
+COPY --from=builder-binary /output /tmp/binary
+
+# Copy the appropriate binary to /output
+RUN mkdir -p /output && \
+    if [ "$BUILD_FROM_SOURCE" = "true" ]; then \
+        if [ -f /tmp/source/sindri ]; then \
+            cp /tmp/source/sindri /output/sindri; \
+        else \
+            echo "ERROR: Source build failed - binary not found" && exit 1; \
+        fi \
+    else \
+        if [ -f /tmp/binary/sindri ]; then \
+            cp /tmp/binary/sindri /output/sindri; \
+        else \
+            echo "ERROR: Binary download failed - binary not found" && exit 1; \
+        fi \
+    fi && \
+    chmod +x /output/sindri
+
+# ==============================================================================
+# Stage 3: Runtime Image
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION}
+
+# ------------------------------------------------------------------------------
+# Runtime Build Arguments
+# ------------------------------------------------------------------------------
+ARG DEBIAN_FRONTEND=noninteractive
+ARG DEVELOPER_USER=developer
+ARG DEVELOPER_UID=1000
+ARG DEVELOPER_GID=1000
+ARG ALT_HOME=/alt/home/developer
+ARG WORKSPACE=${ALT_HOME}/workspace
+ARG SSH_PORT=2222
+
+# Set environment variables
+ENV DEVELOPER_USER=${DEVELOPER_USER} \
+    ALT_HOME=${ALT_HOME} \
+    WORKSPACE=${WORKSPACE} \
+    SSH_PORT=${SSH_PORT} \
+    DEBIAN_FRONTEND=noninteractive \
+    TERM=xterm-256color \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+# ------------------------------------------------------------------------------
+# Install System Packages
+# ------------------------------------------------------------------------------
+# Key changes from v2:
+# - REMOVED: jq, yq, python3-jsonschema (replaced by Rust CLI)
+# - KEPT: git, curl, wget (still needed for cloning, downloads)
+# - KEPT: build-essential, libssl-dev (for native extension compilation)
+# - KEPT: openssh-server (SSH access)
+# - KEPT: gh (GitHub CLI - may become extension in future)
+# ------------------------------------------------------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        # Core utilities
+        ca-certificates \
+        curl \
+        wget \
+        git \
+        openssh-server \
+        sudo \
+        locales \
+        tzdata \
+        # Build tools (for native extensions)
+        build-essential \
+        pkg-config \
+        libssl-dev \
+        # GitHub CLI
+        software-properties-common && \
+    # Install GitHub CLI
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+        dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+        tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y gh && \
+    # Configure locales
+    locale-gen en_US.UTF-8 && \
+    update-locale LANG=en_US.UTF-8 && \
+    # Cleanup
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# ------------------------------------------------------------------------------
+# Copy Sindri CLI Binary
+# ------------------------------------------------------------------------------
+COPY --from=binary-merge /output/sindri /usr/local/bin/sindri
+
+# Verify binary is executable and functional
+RUN sindri --version
+
+# ------------------------------------------------------------------------------
+# Create Developer User
+# ------------------------------------------------------------------------------
+RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
+    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
+    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
+    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
+
+# ------------------------------------------------------------------------------
+# Setup SSH Server
+# ------------------------------------------------------------------------------
+RUN mkdir -p /run/sshd && \
+    mkdir -p /etc/ssh/sshd_config.d
+
+# Copy SSH configuration
+COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
+COPY v3/docker/config/developer-sudoers /etc/sudoers.d/${DEVELOPER_USER}
+
+RUN chmod 0440 /etc/sudoers.d/${DEVELOPER_USER} && \
+    chmod 644 /etc/ssh/sshd_config
+
+# ------------------------------------------------------------------------------
+# Install mise (Tool Version Manager)
+# ------------------------------------------------------------------------------
+# mise is critical for managing language runtimes installed via extensions
+# (node, python, ruby, go, etc.)
+COPY v3/docker/scripts/install-mise.sh /tmp/
+RUN bash /tmp/install-mise.sh && rm /tmp/install-mise.sh
+
+# ------------------------------------------------------------------------------
+# Install Starship (Optional Shell Prompt)
+# ------------------------------------------------------------------------------
+COPY v3/docker/scripts/install-starship.sh /tmp/
+RUN bash /tmp/install-starship.sh && rm /tmp/install-starship.sh
+
+# ------------------------------------------------------------------------------
+# Setup Directories and Permissions
+# ------------------------------------------------------------------------------
+RUN mkdir -p /docker/scripts /docker/config && \
+    mkdir -p ${ALT_HOME} ${WORKSPACE} && \
+    chown -R ${DEVELOPER_USER}:${DEVELOPER_USER} ${ALT_HOME} && \
+    chmod 755 /docker /docker/scripts /docker/config
+
+# ------------------------------------------------------------------------------
+# Copy Entrypoint and Support Scripts
+# ------------------------------------------------------------------------------
+COPY v3/docker/scripts/entrypoint.sh /docker/scripts/
+COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
+COPY v3/docker/scripts/setup-motd.sh /tmp/
+
+RUN chmod +x /docker/scripts/entrypoint.sh && \
+    chmod +x /docker/scripts/healthcheck.sh && \
+    bash /tmp/setup-motd.sh && \
+    rm /tmp/setup-motd.sh
+
+# ------------------------------------------------------------------------------
+# Runtime Configuration
+# ------------------------------------------------------------------------------
+WORKDIR ${WORKSPACE}
+EXPOSE ${SSH_PORT}
+
+# Comprehensive health check
+# - Checks SSH daemon
+# - Checks extension installation status
+# - Checks critical directories
+# - Checks Sindri CLI functionality
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD /docker/scripts/healthcheck.sh > /dev/null 2>&1 || exit 1
+
+# Run entrypoint as root (it will start SSH daemon and manage permissions)
+ENTRYPOINT ["/docker/scripts/entrypoint.sh"]

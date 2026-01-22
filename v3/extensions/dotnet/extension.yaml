@@ -1,0 +1,75 @@
+---
+metadata:
+  name: dotnet
+  version: 2.1.0
+  description: .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools
+  category: language
+  author: Sindri Team
+  dependencies: []
+
+requirements:
+  domains:
+    - nuget.org
+    - dist.nuget.org
+    - archive.ubuntu.com
+    - ppa.launchpadcontent.net
+  diskSpace: 1000
+  memory: 512
+  installTime: 120
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+
+configure:
+  templates:
+    - source: bashrc-aliases.template
+      destination: ~/.bashrc
+      mode: append
+    - source: directory-build-props.template
+      destination: ~/templates/Directory.Build.props
+      mode: overwrite
+    - source: editorconfig.template
+      destination: ~/templates/.editorconfig
+      mode: overwrite
+    - source: global-json.template
+      destination: ~/templates/global.json
+      mode: overwrite
+    - source: nuget-config.template
+      destination: ~/templates/nuget.config
+      mode: overwrite
+
+validate:
+  commands:
+    - name: dotnet
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  paths:
+    - ~/.dotnet
+    - ~/.nuget
+    - ~/templates/Directory.Build.props
+    - ~/templates/.editorconfig
+    - ~/templates/global.json
+    - ~/templates/nuget.config
+
+upgrade:
+  strategy: automatic
+  apt:
+    packages:
+      - dotnet-sdk-10.0
+      - dotnet-sdk-8.0
+    updateFirst: true
+
+bom:
+  tools:
+    - name: dotnet
+      version: dynamic
+      source: script
+      type: runtime
+      license: MIT
+      homepage: https://dotnet.microsoft.com
+      purl: pkg:deb/ubuntu/dotnet-sdk-10.0
+      cpe: cpe:2.3:a:microsoft:.net:*:*:*:*:*:*:*:*

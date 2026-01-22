@@ -1,0 +1,410 @@
+name: Release v2
+
+# v2 Docker Release Pipeline
+# Triggers on tags matching v2.*.* (e.g., v2.3.0, v2.3.1-beta.1)
+
+on:
+  push:
+    tags:
+      - "v2.*.*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Validate the release tag format and detect prerelease
+  validate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      is_prerelease: ${{ steps.validate.outputs.is_prerelease }}
+    steps:
+      - name: Validate semantic version tag
+        id: validate
+        run: |
+          tag_name="${GITHUB_REF#refs/tags/}"
+          echo "Tag name: $tag_name"
+
+          # Validate format: v2.0.0 or v2.0.0-alpha.1
+          if [[ ! $tag_name =~ ^v2\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid tag format: $tag_name"
+            echo "Tag must match pattern: v2.{MINOR}.{PATCH} or v2.{MINOR}.{PATCH}-{prerelease}"
+            exit 1
+          fi
+
+          # Extract version without 'v' prefix
+          version="${tag_name#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          # Detect prerelease (alpha, beta, rc)
+          if [[ $version =~ -[a-zA-Z] ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Detected prerelease version: $version"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Detected stable version: $version"
+          fi
+
+  # Job 2: Generate changelog from commits since last tag
+  generate-changelog:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      changelog_file: ${{ steps.changelog.outputs.changelog_file }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          current_tag="v$version"
+
+          # Get previous v2 tag
+          previous_tag=$(git tag -l "v2.*" --sort=-version:refname | grep -A 1 "^$current_tag$" | tail -1 || echo "")
+
+          if [[ -z "$previous_tag" ]] || [[ "$previous_tag" == "$current_tag" ]]; then
+            echo "No previous v2 tag found, using all v2 commits"
+            commit_range="$current_tag"
+          else
+            echo "Generating changelog from $previous_tag to $current_tag"
+            commit_range="$previous_tag..$current_tag"
+          fi
+
+          # Initialize changelog sections
+          features=""
+          fixes=""
+          docs=""
+          deps=""
+          perf=""
+          refactor=""
+          chore=""
+          tests=""
+          other=""
+
+          # Parse commits in v2 directory only
+          while IFS= read -r commit; do
+            [[ -z "$commit" ]] && continue
+
+            # Extract commit hash and message
+            hash="${commit:0:7}"
+            message="${commit:8}"
+
+            # Categorize by conventional commit prefix
+            case "$message" in
+              feat:*|feat\(*) features+="- $message ($hash)"$'\n' ;;
+              fix:*|fix\(*)   fixes+="- $message ($hash)"$'\n' ;;
+              docs:*|docs\(*) docs+="- $message ($hash)"$'\n' ;;
+              deps:*|deps\(*) deps+="- $message ($hash)"$'\n' ;;
+              perf:*|perf\(*) perf+="- $message ($hash)"$'\n' ;;
+              refactor:*|refactor\(*) refactor+="- $message ($hash)"$'\n' ;;
+              chore:*|chore\(*) chore+="- $message ($hash)"$'\n' ;;
+              test:*|test\(*) tests+="- $message ($hash)"$'\n' ;;
+              ci:*|ci\(*)     chore+="- $message ($hash)"$'\n' ;;
+              style:*|style\(*) chore+="- $message ($hash)"$'\n' ;;
+              *)              other+="- $message ($hash)"$'\n' ;;
+            esac
+          done < <(git log --oneline "$commit_range" -- v2/ 2>/dev/null || git log --oneline -- v2/)
+
+          # Build changelog content
+          changelog="## [$version] - $(date +%Y-%m-%d)"$'\n\n'
+
+          [[ -n "$features" ]] && changelog+="### :sparkles: Features"$'\n\n'"$features"$'\n'
+          [[ -n "$fixes" ]] && changelog+="### :bug: Bug Fixes"$'\n\n'"$fixes"$'\n'
+          [[ -n "$docs" ]] && changelog+="### :books: Documentation"$'\n\n'"$docs"$'\n'
+          [[ -n "$deps" ]] && changelog+="### :package: Dependencies"$'\n\n'"$deps"$'\n'
+          [[ -n "$perf" ]] && changelog+="### :zap: Performance"$'\n\n'"$perf"$'\n'
+          [[ -n "$refactor" ]] && changelog+="### :recycle: Refactoring"$'\n\n'"$refactor"$'\n'
+          [[ -n "$tests" ]] && changelog+="### :white_check_mark: Tests"$'\n\n'"$tests"$'\n'
+          [[ -n "$chore" ]] && changelog+="### :wrench: Maintenance"$'\n\n'"$chore"$'\n'
+          [[ -n "$other" ]] && changelog+="### :gear: Other Changes"$'\n\n'"$other"$'\n'
+
+          # Add installation instructions
+          changelog+="### Installation"$'\n\n'
+          changelog+='```bash'$'\n'
+          changelog+="# Pull Docker image"$'\n'
+          changelog+="docker pull ghcr.io/${{ github.repository }}:v$version"$'\n\n'
+          changelog+="# Or use specific tag"$'\n'
+          changelog+="docker pull ghcr.io/${{ github.repository }}:v2"$'\n\n'
+          changelog+="# Run container"$'\n'
+          changelog+='docker run -it -v sindri-home:/alt/home/developer ghcr.io/${{ github.repository }}:v'"$version"$'\n'
+          changelog+='```'$'\n\n'
+
+          # Add diff link if previous tag exists
+          if [[ -n "$previous_tag" ]] && [[ "$previous_tag" != "$current_tag" ]]; then
+            changelog+="**Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...$current_tag"$'\n'
+          fi
+
+          # Save changelog to file for artifact
+          echo "$changelog" > changelog.md
+
+          # Output for GitHub Actions (escape newlines)
+          {
+            echo "changelog<<CHANGELOG_EOF"
+            echo "$changelog"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "changelog_file=changelog.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: changelog-v2
+          path: changelog.md
+
+  # Job 3: Update CHANGELOG.md in repository
+  update-changelog:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: changelog-v2
+
+      - name: Update v2/CHANGELOG.md
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          changelog_header='# Changelog - Sindri v2
+
+          All notable changes to Sindri v2 (Bash/Docker) will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          <!-- Entries below are auto-generated by release workflow -->'
+
+          # Create v2/CHANGELOG.md if it doesn't exist
+          if [[ ! -f v2/CHANGELOG.md ]]; then
+            echo "$changelog_header" > v2/CHANGELOG.md
+            echo "" >> v2/CHANGELOG.md
+          fi
+
+          # Check if this version already exists
+          if grep -q "## \[$version\]" v2/CHANGELOG.md; then
+            echo "Version $version already exists in v2/CHANGELOG.md, skipping update"
+            exit 0
+          fi
+
+          # Read existing content after header
+          if grep -q "<!-- Entries below are auto-generated" v2/CHANGELOG.md; then
+            existing_content=$(sed -n '/<!-- Entries below are auto-generated/,$ p' v2/CHANGELOG.md | tail -n +2)
+          else
+            existing_content=$(cat v2/CHANGELOG.md)
+          fi
+
+          # Rebuild CHANGELOG.md with new version at top
+          {
+            echo "$changelog_header"
+            echo ""
+            cat changelog.md
+            echo ""
+            echo "$existing_content"
+          } > v2/CHANGELOG.md.new
+
+          mv v2/CHANGELOG.md.new v2/CHANGELOG.md
+
+      - name: Update v2/cli/VERSION file
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "$version" > v2/cli/VERSION
+          echo "Updated v2/cli/VERSION to $version"
+
+      - name: Commit release updates
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes to commit
+          if git diff --quiet v2/CHANGELOG.md v2/cli/VERSION; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add v2/CHANGELOG.md v2/cli/VERSION
+          git commit -m "chore(release): update v2 CHANGELOG and VERSION for v$version
+
+          [skip ci]"
+          git push origin main
+
+  # Job 4: Build and push Docker image to GHCR
+  build-image:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}},prefix=v
+            type=semver,pattern={{major}}.{{minor}},prefix=v
+            type=raw,value=v2,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+            type=raw,value=latest,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: v2/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ needs.validate-tag.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 5: Create GitHub Release with changelog and assets
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog, build-image]
+    permissions:
+      contents: write
+    outputs:
+      release_url: ${{ steps.release.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: changelog-v2
+
+      - name: Create install.sh asset
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cat > install-v2.sh << 'INSTALL_EOF'
+          #!/usr/bin/env bash
+          # Sindri v2 Installation Script
+          # Generated for version: VERSION_PLACEHOLDER
+          set -euo pipefail
+
+          echo "Installing Sindri v2 VERSION_PLACEHOLDER..."
+
+          # Check prerequisites
+          command -v docker >/dev/null 2>&1 || { echo "Error: docker is required"; exit 1; }
+
+          # Pull Docker image
+          echo "Pulling Docker image..."
+          docker pull ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER
+
+          # Create volume if it doesn't exist
+          if ! docker volume inspect sindri-home >/dev/null 2>&1; then
+            echo "Creating Docker volume..."
+            docker volume create sindri-home
+          fi
+
+          echo ""
+          echo "Sindri v2 VERSION_PLACEHOLDER installed successfully!"
+          echo ""
+          echo "To run, execute:"
+          echo "  docker run -it -v sindri-home:/alt/home/developer ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER"
+          echo ""
+          INSTALL_EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$version/g" install-v2.sh
+          sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" install-v2.sh
+          chmod +x install-v2.sh
+
+      - name: Create GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Sindri v${{ needs.validate-tag.outputs.version }} (Docker)
+          body_path: changelog.md
+          prerelease: ${{ needs.validate-tag.outputs.is_prerelease }}
+          files: |
+            install-v2.sh
+
+  # Job 6: Notify on success or create issue on failure
+  notify-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, create-release, update-changelog]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Notify success
+        if: needs.create-release.result == 'success'
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "::notice::Release v$version published successfully!"
+          echo "Release URL: ${{ needs.create-release.outputs.release_url }}"
+          echo "Docker image: ghcr.io/${{ github.repository }}:v$version"
+
+      - name: Create failure issue
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const version = '${{ needs.validate-tag.outputs.version }}';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Release v${version} (v2) failed`,
+              body: `## Release Failure
+
+            The automated release for **v${version}** (v2 Docker) failed.
+
+            ### Details
+
+            - **Tag**: v${version}
+            - **Workflow Run**: ${runUrl}
+            - **Triggered by**: @${context.actor}
+
+            ### Next Steps
+
+            1. Review the [workflow logs](${runUrl})
+            2. Fix any issues
+            3. Delete the tag and recreate it, or create a new patch version
+
+            \`\`\`bash
+            # To retry with same version:
+            git tag -d v${version}
+            git push origin :refs/tags/v${version}
+            # Fix issues...
+            git tag v${version}
+            git push origin v${version}
+            \`\`\`
+            `,
+              labels: ['release-failure', 'automated', 'v2']
+            });

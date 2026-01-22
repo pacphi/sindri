@@ -1,0 +1,131 @@
+# AI CLI Tools and Coding Assistants
+
+## Installed AI Tools
+
+### Autonomous Coding Agents
+
+#### Codex CLI
+- **Command**: `codex`
+- **Description**: Multi-mode AI assistant with suggest, edit, and run capabilities
+- **Usage**:
+  ```bash
+  codex suggest "how to optimize this function"
+  codex edit file.js
+  codex run "create a REST API"
+  ```
+
+
+### Major Platform CLIs
+
+#### Gemini CLI
+- **Command**: `gemini`
+- **API Key**: Set `GOOGLE_GEMINI_API_KEY`
+- **Get Key**: https://makersuite.google.com/app/apikey
+- **Usage**: `gemini chat "explain this code"`
+
+#### GitHub Copilot CLI
+- **Command**: `gh copilot`
+- **Prerequisites**: GitHub CLI and Copilot subscription
+- **Usage**:
+  ```bash
+  gh copilot suggest "git command to undo"
+  gh copilot explain "docker-compose up"
+  ```
+
+#### Amazon Q Developer
+- **Command**: `aws q`
+- **Prerequisites**: AWS CLI
+- **Usage**: `aws q chat`
+
+### Local Model Management
+
+#### Ollama
+- **Command**: `ollama`
+- **Description**: Run LLMs locally
+- **Start**: `nohup ollama serve > ~/ollama.log 2>&1 &`
+- **Usage**:
+  ```bash
+  ollama pull llama3.2
+  ollama run llama3.2
+  ollama list
+  ```
+
+#### xAI Grok SDK
+- **Package**: `xai-grok-sdk`
+- **Prerequisites**: Python/pip
+- **API Key**: Set `XAI_API_KEY`
+- **Usage**:
+  ```python
+  from xai_grok_sdk import GrokClient
+  client = GrokClient(api_key="your_key")
+  response = client.chat("Hello")
+  ```
+
+### Framework Tools
+
+#### Fabric
+- **Command**: `fabric`
+- **Description**: AI pattern framework
+- **Setup**: `fabric --setup`
+- **Usage**:
+  ```bash
+  echo "code" | fabric --pattern explain
+  fabric --list
+  ```
+
+## API Key Requirements
+
+- **Google Gemini**: `GOOGLE_GEMINI_API_KEY` - https://makersuite.google.com/app/apikey
+- **GitHub Copilot**: GitHub account with subscription
+- **AWS Q**: AWS credentials
+- **xAI Grok**: `XAI_API_KEY` - xAI account
+- **Ollama**: No API key (local)
+
+### Setting API Keys
+
+```bash
+# Via Fly.io secrets (recommended)
+flyctl secrets set GOOGLE_GEMINI_API_KEY=key -a <app>
+flyctl secrets set XAI_API_KEY=key -a <app>
+
+# Or in ~/.bashrc
+export GOOGLE_GEMINI_API_KEY=your_key
+export XAI_API_KEY=your_key
+```
+
+## Directory Structure
+
+```
+ai-tools/
+├── ollama-models/   # Ollama model storage
+├── fabric-patterns/ # Custom Fabric patterns
+└── projects/        # AI-assisted projects
+```
+
+## Getting Started
+
+**Local AI (no API keys):**
+```bash
+nohup ollama serve > ~/ollama.log 2>&1 &
+ollama pull llama3.2
+ollama run llama3.2
+```
+
+**Cloud AI (requires API keys):**
+```bash
+export GOOGLE_GEMINI_API_KEY=your_key
+gemini chat "help me debug this"
+```
+
+**Development Tasks:**
+```bash
+codex run "add JWT authentication"
+```
+
+## Best Practices
+
+1. **Cost Management**: Use Ollama for dev/testing
+2. **Security**: Never commit API keys
+3. **Context**: Provide clear, specific prompts
+4. **Validation**: Review AI-generated code
+5. **Privacy**: Use local models for sensitive code

@@ -3,7 +3,7 @@
 
 **Status**: Accepted
 **Date**: 2026-01-21
-**Related**: [ADR-017: Backup System](017-backup-system-architecture.md), [Backup Guide](../../BACKUP_RESTORE.md)
+**Related**: [ADR-017: Backup System](017-backup-system-architecture.md)
 
 ## Context
 
@@ -320,4 +320,4 @@ sindri restore backup.tar.gz --auto-upgrade-extensions
 
 - [ADR-017: Backup System](017-backup-system-architecture.md)
 - [ADR-001: Workspace Architecture](001-rust-migration-workspace-architecture.md)
-- [Backup Guide](../../BACKUP_RESTORE.md)
+- [Backup Guide](../../../../v2/docs/BACKUP_RESTORE.md)

@@ -1,0 +1,158 @@
+#!/bin/bash
+# claude-flow.aliases - Claude Flow integration aliases
+# Installed by claude-flow extension
+
+# ============================================================================
+# CLAUDE FLOW OPERATIONS
+# ============================================================================
+
+# Initialization & Setup
+alias cf-init="claude-flow init --force"
+alias cf-init-verify="claude-flow init --verify --pair --github-enhanced"
+alias cf-init-project="claude-flow init --force --project-name"
+alias cf-init-nexus="claude-flow init --flow-nexus"
+
+# Core Operations (Context-Aware Wrappers)
+alias cf-swarm="\${WORKSPACE:-\${HOME}/workspace}/scripts/cf-with-context.sh swarm"
+alias cf-hive="\${WORKSPACE:-\${HOME}/workspace}/scripts/cf-with-context.sh hive-mind spawn"
+
+# Hive-Mind Operations
+alias cf-spawn="claude-flow hive-mind spawn"
+alias cf-wizard="claude-flow hive-mind wizard"
+alias cf-resume="claude-flow hive-mind resume"
+alias cf-status="claude-flow hive-mind status"
+alias cf-sessions="claude-flow hive-mind sessions"
+alias cf-upgrade="claude-flow hive-mind upgrade"
+alias cf-github-hive="claude-flow hive-mind spawn --github-enhanced --agents 13 --claude"
+
+# Swarm Operations
+alias cf-continue="claude-flow swarm --continue-session"
+alias cf-swarm-temp="claude-flow swarm --temp"
+alias cf-swarm-namespace="claude-flow swarm --namespace"
+
+# Memory Management
+alias cf-memory-stats="claude-flow memory stats"
+alias cf-memory-list="claude-flow memory list"
+alias cf-memory-query="claude-flow memory query"
+alias cf-memory-recent="claude-flow memory query --recent --limit 5"
+alias cf-memory-clear="claude-flow memory clear"
+alias cf-memory-export="claude-flow memory export"
+alias cf-memory-import="claude-flow memory import"
+
+# Neural Operations
+alias cf-neural-train="claude-flow neural train"
+alias cf-neural-predict="claude-flow neural predict"
+alias cf-neural-status="claude-flow neural status"
+alias cf-neural-models="claude-flow neural models"
+
+# Goal Planning (GOAP)
+alias cf-goal-plan="claude-flow goal plan"
+alias cf-goal-execute="claude-flow goal execute"
+alias cf-goal-status="claude-flow goal status"
+
+# Agent Management (Claude Flow)
+alias cf-agents-list="claude-flow agents list"
+alias cf-agents-spawn="claude-flow agents spawn"
+alias cf-agents-status="claude-flow agents status"
+alias cf-agents-assign="claude-flow agents assign"
+
+# Hooks System
+alias cf-hooks-list="claude-flow hooks list"
+alias cf-hooks-enable="claude-flow hooks enable"
+alias cf-hooks-disable="claude-flow hooks disable"
+alias cf-hooks-config="claude-flow hooks config"
+
+# GitHub Integration
+alias cf-github-init="claude-flow github init"
+alias cf-github-sync="claude-flow github sync"
+alias cf-github-pr="claude-flow github pr"
+alias cf-github-issues="claude-flow github issues"
+alias cf-github-analyze="claude-flow github analyze"
+alias cf-github-migrate="claude-flow github migrate"
+
+# Flow Nexus Cloud
+alias cf-nexus-login="claude-flow nexus login"
+alias cf-nexus-sandbox="claude-flow nexus sandbox"
+alias cf-nexus-swarm="claude-flow nexus swarm"
+alias cf-nexus-deploy="claude-flow nexus deploy"
+alias cf-nexus-challenges="claude-flow nexus challenges"
+alias cf-nexus-marketplace="claude-flow nexus marketplace"
+
+# Performance & Analytics
+alias cf-benchmark="claude-flow benchmark"
+alias cf-analyze="claude-flow analyze"
+alias cf-optimize="claude-flow optimize"
+alias cf-metrics="claude-flow metrics"
+
+# Verification & Testing
+alias cf-verify="claude-flow verify"
+alias cf-truth="claude-flow truth"
+alias cf-test="claude-flow test"
+alias cf-validate="claude-flow validate"
+
+# Pairing & Collaboration
+alias cf-pair="claude-flow pair --start"
+alias cf-pair-stop="claude-flow pair --stop"
+alias cf-pair-status="claude-flow pair --status"
+
+# SPARC Methodology
+alias cf-sparc-init="claude-flow sparc init"
+alias cf-sparc-plan="claude-flow sparc plan"
+alias cf-sparc-execute="claude-flow sparc execute"
+alias cf-sparc-review="claude-flow sparc review"
+
+# Quick Commands (Shortcuts)
+alias cfs="cf-swarm"                    # Quick swarm
+alias cfh="cf-hive"                     # Quick hive spawn
+alias cfr="cf-resume"                   # Quick resume
+alias cfst="cf-status"                  # Quick status
+alias cfm="cf-memory-stats"             # Quick memory stats
+alias cfmq="cf-memory-query"            # Quick memory query
+alias cfa="cf-agents-list"              # Quick agent list
+alias cfg="cf-github-analyze"           # Quick GitHub analysis
+alias cfn="cf-nexus-swarm"              # Quick Nexus swarm
+
+# Monitoring & Debugging
+alias cf-monitor="claude-monitor"
+alias cf-logs="claude-flow logs"
+alias cf-debug="claude-flow debug"
+alias cf-trace="claude-flow trace"
+
+# Help & Documentation
+alias cf-help="claude-flow --help"
+alias cf-docs="echo 'Visit: https://github.com/ruvnet/claude-flow/wiki'"
+alias cf-examples="echo 'Visit: https://github.com/ruvnet/claude-flow/tree/main/examples'"
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+# Execute task with Claude Flow swarm
+cf-task() {
+    claude-flow swarm "$1" --claude
+}
+
+# Spawn hive-mind with namespace
+cf-hive-ns() {
+    claude-flow hive-mind spawn "$1" --namespace "$2" --claude
+}
+
+# Search memory with context
+cf-search() {
+    claude-flow memory query "$1" --recent --context
+}
+
+# Create Flow Nexus sandbox
+cf-sandbox() {
+    claude-flow nexus sandbox create --template "$1" --name "$2"
+}
+
+# Manage sessions (list/resume/status)
+cf-session() {
+    case "$1" in
+        list) claude-flow hive-mind sessions ;;
+        resume) claude-flow hive-mind resume "$2" ;;
+        status) claude-flow hive-mind status ;;
+        *) echo "Usage: cf-session [list|resume <id>|status]" ;;
+    esac
+}

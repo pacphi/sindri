@@ -1,0 +1,63 @@
+---
+metadata:
+  name: agent-manager
+  version: 2.0.0
+  description: Claude Code agent manager for managing AI agents
+  category: ai
+  author: Sindri Team
+  license: MIT
+  dependencies: []
+
+requirements:
+  domains:
+    - github.com
+    - api.github.com
+    - raw.githubusercontent.com
+  diskSpace: 100
+  memory: 0
+  installTime: 30
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: agents-config.yaml.template
+      destination: ~/config/agents-config.yaml
+      mode: skip-if-exists
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: agent-manager
+      versionFlag: version
+      expectedPattern: "version"
+
+remove:
+  paths:
+    - ~/.local/bin/agent-manager
+    - ~/config/agents-config.yaml
+    - ~/scripts/agent-discovery.sh
+  confirmation: true
+
+upgrade:
+  strategy: automatic
+  script:
+    path: upgrade.sh
+    timeout: 300
+
+bom:
+  tools:
+    - name: agent-manager
+      version: dynamic
+      source: github-release
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/pacphi/claude-code-agent-manager
+      purl: pkg:github/pacphi/claude-code-agent-manager

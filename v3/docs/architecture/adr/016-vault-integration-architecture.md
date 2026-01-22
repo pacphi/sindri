@@ -4,7 +4,7 @@
 **Date**: 2026-01-21
 **Deciders**: Core Team
 **Phase**: Phase 5 - Secrets Management
-**Related**: [ADR-001: Workspace Architecture](001-rust-migration-workspace-architecture.md), [Secrets Management Documentation](../../SECRETS_MANAGEMENT.md), [ADR-015: Secrets Resolver](015-secrets-resolver-core-architecture.md)
+**Related**: [ADR-001: Workspace Architecture](001-rust-migration-workspace-architecture.md), [ADR-015: Secrets Resolver](015-secrets-resolver-core-architecture.md)
 
 ## Context
 
@@ -435,4 +435,4 @@ secrets:
 - [ADR-001: Workspace Architecture](001-rust-migration-workspace-architecture.md)
 - [ADR-004: Async Runtime](004-async-runtime-command-execution.md)
 - [ADR-015: Secrets Resolver](015-secrets-resolver-core-architecture.md)
-- [Secrets Management Documentation](../../SECRETS_MANAGEMENT.md)
+- [Secrets Management Documentation](../../../../v2/docs/SECRETS_MANAGEMENT.md)

@@ -1,0 +1,378 @@
+name: CI v2
+
+# v2 Bash/Docker CI Pipeline
+# Triggers on changes to v2 directory and related configurations
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'v2/**'
+      - '.github/workflows/ci-v2.yml'
+      - '.github/actions/v2/**'
+      - '.github/actions/shared/**'
+      - 'package.json'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'v2/**'
+      - '.github/workflows/ci-v2.yml'
+      - '.github/actions/v2/**'
+      - '.github/actions/shared/**'
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: |
+          Providers to test (comma-separated or 'all').
+          Options: docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s
+        required: false
+        default: "docker,fly,devpod-k8s"
+        type: string
+      test-level:
+        description: Test level to run
+        required: false
+        default: "profile"
+        type: choice
+        options:
+          - quick
+          - extension
+          - profile
+          - all
+      extension-profile:
+        description: Extension profile to test (affects resource requirements)
+        required: false
+        default: "minimal"
+        type: choice
+        options:
+          - minimal
+          - mobile
+          - fullstack
+          - ai-dev
+          - systems
+          - devops
+          - anthropic-dev
+          - enterprise
+          - visionflow-core
+          - visionflow-data-scientist
+          - visionflow-creative
+          - visionflow-full
+      extension:
+        description: Extension to test (when test-level is 'extension')
+        required: false
+        default: "nodejs"
+        type: string
+      skip-cleanup:
+        description: Skip resource cleanup for debugging
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: ci-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  # ============================================
+  # Validation Jobs
+  # ============================================
+
+  shellcheck:
+    name: Shell Script Validation (v2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on v2 shell scripts
+        env:
+          SHELLCHECK_OPTS: --severity=warning
+        run: |
+          find v2 -name "*.sh" -type f | while read -r script; do
+            # Skip zsh scripts (shellcheck only supports sh/bash/dash/ksh)
+            if head -1 "$script" | grep -q "#!/bin/zsh"; then
+              echo "Skipping zsh script: $script"
+              continue
+            fi
+            echo "Checking: $script"
+            shellcheck "$script" || exit 1
+          done
+
+  markdownlint:
+    name: Markdown Validation (v2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Lint v2 markdown files
+        run: markdownlint 'v2/**/*.md' --ignore node_modules
+
+  validate-yaml:
+    name: Validate YAML (v2)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Run yamllint on v2 YAML
+        run: |
+          yamllint --strict \
+            v2/docker/lib/*.yaml \
+            v2/docker/lib/extensions/*/extension.yaml
+
+      - name: Validate v2 extension schemas
+        run: |
+          # Install Node.js tools
+          npm install -g ajv-cli ajv-formats
+
+          # Validate all v2 extensions against schema
+          for ext_dir in v2/docker/lib/extensions/*/; do
+            if [[ -f "$ext_dir/extension.yaml" ]]; then
+              ext_name=$(basename "$ext_dir")
+              echo "Validating extension: $ext_name"
+              ajv validate \
+                -s v2/docker/lib/schemas/extension.schema.json \
+                -d "$ext_dir/extension.yaml" \
+                --spec=draft2020 \
+                || exit 1
+            fi
+          done
+
+      - name: Validate v2 registry consistency
+        run: |
+          # Check that all extensions in registry exist
+          FAILURES=0
+          for ext_name in $(yq '.extensions | keys | .[]' v2/docker/lib/registry.yaml); do
+            if [[ ! -d "v2/docker/lib/extensions/$ext_name" ]]; then
+              echo "FAIL: Registry lists extension '$ext_name' but directory doesn't exist"
+              ((FAILURES++)) || true
+            fi
+          done
+
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "Registry validation failed: $FAILURES error(s)"
+            exit 1
+          fi
+          echo "Registry validation passed"
+
+  # ============================================
+  # Build Job
+  # ============================================
+
+  build:
+    name: Build v2 Docker Image
+    runs-on: ubuntu-latest
+    needs: [shellcheck, markdownlint, validate-yaml]
+    outputs:
+      image-tag: ${{ steps.build.outputs.tag }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and export v2 image
+        id: build
+        run: |
+          IMAGE_TAG="sindri-v2:ci-${{ github.sha }}"
+
+          docker buildx build \
+            --file v2/Dockerfile \
+            --tag "$IMAGE_TAG" \
+            --load \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            .
+
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+          DIGEST=$(docker inspect --format='{{.Id}}' "$IMAGE_TAG")
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+      - name: Save image as artifact
+        run: |
+          docker save sindri-v2:ci-${{ github.sha }} | gzip > sindri-v2-image.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sindri-v2-image-${{ github.sha }}
+          path: sindri-v2-image.tar.gz
+          retention-days: 1
+
+  # ============================================
+  # Test Matrix Generation
+  # ============================================
+
+  generate-matrix:
+    name: Generate Test Matrix
+    runs-on: ubuntu-latest
+    needs: [shellcheck, markdownlint, validate-yaml]
+    outputs:
+      providers: ${{ steps.matrix.outputs.providers }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Generate matrices
+        id: matrix
+        run: |
+          # Determine which providers to test based on trigger type
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            INPUT_PROVIDERS="${{ github.event.inputs.providers }}"
+            if [[ "$INPUT_PROVIDERS" == "all" ]]; then
+              PROVIDERS='["docker", "fly", "devpod-aws", "devpod-gcp", "devpod-azure", "devpod-do", "devpod-k8s"]'
+            else
+              PROVIDERS=$(echo "$INPUT_PROVIDERS" | jq -Rc 'split(",") | map(ltrimstr(" ") | rtrimstr(" "))')
+            fi
+          else
+            # Push and PR events all test the same provider set
+            PROVIDERS='["docker", "fly", "devpod-k8s"]'
+          fi
+
+          # Skip fly provider for Dependabot PRs (no access to FLY_API_TOKEN secret)
+          if [[ "${{ github.actor }}" == "dependabot[bot]" ]]; then
+            PROVIDERS=$(echo "$PROVIDERS" | jq -c 'map(select(. != "fly"))')
+            echo "::notice title=Dependabot Detected::Skipping fly provider (no secret access)"
+          fi
+
+          echo "providers=$PROVIDERS" >> $GITHUB_OUTPUT
+          echo "::notice title=Test Providers::$PROVIDERS"
+
+  # ============================================
+  # Unified Provider Testing
+  # ============================================
+
+  test-providers:
+    name: Test v2 on ${{ matrix.provider }}
+    needs: [build, generate-matrix]
+    if: needs.generate-matrix.outputs.providers != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: ${{ fromJson(needs.generate-matrix.outputs.providers) }}
+    uses: ./.github/workflows/test-provider.yml
+    with:
+      provider: ${{ matrix.provider }}
+      test-level: ${{ github.event.inputs.test-level || 'profile' }}
+      extension-profile: ${{ github.event.inputs.extension-profile || 'minimal' }}
+      extension: ${{ github.event.inputs.extension || 'nodejs' }}
+      skip-cleanup: ${{ github.event.inputs.skip-cleanup == 'true' }}
+      image: sindri-v2:ci-${{ github.sha }}
+      image-artifact: sindri-v2-image-${{ github.sha }}
+    secrets: inherit
+
+  # ============================================
+  # CI Status Checks
+  # ============================================
+
+  ci-required:
+    name: CI v2 Required Checks
+    runs-on: ubuntu-latest
+    needs:
+      - shellcheck
+      - markdownlint
+      - validate-yaml
+      - build
+    if: ${{ always() }}
+    steps:
+      - name: Check required jobs
+        run: |
+          # Check if any required job failed
+          SHELLCHECK="${{ needs.shellcheck.result }}"
+          MARKDOWNLINT="${{ needs.markdownlint.result }}"
+          VALIDATE_YAML="${{ needs.validate-yaml.result }}"
+          BUILD="${{ needs.build.result }}"
+
+          if [[ "$SHELLCHECK" != "success" ]] || \
+             [[ "$MARKDOWNLINT" != "success" ]] || \
+             [[ "$VALIDATE_YAML" != "success" ]] || \
+             [[ "$BUILD" != "success" ]]; then
+            echo "❌ Required CI v2 checks failed"
+            echo "Results:"
+            echo "  shellcheck: $SHELLCHECK"
+            echo "  markdownlint: $MARKDOWNLINT"
+            echo "  validate-yaml: $VALIDATE_YAML"
+            echo "  build: $BUILD"
+            exit 1
+          fi
+
+          echo "✅ Required CI v2 checks passed"
+
+  ci-status:
+    name: CI v2 Status
+    runs-on: ubuntu-latest
+    needs:
+      - ci-required
+      - test-providers
+    if: ${{ always() }}
+    steps:
+      - name: Check overall status
+        run: |
+          REQUIRED="${{ needs.ci-required.result }}"
+          TEST_PROVIDERS="${{ needs.test-providers.result }}"
+
+          # Required checks must pass
+          if [[ "$REQUIRED" != "success" ]]; then
+            echo "❌ CI v2 failed - required checks did not pass"
+            exit 1
+          fi
+
+          # Provider tests should pass if they ran
+          if [[ "$TEST_PROVIDERS" != "skipped" ]] && [[ "$TEST_PROVIDERS" != "success" ]]; then
+            echo "❌ CI v2 failed - provider tests failed"
+            echo "  test-providers: $TEST_PROVIDERS"
+            exit 1
+          fi
+
+          echo "✅ CI v2 passed"
+          echo "Results:"
+          echo "  ci-required: $REQUIRED"
+          echo "  test-providers: $TEST_PROVIDERS"
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "# CI v2 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Unified Provider Testing (v2)" >> $GITHUB_STEP_SUMMARY
+          echo "Each selected provider receives **complete test coverage**:" >> $GITHUB_STEP_SUMMARY
+          echo "- CLI Tests (sindri, extension-manager commands)" >> $GITHUB_STEP_SUMMARY
+          echo "- Extension Tests (validation, installation)" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests (end-to-end workflows)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Required Checks | ${{ needs.ci-required.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Providers | ${{ needs.test-providers.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Metadata" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: v2 (Bash/Docker)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY

@@ -64,21 +64,149 @@ pub async fn run(cmd: ExtensionCommands) -> Result<()> {
 
 /// Install an extension with optional version specification
 ///
-/// Supports:
-/// - Install latest compatible version: `sindri extension install python`
-/// - Install specific version: `sindri extension install python@1.1.0` or `--version 1.1.0`
+/// Supports three modes:
+/// 1. Install by name: `sindri extension install python` or `python@1.1.0`
+/// 2. Install from config: `sindri extension install --from-config sindri.yaml`
+/// 3. Install from profile: `sindri extension install --profile minimal`
+///
+/// Options:
 /// - Force reinstall: `--force`
 /// - Skip dependencies: `--no-deps`
+/// - Skip confirmation: `--yes` (for profile mode)
 async fn install(args: ExtensionInstallArgs) -> Result<()> {
+    // Determine installation mode
+    if let Some(config_path) = args.from_config {
+        // Mode 1: Install from config file
+        install_from_config(config_path, args.force, args.no_deps).await
+    } else if let Some(profile_name) = args.profile {
+        // Mode 2: Install from profile (delegate to profile install command)
+        install_from_profile(profile_name, args.yes, args.force).await
+    } else if let Some(name) = args.name {
+        // Mode 3: Install by name (original logic)
+        install_by_name(name, args.version, args.force, args.no_deps).await
+    } else {
+        Err(anyhow!(
+            "Must specify extension name, --from-config, or --profile.\n\
+            Examples:\n\
+            • sindri extension install python\n\
+            • sindri extension install --from-config sindri.yaml\n\
+            • sindri extension install --profile minimal"
+        ))
+    }
+}
+
+/// Install extensions from a config file
+async fn install_from_config(
+    config_path: camino::Utf8PathBuf,
+    force: bool,
+    no_deps: bool,
+) -> Result<()> {
+    use sindri_core::config::SindriConfig;
+
+    output::info(&format!("Loading configuration from: {}", config_path));
+
+    // Load and validate config
+    let config = SindriConfig::load(Some(&config_path))?;
+
+    // Get extension configuration
+    let extensions_config = config.extensions();
+
+    // Determine what to install
+    let mut extensions_to_install = Vec::new();
+
+    // 1. If profile is specified, use that
+    if let Some(profile_name) = &extensions_config.profile {
+        output::info(&format!("Installing profile: {}", profile_name));
+        return install_from_profile(profile_name.clone(), true, force).await;
+    }
+
+    // 2. If active extensions list is specified, use that
+    if let Some(active) = &extensions_config.active {
+        extensions_to_install.extend(active.iter().cloned());
+    }
+
+    // 3. Add additional extensions on top
+    if let Some(additional) = &extensions_config.additional {
+        extensions_to_install.extend(additional.iter().cloned());
+    }
+
+    // Check if we have anything to install
+    if extensions_to_install.is_empty() {
+        output::warning("No extensions specified in config file");
+        output::info("Add extensions to 'extensions.active' or 'extensions.profile' in your sindri.yaml");
+        return Ok(());
+    }
+
+    output::info(&format!(
+        "Installing {} extension(s) from config...",
+        extensions_to_install.len()
+    ));
+
+    // Install each extension
+    let mut success_count = 0;
+    let mut failure_count = 0;
+
+    for ext in &extensions_to_install {
+        output::info(&format!("  • {}", ext));
+
+        match install_by_name(ext.clone(), None, force, no_deps).await {
+            Ok(()) => success_count += 1,
+            Err(e) => {
+                output::error(&format!("Failed to install {}: {}", ext, e));
+                failure_count += 1;
+            }
+        }
+    }
+
+    // Summary
+    if failure_count == 0 {
+        output::success(&format!(
+            "Successfully installed {} extension(s)",
+            success_count
+        ));
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "Installed {} extension(s), {} failed",
+            success_count,
+            failure_count
+        ))
+    }
+}
+
+/// Install extensions from a profile (delegates to profile install command)
+async fn install_from_profile(profile_name: String, yes: bool, _force: bool) -> Result<()> {
+    use crate::cli::ProfileInstallArgs;
+    use crate::commands::profile;
+
+    output::info(&format!("Installing profile: {}", profile_name));
+
+    // Delegate to profile install command
+    let profile_args = ProfileInstallArgs {
+        profile: profile_name,
+        yes,
+        continue_on_error: true,
+    };
+
+    profile::install(profile_args).await
+}
+
+/// Install a single extension by name
+async fn install_by_name(
+    name: String,
+    version: Option<String>,
+    force: bool,
+    no_deps: bool,
+) -> Result<()> {
     // Parse name@version format if present
-    let (name, version) = if args.name.contains('@') {
-        let parts: Vec<&str> = args.name.split('@').collect();
+    let (name, version) = if name.contains('@') {
+        let parts: Vec<&str> = name.split('@').collect();
         if parts.len() != 2 {
-            return Err(anyhow!("Invalid format: {}. Use name@version", args.name));
+            return Err(anyhow!("Invalid format: {}. Use name@version", name));
         }
         (parts[0].to_string(), Some(parts[1].to_string()))
     } else {
-        (args.name.clone(), args.version.clone())
+        (name, version)
     };
 
     // Check if name is a known profile (if no version specified)
@@ -94,7 +222,7 @@ async fn install(args: ExtensionInstallArgs) -> Result<()> {
                     "'{}' looks like a profile name. Did you mean 'sindri profile install {}'?",
                     name, name
                 ));
-                output::info("To install an extension with this name, use: sindri extension install <name> --version <version>");
+                output::info("Or use: sindri extension install --profile <profile-name>");
                 return Err(anyhow!(
                     "Use 'sindri profile install {}' for profile installation",
                     name
@@ -112,11 +240,11 @@ async fn install(args: ExtensionInstallArgs) -> Result<()> {
             .unwrap_or_default()
     ));
 
-    if args.force {
+    if force {
         output::info("Force reinstall enabled");
     }
 
-    if args.no_deps {
+    if no_deps {
         output::warning("Skipping dependency installation");
     }
 
@@ -310,7 +438,7 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
 // Status Command
 // ============================================================================
 
-#[derive(Tabled)]
+#[derive(Tabled, serde::Serialize, serde::Deserialize)]
 struct StatusRow {
     name: String,
     version: String,
@@ -325,39 +453,61 @@ struct StatusRow {
 /// - Show specific: `sindri extension status python`
 /// - JSON output: `sindri extension status --json`
 async fn status(args: ExtensionStatusArgs) -> Result<()> {
+    use sindri_extensions::ManifestManager;
+
     if let Some(name) = &args.name {
         output::info(&format!("Checking status of extension: {}", name));
     } else {
         output::info("Checking status of all installed extensions");
     }
 
-    // TODO: Load manifest and check actual status
-    // 1. Load ~/.sindri/manifest.yaml
-    // 2. For each extension, check:
-    //    - Installed version
-    //    - Installation timestamp
-    //    - Validation status (run validation commands)
-    //    - Available updates
-    // 3. Format output
+    // Load manifest from ~/.sindri/state/manifest.yaml
+    let manifest = ManifestManager::load_default()
+        .context("Failed to load installation manifest")?;
 
-    let statuses = vec![
-        StatusRow {
-            name: "python".to_string(),
-            version: "1.1.0".to_string(),
-            status: "installed".to_string(),
-            installed_at: "2025-01-20".to_string(),
-        },
-        StatusRow {
-            name: "nodejs".to_string(),
-            version: "2.0.0".to_string(),
-            status: "installed".to_string(),
-            installed_at: "2025-01-19".to_string(),
-        },
-    ];
+    let entries = manifest.list_extensions();
+
+    // Filter by name if specified
+    let entries: Vec<_> = if let Some(filter_name) = &args.name {
+        entries
+            .into_iter()
+            .filter(|e| &e.name == filter_name)
+            .collect()
+    } else {
+        entries
+    };
+
+    if entries.is_empty() {
+        if args.name.is_some() {
+            output::warning(&format!(
+                "Extension '{}' is not installed",
+                args.name.as_ref().unwrap()
+            ));
+        } else {
+            output::info("No extensions installed yet");
+            output::info("Install extensions with: sindri extension install <name>");
+        }
+        return Ok(());
+    }
+
+    // Convert to status rows
+    let statuses: Vec<StatusRow> = entries
+        .into_iter()
+        .map(|entry| StatusRow {
+            name: entry.name,
+            version: entry.version,
+            status: "installed".to_string(), // Could validate with validation commands
+            installed_at: entry
+                .installed_at
+                .format("%Y-%m-%d %H:%M")
+                .to_string(),
+        })
+        .collect();
 
     if args.json {
-        // TODO: Proper JSON serialization
-        println!("[]");
+        let json = serde_json::to_string_pretty(&statuses)
+            .context("Failed to serialize status to JSON")?;
+        println!("{}", json);
     } else {
         let table = Table::new(statuses);
         println!("{}", table);

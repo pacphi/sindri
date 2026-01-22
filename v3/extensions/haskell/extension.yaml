@@ -1,0 +1,80 @@
+---
+metadata:
+  name: haskell
+  version: 1.0.1
+  description: Haskell development environment with GHC, Cabal, Stack, and HLS
+  category: language
+  dependencies:
+    - mise-config
+
+requirements:
+  domains:
+    - haskell.org
+    - hackage.haskell.org
+    - stackage.org
+    - downloads.haskell.org
+  diskSpace: 6000
+  memory: 4096
+  installTime: 180
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: CABAL_DIR
+      value: "~/.cabal"
+      scope: bashrc
+    - key: STACK_ROOT
+      value: "~/.stack"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: ghc
+      expectedPattern: "The Glorious Glasgow Haskell Compilation System"
+    - name: cabal
+      expectedPattern: "cabal-install version"
+    - name: stack
+      expectedPattern: "Version"
+    - name: haskell-language-server-wrapper
+      expectedPattern: "haskell-language-server"
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [haskell, hls]
+
+bom:
+  tools:
+    - name: ghc
+      version: dynamic
+      source: mise
+      type: compiler
+      license: BSD-3-Clause
+      homepage: https://www.haskell.org/ghc
+      purl: pkg:generic/ghc
+    - name: cabal
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: BSD-3-Clause
+      homepage: https://www.haskell.org/cabal
+      purl: pkg:generic/cabal
+    - name: stack
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: BSD-3-Clause
+      homepage: https://docs.haskellstack.org
+      purl: pkg:generic/stack
+    - name: haskell-language-server
+      version: dynamic
+      source: mise
+      type: server
+      license: Apache-2.0
+      homepage: https://haskell-language-server.readthedocs.io
+      purl: pkg:generic/haskell-language-server

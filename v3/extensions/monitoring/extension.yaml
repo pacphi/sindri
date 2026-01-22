@@ -1,0 +1,67 @@
+---
+metadata:
+  name: monitoring
+  version: 2.0.0
+  description: >-
+    Claude monitoring and usage tracking tools (UV, claude-monitor,
+    claude-usage-cli)
+  category: monitoring
+  author: Sindri Team
+  dependencies:
+    - python
+
+requirements:
+  domains:
+    - pypi.org
+    - astral.sh
+  diskSpace: 200
+  memory: 256
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+
+validate:
+  commands:
+    - name: uv
+    - name: claude-monitor
+    - name: claude-usage
+
+remove:
+  paths:
+    - ~/.cargo/bin/uv
+    - ~/.local/bin/claude-monitor
+    - ~/.local/bin/claude-usage
+
+upgrade:
+  strategy: automatic
+  script:
+    path: upgrade.sh
+    timeout: 300
+
+bom:
+  tools:
+    - name: uv
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT OR Apache-2.0
+      homepage: https://docs.astral.sh/uv
+      purl: pkg:cargo/uv
+    - name: claude-monitor
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/anthropics/claude-monitor
+      purl: pkg:pypi/claude-monitor
+    - name: claude-usage
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/anthropics/claude-usage-cli
+      purl: pkg:pypi/claude-usage-cli

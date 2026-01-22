@@ -1,0 +1,5 @@
+# claude-flow - AI-powered multi-agent orchestration for Claude Code
+# Uses mise pnpm backend for proper shim management
+
+[tools]
+"npm:claude-flow" = "2.7.47"

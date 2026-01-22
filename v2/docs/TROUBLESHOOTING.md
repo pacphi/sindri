@@ -896,6 +896,6 @@ When reporting issues, include:
 ## Related Documentation
 
 - [Configuration Reference](CONFIGURATION.md)
-- [Extension Catalog](EXTENSIONS.md)
+- [Extension Catalog](../../docs/EXTENSIONS.md)
 - [Deployment Guide](DEPLOYMENT.md)
-- [Contributing](CONTRIBUTING.md)
+- [Contributing](../../docs/CONTRIBUTING.md)

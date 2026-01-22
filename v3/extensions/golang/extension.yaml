@@ -1,0 +1,58 @@
+---
+metadata:
+  name: golang
+  version: 1.0.1
+  description: Go 1.25 via mise
+  category: language
+  dependencies:
+    - mise-config
+
+requirements:
+  domains:
+    - golang.org
+    - proxy.golang.org
+  diskSpace: 250
+  memory: 256
+  installTime: 60
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: GOPATH
+      value: "${HOME}/go"
+      scope: bashrc
+    - key: GOMODCACHE
+      value: "${HOME}/go/pkg/mod"
+      scope: bashrc
+    - key: GOBIN
+      value: "${HOME}/go/bin"
+      scope: bashrc
+    - key: PATH
+      value: "${HOME}/go/bin:${PATH}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: go
+      versionFlag: version
+      expectedPattern: "go version go\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [go]
+
+bom:
+  tools:
+    - name: go
+      version: dynamic
+      source: mise
+      type: compiler
+      license: BSD-3-Clause
+      homepage: https://golang.org
+      purl: pkg:golang/go

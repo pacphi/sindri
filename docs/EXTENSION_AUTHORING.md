@@ -1,6 +1,6 @@
 # Extension Authoring Guide
 
-This guide covers creating extensions for Sindri. For architectural background on the capability system, see [ADR-001: Extension Capabilities System](architecture/adr/ADR-001-extension-capabilities-system.md).
+This guide covers creating extensions for Sindri. For architectural background on the capability system, see [ADR-001: Extension Capabilities System](../v2/docs/architecture/adr/001-extension-capabilities-system.md).
 
 ## Creating a New Extension
 
@@ -462,7 +462,7 @@ pnpm build && docker run -it sindri:local
 
 ### Getting Help
 
-- **Documentation** - Read [SCHEMA.md](SCHEMA.md) for complete reference
+- **Documentation** - Read [SCHEMA.md](../v2/docs/SCHEMA.md) for complete reference
 - **Examples** - Browse `v2/docker/lib/extensions/` for working examples
 - **Claude Code Skill** - Use the sindri-extension-guide skill for guidance
 - **Validation Errors** - Run with `-v` flag for detailed error messages

@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-21
 **Deciders**: Core Team
-**Related**: [ADR-010: GitHub Distribution](010-github-extension-distribution.md), [Extension Guide](../../EXTENSIONS.md)
+**Related**: [ADR-010: GitHub Distribution](010-github-extension-distribution.md), [Extension Guide](../../../../docs/EXTENSIONS.md)
 
 ## Context
 

@@ -15,7 +15,7 @@ use tracing::{debug, info, warn};
 
 /// Extension executor for running install/remove/upgrade operations
 pub struct ExtensionExecutor {
-    /// Extension base directory (typically /docker/lib/extensions or ~/.sindri/extensions)
+    /// Extension base directory (v3/extensions in repo, ~/.sindri/extensions when deployed)
     extension_dir: PathBuf,
 
     /// Default timeout in seconds for installation operations

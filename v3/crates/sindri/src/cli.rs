@@ -228,11 +228,19 @@ pub enum ExtensionCommands {
 #[derive(Args, Debug)]
 pub struct ExtensionInstallArgs {
     /// Extension name (with optional @version)
-    pub name: String,
+    pub name: Option<String>,
 
     /// Specific version to install
     #[arg(short, long)]
     pub version: Option<String>,
+
+    /// Install extensions from sindri.yaml config file
+    #[arg(long, conflicts_with_all = ["name", "profile"])]
+    pub from_config: Option<Utf8PathBuf>,
+
+    /// Install all extensions from a profile
+    #[arg(long, conflicts_with_all = ["name", "from_config"])]
+    pub profile: Option<String>,
 
     /// Force reinstall if already installed
     #[arg(short, long)]
@@ -241,6 +249,10 @@ pub struct ExtensionInstallArgs {
     /// Skip dependency installation
     #[arg(long)]
     pub no_deps: bool,
+
+    /// Skip confirmation prompt (for profile installation)
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 
 #[derive(Args, Debug)]

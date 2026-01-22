@@ -782,5 +782,5 @@ gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
 
 - [TESTING.md](TESTING.md) - General testing philosophy
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture overview
-- [EXTENSION_AUTHORING.md](EXTENSION_AUTHORING.md) - Creating new extensions
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Development workflow and standards
+- [EXTENSION_AUTHORING.md](../../docs/EXTENSION_AUTHORING.md) - Creating new extensions
+- [CONTRIBUTING.md](../../docs/CONTRIBUTING.md) - Development workflow and standards

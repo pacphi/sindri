@@ -1,0 +1,86 @@
+name: 'Build Rust Workspace'
+description: 'Builds Sindri v3 Rust workspace with optional release profile'
+inputs:
+  release:
+    description: 'Build in release mode'
+    required: false
+    default: 'false'
+  workspace:
+    description: 'Build all workspace members'
+    required: false
+    default: 'true'
+  features:
+    description: 'Comma-separated list of features to enable'
+    required: false
+    default: ''
+  target:
+    description: 'Target triple to build for'
+    required: false
+    default: ''
+
+outputs:
+  binary-path:
+    description: 'Path to the built sindri binary'
+    value: ${{ steps.build.outputs.binary }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build workspace
+      id: build
+      shell: bash
+      run: |
+        cd v3
+
+        # Build command
+        CMD="cargo build"
+
+        # Add flags
+        if [[ "${{ inputs.release }}" == "true" ]]; then
+          CMD="$CMD --release"
+          BUILD_DIR="release"
+        else
+          BUILD_DIR="debug"
+        fi
+
+        if [[ "${{ inputs.workspace }}" == "true" ]]; then
+          CMD="$CMD --workspace"
+        fi
+
+        if [[ -n "${{ inputs.features }}" ]]; then
+          CMD="$CMD --features ${{ inputs.features }}"
+        fi
+
+        if [[ -n "${{ inputs.target }}" ]]; then
+          CMD="$CMD --target ${{ inputs.target }}"
+          BINARY_PATH="v3/target/${{ inputs.target }}/$BUILD_DIR/sindri"
+        else
+          BINARY_PATH="v3/target/$BUILD_DIR/sindri"
+        fi
+
+        echo "Running: $CMD"
+        eval $CMD
+
+        # Check if binary exists
+        if [[ -f "$BINARY_PATH" ]]; then
+          echo "✅ Build successful: $BINARY_PATH"
+          echo "binary=$BINARY_PATH" >> $GITHUB_OUTPUT
+
+          # Display binary info
+          ls -lh "$BINARY_PATH"
+          file "$BINARY_PATH"
+        else
+          echo "❌ Build failed: binary not found at $BINARY_PATH"
+          exit 1
+        fi
+
+    - name: Display build summary
+      shell: bash
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Mode**: ${{ inputs.release == 'true' && 'Release' || 'Debug' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Workspace**: ${{ inputs.workspace }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Features**: ${{ inputs.features || 'default' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target**: ${{ inputs.target || 'host' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Binary**: ${{ steps.build.outputs.binary }}" >> $GITHUB_STEP_SUMMARY

@@ -105,7 +105,7 @@ capabilities:
 
 **References:**
 
-- [ADR-001: Extension Capabilities System](docs/architecture/adr/ADR-001-extension-capabilities-system.md)
+- [ADR-001: Extension Capabilities System](v2/docs/architecture/adr/001-extension-capabilities-system.md)
 - [Extension Authoring Guide](docs/EXTENSION_AUTHORING.md)
 - [Collision Handling Examples](docs/extensions/COLLISION_HANDLING_EXAMPLES.md)
 
@@ -337,8 +337,8 @@ source docker/lib/project-core.sh
 _is_claude_flow_initialized && echo "Initialized"
 
 # NEW (v2.0)
-source docker/lib/capability-manager.sh
-source docker/lib/common.sh
+source v2/docker/lib/capability-manager.sh
+source v2/docker/lib/common.sh
 
 # Check if extension has project-init capability
 if extension_has_capability "claude-flow-v2" "project-init"; then
@@ -348,8 +348,8 @@ fi
 
 **References:**
 
-- [Capability Manager Source](docker/lib/capability-manager.sh)
-- [Project Core Refactoring](docs/architecture/adr/ADR-001-extension-capabilities-system.md)
+- [Capability Manager Source](v2/docker/lib/capability-manager.sh)
+- [Project Core Refactoring](v2/docs/architecture/adr/001-extension-capabilities-system.md)
 
 ---
 
@@ -756,7 +756,7 @@ pnpm: 2 seconds (content-addressable store)
 
 ### New Documentation
 
-1. **[ADR-001: Extension Capabilities System](docs/architecture/adr/ADR-001-extension-capabilities-system.md)**
+1. **[ADR-001: Extension Capabilities System](v2/docs/architecture/adr/001-extension-capabilities-system.md)**
    - Architectural decision record
    - Problem statement, decision, consequences
    - Implementation details
@@ -789,8 +789,8 @@ pnpm: 2 seconds (content-addressable store)
 ### Updated Documentation
 
 - [Extension Authoring Guide](docs/EXTENSION_AUTHORING.md) - Capability examples
-- [Architecture Guide](docs/ARCHITECTURE.md) - ADR references
-- [Secrets Management](docs/SECRETS_MANAGEMENT.md) - Multi-method auth
+- [Architecture Guide](v2/docs/ARCHITECTURE.md) - ADR references
+- [Secrets Management](v2/docs/SECRETS_MANAGEMENT.md) - Multi-method auth
 - [Extensions Catalog](docs/EXTENSIONS.md) - Updated with Ralph extension
 - [Rust Extension](docs/extensions/RUST.md) - Comprehensive troubleshooting for `/tmp` noexec issue, rustup migration details
 - [FAQ](docs/FAQ.md) - 60+ questions (was 40+)
@@ -803,7 +803,7 @@ pnpm: 2 seconds (content-addressable store)
 
 **If you maintain custom Sindri extensions:**
 
-- [ ] Review [ADR-001](docs/architecture/adr/ADR-001-extension-capabilities-system.md) to understand capabilities system
+- [ ] Review [ADR-001](v2/docs/architecture/adr/001-extension-capabilities-system.md) to understand capabilities system
 - [ ] Determine if your extension needs capabilities:
   - [ ] Does it initialize project-specific configuration? → Add `project-init`
   - [ ] Does it require authentication? → Add `auth`
@@ -1166,9 +1166,9 @@ This release represents a major architectural improvement to Sindri's extension 
 ### Documentation
 
 - **Main Documentation:** [docs/](docs/)
-- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Architecture:** [docs/ARCHITECTURE.md](v2/docs/ARCHITECTURE.md)
 - **Extension Authoring:** [docs/EXTENSION_AUTHORING.md](docs/EXTENSION_AUTHORING.md)
-- **ADRs:** [docs/architecture/adr/](docs/architecture/adr/)
+- **ADRs:** [v3/docs/architecture/adr/](v2/docs/architecture/adr/)
 - **FAQ:** [docs/FAQ.md](docs/FAQ.md)
 
 ### Getting Help

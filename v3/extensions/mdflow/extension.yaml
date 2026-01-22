@@ -1,0 +1,68 @@
+---
+metadata:
+  name: mdflow
+  version: 1.0.0
+  description: >-
+    Multi-backend CLI that transforms markdown files into executable AI agents -
+    run prompts against Claude, Codex, Gemini, or Copilot via markdown
+  category: ai
+  author: John Lindquist
+  homepage: https://github.com/johnlindquist/mdflow
+  dependencies:
+    - nodejs
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+    - bun.sh
+  diskSpace: 100
+  memory: 256
+  installTime: 60
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+validate:
+  commands:
+    - name: bun
+      versionFlag: --version
+    - name: mdflow
+      versionFlag: help
+  mise:
+    tools:
+      - bun
+      - npm:mdflow
+    minToolCount: 2
+
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - bun
+      - npm:mdflow
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+
+bom:
+  tools:
+    - name: bun
+      version: dynamic
+      source: mise
+      type: runtime
+      license: MIT
+      homepage: https://bun.sh
+      purl: pkg:generic/bun
+    - name: mdflow
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/johnlindquist/mdflow
+      purl: pkg:npm/mdflow

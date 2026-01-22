@@ -2,7 +2,7 @@
 
 **Status**: Accepted
 **Date**: 2026-01-21
-**Related**: [ADR-001: Workspace Architecture](001-rust-migration-workspace-architecture.md), [Backup Guide](../../BACKUP_RESTORE.md)
+**Related**: [ADR-001: Workspace Architecture](001-rust-migration-workspace-architecture.md)
 
 ## Context
 
@@ -201,4 +201,3 @@ walkdir = "2.4"
 
 - [ADR-001: Workspace Architecture](001-rust-migration-workspace-architecture.md)
 - [ADR-012: Registry and Manifest](012-registry-manifest-dual-state-architecture.md)
-- [Backup Guide](../../BACKUP_RESTORE.md)

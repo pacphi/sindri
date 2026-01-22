@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-21
 **Deciders**: Core Team
-**Related**: [ADR-008: Extension Type System](008-extension-type-system-yaml-deserialization.md), [Schema Documentation](../../SCHEMA.md)
+**Related**: [ADR-008: Extension Type System](008-extension-type-system-yaml-deserialization.md)
 
 ## Context
 

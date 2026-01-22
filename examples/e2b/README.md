@@ -89,6 +89,6 @@ E2B bills per-second for compute:
 
 ## Documentation
 
-- [E2B Provider Guide](../../docs/providers/E2B.md)
+- [E2B Provider Guide](../../v2/docs/providers/E2B.md)
 - [E2B Official Docs](https://e2b.dev/docs)
-- [Sindri Configuration](../../docs/CONFIGURATION.md)
+- [Sindri Configuration](../../v2/docs/CONFIGURATION.md)

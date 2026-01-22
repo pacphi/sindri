@@ -1083,6 +1083,6 @@ sindri plan
 - [Backup & Restore Guide](BACKUP_RESTORE.md) - Workspace backup and restore procedures
 - [Configuration Reference](CONFIGURATION.md) - Complete configuration guide
 - [Schema Reference](SCHEMA.md) - JSON schema documentation
-- [Extension Authoring](EXTENSION_AUTHORING.md) - Creating custom extensions
+- [Extension Authoring](../../docs/EXTENSION_AUTHORING.md) - Creating custom extensions
 - [Deployment Guide](DEPLOYMENT.md) - Provider-specific deployment details
 - [Troubleshooting](TROUBLESHOOTING.md) - Common issues and solutions

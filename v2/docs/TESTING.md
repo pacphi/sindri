@@ -480,5 +480,5 @@ extension-manager validate nodejs
 ## Related Documentation
 
 - [Configuration Guide](CONFIGURATION.md)
-- [Extension Authoring](EXTENSION_AUTHORING.md)
-- [Contributing Guide](CONTRIBUTING.md)
+- [Extension Authoring](../../docs/EXTENSION_AUTHORING.md)
+- [Contributing Guide](../../docs/CONTRIBUTING.md)

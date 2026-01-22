@@ -1,0 +1,69 @@
+---
+metadata:
+  name: agent-browser
+  version: 0.6.0
+  description: Headless browser automation CLI for AI agents with snapshot-based element selection
+  category: dev-tools
+  author: Vercel Labs
+  license: Apache-2.0
+  homepage: https://github.com/vercel-labs/agent-browser
+  dependencies:
+    - nodejs
+    - playwright
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - playwright.azureedge.net
+  diskSpace: 200
+  memory: 512
+  installTime: 120
+  installTimeout: 300
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/agent-browser/SKILL.md
+      mode: overwrite
+      description: Claude Code skill for browser automation
+  environment:
+    - key: AGENT_BROWSER_EXECUTABLE_PATH
+      value: ~/.cache/ms-playwright/chromium-*/chrome-linux/chrome
+      scope: bashrc
+
+validate:
+  commands:
+    - name: agent-browser
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - npm:agent-browser
+  paths:
+    - ~/extensions/agent-browser
+  confirmation: true
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+    tools:
+      - npm:agent-browser
+
+bom:
+  tools:
+    - name: agent-browser
+      version: 0.6.0
+      source: npm
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://github.com/vercel-labs/agent-browser
+      purl: pkg:npm/agent-browser@0.6.0

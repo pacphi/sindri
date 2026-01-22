@@ -1,0 +1,14 @@
+# ruvnet-research.toml - AI research tools configuration for mise
+# Requires nodejs extension to be installed first
+#
+# IMPORTANT: Use pinned versions instead of "latest"
+# "latest" requires npm registry queries which can timeout.
+#
+# NOTE: research-swarm has native dependencies (better-sqlite3) that require
+# node-gyp and build tools (gcc, python). If this extension fails during
+# install, ensure build-essential is available in the Docker image.
+
+[tools]
+# AI research and goal management tools - pinned versions
+"npm:goalie" = "1.3"
+"npm:research-swarm" = "1.2"

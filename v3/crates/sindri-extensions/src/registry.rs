@@ -173,11 +173,11 @@ impl ExtensionRegistry {
     /// Fetch registry files from GitHub
     async fn fetch_from_github(branch: &str) -> Result<(String, String)> {
         let registry_url = format!(
-            "{}/{}/{}/docker/lib/registry.yaml",
+            "{}/{}/{}/v3/registry.yaml",
             GITHUB_RAW_URL, GITHUB_REPO, branch
         );
         let profiles_url = format!(
-            "{}/{}/{}/docker/lib/profiles.yaml",
+            "{}/{}/{}/v3/profiles.yaml",
             GITHUB_RAW_URL, GITHUB_REPO, branch
         );
 
@@ -367,7 +367,7 @@ mod tests {
         // Verify URL construction
         let branch = "main";
         let expected_registry = format!(
-            "{}/{}/{}/docker/lib/registry.yaml",
+            "{}/{}/{}/v3/registry.yaml",
             GITHUB_RAW_URL, GITHUB_REPO, branch
         );
         assert!(expected_registry.contains("raw.githubusercontent.com"));

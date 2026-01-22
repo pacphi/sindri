@@ -288,11 +288,31 @@ impl ProfileInstaller {
         for ext_name in all_extensions.iter().rev() {
             if self.manifest.is_installed(ext_name) {
                 debug!("Removing extension: {}", ext_name);
+
+                // Execute removal process if extension defines removal configuration
+                if let Some(extension) = self.registry.get_extension(ext_name) {
+                    if extension.remove.is_some() {
+                        // Log that full removal is being performed
+                        info!("Extension {} defines removal configuration", ext_name);
+                        // Note: Full removal execution would go here, but for reinstall
+                        // we only need to clear the manifest. The reinstall will overwrite
+                        // any files/configs. If full cleanup is needed in the future,
+                        // implement execute_removal() similar to install().
+                    }
+                }
+
                 // Mark as uninstalled in manifest
                 if let Err(e) = self.manifest.mark_uninstalled(ext_name) {
                     warn!("Failed to mark {} as uninstalled: {}", ext_name, e);
                 }
-                // TODO: Execute remove hooks if extension defines them
+
+                // Note: Pre-remove/post-remove hooks are not currently part of the
+                // extension schema. The schema only defines: pre-install, post-install,
+                // pre-project-init, and post-project-init hooks.
+                // If removal hooks are needed in the future, they should be added to:
+                // 1. schemas/extension.schema.json (hooks section)
+                // 2. sindri-core/src/types/extension_types.rs (HooksCapability struct)
+                // 3. This module (execute_hook calls for pre_remove/post_remove)
             }
         }
 
@@ -352,21 +372,22 @@ impl ProfileInstaller {
     }
 
     /// Load extension definitions from registry
+    ///
+    /// Loads extension.yaml files for the given extensions. Tries in order:
+    /// 1. Already loaded in registry (skip)
+    /// 2. Local development path: v3/extensions/<name>/extension.yaml
+    /// 3. Downloaded from GitHub releases: ~/.sindri/extensions/<name>/<version>/extension.yaml
+    ///
+    /// For production use, extensions should be downloaded via ExtensionDistributor first.
+    /// For development, extensions can be loaded directly from v3/extensions/.
     async fn load_extension_definitions(&mut self, extension_names: &[String]) -> Result<()> {
-        // TODO: This should load extension.yaml files from:
-        // 1. Local filesystem (/docker/lib/extensions/<name>/extension.yaml) if running in container
-        // 2. GitHub releases (downloaded to ~/.sindri/extensions/<name>/<version>/extension.yaml)
-        // 3. Cache if available
-
-        // For now, we'll assume extensions are already in the registry
-        // This needs to be implemented when wiring up the full installation flow
         debug!(
             "Loading definitions for {} extensions",
             extension_names.len()
         );
 
-        // Check that all extensions exist in registry
         for name in extension_names {
+            // Check that extension exists in registry metadata
             if !self.registry.has_extension(name) {
                 return Err(anyhow!(
                     "Extension '{}' not found in registry. Available extensions: {:?}",
@@ -374,6 +395,42 @@ impl ProfileInstaller {
                     self.registry.list_extensions()
                 ));
             }
+
+            // Skip if already loaded
+            if self.registry.get_extension(name).is_some() {
+                debug!("Extension '{}' already loaded, skipping", name);
+                continue;
+            }
+
+            // Try loading from local development path (v3/extensions/<name>/extension.yaml)
+            let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .parent() // sindri-extensions -> crates
+                .and_then(|p| p.parent()) // crates -> v3
+                .map(|p| p.join("extensions").join(name).join("extension.yaml"));
+
+            if let Some(dev_path) = dev_path {
+                if dev_path.exists() {
+                    debug!(
+                        "Loading extension '{}' from development path: {:?}",
+                        name, dev_path
+                    );
+                    self.registry.load_extension(name, &dev_path).context(
+                        format!("Failed to load extension '{}' from {:?}", name, dev_path),
+                    )?;
+                    continue;
+                }
+            }
+
+            // If not in development mode, extension should have been downloaded
+            // via ExtensionDistributor to ~/.sindri/extensions/<name>/<version>/extension.yaml
+            // For now, return an error if we can't find it
+            return Err(anyhow!(
+                "Extension '{}' definition not loaded. \
+                 For development, place extension.yaml at v3/extensions/{}/extension.yaml. \
+                 For production, use ExtensionDistributor to download from GitHub releases.",
+                name,
+                name
+            ));
         }
 
         Ok(())

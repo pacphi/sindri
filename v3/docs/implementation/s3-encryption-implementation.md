@@ -3,7 +3,7 @@
 **Date**: 2026-01-21
 **Phase**: Phase 5
 **Status**: Core Implementation Complete
-**Architecture**: [ADR-020](/alt/home/developer/workspace/projects/sindri/docs/architecture/adr/020-s3-encrypted-secret-storage.md)
+**Architecture**: [ADR-020](../architecture/adr/020-s3-encrypted-secret-storage.md)
 
 ## Overview
 
@@ -440,9 +440,9 @@ sindri secrets s3 rotate --new-key ~/.sindri/new-master.key
 
 ## References
 
-- [ADR-020: S3 Encrypted Secret Storage](/alt/home/developer/workspace/projects/sindri/docs/architecture/adr/020-s3-encrypted-secret-storage.md)
-- [ADR-015: Secrets Resolver Core Architecture](/alt/home/developer/workspace/projects/sindri/docs/architecture/adr/015-secrets-resolver-core-architecture.md)
-- [ADR-019: Phase 5 Integration](/alt/home/developer/workspace/projects/sindri/docs/architecture/adr/019-phase-5-secrets-backup-integration.md)
+- [ADR-020: S3 Encrypted Secret Storage](../architecture/adr/020-s3-encrypted-secret-storage.md)
+- [ADR-015: Secrets Resolver Core Architecture](../architecture/adr/015-secrets-resolver-core-architecture.md)
+- [ADR-019: Phase 5 Integration](../architecture/adr/019-phase-5-secrets-backup-integration.md)
 
 ## Notes
 
