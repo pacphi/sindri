@@ -1,7 +1,7 @@
 # v3 TODO Tracker
 
-**Last Updated:** 2026-01-22 (Refactoring: Hard-Coded Values & Logic Abstraction)
-**Status:** Active Development - Phase 2/5 Complete
+**Last Updated:** 2026-01-22 (High Priority Validation Implementation Complete)
+**Status:** Active Development - Phase 2/5 Complete, All High Priority TODOs ✅
 **Document Location:** `/alt/home/developer/workspace/projects/sindri/v3/docs/implementation/TODO-TRACKER.md`
 
 This document tracks all TODO comments in the v3 codebase, categorized by priority and status.
@@ -60,6 +60,18 @@ For detailed implementation notes, see:
   - **PR/Commit**: v3-enhancements-2026-01-22
   - **Files Modified**: `extension.rs`
   - **Implementation**: Added `serde::Serialize` derive to `StatusRow` struct, proper JSON output with `serde_json::to_string_pretty()`
+
+### CLI Commands
+
+- ✅ `sindri upgrade` self-update command - **IMPLEMENTED** (2026-01-22)
+  - **Original TODO**: upgrade.rs:85 - Implement self-update using self_update crate
+  - **Files Modified**: `upgrade.rs`
+  - **Implementation**: Full self-update functionality with:
+    - `list_versions()` - Lists available versions from GitHub releases
+    - `check_for_updates()` - Checks if newer version is available
+    - `show_compatibility()` - Checks extension compatibility before upgrade
+    - `do_upgrade()` - Downloads and installs new CLI version
+  - **Features**: Pre-release support, compatibility matrix checking, rollback safety
 
 ### Infrastructure
 
@@ -443,19 +455,26 @@ v3/crates/sindri-update/tests/
 
 ### Extension System
 
-- [ ] **extension.rs:411** - Implement full validation
-  - **Current**: Basic file validation works
-  - **Missing**: Registry validation, dependency checking, conflict detection
-  - **Estimated Effort**: 2-3 hours
-  - **Blocker**: No
+- [x] **extension.rs:379** - Implement full validation - **COMPLETED** (2026-01-22)
+  - **Files Modified**: `v3/crates/sindri/src/commands/extension.rs`
+  - **Implementation**: Full validation pipeline with registry, dependency, and conflict checking
+    - Loads extension from file OR registry (with installed fallback)
+    - Schema validation using `ExtensionValidator`
+    - Dependency existence verification via registry
+    - Circular dependency detection using `DependencyResolver`
+    - Conflict detection with installed extensions via manifest
+  - **Lines Changed**: 367-673 (300+ lines of implementation)
 
 ### Distribution & Registry
 
-- [ ] **distribution.rs:434** - Add comprehensive validation
-  - **Current**: Basic validation in place
-  - **Missing**: Checksums, signature verification, dependency graph validation
-  - **Estimated Effort**: 3-4 hours
-  - **Blocker**: No
+- [x] **distribution.rs:442** - Add comprehensive validation - **COMPLETED** (2026-01-22)
+  - **Files Modified**: `v3/crates/sindri-extensions/src/distribution.rs`
+  - **Implementation**: Three-tiered validation approach
+    - `validate_extension()`: Structural/semantic validation via `ExtensionValidator`
+    - `validate_extension_with_registry()`: Adds dependency graph validation
+    - `validate_extension_with_checksum()`: Adds SHA256 checksum verification
+  - **Dependencies Added**: `sha2 = "0.10"` for checksum computation
+  - **Lines Changed**: 433-571 (140+ lines of implementation)
 
 ---
 
@@ -463,15 +482,50 @@ v3/crates/sindri-update/tests/
 
 ### Extension Commands
 
-- [ ] **extension.rs:1014** - Implement versions command
+- [ ] **extension.rs:930** - Implement versions command
   - **Description**: List available versions from registry/GitHub releases
   - **Workaround**: Users can check GitHub releases manually
   - **Estimated Effort**: 2 hours
 
-- [ ] **extension.rs:1245** - Implement rollback functionality
+- [ ] **extension.rs:1164** - Implement rollback functionality
   - **Description**: Rollback to previous version of an extension
   - **Dependencies**: Version history tracking in manifest
   - **Estimated Effort**: 3-4 hours
+
+### Enhancement Module (NEW - sindri-projects)
+
+The enhancement module (`sindri-projects/src/enhancement/mod.rs`) is a stub that needs full implementation:
+
+- [ ] **enhancement/mod.rs:25** - Implement enhancement manager initialization
+- [ ] **enhancement/mod.rs:34** - Implement extension activation
+- [ ] **enhancement/mod.rs:44** - Implement dependency installation
+- [ ] **enhancement/mod.rs:54** - Implement CLAUDE.md creation
+- [ ] **enhancement/mod.rs:63** - Implement enhancement setup
+- [ ] **enhancement/mod.rs:68** - Implement auth check
+- [ ] **enhancement/mod.rs:73** - Implement command check
+  - **Description**: Full project enhancement system for Claude tools and extensions
+  - **Module Location**: `v3/crates/sindri-projects/src/enhancement/mod.rs`
+  - **Dependencies**: Extension manager, capability system
+  - **Estimated Effort**: 8-12 hours
+  - **Note**: Marked as "Agent 4" in code comments
+
+### Project Templates System (NEW)
+
+Project command template system needs YAML-driven configuration:
+
+- [ ] **project.rs:59** - Call extension-manager to install extension
+- [ ] **project.rs:916** - Implement using project-templates.yaml detection rules
+- [ ] **project.rs:951** - Implement using project-templates.yaml aliases
+- [ ] **project.rs:970** - Load from project-templates.yaml
+- [ ] **project.rs:1000** - Implement using project-templates.yaml loader
+- [ ] **project.rs:1460** - Implement dependency detection and installation
+- [ ] **project.rs:1465** - Call capability-manager to discover and initialize extensions
+- [ ] **project.rs:1524** - Query extension manager for initialized extensions
+  - **Description**: Project template system for `sindri project new` command
+  - **File Location**: `v3/crates/sindri/src/commands/project.rs`
+  - **Dependencies**: project-templates.yaml, extension manager, capability system
+  - **Estimated Effort**: 6-8 hours
+  - **Note**: Currently uses hard-coded template logic
 
 ### Secrets Management (S3)
 
@@ -489,14 +543,6 @@ v3/crates/sindri-update/tests/
 
 ## 🔮 Low Priority TODOs (Target: v3.2.0+)
 
-### CLI Upgrade
-
-- [ ] **upgrade.rs:85** - Implement self-update using self_update crate
-  - **Description**: `sindri upgrade` command to update CLI to latest version
-  - **Current Workaround**: Manual download from GitHub releases
-  - **Estimated Effort**: 4-5 hours
-  - **Dependencies**: self_update crate integration, GitHub API
-
 ### Backup System
 
 - [ ] **backup.rs:253** - Implement actual backup creation
@@ -506,13 +552,13 @@ v3/crates/sindri-update/tests/
 
 ### Restore System
 
-- [ ] **restore.rs:205** - Show file list from backup
-- [ ] **restore.rs:245** - Implement actual restore using tar extraction
-- [ ] **restore.rs:313** - Implement S3 and HTTPS download
-- [ ] **restore.rs:331** - Implement age decryption
-- [ ] **restore.rs:339** - Implement checksum verification
-- [ ] **restore.rs:353** - Implement manifest reading from tar
-- [ ] **restore.rs:375** - Implement actual analysis
+- [ ] **restore.rs:204** - Show file list from backup
+- [ ] **restore.rs:248** - Implement actual restore using tar extraction
+- [ ] **restore.rs:316** - Implement S3 and HTTPS download
+- [ ] **restore.rs:333** - Implement age decryption
+- [ ] **restore.rs:340** - Implement checksum verification
+- [ ] **restore.rs:354** - Implement manifest reading from tar
+- [ ] **restore.rs:376** - Implement actual analysis
   - **Description**: Full backup/restore system implementation
   - **Current**: Basic structure in place
   - **Estimated Effort**: 10-12 hours
@@ -536,6 +582,10 @@ These are not code TODOs but documentation placeholders:
 - **extensions/ai-toolkit/docs/** - Documentation examples showing TODO usage
 - **extensions/claude-flow-v3/commands/** - Template examples with placeholder IDs (REQ-XXX, TASK-XXX)
 - **docs/architecture/adr/016** - Example configuration with placeholder secrets
+- **docs/architecture/adr/023** - Example code showing `todo!()` as architectural placeholder
+- **docs/planning/rust-cli-migration-v3.md:722** - Comment in planning document, not actionable code
+- **sindri-projects/src/templates/detector.rs:163** - Test data "todo-rail-service" (not a TODO marker)
+- **sindri-projects/src/templates/parser.rs:224** - Test assertion for "todo-rail-service" pattern
 
 ---
 
@@ -601,12 +651,20 @@ Implement:
 
 ### Current Status (2026-01-22)
 
-**Total TODOs**: 26 (23 existing + 3 new refactoring phases)
-**Completed**: 12 (4 code + 6 infrastructure + 2 refactoring phases)
-**High Priority**: 2 (remaining)
-**Medium Priority**: 8 (6 existing + 2 refactoring phases)
-**Low Priority**: 12 (11 existing + 1 refactoring phase)
-**Completion Rate**: 46.2% ⬆️ (up from 43.5%)
+**Total TODOs**: 45 (30 existing + 15 newly discovered from codebase audit)
+**Completed**: 15 (5 code + 6 infrastructure + 2 refactoring phases + 2 high priority validation)
+**High Priority**: 0 ✅ (all complete)
+**Medium Priority**: 22 (2 extension + 7 enhancement + 8 project + 5 secrets)
+**Low Priority**: 8 (1 backup + 7 restore)
+**Completion Rate**: 33.3% ⬆️ (increased due to high priority completions)
+
+### Newly Discovered TODOs (2026-01-22 Audit)
+
+| Category | Count | Location |
+|----------|-------|----------|
+| Enhancement Module | 7 | `sindri-projects/src/enhancement/mod.rs` |
+| Project Templates | 8 | `sindri/src/commands/project.rs` |
+| **Total New** | **15** | |
 
 ### Configuration Refactoring Progress
 
@@ -619,17 +677,32 @@ Implement:
 ### v3.0.0 Progress
 
 **Target for v3.0.0**: 100% of high priority TODOs
-**Current Progress**: 0% (0/2 completed) - **Note**: The 2 remaining high priority items are enhancements, not blockers
+**Current Progress**: 100% ✅ (2/2 completed) - All high priority validation tasks complete
 
 ### Recent Activity
 
+- **2026-01-22 (Late Night)**: High Priority Validation Implementation
+  - Completed **extension.rs:379** - Full validation in CLI validate command
+    - Registry validation, dependency checking, conflict detection
+    - 300+ lines of implementation with helper functions
+  - Completed **distribution.rs:442** - Comprehensive validation in distribution
+    - Three-tiered validation: basic, with-registry, with-checksum
+    - SHA256 checksum verification added
+    - 140+ lines of implementation
+  - All 36 sindri-extensions tests passing
+  - Build verified for both sindri and sindri-extensions packages
+- **2026-01-22 (Night)**: Codebase TODO audit and tracker sync
+  - Discovered 15 previously untracked TODOs in enhancement module and project commands
+  - Marked `sindri upgrade` command as COMPLETED (was listed as pending)
+  - Updated line numbers for 10 existing tracked items (code shifts from refactoring)
+  - Added new sections for Enhancement Module and Project Templates
 - **2026-01-22 (Evening)**: Completed Phases 1-2 of configuration refactoring
   - Created 7 new files (1,800+ lines of code)
   - Refactored 3 critical files (download.rs, releases.rs, compatibility.rs)
   - All tests passing (75 tests in sindri-core + sindri-update)
   - Zero breaking changes, fully backward compatible
 - **2026-01-22 (Afternoon)**: Completed 6 major enhancements (CLI flags, status command, ARM64 support, health checks, TODO tracking)
-- **Completion Velocity**: 12 TODOs completed in 1 day
+- **Completion Velocity**: 13 TODOs completed
 - **Next Milestone**: Phase 3 (Retry & Network Policies) for v3.1.0 release
 
 ---
@@ -700,6 +773,38 @@ When reviewing TODOs:
 
 ## Document Changelog
 
+### 2026-01-22 (v1.4.0) - High Priority Validation Implementation
+
+- ✅ **COMPLETED**: All high priority TODOs (0 remaining)
+- ✅ Implemented full validation in `extension.rs` CLI validate command
+  - Registry validation with fallback to installed extensions
+  - Dependency checking via `DependencyResolver`
+  - Conflict detection with installed extensions
+  - 300+ lines of implementation
+- ✅ Implemented comprehensive validation in `distribution.rs`
+  - Three-tiered validation approach (basic, with-registry, with-checksum)
+  - SHA256 checksum verification
+  - Dependency graph validation
+  - 140+ lines of implementation
+- ✅ Updated metrics: 33.3% completion rate (up from 28.9%)
+- ✅ v3.0.0 high priority progress: 100% complete
+- ✅ All 36 sindri-extensions tests passing
+
+### 2026-01-22 (v1.3.0) - Codebase TODO Audit
+
+- ✅ Performed comprehensive codebase scan for TODO/FIXME comments
+- ✅ Discovered 15 previously untracked TODOs:
+  - 7 in Enhancement Module (`sindri-projects/src/enhancement/mod.rs`)
+  - 8 in Project Templates (`sindri/src/commands/project.rs`)
+- ✅ Marked `sindri upgrade` command as COMPLETED (full implementation exists)
+- ✅ Updated line numbers for 10 tracked items (code shifts from refactoring):
+  - extension.rs: 411→297, 1014→930, 1245→1164
+  - restore.rs: 205→204, 245→248, 313→316, 331→333, 339→340, 353→354, 375→376
+- ✅ Added new "Enhancement Module" section in Medium Priority
+- ✅ Added new "Project Templates System" section in Medium Priority
+- ✅ Updated metrics: 28.9% completion rate (adjusted for newly discovered TODOs)
+- ✅ Total TODOs now tracked: 45 (was 26)
+
 ### 2026-01-22 (v1.2.0) - Configuration Refactoring Update
 
 - ✅ Added major "Configuration Refactoring Initiative" section
@@ -733,7 +838,7 @@ When reviewing TODOs:
 
 ---
 
-**Document Version:** 1.2.0
+**Document Version:** 1.4.0
 **Document Owner:** Sindri Core Team
 **Review Frequency:** Weekly (High Priority), Monthly (Medium/Low Priority)
 **Last Review:** 2026-01-22

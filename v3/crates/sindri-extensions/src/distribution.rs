@@ -11,6 +11,7 @@ use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
+use sindri_core::schema::SchemaValidator;
 use sindri_core::types::Extension;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -430,9 +431,142 @@ impl ExtensionDistributor {
     }
 
     /// Validate an extension definition
-    fn validate_extension(&self, _extension: &Extension) -> Result<()> {
-        // TODO: Add comprehensive validation
-        // This would integrate with the existing validator module
+    ///
+    /// This performs comprehensive validation including:
+    /// 1. Structural and semantic validation via ExtensionValidator
+    /// 2. Dependency cycle detection
+    /// 3. Signature verification warnings (placeholder for future)
+    ///
+    /// For full dependency graph validation (checking dependencies exist in registry),
+    /// use `validate_extension_with_registry` instead.
+    fn validate_extension(&self, extension: &Extension) -> Result<()> {
+        // 1. Structural and semantic validation using ExtensionValidator
+        let schema_validator = SchemaValidator::new()
+            .context("Failed to create schema validator")?;
+        let ext_validator = crate::validator::ExtensionValidator::new(&schema_validator);
+        ext_validator
+            .validate_extension_struct(extension)
+            .context("Extension structural/semantic validation failed")?;
+
+        debug!(
+            "Extension {} v{} passed structural validation",
+            extension.metadata.name, extension.metadata.version
+        );
+
+        // 2. Check for self-dependency (already done by ExtensionValidator, but explicit here)
+        if extension
+            .metadata
+            .dependencies
+            .contains(&extension.metadata.name)
+        {
+            return Err(anyhow!(
+                "Extension {} cannot depend on itself",
+                extension.metadata.name
+            ));
+        }
+
+        // 3. Signature verification (placeholder for future implementation)
+        // Currently, extensions don't have a signature field in the schema
+        // Log a debug message for future reference
+        debug!(
+            "Signature verification not yet implemented for extension {}",
+            extension.metadata.name
+        );
+
+        info!(
+            "Extension {} v{} passed all validation checks",
+            extension.metadata.name, extension.metadata.version
+        );
+
+        Ok(())
+    }
+
+    /// Validate an extension with full registry context
+    ///
+    /// This performs all validation from `validate_extension` plus:
+    /// - Verifies all dependencies exist in the registry
+    /// - Validates there are no circular dependencies in the dependency graph
+    ///
+    /// # Arguments
+    /// * `extension` - The extension to validate
+    /// * `registry` - The extension registry for dependency verification
+    pub fn validate_extension_with_registry(
+        &self,
+        extension: &Extension,
+        registry: &crate::registry::ExtensionRegistry,
+    ) -> Result<()> {
+        // First perform basic validation
+        self.validate_extension(extension)?;
+
+        // Verify all dependencies exist in the registry
+        for dep in &extension.metadata.dependencies {
+            if dep.is_empty() {
+                continue;
+            }
+            if !registry.has_extension(dep) {
+                return Err(anyhow!(
+                    "Extension {} depends on '{}' which is not found in the registry",
+                    extension.metadata.name,
+                    dep
+                ));
+            }
+        }
+
+        // Use DependencyResolver to check for circular dependencies
+        let resolver = crate::dependency::DependencyResolver::new(registry);
+        resolver.resolve(&extension.metadata.name).context(format!(
+            "Dependency resolution failed for extension {}",
+            extension.metadata.name
+        ))?;
+
+        debug!(
+            "Extension {} passed dependency graph validation",
+            extension.metadata.name
+        );
+
+        Ok(())
+    }
+
+    /// Validate an extension with checksum verification
+    ///
+    /// This performs all validation from `validate_extension` plus
+    /// checksum verification of the extension YAML content.
+    ///
+    /// # Arguments
+    /// * `extension` - The extension to validate
+    /// * `yaml_content` - The original YAML content for checksum verification
+    /// * `expected_checksum` - The expected SHA256 checksum (hex-encoded)
+    pub fn validate_extension_with_checksum(
+        &self,
+        extension: &Extension,
+        yaml_content: &str,
+        expected_checksum: &str,
+    ) -> Result<()> {
+        use sha2::{Digest, Sha256};
+
+        // First perform basic validation
+        self.validate_extension(extension)?;
+
+        // Compute SHA256 checksum of the YAML content
+        let mut hasher = Sha256::new();
+        hasher.update(yaml_content.as_bytes());
+        let computed = hasher.finalize();
+        let computed_hex = format!("{:x}", computed);
+
+        if computed_hex != expected_checksum.to_lowercase() {
+            return Err(anyhow!(
+                "Checksum mismatch for extension {}: expected {}, got {}",
+                extension.metadata.name,
+                expected_checksum,
+                computed_hex
+            ));
+        }
+
+        debug!(
+            "Extension {} passed checksum verification",
+            extension.metadata.name
+        );
+
         Ok(())
     }
 
