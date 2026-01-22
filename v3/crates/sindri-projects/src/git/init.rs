@@ -123,6 +123,10 @@ pub async fn init_repository(
 async fn create_initial_commit(path: &Utf8Path, message: &str) -> Result<()> {
     debug!("Creating initial commit");
 
+    // Ensure git user identity is configured (required for commits)
+    // This handles CI environments or fresh systems without global git config
+    ensure_git_user_configured(path).await?;
+
     // Create a basic .gitignore if it doesn't exist
     let gitignore_path = path.join(".gitignore");
     if !gitignore_path.exists() {
@@ -158,6 +162,63 @@ async fn create_initial_commit(path: &Utf8Path, message: &str) -> Result<()> {
     }
 
     info!("Initial commit created");
+    Ok(())
+}
+
+/// Ensure git user identity is configured for commits
+///
+/// Checks if user.name and user.email are set (either globally or locally).
+/// If not configured, sets default values in the local repository config.
+/// This is necessary for CI environments and fresh systems without global git config.
+async fn ensure_git_user_configured(path: &Utf8Path) -> Result<()> {
+    // Check if user.name is configured
+    let name_output = Command::new("git")
+        .current_dir(path)
+        .args(["config", "user.name"])
+        .output()
+        .await?;
+
+    if !name_output.status.success() || name_output.stdout.is_empty() {
+        debug!("Git user.name not configured, setting default");
+        let output = Command::new("git")
+            .current_dir(path)
+            .args(["config", "--local", "user.name", "Sindri"])
+            .output()
+            .await?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::git_operation(format!(
+                "Failed to set git user.name: {}",
+                stderr
+            )));
+        }
+    }
+
+    // Check if user.email is configured
+    let email_output = Command::new("git")
+        .current_dir(path)
+        .args(["config", "user.email"])
+        .output()
+        .await?;
+
+    if !email_output.status.success() || email_output.stdout.is_empty() {
+        debug!("Git user.email not configured, setting default");
+        let output = Command::new("git")
+            .current_dir(path)
+            .args(["config", "--local", "user.email", "sindri@localhost"])
+            .output()
+            .await?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::git_operation(format!(
+                "Failed to set git user.email: {}",
+                stderr
+            )));
+        }
+    }
+
     Ok(())
 }
 
