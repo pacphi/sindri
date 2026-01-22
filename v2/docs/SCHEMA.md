@@ -576,7 +576,7 @@ providers:
 See individual extension schemas for details on creating custom extensions.
 
 ---
- 
+
 ## See Also
 
 - [Configuration Guide](CONFIGURATION.md) - Comprehensive configuration documentation

@@ -8,6 +8,7 @@
 ## Context
 
 Each cloud provider requires a specific configuration file format:
+
 - **Docker**: docker-compose.yml (YAML)
 - **Fly.io**: fly.toml (TOML)
 - **DevPod**: devcontainer.json (JSON)
@@ -15,12 +16,14 @@ Each cloud provider requires a specific configuration file format:
 - **Kubernetes**: k8s-deployment.yaml (YAML)
 
 The bash implementation used heredocs and string concatenation to generate these files, leading to:
+
 1. **Fragile**: Easy to break YAML/TOML formatting
 2. **Repetitive**: Similar logic duplicated across adapters
 3. **Untestable**: Hard to validate generated configs
 4. **Hard to Read**: Complex multi-line string building
 
 Requirements:
+
 - Generate valid provider configs from sindri.yaml
 - Support conditional sections (GPU, DinD, CI mode)
 - Embed templates in binary (no external files)
@@ -34,6 +37,7 @@ Requirements:
 We adopt **Tera** as the template engine for all provider configuration generation.
 
 **Why Tera?**
+
 - Jinja2-like syntax (familiar to many developers)
 - Excellent error messages
 - Compile-time template validation
@@ -116,6 +120,7 @@ Validated provider config (docker-compose.yml, fly.toml, etc.)
 ### Template Examples
 
 **Docker with DinD (docker-compose.yml.tera)**
+
 ```yaml
 services:
   sindri:
@@ -137,6 +142,7 @@ services:
 ```
 
 **Fly.io with Auto-Suspend (fly.toml.tera)**
+
 ```toml
 app = "{{ name }}"
 primary_region = "{{ fly_region }}"
@@ -155,10 +161,12 @@ primary_region = "{{ fly_region }}"
 ### Refactoring History
 
 **Initial Implementation**
+
 - Docker: Used templates ✅
 - Fly, E2B: Used inline string generation ❌
 
 **After Refactoring**
+
 - All providers now use Tera templates ✅
 - Consistent data flow through TemplateContext ✅
 - No inline string generation for configs ✅
@@ -187,6 +195,7 @@ primary_region = "{{ fly_region }}"
 **Tera vs Alternatives**
 
 Considered:
+
 - **Handlebars**: Less powerful conditionals
 - **Askama**: Compile-time but less flexible
 - **Format strings**: Fragile, hard to maintain
@@ -204,12 +213,12 @@ Chose Tera for balance of power, flexibility, and familiarity.
 
 ### Template Coverage
 
-| Provider | Template | Size | Conditionals |
-|----------|----------|------|--------------|
-| Docker | docker-compose.yml.tera | 2.9KB | DinD modes, GPU, secrets |
-| Fly.io | fly.toml.tera | 1.9KB | GPU, CI mode, services |
-| E2B | e2b.toml.tera | 0.5KB | Resources |
-| DevPod | devcontainer.json.tera | 1.0KB | GPU, extensions |
+| Provider   | Template                 | Size  | Conditionals                |
+| ---------- | ------------------------ | ----- | --------------------------- |
+| Docker     | docker-compose.yml.tera  | 2.9KB | DinD modes, GPU, secrets    |
+| Fly.io     | fly.toml.tera            | 1.9KB | GPU, CI mode, services      |
+| E2B        | e2b.toml.tera            | 0.5KB | Resources                   |
+| DevPod     | devcontainer.json.tera   | 1.0KB | GPU, extensions             |
 | Kubernetes | k8s-deployment.yaml.tera | 2.4KB | GPU, node selector, storage |
 
 ### Test Coverage
@@ -221,6 +230,7 @@ Chose Tera for balance of power, flexibility, and familiarity.
 ### Generated Config Validation
 
 All generated configs tested against provider CLIs:
+
 - `docker compose config` validates docker-compose.yml
 - `flyctl config validate` for fly.toml
 - `kubectl apply --dry-run` for Kubernetes manifests
@@ -228,13 +238,16 @@ All generated configs tested against provider CLIs:
 ## Migration Path
 
 **Phase 1**: Docker provider (baseline)
+
 - Implemented templates from start ✅
 
 **Phase 2**: Initial implementations
+
 - Fly, E2B used inline generation
 - DevPod, K8s used templates
 
 **Phase 3**: Refactoring
+
 - Converted Fly.io to templates ✅
 - Converted E2B to templates ✅
 - Verified DevPod/K8s already compliant ✅

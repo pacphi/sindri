@@ -7,7 +7,7 @@
 //! 4. fromFile property (read value from specified file)
 
 use crate::sources::SecretSource;
-use crate::types::{ResolvedFrom, ResolvedSecret, ResolutionContext, SecretMetadata, SecretValue};
+use crate::types::{ResolutionContext, ResolvedFrom, ResolvedSecret, SecretMetadata, SecretValue};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use sindri_core::types::{SecretConfig, SecretSource as ConfigSecretSource};
@@ -50,8 +50,7 @@ impl EnvSource {
         let env_local_path = ctx.config_dir.join(".env.local");
         let env_local = if env_local_path.exists() {
             debug!("Loading .env.local from: {}", env_local_path.display());
-            Self::parse_env_file(&env_local_path)
-                .context("Failed to parse .env.local")?
+            Self::parse_env_file(&env_local_path).context("Failed to parse .env.local")?
         } else {
             HashMap::new()
         };
@@ -60,8 +59,7 @@ impl EnvSource {
         let env_path = ctx.config_dir.join(".env");
         let env = if env_path.exists() {
             debug!("Loading .env from: {}", env_path.display());
-            Self::parse_env_file(&env_path)
-                .context("Failed to parse .env")?
+            Self::parse_env_file(&env_path).context("Failed to parse .env")?
         } else {
             HashMap::new()
         };
@@ -128,10 +126,14 @@ impl EnvSource {
     }
 
     /// Resolve from file specified in fromFile property
-    async fn resolve_from_file(&self, path: &str, ctx: &ResolutionContext) -> Result<(String, PathBuf)> {
+    async fn resolve_from_file(
+        &self,
+        path: &str,
+        ctx: &ResolutionContext,
+    ) -> Result<(String, PathBuf)> {
         // Expand tilde and environment variables
-        let expanded = shellexpand::full(path)
-            .with_context(|| format!("Failed to expand path: {}", path))?;
+        let expanded =
+            shellexpand::full(path).with_context(|| format!("Failed to expand path: {}", path))?;
 
         // Resolve relative paths against config directory
         let full_path = if Path::new(expanded.as_ref()).is_absolute() {
@@ -284,7 +286,10 @@ mod tests {
         assert!(result.is_some());
         let secret = result.unwrap();
         assert_eq!(secret.value.as_string(), Some("from-shell"));
-        assert!(matches!(secret.metadata.resolved_from, ResolvedFrom::ShellEnv));
+        assert!(matches!(
+            secret.metadata.resolved_from,
+            ResolvedFrom::ShellEnv
+        ));
 
         env::remove_var("TEST_SECRET_ENV");
     }
@@ -317,7 +322,10 @@ mod tests {
         assert!(result.is_some());
         let secret = result.unwrap();
         assert_eq!(secret.value.as_string(), Some("from-env-file"));
-        assert!(matches!(secret.metadata.resolved_from, ResolvedFrom::EnvFile));
+        assert!(matches!(
+            secret.metadata.resolved_from,
+            ResolvedFrom::EnvFile
+        ));
     }
 
     #[tokio::test]
@@ -350,7 +358,10 @@ mod tests {
         let secret = result.unwrap();
         // Shell env should win
         assert_eq!(secret.value.as_string(), Some("from-shell"));
-        assert!(matches!(secret.metadata.resolved_from, ResolvedFrom::ShellEnv));
+        assert!(matches!(
+            secret.metadata.resolved_from,
+            ResolvedFrom::ShellEnv
+        ));
 
         env::remove_var("TEST_PRECEDENCE");
     }

@@ -16,6 +16,7 @@ Implemented S3-compatible encrypted secret storage system with envelope encrypti
 **Purpose**: Configuration types and metadata structures
 
 **Key Types**:
+
 - `S3SecretBackend` - S3 backend configuration
 - `S3EncryptionConfig` - Encryption settings
 - `S3CacheConfig` - Cache configuration
@@ -24,6 +25,7 @@ Implemented S3-compatible encrypted secret storage system with envelope encrypti
 - `EncryptionAlgorithm` enum - ChaCha20Poly1305
 
 **Features**:
+
 - Serde serialization/deserialization
 - Default values for common settings
 - JSON storage format specification
@@ -33,12 +35,14 @@ Implemented S3-compatible encrypted secret storage system with envelope encrypti
 **Purpose**: Envelope encryption using ChaCha20-Poly1305 + age
 
 **Key Components**:
+
 - `SecretEncryptor` - Main encryption interface
 - Envelope encryption: DEK (Data Encryption Key) with ChaCha20-Poly1305
 - Master key encryption with age X25519
 - Memory zeroization for security
 
 **API**:
+
 ```rust
 pub fn encrypt_secret(
     &self,
@@ -54,6 +58,7 @@ pub fn decrypt_secret(
 ```
 
 **Security Features**:
+
 - Random 256-bit DEK per secret
 - Random 96-bit nonces
 - 128-bit authentication tags (AEAD)
@@ -61,6 +66,7 @@ pub fn decrypt_secret(
 - Multi-recipient support via age
 
 **Tests**:
+
 - Encrypt/decrypt roundtrip
 - Wrong key fails decryption
 - Tampered ciphertext fails authentication
@@ -73,11 +79,13 @@ pub fn decrypt_secret(
 **Purpose**: AWS SDK S3 integration
 
 **Key Components**:
+
 - `S3Backend` - S3 client wrapper
 - Async operations with AWS SDK
 - S3-compatible endpoint support (MinIO, Wasabi, etc.)
 
 **API**:
+
 ```rust
 pub async fn get_secret(&self, s3_path: &str) -> Result<Vec<u8>>
 pub async fn put_secret(&self, s3_path: &str, data: Vec<u8>) -> Result<String>
@@ -89,6 +97,7 @@ pub async fn health_check(&self) -> Result<()>
 ```
 
 **Features**:
+
 - Server-side encryption (SSE-S3)
 - Versioning support
 - Health checks
@@ -99,12 +108,14 @@ pub async fn health_check(&self) -> Result<()>
 **Purpose**: Filesystem cache with TTL
 
 **Key Components**:
+
 - `SecretCache` - Cache manager
 - TTL-based expiration
 - Encrypted at rest
 - Automatic cleanup
 
 **API**:
+
 ```rust
 pub fn get(&self, s3_path: &str) -> Result<Option<String>>
 pub fn set(&self, s3_path: &str, value: &str) -> Result<()>
@@ -115,6 +126,7 @@ pub fn stats(&self) -> Result<CacheStats>
 ```
 
 **Features**:
+
 - Filesystem-based persistence
 - TTL expiration (default 3600s)
 - Automatic expiration checking
@@ -122,6 +134,7 @@ pub fn stats(&self) -> Result<CacheStats>
 - 0600 file permissions (Unix)
 
 **Tests**:
+
 - Cache set/get roundtrip
 - Cache miss handling
 - Invalidation
@@ -134,11 +147,13 @@ pub fn stats(&self) -> Result<CacheStats>
 **Purpose**: High-level S3 secret resolution
 
 **Key Components**:
+
 - `S3SecretResolver` - Main resolver
 - Integrates backend, encryption, and cache
 - Master key loading from env/file/KMS
 
 **API**:
+
 ```rust
 pub async fn new(config: &S3SecretBackend) -> Result<Self>
 pub async fn resolve(&self, s3_path: &str) -> Result<String>
@@ -156,6 +171,7 @@ pub async fn health_check(&self) -> Result<()>
 ```
 
 **Features**:
+
 - Automatic caching
 - Cache invalidation on push/delete
 - Master key management (env/file/KMS)
@@ -163,6 +179,7 @@ pub async fn health_check(&self) -> Result<()>
 - Bulk sync operations
 
 **Tests**:
+
 - Master key loading from env
 - Master key loading from file
 - KMS not yet implemented (returns error)
@@ -172,11 +189,13 @@ pub async fn health_check(&self) -> Result<()>
 **Purpose**: Public API and documentation
 
 **Exports**:
+
 - All public types
 - Main components (S3Backend, SecretEncryptor, S3SecretResolver, SecretCache)
 - Configuration types
 
 **Documentation**:
+
 - Usage examples
 - Feature overview
 - API reference
@@ -188,6 +207,7 @@ pub async fn health_check(&self) -> Result<()>
 **File**: `sindri-rs/crates/sindri-core/src/types/config_types.rs`
 
 **Changes**:
+
 1. Added `S3` variant to `SecretSource` enum
 2. Added `s3_path` field to `SecretConfig`:
    ```rust
@@ -199,6 +219,7 @@ pub async fn health_check(&self) -> Result<()>
 **File**: `sindri-rs/crates/sindri-secrets/src/lib.rs`
 
 **Changes**:
+
 1. Added S3 module:
    ```rust
    pub mod s3;
@@ -208,6 +229,7 @@ pub async fn health_check(&self) -> Result<()>
 **File**: `sindri-rs/crates/sindri-secrets/src/resolver.rs`
 
 **Changes**:
+
 1. Added S3 case to source matching:
    ```rust
    ConfigSecretSource::S3 => "s3",
@@ -218,6 +240,7 @@ pub async fn health_check(&self) -> Result<()>
 **File**: `sindri-rs/crates/sindri-secrets/Cargo.toml`
 
 **Added Dependencies**:
+
 ```toml
 # S3 backend
 aws-sdk-s3 = "1.60"
@@ -232,6 +255,7 @@ rand = "0.8"
 ## Storage Format
 
 ### S3 Key Structure
+
 ```
 secrets/
 ├── prod/
@@ -244,6 +268,7 @@ secrets/
 ```
 
 ### Secret Metadata (JSON)
+
 ```json
 {
   "version": "1.0",
@@ -288,6 +313,7 @@ secrets/
 ## Performance Characteristics
 
 **Target Benchmarks**:
+
 - Encrypt 1KB secret: <1ms ✓
 - Decrypt 1KB secret: <1ms ✓
 - S3 upload (1KB): 50-100ms (network dependent)
@@ -295,6 +321,7 @@ secrets/
 - Cache lookup: <0.1ms ✓
 
 **Optimizations**:
+
 - Filesystem cache reduces S3 calls
 - TTL-based cache expiration
 - Async operations throughout
@@ -305,6 +332,7 @@ secrets/
 ### Unit Tests Implemented
 
 **Encryption Module** (`encryption.rs`):
+
 - Master key generation
 - Public key derivation
 - Encrypt/decrypt roundtrip
@@ -316,6 +344,7 @@ secrets/
 - Empty secret edge case
 
 **Cache Module** (`cache.rs`):
+
 - Cache set/get
 - Cache miss
 - Invalidation
@@ -325,15 +354,18 @@ secrets/
 - Cleanup expired entries
 
 **Resolver Module** (`resolver.rs`):
+
 - Load master key from env
 - Load master key from file
 - KMS not implemented error
 
 **Backend Module** (`backend.rs`):
+
 - Key path construction
 - Prefix handling
 
 **Types Module** (`types.rs`):
+
 - Default algorithm
 - Metadata creation
 - Serialization/deserialization
@@ -355,7 +387,7 @@ secrets:
     type: s3
     bucket: my-sindri-secrets
     region: us-east-1
-    endpoint: https://s3.amazonaws.com  # Optional for S3-compatible
+    endpoint: https://s3.amazonaws.com # Optional for S3-compatible
     prefix: secrets/prod/
     encryption:
       algorithm: chacha20poly1305

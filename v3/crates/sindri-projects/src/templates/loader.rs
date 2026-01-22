@@ -25,8 +25,8 @@ pub struct TemplateLoader {
 impl TemplateLoader {
     /// Load templates from embedded resources
     pub fn from_embedded() -> Result<Self> {
-        let yaml_str = get_embedded_yaml()
-            .context("Failed to load embedded project-templates.yaml")?;
+        let yaml_str =
+            get_embedded_yaml().context("Failed to load embedded project-templates.yaml")?;
 
         let config = TemplateConfig::from_yaml(yaml_str)?;
 
@@ -61,7 +61,9 @@ impl TemplateLoader {
             return Self::from_file(path);
         }
 
-        anyhow::bail!("Failed to load templates from embedded resources and no fallback path provided")
+        anyhow::bail!(
+            "Failed to load templates from embedded resources and no fallback path provided"
+        )
     }
 
     /// Get the underlying template configuration

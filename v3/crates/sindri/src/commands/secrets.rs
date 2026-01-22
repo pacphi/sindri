@@ -7,8 +7,8 @@ use sindri_core::config::SindriConfig;
 use sindri_secrets::SecretResolver;
 use std::path::PathBuf;
 
-use crate::output;
 use super::secrets_s3;
+use crate::output;
 
 #[derive(Subcommand, Debug)]
 pub enum SecretsCommands {
@@ -106,7 +106,10 @@ async fn validate(args: ValidateArgs) -> Result<()> {
 
     match results {
         Ok(resolved) => {
-            output::success(&format!("All {} secrets resolved successfully", resolved.len()));
+            output::success(&format!(
+                "All {} secrets resolved successfully",
+                resolved.len()
+            ));
             println!();
 
             for (name, secret) in resolved {

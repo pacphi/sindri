@@ -64,8 +64,8 @@ impl CompatibilityChecker {
         let manifest_path = home.join(".sindri").join("manifest.yaml");
 
         // Load configuration
-        let config_loader = HierarchicalConfigLoader::new()
-            .expect("Failed to create config loader");
+        let config_loader =
+            HierarchicalConfigLoader::new().expect("Failed to create config loader");
         let runtime_config = config_loader
             .load_runtime_config()
             .expect("Failed to load runtime config");
@@ -81,8 +81,8 @@ impl CompatibilityChecker {
     /// Create a new checker with custom manifest path
     pub fn with_manifest_path(manifest_path: PathBuf) -> Self {
         // Load configuration
-        let config_loader = HierarchicalConfigLoader::new()
-            .expect("Failed to create config loader");
+        let config_loader =
+            HierarchicalConfigLoader::new().expect("Failed to create config loader");
         let runtime_config = config_loader
             .load_runtime_config()
             .expect("Failed to load runtime config");
@@ -120,9 +120,7 @@ impl CompatibilityChecker {
     pub async fn fetch_matrix_from_github(&mut self, version: &str) -> Result<()> {
         let url = format!(
             "https://github.com/{}/{}/releases/download/v{}/compatibility-matrix.yaml",
-            self.github_config.repo_owner,
-            self.github_config.repo_name,
-            version
+            self.github_config.repo_owner, self.github_config.repo_name, version
         );
 
         let client = reqwest::Client::new();
@@ -353,10 +351,7 @@ impl CompatResult {
         use owo_colors::OwoColorize;
 
         if self.compatible {
-            println!(
-                "{} Compatibility check passed",
-                "✓".green().bold()
-            );
+            println!("{} Compatibility check passed", "✓".green().bold());
         } else {
             println!(
                 "{} Found {} incompatible extension(s)",

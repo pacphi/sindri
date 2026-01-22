@@ -16,7 +16,7 @@ pub use resolver::{SecretCache, SecretResolver};
 pub use security::{AuditLog, SecureString};
 pub use sources::{EnvSource, FileSource, SecretSource, VaultSource};
 pub use types::{
-    ResolvedFrom, ResolvedSecret, ResolutionContext, SecretMetadata, SecretValue, TokenMetadata,
+    ResolutionContext, ResolvedFrom, ResolvedSecret, SecretMetadata, SecretValue, TokenMetadata,
     VaultSecret,
 };
 

@@ -104,8 +104,7 @@ pub mod renderer;
 pub use detector::TypeDetector;
 pub use loader::TemplateLoader;
 pub use parser::{
-    DependencyConfig, DetectPattern, DetectionResult, NamePattern, ProjectTemplate,
-    TemplateConfig,
+    DependencyConfig, DetectPattern, DetectionResult, NamePattern, ProjectTemplate, TemplateConfig,
 };
 pub use renderer::{TemplateRenderer, TemplateVars};
 
@@ -270,9 +269,6 @@ templates:
         let renderer = TemplateRenderer::new();
         let manager = TemplateManager { loader, renderer };
 
-        assert_eq!(
-            manager.resolve_alias("py"),
-            Some("python".to_string())
-        );
+        assert_eq!(manager.resolve_alias("py"), Some("python".to_string()));
     }
 }

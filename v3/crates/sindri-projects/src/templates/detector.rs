@@ -60,11 +60,7 @@ impl<'a> TypeDetector<'a> {
     pub fn get_suggestions(&self, types: &[String]) -> Vec<(String, String)> {
         types
             .iter()
-            .filter_map(|t| {
-                self.config
-                    .get_description(t)
-                    .map(|desc| (t.clone(), desc))
-            })
+            .filter_map(|t| self.config.get_description(t).map(|desc| (t.clone(), desc)))
             .collect()
     }
 
@@ -242,10 +238,7 @@ detection_rules:
             detector.resolve_choice("1", &types),
             Some("node".to_string())
         );
-        assert_eq!(
-            detector.resolve_choice("2", &types),
-            Some("go".to_string())
-        );
+        assert_eq!(detector.resolve_choice("2", &types), Some("go".to_string()));
         assert_eq!(
             detector.resolve_choice("3", &types),
             Some("python".to_string())
@@ -272,8 +265,14 @@ detection_rules:
         let suggestions = detector.get_suggestions(&types);
 
         assert_eq!(suggestions.len(), 2);
-        assert_eq!(suggestions[0], ("node".to_string(), "Node.js application".to_string()));
-        assert_eq!(suggestions[1], ("go".to_string(), "Go application".to_string()));
+        assert_eq!(
+            suggestions[0],
+            ("node".to_string(), "Node.js application".to_string())
+        );
+        assert_eq!(
+            suggestions[1],
+            ("go".to_string(), "Go application".to_string())
+        );
     }
 
     #[test]

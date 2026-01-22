@@ -12,6 +12,7 @@ The Sindri CLI v3 Rust migration introduces versioned binary distribution via Gi
 ### Current Manual Update Process Problems
 
 In v2 (bash-based CLI), users faced:
+
 1. **Manual Download**: Users must manually download new scripts from GitHub
 2. **No Version Discovery**: No way to know if updates are available
 3. **No Rollback**: Failed updates leave broken state
@@ -25,6 +26,7 @@ In v2 (bash-based CLI), users faced:
 The [Rust Migration Plan Phase 6](../../planning/rust-cli-migration-v3.md#phase-6-self-update-weeks-18-19) defines these requirements:
 
 **Commands**:
+
 - `sindri upgrade` - Perform upgrade to latest version
 - `sindri upgrade --check` - Check for updates without installing
 - `sindri upgrade --list` - List available versions
@@ -35,6 +37,7 @@ The [Rust Migration Plan Phase 6](../../planning/rust-cli-migration-v3.md#phase-
 - `sindri upgrade --stable` - Show only stable releases (exclude pre-releases)
 
 **Core Features**:
+
 1. **GitHub Releases Integration**: Fetch releases via GitHub API
 2. **Binary Download**: Platform-specific asset selection and download
 3. **Checksum Verification**: SHA256 verification for security
@@ -60,6 +63,7 @@ We implement the `sindri-update` crate with six key architectural decisions.
 **Decision**: Implement automatic rollback with timestamped backup and verification.
 
 **Architecture**:
+
 ```rust
 // crates/sindri-update/src/rollback.rs
 
@@ -173,6 +177,7 @@ impl RollbackManager {
 ```
 
 **Update Workflow**:
+
 ```rust
 pub async fn update_to(&self, target: &Version) -> Result<()> {
     let rollback_mgr = RollbackManager::new()?;
@@ -217,6 +222,7 @@ pub async fn update_to(&self, target: &Version) -> Result<()> {
 ```
 
 **Reasoning**: Safety and reliability are paramount for self-update. Users must never be left with a broken CLI. The timestamped backup approach provides:
+
 - **Safety**: Always have working binary to fall back to
 - **Transparency**: Users know where backup is located
 - **Recoverability**: Multiple backups allow recovery from various failure scenarios
@@ -227,6 +233,7 @@ pub async fn update_to(&self, target: &Version) -> Result<()> {
 **Decision**: Block upgrades if installed extensions are incompatible with target CLI version, require `--force` to override.
 
 **Architecture**:
+
 ```rust
 // crates/sindri-update/src/compatibility.rs
 
@@ -368,6 +375,7 @@ impl SindriUpdater {
 ```
 
 **Upgrade Command with Blocking**:
+
 ```rust
 // crates/sindri/src/commands/upgrade.rs
 
@@ -455,6 +463,7 @@ async fn do_upgrade(updater: &SindriUpdater, args: &UpgradeArgs) -> Result<()> {
 **Decision**: No automatic background checks. Only check when user runs command. Cache results for 1 hour.
 
 **Architecture**:
+
 ```rust
 // crates/sindri-update/src/cache.rs
 
@@ -564,6 +573,7 @@ impl SindriUpdater {
 ```
 
 **Reasoning**:
+
 - **Privacy**: No telemetry or background network calls. User controls when to check.
 - **Performance**: Reduces GitHub API calls, stays under rate limits.
 - **User Experience**: Fast response for repeat checks within 1 hour window.
@@ -574,6 +584,7 @@ impl SindriUpdater {
 **Decision**: Check and prompt before installing. Show changelog preview. Require confirmation unless `--yes`.
 
 **Architecture**:
+
 ```rust
 // crates/sindri/src/commands/upgrade.rs
 
@@ -704,6 +715,7 @@ fn indent_text(text: &str, indent: &str) -> String {
 **Decision**: Platform-specific asset selection, SHA256 checksum verification, resumable downloads, progress bars with `indicatif`.
 
 **Architecture**:
+
 ```rust
 // crates/sindri-update/src/download.rs
 
@@ -844,6 +856,7 @@ impl SindriUpdater {
 ```
 
 **Reasoning**:
+
 - **Security**: SHA256 verification prevents corrupted or tampered binaries.
 - **User Experience**: Progress bars show download status, reducing uncertainty.
 - **Platform Support**: Auto-detection ensures correct binary for user's system.
@@ -856,6 +869,7 @@ impl SindriUpdater {
 **Architecture**:
 
 **File Format** (`compatibility-matrix.yaml` in repo root):
+
 ```yaml
 # Sindri CLI Extension Compatibility Matrix
 # This file tracks which extension schema versions work with each CLI version
@@ -894,6 +908,7 @@ cli_versions:
 ```
 
 **CI Integration** (`.github/workflows/release.yml`):
+
 ```yaml
 - name: Upload Compatibility Matrix
   run: |
@@ -905,6 +920,7 @@ cli_versions:
 ```
 
 **Usage in Upgrade Command**:
+
 ```rust
 // Already shown in section b, repeated here for completeness
 
@@ -975,11 +991,13 @@ impl SindriUpdater {
 **Description**: No self-update command, users manually download from GitHub releases page.
 
 **Pros**:
+
 - No code complexity
 - No dependency on `self_update` crate
 - No GitHub API rate limit concerns
 
 **Cons**:
+
 - Poor user experience (requires multiple manual steps)
 - No compatibility checking
 - No rollback mechanism
@@ -993,11 +1011,13 @@ impl SindriUpdater {
 **Description**: CLI automatically checks for updates on every invocation, downloads in background.
 
 **Pros**:
+
 - Users always have latest version
 - No manual intervention required
 - Good for security patches
 
 **Cons**:
+
 - Surprising behavior (binary changes without user action)
 - Privacy concerns (telemetry, background network calls)
 - Can break workflows mid-session
@@ -1011,11 +1031,13 @@ impl SindriUpdater {
 **Description**: Rely on homebrew, apt, chocolatey for updates. No self-update command.
 
 **Pros**:
+
 - Leverages existing package infrastructure
 - Handles platform detection automatically
 - Users familiar with package manager workflow
 
 **Cons**:
+
 - Platform-specific (homebrew macOS-only, apt Linux-only)
 - Slower release cycle (waiting for package maintainers)
 - No control over upgrade process
@@ -1029,11 +1051,13 @@ impl SindriUpdater {
 **Description**: When upgrading CLI, automatically upgrade all installed extensions to latest compatible versions.
 
 **Pros**:
+
 - Ensures compatibility
 - Simplifies user workflow
 - Prevents incompatibility errors
 
 **Cons**:
+
 - Extensions might fail to upgrade (network errors, no compatible version)
 - Slow (must download all extensions)
 - Surprising (extensions change without user request)
@@ -1046,11 +1070,13 @@ impl SindriUpdater {
 **Description**: Replace binary directly without creating backup.
 
 **Pros**:
+
 - Simpler implementation
 - Faster (no backup copy time)
 - Less disk space
 
 **Cons**:
+
 - No rollback on failure
 - Risky (corrupted download leaves broken CLI)
 - No recovery mechanism
@@ -1062,11 +1088,13 @@ impl SindriUpdater {
 **Description**: Host binaries on custom server with custom manifest format.
 
 **Pros**:
+
 - Full control over distribution
 - Can add custom metadata
 - Not subject to GitHub rate limits
 
 **Cons**:
+
 - Infrastructure cost (hosting, bandwidth)
 - Complexity (custom server, custom protocol)
 - Security (must sign binaries, manage keys)
@@ -1091,23 +1119,25 @@ impl SindriUpdater {
 
 ### Platform Support Matrix
 
-| Platform | Triple | Binary Format | Self-Update Support |
-|----------|--------|---------------|---------------------|
-| Linux x86_64 | x86_64-unknown-linux-musl | ELF | ✅ Full |
-| Linux ARM64 | aarch64-unknown-linux-musl | ELF | ✅ Full |
-| macOS x86_64 | x86_64-apple-darwin | Mach-O | ✅ Full |
-| macOS ARM64 | aarch64-apple-darwin | Mach-O | ✅ Full |
-| Windows x86_64 | x86_64-pc-windows-msvc | PE32+ | ✅ Full |
+| Platform       | Triple                     | Binary Format | Self-Update Support |
+| -------------- | -------------------------- | ------------- | ------------------- |
+| Linux x86_64   | x86_64-unknown-linux-musl  | ELF           | ✅ Full             |
+| Linux ARM64    | aarch64-unknown-linux-musl | ELF           | ✅ Full             |
+| macOS x86_64   | x86_64-apple-darwin        | Mach-O        | ✅ Full             |
+| macOS ARM64    | aarch64-apple-darwin       | Mach-O        | ✅ Full             |
+| Windows x86_64 | x86_64-pc-windows-msvc     | PE32+         | ✅ Full             |
 
 All platforms support full self-update functionality including download, verification, and rollback.
 
 ### GitHub Rate Limit Considerations
 
 GitHub API rate limits:
+
 - **Unauthenticated**: 60 requests/hour per IP
 - **Authenticated**: 5000 requests/hour per user
 
 Our update check strategy stays well under limits:
+
 - Checking for updates: 1 request (cached for 1 hour)
 - Listing versions: 1 request (cached for 1 hour)
 - Downloading binary: Direct asset download (no API)
@@ -1120,11 +1150,13 @@ Our update check strategy stays well under limits:
 ### Security Implications of Self-Update
 
 **Threats**:
+
 1. **Man-in-the-Middle (MITM)**: Attacker intercepts download, serves malicious binary
 2. **Compromised Release**: Attacker gains access to GitHub repo, publishes malicious release
 3. **Checksum Bypass**: Attacker modifies both binary and checksum file
 
 **Mitigations**:
+
 1. **HTTPS Only**: All downloads use HTTPS, preventing MITM
 2. **SHA256 Verification**: Checksum prevents corrupted/tampered binaries
 3. **Binary Verification**: Test `--version` ensures binary is executable and valid
@@ -1133,6 +1165,7 @@ Our update check strategy stays well under limits:
 6. **Trusted Source**: GitHub releases with repository owner verification
 
 **Future Enhancements**:
+
 - **GPG Signature Verification**: Sign releases with GPG key
 - **Code Signing**: Sign macOS/Windows binaries with developer certificate
 - **Reproducible Builds**: Enable users to verify binary matches source
@@ -1140,12 +1173,14 @@ Our update check strategy stays well under limits:
 ### Compatibility Matrix Updates
 
 **Process**:
+
 1. When planning breaking change, update `compatibility-matrix.yaml` in PR
 2. Document breaking change in changelog
 3. CI automatically uploads matrix to release assets
 4. Users running `sindri upgrade --compat <version>` see impact before upgrading
 
 **Example Breaking Change**:
+
 ```yaml
 # PR that removes legacy_networking feature
 
@@ -1161,6 +1196,7 @@ cli_versions:
 ```
 
 **Extension Authors** can test compatibility:
+
 ```bash
 sindri upgrade --compat 3.1.0
 

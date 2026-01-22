@@ -8,6 +8,7 @@
 ## Context
 
 The Sindri CLI v3 requires a robust template system for project scaffolding that can:
+
 1. Define project structures for different languages and frameworks
 2. Support intelligent type detection from project names
 3. Perform variable substitution in generated files
@@ -37,12 +38,14 @@ templates:
 ```
 
 **Strengths**:
+
 - Simple YAML format
 - Easy to add new templates
 - Basic variable substitution with `{var}`
 - Type detection via pattern matching
 
 **Weaknesses**:
+
 - Limited template logic (no conditionals, loops)
 - String-based substitution prone to errors
 - No template composition or inheritance
@@ -52,6 +55,7 @@ templates:
 ### Requirements
 
 **Template Definition**:
+
 1. YAML-based template definitions for maintainability
 2. Support 15+ project types (node, python, rust, go, java, rails, django, etc.)
 3. Type aliases (e.g., "nodejs" → "node", "py" → "python")
@@ -59,18 +63,21 @@ templates:
 5. Setup commands (e.g., `npm init`, `cargo init`)
 
 **Type Detection**:
+
 1. Pattern matching on project name
 2. Ambiguity resolution (multiple matches)
 3. Interactive fallback when no match
 4. Explicit type override (`--type`)
 
 **Variable Substitution**:
+
 1. Project metadata (name, author, date)
 2. Git configuration (user.name, user.email)
 3. Conditional logic (e.g., include test config if testing enabled)
 4. Template composition (include common snippets)
 
 **Template Storage**:
+
 1. Embedded in binary for offline use
 2. Support for user-defined templates (future)
 3. Template versioning and compatibility
@@ -84,6 +91,7 @@ We implement a YAML-driven template system with Tera for variable substitution, 
 **Decision**: Use structured YAML format with separate files for templates and file content.
 
 **Template Schema** (`templates/project-templates.yaml`):
+
 ```yaml
 version: "3.0"
 
@@ -108,7 +116,7 @@ templates:
         - "express"
         - "typescript"
         - "ts"
-      priority: 10  # Higher = higher priority when ambiguous
+      priority: 10 # Higher = higher priority when ambiguous
 
     # Setup commands (executed after scaffolding)
     setup:
@@ -168,7 +176,7 @@ templates:
     files:
       - src: "python/main.py.tera"
         dest: "main.py"
-        mode: "0755"  # Executable
+        mode: "0755" # Executable
       - src: "python/requirements.txt"
         dest: "requirements.txt"
       - src: "gitignore/python.txt"
@@ -214,7 +222,7 @@ templates:
     description: "Next.js application (React framework)"
     aliases: ["next"]
     category: "framework"
-    parent: "node"  # Inherit node template
+    parent: "node" # Inherit node template
 
     extensions:
       - nodejs
@@ -223,7 +231,7 @@ templates:
 
     detection:
       patterns: ["next", "nextjs", "react-app"]
-      priority: 15  # Higher than base "node"
+      priority: 15 # Higher than base "node"
 
     setup:
       commands:
@@ -271,6 +279,7 @@ detection:
 ```
 
 **Reasoning**: Structured YAML provides:
+
 - **Readability**: Clean separation of metadata and file content
 - **Maintainability**: Easy to add new templates
 - **Validation**: Schema can be validated with JSON Schema
@@ -282,6 +291,7 @@ detection:
 **Decision**: Implement fuzzy pattern matching with priority-based disambiguation.
 
 **Implementation** (`crates/sindri-project/src/detector.rs`):
+
 ```rust
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
@@ -539,6 +549,7 @@ mod tests {
 ```
 
 **Reasoning**: Fuzzy matching with priority provides:
+
 - **Accuracy**: Multi-factor scoring (substring, word boundary, prefix, edit distance)
 - **Disambiguation**: Priority system breaks ties
 - **User Control**: Interactive fallback when ambiguous
@@ -549,6 +560,7 @@ mod tests {
 **Decision**: Use Tera template engine for powerful variable substitution with logic.
 
 **Template Example** (`templates/files/node/package.json.tera`):
+
 ```json
 {
   "name": "{{ project_name }}",
@@ -579,7 +591,8 @@ mod tests {
 ```
 
 **CLAUDE.md Template** (`templates/files/claude/node.md.tera`):
-```markdown
+
+````markdown
 # {{ project_name }}
 
 **Created**: {{ date }}
@@ -602,6 +615,7 @@ npm run dev
 # Run tests
 npm test
 ```
+````
 
 ## Project Structure
 
@@ -624,9 +638,10 @@ npm test
 {% if extensions | length > 0 -%}
 **Installed Extensions**:
 {% for ext in extensions -%}
+
 - {{ ext }}
-{% endfor %}
-{% endif -%}
+  {% endfor %}
+  {% endif -%}
 
 ## Next Steps
 
@@ -634,7 +649,8 @@ npm test
 2. Implement core functionality in `index.js`
 3. Add tests in `__tests__/` directory
 4. Update `package.json` with actual dependencies
-```
+
+````
 
 **Implementation** (`crates/sindri-project/src/scaffolder.rs`):
 ```rust
@@ -759,9 +775,10 @@ impl TemplateVariables {
         self.vars.iter()
     }
 }
-```
+````
 
 **Reasoning**: Tera provides:
+
 - **Rich Logic**: Conditionals, loops, filters, macros
 - **Template Inheritance**: Base templates with blocks
 - **Auto-Escaping**: Prevents injection attacks
@@ -774,6 +791,7 @@ impl TemplateVariables {
 **Decision**: Embed templates in binary for offline use, with future support for user templates.
 
 **Implementation**:
+
 ```rust
 // Compile-time embedding
 const TEMPLATES_YAML: &str = include_str!("../templates/project-templates.yaml");
@@ -840,6 +858,7 @@ impl TemplateLoader {
 ```
 
 **Reasoning**: Embedded templates provide:
+
 - **Offline Use**: No network required
 - **Consistency**: Same templates across all installations
 - **Performance**: No I/O for template loading
@@ -880,11 +899,13 @@ impl TemplateLoader {
 **Description**: Use Handlebars instead of Tera for templates.
 
 **Pros**:
+
 - Widely known (JavaScript ecosystem)
 - Simpler syntax for basic templates
 - Smaller compiled size
 
 **Cons**:
+
 - Less powerful (no macros, limited logic)
 - Separate crate for each feature (helpers, etc.)
 - No template inheritance
@@ -897,11 +918,13 @@ impl TemplateLoader {
 **Description**: Load templates from filesystem at runtime, no embedding.
 
 **Pros**:
+
 - Smaller binary
 - Templates can be updated without CLI update
 - Users can customize templates
 
 **Cons**:
+
 - Requires network/filesystem access
 - Version compatibility issues
 - Offline use impossible
@@ -914,11 +937,13 @@ impl TemplateLoader {
 **Description**: Simple exact substring matching, no fuzzy logic.
 
 **Pros**:
+
 - Simpler implementation
 - Faster (no Levenshtein distance)
 - Predictable behavior
 
 **Cons**:
+
 - Misses typos ("pytho" won't match "python")
 - No disambiguation for similar patterns
 - Poor UX for edge cases
@@ -930,10 +955,12 @@ impl TemplateLoader {
 **Description**: Use YAML anchors/aliases instead of explicit `parent` field.
 
 **Pros**:
+
 - Native YAML feature
 - No custom parsing logic
 
 **Cons**:
+
 - Less readable
 - Hard to override specific fields
 - YAML anchors limited to same file
@@ -946,11 +973,13 @@ impl TemplateLoader {
 **Description**: Always require explicit `--type` flag, no auto-detection.
 
 **Pros**:
+
 - Simpler implementation
 - No ambiguity
 - Explicit is better than implicit
 
 **Cons**:
+
 - Poor UX for 90% of cases
 - Requires memorizing type names
 - Extra typing for every project
@@ -1008,6 +1037,7 @@ v3/crates/sindri-project/templates/
 ### Supported Project Types
 
 **Languages** (15 total):
+
 1. `node` - Node.js/JavaScript/TypeScript
 2. `python` - Python 3.x
 3. `rust` - Rust with Cargo
@@ -1025,6 +1055,7 @@ v3/crates/sindri-project/templates/
 15. `clojure` - Clojure
 
 **Frameworks** (additional):
+
 - `rails` - Ruby on Rails
 - `django` - Django (Python)
 - `flask` - Flask (Python)

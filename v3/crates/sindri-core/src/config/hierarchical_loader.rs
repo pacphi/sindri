@@ -90,14 +90,20 @@ impl HierarchicalConfigLoader {
 
     /// Load an embedded configuration file
     fn load_embedded_config<T: DeserializeOwned>(filename: &str) -> Result<T> {
-        let embedded_file = EmbeddedConfigs::get(filename)
-            .ok_or_else(|| Error::config_not_found(&format!("Embedded config not found: {}", filename)))?;
+        let embedded_file = EmbeddedConfigs::get(filename).ok_or_else(|| {
+            Error::config_not_found(&format!("Embedded config not found: {}", filename))
+        })?;
 
-        let content = std::str::from_utf8(&embedded_file.data)
-            .map_err(|_| Error::invalid_config(&format!("Invalid UTF-8 in embedded config: {}", filename)))?;
+        let content = std::str::from_utf8(&embedded_file.data).map_err(|_| {
+            Error::invalid_config(&format!("Invalid UTF-8 in embedded config: {}", filename))
+        })?;
 
-        let config: T = serde_yaml::from_str(content)
-            .map_err(|e| Error::invalid_config(&format!("Failed to parse embedded config {}: {}", filename, e)))?;
+        let config: T = serde_yaml::from_str(content).map_err(|e| {
+            Error::invalid_config(&format!(
+                "Failed to parse embedded config {}: {}",
+                filename, e
+            ))
+        })?;
 
         Ok(config)
     }
@@ -188,9 +194,9 @@ impl HierarchicalConfigLoader {
 
         // Backup configuration
         if let Ok(val) = env::var("SINDRI_MAX_BACKUPS") {
-            config.backup.max_backups = val.parse().map_err(|_| {
-                Error::invalid_config("SINDRI_MAX_BACKUPS must be a valid number")
-            })?;
+            config.backup.max_backups = val
+                .parse()
+                .map_err(|_| Error::invalid_config("SINDRI_MAX_BACKUPS must be a valid number"))?;
         }
 
         // Display configuration
@@ -224,8 +230,8 @@ mod tests {
 
     fn create_temp_loader() -> (HierarchicalConfigLoader, TempDir) {
         let temp_dir = TempDir::new().unwrap();
-        let config_dir = Utf8PathBuf::from_path_buf(temp_dir.path().to_path_buf())
-            .expect("Invalid UTF-8 path");
+        let config_dir =
+            Utf8PathBuf::from_path_buf(temp_dir.path().to_path_buf()).expect("Invalid UTF-8 path");
         let loader = HierarchicalConfigLoader::with_dir(config_dir);
         (loader, temp_dir)
     }

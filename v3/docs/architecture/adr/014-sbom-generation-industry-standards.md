@@ -16,6 +16,7 @@ Software Bill of Materials (SBOM) generation is increasingly required for:
 5. **Regulatory Requirements**: FDA, NIST, EU Cyber Resilience Act
 
 Sindri environments include diverse components:
+
 - Base OS packages (Ubuntu apt)
 - Runtime environments (nodejs, python, go via mise)
 - CLI tools (gh, k9s, lazydocker as binaries)
@@ -23,17 +24,20 @@ Sindri environments include diverse components:
 - Custom scripts and configurations
 
 The bash implementation had no SBOM support. Users could manually track installed software, but:
+
 - No machine-readable format
 - No version tracking
 - No license information
 - No vulnerability scanning integration
 
 SBOM Standards:
+
 - **SPDX 2.3**: Linux Foundation standard, comprehensive but complex
 - **CycloneDX 1.4**: OWASP standard, security-focused, simpler
 - **SWID**: ISO standard, primarily for commercial software
 
 Example SBOM use cases:
+
 - **Security teams**: Scan for CVEs in production environments
 - **Compliance teams**: Verify license compatibility
 - **DevOps teams**: Track software versions across deployments
@@ -46,12 +50,14 @@ Example SBOM use cases:
 We implement **both CycloneDX 1.4 and SPDX 2.3** support, with CycloneDX as default:
 
 **CycloneDX 1.4** (Default):
+
 - Security-focused
 - Simpler structure
 - Better tool support (Dependency-Track, Grype, Trivy)
 - Native vulnerability tracking
 
 **SPDX 2.3** (Optional):
+
 - Comprehensive metadata
 - Better license tracking
 - Industry standard for legal compliance
@@ -117,6 +123,7 @@ impl ComponentType {
 Components include Package URL (PURL) and Common Platform Enumeration (CPE) identifiers:
 
 **PURL** (Package URL):
+
 ```
 pkg:npm/express@4.18.2
 pkg:pypi/django@4.2.0
@@ -125,12 +132,14 @@ pkg:generic/k9s@0.31.0
 ```
 
 **CPE** (Common Platform Enumeration):
+
 ```
 cpe:2.3:a:nodejs:nodejs:20.11.0:*:*:*:*:*:*:*
 cpe:2.3:a:python:python:3.12.0:*:*:*:*:*:*:*
 ```
 
 **Implementation**:
+
 ```rust
 pub struct ComponentIdentifiers {
     pub purl: Option<String>,
@@ -556,11 +565,13 @@ sindri sbom diff sbom-old.json sbom-new.json
 **Description**: Create Sindri-specific SBOM format instead of industry standards.
 
 **Pros**:
+
 - Full control over format
 - Simpler implementation
 - Smaller file size
 
 **Cons**:
+
 - No tool support (scanners, validators)
 - Not recognized by compliance frameworks
 - Reinventing the wheel
@@ -573,11 +584,13 @@ sindri sbom diff sbom-old.json sbom-new.json
 **Description**: Support only CycloneDX, drop SPDX support.
 
 **Pros**:
+
 - Simpler implementation (one format)
 - CycloneDX is more modern
 - Better security tool support
 
 **Cons**:
+
 - Some enterprises require SPDX
 - SPDX better for legal compliance
 - Limits flexibility
@@ -589,11 +602,13 @@ sindri sbom diff sbom-old.json sbom-new.json
 **Description**: Support only SPDX, drop CycloneDX support.
 
 **Pros**:
+
 - SPDX is older, more established
 - Better license tracking
 - Linux Foundation standard
 
 **Cons**:
+
 - Worse security tool support
 - More complex format
 - Slower ecosystem adoption
@@ -605,10 +620,12 @@ sindri sbom diff sbom-old.json sbom-new.json
 **Description**: Skip PURL and CPE generation, only include name/version.
 
 **Pros**:
+
 - Simpler implementation
 - No identifier parsing logic
 
 **Cons**:
+
 - Limits vulnerability scanning
 - Worse tool integration
 - Missing critical metadata
@@ -620,11 +637,13 @@ sindri sbom diff sbom-old.json sbom-new.json
 **Description**: Scan running processes to generate SBOM instead of using manifest.
 
 **Pros**:
+
 - Captures all running software
 - No need for manifest tracking
 - Discovers transitive dependencies
 
 **Cons**:
+
 - Complex implementation (process scanning)
 - Inconsistent results (depends on what's running)
 - Misses installed-but-not-running components
@@ -647,6 +666,7 @@ sindri sbom diff sbom-old.json sbom-new.json
 ## Notes
 
 SBOM generation is increasingly required by regulations:
+
 - **NIST SSDF**: Secure Software Development Framework requires SBOMs
 - **FDA**: Medical device software must include SBOMs
 - **EU Cyber Resilience Act**: CE marking requires software transparency
@@ -657,6 +677,7 @@ The choice to support both CycloneDX and SPDX provides maximum flexibility for d
 PURL and CPE generation is best-effort - not all components have well-defined identifiers. We prioritize common cases (npm, pypi, github) and fall back to generic PURLs.
 
 Future enhancements:
+
 - Automatic license detection from package metadata
 - Integration with vulnerability databases (NVD, OSV)
 - SBOM diff visualization (what changed between versions)

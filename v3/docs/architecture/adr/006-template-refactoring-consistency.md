@@ -10,6 +10,7 @@
 During the parallel implementation of 5 providers (Phases 2 & 3), we discovered **inconsistent template usage**:
 
 **Initial State:**
+
 - ✅ Docker: Using Tera templates properly
 - ❌ Fly.io: Inline string generation with format!()
 - ❌ E2B: Inline string generation with format!()
@@ -20,6 +21,7 @@ During the parallel implementation of 5 providers (Phases 2 & 3), we discovered 
 Three agents worked in parallel without coordination on shared infrastructure usage. Agents implementing Fly and E2B chose inline generation for speed, while Docker/DevPod/K8s agents used the template system.
 
 **Problems Identified:**
+
 1. Code duplication (template data in both inline strings AND TemplateContext)
 2. Dead code warnings (`templates` field in Fly/E2B structs unused)
 3. Inconsistent approach makes codebase harder to understand
@@ -40,6 +42,7 @@ Three agents worked in parallel without coordination on shared infrastructure us
 **Fly.io Provider Refactoring:**
 
 Before:
+
 ```rust
 fn generate_fly_toml_content(&self, config: &FlyDeployConfig, ci_mode: bool) -> String {
     let mut content = format!(r#"
@@ -54,6 +57,7 @@ primary_region = "{region}"
 ```
 
 After:
+
 ```rust
 fn generate_fly_toml(&self, config: &SindriConfig, output_dir: &Path, ci_mode: bool) -> Result<PathBuf> {
     let mut context = TemplateContext::from_config(config, "none");
@@ -71,6 +75,7 @@ fn generate_fly_toml(&self, config: &SindriConfig, output_dir: &Path, ci_mode: b
 **E2B Provider Refactoring:**
 
 Before:
+
 ```rust
 let toml_content = format!(r#"
 [template]
@@ -81,6 +86,7 @@ cpu_count = {cpus}
 ```
 
 After:
+
 ```rust
 let mut context = TemplateContext::from_config(config, "none");
 context.env_vars.insert("e2b_template_alias", ...);
@@ -91,23 +97,27 @@ let content = self.templates.render("e2b.toml", &context)?;
 ### Template Creation
 
 Created missing templates:
+
 - ✅ `fly.toml.tera` - Comprehensive Fly.io configuration
 - ✅ `e2b.toml.tera` - E2B template metadata
 
 ### Dead Code Cleanup
 
 **Removed:**
+
 - `generate_fly_toml_content()` method (120 lines)
 - `#[allow(dead_code)]` on `templates` field in FlyProvider
 - `#[allow(dead_code)]` on `templates` field in E2BProvider
 
 **Kept:**
+
 - Utility functions in utils.rs (marked as future use)
 - JSON deserialization structs (needed by serde)
 
 ### Configuration Struct Cleanup
 
 **K8sDeployConfig - Before:**
+
 ```rust
 struct K8sDeployConfig<'a> {
     name: &'a str,
@@ -123,6 +133,7 @@ struct K8sDeployConfig<'a> {
 ```
 
 **K8sDeployConfig - After:**
+
 ```rust
 struct K8sDeployConfig<'a> {
     name: &'a str,
@@ -157,18 +168,21 @@ struct K8sDeployConfig<'a> {
 ### Metrics
 
 **Before Refactoring:**
+
 - 2/5 providers using inline generation
 - 3 `#[allow(dead_code)]` suppressions
 - 4 unused struct fields in K8sDeployConfig
 - 120 lines of string-building code
 
 **After Refactoring:**
+
 - 5/5 providers using templates ✅
 - 0 dead code in provider logic
 - 0 unused fields in config structs
 - 6 templates, all actively used
 
 **Code Changes:**
+
 - Lines added: ~200 (template files)
 - Lines removed: ~350 (inline generation code)
 - Net reduction: 150 lines
@@ -177,22 +191,27 @@ struct K8sDeployConfig<'a> {
 ## Validation
 
 ### Compilation
+
 ```bash
 $ cargo clippy --all-targets -- -D warnings
    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.16s
 ```
+
 ✅ Zero clippy errors with warnings-as-errors
 
 ### Tests
+
 ```bash
 $ cargo test --release
 test result: ok. 28 passed; 0 failed; 0 ignored
 ```
+
 ✅ All tests passing including template tests
 
 ### Generated Configs
 
 Validated all generated configs against provider CLIs:
+
 - ✅ `docker compose config` - Valid YAML
 - ✅ `flyctl config validate` - Valid TOML
 - ✅ E2B template build - Accepted
@@ -217,14 +236,14 @@ Validated all generated configs against provider CLIs:
 
 ## Migration Timeline
 
-| Date | Action | Impact |
-|------|--------|--------|
-| 2026-01-21 09:00 | Initial parallel implementation | Mixed approach |
-| 2026-01-21 13:00 | User identified inconsistency | Decision to refactor |
-| 2026-01-21 14:00 | Fly.io refactoring complete | Templates used |
-| 2026-01-21 14:15 | E2B refactoring complete | Templates used |
-| 2026-01-21 14:25 | K8s cleanup complete | Dead fields removed |
-| 2026-01-21 14:35 | Validation complete | All tests passing |
+| Date             | Action                          | Impact               |
+| ---------------- | ------------------------------- | -------------------- |
+| 2026-01-21 09:00 | Initial parallel implementation | Mixed approach       |
+| 2026-01-21 13:00 | User identified inconsistency   | Decision to refactor |
+| 2026-01-21 14:00 | Fly.io refactoring complete     | Templates used       |
+| 2026-01-21 14:15 | E2B refactoring complete        | Templates used       |
+| 2026-01-21 14:25 | K8s cleanup complete            | Dead fields removed  |
+| 2026-01-21 14:35 | Validation complete             | All tests passing    |
 
 **Total Refactoring Time**: ~35 minutes
 

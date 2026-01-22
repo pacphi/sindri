@@ -99,9 +99,7 @@ pub async fn get_remote_url(path: &Utf8Path, name: &str) -> Result<Option<String
         return Ok(None);
     }
 
-    let url = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_string();
+    let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
     Ok(Some(url))
 }
@@ -173,11 +171,7 @@ pub async fn list_remotes(path: &Utf8Path) -> Result<Vec<(String, String)>> {
 ///
 /// # Errors
 /// Returns error if remotes already exist or setup fails
-pub async fn setup_fork_remotes(
-    path: &Utf8Path,
-    fork_url: &str,
-    upstream_url: &str,
-) -> Result<()> {
+pub async fn setup_fork_remotes(path: &Utf8Path, fork_url: &str, upstream_url: &str) -> Result<()> {
     info!("Setting up fork remotes");
 
     // Check if upstream exists, if not add it
@@ -231,11 +225,7 @@ pub async fn setup_fork_remotes(
 ///
 /// # Returns
 /// Ok(()) on success
-pub async fn fetch_remote(
-    path: &Utf8Path,
-    remote: &str,
-    branch: Option<&str>,
-) -> Result<()> {
+pub async fn fetch_remote(path: &Utf8Path, remote: &str, branch: Option<&str>) -> Result<()> {
     info!("Fetching from remote: {}", remote);
 
     let mut cmd = Command::new("git");
@@ -319,12 +309,8 @@ mod tests {
         // List remotes
         let remotes = list_remotes(path).await.unwrap();
         assert_eq!(remotes.len(), 2);
-        assert!(remotes
-            .iter()
-            .any(|(name, _)| name == "origin"));
-        assert!(remotes
-            .iter()
-            .any(|(name, _)| name == "upstream"));
+        assert!(remotes.iter().any(|(name, _)| name == "origin"));
+        assert!(remotes.iter().any(|(name, _)| name == "upstream"));
     }
 
     #[tokio::test]

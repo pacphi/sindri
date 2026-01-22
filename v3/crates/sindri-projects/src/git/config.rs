@@ -144,9 +144,7 @@ pub async fn get_config_value(
         return Ok(None);
     }
 
-    let value = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_string();
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
     Ok(Some(value))
 }
@@ -232,9 +230,7 @@ pub async fn get_current_branch(path: &Utf8Path) -> Result<String> {
         )));
     }
 
-    let branch = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_string();
+    let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
     Ok(branch)
 }

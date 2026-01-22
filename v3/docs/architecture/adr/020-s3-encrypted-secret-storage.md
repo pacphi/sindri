@@ -39,12 +39,14 @@ Sindri supports three secret sources (env, file, Vault). S3-based secret storage
 ```
 
 **Rationale for ChaCha20-Poly1305**:
+
 - Pure Rust implementation (RustCrypto/AEADs) with NCC Group audit
 - Faster than AES-GCM on systems without AES-NI
 - Authenticated encryption (AEAD) prevents tampering
 - 256-bit keys, 96-bit nonces, 128-bit authentication tags
 
 **Rationale for age encryption**:
+
 - Small explicit keys (age X25519 keypairs)
 - No config options, UNIX-style simplicity
 - Supports recipient lists (multiple team members)
@@ -53,6 +55,7 @@ Sindri supports three secret sources (env, file, Vault). S3-based secret storage
 ### 2. Storage Format
 
 **S3 Key Structure**:
+
 ```
 secrets/
 ├── prod/
@@ -69,6 +72,7 @@ secrets/
 ```
 
 **Secret Metadata (JSON)**:
+
 ```json
 {
   "version": "1.0",
@@ -78,9 +82,7 @@ secrets/
   "encryption": {
     "algorithm": "chacha20poly1305",
     "key_derivation": "age-x25519",
-    "recipients": [
-      "age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p"
-    ]
+    "recipients": ["age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p"]
   },
   "encrypted_dek": "age-encryption\n-----BEGIN AGE ENCRYPTED FILE-----\n...\n-----END AGE ENCRYPTED FILE-----",
   "encrypted_value": "base64-encoded-ciphertext",
@@ -98,6 +100,7 @@ secrets/
 **Three-Tier Strategy**:
 
 **Tier 1: Environment Variable** (Development)
+
 ```yaml
 secrets:
   backend:
@@ -108,6 +111,7 @@ secrets:
 ```
 
 **Tier 2: File-Based** (Production)
+
 ```yaml
 secrets:
   backend:
@@ -119,6 +123,7 @@ secrets:
 ```
 
 **Tier 3: AWS KMS** (Enterprise - Future)
+
 ```yaml
 secrets:
   backend:
@@ -131,6 +136,7 @@ secrets:
 ### 4. Secret Resolution Priority
 
 Updated resolution order:
+
 ```
 1. Shell environment variables
 2. .env.local
@@ -141,13 +147,14 @@ Updated resolution order:
 ```
 
 **Configuration**:
+
 ```yaml
 secrets:
   backend:
     type: s3
     bucket: my-sindri-secrets
     region: us-east-1
-    endpoint: https://s3.amazonaws.com  # Optional for S3-compatible
+    endpoint: https://s3.amazonaws.com # Optional for S3-compatible
     prefix: secrets/prod/
     encryption:
       algorithm: chacha20poly1305
@@ -174,6 +181,7 @@ secrets:
 ### 5. CLI Commands
 
 **Initialize S3 Backend**:
+
 ```bash
 sindri secrets s3 init --bucket my-secrets --region us-east-1
 
@@ -185,6 +193,7 @@ sindri secrets s3 init --bucket my-secrets --region us-east-1
 ```
 
 **Push Secret**:
+
 ```bash
 sindri secrets s3 push ANTHROPIC_API_KEY
 sindri secrets s3 push DATABASE_PASSWORD --value "super_secret_123"
@@ -196,6 +205,7 @@ sindri secrets s3 push TLS_CERT --from-file ./certs/tls.crt
 ```
 
 **Pull Secret**:
+
 ```bash
 sindri secrets s3 pull ANTHROPIC_API_KEY
 eval $(sindri secrets s3 pull ANTHROPIC_API_KEY --export)
@@ -208,6 +218,7 @@ sindri secrets s3 pull TLS_CERT --output ./certs/tls.crt
 ```
 
 **Sync Secrets**:
+
 ```bash
 sindri secrets s3 sync
 
@@ -218,6 +229,7 @@ sindri secrets s3 sync
 ```
 
 **Key Management**:
+
 ```bash
 sindri secrets s3 keygen --output ~/.sindri/new-master.key
 sindri secrets s3 rotate --new-key ~/.sindri/new-master.key
@@ -226,6 +238,7 @@ sindri secrets s3 recipients ANTHROPIC_API_KEY
 ```
 
 **Version Control**:
+
 ```bash
 sindri secrets s3 list
 sindri secrets s3 history ANTHROPIC_API_KEY
@@ -235,6 +248,7 @@ sindri secrets s3 rollback ANTHROPIC_API_KEY --version v4
 ### 6. Rust Implementation
 
 **Type Definitions**:
+
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct S3SecretBackend {
@@ -264,6 +278,7 @@ pub enum KeySource {
 ```
 
 **S3 Backend**:
+
 ```rust
 pub struct S3Backend {
     client: Client,
@@ -300,6 +315,7 @@ impl S3Backend {
 ```
 
 **Encryption**:
+
 ```rust
 pub struct SecretEncryptor {
     master_key: x25519::Identity,
@@ -359,6 +375,7 @@ impl SecretEncryptor {
 ```
 
 **S3 Resolver**:
+
 ```rust
 pub struct S3SecretResolver {
     backend: S3Backend,
@@ -417,6 +434,7 @@ impl S3SecretResolver {
 ### 7. Security Model
 
 **Defense in Depth**:
+
 ```
 Layer 1: S3 Server-Side Encryption (SSE-S3)
 Layer 2: Client-Side Encryption (ChaCha20-Poly1305)
@@ -426,6 +444,7 @@ Layer 5: TLS in Transit
 ```
 
 **Security Properties**:
+
 1. **Zero-Knowledge**: S3 provider never sees plaintext
 2. **Forward Secrecy**: Rotating master key doesn't compromise old secrets
 3. **Authenticated Encryption**: AEAD prevents tampering
@@ -435,6 +454,7 @@ Layer 5: TLS in Transit
 ### 8. Key Rotation
 
 **Scenario 1: Master Key Rotation**:
+
 ```bash
 sindri secrets s3 keygen --output ~/.sindri/new-master.key
 sindri secrets s3 rotate --new-key ~/.sindri/new-master.key --add-only
@@ -443,6 +463,7 @@ sindri secrets s3 rotate --new-key ~/.sindri/new-master.key --remove-old
 ```
 
 **Scenario 2: Secret Value Rotation**:
+
 ```bash
 NEW_PASSWORD=$(openssl rand -base64 32)
 psql -c "ALTER USER app_user WITH PASSWORD '$NEW_PASSWORD';"
@@ -452,11 +473,13 @@ sindri secrets s3 push DATABASE_PASSWORD --value "$NEW_PASSWORD"
 ### 9. Migration Guide
 
 **Phase 1: Setup**:
+
 ```bash
 sindri secrets s3 init --bucket my-team-secrets --region us-east-1
 ```
 
 **Phase 2: Migrate Secrets**:
+
 ```bash
 sindri secrets s3 push-from-env .env.local
 # Or individually
@@ -464,6 +487,7 @@ sindri secrets s3 push ANTHROPIC_API_KEY
 ```
 
 **Phase 3: Update sindri.yaml**:
+
 ```yaml
 secrets:
   backend:
@@ -480,6 +504,7 @@ secrets:
 ```
 
 **Phase 4: Team Onboarding**:
+
 ```bash
 # Receive master key securely
 # Save to ~/.sindri/master.key (0600)
@@ -490,6 +515,7 @@ sindri deploy
 ### 10. Performance
 
 **Benchmarks** (target):
+
 ```
 Encrypt 1KB secret:     <1ms
 Decrypt 1KB secret:     <1ms
@@ -525,11 +551,13 @@ Sync 10 secrets:        <2s
 ## Implementation
 
 **Week 16**: Core Encryption
+
 - ChaCha20-Poly1305 + age integration
 - Unit tests for encrypt/decrypt
 - Benchmarks
 
 **Week 17**: S3 Backend and CLI
+
 - S3Backend (get/put/list)
 - S3SecretResolver
 - CLI commands (init, push, pull, sync)

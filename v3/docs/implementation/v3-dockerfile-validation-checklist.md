@@ -37,17 +37,20 @@ This document provides a validation checklist for the v3 Dockerfile implementati
 ### Files Created
 
 #### Core Files
+
 - ✅ `v3/Dockerfile` - Multi-stage Dockerfile with BUILD_FROM_SOURCE flag
 - ✅ `v3/docker/scripts/entrypoint.sh` - Sindri CLI-integrated entrypoint
 - ✅ `v3/docker/scripts/setup-motd.sh` - v3 welcome banner
 
 #### Copied from v2 (Unchanged)
+
 - ✅ `v3/docker/scripts/install-mise.sh` - mise installation
 - ✅ `v3/docker/scripts/install-starship.sh` - Starship installation
 - ✅ `v3/docker/config/sshd_config` - SSH daemon configuration
 - ✅ `v3/docker/config/developer-sudoers` - Sudoers configuration
 
 #### Modified Files
+
 - ✅ `.github/workflows/release-v3.yml` - Added Docker image build job
 
 ---
@@ -57,6 +60,7 @@ This document provides a validation checklist for the v3 Dockerfile implementati
 ### Phase 1: Static Validation (Pre-Build)
 
 #### Dockerfile Structure
+
 - [ ] Multi-stage build structure verified
   - [ ] Stage 1a: builder-source (conditional build from source)
   - [ ] Stage 1b: builder-binary (default pre-compiled download)
@@ -74,6 +78,7 @@ This document provides a validation checklist for the v3 Dockerfile implementati
   - [ ] ✅ User: developer (UID: 1000, GID: 1000)
 
 #### Entrypoint Script
+
 - [ ] Function structure verified
   - [ ] `setup_home_directory()` - Initialize persistent volume
   - [ ] `setup_ssh_keys()` - Configure SSH authorized keys
@@ -90,6 +95,7 @@ This document provides a validation checklist for the v3 Dockerfile implementati
   - [ ] Creates bootstrap marker at `~/.sindri/bootstrap-complete`
 
 #### CI/CD Integration
+
 - [ ] Docker build job added to `.github/workflows/release-v3.yml`
   - [ ] Depends on `build-binaries` job
   - [ ] Downloads linux-x86_64 binary artifact
@@ -114,6 +120,7 @@ docker build -t sindri:v3-test -f v3/Dockerfile .
 ```
 
 **Expected Results:**
+
 - [ ] Build completes successfully
 - [ ] Build time < 8 minutes
 - [ ] Image size < 1GB
@@ -121,6 +128,7 @@ docker build -t sindri:v3-test -f v3/Dockerfile .
 - [ ] Output shows: `sindri 3.0.0` (or current version)
 
 **Troubleshooting:**
+
 - If build fails with "binary not found", check GitHub release URL format
 - If download fails, verify `SINDRI_VERSION` matches an actual release
 
@@ -134,12 +142,14 @@ docker build -t sindri:v3-source \
 ```
 
 **Expected Results:**
+
 - [ ] Build completes successfully
 - [ ] Build time < 15 minutes (longer due to Rust compilation)
 - [ ] Image size < 1GB
 - [ ] Binary is executable and matches version
 
 **Troubleshooting:**
+
 - If Rust compilation fails, check `RUST_VERSION` compatibility
 - If out of memory, increase Docker build memory limit
 
@@ -153,6 +163,7 @@ docker build -t sindri:v3.1.0 \
 ```
 
 **Expected Results:**
+
 - [ ] Downloads correct version from releases
 - [ ] Binary version matches: `docker run --rm sindri:v3.1.0 sindri --version`
 
@@ -182,6 +193,7 @@ docker logs sindri-test
 ```
 
 **Expected Results:**
+
 - [ ] Container starts successfully
 - [ ] SSH daemon running on port 2222
 - [ ] Log shows: "Sindri v3 initialization complete!"
@@ -189,6 +201,7 @@ docker logs sindri-test
 - [ ] No errors in startup logs
 
 **Key Log Messages to Verify:**
+
 ```
 [INFO] Setting up developer home directory...
 [OK] Home directory setup complete
@@ -221,6 +234,7 @@ tail -f ~/.sindri/logs/install.log
 ```
 
 **Expected Results:**
+
 - [ ] SSH connection succeeds
 - [ ] User is `developer`
 - [ ] Working directory is `/alt/home/developer/workspace`
@@ -249,12 +263,14 @@ sindri profile status minimal
 ```
 
 **Expected Results:**
+
 - [ ] Bootstrap completes within 5 minutes
 - [ ] `sindri extension status` shows installed extensions
 - [ ] Minimal profile extensions are installed
 - [ ] No installation errors in `~/.sindri/logs/install.log`
 
 **Expected Minimal Profile Extensions:**
+
 - git (if in minimal profile)
 - curl/wget (if in minimal profile)
 - Basic development tools
@@ -284,6 +300,7 @@ sindri extension status  # Should show previously installed extensions
 ```
 
 **Expected Results:**
+
 - [ ] Volume persists across container restarts
 - [ ] `~/.sindri/bootstrap-complete` marker exists
 - [ ] Extensions are still installed (no re-download)
@@ -305,6 +322,7 @@ docker logs -f sindri-full
 ```
 
 **Expected Results:**
+
 - [ ] Full profile extensions are installed
 - [ ] More extensions than minimal profile
 - [ ] Installation completes without errors
@@ -329,6 +347,7 @@ cat ~/.sindri/logs/install.log  # Should show skip message
 ```
 
 **Expected Results:**
+
 - [ ] Container starts successfully
 - [ ] SSH is available
 - [ ] Extensions are NOT auto-installed
@@ -358,6 +377,7 @@ git config --global credential.helper  # Should be configured
 ```
 
 **Expected Results:**
+
 - [ ] Git user name is configured
 - [ ] Git user email is configured
 - [ ] GitHub token credential helper is configured
@@ -370,9 +390,11 @@ git config --global credential.helper  # Should be configured
 #### Test 11: GitHub Actions Docker Build Job
 
 **Prerequisites:**
+
 - Tag must be pushed to trigger workflow: `git tag v3.0.0-rc.1 && git push origin v3.0.0-rc.1`
 
 **Checks:**
+
 - [ ] `build-docker-image` job runs after `build-binaries`
 - [ ] Downloads `binary-linux-x86_64` artifact
 - [ ] Extracts sindri binary
@@ -384,6 +406,7 @@ git config --global credential.helper  # Should be configured
 - [ ] Changelog includes Docker installation instructions
 
 **Troubleshooting:**
+
 - If binary download fails, check artifact name format
 - If push fails, verify GITHUB_TOKEN permissions include `packages: write`
 - If tag parsing fails, verify tag format: `v3.x.y` or `v3.x.y-prerelease`
@@ -394,25 +417,26 @@ git config --global credential.helper  # Should be configured
 
 ### Image Size Comparison
 
-| Metric | v2 | v3 Target | v3 Actual |
-|--------|----|-----------|-----------|
-| Base Image | ~2.5GB | ~800MB | [ ] TBD |
-| With Extensions | ~2.5GB | N/A (runtime) | N/A |
-| Total Build Time | 15-20 min | 5-8 min | [ ] TBD |
-| First Boot Time | ~2 min | ~3 min | [ ] TBD |
+| Metric           | v2        | v3 Target     | v3 Actual |
+| ---------------- | --------- | ------------- | --------- |
+| Base Image       | ~2.5GB    | ~800MB        | [ ] TBD   |
+| With Extensions  | ~2.5GB    | N/A (runtime) | N/A       |
+| Total Build Time | 15-20 min | 5-8 min       | [ ] TBD   |
+| First Boot Time  | ~2 min    | ~3 min        | [ ] TBD   |
 
 ### Extension Installation Performance
 
-| Profile | Extension Count | Expected Install Time |
-|---------|----------------|----------------------|
-| minimal | ~5-10 | < 2 minutes |
-| standard | ~20-30 | < 5 minutes |
-| full | ~50+ | < 10 minutes |
+| Profile  | Extension Count | Expected Install Time |
+| -------- | --------------- | --------------------- |
+| minimal  | ~5-10           | < 2 minutes           |
+| standard | ~20-30          | < 5 minutes           |
+| full     | ~50+            | < 10 minutes          |
 
 **Test and Record Actual Times:**
-- [ ] Minimal profile install time: ______ minutes
-- [ ] Standard profile install time: ______ minutes
-- [ ] Full profile install time: ______ minutes
+
+- [ ] Minimal profile install time: **\_\_** minutes
+- [ ] Standard profile install time: **\_\_** minutes
+- [ ] Full profile install time: **\_\_** minutes
 
 ---
 
@@ -453,12 +477,14 @@ git config --global credential.helper  # Should be configured
 If critical issues are found post-deployment:
 
 1. **Revert Docker image tag:**
+
    ```bash
    docker tag ghcr.io/<repo>:v2.x.x ghcr.io/<repo>:latest
    docker push ghcr.io/<repo>:latest
    ```
 
 2. **Revert Git tag:**
+
    ```bash
    git tag -d v3.0.0
    git push origin :refs/tags/v3.0.0

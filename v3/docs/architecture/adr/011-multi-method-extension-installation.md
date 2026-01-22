@@ -19,17 +19,20 @@ Sindri extensions must support diverse installation patterns to accommodate diff
 Each method has unique requirements:
 
 **mise**:
+
 - Install tool with specific version
 - Requires mise already installed in base image
 - Example: `mise install nodejs@20.11.0`
 
 **apt**:
+
 - Install one or more system packages
 - Requires sudo privileges
 - May need `apt update` first
 - Example: `apt-get install -y git curl wget`
 
 **binary**:
+
 - Download pre-compiled binary from URL
 - Verify checksum (security)
 - Extract if tarball/zip
@@ -37,22 +40,26 @@ Each method has unique requirements:
 - Example: GitHub releases, S3 buckets
 
 **npm**:
+
 - Install Node.js package globally
 - Requires nodejs already installed (dependency)
 - Specify version or use latest
 - Example: `npm install -g @anthropic-ai/claude-code`
 
 **script**:
+
 - Run arbitrary shell script
 - Maximum flexibility but security risk
 - Must be idempotent
 - Example: Install from custom source, run post-install config
 
 **hybrid**:
+
 - Sequential execution of multiple methods
 - Example: `apt install build-essential` → `binary download` → `script configure`
 
 The bash implementation used a single `executor.sh` script with method detection, but lacked:
+
 - Type-safe method configuration
 - Security controls (path traversal, sudo validation)
 - Timeout and retry strategies
@@ -115,6 +122,7 @@ pub enum InstallStep {
 Each method has a dedicated executor with security controls:
 
 **Mise Executor**:
+
 ```rust
 pub async fn install_mise(tool: &str, version: &str) -> Result<()> {
     // Validate tool name (prevent command injection)
@@ -148,6 +156,7 @@ fn validate_tool_name(tool: &str) -> Result<()> {
 ```
 
 **Apt Executor**:
+
 ```rust
 pub async fn install_apt(packages: &[String], update: bool) -> Result<()> {
     // Validate package names
@@ -202,6 +211,7 @@ fn validate_package_name(pkg: &str) -> Result<()> {
 ```
 
 **Binary Executor**:
+
 ```rust
 pub async fn install_binary(
     url: &str,
@@ -307,6 +317,7 @@ fn validate_target_path(path: &Path) -> Result<()> {
 ```
 
 **npm Executor**:
+
 ```rust
 pub async fn install_npm(
     package: &str,
@@ -358,6 +369,7 @@ fn validate_npm_package_name(name: &str) -> Result<()> {
 ```
 
 **Script Executor**:
+
 ```rust
 pub async fn install_script(
     content: &str,
@@ -408,6 +420,7 @@ fn validate_interpreter(path: &str) -> Result<()> {
 ```
 
 **Hybrid Executor**:
+
 ```rust
 pub async fn install_hybrid(steps: &[InstallStep]) -> Result<()> {
     for (idx, step) in steps.iter().enumerate() {
@@ -449,6 +462,7 @@ capabilities:
 ```
 
 **Hook Execution**:
+
 ```rust
 pub async fn install_extension_with_hooks(
     extension: &Extension,
@@ -499,6 +513,7 @@ async fn run_hook(script_path: &str) -> Result<()> {
 ### Timeout and Retry Strategies
 
 All installation methods include:
+
 - **Timeout**: Prevent hanging installations (10-15 minutes)
 - **Retry**: Retry transient failures (network errors, 3 attempts)
 - **Progress**: Show progress bars for long operations
@@ -574,11 +589,13 @@ where
 **Description**: Single `script` method, all installations via shell scripts.
 
 **Pros**:
+
 - Maximum flexibility
 - Simple implementation (single executor)
 - Easy to debug (just read script)
 
 **Cons**:
+
 - No type safety
 - Inconsistent error handling
 - No built-in security controls
@@ -592,11 +609,13 @@ where
 **Description**: Each extension packaged as container image, installed via docker.
 
 **Pros**:
+
 - Perfect isolation
 - Reproducible installations
 - No system dependencies
 
 **Cons**:
+
 - Heavy (5MB+ per extension)
 - Requires container runtime
 - Complex for simple tools
@@ -609,12 +628,14 @@ where
 **Description**: Use Nix for all installations (declarative, reproducible).
 
 **Pros**:
+
 - Fully declarative
 - Immutable installations
 - Rollback support
 - No sudo required
 
 **Cons**:
+
 - Requires Nix installed
 - Steep learning curve
 - Not all tools available in nixpkgs
@@ -627,10 +648,12 @@ where
 **Description**: Single executor that detects method from extension YAML fields.
 
 **Pros**:
+
 - Less code duplication
 - Single entry point
 
 **Cons**:
+
 - Complex conditional logic
 - Loses type safety benefits
 - Harder to test each method independently
@@ -642,10 +665,12 @@ where
 **Description**: Install independent extensions in parallel using tokio.
 
 **Pros**:
+
 - Faster multi-extension installation
 - Better resource utilization
 
 **Cons**:
+
 - Complex error handling
 - Race conditions possible (e.g., two extensions modify same file)
 - Harder to debug failures
@@ -670,6 +695,7 @@ The choice of six methods was data-driven: analysis of 40+ existing extensions r
 Security is paramount: all methods include validation to prevent command injection, path traversal, and privilege escalation. The `script` method is the most powerful but also most risky - extensions using it should be carefully reviewed.
 
 Future enhancements:
+
 - Add `cargo` method for Rust tools
 - Add `pip` method for Python packages (separate from mise)
 - Add `homebrew` method for macOS support

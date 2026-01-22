@@ -30,35 +30,35 @@ This document provides comprehensive technical design for migrating the Sindri C
 
 ### 1.1 Codebase Inventory
 
-| Component | File | Size | Lines | Purpose |
-|-----------|------|------|-------|---------|
-| Main CLI | `cli/sindri` | 39KB | 1155 | Deployment orchestration |
-| Extension Manager | `cli/extension-manager` | 18KB | ~500 | Extension lifecycle |
-| Backup/Restore | `cli/backup-restore` | 33KB | ~900 | Workspace backup |
-| Secrets Manager | `cli/secrets-manager` | 26KB | ~700 | Secret resolution |
-| New Project | `cli/new-project` | 10KB | ~320 | Project scaffolding |
-| Clone Project | `cli/clone-project` | 7KB | ~220 | Repository cloning |
-| **Extension Modules** | | | | |
-| - cli.sh | `extension-manager-modules/` | - | 132 | Argument parsing |
-| - executor.sh | `extension-manager-modules/` | - | 1030 | Install execution |
-| - dependency.sh | `extension-manager-modules/` | - | 135 | DAG resolution |
-| - validator.sh | `extension-manager-modules/` | - | 182 | Schema validation |
-| - manifest.sh | `extension-manager-modules/` | - | 100+ | Manifest management |
-| - bom.sh | `extension-manager-modules/` | - | 100+ | Bill of materials |
-| - conflict-checker.sh | `extension-manager-modules/` | - | 100+ | Conflict detection |
-| - reporter.sh | `extension-manager-modules/` | - | 80+ | Status reporting |
-| **Provider Adapters** | | | | |
-| - adapter-common.sh | `deploy/adapters/` | 8.5KB | 230 | Shared interface |
-| - docker-adapter.sh | `deploy/adapters/` | - | 660 | Docker/local |
-| - fly-adapter.sh | `deploy/adapters/` | - | 830 | Fly.io |
-| - devpod-adapter.sh | `deploy/adapters/` | - | 874 | DevPod |
-| - e2b-adapter.sh | `deploy/adapters/` | - | 852 | E2B sandbox |
-| - k8s-adapter.sh | `deploy/adapters/k8s/` | - | ~500 | Kubernetes |
-| **Common Libraries** | | | | |
-| - common.sh | `docker/lib/` | - | 150+ | Utilities |
-| - git.sh | `docker/lib/` | - | - | Git operations |
-| - project-core.sh | `docker/lib/` | - | - | Project setup |
-| **Total** | | | **~52,000+** | |
+| Component             | File                         | Size  | Lines        | Purpose                  |
+| --------------------- | ---------------------------- | ----- | ------------ | ------------------------ |
+| Main CLI              | `cli/sindri`                 | 39KB  | 1155         | Deployment orchestration |
+| Extension Manager     | `cli/extension-manager`      | 18KB  | ~500         | Extension lifecycle      |
+| Backup/Restore        | `cli/backup-restore`         | 33KB  | ~900         | Workspace backup         |
+| Secrets Manager       | `cli/secrets-manager`        | 26KB  | ~700         | Secret resolution        |
+| New Project           | `cli/new-project`            | 10KB  | ~320         | Project scaffolding      |
+| Clone Project         | `cli/clone-project`          | 7KB   | ~220         | Repository cloning       |
+| **Extension Modules** |                              |       |              |                          |
+| - cli.sh              | `extension-manager-modules/` | -     | 132          | Argument parsing         |
+| - executor.sh         | `extension-manager-modules/` | -     | 1030         | Install execution        |
+| - dependency.sh       | `extension-manager-modules/` | -     | 135          | DAG resolution           |
+| - validator.sh        | `extension-manager-modules/` | -     | 182          | Schema validation        |
+| - manifest.sh         | `extension-manager-modules/` | -     | 100+         | Manifest management      |
+| - bom.sh              | `extension-manager-modules/` | -     | 100+         | Bill of materials        |
+| - conflict-checker.sh | `extension-manager-modules/` | -     | 100+         | Conflict detection       |
+| - reporter.sh         | `extension-manager-modules/` | -     | 80+          | Status reporting         |
+| **Provider Adapters** |                              |       |              |                          |
+| - adapter-common.sh   | `deploy/adapters/`           | 8.5KB | 230          | Shared interface         |
+| - docker-adapter.sh   | `deploy/adapters/`           | -     | 660          | Docker/local             |
+| - fly-adapter.sh      | `deploy/adapters/`           | -     | 830          | Fly.io                   |
+| - devpod-adapter.sh   | `deploy/adapters/`           | -     | 874          | DevPod                   |
+| - e2b-adapter.sh      | `deploy/adapters/`           | -     | 852          | E2B sandbox              |
+| - k8s-adapter.sh      | `deploy/adapters/k8s/`       | -     | ~500         | Kubernetes               |
+| **Common Libraries**  |                              |       |              |                          |
+| - common.sh           | `docker/lib/`                | -     | 150+         | Utilities                |
+| - git.sh              | `docker/lib/`                | -     | -            | Git operations           |
+| - project-core.sh     | `docker/lib/`                | -     | -            | Project setup            |
+| **Total**             |                              |       | **~52,000+** |                          |
 
 ### 1.2 Current Version
 
@@ -69,20 +69,20 @@ Target:  3.0.0 (Rust rewrite)
 
 ### 1.3 External Tool Dependencies
 
-| Tool | Current Usage | Rust Migration Strategy |
-|------|--------------|------------------------|
-| `yq` | YAML query/manipulation | **Replace**: `serde_yaml` native parsing |
-| `jq` | JSON parsing | **Replace**: `serde_json` native parsing |
-| `docker` | Container lifecycle | **Keep**: Complex daemon interaction |
-| `flyctl` | Fly.io deployment | **Keep**: Proprietary CLI |
-| `devpod` | Workspace management | **Keep**: Plugin architecture |
-| `gh` | GitHub operations | **Keep**: OAuth/auth flows |
-| `git` | Version control | **Keep**: Ubiquitous, complex |
-| `vault` | Secret management | **Keep**: Security requirements |
-| `mise` | Tool versions | **Keep**: Inside container only |
-| `python3` | Schema validation | **Replace**: `jsonschema` crate |
-| `curl/wget` | Downloads | **Replace**: `reqwest` |
-| `tar` | Archive operations | **Replace**: `tar`/`flate2` crates |
+| Tool        | Current Usage           | Rust Migration Strategy                  |
+| ----------- | ----------------------- | ---------------------------------------- |
+| `yq`        | YAML query/manipulation | **Replace**: `serde_yaml` native parsing |
+| `jq`        | JSON parsing            | **Replace**: `serde_json` native parsing |
+| `docker`    | Container lifecycle     | **Keep**: Complex daemon interaction     |
+| `flyctl`    | Fly.io deployment       | **Keep**: Proprietary CLI                |
+| `devpod`    | Workspace management    | **Keep**: Plugin architecture            |
+| `gh`        | GitHub operations       | **Keep**: OAuth/auth flows               |
+| `git`       | Version control         | **Keep**: Ubiquitous, complex            |
+| `vault`     | Secret management       | **Keep**: Security requirements          |
+| `mise`      | Tool versions           | **Keep**: Inside container only          |
+| `python3`   | Schema validation       | **Replace**: `jsonschema` crate          |
+| `curl/wget` | Downloads               | **Replace**: `reqwest`                   |
+| `tar`       | Archive operations      | **Replace**: `tar`/`flate2` crates       |
 
 ### 1.4 Command Structure
 
@@ -151,16 +151,16 @@ clone-project <url> [--fork] [--branch] [--depth] [--feature]
 
 ### 2.1 Benefits of Rust
 
-| Aspect | Bash (Current) | Rust (Target) |
-|--------|---------------|---------------|
-| **Distribution** | Requires bash interpreter | Single static binary |
-| **Performance** | Process spawning overhead | Native execution |
-| **Type Safety** | None | Compile-time guarantees |
-| **Error Handling** | Exit codes, string parsing | `Result<T, E>` types |
-| **Testing** | Limited, script-based | Unit + integration tests |
-| **Cross-Platform** | Shell compatibility issues | Cross-compilation |
-| **Dependencies** | External tools (yq, jq) | Built-in parsing |
-| **Self-Update** | Manual download/replace | Atomic binary updates |
+| Aspect             | Bash (Current)             | Rust (Target)            |
+| ------------------ | -------------------------- | ------------------------ |
+| **Distribution**   | Requires bash interpreter  | Single static binary     |
+| **Performance**    | Process spawning overhead  | Native execution         |
+| **Type Safety**    | None                       | Compile-time guarantees  |
+| **Error Handling** | Exit codes, string parsing | `Result<T, E>` types     |
+| **Testing**        | Limited, script-based      | Unit + integration tests |
+| **Cross-Platform** | Shell compatibility issues | Cross-compilation        |
+| **Dependencies**   | External tools (yq, jq)    | Built-in parsing         |
+| **Self-Update**    | Manual download/replace    | Atomic binary updates    |
 
 ### 2.2 Key Drivers
 
@@ -230,17 +230,17 @@ globset = "0.4"
 
 ### 3.2 Crate Selection Rationale
 
-| Category | Crate | Why |
-|----------|-------|-----|
-| CLI | `clap` | Industry standard, derive macros, subcommands |
-| Async | `tokio` | Required by reqwest, mature ecosystem |
-| YAML | `serde_yaml` | Serde integration, battle-tested |
-| Schema | `jsonschema` | Draft-07 support, actively maintained |
-| HTTP | `reqwest` | Async, TLS, widely used |
-| Update | `self_update` | GitHub releases integration |
-| Templates | `tera` | Jinja2-like, filters, familiar syntax |
-| Terminal | `indicatif` | Multi-progress bars, spinners |
-| Embed | `rust-embed` | Compile-time asset embedding |
+| Category  | Crate         | Why                                           |
+| --------- | ------------- | --------------------------------------------- |
+| CLI       | `clap`        | Industry standard, derive macros, subcommands |
+| Async     | `tokio`       | Required by reqwest, mature ecosystem         |
+| YAML      | `serde_yaml`  | Serde integration, battle-tested              |
+| Schema    | `jsonschema`  | Draft-07 support, actively maintained         |
+| HTTP      | `reqwest`     | Async, TLS, widely used                       |
+| Update    | `self_update` | GitHub releases integration                   |
+| Templates | `tera`        | Jinja2-like, filters, familiar syntax         |
+| Terminal  | `indicatif`   | Multi-progress bars, spinners                 |
+| Embed     | `rust-embed`  | Compile-time asset embedding                  |
 
 ---
 
@@ -771,13 +771,13 @@ impl Provider for DockerProvider {
 
 ### 5.3 Provider Summary
 
-| Provider | External CLI | Config Generated | Special Features |
-|----------|-------------|-----------------|------------------|
-| Docker | `docker`, `docker compose` | `docker-compose.yml` | DinD detection, GPU validation |
-| Fly.io | `flyctl` | `fly.toml` | SSH key mgmt, auto-stop, IPv4/6 |
-| DevPod | `devpod` | `devcontainer.json` | Multi-cloud GPU mapping |
-| E2B | `e2b` | Template files | Sandbox pause/resume |
-| Kubernetes | `kubectl` | K8s manifests | Cluster detection (kind/k3d) |
+| Provider   | External CLI               | Config Generated     | Special Features                |
+| ---------- | -------------------------- | -------------------- | ------------------------------- |
+| Docker     | `docker`, `docker compose` | `docker-compose.yml` | DinD detection, GPU validation  |
+| Fly.io     | `flyctl`                   | `fly.toml`           | SSH key mgmt, auto-stop, IPv4/6 |
+| DevPod     | `devpod`                   | `devcontainer.json`  | Multi-cloud GPU mapping         |
+| E2B        | `e2b`                      | Template files       | Sandbox pause/resume            |
+| Kubernetes | `kubectl`                  | K8s manifests        | Cluster detection (kind/k3d)    |
 
 ---
 
@@ -1332,7 +1332,7 @@ extensions:
     version: "1.0.0"
     installed_at: "2025-01-18T08:00:00Z"
     source: "github:sindri/sindri-extensions"
-    protected: true  # Base extension, cannot be removed
+    protected: true # Base extension, cannot be removed
 ```
 
 #### CLI Commands
@@ -1441,6 +1441,7 @@ impl SchemaResolver {
 ```
 
 **Benefits:**
+
 - Schema updates without CLI release
 - Backward compatibility through versioned schemas
 - Embedded fallback ensures offline operation
@@ -1912,13 +1913,13 @@ impl SindriUpdater {
 
 ### 8.1 Build Targets
 
-| Platform | Triple | Build Method | Notes |
-|----------|--------|--------------|-------|
-| Linux x86_64 | `x86_64-unknown-linux-musl` | Native/Docker | Static linking, glibc-free |
-| Linux ARM64 | `aarch64-unknown-linux-musl` | Cross | AWS Graviton, Raspberry Pi |
-| macOS x86_64 | `x86_64-apple-darwin` | Native | Intel Macs |
-| macOS ARM64 | `aarch64-apple-darwin` | Native/Cross | Apple Silicon |
-| Windows x86_64 | `x86_64-pc-windows-msvc` | Native | Windows 10/11 support |
+| Platform       | Triple                       | Build Method  | Notes                      |
+| -------------- | ---------------------------- | ------------- | -------------------------- |
+| Linux x86_64   | `x86_64-unknown-linux-musl`  | Native/Docker | Static linking, glibc-free |
+| Linux ARM64    | `aarch64-unknown-linux-musl` | Cross         | AWS Graviton, Raspberry Pi |
+| macOS x86_64   | `x86_64-apple-darwin`        | Native        | Intel Macs                 |
+| macOS ARM64    | `aarch64-apple-darwin`       | Native/Cross  | Apple Silicon              |
+| Windows x86_64 | `x86_64-pc-windows-msvc`     | Native        | Windows 10/11 support      |
 
 ### 8.2 CI/CD Pipeline
 
@@ -1928,7 +1929,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 permissions:
   contents: write
@@ -2109,18 +2110,21 @@ end
 ### Phase 1: Foundation (Weeks 1-3)
 
 **Objectives:**
+
 - Set up Rust workspace
 - Implement config parsing
 - JSON Schema validation
 - Basic CLI structure
 
 **Deliverables:**
+
 - `sindri version`
 - `sindri config init`
 - `sindri config validate`
 - Configuration loading from sindri.yaml
 
 **Key Files:**
+
 - `crates/sindri/src/main.rs`
 - `crates/sindri/src/cli.rs`
 - `crates/sindri-core/src/config/`
@@ -2129,11 +2133,13 @@ end
 ### Phase 2: Provider Framework (Weeks 4-6)
 
 **Objectives:**
+
 - Provider trait definition
 - Docker provider (first implementation)
 - Template generation with Tera
 
 **Deliverables:**
+
 - `sindri deploy --provider docker`
 - `sindri connect`
 - `sindri destroy`
@@ -2141,6 +2147,7 @@ end
 - docker-compose.yml generation
 
 **Key Files:**
+
 - `crates/sindri-providers/src/traits.rs`
 - `crates/sindri-providers/src/docker.rs`
 - `templates/docker-compose.yml.tera`
@@ -2148,17 +2155,20 @@ end
 ### Phase 3: Additional Providers (Weeks 7-10)
 
 **Objectives:**
+
 - Fly.io provider
 - DevPod provider
 - E2B provider
 - Kubernetes provider
 
 **Deliverables:**
+
 - Full provider support for all 5 providers
 - fly.toml generation
 - devcontainer.json generation
 
 **Key Files:**
+
 - `crates/sindri-providers/src/fly.rs`
 - `crates/sindri-providers/src/devpod.rs`
 - `crates/sindri-providers/src/e2b.rs`
@@ -2167,12 +2177,14 @@ end
 ### Phase 4: Extension System (Weeks 11-14)
 
 **Objectives:**
+
 - Extension YAML parsing
 - Dependency resolution
 - Script execution framework
 - Profile installation
 
 **Deliverables:**
+
 - `sindri extension install <name>`
 - `sindri extension list`
 - `sindri extension validate`
@@ -2180,22 +2192,26 @@ end
 - Profile-based installation
 
 **Key Files:**
+
 - `crates/sindri-extensions/src/`
 - `crates/sindri/src/commands/extension.rs`
 
 ### Phase 5: Secrets & Backup (Weeks 15-17)
 
 **Objectives:**
+
 - Multi-source secret resolution
 - Backup/restore functionality
 
 **Deliverables:**
+
 - `sindri secrets validate`
 - `sindri secrets list`
 - `sindri backup`
 - `sindri restore`
 
 **Key Files:**
+
 - `crates/sindri-secrets/src/`
 - `crates/sindri/src/commands/backup.rs`
 - `crates/sindri/src/commands/secrets.rs`
@@ -2203,11 +2219,13 @@ end
 ### Phase 6: Self-Update (Weeks 18-19)
 
 **Objectives:**
+
 - GitHub releases integration
 - Self-update mechanism
 - Compatibility matrix
 
 **Deliverables:**
+
 - `sindri upgrade`
 - `sindri upgrade --check`
 - `sindri upgrade --list`
@@ -2215,31 +2233,37 @@ end
 - `sindri upgrade --compat <v>`
 
 **Key Files:**
+
 - `crates/sindri-update/src/`
 - `crates/sindri/src/commands/upgrade.rs`
 
 ### Phase 7: Project Management (Weeks 20-21)
 
 **Objectives:**
+
 - new-project functionality
 - clone-project functionality
 
 **Deliverables:**
+
 - `sindri new <name>`
 - `sindri clone <repo>`
 
 **Key Files:**
+
 - `crates/sindri/src/commands/project.rs`
 
 ### Phase 8: Testing & Release (Weeks 22-24)
 
 **Objectives:**
+
 - Comprehensive test suite
 - CI/CD pipeline
 - Documentation
 - Migration guide
 
 **Deliverables:**
+
 - Integration tests
 - Release workflow
 - User documentation
@@ -2251,17 +2275,18 @@ end
 
 ### 10.1 Breaking Changes
 
-| Area | v2 Behavior | v3 Behavior |
-|------|-------------|-------------|
-| Distribution | Bash scripts | Single binary |
-| YAML parsing | External `yq` | Native `serde_yaml` |
-| JSON parsing | External `jq` | Native `serde_json` |
-| Versioning | Manual update | `sindri upgrade` |
-| Extension exec | Direct bash | Rust orchestration + bash scripts |
+| Area           | v2 Behavior   | v3 Behavior                       |
+| -------------- | ------------- | --------------------------------- |
+| Distribution   | Bash scripts  | Single binary                     |
+| YAML parsing   | External `yq` | Native `serde_yaml`               |
+| JSON parsing   | External `jq` | Native `serde_json`               |
+| Versioning     | Manual update | `sindri upgrade`                  |
+| Extension exec | Direct bash   | Rust orchestration + bash scripts |
 
 ### 10.2 What Stays in Bash
 
 Inside the deployed container:
+
 - `/docker/lib/common.sh` - Utility functions for extensions
 - Extension `scripts/install.sh` files
 - `entrypoint.sh` - Container initialization
@@ -2284,32 +2309,34 @@ Extension YAML format remains unchanged to maintain compatibility with existing 
 
 ### 11.1 Technical Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| External CLI changes | Medium | High | Abstract CLI interactions, version checks |
-| Cross-compilation issues | Medium | Medium | Use `cross`, test all targets in CI |
-| Template generation bugs | Low | High | Extensive template testing |
-| Self-update failures | Low | High | Backup binary before update, rollback |
+| Risk                     | Likelihood | Impact | Mitigation                                |
+| ------------------------ | ---------- | ------ | ----------------------------------------- |
+| External CLI changes     | Medium     | High   | Abstract CLI interactions, version checks |
+| Cross-compilation issues | Medium     | Medium | Use `cross`, test all targets in CI       |
+| Template generation bugs | Low        | High   | Extensive template testing                |
+| Self-update failures     | Low        | High   | Backup binary before update, rollback     |
 
 ### 11.2 Schedule Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Provider complexity | Medium | Medium | Start with Docker, iterate |
-| Extension edge cases | High | Medium | Extensive testing with real extensions |
-| CI/CD setup | Low | Low | Use proven tools (cargo-dist) |
+| Risk                 | Likelihood | Impact | Mitigation                             |
+| -------------------- | ---------- | ------ | -------------------------------------- |
+| Provider complexity  | Medium     | Medium | Start with Docker, iterate             |
+| Extension edge cases | High       | Medium | Extensive testing with real extensions |
+| CI/CD setup          | Low        | Low    | Use proven tools (cargo-dist)          |
 
 ### 11.3 Provider-Specific Implementation Requirements
 
 The Rust CLI must handle significant idiosyncratic behaviors across providers:
 
 #### Docker Provider
+
 - **DinD Mode Detection**: Auto-detect sysbox → privileged → socket → none
 - **Volume Strategy**: Single vs dual volumes based on DinD mode
 - **GPU Validation**: Check `nvidia` runtime in `docker info`
 - **Cleanup**: OrbStack-compatible volume cleanup with force fallback
 
 #### Fly.io Provider
+
 - **SSH Key Validation**: Reject RSA, enforce ED25519, auto-generate if missing
 - **Memory Format**: Strict regex validation `^[0-9]+[GM]B$` (security)
 - **Machine State**: Handle suspended/stopped with auto-wake (5s delay)
@@ -2317,41 +2344,44 @@ The Rust CLI must handle significant idiosyncratic behaviors across providers:
 - **CI Mode**: Skip SSH services, use hallpass console
 
 #### DevPod Provider
+
 - **Multi-Cloud GPU Mapping**: Provider-specific instance types
 - **Local Cluster Detection**: kind (`kind-*`) vs k3d (`k3d-*`) contexts
 - **Build Repository**: Required for remote, not local clusters
 - **Credentials Chain**: env → .env files → docker config → provider-specific
 
 #### E2B Provider
+
 - **GPU Block**: Explicit validation prevents GPU deployments
 - **Sandbox Lifecycle**: Pause (4s/GiB) vs destroy semantics
 - **API Key**: `E2B_API_KEY` required with no fallback
 - **Template Caching**: Reuse strategy with --rebuild override
 
 #### Kubernetes Provider
+
 - **Cluster Discovery**: kind/k3d auto-detection via CLI commands
 - **Image Loading**: `kind load` vs `k3d image import` for local clusters
 - **Registry**: k3d-only local registry creation option
 
 #### Provider Feature Matrix
 
-| Feature | Docker | Fly.io | DevPod | E2B | K8s |
-|---------|--------|--------|--------|-----|-----|
-| GPU Support | NVIDIA | A100/L40s | Multi-cloud | ✗ | ✓ |
-| Auto-suspend | ✗ | ✓ | Provider | ✓ | ✗ |
-| Volume auto-extend | ✗ | ✓ | Provider | ✗ | StorageClass |
-| DinD | 3 modes | ✗ | Provider | ✗ | Depends |
-| CI mode handling | Same | No SSH | Same | Same | Same |
+| Feature            | Docker  | Fly.io    | DevPod      | E2B  | K8s          |
+| ------------------ | ------- | --------- | ----------- | ---- | ------------ |
+| GPU Support        | NVIDIA  | A100/L40s | Multi-cloud | ✗    | ✓            |
+| Auto-suspend       | ✗       | ✓         | Provider    | ✓    | ✗            |
+| Volume auto-extend | ✗       | ✓         | Provider    | ✗    | StorageClass |
+| DinD               | 3 modes | ✗         | Provider    | ✗    | Depends      |
+| CI mode handling   | Same    | No SSH    | Same        | Same | Same         |
 
 #### Required External CLIs
 
-| Provider | Required | Notes |
-|----------|----------|-------|
-| Docker | docker (compose v2) | No version constraint |
-| Fly.io | flyctl | Must be authenticated |
-| DevPod | devpod, docker | kubectl for k8s |
-| E2B | e2b (npm) | `npm i -g @e2b/cli` |
-| Kubernetes | kubectl, kind OR k3d | docker for local |
+| Provider   | Required             | Notes                 |
+| ---------- | -------------------- | --------------------- |
+| Docker     | docker (compose v2)  | No version constraint |
+| Fly.io     | flyctl               | Must be authenticated |
+| DevPod     | devpod, docker       | kubectl for k8s       |
+| E2B        | e2b (npm)            | `npm i -g @e2b/cli`   |
+| Kubernetes | kubectl, kind OR k3d | docker for local      |
 
 ### 11.4 Design Decisions
 
@@ -2370,34 +2400,35 @@ The Rust CLI must handle significant idiosyncratic behaviors across providers:
 
 ### Critical Files from Current Codebase
 
-| Purpose | Path |
-|---------|------|
-| Main CLI | `cli/sindri` |
-| Extension executor | `cli/extension-manager-modules/executor.sh` |
+| Purpose               | Path                                          |
+| --------------------- | --------------------------------------------- |
+| Main CLI              | `cli/sindri`                                  |
+| Extension executor    | `cli/extension-manager-modules/executor.sh`   |
 | Dependency resolution | `cli/extension-manager-modules/dependency.sh` |
-| Provider pattern | `deploy/adapters/adapter-common.sh` |
-| Docker adapter | `deploy/adapters/docker-adapter.sh` |
-| Fly adapter | `deploy/adapters/fly-adapter.sh` |
-| Extension schema | `docker/lib/schemas/extension.schema.json` |
-| Config schema | `docker/lib/schemas/sindri.schema.json` |
-| Extension registry | `docker/lib/registry.yaml` |
-| Profiles | `docker/lib/profiles.yaml` |
+| Provider pattern      | `deploy/adapters/adapter-common.sh`           |
+| Docker adapter        | `deploy/adapters/docker-adapter.sh`           |
+| Fly adapter           | `deploy/adapters/fly-adapter.sh`              |
+| Extension schema      | `docker/lib/schemas/extension.schema.json`    |
+| Config schema         | `docker/lib/schemas/sindri.schema.json`       |
+| Extension registry    | `docker/lib/registry.yaml`                    |
+| Profiles              | `docker/lib/profiles.yaml`                    |
 
 ### Estimated Lines of Rust Code
 
-| Component | Estimated Lines |
-|-----------|----------------|
-| sindri (CLI) | 2,000 |
-| sindri-core | 1,500 |
-| sindri-providers | 3,000 |
-| sindri-extensions | 2,000 |
-| sindri-secrets | 800 |
-| sindri-update | 600 |
-| Templates | 500 |
-| Tests | 2,000 |
-| **Total** | **~12,500** |
+| Component         | Estimated Lines |
+| ----------------- | --------------- |
+| sindri (CLI)      | 2,000           |
+| sindri-core       | 1,500           |
+| sindri-providers  | 3,000           |
+| sindri-extensions | 2,000           |
+| sindri-secrets    | 800             |
+| sindri-update     | 600             |
+| Templates         | 500             |
+| Tests             | 2,000           |
+| **Total**         | **~12,500**     |
 
 Compared to ~52,000 lines of bash, this represents a ~75% reduction in code volume due to:
+
 - Native YAML/JSON handling vs shell parsing
 - Shared types and error handling
 - Less boilerplate for argument parsing
@@ -2411,16 +2442,16 @@ Compared to ~52,000 lines of bash, this represents a ~75% reduction in code volu
 
 **Test Suite Status**: 34 unit tests, 100% passing
 
-| Module | Tests | Coverage Areas | Status |
-|--------|-------|---------------|--------|
-| **bom** | 2 | BOM creation, component counting | ✅ Complete |
-| **dependency** | 5 | DAG resolution, cycle detection, diamond deps | ✅ Complete |
-| **distribution** | 3 | Manifest, version parsing, semver requirements | ✅ Complete |
-| **executor** | 2 | Path validation, security checks | ✅ Complete |
-| **manifest** | 7 | State tracking, persistence, queries | ✅ Complete |
-| **registry** | 2 | Cache TTL, GitHub URLs | ✅ Complete |
-| **types** | 5 | YAML deserialization, type validation | ✅ Complete |
-| **validator** | 8 | Schema validation, semantic checks | ✅ Complete |
+| Module           | Tests | Coverage Areas                                 | Status      |
+| ---------------- | ----- | ---------------------------------------------- | ----------- |
+| **bom**          | 2     | BOM creation, component counting               | ✅ Complete |
+| **dependency**   | 5     | DAG resolution, cycle detection, diamond deps  | ✅ Complete |
+| **distribution** | 3     | Manifest, version parsing, semver requirements | ✅ Complete |
+| **executor**     | 2     | Path validation, security checks               | ✅ Complete |
+| **manifest**     | 7     | State tracking, persistence, queries           | ✅ Complete |
+| **registry**     | 2     | Cache TTL, GitHub URLs                         | ✅ Complete |
+| **types**        | 5     | YAML deserialization, type validation          | ✅ Complete |
+| **validator**    | 8     | Schema validation, semantic checks             | ✅ Complete |
 
 ### Test Improvement Recommendations
 
@@ -2545,6 +2576,7 @@ async fn test_validate_extension_regex_pattern() {
 ```
 
 **Implementation Strategy**:
+
 - Use `tokio::test` for async tests
 - Mock external commands with `Command::new` wrappers
 - Use temporary directories via `tempfile::TempDir`
@@ -2588,6 +2620,7 @@ sindri-rs/tests/
 **Key Integration Test Scenarios**:
 
 1. **Full Lifecycle Test**:
+
    ```rust
    #[tokio::test]
    async fn test_extension_full_lifecycle() {
@@ -2603,6 +2636,7 @@ sindri-rs/tests/
    ```
 
 2. **Dependency Chain Test**:
+
    ```rust
    #[tokio::test]
    async fn test_dependency_chain_installation() {
@@ -2613,6 +2647,7 @@ sindri-rs/tests/
    ```
 
 3. **Diamond Dependency Test**:
+
    ```rust
    #[tokio::test]
    async fn test_diamond_dependency_resolution() {
@@ -2623,6 +2658,7 @@ sindri-rs/tests/
    ```
 
 4. **Circular Dependency Detection**:
+
    ```rust
    #[tokio::test]
    async fn test_circular_dependency_rejected() {
@@ -2633,6 +2669,7 @@ sindri-rs/tests/
    ```
 
 5. **Profile Installation Test**:
+
    ```rust
    #[tokio::test]
    async fn test_profile_installation() {
@@ -2643,6 +2680,7 @@ sindri-rs/tests/
    ```
 
 6. **Concurrent Installation Test**:
+
    ```rust
    #[tokio::test]
    async fn test_concurrent_installations() {
@@ -2653,6 +2691,7 @@ sindri-rs/tests/
    ```
 
 7. **Upgrade Compatibility Test**:
+
    ```rust
    #[tokio::test]
    async fn test_version_compatibility_enforcement() {
@@ -2674,6 +2713,7 @@ sindri-rs/tests/
    ```
 
 **Implementation Strategy**:
+
 - Use Docker containers for isolated test environments
 - Create fixture extensions with known behavior
 - Mock GitHub API responses for distribution tests
@@ -2786,6 +2826,7 @@ async fn stress_test_large_profile_installation() {
 ```
 
 **Implementation Strategy**:
+
 - Use `criterion` crate for benchmarking
 - Establish baseline performance metrics
 - Track performance over time in CI
@@ -2849,6 +2890,7 @@ fn arbitrary_path_with_traversal() -> impl Strategy<Value = PathBuf> {
 ```
 
 **Implementation Strategy**:
+
 - Use `proptest` crate
 - Focus on critical security and correctness properties
 - Generate random but valid test cases
@@ -2907,6 +2949,7 @@ tests/fixtures/
 ```
 
 **Fixture Guidelines**:
+
 - Keep fixtures minimal but realistic
 - Version control all fixtures
 - Document purpose of each fixture
@@ -2915,6 +2958,7 @@ tests/fixtures/
 #### 3. Mock Infrastructure
 
 **GitHub API Mocking**:
+
 ```rust
 // Use wiremock for HTTP mocking
 use wiremock::{MockServer, Mock, ResponseTemplate};
@@ -2934,6 +2978,7 @@ async fn test_with_mock_github() {
 ```
 
 **Filesystem Mocking**:
+
 ```rust
 // Use tempfile for isolated filesystem tests
 use tempfile::TempDir;
@@ -2949,7 +2994,8 @@ fn test_with_temp_filesystem() {
 #### 4. Test Documentation
 
 **Test Documentation Standard**:
-```rust
+
+````rust
 /// Tests that dependency resolution correctly handles diamond dependencies.
 ///
 /// # Scenario
@@ -2975,21 +3021,22 @@ fn test_with_temp_filesystem() {
 fn test_diamond_dependency_resolution() {
     // Test implementation
 }
-```
+````
 
 ### Coverage Goals
 
-| Test Category | Current | Target | Timeline |
-|--------------|---------|--------|----------|
-| Unit Tests | 34 | 75+ | End of Phase 4 |
-| Integration Tests | 0 | 20+ | Phase 8 |
-| Code Coverage | Unknown | 80%+ | Phase 8 |
-| Error Scenarios | Limited | Comprehensive | Phase 8 |
-| Performance Tests | 0 | 10+ | Post-v3.0.0 |
+| Test Category     | Current | Target        | Timeline       |
+| ----------------- | ------- | ------------- | -------------- |
+| Unit Tests        | 34      | 75+           | End of Phase 4 |
+| Integration Tests | 0       | 20+           | Phase 8        |
+| Code Coverage     | Unknown | 80%+          | Phase 8        |
+| Error Scenarios   | Limited | Comprehensive | Phase 8        |
+| Performance Tests | 0       | 10+           | Post-v3.0.0    |
 
 ### Test Execution Strategy
 
 **Local Development**:
+
 ```bash
 # Quick unit tests (30 seconds)
 cargo test --package sindri-extensions --lib
@@ -3005,6 +3052,7 @@ cargo bench --package sindri-extensions
 ```
 
 **CI Pipeline**:
+
 - Unit tests: Every commit
 - Integration tests: Every PR
 - Coverage report: Every PR
@@ -3022,15 +3070,18 @@ cargo bench --package sindri-extensions
 ### Priority Implementation Order
 
 **Phase 4 (Weeks 11-14) - Foundation**: ✅ Complete
+
 - 34 unit tests covering core functionality
 - All modules have basic test coverage
 
 **Phase 8 (Weeks 22-24) - Pre-Release**:
+
 1. Week 22: Executor method tests (Priority HIGH)
 2. Week 23: Integration tests (Priority HIGH)
 3. Week 24: Error scenario tests (Priority MEDIUM)
 
 **Post-v3.0.0 - Continuous Improvement**:
+
 1. Performance and stress tests
 2. Property-based testing
 3. Enhanced coverage reporting
@@ -3045,4 +3096,3 @@ cargo bench --package sindri-extensions
 - **Developer Experience**: Tests run in < 2 minutes for TDD workflow
 
 ---
-

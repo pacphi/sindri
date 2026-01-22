@@ -18,7 +18,7 @@ pub mod version;
 pub use compatibility::CompatibilityChecker;
 pub use download::{BinaryDownloader, DownloadProgress, DownloadResult};
 pub use releases::ReleaseManager;
-pub use updater::{SindriUpdater, UpdateResult, BackupInfo};
+pub use updater::{BackupInfo, SindriUpdater, UpdateResult};
 pub use version::VersionInfo;
 
 /// Current CLI version

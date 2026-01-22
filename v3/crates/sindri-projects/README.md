@@ -49,16 +49,16 @@ use camino::Utf8Path;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = Utf8Path::new("/tmp/my-project");
     tokio::fs::create_dir_all(path).await?;
-    
+
     let options = InitOptions {
         default_branch: Some("main".to_string()),
         initial_commit_message: "chore: initial commit".to_string(),
         create_initial_commit: true,
     };
-    
+
     init_repository(path, &options).await?;
     println!("Repository initialized at: {}", path);
-    
+
     Ok(())
 }
 ```
@@ -78,15 +78,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         git_name: Some("John Doe".to_string()),
         git_email: Some("john@example.com".to_string()),
     };
-    
+
     let repo_path = clone_repository(
         "https://github.com/user/repo.git",
         Utf8Path::new("/tmp/my-clone"),
         &options
     ).await?;
-    
+
     println!("Cloned to: {}", repo_path);
-    
+
     Ok(())
 }
 ```
@@ -107,15 +107,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         git_email: Some("john@example.com".to_string()),
         ..Default::default()
     };
-    
+
     let fork_path = fork_repository(
         "https://github.com/original/repo.git",
         Utf8Path::new("/tmp/my-fork"),
         &options
     ).await?;
-    
+
     println!("Forked to: {}", fork_path);
-    
+
     Ok(())
 }
 ```
@@ -129,7 +129,7 @@ use camino::Utf8Path;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let repo_path = Utf8Path::new("/tmp/my-repo");
-    
+
     // Set local (repository-specific) git config
     configure_user(
         Some(repo_path),
@@ -137,9 +137,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("john@example.com"),
         ConfigScope::Local,
     ).await?;
-    
+
     println!("Git user configured");
-    
+
     Ok(())
 }
 ```
@@ -153,23 +153,23 @@ use camino::Utf8Path;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let repo_path = Utf8Path::new("/tmp/my-repo");
-    
+
     // Add a remote
     add_remote(
         repo_path,
         "origin",
         "https://github.com/user/repo.git"
     ).await?;
-    
+
     // Setup fork remotes (origin + upstream)
     setup_fork_remotes(
         repo_path,
         "https://github.com/user/repo.git",      // fork URL (origin)
         "https://github.com/original/repo.git"   // upstream URL
     ).await?;
-    
+
     println!("Remotes configured");
-    
+
     Ok(())
 }
 ```
@@ -183,13 +183,13 @@ use camino::Utf8Path;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let repo_path = Utf8Path::new("/tmp/my-repo");
-    
+
     // Create and checkout a new branch
     create_branch(repo_path, "feature/new-feature", true).await?;
-    
+
     // Checkout an existing branch
     checkout_branch(repo_path, "main").await?;
-    
+
     Ok(())
 }
 ```
@@ -269,6 +269,7 @@ cargo test --package sindri-projects
 ```
 
 Tests include:
+
 - Repository initialization
 - Branch creation and validation
 - Remote management
@@ -289,14 +290,14 @@ Phase 7 will expand this crate with:
 
 This crate replaces bash script functionality:
 
-| v2 Bash Script | v3 Rust Module |
-|----------------|----------------|
-| `git.sh::init_git_repo` | `git::init::init_repository` |
-| `git.sh::setup_fork_remotes` | `git::remote::setup_fork_remotes` |
-| `git.sh::setup_fork_aliases` | `git::config::setup_fork_aliases` |
-| `git.sh::apply_git_config_overrides` | `git::config::configure_user` |
-| `clone-project` (lines 142-220) | `git::clone::clone_repository` |
-| `clone-project --fork` | `git::clone::fork_repository` |
+| v2 Bash Script                       | v3 Rust Module                    |
+| ------------------------------------ | --------------------------------- |
+| `git.sh::init_git_repo`              | `git::init::init_repository`      |
+| `git.sh::setup_fork_remotes`         | `git::remote::setup_fork_remotes` |
+| `git.sh::setup_fork_aliases`         | `git::config::setup_fork_aliases` |
+| `git.sh::apply_git_config_overrides` | `git::config::configure_user`     |
+| `clone-project` (lines 142-220)      | `git::clone::clone_repository`    |
+| `clone-project --fork`               | `git::clone::fork_repository`     |
 
 ## License
 

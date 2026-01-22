@@ -14,6 +14,7 @@ The Sindri CLI v3 requires robust project management capabilities to create and 
 In v2, project management is handled by bash scripts:
 
 **Strengths**:
+
 1. **Template-Driven**: YAML templates define project types (node, python, go, rust, etc.)
 2. **Auto-Detection**: Intelligent type detection from project name patterns
 3. **Extension Integration**: Automatically activates relevant extensions
@@ -22,6 +23,7 @@ In v2, project management is handled by bash scripts:
 6. **Fork Support**: GitHub fork workflow with remote configuration
 
 **Weaknesses**:
+
 1. **No Type Safety**: String-based processing, easy to introduce bugs
 2. **Limited Error Handling**: Difficult to recover from partial failures
 3. **Hard to Test**: Bash testing infrastructure is limited
@@ -34,6 +36,7 @@ In v2, project management is handled by bash scripts:
 The [Rust Migration Plan Phase 7](../../planning/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21) defines:
 
 **Commands**:
+
 - `sindri new <name>` - Create new project from template
 - `sindri new <name> --type <type>` - Explicit type selection
 - `sindri new <name> --interactive` - Interactive type selection
@@ -43,6 +46,7 @@ The [Rust Migration Plan Phase 7](../../planning/rust-cli-migration-v3.md#phase-
 - `sindri clone <repo> --feature <branch>` - Create feature branch
 
 **Core Features**:
+
 1. **Template System**: YAML-driven project scaffolding
 2. **Type Detection**: Intelligent detection from project names
 3. **Extension Integration**: Auto-install relevant extensions
@@ -68,6 +72,7 @@ We implement a comprehensive project management architecture with four key compo
 **Decision**: Create dedicated `sindri-project` crate with modular structure separating concerns.
 
 **Architecture**:
+
 ```
 v3/crates/sindri-project/
 ├── Cargo.toml
@@ -99,6 +104,7 @@ v3/crates/sindri-project/
 ```
 
 **Public API** (`lib.rs`):
+
 ```rust
 // crates/sindri-project/src/lib.rs
 
@@ -382,6 +388,7 @@ impl Default for ProjectManager {
 ```
 
 **Reasoning**: Modular architecture separates concerns and enables:
+
 - **Type Safety**: Rust's type system prevents common errors
 - **Testability**: Each module can be tested independently
 - **Async Support**: Parallel network operations for extensions and Git
@@ -393,6 +400,7 @@ impl Default for ProjectManager {
 **Decision**: Integrate project management into main CLI with subcommands `new` and `clone`.
 
 **Architecture**:
+
 ```rust
 // crates/sindri/src/commands/project.rs
 
@@ -598,6 +606,7 @@ async fn list_project_types(manager: &ProjectManager) -> anyhow::Result<()> {
 ```
 
 **CLI Registration** (`crates/sindri/src/cli.rs`):
+
 ```rust
 #[derive(Debug, Subcommand)]
 pub enum Commands {
@@ -610,6 +619,7 @@ pub enum Commands {
 ```
 
 **Reasoning**: Clean CLI interface with:
+
 - **Intuitive Commands**: `sindri new` and `sindri clone` are self-explanatory
 - **Progressive Disclosure**: Simple default behavior, advanced options available
 - **Consistent Patterns**: Follows same structure as other Sindri commands
@@ -651,11 +661,13 @@ pub enum Commands {
 **Description**: Continue using v2's bash implementation, called from Rust CLI.
 
 **Pros**:
+
 - No porting effort required
 - Existing templates work as-is
 - Less binary size
 
 **Cons**:
+
 - No type safety
 - Poor error handling
 - Hard to test
@@ -669,11 +681,13 @@ pub enum Commands {
 **Description**: Store templates in separate GitHub repository, fetch at runtime.
 
 **Pros**:
+
 - Templates can be updated independently
 - Users can contribute templates easily
 - No binary bloat
 
 **Cons**:
+
 - Requires network for every project creation
 - Version compatibility issues
 - Offline use impossible
@@ -686,11 +700,13 @@ pub enum Commands {
 **Description**: Delegate to external project generators (cookiecutter, yeoman, etc.).
 
 **Pros**:
+
 - Leverage existing ecosystem
 - No template maintenance
 - Rich feature set
 
 **Cons**:
+
 - External dependencies (Python, Node.js)
 - Inconsistent UX across generators
 - No extension integration
@@ -703,10 +719,12 @@ pub enum Commands {
 **Description**: Use `sindri project --new` and `sindri project --clone` instead of subcommands.
 
 **Pros**:
+
 - Fewer top-level commands
 - Grouped functionality
 
 **Cons**:
+
 - More verbose
 - Less intuitive
 - Conflicts with potential `sindri project list` command
@@ -718,11 +736,13 @@ pub enum Commands {
 **Description**: Always require explicit `--type` flag.
 
 **Pros**:
+
 - Explicit is better than implicit
 - No complex detection logic
 - Faster (no heuristics)
 
 **Cons**:
+
 - Poor UX for common cases
 - Requires memorizing type names
 - Extra typing for every project
@@ -749,6 +769,7 @@ pub enum Commands {
 Project types are organized by language and framework:
 
 **Languages**:
+
 - `node` - Node.js/JavaScript/TypeScript
 - `python` - Python 3.x
 - `rust` - Rust with Cargo
@@ -757,6 +778,7 @@ Project types are organized by language and framework:
 - `ruby` - Ruby with Bundler
 
 **Frameworks**:
+
 - `rails` - Ruby on Rails
 - `django` - Django (Python)
 - `flask` - Flask (Python)
@@ -766,6 +788,7 @@ Project types are organized by language and framework:
 - `spring` - Spring Boot (Java)
 
 **Specialized**:
+
 - `ml` - Machine Learning (Python + Jupyter)
 - `api` - REST API (language-agnostic)
 - `web` - Web application (HTML/CSS/JS)
@@ -775,16 +798,16 @@ Project types are organized by language and framework:
 
 Available variables for template substitution:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `project_name` | Project name | `my-awesome-app` |
-| `author` | Git user name | `John Doe` |
-| `git_user_name` | Git user name | `John Doe` |
-| `git_user_email` | Git user email | `john@example.com` |
-| `date` | Current date | `2026-01-22` |
-| `year` | Current year | `2026` |
-| `description` | Project description | `A web application` |
-| `license` | License type | `MIT` |
+| Variable         | Description         | Example             |
+| ---------------- | ------------------- | ------------------- |
+| `project_name`   | Project name        | `my-awesome-app`    |
+| `author`         | Git user name       | `John Doe`          |
+| `git_user_name`  | Git user name       | `John Doe`          |
+| `git_user_email` | Git user email      | `john@example.com`  |
+| `date`           | Current date        | `2026-01-22`        |
+| `year`           | Current year        | `2026`              |
+| `description`    | Project description | `A web application` |
+| `license`        | License type        | `MIT`               |
 
 ### Integration Points
 

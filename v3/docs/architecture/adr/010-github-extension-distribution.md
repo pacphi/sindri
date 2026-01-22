@@ -19,12 +19,14 @@ The Sindri extension system requires a distribution mechanism that supports:
 8. **Low Maintenance**: Minimal infrastructure required
 
 The bash implementation used a single monorepo with manual version tagging, but lacked:
+
 - Formal version compatibility tracking
 - Automatic update checks
 - Local caching strategy
 - Rollback support
 
 Distribution patterns considered:
+
 - **Package registries**: npm, crates.io, PyPI (requires account, publishing process)
 - **Container registries**: Docker Hub, GHCR (heavy for simple YAML files)
 - **Git repositories**: GitHub releases, tags (lightweight, version-native)
@@ -37,6 +39,7 @@ Distribution patterns considered:
 We adopt a **GitHub-based monorepo distribution model** with extension-specific version tags:
 
 **Repository Structure**:
+
 ```
 github.com/pacphi/sindri/
 ├── docker/lib/extensions/
@@ -54,6 +57,7 @@ github.com/pacphi/sindri/
 ```
 
 **Version Tagging Convention**:
+
 ```
 git tag nodejs@1.2.0        # Tag specific extension version
 git tag python@3.1.0
@@ -62,6 +66,7 @@ git tag v2.2.1              # CLI version (existing pattern)
 ```
 
 **Registry File** (`docker/lib/registry.yaml`):
+
 ```yaml
 version: 1.0.0
 extensions:
@@ -107,11 +112,12 @@ Each extension version declares CLI version compatibility:
 metadata:
   name: nodejs
   version: 1.2.0
-  min_cli_version: 3.0.0   # Requires at least CLI v3.0.0
-  max_cli_version: null     # No upper bound (forward-compatible)
+  min_cli_version: 3.0.0 # Requires at least CLI v3.0.0
+  max_cli_version: null # No upper bound (forward-compatible)
 ```
 
 **CLI Version Check**:
+
 ```rust
 pub fn check_compatibility(extension: &Extension, cli_version: &Version) -> Result<()> {
     let min_version = extension.metadata.min_cli_version
@@ -155,6 +161,7 @@ pub fn check_compatibility(extension: &Extension, cli_version: &Version) -> Resu
 Extensions are cached locally to support offline installation and reduce GitHub API calls:
 
 **Cache Directory Structure**:
+
 ```
 $HOME/.sindri/cache/extensions/
 ├── registry.yaml               # Cached registry (1-hour TTL)
@@ -172,6 +179,7 @@ $HOME/.sindri/cache/extensions/
 ```
 
 **Cache Refresh Logic**:
+
 ```rust
 pub struct ExtensionCache {
     cache_dir: PathBuf,
@@ -285,6 +293,7 @@ sindri extension versions nodejs
 ```
 
 **Rollback Implementation**:
+
 ```rust
 pub async fn rollback_extension(&self, name: &str) -> Result<()> {
     // Get current installed version from manifest
@@ -349,12 +358,14 @@ pub async fn rollback_extension(&self, name: &str) -> Result<()> {
 **Description**: Each extension in its own repository (e.g., `sindri-extension-nodejs`, `sindri-extension-python`).
 
 **Pros**:
+
 - Independent versioning
 - Clear ownership per extension
 - Standard git tagging (v1.2.0)
 - Easier to accept community contributions
 
 **Cons**:
+
 - 40+ repositories to manage
 - No single source of truth for all extensions
 - Harder to discover all available extensions
@@ -368,12 +379,14 @@ pub async fn rollback_extension(&self, name: &str) -> Result<()> {
 **Description**: Publish extensions as npm packages (e.g., `@sindri/extension-nodejs`).
 
 **Pros**:
+
 - Battle-tested infrastructure
 - Automatic versioning and immutability
 - Built-in update checks (npm outdated)
 - Dependency resolution (package.json)
 
 **Cons**:
+
 - Requires npm account and publishing process
 - Extensions are YAML, not JavaScript (awkward fit)
 - Adds npm as CLI dependency
@@ -387,12 +400,14 @@ pub async fn rollback_extension(&self, name: &str) -> Result<()> {
 **Description**: Store extensions in object storage (S3, CloudFlare R2).
 
 **Pros**:
+
 - High availability and low latency
 - No rate limits
 - Versioning built-in
 - CDN-backed
 
 **Cons**:
+
 - Requires paid infrastructure
 - Needs custom upload/publishing tooling
 - No version control integration
@@ -405,11 +420,13 @@ pub async fn rollback_extension(&self, name: &str) -> Result<()> {
 **Description**: Each extension is a git submodule in the main repo.
 
 **Pros**:
+
 - Independent versioning per extension
 - Standard git workflow
 - Can update extensions independently
 
 **Cons**:
+
 - Submodules are notoriously complex
 - Requires recursive clone
 - Poor developer experience
@@ -422,12 +439,14 @@ pub async fn rollback_extension(&self, name: &str) -> Result<()> {
 **Description**: Package extensions as OCI container images.
 
 **Pros**:
+
 - Immutable layers
 - Built-in versioning
 - Content-addressable storage
 - Standard tooling (docker pull)
 
 **Cons**:
+
 - Heavy for YAML files (~5KB → 5MB container)
 - Requires container runtime
 - Complex publishing process
@@ -453,6 +472,7 @@ The monorepo approach is pragmatic for Sindri's current scale (~40 extensions). 
 The tag naming convention (`name@version`) follows npm/yarn conventions and avoids conflicts with CLI version tags (`v2.2.1`).
 
 Rate limit mitigation strategies:
+
 1. Use authenticated GitHub API (5000 requests/hour)
 2. Local cache with 1-hour TTL (reduces requests by ~95%)
 3. Batch registry fetches (single request for all extensions)

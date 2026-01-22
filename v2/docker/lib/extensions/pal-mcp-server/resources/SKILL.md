@@ -25,7 +25,7 @@ PAL MCP (Provider Abstraction Layer) is an AI orchestration server that enables 
 
 **`chat`** - Multi-model conversations with code generation
 
-```text
+````text
 Chat with gemini pro about implementing OAuth2
 Continue the chat with o3 to refine the approach
 ```text
@@ -270,3 +270,4 @@ Implement the recommended security improvements
 - Repository: https://github.com/BeehiveInnovations/pal-mcp-server
 - Tool Documentation: https://github.com/BeehiveInnovations/pal-mcp-server/tree/main/docs/tools
 - Configuration Guide: https://github.com/BeehiveInnovations/pal-mcp-server/blob/main/docs/configuration.md
+````

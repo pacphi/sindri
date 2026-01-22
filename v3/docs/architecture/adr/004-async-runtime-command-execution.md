@@ -8,17 +8,20 @@
 ## Context
 
 Sindri's provider operations are fundamentally I/O bound:
+
 - Shelling out to CLI tools (docker, flyctl, kubectl, devpod, e2b)
 - Network API calls (Fly.io machines, E2B sandboxes, GitHub releases)
 - File operations (reading configs, writing templates)
 - Interactive sessions (SSH, docker exec)
 
 The bash implementation executed these operations **synchronously**:
+
 - Single-threaded, sequential execution
 - No parallelization of independent operations
 - Slow startup (parsing schemas, validating configs sequentially)
 
 We needed an approach that:
+
 1. Enables concurrent operations where possible
 2. Maintains single-threaded simplicity where appropriate
 3. Provides responsive user feedback during long operations
@@ -57,6 +60,7 @@ pub trait Provider: Send + Sync {
 **1. Tokio Process Spawning**
 
 For CLI tool execution:
+
 ```rust
 use tokio::process::Command;
 
@@ -69,6 +73,7 @@ let output = Command::new("docker")
 **2. Interactive Commands**
 
 For user interaction (SSH, shells):
+
 ```rust
 let status = Command::new("docker")
     .args(["exec", "-it", name, "/bin/bash"])
@@ -82,6 +87,7 @@ let status = Command::new("docker")
 **3. Prerequisite Checks (Sync)**
 
 For fast startup checks, we use sync std::process:
+
 ```rust
 fn check_prerequisites(&self) -> Result<PrerequisiteStatus> {
     // Sync - must complete before async operations
@@ -114,6 +120,7 @@ async fn main() -> Result<()> {
 ### Async Where Needed
 
 **Async Operations:**
+
 - Provider deploy (long-running builds, deploys)
 - Provider connect (wait for wake-up, establish connection)
 - Provider status (query remote APIs, parse JSON)
@@ -121,6 +128,7 @@ async fn main() -> Result<()> {
 - File I/O for large operations
 
 **Sync Operations:**
+
 - Config parsing (fast, local)
 - Schema validation (fast, CPU-bound)
 - Prerequisite checks (fast, local commands)
@@ -131,6 +139,7 @@ async fn main() -> Result<()> {
 While we currently execute operations sequentially, the async foundation enables:
 
 **Future: Parallel Prerequisite Checks**
+
 ```rust
 let (docker_check, compose_check) = tokio::join!(
     check_docker(),
@@ -139,6 +148,7 @@ let (docker_check, compose_check) = tokio::join!(
 ```
 
 **Future: Concurrent Provider Operations**
+
 ```rust
 // Deploy to multiple providers simultaneously
 let (docker_result, fly_result) = tokio::join!(
@@ -148,6 +158,7 @@ let (docker_result, fly_result) = tokio::join!(
 ```
 
 **Future: Background Tasks**
+
 ```rust
 // Start extension installation in background while connecting
 tokio::spawn(async move {
@@ -218,15 +229,18 @@ if opts.wait {
 ### Trade-offs
 
 **Tokio vs async-std**
+
 - Chose Tokio (larger ecosystem, better maintained)
 - Trade-off: Slightly larger binary vs. more features
 
 **Full vs Minimal Features**
+
 - Chose `tokio = { features = ["full"] }`
 - Trade-off: Binary size vs. flexibility for future features
 - Could optimize to minimal features in future
 
 **Async All vs Selective**
+
 - Chose async for all provider methods
 - Trade-off: Some operations don't benefit, but consistent interface
 - Alternative: Split trait into sync/async, but adds complexity
@@ -235,16 +249,17 @@ if opts.wait {
 
 ### Current Performance
 
-| Operation | Bash | Rust | Improvement |
-|-----------|------|------|-------------|
-| Config parsing | ~50ms | ~5ms | 10x faster |
-| Schema validation | ~200ms | ~20ms | 10x faster |
-| Prerequisite check | ~100ms | ~10ms | 10x faster |
-| Template rendering | N/A | ~1ms | New capability |
+| Operation          | Bash   | Rust  | Improvement    |
+| ------------------ | ------ | ----- | -------------- |
+| Config parsing     | ~50ms  | ~5ms  | 10x faster     |
+| Schema validation  | ~200ms | ~20ms | 10x faster     |
+| Prerequisite check | ~100ms | ~10ms | 10x faster     |
+| Template rendering | N/A    | ~1ms  | New capability |
 
 ### Future Concurrent Operations
 
 With async foundation, we can enable:
+
 - Parallel provider health checks
 - Concurrent volume cleanup
 - Background extension installation
@@ -255,12 +270,14 @@ With async foundation, we can enable:
 **From Bash to Rust Async**
 
 Bash pattern:
+
 ```bash
 docker compose up -d
 docker exec -it $NAME /bin/bash
 ```
 
 Rust async pattern:
+
 ```rust
 self.docker_compose(&["up", "-d"], &compose_path).await?;
 Command::new("docker")
@@ -270,6 +287,7 @@ Command::new("docker")
 ```
 
 **Key Differences**
+
 1. Must `.await` all async operations
 2. Functions marked `async fn`
 3. Error propagation via `?` works the same

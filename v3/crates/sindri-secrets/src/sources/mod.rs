@@ -4,7 +4,7 @@ pub mod env;
 pub mod file;
 pub mod vault;
 
-use crate::types::{ResolvedSecret, ResolutionContext};
+use crate::types::{ResolutionContext, ResolvedSecret};
 use anyhow::Result;
 use async_trait::async_trait;
 use sindri_core::types::SecretConfig;

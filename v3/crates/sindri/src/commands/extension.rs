@@ -38,8 +38,7 @@ fn get_extensions_dir() -> Result<std::path::PathBuf> {
 
 /// Helper function to get the CLI version
 fn get_cli_version() -> Result<semver::Version> {
-    semver::Version::parse(env!("CARGO_PKG_VERSION"))
-        .context("Failed to parse CLI version")
+    semver::Version::parse(env!("CARGO_PKG_VERSION")).context("Failed to parse CLI version")
 }
 
 /// Main entry point for extension subcommands
@@ -101,7 +100,9 @@ async fn install_by_name(
     if version.is_none() {
         // Load profile names dynamically from registry
         let cache_dir = get_cache_dir()?;
-        if let Ok(registry) = sindri_extensions::ExtensionRegistry::load_from_github(cache_dir, "main").await {
+        if let Ok(registry) =
+            sindri_extensions::ExtensionRegistry::load_from_github(cache_dir, "main").await
+        {
             let profile_names = registry.list_profiles();
 
             if profile_names.contains(&name.as_str()) {
@@ -349,8 +350,8 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
     }
 
     // Load manifest from ~/.sindri/state/manifest.yaml
-    let manifest = ManifestManager::load_default()
-        .context("Failed to load installation manifest")?;
+    let manifest =
+        ManifestManager::load_default().context("Failed to load installation manifest")?;
 
     let entries = manifest.list_extensions();
 
@@ -384,10 +385,7 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
             name: entry.name,
             version: entry.version,
             status: "installed".to_string(), // Could validate with validation commands
-            installed_at: entry
-                .installed_at
-                .format("%Y-%m-%d %H:%M")
-                .to_string(),
+            installed_at: entry.installed_at.format("%Y-%m-%d %H:%M").to_string(),
         })
         .collect();
 
@@ -640,29 +638,29 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
     output::info(&format!("Removing extension: {}", args.name));
 
     // 1. Load ManifestManager
-    let mut manifest = ManifestManager::load_default()
-        .context("Failed to load manifest")?;
+    let mut manifest = ManifestManager::load_default().context("Failed to load manifest")?;
 
     // 2. Check if extension is installed
     if !manifest.is_installed(&args.name) {
         return Err(anyhow!("Extension '{}' is not installed", args.name));
     }
 
-    let installed_ext = manifest.get_installed(&args.name)
+    let installed_ext = manifest
+        .get_installed(&args.name)
         .ok_or_else(|| anyhow!("Extension '{}' not found in manifest", args.name))?;
 
     let extensions_dir = get_extensions_dir()?;
-    let ext_version_dir = extensions_dir
-        .join(&args.name)
-        .join(&installed_ext.version);
+    let ext_version_dir = extensions_dir.join(&args.name).join(&installed_ext.version);
 
     let extension = if ext_version_dir.exists() {
         let ext_yaml = ext_version_dir.join("extension.yaml");
         if ext_yaml.exists() {
-            let content = std::fs::read_to_string(&ext_yaml)
-                .context("Failed to read extension.yaml")?;
-            Some(serde_yaml::from_str::<sindri_core::types::Extension>(&content)
-                .context("Failed to parse extension.yaml")?)
+            let content =
+                std::fs::read_to_string(&ext_yaml).context("Failed to read extension.yaml")?;
+            Some(
+                serde_yaml::from_str::<sindri_core::types::Extension>(&content)
+                    .context("Failed to parse extension.yaml")?,
+            )
         } else {
             None
         }
@@ -683,7 +681,10 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
             .filter(|&name| name != &args.name)
             .filter_map(|name| {
                 let version = manifest.get_version(name)?;
-                let ext_yaml = extensions_dir.join(name).join(version).join("extension.yaml");
+                let ext_yaml = extensions_dir
+                    .join(name)
+                    .join(version)
+                    .join("extension.yaml");
                 if !ext_yaml.exists() {
                     return None;
                 }
@@ -731,7 +732,8 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
     }
 
     // 5. Mark as "removing" in manifest
-    manifest.mark_removing(&args.name)
+    manifest
+        .mark_removing(&args.name)
         .context("Failed to mark extension as removing")?;
 
     // 6. Execute removal operations
@@ -845,7 +847,8 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
     }
 
     // 7. Remove from manifest
-    manifest.remove(&args.name)
+    manifest
+        .remove(&args.name)
         .context("Failed to remove extension from manifest")?;
 
     // 8. Remove extension directory
@@ -900,23 +903,29 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
     let compatible_range = {
         let cli_pattern = format!("{}.{}.x", cli_version.major, cli_version.minor);
         let compat = matrix.cli_versions.get(&cli_pattern).ok_or_else(|| {
-            anyhow!("CLI version {} not found in compatibility matrix", cli_version)
-        })?;
-
-        let range_str = compat.compatible_extensions.get(&args.name).ok_or_else(|| {
             anyhow!(
-                "Extension '{}' not found in compatibility matrix for CLI {}",
-                args.name,
-                cli_pattern
+                "CLI version {} not found in compatibility matrix",
+                cli_version
             )
         })?;
 
-        VersionReq::parse(range_str).context(format!("Invalid version requirement: {}", range_str))?
+        let range_str = compat
+            .compatible_extensions
+            .get(&args.name)
+            .ok_or_else(|| {
+                anyhow!(
+                    "Extension '{}' not found in compatibility matrix for CLI {}",
+                    args.name,
+                    cli_pattern
+                )
+            })?;
+
+        VersionReq::parse(range_str)
+            .context(format!("Invalid version requirement: {}", range_str))?
     };
 
     // 4. Get installed version
-    let manifest = ManifestManager::load_default()
-        .context("Failed to load manifest")?;
+    let manifest = ManifestManager::load_default().context("Failed to load manifest")?;
     let installed_version = manifest.get_version(&args.name);
 
     // 5. For now, we'll show a simplified version list
@@ -926,18 +935,19 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
         .await
         .context("Failed to find latest compatible version")?;
 
-    let mut version_rows = vec![
-        VersionRow {
-            version: latest_compatible.to_string(),
-            compatible: "yes".to_string(),
-            status: if installed_version.map(|v| v == &latest_compatible.to_string()).unwrap_or(false) {
-                "installed (latest)".to_string()
-            } else {
-                "latest".to_string()
-            },
-            released: "available".to_string(),
-        }
-    ];
+    let mut version_rows = vec![VersionRow {
+        version: latest_compatible.to_string(),
+        compatible: "yes".to_string(),
+        status: if installed_version
+            .map(|v| v == &latest_compatible.to_string())
+            .unwrap_or(false)
+        {
+            "installed (latest)".to_string()
+        } else {
+            "latest".to_string()
+        },
+        released: "available".to_string(),
+    }];
 
     // Add installed version if different
     if let Some(installed_ver) = installed_version {
@@ -1081,32 +1091,30 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
 
         // Get latest compatible version using distributor
         match distributor.get_compatible_range(&matrix, name) {
-            Ok(version_req) => {
-                match distributor.find_latest_compatible(name, &version_req).await {
-                    Ok(latest_version) => {
-                        let status = if latest_version > current_version {
-                            "update available"
-                        } else {
-                            "up to date"
-                        };
+            Ok(version_req) => match distributor.find_latest_compatible(name, &version_req).await {
+                Ok(latest_version) => {
+                    let status = if latest_version > current_version {
+                        "update available"
+                    } else {
+                        "up to date"
+                    };
 
-                        updates.push(UpdateRow {
-                            name: name.to_string(),
-                            current: current_version.to_string(),
-                            available: latest_version.to_string(),
-                            status: status.to_string(),
-                        });
-                    }
-                    Err(e) => {
-                        updates.push(UpdateRow {
-                            name: name.to_string(),
-                            current: current_version.to_string(),
-                            available: "-".to_string(),
-                            status: format!("error: {}", e),
-                        });
-                    }
+                    updates.push(UpdateRow {
+                        name: name.to_string(),
+                        current: current_version.to_string(),
+                        available: latest_version.to_string(),
+                        status: status.to_string(),
+                    });
                 }
-            }
+                Err(e) => {
+                    updates.push(UpdateRow {
+                        name: name.to_string(),
+                        current: current_version.to_string(),
+                        available: "-".to_string(),
+                        status: format!("error: {}", e),
+                    });
+                }
+            },
             Err(e) => {
                 updates.push(UpdateRow {
                     name: name.to_string(),
@@ -1129,7 +1137,10 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
         let table = Table::new(&updates).to_string();
         println!("\n{}", table);
 
-        let available_count = updates.iter().filter(|u| u.status == "update available").count();
+        let available_count = updates
+            .iter()
+            .filter(|u| u.status == "update available")
+            .count();
         if available_count > 0 {
             output::info(&format!("{} update(s) available", available_count));
         } else {

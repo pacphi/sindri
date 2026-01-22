@@ -284,10 +284,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     output::kv("Size", &format_bytes(estimated_compressed));
     output::kv(
         "Compression",
-        &format!(
-            "{}%",
-            (estimated_compressed * 100 / total_size.max(1))
-        ),
+        &format!("{}%", (estimated_compressed * 100 / total_size.max(1))),
     );
     output::kv("Duration", &format!("{:.1}s", duration.as_secs_f64()));
     println!();
@@ -299,10 +296,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     Ok(())
 }
 
-fn estimate_backup_size(
-    root: &Utf8PathBuf,
-    excludes: &HashSet<String>,
-) -> Result<(u64, u64, u64)> {
+fn estimate_backup_size(root: &Utf8PathBuf, excludes: &HashSet<String>) -> Result<(u64, u64, u64)> {
     use globset::{Glob, GlobSetBuilder};
     use walkdir::WalkDir;
 

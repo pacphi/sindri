@@ -35,6 +35,7 @@ Sindri's secrets management system provides **multi-source secret resolution** w
    - Secrets cached in plaintext temporary files
 
 The Rust migration (Phase 5) requires:
+
 - Type-safe secret metadata and resolution context
 - Async resolution for Vault API calls and file I/O
 - Secure in-memory caching with proper cleanup
@@ -159,6 +160,7 @@ pub enum ResolvedFrom {
 ```
 
 **Why `zeroize`?**
+
 - Automatic memory zeroing on Drop prevents secrets from lingering in memory
 - Critical for production security (prevents heap inspection attacks)
 - No performance overhead (compiler optimizes to single memset)
@@ -186,6 +188,7 @@ pub trait SecretSource: Send + Sync {
 ```
 
 **Why async?**
+
 - Vault API calls are network I/O (async HTTP via reqwest)
 - File I/O can be async (tokio::fs) for large files
 - Environment variable reads are sync but wrapped for consistency
@@ -304,6 +307,7 @@ impl SecretResolver {
 ### 5. Source Implementations
 
 See full implementation details in the agent output above for:
+
 - **Env Source** (with precedence chain: shell env > .env.local > .env > fromFile)
 - **File Source** (with security validation and path traversal prevention)
 - **Vault Source** (with HTTP API and token validation)

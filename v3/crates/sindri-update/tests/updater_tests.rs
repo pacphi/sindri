@@ -123,7 +123,10 @@ fi
     let result = updater.verify_binary(&binary_path);
 
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("unexpected output"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("unexpected output"));
 }
 
 #[test]
@@ -227,7 +230,11 @@ fn test_backup_creation_and_cleanup() {
     assert!(backup_path3.exists());
 
     // Simulate cleanup: keep only 2 most recent
-    let mut backups = vec![backup_path.clone(), backup_path2.clone(), backup_path3.clone()];
+    let mut backups = vec![
+        backup_path.clone(),
+        backup_path2.clone(),
+        backup_path3.clone(),
+    ];
     backups.sort_by_key(|path| {
         fs::metadata(path)
             .and_then(|m| m.modified())

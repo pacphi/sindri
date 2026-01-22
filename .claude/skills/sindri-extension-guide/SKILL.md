@@ -47,16 +47,16 @@ This skill guides you through creating declarative YAML extensions for Sindri. E
 
 ### Key Documentation Files
 
-| Type                | Path                                       | Purpose                            |
-| ------------------- | ------------------------------------------ | ---------------------------------- |
+| Type                | Path                                          | Purpose                            |
+| ------------------- | --------------------------------------------- | ---------------------------------- |
 | **Schema**          | `v2/docker/lib/schemas/extension.schema.json` | Extension validation schema        |
 | **Registry**        | `v2/docker/lib/registry.yaml`                 | Master extension registry          |
 | **Profiles**        | `v2/docker/lib/profiles.yaml`                 | Extension profile definitions      |
 | **Categories**      | `v2/docker/lib/categories.yaml`               | Category definitions               |
-| **Extension Docs**  | `docs/extensions/{NAME}.md`                | Individual extension documentation |
-| **Catalog**         | `docs/EXTENSIONS.md`                       | Overview of all extensions         |
-| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md`              | Detailed authoring reference       |
-| **Slides**          | `docs/slides/extensions.html`              | Visual presentation                |
+| **Extension Docs**  | `docs/extensions/{NAME}.md`                   | Individual extension documentation |
+| **Catalog**         | `docs/EXTENSIONS.md`                          | Overview of all extensions         |
+| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md`                 | Detailed authoring reference       |
+| **Slides**          | `docs/slides/extensions.html`                 | Visual presentation                |
 
 ## Quick Start Checklist
 

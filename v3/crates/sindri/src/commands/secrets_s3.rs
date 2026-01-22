@@ -206,7 +206,9 @@ async fn init(args: InitArgs) -> Result<()> {
     }
 
     // Generate or load master key
-    let key_path = args.key_file.unwrap_or_else(|| PathBuf::from(".sindri-master.key"));
+    let key_path = args
+        .key_file
+        .unwrap_or_else(|| PathBuf::from(".sindri-master.key"));
     if !key_path.exists() {
         let spinner = output::spinner("Generating master key...");
         tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
@@ -257,9 +259,7 @@ async fn push(args: PushArgs) -> Result<()> {
     } else {
         // Prompt for value
         use dialoguer::Password;
-        Password::new()
-            .with_prompt("Secret value")
-            .interact()?
+        Password::new().with_prompt("Secret value").interact()?
     };
 
     if value.is_empty() {

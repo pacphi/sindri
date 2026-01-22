@@ -10,29 +10,34 @@
 While the Provider trait provides a unified interface, each cloud provider has unique characteristics requiring specific implementation patterns:
 
 **Docker**
+
 - DinD (Docker-in-Docker) requires runtime detection
 - Multiple isolation modes (sysbox, privileged, socket)
 - Volume cleanup complexity with compose project names
 - GPU requires NVIDIA runtime
 
 **Fly.io**
+
 - Machines can be suspended (unique state)
 - Auto-wake on connection required
 - Memory in MB, not GB strings
 - GPU only in specific regions (ord, sjc)
 
 **E2B**
+
 - Template-based deployment model
 - Sandboxes identified by metadata, not names
 - Pause time = 4s per 1GB RAM
 - GPU explicitly unsupported (critical validation)
 
 **DevPod**
+
 - 7 different backend providers (AWS, GCP, Azure, DO, K8s, SSH, Docker)
 - Image must be pushed to registries (except Docker backend)
 - Provider-specific configuration required
 
 **Kubernetes**
+
 - Local cluster detection (kind, k3d)
 - Image loading for local development
 - Manifest application and rollout tracking
@@ -49,6 +54,7 @@ We needed consistent patterns for handling these provider-specific concerns.
 **Solution**: Detect capabilities at runtime and adapt configuration
 
 **Docker DinD Example:**
+
 ```rust
 fn detect_dind_mode(&self, config: &SindriConfig) -> String {
     let dind_enabled = config.dind_enabled();
@@ -70,6 +76,7 @@ fn detect_dind_mode(&self, config: &SindriConfig) -> String {
 ```
 
 **Benefits**:
+
 - Graceful degradation (sysbox → privileged → none)
 - User warnings when features unavailable
 - Deterministic behavior
@@ -81,6 +88,7 @@ fn detect_dind_mode(&self, config: &SindriConfig) -> String {
 **Solution**: Validate early and provide helpful error messages
 
 **E2B GPU Validation:**
+
 ```rust
 async fn deploy(&self, config: &SindriConfig, opts: DeployOptions) -> Result<DeployResult> {
     // Validate GPU early
@@ -96,6 +104,7 @@ async fn deploy(&self, config: &SindriConfig, opts: DeployOptions) -> Result<Dep
 ```
 
 **Benefits**:
+
 - Fail fast before creating resources
 - Helpful error messages suggest alternatives
 - Prevents partial deployments
@@ -107,6 +116,7 @@ async fn deploy(&self, config: &SindriConfig, opts: DeployOptions) -> Result<Dep
 **Solution**: Map provider states to common DeploymentState enum
 
 **State Mapping:**
+
 ```rust
 pub enum DeploymentState {
     NotDeployed,
@@ -122,19 +132,20 @@ pub enum DeploymentState {
 
 **Provider Mappings:**
 
-| Provider State | Sindri State |
-|----------------|--------------|
-| Docker: "running" | Running |
-| Docker: "exited" | Stopped |
-| Docker: "paused" | Paused |
-| Fly: "started" | Running |
-| Fly: "suspended" | Suspended |
-| E2B: "running" | Running |
-| E2B: "paused" | Paused |
-| K8s: "Running" | Running |
-| K8s: "Pending" | Creating |
+| Provider State    | Sindri State |
+| ----------------- | ------------ |
+| Docker: "running" | Running      |
+| Docker: "exited"  | Stopped      |
+| Docker: "paused"  | Paused       |
+| Fly: "started"    | Running      |
+| Fly: "suspended"  | Suspended    |
+| E2B: "running"    | Running      |
+| E2B: "paused"     | Paused       |
+| K8s: "Running"    | Running      |
+| K8s: "Pending"    | Creating     |
 
 **Implementation:**
+
 ```rust
 async fn get_container_state(&self, name: &str) -> DeploymentState {
     let output = Command::new("docker")
@@ -159,6 +170,7 @@ async fn get_container_state(&self, name: &str) -> DeploymentState {
 **Solution**: Provider-specific cleanup chains
 
 **Docker Cleanup (Most Complex):**
+
 ```rust
 async fn destroy(&self, config: &SindriConfig, force: bool) -> Result<()> {
     // 1. Docker compose down (handles most cleanup)
@@ -182,6 +194,7 @@ async fn destroy(&self, config: &SindriConfig, force: bool) -> Result<()> {
 ```
 
 **Fly.io Cleanup (Simplest):**
+
 ```rust
 async fn destroy(&self, config: &SindriConfig, force: bool) -> Result<()> {
     // Single command destroys app, machines, volumes, secrets
@@ -200,6 +213,7 @@ async fn destroy(&self, config: &SindriConfig, force: bool) -> Result<()> {
 **Solution**: Deserialize with serde
 
 **Fly.io Machine Status:**
+
 ```rust
 #[derive(Debug, Deserialize)]
 struct FlyMachine {
@@ -225,6 +239,7 @@ async fn get_machine_state(&self, app_name: &str) -> Result<DeploymentState> {
 **Solution**: Check state and wake before connecting
 
 **Fly.io Implementation:**
+
 ```rust
 async fn connect(&self, config: &SindriConfig) -> Result<()> {
     let (machine_id, state) = self.get_machine_state(name).await?;
@@ -253,6 +268,7 @@ async fn connect(&self, config: &SindriConfig) -> Result<()> {
 **Solution**: Provider-specific config struct extraction
 
 **Example:**
+
 ```rust
 fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
     let file = config.inner();
@@ -288,11 +304,13 @@ fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
 ### Trade-offs
 
 **Shared vs Provider-Specific Logic**
+
 - Some duplication accepted for provider autonomy
 - Shared utilities (command_exists, get_command_version) for common operations
 - Provider-specific implementations for unique features
 
 **Early vs Late Validation**
+
 - Chose early validation (before resource creation)
 - Trade-off: Fail fast vs. partial deployment recovery
 
@@ -303,6 +321,7 @@ fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
 **Decision**: sysbox > privileged > socket > none
 
 **Rationale**:
+
 - Sysbox is most secure (user namespaces)
 - Privileged is fallback for compatibility
 - Socket shares host daemon (least isolation)
@@ -313,6 +332,7 @@ fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
 **Decision**: Convert GB strings to MB integers for API
 
 **Rationale**:
+
 - Fly.io API expects memory_mb as integer
 - Users think in GB (sindri.yaml: memory: 4GB)
 - Convert at provider boundary: 4GB → 4096
@@ -322,6 +342,7 @@ fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
 **Decision**: Use sandbox metadata for name lookups
 
 **Rationale**:
+
 - E2B doesn't support human-readable names
 - Sandboxes identified by random IDs
 - Add metadata: {sindri_name: "my-env"}
@@ -332,6 +353,7 @@ fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
 **Decision**: Push to registry for all non-Docker backends
 
 **Rationale**:
+
 - Cloud backends can't access local Docker images
 - Docker backend can use local images
 - Check backend type before building/pushing
@@ -341,6 +363,7 @@ fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
 **Decision**: Auto-detect cluster type via config
 
 **Rationale**:
+
 - kind/k3d require image loading
 - Remote clusters use image pull
 - Check providers.k8s.provider to determine
@@ -348,6 +371,7 @@ fn get_fly_config<'a>(&self, config: &'a SindriConfig) -> FlyDeployConfig<'a> {
 ## Validation
 
 All patterns tested across 5 providers:
+
 - ✅ 17 provider-specific tests passing
 - ✅ DinD mode detection tested with 4 scenarios
 - ✅ State mapping validated for all providers

@@ -29,7 +29,9 @@ impl Default for PlatformMatrix {
                 os: "linux".to_string(),
                 arch: "x86_64".to_string(),
                 target: "x86_64-unknown-linux-musl".to_string(),
-                asset_pattern: Some("sindri-{version}-x86_64-unknown-linux-musl.tar.gz".to_string()),
+                asset_pattern: Some(
+                    "sindri-{version}-x86_64-unknown-linux-musl.tar.gz".to_string(),
+                ),
                 priority: 10,
                 aliases: vec!["linux-amd64".to_string()],
                 enabled: true,
@@ -43,7 +45,9 @@ impl Default for PlatformMatrix {
                 os: "linux".to_string(),
                 arch: "aarch64".to_string(),
                 target: "aarch64-unknown-linux-musl".to_string(),
-                asset_pattern: Some("sindri-{version}-aarch64-unknown-linux-musl.tar.gz".to_string()),
+                asset_pattern: Some(
+                    "sindri-{version}-aarch64-unknown-linux-musl.tar.gz".to_string(),
+                ),
                 priority: 9,
                 aliases: vec!["linux-arm64".to_string()],
                 enabled: true,
@@ -163,12 +167,9 @@ impl PlatformMatrix {
         }
 
         // Try finding by OS/arch match
-        self.platforms
-            .values()
-            .filter(|p| p.enabled)
-            .find(|p| {
-                p.os.eq_ignore_ascii_case(normalized_os) && p.arch.eq_ignore_ascii_case(normalized_arch)
-            })
+        self.platforms.values().filter(|p| p.enabled).find(|p| {
+            p.os.eq_ignore_ascii_case(normalized_os) && p.arch.eq_ignore_ascii_case(normalized_arch)
+        })
     }
 
     /// Get platform definition by key
@@ -178,11 +179,7 @@ impl PlatformMatrix {
 
     /// Get all enabled platforms sorted by priority
     pub fn enabled_platforms(&self) -> Vec<(&String, &PlatformDefinition)> {
-        let mut platforms: Vec<_> = self
-            .platforms
-            .iter()
-            .filter(|(_, p)| p.enabled)
-            .collect();
+        let mut platforms: Vec<_> = self.platforms.iter().filter(|(_, p)| p.enabled).collect();
         platforms.sort_by(|a, b| b.1.priority.cmp(&a.1.priority));
         platforms
     }

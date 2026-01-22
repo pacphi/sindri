@@ -12,13 +12,13 @@ Sindri is undergoing a major architectural evolution with the introduction of v3
 - **v2**: Bash/shell-based CLI (version 2.x.x)
   - Docker-based deployment
   - Extension system in `v2/docker/lib/extensions/`
-  - Includes VisionFlow-specific extensions (vf-* prefixed)
+  - Includes VisionFlow-specific extensions (vf-\* prefixed)
   - Mature, production-ready codebase
 
 - **v3**: Rust-based CLI (version 3.x.x)
   - Cargo workspace architecture with multiple crates
   - Standalone extension system in `v3/extensions/`
-  - Extensions copied from v2 (excluding vf-* prefixed ones)
+  - Extensions copied from v2 (excluding vf-\* prefixed ones)
   - Clean break from v2 extension management
   - In active development
 
@@ -42,25 +42,27 @@ The goal is to create **clean separation** of CI/CD pipelines while maintaining 
 #### `ci-v2.yml` - v2 Bash/Docker CI
 
 **Path Triggers**:
+
 ```yaml
 on:
   push:
     branches: [main, develop]
     paths:
-      - 'v2/**'
-      - '.github/workflows/ci-v2.yml'
-      - '.github/actions/v2/**'
-      - '.github/actions/shared/**'
-      - 'package.json'
+      - "v2/**"
+      - ".github/workflows/ci-v2.yml"
+      - ".github/actions/v2/**"
+      - ".github/actions/shared/**"
+      - "package.json"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'v2/**'
-      - '.github/workflows/ci-v2.yml'
-      - '.github/actions/v2/**'
+      - "v2/**"
+      - ".github/workflows/ci-v2.yml"
+      - ".github/actions/v2/**"
 ```
 
 **Jobs**:
+
 - **Shellcheck**: Validate v2 shell scripts (`v2/**/*.sh`)
 - **Markdownlint**: Validate v2 documentation (`v2/**/*.md`)
 - **Validate YAML**: Validate v2 extensions, registry, schemas
@@ -72,24 +74,26 @@ on:
 #### `ci-v3.yml` - v3 Rust CI
 
 **Path Triggers**:
+
 ```yaml
 on:
   push:
     branches: [main, develop]
     paths:
-      - 'v3/**'
-      - '.github/workflows/ci-v3.yml'
-      - '.github/actions/v3/**'
-      - '.github/actions/shared/**'
+      - "v3/**"
+      - ".github/workflows/ci-v3.yml"
+      - ".github/actions/v3/**"
+      - ".github/actions/shared/**"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'v3/**'
-      - '.github/workflows/ci-v3.yml'
-      - '.github/actions/v3/**'
+      - "v3/**"
+      - ".github/workflows/ci-v3.yml"
+      - ".github/actions/v3/**"
 ```
 
 **Jobs**:
+
 - **Rust Format**: `cargo fmt --check`
 - **Rust Clippy**: `cargo clippy --workspace -- -D warnings`
 - **Rust Test**: `cargo test --workspace`
@@ -106,6 +110,7 @@ on:
 **Trigger**: Git tags matching `v2.*.*` (e.g., `v2.3.0`, `v2.3.1-beta.1`)
 
 **Process**:
+
 1. Validate tag format (`v2.x.y`)
 2. Generate changelog from `v2/` commits
 3. Build Docker image from `v2/Dockerfile`
@@ -125,6 +130,7 @@ on:
 **Trigger**: Git tags matching `v3.*.*` (e.g., `v3.0.0`, `v3.1.0-alpha.1`)
 
 **Process**:
+
 1. Validate tag format (`v3.x.y`)
 2. Generate changelog from `v3/` commits
 3. Build release binaries for multiple platforms:
@@ -145,6 +151,7 @@ on:
 ### 3. Reorganize GitHub Actions
 
 **Directory Structure**:
+
 ```
 .github/actions/
 ├── v2/                          # v2-specific actions
@@ -175,6 +182,7 @@ on:
 #### `validate-yaml.yml`
 
 **Update to validate both v2 and v3 paths**:
+
 ```yaml
 jobs:
   validate-v2-yaml:
@@ -205,12 +213,14 @@ jobs:
 #### Extension Testing
 
 **Separate workflows**:
+
 - `test-extensions-v2.yml`: Tests `v2/docker/lib/extensions/` (Docker-based)
 - `test-extensions-v3.yml`: Tests `v3/extensions/` (Rust-based, when CLI ready)
 
 ### 5. Dependabot Configuration
 
 **Update `.github/dependabot.yml`**:
+
 ```yaml
 version: 2
 updates:
@@ -249,11 +259,13 @@ updates:
 ### 6. Extension Architecture
 
 **Clean Separation**:
-- **v2**: Extensions in `v2/docker/lib/extensions/` (includes vf-* VisionFlow extensions)
-- **v3**: Extensions in `v3/extensions/` (copied from v2, excluding vf-*)
+
+- **v2**: Extensions in `v2/docker/lib/extensions/` (includes vf-\* VisionFlow extensions)
+- **v3**: Extensions in `v3/extensions/` (copied from v2, excluding vf-\*)
 - **v3 Registry**: Independent `v3/registry.yaml` (no shared state with v2)
 
 **Migration Strategy**:
+
 ```bash
 # Script to copy extensions from v2 to v3 (excluding vf-*)
 for ext in v2/docker/lib/extensions/*/; do
@@ -304,11 +316,13 @@ done
 **Description**: Keep single `ci.yml` with conditional job execution based on changed paths.
 
 **Pros**:
+
 - Single workflow to maintain
 - Less duplication
 - Unified status checks
 
 **Cons**:
+
 - Complex conditional logic
 - Hard to understand which jobs run when
 - All jobs show in PR (even skipped ones)
@@ -321,11 +335,13 @@ done
 **Description**: Use monorepo tools to manage v2 and v3 as separate projects.
 
 **Pros**:
+
 - Automatic change detection
 - Smart caching
 - Task orchestration
 
 **Cons**:
+
 - Heavy dependency (Node.js required)
 - Overkill for two projects
 - Learning curve
@@ -338,12 +354,14 @@ done
 **Description**: Split v2 and v3 into completely separate repos.
 
 **Pros**:
+
 - Complete isolation
 - No CI trigger conflicts
 - Independent issue tracking
 - Cleaner git history
 
 **Cons**:
+
 - Harder to share documentation
 - Separate PRs for cross-version changes
 - Duplicate tooling setup
@@ -356,10 +374,12 @@ done
 **Description**: Use environment variables to enable/disable v2 or v3 CI steps.
 
 **Pros**:
+
 - Single workflow
 - Runtime control
 
 **Cons**:
+
 - Complex logic
 - Easy to misconfigure
 - Harder to test
@@ -372,10 +392,12 @@ done
 **Description**: Remove automatic triggers, require manual workflow runs.
 
 **Pros**:
+
 - Complete control
 - No accidental runs
 
 **Cons**:
+
 - Poor developer experience
 - Easy to forget to run CI
 - Breaks PR automation
@@ -386,6 +408,7 @@ done
 ## Implementation Plan
 
 ### Phase 1: Workflow Creation (Day 1)
+
 - [ ] Create `ci-v2.yml` from existing `ci.yml`
 - [ ] Create `ci-v3.yml` with Rust-specific jobs
 - [ ] Create `release-v2.yml`
@@ -394,6 +417,7 @@ done
 - [ ] Remove old `ci.yml` and `release.yml`
 
 ### Phase 2: Actions Reorganization (Day 1)
+
 - [ ] Create `.github/actions/v2/` directory
 - [ ] Create `.github/actions/v3/` directory
 - [ ] Rename `.github/actions/core/` to `.github/actions/shared/`
@@ -402,24 +426,28 @@ done
 - [ ] Create `v3/release-binaries/action.yml`
 
 ### Phase 3: Extension Migration (Day 2)
+
 - [ ] Create `v3/extensions/` directory
-- [ ] Write migration script (copy from v2, exclude vf-*)
+- [ ] Write migration script (copy from v2, exclude vf-\*)
 - [ ] Run migration script
 - [ ] Create `v3/registry.yaml`
 - [ ] Create `test-extensions-v3.yml` workflow
 
 ### Phase 4: Dependabot & Package.json (Day 2)
+
 - [ ] Update `.github/dependabot.yml` with v2/v3 configs
 - [ ] Update `package.json` scripts for v2/v3 separation
 - [ ] Test dependency updates
 
 ### Phase 5: Documentation (Day 2-3)
+
 - [ ] Create `.github/README.md` explaining CI architecture
 - [ ] Update root README.md with v2/v3 sections
 - [ ] Create `docs/MIGRATION_V2_TO_V3.md`
 - [ ] Update contributing guidelines
 
 ### Phase 6: Testing & Validation (Day 3)
+
 - [ ] Test ci-v2.yml with v2-only PR
 - [ ] Test ci-v3.yml with v3-only PR
 - [ ] Test release-v2.yml with test tag (`v2.99.99`)
@@ -428,19 +456,19 @@ done
 
 ## Path-Based Trigger Matrix
 
-| Changed Path | Triggers Workflow | Rationale |
-|--------------|-------------------|-----------|
-| `v2/**` | `ci-v2.yml` | v2 code changes |
-| `v3/**` | `ci-v3.yml` | v3 code changes |
-| `.github/workflows/ci-v2.yml` | `ci-v2.yml` | Self-trigger for workflow changes |
-| `.github/workflows/ci-v3.yml` | `ci-v3.yml` | Self-trigger for workflow changes |
-| `.github/actions/v2/**` | `ci-v2.yml` | v2 action changes |
-| `.github/actions/v3/**` | `ci-v3.yml` | v3 action changes |
-| `.github/actions/shared/**` | Both | Shared utility changes affect both |
-| `package.json` | `ci-v2.yml` | Root tooling affects v2 validation |
-| Root `docs/`, `README.md` | Neither (manual) | Documentation-only changes |
-| Tag `v2.*.*` | `release-v2.yml` | v2 release |
-| Tag `v3.*.*` | `release-v3.yml` | v3 release |
+| Changed Path                  | Triggers Workflow | Rationale                          |
+| ----------------------------- | ----------------- | ---------------------------------- |
+| `v2/**`                       | `ci-v2.yml`       | v2 code changes                    |
+| `v3/**`                       | `ci-v3.yml`       | v3 code changes                    |
+| `.github/workflows/ci-v2.yml` | `ci-v2.yml`       | Self-trigger for workflow changes  |
+| `.github/workflows/ci-v3.yml` | `ci-v3.yml`       | Self-trigger for workflow changes  |
+| `.github/actions/v2/**`       | `ci-v2.yml`       | v2 action changes                  |
+| `.github/actions/v3/**`       | `ci-v3.yml`       | v3 action changes                  |
+| `.github/actions/shared/**`   | Both              | Shared utility changes affect both |
+| `package.json`                | `ci-v2.yml`       | Root tooling affects v2 validation |
+| Root `docs/`, `README.md`     | Neither (manual)  | Documentation-only changes         |
+| Tag `v2.*.*`                  | `release-v2.yml`  | v2 release                         |
+| Tag `v3.*.*`                  | `release-v3.yml`  | v3 release                         |
 
 ## Success Criteria
 
@@ -462,7 +490,7 @@ done
 - ✅ Independent release workflows with version-specific tags
 - ✅ Reorganized actions into v2/, v3/, shared/
 - ✅ Updated Dependabot for multi-ecosystem support
-- ✅ Extension separation (v2 includes vf-*, v3 excludes vf-*)
+- ✅ Extension separation (v2 includes vf-_, v3 excludes vf-_)
 - ✅ Documentation for both CI pipelines
 
 ## Notes

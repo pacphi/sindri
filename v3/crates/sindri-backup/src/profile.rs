@@ -88,12 +88,8 @@ impl BackupProfile {
             BackupProfile::UserData => {
                 "Projects, Claude data, git config (smallest, migration-focused)"
             }
-            BackupProfile::Standard => {
-                "User data + shell/app configs (default, balanced)"
-            }
-            BackupProfile::Full => {
-                "Everything except caches (largest, complete recovery)"
-            }
+            BackupProfile::Standard => "User data + shell/app configs (default, balanced)",
+            BackupProfile::Full => "Everything except caches (largest, complete recovery)",
         }
     }
 
@@ -164,7 +160,10 @@ mod tests {
         assert!(includes.contains(&PathBuf::from(".gitconfig")));
 
         let full = BackupProfile::Full;
-        assert!(full.includes().is_none(), "Full profile includes everything");
+        assert!(
+            full.includes().is_none(),
+            "Full profile includes everything"
+        );
     }
 
     #[test]
@@ -198,10 +197,7 @@ mod tests {
             BackupProfile::from_str("standard"),
             Some(BackupProfile::Standard)
         );
-        assert_eq!(
-            BackupProfile::from_str("full"),
-            Some(BackupProfile::Full)
-        );
+        assert_eq!(BackupProfile::from_str("full"), Some(BackupProfile::Full));
         assert_eq!(BackupProfile::from_str("unknown"), None);
     }
 

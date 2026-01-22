@@ -64,8 +64,8 @@ impl ReleaseManager {
     /// Create a new release manager
     pub fn new() -> Self {
         // Load configuration
-        let config_loader = HierarchicalConfigLoader::new()
-            .expect("Failed to create config loader");
+        let config_loader =
+            HierarchicalConfigLoader::new().expect("Failed to create config loader");
         let runtime_config = config_loader
             .load_runtime_config()
             .expect("Failed to load runtime config");
@@ -94,9 +94,7 @@ impl ReleaseManager {
     pub async fn get_latest(&self) -> Result<Release> {
         let url = format!(
             "{}/repos/{}/{}/releases/latest",
-            self.github_config.api_url,
-            self.github_config.repo_owner,
-            self.github_config.repo_name
+            self.github_config.api_url, self.github_config.repo_owner, self.github_config.repo_name
         );
 
         debug!("Fetching latest release from: {}", url);

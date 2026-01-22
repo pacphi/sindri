@@ -40,12 +40,14 @@ sindri-rs/
 ### Crate Responsibilities
 
 **sindri** (bin crate)
+
 - CLI argument parsing with clap derive
 - Command dispatch (version, config, deploy, etc.)
 - User-facing output formatting
 - Dependencies: clap, indicatif, colored
 
 **sindri-core** (lib)
+
 - Type definitions matching JSON schemas
 - Config loading and validation
 - Schema validation with jsonschema
@@ -53,22 +55,26 @@ sindri-rs/
 - Zero async dependencies
 
 **sindri-providers** (lib)
+
 - Provider trait definition
 - 5 provider implementations (Docker, Fly, DevPod, E2B, Kubernetes)
 - Template rendering with Tera
 - Async operations with tokio
 
 **sindri-extensions** (lib)
+
 - Extension registry and dependency resolution
 - YAML-based declarative executor
 - Validation framework
 - DAG-based topological sort
 
 **sindri-secrets** (lib)
+
 - Multi-source secret resolution (env, file, vault)
 - Provider-specific injection (Docker env_file, Fly secrets, etc.)
 
 **sindri-update** (lib)
+
 - GitHub releases API integration
 - Self-update with rollback
 - Version compatibility checking

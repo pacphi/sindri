@@ -5,7 +5,9 @@
 
 use crate::compression::{calculate_checksum, DEFAULT_COMPRESSION_LEVEL};
 use crate::filters::ExclusionConfig;
-use crate::manifest::{BackupManifest, BackupStatistics, ChecksumInfo, SourceInfo, MANIFEST_FILENAME};
+use crate::manifest::{
+    BackupManifest, BackupStatistics, ChecksumInfo, SourceInfo, MANIFEST_FILENAME,
+};
 use crate::profile::BackupProfile;
 use crate::progress::BackupProgress;
 use flate2::write::GzEncoder;
@@ -129,12 +131,8 @@ impl ArchiveBuilder {
         let temp_tar = temp_dir.path().join("backup.tar");
 
         // Create tar archive
-        let file_count = self.create_tar_archive(
-            &temp_tar,
-            source_dir,
-            &files_to_backup,
-            &mut progress,
-        )?;
+        let file_count =
+            self.create_tar_archive(&temp_tar, source_dir, &files_to_backup, &mut progress)?;
 
         // Calculate uncompressed size
         let uncompressed_size = std::fs::metadata(&temp_tar)?.len();
@@ -214,7 +212,8 @@ impl ArchiveBuilder {
                     !self.config.exclusions.should_exclude(rel_path)
                 })
             {
-                let entry = entry.map_err(|e| anyhow::anyhow!("Failed to walk directory: {}", e))?;
+                let entry =
+                    entry.map_err(|e| anyhow::anyhow!("Failed to walk directory: {}", e))?;
 
                 if entry.file_type().is_file() {
                     let rel_path = entry
@@ -361,7 +360,10 @@ mod tests {
             .with_progress(false);
 
         let builder = ArchiveBuilder::new(config);
-        let result = builder.create(source_dir.path(), &output_path).await.unwrap();
+        let result = builder
+            .create(source_dir.path(), &output_path)
+            .await
+            .unwrap();
 
         assert!(output_path.exists());
         assert!(result.size_bytes > 0);
@@ -386,7 +388,10 @@ mod tests {
             .with_progress(false);
 
         let builder = ArchiveBuilder::new(config);
-        let _result = builder.create(source_dir.path(), &output_path).await.unwrap();
+        let _result = builder
+            .create(source_dir.path(), &output_path)
+            .await
+            .unwrap();
 
         // Extract and verify cache is not included
         let extract_dir = TempDir::new().unwrap();

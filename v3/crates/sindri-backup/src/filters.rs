@@ -79,7 +79,8 @@ impl ExclusionConfig {
             builder.add(glob);
         }
 
-        let globset = builder.build()
+        let globset = builder
+            .build()
             .map_err(|e| anyhow::anyhow!("Failed to build exclusion globset: {}", e))?;
 
         Ok(Self { globset })
@@ -93,9 +94,9 @@ impl ExclusionConfig {
     /// Returns true if the path is a system marker that should never be restored.
     pub fn is_system_marker(path: &Path) -> bool {
         let path_str = path.to_string_lossy();
-        NEVER_RESTORE.iter().any(|marker| {
-            path_str == *marker || path_str.starts_with(&format!("{}/", marker))
-        })
+        NEVER_RESTORE
+            .iter()
+            .any(|marker| path_str == *marker || path_str.starts_with(&format!("{}/", marker)))
     }
 }
 
@@ -113,25 +114,29 @@ impl RestoreFilter {
 
         // Add system marker patterns
         for pattern in NEVER_RESTORE {
-            let glob = Glob::new(pattern)
-                .map_err(|e| anyhow::anyhow!("Invalid restore filter pattern '{}': {}", pattern, e))?;
+            let glob = Glob::new(pattern).map_err(|e| {
+                anyhow::anyhow!("Invalid restore filter pattern '{}': {}", pattern, e)
+            })?;
             builder.add(glob);
 
             // Also match subdirectories
             let subdir_pattern = format!("{}/**", pattern);
-            let glob = Glob::new(&subdir_pattern)
-                .map_err(|e| anyhow::anyhow!("Invalid restore filter pattern '{}': {}", subdir_pattern, e))?;
+            let glob = Glob::new(&subdir_pattern).map_err(|e| {
+                anyhow::anyhow!("Invalid restore filter pattern '{}': {}", subdir_pattern, e)
+            })?;
             builder.add(glob);
         }
 
         // Add user-provided patterns
         for pattern in additional_patterns {
-            let glob = Glob::new(&pattern)
-                .map_err(|e| anyhow::anyhow!("Invalid restore filter pattern '{}': {}", pattern, e))?;
+            let glob = Glob::new(&pattern).map_err(|e| {
+                anyhow::anyhow!("Invalid restore filter pattern '{}': {}", pattern, e)
+            })?;
             builder.add(glob);
         }
 
-        let globset = builder.build()
+        let globset = builder
+            .build()
             .map_err(|e| anyhow::anyhow!("Failed to build restore filter globset: {}", e))?;
 
         Ok(Self { globset })
@@ -168,10 +173,8 @@ mod tests {
 
     #[test]
     fn test_custom_exclusions() {
-        let config = ExclusionConfig::new(vec![
-            "*.log".to_string(),
-            "temp/**".to_string(),
-        ]).unwrap();
+        let config =
+            ExclusionConfig::new(vec!["*.log".to_string(), "temp/**".to_string()]).unwrap();
 
         assert!(config.should_exclude(Path::new("app.log")));
         assert!(config.should_exclude(Path::new("temp/data.txt")));
@@ -181,11 +184,19 @@ mod tests {
     #[test]
     fn test_system_marker_detection() {
         assert!(ExclusionConfig::is_system_marker(Path::new(".initialized")));
-        assert!(ExclusionConfig::is_system_marker(Path::new(".welcome_shown")));
-        assert!(ExclusionConfig::is_system_marker(Path::new("workspace/.system/bootstrap.yaml")));
-        assert!(ExclusionConfig::is_system_marker(Path::new("workspace/.system/installed")));
+        assert!(ExclusionConfig::is_system_marker(Path::new(
+            ".welcome_shown"
+        )));
+        assert!(ExclusionConfig::is_system_marker(Path::new(
+            "workspace/.system/bootstrap.yaml"
+        )));
+        assert!(ExclusionConfig::is_system_marker(Path::new(
+            "workspace/.system/installed"
+        )));
 
-        assert!(!ExclusionConfig::is_system_marker(Path::new("workspace/projects/myproject")));
+        assert!(!ExclusionConfig::is_system_marker(Path::new(
+            "workspace/projects/myproject"
+        )));
         assert!(!ExclusionConfig::is_system_marker(Path::new(".gitconfig")));
     }
 
@@ -205,9 +216,7 @@ mod tests {
 
     #[test]
     fn test_restore_filter_with_custom_patterns() {
-        let filter = RestoreFilter::new(vec![
-            "*.bak".to_string(),
-        ]).unwrap();
+        let filter = RestoreFilter::new(vec!["*.bak".to_string()]).unwrap();
 
         // Should exclude custom patterns
         assert!(filter.should_exclude(Path::new("file.bak")));

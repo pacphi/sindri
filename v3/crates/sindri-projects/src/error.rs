@@ -214,16 +214,12 @@ impl Error {
 
     /// Create a repo exists error
     pub fn repo_exists(path: impl Into<String>) -> Self {
-        Self::RepoExists {
-            path: path.into(),
-        }
+        Self::RepoExists { path: path.into() }
     }
 
     /// Create a repo not found error
     pub fn repo_not_found(path: impl Into<String>) -> Self {
-        Self::RepoNotFound {
-            path: path.into(),
-        }
+        Self::RepoNotFound { path: path.into() }
     }
 
     /// Create an invalid branch error

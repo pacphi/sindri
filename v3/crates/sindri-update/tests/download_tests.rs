@@ -89,13 +89,11 @@ fn test_platform_asset_selection_no_match() {
         body: None,
         prerelease: false,
         draft: false,
-        assets: vec![
-            ReleaseAsset {
-                name: "checksums.sha256".to_string(),
-                browser_download_url: "https://example.com/checksums".to_string(),
-                size: 256,
-            },
-        ],
+        assets: vec![ReleaseAsset {
+            name: "checksums.sha256".to_string(),
+            browser_download_url: "https://example.com/checksums".to_string(),
+            size: 256,
+        }],
         published_at: None,
     };
 
@@ -146,7 +144,9 @@ async fn test_verify_checksum_valid() {
     fs::write(&test_file, b"Test content").unwrap();
 
     let actual_checksum = downloader.calculate_checksum(&test_file).unwrap();
-    let result = downloader.verify_checksum(&test_file, &actual_checksum).unwrap();
+    let result = downloader
+        .verify_checksum(&test_file, &actual_checksum)
+        .unwrap();
 
     assert!(result);
 }
@@ -159,7 +159,9 @@ async fn test_verify_checksum_invalid() {
     fs::write(&test_file, b"Test content").unwrap();
 
     let wrong_checksum = "0000000000000000000000000000000000000000000000000000000000000000";
-    let result = downloader.verify_checksum(&test_file, wrong_checksum).unwrap();
+    let result = downloader
+        .verify_checksum(&test_file, wrong_checksum)
+        .unwrap();
 
     assert!(!result);
 }
@@ -318,15 +320,17 @@ async fn test_download_fails_after_max_retries() {
     // Should fail after max retries
     assert!(result.is_err());
     let error_msg = result.unwrap_err().to_string();
-    assert!(error_msg.contains("failed") || error_msg.contains("attempt") || error_msg.contains("compatible"));
+    assert!(
+        error_msg.contains("failed")
+            || error_msg.contains("attempt")
+            || error_msg.contains("compatible")
+    );
 }
 
 #[tokio::test]
 async fn test_download_size_mismatch() {
     let mock_server = MockServer::start().await;
-    let downloader = BinaryDownloader::new()
-        .unwrap()
-        .with_progress(false);
+    let downloader = BinaryDownloader::new().unwrap().with_progress(false);
 
     let binary_content = b"short content";
     let platform = "x86_64-unknown-linux-musl";
@@ -428,9 +432,7 @@ async fn test_temp_dir_cleanup_on_drop() {
 #[tokio::test]
 async fn test_download_with_progress_disabled() {
     let mock_server = MockServer::start().await;
-    let downloader = BinaryDownloader::new()
-        .unwrap()
-        .with_progress(false);
+    let downloader = BinaryDownloader::new().unwrap().with_progress(false);
 
     let content = b"test binary";
     let platform = "x86_64-unknown-linux-musl";
@@ -501,9 +503,7 @@ async fn test_concurrent_downloads() {
                 published_at: None,
             };
 
-            downloader
-                .download_release(&release, None)
-                .await
+            downloader.download_release(&release, None).await
         });
     }
 

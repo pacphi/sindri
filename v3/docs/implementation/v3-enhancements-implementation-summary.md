@@ -24,6 +24,7 @@ These enhancements address critical gaps in the initial v3 implementation and br
 ### Problem Statement
 
 The entrypoint script needed:
+
 - `sindri extension install --from-config sindri.yaml` (did not exist)
 - `sindri extension install --profile <name>` (did not exist)
 
@@ -34,6 +35,7 @@ Instead, users had to use `sindri profile install` separately, creating inconsis
 #### Files Modified
 
 **v3/crates/sindri/src/cli.rs:**
+
 - Modified `ExtensionInstallArgs` struct
 - Made `name` field optional
 - Added `--from-config` flag with conflict resolution
@@ -58,6 +60,7 @@ pub struct ExtensionInstallArgs {
 ```
 
 **v3/crates/sindri/src/commands/extension.rs:**
+
 - Refactored `install()` function to support three modes:
   1. Install by name (original)
   2. Install from config file (new)
@@ -67,9 +70,11 @@ pub struct ExtensionInstallArgs {
 - Created `install_by_name()` helper function (original logic)
 
 **v3/crates/sindri/src/commands/profile.rs:**
+
 - Made `install()` function public so it can be called from extension.rs
 
 **v3/docker/scripts/entrypoint.sh:**
+
 - Updated extension installation logic to use new flags
 - Priority order:
   1. `sindri extension install --from-config sindri.yaml` (if sindri.yaml exists)
@@ -96,6 +101,7 @@ sindri extension install --profile full --yes
 ### Testing
 
 **Unit Tests Required:**
+
 - [ ] Test `--from-config` with valid sindri.yaml
 - [ ] Test `--from-config` with missing file
 - [ ] Test `--profile` with valid profile name
@@ -105,6 +111,7 @@ sindri extension install --profile full --yes
 - [ ] Test config file with active extensions list
 
 **Integration Tests Required:**
+
 - [ ] Test entrypoint with sindri.yaml present
 - [ ] Test entrypoint with SINDRI_PROFILE set
 - [ ] Test entrypoint with neither (defaults to minimal)
@@ -120,12 +127,14 @@ The `sindri extension status` command had placeholder implementation with hardco
 ### Implementation
 
 **v3/crates/sindri/src/commands/extension.rs:**
+
 - Implemented real manifest loading using `ManifestManager`
 - Read installed extensions from `~/.sindri/state/manifest.yaml`
 - Support filtering by extension name
 - Proper JSON serialization for `--json` flag
 
 **Changes:**
+
 ```rust
 // Before: Hardcoded mock data
 let statuses = vec![
@@ -151,6 +160,7 @@ let statuses: Vec<StatusRow> = entries
 ```
 
 **Added Serialization:**
+
 - Added `serde::Serialize` and `serde::Deserialize` derives to `StatusRow` struct
 
 ### Usage
@@ -179,6 +189,7 @@ Multiple TODO comments scattered across codebase without tracking or prioritizat
 **Created:** `v3/docs/TODO-TRACKER.md`
 
 **Structure:**
+
 - ✅ Completed TODOs (with completion dates)
 - 🔥 High Priority TODOs (target: v3.0.0)
 - 📋 Medium Priority TODOs (target: v3.1.0)
@@ -187,6 +198,7 @@ Multiple TODO comments scattered across codebase without tracking or prioritizat
 - 🚫 False Positives (filtered out)
 
 **Metrics:**
+
 - Total TODOs: 23
 - Completed: 4
 - High Priority: 2
@@ -195,12 +207,14 @@ Multiple TODO comments scattered across codebase without tracking or prioritizat
 - Completion Rate: 17.4%
 
 **Key TODOs Addressed:**
+
 - ✅ Extension install --from-config
 - ✅ Extension install --profile
 - ✅ Extension status implementation
 - ✅ JSON serialization for status
 
 **Remaining High Priority:**
+
 - [ ] Full validation for extension install (extension.rs:411)
 - [ ] Comprehensive distribution validation (distribution.rs:434)
 
@@ -218,6 +232,7 @@ Multiple TODO comments scattered across codebase without tracking or prioritizat
 ### Problem Statement
 
 Docker images only supported linux/amd64, excluding:
+
 - Apple Silicon Macs (M1/M2/M3)
 - ARM-based cloud instances (AWS Graviton, etc.)
 - Raspberry Pi and other ARM devices
@@ -229,6 +244,7 @@ Docker images only supported linux/amd64, excluding:
 **v3/Dockerfile:**
 
 1. **Added TARGETARCH support in builder-binary stage:**
+
 ```dockerfile
 ARG TARGETARCH
 
@@ -252,6 +268,7 @@ wget "...sindri-v${SINDRI_VERSION}-linux-${ARCH_SUFFIX}.tar.gz"
 **.github/workflows/release-v3.yml:**
 
 1. **Added QEMU setup** for cross-platform builds:
+
 ```yaml
 - name: Set up QEMU
   uses: docker/setup-qemu-action@v3
@@ -260,8 +277,9 @@ wget "...sindri-v${SINDRI_VERSION}-linux-${ARCH_SUFFIX}.tar.gz"
 ```
 
 2. **Updated Docker build platforms:**
+
 ```yaml
-platforms: linux/amd64,linux/arm64  # Was: linux/amd64
+platforms: linux/amd64,linux/arm64 # Was: linux/amd64
 ```
 
 3. **Removed manual binary download:**
@@ -271,6 +289,7 @@ platforms: linux/amd64,linux/arm64  # Was: linux/amd64
 ### Build Process
 
 **How it Works:**
+
 1. GitHub Actions runner starts (x86_64 host)
 2. QEMU emulation enabled for ARM64
 3. Docker Buildx builds two images in parallel:
@@ -301,15 +320,18 @@ docker buildx imagetools inspect ghcr.io/pacphi/sindri:3.0.0
 ### Performance Notes
 
 **Build Time:**
+
 - AMD64 build: ~5-8 minutes (native)
 - ARM64 build: ~8-12 minutes (QEMU emulated)
 - Total workflow: ~15 minutes (parallel builds)
 
 **Image Size:**
+
 - Both architectures: ~800MB (same target)
 - Multi-arch manifest: Minimal overhead (~1KB)
 
 **Runtime Performance:**
+
 - AMD64: Native performance
 - ARM64: Native performance (not emulated at runtime)
 
@@ -320,11 +342,13 @@ docker buildx imagetools inspect ghcr.io/pacphi/sindri:3.0.0
 ### Problem Statement
 
 Original health check only verified SSH daemon:
+
 ```dockerfile
 HEALTHCHECK CMD netstat -tln | grep -q ":2222" || exit 1
 ```
 
 **Limitations:**
+
 - Doesn't verify extension installation
 - Doesn't check Sindri CLI functionality
 - Doesn't validate directory structure
@@ -366,6 +390,7 @@ HEALTHCHECK CMD netstat -tln | grep -q ":2222" || exit 1
    - Required for SSH access and permissions
 
 **Output:**
+
 ```
 ✓ SSH daemon is listening on port 2222
 ✓ Sindri CLI is functional
@@ -380,12 +405,14 @@ Status: HEALTHY
 ```
 
 **Exit Codes:**
+
 - `0`: All checks passed (healthy)
 - `1`: One or more checks failed (unhealthy)
 
 #### Dockerfile Integration
 
 **Changes:**
+
 ```dockerfile
 # Copy health check script
 COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
@@ -397,12 +424,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 ```
 
 **HEALTHCHECK Parameters:**
+
 - `--interval=30s`: Check every 30 seconds
 - `--timeout=10s`: Health check must complete in 10 seconds
 - `--start-period=60s`: Grace period for container startup (increased from 5s)
 - `--retries=3`: Mark unhealthy after 3 consecutive failures
 
 **Start Period Justification:**
+
 - Original: 5 seconds (too short for extension installation)
 - Updated: 60 seconds (allows background installation to start)
 - Extension installation runs in background and doesn't block SSH
@@ -427,27 +456,30 @@ watch -n 5 'docker ps --format "table {{.Names}}\t{{.Status}}"'
 
 ### Health Check States
 
-| State | Description | Action |
-|-------|-------------|--------|
-| `starting` | Container booting, grace period active | Wait (up to 60s) |
-| `healthy` | All checks passing | Normal operation |
-| `unhealthy` | 3+ consecutive failures | Investigate logs |
+| State       | Description                            | Action           |
+| ----------- | -------------------------------------- | ---------------- |
+| `starting`  | Container booting, grace period active | Wait (up to 60s) |
+| `healthy`   | All checks passing                     | Normal operation |
+| `unhealthy` | 3+ consecutive failures                | Investigate logs |
 
 ### Troubleshooting
 
 **If container is unhealthy:**
 
 1. Run manual health check:
+
    ```bash
    docker exec sindri /docker/scripts/healthcheck.sh
    ```
 
 2. Check extension installation log:
+
    ```bash
    docker exec sindri tail -100 ~/.sindri/logs/install.log
    ```
 
 3. Check SSH daemon:
+
    ```bash
    docker exec sindri systemctl status ssh
    # or
@@ -467,17 +499,20 @@ watch -n 5 'docker ps --format "table {{.Names}}\t{{.Status}}"'
 ### Build Tests
 
 **Local Build Test (AMD64):**
+
 ```bash
 cd /alt/home/developer/workspace/projects/sindri
 docker build -t sindri:v3-test -f v3/Dockerfile .
 ```
 
 **Expected:**
+
 - Build completes in < 8 minutes
 - Image size < 1GB
 - Binary is executable: `docker run --rm sindri:v3-test sindri --version`
 
 **Multi-Arch Build Test:**
+
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
   -t sindri:v3-multiarch \
@@ -486,12 +521,14 @@ docker buildx build --platform linux/amd64,linux/arm64 \
 ```
 
 **Expected:**
+
 - Both platforms build successfully
 - Correct binary downloaded for each architecture
 
 ### Runtime Tests
 
 **Test 1: Extension Install from Config**
+
 ```bash
 # Create test sindri.yaml
 cat > /tmp/test-sindri.yaml << 'EOF'
@@ -514,6 +551,7 @@ docker logs -f test-config | grep "Installing extensions from sindri.yaml"
 ```
 
 **Test 2: Extension Install from Profile**
+
 ```bash
 docker run -d --name test-profile \
   -e SINDRI_PROFILE=full \
@@ -524,6 +562,7 @@ docker logs -f test-profile | grep "Installing profile: full"
 ```
 
 **Test 3: Health Check**
+
 ```bash
 # Wait for healthy status
 timeout 120 bash -c 'until docker inspect test-profile | jq -r ".[0].State.Health.Status" | grep -q "healthy"; do sleep 5; done'
@@ -533,6 +572,7 @@ docker exec test-profile /docker/scripts/healthcheck.sh
 ```
 
 **Test 4: Extension Status**
+
 ```bash
 # Wait for bootstrap to complete
 docker exec test-profile bash -c 'while [ ! -f ~/.sindri/bootstrap-complete ]; do sleep 5; done'
@@ -542,6 +582,7 @@ docker exec test-profile sindri extension status
 ```
 
 **Test 5: ARM64 Runtime** (on ARM64 machine or emulated)
+
 ```bash
 docker run --platform linux/arm64 -d --name test-arm64 \
   -e SINDRI_PROFILE=minimal \
@@ -556,6 +597,7 @@ docker exec test-arm64 sindri --version
 ### CI/CD Validation
 
 **GitHub Actions Workflow Test:**
+
 1. Create test tag: `git tag v3.0.0-rc.1`
 2. Push tag: `git push origin v3.0.0-rc.1`
 3. Monitor workflow: https://github.com/pacphi/sindri/actions
@@ -575,11 +617,13 @@ docker exec test-arm64 sindri --version
 ## 7. Documentation Updates
 
 ### Files Created
+
 - ✅ `v3/docs/TODO-TRACKER.md` - Comprehensive TODO tracking
 - ✅ `v3/docs/implementation/v3-dockerfile-validation-checklist.md` - Validation guide
 - ✅ `v3/docs/implementation/v3-enhancements-implementation-summary.md` - This document
 
 ### Files Modified
+
 - ✅ `v3/Dockerfile` - Multi-arch support, health check integration
 - ✅ `v3/docker/scripts/entrypoint.sh` - New CLI flags usage
 - ✅ `v3/docker/scripts/healthcheck.sh` - Created
@@ -589,6 +633,7 @@ docker exec test-arm64 sindri --version
 - ✅ `v3/crates/sindri/src/commands/profile.rs` - Made install() public
 
 ### Documentation to Update (Before Release)
+
 - [ ] Update `v3/README.md` with new install flags
 - [ ] Update `v3/docs/CLI.md` with extension install examples
 - [ ] Update release notes with multi-arch support
@@ -602,30 +647,33 @@ docker exec test-arm64 sindri --version
 ### Breaking Changes
 
 **None.** All enhancements are backward compatible:
+
 - Old usage still works: `sindri profile install minimal`
 - New usage available: `sindri extension install --profile minimal`
 - Entrypoint auto-detects best method
 
 ### Feature Parity
 
-| Feature | v2 | v3 Before | v3 After |
-|---------|----|-----------| ---------|
-| Config-based install | ✅ | ❌ | ✅ |
-| Profile install | ✅ | ✅ | ✅ |
-| Single extension install | ✅ | ✅ | ✅ |
-| Extension status | ✅ | ⚠️ Mock | ✅ |
-| ARM64 support | ❌ | ❌ | ✅ |
-| Health checks | ⚠️ SSH only | ⚠️ SSH only | ✅ Comprehensive |
+| Feature                  | v2          | v3 Before   | v3 After         |
+| ------------------------ | ----------- | ----------- | ---------------- |
+| Config-based install     | ✅          | ❌          | ✅               |
+| Profile install          | ✅          | ✅          | ✅               |
+| Single extension install | ✅          | ✅          | ✅               |
+| Extension status         | ✅          | ⚠️ Mock     | ✅               |
+| ARM64 support            | ❌          | ❌          | ✅               |
+| Health checks            | ⚠️ SSH only | ⚠️ SSH only | ✅ Comprehensive |
 
 ### Upgrade Path
 
 **For Users:**
+
 1. No changes required to existing sindri.yaml files
 2. No changes to environment variables
 3. SINDRI_PROFILE still works as before
 4. New flags optional but recommended
 
 **For Automation:**
+
 - Existing scripts work unchanged
 - Can adopt new flags incrementally
 - Multi-arch images work automatically (Docker chooses correct platform)
@@ -636,36 +684,38 @@ docker exec test-arm64 sindri --version
 
 ### Build Performance
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Single-arch build | 5-8 min | 5-8 min | No change |
-| Multi-arch build | N/A | 15 min | New feature |
-| CI/CD total time | 20 min | 25 min | +5 min |
+| Metric            | Before  | After   | Change      |
+| ----------------- | ------- | ------- | ----------- |
+| Single-arch build | 5-8 min | 5-8 min | No change   |
+| Multi-arch build  | N/A     | 15 min  | New feature |
+| CI/CD total time  | 20 min  | 25 min  | +5 min      |
 
 **Justification:**
+
 - Multi-arch build adds 5 minutes (ARM64 emulated)
 - Acceptable for production-quality ARM64 support
 
 ### Runtime Performance
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Container startup | 2-3 sec | 2-3 sec | No change |
-| Health check overhead | <1 sec | <1 sec | No change |
-| Extension install | Varies | Varies | No change |
+| Metric                | Before  | After   | Change    |
+| --------------------- | ------- | ------- | --------- |
+| Container startup     | 2-3 sec | 2-3 sec | No change |
+| Health check overhead | <1 sec  | <1 sec  | No change |
+| Extension install     | Varies  | Varies  | No change |
 
 **Health Check Impact:**
+
 - Runs every 30 seconds
 - Completes in <1 second
 - Negligible CPU/memory overhead
 
 ### Image Size
 
-| Platform | Size |
-|----------|------|
-| linux/amd64 | ~800MB |
-| linux/arm64 | ~800MB |
-| Manifest overhead | ~1KB |
+| Platform          | Size   |
+| ----------------- | ------ |
+| linux/amd64       | ~800MB |
+| linux/arm64       | ~800MB |
+| Manifest overhead | ~1KB   |
 
 **No size increase** from multi-arch support.
 
@@ -709,22 +759,26 @@ docker exec test-arm64 sindri --version
 ### Health Check Security
 
 **Risks Mitigated:**
+
 - Health check runs as root but only reads system state
 - No user input processed
 - No network operations performed
 - Fails closed (errors = unhealthy)
 
 **Potential Issues:**
+
 - Log file path traversal: Mitigated by hardcoded paths
 - Process name spoofing: Low risk, informational only
 
 ### Multi-Arch Security
 
 **Risks:**
+
 - Binary authenticity: Downloaded from GitHub releases (HTTPS)
 - **Future:** Verify checksums, GPG signatures
 
 **Mitigations:**
+
 - Use official Rust/Ubuntu base images
 - Pin base image versions
 - Minimal attack surface (no bundled extensions)
@@ -734,6 +788,7 @@ docker exec test-arm64 sindri --version
 ## 12. Rollout Plan
 
 ### Pre-Release (v3.0.0-rc.1)
+
 1. ✅ Implement all enhancements
 2. [ ] Run full test suite
 3. [ ] Deploy to staging environment
@@ -741,6 +796,7 @@ docker exec test-arm64 sindri --version
 5. [ ] Fix any critical issues
 
 ### Release (v3.0.0)
+
 1. [ ] Tag release: `v3.0.0`
 2. [ ] CI/CD automatically:
    - Builds binaries for 5 platforms
@@ -751,6 +807,7 @@ docker exec test-arm64 sindri --version
 4. [ ] Announce release
 
 ### Post-Release
+
 1. [ ] Monitor health check logs
 2. [ ] Collect ARM64 performance data
 3. [ ] Address any issues
@@ -773,17 +830,20 @@ docker exec test-arm64 sindri --version
 ### Key Metrics to Track
 
 **Build Metrics:**
+
 - Multi-arch build success rate
 - Build time for each platform
 - Image size for each platform
 
 **Runtime Metrics:**
+
 - Health check pass rate
 - Extension installation success rate
 - Container startup time
 - SSH connection time
 
 **Adoption Metrics:**
+
 - `--from-config` usage vs `--profile`
 - ARM64 pull count vs AMD64
 - Health check failure reasons
@@ -803,16 +863,19 @@ docker exec test-arm64 sindri --version
 ### Impact
 
 **User Experience:**
+
 - Simpler, more consistent CLI
 - Better observability (health checks, status)
 - Broader platform support (ARM64)
 
 **Developer Experience:**
+
 - Clear TODO tracking
 - Better testing (health checks)
 - Easier contribution (documented enhancements)
 
 **Operations:**
+
 - More reliable deployments (health checks)
 - Better monitoring (status command)
 - Wider deployment options (ARM64)

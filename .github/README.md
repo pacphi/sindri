@@ -5,6 +5,7 @@ This directory contains the bifurcated CI/CD pipeline for Sindri v2 (Bash/Docker
 ## Overview
 
 Sindri maintains two parallel versions:
+
 - **v2**: Bash/Docker-based CLI (stable, production-ready)
 - **v3**: Rust-based CLI (in active development)
 
@@ -34,18 +35,18 @@ To support independent development and releases, the CI/CD pipeline is split bas
 
 ## Path-Based Triggers
 
-| Changed Path | Triggers | Example |
-|--------------|----------|---------|
-| `v2/**` | `ci-v2.yml` | Changes to v2 code, scripts, extensions |
-| `v3/**` | `ci-v3.yml` | Changes to v3 Rust code, extensions |
-| `.github/workflows/ci-v2.yml` | `ci-v2.yml` | Self-trigger for workflow changes |
-| `.github/workflows/ci-v3.yml` | `ci-v3.yml` | Self-trigger for workflow changes |
-| `.github/actions/v2/**` | `ci-v2.yml` | v2 action changes |
-| `.github/actions/v3/**` | `ci-v3.yml` | v3 action changes |
-| `.github/actions/shared/**` | Both | Shared action changes affect both |
-| `package.json` | `ci-v2.yml` | Root tooling affects v2 validation |
-| Tags `v2.*.*` | `release-v2.yml` | v2 release trigger |
-| Tags `v3.*.*` | `release-v3.yml` | v3 release trigger |
+| Changed Path                  | Triggers         | Example                                 |
+| ----------------------------- | ---------------- | --------------------------------------- |
+| `v2/**`                       | `ci-v2.yml`      | Changes to v2 code, scripts, extensions |
+| `v3/**`                       | `ci-v3.yml`      | Changes to v3 Rust code, extensions     |
+| `.github/workflows/ci-v2.yml` | `ci-v2.yml`      | Self-trigger for workflow changes       |
+| `.github/workflows/ci-v3.yml` | `ci-v3.yml`      | Self-trigger for workflow changes       |
+| `.github/actions/v2/**`       | `ci-v2.yml`      | v2 action changes                       |
+| `.github/actions/v3/**`       | `ci-v3.yml`      | v3 action changes                       |
+| `.github/actions/shared/**`   | Both             | Shared action changes affect both       |
+| `package.json`                | `ci-v2.yml`      | Root tooling affects v2 validation      |
+| Tags `v2.*.*`                 | `release-v2.yml` | v2 release trigger                      |
+| Tags `v3.*.*`                 | `release-v3.yml` | v3 release trigger                      |
 
 ## CI Workflows
 
@@ -54,6 +55,7 @@ To support independent development and releases, the CI/CD pipeline is split bas
 **Triggers**: Changes to `v2/` directory
 
 **Jobs**:
+
 1. **Validation**
    - Shellcheck (v2 shell scripts)
    - Markdownlint (v2 documentation)
@@ -73,6 +75,7 @@ To support independent development and releases, the CI/CD pipeline is split bas
    - Overall CI status
 
 **Manual Triggers**:
+
 ```bash
 # Workflow dispatch allows customization
 - Select providers to test
@@ -86,6 +89,7 @@ To support independent development and releases, the CI/CD pipeline is split bas
 **Triggers**: Changes to `v3/` directory
 
 **Jobs**:
+
 1. **Rust Validation**
    - `cargo fmt --check` (formatting)
    - `cargo clippy` (linting)
@@ -109,6 +113,7 @@ To support independent development and releases, the CI/CD pipeline is split bas
    - Overall CI status
 
 **Caching**:
+
 - Cargo dependencies cached with `actions/cache@v5`
 - Cache key includes `Cargo.lock` hash
 - Restore keys for fallback
@@ -120,6 +125,7 @@ To support independent development and releases, the CI/CD pipeline is split bas
 **Trigger**: Git tags matching `v2.*.*` (e.g., `v2.3.0`, `v2.3.1-beta.1`)
 
 **Process**:
+
 1. Validate tag format (`v2.x.y`)
 2. Generate changelog from `v2/` commits
 3. Build Docker image from `v2/Dockerfile`
@@ -133,6 +139,7 @@ To support independent development and releases, the CI/CD pipeline is split bas
 7. Commit version updates to main branch
 
 **Creating a v2 Release**:
+
 ```bash
 # Create and push tag
 git tag v2.3.0
@@ -148,6 +155,7 @@ git push origin v2.3.0
 **Trigger**: Git tags matching `v3.*.*` (e.g., `v3.0.0`, `v3.1.0-alpha.1`)
 
 **Process**:
+
 1. Validate tag format (`v3.x.y`)
 2. Generate changelog from `v3/` commits
 3. Build release binaries for multiple platforms:
@@ -163,6 +171,7 @@ git push origin v2.3.0
 8. Commit version updates to main branch
 
 **Creating a v3 Release**:
+
 ```bash
 # Create and push tag
 git tag v3.0.0
@@ -178,11 +187,13 @@ git push origin v3.0.0
 ### validate-yaml.yml - Unified YAML Validation
 
 **Validates both v2 and v3**:
+
 - **v2**: `v2/docker/lib/*.yaml`, `v2/docker/lib/extensions/*/extension.yaml`
 - **v3**: `v3/extensions/*/extension.yaml`, `v3/registry.yaml`, `v3/schemas/*.yaml`
 - **GitHub**: `.github/workflows/*.yml`
 
 **Jobs**:
+
 - YAML linting (yamllint)
 - Schema validation (ajv against JSON schemas)
 - Cross-reference checking (registry ↔ extensions)
@@ -191,6 +202,7 @@ git push origin v3.0.0
 ### check-links.yml - Documentation Link Checking
 
 **Checks all markdown files** in both v2 and v3:
+
 - Internal links (file:// scheme)
 - External links (scheduled weekly, optional on PR)
 
@@ -199,6 +211,7 @@ git push origin v3.0.0
 ### test-extensions-v2.yml
 
 Tests v2 extensions in `v2/docker/lib/extensions/`:
+
 - Docker-based testing
 - Validates extension.yaml against schema
 - Checks registry consistency
@@ -207,6 +220,7 @@ Tests v2 extensions in `v2/docker/lib/extensions/`:
 ### test-extensions-v3.yml (Future)
 
 Will test v3 extensions in `v3/extensions/`:
+
 - Rust-based testing using v3 CLI
 - Schema validation
 - Registry consistency
@@ -234,8 +248,7 @@ Automated dependency updates for all ecosystems:
   directory: "/v3"
   schedule: weekly
   labels: ["dependencies", "v3"]
-  groups:
-    workspace-dependencies
+  groups: workspace-dependencies
 
 # Docker (v2)
 - package-ecosystem: "docker"
@@ -255,6 +268,7 @@ Automated dependency updates for all ecosystems:
 All scripts are version-prefixed to avoid confusion:
 
 **v2 Commands**:
+
 ```bash
 pnpm v2:validate        # Validate v2 code
 pnpm v2:lint            # Lint v2 code
@@ -265,6 +279,7 @@ pnpm v2:ci              # Run v2 CI locally
 ```
 
 **v3 Commands**:
+
 ```bash
 pnpm v3:validate        # Validate v3 code (Rust + YAML)
 pnpm v3:lint            # Lint v3 code
@@ -277,6 +292,7 @@ pnpm v3:ci              # Run v3 CI locally
 ```
 
 **Shared Commands** (apply to both versions):
+
 ```bash
 pnpm format             # Format all files (prettier)
 pnpm links:check        # Check markdown links
@@ -289,10 +305,12 @@ pnpm audit              # Security audit (npm)
 Recommended branch protection rules for `main`:
 
 **Status Checks Required**:
+
 - `CI v2 Required Checks` (from ci-v2.yml)
 - `CI v3 Required Checks` (from ci-v3.yml)
 
 **Settings**:
+
 - Require pull request reviews (1 approver)
 - Require status checks to pass
 - Require branches to be up to date
@@ -303,6 +321,7 @@ Recommended branch protection rules for `main`:
 ### Running CI Locally
 
 **v2**:
+
 ```bash
 # Full v2 CI
 pnpm v2:ci
@@ -315,6 +334,7 @@ pnpm v2:build
 ```
 
 **v3**:
+
 ```bash
 # Full v3 CI
 pnpm v3:ci
@@ -329,6 +349,7 @@ pnpm v3:build
 ### Creating Releases
 
 **v2 Release**:
+
 ```bash
 # Update version in v2/cli/VERSION if needed
 echo "2.3.0" > v2/cli/VERSION
@@ -343,6 +364,7 @@ git push origin main v2.3.0
 ```
 
 **v3 Release**:
+
 ```bash
 # Update version in v3/Cargo.toml (workspace.package.version)
 sed -i 's/version = ".*"/version = "3.0.0"/' v3/Cargo.toml
@@ -366,6 +388,7 @@ git push origin main v3.0.0
 ### Adding New Actions
 
 **For v2**:
+
 ```bash
 mkdir -p .github/actions/v2/my-action
 # Create action.yml
@@ -373,6 +396,7 @@ mkdir -p .github/actions/v2/my-action
 ```
 
 **For v3**:
+
 ```bash
 mkdir -p .github/actions/v3/my-action
 # Create action.yml
@@ -380,6 +404,7 @@ mkdir -p .github/actions/v3/my-action
 ```
 
 **Shared**:
+
 ```bash
 mkdir -p .github/actions/shared/my-action
 # Create action.yml
@@ -392,7 +417,7 @@ mkdir -p .github/actions/shared/my-action
 
 **Location**: `v2/docker/lib/extensions/`
 **Registry**: `v2/docker/lib/registry.yaml`
-**Includes**: All extensions, including VisionFlow (vf-* prefixed)
+**Includes**: All extensions, including VisionFlow (vf-\* prefixed)
 
 ### v3 Extensions
 
@@ -400,7 +425,7 @@ mkdir -p .github/actions/shared/my-action
 **Registry**: `v3/registry.yaml`
 **Excludes**: VisionFlow extensions (clean break from v2)
 
-**Migrated**: 44 extensions from v2 (excluding 33 vf-* extensions)
+**Migrated**: 44 extensions from v2 (excluding 33 vf-\* extensions)
 
 ## Troubleshooting
 
@@ -424,6 +449,7 @@ This is expected if you change files in both directories or shared actions.
 **Error**: "Invalid tag format"
 
 **Solution**: Use correct format:
+
 - v2 releases: `v2.x.y` (e.g., v2.3.0, v2.3.1-beta.1)
 - v3 releases: `v3.x.y` (e.g., v3.0.0, v3.1.0-alpha.1)
 

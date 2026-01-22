@@ -24,8 +24,8 @@ A declarative, provider-agnostic cloud development environment system. Deploy co
 
 Like its mythological namesake, Sindri forges powerful development environments from raw materials—transforming cloud infrastructure, YAML configuration, and Docker into consistent, reproducible developer workspaces.
 
-* [v2](v2)
-* [v3](v3)
+- [v2](v2)
+- [v3](v3)
 
 ## License
 

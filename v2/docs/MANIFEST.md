@@ -419,11 +419,11 @@ yq -oj eval manifest.json | \
 
 **Three levels of configuration:**
 
-| File               | Purpose              | Location                        | Format |
-| ------------------ | -------------------- | ------------------------------- | ------ |
+| File               | Purpose              | Location                           | Format |
+| ------------------ | -------------------- | ---------------------------------- | ------ |
 | **extension.yaml** | Extension definition | `../docker/lib/extensions/<name>/` | YAML   |
 | **registry.yaml**  | Extension catalog    | `../docker/lib/registry.yaml`      | YAML   |
-| **manifest.json**  | Installed extensions | `$WORKSPACE/.system/manifest/`  | JSON   |
+| **manifest.json**  | Installed extensions | `$WORKSPACE/.system/manifest/`     | JSON   |
 
 **Relationship:**
 

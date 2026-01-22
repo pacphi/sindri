@@ -139,8 +139,8 @@ impl BinaryDownloader {
         let temp_dir = TempDir::new().context("Failed to create temporary directory")?;
 
         // Load configuration
-        let config_loader = HierarchicalConfigLoader::new()
-            .context("Failed to create config loader")?;
+        let config_loader =
+            HierarchicalConfigLoader::new().context("Failed to create config loader")?;
         let runtime_config = config_loader
             .load_runtime_config()
             .context("Failed to load runtime config")?;
@@ -217,7 +217,10 @@ impl BinaryDownloader {
                     return Ok(result);
                 }
                 Err(e) => {
-                    warn!("Download attempt {}/{} failed: {}", attempt, self.max_retries, e);
+                    warn!(
+                        "Download attempt {}/{} failed: {}",
+                        attempt, self.max_retries, e
+                    );
                     last_error = Some(e);
 
                     if attempt < self.max_retries {
@@ -229,15 +232,12 @@ impl BinaryDownloader {
             }
         }
 
-        Err(last_error.unwrap_or_else(|| anyhow!("Download failed after {} attempts", self.max_retries)))
+        Err(last_error
+            .unwrap_or_else(|| anyhow!("Download failed after {} attempts", self.max_retries)))
     }
 
     /// Download a single asset
-    async fn download_asset(
-        &self,
-        asset: &ReleaseAsset,
-        attempt: u32,
-    ) -> Result<DownloadResult> {
+    async fn download_asset(&self, asset: &ReleaseAsset, attempt: u32) -> Result<DownloadResult> {
         let file_path = self.temp_dir.path().join(&asset.name);
         let temp_file_path = self.temp_dir.path().join(format!("{}.tmp", asset.name));
 
@@ -263,10 +263,16 @@ impl BinaryDownloader {
             request = request.header(RANGE, format!("bytes={}-", start_pos));
         }
 
-        let response = request.send().await.context("Failed to send download request")?;
+        let response = request
+            .send()
+            .await
+            .context("Failed to send download request")?;
 
         if !response.status().is_success() && response.status().as_u16() != 206 {
-            return Err(anyhow!("Download failed with status: {}", response.status()));
+            return Err(anyhow!(
+                "Download failed with status: {}",
+                response.status()
+            ));
         }
 
         // Get total size

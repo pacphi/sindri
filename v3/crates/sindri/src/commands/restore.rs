@@ -219,7 +219,11 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
             "Proceed with restore?"
         };
 
-        if !Confirm::new().with_prompt(prompt).default(false).interact()? {
+        if !Confirm::new()
+            .with_prompt(prompt)
+            .default(false)
+            .interact()?
+        {
             output::info("Restore cancelled");
             return Ok(());
         }
@@ -320,8 +324,7 @@ async fn download_backup(source: &str) -> Result<Utf8PathBuf> {
     }
     pb.finish_and_clear();
 
-    Ok(Utf8PathBuf::from_path_buf(temp_file)
-        .map_err(|_| anyhow::anyhow!("Invalid temp path"))?)
+    Ok(Utf8PathBuf::from_path_buf(temp_file).map_err(|_| anyhow::anyhow!("Invalid temp path"))?)
 }
 
 async fn decrypt_backup(
@@ -331,8 +334,7 @@ async fn decrypt_backup(
     // TODO: Implement age decryption
     let decrypted = std::env::temp_dir().join("sindri-restore-decrypted.tar.gz");
     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-    Ok(Utf8PathBuf::from_path_buf(decrypted)
-        .map_err(|_| anyhow::anyhow!("Invalid temp path"))?)
+    Ok(Utf8PathBuf::from_path_buf(decrypted).map_err(|_| anyhow::anyhow!("Invalid temp path"))?)
 }
 
 fn verify_backup(_archive: &Utf8PathBuf) -> Result<()> {
@@ -377,7 +379,11 @@ fn analyze_restore(
 
     Ok(RestoreAnalysis {
         new_files: 1000,
-        conflicts: if matches!(mode, RestoreMode::Safe) { 0 } else { 234 },
+        conflicts: if matches!(mode, RestoreMode::Safe) {
+            0
+        } else {
+            234
+        },
         system_markers: 3,
         extension_upgrades: vec![
             (

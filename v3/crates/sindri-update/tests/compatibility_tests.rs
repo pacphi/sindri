@@ -7,7 +7,7 @@
 //! - Compatibility matrix parsing
 //! - Mock manifest files
 
-use sindri_update::compatibility::{CompatibilityChecker, CompatResult, IncompatibleExtension};
+use sindri_update::compatibility::{CompatResult, CompatibilityChecker, IncompatibleExtension};
 use std::collections::HashMap;
 
 /// Sample compatibility matrix YAML for testing
@@ -232,10 +232,7 @@ fn test_check_without_loaded_matrix() {
     let result = checker.check_compatibility("3.0.0", &installed);
 
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("not loaded"));
+    assert!(result.unwrap_err().to_string().contains("not loaded"));
 }
 
 #[test]
@@ -300,7 +297,9 @@ fn test_wildcard_does_not_match_different_minor() {
 #[test]
 fn test_major_version_upgrade_breaking_changes() {
     let mut checker = CompatibilityChecker::new();
-    checker.load_matrix_from_str(TEST_MATRIX_WITH_CONFLICTS).unwrap();
+    checker
+        .load_matrix_from_str(TEST_MATRIX_WITH_CONFLICTS)
+        .unwrap();
 
     let installed = HashMap::new();
 

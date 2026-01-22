@@ -7,7 +7,7 @@
 //! - Clear error messages
 
 use crate::sources::{EnvSource, FileSource, SecretSource, VaultSource};
-use crate::types::{ResolvedSecret, ResolutionContext};
+use crate::types::{ResolutionContext, ResolvedSecret};
 use anyhow::{anyhow, Result};
 use sindri_core::types::{SecretConfig, SecretSource as ConfigSecretSource};
 use std::collections::HashMap;
@@ -84,10 +84,7 @@ impl SecretResolver {
     }
 
     /// Create with custom sources (for testing)
-    pub fn with_sources(
-        sources: Vec<Box<dyn SecretSource>>,
-        context: ResolutionContext,
-    ) -> Self {
+    pub fn with_sources(sources: Vec<Box<dyn SecretSource>>, context: ResolutionContext) -> Self {
         Self {
             sources,
             cache: Arc::new(RwLock::new(SecretCache::new())),
@@ -125,7 +122,10 @@ impl SecretResolver {
                             definition.name, e
                         ));
                     } else {
-                        warn!("Failed to resolve optional secret '{}': {}", definition.name, e);
+                        warn!(
+                            "Failed to resolve optional secret '{}': {}",
+                            definition.name, e
+                        );
                     }
                 }
             }
@@ -173,7 +173,9 @@ impl SecretResolver {
             ConfigSecretSource::File => "file",
             ConfigSecretSource::Vault => "vault",
             ConfigSecretSource::S3 => {
-                return Err(anyhow!("S3 source not yet implemented (planned for Phase 6)"));
+                return Err(anyhow!(
+                    "S3 source not yet implemented (planned for Phase 6)"
+                ));
             }
         };
 
@@ -190,12 +192,19 @@ impl SecretResolver {
 
         for source in &self.sources {
             if let Err(e) = source.validate() {
-                errors.push(format!("Source '{}' validation failed: {}", source.name(), e));
+                errors.push(format!(
+                    "Source '{}' validation failed: {}",
+                    source.name(),
+                    e
+                ));
             }
         }
 
         if !errors.is_empty() {
-            return Err(anyhow!("Source validation failed:\n  - {}", errors.join("\n  - ")));
+            return Err(anyhow!(
+                "Source validation failed:\n  - {}",
+                errors.join("\n  - ")
+            ));
         }
 
         Ok(())

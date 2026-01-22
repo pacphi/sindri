@@ -304,12 +304,14 @@ cli_versions:
 ### Wildcard Versions
 
 CLI versions support wildcards:
+
 - `3.0.x` - Matches 3.0.0, 3.0.1, 3.0.2, etc.
 - `3.1.x` - Matches 3.1.0, 3.1.1, etc.
 
 ### Version Range Syntax
 
 Extension version ranges use semver syntax:
+
 - `>=1.0.0,<2.0.0` - Version 1.x.x
 - `>=2.0.0,<3.0.0` - Version 2.x.x
 - `^1.2.0` - Compatible with 1.2.0 (>=1.2.0,<2.0.0)
@@ -418,6 +420,7 @@ Automatic Rollback Triggered
 ```
 
 The user will see:
+
 ```
 Error: Update failed: verification error: <reason>. Rolled back to previous version.
 ```

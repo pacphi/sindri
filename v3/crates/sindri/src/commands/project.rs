@@ -50,7 +50,10 @@ pub async fn new_project(args: NewProjectArgs) -> Result<()> {
 
     // Activate extensions
     if !template.extensions.is_empty() {
-        output::info(&format!("Activating {} extension(s)...", template.extensions.len()));
+        output::info(&format!(
+            "Activating {} extension(s)...",
+            template.extensions.len()
+        ));
         for ext in &template.extensions {
             output::info(&format!("  Activating: {}", ext));
             // TODO: Call extension-manager to install extension
@@ -61,8 +64,7 @@ pub async fn new_project(args: NewProjectArgs) -> Result<()> {
 
     // Create project directory
     output::info("Creating project directory...");
-    std::fs::create_dir_all(&project_dir)
-        .context("Failed to create project directory")?;
+    std::fs::create_dir_all(&project_dir).context("Failed to create project directory")?;
 
     // Change to project directory for subsequent operations
     std::env::set_current_dir(&project_dir)?;
@@ -165,8 +167,7 @@ pub async fn clone_project(args: CloneProjectArgs) -> Result<()> {
         fork_repository(&args.repository, &projects_base, &project_name).await?;
 
         // Change to project directory
-        std::env::set_current_dir(&project_dir)
-            .context("Failed to change to project directory")?;
+        std::env::set_current_dir(&project_dir).context("Failed to change to project directory")?;
 
         if !args.no_enhance {
             output::info("Setting up fork remotes and aliases...");
@@ -183,8 +184,7 @@ pub async fn clone_project(args: CloneProjectArgs) -> Result<()> {
         )?;
 
         // Change to project directory
-        std::env::set_current_dir(&project_dir)
-            .context("Failed to change to project directory")?;
+        std::env::set_current_dir(&project_dir).context("Failed to change to project directory")?;
     }
 
     // Checkout branch if specified (for fork mode)
@@ -279,7 +279,11 @@ fn get_projects_dir() -> Utf8PathBuf {
         })
 }
 
-async fn fork_repository(repo_url: &str, projects_base: &Utf8PathBuf, _project_name: &str) -> Result<()> {
+async fn fork_repository(
+    repo_url: &str,
+    projects_base: &Utf8PathBuf,
+    _project_name: &str,
+) -> Result<()> {
     // Check if gh CLI is available
     if !is_command_available("gh") {
         return Err(anyhow!(
@@ -808,19 +812,11 @@ fn show_git_config(is_fork: bool) -> Result<()> {
     output::info("Git Configuration:");
 
     // Get user name
-    if let Ok(output) = Command::new("git")
-        .arg("config")
-        .arg("user.name")
-        .output()
-    {
+    if let Ok(output) = Command::new("git").arg("config").arg("user.name").output() {
         let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !name.is_empty() {
             // Get user email
-            if let Ok(email_output) = Command::new("git")
-                .arg("config")
-                .arg("user.email")
-                .output()
-            {
+            if let Ok(email_output) = Command::new("git").arg("config").arg("user.email").output() {
                 let email = String::from_utf8_lossy(&email_output.stdout)
                     .trim()
                     .to_string();
@@ -932,7 +928,10 @@ fn detect_type_from_name(name: &str) -> Option<DetectionResult> {
     if name_lower.contains("node") || name_lower.contains("npm") || name_lower.contains("express") {
         return Some(DetectionResult::Unambiguous("node".to_string()));
     }
-    if name_lower.contains("python") || name_lower.contains("django") || name_lower.contains("flask") {
+    if name_lower.contains("python")
+        || name_lower.contains("django")
+        || name_lower.contains("flask")
+    {
         return Some(DetectionResult::Unambiguous("python".to_string()));
     }
     if name_lower.contains("rust") || name_lower.contains("cargo") {
@@ -1022,29 +1021,26 @@ fn load_template(project_type: &str) -> Result<ProjectTemplate> {
             vec![],
             vec![
                 (".gitignore".to_string(), generate_gitignore("python")),
-                ("requirements.txt".to_string(), "# Add dependencies here\n".to_string()),
+                (
+                    "requirements.txt".to_string(),
+                    "# Add dependencies here\n".to_string(),
+                ),
             ],
             Some(generate_template_claude_md("python")),
         ),
         "rust" => (
             vec!["cargo init".to_string()],
-            vec![
-                (".gitignore".to_string(), generate_gitignore("rust")),
-            ],
+            vec![(".gitignore".to_string(), generate_gitignore("rust"))],
             Some(generate_template_claude_md("rust")),
         ),
         "go" => (
             vec!["go mod init {project_name}".to_string()],
-            vec![
-                (".gitignore".to_string(), generate_gitignore("go")),
-            ],
+            vec![(".gitignore".to_string(), generate_gitignore("go"))],
             Some(generate_template_claude_md("go")),
         ),
         _ => (
             vec![],
-            vec![
-                (".gitignore".to_string(), generate_gitignore("generic")),
-            ],
+            vec![(".gitignore".to_string(), generate_gitignore("generic"))],
             None,
         ),
     };
@@ -1100,7 +1096,8 @@ coverage/
 # Temporary
 tmp/
 temp/
-"#.to_string(),
+"#
+        .to_string(),
         "python" => r#"# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -1134,7 +1131,8 @@ Thumbs.db
 # Environment
 .env
 .env.local
-"#.to_string(),
+"#
+        .to_string(),
         "rust" => r#"# Build outputs
 /target/
 **/*.rs.bk
@@ -1151,7 +1149,8 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
-"#.to_string(),
+"#
+        .to_string(),
         "go" => r#"# Binaries
 *.exe
 *.exe~
@@ -1177,7 +1176,8 @@ Thumbs.db
 
 # Go workspace
 go.work
-"#.to_string(),
+"#
+        .to_string(),
         _ => r#"# IDE
 .vscode/
 .idea/
@@ -1195,7 +1195,8 @@ Thumbs.db
 # Environment
 .env
 .env.local
-"#.to_string(),
+"#
+        .to_string(),
     }
 }
 
@@ -1214,7 +1215,8 @@ fn generate_package_json() -> String {
   "author": "{author}",
   "license": "MIT"
 }
-"#.to_string()
+"#
+    .to_string()
 }
 
 /// Generate CLAUDE.md template for project type
@@ -1270,9 +1272,7 @@ fn init_git_repo(project_name: &str) -> Result<()> {
     }
 
     // Set default branch name
-    let _ = Command::new("git")
-        .args(&["branch", "-M", "main"])
-        .output();
+    let _ = Command::new("git").args(&["branch", "-M", "main"]).output();
 
     // Configure git user if not already configured globally
     let user_name = Command::new("git")
@@ -1334,10 +1334,7 @@ fn collect_template_variables(project_name: &str) -> Result<TemplateVariables> {
 }
 
 /// Execute template setup commands
-fn execute_template_setup(
-    template: &ProjectTemplate,
-    variables: &TemplateVariables,
-) -> Result<()> {
+fn execute_template_setup(template: &ProjectTemplate, variables: &TemplateVariables) -> Result<()> {
     for cmd in &template.setup_commands {
         let resolved_cmd = substitute_variables(cmd, variables);
         tracing::debug!("Running setup command: {}", resolved_cmd);
@@ -1348,16 +1345,18 @@ fn execute_template_setup(
             continue;
         }
 
-        let output = Command::new(parts[0])
-            .args(&parts[1..])
-            .output();
+        let output = Command::new(parts[0]).args(&parts[1..]).output();
 
         match output {
             Ok(out) if out.status.success() => {
                 tracing::debug!("Command succeeded: {}", resolved_cmd);
             }
             Ok(out) => {
-                tracing::warn!("Command failed: {} (exit code: {})", resolved_cmd, out.status);
+                tracing::warn!(
+                    "Command failed: {} (exit code: {})",
+                    resolved_cmd,
+                    out.status
+                );
             }
             Err(e) => {
                 tracing::warn!("Failed to execute command: {} (error: {})", resolved_cmd, e);
@@ -1369,10 +1368,7 @@ fn execute_template_setup(
 }
 
 /// Create template files with variable substitution
-fn create_template_files(
-    template: &ProjectTemplate,
-    variables: &TemplateVariables,
-) -> Result<()> {
+fn create_template_files(template: &ProjectTemplate, variables: &TemplateVariables) -> Result<()> {
     for (filepath, content) in &template.files {
         let resolved_path = substitute_variables(filepath, variables);
         let resolved_content = substitute_variables(content, variables);
@@ -1393,7 +1389,10 @@ fn create_template_files(
 }
 
 /// Create CLAUDE.md file for new project
-fn create_project_claude_md(template: &ProjectTemplate, variables: &TemplateVariables) -> Result<()> {
+fn create_project_claude_md(
+    template: &ProjectTemplate,
+    variables: &TemplateVariables,
+) -> Result<()> {
     if std::path::Path::new("CLAUDE.md").exists() {
         output::info("  CLAUDE.md already exists");
         return Ok(());
@@ -1424,8 +1423,7 @@ This project was created with Sindri.
         )
     };
 
-    std::fs::write("CLAUDE.md", content)
-        .context("Failed to create CLAUDE.md")?;
+    std::fs::write("CLAUDE.md", content).context("Failed to create CLAUDE.md")?;
 
     Ok(())
 }
@@ -1462,9 +1460,7 @@ fn commit_initial_project(project_name: &str) -> Result<()> {
 }
 
 /// Setup project enhancements (hooks, tools, etc.) for new project
-fn setup_new_project_enhancements(
-    skip_tools: bool,
-) -> Result<()> {
+fn setup_new_project_enhancements(skip_tools: bool) -> Result<()> {
     output::info("Setting up project enhancements...");
 
     // Install dependencies
@@ -1552,8 +1548,12 @@ fn show_new_project_git_config() -> Result<()> {
         .args(&["branch", "--show-current"])
         .output()?;
 
-    let name_str = String::from_utf8_lossy(&user_name.stdout).trim().to_string();
-    let email_str = String::from_utf8_lossy(&user_email.stdout).trim().to_string();
+    let name_str = String::from_utf8_lossy(&user_name.stdout)
+        .trim()
+        .to_string();
+    let email_str = String::from_utf8_lossy(&user_email.stdout)
+        .trim()
+        .to_string();
     let branch_str = String::from_utf8_lossy(&branch.stdout).trim().to_string();
 
     println!("   User: {} <{}>", name_str, email_str);

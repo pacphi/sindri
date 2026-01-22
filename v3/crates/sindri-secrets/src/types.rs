@@ -184,11 +184,7 @@ impl TokenMetadata {
             return false;
         }
 
-        let elapsed = self
-            .last_renewed
-            .elapsed()
-            .unwrap_or_default()
-            .as_secs();
+        let elapsed = self.last_renewed.elapsed().unwrap_or_default().as_secs();
 
         // Renew if less than 1 hour remaining
         self.ttl.saturating_sub(elapsed) < 3600

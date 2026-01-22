@@ -74,6 +74,6 @@ pub use config::{
 };
 pub use init::{checkout_branch, create_branch, init_repository, InitOptions};
 pub use remote::{
-    add_remote, fetch_remote, get_remote_url, list_remotes, remove_remote, remote_exists,
+    add_remote, fetch_remote, get_remote_url, list_remotes, remote_exists, remove_remote,
     setup_fork_remotes,
 };

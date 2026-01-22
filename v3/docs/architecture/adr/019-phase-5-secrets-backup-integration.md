@@ -9,11 +9,13 @@
 Phase 5 implements the final operational subsystems: secrets management and backup/restore functionality. These systems interact with all other components and must integrate seamlessly.
 
 **Current State**:
+
 - Bash implementation: `cli/secrets-manager` (824 lines), `cli/backup-restore` (1,101 lines)
 - Rust skeleton: `sindri-secrets` crate exists (294 lines)
 - Phase 4 complete: Extension system operational (6,744 lines)
 
 **Integration Challenges**:
+
 1. Secrets must integrate with all 5 providers
 2. Backup/restore must handle secrets securely
 3. System markers must NEVER be restored
@@ -58,6 +60,7 @@ sindri-secrets/
 ```
 
 **Dependencies**:
+
 ```toml
 sindri-core = { workspace = true }
 anyhow = { workspace = true }
@@ -101,6 +104,7 @@ sindri-backup/
 ```
 
 **Dependencies**:
+
 ```toml
 sindri-core = { workspace = true }
 tar = { workspace = true }
@@ -125,11 +129,13 @@ age = "0.10"
 #### Week 15: Secrets Resolver Core
 
 **Deliverables**:
+
 - `SecretResolver` with env/file sources (sync operations)
 - `SecureString` wrapper with zeroization
 - CLI: `secrets validate`, `secrets list`
 
 **Tasks**:
+
 1. Implement `sources/env.rs` (env vars, .env parsing, fromFile)
 2. Implement `sources/file.rs` (path validation, base64)
 3. Implement `security.rs` (SecureString, sanitization)
@@ -141,12 +147,14 @@ age = "0.10"
 #### Week 16: Vault + S3 Encryption + Backup
 
 **Deliverables**:
+
 - Vault integration (async)
 - S3 encryption core (ChaCha20-Poly1305)
 - Backup system with profiles
 - S3 upload support
 
 **Tasks**:
+
 1. Implement `sources/vault.rs` (HTTP client, token renewal)
 2. Make resolver fully async
 3. Implement `sources/s3/encryption.rs` (envelope encryption)
@@ -159,12 +167,14 @@ age = "0.10"
 #### Week 17: S3 CLI + Restore + Integration
 
 **Deliverables**:
+
 - S3 CLI commands
 - Restore system
 - Provider integration
 - Integration tests
 
 **Tasks**:
+
 1. Implement `sources/s3/resolver.rs` (resolution + caching)
 2. Implement S3 CLI (init, push, pull, sync)
 3. Implement restore system (modes, markers, atomic)
@@ -180,6 +190,7 @@ age = "0.10"
 **Decision**: **Yes, async is required**
 
 **Rationale**:
+
 - Vault requires network I/O
 - S3 requires network I/O
 - Parallel resolution improves performance
@@ -213,6 +224,7 @@ age = "0.10"
 ### Security Considerations
 
 **1. Secret Handling in Memory**:
+
 ```rust
 use zeroize::{Zeroize, Zeroizing};
 
@@ -221,6 +233,7 @@ pub struct SecureString(Zeroizing<String>);
 ```
 
 **2. Audit Logging**:
+
 ```rust
 pub struct AuditLogger;
 
@@ -239,6 +252,7 @@ impl AuditLogger {
 ```
 
 **3. Sanitization**:
+
 ```rust
 pub fn sanitize_error(err: &Error) -> String {
     let msg = err.to_string();
@@ -251,6 +265,7 @@ pub fn sanitize_error(err: &Error) -> String {
 ### Migration from Bash
 
 **Parity Checklist**:
+
 - ✅ Environment variable resolution
 - ✅ File secret resolution
 - ✅ Vault KV v2 integration
@@ -261,6 +276,7 @@ pub fn sanitize_error(err: &Error) -> String {
 - ✅ All CLI commands
 
 **New Features**:
+
 - Async secret resolution (parallel)
 - Type-safe secret handling
 - S3 encrypted secret storage
@@ -270,6 +286,7 @@ pub fn sanitize_error(err: &Error) -> String {
 ### Total Estimated LOC
 
 **Phase 5 Total**: ~5,000-5,700 lines
+
 - `sindri-secrets`: ~2,000-2,400 lines (with S3)
 - `sindri-backup`: ~1,200-1,500 lines
 - CLI commands: ~1,800-2,000 lines
@@ -300,17 +317,20 @@ pub fn sanitize_error(err: &Error) -> String {
 ## Testing Strategy
 
 **Unit Tests**: 80%+ coverage
+
 - Env resolution with mocked env vars
 - File resolution with temporary files
 - Vault mocking with `mockall`
 - S3 encryption roundtrip tests
 
 **Integration Tests**: Opt-in
+
 - Local MinIO for S3 tests
 - Vault dev server
 - Real AWS S3 (weekly)
 
 **E2E Tests**:
+
 - Full backup/restore cycle
 - Cross-version compatibility
 - Provider integration

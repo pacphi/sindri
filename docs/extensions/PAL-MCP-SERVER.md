@@ -53,7 +53,7 @@ PAL MCP (Provider Abstraction Layer) is an AI orchestration server that enables 
 
 ### Installation Directory
 
-```text
+````text
 ~/extensions/pal-mcp-server/
 ├── server.py              # MCP server entry point
 ├── .pal_venv/             # Python virtual environment
@@ -331,3 +331,4 @@ Removes:
 - [context7-mcp](CONTEXT7-MCP.md) - Library documentation MCP server
 - [linear-mcp](LINEAR-MCP.md) - Linear project management integration
 - [jira-mcp](JIRA-MCP.md) - Atlassian Jira/Confluence integration
+````

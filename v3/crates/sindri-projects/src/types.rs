@@ -447,19 +447,10 @@ mod tests {
 
     #[test]
     fn test_project_type_from_str() {
-        assert_eq!(
-            "node".parse::<ProjectType>().unwrap(),
-            ProjectType::Node
-        );
-        assert_eq!(
-            "nodejs".parse::<ProjectType>().unwrap(),
-            ProjectType::Node
-        );
+        assert_eq!("node".parse::<ProjectType>().unwrap(), ProjectType::Node);
+        assert_eq!("nodejs".parse::<ProjectType>().unwrap(), ProjectType::Node);
         assert_eq!("py".parse::<ProjectType>().unwrap(), ProjectType::Python);
-        assert_eq!(
-            "golang".parse::<ProjectType>().unwrap(),
-            ProjectType::Go
-        );
+        assert_eq!("golang".parse::<ProjectType>().unwrap(), ProjectType::Go);
     }
 
     #[test]

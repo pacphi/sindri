@@ -17,6 +17,7 @@ The Sindri extension system is declarative and YAML-first. Extensions must confo
 6. **Documentation**: Schema serves as specification for extension authors
 
 The bash implementation used `yq` for basic YAML parsing and manual field validation, but lacked:
+
 - Comprehensive schema validation
 - Clear error messages for invalid extensions
 - Schema versioning and evolution
@@ -25,12 +26,14 @@ The bash implementation used `yq` for basic YAML parsing and manual field valida
 Types of validation needed:
 
 **JSON Schema Validation** (structural):
+
 - Required fields present
 - Field types correct
 - Enum values valid
 - Format validation (URLs, semver)
 
 **Semantic Validation** (business rules):
+
 - Dependencies exist in registry
 - Install method matches available tools
 - Version compatibility constraints valid
@@ -369,6 +372,7 @@ docker/lib/schemas/
 ```
 
 **Build-time Embedding** (build.rs):
+
 ```rust
 fn main() {
     // Tell cargo to rebuild if schemas change
@@ -407,6 +411,7 @@ metadata:
 ```
 
 **Version Compatibility Check**:
+
 ```rust
 pub fn check_schema_compatibility(extension: &Extension) -> Result<()> {
     let ext_schema_version = extension.schema_version
@@ -476,12 +481,14 @@ pub fn check_schema_compatibility(extension: &Extension) -> Result<()> {
 **Description**: Skip JSON Schema, rely only on Rust type system for validation.
 
 **Pros**:
+
 - No schema duplication
 - Simpler implementation
 - Smaller binary (no jsonschema crate)
 - Faster validation
 
 **Cons**:
+
 - No schema documentation for external tools
 - Can't validate raw YAML without parsing
 - Harder to generate schema documentation
@@ -494,11 +501,13 @@ pub fn check_schema_compatibility(extension: &Extension) -> Result<()> {
 **Description**: Always fetch schemas from GitHub at runtime.
 
 **Pros**:
+
 - Always latest schemas
 - No build-time embedding
 - Smaller binary
 
 **Cons**:
+
 - Requires network connection
 - Slower validation (fetch overhead)
 - Rate limit concerns
@@ -523,12 +532,14 @@ let schema = schema_for!(Extension);
 ```
 
 **Pros**:
+
 - Single source of truth (Rust types)
 - No schema duplication
 - Automatic sync between types and schema
 - Less maintenance
 
 **Cons**:
+
 - Generated schemas less human-readable
 - Less control over schema details
 - schemars doesn't support all JSON Schema features
@@ -541,10 +552,12 @@ let schema = schema_for!(Extension);
 **Description**: Use YAML-specific schema language.
 
 **Pros**:
+
 - Native YAML validation
 - More expressive for YAML-specific features
 
 **Cons**:
+
 - Less tooling support
 - Not widely adopted
 - Harder to integrate with existing tools
@@ -557,11 +570,13 @@ let schema = schema_for!(Extension);
 **Description**: Make validation warnings instead of errors, allow invalid extensions.
 
 **Pros**:
+
 - More flexible
 - Doesn't block experimentation
 - Easier for extension authors
 
 **Cons**:
+
 - Invalid extensions could cause runtime failures
 - Security risks (malicious YAML)
 - Poor user experience (fails during installation)

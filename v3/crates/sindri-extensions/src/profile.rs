@@ -414,9 +414,12 @@ impl ProfileInstaller {
                         "Loading extension '{}' from development path: {:?}",
                         name, dev_path
                     );
-                    self.registry.load_extension(name, &dev_path).context(
-                        format!("Failed to load extension '{}' from {:?}", name, dev_path),
-                    )?;
+                    self.registry
+                        .load_extension(name, &dev_path)
+                        .context(format!(
+                            "Failed to load extension '{}' from {:?}",
+                            name, dev_path
+                        ))?;
                     continue;
                 }
             }

@@ -28,25 +28,31 @@ The bash implementation used a custom DFS with shell arrays, but it lacked cycle
 Example dependency scenarios:
 
 **Linear chain**:
+
 ```
 spec-kit → git → (no deps)
 ```
+
 Order: git, spec-kit
 
 **Diamond**:
+
 ```
 advanced-dev-env → nodejs, python
 nodejs → (no deps)
 python → (no deps)
 ```
+
 Order: nodejs, python, advanced-dev-env (or python, nodejs, advanced-dev-env)
 
 **Invalid cycle**:
+
 ```
 ext-a → ext-b
 ext-b → ext-c
 ext-c → ext-a
 ```
+
 Must be rejected with clear error.
 
 ## Decision
@@ -129,6 +135,7 @@ impl DependencyResolver {
 ### Cycle Detection with Visiting/Visited Sets
 
 The algorithm uses **three states** for each node:
+
 - **Unvisited**: Not yet explored (not in visiting or visited)
 - **Visiting**: Currently in DFS recursion stack (in visiting set)
 - **Visited**: Completely processed (in visited set)
@@ -136,6 +143,7 @@ The algorithm uses **three states** for each node:
 Cycle detection: If we encounter a node in the **visiting** set, we have a cycle.
 
 Example cycle detection:
+
 ```
 Graph: A → B → C → A
 
@@ -294,11 +302,13 @@ pub fn resolve_kahns(&self, extensions: &[String]) -> Result<Vec<String>> {
 ```
 
 **Pros**:
+
 - No recursion (avoids stack overflow)
 - Easy to understand (BFS pattern)
 - Efficient cycle detection
 
 **Cons**:
+
 - More code (in-degree tracking, queue management)
 - Less precise cycle detection (can't identify which node)
 - Requires full graph traversal even for subset of extensions
@@ -310,11 +320,13 @@ pub fn resolve_kahns(&self, extensions: &[String]) -> Result<Vec<String>> {
 **Description**: Use `petgraph::algo::toposort` as the primary algorithm instead of manual DFS.
 
 **Pros**:
+
 - Fewer lines of code
 - Battle-tested library
 - Access to graph algorithms (visualization, analysis)
 
 **Cons**:
+
 - Adds ~200KB to binary size
 - Less control over error messages
 - Dependency on external crate
@@ -327,11 +339,13 @@ pub fn resolve_kahns(&self, extensions: &[String]) -> Result<Vec<String>> {
 **Description**: Skip cycle detection, let installation fail when hitting circular dependency.
 
 **Pros**:
+
 - Simpler implementation
 - No visiting set needed
 - Faster resolution
 
 **Cons**:
+
 - Poor user experience (fails during installation)
 - Could cause infinite loops
 - No clear error messages
@@ -344,10 +358,12 @@ pub fn resolve_kahns(&self, extensions: &[String]) -> Result<Vec<String>> {
 **Description**: Identify independent extensions in topological sort, install them in parallel.
 
 **Pros**:
+
 - Faster installation (e.g., install nodejs and python simultaneously)
 - Better utilization of resources
 
 **Cons**:
+
 - Much more complex implementation
 - Requires async runtime and synchronization
 - Error handling becomes complex (partial failures)
@@ -368,6 +384,7 @@ pub fn resolve_kahns(&self, extensions: &[String]) -> Result<Vec<String>> {
 ## Notes
 
 The DFS algorithm is classical computer science, but the implementation details matter:
+
 - Using `visiting` set (not just a boolean) enables clear cycle detection
 - Post-order traversal (adding to order after visiting children) ensures correct topological order
 - Checking registry membership catches missing dependencies early

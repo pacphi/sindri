@@ -1,4 +1,3 @@
-
 # ADR 018: Restore System Architecture
 
 **Status**: Accepted
@@ -55,6 +54,7 @@ Stage 5: Post-Restore Actions
 ### Three Restore Modes
 
 **1. safe Mode** (Default):
+
 - Never overwrite existing files
 - System markers: Never restored
 - Existing files: Skipped (preserved)
@@ -62,6 +62,7 @@ Stage 5: Post-Restore Actions
 - Use case: Migration to new instance
 
 **2. merge Mode**:
+
 - System markers: Never restored
 - Existing files: Backed up to `.bak`, then restored
 - Shell configs: Intelligently merged
@@ -69,6 +70,7 @@ Stage 5: Post-Restore Actions
 - Use case: Updating existing instance
 
 **3. full Mode**:
+
 - System markers: Optionally restored (with warning)
 - All files: Overwritten
 - No conflict preservation
@@ -193,6 +195,7 @@ impl VersionCompatibility {
 ### Safety Mechanisms
 
 **Pre-Flight Checks**:
+
 ```rust
 pub fn validate_restore_preconditions(backup: &Path, options: &RestoreOptions) -> Result<()> {
     // Check backup file exists and is readable
@@ -215,6 +218,7 @@ pub fn validate_restore_preconditions(backup: &Path, options: &RestoreOptions) -
 ```
 
 **Rollback Capability**:
+
 ```rust
 pub async fn restore_with_rollback(
     backup: &Path,
@@ -265,22 +269,28 @@ sindri restore backup.tar.gz --auto-upgrade-extensions
 ### Edge Cases
 
 **1. Backup from Different Provider**:
+
 - Solution: Provider-agnostic backup format, only user files
 - Note: Provider-specific configs excluded by default
 
 **2. Incompatible Extensions**:
+
 - Solution: Warn user, skip extension reinstallation, restore user data anyway
 
 **3. Partial Restore Failure**:
+
 - Solution: Automatic rollback to pre-restore snapshot
 
 **4. Encrypted Backup**:
+
 - Solution: Detect encryption, prompt for decryption, decrypt to temp
 
 **5. Concurrent Restore**:
+
 - Solution: Lock file prevents multiple restores simultaneously
 
 **6. Corrupted Backup**:
+
 - Solution: Validate tarball integrity, check checksum, clear error message
 
 ## Consequences
@@ -305,12 +315,14 @@ sindri restore backup.tar.gz --auto-upgrade-extensions
 **Crate**: `sindri-backup` (same as backup system)
 
 **Modules**:
+
 - `restore/mod.rs`: Restore orchestration
 - `restore/modes.rs`: Safe/merge/full modes
 - `restore/analysis.rs`: Backup analysis
 - `restore/markers.rs`: System marker protection
 
 **Testing**:
+
 - Unit tests for each mode
 - Integration tests with real archives
 - Rollback scenario tests

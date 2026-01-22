@@ -8,6 +8,7 @@
 ## Context
 
 Sindri supports deployment to 5 different cloud providers:
+
 - **Docker** (local development)
 - **Fly.io** (cloud VMs with auto-suspend)
 - **DevPod** (multi-cloud dev environments)
@@ -15,12 +16,14 @@ Sindri supports deployment to 5 different cloud providers:
 - **Kubernetes** (container orchestration)
 
 Each provider has different:
+
 - CLI tools (docker, flyctl, devpod, e2b, kubectl)
 - Resource models (containers, machines, sandboxes, pods)
 - Lifecycle operations (create, pause, suspend, scale)
 - Configuration formats (YAML, TOML, JSON)
 
 We needed a unified abstraction that:
+
 1. Allows seamless provider switching via sindri.yaml
 2. Provides consistent CLI experience across providers
 3. Enables provider-specific optimizations
@@ -84,6 +87,7 @@ pub fn create_provider(provider_type: ProviderType) -> Result<Box<dyn Provider>>
 All providers use shared types from `sindri-core`:
 
 **DeployOptions**
+
 ```rust
 pub struct DeployOptions {
     pub force: bool,
@@ -96,6 +100,7 @@ pub struct DeployOptions {
 ```
 
 **DeployResult**
+
 ```rust
 pub struct DeployResult {
     pub success: bool,
@@ -109,6 +114,7 @@ pub struct DeployResult {
 ```
 
 **DeploymentStatus**
+
 ```rust
 pub struct DeploymentStatus {
     pub name: String,
@@ -126,10 +132,12 @@ pub struct DeploymentStatus {
 ### Provider-Specific State
 
 Each provider maintains:
+
 - **TemplateRegistry**: For rendering provider-specific configs
 - **output_dir**: Where to write generated files (docker-compose.yml, fly.toml, etc.)
 
 Example:
+
 ```rust
 pub struct DockerProvider {
     templates: TemplateRegistry,
@@ -140,18 +148,21 @@ pub struct DockerProvider {
 ## Implementation Details
 
 ### Docker Provider
+
 - Manages docker-compose.yml via Tera templates
 - DinD mode detection (sysbox > privileged > socket > none)
 - Volume and network cleanup on destroy
 - Resource usage monitoring via `docker stats`
 
 ### Fly.io Provider
+
 - Manages fly.toml via Tera templates
 - App, volume, and machine lifecycle
 - Auto-wake suspended machines on connect
 - GPU tier mapping (A100, L40s)
 
 ### E2B Provider
+
 - Manages e2b.toml via Tera templates
 - Template building and caching
 - Sandbox pause/resume (4s per 1GB RAM)
@@ -159,12 +170,14 @@ pub struct DockerProvider {
 - GPU explicitly blocked with helpful error
 
 ### DevPod Provider
+
 - Manages devcontainer.json via Tera templates
 - Multi-cloud backend support (7 providers)
 - Image build and registry push
 - SSH-based workspace connection
 
 ### Kubernetes Provider
+
 - Manages k8s-deployment.yaml via Tera templates
 - Local cluster support (kind, k3d)
 - Image loading for local development
@@ -191,16 +204,19 @@ pub struct DockerProvider {
 ### Trade-offs
 
 **Trait Object vs Generics**
+
 - Chose trait objects (`Box<dyn Provider>`) over generics
 - Reason: Simpler factory pattern, runtime provider selection
 - Trade-off: Small runtime cost vs. compile-time monomorphization
 
 **Sync vs Async**
+
 - Chose async trait for all lifecycle methods
 - Reason: Deploy operations are I/O bound (network, CLI calls)
 - Trade-off: Added tokio dependency, but enables concurrent operations
 
 **Capabilities Pattern**
+
 - Chose default trait methods for capabilities (supports_gpu, supports_auto_suspend)
 - Reason: Not all providers support all features
 - Trade-off: Runtime checks vs. compile-time type system
@@ -208,6 +224,7 @@ pub struct DockerProvider {
 ## Validation
 
 All 5 providers successfully implement the trait:
+
 - ✅ Docker: 864 LOC, full DinD support
 - ✅ Fly.io: 855 LOC, auto-suspend machines
 - ✅ E2B: 994 LOC, sandbox lifecycle

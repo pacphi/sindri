@@ -69,11 +69,11 @@
 //! # }
 //! ```
 
+pub mod enhancement;
 pub mod error;
 pub mod git;
 pub mod templates;
 pub mod types;
-pub mod enhancement;
 
 pub use error::{Error, Result};
 

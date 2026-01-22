@@ -76,14 +76,11 @@ async fn load_registry() -> Result<ExtensionRegistry> {
 /// Create profile installer with all dependencies
 async fn create_profile_installer() -> Result<ProfileInstaller> {
     let registry = load_registry().await?;
-    let manifest = ManifestManager::load_default()
-        .context("Failed to load installation manifest")?;
+    let manifest =
+        ManifestManager::load_default().context("Failed to load installation manifest")?;
 
-    let executor = ExtensionExecutor::new(
-        get_extensions_dir()?,
-        get_workspace_dir()?,
-        get_home_dir()?,
-    );
+    let executor =
+        ExtensionExecutor::new(get_extensions_dir()?, get_workspace_dir()?, get_home_dir()?);
 
     Ok(ProfileInstaller::new(registry, executor, manifest))
 }
@@ -169,7 +166,10 @@ pub async fn install(args: ProfileInstallArgs) -> Result<()> {
         .context("Failed to get profile extensions")?;
 
     if extensions.is_empty() {
-        return Err(anyhow!("Profile '{}' has no extensions defined", args.profile));
+        return Err(anyhow!(
+            "Profile '{}' has no extensions defined",
+            args.profile
+        ));
     }
 
     // Show confirmation if not --yes
@@ -195,7 +195,7 @@ pub async fn install(args: ProfileInstallArgs) -> Result<()> {
     let pb = ProgressBar::new(extensions.len() as u64);
     pb.set_style(
         ProgressStyle::with_template(
-            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}"
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}",
         )
         .unwrap()
         .progress_chars("#>-"),
@@ -203,13 +203,16 @@ pub async fn install(args: ProfileInstallArgs) -> Result<()> {
 
     // Install profile with progress callback
     let result = installer
-        .install_profile(&args.profile, Some(&|current, total, ext_name| {
-            pb.set_position(current as u64);
-            pb.set_message(format!("Installing {}", ext_name));
-            if current == total {
-                pb.finish_with_message("Installation complete");
-            }
-        }))
+        .install_profile(
+            &args.profile,
+            Some(&|current, total, ext_name| {
+                pb.set_position(current as u64);
+                pb.set_message(format!("Installing {}", ext_name));
+                if current == total {
+                    pb.finish_with_message("Installation complete");
+                }
+            }),
+        )
         .await
         .context("Profile installation failed")?;
 
@@ -223,10 +226,7 @@ pub async fn install(args: ProfileInstallArgs) -> Result<()> {
     } else if result.is_partial() {
         output::warning(&format!(
             "Profile '{}' partially installed: {}/{} succeeded, {} failed",
-            args.profile,
-            result.installed_count,
-            result.total_count,
-            result.failed_count
+            args.profile, result.installed_count, result.total_count, result.failed_count
         ));
 
         if !result.failed_extensions.is_empty() {
@@ -262,7 +262,10 @@ async fn reinstall(args: ProfileReinstallArgs) -> Result<()> {
         .context("Failed to get profile extensions")?;
 
     if extensions.is_empty() {
-        return Err(anyhow!("Profile '{}' has no extensions defined", args.profile));
+        return Err(anyhow!(
+            "Profile '{}' has no extensions defined",
+            args.profile
+        ));
     }
 
     // Show confirmation if not --yes
@@ -288,7 +291,7 @@ async fn reinstall(args: ProfileReinstallArgs) -> Result<()> {
     let pb = ProgressBar::new((extensions.len() * 2) as u64);
     pb.set_style(
         ProgressStyle::with_template(
-            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}"
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}",
         )
         .unwrap()
         .progress_chars("#>-"),
@@ -296,13 +299,16 @@ async fn reinstall(args: ProfileReinstallArgs) -> Result<()> {
 
     // Reinstall profile with progress callback
     let result = installer
-        .reinstall_profile(&args.profile, Some(&|current, total, ext_name| {
-            pb.set_position(current as u64);
-            pb.set_message(format!("Processing {}", ext_name));
-            if current == total {
-                pb.finish_with_message("Reinstallation complete");
-            }
-        }))
+        .reinstall_profile(
+            &args.profile,
+            Some(&|current, total, ext_name| {
+                pb.set_position(current as u64);
+                pb.set_message(format!("Processing {}", ext_name));
+                if current == total {
+                    pb.finish_with_message("Reinstallation complete");
+                }
+            }),
+        )
         .await
         .context("Profile reinstallation failed")?;
 
@@ -375,7 +381,10 @@ async fn info(args: ProfileInfoArgs) -> Result<()> {
             println!("  - {}", ext);
         }
         println!();
-        println!("Total with dependencies: {} extensions", all_extensions.len());
+        println!(
+            "Total with dependencies: {} extensions",
+            all_extensions.len()
+        );
     }
 
     Ok(())
@@ -424,9 +433,7 @@ async fn status(args: ProfileStatusArgs) -> Result<()> {
         let mut extensions = Vec::new();
 
         for ext_name in &status.installed_extensions {
-            let version = manifest
-                .get_version(ext_name)
-                .map(|v| v.to_string());
+            let version = manifest.get_version(ext_name).map(|v| v.to_string());
 
             extensions.push(ExtensionStatusDetail {
                 name: ext_name.clone(),

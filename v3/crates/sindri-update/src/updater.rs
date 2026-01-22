@@ -12,7 +12,7 @@ use semver::Version;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tracing::{debug, info, warn, error};
+use tracing::{debug, error, info, warn};
 
 use crate::compatibility::CompatibilityChecker;
 use crate::download::BinaryDownloader;
@@ -45,13 +45,16 @@ pub struct SindriUpdater {
 impl SindriUpdater {
     /// Create a new updater instance
     pub fn new() -> Result<Self> {
-        let current_version = Version::parse(env!("CARGO_PKG_VERSION"))
-            .context("Failed to parse current version")?;
+        let current_version =
+            Version::parse(env!("CARGO_PKG_VERSION")).context("Failed to parse current version")?;
 
-        let binary_path = std::env::current_exe()
-            .context("Failed to get current executable path")?;
+        let binary_path =
+            std::env::current_exe().context("Failed to get current executable path")?;
 
-        debug!("Updater initialized: version={}, path={:?}", current_version, binary_path);
+        debug!(
+            "Updater initialized: version={}, path={:?}",
+            current_version, binary_path
+        );
 
         Ok(Self {
             current_version,
@@ -103,14 +106,16 @@ impl SindriUpdater {
 
         // Fetch release information
         info!("Fetching release information for v{}", target);
-        let release = self.release_manager
+        let release = self
+            .release_manager
             .get_release(&format!("v{}", target))
             .await
             .context("Failed to fetch release")?;
 
         // Download the binary using BinaryDownloader
         info!("Downloading release binary");
-        let download_result = self.downloader
+        let download_result = self
+            .downloader
             .download_release(&release, None)
             .await
             .context("Failed to download binary")?;
@@ -119,7 +124,8 @@ impl SindriUpdater {
         info!("Checksum: {}", download_result.checksum);
 
         // Extract binary from archive if needed
-        let temp_binary = self.extract_binary_from_download(&download_result.file_path)
+        let temp_binary = self
+            .extract_binary_from_download(&download_result.file_path)
             .context("Failed to extract binary")?;
 
         // Verify the extracted binary
@@ -127,8 +133,7 @@ impl SindriUpdater {
             .context("Downloaded binary verification failed")?;
 
         // Create backup
-        let backup_path = self.create_backup()
-            .context("Failed to create backup")?;
+        let backup_path = self.create_backup().context("Failed to create backup")?;
 
         info!("Backup created at: {:?}", backup_path);
 
@@ -172,14 +177,18 @@ impl SindriUpdater {
                 self.rollback(&backup_path)
                     .context("Failed to rollback after replacement failure")?;
 
-                Err(anyhow!("Update failed: {}. Rolled back to previous version.", e))
+                Err(anyhow!(
+                    "Update failed: {}. Rolled back to previous version.",
+                    e
+                ))
             }
         }
     }
 
     /// Extract binary from downloaded archive or return direct binary path
     fn extract_binary_from_download(&self, download_path: &Path) -> Result<PathBuf> {
-        let file_name = download_path.file_name()
+        let file_name = download_path
+            .file_name()
             .and_then(|n| n.to_str())
             .ok_or_else(|| anyhow!("Invalid download path"))?;
 
@@ -207,18 +216,18 @@ impl SindriUpdater {
     /// Extract binary from tarball
     fn extract_from_tarball(&self, archive_path: &Path) -> Result<PathBuf> {
         use flate2::read::GzDecoder;
-        use tar::Archive;
         use std::fs::File;
+        use tar::Archive;
 
         debug!("Extracting tarball: {:?}", archive_path);
 
-        let file = File::open(archive_path)
-            .context("Failed to open archive file")?;
+        let file = File::open(archive_path).context("Failed to open archive file")?;
 
         let decoder = GzDecoder::new(file);
         let mut archive = Archive::new(decoder);
 
-        let temp_dir = std::env::temp_dir().join(format!("sindri-extract-{}", uuid::Uuid::new_v4()));
+        let temp_dir =
+            std::env::temp_dir().join(format!("sindri-extract-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&temp_dir)?;
 
         archive.unpack(&temp_dir)?;
@@ -231,7 +240,9 @@ impl SindriUpdater {
             if path.is_file() {
                 let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-                if file_name == "sindri" || (file_name.starts_with("sindri") && !file_name.contains('.')) {
+                if file_name == "sindri"
+                    || (file_name.starts_with("sindri") && !file_name.contains('.'))
+                {
                     // Make executable
                     #[cfg(unix)]
                     {
@@ -289,9 +300,14 @@ impl SindriUpdater {
     /// Create a timestamped backup of the current binary
     fn create_backup(&self) -> Result<PathBuf> {
         let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
-        let backup_path = self.binary_path.with_extension(format!("{}{}", timestamp, BACKUP_EXT));
+        let backup_path = self
+            .binary_path
+            .with_extension(format!("{}{}", timestamp, BACKUP_EXT));
 
-        debug!("Creating backup: {:?} -> {:?}", self.binary_path, backup_path);
+        debug!(
+            "Creating backup: {:?} -> {:?}",
+            self.binary_path, backup_path
+        );
 
         fs::copy(&self.binary_path, &backup_path)
             .with_context(|| format!("Failed to create backup at {:?}", backup_path))?;
@@ -302,7 +318,10 @@ impl SindriUpdater {
 
     /// Replace the current binary atomically
     fn replace_binary(&self, new_binary: &Path) -> Result<()> {
-        debug!("Replacing binary: {:?} -> {:?}", new_binary, self.binary_path);
+        debug!(
+            "Replacing binary: {:?} -> {:?}",
+            new_binary, self.binary_path
+        );
 
         // On Unix, we can atomically replace using rename
         #[cfg(unix)]
@@ -334,8 +353,7 @@ impl SindriUpdater {
             }
 
             // Copy new binary into place
-            fs::copy(new_binary, &self.binary_path)
-                .context("Failed to copy new binary")?;
+            fs::copy(new_binary, &self.binary_path).context("Failed to copy new binary")?;
         }
 
         info!("Binary replaced successfully");
@@ -357,19 +375,16 @@ impl SindriUpdater {
         // Replace current binary with backup
         #[cfg(unix)]
         {
-            fs::copy(backup_path, &self.binary_path)
-                .context("Failed to restore from backup")?;
+            fs::copy(backup_path, &self.binary_path).context("Failed to restore from backup")?;
         }
 
         #[cfg(windows)]
         {
             if self.binary_path.exists() {
-                fs::remove_file(&self.binary_path)
-                    .context("Failed to remove corrupted binary")?;
+                fs::remove_file(&self.binary_path).context("Failed to remove corrupted binary")?;
             }
 
-            fs::copy(backup_path, &self.binary_path)
-                .context("Failed to restore from backup")?;
+            fs::copy(backup_path, &self.binary_path).context("Failed to restore from backup")?;
         }
 
         info!("Rollback completed successfully");
@@ -380,10 +395,14 @@ impl SindriUpdater {
     pub fn cleanup_old_backups(&self) -> Result<()> {
         debug!("Cleaning up old backups");
 
-        let parent = self.binary_path.parent()
+        let parent = self
+            .binary_path
+            .parent()
             .ok_or_else(|| anyhow!("Cannot determine parent directory"))?;
 
-        let binary_name = self.binary_path.file_stem()
+        let binary_name = self
+            .binary_path
+            .file_stem()
             .and_then(|s| s.to_str())
             .ok_or_else(|| anyhow!("Cannot determine binary name"))?;
 
@@ -422,16 +441,24 @@ impl SindriUpdater {
             }
         }
 
-        info!("Cleanup completed: kept {} backups, removed {}", MAX_BACKUPS, to_remove.len());
+        info!(
+            "Cleanup completed: kept {} backups, removed {}",
+            MAX_BACKUPS,
+            to_remove.len()
+        );
         Ok(())
     }
 
     /// List available backups
     pub fn list_backups(&self) -> Result<Vec<BackupInfo>> {
-        let parent = self.binary_path.parent()
+        let parent = self
+            .binary_path
+            .parent()
             .ok_or_else(|| anyhow!("Cannot determine parent directory"))?;
 
-        let binary_name = self.binary_path.file_stem()
+        let binary_name = self
+            .binary_path
+            .file_stem()
             .and_then(|s| s.to_str())
             .ok_or_else(|| anyhow!("Cannot determine binary name"))?;
 

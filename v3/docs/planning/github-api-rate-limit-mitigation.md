@@ -25,11 +25,11 @@ This document outlines strategies for mitigating GitHub API rate limiting issues
 
 ### 1.1 GitHub API Rate Limits
 
-| Authentication | Rate Limit | Reset Period | Use Case |
-|----------------|------------|--------------|----------|
-| Unauthenticated | 60 requests | Per hour | Public API access |
-| Authenticated (token) | 5,000 requests | Per hour | CI/CD workflows |
-| GitHub Actions | 1,000 requests | Per hour | GITHUB_TOKEN in Actions |
+| Authentication        | Rate Limit     | Reset Period | Use Case                |
+| --------------------- | -------------- | ------------ | ----------------------- |
+| Unauthenticated       | 60 requests    | Per hour     | Public API access       |
+| Authenticated (token) | 5,000 requests | Per hour     | CI/CD workflows         |
+| GitHub Actions        | 1,000 requests | Per hour     | GITHUB_TOKEN in Actions |
 
 ### 1.2 Failure Scenario
 
@@ -42,6 +42,7 @@ mise ERROR Failed to install aqua:astral-sh/uv@0.9: HTTP status client error
 ```
 
 **Timeline:**
+
 1. DevPod workspace creation initiated on kind cluster
 2. Extension initialization triggered `python` extension
 3. mise attempted to install `uv` via aqua backend
@@ -55,12 +56,12 @@ mise ERROR Failed to install aqua:astral-sh/uv@0.9: HTTP status client error
 
 Extensions using mise's aqua backend for GitHub-hosted tools:
 
-| Extension | Tool | Backend | Risk Level |
-|-----------|------|---------|------------|
-| python | uv | aqua:astral-sh/uv | **High** |
-| infra-tools | k9s, kustomize, yq | asdf (mitigated) | Low |
-| github-cli | gh | aqua | Medium |
-| cloud-tools | various | mixed | Medium |
+| Extension   | Tool               | Backend           | Risk Level |
+| ----------- | ------------------ | ----------------- | ---------- |
+| python      | uv                 | aqua:astral-sh/uv | **High**   |
+| infra-tools | k9s, kustomize, yq | asdf (mitigated)  | Low        |
+| github-cli  | gh                 | aqua              | Medium     |
+| cloud-tools | various            | mixed             | Medium     |
 
 ### 1.4 Known mise Bug
 
@@ -128,6 +129,7 @@ fi
 **Description:** Replace aqua backend with ubi (Universal Binary Installer) which properly handles GITHUB_TOKEN authentication.
 
 **Implementation:**
+
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
@@ -141,12 +143,14 @@ PYTHONUNBUFFERED = "1"
 ```
 
 **Pros:**
+
 - Minimal code change
 - Proper token authentication
 - Consistent with mise ecosystem
 - Binary downloads (fast)
 
 **Cons:**
+
 - Still uses GitHub API (with auth)
 - Requires GITHUB_TOKEN to be set
 
@@ -155,6 +159,7 @@ PYTHONUNBUFFERED = "1"
 **Description:** Install uv from crates.io instead of GitHub releases.
 
 **Implementation:**
+
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
@@ -168,11 +173,13 @@ PYTHONUNBUFFERED = "1"
 ```
 
 **Pros:**
+
 - Completely avoids GitHub API
 - No rate limit concerns
 - No token required
 
 **Cons:**
+
 - Requires Rust toolchain
 - Significantly slower (compiles from source)
 - Larger disk space during build
@@ -183,6 +190,7 @@ PYTHONUNBUFFERED = "1"
 **Description:** Use an asdf plugin for uv if available.
 
 **Implementation:**
+
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
@@ -195,10 +203,12 @@ PYTHONUNBUFFERED = "1"
 ```
 
 **Pros:**
+
 - Consistent with infra-tools pattern
 - Often handles auth better than aqua
 
 **Cons:**
+
 - Depends on third-party asdf plugin maintenance
 - May still use GitHub API internally
 - Plugin quality varies
@@ -208,6 +218,7 @@ PYTHONUNBUFFERED = "1"
 **Description:** Install uv during Docker image build, eliminating runtime GitHub API calls.
 
 **Implementation:**
+
 ```dockerfile
 # Dockerfile (add to build stage)
 # Install uv globally to avoid runtime GitHub API calls
@@ -217,6 +228,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 ```
 
 And modify extension to skip uv installation:
+
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
@@ -229,12 +241,14 @@ PYTHONUNBUFFERED = "1"
 ```
 
 **Pros:**
+
 - Most reliable - no runtime downloads
 - Fastest startup time
 - No rate limit concerns
 - Works offline
 
 **Cons:**
+
 - Version tied to image build
 - Larger base image
 - Requires image rebuild to update uv
@@ -245,6 +259,7 @@ PYTHONUNBUFFERED = "1"
 **Description:** Use mise's URL backend to download from a direct URL, bypassing GitHub API.
 
 **Implementation:**
+
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
@@ -258,10 +273,12 @@ PYTHONUNBUFFERED = "1"
 ```
 
 **Pros:**
+
 - Avoids API version lookup
 - Direct binary download
 
 **Cons:**
+
 - Requires pinning exact version
 - Less flexible version management
 
@@ -270,6 +287,7 @@ PYTHONUNBUFFERED = "1"
 **Description:** Implement token rotation or caching at the CI level to maximize rate limit headroom.
 
 **Implementation:**
+
 ```yaml
 # .github/workflows/ci.yml
 env:
@@ -278,10 +296,12 @@ env:
 ```
 
 **Pros:**
+
 - Works with existing code
 - No extension changes needed
 
 **Cons:**
+
 - Doesn't fix aqua backend bug
 - Requires additional secret management
 - PAT has security implications
@@ -293,6 +313,7 @@ env:
 ### 4.1 Recommended Approach: Option A (ubi backend)
 
 **Rationale:**
+
 1. **Minimal change** - Single line modification to mise.toml
 2. **Proven pattern** - ubi backend works correctly with GITHUB_TOKEN
 3. **Consistent** - Follows mise best practices
@@ -301,6 +322,7 @@ env:
 ### 4.2 Implementation Steps
 
 1. **Update python extension mise.toml:**
+
    ```toml
    [tools]
    python = "3.13"
@@ -308,6 +330,7 @@ env:
    ```
 
 2. **Verify GITHUB_TOKEN propagation in CI:**
+
    ```yaml
    # .github/workflows/test-provider.yml
    env:
@@ -315,6 +338,7 @@ env:
    ```
 
 3. **Test locally:**
+
    ```bash
    GITHUB_TOKEN=$(gh auth token) ../../../v2/cli/extension-manager install python
    ```
@@ -323,12 +347,12 @@ env:
 
 ### 4.3 Long-term Considerations
 
-| Timeframe | Action |
-|-----------|--------|
-| Immediate | Implement Option A (ubi backend) |
-| Short-term | Monitor mise #5418 for upstream fix |
-| Medium-term | Consider Option D (pre-bake) for critical tools |
-| Long-term | Evaluate if aqua backend is fixed, revert if stable |
+| Timeframe   | Action                                              |
+| ----------- | --------------------------------------------------- |
+| Immediate   | Implement Option A (ubi backend)                    |
+| Short-term  | Monitor mise #5418 for upstream fix                 |
+| Medium-term | Consider Option D (pre-bake) for critical tools     |
+| Long-term   | Evaluate if aqua backend is fixed, revert if stable |
 
 ---
 
@@ -367,14 +391,14 @@ wait
 
 ## 6. Decision Matrix
 
-| Option | Effort | Reliability | Speed | Offline | Recommended |
-|--------|--------|-------------|-------|---------|-------------|
-| A. ubi backend | Low | High | Fast | No | **Yes** |
-| B. cargo backend | Low | High | Slow | No | No |
-| C. asdf backend | Low | Medium | Fast | No | Maybe |
-| D. Pre-bake | Medium | Highest | Fastest | Yes | For critical tools |
-| E. Direct URL | Low | High | Fast | No | For pinned versions |
-| F. Token pooling | Medium | Medium | Fast | No | No |
+| Option           | Effort | Reliability | Speed   | Offline | Recommended         |
+| ---------------- | ------ | ----------- | ------- | ------- | ------------------- |
+| A. ubi backend   | Low    | High        | Fast    | No      | **Yes**             |
+| B. cargo backend | Low    | High        | Slow    | No      | No                  |
+| C. asdf backend  | Low    | Medium      | Fast    | No      | Maybe               |
+| D. Pre-bake      | Medium | Highest     | Fastest | Yes     | For critical tools  |
+| E. Direct URL    | Low    | High        | Fast    | No      | For pinned versions |
+| F. Token pooling | Medium | Medium      | Fast    | No      | No                  |
 
 ---
 
@@ -401,6 +425,7 @@ curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
 ```
 
 Expected output:
+
 ```json
 {
   "limit": 5000,

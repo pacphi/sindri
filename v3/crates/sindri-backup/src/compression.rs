@@ -61,8 +61,8 @@ pub fn compress_file(
     let compression_level = level.unwrap_or(DEFAULT_COMPRESSION_LEVEL);
 
     // Open source file
-    let mut source_file = File::open(source)
-        .map_err(|e| anyhow::anyhow!("Failed to open source file: {}", e))?;
+    let mut source_file =
+        File::open(source).map_err(|e| anyhow::anyhow!("Failed to open source file: {}", e))?;
 
     // Get original file size
     let original_size = source_file.metadata()?.len();
@@ -86,15 +86,19 @@ pub fn compress_file(
     // Get the actual compressed file size
     let compressed_size = std::fs::metadata(dest)?.len();
 
-    Ok(CompressionStats::new(original_size, compressed_size, checksum))
+    Ok(CompressionStats::new(
+        original_size,
+        compressed_size,
+        checksum,
+    ))
 }
 
 /// Decompresses a gzip file.
 pub fn decompress_file(source: &Path, dest: &Path) -> anyhow::Result<u64> {
     use flate2::read::GzDecoder;
 
-    let source_file = File::open(source)
-        .map_err(|e| anyhow::anyhow!("Failed to open source file: {}", e))?;
+    let source_file =
+        File::open(source).map_err(|e| anyhow::anyhow!("Failed to open source file: {}", e))?;
 
     let mut decoder = GzDecoder::new(source_file);
 
@@ -109,8 +113,8 @@ pub fn decompress_file(source: &Path, dest: &Path) -> anyhow::Result<u64> {
 
 /// Calculates SHA256 checksum of a file.
 pub fn calculate_checksum(path: &Path) -> anyhow::Result<String> {
-    let mut file = File::open(path)
-        .map_err(|e| anyhow::anyhow!("Failed to open file for checksum: {}", e))?;
+    let mut file =
+        File::open(path).map_err(|e| anyhow::anyhow!("Failed to open file for checksum: {}", e))?;
 
     let mut hasher = Sha256::new();
     io::copy(&mut file, &mut hasher)
@@ -166,7 +170,11 @@ mod tests {
     use std::io::{Read, Write};
     use tempfile::TempDir;
 
-    fn create_test_file(dir: &Path, name: &str, content: &[u8]) -> anyhow::Result<std::path::PathBuf> {
+    fn create_test_file(
+        dir: &Path,
+        name: &str,
+        content: &[u8],
+    ) -> anyhow::Result<std::path::PathBuf> {
         let path = dir.join(name);
         let mut file = File::create(&path)?;
         file.write_all(content)?;
@@ -178,19 +186,18 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         // Use much larger content that will definitely compress
         let content = b"Repeated content that compresses very well! ".repeat(5000);
-        let source_path = create_test_file(
-            temp_dir.path(),
-            "source.txt",
-            &content,
-        ).unwrap();
+        let source_path = create_test_file(temp_dir.path(), "source.txt", &content).unwrap();
         let dest_path = temp_dir.path().join("compressed.gz");
 
         let stats = compress_file(&source_path, &dest_path, None).unwrap();
 
         // Large repeated content should compress to less than 10% of original
-        assert!(stats.compressed_size < stats.original_size / 2,
+        assert!(
+            stats.compressed_size < stats.original_size / 2,
             "Expected compressed size {} < half of original size {}",
-            stats.compressed_size, stats.original_size);
+            stats.compressed_size,
+            stats.original_size
+        );
         assert!(stats.compression_ratio < 0.5);
         assert!(!stats.checksum.is_empty());
         assert_eq!(stats.checksum.len(), 64); // SHA256 hex length
@@ -217,7 +224,8 @@ mod tests {
     fn test_decompress_file() {
         let temp_dir = TempDir::new().unwrap();
         let original_content = b"Hello, World! This is test data.";
-        let source_path = create_test_file(temp_dir.path(), "source.txt", original_content).unwrap();
+        let source_path =
+            create_test_file(temp_dir.path(), "source.txt", original_content).unwrap();
         let compressed_path = temp_dir.path().join("compressed.gz");
         let decompressed_path = temp_dir.path().join("decompressed.txt");
 

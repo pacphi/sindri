@@ -18,7 +18,8 @@ use std::process::Command;
 use crate::cli::UpgradeArgs;
 use crate::output;
 
-const COMPAT_MATRIX_URL: &str = "https://raw.githubusercontent.com/pacphi/sindri/main/compatibility-matrix.yaml";
+const COMPAT_MATRIX_URL: &str =
+    "https://raw.githubusercontent.com/pacphi/sindri/main/compatibility-matrix.yaml";
 
 pub async fn run(args: UpgradeArgs) -> Result<()> {
     let mut manager = ReleaseManager::new();
@@ -53,11 +54,7 @@ async fn list_versions(manager: &ReleaseManager) -> Result<()> {
     for release in releases {
         let tag = &release.tag_name;
         let version = tag.trim_start_matches('v');
-        let current = if version == VERSION {
-            " (current)"
-        } else {
-            ""
-        };
+        let current = if version == VERSION { " (current)" } else { "" };
         let prerelease = if release.prerelease {
             " [prerelease]"
         } else {
@@ -101,7 +98,10 @@ async fn check_for_updates(manager: &ReleaseManager) -> Result<()> {
 
 /// Show compatibility info for a version
 async fn show_compatibility(manager: &ReleaseManager, target_version: &str) -> Result<()> {
-    output::header(&format!("Compatibility check for version {}", target_version));
+    output::header(&format!(
+        "Compatibility check for version {}",
+        target_version
+    ));
 
     // Normalize version (add 'v' prefix if missing)
     let tag = if target_version.starts_with('v') {
@@ -115,7 +115,10 @@ async fn show_compatibility(manager: &ReleaseManager, target_version: &str) -> R
     let release = manager.get_release(&tag).await?;
     spinner.finish_and_clear();
 
-    output::info(&format!("Release: {}", release.name.as_ref().unwrap_or(&tag)));
+    output::info(&format!(
+        "Release: {}",
+        release.name.as_ref().unwrap_or(&tag)
+    ));
     if let Some(date) = &release.published_at {
         output::kv("Published", &date[..10]);
     }
@@ -167,10 +170,7 @@ async fn show_compatibility(manager: &ReleaseManager, target_version: &str) -> R
         }
         Err(e) => {
             spinner.finish_and_clear();
-            output::warning(&format!(
-                "Could not load compatibility matrix: {}",
-                e
-            ));
+            output::warning(&format!("Could not load compatibility matrix: {}", e));
             output::info("Compatibility checking skipped");
         }
     }
@@ -237,19 +237,14 @@ async fn do_upgrade(manager: &ReleaseManager, args: &UpgradeArgs) -> Result<()> 
 
         let compat_result = match checker.load_matrix(COMPAT_MATRIX_URL).await {
             Ok(_) => {
-                let result = checker.check_compatibility(
-                    &target_version.to_string(),
-                    &installed,
-                )?;
+                let result =
+                    checker.check_compatibility(&target_version.to_string(), &installed)?;
                 spinner.finish_and_clear();
                 Some(result)
             }
             Err(e) => {
                 spinner.finish_and_clear();
-                output::warning(&format!(
-                    "Could not load compatibility matrix: {}",
-                    e
-                ));
+                output::warning(&format!("Could not load compatibility matrix: {}", e));
                 output::info("Skipping compatibility check");
                 None
             }

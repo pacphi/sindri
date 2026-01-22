@@ -16,6 +16,7 @@ The Sindri extension system is YAML-first by design. Extensions are declarative 
 5. **Maintains ergonomics**: Easy access patterns, no runtime overhead
 
 The extension YAML structure includes:
+
 - `metadata`: name, version, category, description, author
 - `requirements`: system requirements (os, arch, min-ram, min-disk)
 - `capabilities`: project-init, authentication, lifecycle hooks, MCP
@@ -24,6 +25,7 @@ The extension YAML structure includes:
 - `bom`: Software Bill of Materials components
 
 Example extension structure:
+
 ```yaml
 metadata:
   name: claude-flow-v2
@@ -307,11 +309,13 @@ pub fn load_extension(path: &Path) -> Result<Extension> {
 **Description**: Use untyped `serde_yaml::Value` like JSON parsing with `serde_json::Value`.
 
 **Pros**:
+
 - No type definitions needed
 - Flexible for unknown fields
 - Smaller code footprint
 
 **Cons**:
+
 - No compile-time validation
 - Runtime errors for typos/missing fields
 - Complex nested access patterns: `value["capabilities"]["project-init"]["enabled"]`
@@ -324,11 +328,13 @@ pub fn load_extension(path: &Path) -> Result<Extension> {
 **Description**: Parse to untyped structure, validate with JSON Schema runtime checks.
 
 **Pros**:
+
 - Schema already exists for extensions
 - Flexible structure
 - Validation at load time
 
 **Cons**:
+
 - No type safety in Rust code
 - Complex access patterns
 - Runtime errors instead of compile-time
@@ -341,11 +347,13 @@ pub fn load_extension(path: &Path) -> Result<Extension> {
 **Description**: Use `schemafy` or similar to generate types from JSON schemas.
 
 **Pros**:
+
 - Single source of truth (schema)
 - No manual type definitions
 - Automatic updates from schema changes
 
 **Cons**:
+
 - Complex macro expansion
 - Poor compiler error messages
 - Generated code hard to read
@@ -358,11 +366,13 @@ pub fn load_extension(path: &Path) -> Result<Extension> {
 **Description**: Use Rust conventions (snake_case) internally, transform to kebab-case only at YAML serialization.
 
 **Pros**:
+
 - Idiomatic Rust naming
 - No `rename` attributes needed
 - Cleaner type definitions
 
 **Cons**:
+
 - Breaks 1:1 mapping with YAML
 - Confusing when debugging YAML vs Rust
 - Inconsistent with existing YAML conventions

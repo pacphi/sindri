@@ -7,7 +7,7 @@
 //! - Base64 encoding for transport
 
 use crate::sources::SecretSource;
-use crate::types::{ResolvedFrom, ResolvedSecret, ResolutionContext, SecretMetadata, SecretValue};
+use crate::types::{ResolutionContext, ResolvedFrom, ResolvedSecret, SecretMetadata, SecretValue};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use sindri_core::types::{SecretConfig, SecretSource as ConfigSecretSource};
@@ -47,8 +47,8 @@ impl FileSource {
         ctx: &ResolutionContext,
     ) -> Result<PathBuf> {
         // Expand tilde and environment variables
-        let expanded = shellexpand::full(path)
-            .with_context(|| format!("Failed to expand path: {}", path))?;
+        let expanded =
+            shellexpand::full(path).with_context(|| format!("Failed to expand path: {}", path))?;
 
         // Resolve relative paths against config directory
         let full_path = if Path::new(expanded.as_ref()).is_absolute() {
@@ -163,15 +163,13 @@ impl SecretSource for FileSource {
         }
 
         // Read file content
-        let content = tokio::fs::read(&source_path)
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to read file secret '{}' from: {}",
-                    definition.name,
-                    source_path.display()
-                )
-            })?;
+        let content = tokio::fs::read(&source_path).await.with_context(|| {
+            format!(
+                "Failed to read file secret '{}' from: {}",
+                definition.name,
+                source_path.display()
+            )
+        })?;
 
         // Parse permissions
         let permissions = Self::parse_permissions(&definition.permissions)
@@ -329,7 +327,9 @@ mod tests {
     async fn test_default_mount_path() {
         let temp_dir = TempDir::new().unwrap();
         let secret_file = temp_dir.path().join("my-cert.pem");
-        tokio::fs::write(&secret_file, b"cert content").await.unwrap();
+        tokio::fs::write(&secret_file, b"cert content")
+            .await
+            .unwrap();
 
         let source = FileSource::new();
         let config = SecretConfig {

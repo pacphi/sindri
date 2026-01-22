@@ -7,18 +7,21 @@ Complete template system for Sindri v3 Phase 7 project scaffolding.
 The template system is organized into four focused modules:
 
 ### 1. `parser.rs` - YAML Structure Parsing
+
 - Parses `project-templates.yaml` into strongly-typed Rust structures
 - Defines `TemplateConfig`, `ProjectTemplate`, `DependencyConfig`, `DetectionRules`
 - Handles both single and multiple detection patterns
 - Provides validation and type-safe access to template data
 
 ### 2. `loader.rs` - Template Loading
+
 - Loads templates from embedded YAML (compiled into binary via `include_str!`)
 - Supports runtime YAML loading for testing/development
 - Provides fallback mechanisms
 - Caches loaded configuration for performance
 
 ### 3. `detector.rs` - Project Type Detection
+
 - Auto-detects project types from names using regex patterns
 - Handles ambiguous matches (e.g., "api-server" → [node, go, python])
 - Resolves aliases (e.g., "nodejs" → "node", "py" → "python")
@@ -26,6 +29,7 @@ The template system is organized into four focused modules:
 - Supports numeric choice resolution
 
 ### 4. `renderer.rs` - Template Rendering
+
 - Renders template files with variable substitution
 - Uses simple `{var}` syntax (not Tera `{{var}}`) to match bash implementation
 - Supports multi-file creation from template definitions
@@ -119,6 +123,7 @@ files:
 ```
 
 Available variables:
+
 - `{project_name}` - Project name
 - `{author}` - Author name
 - `{git_user_name}` - Git user name
@@ -157,23 +162,23 @@ Each template in `project-templates.yaml` defines:
 templates:
   node:
     description: "Node.js application"
-    aliases: ["nodejs", "javascript"]           # Alternative names
-    extensions: ["nodejs"]                       # Sindri extensions to activate
-    detection_patterns: ["node", "npm", "express"]  # Keywords for detection
-    setup_commands:                              # Commands to run after creation
+    aliases: ["nodejs", "javascript"] # Alternative names
+    extensions: ["nodejs"] # Sindri extensions to activate
+    detection_patterns: ["node", "npm", "express"] # Keywords for detection
+    setup_commands: # Commands to run after creation
       - "npm init -y"
-    dependencies:                                # Dependency management
+    dependencies: # Dependency management
       detect: "package.json"
       command: "npm install"
       requires: "npm"
       description: "Node.js dependencies"
-    files:                                       # Template files to create
+    files: # Template files to create
       "package.json": |
         {
           "name": "{project_name}",
           "version": "1.0.0"
         }
-    claude_md_template: |                        # Custom CLAUDE.md template
+    claude_md_template: | # Custom CLAUDE.md template
       # {project_name}
       Node.js application
 ```
@@ -215,15 +220,15 @@ This ensures templates are always available without external file dependencies.
 
 This Rust implementation maintains compatibility with the v2 bash scripts:
 
-| v2 Bash | v3 Rust |
-|---------|---------|
-| `detect_type_from_name()` | `TypeDetector::detect_from_name()` |
-| `resolve_template_alias()` | `TypeDetector::resolve_alias()` |
-| `get_type_suggestions()` | `TypeDetector::format_suggestions()` |
-| `resolve_type_choice()` | `TypeDetector::resolve_choice()` |
-| `load_project_template()` | `TemplateLoader::get_template()` |
-| `resolve_template_variables()` | `TemplateRenderer::render_string()` |
-| `create_template_files()` | `TemplateRenderer::render_files()` |
+| v2 Bash                        | v3 Rust                              |
+| ------------------------------ | ------------------------------------ |
+| `detect_type_from_name()`      | `TypeDetector::detect_from_name()`   |
+| `resolve_template_alias()`     | `TypeDetector::resolve_alias()`      |
+| `get_type_suggestions()`       | `TypeDetector::format_suggestions()` |
+| `resolve_type_choice()`        | `TypeDetector::resolve_choice()`     |
+| `load_project_template()`      | `TemplateLoader::get_template()`     |
+| `resolve_template_variables()` | `TemplateRenderer::render_string()`  |
+| `create_template_files()`      | `TemplateRenderer::render_files()`   |
 
 ## Error Handling
 

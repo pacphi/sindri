@@ -68,7 +68,6 @@ impl TemplateVars {
         self.license = license;
         self
     }
-
 }
 
 /// Template renderer
@@ -151,8 +150,7 @@ impl TemplateRenderer {
             self.generate_default_claude_md(vars)
         };
 
-        std::fs::write(&claude_md_path, content)
-            .context("Failed to write CLAUDE.md")?;
+        std::fs::write(&claude_md_path, content).context("Failed to write CLAUDE.md")?;
 
         Ok(claude_md_path)
     }
@@ -225,8 +223,7 @@ mod tests {
     #[test]
     fn test_render_string() {
         let renderer = TemplateRenderer::new();
-        let vars = TemplateVars::new("my-app".to_string())
-            .with_author("Jane Doe".to_string());
+        let vars = TemplateVars::new("my-app".to_string()).with_author("Jane Doe".to_string());
 
         let template = "Project: {project_name}\nAuthor: {author}\nYear: {year}";
         let result = renderer.render_string(template, &vars).unwrap();
@@ -292,10 +289,7 @@ Author: {author}
         };
 
         let rendered = renderer
-            .render_string(
-                template.claude_md_template.as_ref().unwrap(),
-                &vars,
-            )
+            .render_string(template.claude_md_template.as_ref().unwrap(), &vars)
             .unwrap();
 
         assert!(rendered.contains("# my-rails-app"));

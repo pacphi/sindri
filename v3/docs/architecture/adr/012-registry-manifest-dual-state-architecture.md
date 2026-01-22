@@ -13,6 +13,7 @@ The extension system requires tracking two distinct concerns:
 2. **Installed Extensions (Manifest)**: What extensions are currently installed, their state, and when they were installed
 
 The bash implementation used a single `registry.yaml` file for both concerns, which caused issues:
+
 - Cannot distinguish between "available" and "installed"
 - No state tracking for installations in progress or failed
 - Difficult to detect outdated extensions (installed version vs latest available)
@@ -22,12 +23,14 @@ The bash implementation used a single `registry.yaml` file for both concerns, wh
 Example scenarios requiring different state:
 
 **Registry concerns**:
+
 - List all available extensions
 - Check latest version of an extension
 - Discover new extensions
 - Fetch extension metadata before installation
 
 **Manifest concerns**:
+
 - List installed extensions
 - Track installation state (installing, installed, failed)
 - Detect outdated extensions (compare with registry)
@@ -35,6 +38,7 @@ Example scenarios requiring different state:
 - Audit installation history
 
 **State machine for installed extensions**:
+
 ```
          install
 pending ---------> installing ---------> installed
@@ -55,12 +59,14 @@ pending ---------> installing ---------> installed
 We adopt a **registry and manifest separation** with distinct responsibilities:
 
 **Registry** (`~/.sindri/cache/extensions/registry.yaml`):
+
 - **Source**: Fetched from GitHub (read-only from user perspective)
 - **Purpose**: Catalog of available extensions with metadata
 - **Update**: Fetched periodically (1-hour TTL cache)
 - **Schema**: Maintained in GitHub repository
 
 **Manifest** (`~/.sindri/extensions/manifest.yaml`):
+
 - **Source**: Local file (read-write by CLI)
 - **Purpose**: State tracking of installed extensions
 - **Update**: Modified by CLI operations (install, uninstall, update)
@@ -91,7 +97,7 @@ extensions:
         published: "2026-01-15T14:30:00Z"
         min_cli_version: "3.0.0"
         max_cli_version: null
-        checksum: "sha256:abc123..."  # Checksum of extension.yaml
+        checksum: "sha256:abc123..." # Checksum of extension.yaml
 
       - version: "1.1.0"
         tag: "nodejs@1.1.0"
@@ -114,6 +120,7 @@ extensions:
 ```
 
 **Registry Type Definition**:
+
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Registry {
@@ -193,7 +200,7 @@ extensions:
   claude-flow-v2:
     name: claude-flow-v2
     version: "1.5.0"
-    state: outdated  # Newer version available in registry
+    state: outdated # Newer version available in registry
     installed_at: "2025-12-15T14:00:00Z"
     installed_by: "sindri-cli v2.2.1"
     dependencies: [nodejs]
@@ -210,6 +217,7 @@ extensions:
 ```
 
 **Manifest Type Definition**:
+
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Manifest {
@@ -383,12 +391,14 @@ impl Manifest {
 ### Separation of Concerns
 
 **Registry Operations** (sindri-extensions/src/registry.rs):
+
 - `fetch_registry()` - Download from GitHub
 - `get_extension_metadata()` - Get metadata for specific extension
 - `list_available_extensions()` - List all extensions
 - `search_extensions()` - Search by category/name
 
 **Manifest Operations** (sindri-extensions/src/manifest.rs):
+
 - `load_manifest()` - Load local manifest
 - `save_manifest()` - Persist manifest changes
 - `transition_state()` - Update extension state
@@ -396,6 +406,7 @@ impl Manifest {
 - `record_installation()` - Add to history
 
 **Coordinated Operations** (sindri-extensions/src/manager.rs):
+
 ```rust
 pub struct ExtensionManager {
     registry: Registry,
@@ -519,11 +530,13 @@ extensions:
 ```
 
 **Pros**:
+
 - Single file to manage
 - No duplication
 - Simpler implementation
 
 **Cons**:
+
 - Registry updates conflict with local modifications
 - Difficult to distinguish read-only vs mutable state
 - No clear separation of concerns
@@ -536,12 +549,14 @@ extensions:
 **Description**: Use SQLite database for registry and manifest.
 
 **Pros**:
+
 - Transactional updates
 - Efficient queries
 - No YAML parsing overhead
 - Better concurrency handling
 
 **Cons**:
+
 - Adds SQLite dependency
 - Binary format (not human-readable)
 - Harder to debug
@@ -561,11 +576,13 @@ extensions:
 ```
 
 **Pros**:
+
 - No file locking conflicts
 - Easy to add/remove extensions
 - Parallel operations possible
 
 **Cons**:
+
 - Many small files (poor performance)
 - No atomic updates across extensions
 - Harder to query all installed extensions
@@ -587,10 +604,12 @@ extensions:
 ```
 
 **Pros**:
+
 - Self-contained manifest
 - No need to fetch registry for installed extensions
 
 **Cons**:
+
 - Registry metadata becomes stale
 - Larger manifest file
 - Duplicate data

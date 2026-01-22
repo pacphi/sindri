@@ -36,6 +36,7 @@ Sindri currently supports HashiCorp Vault as a secret source through the bash `s
 **Decision**: Use the `vaultrs` crate (v0.7.4+) as our Vault client library.
 
 **Rationale**:
+
 - Most mature async Rust client (158k downloads/month)
 - Comprehensive API coverage (KV v1/v2, auth methods, dynamic secrets)
 - Built on `reqwest` and `tokio` (already in our stack)
@@ -352,6 +353,7 @@ pub fn template_vault_path(path: &str, env_vars: &HashMap<String, String>) -> St
 ### 5. Security Considerations
 
 **Memory Safety**:
+
 ```rust
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -362,6 +364,7 @@ pub struct SecureString {
 ```
 
 **Audit Logging**:
+
 ```rust
 info!(
     vault.operation = "read",

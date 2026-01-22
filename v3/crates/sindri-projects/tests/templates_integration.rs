@@ -41,17 +41,11 @@ fn test_resolve_aliases() {
 
     // Test node aliases
     assert_eq!(loader.resolve_alias("nodejs"), Some("node".to_string()));
-    assert_eq!(
-        loader.resolve_alias("javascript"),
-        Some("node".to_string())
-    );
+    assert_eq!(loader.resolve_alias("javascript"), Some("node".to_string()));
 
     // Test python aliases
     assert_eq!(loader.resolve_alias("py"), Some("python".to_string()));
-    assert_eq!(
-        loader.resolve_alias("python3"),
-        Some("python".to_string())
-    );
+    assert_eq!(loader.resolve_alias("python3"), Some("python".to_string()));
 
     // Test go aliases
     assert_eq!(loader.resolve_alias("golang"), Some("go".to_string()));
@@ -147,7 +141,8 @@ fn test_render_string() {
         .with_author("Bob".to_string())
         .with_git_user("Bob".to_string(), "bob@example.com".to_string());
 
-    let template = "Project: {project_name}\nAuthor: {author}\nEmail: {git_user_email}\nYear: {year}";
+    let template =
+        "Project: {project_name}\nAuthor: {author}\nEmail: {git_user_email}\nYear: {year}";
     let result = renderer.render_string(template, &vars).unwrap();
 
     assert!(result.contains("Project: my-app"));
@@ -183,10 +178,7 @@ fn test_template_manager() {
     assert!(manager.get_template("nonexistent").is_none());
 
     // Test resolve alias
-    assert_eq!(
-        manager.resolve_alias("nodejs"),
-        Some("node".to_string())
-    );
+    assert_eq!(manager.resolve_alias("nodejs"), Some("node".to_string()));
 
     // Test detect type
     let detection = manager.detect_type("my-rails-app");
@@ -198,21 +190,14 @@ fn test_choice_resolution() {
     let loader = TemplateLoader::from_embedded().unwrap();
     let detector = TypeDetector::new(&loader);
 
-    let types = vec![
-        "node".to_string(),
-        "go".to_string(),
-        "python".to_string(),
-    ];
+    let types = vec!["node".to_string(), "go".to_string(), "python".to_string()];
 
     // Test numeric choice
     assert_eq!(
         detector.resolve_choice("1", &types),
         Some("node".to_string())
     );
-    assert_eq!(
-        detector.resolve_choice("2", &types),
-        Some("go".to_string())
-    );
+    assert_eq!(detector.resolve_choice("2", &types), Some("go".to_string()));
     assert_eq!(
         detector.resolve_choice("3", &types),
         Some("python".to_string())

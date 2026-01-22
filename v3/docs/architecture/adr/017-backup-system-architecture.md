@@ -23,16 +23,19 @@ Sindri workspaces contain critical user data requiring reliable backup: developm
 Three profiles with distinct inclusion/exclusion patterns:
 
 **1. user-data Profile** (Migration-Focused, 100MB-1GB):
+
 - Includes: `workspace/projects/`, `workspace/config/`, `.claude/`, `.gitconfig`, SSH host keys
 - Excludes: Shell configs, `.config/`, `.local/`, system markers, caches
 - Use case: Migrating to new provider, switching Sindri versions
 
 **2. standard Profile** (Default, 1-5GB):
+
 - Includes: All from user-data + `.bashrc`, `.profile`, `.config/`, `.local/bin/`
 - Excludes: Mise shims/installs, tool state
 - Use case: Regular backups, disaster recovery on same provider
 
 **3. full Profile** (Disaster Recovery, 5-20GB):
+
 - Includes: Everything except caches and mise installs
 - Excludes: `.cache/`, `.local/share/mise/installs/`, `.local/state/`
 - Use case: Complete disaster recovery, forensic analysis
@@ -73,7 +76,7 @@ backup-{name}-{timestamp}.tar.gz
     "files_included": 1234,
     "total_size_bytes": 5242880,
     "compressed_size_bytes": 2621440,
-    "compression_ratio": 0.50
+    "compression_ratio": 0.5
   },
   "extensions": {
     "installed": ["nodejs", "python", "docker"],
@@ -182,6 +185,7 @@ sindri backup --encrypt --gpg-recipient user@example.com
 **Crate**: `sindri-backup` (new library crate)
 
 **Modules**:
+
 - `profile.rs`: Backup profile definitions
 - `archive.rs`: tar + gzip operations
 - `backup/`: Backup orchestration (local, docker, fly)
@@ -189,6 +193,7 @@ sindri backup --encrypt --gpg-recipient user@example.com
 - `progress.rs`: Progress reporting
 
 **Dependencies**:
+
 ```toml
 tar = "0.4"
 flate2 = "1.0"

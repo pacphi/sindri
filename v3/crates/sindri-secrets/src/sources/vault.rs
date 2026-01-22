@@ -1,7 +1,7 @@
 //! HashiCorp Vault secret source - simplified implementation for Phase 5
 
 use crate::sources::SecretSource;
-use crate::types::{ResolvedFrom, ResolvedSecret, ResolutionContext, SecretMetadata, SecretValue};
+use crate::types::{ResolutionContext, ResolvedFrom, ResolvedSecret, SecretMetadata, SecretValue};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use sindri_core::types::{SecretConfig, SecretSource as ConfigSecretSource};
@@ -50,10 +50,10 @@ impl Default for RetryConfig {
 
 impl VaultConfig {
     pub fn from_env() -> Result<Self> {
-        let address = std::env::var("VAULT_ADDR")
-            .context("VAULT_ADDR environment variable not set")?;
-        let token = std::env::var("VAULT_TOKEN")
-            .context("VAULT_TOKEN environment variable not set")?;
+        let address =
+            std::env::var("VAULT_ADDR").context("VAULT_ADDR environment variable not set")?;
+        let token =
+            std::env::var("VAULT_TOKEN").context("VAULT_TOKEN environment variable not set")?;
         let namespace = std::env::var("VAULT_NAMESPACE").ok();
         let timeout_secs = std::env::var("VAULT_TIMEOUT")
             .ok()
@@ -138,13 +138,21 @@ impl VaultSource {
                     return Ok(value.to_string());
                 }
                 Err(e) if attempt < self.config.retry.max_attempts => {
-                    warn!("Vault request failed (attempt {}/{}): {}", attempt + 1, self.config.retry.max_attempts, e);
+                    warn!(
+                        "Vault request failed (attempt {}/{}): {}",
+                        attempt + 1,
+                        self.config.retry.max_attempts,
+                        e
+                    );
                     tokio::time::sleep(delay).await;
                     delay = std::cmp::min(delay * 2, self.config.retry.max_delay);
                     attempt += 1;
                 }
                 Err(e) => {
-                    return Err(e).context(format!("Failed to read from Vault after {} attempts", self.config.retry.max_attempts));
+                    return Err(e).context(format!(
+                        "Failed to read from Vault after {} attempts",
+                        self.config.retry.max_attempts
+                    ));
                 }
             }
         }
@@ -157,11 +165,11 @@ impl VaultSource {
     pub async fn validate_token(&self) -> Result<()> {
         let client = self.create_client()?;
         let token = &self.config.token;
-        
+
         match token::lookup(&client, token).await {
             Ok(token_info) => {
                 debug!("Token validation successful");
-                
+
                 let mut token_lock = self.token_cache.write().await;
                 *token_lock = Some(TokenMetadata {
                     token: token.clone(),
@@ -169,7 +177,7 @@ impl VaultSource {
                     renewable: token_info.renewable,
                     last_renewed: std::time::SystemTime::now(),
                 });
-                
+
                 Ok(())
             }
             Err(e) => Err(e).context("Token validation failed"),
@@ -180,7 +188,12 @@ impl VaultSource {
         let client = reqwest::Client::new();
         let url = format!("{}/v1/sys/health", self.config.address);
 
-        match client.get(&url).timeout(Duration::from_secs(5)).send().await {
+        match client
+            .get(&url)
+            .timeout(Duration::from_secs(5))
+            .send()
+            .await
+        {
             Ok(response) => Ok(response.status().is_success()),
             Err(e) => Err(e).context("Failed to check Vault health"),
         }
@@ -195,28 +208,45 @@ impl Default for VaultSource {
 
 #[async_trait]
 impl SecretSource for VaultSource {
-    async fn resolve(&self, definition: &SecretConfig, _ctx: &ResolutionContext) -> Result<Option<ResolvedSecret>> {
+    async fn resolve(
+        &self,
+        definition: &SecretConfig,
+        _ctx: &ResolutionContext,
+    ) -> Result<Option<ResolvedSecret>> {
         if definition.source != ConfigSecretSource::Vault {
             return Ok(None);
         }
 
         if !self.is_configured() {
             if definition.required {
-                return Err(anyhow!("Vault not configured (VAULT_ADDR and VAULT_TOKEN required)"));
+                return Err(anyhow!(
+                    "Vault not configured (VAULT_ADDR and VAULT_TOKEN required)"
+                ));
             } else {
                 debug!("Vault not configured, skipping optional secret");
                 return Ok(None);
             }
         }
 
-        let vault_path = definition.vault_path.as_ref().ok_or_else(|| anyhow!("Vault path not specified"))?;
-        let vault_key = definition.vault_key.as_ref().ok_or_else(|| anyhow!("Vault key not specified"))?;
+        let vault_path = definition
+            .vault_path
+            .as_ref()
+            .ok_or_else(|| anyhow!("Vault path not specified"))?;
+        let vault_key = definition
+            .vault_key
+            .as_ref()
+            .ok_or_else(|| anyhow!("Vault key not specified"))?;
         let mount = &definition.vault_mount;
 
-        let value = self.read_secret_with_retry(mount, vault_path, vault_key).await?;
+        let value = self
+            .read_secret_with_retry(mount, vault_path, vault_key)
+            .await?;
         let size_bytes = value.len();
 
-        debug!("Resolved secret '{}' from Vault: {}/{}", definition.name, mount, vault_path);
+        debug!(
+            "Resolved secret '{}' from Vault: {}/{}",
+            definition.name, mount, vault_path
+        );
 
         Ok(Some(ResolvedSecret {
             name: definition.name.clone(),

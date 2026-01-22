@@ -169,11 +169,7 @@ impl BackupManifest {
 
 impl BackupStatistics {
     /// Creates new backup statistics.
-    pub fn new(
-        files_included: usize,
-        total_size_bytes: u64,
-        compressed_size_bytes: u64,
-    ) -> Self {
+    pub fn new(files_included: usize, total_size_bytes: u64, compressed_size_bytes: u64) -> Self {
         let compression_ratio = if total_size_bytes > 0 {
             compressed_size_bytes as f64 / total_size_bytes as f64
         } else {
@@ -316,8 +312,7 @@ mod tests {
 
     #[test]
     fn test_statistics_with_duration() {
-        let stats = BackupStatistics::new(100, 10_000_000, 5_000_000)
-            .with_duration(45.5);
+        let stats = BackupStatistics::new(100, 10_000_000, 5_000_000).with_duration(45.5);
         assert_eq!(stats.duration_seconds, Some(45.5));
     }
 

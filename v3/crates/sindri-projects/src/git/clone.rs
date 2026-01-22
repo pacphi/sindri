@@ -232,10 +232,7 @@ pub async fn fork_repository(
 
 /// Check if GitHub CLI is available
 async fn check_gh_available() -> Result<()> {
-    let result = Command::new("gh")
-        .arg("--version")
-        .output()
-        .await;
+    let result = Command::new("gh").arg("--version").output().await;
 
     match result {
         Ok(output) if output.status.success() => Ok(()),
@@ -245,10 +242,7 @@ async fn check_gh_available() -> Result<()> {
 
 /// Check if GitHub CLI is authenticated
 async fn check_gh_authenticated() -> Result<()> {
-    let output = Command::new("gh")
-        .args(["auth", "status"])
-        .output()
-        .await?;
+    let output = Command::new("gh").args(["auth", "status"]).output().await?;
 
     if !output.status.success() {
         return Err(Error::GhNotAuthenticated);
@@ -284,7 +278,10 @@ async fn checkout_fork_branch(path: &Utf8Path, branch: &str) -> Result<()> {
 
     if result.is_err() {
         // Branch not found locally, try to fetch from upstream
-        warn!("Branch {} not found locally, trying to fetch from upstream", branch);
+        warn!(
+            "Branch {} not found locally, trying to fetch from upstream",
+            branch
+        );
 
         // Fetch from upstream
         if let Err(e) = fetch_remote(path, "upstream", Some(branch)).await {

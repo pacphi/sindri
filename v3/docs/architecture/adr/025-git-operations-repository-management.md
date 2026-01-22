@@ -14,6 +14,7 @@ The Sindri CLI v3 requires comprehensive Git operations for project management, 
 In v2, Git operations are handled via bash scripts calling the `git` CLI:
 
 **Clone Workflow**:
+
 ```bash
 git clone "$REPO_URL" "$PROJECT_DIR"
 cd "$PROJECT_DIR"
@@ -22,6 +23,7 @@ git config user.email "$GIT_EMAIL"
 ```
 
 **Fork Workflow** (using GitHub CLI):
+
 ```bash
 gh repo fork "$REPO_URL" --clone
 cd "$PROJECT_NAME"
@@ -30,11 +32,13 @@ git fetch upstream
 ```
 
 **Strengths**:
+
 - Simple CLI wrapper
 - Leverages existing `git` and `gh` tools
 - Works on all platforms with Git installed
 
 **Weaknesses**:
+
 - External dependency on `git` CLI
 - No error recovery for partial failures
 - String-based output parsing prone to errors
@@ -44,29 +48,34 @@ git fetch upstream
 ### Requirements
 
 **Git Initialization**:
+
 1. Create Git repository in project directory
 2. Configure local user.name and user.email
 3. Create initial commit with scaffolded files
 4. Set default branch name
 
 **Clone Operations**:
+
 1. Clone repository from URL
 2. Support shallow clones (`--depth`)
 3. Support branch checkout (`--branch`)
 4. Progress indication for large repos
 
 **Fork Operations**:
+
 1. Fork repository via GitHub API
 2. Configure origin → fork, upstream → original
 3. Set up Git aliases for common fork workflows
 4. Fetch upstream branches
 
 **Feature Branches**:
+
 1. Create feature branch from main/develop
 2. Set up tracking to origin
 3. Push branch to remote
 
 **Configuration Management**:
+
 1. Project-local Git configuration (not global)
 2. Override user.name and user.email per project
 3. Preserve existing Git configuration
@@ -80,6 +89,7 @@ We implement Git operations using the `git2` crate (libgit2 bindings) for core o
 **Decision**: Use `git2` crate for Git operations, fall back to `git` CLI for unsupported operations.
 
 **Architecture**:
+
 ```rust
 // crates/sindri-project/src/git.rs
 
@@ -233,6 +243,7 @@ impl GitManager {
 ```
 
 **Reasoning**: `git2` provides:
+
 - **No External Dependency**: Bundled libgit2, no `git` CLI required
 - **Type Safety**: Rust API prevents common Git errors
 - **Cross-Platform**: Works consistently on Linux, macOS, Windows
@@ -244,6 +255,7 @@ impl GitManager {
 **Decision**: Use `git2` for cloning with progress callbacks, support shallow clones and branch checkout.
 
 **Implementation**:
+
 ```rust
 impl GitManager {
     /// Clone repository from URL
@@ -345,6 +357,7 @@ pub struct CloneOptions {
 ```
 
 **Reasoning**: Native cloning with `git2` provides:
+
 - **Progress Indication**: Real-time progress bars for large repos
 - **Shallow Clones**: Reduces download size and time
 - **Branch Checkout**: Directly checkout target branch
@@ -355,6 +368,7 @@ pub struct CloneOptions {
 **Decision**: Use GitHub CLI (`gh`) for forking, `git2` for remote configuration.
 
 **Implementation**:
+
 ```rust
 impl GitManager {
     /// Fork repository and clone
@@ -526,6 +540,7 @@ impl GitManager {
 ```
 
 **Reasoning**: Hybrid approach (gh + git2) provides:
+
 - **GitHub Integration**: Native fork support via `gh` CLI
 - **Type Safety**: `git2` for remote configuration
 - **User Experience**: Automated fork workflow
@@ -536,6 +551,7 @@ impl GitManager {
 **Decision**: Use `git2` for branch creation and checkout, support push to remote.
 
 **Implementation**:
+
 ```rust
 impl GitManager {
     /// Create feature branch and optionally push to remote
@@ -611,6 +627,7 @@ impl GitManager {
 ```
 
 **Reasoning**: Native branch operations provide:
+
 - **Atomicity**: Branch creation and checkout are atomic
 - **Tracking**: Automatic upstream configuration
 - **Error Handling**: Detect and report branch conflicts
@@ -621,6 +638,7 @@ impl GitManager {
 **Decision**: Always use project-local Git configuration, never modify global config.
 
 **Implementation**:
+
 ```rust
 impl GitManager {
     /// Apply Git configuration overrides to repository
@@ -692,6 +710,7 @@ impl GitManager {
 ```
 
 **Reasoning**: Project-local configuration ensures:
+
 - **Isolation**: Each project has independent Git config
 - **Consistency**: Same config across all team members
 - **No Side Effects**: Never modifies user's global Git settings
@@ -733,12 +752,14 @@ impl GitManager {
 **Description**: Shell out to `git` CLI for all operations, no `git2` crate.
 
 **Pros**:
+
 - Simpler implementation
 - Smaller binary size
 - Supports all Git features
 - No platform-specific compilation
 
 **Cons**:
+
 - Requires `git` CLI installed
 - String parsing prone to errors
 - No type safety
@@ -752,12 +773,14 @@ impl GitManager {
 **Description**: Use pure-Rust `gitoxide` instead of `git2` (libgit2 bindings).
 
 **Pros**:
+
 - Pure Rust (no C dependencies)
 - Modern API design
 - Better async support
 - Smaller binary size
 
 **Cons**:
+
 - Less mature than git2
 - Fewer features implemented
 - Less documentation
@@ -770,11 +793,13 @@ impl GitManager {
 **Description**: Use GitHub REST/GraphQL API directly instead of `gh` CLI.
 
 **Pros**:
+
 - No external dependency
 - More control over API calls
 - Can handle authentication in Rust
 
 **Cons**:
+
 - Must implement OAuth flow
 - Token management complexity
 - More code to maintain
@@ -787,11 +812,13 @@ impl GitManager {
 **Description**: Set user.name and user.email globally, not per-project.
 
 **Pros**:
+
 - Simpler implementation
 - User config persists across projects
 - Fewer configuration files
 
 **Cons**:
+
 - Overwrites user's global settings
 - No project-specific identities
 - Surprising behavior
@@ -804,11 +831,13 @@ impl GitManager {
 **Description**: Only support `clone`, users manually fork via GitHub UI.
 
 **Pros**:
+
 - No GitHub CLI dependency
 - Simpler implementation
 - No authentication handling
 
 **Cons**:
+
 - Poor UX for contributors
 - Manual remote configuration
 - Extra steps for common workflow
@@ -856,13 +885,14 @@ This is the standard convention for contributing to open-source projects.
 
 Configured aliases:
 
-| Alias | Command | Description |
-|-------|---------|-------------|
-| `sync-fork` | `git fetch upstream && git merge upstream/main` | Merge upstream changes |
-| `update-fork` | `git fetch upstream && git rebase upstream/main` | Rebase on upstream |
-| `pr` | `gh pr create` | Create pull request |
+| Alias         | Command                                          | Description            |
+| ------------- | ------------------------------------------------ | ---------------------- |
+| `sync-fork`   | `git fetch upstream && git merge upstream/main`  | Merge upstream changes |
+| `update-fork` | `git fetch upstream && git rebase upstream/main` | Rebase on upstream     |
+| `pr`          | `gh pr create`                                   | Create pull request    |
 
 Usage:
+
 ```bash
 git sync-fork       # Sync fork with upstream
 git update-fork     # Rebase on upstream
@@ -872,27 +902,30 @@ git pr              # Create pull request
 ### Platform-Specific Considerations
 
 **SSH Keys**:
+
 - `git2` uses system SSH agent on Unix
 - Windows requires `ssh-agent` service or Pageant
 - Fallback to HTTPS if SSH fails
 
 **File Permissions**:
+
 - Unix: Preserve executable bit for scripts
 - Windows: Different permission model, handled by `git2`
 
 **Line Endings**:
+
 - Respect `.gitattributes` configuration
 - Auto-detect platform defaults (LF on Unix, CRLF on Windows)
 
 ### Error Recovery Strategies
 
-| Error | Recovery |
-|-------|----------|
-| Clone timeout | Retry with exponential backoff (max 3 attempts) |
-| Fork already exists | Detect and use existing fork |
-| Branch exists | Prompt to checkout or create new name |
-| Network failure | Suggest checking connection, retry |
-| Authentication failure | Clear instructions to run `gh auth login` |
+| Error                  | Recovery                                        |
+| ---------------------- | ----------------------------------------------- |
+| Clone timeout          | Retry with exponential backoff (max 3 attempts) |
+| Fork already exists    | Detect and use existing fork                    |
+| Branch exists          | Prompt to checkout or create new name           |
+| Network failure        | Suggest checking connection, retry              |
+| Authentication failure | Clear instructions to run `gh auth login`       |
 
 ## Related Decisions
 
