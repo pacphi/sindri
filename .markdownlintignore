@@ -3,6 +3,7 @@ node_modules
 .git
 .claude
 .archives
+target
 
 # Files with expected duplicate headings
 CHANGELOG.md
