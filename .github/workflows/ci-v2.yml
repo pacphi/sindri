@@ -76,107 +76,10 @@ env:
   DOCKER_BUILDKIT: 1
 
 jobs:
-  # ============================================
-  # Validation Jobs
-  # ============================================
-
-  shellcheck:
-    name: Shell Script Validation (v2)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install shellcheck
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
-
-      - name: Run shellcheck on v2 shell scripts
-        env:
-          SHELLCHECK_OPTS: --severity=warning
-        run: |
-          find v2 -name "*.sh" -type f | while read -r script; do
-            # Skip zsh scripts (shellcheck only supports sh/bash/dash/ksh)
-            if head -1 "$script" | grep -q "#!/bin/zsh"; then
-              echo "Skipping zsh script: $script"
-              continue
-            fi
-            echo "Checking: $script"
-            shellcheck "$script" || exit 1
-          done
-
-  markdownlint:
-    name: Markdown Validation (v2)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "20"
-
-      - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli
-
-      - name: Lint v2 markdown files
-        run: markdownlint 'v2/**/*.md' --ignore node_modules
-
-  validate-yaml:
-    name: Validate YAML (v2)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Install yamllint
-        run: pip install yamllint
-
-      - name: Install yq
-        run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-
-      - name: Run yamllint on v2 YAML
-        run: |
-          yamllint --strict \
-            v2/docker/lib/*.yaml \
-            v2/docker/lib/extensions/*/extension.yaml
-
-      - name: Validate v2 extension schemas
-        run: |
-          # Install Node.js tools
-          npm install -g ajv-cli ajv-formats
-
-          # Validate all v2 extensions against schema
-          for ext_dir in v2/docker/lib/extensions/*/; do
-            if [[ -f "$ext_dir/extension.yaml" ]]; then
-              ext_name=$(basename "$ext_dir")
-              echo "Validating extension: $ext_name"
-              ajv validate \
-                -s v2/docker/lib/schemas/extension.schema.json \
-                -d "$ext_dir/extension.yaml" \
-                --spec=draft2020 \
-                || exit 1
-            fi
-          done
-
-      - name: Validate v2 registry consistency
-        run: |
-          # Check that all extensions in registry exist
-          FAILURES=0
-          for ext_name in $(yq '.extensions | keys | .[]' v2/docker/lib/registry.yaml); do
-            if [[ ! -d "v2/docker/lib/extensions/$ext_name" ]]; then
-              echo "FAIL: Registry lists extension '$ext_name' but directory doesn't exist"
-              ((FAILURES++)) || true
-            fi
-          done
-
-          if [[ $FAILURES -gt 0 ]]; then
-            echo "Registry validation failed: $FAILURES error(s)"
-            exit 1
-          fi
-          echo "Registry validation passed"
+  # NOTE: Validation is handled by dedicated workflows:
+  # - validate-shell.yml (shellcheck)
+  # - validate-markdown.yml (markdownlint)
+  # - validate-yaml.yml (YAML/schema validation)
 
   # ============================================
   # Build Job
@@ -185,7 +88,6 @@ jobs:
   build:
     name: Build v2 Docker Image
     runs-on: ubuntu-latest
-    needs: [shellcheck, markdownlint, validate-yaml]
     outputs:
       image-tag: ${{ steps.build.outputs.tag }}
       image-digest: ${{ steps.build.outputs.digest }}
@@ -231,7 +133,6 @@ jobs:
   generate-matrix:
     name: Generate Test Matrix
     runs-on: ubuntu-latest
-    needs: [shellcheck, markdownlint, validate-yaml]
     outputs:
       providers: ${{ steps.matrix.outputs.providers }}
     steps:
@@ -293,29 +194,19 @@ jobs:
     name: CI v2 Required Checks
     runs-on: ubuntu-latest
     needs:
-      - shellcheck
-      - markdownlint
-      - validate-yaml
       - build
     if: ${{ always() }}
     steps:
       - name: Check required jobs
         run: |
           # Check if any required job failed
-          SHELLCHECK="${{ needs.shellcheck.result }}"
-          MARKDOWNLINT="${{ needs.markdownlint.result }}"
-          VALIDATE_YAML="${{ needs.validate-yaml.result }}"
+          # NOTE: Validation is handled by dedicated workflows:
+          # - validate-shell.yml, validate-markdown.yml, validate-yaml.yml
           BUILD="${{ needs.build.result }}"
 
-          if [[ "$SHELLCHECK" != "success" ]] || \
-             [[ "$MARKDOWNLINT" != "success" ]] || \
-             [[ "$VALIDATE_YAML" != "success" ]] || \
-             [[ "$BUILD" != "success" ]]; then
+          if [[ "$BUILD" != "success" ]]; then
             echo "❌ Required CI v2 checks failed"
             echo "Results:"
-            echo "  shellcheck: $SHELLCHECK"
-            echo "  markdownlint: $MARKDOWNLINT"
-            echo "  validate-yaml: $VALIDATE_YAML"
             echo "  build: $BUILD"
             exit 1
           fi

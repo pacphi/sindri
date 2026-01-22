@@ -1,36 +1,43 @@
-# GitHub Actions CI/CD Architecture
+# GitHub Actions CI/CD
 
-This directory contains the bifurcated CI/CD pipeline for Sindri v2 (Bash/Docker) and v3 (Rust).
+This directory contains the CI/CD pipeline for Sindri v2 (Bash/Docker) and v3 (Rust).
 
 ## Overview
 
-Sindri maintains two parallel versions:
+Sindri maintains two parallel versions with independent CI/CD pipelines:
 
 - **v2**: Bash/Docker-based CLI (stable, production-ready)
 - **v3**: Rust-based CLI (in active development)
 
-To support independent development and releases, the CI/CD pipeline is split based on path triggers.
+For detailed workflow architecture, test suites, and provider configuration, see [WORKFLOW_ARCHITECTURE.md](./WORKFLOW_ARCHITECTURE.md).
 
 ## Directory Structure
 
 ```
 .github/
 ├── workflows/
-│   ├── ci-v2.yml              # v2 CI pipeline (Docker builds, shell tests)
+│   ├── ci-v2.yml              # v2 CI pipeline (Docker builds, provider tests)
 │   ├── ci-v3.yml              # v3 CI pipeline (Rust builds, cargo tests)
+│   ├── validate-yaml.yml      # YAML/schema validation (both versions)
+│   ├── validate-shell.yml     # Shell script validation (shellcheck)
+│   ├── validate-markdown.yml  # Markdown validation (markdownlint)
 │   ├── release-v2.yml         # v2 releases (Docker images)
 │   ├── release-v3.yml         # v3 releases (Rust binaries)
-│   ├── validate-yaml.yml      # YAML validation for both versions
-│   ├── check-links.yml        # Link checking for documentation
+│   ├── test-provider.yml      # Unified provider testing
 │   ├── test-extensions-v2.yml # v2 extension testing
-│   └── ...
+│   ├── test-profiles.yml      # Config-driven profile testing
+│   ├── deploy-sindri.yml      # Reusable deployment
+│   ├── teardown-sindri.yml    # Reusable teardown
+│   ├── manual-deploy.yml      # Manual deployment with UI
+│   ├── check-links.yml        # Documentation link checking
+│   └── cleanup-workflow-runs.yml  # Workflow run cleanup
 ├── actions/
-│   ├── v2/                    # v2-specific reusable actions
-│   ├── v3/                    # v3-specific reusable actions
-│   │   ├── setup-rust/        # Rust toolchain setup with caching
-│   │   └── build-rust/        # Rust workspace build
-│   └── shared/                # Shared actions (formerly core/)
-└── dependabot.yml             # Dependency updates for npm, cargo, docker, actions
+│   ├── v2/                    # v2-specific actions
+│   ├── v3/                    # v3-specific actions
+│   ├── shared/                # Shared actions
+│   ├── core/                  # Core functionality (setup, build, test)
+│   └── providers/             # Provider-specific actions (fly, devpod)
+└── dependabot.yml             # Dependency updates
 ```
 
 ## Path-Based Triggers
@@ -55,68 +62,34 @@ To support independent development and releases, the CI/CD pipeline is split bas
 **Triggers**: Changes to `v2/` directory
 
 **Jobs**:
-
-1. **Validation**
-   - Shellcheck (v2 shell scripts)
-   - Markdownlint (v2 documentation)
-   - YAML validation (v2 extensions, registry)
-
-2. **Build**
-   - Build Docker image from `v2/Dockerfile`
-   - Save as artifact for testing
-
-3. **Testing**
-   - Test on multiple providers (docker, fly, devpod-k8s)
-   - Extension tests
-   - Profile tests
-
-4. **Status**
-   - Required checks gate
-   - Overall CI status
-
-**Manual Triggers**:
-
-```bash
-# Workflow dispatch allows customization
-- Select providers to test
-- Choose test level (quick, extension, profile, all)
-- Select extension profile
-- Skip cleanup for debugging
-```
+- **build**: Docker image from `v2/Dockerfile`
+- **generate-matrix**: Provider test matrix
+- **test-providers**: Unified provider testing
+- **ci-required/ci-status**: Status gates
 
 ### ci-v3.yml - v3 Rust CI
 
 **Triggers**: Changes to `v3/` directory
 
 **Jobs**:
+- **rust-format**: `cargo fmt --check`
+- **rust-clippy**: `cargo clippy` linting
+- **rust-test**: `cargo test` unit tests
+- **rust-build**: Release build
+- **security-audit**: `cargo audit`
+- **docs-build**: `cargo doc`
+- **test-extensions**: Extension validation
+- **ci-required/ci-status**: Status gates
 
-1. **Rust Validation**
-   - `cargo fmt --check` (formatting)
-   - `cargo clippy` (linting)
-   - `cargo test` (unit tests)
-   - `cargo build --release` (release build)
+## Validation Workflows
 
-2. **YAML Validation**
-   - Validate v3 extensions
-   - Validate v3 registry
-   - Validate v3 schemas
+Validation is handled by dedicated workflows (not by ci-* workflows):
 
-3. **Security & Documentation**
-   - `cargo audit` (security vulnerabilities)
-   - `cargo doc` (documentation build)
-
-4. **Extension Tests**
-   - Validate v3 extensions (when available)
-
-5. **Status**
-   - Required checks gate
-   - Overall CI status
-
-**Caching**:
-
-- Cargo dependencies cached with `actions/cache@v5`
-- Cache key includes `Cargo.lock` hash
-- Restore keys for fallback
+| Workflow | Triggers | Purpose |
+|----------|----------|---------|
+| `validate-yaml.yml` | `**.yaml`, `**.yml` | YAML linting, schema validation, cross-references |
+| `validate-shell.yml` | `**.sh` | Shellcheck for v2 and GitHub scripts |
+| `validate-markdown.yml` | `**.md` | Markdownlint for v2, v3, and root docs |
 
 ## Release Workflows
 
@@ -182,49 +155,20 @@ git tag -a v3.0.0 -m "Release v3.0.0 - First Rust release"
 git push origin v3.0.0
 ```
 
-## Validation Workflows
+## Other Workflows
 
-### validate-yaml.yml - Unified YAML Validation
+| Workflow | Purpose |
+|----------|---------|
+| `test-provider.yml` | Unified provider testing (CLI + extensions + integration) |
+| `test-extensions-v2.yml` | Registry-based v2 extension testing |
+| `test-profiles.yml` | Config-driven profile testing |
+| `deploy-sindri.yml` | Reusable deployment (workflow_call) |
+| `teardown-sindri.yml` | Reusable teardown (workflow_call) |
+| `manual-deploy.yml` | Manual deployment with rich UI options |
+| `check-links.yml` | Documentation link checking |
+| `cleanup-workflow-runs.yml` | Workflow run cleanup |
 
-**Validates both v2 and v3**:
-
-- **v2**: `v2/docker/lib/*.yaml`, `v2/docker/lib/extensions/*/extension.yaml`
-- **v3**: `v3/extensions/*/extension.yaml`, `v3/registry.yaml`, `v3/schemas/*.yaml`
-- **GitHub**: `.github/workflows/*.yml`
-
-**Jobs**:
-
-- YAML linting (yamllint)
-- Schema validation (ajv against JSON schemas)
-- Cross-reference checking (registry ↔ extensions)
-- Extension consistency (naming, categories)
-
-### check-links.yml - Documentation Link Checking
-
-**Checks all markdown files** in both v2 and v3:
-
-- Internal links (file:// scheme)
-- External links (scheduled weekly, optional on PR)
-
-## Extension Testing
-
-### test-extensions-v2.yml
-
-Tests v2 extensions in `v2/docker/lib/extensions/`:
-
-- Docker-based testing
-- Validates extension.yaml against schema
-- Checks registry consistency
-- Tests installation and functionality
-
-### test-extensions-v3.yml (Future)
-
-Will test v3 extensions in `v3/extensions/`:
-
-- Rust-based testing using v3 CLI
-- Schema validation
-- Registry consistency
-- Installation verification
+See [WORKFLOW_ARCHITECTURE.md](./WORKFLOW_ARCHITECTURE.md) for detailed documentation on test suites, provider configuration, and YAML-driven testing.
 
 ## Dependabot Configuration
 

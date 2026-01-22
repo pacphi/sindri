@@ -180,44 +180,7 @@ jobs:
             v3/target/release/sindri
           retention-days: 1
 
-  # ============================================
-  # YAML Validation (v3)
-  # ============================================
-
-  validate-yaml:
-    name: Validate YAML (v3)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Install yamllint
-        run: pip install yamllint
-
-      - name: Install yq
-        run: |
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
-
-      - name: Run yamllint on v3 YAML
-        run: |
-          # Only run if v3/extensions exists
-          if [[ -d v3/extensions ]]; then
-            yamllint --strict v3/extensions/*/extension.yaml || echo "No v3 extensions yet"
-          fi
-
-          if [[ -d v3/schemas ]]; then
-            find v3/schemas -name "*.yaml" -o -name "*.yml" | xargs yamllint --strict || echo "No v3 schemas yet"
-          fi
-
-      - name: Validate v3 registry
-        run: |
-          if [[ -f v3/registry.yaml ]]; then
-            yamllint --strict v3/registry.yaml
-            echo "v3 registry.yaml validated"
-          else
-            echo "::notice::v3/registry.yaml does not exist yet"
-          fi
+  # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
 
   # ============================================
   # Security Audit
@@ -330,30 +293,27 @@ jobs:
       - rust-clippy
       - rust-test
       - rust-build
-      - validate-yaml
     if: ${{ always() }}
     steps:
       - name: Check required jobs
         run: |
           # Check if any required job failed
+          # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
           FORMAT="${{ needs.rust-format.result }}"
           CLIPPY="${{ needs.rust-clippy.result }}"
           TEST="${{ needs.rust-test.result }}"
           BUILD="${{ needs.rust-build.result }}"
-          VALIDATE_YAML="${{ needs.validate-yaml.result }}"
 
           if [[ "$FORMAT" != "success" ]] || \
              [[ "$CLIPPY" != "success" ]] || \
              [[ "$TEST" != "success" ]] || \
-             [[ "$BUILD" != "success" ]] || \
-             [[ "$VALIDATE_YAML" != "success" ]]; then
+             [[ "$BUILD" != "success" ]]; then
             echo "❌ Required CI v3 checks failed"
             echo "Results:"
             echo "  rust-format: $FORMAT"
             echo "  rust-clippy: $CLIPPY"
             echo "  rust-test: $TEST"
             echo "  rust-build: $BUILD"
-            echo "  validate-yaml: $VALIDATE_YAML"
             exit 1
           fi
 

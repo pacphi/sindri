@@ -18,35 +18,35 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 ```text
 .github/
 ├── workflows/                    # GitHub Workflows
-│   ├── ci.yml                    # Main CI orchestrator (unified provider testing)
-│   ├── validate-yaml.yml         # Comprehensive YAML validation
-│   ├── test-extensions.yml       # Registry-based extension testing (Docker-only)
+│   ├── ci-v2.yml                 # v2 CI pipeline (Docker builds, provider tests)
+│   ├── ci-v3.yml                 # v3 CI pipeline (Rust builds, cargo tests)
+│   ├── validate-yaml.yml         # YAML/schema validation (both versions)
+│   ├── validate-shell.yml        # Shell script validation (shellcheck)
+│   ├── validate-markdown.yml     # Markdown validation (markdownlint)
+│   ├── test-extensions-v2.yml    # Registry-based v2 extension testing (Docker-only)
 │   ├── test-profiles.yml         # Config-driven profile testing (discovers sindri.yaml)
+│   ├── test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
 │   ├── deploy-sindri.yml         # Reusable deployment
 │   ├── teardown-sindri.yml       # Reusable teardown
-│   ├── test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
 │   ├── manual-deploy.yml         # Manual deployment workflow
-│   └── release.yml               # Release automation
+│   ├── release-v2.yml            # v2 release automation (Docker images)
+│   ├── release-v3.yml            # v3 release automation (Rust binaries)
+│   ├── check-links.yml           # Documentation link checking
+│   └── cleanup-workflow-runs.yml # Workflow run cleanup
 │
 ├── actions/                      # Composite Actions
+│   ├── v2/                       # v2-specific actions
+│   ├── v3/                       # v3-specific actions
+│   │   ├── setup-rust/           # Rust toolchain setup with caching
+│   │   └── build-rust/           # Rust workspace build
+│   ├── shared/                   # Shared actions
 │   ├── core/                     # Core functionality
 │   │   ├── setup-sindri/         # Environment setup, config parsing
 │   │   ├── build-image/          # Docker image building with caching
-│   │   └── test-v2/cli/             # CLI command testing
-│   │
+│   │   └── test-v2/cli/          # CLI command testing
 │   └── providers/                # Provider-specific actions
-│       ├── v2/docker/
-│       │   └── setup/            # Docker/Buildx setup
-│       ├── fly/
-│       │   ├── setup/            # Fly CLI install, app creation
-│       │   ├── deploy/           # Fly.io deployment
-│       │   ├── test/             # Fly.io testing
-│       │   └── cleanup/          # Fly.io resource cleanup
-│       └── devpod/
-│           ├── setup/            # DevPod CLI, cloud provider setup
-│           ├── deploy/           # DevPod workspace deployment
-│           ├── test/             # DevPod workspace testing
-│           └── cleanup/          # DevPod resource cleanup
+│       ├── fly/                  # Fly.io (setup, deploy, test, cleanup)
+│       └── devpod/               # DevPod (setup, deploy, test, cleanup)
 │
 ├── scripts/                      # Test scripts and utilities
 │   ├── calculate-profile-resources.sh  # Profile resource calculator
@@ -81,15 +81,25 @@ test/                             # Test suites
 
 ## Workflows
 
-### Main CI Workflow (`ci.yml`)
+### CI Workflows (`ci-v2.yml`, `ci-v3.yml`)
 
-The primary CI orchestrator with **unified provider testing**:
+Sindri uses bifurcated CI pipelines for v2 and v3:
 
+**ci-v2.yml** - v2 Bash/Docker CI:
 - Validates shell scripts (shellcheck)
 - Validates markdown (markdownlint)
-- Validates all YAML (via `validate-yaml.yml`)
 - Builds Docker images
-- Runs **unified provider tests** (CLI + extensions + integration) for each selected provider
+- Runs unified provider tests via `test-provider.yml`
+
+**ci-v3.yml** - v3 Rust CI:
+- Rust formatting (`cargo fmt`)
+- Clippy linting (`cargo clippy`)
+- Unit tests (`cargo test`)
+- Release build (`cargo build --release`)
+- Security audit (`cargo audit`)
+- Documentation build (`cargo doc`)
+
+**Note:** YAML/schema validation is handled exclusively by `validate-yaml.yml`, not by the CI workflows.
 
 **Key Design Principle:** Each provider receives identical test coverage:
 
@@ -106,14 +116,17 @@ FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
 ```
 
 **Triggers:**
-
-- Push to main/develop branches
-- Pull requests
+- Push to main/develop/feature branches (path-filtered)
+- Pull requests (path-filtered)
 - Manual dispatch with provider selection
 
-### YAML Validation Workflow (`validate-yaml.yml`)
+### Validation Workflows
 
-Comprehensive YAML validation:
+Validation is handled by dedicated workflows, not by the CI workflows:
+
+#### YAML Validation (`validate-yaml.yml`)
+
+Comprehensive YAML validation for both v2 and v3:
 
 - YAML linting (yamllint)
 - Schema validation (all YAML files against their schemas):
@@ -127,7 +140,25 @@ Comprehensive YAML validation:
 - Cross-reference validation (profiles → registry → extensions → categories)
 - Extension consistency checks
 
-### Extension Testing Workflow (`test-extensions.yml`)
+#### Shell Validation (`validate-shell.yml`)
+
+Shell script validation using shellcheck:
+
+- **shellcheck-v2**: Validates all `v2/**/*.sh` scripts
+- **shellcheck-github**: Validates `.github/scripts/**/*.sh`
+- Skips zsh scripts (shellcheck doesn't support zsh)
+- Triggers on changes to `**.sh` files
+
+#### Markdown Validation (`validate-markdown.yml`)
+
+Markdown validation using markdownlint:
+
+- **markdownlint-v2**: Validates `v2/**/*.md`
+- **markdownlint-v3**: Validates `v3/**/*.md`
+- **markdownlint-root**: Validates root and `.github/**/*.md`
+- Triggers on changes to `**.md` files
+
+### Extension Testing Workflow (`test-extensions-v2.yml`)
 
 Registry-based extension testing that runs in Docker (fast, local):
 
@@ -138,12 +169,12 @@ Registry-based extension testing that runs in Docker (fast, local):
 
 ```yaml
 # Example: Test specific extensions
-- uses: ./.github/workflows/test-extensions.yml
+- uses: ./.github/workflows/test-extensions-v2.yml
   with:
     extensions: nodejs,python,golang
 
 # Example: Test all non-protected extensions
-- uses: ./.github/workflows/test-extensions.yml
+- uses: ./.github/workflows/test-extensions-v2.yml
   with:
     extensions: all
 ```
@@ -381,7 +412,7 @@ This enables right-sizing CI infrastructure based on profile complexity.
 **Via Workflow Dispatch (UI):**
 
 ```yaml
-# Manual trigger inputs in ci.yml
+# Manual trigger inputs in ci-v2.yml
 providers: "docker,fly,devpod-aws" # Comma-separated or "all"
 extension-profile: "fullstack" # Profile to install and test
 test-suite: "full" # smoke | integration | full
@@ -459,7 +490,7 @@ The `.github/scripts/` directory contains test utilities:
                   └─────────────┘
 ```
 
-### Extension Testing (test-extensions.yml)
+### Extension Testing (test-extensions-v2.yml)
 
 ```text
 ┌───────────────────────────────────┐
@@ -468,7 +499,7 @@ The `.github/scripts/` directory contains test utilities:
                  │
                  ▼
 ┌─────────────────────────────────┐
-│  test-extensions.yml            │
+│  test-extensions-v2.yml            │
 │  - Parse input (split/expand)   │
 │  - Query registry for "all"     │
 └────────────────┬────────────────┘
@@ -603,7 +634,7 @@ config-path: examples/fly/minimal.sindri.yaml
 test-level: all
 ```
 
-### Test Individual Extensions (test-extensions.yml)
+### Test Individual Extensions (test-extensions-v2.yml)
 
 ```yaml
 # Single extension
@@ -643,7 +674,7 @@ extensions: all
 
 ### Adding Extension Tests
 
-Extensions are automatically tested via `test-extensions.yml`:
+Extensions are automatically tested via `test-extensions-v2.yml`:
 
 1. Add new extension to `v2/docker/lib/registry.yaml`
 2. Create extension definition in `v2/docker/lib/extensions/<name>/extension.yaml`
