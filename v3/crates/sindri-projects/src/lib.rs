@@ -13,12 +13,14 @@
 //!
 //! ```no_run
 //! use sindri_projects::git::{init_repository, InitOptions};
+//! use sindri_core::types::GitWorkflowConfig;
 //! use camino::Utf8Path;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let path = Utf8Path::new("/tmp/my-project");
 //! let options = InitOptions::default();
-//! init_repository(path, &options).await?;
+//! let git_config = GitWorkflowConfig::default();
+//! init_repository(path, &options, &git_config).await?;
 //! # Ok(())
 //! # }
 //! ```

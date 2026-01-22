@@ -26,6 +26,19 @@ updates:
       prefix-development: "deps(v2)"
       include: "scope"
 
+  # v2 Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/v3"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(v3)"
+      prefix-development: "deps(v3)"
+      include: "scope"
+
   # v2 npm dependencies
   - package-ecosystem: "npm"
     directory: "/"

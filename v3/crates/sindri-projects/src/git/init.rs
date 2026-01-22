@@ -2,16 +2,17 @@
 
 use crate::error::{Error, Result};
 use camino::Utf8Path;
+use sindri_core::types::GitWorkflowConfig;
 use tokio::process::Command;
 use tracing::{debug, info};
 
 /// Options for initializing a git repository
 #[derive(Debug, Clone)]
 pub struct InitOptions {
-    /// Default branch name (e.g., "main")
+    /// Default branch name (e.g., "main") - overrides git_config if set
     pub default_branch: Option<String>,
-    /// Initial commit message
-    pub initial_commit_message: String,
+    /// Initial commit message - overrides git_config if set
+    pub initial_commit_message: Option<String>,
     /// Whether to create an initial commit
     pub create_initial_commit: bool,
 }
@@ -19,10 +20,36 @@ pub struct InitOptions {
 impl Default for InitOptions {
     fn default() -> Self {
         Self {
-            default_branch: Some("main".to_string()),
-            initial_commit_message: "chore: initial commit".to_string(),
+            default_branch: None,
+            initial_commit_message: None,
             create_initial_commit: true,
         }
+    }
+}
+
+impl InitOptions {
+    /// Create options with explicit defaults (for backward compatibility)
+    pub fn with_defaults() -> Self {
+        let git_config = GitWorkflowConfig::default();
+        Self {
+            default_branch: Some(git_config.default_branch),
+            initial_commit_message: Some(git_config.initial_commit_message),
+            create_initial_commit: true,
+        }
+    }
+
+    /// Get the effective default branch, using git_config as fallback
+    pub fn effective_branch(&self, git_config: &GitWorkflowConfig) -> String {
+        self.default_branch
+            .clone()
+            .unwrap_or_else(|| git_config.default_branch.clone())
+    }
+
+    /// Get the effective initial commit message, using git_config as fallback
+    pub fn effective_commit_message(&self, git_config: &GitWorkflowConfig) -> String {
+        self.initial_commit_message
+            .clone()
+            .unwrap_or_else(|| git_config.initial_commit_message.clone())
     }
 }
 
@@ -31,6 +58,7 @@ impl Default for InitOptions {
 /// # Arguments
 /// * `path` - Directory to initialize as a git repository
 /// * `options` - Initialization options
+/// * `git_config` - Git workflow configuration for defaults
 ///
 /// # Returns
 /// Ok(()) on success
@@ -41,7 +69,11 @@ impl Default for InitOptions {
 /// - Git is not installed
 /// - Git init fails
 /// - Initial commit creation fails
-pub async fn init_repository(path: &Utf8Path, options: &InitOptions) -> Result<()> {
+pub async fn init_repository(
+    path: &Utf8Path,
+    options: &InitOptions,
+    git_config: &GitWorkflowConfig,
+) -> Result<()> {
     info!("Initializing git repository at: {}", path);
 
     // Check if git is available
@@ -64,11 +96,11 @@ pub async fn init_repository(path: &Utf8Path, options: &InitOptions) -> Result<(
     let mut cmd = Command::new("git");
     cmd.current_dir(path).arg("init");
 
-    if let Some(branch) = &options.default_branch {
-        cmd.arg("--initial-branch").arg(branch);
-    }
+    // Use effective branch from options or git_config
+    let branch = options.effective_branch(git_config);
+    cmd.arg("--initial-branch").arg(&branch);
 
-    debug!("Running: git init");
+    debug!("Running: git init with branch {}", branch);
     let output = cmd.output().await?;
 
     if !output.status.success() {
@@ -80,7 +112,8 @@ pub async fn init_repository(path: &Utf8Path, options: &InitOptions) -> Result<(
 
     // Create initial commit if requested
     if options.create_initial_commit {
-        create_initial_commit(path, &options.initial_commit_message).await?;
+        let commit_message = options.effective_commit_message(git_config);
+        create_initial_commit(path, &commit_message).await?;
     }
 
     Ok(())
@@ -242,11 +275,44 @@ mod tests {
         let path = Utf8Path::from_path(temp_dir.path()).unwrap();
 
         let options = InitOptions::default();
-        let result = init_repository(path, &options).await;
+        let git_config = GitWorkflowConfig::default();
+        let result = init_repository(path, &options, &git_config).await;
 
         assert!(result.is_ok());
         assert!(path.join(".git").exists());
         assert!(path.join(".gitignore").exists());
+    }
+
+    #[tokio::test]
+    async fn test_init_repository_with_custom_branch() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = Utf8Path::from_path(temp_dir.path()).unwrap();
+
+        let options = InitOptions {
+            default_branch: Some("develop".to_string()),
+            ..Default::default()
+        };
+        let git_config = GitWorkflowConfig::default();
+        let result = init_repository(path, &options, &git_config).await;
+
+        assert!(result.is_ok());
+        assert!(path.join(".git").exists());
+    }
+
+    #[tokio::test]
+    async fn test_init_repository_uses_config_defaults() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = Utf8Path::from_path(temp_dir.path()).unwrap();
+
+        let options = InitOptions::default();
+        let mut git_config = GitWorkflowConfig::default();
+        git_config.default_branch = "trunk".to_string();
+        git_config.initial_commit_message = "Initial setup".to_string();
+
+        let result = init_repository(path, &options, &git_config).await;
+
+        assert!(result.is_ok());
+        assert!(path.join(".git").exists());
     }
 
     #[tokio::test]
@@ -256,7 +322,8 @@ mod tests {
 
         // Initialize repo first
         let options = InitOptions::default();
-        init_repository(path, &options).await.unwrap();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
 
         // Create a feature branch
         let result = create_branch(path, "feature/test", false).await;

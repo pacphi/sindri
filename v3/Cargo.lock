@@ -4200,6 +4200,7 @@ dependencies = [
  "camino",
  "chrono",
  "jsonschema",
+ "rand 0.8.5",
  "regex",
  "rust-embed",
  "semver",
@@ -4208,6 +4209,7 @@ dependencies = [
  "serde_yaml",
  "tempfile",
  "thiserror 1.0.69",
+ "tokio",
  "tracing",
 ]
 

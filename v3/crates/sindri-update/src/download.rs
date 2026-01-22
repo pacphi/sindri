@@ -38,17 +38,16 @@ use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::header::{CONTENT_LENGTH, RANGE};
 use sha2::{Digest, Sha256};
 use sindri_core::config::HierarchicalConfigLoader;
-use sindri_core::types::{PlatformMatrix, RuntimeConfig};
+use sindri_core::retry::{RetryError, SimpleRetryExecutor, TracingObserver};
+use sindri_core::types::{PlatformMatrix, RetryPolicy, RuntimeConfig};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tempfile::TempDir;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::releases::{Release, ReleaseAsset};
-
-/// Maximum number of download retry attempts
-const MAX_RETRIES: u32 = 3;
 
 /// Chunk size for downloading (1MB)
 const DOWNLOAD_CHUNK_SIZE: usize = 1024 * 1024;
@@ -120,7 +119,7 @@ pub struct BinaryDownloader {
     /// Temporary directory for downloads
     temp_dir: TempDir,
 
-    /// Number of retry attempts
+    /// Number of retry attempts (legacy, kept for API compatibility)
     max_retries: u32,
 
     /// Enable progress bars
@@ -129,9 +128,12 @@ pub struct BinaryDownloader {
     /// Platform support matrix
     platform_matrix: PlatformMatrix,
 
-    /// Runtime configuration (kept for future use)
+    /// Runtime configuration (for future use - retry executor integration)
     #[allow(dead_code)]
     runtime_config: RuntimeConfig,
+
+    /// Retry policy for download operations
+    retry_policy: RetryPolicy,
 }
 
 impl BinaryDownloader {
@@ -153,6 +155,16 @@ impl BinaryDownloader {
         let timeout_secs = runtime_config.network.download_timeout_secs;
         let user_agent = &runtime_config.network.user_agent;
 
+        // Get retry policy from config or use default
+        let retry_policy = runtime_config
+            .retry_policies
+            .operations
+            .get("download")
+            .cloned()
+            .unwrap_or_else(RetryPolicy::default);
+
+        let max_retries = retry_policy.max_attempts;
+
         Ok(Self {
             client: reqwest::Client::builder()
                 .user_agent(user_agent)
@@ -160,15 +172,11 @@ impl BinaryDownloader {
                 .build()
                 .context("Failed to create HTTP client")?,
             temp_dir,
-            max_retries: runtime_config
-                .retry_policies
-                .operations
-                .get("download")
-                .map(|p| p.max_attempts)
-                .unwrap_or(MAX_RETRIES),
+            max_retries,
             show_progress: true,
             platform_matrix,
             runtime_config,
+            retry_policy,
         })
     }
 
@@ -190,6 +198,9 @@ impl BinaryDownloader {
     }
 
     /// Download a release binary with retry logic
+    ///
+    /// Uses the policy-based retry executor from sindri-core for consistent
+    /// retry behavior across the codebase.
     pub async fn download_release(
         &self,
         release: &Release,
@@ -209,32 +220,59 @@ impl BinaryDownloader {
             human_readable_size(asset.size)
         );
 
-        // Download with retries
-        let mut last_error = None;
-        for attempt in 1..=self.max_retries {
-            match self.download_asset(asset, attempt).await {
-                Ok(result) => {
-                    info!("Download completed successfully");
-                    return Ok(result);
-                }
-                Err(e) => {
-                    warn!(
-                        "Download attempt {}/{} failed: {}",
-                        attempt, self.max_retries, e
-                    );
-                    last_error = Some(e);
+        // Create retry executor with tracing observer
+        let observer = Arc::new(TracingObserver::new("download"));
+        let executor = SimpleRetryExecutor::<anyhow::Error, _, _>::new(self.retry_policy.clone())
+            .with_observer(observer);
 
-                    if attempt < self.max_retries {
-                        let delay = std::time::Duration::from_secs(2u64.pow(attempt - 1));
-                        debug!("Retrying in {:?}...", delay);
-                        tokio::time::sleep(delay).await;
+        // Track attempt number for progress display
+        let attempt_counter = Arc::new(std::sync::atomic::AtomicU32::new(0));
+        let attempt_counter_clone = attempt_counter.clone();
+
+        // Execute download with retry logic
+        let result = executor
+            .execute(|| {
+                let attempt = attempt_counter_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                self.download_asset(asset, attempt)
+            })
+            .await;
+
+        match result {
+            Ok(download_result) => {
+                info!("Download completed successfully");
+                Ok(download_result)
+            }
+            Err(retry_err) => {
+                // Convert RetryError to anyhow::Error with context
+                match retry_err {
+                    RetryError::Exhausted {
+                        attempts,
+                        source,
+                        total_duration,
+                    } => Err(anyhow!(
+                        "Download failed after {} attempts over {:.1}s: {}",
+                        attempts,
+                        total_duration.as_secs_f64(),
+                        source
+                    )),
+                    RetryError::NonRetryable(source) => {
+                        Err(anyhow!("Download failed (non-retryable): {}", source))
                     }
+                    RetryError::Cancelled { attempts, last_error } => {
+                        if let Some(err) = last_error {
+                            Err(anyhow!("Download cancelled after {} attempts: {}", attempts, err))
+                        } else {
+                            Err(anyhow!("Download cancelled after {} attempts", attempts))
+                        }
+                    }
+                    RetryError::AttemptTimeout { attempt, timeout } => Err(anyhow!(
+                        "Download attempt {} timed out after {}ms",
+                        attempt,
+                        timeout.as_millis()
+                    )),
                 }
             }
         }
-
-        Err(last_error
-            .unwrap_or_else(|| anyhow!("Download failed after {} attempts", self.max_retries)))
     }
 
     /// Download a single asset

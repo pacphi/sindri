@@ -2,6 +2,7 @@
 
 use crate::error::{Error, Result};
 use camino::Utf8Path;
+use sindri_core::types::GitWorkflowConfig;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
 
@@ -172,44 +173,70 @@ pub async fn list_remotes(path: &Utf8Path) -> Result<Vec<(String, String)>> {
 /// # Errors
 /// Returns error if remotes already exist or setup fails
 pub async fn setup_fork_remotes(path: &Utf8Path, fork_url: &str, upstream_url: &str) -> Result<()> {
+    let git_config = GitWorkflowConfig::default();
+    setup_fork_remotes_with_config(path, fork_url, upstream_url, &git_config).await
+}
+
+/// Setup fork remotes with configurable remote names
+///
+/// # Arguments
+/// * `path` - Repository path
+/// * `fork_url` - URL of the forked repository (becomes origin)
+/// * `upstream_url` - URL of the upstream repository
+/// * `git_config` - Git workflow configuration for remote names
+///
+/// # Returns
+/// Ok(()) on success
+///
+/// # Errors
+/// Returns error if remotes already exist or setup fails
+pub async fn setup_fork_remotes_with_config(
+    path: &Utf8Path,
+    fork_url: &str,
+    upstream_url: &str,
+    git_config: &GitWorkflowConfig,
+) -> Result<()> {
     info!("Setting up fork remotes");
 
+    let upstream_remote = &git_config.upstream_remote;
+    let origin_remote = &git_config.origin_remote;
+
     // Check if upstream exists, if not add it
-    if !remote_exists(path, "upstream").await? {
-        add_remote(path, "upstream", upstream_url).await?;
-        info!("Upstream remote configured: {}", upstream_url);
+    if !remote_exists(path, upstream_remote).await? {
+        add_remote(path, upstream_remote, upstream_url).await?;
+        info!("Upstream remote '{}' configured: {}", upstream_remote, upstream_url);
     } else {
-        let existing_url = get_remote_url(path, "upstream").await?.unwrap();
+        let existing_url = get_remote_url(path, upstream_remote).await?.unwrap();
         if existing_url != upstream_url {
             warn!(
-                "Upstream remote exists with different URL: {}",
-                existing_url
+                "Upstream remote '{}' exists with different URL: {}",
+                upstream_remote, existing_url
             );
         }
     }
 
     // Verify origin is set to fork
-    if let Some(origin_url) = get_remote_url(path, "origin").await? {
+    if let Some(origin_url) = get_remote_url(path, origin_remote).await? {
         if origin_url != fork_url {
-            info!("Updating origin to fork URL");
+            info!("Updating {} to fork URL", origin_remote);
             // Update origin URL
             let output = Command::new("git")
                 .current_dir(path)
-                .args(["remote", "set-url", "origin", fork_url])
+                .args(["remote", "set-url", origin_remote, fork_url])
                 .output()
                 .await?;
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 return Err(Error::git_operation(format!(
-                    "Failed to update origin URL: {}",
-                    stderr
+                    "Failed to update {} URL: {}",
+                    origin_remote, stderr
                 )));
             }
         }
     } else {
         // Origin doesn't exist, add it
-        add_remote(path, "origin", fork_url).await?;
+        add_remote(path, origin_remote, fork_url).await?;
     }
 
     info!("Fork remotes configured successfully");
@@ -262,7 +289,8 @@ mod tests {
 
         // Initialize repo first
         let options = InitOptions::default();
-        init_repository(path, &options).await.unwrap();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
 
         // Add a remote
         let result = add_remote(path, "origin", "https://github.com/user/repo.git").await;
@@ -296,7 +324,8 @@ mod tests {
 
         // Initialize repo first
         let options = InitOptions::default();
-        init_repository(path, &options).await.unwrap();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
 
         // Add multiple remotes
         add_remote(path, "origin", "https://github.com/user/repo.git")
@@ -320,7 +349,8 @@ mod tests {
 
         // Initialize repo first
         let options = InitOptions::default();
-        init_repository(path, &options).await.unwrap();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
 
         // Setup fork remotes
         let result = setup_fork_remotes(
@@ -342,6 +372,46 @@ mod tests {
         let upstream_url = get_remote_url(path, "upstream").await.unwrap();
         assert_eq!(
             upstream_url,
+            Some("https://github.com/original/repo.git".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_setup_fork_remotes_with_custom_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = Utf8Path::from_path(temp_dir.path()).unwrap();
+
+        // Initialize repo first
+        let options = InitOptions::default();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
+
+        // Custom config with different remote names
+        let mut custom_config = GitWorkflowConfig::default();
+        custom_config.origin_remote = "fork".to_string();
+        custom_config.upstream_remote = "source".to_string();
+
+        // Setup fork remotes with custom names
+        let result = setup_fork_remotes_with_config(
+            path,
+            "https://github.com/user/repo.git",
+            "https://github.com/original/repo.git",
+            &custom_config,
+        )
+        .await;
+
+        assert!(result.is_ok());
+
+        // Verify custom-named remotes exist
+        let fork_url = get_remote_url(path, "fork").await.unwrap();
+        assert_eq!(
+            fork_url,
+            Some("https://github.com/user/repo.git".to_string())
+        );
+
+        let source_url = get_remote_url(path, "source").await.unwrap();
+        assert_eq!(
+            source_url,
             Some("https://github.com/original/repo.git".to_string())
         );
     }

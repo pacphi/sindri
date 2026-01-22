@@ -1,0 +1,17 @@
+schema_version: "1.0"
+cli_versions:
+  "3.0.0":
+    extension_schema: "1.0"
+    compatible_extensions:
+      git: "^1.0.0"
+    breaking_changes: []
+  "3.1.0":
+    extension_schema: "1.1"
+    compatible_extensions:
+      git: "^1.1.0"
+    breaking_changes: []
+  "3.2.0":
+    extension_schema: "1.2"
+    compatible_extensions:
+      git: "^1.2.0"
+    breaking_changes: []

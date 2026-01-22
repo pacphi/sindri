@@ -8,53 +8,13 @@
 //! - Cleanup of old backups
 //! - Uses tempfile for isolated filesystem tests
 
+mod common;
+
+use common::*;
 use sindri_update::updater::{BackupInfo, SindriUpdater, UpdateResult};
 use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tempfile::TempDir;
-
-/// Helper to create a fake binary for testing
-fn create_fake_binary(path: &Path, content: &[u8]) -> std::io::Result<()> {
-    let mut file = fs::File::create(path)?;
-    file.write_all(content)?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(path)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(path, perms)?;
-    }
-
-    Ok(())
-}
-
-/// Helper to create a test binary that responds to --version
-#[cfg(unix)]
-fn create_version_script(path: &Path, version: &str) -> std::io::Result<()> {
-    let script = format!(
-        r#"#!/bin/bash
-if [ "$1" = "--version" ]; then
-    echo "sindri {}"
-    exit 0
-else
-    exit 1
-fi
-"#,
-        version
-    );
-
-    let mut file = fs::File::create(path)?;
-    file.write_all(script.as_bytes())?;
-
-    use std::os::unix::fs::PermissionsExt;
-    let mut perms = fs::metadata(path)?.permissions();
-    perms.set_mode(0o755);
-    fs::set_permissions(path, perms)?;
-
-    Ok(())
-}
 
 #[test]
 fn test_updater_creation() {
@@ -89,7 +49,7 @@ fn test_binary_verification_success() {
     let binary_path = temp_dir.path().join("test-binary");
 
     // Create a script that responds to --version
-    create_version_script(&binary_path, "3.0.0").unwrap();
+    create_version_script(&binary_path, VERSION_3_0_0).unwrap();
 
     let updater = SindriUpdater::new().unwrap();
     let result = updater.verify_binary(&binary_path);
@@ -104,20 +64,7 @@ fn test_binary_verification_wrong_output() {
     let binary_path = temp_dir.path().join("wrong-binary");
 
     // Create a script that returns wrong output
-    let script = r#"#!/bin/bash
-if [ "$1" = "--version" ]; then
-    echo "not sindri"
-    exit 0
-fi
-"#;
-
-    let mut file = fs::File::create(&binary_path).unwrap();
-    file.write_all(script.as_bytes()).unwrap();
-
-    use std::os::unix::fs::PermissionsExt;
-    let mut perms = fs::metadata(&binary_path).unwrap().permissions();
-    perms.set_mode(0o755);
-    fs::set_permissions(&binary_path, perms).unwrap();
+    create_wrong_output_script(&binary_path).unwrap();
 
     let updater = SindriUpdater::new().unwrap();
     let result = updater.verify_binary(&binary_path);
@@ -162,11 +109,11 @@ fn test_backup_info_ordering() {
 
 #[test]
 fn test_update_result_already_up_to_date() {
-    let result = UpdateResult::AlreadyUpToDate("3.0.0".to_string());
+    let result = UpdateResult::AlreadyUpToDate(VERSION_3_0_0.to_string());
 
     match result {
         UpdateResult::AlreadyUpToDate(version) => {
-            assert_eq!(version, "3.0.0");
+            assert_eq!(version, VERSION_3_0_0);
         }
         _ => panic!("Expected AlreadyUpToDate variant"),
     }
@@ -176,15 +123,15 @@ fn test_update_result_already_up_to_date() {
 fn test_update_result_updated() {
     let backup_path = PathBuf::from("/tmp/backup");
     let result = UpdateResult::Updated {
-        from: "3.0.0".to_string(),
-        to: "3.1.0".to_string(),
+        from: VERSION_3_0_0.to_string(),
+        to: VERSION_3_1_0.to_string(),
         backup: backup_path.clone(),
     };
 
     match result {
         UpdateResult::Updated { from, to, backup } => {
-            assert_eq!(from, "3.0.0");
-            assert_eq!(to, "3.1.0");
+            assert_eq!(from, VERSION_3_0_0);
+            assert_eq!(to, VERSION_3_1_0);
             assert_eq!(backup, backup_path);
         }
         _ => panic!("Expected Updated variant"),
@@ -201,7 +148,7 @@ fn test_backup_creation_and_cleanup() {
     let binary_path = temp_dir.path().join("sindri");
 
     // Create a fake binary
-    create_version_script(&binary_path, "3.0.0").unwrap();
+    create_version_script(&binary_path, VERSION_3_0_0).unwrap();
 
     // We can't test the actual SindriUpdater backup creation without modifying
     // the binary path, but we can test the backup file pattern
@@ -273,11 +220,11 @@ fn test_binary_replacement_simulation() {
     let replacement = temp_dir.path().join("replacement");
 
     // Create original binary
-    create_fake_binary(&original, b"original content").unwrap();
+    create_fake_binary(&original, ORIGINAL_CONTENT).unwrap();
     let original_content = fs::read(&original).unwrap();
 
     // Create replacement binary
-    create_fake_binary(&replacement, b"new content").unwrap();
+    create_fake_binary(&replacement, NEW_CONTENT).unwrap();
 
     // Replace (simulating atomic rename)
     fs::rename(&replacement, &original).unwrap();
@@ -285,7 +232,7 @@ fn test_binary_replacement_simulation() {
     // Verify replacement
     let new_content = fs::read(&original).unwrap();
     assert_ne!(new_content, original_content);
-    assert_eq!(new_content, b"new content");
+    assert_eq!(new_content, NEW_CONTENT);
 }
 
 #[cfg(unix)]
@@ -302,10 +249,10 @@ fn test_rollback_simulation() {
     fs::copy(&binary, &backup).unwrap();
 
     // Simulate bad update
-    fs::write(&binary, b"corrupted").unwrap();
+    fs::write(&binary, CORRUPTED_CONTENT).unwrap();
 
     // Verify binary is corrupted
-    assert_eq!(fs::read(&binary).unwrap(), b"corrupted");
+    assert_eq!(fs::read(&binary).unwrap(), CORRUPTED_CONTENT);
 
     // Rollback
     fs::copy(&backup, &binary).unwrap();
@@ -320,7 +267,7 @@ fn test_list_backups_empty() {
     let temp_dir = TempDir::new().unwrap();
     let binary_path = temp_dir.path().join("sindri");
 
-    create_fake_binary(&binary_path, b"test").unwrap();
+    create_fake_binary(&binary_path, TEST_CONTENT).unwrap();
 
     // Find all .bak files
     let backups: Vec<PathBuf> = fs::read_dir(temp_dir.path())
@@ -345,7 +292,7 @@ fn test_list_backups_with_files() {
     let temp_dir = TempDir::new().unwrap();
     let binary_path = temp_dir.path().join("sindri");
 
-    create_fake_binary(&binary_path, b"test").unwrap();
+    create_fake_binary(&binary_path, TEST_CONTENT).unwrap();
 
     // Create some backups
     for i in 0..3 {
@@ -392,7 +339,7 @@ fn test_permissions_preserved_on_backup() {
     let backup = temp_dir.path().join("backup");
 
     // Create binary with specific permissions
-    create_fake_binary(&binary, b"test").unwrap();
+    create_fake_binary(&binary, TEST_CONTENT).unwrap();
     let mut perms = fs::metadata(&binary).unwrap().permissions();
     perms.set_mode(0o755);
     fs::set_permissions(&binary, perms).unwrap();
@@ -423,7 +370,7 @@ fn test_binary_executable_check() {
     let temp_dir = TempDir::new().unwrap();
     let binary = temp_dir.path().join("binary");
 
-    create_fake_binary(&binary, b"test").unwrap();
+    create_fake_binary(&binary, TEST_CONTENT).unwrap();
 
     // Check if executable
     let metadata = fs::metadata(&binary).unwrap();
@@ -437,8 +384,7 @@ fn test_binary_executable_check() {
 fn test_version_parsing_in_updater() {
     use semver::Version;
 
-    let version_str = "3.0.0";
-    let version = Version::parse(version_str);
+    let version = Version::parse(VERSION_3_0_0);
     assert!(version.is_ok());
 
     let v = version.unwrap();
@@ -451,8 +397,8 @@ fn test_version_parsing_in_updater() {
 fn test_version_comparison() {
     use semver::Version;
 
-    let current = Version::parse("3.0.0").unwrap();
-    let newer = Version::parse("3.1.0").unwrap();
+    let current = Version::parse(VERSION_3_0_0).unwrap();
+    let newer = Version::parse(VERSION_3_1_0).unwrap();
     let older = Version::parse("2.9.0").unwrap();
 
     assert!(newer > current);
@@ -497,10 +443,10 @@ fn test_updater_component_access() {
 
 #[test]
 fn test_update_result_debug_format() {
-    let result = UpdateResult::AlreadyUpToDate("3.0.0".to_string());
+    let result = UpdateResult::AlreadyUpToDate(VERSION_3_0_0.to_string());
     let debug_str = format!("{:?}", result);
     assert!(debug_str.contains("AlreadyUpToDate"));
-    assert!(debug_str.contains("3.0.0"));
+    assert!(debug_str.contains(VERSION_3_0_0));
 }
 
 #[test]

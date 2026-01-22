@@ -13,12 +13,14 @@
 //!
 //! ```no_run
 //! use sindri_projects::git::{init_repository, InitOptions};
+//! use sindri_core::types::GitWorkflowConfig;
 //! use camino::Utf8Path;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let path = Utf8Path::new("/tmp/my-repo");
 //! let options = InitOptions::default();
-//! init_repository(path, &options).await?;
+//! let git_config = GitWorkflowConfig::default();
+//! init_repository(path, &options, &git_config).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -69,11 +71,11 @@ mod remote;
 // Re-export public API
 pub use clone::{clone_repository, fork_repository, CloneOptions, ForkOptions};
 pub use config::{
-    configure_user, get_config_value, get_current_branch, set_config_value, setup_fork_aliases,
-    ConfigScope,
+    branch_exists, configure_user, detect_main_branch, get_config_value, get_current_branch,
+    set_config_value, setup_fork_aliases, setup_fork_aliases_with_config, ConfigScope,
 };
 pub use init::{checkout_branch, create_branch, init_repository, InitOptions};
 pub use remote::{
     add_remote, fetch_remote, get_remote_url, list_remotes, remote_exists, remove_remote,
-    setup_fork_remotes,
+    setup_fork_remotes, setup_fork_remotes_with_config,
 };

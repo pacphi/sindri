@@ -2,6 +2,7 @@
 
 use crate::error::{Error, Result};
 use camino::Utf8Path;
+use sindri_core::types::GitWorkflowConfig;
 use tokio::process::Command;
 use tracing::{debug, info};
 
@@ -149,6 +150,57 @@ pub async fn get_config_value(
     Ok(Some(value))
 }
 
+/// Check if a branch exists in the repository
+///
+/// # Arguments
+/// * `path` - Repository path
+/// * `branch_name` - Name of the branch to check
+///
+/// # Returns
+/// true if the branch exists, false otherwise
+pub async fn branch_exists(path: &Utf8Path, branch_name: &str) -> Result<bool> {
+    let output = Command::new("git")
+        .current_dir(path)
+        .args(["branch", "--list", branch_name])
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        return Ok(false);
+    }
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    Ok(!output_str.trim().is_empty())
+}
+
+/// Detect the main branch name in a repository
+///
+/// Checks for common main branch names (main, master) and returns the first one found.
+/// Falls back to the default branch from config if none are found.
+///
+/// # Arguments
+/// * `path` - Repository path
+/// * `git_config` - Git workflow configuration containing main branch names to check
+///
+/// # Returns
+/// The detected main branch name, or the default from config
+pub async fn detect_main_branch(
+    path: &Utf8Path,
+    git_config: &GitWorkflowConfig,
+) -> Result<String> {
+    for branch_name in &git_config.main_branch_names {
+        if branch_exists(path, branch_name).await? {
+            debug!("Detected main branch: {}", branch_name);
+            return Ok(branch_name.clone());
+        }
+    }
+    debug!(
+        "No main branch found, using default: {}",
+        git_config.default_branch
+    );
+    Ok(git_config.default_branch.clone())
+}
+
 /// Setup git aliases for fork management
 ///
 /// # Arguments
@@ -157,13 +209,36 @@ pub async fn get_config_value(
 /// # Returns
 /// Ok(()) on success
 pub async fn setup_fork_aliases(path: &Utf8Path) -> Result<()> {
+    let git_config = GitWorkflowConfig::default();
+    setup_fork_aliases_with_config(path, &git_config).await
+}
+
+/// Setup git aliases for fork management with configurable values
+///
+/// # Arguments
+/// * `path` - Repository path
+/// * `git_config` - Git workflow configuration for branch and remote names
+///
+/// # Returns
+/// Ok(()) on success
+pub async fn setup_fork_aliases_with_config(
+    path: &Utf8Path,
+    git_config: &GitWorkflowConfig,
+) -> Result<()> {
     info!("Setting up fork management aliases");
+
+    let default_branch = &git_config.default_branch;
+    let upstream_remote = &git_config.upstream_remote;
+    let origin_remote = &git_config.origin_remote;
 
     // Sync with upstream
     set_config_value(
         Some(path),
         "alias.sync-upstream",
-        "!git fetch upstream && git checkout main && git merge upstream/main",
+        &format!(
+            "!git fetch {} && git checkout {} && git merge {}/{}",
+            upstream_remote, default_branch, upstream_remote, default_branch
+        ),
         ConfigScope::Local,
     )
     .await?;
@@ -172,7 +247,7 @@ pub async fn setup_fork_aliases(path: &Utf8Path) -> Result<()> {
     set_config_value(
         Some(path),
         "alias.push-fork",
-        "push origin HEAD",
+        &format!("push {} HEAD", origin_remote),
         ConfigScope::Local,
     )
     .await?;
@@ -181,7 +256,10 @@ pub async fn setup_fork_aliases(path: &Utf8Path) -> Result<()> {
     set_config_value(
         Some(path),
         "alias.update-from-upstream",
-        "!git fetch upstream && git rebase upstream/main",
+        &format!(
+            "!git fetch {} && git rebase {}/{}",
+            upstream_remote, upstream_remote, default_branch
+        ),
         ConfigScope::Local,
     )
     .await?;
@@ -190,7 +268,10 @@ pub async fn setup_fork_aliases(path: &Utf8Path) -> Result<()> {
     set_config_value(
         Some(path),
         "alias.pr-branch",
-        "!f() { git checkout -b \"$1\" upstream/main; }; f",
+        &format!(
+            "!f() {{ git checkout -b \"$1\" {}/{}; }}; f",
+            upstream_remote, default_branch
+        ),
         ConfigScope::Local,
     )
     .await?;
@@ -248,7 +329,8 @@ mod tests {
 
         // Initialize repo first
         let options = InitOptions::default();
-        init_repository(path, &options).await.unwrap();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
 
         // Configure user
         let result = configure_user(
@@ -280,7 +362,8 @@ mod tests {
 
         // Initialize repo first
         let options = InitOptions::default();
-        init_repository(path, &options).await.unwrap();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
 
         // Setup aliases
         let result = setup_fork_aliases(path).await;
@@ -291,6 +374,45 @@ mod tests {
             .await
             .unwrap();
         assert!(alias.is_some());
+        // Verify it uses the default branch name
+        assert!(alias.unwrap().contains("main"));
+    }
+
+    #[tokio::test]
+    async fn test_setup_fork_aliases_with_custom_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = Utf8Path::from_path(temp_dir.path()).unwrap();
+
+        // Initialize repo first
+        let options = InitOptions::default();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
+
+        // Custom config
+        let mut custom_config = GitWorkflowConfig::default();
+        custom_config.default_branch = "develop".to_string();
+        custom_config.upstream_remote = "source".to_string();
+        custom_config.origin_remote = "fork".to_string();
+
+        // Setup aliases with custom config
+        let result = setup_fork_aliases_with_config(path, &custom_config).await;
+        assert!(result.is_ok());
+
+        // Verify alias uses custom branch name
+        let alias = get_config_value(Some(path), "alias.sync-upstream", Some(ConfigScope::Local))
+            .await
+            .unwrap();
+        assert!(alias.is_some());
+        let alias_value = alias.unwrap();
+        assert!(alias_value.contains("develop"));
+        assert!(alias_value.contains("source"));
+
+        // Verify push-fork alias uses custom origin
+        let push_alias = get_config_value(Some(path), "alias.push-fork", Some(ConfigScope::Local))
+            .await
+            .unwrap();
+        assert!(push_alias.is_some());
+        assert!(push_alias.unwrap().contains("fork"));
     }
 
     #[tokio::test]
@@ -300,10 +422,63 @@ mod tests {
 
         // Initialize repo first
         let options = InitOptions::default();
-        init_repository(path, &options).await.unwrap();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
 
         // Get current branch (should be "main" from default options)
         let branch = get_current_branch(path).await.unwrap();
         assert_eq!(branch, "main");
+    }
+
+    #[tokio::test]
+    async fn test_branch_exists() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = Utf8Path::from_path(temp_dir.path()).unwrap();
+
+        // Initialize repo first
+        let options = InitOptions::default();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
+
+        // Main branch should exist
+        let exists = branch_exists(path, "main").await.unwrap();
+        assert!(exists);
+
+        // Non-existent branch should not exist
+        let exists = branch_exists(path, "nonexistent").await.unwrap();
+        assert!(!exists);
+    }
+
+    #[tokio::test]
+    async fn test_detect_main_branch() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = Utf8Path::from_path(temp_dir.path()).unwrap();
+
+        // Initialize repo first with "main" branch
+        let options = InitOptions::default();
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
+
+        // Should detect "main" as the main branch
+        let detected = detect_main_branch(path, &git_config).await.unwrap();
+        assert_eq!(detected, "main");
+    }
+
+    #[tokio::test]
+    async fn test_detect_main_branch_fallback() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = Utf8Path::from_path(temp_dir.path()).unwrap();
+
+        // Initialize repo first with custom branch
+        let options = InitOptions {
+            default_branch: Some("develop".to_string()),
+            ..Default::default()
+        };
+        let git_config = GitWorkflowConfig::default();
+        init_repository(path, &options, &git_config).await.unwrap();
+
+        // Neither "main" nor "master" exists, should fall back to default
+        let detected = detect_main_branch(path, &git_config).await.unwrap();
+        assert_eq!(detected, "main"); // Falls back to config default
     }
 }

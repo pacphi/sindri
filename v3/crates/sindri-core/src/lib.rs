@@ -4,9 +4,11 @@
 //! - Configuration file parsing (sindri.yaml)
 //! - JSON Schema validation
 //! - Type definitions for extensions, providers, and deployments
+//! - Retry execution engine with policy-based configuration
 
 pub mod config;
 pub mod error;
+pub mod retry;
 pub mod schema;
 pub mod types;
 

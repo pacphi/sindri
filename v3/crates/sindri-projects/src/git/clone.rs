@@ -1,9 +1,10 @@
 //! Repository cloning and forking operations
 
 use crate::error::{Error, Result};
-use crate::git::config::{configure_user, setup_fork_aliases, ConfigScope};
+use crate::git::config::{configure_user, setup_fork_aliases_with_config, ConfigScope};
 use crate::git::init::create_branch;
 use camino::{Utf8Path, Utf8PathBuf};
+use sindri_core::types::GitWorkflowConfig;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
 
@@ -35,6 +36,8 @@ pub struct ForkOptions {
     pub git_email: Option<String>,
     /// Setup fork aliases
     pub setup_aliases: bool,
+    /// Git workflow configuration (optional, uses defaults if None)
+    pub git_config: Option<GitWorkflowConfig>,
 }
 
 impl Default for ForkOptions {
@@ -45,7 +48,15 @@ impl Default for ForkOptions {
             git_name: None,
             git_email: None,
             setup_aliases: true,
+            git_config: None,
         }
+    }
+}
+
+impl ForkOptions {
+    /// Get the effective git config, using defaults if not specified
+    pub fn effective_git_config(&self) -> GitWorkflowConfig {
+        self.git_config.clone().unwrap_or_default()
     }
 }
 
@@ -171,6 +182,9 @@ pub async fn fork_repository(
     // Ensure parent directory exists
     tokio::fs::create_dir_all(parent_dir).await?;
 
+    // Get effective git config
+    let git_config = options.effective_git_config();
+
     // Fork using gh CLI
     debug!("Running: gh repo fork --clone");
     let output = Command::new("gh")
@@ -198,16 +212,16 @@ pub async fn fork_repository(
 
     // gh repo fork already sets up origin and upstream
     // Verify the setup
-    verify_fork_remotes(destination).await?;
+    verify_fork_remotes(destination, &git_config).await?;
 
     // Setup fork aliases if requested
     if options.setup_aliases {
-        setup_fork_aliases(destination).await?;
+        setup_fork_aliases_with_config(destination, &git_config).await?;
     }
 
     // Checkout specific branch if requested
     if let Some(branch) = &options.branch {
-        checkout_fork_branch(destination, branch).await?;
+        checkout_fork_branch(destination, branch, &git_config).await?;
     }
 
     // Apply git config if specified
@@ -252,26 +266,36 @@ async fn check_gh_authenticated() -> Result<()> {
 }
 
 /// Verify fork remotes are properly configured
-async fn verify_fork_remotes(path: &Utf8Path) -> Result<()> {
+async fn verify_fork_remotes(path: &Utf8Path, git_config: &GitWorkflowConfig) -> Result<()> {
     use crate::git::remote::get_remote_url;
 
-    let upstream_url = get_remote_url(path, "upstream").await?;
+    let upstream_remote = &git_config.upstream_remote;
+    let upstream_url = get_remote_url(path, upstream_remote).await?;
 
     if let Some(url) = upstream_url {
-        info!("Fork configured with upstream: {}", url);
+        info!("Fork configured with {}: {}", upstream_remote, url);
     } else {
-        warn!("Upstream remote not configured. Fork may not have been set up correctly.");
+        warn!(
+            "{} remote not configured. Fork may not have been set up correctly.",
+            upstream_remote
+        );
     }
 
     Ok(())
 }
 
 /// Checkout a branch in a forked repository
-async fn checkout_fork_branch(path: &Utf8Path, branch: &str) -> Result<()> {
+async fn checkout_fork_branch(
+    path: &Utf8Path,
+    branch: &str,
+    git_config: &GitWorkflowConfig,
+) -> Result<()> {
     use crate::git::init::checkout_branch;
     use crate::git::remote::fetch_remote;
 
     info!("Checking out branch: {}", branch);
+
+    let upstream_remote = &git_config.upstream_remote;
 
     // Try to checkout locally first
     let result = checkout_branch(path, branch).await;
@@ -279,19 +303,24 @@ async fn checkout_fork_branch(path: &Utf8Path, branch: &str) -> Result<()> {
     if result.is_err() {
         // Branch not found locally, try to fetch from upstream
         warn!(
-            "Branch {} not found locally, trying to fetch from upstream",
-            branch
+            "Branch {} not found locally, trying to fetch from {}",
+            branch, upstream_remote
         );
 
         // Fetch from upstream
-        if let Err(e) = fetch_remote(path, "upstream", Some(branch)).await {
-            debug!("Failed to fetch from upstream: {}", e);
+        if let Err(e) = fetch_remote(path, upstream_remote, Some(branch)).await {
+            debug!("Failed to fetch from {}: {}", upstream_remote, e);
         }
 
         // Create local branch tracking upstream
         let output = Command::new("git")
             .current_dir(path)
-            .args(["checkout", "-b", branch, &format!("upstream/{}", branch)])
+            .args([
+                "checkout",
+                "-b",
+                branch,
+                &format!("{}/{}", upstream_remote, branch),
+            ])
             .output()
             .await?;
 

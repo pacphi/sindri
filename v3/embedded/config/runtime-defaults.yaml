@@ -29,13 +29,37 @@ retry-policies:
 
   # Operation-specific retry policies
   operations:
-    # Download operations use exponential backoff
+    # Download operations use exponential backoff with longer delays
     download:
       max-attempts: 3
       strategy: exponential-backoff
       backoff-multiplier: 2.0
       initial-delay-ms: 1000
       max-delay-ms: 30000
+
+    # Mise tool installation retries
+    mise-install:
+      max-attempts: 3
+      strategy: exponential-backoff
+      backoff-multiplier: 2.0
+      initial-delay-ms: 2000
+      max-delay-ms: 30000
+
+    # Vault/secrets requests (may need longer waits for rate limiting)
+    vault-request:
+      max-attempts: 5
+      strategy: exponential-backoff
+      backoff-multiplier: 2.0
+      initial-delay-ms: 1000
+      max-delay-ms: 60000
+
+    # Generic HTTP requests
+    http-request:
+      max-attempts: 3
+      strategy: exponential-backoff
+      backoff-multiplier: 2.0
+      initial-delay-ms: 500
+      max-delay-ms: 10000
 
 github:
   # Repository owner

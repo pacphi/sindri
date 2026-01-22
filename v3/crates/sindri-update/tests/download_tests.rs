@@ -7,49 +7,20 @@
 //! - Progress tracking
 //! - HTTP response mocking using wiremock
 
-use sindri_update::download::{BinaryDownloader, DownloadProgress};
-use sindri_update::releases::{Release, ReleaseAsset};
-use std::fs;
-use wiremock::matchers::{method, path};
-use wiremock::{Mock, MockServer, ResponseTemplate};
+mod common;
 
-/// Helper to create a mock release with test assets
-fn create_mock_release() -> Release {
-    Release {
-        tag_name: "v3.0.0".to_string(),
-        name: Some("Test Release 3.0.0".to_string()),
-        body: Some("Test release notes".to_string()),
-        prerelease: false,
-        draft: false,
-        assets: vec![
-            ReleaseAsset {
-                name: "sindri-x86_64-unknown-linux-musl".to_string(),
-                browser_download_url: "https://example.com/sindri-linux".to_string(),
-                size: 1024,
-            },
-            ReleaseAsset {
-                name: "sindri-x86_64-apple-darwin".to_string(),
-                browser_download_url: "https://example.com/sindri-macos".to_string(),
-                size: 1024,
-            },
-            ReleaseAsset {
-                name: "sindri-aarch64-apple-darwin".to_string(),
-                browser_download_url: "https://example.com/sindri-macos-arm".to_string(),
-                size: 1024,
-            },
-            ReleaseAsset {
-                name: "sindri-x86_64-pc-windows-msvc.exe".to_string(),
-                browser_download_url: "https://example.com/sindri-windows".to_string(),
-                size: 1024,
-            },
-            ReleaseAsset {
-                name: "checksums.sha256".to_string(),
-                browser_download_url: "https://example.com/checksums".to_string(),
-                size: 256,
-            },
-        ],
-        published_at: Some("2024-01-01T00:00:00Z".to_string()),
-    }
+use common::*;
+use sindri_update::download::{BinaryDownloader, DownloadProgress};
+use std::fs;
+use wiremock::MockServer;
+
+/// Helper to create a mock release with standard test assets
+fn create_mock_release() -> sindri_update::releases::Release {
+    ReleaseBuilder::new()
+        .tag(TAG_V3_0_0)
+        .with_full_metadata()
+        .with_standard_assets()
+        .build()
 }
 
 #[test]
@@ -83,19 +54,7 @@ fn test_platform_asset_selection_no_match() {
     let downloader = BinaryDownloader::new().unwrap();
 
     // Create release with no matching assets
-    let release = Release {
-        tag_name: "v3.0.0".to_string(),
-        name: None,
-        body: None,
-        prerelease: false,
-        draft: false,
-        assets: vec![ReleaseAsset {
-            name: "checksums.sha256".to_string(),
-            browser_download_url: "https://example.com/checksums".to_string(),
-            size: 256,
-        }],
-        published_at: None,
-    };
+    let release = release_checksum_only();
 
     let asset = downloader.get_platform_asset(&release);
     assert!(asset.is_none());
@@ -108,10 +67,10 @@ fn test_list_available_platforms() {
 
     let platforms = downloader.list_available_platforms(&release);
 
-    assert!(platforms.contains(&"x86_64-unknown-linux-musl".to_string()));
-    assert!(platforms.contains(&"x86_64-apple-darwin".to_string()));
-    assert!(platforms.contains(&"aarch64-apple-darwin".to_string()));
-    assert!(platforms.contains(&"x86_64-pc-windows-msvc".to_string()));
+    assert!(platforms.contains(&PLATFORM_LINUX_X86_64.to_string()));
+    assert!(platforms.contains(&PLATFORM_MACOS_X86_64.to_string()));
+    assert!(platforms.contains(&PLATFORM_MACOS_ARM64.to_string()));
+    assert!(platforms.contains(&PLATFORM_WINDOWS_X86_64.to_string()));
     assert_eq!(platforms.len(), 4);
 }
 
@@ -158,9 +117,8 @@ async fn test_verify_checksum_invalid() {
 
     fs::write(&test_file, b"Test content").unwrap();
 
-    let wrong_checksum = "0000000000000000000000000000000000000000000000000000000000000000";
     let result = downloader
-        .verify_checksum(&test_file, wrong_checksum)
+        .verify_checksum(&test_file, WRONG_CHECKSUM)
         .unwrap();
 
     assert!(!result);
@@ -185,54 +143,25 @@ async fn test_download_with_mock_server() {
     let mock_server = MockServer::start().await;
     let downloader = BinaryDownloader::new().unwrap();
 
-    // Mock binary content
-    let binary_content = b"fake binary content for testing";
+    let platform = default_test_platform();
 
     // Setup mock endpoint for current platform
-    let platform = if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
-        "x86_64-unknown-linux-musl"
-    } else if cfg!(target_os = "macos") && cfg!(target_arch = "x86_64") {
-        "x86_64-apple-darwin"
-    } else if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
-        "aarch64-apple-darwin"
-    } else {
-        "x86_64-unknown-linux-musl" // default
-    };
-
-    Mock::given(method("GET"))
-        .and(path(format!("/sindri-{}", platform)))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(binary_content))
-        .mount(&mock_server)
-        .await;
+    mock_binary_download(&mock_server, platform, FAKE_BINARY_CONTENT).await;
 
     // Create a test release with mock URL
-    let test_asset = ReleaseAsset {
-        name: format!("sindri-{}", platform),
-        browser_download_url: format!("{}/sindri-{}", &mock_server.uri(), platform),
-        size: binary_content.len() as u64,
-    };
-
-    let release = Release {
-        tag_name: "v3.0.0-test".to_string(),
-        name: Some("Test".to_string()),
-        body: None,
-        prerelease: false,
-        draft: false,
-        assets: vec![test_asset],
-        published_at: None,
-    };
+    let release = release_for_mock_server(&mock_server.uri(), platform, FAKE_BINARY_CONTENT);
 
     // Download using current platform
     let result = downloader.download_release(&release, None).await;
 
     assert!(result.is_ok());
     let download_result = result.unwrap();
-    assert_eq!(download_result.file_size, binary_content.len() as u64);
+    assert_eq!(download_result.file_size, FAKE_BINARY_CONTENT.len() as u64);
     assert!(download_result.file_path.exists());
 
     // Verify content
     let downloaded = fs::read(&download_result.file_path).unwrap();
-    assert_eq!(&downloaded, binary_content);
+    assert_eq!(&downloaded, FAKE_BINARY_CONTENT);
 }
 
 #[tokio::test]
@@ -243,38 +172,12 @@ async fn test_download_retry_on_failure() {
         .with_max_retries(3)
         .with_progress(false);
 
-    let platform = "x86_64-unknown-linux-musl"; // Use a standard platform for test
+    let platform = PLATFORM_LINUX_X86_64; // Use a standard platform for test
 
-    // First request fails with 500
-    Mock::given(method("GET"))
-        .and(path(format!("/sindri-{}", platform)))
-        .respond_with(ResponseTemplate::new(500))
-        .up_to_n_times(2)
-        .mount(&mock_server)
-        .await;
+    // First 2 requests fail, third succeeds
+    mock_flaky_download(&mock_server, platform, 2, SUCCESS_CONTENT).await;
 
-    // Third request succeeds
-    Mock::given(method("GET"))
-        .and(path(format!("/sindri-{}", platform)))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"success"))
-        .mount(&mock_server)
-        .await;
-
-    let test_asset = ReleaseAsset {
-        name: format!("sindri-{}", platform),
-        browser_download_url: format!("{}/sindri-{}", &mock_server.uri(), platform),
-        size: 7, // "success".len()
-    };
-
-    let release = Release {
-        tag_name: "v3.0.0".to_string(),
-        name: None,
-        body: None,
-        prerelease: false,
-        draft: false,
-        assets: vec![test_asset],
-        published_at: None,
-    };
+    let release = release_for_mock_server(&mock_server.uri(), platform, SUCCESS_CONTENT);
 
     let result = downloader.download_release(&release, None).await;
 
@@ -290,30 +193,20 @@ async fn test_download_fails_after_max_retries() {
         .with_max_retries(2)
         .with_progress(false);
 
-    let platform = "x86_64-unknown-linux-musl";
+    let platform = PLATFORM_LINUX_X86_64;
 
     // All requests fail
-    Mock::given(method("GET"))
-        .and(path(format!("/sindri-{}", platform)))
-        .respond_with(ResponseTemplate::new(500))
-        .mount(&mock_server)
-        .await;
+    mock_failing_download(&mock_server, platform).await;
 
-    let test_asset = ReleaseAsset {
-        name: format!("sindri-{}", platform),
-        browser_download_url: format!("{}/sindri-{}", &mock_server.uri(), platform),
-        size: 100,
-    };
-
-    let release = Release {
-        tag_name: "v3.0.0".to_string(),
-        name: None,
-        body: None,
-        prerelease: false,
-        draft: false,
-        assets: vec![test_asset],
-        published_at: None,
-    };
+    let release = ReleaseBuilder::new()
+        .asset(
+            ReleaseAssetBuilder::new()
+                .platform(platform)
+                .mock_url(&mock_server.uri(), platform)
+                .size(100)
+                .build(),
+        )
+        .build();
 
     let result = downloader.download_release(&release, None).await;
 
@@ -332,30 +225,19 @@ async fn test_download_size_mismatch() {
     let mock_server = MockServer::start().await;
     let downloader = BinaryDownloader::new().unwrap().with_progress(false);
 
-    let binary_content = b"short content";
-    let platform = "x86_64-unknown-linux-musl";
+    let platform = PLATFORM_LINUX_X86_64;
 
-    Mock::given(method("GET"))
-        .and(path(format!("/sindri-{}", platform)))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(binary_content))
-        .mount(&mock_server)
-        .await;
+    mock_binary_download(&mock_server, platform, SHORT_CONTENT).await;
 
-    let test_asset = ReleaseAsset {
-        name: format!("sindri-{}", platform),
-        browser_download_url: format!("{}/sindri-{}", &mock_server.uri(), platform),
-        size: 1000, // Intentionally wrong size
-    };
-
-    let release = Release {
-        tag_name: "v3.0.0".to_string(),
-        name: None,
-        body: None,
-        prerelease: false,
-        draft: false,
-        assets: vec![test_asset],
-        published_at: None,
-    };
+    let release = ReleaseBuilder::new()
+        .asset(
+            ReleaseAssetBuilder::new()
+                .platform(platform)
+                .mock_url(&mock_server.uri(), platform)
+                .size(1000) // Intentionally wrong size
+                .build(),
+        )
+        .build();
 
     let result = downloader.download_release(&release, None).await;
 
@@ -393,7 +275,7 @@ fn test_download_progress_tracking() {
 
     // Over 100% (edge case)
     progress.update(1100);
-    assert_eq!(progress.percentage, 110.0);
+    assert!((progress.percentage - 110.0).abs() < 0.0001);
     assert!(progress.is_complete());
 }
 
@@ -434,30 +316,11 @@ async fn test_download_with_progress_disabled() {
     let mock_server = MockServer::start().await;
     let downloader = BinaryDownloader::new().unwrap().with_progress(false);
 
-    let content = b"test binary";
-    let platform = "x86_64-unknown-linux-musl";
+    let platform = PLATFORM_LINUX_X86_64;
 
-    Mock::given(method("GET"))
-        .and(path(format!("/sindri-{}", platform)))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(content))
-        .mount(&mock_server)
-        .await;
+    mock_binary_download(&mock_server, platform, TEST_BINARY_CONTENT).await;
 
-    let test_asset = ReleaseAsset {
-        name: format!("sindri-{}", platform),
-        browser_download_url: format!("{}/sindri-{}", &mock_server.uri(), platform),
-        size: content.len() as u64,
-    };
-
-    let release = Release {
-        tag_name: "v3.0.0".to_string(),
-        name: None,
-        body: None,
-        prerelease: false,
-        draft: false,
-        assets: vec![test_asset],
-        published_at: None,
-    };
+    let release = release_for_mock_server(&mock_server.uri(), platform, TEST_BINARY_CONTENT);
 
     let result = downloader.download_release(&release, None).await;
     assert!(result.is_ok());
@@ -468,16 +331,10 @@ async fn test_concurrent_downloads() {
     use tokio::task::JoinSet;
 
     let mock_server = MockServer::start().await;
-    let platform = "x86_64-unknown-linux-musl";
+    let platform = PLATFORM_LINUX_X86_64;
 
     // Setup multiple mock endpoints
-    for i in 0..3 {
-        Mock::given(method("GET"))
-            .and(path(format!("/sindri-{}-{}", platform, i)))
-            .respond_with(ResponseTemplate::new(200).set_body_bytes(format!("binary {}", i)))
-            .mount(&mock_server)
-            .await;
-    }
+    mock_indexed_downloads(&mock_server, platform, 3).await;
 
     let mut join_set = JoinSet::new();
 
@@ -487,21 +344,17 @@ async fn test_concurrent_downloads() {
         let platform_str = platform.to_string();
         join_set.spawn(async move {
             let downloader = BinaryDownloader::new().unwrap().with_progress(false);
-            let test_asset = ReleaseAsset {
-                name: format!("sindri-{}-{}", platform_str, i),
-                browser_download_url: format!("{}/sindri-{}-{}", uri, platform_str, i),
-                size: format!("binary {}", i).len() as u64,
-            };
+            let content = format!("binary {}", i);
 
-            let release = Release {
-                tag_name: "v3.0.0".to_string(),
-                name: None,
-                body: None,
-                prerelease: false,
-                draft: false,
-                assets: vec![test_asset],
-                published_at: None,
-            };
+            let release = ReleaseBuilder::new()
+                .asset(
+                    ReleaseAssetBuilder::new()
+                        .name(&format!("sindri-{}-{}", platform_str, i))
+                        .mock_url_path(&uri, &format!("/sindri-{}-{}", platform_str, i))
+                        .size_from_content(content.as_bytes())
+                        .build(),
+                )
+                .build();
 
             downloader.download_release(&release, None).await
         });
