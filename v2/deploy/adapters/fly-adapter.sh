@@ -195,8 +195,10 @@ app = "${NAME}"
 primary_region = "${REGION}"
 
 # Build configuration
+# Context is v2/ directory where Dockerfile COPY commands find docker/, cli/, deploy/
 [build]
-  dockerfile = "v2/Dockerfile"
+  context = "v2"
+  dockerfile = "Dockerfile"
 
 # Note: No [processes] section needed - Docker's ENTRYPOINT runs the entrypoint script
 # The entrypoint checks CI_MODE to decide whether to start SSH daemon
