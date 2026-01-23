@@ -111,9 +111,10 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
 
 # Copy extension system, CLI tools, and configurations
-COPY docker/ /docker/
-COPY cli /docker/cli
-COPY deploy /docker/deploy
+# Note: Paths use v2/ prefix so build context can be repo root (consistent with v3)
+COPY v2/docker/ /docker/
+COPY v2/cli /docker/cli
+COPY v2/deploy /docker/deploy
 
 # Install mise (tool version manager) binary only
 # Tools are installed by users via extensions at runtime (stored on persistent volume)

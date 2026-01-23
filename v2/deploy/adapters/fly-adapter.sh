@@ -195,10 +195,9 @@ app = "${NAME}"
 primary_region = "${REGION}"
 
 # Build configuration
-# Note: Build context is set via 'flyctl deploy v2' command (not fly.toml)
-# The Dockerfile expects docker/, cli/, deploy/ relative to v2/ directory
+# Dockerfile uses explicit v2/ paths (e.g., COPY v2/docker/) so build context is repo root
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "v2/Dockerfile"
 
 # Note: No [processes] section needed - Docker's ENTRYPOINT runs the entrypoint script
 # The entrypoint checks CI_MODE to decide whether to start SSH daemon
@@ -662,10 +661,9 @@ EOJSON
     fi
 
     # Deploy
-    # Use v2/ as build context so Dockerfile COPY commands find docker/, cli/, deploy/
-    # Use --config to point to fly.toml in current directory
+    # Build context is repo root (default), Dockerfile uses explicit v2/ paths
     print_status "Deploying application..."
-    local deploy_args=("v2" "--config" "./fly.toml" "--ha=false" "--wait-timeout" "600")
+    local deploy_args=("--ha=false" "--wait-timeout" "600")
     if [[ "$REBUILD" == "true" ]]; then
         print_status "Forcing full rebuild (--no-cache)..."
         deploy_args+=("--no-cache")
