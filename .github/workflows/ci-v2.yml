@@ -139,7 +139,6 @@ jobs:
           pull: true      # NEW: Latest base images
           provenance: mode=max
           sbom: true
-          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=false
 
       # MODIFIED: Save image as artifact for backward compatibility
       - name: Save image as artifact

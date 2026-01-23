@@ -291,9 +291,6 @@ Uses a specific tag or digest.
 ## Next Steps
 
 - Read the [Image Management Guide](image-management.md)
-- Explore the [Configuration Reference](configuration.md)
-- Check out [Example Configurations](../examples/)
-- Learn about [Security Best Practices](security.md)
 
 ## Getting Help
 
