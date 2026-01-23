@@ -1,7 +1,7 @@
 name: Test Provider
 
 # Simplified provider testing workflow
-# All tests run INSIDE the container via /v2/docker/scripts/sindri-test.sh
+# All tests run INSIDE the container via /docker/scripts/sindri-test.sh
 # Supports three test levels: quick, extension, profile
 
 on:
@@ -194,7 +194,7 @@ jobs:
           OUTPUT=$(.github/scripts/providers/run-on-provider.sh \
             "${{ inputs.provider }}" \
             "$TARGET_ID" \
-            "/v2/docker/scripts/sindri-test.sh --level ${{ inputs.test-level }} --profile ${{ inputs.extension-profile }} --extension ${{ inputs.extension }}")
+            "/docker/scripts/sindri-test.sh --level ${{ inputs.test-level }} --profile ${{ inputs.extension-profile }} --extension ${{ inputs.extension }}")
           EXIT_CODE=$?
           set -e
 

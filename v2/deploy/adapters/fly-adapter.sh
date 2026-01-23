@@ -196,7 +196,7 @@ primary_region = "${REGION}"
 
 # Build configuration
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "v2/Dockerfile"
 
 # Note: No [processes] section needed - Docker's ENTRYPOINT runs the entrypoint script
 # The entrypoint checks CI_MODE to decide whether to start SSH daemon
