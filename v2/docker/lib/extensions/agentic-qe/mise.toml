@@ -1,15 +1,14 @@
-# agentic-qe.toml - Agentic Quality Engineering v3 framework configuration for mise
+# agentic-qe.toml - Agentic Quality Engineering v2 framework configuration for mise
 # Requires nodejs extension to be installed first
 #
 # IMPORTANT: Use pinned versions instead of "latest" for reliable installations
-# query timeouts that can poison subsequent mise operations.
+# to avoid npm registry timeouts that can poison subsequent mise operations.
 #
-# NOTE: The package name is @agentic-qe/v3 but the binary is still called 'aqe'
-# (same as v2), so no migration needed for scripts.
+# NOTE: The npm package is 'agentic-qe' (not scoped). Binary is 'aqe'.
 
 [tools]
-# Agentic QE CLI tool v3 - pinned to specific alpha version
-"npm:@agentic-qe/v3" = "3.0.0-alpha.22"
+# Agentic QE CLI tool v2 - pinned to latest v2 stable
+"npm:agentic-qe" = "2.8.2"
 
 [tasks.init]
 description = "Initialize AQE v3 in current project"

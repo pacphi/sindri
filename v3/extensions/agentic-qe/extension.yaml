@@ -1,9 +1,9 @@
 ---
 metadata:
   name: agentic-qe
-  version: 1.0.0
+  version: 1.1.0
   description: >-
-    Agentic Quality Engineering v3 with AI-powered test generation, coverage analysis, and multi-agent workflows. Uses @agentic-qe/v3 package.
+    Agentic Quality Engineering v3 with AI-powered test generation, coverage analysis, and multi-agent workflows.
   category: ai-agents
   author: Sindri Team
   homepage: https://github.com/proffesor-for-testing/agentic-qe
@@ -34,14 +34,14 @@ validate:
       expectedPattern: "3\\.\\d+\\.\\d+(-[a-z]+(\\.[0-9]+)?)?"
   mise:
     tools:
-      - npm:@agentic-qe/v3
+      - npm:agentic-qe
     minToolCount: 1
 remove:
   confirmation: true
   mise:
     removeConfig: true
     tools:
-      - npm:@agentic-qe/v3
+      - npm:agentic-qe
   paths:
     - ~/.agentic-qe
     - ./.agentic-qe
@@ -50,7 +50,7 @@ upgrade:
   mise:
     upgradeAll: true
     tools:
-      - npm:@agentic-qe/v3
+      - npm:agentic-qe
 capabilities:
   # Project initialization capability
   project-init:
@@ -79,8 +79,8 @@ capabilities:
   # Lifecycle hooks
   hooks:
     pre-install:
-      command: "echo 'Preparing agentic-qe installation...'"
-      description: "Pre-installation checks"
+      command: "bash ${EXTENSION_DIR}/setup-pnpm-hooks.sh"
+      description: "Configure pnpm hooks for dependency resolution (lodash version fix)"
     post-install:
       command: "mise reshim && sleep 2"
       description: "Refresh shims after installation"
@@ -140,4 +140,4 @@ bom:
       type: framework
       license: MIT
       homepage: https://github.com/proffesor-for-testing/agentic-qe
-      purl: pkg:npm/%40agentic-qe/v3
+      purl: pkg:npm/agentic-qe
