@@ -11,6 +11,7 @@ members = [
     "crates/sindri-projects",
     "crates/sindri-doctor",
     "crates/sindri-clusters",
+    "crates/sindri-image",
 ]
 
 [workspace.package]
@@ -116,6 +117,7 @@ sindri-backup = { path = "crates/sindri-backup" }
 sindri-projects = { path = "crates/sindri-projects" }
 sindri-doctor = { path = "crates/sindri-doctor" }
 sindri-clusters = { path = "crates/sindri-clusters" }
+sindri-image = { path = "crates/sindri-image" }
 
 [profile.release]
 lto = true

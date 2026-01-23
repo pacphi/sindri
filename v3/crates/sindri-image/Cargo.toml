@@ -1,0 +1,47 @@
+[package]
+name = "sindri-image"
+description = "Container image management for Sindri - registry queries, version resolution, and verification"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+# HTTP client for registry API
+reqwest = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Semantic versioning
+semver = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Tool detection (for cosign, docker)
+which = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Process execution
+duct = { workspace = true }
+
+# URL handling
+url = { workspace = true }
+
+# Regex for parsing
+regex = { workspace = true }
+
+# Base64 encoding/decoding
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util", "macros"] }

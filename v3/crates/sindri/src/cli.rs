@@ -82,6 +82,10 @@ pub enum Commands {
     /// Local Kubernetes cluster management (kind/k3d)
     #[command(subcommand)]
     K8s(K8sCommands),
+
+    /// Container image management
+    #[command(subcommand)]
+    Image(ImageCommands),
 }
 
 // Version command
@@ -168,6 +172,10 @@ pub struct DeployArgs {
     /// Skip validation
     #[arg(long)]
     pub skip_validation: bool,
+
+    /// Skip image signature and provenance verification
+    #[arg(long)]
+    pub skip_image_verification: bool,
 }
 
 // Connect command
@@ -717,4 +725,96 @@ pub struct K8sInstallArgs {
     /// Skip confirmation
     #[arg(short = 'y', long)]
     pub yes: bool,
+}
+
+// Image management commands
+#[derive(Subcommand, Debug)]
+pub enum ImageCommands {
+    /// List available images from registry
+    List(ImageListArgs),
+
+    /// Inspect image details
+    Inspect(ImageInspectArgs),
+
+    /// Verify image signature and provenance
+    Verify(ImageVerifyArgs),
+
+    /// Show version compatibility matrix
+    Versions(ImageVersionsArgs),
+
+    /// Show currently deployed image
+    Current(ImageCurrentArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ImageListArgs {
+    /// Registry URL (default: ghcr.io)
+    #[arg(long, default_value = "ghcr.io")]
+    pub registry: String,
+
+    /// Repository name (default: pacphi/sindri)
+    #[arg(long)]
+    pub repository: Option<String>,
+
+    /// Filter tags by pattern (regex)
+    #[arg(long)]
+    pub filter: Option<String>,
+
+    /// Include prerelease versions
+    #[arg(long)]
+    pub include_prerelease: bool,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ImageInspectArgs {
+    /// Image tag to inspect
+    pub tag: String,
+
+    /// Show image digest
+    #[arg(long)]
+    pub digest: bool,
+
+    /// Download and show SBOM
+    #[arg(long)]
+    pub sbom: bool,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ImageVerifyArgs {
+    /// Image tag to verify
+    pub tag: String,
+
+    /// Skip signature verification
+    #[arg(long)]
+    pub no_signature: bool,
+
+    /// Skip provenance verification
+    #[arg(long)]
+    pub no_provenance: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ImageVersionsArgs {
+    /// CLI version to check compatibility for
+    #[arg(long)]
+    pub cli_version: Option<String>,
+
+    /// Output format (table, json)
+    #[arg(long, default_value = "table")]
+    pub format: String,
+}
+
+#[derive(Args, Debug)]
+pub struct ImageCurrentArgs {
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
 }

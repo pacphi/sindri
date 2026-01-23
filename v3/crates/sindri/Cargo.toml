@@ -19,6 +19,7 @@ sindri-update = { workspace = true }
 sindri-projects = { workspace = true }
 sindri-doctor = { workspace = true }
 sindri-clusters = { workspace = true }
+sindri-image = { workspace = true }
 
 # CLI
 clap = { workspace = true }

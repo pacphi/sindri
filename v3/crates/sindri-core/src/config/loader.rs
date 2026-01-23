@@ -126,6 +126,7 @@ impl SindriConfig {
             deployment: DeploymentConfig {
                 provider,
                 image: Some("ghcr.io/pacphi/sindri:latest".to_string()),
+                image_config: None,
                 resources: ResourcesConfig::default(),
                 volumes: VolumesConfig::default(),
             },
@@ -178,6 +179,121 @@ impl SindriConfig {
     /// Get resource configuration
     pub fn resources(&self) -> &ResourcesConfig {
         &self.config.deployment.resources
+    }
+
+    /// Resolve the container image reference
+    ///
+    /// Uses the following priority order:
+    /// 1. image_config.digest (immutable)
+    /// 2. image_config.tag_override (explicit tag)
+    /// 3. image_config.version + resolution (semver constraint)
+    /// 4. legacy image field
+    /// 5. default fallback (ghcr.io/pacphi/sindri:latest)
+    ///
+    /// # Returns
+    /// Fully resolved image reference (e.g., "ghcr.io/pacphi/sindri:v3.0.0")
+    pub async fn resolve_image(&self) -> Result<String> {
+        use crate::types::ResolutionStrategy;
+        use sindri_image::{RegistryClient, VersionResolver};
+        use tracing::{debug, info};
+
+        // Check if image_config is provided
+        if let Some(image_config) = &self.config.deployment.image_config {
+            let registry = &image_config.registry;
+            let repository = registry.split('/').skip(1).collect::<Vec<_>>().join("/");
+
+            let repository = if repository.is_empty() {
+                // If no slash in registry, assume it's docker.io and use registry as repo
+                registry.as_str()
+            } else {
+                repository.as_str()
+            };
+
+            // Priority 1: Digest (immutable)
+            if let Some(digest) = &image_config.digest {
+                info!("Using pinned digest: {}", digest);
+                return Ok(format!("{}@{}", registry, digest));
+            }
+
+            // Priority 2: Tag override (explicit)
+            if let Some(tag) = &image_config.tag_override {
+                info!("Using tag override: {}", tag);
+                return Ok(format!("{}:{}", registry, tag));
+            }
+
+            // Priority 3: Version + resolution
+            if let Some(version_constraint) = &image_config.version {
+                debug!(
+                    "Resolving version constraint: {} (strategy: {:?})",
+                    version_constraint, image_config.resolution_strategy
+                );
+
+                // Get GitHub token from environment (optional)
+                let github_token = std::env::var("GITHUB_TOKEN").ok();
+
+                // Create registry client
+                let mut registry_client = if registry.contains("ghcr.io") {
+                    RegistryClient::new("ghcr.io")
+                } else if registry.contains("docker.io") {
+                    RegistryClient::new("docker.io")
+                } else {
+                    // Extract registry host from full path
+                    let registry_host = registry.split('/').next().unwrap_or("ghcr.io");
+                    RegistryClient::new(registry_host)
+                };
+
+                if let Some(token) = github_token {
+                    registry_client = registry_client.with_token(token);
+                }
+
+                // Create version resolver
+                let resolver = VersionResolver::new(registry_client);
+
+                // Get CLI version for PinToCli strategy
+                let cli_version = env!("CARGO_PKG_VERSION");
+
+                // Convert ResolutionStrategy from config type to sindri-image type
+                let strategy = match image_config.resolution_strategy {
+                    ResolutionStrategy::Semver => sindri_image::ResolutionStrategy::Semver,
+                    ResolutionStrategy::LatestStable => {
+                        sindri_image::ResolutionStrategy::LatestStable
+                    }
+                    ResolutionStrategy::PinToCli => sindri_image::ResolutionStrategy::PinToCli,
+                    ResolutionStrategy::Explicit => sindri_image::ResolutionStrategy::Explicit,
+                };
+
+                // Resolve version based on strategy
+                let tag = resolver
+                    .resolve_with_strategy(
+                        repository,
+                        strategy,
+                        Some(version_constraint),
+                        Some(cli_version),
+                        image_config.allow_prerelease,
+                    )
+                    .await
+                    .map_err(|e| {
+                        Error::invalid_config(format!("Failed to resolve image version: {}", e))
+                    })?;
+
+                info!("Resolved to: {}:{}", registry, tag);
+                return Ok(format!("{}:{}", registry, tag));
+            }
+
+            // No version specified but image_config exists - use latest
+            info!("No version specified in image_config, using latest");
+            return Ok(format!("{}:latest", registry));
+        }
+
+        // Priority 4: Legacy image field
+        if let Some(image) = &self.config.deployment.image {
+            debug!("Using legacy image field: {}", image);
+            return Ok(image.clone());
+        }
+
+        // Priority 5: Default fallback
+        info!("No image configuration found, using default");
+        Ok("ghcr.io/pacphi/sindri:latest".to_string())
     }
 
     /// Serialize configuration to YAML

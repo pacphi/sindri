@@ -4197,6 +4197,7 @@ dependencies = [
  "sindri-core",
  "sindri-doctor",
  "sindri-extensions",
+ "sindri-image",
  "sindri-projects",
  "sindri-providers",
  "sindri-secrets",
@@ -4270,6 +4271,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "serial_test",
+ "sindri-image",
  "tempfile",
  "tera",
  "thiserror 1.0.69",
@@ -4328,6 +4330,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "sindri-image"
+version = "3.0.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "duct",
+ "regex",
+ "reqwest 0.11.27",
+ "semver",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "url",
+ "which",
+]
+
+[[package]]
 name = "sindri-projects"
 version = "3.0.0"
 dependencies = [
@@ -4357,6 +4379,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "dirs",
  "duct",
  "serde",
  "serde_json",

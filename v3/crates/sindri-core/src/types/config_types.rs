@@ -33,9 +33,13 @@ pub struct DeploymentConfig {
     /// Deployment provider
     pub provider: Provider,
 
-    /// Docker image to deploy
+    /// Docker image to deploy (legacy, use image_config instead)
     #[serde(default)]
     pub image: Option<String>,
+
+    /// Structured image configuration (preferred over legacy image field)
+    #[serde(default)]
+    pub image_config: Option<ImageConfig>,
 
     /// Resource configuration
     #[serde(default)]
@@ -44,6 +48,81 @@ pub struct DeploymentConfig {
     /// Volume configuration
     #[serde(default)]
     pub volumes: VolumesConfig,
+}
+
+/// Container image configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImageConfig {
+    /// Registry URL (e.g., "ghcr.io", "docker.io")
+    pub registry: String,
+
+    /// Semantic version constraint (e.g., "^3.0.0", "~3.1.0")
+    #[serde(default)]
+    pub version: Option<String>,
+
+    /// Explicit tag override (overrides version resolution)
+    #[serde(default)]
+    pub tag_override: Option<String>,
+
+    /// Pin to specific digest (immutable, overrides version and tag)
+    #[serde(default)]
+    pub digest: Option<String>,
+
+    /// Resolution strategy
+    #[serde(default)]
+    pub resolution_strategy: ResolutionStrategy,
+
+    /// Allow prerelease versions (alpha, beta, rc)
+    #[serde(default)]
+    pub allow_prerelease: bool,
+
+    /// Verify image signature before deployment
+    #[serde(default = "default_true")]
+    pub verify_signature: bool,
+
+    /// Verify SLSA provenance attestation
+    #[serde(default = "default_true")]
+    pub verify_provenance: bool,
+
+    /// Pull policy
+    #[serde(default)]
+    pub pull_policy: PullPolicy,
+
+    /// Certificate identity regexp for signature verification
+    #[serde(default)]
+    pub certificate_identity: Option<String>,
+
+    /// OIDC issuer for signature verification
+    #[serde(default)]
+    pub certificate_oidc_issuer: Option<String>,
+}
+
+/// Image resolution strategy
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResolutionStrategy {
+    /// Use semantic versioning constraints (default)
+    #[default]
+    Semver,
+    /// Use the latest stable version
+    LatestStable,
+    /// Pin to CLI version
+    PinToCli,
+    /// Use explicit tag/digest
+    Explicit,
+}
+
+/// Image pull policy
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "PascalCase")]
+pub enum PullPolicy {
+    /// Always pull the image
+    Always,
+    /// Only pull if not present locally
+    #[default]
+    IfNotPresent,
+    /// Never pull, use local only
+    Never,
 }
 
 /// Available deployment providers

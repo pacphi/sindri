@@ -7,6 +7,7 @@ pub mod deploy;
 pub mod destroy;
 pub mod doctor;
 pub mod extension;
+pub mod image;
 pub mod k8s;
 pub mod profile;
 pub mod project;

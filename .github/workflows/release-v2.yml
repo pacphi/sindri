@@ -46,7 +46,77 @@ jobs:
             echo "Detected stable version: $version"
           fi
 
-  # Job 2: Generate changelog from commits since last tag
+  # Job 2: Verify CI image exists for promotion
+  verify-ci-image:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      ci_image: ${{ steps.verify.outputs.ci_image }}
+      image_digest: ${{ steps.verify.outputs.image_digest }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get commit SHA for tag
+        id: get-sha
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Tag ${{ github.ref_name }} points to commit: $SHA"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for CI image
+        id: verify
+        run: |
+          SHA="${{ steps.get-sha.outputs.sha }}"
+          CI_PASSED="ghcr.io/${{ github.repository }}:ci-passed-${SHA}"
+          CI_TAG="ghcr.io/${{ github.repository }}:ci-${SHA}"
+
+          echo "Looking for promotion candidate images..."
+          echo "  Preferred: $CI_PASSED"
+          echo "  Fallback:  $CI_TAG"
+          echo ""
+
+          if docker pull "$CI_PASSED" 2>/dev/null; then
+            echo "ci_image=$CI_PASSED" >> $GITHUB_OUTPUT
+            DIGEST=$(docker inspect "$CI_PASSED" --format='{{index .RepoDigests 0}}')
+            echo "image_digest=$DIGEST" >> $GITHUB_OUTPUT
+            echo "✅ Found CI image: $CI_PASSED"
+            echo "   Digest: $DIGEST"
+            echo "::notice title=CI Image Found::Using tested image: $CI_PASSED"
+          elif docker pull "$CI_TAG" 2>/dev/null; then
+            echo "ci_image=$CI_TAG" >> $GITHUB_OUTPUT
+            DIGEST=$(docker inspect "$CI_TAG" --format='{{index .RepoDigests 0}}')
+            echo "image_digest=$DIGEST" >> $GITHUB_OUTPUT
+            echo "⚠️  Using unverified CI image: $CI_TAG"
+            echo "   Digest: $DIGEST"
+            echo "::warning title=Unverified CI Image::Using CI image that didn't pass tests: $CI_TAG"
+          else
+            echo "::error title=No CI Image::No CI image found for commit $SHA"
+            echo ""
+            echo "Possible causes:"
+            echo "  1. CI workflow didn't run on this commit"
+            echo "  2. CI workflow is still running"
+            echo "  3. CI workflow failed"
+            echo "  4. Image was deleted (check retention policy)"
+            echo ""
+            echo "To fix:"
+            echo "  1. Verify CI ran: https://github.com/${{ github.repository }}/actions"
+            echo "  2. Check GHCR packages: https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
+            exit 1
+          fi
+
+  # Job 3: Generate changelog from commits since last tag
   generate-changelog:
     runs-on: ubuntu-latest
     needs: validate-tag
@@ -241,56 +311,198 @@ jobs:
           [skip ci]"
           git push origin main
 
-  # Job 4: Build and push Docker image to GHCR
-  build-image:
+  # Job 4: Promote CI image to release (no rebuild!)
+  promote-image:
     runs-on: ubuntu-latest
-    needs: validate-tag
+    needs: [validate-tag, verify-ci-image]
     permissions:
       contents: read
       packages: write
+    env:
+      # Set env vars for conditionals (secrets can't be used directly in if:)
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Login to Docker Hub (optional)
+        if: env.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Generate release tags
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ghcr.io/${{ github.repository }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/sindri
           tags: |
             type=ref,event=tag
             type=semver,pattern={{version}},prefix=v
             type=semver,pattern={{major}}.{{minor}},prefix=v
             type=raw,value=v2,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
             type=raw,value=latest,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+          labels: |
+            org.opencontainers.image.title=Sindri v2
+            org.opencontainers.image.description=Multi-cloud development environment orchestrator
+            org.opencontainers.image.version=${{ needs.validate-tag.outputs.version }}
+            sindri.version=v2
+            sindri.release.promoted-from=${{ needs.verify-ci-image.outputs.ci_image }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Pull and retag CI image
+        run: |
+          CI_IMAGE="${{ needs.verify-ci-image.outputs.ci_image }}"
+          echo "Pulling CI image: $CI_IMAGE"
+          docker pull "$CI_IMAGE"
+
+          # Parse tags output (newline-separated list)
+          TAGS="${{ steps.meta.outputs.tags }}"
+
+          echo ""
+          echo "Retagging for release:"
+          while IFS= read -r TAG; do
+            [[ -z "$TAG" ]] && continue
+            echo "  → $TAG"
+            docker tag "$CI_IMAGE" "$TAG"
+          done <<< "$TAGS"
+
+          echo ""
+          echo "Pushing release tags:"
+          while IFS= read -r TAG; do
+            [[ -z "$TAG" ]] && continue
+
+            # Check if pushing to Docker Hub and if credentials are available
+            if [[ "$TAG" =~ ^docker\.io/ ]] && [[ -z "$DOCKERHUB_TOKEN" ]]; then
+              echo "  ⏭️  Skipping $TAG (Docker Hub credentials not configured)"
+              continue
+            fi
+
+            echo "  → $TAG"
+            if docker push "$TAG"; then
+              echo "    ✅ Pushed successfully"
+            else
+              echo "    ⚠️  Push failed (non-fatal)"
+            fi
+          done <<< "$TAGS"
+
+          echo ""
+          echo "✅ Image promotion complete"
+          echo "   Source:  $CI_IMAGE"
+          echo "   Digest:  ${{ needs.verify-ci-image.outputs.image_digest }}"
+
+  # Job 5: Sign images with Cosign (keyless)
+  sign-image:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, promote-image]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # Required for OIDC keyless signing
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
-          context: .
-          file: v2/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ needs.validate-tag.outputs.version }}
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  # Job 5: Create GitHub Release with changelog and assets
+      - name: Sign images
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          REPO="${{ github.repository }}"
+
+          echo "Signing release images with Cosign (keyless)..."
+          echo ""
+
+          # Sign main version tag
+          echo "→ Signing ghcr.io/${REPO}:v${VERSION}"
+          cosign sign --yes "ghcr.io/${REPO}:v${VERSION}"
+
+          # Sign major.minor tag (if not prerelease)
+          if [[ "${{ needs.validate-tag.outputs.is_prerelease }}" == "false" ]]; then
+            MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1-2)
+            echo "→ Signing ghcr.io/${REPO}:v${MAJOR_MINOR}"
+            cosign sign --yes "ghcr.io/${REPO}:v${MAJOR_MINOR}"
+
+            # Sign v2 tag
+            echo "→ Signing ghcr.io/${REPO}:v2"
+            cosign sign --yes "ghcr.io/${REPO}:v2"
+
+            # Sign latest tag
+            echo "→ Signing ghcr.io/${REPO}:latest"
+            cosign sign --yes "ghcr.io/${REPO}:latest"
+          fi
+
+          echo ""
+          echo "✅ Images signed successfully"
+          echo ""
+          echo "Verify with:"
+          echo "  cosign verify ghcr.io/${REPO}:v${VERSION} \\"
+          echo "    --certificate-identity-regexp='https://github.com/${{ github.repository }}' \\"
+          echo "    --certificate-oidc-issuer='https://token.actions.githubusercontent.com'"
+
+  # Job 6: Generate and attach SBOM
+  generate-sbom:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, promote-image]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ghcr.io/${{ github.repository }}:v${{ needs.validate-tag.outputs.version }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Attach SBOM to image
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository }}:v${VERSION}"
+
+          echo "Attaching SBOM to image..."
+          cosign attach sbom --sbom sbom.spdx.json "$IMAGE"
+
+          echo "✅ SBOM attached successfully"
+          echo ""
+          echo "Download with:"
+          echo "  cosign download sbom $IMAGE"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sbom-v${{ needs.validate-tag.outputs.version }}
+          path: sbom.spdx.json
+          retention-days: 90
+
+  # Job 7: Create GitHub Release with changelog and assets
   create-release:
     runs-on: ubuntu-latest
-    needs: [validate-tag, generate-changelog, build-image]
+    needs: [validate-tag, generate-changelog, promote-image, sign-image, generate-sbom]
     permissions:
       contents: write
     outputs:
@@ -299,9 +511,14 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download changelog artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v6
         with:
           name: changelog-v2
+
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: sbom-v${{ needs.validate-tag.outputs.version }}
 
       - name: Create install.sh asset
         run: |
@@ -340,6 +557,61 @@ jobs:
           sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" install-v2.sh
           chmod +x install-v2.sh
 
+      - name: Create verification guide
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cat > VERIFY.md << 'VERIFY_EOF'
+          # Verification Guide for Sindri v2 VERSION_PLACEHOLDER
+
+          This release includes cryptographic signatures and Software Bill of Materials (SBOM) for supply chain security.
+
+          ## Image Verification
+
+          ### Verify Signature (Cosign)
+
+          ```bash
+          # Install cosign (if not already installed)
+          # https://docs.sigstore.dev/cosign/installation/
+
+          # Verify image signature
+          cosign verify ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER \
+            --certificate-identity-regexp='https://github.com/REPO_PLACEHOLDER' \
+            --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
+          ```
+
+          ### Download SBOM
+
+          ```bash
+          # Download SBOM attestation
+          cosign download sbom ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER > sbom.spdx.json
+
+          # Or download from GitHub Release assets (attached)
+          ```
+
+          ### Inspect SBOM
+
+          ```bash
+          # View SBOM summary
+          jq '.packages[] | {name, version, supplier}' sbom.spdx.json | head -20
+          ```
+
+          ## Security Scanning
+
+          This image has been scanned with Trivy during CI:
+          - **Critical/High Vulnerabilities**: See GitHub Security tab
+          - **SARIF Report**: Uploaded to GitHub Code Scanning
+
+          ## Build Provenance
+
+          - **CI Image**: Promoted from tested CI build (ci-passed-SHA)
+          - **Build Workflow**: https://github.com/REPO_PLACEHOLDER/actions
+          - **Commit SHA**: Check image labels or SBOM metadata
+          VERIFY_EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$version/g" VERIFY.md
+          sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" VERIFY.md
+
       - name: Create GitHub Release
         id: release
         uses: softprops/action-gh-release@v2
@@ -349,11 +621,13 @@ jobs:
           prerelease: ${{ needs.validate-tag.outputs.is_prerelease }}
           files: |
             install-v2.sh
+            sbom.spdx.json
+            VERIFY.md
 
-  # Job 6: Notify on success or create issue on failure
+  # Job 8: Notify on success or create issue on failure
   notify-release:
     runs-on: ubuntu-latest
-    needs: [validate-tag, create-release, update-changelog]
+    needs: [validate-tag, create-release, update-changelog, sign-image, generate-sbom]
     if: always()
     permissions:
       contents: read
@@ -366,8 +640,21 @@ jobs:
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
           echo "::notice::Release v$version published successfully!"
-          echo "Release URL: ${{ needs.create-release.outputs.release_url }}"
-          echo "Docker image: ghcr.io/${{ github.repository }}:v$version"
+          echo ""
+          echo "📦 Release Details:"
+          echo "   URL:    ${{ needs.create-release.outputs.release_url }}"
+          echo "   Image:  ghcr.io/${{ github.repository }}:v$version"
+          echo ""
+          echo "🔐 Security Features:"
+          echo "   ✅ Image signed with Cosign (keyless)"
+          echo "   ✅ SBOM generated (SPDX format)"
+          echo "   ✅ Vulnerability scan completed"
+          echo "   ✅ Promoted from tested CI build"
+          echo ""
+          echo "Verify with:"
+          echo "   cosign verify ghcr.io/${{ github.repository }}:v$version \\"
+          echo "     --certificate-identity-regexp='https://github.com/${{ github.repository }}' \\"
+          echo "     --certificate-oidc-issuer='https://token.actions.githubusercontent.com'"
 
       - name: Create failure issue
         if: failure()

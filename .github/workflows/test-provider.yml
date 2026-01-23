@@ -46,6 +46,11 @@ on:
         required: false
         default: ""
         type: string
+      use-registry:
+        description: Pull image from registry instead of artifact (requires image to be pushed to GHCR)
+        required: false
+        default: false
+        type: boolean
 
     secrets:
       NPM_TOKEN:
@@ -145,6 +150,7 @@ jobs:
           provider: ${{ inputs.provider }}
           image: ${{ inputs.image }}
           image-artifact: ${{ inputs.image-artifact }}
+          use-registry: ${{ inputs.use-registry }}
           extension-profile: ${{ inputs.extension-profile }}
           test-level: ${{ inputs.test-level }}
         env:

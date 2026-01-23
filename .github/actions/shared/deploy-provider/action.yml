@@ -13,6 +13,10 @@ inputs:
     description: Name of image artifact to download
     required: false
     default: ""
+  use-registry:
+    description: Pull image from registry instead of artifact
+    required: false
+    default: "false"
   config-path:
     description: Path to sindri.yaml configuration
     required: false
@@ -97,14 +101,32 @@ runs:
         echo "config=$CONFIG" >> $GITHUB_OUTPUT
         echo "::notice title=Config::Using $CONFIG (test-level: ${{ inputs.test-level }}, profile: ${{ inputs.extension-profile }})"
 
+    - name: Login to GHCR
+      if: inputs.use-registry == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Pull image from registry
+      if: inputs.use-registry == 'true'
+      shell: bash
+      run: |
+        echo "Pulling image from registry: ${{ inputs.image }}"
+        docker pull "${{ inputs.image }}"
+        echo "Tagging as sindri:latest for provider compatibility"
+        docker tag "${{ inputs.image }}" sindri:latest
+        echo "✓ Image pulled from registry"
+
     - name: Download image artifact (if specified)
-      if: inputs.image-artifact != ''
+      if: inputs.image-artifact != '' && inputs.use-registry != 'true'
       uses: actions/download-artifact@v6
       with:
         name: ${{ inputs.image-artifact }}
 
     - name: Load Docker image from artifact
-      if: inputs.image-artifact != ''
+      if: inputs.image-artifact != '' && inputs.use-registry != 'true'
       shell: bash
       run: |
         if [[ -f "sindri-image.tar.gz" ]]; then

@@ -461,6 +461,83 @@ impl KubernetesProvider {
             None
         }
     }
+
+    /// Ensure ImagePullSecret exists for private registry access
+    ///
+    /// Creates a Kubernetes secret from ~/.docker/config.json if it exists
+    /// Returns the secret name if created/exists, None if not needed
+    async fn ensure_image_pull_secret(
+        &self,
+        namespace: &str,
+        registry: &str,
+    ) -> Result<Option<String>> {
+        let secret_name = "sindri-registry-creds";
+
+        // Check if secret already exists
+        let check_output = Command::new("kubectl")
+            .args(["get", "secret", secret_name, "-n", namespace])
+            .output()
+            .await;
+
+        if check_output.map(|o| o.status.success()).unwrap_or(false) {
+            debug!("ImagePullSecret '{}' already exists", secret_name);
+            return Ok(Some(secret_name.to_string()));
+        }
+
+        // Only create secret for private registries (ghcr.io, docker.io with auth)
+        let needs_auth = registry.contains("ghcr.io")
+            || registry.contains("docker.io")
+            || registry.contains("gcr.io")
+            || registry.contains("azurecr.io");
+
+        if !needs_auth {
+            debug!("Registry {} doesn't require authentication", registry);
+            return Ok(None);
+        }
+
+        // Check if docker config exists
+        let docker_config_path = dirs::home_dir()
+            .ok_or_else(|| anyhow!("Home directory not found"))?
+            .join(".docker")
+            .join("config.json");
+
+        if !docker_config_path.exists() {
+            warn!(
+                "Docker config not found at {:?} - ImagePullSecret not created",
+                docker_config_path
+            );
+            info!("To use private images, run: docker login {}", registry);
+            return Ok(None);
+        }
+
+        // Create secret from docker config
+        debug!("Creating ImagePullSecret from docker config");
+        let output = Command::new("kubectl")
+            .args([
+                "create",
+                "secret",
+                "generic",
+                secret_name,
+                &format!(
+                    "--from-file=.dockerconfigjson={}",
+                    docker_config_path.display()
+                ),
+                "--type=kubernetes.io/dockerconfigjson",
+                "-n",
+                namespace,
+            ])
+            .output()
+            .await?;
+
+        if output.status.success() {
+            info!("Created ImagePullSecret: {}", secret_name);
+            Ok(Some(secret_name.to_string()))
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            warn!("Failed to create ImagePullSecret: {}", stderr);
+            Ok(None)
+        }
+    }
 }
 
 impl Default for KubernetesProvider {
@@ -638,6 +715,17 @@ impl Provider for KubernetesProvider {
                     .await?;
             }
         }
+
+        // Create ImagePullSecret for private registries
+        // Extract registry from image
+        let registry = k8s_config.image.split('/').next().unwrap_or("ghcr.io");
+
+        let _image_pull_secret = self
+            .ensure_image_pull_secret(k8s_config.namespace, registry)
+            .await?;
+
+        // Note: The template will use the secret if it exists
+        // Template context is updated in generate_manifests
 
         // Apply manifests
         self.apply_manifests(&manifest_path, k8s_config.namespace)

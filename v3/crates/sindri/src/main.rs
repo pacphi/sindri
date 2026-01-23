@@ -38,6 +38,7 @@ async fn main() -> Result<()> {
         Commands::Project(args) => commands::project::run(args).await,
         Commands::Doctor(args) => commands::doctor::run(args).await,
         Commands::K8s(args) => commands::k8s::run(args).await,
+        Commands::Image(args) => commands::image::execute(args).await,
     }
 }
 

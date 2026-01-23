@@ -183,7 +183,173 @@ jobs:
   # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
 
   # ============================================
-  # Security Audit
+  # Docker Image Build
+  # ============================================
+
+  build-image:
+    name: Build v3 Docker Image
+    runs-on: ubuntu-latest
+    needs: rust-build
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.build.outputs.tag }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=ci-{{sha}}
+            type=raw,value=ci-{{branch}}-{{sha}}
+          labels: |
+            org.opencontainers.image.title=Sindri v3
+            org.opencontainers.image.description=Multi-cloud development environment orchestrator (Rust)
+            sindri.version=v3
+            sindri.ci.run=${{ github.run_id }}
+            sindri.ci.branch=${{ github.ref_name }}
+
+      - name: Copy binary to v3 context
+        run: |
+          chmod +x ./bin/sindri
+          mkdir -p v3/bin
+          cp ./bin/sindri v3/bin/
+
+      - name: Build and push multi-arch
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: v3
+          file: v3/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          no-cache: true
+          pull: true
+          provenance: mode=max
+          sbom: true
+          build-args: |
+            BUILD_FROM_SOURCE=false
+
+      - name: Export image info
+        run: |
+          echo "tag=ghcr.io/${{ github.repository }}:ci-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "✅ Multi-arch image built and pushed"
+          echo "   Image: ghcr.io/${{ github.repository }}:ci-${{ github.sha }}"
+          echo "   Platforms: linux/amd64, linux/arm64"
+
+  # ============================================
+  # Security Scanning
+  # ============================================
+
+  security-scan:
+    name: Security Scan
+    needs: build-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:ci-${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Scan summary
+        if: always()
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "Image: \`ghcr.io/${{ github.repository }}:ci-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.sarif ]; then
+            ISSUES=$(jq '.runs[0].results | length' trivy-results.sarif)
+            echo "- **Issues Found**: $ISSUES" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================
+  # Mark Promotion Candidate
+  # ============================================
+
+  mark-passed:
+    name: Mark as Promotion Candidate
+    needs: [build-image, security-scan, k8s-cluster-lifecycle]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag as promotion candidate
+        run: |
+          echo "Pulling CI image..."
+          docker pull ghcr.io/${{ github.repository }}:ci-${{ github.sha }}
+
+          echo "Tagging as ci-passed..."
+          docker tag ghcr.io/${{ github.repository }}:ci-${{ github.sha }} \
+                     ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}
+
+          echo "Pushing promotion candidate tag..."
+          docker push ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}
+
+          echo "✅ Image marked as promotion candidate"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Promotion Candidate" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: \`ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: Ready for release promotion" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: K8s integration tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security**: Vulnerability scan completed" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Security Audit (Cargo)
   # ============================================
 
   security-audit:
@@ -466,6 +632,8 @@ jobs:
       - rust-clippy
       - rust-test
       - rust-build
+      - build-image
+      - security-scan
     if: ${{ always() }}
     steps:
       - name: Check required jobs
@@ -476,18 +644,28 @@ jobs:
           CLIPPY="${{ needs.rust-clippy.result }}"
           TEST="${{ needs.rust-test.result }}"
           BUILD="${{ needs.rust-build.result }}"
+          IMAGE="${{ needs.build-image.result }}"
+          SECURITY="${{ needs.security-scan.result }}"
 
           if [[ "$FORMAT" != "success" ]] || \
              [[ "$CLIPPY" != "success" ]] || \
              [[ "$TEST" != "success" ]] || \
-             [[ "$BUILD" != "success" ]]; then
+             [[ "$BUILD" != "success" ]] || \
+             [[ "$IMAGE" != "success" ]]; then
             echo "❌ Required CI v3 checks failed"
             echo "Results:"
             echo "  rust-format: $FORMAT"
             echo "  rust-clippy: $CLIPPY"
             echo "  rust-test: $TEST"
             echo "  rust-build: $BUILD"
+            echo "  build-image: $IMAGE"
+            echo "  security-scan: $SECURITY"
             exit 1
+          fi
+
+          if [[ "$SECURITY" != "success" ]]; then
+            echo "⚠️  Security scan failed but not blocking"
+            echo "  security-scan: $SECURITY"
           fi
 
           echo "✅ Required CI v3 checks passed"
