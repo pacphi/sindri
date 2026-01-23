@@ -213,14 +213,17 @@ $RECYCLE.BIN/
 .Trash-*
 .nfs*
 
-# Claude Flow generated files
-.swarm/
-.hive-mind/
+# Claude Code and Claude Flow generated files
+.claude/
+CLAUDE.md
 .claude-flow/
 claude-flow.config.json
-memory/
 coordination/
+.hive-mind/
 hive-mind-prompt-*.txt
+.mcp.json
+memory/
+.swarm/
 
 # DevContainer
 .devcontainer/
