@@ -140,7 +140,7 @@ jobs:
 
       - name: Deploy to provider
         id: deploy
-        uses: ./.github/actions/core/deploy-provider
+        uses: ./.github/actions/shared/deploy-provider
         with:
           provider: ${{ inputs.provider }}
           image: ${{ inputs.image }}
@@ -250,7 +250,7 @@ jobs:
 
       - name: Cleanup
         if: always() && inputs.skip-cleanup != true
-        uses: ./.github/actions/core/cleanup-provider
+        uses: ./.github/actions/shared/cleanup-provider
         with:
           provider: ${{ inputs.provider }}
           target-id: ${{ steps.deploy.outputs.target-id }}

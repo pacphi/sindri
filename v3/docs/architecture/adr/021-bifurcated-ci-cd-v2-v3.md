@@ -420,7 +420,7 @@ done
 
 - [ ] Create `.github/actions/v2/` directory
 - [ ] Create `.github/actions/v3/` directory
-- [ ] Rename `.github/actions/core/` to `.github/actions/shared/`
+- [x] Rename `.github/actions/core/` to `.github/actions/shared/`
 - [ ] Create `v3/setup-rust/action.yml`
 - [ ] Create `v3/build-rust/action.yml`
 - [ ] Create `v3/release-binaries/action.yml`

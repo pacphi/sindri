@@ -177,7 +177,7 @@ jobs:
 
       - name: Build image
         id: build
-        uses: ./.github/actions/core/build-image
+        uses: ./.github/actions/shared/build-image
         with:
           image-tag: sindri:${{ env.DEPLOYMENT_ID }}
           cache-key-prefix: sindri-deploy
