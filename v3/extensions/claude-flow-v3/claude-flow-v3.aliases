@@ -12,7 +12,9 @@
 # - Security scanning with CVE remediation
 
 # === CORE OPERATIONS ===
-alias cf-init="claude-flow init --force"
+# --start-all: initializes memory, swarm (hierarchical-mesh), daemon, and hooks in one command
+alias cf-init="claude-flow init --start-all --topology hierarchical-mesh"
+alias cf-init-minimal="claude-flow init --force"  # Minimal init without services
 alias cf-doctor="claude-flow doctor --fix"
 alias cf-version="claude-flow --version"
 alias cf-help="claude-flow --help"

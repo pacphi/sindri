@@ -87,32 +87,18 @@ upgrade:
       - "npm:claude-flow"
 capabilities:
   # Project initialization capability (v3 features)
+  # Uses single --start-all command for complete initialization
   project-init:
     enabled: true
     priority: 20
     commands:
-      - command: "claude-flow init --full"
-        description: "Initialize Claude Flow v3 with full feature set"
+      # Single command does everything: init, memory, swarm (hierarchical-mesh), daemon, hooks
+      - command: "claude-flow init --start-all --topology hierarchical-mesh"
+        description: "Initialize Claude Flow v3 with all services (swarm, daemon, memory, hooks)"
         requiresAuth: anthropic
         conditional: false
       - command: "claude-flow doctor --fix"
         description: "Run v3 health check and auto-fix common issues"
-        requiresAuth: none
-        conditional: false
-      - command: "claude-flow swarm init --topology ${CF_SWARM_TOPOLOGY:-hierarchical-mesh}"
-        description: "Initialize UnifiedSwarmCoordinator with configured topology"
-        requiresAuth: none
-        conditional: true
-      - command: "claude-flow hooks pretrain"
-        description: "Initialize hook system (31 events + 12 background workers)"
-        requiresAuth: none
-        conditional: true
-      - command: 'test "${CF_DAEMON_AUTOSTART:-true}" = "true" && claude-flow daemon start --background || true'
-        description: "Start background daemon (if autostart enabled)"
-        requiresAuth: none
-        conditional: true
-      - command: 'test "${CF_MCP_AUTOSTART:-false}" = "true" && claude-flow mcp start --transport ${CF_MCP_TRANSPORT:-stdio} --background || echo "MCP ready (start: claude-flow mcp start)"'
-        description: "Start MCP server with configured transport (if autostart enabled)"
         requiresAuth: none
         conditional: true
     state-markers:
