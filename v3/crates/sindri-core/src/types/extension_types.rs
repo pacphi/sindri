@@ -72,33 +72,35 @@ pub struct ExtensionMetadata {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ExtensionCategory {
-    Base,
-    Agile,
-    Language,
-    DevTools,
-    Infrastructure,
-    Ai,
-    Utilities,
+    AiAgents,
+    AiDev,
+    Claude,
+    Cloud,
     Desktop,
-    Monitoring,
-    Database,
-    Mobile,
+    Devops,
+    Documentation,
+    Languages,
+    Mcp,
+    Productivity,
+    Research,
+    Testing,
 }
 
 impl std::fmt::Display for ExtensionCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExtensionCategory::Base => write!(f, "base"),
-            ExtensionCategory::Agile => write!(f, "agile"),
-            ExtensionCategory::Language => write!(f, "language"),
-            ExtensionCategory::DevTools => write!(f, "dev-tools"),
-            ExtensionCategory::Infrastructure => write!(f, "infrastructure"),
-            ExtensionCategory::Ai => write!(f, "ai"),
-            ExtensionCategory::Utilities => write!(f, "utilities"),
+            ExtensionCategory::AiAgents => write!(f, "ai-agents"),
+            ExtensionCategory::AiDev => write!(f, "ai-dev"),
+            ExtensionCategory::Claude => write!(f, "claude"),
+            ExtensionCategory::Cloud => write!(f, "cloud"),
             ExtensionCategory::Desktop => write!(f, "desktop"),
-            ExtensionCategory::Monitoring => write!(f, "monitoring"),
-            ExtensionCategory::Database => write!(f, "database"),
-            ExtensionCategory::Mobile => write!(f, "mobile"),
+            ExtensionCategory::Devops => write!(f, "devops"),
+            ExtensionCategory::Documentation => write!(f, "documentation"),
+            ExtensionCategory::Languages => write!(f, "languages"),
+            ExtensionCategory::Mcp => write!(f, "mcp"),
+            ExtensionCategory::Productivity => write!(f, "productivity"),
+            ExtensionCategory::Research => write!(f, "research"),
+            ExtensionCategory::Testing => write!(f, "testing"),
         }
     }
 }

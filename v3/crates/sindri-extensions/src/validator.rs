@@ -334,7 +334,7 @@ metadata:
   name: test-extension
   version: 1.0.0
   description: A test extension for validation
-  category: utilities
+  category: devops
 
 install:
   method: script
@@ -361,7 +361,7 @@ metadata:
   name: test-extension
   version: v1.0.0
   description: A test extension for validation
-  category: utilities
+  category: devops
 
 install:
   method: script
@@ -387,7 +387,7 @@ metadata:
   name: Invalid_Name
   version: 1.0.0
   description: A test extension for validation
-  category: utilities
+  category: devops
 
 install:
   method: script
@@ -413,7 +413,7 @@ metadata:
   name: test-extension
   version: 1.0.0
   description: A test extension for validation
-  category: utilities
+  category: devops
 
 install:
   method: mise

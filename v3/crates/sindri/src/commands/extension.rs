@@ -526,7 +526,7 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
                     name: dep_name.clone(),
                     version: "1.0.0".to_string(),
                     description: entry.description.clone(),
-                    category: sindri_core::types::ExtensionCategory::Base,
+                    category: sindri_core::types::ExtensionCategory::Devops,
                     author: None,
                     homepage: None,
                     dependencies: entry.dependencies.clone(),

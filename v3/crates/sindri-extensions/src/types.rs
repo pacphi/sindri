@@ -113,7 +113,7 @@ metadata:
   name: test-extension
   version: "1.0.0"
   description: Test extension for YAML parsing
-  category: utilities
+  category: devops
 
 install:
   method: script
@@ -130,24 +130,25 @@ validate:
         let extension: Extension = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(extension.metadata.name, "test-extension");
         assert_eq!(extension.metadata.version, "1.0.0");
-        assert_eq!(extension.metadata.category, ExtensionCategory::Utilities);
+        assert_eq!(extension.metadata.category, ExtensionCategory::Devops);
         assert_eq!(extension.install.method, InstallMethod::Script);
     }
 
     #[test]
     fn test_extension_category_parsing() {
         let categories = vec![
-            ("base", ExtensionCategory::Base),
-            ("language", ExtensionCategory::Language),
-            ("dev-tools", ExtensionCategory::DevTools),
-            ("ai", ExtensionCategory::Ai),
-            ("infrastructure", ExtensionCategory::Infrastructure),
-            ("utilities", ExtensionCategory::Utilities),
+            ("ai-agents", ExtensionCategory::AiAgents),
+            ("ai-dev", ExtensionCategory::AiDev),
+            ("claude", ExtensionCategory::Claude),
+            ("cloud", ExtensionCategory::Cloud),
             ("desktop", ExtensionCategory::Desktop),
-            ("monitoring", ExtensionCategory::Monitoring),
-            ("database", ExtensionCategory::Database),
-            ("mobile", ExtensionCategory::Mobile),
-            ("agile", ExtensionCategory::Agile),
+            ("devops", ExtensionCategory::Devops),
+            ("documentation", ExtensionCategory::Documentation),
+            ("languages", ExtensionCategory::Languages),
+            ("mcp", ExtensionCategory::Mcp),
+            ("productivity", ExtensionCategory::Productivity),
+            ("research", ExtensionCategory::Research),
+            ("testing", ExtensionCategory::Testing),
         ];
 
         for (yaml_value, expected_category) in categories {
@@ -194,7 +195,7 @@ metadata:
   name: test
   version: "1.0.0"
   description: Test
-  category: utilities
+  category: devops
 
 install:
   method: {}
@@ -217,7 +218,7 @@ metadata:
   name: test
   version: "1.0.0"
   description: Test with capabilities
-  category: ai
+  category: ai-dev
 
 install:
   method: script
@@ -291,7 +292,7 @@ metadata:
   name: test
   version: "1.0.0"
   description: Test with BOM
-  category: language
+  category: languages
 
 install:
   method: mise

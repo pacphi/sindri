@@ -226,6 +226,7 @@ impl Default for HierarchicalConfigLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::TempDir;
 
     fn create_temp_loader() -> (HierarchicalConfigLoader, TempDir) {
@@ -237,6 +238,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_runtime_config_defaults() {
         let (loader, _temp) = create_temp_loader();
         let config = loader.load_runtime_config().unwrap();
@@ -299,6 +301,7 @@ default-platform: "custom-platform"
     }
 
     #[test]
+    #[serial]
     fn test_env_overrides() {
         let (loader, _temp) = create_temp_loader();
 

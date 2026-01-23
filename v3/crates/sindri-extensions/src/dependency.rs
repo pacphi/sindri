@@ -94,7 +94,7 @@ mod tests {
                     name: name.to_string(),
                     version: "1.0.0".to_string(),
                     description: "Test extension".to_string(),
-                    category: sindri_core::types::ExtensionCategory::Base,
+                    category: sindri_core::types::ExtensionCategory::Devops,
                     author: None,
                     homepage: None,
                     dependencies: deps.iter().map(|s| s.to_string()).collect(),
