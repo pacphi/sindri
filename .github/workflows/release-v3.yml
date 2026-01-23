@@ -275,6 +275,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      # Set env vars for secrets to use in conditionals (secrets can't be used directly in if:)
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - uses: actions/checkout@v6
 
@@ -294,19 +297,28 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Docker Hub (optional)
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+        if: env.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Determine image list
+        id: images
+        run: |
+          IMAGES="ghcr.io/${{ github.repository }}"
+          if [[ -n "$DOCKERHUB_USERNAME" ]]; then
+            IMAGES="${IMAGES}"$'\n'"${DOCKERHUB_USERNAME}/sindri"
+          fi
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          echo "$IMAGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ghcr.io/${{ github.repository }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/sindri', secrets.DOCKERHUB_USERNAME) || '' }}
+          images: ${{ steps.images.outputs.list }}
           tags: |
             type=semver,pattern={{version}},value=v${{ needs.validate-tag.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=v${{ needs.validate-tag.outputs.version }}
