@@ -63,6 +63,10 @@ pub enum Error {
     /// Circular dependency
     #[error("Circular dependency detected: {cycle}")]
     CircularDependency { cycle: String },
+
+    /// Template rendering error
+    #[error("Template error: {0}")]
+    Template(String),
 }
 
 impl Error {

@@ -278,7 +278,7 @@ mod tests {
         let validator = SchemaValidator::new().unwrap();
 
         let config = serde_json::json!({
-            "version": "1.0",
+            "version": "3.0",
             "name": "test-project",
             "deployment": {
                 "provider": "docker"
@@ -297,7 +297,7 @@ mod tests {
         let validator = SchemaValidator::new().unwrap();
 
         let config = serde_json::json!({
-            "version": "1.0",
+            "version": "3.0",
             "name": "Invalid-Name",  // Should be lowercase
             "deployment": {
                 "provider": "docker"
@@ -316,7 +316,7 @@ mod tests {
         let validator = SchemaValidator::new().unwrap();
 
         let yaml = r#"
-version: "1.0"
+version: "3.0"
 name: test-project
 deployment:
   provider: docker

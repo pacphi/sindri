@@ -1,0 +1,275 @@
+# =============================================================================
+# Sindri Configuration
+# =============================================================================
+# Documentation: https://sindri.dev/docs
+# Schema: https://sindri.dev/schemas/sindri.schema.json
+#
+# Quick commands:
+#   sindri config validate  - Validate this configuration
+#   sindri deploy           - Deploy environment
+#   sindri connect          - Connect to running environment
+#   sindri status           - Show deployment status
+# =============================================================================
+
+version: "3.0"
+name: {{ name }}
+
+# =============================================================================
+# DEPLOYMENT
+# =============================================================================
+deployment:
+  provider: {{ provider }}
+  image: ghcr.io/pacphi/sindri:latest
+
+  resources:
+    memory: 4GB     # 1GB, 2GB, 4GB, 8GB, 16GB
+    cpus: 2         # 1-8
+{% if provider_supports_gpu %}
+
+    # GPU support (optional - uncomment to enable)
+    # gpu:
+    #   enabled: true
+    #   type: nvidia          # nvidia | amd
+    #   count: 1              # Number of GPUs (1-8)
+    #   tier: gpu-medium      # gpu-small, gpu-medium, gpu-large, gpu-xlarge
+    #   memory: 16GB          # Minimum GPU memory required
+{% endif %}
+
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 10GB
+
+# =============================================================================
+# EXTENSIONS
+# =============================================================================
+extensions:
+  profile: {{ profile }}
+
+  # Available profiles:
+{% for p in profiles %}
+  #   {{ p.name }} - {{ p.description }}
+{% endfor %}
+
+  # Or use explicit extension list (mutually exclusive with profile):
+  # active:
+  #   - nodejs
+  #   - python
+  #   - docker
+
+  # Add extensions on top of a profile:
+  # additional:
+  #   - ollama
+  #   - monitoring
+
+  autoInstall: true    # Auto-install on startup (set false for CI/testing)
+
+# =============================================================================
+# SECRETS
+# =============================================================================
+# Secrets are injected as environment variables into the container.
+# Source types: env (from host), file (mount as file), vault (HashiCorp Vault)
+secrets:
+  # SSH public key for VS Code Remote/SSH access
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+
+  # API keys from environment variables
+  - name: ANTHROPIC_API_KEY
+    source: env
+
+  - name: GITHUB_TOKEN
+    source: env
+
+  # Example: required secret (deployment fails if missing)
+  # - name: DATABASE_URL
+  #   source: env
+  #   required: true
+
+  # Example: mount a file into the container
+  # - name: SSL_CERT
+  #   source: file
+  #   path: ./certs/server.crt
+  #   mountPath: /etc/ssl/certs/server.crt
+  #   permissions: "0644"
+
+  # Example: HashiCorp Vault integration
+  # - name: DB_PASSWORD
+  #   source: vault
+  #   vaultPath: secret/data/myapp/database
+  #   vaultKey: password
+  #   vaultMount: secret
+
+# =============================================================================
+# PROVIDER CONFIGURATION
+# =============================================================================
+providers:
+{% if provider == "fly" %}
+  # ---------------------------------------------------------------------------
+  # Fly.io Configuration
+  # ---------------------------------------------------------------------------
+  fly:
+    region: {{ default_region }}              # sjc, ord, iad, ams, nrt, fra, syd
+    autoStopMachines: true     # Suspend when idle (cost savings)
+    autoStartMachines: true    # Resume on connection
+    cpuKind: shared            # shared | performance (dedicated)
+    sshPort: 10022             # External SSH port
+
+    # organization: my-org     # Fly.io organization (optional)
+    # highAvailability: false  # Enable multiple machines
+
+  # ---------------------------------------------------------------------------
+  # VS Code Remote SSH Setup
+  # ---------------------------------------------------------------------------
+  # 1. Ensure AUTHORIZED_KEYS secret is set above
+  # 2. Deploy: sindri deploy
+  # 3. Add to ~/.ssh/config:
+  #
+  #    Host sindri-{{ name }}
+  #        HostName {{ name }}.fly.dev
+  #        Port 10022
+  #        User developer
+  #        StrictHostKeyChecking no
+  #
+  # 4. Connect in VS Code: Cmd+Shift+P -> "Remote-SSH: Connect to Host"
+  # 5. Or via terminal: ssh sindri-{{ name }}
+{% elif provider == "docker" %}
+  # ---------------------------------------------------------------------------
+  # Docker Compose Configuration
+  # ---------------------------------------------------------------------------
+  docker:
+    network: bridge            # bridge | host | none
+    restart: unless-stopped    # no | always | on-failure | unless-stopped
+    # runtime: auto            # auto | runc | sysbox-runc
+    # privileged: false        # Only for legacy DinD (security risk)
+
+    # Additional port mappings
+    # ports:
+    #   - "3000:3000"          # Web app
+    #   - "5432:5432"          # PostgreSQL
+
+    # Extra hosts (useful for local development)
+    # extraHosts:
+    #   - "host.docker.internal:host-gateway"
+{% if provider_supports_dind %}
+
+    # ---------------------------------------------------------------------------
+    # Docker-in-Docker (DinD) Configuration
+    # ---------------------------------------------------------------------------
+    # Enable running Docker commands inside Sindri containers
+    # dind:
+    #   enabled: true
+    #   mode: auto             # Detection order: sysbox > privileged > socket
+    #
+    #   # Mode options:
+    #   # - sysbox:     Secure nested containers (requires sysbox-runc on host)
+    #   # - privileged: Legacy mode with vfs driver (security risk)
+    #   # - socket:     Share host Docker daemon (not isolated)
+    #   # - auto:       Auto-detect best available mode
+    #
+    #   storageDriver: auto    # auto | overlay2 | fuse-overlayfs | vfs
+    #   storageSize: 20GB      # Size limit for Docker storage (vfs mode)
+{% endif %}
+{% elif provider == "kubernetes" %}
+  # ---------------------------------------------------------------------------
+  # Kubernetes Configuration
+  # ---------------------------------------------------------------------------
+  kubernetes:
+    namespace: {{ default_region }}
+    # storageClass: standard   # Storage class for PVCs
+
+    # Ingress configuration (optional)
+    # ingress:
+    #   enabled: true
+    #   hostname: sindri.example.com
+{% elif provider == "devpod" %}
+  # ---------------------------------------------------------------------------
+  # DevPod Configuration
+  # ---------------------------------------------------------------------------
+  # DevPod supports multiple backend providers. Specify your target.
+  devpod:
+    type: docker               # aws | gcp | azure | digitalocean | kubernetes | ssh | docker
+
+    # For cloud providers, specify a build repository for image push:
+    # buildRepository: ghcr.io/myorg/sindri
+
+    # AWS EC2 options (when type: aws)
+    # aws:
+    #   region: {{ default_region }}
+    #   instanceType: c5.xlarge
+    #   diskSize: 40            # GB
+    #   useSpot: false          # Use spot instances for cost savings
+    #   # subnetId: subnet-xxx
+    #   # securityGroupId: sg-xxx
+
+    # GCP Compute Engine options (when type: gcp)
+    # gcp:
+    #   project: my-gcp-project
+    #   zone: us-central1-a
+    #   machineType: e2-standard-4
+    #   diskSize: 40
+    #   diskType: pd-balanced   # pd-standard | pd-balanced | pd-ssd
+
+    # Azure VM options (when type: azure)
+    # azure:
+    #   subscription: xxx-xxx-xxx
+    #   resourceGroup: devpod-resources
+    #   location: eastus
+    #   vmSize: Standard_D4s_v3
+    #   diskSize: 40
+
+    # DigitalOcean Droplet options (when type: digitalocean)
+    # digitalocean:
+    #   region: nyc3
+    #   size: s-4vcpu-8gb
+
+    # Kubernetes pod options (when type: kubernetes)
+    # kubernetes:
+    #   namespace: devpod
+    #   # storageClass: standard
+    #   # context: my-cluster
+
+    # SSH to existing machine (when type: ssh)
+    # ssh:
+    #   host: 192.168.1.100
+    #   user: developer
+    #   port: 22
+    #   keyPath: ~/.ssh/id_rsa
+{% elif provider == "e2b" %}
+  # ---------------------------------------------------------------------------
+  # E2B Cloud Sandbox Configuration
+  # ---------------------------------------------------------------------------
+  # E2B provides instant cloud sandboxes optimized for AI agents.
+  # Note: E2B does not support GPU or SSH access.
+  e2b:
+    timeout: 300               # Sandbox timeout in seconds (default: 5 min)
+    autoPause: true            # Pause instead of kill on timeout
+    autoResume: true           # Auto-resume paused sandbox on connect
+    internetAccess: true       # Enable outbound internet
+
+    # Template configuration
+    # templateAlias: my-template
+    # reuseTemplate: true
+    # buildOnDeploy: false     # Force rebuild on every deploy
+
+    # Network restrictions
+    # allowedDomains: []       # Whitelist (empty = all allowed)
+    # blockedDomains: []       # Blacklist
+
+    # publicAccess: false      # Allow public URL access to services
+    # team: my-team            # E2B team for billing
+
+    # Custom metadata
+    # metadata:
+    #   project: my-project
+    #   environment: development
+
+  # ---------------------------------------------------------------------------
+  # E2B Cost Optimization Tips
+  # ---------------------------------------------------------------------------
+  # - Use short timeouts (300s) for interactive development
+  # - Enable autoPause to avoid paying for idle time
+  # - Consider timeout: 60 for automated testing
+  # - Set buildOnDeploy: false to reuse templates (faster startup)
+{% endif %}

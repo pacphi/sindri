@@ -10,6 +10,7 @@ pub mod config;
 pub mod error;
 pub mod retry;
 pub mod schema;
+pub mod templates;
 pub mod types;
 
 pub use config::SindriConfig;

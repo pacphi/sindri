@@ -32,6 +32,8 @@ This directory contains Architecture Decision Records documenting key architectu
 | [024](024-template-based-project-scaffolding.md)         | Template-Based Project Scaffolding         | 7     | Accepted |
 | [025](025-git-operations-repository-management.md)       | Git Operations and Repository Management   | 7     | Accepted |
 | [026](026-extension-version-lifecycle-management.md)     | Extension Version Lifecycle Management     | 4     | Accepted |
+| [027](027-tool-dependency-management-system.md)          | Tool Dependency Management System          | 8     | Accepted |
+| [028](028-config-init-template-generation.md)            | Config Init Template Generation            | -     | Accepted |
 
 ## By Phase
 
@@ -84,11 +86,11 @@ This directory contains Architecture Decision Records documenting key architectu
 
 ## ADR Statistics
 
-- **Total ADRs**: 26
-- **Total Lines**: 12,000+ lines
-- **Total Size**: ~370KB
-- **Phases Covered**: 1-7 (of 8)
-- **Implementation Status**: Phases 1-7 complete
+- **Total ADRs**: 28
+- **Total Lines**: 12,500+ lines
+- **Total Size**: ~400KB
+- **Phases Covered**: 1-8
+- **Implementation Status**: Phases 1-8 complete
 
 ## Key Architectural Themes
 
@@ -131,7 +133,7 @@ This directory contains Architecture Decision Records documenting key architectu
 
 When adding new ADRs:
 
-1. Use sequential numbering (next: 027)
+1. Use sequential numbering (next: 029)
 2. Follow template structure (Context → Decision → Consequences)
 3. Include implementation details and code examples
 4. Link to related ADRs

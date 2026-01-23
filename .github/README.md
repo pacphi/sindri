@@ -62,6 +62,7 @@ For detailed workflow architecture, test suites, and provider configuration, see
 **Triggers**: Changes to `v2/` directory
 
 **Jobs**:
+
 - **build**: Docker image from `v2/Dockerfile`
 - **generate-matrix**: Provider test matrix
 - **test-providers**: Unified provider testing
@@ -72,6 +73,7 @@ For detailed workflow architecture, test suites, and provider configuration, see
 **Triggers**: Changes to `v3/` directory
 
 **Jobs**:
+
 - **rust-format**: `cargo fmt --check`
 - **rust-clippy**: `cargo clippy` linting
 - **rust-test**: `cargo test` unit tests
@@ -83,13 +85,13 @@ For detailed workflow architecture, test suites, and provider configuration, see
 
 ## Validation Workflows
 
-Validation is handled by dedicated workflows (not by ci-* workflows):
+Validation is handled by dedicated workflows (not by ci-\* workflows):
 
-| Workflow | Triggers | Purpose |
-|----------|----------|---------|
-| `validate-yaml.yml` | `**.yaml`, `**.yml` | YAML linting, schema validation, cross-references |
-| `validate-shell.yml` | `**.sh` | Shellcheck for v2 and GitHub scripts |
-| `validate-markdown.yml` | `**.md` | Markdownlint for v2, v3, and root docs |
+| Workflow                | Triggers            | Purpose                                           |
+| ----------------------- | ------------------- | ------------------------------------------------- |
+| `validate-yaml.yml`     | `**.yaml`, `**.yml` | YAML linting, schema validation, cross-references |
+| `validate-shell.yml`    | `**.sh`             | Shellcheck for v2 and GitHub scripts              |
+| `validate-markdown.yml` | `**.md`             | Markdownlint for v2, v3, and root docs            |
 
 ## Release Workflows
 
@@ -157,16 +159,16 @@ git push origin v3.0.0
 
 ## Other Workflows
 
-| Workflow | Purpose |
-|----------|---------|
-| `test-provider.yml` | Unified provider testing (CLI + extensions + integration) |
-| `test-extensions-v2.yml` | Registry-based v2 extension testing |
-| `test-profiles.yml` | Config-driven profile testing |
-| `deploy-sindri.yml` | Reusable deployment (workflow_call) |
-| `teardown-sindri.yml` | Reusable teardown (workflow_call) |
-| `manual-deploy.yml` | Manual deployment with rich UI options |
-| `check-links.yml` | Documentation link checking |
-| `cleanup-workflow-runs.yml` | Workflow run cleanup |
+| Workflow                    | Purpose                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| `test-provider.yml`         | Unified provider testing (CLI + extensions + integration) |
+| `test-extensions-v2.yml`    | Registry-based v2 extension testing                       |
+| `test-profiles.yml`         | Config-driven profile testing                             |
+| `deploy-sindri.yml`         | Reusable deployment (workflow_call)                       |
+| `teardown-sindri.yml`       | Reusable teardown (workflow_call)                         |
+| `manual-deploy.yml`         | Manual deployment with rich UI options                    |
+| `check-links.yml`           | Documentation link checking                               |
+| `cleanup-workflow-runs.yml` | Workflow run cleanup                                      |
 
 See [WORKFLOW_ARCHITECTURE.md](./WORKFLOW_ARCHITECTURE.md) for detailed documentation on test suites, provider configuration, and YAML-driven testing.
 

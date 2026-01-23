@@ -2,6 +2,7 @@
 
 use crate::error::{Error, Result};
 use crate::schema::SchemaValidator;
+use crate::templates::{ConfigInitContext, ConfigTemplateRegistry};
 use crate::types::{
     DeploymentConfig, ExtensionsConfig, Provider, ProvidersConfig, ResourcesConfig, SecretConfig,
     SindriConfigFile, VolumesConfig,
@@ -120,7 +121,7 @@ impl SindriConfig {
     /// Create a new default configuration
     pub fn new_default(name: &str, provider: Provider) -> SindriConfigFile {
         SindriConfigFile {
-            version: "1.0".to_string(),
+            version: "3.0".to_string(),
             name: name.to_string(),
             deployment: DeploymentConfig {
                 provider,
@@ -199,14 +200,34 @@ impl SindriConfig {
     }
 }
 
-/// Generate a default sindri.yaml content
-pub fn generate_default_config(name: &str, provider: Provider) -> String {
-    format!(
-        r#"---
-# Sindri Configuration
-# Documentation: https://sindri.dev/docs
+/// Generate a default sindri.yaml content using templates
+///
+/// # Arguments
+/// * `name` - Project name
+/// * `provider` - Deployment provider
+/// * `profile` - Extension profile to use
+///
+/// # Returns
+/// Generated YAML configuration string
+pub fn generate_config(name: &str, provider: Provider, profile: &str) -> Result<String> {
+    let registry = ConfigTemplateRegistry::new().map_err(|e| Error::Template(e.to_string()))?;
+    let context = ConfigInitContext::new(name, provider, profile);
+    registry
+        .render_config(&context)
+        .map_err(|e| Error::Template(e.to_string()))
+}
 
-version: "1.0"
+/// Generate a default sindri.yaml content (legacy wrapper)
+///
+/// This function is kept for backward compatibility.
+/// Prefer using `generate_config` which accepts a profile parameter.
+pub fn generate_default_config(name: &str, provider: Provider) -> String {
+    generate_config(name, provider, "minimal").unwrap_or_else(|_| {
+        // Fallback to minimal hardcoded config if template fails
+        format!(
+            r#"---
+# Sindri Configuration
+version: "3.0"
 name: {name}
 
 deployment:
@@ -218,28 +239,11 @@ deployment:
 
 extensions:
   profile: minimal
-  # Or use explicit extension list:
-  # active:
-  #   - nodejs
-  #   - python
-  #   - docker
-
-# secrets:
-#   - name: GITHUB_TOKEN
-#     source: env
-#   - name: ANTHROPIC_API_KEY
-#     source: env
-#     required: true
-
-# providers:
-#   fly:
-#     region: sjc
-#   docker:
-#     network: bridge
 "#,
-        name = name,
-        provider = provider
-    )
+            name = name,
+            provider = provider
+        )
+    })
 }
 
 #[cfg(test)]
@@ -256,7 +260,7 @@ mod tests {
     #[test]
     fn test_parse_minimal_config() {
         let yaml = r#"
-version: "1.0"
+version: "3.0"
 name: test-project
 deployment:
   provider: docker
@@ -272,7 +276,7 @@ extensions:
     #[test]
     fn test_parse_full_config() {
         let yaml = r#"
-version: "1.0"
+version: "3.0"
 name: full-project
 deployment:
   provider: fly

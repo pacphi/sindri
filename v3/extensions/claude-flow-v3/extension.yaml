@@ -282,7 +282,25 @@ capabilities:
         detected-version: "v2"
         installing-version: "3.0.0"
         action: stop
-        message: "⚠️  Claude Flow V2 installation detected\n\nYour project has an existing Claude Flow V2 setup.\nTo migrate to V3, please run these commands manually:\n\n  1. Install claude-flow-v3:\n     extension-manager install claude-flow-v3\n\n  2. Migrate memory (AgentDB → HNSW):\n     cf-memory-migrate --from v2 --to v3\n\n  3. Migrate configuration:\n     cf-doctor-fix\n\n\U0001F4D6 Full migration guide:\n   https://github.com/ruvnet/claude-flow/wiki/Migrating-to-V3\n\nSkipping automatic initialization to prevent data loss.\n"
+        message: |
+          ⚠️  Claude Flow V2 installation detected
+
+          Your project has an existing Claude Flow V2 setup.
+          To migrate to V3, please run these commands manually:
+
+            1. Install claude-flow-v3:
+               extension-manager install claude-flow-v3
+
+            2. Migrate memory (AgentDB → HNSW):
+               cf-memory-migrate --from v2 --to v3
+
+            3. Migrate configuration:
+               cf-doctor-fix
+
+          📖 Full migration guide:
+             https://github.com/ruvnet/claude-flow/wiki/Migrating-to-V3
+
+          Skipping automatic initialization to prevent data loss.
       # Scenario 2: Same version already installed
       - name: "same-version-v3"
         detected-version: "v3"

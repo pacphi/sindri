@@ -6,7 +6,7 @@ use std::collections::HashMap;
 /// Root sindri.yaml configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SindriConfigFile {
-    /// Configuration schema version (e.g., "1.0")
+    /// Configuration schema version (e.g., "3.0")
     pub version: String,
 
     /// Deployment name (lowercase, hyphens allowed)

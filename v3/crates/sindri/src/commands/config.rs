@@ -2,7 +2,7 @@
 
 use anyhow::{anyhow, Result};
 use camino::Utf8Path;
-use sindri_core::config::{generate_default_config, SindriConfig};
+use sindri_core::config::{generate_config, SindriConfig};
 use sindri_core::schema::SchemaValidator;
 use sindri_core::types::Provider;
 
@@ -46,8 +46,9 @@ fn init(args: ConfigInitArgs) -> Result<()> {
         _ => return Err(anyhow!("Unknown provider: {}", args.provider)),
     };
 
-    // Generate config
-    let content = generate_default_config(&name, provider);
+    // Generate config using template with selected profile
+    let content = generate_config(&name, provider, &args.profile)
+        .map_err(|e| anyhow!("Failed to generate config: {}", e))?;
 
     // Write file
     std::fs::write(&args.output, content)?;

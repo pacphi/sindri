@@ -4251,6 +4251,7 @@ dependencies = [
  "serde_yaml",
  "serial_test",
  "tempfile",
+ "tera",
  "thiserror 1.0.69",
  "tokio",
  "tracing",

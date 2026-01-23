@@ -86,12 +86,14 @@ test/                             # Test suites
 Sindri uses bifurcated CI pipelines for v2 and v3:
 
 **ci-v2.yml** - v2 Bash/Docker CI:
+
 - Validates shell scripts (shellcheck)
 - Validates markdown (markdownlint)
 - Builds Docker images
 - Runs unified provider tests via `test-provider.yml`
 
 **ci-v3.yml** - v3 Rust CI:
+
 - Rust formatting (`cargo fmt`)
 - Clippy linting (`cargo clippy`)
 - Unit tests (`cargo test`)
@@ -116,6 +118,7 @@ FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
 ```
 
 **Triggers:**
+
 - Push to main/develop/feature branches (path-filtered)
 - Pull requests (path-filtered)
 - Manual dispatch with provider selection
