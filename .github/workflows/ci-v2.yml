@@ -103,7 +103,7 @@ jobs:
           IMAGE_TAG="sindri-v2:ci-${{ github.sha }}"
 
           docker buildx build \
-            --file Dockerfile \
+            --file v2/Dockerfile \
             --tag "$IMAGE_TAG" \
             --load \
             --cache-from type=gha \
