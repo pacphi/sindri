@@ -196,9 +196,10 @@ primary_region = "${REGION}"
 
 # Build configuration
 # Context is v2/ directory where Dockerfile COPY commands find docker/, cli/, deploy/
+# Note: dockerfile path is relative to working directory, not context
 [build]
   context = "v2"
-  dockerfile = "Dockerfile"
+  dockerfile = "v2/Dockerfile"
 
 # Note: No [processes] section needed - Docker's ENTRYPOINT runs the entrypoint script
 # The entrypoint checks CI_MODE to decide whether to start SSH daemon
