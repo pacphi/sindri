@@ -33,6 +33,31 @@ deployment:
     #   count: 1              # Number of GPUs (1-8)
     #   tier: gpu-medium      # gpu-small, gpu-medium, gpu-large, gpu-xlarge
     #   memory: 16GB          # Minimum GPU memory required
+{% if provider == "fly" %}
+    #
+    # GPU machines available in limited regions:
+    #   - ord (Chicago, US Central)
+    #   - sjc (San Jose, US West)
+    # Other regions may not have GPU capacity.
+{% elif provider == "devpod" %}
+    #
+    # GPU tier to cloud instance mappings:
+    #   AWS:
+    #     gpu-small:  g4dn.xlarge (T4, 16GB)
+    #     gpu-medium: g5.2xlarge (A10G, 24GB)
+    #     gpu-large:  g5.4xlarge (A10G, 24GB)
+    #     gpu-xlarge: p4d.24xlarge (A100 x8, 640GB)
+    #   GCP:
+    #     gpu-small:  n1-standard-4 + nvidia-tesla-t4
+    #     gpu-medium: n1-standard-8 + nvidia-tesla-a10g
+    #     gpu-large:  g2-standard-16 + nvidia-l4
+    #     gpu-xlarge: a2-megagpu-16g + nvidia-a100-80gb x8
+    #   Azure:
+    #     gpu-small:  Standard_NC4as_T4_v3
+    #     gpu-medium: Standard_NC8as_T4_v3
+    #     gpu-large:  Standard_NC24ads_A100_v4
+    #     gpu-xlarge: Standard_ND96amsr_A100_v4
+{% endif %}
 {% endif %}
 
   volumes:
@@ -100,6 +125,32 @@ secrets:
   #   vaultPath: secret/data/myapp/database
   #   vaultKey: password
   #   vaultMount: secret
+{% if provider == "fly" %}
+
+# ---------------------------------------------------------------------------
+# Fly.io Secrets Reference
+# ---------------------------------------------------------------------------
+# Set secrets via: flyctl secrets set KEY=value -a {{ name }}
+#
+# Core secrets:
+#   AUTHORIZED_KEYS      - SSH public key for key-based auth (recommended)
+#                          flyctl secrets set "AUTHORIZED_KEYS=$(cat ~/.ssh/id_ed25519.pub)" -a {{ name }}
+#   ANTHROPIC_API_KEY    - Claude API authentication
+#   GITHUB_TOKEN         - GitHub authentication for git operations
+#   GIT_USER_NAME        - Git config user.name
+#   GIT_USER_EMAIL       - Git config user.email
+#   GITHUB_USER          - GitHub username for gh CLI
+#
+# AI tools (optional):
+#   OPENROUTER_API_KEY   - Multi-provider AI gateway (cost-optimized models)
+#   GOOGLE_GEMINI_API_KEY - Google Gemini API (free-tier access)
+#   PERPLEXITY_API_KEY   - Perplexity API (research assistant)
+#   XAI_API_KEY          - xAI Grok SDK authentication
+#
+# Package registries (recommended):
+#   NPM_TOKEN            - npm auth (bypasses rate limits, required for reliable installs)
+#   PYPI_TOKEN           - PyPI package publishing
+{% endif %}
 
 # =============================================================================
 # PROVIDER CONFIGURATION
@@ -134,6 +185,21 @@ providers:
   #
   # 4. Connect in VS Code: Cmd+Shift+P -> "Remote-SSH: Connect to Host"
   # 5. Or via terminal: ssh sindri-{{ name }}
+
+  # ---------------------------------------------------------------------------
+  # Fly.io Development Workflow
+  # ---------------------------------------------------------------------------
+  # 1. Deploy: sindri deploy
+  # 2. Set secrets:
+  #    flyctl secrets set "AUTHORIZED_KEYS=$(cat ~/.ssh/id_ed25519.pub)" -a {{ name }}
+  #    flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a {{ name }}
+  #    flyctl secrets set GITHUB_TOKEN=ghp_... -a {{ name }}
+  # 3. Connect: ssh developer@{{ name }}.fly.dev -p 10022
+  #    Alternative: flyctl ssh console -a {{ name }}
+  # 4. Work: All files in $HOME (/alt/home/developer) are persistent
+  #    Projects go in $WORKSPACE (/alt/home/developer/workspace)
+  # 5. Idle: VM automatically suspends after inactivity
+  # 6. Resume: VM starts automatically on next connection
 {% elif provider == "docker" %}
   # ---------------------------------------------------------------------------
   # Docker Compose Configuration
@@ -157,19 +223,38 @@ providers:
     # ---------------------------------------------------------------------------
     # Docker-in-Docker (DinD) Configuration
     # ---------------------------------------------------------------------------
-    # Enable running Docker commands inside Sindri containers
+    # Enable running Docker commands inside Sindri containers.
+    # Required for running containers, building images, or docker-compose inside Sindri.
+    #
     # dind:
     #   enabled: true
     #   mode: auto             # Detection order: sysbox > privileged > socket
-    #
-    #   # Mode options:
-    #   # - sysbox:     Secure nested containers (requires sysbox-runc on host)
-    #   # - privileged: Legacy mode with vfs driver (security risk)
-    #   # - socket:     Share host Docker daemon (not isolated)
-    #   # - auto:       Auto-detect best available mode
-    #
     #   storageDriver: auto    # auto | overlay2 | fuse-overlayfs | vfs
     #   storageSize: 20GB      # Size limit for Docker storage (vfs mode)
+    #
+    # DinD Mode Details:
+    #
+    #   sysbox (Recommended)
+    #     - Secure isolation using Sysbox runtime
+    #     - Requires host setup: ./scripts/setup-sysbox-host.sh
+    #     - Best security, uses overlay2 storage driver
+    #     - Full Docker functionality without security compromise
+    #
+    #   privileged (Legacy)
+    #     - Works everywhere but less secure
+    #     - Uses vfs storage driver (slower, more disk space)
+    #     - Container has elevated privileges on host
+    #     - Only use when sysbox is unavailable
+    #
+    #   socket (Simple)
+    #     - Shares host Docker daemon via socket mount
+    #     - Simple setup, no additional privileges
+    #     - Inner containers run on host Docker (not isolated)
+    #     - Good for CI/CD pipelines that just need docker commands
+    #
+    #   auto (Default)
+    #     - Auto-detect: sysbox if available, else check privileged flag
+    #     - Falls back to socket if neither available
 {% endif %}
 {% elif provider == "kubernetes" %}
   # ---------------------------------------------------------------------------
@@ -183,6 +268,48 @@ providers:
     # ingress:
     #   enabled: true
     #   hostname: sindri.example.com
+
+  # ---------------------------------------------------------------------------
+  # Local Kubernetes Clusters (kind/k3d)
+  # ---------------------------------------------------------------------------
+  # For local development, use kind or k3d to create a K8s cluster:
+  #
+  # kind (Kubernetes IN Docker) - Full K8s
+  #   Context: kind-<cluster-name>
+  #   Install: brew install kind (macOS) or direct download
+  #   Create: sindri k8s create --provider kind --name my-cluster
+  #   Image loading: kind load docker-image <image> --name <cluster>
+  #
+  # k3d (K3s in Docker) - Lightweight K8s
+  #   Context: k3d-<cluster-name>
+  #   Install: brew install k3d (macOS) or curl install script
+  #   Create: sindri k8s create --provider k3d --name my-cluster
+  #   Image loading: k3d image import <image> --cluster <cluster>
+  #   Built-in registry: k3d cluster create --registry-create
+  #
+  # Commands:
+  #   sindri k8s create --provider kind --name my-cluster
+  #   sindri k8s create --provider k3d --name my-cluster
+  #   sindri k8s list    # Show all kind and k3d clusters
+  #   sindri k8s destroy --name my-cluster
+  #
+  # k8s:
+  #   provider: kind              # kind | k3d
+  #   clusterName: {{ name }}
+  #   version: v1.31.0           # Kubernetes version
+  #   nodes: 1                   # 1 = single node, >1 = multi-node
+  #
+  #   # k3d-specific: local registry
+  #   # k3d:
+  #   #   registry:
+  #   #     enabled: true
+  #   #     name: k3d-registry
+  #   #     port: 5000
+  #   #
+  #   # Usage:
+  #   #   docker tag myimage localhost:5000/myimage
+  #   #   docker push localhost:5000/myimage
+  #   #   # Images available in cluster at k3d-registry:5000/myimage
 {% elif provider == "devpod" %}
   # ---------------------------------------------------------------------------
   # DevPod Configuration
@@ -229,6 +356,15 @@ providers:
     #   namespace: devpod
     #   # storageClass: standard
     #   # context: my-cluster
+    #   #
+    #   # Local K8s cluster detection:
+    #   #   - kind: context pattern "kind-<cluster-name>"
+    #   #   - k3d: context pattern "k3d-<cluster-name>"
+    #   #
+    #   # Benefits of local cluster:
+    #   #   - No registry push needed (image loaded directly)
+    #   #   - Faster iteration cycle
+    #   #   - No registry auth required
 
     # SSH to existing machine (when type: ssh)
     # ssh:
@@ -236,12 +372,32 @@ providers:
     #   user: developer
     #   port: 22
     #   keyPath: ~/.ssh/id_rsa
+
+  # ---------------------------------------------------------------------------
+  # Docker Registry Authentication
+  # ---------------------------------------------------------------------------
+  # For cloud deployments (AWS, GCP, Azure), you need registry auth:
+  #
+  # ghcr.io (GitHub):
+  #   Set GITHUB_TOKEN environment variable
+  #   Or: echo $GITHUB_TOKEN | docker login ghcr.io -u <username> --password-stdin
+  #
+  # AWS ECR:
+  #   aws ecr get-login-password --region <region> | docker login ...
+  #
+  # GCP GCR/Artifact Registry:
+  #   Set GOOGLE_APPLICATION_CREDENTIALS
+  #   Or: gcloud auth configure-docker
+  #
+  # Generic:
+  #   Set DOCKER_USERNAME and DOCKER_PASSWORD
+  #   Or add to .env/.env.local
 {% elif provider == "e2b" %}
   # ---------------------------------------------------------------------------
   # E2B Cloud Sandbox Configuration
   # ---------------------------------------------------------------------------
   # E2B provides instant cloud sandboxes optimized for AI agents.
-  # Note: E2B does not support GPU or SSH access.
+  # Required: E2B_API_KEY from https://e2b.dev/dashboard
   e2b:
     timeout: 300               # Sandbox timeout in seconds (default: 5 min)
     autoPause: true            # Pause instead of kill on timeout
@@ -266,10 +422,24 @@ providers:
     #   environment: development
 
   # ---------------------------------------------------------------------------
+  # E2B Limitations
+  # ---------------------------------------------------------------------------
+  # - No GPU support (use fly/devpod/docker for GPU workloads)
+  # - No SSH access (uses WebSocket PTY terminal instead)
+  # - Max 24hr active session, 30-day pause retention
+  # - ~150ms startup time (after template is built)
+  #
+  # Pause/Resume workflow:
+  #   sindri pause    - Preserves memory + filesystem state
+  #   sindri connect  - Auto-resumes if autoResume: true
+
+  # ---------------------------------------------------------------------------
   # E2B Cost Optimization Tips
   # ---------------------------------------------------------------------------
   # - Use short timeouts (300s) for interactive development
   # - Enable autoPause to avoid paying for idle time
   # - Consider timeout: 60 for automated testing
   # - Set buildOnDeploy: false to reuse templates (faster startup)
+  # - Paused sandboxes: no compute cost (only snapshot storage)
+  # - Data expires 30 days from initial sandbox creation
 {% endif %}
