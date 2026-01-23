@@ -4193,6 +4193,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "sindri-clusters",
  "sindri-core",
  "sindri-doctor",
  "sindri-extensions",
@@ -4232,6 +4233,25 @@ dependencies = [
  "tracing",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "sindri-clusters"
+version = "3.0.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sindri-core",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "which",
 ]
 
 [[package]]

@@ -37,6 +37,7 @@ async fn main() -> Result<()> {
         Commands::Restore(args) => commands::restore::run(args).await,
         Commands::Project(args) => commands::project::run(args).await,
         Commands::Doctor(args) => commands::doctor::run(args).await,
+        Commands::K8s(args) => commands::k8s::run(args).await,
     }
 }
 

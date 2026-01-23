@@ -578,8 +578,8 @@
             "version": {
               "type": "string",
               "pattern": "^v?\\d+\\.\\d+\\.\\d+$",
-              "default": "v1.31.0",
-              "description": "Kubernetes version"
+              "default": "v1.35.0",
+              "description": "Kubernetes version (LTS support until Feb 2027)"
             },
             "nodes": {
               "type": "integer",

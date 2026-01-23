@@ -78,6 +78,10 @@ pub enum Commands {
 
     /// Check system for required tools and dependencies
     Doctor(DoctorArgs),
+
+    /// Local Kubernetes cluster management (kind/k3d)
+    #[command(subcommand)]
+    K8s(K8sCommands),
 }
 
 // Version command
@@ -601,4 +605,116 @@ pub struct DoctorArgs {
     /// Check a specific extension's tool requirements
     #[arg(long, value_name = "NAME")]
     pub extension: Option<String>,
+}
+
+// K8s cluster management commands
+#[derive(Subcommand, Debug)]
+pub enum K8sCommands {
+    /// Create a local Kubernetes cluster
+    Create(K8sCreateArgs),
+
+    /// Destroy a local Kubernetes cluster
+    Destroy(K8sDestroyArgs),
+
+    /// List local Kubernetes clusters
+    List(K8sListArgs),
+
+    /// Show cluster status
+    Status(K8sStatusArgs),
+
+    /// Show kubeconfig for a cluster
+    Config(K8sConfigArgs),
+
+    /// Install cluster management tools (kind/k3d)
+    Install(K8sInstallArgs),
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub struct K8sCreateArgs {
+    /// Cluster provider (kind, k3d)
+    #[arg(short, long, default_value = "kind")]
+    pub provider: String,
+
+    /// Cluster name
+    #[arg(short, long, default_value = "sindri-local")]
+    pub name: String,
+
+    /// Number of nodes (1 = single node, >1 = 1 control-plane + N-1 workers)
+    #[arg(short = 'N', long, default_value = "1")]
+    pub nodes: u32,
+
+    /// Kubernetes version
+    #[arg(long = "k8s-version", default_value = "v1.35.0")]
+    pub version: String,
+
+    /// Enable local registry (k3d only)
+    #[arg(long)]
+    pub registry: bool,
+
+    /// Registry port (k3d only, default: 5000)
+    #[arg(long, default_value = "5000")]
+    pub registry_port: u16,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct K8sDestroyArgs {
+    /// Cluster name
+    #[arg(short, long, default_value = "sindri-local")]
+    pub name: String,
+
+    /// Skip confirmation
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct K8sListArgs {
+    /// Cluster provider (kind, k3d, or all)
+    #[arg(short, long)]
+    pub provider: Option<String>,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct K8sStatusArgs {
+    /// Cluster name
+    #[arg(short, long, default_value = "sindri-local")]
+    pub name: String,
+
+    /// Cluster provider (kind, k3d - auto-detected if not specified)
+    #[arg(short, long)]
+    pub provider: Option<String>,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct K8sConfigArgs {
+    /// Cluster name
+    #[arg(short, long, default_value = "sindri-local")]
+    pub name: String,
+
+    /// Cluster provider (kind, k3d - auto-detected if not specified)
+    #[arg(short, long)]
+    pub provider: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct K8sInstallArgs {
+    /// Tool to install (kind, k3d)
+    pub tool: String,
+
+    /// Skip confirmation
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }

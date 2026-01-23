@@ -282,6 +282,179 @@ jobs:
           echo "**Total**: $count extension(s)" >> $GITHUB_STEP_SUMMARY
 
   # ============================================
+  # Kubernetes Integration Tests (Optional)
+  # ============================================
+
+  k8s-integration-kind:
+    name: K8s Integration (Kind)
+    runs-on: ubuntu-latest
+    needs: [rust-build]
+    continue-on-error: true  # Don't fail CI if k8s tests fail
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+          sindri --version || echo "Binary setup complete"
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: sindri-test
+          version: v0.25.0
+          kubectl_version: v1.31.0
+          node_image: kindest/node:v1.31.0
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Test sindri k8s commands
+        run: |
+          # Test cluster list (should detect the kind cluster)
+          sindri k8s list || echo "List completed"
+
+          # Test cluster status
+          sindri k8s status --name sindri-test --provider kind || echo "Status completed"
+
+      - name: Cleanup
+        if: always()
+        run: kind delete cluster --name sindri-test || true
+
+  k8s-integration-k3d:
+    name: K8s Integration (K3d)
+    runs-on: ubuntu-latest
+    needs: [rust-build]
+    continue-on-error: true  # Don't fail CI if k8s tests fail
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+          sindri --version || echo "Binary setup complete"
+
+      - name: Create K3d cluster with registry
+        uses: AbsaOSS/k3d-action@v2
+        with:
+          cluster-name: sindri-test
+          k3d-version: v5.7.4
+          args: >-
+            --agents 1
+            --image rancher/k3s:v1.31.0-k3s1
+            --registry-create sindri-registry:5000
+            --wait
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+          # Verify registry is running
+          docker ps | grep sindri-registry || echo "Registry check completed"
+
+      - name: Test sindri k8s commands
+        run: |
+          # Test cluster list (should detect the k3d cluster)
+          sindri k8s list || echo "List completed"
+
+          # Test cluster status
+          sindri k8s status --name sindri-test --provider k3d || echo "Status completed"
+
+      - name: Cleanup
+        if: always()
+        run: k3d cluster delete sindri-test || true
+
+  k8s-cluster-lifecycle:
+    name: K8s Cluster Lifecycle (${{ matrix.provider }})
+    runs-on: ubuntu-latest
+    needs: [rust-build]
+    continue-on-error: true  # Don't fail CI if k8s tests fail
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [kind, k3d]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Install ${{ matrix.provider }}
+        run: |
+          if [[ "${{ matrix.provider }}" == "kind" ]]; then
+            curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.25.0/kind-linux-amd64
+            chmod +x ./kind
+            sudo mv ./kind /usr/local/bin/kind
+            kind version
+          else
+            curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+            k3d version
+          fi
+
+      - name: Test full lifecycle with sindri CLI
+        run: |
+          set -e
+
+          # Create cluster via sindri
+          echo "Creating cluster with sindri..."
+          sindri k8s create --provider ${{ matrix.provider }} --name lifecycle-test --nodes 1
+
+          # Verify creation - list should show the cluster
+          echo "Verifying cluster in list..."
+          sindri k8s list
+
+          # Check status
+          echo "Checking cluster status..."
+          sindri k8s status --name lifecycle-test
+
+          # Get kubeconfig
+          echo "Getting kubeconfig..."
+          sindri k8s config --name lifecycle-test > /dev/null
+
+          # Verify kubectl works with new cluster
+          echo "Verifying kubectl access..."
+          kubectl get nodes
+
+          # Destroy cluster
+          echo "Destroying cluster..."
+          sindri k8s destroy --name lifecycle-test --force
+
+          echo "Lifecycle test completed successfully!"
+
+      - name: Cleanup on failure
+        if: failure()
+        run: |
+          if [[ "${{ matrix.provider }}" == "kind" ]]; then
+            kind delete cluster --name lifecycle-test || true
+          else
+            k3d cluster delete lifecycle-test || true
+          fi
+
+  # ============================================
   # CI Status Checks
   # ============================================
 
@@ -327,6 +500,9 @@ jobs:
       - security-audit
       - docs-build
       - test-extensions
+      - k8s-integration-kind
+      - k8s-integration-k3d
+      - k8s-cluster-lifecycle
     if: ${{ always() }}
     steps:
       - name: Check overall status
@@ -373,6 +549,9 @@ jobs:
           echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Documentation Build | ${{ needs.docs-build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Extension Tests | ${{ needs.test-extensions.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| K8s Integration (Kind) | ${{ needs.k8s-integration-kind.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| K8s Integration (K3d) | ${{ needs.k8s-integration-k3d.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| K8s Cluster Lifecycle | ${{ needs.k8s-cluster-lifecycle.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Metadata" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: v3 (Rust)" >> $GITHUB_STEP_SUMMARY

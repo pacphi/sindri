@@ -498,8 +498,11 @@ impl Provider for KubernetesProvider {
             });
         }
 
-        // Check for local cluster tools (optional)
-        if self.has_kind() {
+        // Check for local cluster tools (optional but recommended)
+        let has_kind = self.has_kind();
+        let has_k3d = self.has_k3d();
+
+        if has_kind {
             let version =
                 get_command_version("kind", "version").unwrap_or_else(|_| "unknown".to_string());
             available.push(Prerequisite {
@@ -510,7 +513,7 @@ impl Provider for KubernetesProvider {
             });
         }
 
-        if self.has_k3d() {
+        if has_k3d {
             let version =
                 get_command_version("k3d", "version").unwrap_or_else(|_| "unknown".to_string());
             available.push(Prerequisite {
@@ -521,8 +524,23 @@ impl Provider for KubernetesProvider {
             });
         }
 
+        // Suggest installing cluster tools if neither is available
+        if !has_kind && !has_k3d {
+            missing.push(Prerequisite {
+                name: "cluster-tool".to_string(),
+                description: "Local cluster tool (kind or k3d)".to_string(),
+                install_hint: Some(
+                    "Install kind or k3d for local development:\n  \
+                     sindri k8s install kind\n  \
+                     sindri k8s install k3d"
+                        .to_string(),
+                ),
+                version: None,
+            });
+        }
+
         Ok(PrerequisiteStatus {
-            satisfied: missing.is_empty(),
+            satisfied: missing.iter().all(|p| p.name == "cluster-tool"),
             missing,
             available,
         })
@@ -543,9 +561,39 @@ impl Provider for KubernetesProvider {
             ));
         }
 
-        // Detect cluster type
+        // Detect cluster type and check for cluster availability
         let cluster_type = self.detect_cluster_type().await;
         debug!("Detected cluster type: {:?}", cluster_type);
+
+        // Check if we have any cluster context available
+        if matches!(cluster_type, ClusterType::Remote) {
+            // Verify kubectl can access a cluster
+            let cluster_check = Command::new("kubectl")
+                .args(["cluster-info"])
+                .output()
+                .await;
+
+            if cluster_check.map(|o| !o.status.success()).unwrap_or(true) {
+                let has_kind = self.has_kind();
+                let has_k3d = self.has_k3d();
+
+                let suggestion = if has_kind || has_k3d {
+                    let provider = if has_kind { "kind" } else { "k3d" };
+                    format!(
+                        "No Kubernetes cluster available. Create one with:\n  \
+                         sindri k8s create --provider {} --name sindri-local",
+                        provider
+                    )
+                } else {
+                    "No Kubernetes cluster available. Install a cluster tool first:\n  \
+                     sindri k8s install kind\n  \
+                     sindri k8s install k3d"
+                        .to_string()
+                };
+
+                return Err(anyhow!("{}", suggestion));
+            }
+        }
 
         // Generate manifests
         let manifest_path = self.generate_manifests(config, &self.output_dir)?;
