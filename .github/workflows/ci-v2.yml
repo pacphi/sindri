@@ -102,13 +102,14 @@ jobs:
         run: |
           IMAGE_TAG="sindri-v2:ci-${{ github.sha }}"
 
+          # Build context is repo root because Dockerfile uses explicit v2/ paths
           docker buildx build \
             --file v2/Dockerfile \
             --tag "$IMAGE_TAG" \
             --load \
             --cache-from type=gha \
             --cache-to type=gha,mode=max \
-            v2
+            .
 
           echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
