@@ -284,7 +284,7 @@ runs:
 
             echo "::group::Step 2.D3: Deploy container"
             echo "→ Running: docker-adapter.sh deploy --skip-build --ci-mode $CONFIG"
-            ./deploy/adapters/docker-adapter.sh deploy --skip-build --ci-mode "$CONFIG"
+            ./v2/deploy/adapters/docker-adapter.sh deploy --skip-build --ci-mode "$CONFIG"
             echo "::endgroup::"
 
             echo "::group::Step 2.D4: Verify container ready"
@@ -305,7 +305,7 @@ runs:
             echo "::group::Step 2.F1: Deploy to Fly.io"
             echo "→ App name: $APP_NAME"
             echo "→ Running: fly-adapter.sh deploy --ci-mode --app-name $APP_NAME $CONFIG"
-            ./deploy/adapters/fly-adapter.sh deploy --ci-mode --app-name "$APP_NAME" "$CONFIG"
+            ./v2/deploy/adapters/fly-adapter.sh deploy --ci-mode --app-name "$APP_NAME" "$CONFIG"
             echo "::endgroup::"
 
             TARGET_ID="$APP_NAME"
@@ -333,7 +333,7 @@ runs:
 
             echo "::group::Step 2.P2: Create DevPod workspace"
             echo "→ Running: devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS $CONFIG"
-            ./deploy/adapters/devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS "$CONFIG"
+            ./v2/deploy/adapters/devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS "$CONFIG"
             echo "::endgroup::"
 
             TARGET_ID="$WORKSPACE_ID"
