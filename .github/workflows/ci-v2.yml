@@ -110,14 +110,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # NEW: Generate metadata with CI tags
+      # NOTE: Use full SHA (${{ github.sha }}) not {{sha}} template (which gives short SHA)
+      # to ensure consistency between build tags and artifact save step
       - name: Generate metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=ci-{{sha}}
-            type=raw,value=ci-{{branch}}-{{sha}}
+            type=raw,value=ci-${{ github.sha }}
           labels: |
             org.opencontainers.image.title=Sindri v2
             org.opencontainers.image.description=Multi-cloud development environment orchestrator

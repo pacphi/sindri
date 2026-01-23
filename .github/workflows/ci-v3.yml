@@ -215,14 +215,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # NOTE: Use full SHA (${{ github.sha }}) not {{sha}} template (which gives short SHA)
+      # to ensure consistency between build tags and downstream jobs (security-scan, mark-passed)
       - name: Generate metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=ci-{{sha}}
-            type=raw,value=ci-{{branch}}-{{sha}}
+            type=raw,value=ci-${{ github.sha }}
           labels: |
             org.opencontainers.image.title=Sindri v3
             org.opencontainers.image.description=Multi-cloud development environment orchestrator (Rust)
