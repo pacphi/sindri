@@ -117,13 +117,13 @@ jobs:
 
       - name: Save image as artifact
         run: |
-          docker save sindri-v2:ci-${{ github.sha }} | gzip > sindri-v2-image.tar.gz
+          docker save sindri-v2:ci-${{ github.sha }} | gzip > sindri-image.tar.gz
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v6
         with:
           name: sindri-v2-image-${{ github.sha }}
-          path: sindri-v2-image.tar.gz
+          path: sindri-image.tar.gz
           retention-days: 1
 
   # ============================================
