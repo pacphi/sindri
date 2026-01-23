@@ -401,13 +401,13 @@ docker_registry_login() {
 build_image() {
     local image_tag="$1"
 
-    if [[ ! -f "$BASE_DIR/Dockerfile" ]]; then
-        print_error "Dockerfile not found at $BASE_DIR/Dockerfile" >&2
+    if [[ ! -f "$BASE_DIR/v2/Dockerfile" ]]; then
+        print_error "Dockerfile not found at $BASE_DIR/v2/Dockerfile" >&2
         return 1
     fi
 
     print_status "Building Docker image: $image_tag" >&2
-    docker build -t "$image_tag" -f "$BASE_DIR/Dockerfile" "$BASE_DIR"
+    docker build -t "$image_tag" -f "$BASE_DIR/v2/Dockerfile" "$BASE_DIR/v2"
 }
 
 # Push image to registry
@@ -537,7 +537,7 @@ generate_devcontainer() {
     if [[ -n "$image_tag" ]]; then
         image_source="\"image\": \"${image_tag}\","
     else
-        image_source="\"dockerFile\": \"../Dockerfile\","
+        image_source="\"dockerFile\": \"../v2/Dockerfile\","
     fi
 
     cat > "$OUTPUT_DIR/.devcontainer/devcontainer.json" << EODC

@@ -267,7 +267,7 @@ generate_e2b_dockerfile() {
     skip_auto_install=$(adapter_get_skip_auto_install)
 
     # Get the base Dockerfile path
-    local dockerfile_path="$BASE_DIR/Dockerfile"
+    local dockerfile_path="$BASE_DIR/v2/Dockerfile"
     if [[ ! -f "$dockerfile_path" ]]; then
         print_error "Dockerfile not found at $dockerfile_path"
         exit 1

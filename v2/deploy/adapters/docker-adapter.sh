@@ -466,9 +466,9 @@ EOJSON
         print_status "Building Docker image..."
         if [[ "$FORCE_REBUILD" == "true" ]]; then
             print_status "Forcing rebuild (--no-cache)..."
-            docker build --no-cache -t sindri:latest -f Dockerfile .
+            docker build --no-cache -t sindri:latest -f "$BASE_DIR/v2/Dockerfile" "$BASE_DIR/v2"
         else
-            docker build -t sindri:latest -f Dockerfile .
+            docker build -t sindri:latest -f "$BASE_DIR/v2/Dockerfile" "$BASE_DIR/v2"
         fi
     fi
 
