@@ -27,8 +27,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Source common utilities
-if [[ -f "$BASE_DIR/docker/lib/common.sh" ]]; then
-    source "$BASE_DIR/docker/lib/common.sh"
+if [[ -f "$BASE_DIR/v2/docker/lib/common.sh" ]]; then
+    source "$BASE_DIR/v2/docker/lib/common.sh"
 elif [[ -f "/docker/lib/common.sh" ]]; then
     source "/docker/lib/common.sh"
 else
