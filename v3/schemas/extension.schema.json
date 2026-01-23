@@ -28,17 +28,18 @@
         "category": {
           "type": "string",
           "enum": [
-            "base",
-            "agile",
-            "language",
-            "dev-tools",
-            "infrastructure",
-            "ai",
-            "utilities",
+            "ai-agents",
+            "ai-dev",
+            "claude",
+            "cloud",
             "desktop",
-            "monitoring",
-            "database",
-            "mobile"
+            "devops",
+            "documentation",
+            "languages",
+            "mcp",
+            "productivity",
+            "research",
+            "testing"
           ]
         },
         "author": {
