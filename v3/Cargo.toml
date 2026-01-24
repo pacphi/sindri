@@ -48,7 +48,7 @@ tera = "1.20"
 reqwest = { version = "0.11", features = ["json", "rustls-tls", "stream"], default-features = false }
 self_update = "0.39"
 semver = "1.0"
-octocrab = "0.32"
+octocrab = "0.49"
 
 # Process execution
 duct = "0.13"
