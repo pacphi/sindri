@@ -43,6 +43,17 @@ if command -v mise >/dev/null 2>&1; then
     export MISE_CACHE_DIR="${HOME}/.cache/mise"
     export MISE_STATE_DIR="${HOME}/.local/state/mise"
 
+    # Disable aqua attestation verification for CI environments
+    # GitHub attestations API can return transient 503 errors which break installs
+    # This is safe in CI since we're downloading from trusted sources
+    export MISE_AQUA_VERIFY_ATTESTATIONS="${MISE_AQUA_VERIFY_ATTESTATIONS:-false}"
+
+    # Use GITHUB_TOKEN if available for better API rate limits
+    # The token is automatically available in GitHub Actions but must be passed to containers
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        export MISE_GITHUB_TOKEN="${MISE_GITHUB_TOKEN:-$GITHUB_TOKEN}"
+    fi
+
     # Add shims to PATH
     case ":$PATH:" in
         *":${MISE_DATA_DIR}/shims:"*) ;;

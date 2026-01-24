@@ -239,5 +239,8 @@ mise.local.toml
 # Rust
 target/
 
+# CI-built binaries (keep .gitkeep for directory structure)
+v3/bin/sindri
+
 # Archives
 .archived/

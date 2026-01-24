@@ -3,13 +3,17 @@
 # ==============================================================================
 # Multi-stage build for Sindri v3 with Rust CLI
 #
-# Build modes:
-#   1. Pre-compiled binary (default, BUILD_FROM_SOURCE=false)
+# Build modes (priority order):
+#   1. Local binary from build context (v3/bin/sindri)
+#      - Used by CI workflows that pre-compile the binary
+#      - Fastest builds (~2 min)
+#
+#   2. Pre-compiled binary from releases (BUILD_FROM_SOURCE=false, default)
 #      - Downloads binary from GitHub releases (~5 min build)
 #      - Smaller build context, faster builds
 #      - Production-ready binaries
 #
-#   2. Build from source (BUILD_FROM_SOURCE=true)
+#   3. Build from source (BUILD_FROM_SOURCE=true)
 #      - Builds from Rust source code (~8 min build)
 #      - Supports custom features, architectures
 #      - Development and testing
@@ -31,7 +35,31 @@ ARG SINDRI_REPO=https://github.com/pacphi/sindri
 ARG BUILD_FROM_SOURCE=false
 
 # ==============================================================================
-# Stage 1a: Build from Source (conditional)
+# Stage 1a: Local Binary from Build Context (CI workflows)
+# ==============================================================================
+# This stage checks for a pre-built binary in the build context (v3/bin/sindri)
+# which is provided by CI workflows that compile the binary in a previous job.
+# The v3/bin/.gitkeep ensures the directory always exists for COPY to work.
+FROM ubuntu:${UBUNTU_VERSION} AS builder-local
+
+# Create output directory
+RUN mkdir -p /output && touch /output/.skip
+
+# Copy entire v3/bin directory contents (always succeeds due to .gitkeep)
+COPY v3/bin/ /tmp/local-bin/
+
+# Check if binary was copied and set appropriate marker
+RUN if [ -f /tmp/local-bin/sindri ]; then \
+        cp /tmp/local-bin/sindri /output/sindri && \
+        chmod +x /output/sindri && \
+        rm /output/.skip && \
+        echo "LOCAL_BINARY=true: Using local binary from build context"; \
+    else \
+        echo "LOCAL_BINARY=false: No local binary found, will use alternative source"; \
+    fi
+
+# ==============================================================================
+# Stage 1b: Build from Source (conditional)
 # ==============================================================================
 FROM rust:${RUST_VERSION}-slim-bookworm AS builder-source
 
@@ -62,7 +90,7 @@ RUN if [ "$BUILD_FROM_SOURCE" = "true" ]; then \
     fi
 
 # ==============================================================================
-# Stage 1b: Download Pre-compiled Binary (default)
+# Stage 1c: Download Pre-compiled Binary (fallback)
 # ==============================================================================
 FROM ubuntu:${UBUNTU_VERSION} AS builder-binary
 
@@ -96,25 +124,35 @@ RUN if [ "$BUILD_FROM_SOURCE" != "true" ]; then \
     fi
 
 # ==============================================================================
-# Stage 2: Merge Binaries (choose appropriate binary based on build mode)
+# Stage 2: Merge Binaries (choose appropriate binary based on priority)
 # ==============================================================================
+# Priority order:
+#   1. Local binary from build context (CI workflows)
+#   2. Source build (if BUILD_FROM_SOURCE=true)
+#   3. Downloaded binary from releases (default fallback)
 FROM ubuntu:${UBUNTU_VERSION} AS binary-merge
 
 ARG BUILD_FROM_SOURCE
 
+COPY --from=builder-local /output /tmp/local
 COPY --from=builder-source /output /tmp/source
 COPY --from=builder-binary /output /tmp/binary
 
-# Copy the appropriate binary to /output
+# Copy the appropriate binary to /output based on priority
 RUN mkdir -p /output && \
-    if [ "$BUILD_FROM_SOURCE" = "true" ]; then \
+    if [ -f /tmp/local/sindri ] && [ ! -f /tmp/local/.skip ]; then \
+        echo "Using local binary from build context (CI artifact)"; \
+        cp /tmp/local/sindri /output/sindri; \
+    elif [ "$BUILD_FROM_SOURCE" = "true" ]; then \
         if [ -f /tmp/source/sindri ]; then \
+            echo "Using source-built binary"; \
             cp /tmp/source/sindri /output/sindri; \
         else \
             echo "ERROR: Source build failed - binary not found" && exit 1; \
         fi \
     else \
         if [ -f /tmp/binary/sindri ]; then \
+            echo "Using downloaded binary from releases"; \
             cp /tmp/binary/sindri /output/sindri; \
         else \
             echo "ERROR: Binary download failed - binary not found" && exit 1; \
@@ -123,7 +161,7 @@ RUN mkdir -p /output && \
     chmod +x /output/sindri
 
 # ==============================================================================
-# Stage 3: Runtime Image
+# Stage 4: Runtime Image
 # ==============================================================================
 FROM ubuntu:${UBUNTU_VERSION}
 

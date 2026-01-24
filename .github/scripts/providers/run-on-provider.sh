@@ -13,7 +13,12 @@ case "$PROVIDER" in
     docker)
         # Use login shell (-l) to ensure mise shims and PATH are properly loaded
         # Run as developer user (where extensions are installed)
-        docker exec --user developer "$TARGET_ID" bash -l -c "$COMMAND"
+        # Pass GITHUB_TOKEN if available for mise API rate limits
+        ENV_ARGS=""
+        if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+            ENV_ARGS="-e GITHUB_TOKEN=$GITHUB_TOKEN"
+        fi
+        docker exec $ENV_ARGS --user developer "$TARGET_ID" bash -l -c "$COMMAND"
         ;;
     fly)
         flyctl ssh console -a "$TARGET_ID" --command "$COMMAND"
