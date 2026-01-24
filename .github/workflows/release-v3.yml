@@ -644,7 +644,7 @@ jobs:
           name: changelog-v3
 
       - name: Download SBOM
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sbom-v${{ needs.validate-tag.outputs.version }}
 
