@@ -1,0 +1,51 @@
+# shellcheck shell=bash
+# JVM aliases - use 'sdk list java' to see installed versions
+# Switch Java versions dynamically (version numbers may vary)
+alias j11='sdk use java $(sdk list java 2>/dev/null | grep "11\..*installed" | awk "{print \$NF}" | head -1)'
+alias j17='sdk use java $(sdk list java 2>/dev/null | grep "17\..*installed" | awk "{print \$NF}" | head -1)'
+alias j21='sdk use java $(sdk list java 2>/dev/null | grep "21\..*installed" | awk "{print \$NF}" | head -1)'
+alias j25='sdk use java $(sdk list java 2>/dev/null | grep "25\..*installed" | awk "{print \$NF}" | head -1)'
+alias jv='java -version'
+alias jlist='sdk list java | grep installed'
+
+# Maven aliases
+alias mci='mvn clean install'
+alias mcis='mvn clean install -DskipTests'
+alias mcp='mvn clean package'
+alias mcps='mvn clean package -DskipTests'
+alias mt='mvn test'
+alias mdep='mvn dependency:tree'
+
+# Gradle aliases
+alias gw='./gradlew'
+alias gwb='./gradlew build'
+alias gwc='./gradlew clean'
+alias gwcb='./gradlew clean build'
+alias gwt='./gradlew test'
+alias gwr='./gradlew run'
+
+# Spring Boot aliases
+alias sbr='mvn spring-boot:run'
+alias sbg='./gradlew bootRun'
+
+# Kotlin aliases
+alias kc='kotlinc'
+alias kr='kotlin'
+
+# Scala aliases
+alias sc='scala'
+alias sbti='sbt interactive'
+
+# Clojure aliases
+alias repl='clojure -M:repl'
+alias lrepl='lein repl'
+
+# Explicitly add SDKMAN candidate paths to PATH for non-interactive shells
+# This ensures java, mvn, gradle, kotlin, scala work in SSH commands
+# MUST be last to ensure SDKMAN paths take precedence
+export SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
+if [[ -d "$SDKMAN_DIR/candidates" ]]; then
+    for candidate in "$SDKMAN_DIR/candidates"/*/current/bin; do
+        [[ -d "$candidate" ]] && [[ ":$PATH:" != *":$candidate:"* ]] && export PATH="$candidate:$PATH"
+    done
+fi

@@ -1,0 +1,81 @@
+---
+metadata:
+  name: claude-code-mux
+  version: 1.0.0
+  description: High-performance AI routing proxy with automatic failover across 18+ providers (Anthropic, OpenAI, Gemini, etc.)
+  category: claude
+  author: 9j
+  homepage: https://github.com/9j/claude-code-mux
+  dependencies: []
+requirements:
+  domains:
+    - github.com
+    - api.anthropic.com
+    - api.openai.com
+    - generativelanguage.googleapis.com
+  diskSpace: 20
+  memory: 256
+  installTime: 30
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+configure:
+  templates:
+    - source: ccmctl.sh
+      destination: ~/bin/ccmctl
+      mode: overwrite
+    - source: quickstart.sh
+      destination: ~/bin/ccm-quickstart
+      mode: overwrite
+    - source: ccm-config.toml.template
+      destination: ~/config/ccm-config.toml
+      mode: overwrite
+  environment:
+    - key: ANTHROPIC_BASE_URL
+      value: "http://127.0.0.1:13456"
+      scope: bashrc
+    - key: ANTHROPIC_API_KEY
+      value: "ccm-proxy"
+      scope: bashrc
+    - key: PATH
+      value: "${WORKSPACE:-${HOME}/workspace}/bin:$PATH"
+      scope: bashrc
+validate:
+  commands:
+    - name: ccm
+      versionFlag: --version
+      expectedPattern: "ccm \\d+\\.\\d+\\.\\d+"
+remove:
+  paths:
+    - ~/bin/ccm
+    - ~/bin/ccmctl
+    - ~/bin/ccm-quickstart
+    - ~/config/ccm-config.toml
+    - ~/.claude-code-mux
+  confirmation: true
+upgrade:
+  strategy: manual
+  script:
+    path: upgrade.sh
+    timeout: 300
+bom:
+  tools:
+    - name: claude-code-mux
+      version: dynamic
+      source: binary
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/9j/claude-code-mux
+      purl: pkg:github/9j/claude-code-mux
+      cpe: cpe:2.3:a:9j:claude-code-mux:*:*:*:*:*:*:*:*
+  files:
+    - path: ~/bin/ccm
+      type: binary
+    - path: ~/bin/ccmctl
+      type: script
+    - path: ~/bin/ccm-quickstart
+      type: script
+    - path: ~/config/ccm-config.toml
+      type: config

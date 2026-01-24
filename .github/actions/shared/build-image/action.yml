@@ -1,0 +1,129 @@
+name: Build Sindri Docker Image
+description: Builds the Sindri Docker image with intelligent caching
+
+inputs:
+  image-tag:
+    description: Docker image tag to build
+    required: false
+    default: sindri:latest
+  dockerfile:
+    description: Path to v2/Dockerfile
+    required: false
+    default: v2/Dockerfile
+  context:
+    description: Build context path
+    required: false
+    default: "."
+  push:
+    description: Whether to push the image to registry
+    required: false
+    default: "false"
+  registry:
+    description: Docker registry URL
+    required: false
+    default: ""
+  cache-key-prefix:
+    description: Cache key prefix for layer caching
+    required: false
+    default: "sindri-docker"
+  platforms:
+    description: Target platforms for multi-arch build
+    required: false
+    default: "linux/amd64"
+  no-cache:
+    description: Disable build cache (workaround for buildx cache corruption issues)
+    required: false
+    default: "false"
+
+outputs:
+  image:
+    description: Full image name with tag
+    value: ${{ steps.build.outputs.image }}
+  digest:
+    description: Image digest
+    value: ${{ steps.build.outputs.digest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        install: true
+        driver-opts: |
+          network=host
+
+    - name: Cache Docker layers
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-buildx-
+
+    - name: Build Docker image
+      id: build
+      shell: bash
+      run: |
+        echo "::group::Building Docker image"
+
+        # Set build arguments
+        BUILD_ARGS=""
+        if [[ -n "${{ github.sha }}" ]]; then
+          BUILD_ARGS="--build-arg GIT_COMMIT=${{ github.sha }}"
+        fi
+
+        # Set cache options (disabled if no-cache is true)
+        # See: https://github.com/docker/buildx/issues/637 (buildx cache corruption)
+        CACHE_OPTS=""
+        if [[ "${{ inputs.no-cache }}" != "true" ]]; then
+          CACHE_OPTS="--cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max"
+        else
+          echo "::warning::Building without cache (no-cache=true)"
+          CACHE_OPTS="--no-cache"
+        fi
+
+        # Build the image
+        # shellcheck disable=SC2086
+        docker buildx build \
+          --file "${{ inputs.dockerfile }}" \
+          --tag "${{ inputs.image-tag }}" \
+          $CACHE_OPTS \
+          --platform "${{ inputs.platforms }}" \
+          --load \
+          $BUILD_ARGS \
+          "${{ inputs.context }}"
+
+        # Get image digest
+        DIGEST=$(docker inspect --format='{{.Id}}' "${{ inputs.image-tag }}")
+
+        # Set outputs
+        echo "image=${{ inputs.image-tag }}" >> $GITHUB_OUTPUT
+        echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+        echo "::endgroup::"
+
+    - name: Move cache
+      if: inputs.no-cache != 'true'
+      shell: bash
+      run: |
+        # Temp fix for https://github.com/docker/build-push-action/issues/252
+        rm -rf /tmp/.buildx-cache
+        if [[ -d /tmp/.buildx-cache-new ]]; then
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        fi
+
+    - name: Push image to registry
+      if: inputs.push == 'true' && inputs.registry != ''
+      shell: bash
+      run: |
+        echo "::group::Pushing image to registry"
+
+        # Tag for registry
+        REGISTRY_TAG="${{ inputs.registry }}/${{ inputs.image-tag }}"
+        docker tag "${{ inputs.image-tag }}" "$REGISTRY_TAG"
+
+        # Push to registry
+        docker push "$REGISTRY_TAG"
+
+        echo "::endgroup::"

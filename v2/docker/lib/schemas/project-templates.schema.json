@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/project-templates.schema.json",
+  "title": "Sindri Project Templates",
+  "description": "Schema for project template definitions",
+  "type": "object",
+  "required": ["version", "templates"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version"
+    },
+    "templates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["description", "extensions"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the template"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Alternative names that map to this template (e.g., 'nodejs' for 'node')"
+          },
+          "extensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Extensions required for this template"
+          },
+          "detection_patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keywords/patterns that suggest this template"
+          },
+          "setup_commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Shell commands to run during project setup"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Map of file paths to their content templates"
+          },
+          "claude_md_template": {
+            "type": "string",
+            "description": "Template for CLAUDE.md file content"
+          },
+          "dependencies": {
+            "type": "object",
+            "description": "Dependency installation configuration for this template",
+            "properties": {
+              "detect": {
+                "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+                "description": "File(s) that indicate this project type needs dependency installation"
+              },
+              "command": {
+                "type": "string",
+                "description": "Command to install dependencies"
+              },
+              "requires": {
+                "type": "string",
+                "description": "Tool/command that must exist to run the install command"
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable description shown during installation"
+              },
+              "fetch_command": {
+                "type": "string",
+                "description": "Alternative command for --skip-build mode (fetch deps without building)"
+              }
+            },
+            "required": ["detect", "command", "requires"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Map of template names to their definitions"
+    },
+    "detection_rules": {
+      "type": "object",
+      "properties": {
+        "name_patterns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["pattern"],
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regex pattern to match project names"
+              },
+              "type": {
+                "type": "string",
+                "description": "Single template type to use if matched"
+              },
+              "types": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Multiple template types to suggest if matched"
+              }
+            }
+          },
+          "description": "Patterns to match against project names"
+        },
+        "framework_keywords": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Map of template names to keywords that suggest them"
+        }
+      },
+      "description": "Rules for auto-detecting appropriate templates"
+    }
+  },
+  "additionalProperties": false
+}

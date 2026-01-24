@@ -271,10 +271,10 @@ Local Docker development runs containers on your machine, with your IDE connecti
 
 ## Additional Resources
 
-- [Sindri Architecture](../ARCHITECTURE.md)
-- [Sindri Deployment Guide](../DEPLOYMENT.md)
-- [Sindri Configuration](../CONFIGURATION.md)
-- [Troubleshooting Guide](../TROUBLESHOOTING.md)
+- [Sindri Architecture](../../v2/docs/ARCHITECTURE.md)
+- [Sindri Deployment Guide](../../v2/docs/DEPLOYMENT.md)
+- [Sindri Configuration](../../v2/docs/CONFIGURATION.md)
+- [Troubleshooting Guide](../../v2/docs/TROUBLESHOOTING.md)
 
 ## Contributing
 
@@ -288,7 +288,7 @@ Found an issue with these guides or want to add support for another IDE? Contrib
 
 If you're having trouble connecting your IDE to Sindri:
 
-1. Check the [Troubleshooting Guide](../TROUBLESHOOTING.md)
+1. Check the [Troubleshooting Guide](../../v2/docs/TROUBLESHOOTING.md)
 2. Review your IDE's specific setup guide above
 3. Check IDE-specific logs and error messages
 4. Open an issue with details about your setup and error

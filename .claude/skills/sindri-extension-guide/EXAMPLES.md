@@ -8,7 +8,7 @@ Real examples from the Sindri codebase demonstrating different extension pattern
 **Use case:** Node.js, Python, Go, Rust, Ruby
 
 ```yaml
-# docker/lib/extensions/nodejs/extension.yaml
+# v2/docker/lib/extensions/nodejs/extension.yaml
 ---
 metadata:
   name: nodejs
@@ -79,7 +79,7 @@ bom:
 **Use case:** Docker, system tools requiring root installation
 
 ```yaml
-# docker/lib/extensions/docker/extension.yaml
+# v2/docker/lib/extensions/docker/extension.yaml
 ---
 metadata:
   name: docker
@@ -155,7 +155,7 @@ bom:
 **Use case:** Language-specific development tools
 
 ```yaml
-# docker/lib/extensions/nodejs-devtools/extension.yaml
+# v2/docker/lib/extensions/nodejs-devtools/extension.yaml
 ---
 metadata:
   name: nodejs-devtools
@@ -274,7 +274,7 @@ bom:
 **Use case:** Tools requiring custom installation logic
 
 ```yaml
-# docker/lib/extensions/playwright/extension.yaml
+# v2/docker/lib/extensions/playwright/extension.yaml
 ---
 metadata:
   name: playwright
@@ -352,7 +352,7 @@ bom:
 **Use case:** AI tools, project management extensions
 
 ```yaml
-# docker/lib/extensions/spec-kit/extension.yaml
+# v2/docker/lib/extensions/spec-kit/extension.yaml
 ---
 metadata:
   name: spec-kit
@@ -428,7 +428,7 @@ bom:
 **Use case:** Claude Flow V3, Agentic QE, advanced AI tools
 
 ```yaml
-# docker/lib/extensions/claude-flow-v3/extension.yaml (simplified)
+# v2/docker/lib/extensions/claude-flow-v3/extension.yaml (simplified)
 ---
 metadata:
   name: claude-flow-v3
@@ -558,7 +558,7 @@ bom:
 ### Minimal Extension (mise-based) - NO CAPABILITIES
 
 ```text
-docker/lib/extensions/my-language/
+v2/docker/lib/extensions/my-language/
 ├── extension.yaml
 └── mise.toml
 ```
@@ -566,7 +566,7 @@ docker/lib/extensions/my-language/
 ### Full Extension (script-based) - NO CAPABILITIES
 
 ```text
-docker/lib/extensions/my-tool/
+v2/docker/lib/extensions/my-tool/
 ├── extension.yaml
 ├── mise.toml              # Optional
 ├── scripts/
@@ -581,7 +581,7 @@ docker/lib/extensions/my-tool/
 ### Extension WITH Capabilities (project-init)
 
 ```text
-docker/lib/extensions/spec-kit/
+v2/docker/lib/extensions/spec-kit/
 ├── extension.yaml         # Includes capabilities section
 ├── scripts/
 │   ├── install.sh
@@ -595,7 +595,7 @@ docker/lib/extensions/spec-kit/
 ## Registry Entry Examples
 
 ```yaml
-# docker/lib/registry.yaml
+# v2/docker/lib/registry.yaml
 extensions:
   # Language runtime - no dependencies
   nodejs:
@@ -634,7 +634,7 @@ extensions:
 ### Simple Language Tool
 
 ```toml
-# docker/lib/extensions/nodejs/mise.toml
+# v2/docker/lib/extensions/nodejs/mise.toml
 [tools]
 node = "lts"
 ```
@@ -642,7 +642,7 @@ node = "lts"
 ### Multiple npm Tools
 
 ```toml
-# docker/lib/extensions/nodejs-devtools/mise.toml
+# v2/docker/lib/extensions/nodejs-devtools/mise.toml
 # IMPORTANT: Use pinned major.minor versions instead of "latest"
 # "latest" requires npm registry queries which can timeout and poison
 # subsequent mise operations if they fail.
@@ -668,7 +668,7 @@ python = "3.12"
 
 ```bash
 #!/usr/bin/env bash
-# docker/lib/extensions/playwright/scripts/install.sh
+# v2/docker/lib/extensions/playwright/scripts/install.sh
 set -euo pipefail
 
 echo "Installing Playwright..."
@@ -696,7 +696,7 @@ echo "Playwright installed successfully"
 ## Template Example
 
 ```json
-// docker/lib/extensions/nodejs-devtools/templates/eslintrc.template
+// v2/docker/lib/extensions/nodejs-devtools/templates/eslintrc.template
 {
   "root": true,
   "parser": "@typescript-eslint/parser",

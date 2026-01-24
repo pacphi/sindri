@@ -1,0 +1,126 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/sindri",
+    "crates/sindri-core",
+    "crates/sindri-providers",
+    "crates/sindri-extensions",
+    "crates/sindri-secrets",
+    "crates/sindri-update",
+    "crates/sindri-backup",
+    "crates/sindri-projects",
+    "crates/sindri-doctor",
+    "crates/sindri-clusters",
+    "crates/sindri-image",
+]
+
+[workspace.package]
+version = "3.0.0"
+edition = "2021"
+rust-version = "1.92"
+license = "MIT"
+repository = "https://github.com/pacphi/sindri"
+authors = ["Sindri Team"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.49", features = ["full"] }
+
+# CLI framework
+clap = { version = "4.5", features = ["derive", "env", "wrap_help", "string"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# JSON Schema validation
+jsonschema = "0.17"
+
+# Template rendering
+tera = "1.20"
+
+# HTTP client & self-update
+reqwest = { version = "0.11", features = ["json", "rustls-tls", "stream"], default-features = false }
+self_update = "0.39"
+semver = "1.0"
+octocrab = "0.32"
+
+# Process execution
+duct = "0.13"
+
+# Terminal UI
+indicatif = "0.17"
+dialoguer = "0.11"
+owo-colors = "4.2"
+tabled = "0.14"
+console = "0.15"
+
+# Filesystem
+directories = "5.0"
+camino = "1.2"
+globset = "0.4"
+glob = "0.3"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Embedding resources
+rust-embed = { version = "8.11", features = ["interpolate-folder-path"] }
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Regex
+regex = "1.12"
+
+# TOML parsing (for mise.toml)
+toml = "0.8"
+
+# URL handling
+url = "2.5"
+
+# Graph algorithms for dependency resolution
+petgraph = "0.6"
+
+# UUID for unique identifiers
+uuid = { version = "1.19", features = ["v4"] }
+
+# Archive handling (for binary downloads)
+tar = "0.4"
+flate2 = "1.1"
+
+# File traversal
+walkdir = "2.5"
+
+# Tool detection
+which = "6.0"
+futures = "0.3"
+dirs = "5.0"
+
+# Testing
+tempfile = "3.24"
+serial_test = "3.2"
+
+# Workspace crates
+sindri-core = { path = "crates/sindri-core" }
+sindri-providers = { path = "crates/sindri-providers" }
+sindri-extensions = { path = "crates/sindri-extensions" }
+sindri-secrets = { path = "crates/sindri-secrets" }
+sindri-update = { path = "crates/sindri-update" }
+sindri-backup = { path = "crates/sindri-backup" }
+sindri-projects = { path = "crates/sindri-projects" }
+sindri-doctor = { path = "crates/sindri-doctor" }
+sindri-clusters = { path = "crates/sindri-clusters" }
+sindri-image = { path = "crates/sindri-image" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

@@ -46,6 +46,11 @@ on:
         required: false
         default: ""
         type: string
+      use-registry:
+        description: Pull image from registry instead of artifact (requires image to be pushed to GHCR)
+        required: false
+        default: false
+        type: boolean
 
     secrets:
       NPM_TOKEN:
@@ -140,11 +145,12 @@ jobs:
 
       - name: Deploy to provider
         id: deploy
-        uses: ./.github/actions/core/deploy-provider
+        uses: ./.github/actions/shared/deploy-provider
         with:
           provider: ${{ inputs.provider }}
           image: ${{ inputs.image }}
           image-artifact: ${{ inputs.image-artifact }}
+          use-registry: ${{ inputs.use-registry }}
           extension-profile: ${{ inputs.extension-profile }}
           test-level: ${{ inputs.test-level }}
         env:
@@ -220,6 +226,8 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+          # Pass GITHUB_TOKEN for mise API rate limits and attestation verification
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Collect diagnostics on failure
         if: failure() && inputs.provider == 'docker'
@@ -250,7 +258,7 @@ jobs:
 
       - name: Cleanup
         if: always() && inputs.skip-cleanup != true
-        uses: ./.github/actions/core/cleanup-provider
+        uses: ./.github/actions/shared/cleanup-provider
         with:
           provider: ${{ inputs.provider }}
           target-id: ${{ steps.deploy.outputs.target-id }}

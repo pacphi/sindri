@@ -328,7 +328,7 @@ supabase-cli → nodejs, docker
 
 | Location                       | Purpose                       |
 | ------------------------------ | ----------------------------- |
-| `/docker/lib/extensions/`      | Extension definitions (YAML)  |
+| `/v2/docker/lib/extensions/`   | Extension definitions (YAML)  |
 | `/workspace/.system/manifest/` | Installed extension manifests |
 | `/workspace/.system/logs/`     | Extension installation logs   |
 | `/workspace/.system/bom/`      | Bill of Materials tracking    |
@@ -438,5 +438,5 @@ EXTENSION_CONFLICT_STRATEGY=overwrite EXTENSION_CONFLICT_PROMPT=false clone-proj
 ## Related Documentation
 
 - [Extension Authoring](EXTENSION_AUTHORING.md) - Create custom extensions
-- [Architecture](ARCHITECTURE.md) - System architecture
-- [Configuration](CONFIGURATION.md) - sindri.yaml configuration
+- [Architecture](../v2/docs/ARCHITECTURE.md) - System architecture
+- [Configuration](../v2/docs/CONFIGURATION.md) - sindri.yaml configuration

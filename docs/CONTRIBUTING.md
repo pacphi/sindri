@@ -45,9 +45,9 @@ git checkout -b feature/my-new-feature
 
 Follow the project structure:
 
-- **Extensions:** `docker/lib/extensions/<name>/extension.yaml`
+- **Extensions:** `v2/docker/lib/extensions/<name>/extension.yaml`
 - **CLI tools:** `cli/`
-- **Deployment adapters:** `deploy/adapters/`
+- **Deployment adapters:** `v2/deploy/adapters/`
 - **Documentation:** `docs/`
 - **Tests:** `test/unit/yaml/`
 
@@ -70,7 +70,7 @@ pnpm lint:md            # Markdown linting
 pnpm test
 
 # Test specific extension
-./cli/extension-manager validate <extension-name>
+./v2/cli/extension-manager validate <extension-name>
 
 # Test Docker build
 pnpm build
@@ -114,7 +114,7 @@ Create pull request on GitHub with:
 1. **Create extension directory:**
 
    ```bash
-   mkdir -p docker/lib/extensions/myext
+   mkdir -p v2/docker/lib/extensions/myext
    ```
 
 2. **Create `extension.yaml`:**
@@ -143,7 +143,7 @@ Create pull request on GitHub with:
 3. **Add to registry:**
 
    ```yaml
-   # docker/lib/registry.yaml
+   # v2/docker/lib/registry.yaml
    extensions:
      myext:
        category: dev-tools
@@ -195,7 +195,7 @@ pnpm test:extensions
 Test specific extension locally:
 
 ```bash
-./cli/extension-manager validate <extension-name>
+./v2/cli/extension-manager validate <extension-name>
 ```
 
 ### Manual Testing
@@ -230,7 +230,7 @@ Test specific extension locally:
 
 - Use `#!/usr/bin/env bash`
 - Include `set -euo pipefail`
-- Source `docker/lib/common.sh` for shared functions
+- Source `v2/docker/lib/common.sh` for shared functions
 - Use functions from common.sh:
   - `print_status`, `print_success`, `print_warning`, `print_error`
 - Pass `shellcheck -S warning`
@@ -257,7 +257,7 @@ main "$@"
 
 - 2-space indentation
 - Pass `yamllint --strict`
-- Validate against schemas in `docker/lib/schemas/`
+- Validate against schemas in `v2/docker/lib/schemas/`
 
 ### Markdown
 

@@ -1,0 +1,16 @@
+# Cross-compilation configuration for Sindri CLI
+
+[target.x86_64-unknown-linux-musl]
+linker = "x86_64-linux-musl-gcc"
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-musl-gcc"
+
+[build]
+# Use all available CPU cores
+jobs = -1
+
+[env]
+# Embed version info at compile time
+VERGEN_GIT_SHA = { value = "", force = false }
+VERGEN_BUILD_DATE = { value = "", force = false }

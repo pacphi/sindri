@@ -79,4 +79,4 @@ Resources are duplicated from the VisionFlow repository (not referenced):
 
 - Original: https://github.com/DreamLab-AI/VisionFlow
 - Cloned to: `/tmp/VisionFlow/multi-agent-docker` (during extraction)
-- Duplicated to: `docker/lib/extensions/vf-*/resources/`
+- Duplicated to: `v2/docker/lib/extensions/vf-*/resources/`

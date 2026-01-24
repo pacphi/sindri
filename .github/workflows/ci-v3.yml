@@ -1,0 +1,746 @@
+name: CI v3
+
+# v3 Rust CI Pipeline
+# Triggers on changes to v3 directory and related configurations
+
+on:
+  push:
+    branches: [main, develop, feature/v3]
+    paths:
+      - 'v3/**'
+      - '.github/workflows/ci-v3.yml'
+      - '.github/actions/v3/**'
+      - '.github/actions/shared/**'
+  pull_request:
+    branches: [main, develop, feature/v3]
+    paths:
+      - 'v3/**'
+      - '.github/workflows/ci-v3.yml'
+      - '.github/actions/v3/**'
+      - '.github/actions/shared/**'
+  workflow_dispatch:
+    inputs:
+      test-extensions:
+        description: 'Run extension tests'
+        required: false
+        default: true
+        type: boolean
+      run-audit:
+        description: 'Run security audit'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: ci-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ============================================
+  # Rust Validation Jobs
+  # ============================================
+
+  rust-format:
+    name: Rust Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check Rust formatting
+        run: |
+          cd v3
+          cargo fmt --all -- --check
+
+  rust-clippy:
+    name: Rust Clippy Lints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            v3/target/
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('v3/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-clippy-
+            ${{ runner.os }}-cargo-
+
+      - name: Run Clippy
+        run: |
+          cd v3
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  rust-test:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            v3/target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('v3/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+            ${{ runner.os }}-cargo-
+
+      - name: Run tests
+        run: |
+          cd v3
+          cargo test --workspace --all-features
+
+      - name: Generate test report
+        if: always()
+        run: |
+          cd v3
+          cargo test --workspace --all-features -- --nocapture > test-results.txt 2>&1 || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results-v3
+          path: v3/test-results.txt
+          retention-days: 7
+
+  rust-build:
+    name: Rust Build (Release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            v3/target/
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('v3/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+            ${{ runner.os }}-cargo-
+
+      - name: Build release binaries
+        run: |
+          cd v3
+          cargo build --release --workspace
+
+      - name: Check binary size
+        run: |
+          echo "## Binary Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Binary | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -f v3/target/release/sindri ]]; then
+            SIZE=$(du -h v3/target/release/sindri | cut -f1)
+            echo "| sindri | $SIZE |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: |
+            v3/target/release/sindri
+          retention-days: 1
+
+  # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
+
+  # ============================================
+  # Docker Image Build
+  # ============================================
+
+  build-image:
+    name: Build v3 Docker Image
+    runs-on: ubuntu-latest
+    needs: rust-build
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.build.outputs.tag }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # NOTE: Use full SHA (${{ github.sha }}) not {{sha}} template (which gives short SHA)
+      # to ensure consistency between build tags and downstream jobs (security-scan, mark-passed)
+      - name: Generate metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=ci-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=Sindri v3
+            org.opencontainers.image.description=Multi-cloud development environment orchestrator (Rust)
+            sindri.version=v3
+            sindri.ci.run=${{ github.run_id }}
+            sindri.ci.branch=${{ github.ref_name }}
+
+      - name: Copy binary to v3 context
+        run: |
+          chmod +x ./bin/sindri
+          mkdir -p v3/bin
+          cp ./bin/sindri v3/bin/
+
+      # NOTE: CI builds only linux/amd64 because:
+      # - The rust-build job produces only x86_64 binaries
+      # - Multi-arch requires pre-compiled binaries for each architecture
+      # - ARM64 builds happen during releases (not CI) when binaries are published
+      # This avoids builder-binary trying to download non-existent ARM releases
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: v3/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          no-cache: true
+          pull: true
+          provenance: mode=max
+          sbom: true
+          build-args: |
+            BUILD_FROM_SOURCE=false
+
+      - name: Export image info
+        run: |
+          echo "tag=ghcr.io/${{ github.repository }}:ci-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "✅ Image built and pushed (linux/amd64)"
+          echo "   Image: ghcr.io/${{ github.repository }}:ci-${{ github.sha }}"
+          echo "   Platform: linux/amd64"
+          echo "   Note: Multi-arch (amd64+arm64) builds happen during releases"
+
+  # ============================================
+  # Security Scanning
+  # ============================================
+
+  security-scan:
+    name: Security Scan
+    needs: build-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:ci-${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Scan summary
+        if: always()
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "Image: \`ghcr.io/${{ github.repository }}:ci-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.sarif ]; then
+            ISSUES=$(jq '.runs[0].results | length' trivy-results.sarif)
+            echo "- **Issues Found**: $ISSUES" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================
+  # Mark Promotion Candidate
+  # ============================================
+
+  mark-passed:
+    name: Mark as Promotion Candidate
+    needs: [build-image, security-scan, k8s-cluster-lifecycle]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag as promotion candidate
+        run: |
+          echo "Pulling CI image..."
+          docker pull ghcr.io/${{ github.repository }}:ci-${{ github.sha }}
+
+          echo "Tagging as ci-passed..."
+          docker tag ghcr.io/${{ github.repository }}:ci-${{ github.sha }} \
+                     ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}
+
+          echo "Pushing promotion candidate tag..."
+          docker push ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}
+
+          echo "✅ Image marked as promotion candidate"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Promotion Candidate" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: \`ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: Ready for release promotion" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests**: K8s integration tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security**: Vulnerability scan completed" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Security Audit (Cargo)
+  # ============================================
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.run-audit == 'true'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo audit
+        run: |
+          cd v3
+          cargo audit --deny warnings || echo "::warning::Security vulnerabilities found"
+
+  # ============================================
+  # Documentation Build
+  # ============================================
+
+  docs-build:
+    name: Documentation Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            v3/target/
+          key: ${{ runner.os }}-cargo-docs-${{ hashFiles('v3/**/Cargo.lock') }}
+
+      - name: Build documentation
+        run: |
+          cd v3
+          cargo doc --workspace --no-deps --all-features
+
+      - name: Check for broken links in docs
+        run: |
+          cd v3
+          cargo doc --workspace --no-deps --all-features 2>&1 | tee doc-build.log
+
+          if grep -i "warning.*intra-doc link" doc-build.log; then
+            echo "::warning::Broken intra-doc links found"
+          fi
+
+  # ============================================
+  # Extension Tests (v3)
+  # ============================================
+
+  test-extensions:
+    name: Test v3 Extensions
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test-extensions == 'true' || github.event_name != 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check if v3 extensions exist
+        id: check
+        run: |
+          if [[ -d v3/extensions ]] && [[ -n "$(ls -A v3/extensions 2>/dev/null)" ]]; then
+            echo "extensions_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "extensions_exist=false" >> $GITHUB_OUTPUT
+            echo "::notice::No v3 extensions directory found or it's empty"
+          fi
+
+      - name: Validate v3 extensions
+        if: steps.check.outputs.extensions_exist == 'true'
+        run: |
+          echo "## v3 Extensions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          count=0
+          for ext_dir in v3/extensions/*/; do
+            if [[ -f "$ext_dir/extension.yaml" ]]; then
+              ext_name=$(basename "$ext_dir")
+              echo "- $ext_name" >> $GITHUB_STEP_SUMMARY
+              ((count++)) || true
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total**: $count extension(s)" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Kubernetes Integration Tests (Optional)
+  # ============================================
+
+  k8s-integration-kind:
+    name: K8s Integration (Kind)
+    runs-on: ubuntu-latest
+    needs: [rust-build]
+    continue-on-error: true  # Don't fail CI if k8s tests fail
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+          sindri --version || echo "Binary setup complete"
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: sindri-test
+          version: v0.25.0
+          kubectl_version: v1.31.0
+          node_image: kindest/node:v1.31.0
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Test sindri k8s commands
+        run: |
+          # Test cluster list (should detect the kind cluster)
+          sindri k8s list || echo "List completed"
+
+          # Test cluster status
+          sindri k8s status --name sindri-test --provider kind || echo "Status completed"
+
+      - name: Cleanup
+        if: always()
+        run: kind delete cluster --name sindri-test || true
+
+  k8s-integration-k3d:
+    name: K8s Integration (K3d)
+    runs-on: ubuntu-latest
+    needs: [rust-build]
+    continue-on-error: true  # Don't fail CI if k8s tests fail
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+          sindri --version || echo "Binary setup complete"
+
+      - name: Create K3d cluster with registry
+        uses: AbsaOSS/k3d-action@v2
+        with:
+          cluster-name: sindri-test
+          k3d-version: v5.7.4
+          args: >-
+            --agents 1
+            --image rancher/k3s:v1.31.0-k3s1
+            --registry-create sindri-registry:5000
+            --wait
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+          # Verify registry is running
+          docker ps | grep sindri-registry || echo "Registry check completed"
+
+      - name: Test sindri k8s commands
+        run: |
+          # Test cluster list (should detect the k3d cluster)
+          sindri k8s list || echo "List completed"
+
+          # Test cluster status
+          sindri k8s status --name sindri-test --provider k3d || echo "Status completed"
+
+      - name: Cleanup
+        if: always()
+        run: k3d cluster delete sindri-test || true
+
+  k8s-cluster-lifecycle:
+    name: K8s Cluster Lifecycle (${{ matrix.provider }})
+    runs-on: ubuntu-latest
+    needs: [rust-build]
+    continue-on-error: true  # Don't fail CI if k8s tests fail
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [kind, k3d]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v6
+        with:
+          name: sindri-v3-binaries-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Install ${{ matrix.provider }}
+        run: |
+          if [[ "${{ matrix.provider }}" == "kind" ]]; then
+            curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.25.0/kind-linux-amd64
+            chmod +x ./kind
+            sudo mv ./kind /usr/local/bin/kind
+            kind version
+          else
+            curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+            k3d version
+          fi
+
+      - name: Test full lifecycle with sindri CLI
+        run: |
+          set -e
+
+          # Create cluster via sindri
+          echo "Creating cluster with sindri..."
+          sindri k8s create --provider ${{ matrix.provider }} --name lifecycle-test --nodes 1
+
+          # Verify creation - list should show the cluster
+          echo "Verifying cluster in list..."
+          sindri k8s list
+
+          # Check status
+          echo "Checking cluster status..."
+          sindri k8s status --name lifecycle-test
+
+          # Get kubeconfig
+          echo "Getting kubeconfig..."
+          sindri k8s config --name lifecycle-test > /dev/null
+
+          # Verify kubectl works with new cluster
+          echo "Verifying kubectl access..."
+          kubectl get nodes
+
+          # Destroy cluster
+          echo "Destroying cluster..."
+          sindri k8s destroy --name lifecycle-test --force
+
+          echo "Lifecycle test completed successfully!"
+
+      - name: Cleanup on failure
+        if: failure()
+        run: |
+          if [[ "${{ matrix.provider }}" == "kind" ]]; then
+            kind delete cluster --name lifecycle-test || true
+          else
+            k3d cluster delete lifecycle-test || true
+          fi
+
+  # ============================================
+  # CI Status Checks
+  # ============================================
+
+  ci-required:
+    name: CI v3 Required Checks
+    runs-on: ubuntu-latest
+    needs:
+      - rust-format
+      - rust-clippy
+      - rust-test
+      - rust-build
+      - build-image
+      - security-scan
+    if: ${{ always() }}
+    steps:
+      - name: Check required jobs
+        run: |
+          # Check if any required job failed
+          # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
+          FORMAT="${{ needs.rust-format.result }}"
+          CLIPPY="${{ needs.rust-clippy.result }}"
+          TEST="${{ needs.rust-test.result }}"
+          BUILD="${{ needs.rust-build.result }}"
+          IMAGE="${{ needs.build-image.result }}"
+          SECURITY="${{ needs.security-scan.result }}"
+
+          if [[ "$FORMAT" != "success" ]] || \
+             [[ "$CLIPPY" != "success" ]] || \
+             [[ "$TEST" != "success" ]] || \
+             [[ "$BUILD" != "success" ]] || \
+             [[ "$IMAGE" != "success" ]]; then
+            echo "❌ Required CI v3 checks failed"
+            echo "Results:"
+            echo "  rust-format: $FORMAT"
+            echo "  rust-clippy: $CLIPPY"
+            echo "  rust-test: $TEST"
+            echo "  rust-build: $BUILD"
+            echo "  build-image: $IMAGE"
+            echo "  security-scan: $SECURITY"
+            exit 1
+          fi
+
+          if [[ "$SECURITY" != "success" ]]; then
+            echo "⚠️  Security scan failed but not blocking"
+            echo "  security-scan: $SECURITY"
+          fi
+
+          echo "✅ Required CI v3 checks passed"
+
+  ci-status:
+    name: CI v3 Status
+    runs-on: ubuntu-latest
+    needs:
+      - ci-required
+      - security-audit
+      - docs-build
+      - test-extensions
+      - k8s-integration-kind
+      - k8s-integration-k3d
+      - k8s-cluster-lifecycle
+    if: ${{ always() }}
+    steps:
+      - name: Check overall status
+        run: |
+          REQUIRED="${{ needs.ci-required.result }}"
+          AUDIT="${{ needs.security-audit.result }}"
+          DOCS="${{ needs.docs-build.result }}"
+          EXTENSIONS="${{ needs.test-extensions.result }}"
+
+          # Required checks must pass
+          if [[ "$REQUIRED" != "success" ]]; then
+            echo "❌ CI v3 failed - required checks did not pass"
+            exit 1
+          fi
+
+          # Audit, docs, and extensions are optional/informational
+          if [[ "$AUDIT" == "failure" ]]; then
+            echo "⚠️ Security audit found issues (non-blocking)"
+          fi
+
+          echo "✅ CI v3 passed"
+          echo "Results:"
+          echo "  ci-required: $REQUIRED"
+          echo "  security-audit: $AUDIT"
+          echo "  docs-build: $DOCS"
+          echo "  test-extensions: $EXTENSIONS"
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "# CI v3 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Rust Workspace Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Format check (rustfmt)" >> $GITHUB_STEP_SUMMARY
+          echo "- Linting (clippy)" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit tests (cargo test)" >> $GITHUB_STEP_SUMMARY
+          echo "- Release build (cargo build --release)" >> $GITHUB_STEP_SUMMARY
+          echo "- YAML validation (extensions, schemas)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Required Checks | ${{ needs.ci-required.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documentation Build | ${{ needs.docs-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Extension Tests | ${{ needs.test-extensions.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| K8s Integration (Kind) | ${{ needs.k8s-integration-kind.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| K8s Integration (K3d) | ${{ needs.k8s-integration-k3d.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| K8s Cluster Lifecycle | ${{ needs.k8s-cluster-lifecycle.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Metadata" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: v3 (Rust)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,46 @@
+[package]
+name = "sindri-doctor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Tool dependency management and diagnostic system for Sindri CLI"
+
+[dependencies]
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+
+# CLI and terminal
+owo-colors = { workspace = true }
+
+# Version parsing
+semver = { workspace = true }
+
+# Regex for parsing
+regex = { workspace = true }
+
+# Tool detection
+which = { workspace = true }
+
+# Directory paths
+dirs = { workspace = true }
+
+# User interaction
+dialoguer = { workspace = true }
+
+[dev-dependencies]
+# Testing
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tempfile = { workspace = true }

@@ -1,0 +1,163 @@
+# Sindri CLI Compatibility Matrix
+# This file defines which extension versions are compatible with each CLI version
+# and documents breaking changes between versions.
+#
+# Schema Version: 1.0
+# Last Updated: 2026-01-22
+
+schema_version: "1.0"
+
+# CLI version compatibility mappings
+# Key format: CLI version (supports wildcards like "3.0.x")
+# Compatible extension versions use semver ranges (e.g., ">=1.0.0,<2.0.0")
+cli_versions:
+  # CLI v3.0.x series (initial Rust release)
+  "3.0.x":
+    # Extension schema version compatibility
+    extension_schema: "1.0"
+
+    # Compatible extension version ranges
+    # Format: extension_name: "semver_range"
+    compatible_extensions:
+      # Core extensions (always installed)
+      mise-config: ">=1.0.0,<2.0.0"
+
+      # Language extensions
+      python: ">=1.0.0,<2.0.0"
+      nodejs: ">=2.0.0,<3.0.0"
+      rust: ">=1.0.0,<2.0.0"
+      go: ">=1.0.0,<2.0.0"
+      java: ">=1.0.0,<2.0.0"
+
+      # Database extensions
+      postgresql: ">=1.0.0,<2.0.0"
+      mysql: ">=1.0.0,<2.0.0"
+      redis: ">=1.0.0,<2.0.0"
+      mongodb: ">=1.0.0,<2.0.0"
+
+      # Tool extensions
+      docker: ">=1.0.0,<2.0.0"
+      kubectl: ">=1.0.0,<2.0.0"
+      terraform: ">=1.0.0,<2.0.0"
+      vault: ">=1.0.0,<2.0.0"
+
+      # Editor extensions
+      vscode: ">=1.0.0,<2.0.0"
+      neovim: ">=1.0.0,<2.0.0"
+
+      # MCP extensions
+      mcp-server: ">=1.0.0,<2.0.0"
+
+    # Breaking changes introduced in this version
+    breaking_changes:
+      - "CLI rewritten in Rust - bash-based extensions from v2.x are not compatible"
+      - "Extension schema updated to v1.0 with new validation requirements"
+      - "Manifest file format changed from v2.x - automatic migration required"
+      - "Extension install methods standardized (mise, apt, binary, npm, script, hybrid)"
+      - "Removed deprecated 'manual' install method - use 'script' instead"
+      - "Extension hooks now support pre/post install lifecycle events"
+
+  # CLI v3.1.x series (planned enhancements)
+  "3.1.x":
+    extension_schema: "1.1"
+
+    compatible_extensions:
+      # Core extensions
+      mise-config: ">=1.1.0,<2.0.0"
+
+      # Language extensions (updated for new features)
+      python: ">=1.1.0,<2.0.0"
+      nodejs: ">=2.1.0,<3.0.0"
+      rust: ">=1.1.0,<2.0.0"
+      go: ">=1.1.0,<2.0.0"
+      java: ">=1.1.0,<2.0.0"
+
+      # Database extensions
+      postgresql: ">=1.1.0,<2.0.0"
+      mysql: ">=1.1.0,<2.0.0"
+      redis: ">=1.1.0,<2.0.0"
+      mongodb: ">=1.1.0,<2.0.0"
+
+      # Tool extensions
+      docker: ">=1.1.0,<2.0.0"
+      kubectl: ">=1.1.0,<2.0.0"
+      terraform: ">=1.1.0,<2.0.0"
+      vault: ">=1.1.0,<2.0.0"
+
+      # Editor extensions
+      vscode: ">=1.1.0,<2.0.0"
+      neovim: ">=1.1.0,<2.0.0"
+
+      # MCP extensions
+      mcp-server: ">=1.1.0,<2.0.0"
+
+    breaking_changes:
+      - "Extension schema v1.1 adds support for conditional dependencies"
+      - "New authentication capability system for extensions"
+      - "MCP integration now requires explicit registration"
+
+  # CLI v4.0.x series (future major version - placeholder)
+  "4.0.x":
+    extension_schema: "2.0"
+
+    compatible_extensions:
+      mise-config: ">=2.0.0,<3.0.0"
+      python: ">=2.0.0,<3.0.0"
+      nodejs: ">=3.0.0,<4.0.0"
+      rust: ">=2.0.0,<3.0.0"
+      go: ">=2.0.0,<3.0.0"
+      java: ">=2.0.0,<3.0.0"
+      postgresql: ">=2.0.0,<3.0.0"
+      mysql: ">=2.0.0,<3.0.0"
+      redis: ">=2.0.0,<3.0.0"
+      mongodb: ">=2.0.0,<3.0.0"
+      docker: ">=2.0.0,<3.0.0"
+      kubectl: ">=2.0.0,<3.0.0"
+      terraform: ">=2.0.0,<3.0.0"
+      vault: ">=2.0.0,<3.0.0"
+      vscode: ">=2.0.0,<3.0.0"
+      neovim: ">=2.0.0,<3.0.0"
+      mcp-server: ">=2.0.0,<3.0.0"
+
+    breaking_changes:
+      - "Extension schema v2.0 (future) - major architectural changes"
+      - "Placeholder for future breaking changes"
+
+# Migration guide for v2.x to v3.x
+migration_notes: |
+  ## Migrating from Sindri v2.x to v3.x
+
+  ### Extension Compatibility
+  - All v2.x bash-based extensions must be upgraded to v3.x format
+  - Run `sindri extension upgrade --all` to update compatible extensions
+  - Extensions not yet updated for v3.x will show as incompatible
+
+  ### Manifest Migration
+  - The CLI will automatically migrate your ~/.sindri/manifest.yaml on first run
+  - A backup will be created at ~/.sindri/manifest.yaml.v2.backup
+
+  ### Breaking Changes
+  1. Extension install methods have been standardized
+  2. The 'manual' install method is removed - use 'script' instead
+  3. Extension hooks now support pre/post lifecycle events
+  4. Schema validation is now strictly enforced
+
+  ### Recommended Actions
+  1. Before upgrading: `sindri extension bom > extensions-backup.yaml`
+  2. After upgrading: `sindri extension validate-all`
+  3. Address any incompatible extensions
+  4. Test your workflows in a non-production environment first
+
+# Compatibility checking behavior
+compatibility_rules:
+  # Strict mode (default): Block upgrade if incompatible extensions found
+  strict_mode: true
+
+  # Allow --force to bypass compatibility checks (not recommended)
+  allow_force_bypass: true
+
+  # Auto-upgrade compatible extensions during CLI upgrade
+  auto_upgrade_extensions: false
+
+  # Warn about deprecated features
+  warn_on_deprecated: true

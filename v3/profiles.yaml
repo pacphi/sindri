@@ -1,0 +1,99 @@
+---
+# Sindri v3 Extension Profiles
+# Clean break from v2 - VisionFlow profiles excluded
+version: "3.0.0"
+
+profiles:
+  minimal:
+    description: Minimal development setup
+    extensions:
+      - nodejs
+      - python
+
+  fullstack:
+    description: Full-stack web development
+    extensions:
+      - nodejs
+      - python
+      - docker
+      - nodejs-devtools
+
+  ai-dev:
+    description: AI/ML development environment
+    extensions:
+      - nodejs
+      - python
+      - golang
+      - spec-kit
+      - ollama
+      - ai-toolkit
+      - mdflow
+      - openskills
+      - pal-mcp-server
+      - supabase-cli
+      - linear-mcp
+      - monitoring
+
+  anthropic-dev:
+    description: AI development with Anthropic toolset bias (v3 default - 10x performance)
+    extensions:
+      - agent-manager
+      - claude-flow-v3
+      - agentic-qe
+      - ralph
+      - golang
+      - ollama
+      - ai-toolkit
+      - claudish
+      - claude-marketplace
+      - infra-tools
+      - jvm
+      - mdflow
+      - openskills
+      - pal-mcp-server
+      - nodejs-devtools
+      - playwright
+      - agent-browser
+      - rust
+      - ruvnet-research
+      - linear-mcp
+      - supabase-cli
+      - tmux-workspace
+      - cloud-tools
+
+  systems:
+    description: Systems programming
+    extensions:
+      - rust
+      - golang
+      - docker
+      - infra-tools
+
+  enterprise:
+    description: Enterprise development (all languages)
+    extensions:
+      - nodejs
+      - python
+      - golang
+      - rust
+      - ruby
+      - jvm
+      - dotnet
+      - docker
+      - jira-mcp
+      - cloud-tools
+
+  devops:
+    description: DevOps and infrastructure
+    extensions:
+      - docker
+      - infra-tools
+      - monitoring
+      - cloud-tools
+
+  mobile:
+    description: Mobile development
+    extensions:
+      - nodejs
+      - linear-mcp
+      - supabase-cli

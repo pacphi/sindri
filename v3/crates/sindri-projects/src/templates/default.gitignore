@@ -1,0 +1,34 @@
+# Build outputs
+build/
+dist/
+out/
+target/
+
+# Dependencies
+node_modules/
+vendor/
+
+# Environment
+.env
+.env.*
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary
+tmp/
+temp/
+.cache/

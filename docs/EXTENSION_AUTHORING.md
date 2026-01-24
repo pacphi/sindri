@@ -1,13 +1,13 @@
 # Extension Authoring Guide
 
-This guide covers creating extensions for Sindri. For architectural background on the capability system, see [ADR-001: Extension Capabilities System](architecture/adr/ADR-001-extension-capabilities-system.md).
+This guide covers creating extensions for Sindri. For architectural background on the capability system, see [ADR-001: Extension Capabilities System](../v2/docs/architecture/adr/001-extension-capabilities-system.md).
 
 ## Creating a New Extension
 
 ### 1. Create Directory Structure
 
 ```bash
-mkdir -p docker/lib/extensions/myext/{templates,scripts}
+mkdir -p v2/docker/lib/extensions/myext/{templates,scripts}
 ```
 
 ### 2. Create extension.yaml
@@ -163,7 +163,7 @@ install:
 
 ### 4. Add to Registry
 
-Update `docker/lib/registry.yaml`:
+Update `v2/docker/lib/registry.yaml`:
 
 ```yaml
 extensions:
@@ -332,7 +332,7 @@ Use this checklist when creating or updating extensions to ensure completeness a
 ### Required Components
 
 - [ ] **extension.yaml** - Complete extension definition with all required fields
-- [ ] **Registry Entry** - Added to `docker/lib/registry.yaml` with category and description
+- [ ] **Registry Entry** - Added to `v2/docker/lib/registry.yaml` with category and description
 - [ ] **Category Assignment** - Valid category from `categories.yaml`
 - [ ] **Install Method** - One of: `mise`, `script`, `apt`, `npm`, `binary`, `hybrid`
 - [ ] **Validation Commands** - At least one command to verify installation
@@ -427,19 +427,19 @@ Before submitting your extension:
 
 ```bash
 # 1. Validate YAML syntax
-./cli/extension-manager validate <extension-name>
+./v2/cli/extension-manager validate <extension-name>
 
 # 2. Test local installation
-./cli/extension-manager install <extension-name>
+./v2/cli/extension-manager install <extension-name>
 
 # 3. Verify validation works
-./cli/extension-manager status <extension-name>
+./v2/cli/extension-manager status <extension-name>
 
 # 4. Test removal
-./cli/extension-manager remove <extension-name>
+./v2/cli/extension-manager remove <extension-name>
 
 # 5. Reinstall to verify idempotency
-./cli/extension-manager install <extension-name>
+./v2/cli/extension-manager install <extension-name>
 
 # 6. Run full validation
 pnpm validate
@@ -462,7 +462,7 @@ pnpm build && docker run -it sindri:local
 
 ### Getting Help
 
-- **Documentation** - Read [SCHEMA.md](SCHEMA.md) for complete reference
-- **Examples** - Browse `docker/lib/extensions/` for working examples
+- **Documentation** - Read [SCHEMA.md](../v2/docs/SCHEMA.md) for complete reference
+- **Examples** - Browse `v2/docker/lib/extensions/` for working examples
 - **Claude Code Skill** - Use the sindri-extension-guide skill for guidance
 - **Validation Errors** - Run with `-v` flag for detailed error messages

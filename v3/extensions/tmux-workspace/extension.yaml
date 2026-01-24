@@ -1,0 +1,86 @@
+---
+metadata:
+  name: tmux-workspace
+  version: 2.0.0
+  description: >-
+    Tmux workspace management with helper scripts and auto-start functionality
+  category: productivity
+  author: Sindri Team
+  license: MIT
+  dependencies: []
+requirements:
+  diskSpace: 50
+  memory: 64
+  installTime: 30
+install:
+  # tmux requires apt installation (needs ncurses, libevent system libraries)
+  # Building from source via mise requires too many build dependencies
+  # Note: Runs during entrypoint.sh as root, or manually with sudo
+  method: apt
+  apt:
+    packages:
+      - tmux
+      - htop
+configure:
+  templates:
+    - source: tmux.conf.template
+      destination: ~/config/tmux.conf
+      mode: overwrite
+    - source: tmux-workspace.sh.template
+      destination: ~/scripts/tmux-workspace.sh
+      mode: overwrite
+      permissions: "755"
+    - source: tmux-helpers.sh.template
+      destination: ~/scripts/tmux-helpers.sh
+      mode: overwrite
+      permissions: "755"
+    - source: tmux-auto-start.sh.template
+      destination: ~/scripts/tmux-auto-start.sh
+      mode: overwrite
+      permissions: "755"
+  postInstall:
+    - description: "Create tmux config symlink"
+      command: "ln -sf ${WORKSPACE:-${HOME}/workspace}/config/tmux.conf ~/.tmux.conf"
+    - description: "Source tmux helpers in bashrc"
+      command: >-
+        grep -q 'tmux-helpers.sh' ~/.bashrc || echo 'source ${WORKSPACE:-${HOME}/workspace}/scripts/tmux-helpers.sh 2>/dev/null' >> ~/.bashrc
+    - description: "Add tmux scripts to PATH"
+      command: >-
+        grep -q 'scripts' ~/.bashrc || echo 'export PATH="${WORKSPACE:-${HOME}/workspace}/scripts:$PATH"' >> ~/.bashrc
+  environment:
+    - key: TMUX_SESSION_NAME
+      value: sindri-workspace
+      scope: profile
+validate:
+  commands:
+    - name: tmux
+      versionFlag: "-V"
+      expectedPattern: "tmux \\d+"
+    - name: htop
+      versionFlag: "--version"
+remove:
+  paths:
+    - ~/config/tmux.conf
+    - ~/scripts/tmux-workspace.sh
+    - ~/scripts/tmux-helpers.sh
+    - ~/scripts/tmux-auto-start.sh
+    - ~/.tmux.conf
+  confirmation: true
+upgrade:
+  strategy: manual
+bom:
+  tools:
+    - name: tmux
+      version: dynamic
+      source: apt
+      type: cli-tool
+      license: ISC
+      homepage: https://github.com/tmux/tmux
+      purl: pkg:deb/ubuntu/tmux
+    - name: htop
+      version: dynamic
+      source: apt
+      type: cli-tool
+      license: GPL-2.0
+      homepage: https://htop.dev
+      purl: pkg:deb/ubuntu/htop

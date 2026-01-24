@@ -15,7 +15,7 @@ repository context for AI assistants like Claude Code.
 ## Installation
 
 ```bash
-./cli/extension-manager install spec-kit
+./v2/cli/extension-manager install spec-kit
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ repository context for AI assistants like Claude Code.
 spec-kit is automatically initialized when you create a new project with the appropriate profile:
 
 ```bash
-./cli/new-project --name myproject --profile ai-dev
+./v2/cli/new-project --name myproject --profile ai-dev
 ```
 
 Or manually in an existing project:

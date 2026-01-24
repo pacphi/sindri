@@ -65,7 +65,7 @@ jobs:
 
       - name: Validate configuration
         run: |
-          ./cli/sindri config validate --config "${{ inputs.config-path }}"
+          ./v2/v2/cli/sindri config validate --config "${{ inputs.config-path }}"
 
       - name: Deploy
         id: deploy
@@ -77,7 +77,7 @@ jobs:
           case "$PROVIDER" in
             fly)
               # Deploy to Fly.io
-              ./cli/sindri deploy --config "$CONFIG" --provider fly
+              ./v2/v2/cli/sindri deploy --config "$CONFIG" --provider fly
 
               # Get app URL
               APP_URL="https://${NAME}.fly.dev"
@@ -86,14 +86,14 @@ jobs:
               ;;
             docker*)
               # Deploy locally (for testing)
-              ./cli/sindri deploy --config "$CONFIG" --provider docker
+              ./v2/v2/cli/sindri deploy --config "$CONFIG" --provider docker
 
               echo "deployment-id=$NAME" >> $GITHUB_OUTPUT
               echo "app-url=" >> $GITHUB_OUTPUT
               ;;
             devpod)
               # Deploy DevPod workspace
-              ./cli/sindri deploy --config "$CONFIG" --provider devpod
+              ./v2/v2/cli/sindri deploy --config "$CONFIG" --provider devpod
 
               echo "deployment-id=$NAME" >> $GITHUB_OUTPUT
               echo "app-url=" >> $GITHUB_OUTPUT

@@ -1,0 +1,44 @@
+{
+  "name": "{{ name }}",
+  "image": "{{ image }}",
+  "containerEnv": {
+    "INIT_WORKSPACE": "true",
+    "INSTALL_PROFILE": "{{ profile }}",
+{% if custom_extensions %}
+    "CUSTOM_EXTENSIONS": "{{ custom_extensions }}",
+{% endif %}
+{% if additional_extensions %}
+    "ADDITIONAL_EXTENSIONS": "{{ additional_extensions }}",
+{% endif %}
+    "SKIP_AUTO_INSTALL": "{{ skip_auto_install }}"
+{% for key, value in env_vars %}
+    ,"{{ key }}": "{{ value }}"
+{% endfor %}
+  },
+  "mounts": [
+    {
+      "source": "{{ name }}_home",
+      "target": "/alt/home/developer",
+      "type": "volume"
+    }
+  ],
+  "remoteUser": "developer",
+  "workspaceFolder": "/alt/home/developer/workspace",
+  "features": {},
+{% if gpu_enabled %}
+  "runArgs": [
+    "--gpus", "all"
+  ],
+{% endif %}
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode-remote.remote-containers"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postStartCommand": "/docker/scripts/entrypoint.sh"
+}

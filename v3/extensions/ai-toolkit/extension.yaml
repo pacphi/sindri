@@ -1,0 +1,106 @@
+---
+metadata:
+  name: ai-toolkit
+  version: 2.1.0
+  description: >-
+    AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
+  category: ai-dev
+  author: Sindri Team
+  dependencies:
+    - nodejs
+    - python
+    - golang
+    - github-cli
+requirements:
+  domains:
+    - github.com
+    - factory.ai
+    - app.factory.ai
+    - api.openai.com
+    - generativelanguage.googleapis.com
+  diskSpace: 1000
+  memory: 4096
+  installTime: 300
+  secrets:
+    - google_gemini_api_key
+    - grok_api_key
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 600
+configure:
+  templates:
+    - source: bashrc.template
+      destination: ~/.bashrc
+      mode: append
+    - source: readme.template
+      destination: ~/extensions/ai-tools/README.md
+      mode: overwrite
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+    - key: PATH
+      value: "$HOME/go/bin:$PATH"
+      scope: bashrc
+    - key: PATH
+      value: "$HOME/.factory/bin:$PATH"
+      scope: bashrc
+validate:
+  commands:
+    - name: fabric
+    - name: codex
+    - name: gemini
+    - name: droid
+    - name: grok
+remove:
+  paths:
+    - ~/.local/share/fabric
+    - ~/.local/bin/fabric
+    - ~/.factory
+    - ~/.grok
+    - ~/.config/gemini
+    - ~/extensions/ai-tools
+upgrade:
+  strategy: manual
+  script:
+    path: upgrade.sh
+    timeout: 900
+bom:
+  tools:
+    - name: fabric
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/danielmiessler/fabric
+      purl: pkg:pypi/fabric
+    - name: codex
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/openai/openai-codex
+      purl: pkg:pypi/openai-codex
+    - name: gemini
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://ai.google.dev
+      purl: pkg:pypi/google-generativeai
+    - name: droid
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/droid-ai/droid
+      purl: pkg:npm/droid
+    - name: grok
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://x.ai
+      purl: pkg:generic/grok-cli

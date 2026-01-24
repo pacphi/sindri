@@ -1,0 +1,39 @@
+[package]
+name = "sindri-update"
+description = "Self-update functionality for Sindri CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+sindri-core = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+semver = { workspace = true }
+self_update = { workspace = true }
+octocrab = { workspace = true }
+sha2 = "0.10"
+indicatif = { workspace = true }
+tempfile = "3.24"
+futures-util = "0.3"
+bytes = "1.11"
+chrono = { workspace = true }
+uuid = { workspace = true }
+flate2 = { workspace = true }
+tar = { workspace = true }
+directories = { workspace = true }
+owo-colors = { workspace = true }
+
+[dev-dependencies]
+wiremock = "0.6"
+tokio-test = "0.4"
+tracing-subscriber = { workspace = true }
+hex = "0.4"
+clap = { workspace = true }

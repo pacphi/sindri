@@ -1,0 +1,51 @@
+---
+metadata:
+  name: claudeup
+  version: 1.0.0
+  description: >-
+    TUI tool for managing Claude Code plugins, MCPs (Model Context Protocol), and configuration settings
+  category: claude
+  author: MadAppGang
+  license: MIT
+  homepage: https://github.com/MadAppGang/claude-code/tree/main/tools/claudeup
+  dependencies:
+    - nodejs
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+  diskSpace: 50
+  memory: 128
+  installTime: 30
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+configure:
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+validate:
+  commands:
+    - name: claudeup
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+remove:
+  paths:
+    - ~/.config/claudeup
+  mise:
+    removeConfig: true
+    tools:
+      - "npm:claudeup"
+  confirmation: true
+upgrade:
+  strategy: reinstall
+bom:
+  tools:
+    - name: claudeup
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/MadAppGang/claude-code/tree/main/tools/claudeup
+      purl: pkg:npm/claudeup

@@ -13,15 +13,68 @@ updates:
       prefix-development: "ci"
       include: "scope"
 
-  # Docker dependencies
+  # v2 Docker dependencies
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/v2"
     schedule:
       interval: "weekly"
       day: "tuesday"
       time: "06:00"
     open-pull-requests-limit: 3
     commit-message:
-      prefix: "docker"
-      prefix-development: "docker"
+      prefix: "deps(v2)"
+      prefix-development: "deps(v2)"
       include: "scope"
+
+  # v2 Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/v3"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(v3)"
+      prefix-development: "deps(v3)"
+      include: "scope"
+
+  # v2 npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(v2)"
+      prefix-development: "deps(v2)"
+      include: "scope"
+
+  # v3 Rust/Cargo dependencies
+  - package-ecosystem: "cargo"
+    directory: "/v3"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "06:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps(v3)"
+      prefix-development: "deps(v3)"
+      include: "scope"
+    groups:
+      tokio-ecosystem:
+        patterns:
+          - "tokio*"
+      serde-ecosystem:
+        patterns:
+          - "serde*"
+      cli-ecosystem:
+        patterns:
+          - "clap"
+          - "dialoguer"
+          - "indicatif"
+          - "owo-colors"
+          - "console"

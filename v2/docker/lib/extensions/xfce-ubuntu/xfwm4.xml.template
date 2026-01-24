@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfwm4" version="1.0">
+  <property name="general" type="empty">
+    <!-- Disable compositing for better RDP performance -->
+    <property name="use_compositing" type="bool" value="false"/>
+    <!-- Reduce visual effects for remote desktop -->
+    <property name="box_resize" type="bool" value="false"/>
+    <property name="box_move" type="bool" value="false"/>
+    <property name="show_frame_shadow" type="bool" value="false"/>
+    <property name="show_popup_shadow" type="bool" value="false"/>
+  </property>
+</channel>

@@ -1,0 +1,204 @@
+---
+# Sindri v3 Extension Registry
+# Migrated from v2 (excluding VisionFlow vf-* extensions)
+# This registry is independently managed from v2
+
+version: "3.0.0"
+metadata:
+  name: "Sindri v3 Extension Registry"
+  description: "Registry of available extensions for Sindri v3 (Rust-based CLI)"
+  last_updated: "2026-01-22"
+
+extensions:
+  # AI & Agentic Tools
+  agent-browser:
+    category: "ai-agents"
+    description: "Browser automation agent"
+  agent-manager:
+    category: "ai-agents"
+    description: "Agent orchestration and management"
+  agentic-flow:
+    category: "ai-agents"
+    description: "Agentic workflow automation"
+  agentic-qe:
+    category: "ai-agents"
+    description: "Agentic quality engineering"
+  ai-toolkit:
+    category: "ai-dev"
+    description: "AI development toolkit"
+
+  # Claude Ecosystem
+  claude-code-mux:
+    category: "claude"
+    description: "Claude Code multiplexer"
+  claude-codepro:
+    category: "claude"
+    description: "Claude Code professional features"
+  claude-flow-v2:
+    category: "claude"
+    description: "Claude Flow v2"
+  claude-flow-v3:
+    category: "claude"
+    description: "Claude Flow v3"
+  claude-marketplace:
+    category: "claude"
+    description: "Claude marketplace integration"
+  claudeup:
+    category: "claude"
+    description: "Claude update manager"
+  claudish:
+    category: "claude"
+    description: "Claude shell integration"
+
+  # Cloud & Infrastructure
+  cloud-tools:
+    category: "devops"
+    description: "Cloud platform tools"
+  infra-tools:
+    category: "devops"
+    description: "Infrastructure management tools"
+  monitoring:
+    category: "devops"
+    description: "System monitoring tools"
+
+  # MCP Servers
+  context7-mcp:
+    category: "mcp"
+    description: "Context7 MCP server"
+  jira-mcp:
+    category: "mcp"
+    description: "Jira MCP integration"
+  linear-mcp:
+    category: "mcp"
+    description: "Linear MCP integration"
+  pal-mcp-server:
+    category: "mcp"
+    description: "PAL MCP server"
+
+  # Development Tools
+  docker:
+    category: "devops"
+    description: "Docker and container tools"
+  github-cli:
+    category: "devops"
+    description: "GitHub CLI tools"
+  supabase-cli:
+    category: "cloud"
+    description: "Supabase CLI"
+  tmux-workspace:
+    category: "productivity"
+    description: "Tmux workspace manager"
+
+  # Programming Languages
+  dotnet:
+    category: "languages"
+    description: ".NET development environment"
+  golang:
+    category: "languages"
+    description: "Go development environment"
+  haskell:
+    category: "languages"
+    description: "Haskell development environment"
+  jvm:
+    category: "languages"
+    description: "JVM languages (Java, Kotlin, Scala)"
+  nodejs:
+    category: "languages"
+    description: "Node.js development environment"
+  nodejs-devtools:
+    category: "languages"
+    description: "Node.js developer tools"
+  php:
+    category: "languages"
+    description: "PHP development environment"
+  python:
+    category: "languages"
+    description: "Python development environment"
+  ruby:
+    category: "languages"
+    description: "Ruby development environment"
+  rust:
+    category: "languages"
+    description: "Rust development environment"
+
+  # AI/ML Tools
+  goose:
+    category: "ai-dev"
+    description: "Goose AI assistant"
+  ollama:
+    category: "ai-dev"
+    description: "Ollama local LLM runtime"
+
+  # Desktop & UI
+  guacamole:
+    category: "desktop"
+    description: "Apache Guacamole remote desktop"
+  xfce-ubuntu:
+    category: "desktop"
+    description: "XFCE desktop environment"
+
+  # Testing & QA
+  playwright:
+    category: "testing"
+    description: "Playwright browser automation"
+
+  # Documentation & Content
+  mdflow:
+    category: "documentation"
+    description: "Markdown workflow tools"
+  spec-kit:
+    category: "documentation"
+    description: "Specification toolkit"
+
+  # Productivity
+  mise-config:
+    category: "productivity"
+    description: "Mise configuration management"
+  openskills:
+    category: "productivity"
+    description: "Skills management platform"
+  ralph:
+    category: "productivity"
+    description: "Ralph productivity tools"
+  ruvnet-research:
+    category: "research"
+    description: "RUV.NET research tools"
+
+# Categories definition
+categories:
+  ai-agents:
+    name: "AI Agents"
+    description: "Autonomous AI agents and orchestration"
+  ai-dev:
+    name: "AI Development"
+    description: "Tools for AI/ML development"
+  claude:
+    name: "Claude Ecosystem"
+    description: "Claude-specific tools and integrations"
+  cloud:
+    name: "Cloud Services"
+    description: "Cloud platform integrations"
+  desktop:
+    name: "Desktop Environment"
+    description: "GUI desktop environments"
+  devops:
+    name: "DevOps"
+    description: "Infrastructure and deployment tools"
+  documentation:
+    name: "Documentation"
+    description: "Documentation and content creation"
+  languages:
+    name: "Programming Languages"
+    description: "Language runtimes and SDKs"
+  mcp:
+    name: "MCP Servers"
+    description: "Model Context Protocol servers"
+  productivity:
+    name: "Productivity"
+    description: "Productivity and workflow tools"
+  research:
+    name: "Research"
+    description: "Research and analysis tools"
+  testing:
+    name: "Testing & QA"
+    description: "Testing and quality assurance"

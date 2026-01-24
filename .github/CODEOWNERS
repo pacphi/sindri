@@ -1,0 +1,34 @@
+# Sindri CODEOWNERS
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @pacphi
+
+# V2 Bash/Docker Implementation
+/v2/ @pacphi
+
+# V3 Rust Implementation
+/v3/ @pacphi
+
+# CI/CD Workflows
+/.github/workflows/ @pacphi
+/.github/actions/ @pacphi
+
+# Documentation
+/docs/ @pacphi
+/v2/docs/ @pacphi
+/v3/docs/ @pacphi
+*.md @pacphi
+
+# Extension Registry and Schemas
+/v2/docker/lib/extensions/ @pacphi
+/v3/extensions/ @pacphi
+*.schema.json @pacphi
+
+# Examples (test fixtures)
+/examples/ @pacphi
+
+# Configuration
+/package.json @pacphi
+/v3/Cargo.toml @pacphi
+/v3/Cargo.lock @pacphi

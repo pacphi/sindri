@@ -1,10 +1,15 @@
 # Sindri
 
 [![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
-[![CI](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci.yml)
+[![CI V2](https://github.com/pacphi/sindri/actions/workflows/ci-v2.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci-v2.yml)
+[![CI V3](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml)
 [![FAQ](https://img.shields.io/badge/FAQ-on%20fly.dev-blue)](https://sindri-faq.fly.dev)
+[![GHCR](https://img.shields.io/badge/GHCR-container%20registry-blue)](https://github.com/pacphi/sindri/pkgs/container/sindri)
+[![Security](https://img.shields.io/badge/Security-Cosign%20%2B%20SBOM-green)](v3/docs/image-management.md#security)
 
 A declarative, provider-agnostic cloud development environment system. Deploy consistent development environments to Fly.io, local Docker, or via DevPod to Kubernetes, AWS, GCP, Azure, and other cloud providers using YAML-defined extensions.
+
+**🔐 Secure Supply Chain:** All release images are signed with Cosign, include SBOM (Software Bill of Materials), and have SLSA Level 3 provenance attestations.
 
 ```text
    ███████╗██╗███╗   ██╗██████╗ ██████╗ ██╗
@@ -24,89 +29,83 @@ A declarative, provider-agnostic cloud development environment system. Deploy co
 
 Like its mythological namesake, Sindri forges powerful development environments from raw materials—transforming cloud infrastructure, YAML configuration, and Docker into consistent, reproducible developer workspaces.
 
-## Quick Start
+## Versions
+
+- **[v2](v2)** - Bash/Docker implementation (stable)
+- **[v3](v3)** - Rust CLI implementation (active development)
+
+## Quick Start (v3)
+
+### Install
 
 ```bash
-# Clone repository
-git clone https://github.com/pacphi/sindri
-cd sindri
+# Pull the Docker image
+docker pull ghcr.io/pacphi/sindri:v3
 
+# Or download the CLI binary
+wget https://github.com/pacphi/sindri/releases/latest/download/sindri-linux-x86_64.tar.gz
+tar -xzf sindri-linux-x86_64.tar.gz
+sudo mv sindri /usr/local/bin/
+```
+
+### Deploy
+
+```bash
 # Initialize configuration
-./cli/sindri config init
+sindri config init --provider kubernetes
 
-# Edit sindri.yaml for your needs
-# See examples/ directory for templates
+# Deploy with automatic image version resolution
+sindri deploy
 
-# Deploy locally
-./cli/sindri deploy --provider docker
-
-# Or deploy to Fly.io
-./cli/sindri deploy --provider fly
+# Verify image security
+sindri image verify ghcr.io/pacphi/sindri:v3.0.0
 ```
 
-**Prerequisites:** [Docker](https://www.docker.com/get-started/), [yq](https://github.com/mikefarah/yq). For Fly.io: [flyctl](https://fly.io/docs/flyctl/install/) CLI. For DevPod: [devpod](https://devpod.sh/) CLI.
+### Image Management
 
-## Core Features
+```bash
+# List available versions
+sindri image list
 
-- **Modular Extension System** - YAML-driven with dependency resolution
-- **Fast Startup** - Optimized Docker images with pre-installed tools (10-15s cold start)
-- **Extension System** - 70+ modular extensions for languages, tools, and infrastructure
-- **Schema Validation** - All YAML validated against JSON schemas
-- **Provider Adapters** - Clean abstraction for Docker, Fly.io, and DevPod (with Kubernetes, AWS, GCP, Azure backends)
-- **Volume Architecture** - Immutable `/docker/lib` system, mutable `$HOME` volume containing workspace
-- **BOM Tracking** - Comprehensive software bill of materials for security auditing
+# Inspect image details
+sindri image inspect ghcr.io/pacphi/sindri:v3.0.0 --sbom
 
-## Documentation
-
-### Getting Started
-
-- **[Quickstart Guide](docs/QUICKSTART.md)** - Fast setup and deployment
-- **[FAQ](docs/FAQ.md)** - Searchable answers to common questions
-- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and concepts
-- **[Configuration Reference](docs/CONFIGURATION.md)** - Complete sindri.yaml guide
-- **[CLI Reference](docs/CLI.md)** - Complete command-line reference
-
-### Extensions
-
-- **[Extension Catalog](docs/EXTENSIONS.md)** - Available extensions and usage
-- **[Extension Authoring](docs/EXTENSION_AUTHORING.md)** - Creating custom extensions
-- **[Bill of Materials](docs/BOM.md)** - Software tracking and SBOM generation
-
-### Deployment
-
-- **[Deployment Overview](docs/DEPLOYMENT.md)** - Provider comparison and selection
-- **[Fly.io Deployment](docs/providers/FLY.md)** - Fly.io-specific guide
-- **[DevPod Integration](docs/providers/DEVPOD.md)** - DevContainer setup
-- **[Docker Deployment](docs/providers/DOCKER.md)** - Local Docker setup
-- **[E2B Deployment](docs/providers/E2B.md)** - Ultra-fast cloud sandboxes
-- **[Kubernetes Deployment](docs/providers/KUBERNETES.md)** - Enterprise K8s guide
-- **[IDE Integration](docs/ides/README.md)** - Connect with VS Code, IntelliJ, Zed, Eclipse, or Warp
-- **[Secrets Management](docs/SECRETS_MANAGEMENT.md)** - Managing secrets across providers
-
-### Development & Operations
-
-- **[Project Management](docs/PROJECT_MANAGEMENT.md)** - Using new-project and clone-project
-- **[Backup & Restore](docs/BACKUP_RESTORE.md)** - Workspace backup, migration, and recovery
-- **[Contributing Guide](docs/CONTRIBUTING.md)** - Development workflow and standards
-- **[Testing Guide](docs/TESTING.md)** - Running tests and CI/CD
-- **[Workflow Architecture](.github/WORKFLOW_ARCHITECTURE.md)** - CI/CD workflow structure and design
-- **[CI Testing Deep Dive](docs/CI_WORKFLOW_IN_DEPTH.md)** - Comprehensive CI testing guide
-- **[Release Process](docs/RELEASE.md)** - Creating releases and changelog automation
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Security](docs/SECURITY.md)** - Security best practices
-
-### Claude Code Integration
-
-A Claude Code skill is available to guide extension development. When using Claude Code, ask about creating extensions and it will automatically provide guidance. See [Sindri Extension Guide](.claude/skills/sindri-extension-guide/SKILL.md) for the skill definition.
-
-```text
-Example questions:
-- "Help me create a new extension for Lua development"
-- "What fields are required in extension.yaml?"
-- "How do I use the apt installation method?"
-- "Show me an example of a script-based extension"
+# Check current image
+sindri image current
 ```
+
+## Features
+
+### 🎯 Provider-Agnostic
+
+Deploy to multiple cloud providers using the same configuration:
+
+- Docker & Docker Compose
+- Fly.io
+- Kubernetes (kind, k3d, EKS, GKE, AKS)
+- DevPod (AWS, GCP, Azure, DigitalOcean)
+- E2B
+
+### 🔐 Security-First
+
+- **Signed Images**: All releases signed with Cosign (keyless)
+- **SBOM**: Software Bill of Materials in SPDX format
+- **SLSA Provenance**: Level 3 build attestations
+- **Vulnerability Scanning**: Trivy scans on every CI build
+
+### 📦 Container Image Lifecycle
+
+- **Build Once, Promote Often**: CI builds once, releases retag (no rebuild)
+- **Version Resolution**: Semantic versioning constraints
+- **Signature Verification**: Automatic verification before deployment
+- **Registry-First**: GHCR as single source of truth
+
+### 🔧 Extension System
+
+Install development tools declaratively using profiles or individual extensions.
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+![Sindri at his forge](sindri.png)

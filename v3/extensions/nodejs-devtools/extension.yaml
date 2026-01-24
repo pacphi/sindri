@@ -1,0 +1,102 @@
+---
+metadata:
+  name: nodejs-devtools
+  version: 2.2.0
+  description: >-
+    TypeScript, ESLint, Prettier, and Node.js development tools via pnpm
+  category: languages
+  author: Sindri Team
+  dependencies:
+    - nodejs
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 150
+  memory: 256
+  installTime: 60
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+configure:
+  templates:
+    - source: prettierrc.template
+      destination: ~/templates/.prettierrc
+      mode: overwrite
+    - source: eslintrc.template
+      destination: ~/templates/.eslintrc.json
+      mode: overwrite
+    - source: tsconfig.template
+      destination: ~/templates/tsconfig.json
+      mode: overwrite
+validate:
+  commands:
+    - name: tsc
+      expectedPattern: "Version \\d+\\.\\d+\\.\\d+"
+    - name: ts-node
+    - name: prettier
+    - name: eslint
+    - name: nodemon
+  mise:
+    tools:
+      - npm:typescript
+      - npm:prettier
+      - npm:eslint
+    minToolCount: 3
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - npm:typescript
+      - npm:ts-node
+      - npm:nodemon
+      - npm:prettier
+      - npm:eslint
+      - npm:@typescript-eslint/parser
+      - npm:@typescript-eslint/eslint-plugin
+  paths:
+    - ~/templates/.prettierrc
+    - ~/templates/.eslintrc.json
+    - ~/templates/tsconfig.json
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+bom:
+  tools:
+    - name: typescript
+      version: dynamic
+      source: npm
+      type: compiler
+      license: Apache-2.0
+      homepage: https://www.typescriptlang.org
+      purl: pkg:npm/typescript
+    - name: ts-node
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://typestrong.org/ts-node
+      purl: pkg:npm/ts-node
+    - name: prettier
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://prettier.io
+      purl: pkg:npm/prettier
+    - name: eslint
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://eslint.org
+      purl: pkg:npm/eslint
+    - name: nodemon
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://nodemon.io
+      purl: pkg:npm/nodemon

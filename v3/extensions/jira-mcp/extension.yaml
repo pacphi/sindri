@@ -1,0 +1,50 @@
+---
+metadata:
+  name: jira-mcp
+  version: 2.0.0
+  description: >-
+    Atlassian MCP server using Claude Code's native SSE transport (no API key required, no Docker dependencies)
+  category: mcp
+  author: Sindri Team
+  homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/
+  dependencies: []
+requirements:
+  domains:
+    - atlassian.net
+    - atlassian.com
+    - mcp.atlassian.com
+  diskSpace: 10
+  memory: 64
+  installTime: 10
+  # No secrets required - uses OAuth flow via Claude Code
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 60
+configure:
+  templates:
+    - source: resources/SKILL.md
+      destination: ~/extensions/jira-mcp/SKILL.md
+      mode: overwrite
+validate:
+  commands:
+    # Verify claude CLI is available
+    - name: claude
+      versionFlag: --version
+remove:
+  script:
+    path: uninstall.sh
+  paths:
+    - ~/extensions/jira-mcp
+upgrade:
+  strategy: reinstall
+bom:
+  tools:
+    - name: atlassian-mcp
+      version: remote
+      source: script
+      type: server
+      license: MIT
+      homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/
+      purl: pkg:generic/atlassian-mcp-server

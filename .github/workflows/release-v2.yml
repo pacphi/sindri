@@ -1,0 +1,697 @@
+name: Release v2
+
+# v2 Docker Release Pipeline
+# Triggers on tags matching v2.*.* (e.g., v2.3.0, v2.3.1-beta.1)
+
+on:
+  push:
+    tags:
+      - "v2.*.*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Validate the release tag format and detect prerelease
+  validate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      is_prerelease: ${{ steps.validate.outputs.is_prerelease }}
+    steps:
+      - name: Validate semantic version tag
+        id: validate
+        run: |
+          tag_name="${GITHUB_REF#refs/tags/}"
+          echo "Tag name: $tag_name"
+
+          # Validate format: v2.0.0 or v2.0.0-alpha.1
+          if [[ ! $tag_name =~ ^v2\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid tag format: $tag_name"
+            echo "Tag must match pattern: v2.{MINOR}.{PATCH} or v2.{MINOR}.{PATCH}-{prerelease}"
+            exit 1
+          fi
+
+          # Extract version without 'v' prefix
+          version="${tag_name#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          # Detect prerelease (alpha, beta, rc)
+          if [[ $version =~ -[a-zA-Z] ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Detected prerelease version: $version"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Detected stable version: $version"
+          fi
+
+  # Job 2: Verify CI image exists for promotion
+  verify-ci-image:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      ci_image: ${{ steps.verify.outputs.ci_image }}
+      image_digest: ${{ steps.verify.outputs.image_digest }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get commit SHA for tag
+        id: get-sha
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Tag ${{ github.ref_name }} points to commit: $SHA"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for CI image
+        id: verify
+        run: |
+          SHA="${{ steps.get-sha.outputs.sha }}"
+          CI_PASSED="ghcr.io/${{ github.repository }}:ci-passed-${SHA}"
+          CI_TAG="ghcr.io/${{ github.repository }}:ci-${SHA}"
+
+          echo "Looking for promotion candidate images..."
+          echo "  Preferred: $CI_PASSED"
+          echo "  Fallback:  $CI_TAG"
+          echo ""
+
+          if docker pull "$CI_PASSED" 2>/dev/null; then
+            echo "ci_image=$CI_PASSED" >> $GITHUB_OUTPUT
+            DIGEST=$(docker inspect "$CI_PASSED" --format='{{index .RepoDigests 0}}')
+            echo "image_digest=$DIGEST" >> $GITHUB_OUTPUT
+            echo "✅ Found CI image: $CI_PASSED"
+            echo "   Digest: $DIGEST"
+            echo "::notice title=CI Image Found::Using tested image: $CI_PASSED"
+          elif docker pull "$CI_TAG" 2>/dev/null; then
+            echo "ci_image=$CI_TAG" >> $GITHUB_OUTPUT
+            DIGEST=$(docker inspect "$CI_TAG" --format='{{index .RepoDigests 0}}')
+            echo "image_digest=$DIGEST" >> $GITHUB_OUTPUT
+            echo "⚠️  Using unverified CI image: $CI_TAG"
+            echo "   Digest: $DIGEST"
+            echo "::warning title=Unverified CI Image::Using CI image that didn't pass tests: $CI_TAG"
+          else
+            echo "::error title=No CI Image::No CI image found for commit $SHA"
+            echo ""
+            echo "Possible causes:"
+            echo "  1. CI workflow didn't run on this commit"
+            echo "  2. CI workflow is still running"
+            echo "  3. CI workflow failed"
+            echo "  4. Image was deleted (check retention policy)"
+            echo ""
+            echo "To fix:"
+            echo "  1. Verify CI ran: https://github.com/${{ github.repository }}/actions"
+            echo "  2. Check GHCR packages: https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
+            exit 1
+          fi
+
+  # Job 3: Generate changelog from commits since last tag
+  generate-changelog:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      changelog_file: ${{ steps.changelog.outputs.changelog_file }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          current_tag="v$version"
+
+          # Get previous v2 tag
+          previous_tag=$(git tag -l "v2.*" --sort=-version:refname | grep -A 1 "^$current_tag$" | tail -1 || echo "")
+
+          if [[ -z "$previous_tag" ]] || [[ "$previous_tag" == "$current_tag" ]]; then
+            echo "No previous v2 tag found, using all v2 commits"
+            commit_range="$current_tag"
+          else
+            echo "Generating changelog from $previous_tag to $current_tag"
+            commit_range="$previous_tag..$current_tag"
+          fi
+
+          # Initialize changelog sections
+          features=""
+          fixes=""
+          docs=""
+          deps=""
+          perf=""
+          refactor=""
+          chore=""
+          tests=""
+          other=""
+
+          # Parse commits in v2 directory only
+          while IFS= read -r commit; do
+            [[ -z "$commit" ]] && continue
+
+            # Extract commit hash and message
+            hash="${commit:0:7}"
+            message="${commit:8}"
+
+            # Categorize by conventional commit prefix
+            case "$message" in
+              feat:*|feat\(*) features+="- $message ($hash)"$'\n' ;;
+              fix:*|fix\(*)   fixes+="- $message ($hash)"$'\n' ;;
+              docs:*|docs\(*) docs+="- $message ($hash)"$'\n' ;;
+              deps:*|deps\(*) deps+="- $message ($hash)"$'\n' ;;
+              perf:*|perf\(*) perf+="- $message ($hash)"$'\n' ;;
+              refactor:*|refactor\(*) refactor+="- $message ($hash)"$'\n' ;;
+              chore:*|chore\(*) chore+="- $message ($hash)"$'\n' ;;
+              test:*|test\(*) tests+="- $message ($hash)"$'\n' ;;
+              ci:*|ci\(*)     chore+="- $message ($hash)"$'\n' ;;
+              style:*|style\(*) chore+="- $message ($hash)"$'\n' ;;
+              *)              other+="- $message ($hash)"$'\n' ;;
+            esac
+          done < <(git log --oneline "$commit_range" -- v2/ 2>/dev/null || git log --oneline -- v2/)
+
+          # Build changelog content
+          changelog="## [$version] - $(date +%Y-%m-%d)"$'\n\n'
+
+          [[ -n "$features" ]] && changelog+="### :sparkles: Features"$'\n\n'"$features"$'\n'
+          [[ -n "$fixes" ]] && changelog+="### :bug: Bug Fixes"$'\n\n'"$fixes"$'\n'
+          [[ -n "$docs" ]] && changelog+="### :books: Documentation"$'\n\n'"$docs"$'\n'
+          [[ -n "$deps" ]] && changelog+="### :package: Dependencies"$'\n\n'"$deps"$'\n'
+          [[ -n "$perf" ]] && changelog+="### :zap: Performance"$'\n\n'"$perf"$'\n'
+          [[ -n "$refactor" ]] && changelog+="### :recycle: Refactoring"$'\n\n'"$refactor"$'\n'
+          [[ -n "$tests" ]] && changelog+="### :white_check_mark: Tests"$'\n\n'"$tests"$'\n'
+          [[ -n "$chore" ]] && changelog+="### :wrench: Maintenance"$'\n\n'"$chore"$'\n'
+          [[ -n "$other" ]] && changelog+="### :gear: Other Changes"$'\n\n'"$other"$'\n'
+
+          # Add installation instructions
+          changelog+="### Installation"$'\n\n'
+          changelog+='```bash'$'\n'
+          changelog+="# Pull Docker image"$'\n'
+          changelog+="docker pull ghcr.io/${{ github.repository }}:v$version"$'\n\n'
+          changelog+="# Or use specific tag"$'\n'
+          changelog+="docker pull ghcr.io/${{ github.repository }}:v2"$'\n\n'
+          changelog+="# Run container"$'\n'
+          changelog+='docker run -it -v sindri-home:/alt/home/developer ghcr.io/${{ github.repository }}:v'"$version"$'\n'
+          changelog+='```'$'\n\n'
+
+          # Add diff link if previous tag exists
+          if [[ -n "$previous_tag" ]] && [[ "$previous_tag" != "$current_tag" ]]; then
+            changelog+="**Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...$current_tag"$'\n'
+          fi
+
+          # Save changelog to file for artifact
+          echo "$changelog" > changelog.md
+
+          # Output for GitHub Actions (escape newlines)
+          {
+            echo "changelog<<CHANGELOG_EOF"
+            echo "$changelog"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "changelog_file=changelog.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: changelog-v2
+          path: changelog.md
+
+  # Job 3: Update CHANGELOG.md in repository
+  update-changelog:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: changelog-v2
+
+      - name: Update v2/CHANGELOG.md
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          changelog_header='# Changelog - Sindri v2
+
+          All notable changes to Sindri v2 (Bash/Docker) will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          <!-- Entries below are auto-generated by release workflow -->'
+
+          # Create v2/CHANGELOG.md if it doesn't exist
+          if [[ ! -f v2/CHANGELOG.md ]]; then
+            echo "$changelog_header" > v2/CHANGELOG.md
+            echo "" >> v2/CHANGELOG.md
+          fi
+
+          # Check if this version already exists
+          if grep -q "## \[$version\]" v2/CHANGELOG.md; then
+            echo "Version $version already exists in v2/CHANGELOG.md, skipping update"
+            exit 0
+          fi
+
+          # Read existing content after header
+          if grep -q "<!-- Entries below are auto-generated" v2/CHANGELOG.md; then
+            existing_content=$(sed -n '/<!-- Entries below are auto-generated/,$ p' v2/CHANGELOG.md | tail -n +2)
+          else
+            existing_content=$(cat v2/CHANGELOG.md)
+          fi
+
+          # Rebuild CHANGELOG.md with new version at top
+          {
+            echo "$changelog_header"
+            echo ""
+            cat changelog.md
+            echo ""
+            echo "$existing_content"
+          } > v2/CHANGELOG.md.new
+
+          mv v2/CHANGELOG.md.new v2/CHANGELOG.md
+
+      - name: Update v2/cli/VERSION file
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "$version" > v2/cli/VERSION
+          echo "Updated v2/cli/VERSION to $version"
+
+      - name: Commit release updates
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes to commit
+          if git diff --quiet v2/CHANGELOG.md v2/cli/VERSION; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add v2/CHANGELOG.md v2/cli/VERSION
+          git commit -m "chore(release): update v2 CHANGELOG and VERSION for v$version
+
+          [skip ci]"
+          git push origin main
+
+  # Job 4: Promote CI image to release (no rebuild!)
+  promote-image:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, verify-ci-image]
+    permissions:
+      contents: read
+      packages: write
+    env:
+      # Set env vars for conditionals (secrets can't be used directly in if:)
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub (optional)
+        if: env.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Generate release tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/sindri
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}},prefix=v
+            type=semver,pattern={{major}}.{{minor}},prefix=v
+            type=raw,value=v2,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+            type=raw,value=latest,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+          labels: |
+            org.opencontainers.image.title=Sindri v2
+            org.opencontainers.image.description=Multi-cloud development environment orchestrator
+            org.opencontainers.image.version=${{ needs.validate-tag.outputs.version }}
+            sindri.version=v2
+            sindri.release.promoted-from=${{ needs.verify-ci-image.outputs.ci_image }}
+
+      - name: Pull and retag CI image
+        run: |
+          CI_IMAGE="${{ needs.verify-ci-image.outputs.ci_image }}"
+          echo "Pulling CI image: $CI_IMAGE"
+          docker pull "$CI_IMAGE"
+
+          # Parse tags output (newline-separated list)
+          TAGS="${{ steps.meta.outputs.tags }}"
+
+          echo ""
+          echo "Retagging for release:"
+          while IFS= read -r TAG; do
+            [[ -z "$TAG" ]] && continue
+            echo "  → $TAG"
+            docker tag "$CI_IMAGE" "$TAG"
+          done <<< "$TAGS"
+
+          echo ""
+          echo "Pushing release tags:"
+          while IFS= read -r TAG; do
+            [[ -z "$TAG" ]] && continue
+
+            # Check if pushing to Docker Hub and if credentials are available
+            if [[ "$TAG" =~ ^docker\.io/ ]] && [[ -z "$DOCKERHUB_TOKEN" ]]; then
+              echo "  ⏭️  Skipping $TAG (Docker Hub credentials not configured)"
+              continue
+            fi
+
+            echo "  → $TAG"
+            if docker push "$TAG"; then
+              echo "    ✅ Pushed successfully"
+            else
+              echo "    ⚠️  Push failed (non-fatal)"
+            fi
+          done <<< "$TAGS"
+
+          echo ""
+          echo "✅ Image promotion complete"
+          echo "   Source:  $CI_IMAGE"
+          echo "   Digest:  ${{ needs.verify-ci-image.outputs.image_digest }}"
+
+  # Job 5: Sign images with Cosign (keyless)
+  sign-image:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, promote-image]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # Required for OIDC keyless signing
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign images
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          REPO="${{ github.repository }}"
+
+          echo "Signing release images with Cosign (keyless)..."
+          echo ""
+
+          # Sign main version tag
+          echo "→ Signing ghcr.io/${REPO}:v${VERSION}"
+          cosign sign --yes "ghcr.io/${REPO}:v${VERSION}"
+
+          # Sign major.minor tag (if not prerelease)
+          if [[ "${{ needs.validate-tag.outputs.is_prerelease }}" == "false" ]]; then
+            MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1-2)
+            echo "→ Signing ghcr.io/${REPO}:v${MAJOR_MINOR}"
+            cosign sign --yes "ghcr.io/${REPO}:v${MAJOR_MINOR}"
+
+            # Sign v2 tag
+            echo "→ Signing ghcr.io/${REPO}:v2"
+            cosign sign --yes "ghcr.io/${REPO}:v2"
+
+            # Sign latest tag
+            echo "→ Signing ghcr.io/${REPO}:latest"
+            cosign sign --yes "ghcr.io/${REPO}:latest"
+          fi
+
+          echo ""
+          echo "✅ Images signed successfully"
+          echo ""
+          echo "Verify with:"
+          echo "  cosign verify ghcr.io/${REPO}:v${VERSION} \\"
+          echo "    --certificate-identity-regexp='https://github.com/${{ github.repository }}' \\"
+          echo "    --certificate-oidc-issuer='https://token.actions.githubusercontent.com'"
+
+  # Job 6: Generate and attach SBOM
+  generate-sbom:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, promote-image]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ghcr.io/${{ github.repository }}:v${{ needs.validate-tag.outputs.version }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Attach SBOM to image
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository }}:v${VERSION}"
+
+          echo "Attaching SBOM to image..."
+          cosign attach sbom --sbom sbom.spdx.json "$IMAGE"
+
+          echo "✅ SBOM attached successfully"
+          echo ""
+          echo "Download with:"
+          echo "  cosign download sbom $IMAGE"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sbom-v${{ needs.validate-tag.outputs.version }}
+          path: sbom.spdx.json
+          retention-days: 90
+
+  # Job 7: Create GitHub Release with changelog and assets
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, generate-changelog, promote-image, sign-image, generate-sbom]
+    permissions:
+      contents: write
+    outputs:
+      release_url: ${{ steps.release.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: changelog-v2
+
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: sbom-v${{ needs.validate-tag.outputs.version }}
+
+      - name: Create install.sh asset
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cat > install-v2.sh << 'INSTALL_EOF'
+          #!/usr/bin/env bash
+          # Sindri v2 Installation Script
+          # Generated for version: VERSION_PLACEHOLDER
+          set -euo pipefail
+
+          echo "Installing Sindri v2 VERSION_PLACEHOLDER..."
+
+          # Check prerequisites
+          command -v docker >/dev/null 2>&1 || { echo "Error: docker is required"; exit 1; }
+
+          # Pull Docker image
+          echo "Pulling Docker image..."
+          docker pull ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER
+
+          # Create volume if it doesn't exist
+          if ! docker volume inspect sindri-home >/dev/null 2>&1; then
+            echo "Creating Docker volume..."
+            docker volume create sindri-home
+          fi
+
+          echo ""
+          echo "Sindri v2 VERSION_PLACEHOLDER installed successfully!"
+          echo ""
+          echo "To run, execute:"
+          echo "  docker run -it -v sindri-home:/alt/home/developer ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER"
+          echo ""
+          INSTALL_EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$version/g" install-v2.sh
+          sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" install-v2.sh
+          chmod +x install-v2.sh
+
+      - name: Create verification guide
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          cat > VERIFY.md << 'VERIFY_EOF'
+          # Verification Guide for Sindri v2 VERSION_PLACEHOLDER
+
+          This release includes cryptographic signatures and Software Bill of Materials (SBOM) for supply chain security.
+
+          ## Image Verification
+
+          ### Verify Signature (Cosign)
+
+          ```bash
+          # Install cosign (if not already installed)
+          # https://docs.sigstore.dev/cosign/installation/
+
+          # Verify image signature
+          cosign verify ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER \
+            --certificate-identity-regexp='https://github.com/REPO_PLACEHOLDER' \
+            --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
+          ```
+
+          ### Download SBOM
+
+          ```bash
+          # Download SBOM attestation
+          cosign download sbom ghcr.io/REPO_PLACEHOLDER:vVERSION_PLACEHOLDER > sbom.spdx.json
+
+          # Or download from GitHub Release assets (attached)
+          ```
+
+          ### Inspect SBOM
+
+          ```bash
+          # View SBOM summary
+          jq '.packages[] | {name, version, supplier}' sbom.spdx.json | head -20
+          ```
+
+          ## Security Scanning
+
+          This image has been scanned with Trivy during CI:
+          - **Critical/High Vulnerabilities**: See GitHub Security tab
+          - **SARIF Report**: Uploaded to GitHub Code Scanning
+
+          ## Build Provenance
+
+          - **CI Image**: Promoted from tested CI build (ci-passed-SHA)
+          - **Build Workflow**: https://github.com/REPO_PLACEHOLDER/actions
+          - **Commit SHA**: Check image labels or SBOM metadata
+          VERIFY_EOF
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$version/g" VERIFY.md
+          sed -i "s|REPO_PLACEHOLDER|${{ github.repository }}|g" VERIFY.md
+
+      - name: Create GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Sindri v${{ needs.validate-tag.outputs.version }} (Docker)
+          body_path: changelog.md
+          prerelease: ${{ needs.validate-tag.outputs.is_prerelease }}
+          files: |
+            install-v2.sh
+            sbom.spdx.json
+            VERIFY.md
+
+  # Job 8: Notify on success or create issue on failure
+  notify-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, create-release, update-changelog, sign-image, generate-sbom]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Notify success
+        if: needs.create-release.result == 'success'
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          echo "::notice::Release v$version published successfully!"
+          echo ""
+          echo "📦 Release Details:"
+          echo "   URL:    ${{ needs.create-release.outputs.release_url }}"
+          echo "   Image:  ghcr.io/${{ github.repository }}:v$version"
+          echo ""
+          echo "🔐 Security Features:"
+          echo "   ✅ Image signed with Cosign (keyless)"
+          echo "   ✅ SBOM generated (SPDX format)"
+          echo "   ✅ Vulnerability scan completed"
+          echo "   ✅ Promoted from tested CI build"
+          echo ""
+          echo "Verify with:"
+          echo "   cosign verify ghcr.io/${{ github.repository }}:v$version \\"
+          echo "     --certificate-identity-regexp='https://github.com/${{ github.repository }}' \\"
+          echo "     --certificate-oidc-issuer='https://token.actions.githubusercontent.com'"
+
+      - name: Create failure issue
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const version = '${{ needs.validate-tag.outputs.version }}';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Release v${version} (v2) failed`,
+              body: `## Release Failure
+
+            The automated release for **v${version}** (v2 Docker) failed.
+
+            ### Details
+
+            - **Tag**: v${version}
+            - **Workflow Run**: ${runUrl}
+            - **Triggered by**: @${context.actor}
+
+            ### Next Steps
+
+            1. Review the [workflow logs](${runUrl})
+            2. Fix any issues
+            3. Delete the tag and recreate it, or create a new patch version
+
+            \`\`\`bash
+            # To retry with same version:
+            git tag -d v${version}
+            git push origin :refs/tags/v${version}
+            # Fix issues...
+            git tag v${version}
+            git push origin v${version}
+            \`\`\`
+            `,
+              labels: ['release-failure', 'automated', 'v2']
+            });

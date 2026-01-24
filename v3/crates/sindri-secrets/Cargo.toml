@@ -1,0 +1,43 @@
+[package]
+name = "sindri-secrets"
+description = "Secrets management for Sindri CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+sindri-core = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true, features = ["fs", "sync", "time", "process"] }
+reqwest = { workspace = true, features = ["json"] }
+async-trait = "0.1"
+shellexpand = "3.1"
+zeroize = { version = "1.8", features = ["derive"] }
+base64 = "0.21"
+vaultrs = "0.7"
+dotenvy = "0.15"
+tempfile = "3.24"
+regex = "1.12"
+
+# S3 backend
+aws-sdk-s3 = "1.120"
+aws-config = "1.8"
+
+# Encryption
+chacha20poly1305 = "0.10"
+age = "0.10"
+rand = "0.8"
+
+# Time handling
+chrono = { workspace = true }
+
+[dev-dependencies]
+mockall = "0.12"
+tempfile = "3.24"
+tokio-test = "0.4"

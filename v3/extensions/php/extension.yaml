@@ -1,0 +1,81 @@
+---
+metadata:
+  name: php
+  version: 2.1.0
+  description: PHP 8.4 with Composer, Symfony CLI, and development tools
+  category: languages
+  author: Sindri Team
+  dependencies: []
+requirements:
+  domains:
+    - github.io
+    - composer.github.io
+    - getcomposer.org
+    - ppa.launchpadcontent.net
+    - symfony.com
+    - get.symfony.com
+  diskSpace: 300
+  memory: 256
+  installTime: 60
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+configure:
+  templates:
+    - source: bashrc-aliases.template
+      destination: ~/.bashrc
+      mode: append
+    - source: ssh-environment.template
+      destination: ~/.profile
+      mode: append
+    - source: development-ini.template
+      destination: /etc/php/8.4/cli/conf.d/99-development.ini
+      mode: overwrite
+    - source: cs-fixer-config.template
+      destination: ~/templates/.php-cs-fixer.php
+      mode: overwrite
+validate:
+  commands:
+    - name: php
+      expectedPattern: "PHP 8\\.4"
+    - name: composer
+    - name: symfony
+remove:
+  paths:
+    - /usr/bin/composer
+    - /usr/local/bin/symfony
+    - ~/templates/.php-cs-fixer.php
+upgrade:
+  strategy: automatic
+  apt:
+    packages:
+      - php8.4
+      - php8.4-cli
+      - php8.4-common
+    updateFirst: true
+bom:
+  tools:
+    - name: php
+      version: dynamic
+      source: script
+      type: runtime
+      license: PHP-3.01
+      homepage: https://www.php.net
+      purl: pkg:deb/ubuntu/php8.4
+      cpe: cpe:2.3:a:php:php:*:*:*:*:*:*:*:*
+    - name: composer
+      version: dynamic
+      source: script
+      type: package-manager
+      license: MIT
+      homepage: https://getcomposer.org
+      purl: pkg:composer/composer
+    - name: symfony
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: MIT
+      homepage: https://symfony.com
+      purl: pkg:composer/symfony/cli

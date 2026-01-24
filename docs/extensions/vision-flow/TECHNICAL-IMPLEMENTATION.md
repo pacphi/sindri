@@ -14,8 +14,8 @@ Detailed implementation roadmap for converting VisionFlow capabilities into Sind
 ### Extension Naming
 
 - Prefix: `vf-` (VisionFlow)
-- Location: `docker/lib/extensions/vf-{name}/`
-- Resources: `docker/lib/extensions/vf-{name}/resources/`
+- Location: `v2/docker/lib/extensions/vf-{name}/`
+- Resources: `v2/docker/lib/extensions/vf-{name}/resources/`
 
 ---
 
@@ -339,7 +339,7 @@ bom:
 ### Directory Structure Per Extension
 
 ```text
-docker/lib/extensions/vf-{name}/
+v2/docker/lib/extensions/vf-{name}/
 ├── extension.yaml          # Sindri extension definition
 ├── install.sh              # Installation script
 ├── upgrade.sh              # Upgrade script (optional)
@@ -361,7 +361,7 @@ docker/lib/extensions/vf-{name}/
 # For each skill in VisionFlow
 SKILL_NAME="perplexity"
 SRC="/tmp/VisionFlow/multi-agent-docker/skills/${SKILL_NAME}"
-DST="docker/lib/extensions/vf-${SKILL_NAME}/resources"
+DST="v2/docker/lib/extensions/vf-${SKILL_NAME}/resources"
 
 # Create extension directory
 mkdir -p "${DST}"
@@ -444,7 +444,7 @@ echo "vf-{name} installed successfully"
 
 ## Registry Updates
 
-Add to `docker/lib/registry.yaml`:
+Add to `v2/docker/lib/registry.yaml`:
 
 ```yaml
 extensions:
@@ -625,7 +625,7 @@ extensions:
 
 ## Profile Bundles
 
-Add to `docker/lib/profiles.yaml`:
+Add to `v2/docker/lib/profiles.yaml`:
 
 ```yaml
 profiles:
@@ -710,10 +710,10 @@ After creating extensions, run:
 
 ```bash
 # Validate single extension
-./cli/extension-manager validate vf-imagemagick
+./v2/cli/extension-manager validate vf-imagemagick
 
 # Validate all extensions
-./cli/extension-manager validate-all
+./v2/cli/extension-manager validate-all
 
 # Run extension tests
 pnpm test:extensions
@@ -730,7 +730,7 @@ pnpm test:extensions
 
 ```bash
 # Test single extension lifecycle
-./cli/extension-manager install vf-imagemagick
-./cli/extension-manager status vf-imagemagick
-./cli/extension-manager remove vf-imagemagick
+./v2/cli/extension-manager install vf-imagemagick
+./v2/cli/extension-manager status vf-imagemagick
+./v2/cli/extension-manager remove vf-imagemagick
 ```

@@ -1,0 +1,10 @@
+schema_version: "1.0"
+cli_versions:
+  "4.0.0":
+    extension_schema: "2.0"
+    compatible_extensions:
+      git: "^2.0.0"
+      docker: "^3.0.0"
+    breaking_changes:
+      - "Major API overhaul"
+      - "Removed deprecated features"

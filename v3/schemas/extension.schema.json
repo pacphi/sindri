@@ -1,0 +1,1139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/extension.schema.json",
+  "title": "Sindri Extension Definition",
+  "description": "Schema for Sindri YAML extension definitions",
+  "type": "object",
+  "required": ["metadata", "install", "validate"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["name", "version", "description", "category"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Extension name (lowercase, hyphens allowed)"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "ai-agents",
+            "ai-dev",
+            "claude",
+            "cloud",
+            "desktop",
+            "devops",
+            "documentation",
+            "languages",
+            "mcp",
+            "productivity",
+            "research",
+            "testing"
+          ]
+        },
+        "author": {
+          "type": "string"
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "hostname"
+          }
+        },
+        "diskSpace": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Required disk space in MB"
+        },
+        "memory": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Additional runtime memory needed in MB (beyond base system)"
+        },
+        "installTime": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Estimated installation time in seconds"
+        },
+        "installTimeout": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 300,
+          "description": "Maximum installation timeout in seconds (default: 300s / 5min)"
+        },
+        "validationTimeout": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 30,
+          "description": "Maximum validation timeout in seconds (default: 30s)"
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gpu": {
+          "type": "object",
+          "description": "GPU requirements for this extension",
+          "properties": {
+            "required": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether GPU is mandatory for this extension"
+            },
+            "recommended": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether GPU is recommended but not required"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["nvidia", "amd", "any"],
+              "default": "nvidia",
+              "description": "Required GPU vendor type"
+            },
+            "minCount": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "description": "Minimum number of GPUs required"
+            },
+            "minMemory": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Minimum GPU memory in MB"
+            },
+            "cudaVersion": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+              "description": "Minimum CUDA version required (e.g., 12.0)"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "install": {
+      "type": "object",
+      "required": ["method"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["mise", "apt", "binary", "npm", "npm-global", "script", "hybrid"]
+        },
+        "npm": {
+          "type": "object",
+          "description": "NPM global installation configuration (for npm-global method)",
+          "properties": {
+            "package": {
+              "type": "string",
+              "description": "NPM package name with optional version (e.g., 'package@1.0.0' or 'package@latest')"
+            }
+          },
+          "required": ["package"]
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "configFile": {
+              "type": "string"
+            },
+            "reshimAfterInstall": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "apt": {
+          "type": "object",
+          "properties": {
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["gpgKey", "sources"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "gpgKey": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "sources": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "binary": {
+          "type": "object",
+          "properties": {
+            "downloads": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "source"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "object",
+                    "required": ["type", "url"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["github-release", "direct-url"]
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "asset": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string",
+                        "default": "latest"
+                      }
+                    }
+                  },
+                  "destination": {
+                    "type": "string"
+                  },
+                  "extract": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "script": {
+          "type": "object",
+          "required": ["path"],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 600
+            }
+          }
+        }
+      }
+    },
+    "configure": {
+      "type": "object",
+      "properties": {
+        "templates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "destination"],
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "destination": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["overwrite", "append", "merge", "skip-if-exists"],
+                "default": "overwrite"
+              }
+            }
+          }
+        },
+        "environment": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "value"],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string",
+                "enum": ["bashrc", "profile", "session"],
+                "default": "bashrc"
+              }
+            }
+          }
+        }
+      }
+    },
+    "validate": {
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "versionFlag": {
+                "type": "string",
+                "default": "--version"
+              },
+              "expectedPattern": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "minToolCount": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "remove": {
+      "type": "object",
+      "properties": {
+        "confirmation": {
+          "type": "boolean",
+          "default": true
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "removeConfig": {
+              "type": "boolean",
+              "default": true
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "apt": {
+          "type": "object",
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "APT packages to remove"
+            },
+            "purge": {
+              "type": "boolean",
+              "default": false,
+              "description": "Use apt purge instead of apt remove"
+            }
+          }
+        },
+        "script": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Custom uninstall script path"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 120
+            }
+          }
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "upgrade": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["automatic", "manual", "none", "reinstall", "in-place"],
+          "default": "automatic",
+          "description": "Upgrade strategy: automatic (use built-in upgrade), manual (custom script), none (no upgrade support), reinstall (remove and install), in-place (update existing)"
+        },
+        "mise": {
+          "type": "object",
+          "properties": {
+            "upgradeAll": {
+              "type": "boolean",
+              "default": true,
+              "description": "Upgrade all mise-managed tools"
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Specific tools to upgrade (if not upgradeAll)"
+            }
+          }
+        },
+        "apt": {
+          "type": "object",
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "APT packages to upgrade"
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "script": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Custom upgrade script path"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 600
+            }
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Optional capabilities for project initialization, authentication, hooks, and MCP integration",
+      "properties": {
+        "project-init": {
+          "type": "object",
+          "description": "Project initialization commands and state markers",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "priority": {
+              "type": "integer",
+              "description": "Initialization priority. Lower number = earlier execution. Default: 100.",
+              "default": 100,
+              "minimum": 1
+            },
+            "commands": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "requiresAuth": {
+                    "type": "string",
+                    "enum": ["anthropic", "openai", "github", "none"],
+                    "default": "none"
+                  },
+                  "conditional": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": ["command", "description"]
+              }
+            },
+            "state-markers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": ["directory", "file", "symlink"]
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": ["path", "type"]
+              }
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "expectedPattern": {
+                  "type": "string"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0
+                }
+              },
+              "required": ["command"]
+            }
+          },
+          "required": ["enabled"]
+        },
+        "auth": {
+          "type": "object",
+          "description": "Authentication requirements",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["anthropic", "openai", "github", "custom"]
+            },
+            "required": {
+              "type": "boolean",
+              "default": false
+            },
+            "methods": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["api-key", "cli-auth"]
+              },
+              "description": "Accepted authentication methods (defaults to both if not specified)"
+            },
+            "envVars": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "validator": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "expectedExitCode": {
+                  "type": "integer",
+                  "default": 0
+                }
+              },
+              "required": ["command"]
+            },
+            "features": {
+              "type": "array",
+              "description": "Feature-level authentication requirements",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Feature name"
+                  },
+                  "requiresApiKey": {
+                    "type": "boolean",
+                    "description": "Whether this feature requires API key specifically"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Feature description"
+                  }
+                },
+                "required": ["name", "requiresApiKey", "description"]
+              }
+            }
+          },
+          "required": ["provider"]
+        },
+        "hooks": {
+          "type": "object",
+          "description": "Lifecycle hooks",
+          "properties": {
+            "pre-install": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-install": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "pre-project-init": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            },
+            "post-project-init": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["command"]
+            }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "description": "MCP server registration",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "server": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "env": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": ["command"]
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "description"]
+              }
+            }
+          },
+          "required": ["enabled"]
+        },
+        "project-context": {
+          "type": "object",
+          "description": "Project context file management",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "mergeFile": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "strategy": {
+                  "enum": ["append", "prepend", "merge", "replace", "append-if-missing"]
+                }
+              },
+              "required": ["source", "target", "strategy"]
+            }
+          },
+          "required": ["enabled"]
+        },
+        "features": {
+          "type": "object",
+          "description": "Feature flags and configuration for advanced capabilities",
+          "properties": {
+            "core": {
+              "type": "object",
+              "description": "Core feature flags",
+              "properties": {
+                "daemon_autostart": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Automatically start daemon on initialization"
+                },
+                "flash_attention": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable flash attention optimizations"
+                },
+                "unified_config": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Use unified configuration file"
+                }
+              }
+            },
+            "swarm": {
+              "type": "object",
+              "description": "Swarm coordination configuration",
+              "properties": {
+                "default_topology": {
+                  "type": "string",
+                  "enum": ["hierarchical-mesh", "hierarchical", "mesh", "ring"],
+                  "default": "hierarchical-mesh",
+                  "description": "Default swarm topology"
+                },
+                "consensus_algorithm": {
+                  "type": "string",
+                  "enum": ["raft", "paxos", "gossip", "crdt", "byzantine"],
+                  "default": "raft",
+                  "description": "Consensus algorithm for swarm coordination"
+                }
+              }
+            },
+            "llm": {
+              "type": "object",
+              "description": "LLM provider configuration",
+              "properties": {
+                "default_provider": {
+                  "type": "string",
+                  "enum": ["anthropic", "openai", "google", "cohere", "local", "custom"],
+                  "default": "anthropic",
+                  "description": "Default LLM provider"
+                },
+                "load_balancing": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable load balancing across providers"
+                }
+              }
+            },
+            "advanced": {
+              "type": "object",
+              "description": "Advanced feature flags",
+              "properties": {
+                "sona_learning": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable SONA self-optimizing neural architecture"
+                },
+                "security_scanning": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable security vulnerability scanning"
+                },
+                "claims_system": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable work claims and authorization"
+                },
+                "plugin_system": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable plugin system"
+                }
+              }
+            },
+            "mcp": {
+              "type": "object",
+              "description": "MCP server configuration",
+              "properties": {
+                "transport": {
+                  "type": "string",
+                  "enum": ["stdio", "http", "websocket"],
+                  "default": "stdio",
+                  "description": "MCP transport protocol"
+                }
+              }
+            }
+          }
+        },
+        "collision-handling": {
+          "type": "object",
+          "description": "Declarative collision detection and resolution for cloned projects with existing configurations",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable collision handling for this extension"
+            },
+            "conflict-rules": {
+              "type": "array",
+              "description": "Generic conflict resolution rules for files and directories",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File or directory path (relative to project root)"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["file", "directory"],
+                    "description": "Type of resource"
+                  },
+                  "on-conflict": {
+                    "type": "object",
+                    "description": "Action to take when conflict is detected",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "overwrite",
+                          "append",
+                          "prepend",
+                          "merge-json",
+                          "merge-yaml",
+                          "backup",
+                          "backup-and-replace",
+                          "merge",
+                          "prompt",
+                          "prompt-per-file",
+                          "skip"
+                        ],
+                        "description": "Conflict resolution action"
+                      },
+                      "separator": {
+                        "type": "string",
+                        "description": "Separator for append/prepend actions (e.g., '\\n\\n---\\n\\n')"
+                      },
+                      "backup-suffix": {
+                        "type": "string",
+                        "default": ".backup",
+                        "description": "Suffix for backup files/directories"
+                      },
+                      "backup": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether to backup before merge (for directory merge action)"
+                      },
+                      "prompt-options": {
+                        "type": "array",
+                        "description": "Options to present in prompt action",
+                        "items": {
+                          "type": "string",
+                          "enum": ["merge", "overwrite", "skip", "backup"]
+                        }
+                      }
+                    },
+                    "required": ["action"]
+                  }
+                },
+                "required": ["path", "type", "on-conflict"]
+              }
+            },
+            "version-markers": {
+              "type": "array",
+              "description": "Markers to detect installed version from directory structure",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Path to check (relative to project root)"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["file", "directory", "symlink"],
+                    "description": "Type of marker to check"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "Version identifier if this marker is found"
+                  },
+                  "detection": {
+                    "type": "object",
+                    "description": "Detection method configuration",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": ["file-exists", "directory-exists", "content-match"],
+                        "description": "Detection method"
+                      },
+                      "patterns": {
+                        "type": "array",
+                        "description": "Regex patterns for content-match method",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "match-any": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "True=any pattern matches, False=all patterns must match"
+                      },
+                      "exclude-if": {
+                        "type": "array",
+                        "description": "Paths that exclude this detection (for directory-exists)",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": ["method"]
+                  }
+                },
+                "required": ["path", "type", "version", "detection"]
+              }
+            },
+            "scenarios": {
+              "type": "array",
+              "description": "Collision resolution scenarios",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Scenario identifier"
+                  },
+                  "detected-version": {
+                    "type": "string",
+                    "description": "Version detected in project"
+                  },
+                  "installing-version": {
+                    "type": "string",
+                    "description": "Version being installed"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": ["stop", "skip", "proceed", "backup", "prompt"],
+                    "description": "Action to take when scenario matches"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Message to display to user"
+                  },
+                  "options": {
+                    "type": "array",
+                    "description": "Options for prompt action",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "description": "Option label"
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": ["skip", "backup", "merge"],
+                          "description": "Action for this option"
+                        },
+                        "backup-suffix": {
+                          "type": "string",
+                          "description": "Suffix for backup directory (supports {timestamp})"
+                        }
+                      },
+                      "required": ["label", "action"]
+                    }
+                  }
+                },
+                "required": ["name", "detected-version", "installing-version", "action", "message"]
+              }
+            }
+          },
+          "required": ["enabled"]
+        }
+      }
+    },
+    "bom": {
+      "type": "object",
+      "description": "Bill of Materials - declarative listing of software installed by this extension",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "description": "Software tools/packages installed by this extension",
+          "items": {
+            "type": "object",
+            "required": ["name", "source"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Tool/package name"
+              },
+              "version": {
+                "type": "string",
+                "description": "Version (semantic version or 'dynamic' if resolved at runtime)"
+              },
+              "source": {
+                "type": "string",
+                "enum": ["mise", "apt", "npm", "pip", "binary", "script", "github-release"],
+                "description": "Installation source method"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "runtime",
+                  "compiler",
+                  "package-manager",
+                  "cli-tool",
+                  "library",
+                  "framework",
+                  "database",
+                  "server",
+                  "utility",
+                  "application"
+                ],
+                "description": "Type of software component"
+              },
+              "license": {
+                "type": "string",
+                "description": "Software license (e.g., MIT, Apache-2.0, GPL-3.0)"
+              },
+              "homepage": {
+                "type": "string",
+                "format": "uri",
+                "description": "Project homepage URL"
+              },
+              "downloadUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "Download URL (for binaries)"
+              },
+              "checksum": {
+                "type": "object",
+                "properties": {
+                  "algorithm": {
+                    "type": "string",
+                    "enum": ["sha256", "sha512", "md5"]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              },
+              "purl": {
+                "type": "string",
+                "description": "Package URL (PURL) for SBOM compatibility"
+              },
+              "cpe": {
+                "type": "string",
+                "description": "Common Platform Enumeration for vulnerability scanning"
+              }
+            }
+          }
+        },
+        "files": {
+          "type": "array",
+          "description": "Key files created by this extension",
+          "items": {
+            "type": "object",
+            "required": ["path", "type"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "File path relative to workspace"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["config", "binary", "library", "script", "data"],
+                "description": "File type"
+              },
+              "checksum": {
+                "type": "object",
+                "properties": {
+                  "algorithm": {
+                    "type": "string",
+                    "enum": ["sha256", "sha512", "md5"]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

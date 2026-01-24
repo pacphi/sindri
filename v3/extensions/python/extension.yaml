@@ -1,0 +1,70 @@
+---
+metadata:
+  name: python
+  version: 1.1.1
+  description: Python 3.13 with uv package manager via mise
+  category: languages
+  dependencies:
+    - mise-config
+requirements:
+  domains:
+    - pypi.org
+    - python.org
+    - github.com
+  diskSpace: 450
+  memory: 128
+  installTime: 60
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+configure:
+  environment:
+    - key: PYTHONDONTWRITEBYTECODE
+      value: "1"
+      scope: bashrc
+validate:
+  commands:
+    - name: python
+      expectedPattern: "Python 3\\.\\d+\\.\\d+"
+    - name: pip
+    - name: uv
+      expectedPattern: "uv \\d+\\.\\d+\\.\\d+"
+    - name: uvx
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - python
+      - uv
+bom:
+  tools:
+    - name: python
+      version: dynamic
+      source: mise
+      type: runtime
+      license: PSF-2.0
+      homepage: https://www.python.org
+      purl: pkg:generic/python
+    - name: pip
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: MIT
+      homepage: https://pip.pypa.io
+      purl: pkg:pypi/pip
+    - name: uv
+      version: dynamic
+      source: mise
+      type: package-manager
+      license: Apache-2.0 OR MIT
+      homepage: https://docs.astral.sh/uv
+      purl: pkg:cargo/uv
+    - name: uvx
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: Apache-2.0 OR MIT
+      homepage: https://docs.astral.sh/uv
+      purl: pkg:cargo/uv

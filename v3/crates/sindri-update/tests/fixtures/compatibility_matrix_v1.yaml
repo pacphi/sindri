@@ -1,0 +1,25 @@
+schema_version: "1.0"
+cli_versions:
+  "3.0.0":
+    extension_schema: "1.0"
+    compatible_extensions:
+      git: "^1.0.0"
+      docker: "^2.0.0"
+      kubernetes: "^1.5.0"
+    breaking_changes:
+      - "Changed extension API structure"
+  "3.0.x":
+    extension_schema: "1.0"
+    compatible_extensions:
+      git: "^1.0.0"
+      docker: "^2.0.0"
+      kubernetes: "^1.5.0"
+    breaking_changes: []
+  "3.1.0":
+    extension_schema: "1.1"
+    compatible_extensions:
+      git: "^1.1.0"
+      docker: "^2.1.0"
+      kubernetes: "^1.6.0"
+    breaking_changes:
+      - "Updated to new extension schema 1.1"

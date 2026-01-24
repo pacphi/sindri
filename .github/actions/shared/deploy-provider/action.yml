@@ -1,0 +1,384 @@
+name: Deploy Provider
+description: Deploy Sindri to any supported provider (unified deployment action)
+
+inputs:
+  provider:
+    description: Provider to deploy to (docker, fly, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s)
+    required: true
+  image:
+    description: Docker image to use
+    required: false
+    default: "sindri:latest"
+  image-artifact:
+    description: Name of image artifact to download
+    required: false
+    default: ""
+  use-registry:
+    description: Pull image from registry instead of artifact
+    required: false
+    default: "false"
+  config-path:
+    description: Path to sindri.yaml configuration
+    required: false
+    default: ""
+  extension-profile:
+    description: Extension profile to deploy with (determines resource requirements)
+    required: false
+    default: "minimal"
+  test-level:
+    description: Test level being run (affects resource allocation)
+    required: false
+    default: "profile"
+
+outputs:
+  target-id:
+    description: Target identifier (container name, app name, or workspace ID)
+    value: ${{ steps.deploy.outputs.target-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Determine config path
+      id: config
+      shell: bash
+      run: |
+        if [[ -n "${{ inputs.config-path }}" ]]; then
+          CONFIG="${{ inputs.config-path }}"
+        else
+          # For extension-level tests, use fullstack config for more resources
+          # This ensures we have enough headroom for heavy extensions (guacamole, xfce, etc.)
+          if [[ "${{ inputs.test-level }}" == "extension" ]]; then
+            PROFILE="fullstack"
+            echo "::notice::Using fullstack config for extension-level tests (ensures sufficient resources)"
+          else
+            PROFILE="${{ inputs.extension-profile }}"
+          fi
+
+          # Map provider + profile to example config
+          case "${{ inputs.provider }}" in
+            docker)
+              CONFIG="examples/docker/${PROFILE}.sindri.yaml"
+              ;;
+            fly)
+              CONFIG="examples/fly/${PROFILE}.sindri.yaml"
+              ;;
+            devpod-aws)
+              CONFIG="examples/devpod/aws/${PROFILE}.sindri.yaml"
+              ;;
+            devpod-gcp)
+              CONFIG="examples/devpod/gcp/${PROFILE}.sindri.yaml"
+              ;;
+            devpod-azure)
+              CONFIG="examples/devpod/azure/${PROFILE}.sindri.yaml"
+              ;;
+            devpod-do)
+              CONFIG="examples/devpod/digitalocean/${PROFILE}.sindri.yaml"
+              ;;
+            devpod-k8s|kubernetes)
+              CONFIG="examples/devpod/kubernetes/${PROFILE}.sindri.yaml"
+              ;;
+            *)
+              echo "::error::Unknown provider: ${{ inputs.provider }}"
+              exit 1
+              ;;
+          esac
+
+          # Fallback to minimal if profile-specific config doesn't exist
+          if [[ ! -f "$CONFIG" ]]; then
+            echo "::warning::Profile config $CONFIG not found, falling back to minimal"
+            case "${{ inputs.provider }}" in
+              docker) CONFIG="examples/docker/minimal.sindri.yaml" ;;
+              fly) CONFIG="examples/fly/minimal.sindri.yaml" ;;
+              devpod-aws) CONFIG="examples/devpod/aws/minimal.sindri.yaml" ;;
+              devpod-gcp) CONFIG="examples/devpod/gcp/minimal.sindri.yaml" ;;
+              devpod-azure) CONFIG="examples/devpod/azure/minimal.sindri.yaml" ;;
+              devpod-do) CONFIG="examples/devpod/digitalocean/minimal.sindri.yaml" ;;
+              devpod-k8s|kubernetes) CONFIG="examples/devpod/kubernetes/minimal.sindri.yaml" ;;
+            esac
+          fi
+        fi
+
+        echo "config=$CONFIG" >> $GITHUB_OUTPUT
+        echo "::notice title=Config::Using $CONFIG (test-level: ${{ inputs.test-level }}, profile: ${{ inputs.extension-profile }})"
+
+    - name: Login to GHCR
+      if: inputs.use-registry == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Pull image from registry
+      if: inputs.use-registry == 'true'
+      shell: bash
+      run: |
+        echo "Pulling image from registry: ${{ inputs.image }}"
+        docker pull "${{ inputs.image }}"
+        echo "Tagging as sindri:latest for provider compatibility"
+        docker tag "${{ inputs.image }}" sindri:latest
+        echo "✓ Image pulled from registry"
+
+    - name: Download image artifact (if specified)
+      if: inputs.image-artifact != '' && inputs.use-registry != 'true'
+      uses: actions/download-artifact@v6
+      with:
+        name: ${{ inputs.image-artifact }}
+
+    - name: Load Docker image from artifact
+      if: inputs.image-artifact != '' && inputs.use-registry != 'true'
+      shell: bash
+      run: |
+        if [[ -f "sindri-image.tar.gz" ]]; then
+          echo "Loading Docker image from artifact..."
+          gunzip -c sindri-image.tar.gz | docker load
+          echo "✓ Image loaded: ${{ inputs.image }}"
+        fi
+
+    - name: Install flyctl CLI
+      if: inputs.provider == 'fly'
+      shell: bash
+      run: |
+        echo "Installing flyctl CLI..."
+        curl -L https://fly.io/install.sh | sh
+        echo "$HOME/.fly/bin" >> $GITHUB_PATH
+        export PATH="$HOME/.fly/bin:$PATH"
+        flyctl version
+        echo "✓ flyctl installed"
+
+    - name: Setup kind cluster for devpod-k8s
+      id: kind-setup
+      if: inputs.provider == 'devpod-k8s'
+      shell: bash
+      run: |
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║  STAGE 1: Infrastructure Setup - Kind Cluster                ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+
+        CLUSTER_NAME="sindri-ci"
+        REG_NAME="local-registry"
+        REG_PORT="5001"
+
+        # Step 1.K1: Install kind CLI
+        echo "::group::Step 1.K1: Install kind CLI"
+        KIND_VERSION="v0.27.0"
+        CURRENT_KIND_VERSION=$(kind version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "none")
+        if [[ "$CURRENT_KIND_VERSION" != "$KIND_VERSION" ]]; then
+          echo "→ Installing kind ${KIND_VERSION} (current: ${CURRENT_KIND_VERSION})..."
+          curl -Lo ./kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+        else
+          echo "→ kind ${KIND_VERSION} already installed"
+        fi
+        kind version
+        echo "::endgroup::"
+
+        # Step 1.K2: Create local registry
+        echo "::group::Step 1.K2: Create local Docker registry"
+        if [ "$(docker inspect -f '{{.State.Running}}' "${REG_NAME}" 2>/dev/null || true)" != 'true' ]; then
+          echo "→ Starting local registry: ${REG_NAME} on port ${REG_PORT}"
+          docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" registry:2
+        else
+          echo "→ Local registry ${REG_NAME} already running"
+        fi
+        echo "::endgroup::"
+
+        # Step 1.K3: Create kind cluster with registry config
+        echo "::group::Step 1.K3: Create kind cluster"
+        echo "→ Removing any existing cluster: ${CLUSTER_NAME}"
+        kind delete cluster --name "$CLUSTER_NAME" 2>/dev/null || true
+
+        echo "→ Creating kind config with registry support..."
+        printf '%s\n' \
+          'kind: Cluster' \
+          'apiVersion: kind.x-k8s.io/v1alpha4' \
+          'containerdConfigPatches:' \
+          '- |-' \
+          '  [plugins."io.containerd.grpc.v1.cri".registry]' \
+          '    config_path = "/etc/containerd/certs.d"' \
+          'nodes:' \
+          '- role: control-plane' \
+          > /tmp/kind-config.yaml
+
+        echo "→ Creating new cluster: ${CLUSTER_NAME}"
+        kind create cluster --name "$CLUSTER_NAME" --config /tmp/kind-config.yaml --wait 120s
+        echo "::endgroup::"
+
+        # Step 1.K4: Connect registry to kind network
+        echo "::group::Step 1.K4: Connect registry to kind network"
+        if [ "$(docker inspect -f='{{json .NetworkSettings.Networks.kind}}' "${REG_NAME}")" = 'null' ]; then
+          echo "→ Connecting registry to kind network..."
+          docker network connect "kind" "${REG_NAME}" || true
+        fi
+
+        echo "→ Configuring containerd to use local registry..."
+        REGISTRY_DIR="/etc/containerd/certs.d/localhost:${REG_PORT}"
+        for node in $(kind get nodes --name "$CLUSTER_NAME"); do
+          docker exec "${node}" mkdir -p "${REGISTRY_DIR}"
+          docker exec "${node}" bash -c "printf '%s\n' '[host.\"http://${REG_NAME}:5000\"]' '  capabilities = [\"pull\", \"resolve\", \"push\"]' > ${REGISTRY_DIR}/hosts.toml"
+        done
+        echo "::endgroup::"
+
+        # Step 1.K5: Push image to local registry
+        echo "::group::Step 1.K5: Push image to local registry"
+        LOCAL_IMAGE="localhost:${REG_PORT}/sindri:latest"
+        echo "→ Tagging image: ${{ inputs.image }} → ${LOCAL_IMAGE}"
+        docker tag "${{ inputs.image }}" "${LOCAL_IMAGE}"
+        echo "→ Pushing to local registry..."
+        docker push "${LOCAL_IMAGE}"
+        echo "::endgroup::"
+
+        # Step 1.K6: Configure kubectl
+        echo "::group::Step 1.K6: Configure kubectl"
+        mkdir -p "$HOME/.kube"
+        kind get kubeconfig --name "$CLUSTER_NAME" > "$HOME/.kube/config"
+        chmod 600 "$HOME/.kube/config"
+        echo "→ Waiting for nodes to be ready..."
+        kubectl wait --for=condition=Ready nodes --all --timeout=120s
+        echo "→ Creating namespace: sindri-test"
+        kubectl create namespace sindri-test --dry-run=client -o yaml | kubectl apply -f -
+        echo "::endgroup::"
+
+        echo "registry-url=localhost:${REG_PORT}" >> $GITHUB_OUTPUT
+
+        echo ""
+        echo "✅ Kind cluster ready"
+        echo "   Cluster:  ${CLUSTER_NAME}"
+        echo "   Registry: localhost:${REG_PORT}"
+        echo "   Image:    ${LOCAL_IMAGE}"
+
+    - name: Install DevPod CLI
+      if: startsWith(inputs.provider, 'devpod-')
+      shell: bash
+      run: |
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║  STAGE 1: Infrastructure Setup - DevPod CLI                  ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "→ Downloading DevPod CLI..."
+        curl -L -o devpod "https://github.com/loft-sh/devpod/releases/latest/download/devpod-linux-amd64"
+        chmod +x devpod
+        sudo mv devpod /usr/local/bin/devpod
+        echo ""
+        echo "✅ DevPod installed"
+        devpod version
+
+    - name: Deploy
+      id: deploy
+      shell: bash
+      run: |
+        PROVIDER="${{ inputs.provider }}"
+        RUN_ID="${{ github.run_id }}"
+        RUN_NUMBER="${{ github.run_number }}"
+        CONFIG="${{ steps.config.outputs.config }}"
+
+        echo ""
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║  STAGE 2: Deploy to Provider                                 ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "Provider: $PROVIDER"
+        echo "Config:   $CONFIG"
+        echo ""
+
+        case "$PROVIDER" in
+          docker)
+            # Get container name from config (needed for pre-cleanup)
+            TARGET_ID=$(yq '.name' "$CONFIG" 2>/dev/null || echo "sindri-test")
+
+            echo "::group::Step 2.D1: Pre-cleanup"
+            echo "→ Removing stale Docker resources for: $TARGET_ID"
+            docker rm -f "$TARGET_ID" 2>/dev/null || true
+            docker volume ls -q --filter "name=${TARGET_ID}_home" | xargs -r docker volume rm 2>/dev/null || true
+            if [[ -f docker-compose.yml ]]; then
+              docker compose -f docker-compose.yml down -v 2>/dev/null || true
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Step 2.D2: Prepare image"
+            if docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
+              echo "→ Tagging pre-built image as sindri:latest"
+              docker tag "${{ inputs.image }}" sindri:latest
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Step 2.D3: Deploy container"
+            echo "→ Running: docker-adapter.sh deploy --skip-build --ci-mode $CONFIG"
+            ./v2/deploy/adapters/docker-adapter.sh deploy --skip-build --ci-mode "$CONFIG"
+            echo "::endgroup::"
+
+            echo "::group::Step 2.D4: Verify container ready"
+            echo "→ Fixing permissions on volume..."
+            docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
+            echo "→ Testing container..."
+            docker exec "$TARGET_ID" bash -c 'echo "Container ready"'
+            echo "::endgroup::"
+
+            echo ""
+            echo "✅ Docker deployment complete"
+            echo "   Container: $TARGET_ID"
+            ;;
+
+          fly)
+            APP_NAME="sindri-ci-${RUN_ID}-${RUN_NUMBER}"
+
+            echo "::group::Step 2.F1: Deploy to Fly.io"
+            echo "→ App name: $APP_NAME"
+            echo "→ Running: fly-adapter.sh deploy --ci-mode --app-name $APP_NAME $CONFIG"
+            ./v2/deploy/adapters/fly-adapter.sh deploy --ci-mode --app-name "$APP_NAME" "$CONFIG"
+            echo "::endgroup::"
+
+            TARGET_ID="$APP_NAME"
+            echo ""
+            echo "✅ Fly.io deployment complete"
+            echo "   App: $TARGET_ID"
+            ;;
+
+          devpod-*)
+            BACKEND="${PROVIDER#devpod-}"
+            WORKSPACE_ID="sindri-${RUN_ID}"
+
+            echo "::group::Step 2.P1: Configure DevPod"
+            echo "→ Backend: $BACKEND"
+            echo "→ Workspace ID: $WORKSPACE_ID"
+
+            # Always pass workspace name to ensure consistent ID between deploy and test
+            EXTRA_FLAGS="--workspace-name $WORKSPACE_ID"
+            if [[ "$PROVIDER" == "devpod-k8s" ]]; then
+              REGISTRY_URL="${{ steps.kind-setup.outputs.registry-url }}"
+              echo "→ Using image from local registry: ${REGISTRY_URL}/sindri:latest"
+              EXTRA_FLAGS="$EXTRA_FLAGS --skip-build --image ${REGISTRY_URL}/sindri:latest"
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Step 2.P2: Create DevPod workspace"
+            echo "→ Running: devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS $CONFIG"
+            ./v2/deploy/adapters/devpod-adapter.sh deploy --ci-mode $EXTRA_FLAGS "$CONFIG"
+            echo "::endgroup::"
+
+            TARGET_ID="$WORKSPACE_ID"
+            echo ""
+            echo "✅ DevPod deployment complete"
+            echo "   Backend:   $BACKEND"
+            echo "   Workspace: $TARGET_ID"
+            ;;
+
+          *)
+            echo "::error::Unsupported provider: $PROVIDER"
+            exit 1
+            ;;
+        esac
+
+        echo ""
+        echo "────────────────────────────────────────────────────────────────"
+        echo "  Deployment Summary"
+        echo "────────────────────────────────────────────────────────────────"
+        echo "  Provider:  $PROVIDER"
+        echo "  Target ID: $TARGET_ID"
+        echo "  Config:    $CONFIG"
+        echo "────────────────────────────────────────────────────────────────"
+
+        echo "target-id=$TARGET_ID" >> $GITHUB_OUTPUT
+        echo "::notice title=Deployed::Target ID: $TARGET_ID"

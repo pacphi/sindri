@@ -270,7 +270,7 @@ claude
 
 ```bash
 # Check your authentication method
-./docker/lib/auth-manager.sh status
+./v2/docker/lib/auth-manager.sh status
 
 # Output shows:
 # ✓ Anthropic (Claude API) - API Key

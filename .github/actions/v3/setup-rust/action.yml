@@ -1,0 +1,74 @@
+name: 'Setup Rust Toolchain for v3'
+description: 'Sets up Rust toolchain with caching for Sindri v3 builds'
+inputs:
+  toolchain:
+    description: 'Rust toolchain to install (stable, beta, nightly, or specific version)'
+    required: false
+    default: 'stable'
+  components:
+    description: 'Comma-separated list of components to install (e.g., rustfmt,clippy)'
+    required: false
+    default: ''
+  targets:
+    description: 'Comma-separated list of targets to install'
+    required: false
+    default: ''
+  cache:
+    description: 'Enable Cargo caching'
+    required: false
+    default: 'true'
+  cache-key:
+    description: 'Custom cache key prefix'
+    required: false
+    default: 'cargo'
+
+outputs:
+  rustc-version:
+    description: 'Installed rustc version'
+    value: ${{ steps.version.outputs.rustc }}
+  cache-hit:
+    description: 'Whether cache was hit'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: ${{ inputs.components }}
+        targets: ${{ inputs.targets }}
+
+    - name: Get Rust version
+      id: version
+      shell: bash
+      run: |
+        RUSTC_VERSION=$(rustc --version | cut -d' ' -f2)
+        echo "rustc=$RUSTC_VERSION" >> $GITHUB_OUTPUT
+        echo "Rust version: $RUSTC_VERSION"
+
+    - name: Cache Cargo dependencies
+      id: cache
+      if: inputs.cache == 'true'
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          v3/target/
+        key: ${{ runner.os }}-${{ inputs.cache-key }}-${{ hashFiles('v3/**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.cache-key }}-
+          ${{ runner.os }}-cargo-
+
+    - name: Display cache status
+      shell: bash
+      run: |
+        if [[ "${{ steps.cache.outputs.cache-hit }}" == "true" ]]; then
+          echo "✅ Cache hit - using cached dependencies"
+        else
+          echo "📦 Cache miss - will download dependencies"
+        fi

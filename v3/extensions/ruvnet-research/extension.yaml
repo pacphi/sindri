@@ -1,0 +1,60 @@
+---
+metadata:
+  name: ruvnet-research
+  version: 1.0.0
+  description: >-
+    AI research tools including Goalie goal management and Research-Swarm multi-agent research framework
+  category: research
+  author: ruvnet
+  homepage: https://github.com/ruvnet
+  dependencies:
+    - nodejs
+requirements:
+  domains:
+    - registry.npmjs.org
+    - api.perplexity.ai
+  diskSpace: 100
+  memory: 256
+  installTime: 60
+  secrets:
+    - perplexity_api_key
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+validate:
+  commands:
+    - name: goalie
+    - name: research-swarm
+  mise:
+    tools:
+      - npm:goalie
+      - npm:research-swarm
+    minToolCount: 2
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - npm:goalie
+      - npm:research-swarm
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: true
+bom:
+  tools:
+    - name: goalie
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/cmurczek/goalie
+      purl: pkg:npm/goalie
+    - name: research-swarm
+      version: dynamic
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/ruvnet/research-swarm
+      purl: pkg:npm/research-swarm

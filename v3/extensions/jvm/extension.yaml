@@ -1,0 +1,126 @@
+---
+metadata:
+  name: jvm
+  version: 2.0.0
+  description: >-
+    JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise
+  category: languages
+  author: Sindri Team
+  dependencies: []
+requirements:
+  domains:
+    # SDKMAN core
+    - sdkman.io
+    - get.sdkman.io
+    - api.sdkman.io
+    # Gradle distribution
+    - downloads.gradle-dn.com
+    - services.gradle.org
+    - plugins.gradle.org
+    # Temurin/Eclipse Java distribution (fallback for Liberica)
+    - adoptium.net
+    - api.adoptium.net
+    - download.eclipse.org
+    # Liberica JDK (BellSoft - primary ARM-optimized distribution)
+    - bell-sw.com
+    - download.bell-sw.com
+    # Maven Central
+    - repo.maven.apache.org
+    - repo1.maven.org
+    # GitHub (for various downloads)
+    - github.com
+    - objects.githubusercontent.com
+  diskSpace: 2000
+  memory: 4096
+  installTime: 180
+  # JVM tools (especially Scala) have slow cold start times
+  validationTimeout: 60
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
+configure:
+  templates:
+    - source: bashrc.template
+      destination: ~/.bashrc
+      mode: append
+    - source: profile.template
+      destination: ~/.profile
+      mode: append
+validate:
+  commands:
+    - name: java
+      versionFlag: "-version"
+      expectedPattern: "version \"\\d+\\.\\d+\\.\\d+\""
+    - name: mvn
+    - name: gradle
+    - name: kotlin
+      versionFlag: "-version"
+    - name: scala
+      versionFlag: "-version"
+    - name: clojure
+      versionFlag: "--version"
+    - name: lein
+      versionFlag: "version"
+remove:
+  paths:
+    - ~/.sdkman
+    - ~/.m2
+    - ~/.gradle
+upgrade:
+  strategy: manual
+  script:
+    path: upgrade.sh
+    timeout: 600
+bom:
+  tools:
+    - name: java
+      version: dynamic
+      source: script
+      type: runtime
+      license: GPL-2.0-with-classpath-exception
+      homepage: https://openjdk.org
+      purl: pkg:generic/openjdk
+    - name: mvn
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://maven.apache.org
+      purl: pkg:maven/maven
+    - name: gradle
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://gradle.org
+      purl: pkg:generic/gradle
+    - name: kotlin
+      version: dynamic
+      source: script
+      type: compiler
+      license: Apache-2.0
+      homepage: https://kotlinlang.org
+      purl: pkg:maven/org.jetbrains.kotlin/kotlin-compiler
+    - name: scala
+      version: dynamic
+      source: script
+      type: compiler
+      license: Apache-2.0
+      homepage: https://www.scala-lang.org
+      purl: pkg:maven/org.scala-lang/scala-compiler
+    - name: clojure
+      version: dynamic
+      source: mise
+      type: runtime
+      license: EPL-1.0
+      homepage: https://clojure.org
+      purl: pkg:maven/org.clojure/clojure
+    - name: lein
+      version: dynamic
+      source: mise
+      type: cli-tool
+      license: EPL-1.0
+      homepage: https://leiningen.org
+      purl: pkg:generic/leiningen

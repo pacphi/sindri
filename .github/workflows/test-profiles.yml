@@ -219,12 +219,12 @@ jobs:
 
       - name: Validate configuration
         run: |
-          ./cli/sindri config validate --config "${{ matrix.config }}"
+          ./v2/v2/cli/sindri config validate --config "${{ matrix.config }}"
 
       - name: Deploy
         id: deploy
         run: |
-          ./cli/sindri deploy --config "${{ matrix.config }}"
+          ./v2/v2/cli/sindri deploy --config "${{ matrix.config }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
@@ -239,7 +239,7 @@ jobs:
 
       - name: Run tests
         run: |
-          ./cli/sindri test --config "${{ matrix.config }}" --level "${{ inputs.test-level }}"
+          ./v2/v2/cli/sindri test --config "${{ matrix.config }}" --level "${{ inputs.test-level }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
@@ -247,7 +247,7 @@ jobs:
       - name: Teardown
         if: always() && inputs.skip-cleanup != true
         run: |
-          ./cli/sindri destroy --config "${{ matrix.config }}" --force
+          ./v2/v2/cli/sindri destroy --config "${{ matrix.config }}" --force
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           E2B_API_KEY: ${{ secrets.E2B_API_KEY }}

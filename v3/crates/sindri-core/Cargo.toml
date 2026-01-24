@@ -1,0 +1,29 @@
+[package]
+name = "sindri-core"
+description = "Core library for Sindri CLI - config parsing, schema validation, and types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+jsonschema = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+semver = { workspace = true }
+rust-embed = { workspace = true }
+camino = { workspace = true }
+regex = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+tera = { workspace = true }
+rand = "0.8"
+tokio = { workspace = true }
+sindri-image = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.24"
+serial_test = { workspace = true }

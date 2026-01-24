@@ -47,30 +47,30 @@ This skill guides you through creating declarative YAML extensions for Sindri. E
 
 ### Key Documentation Files
 
-| Type                | Path                                       | Purpose                            |
-| ------------------- | ------------------------------------------ | ---------------------------------- |
-| **Schema**          | `docker/lib/schemas/extension.schema.json` | Extension validation schema        |
-| **Registry**        | `docker/lib/registry.yaml`                 | Master extension registry          |
-| **Profiles**        | `docker/lib/profiles.yaml`                 | Extension profile definitions      |
-| **Categories**      | `docker/lib/categories.yaml`               | Category definitions               |
-| **Extension Docs**  | `docs/extensions/{NAME}.md`                | Individual extension documentation |
-| **Catalog**         | `docs/EXTENSIONS.md`                       | Overview of all extensions         |
-| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md`              | Detailed authoring reference       |
-| **Slides**          | `docs/slides/extensions.html`              | Visual presentation                |
+| Type                | Path                                          | Purpose                            |
+| ------------------- | --------------------------------------------- | ---------------------------------- |
+| **Schema**          | `v2/docker/lib/schemas/extension.schema.json` | Extension validation schema        |
+| **Registry**        | `v2/docker/lib/registry.yaml`                 | Master extension registry          |
+| **Profiles**        | `v2/docker/lib/profiles.yaml`                 | Extension profile definitions      |
+| **Categories**      | `v2/docker/lib/categories.yaml`               | Category definitions               |
+| **Extension Docs**  | `docs/extensions/{NAME}.md`                   | Individual extension documentation |
+| **Catalog**         | `docs/EXTENSIONS.md`                          | Overview of all extensions         |
+| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md`                 | Detailed authoring reference       |
+| **Slides**          | `docs/slides/extensions.html`                 | Visual presentation                |
 
 ## Quick Start Checklist
 
-1. [ ] Create directory: `docker/lib/extensions/{name}/`
+1. [ ] Create directory: `v2/docker/lib/extensions/{name}/`
 2. [ ] Create `extension.yaml` with required sections
-3. [ ] Add to `docker/lib/registry.yaml`
-4. [ ] Validate: `./cli/extension-manager validate {name}`
-5. [ ] Test: `./cli/extension-manager install {name}`
+3. [ ] Add to `v2/docker/lib/registry.yaml`
+4. [ ] Validate: `./v2/cli/extension-manager validate {name}`
+5. [ ] Test: `./v2/cli/extension-manager install {name}`
 6. [ ] **Update documentation** (see Post-Extension Checklist below)
 
 ## Extension Directory Structure
 
 ```text
-docker/lib/extensions/{extension-name}/
+v2/docker/lib/extensions/{extension-name}/
 ├── extension.yaml       # Required: Main definition
 ├── scripts/             # Optional: Custom scripts
 │   ├── install.sh       # Custom installation
@@ -413,7 +413,7 @@ capabilities:
 
 ## Adding to Registry
 
-After creating your extension, add it to `docker/lib/registry.yaml`:
+After creating your extension, add it to `v2/docker/lib/registry.yaml`:
 
 ```yaml
 extensions:
@@ -428,19 +428,19 @@ extensions:
 
 ```bash
 # Validate single extension
-./cli/extension-manager validate my-extension
+./v2/cli/extension-manager validate my-extension
 
 # Validate all extensions
-./cli/extension-manager validate-all
+./v2/cli/extension-manager validate-all
 
 # Check extension info
-./cli/extension-manager info my-extension
+./v2/cli/extension-manager info my-extension
 
 # Test installation
-./cli/extension-manager install my-extension
+./v2/cli/extension-manager install my-extension
 
 # Check status
-./cli/extension-manager status my-extension
+./v2/cli/extension-manager status my-extension
 ```
 
 ## Common Patterns
@@ -540,7 +540,7 @@ echo "my-tool installed successfully"
 
 ### Required Updates (Always Do These)
 
-- [ ] **Registry Entry** - Add to `docker/lib/registry.yaml`
+- [ ] **Registry Entry** - Add to `v2/docker/lib/registry.yaml`
 
   ```yaml
   extensions:
@@ -562,16 +562,16 @@ echo "my-tool installed successfully"
 ### Conditional Updates (When Applicable)
 
 - [ ] **Profiles** - If adding extension to profiles:
-  - Update `docker/lib/profiles.yaml`
+  - Update `v2/docker/lib/profiles.yaml`
   - Update relevant profile descriptions in `docs/EXTENSIONS.md`
 
 - [ ] **Categories** - If adding new category:
-  - Update `docker/lib/categories.yaml`
-  - Update `docker/lib/schemas/extension.schema.json` (category enum)
+  - Update `v2/docker/lib/categories.yaml`
+  - Update `v2/docker/lib/schemas/extension.schema.json` (category enum)
   - Update category docs in `docs/EXTENSIONS.md`
 
 - [ ] **Schema** - If adding new extension fields:
-  - Update `docker/lib/schemas/extension.schema.json`
+  - Update `v2/docker/lib/schemas/extension.schema.json`
   - Update `docs/SCHEMA.md`
   - Update `REFERENCE.md` in this skill
 
@@ -594,7 +594,7 @@ pnpm validate:yaml
 pnpm lint:md
 
 # Validate extension
-./cli/extension-manager validate {name}
+./v2/cli/extension-manager validate {name}
 ```
 
 ---
@@ -651,11 +651,11 @@ extension-manager install {name}
 
 ## Reference Files
 
-- **Schema**: `docker/lib/schemas/extension.schema.json`
-- **Registry**: `docker/lib/registry.yaml`
-- **Categories**: `docker/lib/categories.yaml`
-- **Profiles**: `docker/lib/profiles.yaml`
-- **Examples**: `docker/lib/extensions/*/extension.yaml`
+- **Schema**: `v2/docker/lib/schemas/extension.schema.json`
+- **Registry**: `v2/docker/lib/registry.yaml`
+- **Categories**: `v2/docker/lib/categories.yaml`
+- **Profiles**: `v2/docker/lib/profiles.yaml`
+- **Examples**: `v2/docker/lib/extensions/*/extension.yaml`
 
 For detailed field reference, see REFERENCE.md.
 For complete examples, see EXAMPLES.md.

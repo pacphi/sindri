@@ -1,0 +1,5 @@
+# Claude Flow v3 - Modular package architecture
+# Performance: 2.49x-7.47x faster | Search: 150x-12,500x faster | Memory: 83% reduction
+
+[tools]
+"npm:claude-flow" = "v3alpha"

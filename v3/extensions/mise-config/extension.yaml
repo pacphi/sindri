@@ -1,0 +1,34 @@
+---
+metadata:
+  name: mise-config
+  version: 2.0.0
+  description: Global mise configuration and settings
+  category: productivity
+  author: Sindri Team
+  dependencies: []
+requirements:
+  diskSpace: 10
+  memory: 0
+  installTime: 10
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 30
+validate:
+  commands:
+    - name: mise
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+remove:
+  paths:
+    - ~/.config/mise/config.toml
+upgrade:
+  strategy: none
+bom:
+  tools:
+    - name: mise
+      version: dynamic
+      source: binary
+      type: package-manager
+      license: MIT
+      homepage: https://mise.jd.io

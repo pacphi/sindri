@@ -70,7 +70,7 @@ jobs:
           fi
 
           # sindri destroy reads the config and handles provider routing internally
-          ./cli/sindri destroy --config "$CONFIG" $FORCE_FLAG
+          ./v2/v2/cli/sindri destroy --config "$CONFIG" $FORCE_FLAG
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

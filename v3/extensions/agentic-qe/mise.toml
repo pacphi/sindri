@@ -1,0 +1,45 @@
+# agentic-qe.toml - Agentic Quality Engineering v3 framework configuration for mise
+# Requires nodejs extension to be installed first
+#
+# IMPORTANT: Use pinned versions instead of "latest" for reliable installations
+# to avoid npm registry timeouts that can poison subsequent mise operations.
+#
+# NOTE: The npm package is 'agentic-qe' (not scoped). Binary is 'aqe'.
+# DEPENDENCY FIX: v3.2.x requires lodash@^4.17.23 which doesn't exist (latest is 4.17.21).
+# The extension's pre-install hook (setup-pnpm-hooks.sh) configures pnpm to remap this.
+
+[tools]
+# Agentic QE CLI tool v3 - pinned to stable version
+"npm:agentic-qe" = "3.2.3"
+
+[tasks.init]
+description = "Initialize AQE v3 in current project"
+run = "aqe init"
+
+[tasks.test]
+description = "Generate tests with AQE v3"
+run = "aqe test"
+
+[tasks.coverage]
+description = "Analyze coverage gaps"
+run = "aqe coverage --threshold 80"
+
+[tasks.quality]
+description = "Run quality gates"
+run = "aqe quality"
+
+[tasks.status]
+description = "View AQE fleet status"
+run = "aqe status --verbose"
+
+[tasks.routing]
+description = "Enable multi-model router"
+run = "aqe routing enable"
+
+[tasks.learn]
+description = "Enable learning system"
+run = "aqe learn enable --all"
+
+[tasks.patterns]
+description = "List available patterns"
+run = "aqe patterns list"

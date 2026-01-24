@@ -1,0 +1,60 @@
+---
+metadata:
+  name: supabase-cli
+  version: 2.0.0
+  description: Supabase CLI for local development, migrations, and edge functions
+  category: cloud
+  author: Sindri Team
+  homepage: https://github.com/supabase/cli
+  dependencies:
+    - docker
+requirements:
+  domains:
+    - supabase.com
+    - api.supabase.com
+    - github.com
+    - objects.githubusercontent.com
+  diskSpace: 300
+  memory: 512
+  installTime: 120
+  validationTimeout: 30
+  secrets:
+    - supabase_access_token
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+configure:
+  templates:
+    - source: resources/README.md
+      destination: ~/extensions/supabase-cli/README.md
+      mode: overwrite
+  environment:
+    - key: SUPABASE_ACCESS_TOKEN
+      value: "${SUPABASE_ACCESS_TOKEN}"
+      scope: bashrc
+validate:
+  commands:
+    - name: supabase
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+remove:
+  paths:
+    - ~/extensions/supabase-cli
+    - ~/.supabase
+  script:
+    path: uninstall.sh
+upgrade:
+  strategy: reinstall
+  script:
+    path: install.sh
+bom:
+  tools:
+    - name: supabase
+      version: dynamic
+      source: binary
+      type: cli-tool
+      license: MIT
+      homepage: https://supabase.com/docs/guides/local-development/cli/getting-started
+      purl: pkg:github/supabase/cli

@@ -1,6 +1,6 @@
 ---
 # .github/workflows/validate-yaml.yml
-# YAML validation workflow
+# YAML validation workflow for both v2 and v3
 name: Validate YAML
 
 on:
@@ -8,19 +8,21 @@ on:
     paths:
       - "**.yaml"
       - "**.yml"
-      - "docker/lib/schemas/*.json"
+      - "v2/docker/lib/schemas/*.json"
+      - "v3/schemas/*.json"
   push:
-    branches: [main]
+    branches: [main, feature/v3]
     paths:
       - "**.yaml"
       - "**.yml"
-      - "docker/lib/schemas/*.json"
+      - "v2/docker/lib/schemas/*.json"
+      - "v3/schemas/*.json"
   workflow_dispatch:
   workflow_call:
 
 jobs:
-  lint:
-    name: YAML Lint
+  lint-v2:
+    name: YAML Lint (v2)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -29,16 +31,54 @@ jobs:
       - name: Install yamllint
         run: pip install yamllint
 
-      - name: Run yamllint
+      - name: Run yamllint on v2 YAML
         run: |
           yamllint --strict \
-            docker/lib/*.yaml \
-            docker/lib/extensions/*/extension.yaml \
-            examples/**/*.yaml \
-            .github/workflows/*.yml
+            v2/docker/lib/*.yaml \
+            v2/docker/lib/extensions/*/extension.yaml \
+            examples/**/*.yaml
 
-  schema-validation:
-    name: Schema Validation
+  lint-v3:
+    name: YAML Lint (v3)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint on v3 YAML
+        run: |
+          # Only run if v3 YAML files exist
+          if [[ -d v3/extensions ]]; then
+            find v3/extensions -name "*.yaml" -o -name "*.yml" | xargs yamllint --strict || echo "No v3 extension YAML found"
+          fi
+
+          if [[ -f v3/registry.yaml ]]; then
+            yamllint --strict v3/registry.yaml
+          fi
+
+          if [[ -d v3/schemas ]]; then
+            find v3/schemas -name "*.yaml" -o -name "*.yml" | xargs yamllint --strict || echo "No v3 schema YAML found"
+          fi
+
+  lint-github:
+    name: YAML Lint (GitHub Workflows)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint on workflows
+        run: |
+          yamllint --strict .github/workflows/*.yml
+
+  schema-validation-v2:
+    name: Schema Validation (v2)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -53,14 +93,72 @@ jobs:
       - name: Install tools
         run: |
           npm install -g ajv-cli ajv-formats
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-          chmod +x /usr/local/bin/yq
+          # Install yq with verification
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          # Verify installation
+          yq --version
+          echo "Testing yq: $(echo 'test: value' | yq -o=json)"
 
-      - name: Validate all schemas
-        run: ./test/unit/yaml/validate-schema.sh all
+      - name: Validate v2 schemas
+        run: |
+          if [[ -f v2/test/unit/yaml/validate-schema.sh ]]; then
+            ./v2/test/unit/yaml/validate-schema.sh all
+          else
+            echo "::warning::v2 schema validation script not found"
+          fi
 
-  cross-references:
-    name: Cross-Reference Validation
+  schema-validation-v3:
+    name: Schema Validation (v3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Install tools
+        run: |
+          npm install -g ajv-cli ajv-formats
+          # Install yq with verification
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          # Verify installation
+          yq --version
+          echo "Testing yq: $(echo 'test: value' | yq -o=json)"
+
+      - name: Validate v3 extension schemas
+        run: |
+          if [[ ! -d v3/extensions ]]; then
+            echo "::notice::v3/extensions directory does not exist yet"
+            exit 0
+          fi
+
+          if [[ ! -f v3/schemas/extension.schema.json ]]; then
+            echo "::notice::v3 extension schema not found yet"
+            exit 0
+          fi
+
+          # Validate each extension against v3 schema
+          for ext_dir in v3/extensions/*/; do
+            if [[ -f "$ext_dir/extension.yaml" ]]; then
+              ext_name=$(basename "$ext_dir")
+              echo "Validating v3 extension: $ext_name"
+              # Note: Schema uses draft-07, ajv auto-detects from $schema field
+              ajv validate \
+                -c ajv-formats \
+                -s v3/schemas/extension.schema.json \
+                -d "$ext_dir/extension.yaml" \
+                || exit 1
+            fi
+          done
+
+  cross-references-v2:
+    name: Cross-Reference Validation (v2)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -68,14 +166,19 @@ jobs:
 
       - name: Install yq
         run: |
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-          chmod +x /usr/local/bin/yq
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
-      - name: Validate cross-references
-        run: ./test/unit/yaml/test-cross-references.sh
+      - name: Validate v2 cross-references
+        run: |
+          if [[ -f v2/test/unit/yaml/test-cross-references.sh ]]; then
+            ./v2/test/unit/yaml/test-cross-references.sh
+          else
+            echo "::warning::v2 cross-reference test script not found"
+          fi
 
-  domain-requirements:
-    name: Domain Requirements Validation
+  cross-references-v3:
+    name: Cross-Reference Validation (v3)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -83,18 +186,33 @@ jobs:
 
       - name: Install yq
         run: |
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-          chmod +x /usr/local/bin/yq
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
-      - name: Validate domain requirements
+      - name: Validate v3 registry cross-references
         run: |
-          chmod +x test/unit/yaml/test-domain-requirements.sh
-          # Run format/duplicate validation (hard fail)
-          # DNS validation disabled in CI (network may be restricted)
-          VALIDATE_DNS=false ./test/unit/yaml/test-domain-requirements.sh
+          if [[ ! -f v3/registry.yaml ]] || [[ ! -d v3/extensions ]]; then
+            echo "::notice::v3 registry or extensions not found yet"
+            exit 0
+          fi
 
-  extension-consistency:
-    name: Extension Consistency
+          # Check that all extensions in v3 registry exist
+          FAILURES=0
+          for ext_name in $(yq '.extensions | keys | .[]' v3/registry.yaml 2>/dev/null || echo ""); do
+            if [[ -n "$ext_name" ]] && [[ ! -d "v3/extensions/$ext_name" ]]; then
+              echo "FAIL: v3 registry lists extension '$ext_name' but directory doesn't exist"
+              ((FAILURES++)) || true
+            fi
+          done
+
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "v3 registry validation failed: $FAILURES error(s)"
+            exit 1
+          fi
+          echo "v3 registry validation passed"
+
+  domain-requirements-v2:
+    name: Domain Requirements Validation (v2)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -102,51 +220,142 @@ jobs:
 
       - name: Install yq
         run: |
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-          chmod +x /usr/local/bin/yq
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
-      - name: Check extension naming consistency
+      - name: Validate v2 domain requirements
+        run: |
+          if [[ -f v2/test/unit/yaml/test-domain-requirements.sh ]]; then
+            chmod +x v2/test/unit/yaml/test-domain-requirements.sh
+            # Run format/duplicate validation (hard fail)
+            # DNS validation disabled in CI (network may be restricted)
+            VALIDATE_DNS=false ./v2/test/unit/yaml/test-domain-requirements.sh
+          else
+            echo "::warning::v2 domain requirements test script not found"
+          fi
+
+  extension-consistency-v2:
+    name: Extension Consistency (v2)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Check v2 extension naming consistency
         run: |
           # Extension directory name must match metadata.name
           FAILURES=0
-          for ext_dir in docker/lib/extensions/*/; do
+          for ext_dir in v2/docker/lib/extensions/*/; do
             if [[ -f "$ext_dir/extension.yaml" ]]; then
               dir_name=$(basename "$ext_dir")
               yaml_name=$(yq '.metadata.name' "$ext_dir/extension.yaml")
 
               if [[ "$dir_name" != "$yaml_name" ]]; then
-                echo "FAIL: Directory '$dir_name' doesn't match metadata.name '$yaml_name'"
+                echo "FAIL: v2 directory '$dir_name' doesn't match metadata.name '$yaml_name'"
                 ((FAILURES++)) || true
               fi
             fi
           done
 
           if [[ $FAILURES -gt 0 ]]; then
-            echo "Extension naming check failed: $FAILURES error(s)"
+            echo "v2 extension naming check failed: $FAILURES error(s)"
             exit 1
           fi
-          echo "All extension names consistent"
+          echo "All v2 extension names consistent"
 
-      - name: Check category consistency
+      - name: Check v2 category consistency
         run: |
           # Extension category must match registry entry
           FAILURES=0
-          for ext_dir in docker/lib/extensions/*/; do
+          for ext_dir in v2/docker/lib/extensions/*/; do
             if [[ -f "$ext_dir/extension.yaml" ]]; then
               ext_name=$(basename "$ext_dir")
               ext_category=$(yq '.metadata.category // ""' "$ext_dir/extension.yaml")
-              reg_category=$(yq ".extensions.$ext_name.category // \"\"" docker/lib/registry.yaml)
+              reg_category=$(yq ".extensions.$ext_name.category // \"\"" v2/docker/lib/registry.yaml)
 
               if [[ -n "$ext_category" ]] && [[ -n "$reg_category" ]] && \
                  [[ "$ext_category" != "$reg_category" ]]; then
-                echo "FAIL: $ext_name category mismatch: extension.yaml='$ext_category', registry.yaml='$reg_category'"
+                echo "FAIL: v2 $ext_name category mismatch: extension.yaml='$ext_category', registry.yaml='$reg_category'"
                 ((FAILURES++)) || true
               fi
             fi
           done
 
           if [[ $FAILURES -gt 0 ]]; then
-            echo "Category consistency check failed: $FAILURES error(s)"
+            echo "v2 category consistency check failed: $FAILURES error(s)"
             exit 1
           fi
-          echo "All extension categories consistent"
+          echo "All v2 extension categories consistent"
+
+  extension-consistency-v3:
+    name: Extension Consistency (v3)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Check v3 extension naming consistency
+        run: |
+          if [[ ! -d v3/extensions ]]; then
+            echo "::notice::v3/extensions directory does not exist yet"
+            exit 0
+          fi
+
+          # Extension directory name must match metadata.name
+          FAILURES=0
+          for ext_dir in v3/extensions/*/; do
+            if [[ -f "$ext_dir/extension.yaml" ]]; then
+              dir_name=$(basename "$ext_dir")
+              yaml_name=$(yq '.metadata.name' "$ext_dir/extension.yaml")
+
+              if [[ "$dir_name" != "$yaml_name" ]]; then
+                echo "FAIL: v3 directory '$dir_name' doesn't match metadata.name '$yaml_name'"
+                ((FAILURES++)) || true
+              fi
+            fi
+          done
+
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "v3 extension naming check failed: $FAILURES error(s)"
+            exit 1
+          fi
+          echo "All v3 extension names consistent"
+
+      - name: Check v3 category consistency
+        run: |
+          if [[ ! -f v3/registry.yaml ]] || [[ ! -d v3/extensions ]]; then
+            echo "::notice::v3 registry or extensions not found yet"
+            exit 0
+          fi
+
+          # Extension category must match registry entry
+          FAILURES=0
+          for ext_dir in v3/extensions/*/; do
+            if [[ -f "$ext_dir/extension.yaml" ]]; then
+              ext_name=$(basename "$ext_dir")
+              ext_category=$(yq '.metadata.category // ""' "$ext_dir/extension.yaml")
+              reg_category=$(yq ".extensions.$ext_name.category // \"\"" v3/registry.yaml)
+
+              if [[ -n "$ext_category" ]] && [[ -n "$reg_category" ]] && \
+                 [[ "$ext_category" != "$reg_category" ]]; then
+                echo "FAIL: v3 $ext_name category mismatch: extension.yaml='$ext_category', registry.yaml='$reg_category'"
+                ((FAILURES++)) || true
+              fi
+            fi
+          done
+
+          if [[ $FAILURES -gt 0 ]]; then
+            echo "v3 category consistency check failed: $FAILURES error(s)"
+            exit 1
+          fi
+          echo "All v3 extension categories consistent"

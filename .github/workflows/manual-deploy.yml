@@ -177,7 +177,7 @@ jobs:
 
       - name: Build image
         id: build
-        uses: ./.github/actions/core/build-image
+        uses: ./.github/actions/shared/build-image
         with:
           image-tag: sindri:${{ env.DEPLOYMENT_ID }}
           cache-key-prefix: sindri-deploy
@@ -215,7 +215,7 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          ./cli/sindri deploy --provider docker
+          ./v2/v2/cli/sindri deploy --provider docker
           echo "url=http://localhost:8080" >> $GITHUB_OUTPUT
           echo "status=success" >> $GITHUB_OUTPUT
 

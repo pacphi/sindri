@@ -1,0 +1,73 @@
+---
+# .github/workflows/validate-shell.yml
+# Shell script validation workflow
+name: Validate Shell
+
+on:
+  pull_request:
+    paths:
+      - "**.sh"
+      - ".github/workflows/validate-shell.yml"
+  push:
+    branches: [main, feature/v3]
+    paths:
+      - "**.sh"
+      - ".github/workflows/validate-shell.yml"
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  shellcheck-v2:
+    name: Shellcheck (v2)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on v2 shell scripts
+        env:
+          SHELLCHECK_OPTS: --severity=warning
+        run: |
+          find v2 -name "*.sh" -type f | while read -r script; do
+            # Skip zsh scripts (shellcheck only supports sh/bash/dash/ksh)
+            if head -1 "$script" | grep -q "#!/bin/zsh"; then
+              echo "Skipping zsh script: $script"
+              continue
+            fi
+            echo "Checking: $script"
+            shellcheck "$script" || exit 1
+          done
+
+  shellcheck-github:
+    name: Shellcheck (GitHub Scripts)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on GitHub scripts
+        env:
+          SHELLCHECK_OPTS: --severity=warning
+        run: |
+          if [[ -d .github/scripts ]]; then
+            find .github/scripts -name "*.sh" -type f | while read -r script; do
+              if head -1 "$script" | grep -q "#!/bin/zsh"; then
+                echo "Skipping zsh script: $script"
+                continue
+              fi
+              echo "Checking: $script"
+              shellcheck "$script" || exit 1
+            done
+          else
+            echo "No .github/scripts directory found"
+          fi

@@ -1,0 +1,59 @@
+---
+metadata:
+  name: ollama
+  version: 1.0.0
+  description: >-
+    Ollama - Run large language models locally. Provides the ollama CLI for managing and running LLMs like Llama, Mistral, CodeLlama, and more.
+  category: ai-dev
+  author: Sindri Team
+  homepage: https://ollama.com
+  dependencies: []
+requirements:
+  domains:
+    - ollama.com
+    - github.com
+  diskSpace: 1000
+  memory: 8192
+  installTime: 600
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 1800
+configure:
+  environment:
+    - key: OLLAMA_HOST
+      value: "0.0.0.0:11434"
+      scope: bashrc
+    - key: OLLAMA_MODELS
+      value: "$HOME/.ollama/models"
+      scope: bashrc
+    - key: OLLAMA_TMPDIR
+      value: "$HOME/.ollama/tmp"
+      scope: bashrc
+validate:
+  commands:
+    - name: ollama
+      versionFlag: --version
+      # Ollama outputs "ollama version is X.Y.Z" or just version number
+      expectedPattern: "(ollama version|\\d+\\.\\d+\\.\\d+)"
+remove:
+  confirmation: true
+  paths:
+    - ~/.ollama
+  script:
+    path: uninstall.sh
+upgrade:
+  strategy: reinstall
+  script:
+    path: install.sh
+    timeout: 1800
+bom:
+  tools:
+    - name: ollama
+      version: dynamic
+      source: script
+      type: server
+      license: MIT
+      homepage: https://ollama.com
+      purl: pkg:generic/ollama

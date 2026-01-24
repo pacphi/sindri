@@ -32,7 +32,7 @@ You MUST complete ALL phases below. Use TodoWrite to track progress through each
 
 ### Phase 2: Create Extension Files
 
-1. Create directory: `docker/lib/extensions/{name}/`
+1. Create directory: `v2/docker/lib/extensions/{name}/`
 2. Create `extension.yaml` with all required sections:
    - metadata (name, version, description, category, dependencies)
    - requirements (domains, diskSpace)
@@ -47,7 +47,7 @@ You MUST complete ALL phases below. Use TodoWrite to track progress through each
 
 ### Phase 3: Update Registry (REQUIRED)
 
-1. Add extension to `docker/lib/registry.yaml`
+1. Add extension to `v2/docker/lib/registry.yaml`
    - Place in correct category section
    - Include category, description, dependencies
 2. Mark this phase complete in todo list
@@ -84,7 +84,7 @@ You MUST complete ALL phases below. Use TodoWrite to track progress through each
 
 ### Phase 7: Consider Profile Inclusion
 
-1. Review `docker/lib/profiles.yaml`
+1. Review `v2/docker/lib/profiles.yaml`
 2. If extension fits existing profiles (ai-dev, anthropic-dev, etc.), add it
 3. Mark this phase complete in todo list
 
@@ -95,7 +95,7 @@ Run ALL validation commands:
 ```bash
 pnpm validate:yaml
 pnpm lint:md
-./cli/extension-manager info {name}
+./v2/cli/extension-manager info {name}
 ```
 
 ### Phase 9: Summary Report

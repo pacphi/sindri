@@ -1,0 +1,216 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/vm-sizes.schema.json",
+  "title": "Sindri VM Size Mappings",
+  "description": "Schema for VM size mappings across cloud providers",
+  "type": "object",
+  "required": ["tiers", "providers"],
+  "properties": {
+    "tiers": {
+      "type": "object",
+      "description": "Resource tier definitions",
+      "properties": {
+        "small": { "$ref": "#/$defs/tierDefinition" },
+        "medium": { "$ref": "#/$defs/tierDefinition" },
+        "large": { "$ref": "#/$defs/tierDefinition" },
+        "xlarge": { "$ref": "#/$defs/tierDefinition" }
+      },
+      "required": ["small", "medium", "large", "xlarge"],
+      "additionalProperties": false
+    },
+    "gpu_tiers": {
+      "type": "object",
+      "description": "GPU resource tier definitions",
+      "properties": {
+        "gpu-small": { "$ref": "#/$defs/gpuTierDefinition" },
+        "gpu-medium": { "$ref": "#/$defs/gpuTierDefinition" },
+        "gpu-large": { "$ref": "#/$defs/gpuTierDefinition" },
+        "gpu-xlarge": { "$ref": "#/$defs/gpuTierDefinition" }
+      },
+      "additionalProperties": false
+    },
+    "providers": {
+      "type": "object",
+      "description": "Provider-specific VM size mappings",
+      "properties": {
+        "fly": { "$ref": "#/$defs/providerConfig" },
+        "docker": { "$ref": "#/$defs/providerConfig" },
+        "aws": { "$ref": "#/$defs/providerConfig" },
+        "gcp": { "$ref": "#/$defs/providerConfig" },
+        "azure": { "$ref": "#/$defs/providerConfig" },
+        "digitalocean": { "$ref": "#/$defs/providerConfig" },
+        "kubernetes": { "$ref": "#/$defs/providerConfig" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/providerConfig" }
+    },
+    "volumes": {
+      "type": "object",
+      "description": "Volume size recommendations by tier",
+      "properties": {
+        "workspace": { "$ref": "#/$defs/tierSizes" },
+        "home": { "$ref": "#/$defs/tierSizes" }
+      }
+    },
+    "timeouts": {
+      "$ref": "#/$defs/tierSizes",
+      "description": "Timeout recommendations by tier (in minutes)"
+    }
+  },
+  "$defs": {
+    "tierDefinition": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the tier"
+        },
+        "memory_range": {
+          "type": "string",
+          "description": "Memory range for this tier"
+        },
+        "disk_range": {
+          "type": "string",
+          "description": "Disk space range for this tier"
+        }
+      },
+      "required": ["description"]
+    },
+    "tierSizes": {
+      "type": "object",
+      "properties": {
+        "small": { "type": ["integer", "string"] },
+        "medium": { "type": ["integer", "string"] },
+        "large": { "type": ["integer", "string"] },
+        "xlarge": { "type": ["integer", "string"] }
+      },
+      "required": ["small", "medium", "large", "xlarge"],
+      "additionalProperties": false
+    },
+    "providerConfig": {
+      "type": "object",
+      "required": ["description", "sizes"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description of the provider"
+        },
+        "sizes": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "VM size identifiers for each tier"
+        },
+        "memory": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Memory allocation per tier (MB or with unit)"
+        },
+        "vcpus": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "vCPU count per tier"
+        },
+        "cpus": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "CPU count per tier"
+        },
+        "cpu": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "CPU allocation per tier (for K8s)"
+        },
+        "disk": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Disk size per tier (GB)"
+        },
+        "storage": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Storage allocation per tier (for K8s)"
+        },
+        "swap": {
+          "$ref": "#/$defs/tierSizes",
+          "description": "Swap size per tier (MB)"
+        },
+        "gpu_sizes": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "GPU instance/machine types per tier"
+        },
+        "gpu_memory": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "GPU memory per tier (MB)"
+        },
+        "gpu_count": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "GPU count per tier"
+        },
+        "gpu_cpus": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "CPU allocation for GPU instances"
+        },
+        "gpu_accelerator_type": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "Accelerator type for GCP"
+        },
+        "gpu_accelerator_count": {
+          "$ref": "#/$defs/gpuTierSizes",
+          "description": "Accelerator count for GCP"
+        },
+        "gpu_node_selector": {
+          "type": "object",
+          "description": "Kubernetes node selectors for GPU tiers",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        },
+        "gpu_regions": {
+          "type": "array",
+          "description": "Regions where GPU is available",
+          "items": { "type": "string" }
+        },
+        "gpu_runtime": {
+          "type": "string",
+          "description": "GPU runtime (e.g., nvidia)"
+        },
+        "gpu_device_driver": {
+          "type": "string",
+          "description": "GPU device driver"
+        },
+        "gpu_resource_key": {
+          "type": "string",
+          "description": "Kubernetes GPU resource key (e.g., nvidia.com/gpu)"
+        }
+      },
+      "additionalProperties": true
+    },
+    "gpuTierDefinition": {
+      "type": "object",
+      "description": "GPU tier definition",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the GPU tier"
+        },
+        "gpu_memory_range": {
+          "type": "string",
+          "description": "GPU memory range for this tier"
+        },
+        "gpu_type": {
+          "type": "string",
+          "description": "GPU architecture (e.g., T4, A10G, L40S, A100)"
+        },
+        "use_cases": {
+          "type": "array",
+          "description": "Recommended use cases for this tier",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["description"]
+    },
+    "gpuTierSizes": {
+      "type": "object",
+      "properties": {
+        "gpu-small": { "type": ["integer", "string"] },
+        "gpu-medium": { "type": ["integer", "string"] },
+        "gpu-large": { "type": ["integer", "string"] },
+        "gpu-xlarge": { "type": ["integer", "string"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

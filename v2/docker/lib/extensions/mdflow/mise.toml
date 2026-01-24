@@ -1,0 +1,16 @@
+# mdflow - Multi-backend CLI for markdown AI agents
+# Requires nodejs extension to be installed first
+#
+# IMPORTANT: mdflow uses #!/usr/bin/env bun shebang, requiring bun at runtime.
+# Bun must be installed BEFORE npm:mdflow so it's available when mdflow runs.
+#
+# NOTE: Use pinned versions instead of "latest" for reliable installations
+# query timeouts that can poison subsequent mise operations.
+
+[tools]
+# Bun runtime - required for mdflow execution (shebang: #!/usr/bin/env bun)
+# Pinned to major version for stability
+bun = "1"
+
+# mdflow CLI - transform markdown files into executable AI agents
+"npm:mdflow" = "2.33"

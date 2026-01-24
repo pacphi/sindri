@@ -1,0 +1,69 @@
+[package]
+name = "sindri"
+description = "Declarative, provider-agnostic cloud development environment CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "sindri"
+path = "src/main.rs"
+
+[dependencies]
+sindri-core = { workspace = true }
+sindri-providers = { workspace = true }
+sindri-extensions = { workspace = true }
+sindri-secrets = { workspace = true }
+sindri-update = { workspace = true }
+sindri-projects = { workspace = true }
+sindri-doctor = { workspace = true }
+sindri-clusters = { workspace = true }
+sindri-image = { workspace = true }
+
+# CLI
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+
+# Terminal UI
+indicatif = { workspace = true }
+dialoguer = { workspace = true }
+owo-colors = { workspace = true }
+tabled = { workspace = true }
+console = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Filesystem
+camino = { workspace = true }
+directories = { workspace = true }
+dirs = "5.0"
+
+# Version management
+semver = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+
+# Additional dependencies for new commands
+base64 = "0.21"
+chrono = { workspace = true }
+globset = { workspace = true }
+glob = "0.3"
+walkdir = "2.5"
+rand = "0.8"
+vaultrs = "0.7"
+regex = { workspace = true }
+
+# Archive extraction for upgrades
+flate2 = "1.1"
+tar = "0.4"
+reqwest = { workspace = true }
+
+[build-dependencies]
+chrono = "0.4"
