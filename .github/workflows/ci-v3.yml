@@ -237,7 +237,12 @@ jobs:
           mkdir -p v3/bin
           cp ./bin/sindri v3/bin/
 
-      - name: Build and push multi-arch
+      # NOTE: CI builds only linux/amd64 because:
+      # - The rust-build job produces only x86_64 binaries
+      # - Multi-arch requires pre-compiled binaries for each architecture
+      # - ARM64 builds happen during releases (not CI) when binaries are published
+      # This avoids builder-binary trying to download non-existent ARM releases
+      - name: Build and push image
         id: build
         uses: docker/build-push-action@v6
         with:
@@ -246,7 +251,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           no-cache: true
           pull: true
           provenance: mode=max
@@ -257,9 +262,10 @@ jobs:
       - name: Export image info
         run: |
           echo "tag=ghcr.io/${{ github.repository }}:ci-${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "✅ Multi-arch image built and pushed"
+          echo "✅ Image built and pushed (linux/amd64)"
           echo "   Image: ghcr.io/${{ github.repository }}:ci-${{ github.sha }}"
-          echo "   Platforms: linux/amd64, linux/arm64"
+          echo "   Platform: linux/amd64"
+          echo "   Note: Multi-arch (amd64+arm64) builds happen during releases"
 
   # ============================================
   # Security Scanning

@@ -92,6 +92,9 @@ RUN if [ "$BUILD_FROM_SOURCE" = "true" ]; then \
 # ==============================================================================
 # Stage 1c: Download Pre-compiled Binary (fallback)
 # ==============================================================================
+# This stage attempts to download a pre-compiled binary from GitHub releases.
+# If the release doesn't exist (e.g., during CI before any release is published),
+# it gracefully creates a .skip marker to allow fallback to other build methods.
 FROM ubuntu:${UBUNTU_VERSION} AS builder-binary
 
 ARG SINDRI_VERSION
@@ -112,12 +115,17 @@ RUN if [ "$BUILD_FROM_SOURCE" != "true" ]; then \
             arm64) ARCH_SUFFIX="aarch64" ;; \
             *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
         esac && \
-        echo "Downloading sindri binary for linux-${ARCH_SUFFIX}..." && \
-        wget -qO /tmp/sindri.tar.gz \
-            "https://github.com/pacphi/sindri/releases/download/v${SINDRI_VERSION}/sindri-v${SINDRI_VERSION}-linux-${ARCH_SUFFIX}.tar.gz" && \
-        tar -xzf /tmp/sindri.tar.gz -C /output && \
-        chmod +x /output/sindri && \
-        rm /tmp/sindri.tar.gz; \
+        echo "Attempting to download sindri binary for linux-${ARCH_SUFFIX}..." && \
+        if wget -qO /tmp/sindri.tar.gz \
+            "https://github.com/pacphi/sindri/releases/download/v${SINDRI_VERSION}/sindri-v${SINDRI_VERSION}-linux-${ARCH_SUFFIX}.tar.gz" 2>/dev/null; then \
+            tar -xzf /tmp/sindri.tar.gz -C /output && \
+            chmod +x /output/sindri && \
+            rm /tmp/sindri.tar.gz && \
+            echo "Successfully downloaded binary from releases"; \
+        else \
+            echo "Release v${SINDRI_VERSION} not available, marking as skip (will use local or source build)"; \
+            touch /output/.skip; \
+        fi; \
     else \
         mkdir -p /output && \
         touch /output/.skip; \
@@ -149,14 +157,16 @@ RUN mkdir -p /output && \
             cp /tmp/source/sindri /output/sindri; \
         else \
             echo "ERROR: Source build failed - binary not found" && exit 1; \
-        fi \
+        fi; \
+    elif [ -f /tmp/binary/sindri ] && [ ! -f /tmp/binary/.skip ]; then \
+        echo "Using downloaded binary from releases"; \
+        cp /tmp/binary/sindri /output/sindri; \
     else \
-        if [ -f /tmp/binary/sindri ]; then \
-            echo "Using downloaded binary from releases"; \
-            cp /tmp/binary/sindri /output/sindri; \
-        else \
-            echo "ERROR: Binary download failed - binary not found" && exit 1; \
-        fi \
+        echo "ERROR: No binary available. Options:" && \
+        echo "  1. Provide local binary in v3/bin/sindri (CI workflows)" && \
+        echo "  2. Set BUILD_FROM_SOURCE=true to build from source" && \
+        echo "  3. Ensure GitHub release v${SINDRI_VERSION:-3.0.0} exists with binaries" && \
+        exit 1; \
     fi && \
     chmod +x /output/sindri
 
