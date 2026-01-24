@@ -51,7 +51,7 @@ semver = "1.0"
 octocrab = "0.32"
 
 # Process execution
-duct = "0.13"
+duct = "1.1"
 
 # Terminal UI
 indicatif = "0.17"
