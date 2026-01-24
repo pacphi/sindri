@@ -109,15 +109,15 @@ sindri restore ./backups/backup.tar.gz --mode merge
 
 **Includes**:
 
-| Path                | Description                       |
-| ------------------- | --------------------------------- |
-| `workspace/projects/` | All development projects        |
-| `workspace/config/`   | User configuration files        |
-| `workspace/scripts/`  | User scripts                    |
-| `workspace/bin/`      | User binaries                   |
-| `.claude/`            | Claude Code settings and history |
+| Path                  | Description                           |
+| --------------------- | ------------------------------------- |
+| `workspace/projects/` | All development projects              |
+| `workspace/config/`   | User configuration files              |
+| `workspace/scripts/`  | User scripts                          |
+| `workspace/bin/`      | User binaries                         |
+| `.claude/`            | Claude Code settings and history      |
 | `.ssh/host_keys/`     | SSH host keys (fingerprint stability) |
-| `.gitconfig`          | Git configuration               |
+| `.gitconfig`          | Git configuration                     |
 
 **Excludes**:
 
@@ -138,12 +138,12 @@ sindri backup --profile user-data --output ./backups/
 
 **Includes everything in `user-data` plus**:
 
-| Path                    | Description                |
-| ----------------------- | -------------------------- |
-| `.bashrc`               | Bash configuration         |
-| `.profile`              | Profile configuration      |
-| `.config/`              | Application configs (excluding mise state) |
-| `.local/bin/`           | Locally installed binaries |
+| Path          | Description                                |
+| ------------- | ------------------------------------------ |
+| `.bashrc`     | Bash configuration                         |
+| `.profile`    | Profile configuration                      |
+| `.config/`    | Application configs (excluding mise state) |
+| `.local/bin/` | Locally installed binaries                 |
 
 **Excludes**:
 
@@ -191,12 +191,12 @@ The safest option - never overwrites existing files.
 
 **Behavior**:
 
-| File Type         | Action                       |
-| ----------------- | ---------------------------- |
-| System markers    | Never touched                |
-| Existing files    | Skipped (preserved)          |
-| Missing files     | Restored                     |
-| Conflicts         | Reported but not modified    |
+| File Type      | Action                    |
+| -------------- | ------------------------- |
+| System markers | Never touched             |
+| Existing files | Skipped (preserved)       |
+| Missing files  | Restored                  |
+| Conflicts      | Reported but not modified |
 
 ```bash
 sindri restore ./backup.tar.gz
@@ -212,12 +212,12 @@ Smart merge with automatic backup of conflicts.
 
 **Behavior**:
 
-| File Type         | Action                                    |
-| ----------------- | ----------------------------------------- |
-| System markers    | Never touched                             |
-| Existing files    | Backed up to `.bak`, then restored        |
-| Shell configs     | Intelligently merged (preserves sections) |
-| Creates rollback  | `.bak` files enable recovery              |
+| File Type        | Action                                    |
+| ---------------- | ----------------------------------------- |
+| System markers   | Never touched                             |
+| Existing files   | Backed up to `.bak`, then restored        |
+| Shell configs    | Intelligently merged (preserves sections) |
+| Creates rollback | `.bak` files enable recovery              |
 
 ```bash
 sindri restore ./backup.tar.gz --mode merge
@@ -231,10 +231,10 @@ Complete restore - overwrites everything except system markers.
 
 **Behavior**:
 
-| File Type         | Action                                 |
-| ----------------- | -------------------------------------- |
-| System markers    | Never touched (safety override)        |
-| All other files   | Overwritten without backup             |
+| File Type       | Action                          |
+| --------------- | ------------------------------- |
+| System markers  | Never touched (safety override) |
+| All other files | Overwritten without backup      |
 
 ```bash
 sindri restore ./backup.tar.gz --mode full
@@ -349,13 +349,13 @@ Every backup includes a JSON manifest with metadata:
 
 ### Compression
 
-| Setting              | Value                           |
-| -------------------- | ------------------------------- |
-| Algorithm            | gzip                            |
-| Default Level        | 6 (balanced speed/ratio)        |
-| Checksum             | SHA256                          |
-| Performance Target   | 1GB workspace < 1 minute        |
-| Typical Compression  | 50-70% size reduction           |
+| Setting             | Value                    |
+| ------------------- | ------------------------ |
+| Algorithm           | gzip                     |
+| Default Level       | 6 (balanced speed/ratio) |
+| Checksum            | SHA256                   |
+| Performance Target  | 1GB workspace < 1 minute |
+| Typical Compression | 50-70% size reduction    |
 
 ---
 
@@ -387,13 +387,13 @@ workspace/.system/logs/**
 
 These files are NEVER restored from backups to protect initialization:
 
-| Marker                               | Purpose                           |
-| ------------------------------------ | --------------------------------- |
-| `.initialized`                       | First-boot initialization flag    |
-| `.welcome_shown`                     | Welcome message display flag      |
-| `workspace/.system/bootstrap.yaml`   | Extension auto-install state      |
-| `workspace/.system/installed`        | Installation marker directory     |
-| `workspace/.system/install-status`   | Installation status tracking      |
+| Marker                             | Purpose                        |
+| ---------------------------------- | ------------------------------ |
+| `.initialized`                     | First-boot initialization flag |
+| `.welcome_shown`                   | Welcome message display flag   |
+| `workspace/.system/bootstrap.yaml` | Extension auto-install state   |
+| `workspace/.system/installed`      | Installation marker directory  |
+| `workspace/.system/install-status` | Installation status tracking   |
 
 ---
 
@@ -448,12 +448,12 @@ If restore fails at any stage, the system automatically:
 
 The restore system validates version compatibility:
 
-| Scenario                  | Behavior                               |
-| ------------------------- | -------------------------------------- |
-| Same major version        | Compatible, restore proceeds           |
-| Minor version difference  | Compatible with auto-upgrade           |
-| Major version mismatch    | Incompatible, requires `--force`       |
-| Unknown format            | Validation error                       |
+| Scenario                 | Behavior                         |
+| ------------------------ | -------------------------------- |
+| Same major version       | Compatible, restore proceeds     |
+| Minor version difference | Compatible with auto-upgrade     |
+| Major version mismatch   | Incompatible, requires `--force` |
+| Unknown format           | Validation error                 |
 
 ```bash
 # Force restore despite version mismatch
@@ -589,14 +589,14 @@ tar xzf ~/.sindri/restore-snapshots/snapshot-{id}.tar.gz
 
 The following features are planned but not yet implemented in V3:
 
-| Feature                    | Status      | Notes                                |
-| -------------------------- | ----------- | ------------------------------------ |
-| S3 Backup Destination      | WIP         | Local backups fully supported        |
-| HTTPS Download Source      | WIP         | Local restore fully supported        |
-| GPG Encryption Integration | Planned     | Use external gpg for now             |
-| Incremental Backups        | Planned     | Full backups only                    |
-| Extension Reinstallation   | Planned     | Manual reinstall after restore       |
-| Shell Config Merging       | Partial     | Basic overwrite, smart merge planned |
+| Feature                    | Status  | Notes                                |
+| -------------------------- | ------- | ------------------------------------ |
+| S3 Backup Destination      | WIP     | Local backups fully supported        |
+| HTTPS Download Source      | WIP     | Local restore fully supported        |
+| GPG Encryption Integration | Planned | Use external gpg for now             |
+| Incremental Backups        | Planned | Full backups only                    |
+| Extension Reinstallation   | Planned | Manual reinstall after restore       |
+| Shell Config Merging       | Partial | Basic overwrite, smart merge planned |
 
 ---
 

@@ -40,58 +40,58 @@ Main configuration schema for Sindri deployments. Defines the structure of `sind
 
 ### Required Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `version` | string | Schema version (e.g., "3.0") |
-| `name` | string | Deployment name (lowercase, alphanumeric with hyphens) |
-| `deployment` | object | Deployment configuration |
-| `extensions` | object | Extension configuration |
+| Field        | Type   | Description                                            |
+| ------------ | ------ | ------------------------------------------------------ |
+| `version`    | string | Schema version (e.g., "3.0")                           |
+| `name`       | string | Deployment name (lowercase, alphanumeric with hyphens) |
+| `deployment` | object | Deployment configuration                               |
+| `extensions` | object | Extension configuration                                |
 
 ### Top-Level Structure
 
 ```yaml
-version: "3.0"              # Pattern: ^\d+\.\d+$
-name: my-dev-env            # Pattern: ^[a-z][a-z0-9-]*$
-deployment:                 # Required
-  provider: docker          # Required
-  image: string             # Optional Docker image
-  image_config:             # Optional structured image config (V3)
+version: "3.0" # Pattern: ^\d+\.\d+$
+name: my-dev-env # Pattern: ^[a-z][a-z0-9-]*$
+deployment: # Required
+  provider: docker # Required
+  image: string # Optional Docker image
+  image_config: # Optional structured image config (V3)
     registry: string
-    version: string         # Semver constraint
+    version: string # Semver constraint
     verify_signature: true
     verify_provenance: true
   resources:
-    memory: "4GB"           # Pattern: ^\d+(MB|GB)$
-    cpus: 2                 # Minimum: 1
-    gpu:                    # GPU configuration
+    memory: "4GB" # Pattern: ^\d+(MB|GB)$
+    cpus: 2 # Minimum: 1
+    gpu: # GPU configuration
       enabled: true
-      type: nvidia          # nvidia | amd
+      type: nvidia # nvidia | amd
       count: 1
-      tier: gpu-medium      # gpu-small | gpu-medium | gpu-large | gpu-xlarge
+      tier: gpu-medium # gpu-small | gpu-medium | gpu-large | gpu-xlarge
       memory: "16GB"
   volumes:
     workspace:
       path: "/workspace"
       size: "10GB"
-extensions:                 # Required
-  profile: minimal          # OR active list (mutually exclusive)
-  active: [nodejs, python]  # OR profile
-  additional: [docker]      # Only with profile
+extensions: # Required
+  profile: minimal # OR active list (mutually exclusive)
+  active: [nodejs, python] # OR profile
+  additional: [docker] # Only with profile
   autoInstall: true
-secrets: []                 # Optional
-providers: {}               # Optional provider-specific config
+secrets: [] # Optional
+providers: {} # Optional provider-specific config
 ```
 
 ### Deployment Providers
 
-| Provider | Description | Alias |
-|----------|-------------|-------|
-| `fly` | Deploy to Fly.io | - |
-| `kubernetes` | Deploy to Kubernetes cluster | - |
+| Provider         | Description                        | Alias    |
+| ---------------- | ---------------------------------- | -------- |
+| `fly`            | Deploy to Fly.io                   | -        |
+| `kubernetes`     | Deploy to Kubernetes cluster       | -        |
 | `docker-compose` | Deploy locally with Docker Compose | `docker` |
-| `docker` | Alias for docker-compose | - |
-| `devpod` | Deploy as DevContainer via DevPod | - |
-| `e2b` | E2B cloud sandbox | - |
+| `docker`         | Alias for docker-compose           | -        |
+| `devpod`         | Deploy as DevContainer via DevPod  | -        |
+| `e2b`            | E2B cloud sandbox                  | -        |
 
 ### Image Configuration (V3 New Feature)
 
@@ -101,14 +101,14 @@ V3 introduces structured image configuration with signature verification:
 deployment:
   image_config:
     registry: ghcr.io/pacphi/sindri
-    version: "^3.0.0"       # Semver constraint
-    tag_override: latest    # Explicit tag (optional)
-    digest: sha256:abc123   # Pin to digest (optional)
-    resolution_strategy: semver  # semver | latest-stable | pin-to-cli | explicit
+    version: "^3.0.0" # Semver constraint
+    tag_override: latest # Explicit tag (optional)
+    digest: sha256:abc123 # Pin to digest (optional)
+    resolution_strategy: semver # semver | latest-stable | pin-to-cli | explicit
     allow_prerelease: false
-    verify_signature: true      # Verify cosign signature
-    verify_provenance: true     # Verify SLSA attestation
-    pull_policy: IfNotPresent   # Always | IfNotPresent | Never
+    verify_signature: true # Verify cosign signature
+    verify_provenance: true # Verify SLSA attestation
+    pull_policy: IfNotPresent # Always | IfNotPresent | Never
     certificate_identity: ".*@github.com"
     certificate_oidc_issuer: "https://token.actions.githubusercontent.com"
 ```
@@ -120,10 +120,10 @@ deployment:
   resources:
     gpu:
       enabled: true
-      type: nvidia           # nvidia | amd
-      count: 1               # 1-8 GPUs
-      tier: gpu-medium       # gpu-small | gpu-medium | gpu-large | gpu-xlarge
-      memory: "16GB"         # Minimum GPU memory
+      type: nvidia # nvidia | amd
+      count: 1 # 1-8 GPUs
+      tier: gpu-medium # gpu-small | gpu-medium | gpu-large | gpu-xlarge
+      memory: "16GB" # Minimum GPU memory
 ```
 
 ### Extensions Configuration
@@ -134,10 +134,11 @@ Extensions can be configured in **two mutually exclusive ways**:
 
 ```yaml
 extensions:
-  profile: fullstack        # Use curated profile
+  profile: fullstack # Use curated profile
 ```
 
 **Available Profiles:**
+
 - `minimal` - Basic Node.js + Python
 - `fullstack` - Full-stack development
 - `ai-dev` - AI/ML development
@@ -171,8 +172,8 @@ extensions:
 
 ```yaml
 secrets:
-  - name: ANTHROPIC_API_KEY    # Pattern: ^[A-Z][A-Z0-9_]*$
-    source: env                 # env | file | vault
+  - name: ANTHROPIC_API_KEY # Pattern: ^[A-Z][A-Z0-9_]*$
+    source: env # env | file | vault
     required: true
 
   # Read from file (V3 fromFile feature)
@@ -185,14 +186,14 @@ secrets:
     source: file
     path: ./certs/server.crt
     mountPath: /etc/ssl/server.crt
-    permissions: "0644"         # Pattern: ^0[0-7]{3}$
+    permissions: "0644" # Pattern: ^0[0-7]{3}$
 
   # HashiCorp Vault
   - name: DATABASE_URL
     source: vault
     vaultPath: production/database
     vaultKey: connection_string
-    vaultMount: secret          # Default: "secret"
+    vaultMount: secret # Default: "secret"
 ```
 
 ### Provider-Specific Configuration
@@ -202,11 +203,11 @@ secrets:
 ```yaml
 providers:
   fly:
-    region: sjc                 # Fly.io region
-    autoStopMachines: true      # Cost optimization
-    autoStartMachines: true     # Resume on connection
-    cpuKind: shared             # shared | performance
-    sshPort: 10022              # External SSH port
+    region: sjc # Fly.io region
+    autoStopMachines: true # Cost optimization
+    autoStartMachines: true # Resume on connection
+    cpuKind: shared # shared | performance
+    sshPort: 10022 # External SSH port
     organization: my-org
     highAvailability: false
 ```
@@ -216,16 +217,16 @@ providers:
 ```yaml
 providers:
   docker:
-    network: bridge             # bridge | host | none
-    restart: unless-stopped     # no | always | on-failure | unless-stopped
+    network: bridge # bridge | host | none
+    restart: unless-stopped # no | always | on-failure | unless-stopped
     ports: ["3000:3000"]
     privileged: false
     extraHosts: ["host.docker.internal:host-gateway"]
-    runtime: auto               # runc | sysbox-runc | auto
-    dind:                       # Docker-in-Docker
+    runtime: auto # runc | sysbox-runc | auto
+    dind: # Docker-in-Docker
       enabled: false
-      mode: auto                # sysbox | privileged | socket | auto
-      storageDriver: auto       # auto | overlay2 | fuse-overlayfs | vfs
+      mode: auto # sysbox | privileged | socket | auto
+      storageDriver: auto # auto | overlay2 | fuse-overlayfs | vfs
       storageSize: "20GB"
 ```
 
@@ -246,7 +247,7 @@ providers:
 ```yaml
 providers:
   devpod:
-    type: aws                   # aws | gcp | azure | digitalocean | kubernetes | ssh | docker
+    type: aws # aws | gcp | azure | digitalocean | kubernetes | ssh | docker
     buildRepository: ghcr.io/myorg/sindri
     aws:
       region: us-west-2
@@ -260,7 +261,7 @@ providers:
 ```yaml
 providers:
   k8s:
-    provider: kind              # kind | k3d
+    provider: kind # kind | k3d
     clusterName: sindri-dev
     version: v1.35.0
     nodes: 1
@@ -281,7 +282,7 @@ providers:
   e2b:
     templateAlias: my-sandbox
     reuseTemplate: true
-    timeout: 300                # 60-86400 seconds
+    timeout: 300 # 60-86400 seconds
     autoPause: true
     autoResume: true
     internetAccess: true
@@ -304,42 +305,42 @@ Schema for individual extension definitions. Each extension in the extensions di
 
 ### Required Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `metadata` | object | Extension metadata |
-| `install` | object | Installation configuration |
-| `validate` | object | Validation rules |
+| Field      | Type   | Description                |
+| ---------- | ------ | -------------------------- |
+| `metadata` | object | Extension metadata         |
+| `install`  | object | Installation configuration |
+| `validate` | object | Validation rules           |
 
 ### Structure
 
 ```yaml
 metadata:
-  name: my-extension          # Pattern: ^[a-z][a-z0-9-]*$
-  version: "1.0.0"            # Semantic version
+  name: my-extension # Pattern: ^[a-z][a-z0-9-]*$
+  version: "1.0.0" # Semantic version
   description: "My extension" # 10-200 chars
-  category: languages         # See categories below
-  author: "Author Name"       # Optional
-  homepage: https://...       # Optional, URI format
-  dependencies: [nodejs]      # Optional, other extensions
+  category: languages # See categories below
+  author: "Author Name" # Optional
+  homepage: https://... # Optional, URI format
+  dependencies: [nodejs] # Optional, other extensions
 
 requirements:
-  domains: [github.com]       # Network domains needed
-  diskSpace: 500              # MB
-  memory: 256                 # MB
-  installTime: 120            # Estimated seconds
-  installTimeout: 300         # Max seconds (default: 300)
-  validationTimeout: 30       # Max seconds (default: 30)
-  secrets: [API_KEY]          # Required env vars
+  domains: [github.com] # Network domains needed
+  diskSpace: 500 # MB
+  memory: 256 # MB
+  installTime: 120 # Estimated seconds
+  installTimeout: 300 # Max seconds (default: 300)
+  validationTimeout: 30 # Max seconds (default: 30)
+  secrets: [API_KEY] # Required env vars
   gpu:
     required: false
     recommended: true
-    type: nvidia              # nvidia | amd | any
+    type: nvidia # nvidia | amd | any
     minCount: 1
-    minMemory: 8192           # MB
+    minMemory: 8192 # MB
     cudaVersion: "12.0"
 
 install:
-  method: mise                # mise | apt | binary | npm | npm-global | script | hybrid
+  method: mise # mise | apt | binary | npm | npm-global | script | hybrid
 
   # For mise method
   mise:
@@ -360,7 +361,7 @@ install:
     downloads:
       - name: kubectl
         source:
-          type: github-release  # github-release | direct-url
+          type: github-release # github-release | direct-url
           url: https://github.com/kubernetes/kubectl
           asset: kubectl-linux-amd64
           version: latest
@@ -381,17 +382,17 @@ configure:
   templates:
     - source: templates/config.yaml
       destination: ~/.config/myapp/config.yaml
-      mode: overwrite           # overwrite | append | merge | skip-if-exists
+      mode: overwrite # overwrite | append | merge | skip-if-exists
 
   environment:
     - key: MY_VAR
       value: my-value
-      scope: bashrc             # bashrc | profile | session
+      scope: bashrc # bashrc | profile | session
 
 validate:
   commands:
     - name: myapp
-      versionFlag: --version    # Default: --version
+      versionFlag: --version # Default: --version
       expectedPattern: "v\\d+\\.\\d+"
 
   mise:
@@ -412,7 +413,7 @@ remove:
   paths: [~/.config/myapp]
 
 upgrade:
-  strategy: automatic           # automatic | manual | none | reinstall | in-place
+  strategy: automatic # automatic | manual | none | reinstall | in-place
   mise:
     upgradeAll: true
     tools: [node]
@@ -423,7 +424,7 @@ upgrade:
     path: scripts/upgrade.sh
     timeout: 600
 
-capabilities:                   # See capabilities section below
+capabilities: # See capabilities section below
   project-init: {}
   auth: {}
   hooks: {}
@@ -432,7 +433,7 @@ capabilities:                   # See capabilities section below
   features: {}
   collision-handling: {}
 
-bom:                            # Bill of Materials
+bom: # Bill of Materials
   tools:
     - name: node
       version: "20.0.0"
@@ -452,32 +453,32 @@ bom:                            # Bill of Materials
 
 ### Extension Categories
 
-| Category | Description |
-|----------|-------------|
-| `ai-agents` | AI agent frameworks |
-| `ai-dev` | AI/ML development tools |
-| `claude` | Claude-specific tools |
-| `cloud` | Cloud provider tools |
-| `desktop` | Desktop environments |
-| `devops` | DevOps tools |
-| `documentation` | Documentation tools |
-| `languages` | Programming languages |
-| `mcp` | MCP servers |
-| `productivity` | Productivity tools |
-| `research` | Research tools |
-| `testing` | Testing frameworks |
+| Category        | Description             |
+| --------------- | ----------------------- |
+| `ai-agents`     | AI agent frameworks     |
+| `ai-dev`        | AI/ML development tools |
+| `claude`        | Claude-specific tools   |
+| `cloud`         | Cloud provider tools    |
+| `desktop`       | Desktop environments    |
+| `devops`        | DevOps tools            |
+| `documentation` | Documentation tools     |
+| `languages`     | Programming languages   |
+| `mcp`           | MCP servers             |
+| `productivity`  | Productivity tools      |
+| `research`      | Research tools          |
+| `testing`       | Testing frameworks      |
 
 ### Installation Methods
 
-| Method | Description |
-|--------|-------------|
-| `mise` | Use mise version manager |
-| `apt` | APT package manager |
-| `binary` | Direct binary download |
-| `npm` | NPM local installation |
-| `npm-global` | NPM global installation |
-| `script` | Custom shell script |
-| `hybrid` | Combination of methods |
+| Method       | Description              |
+| ------------ | ------------------------ |
+| `mise`       | Use mise version manager |
+| `apt`        | APT package manager      |
+| `binary`     | Direct binary download   |
+| `npm`        | NPM local installation   |
+| `npm-global` | NPM global installation  |
+| `script`     | Custom shell script      |
+| `hybrid`     | Combination of methods   |
 
 ---
 
@@ -491,11 +492,11 @@ Extensions can declare advanced capabilities for project initialization, authent
 capabilities:
   project-init:
     enabled: true
-    priority: 100               # Lower = earlier execution
+    priority: 100 # Lower = earlier execution
     commands:
       - command: "npx @anthropic/claude-code init"
         description: "Initialize Claude Code"
-        requiresAuth: anthropic  # anthropic | openai | github | none
+        requiresAuth: anthropic # anthropic | openai | github | none
         conditional: false
     state-markers:
       - path: .claude/
@@ -512,7 +513,7 @@ capabilities:
 ```yaml
 capabilities:
   auth:
-    provider: anthropic         # anthropic | openai | github | custom
+    provider: anthropic # anthropic | openai | github | custom
     required: false
     methods: [api-key, cli-auth]
     envVars: [ANTHROPIC_API_KEY]
@@ -569,7 +570,7 @@ capabilities:
     mergeFile:
       source: templates/CLAUDE.md
       target: CLAUDE.md
-      strategy: append-if-missing  # append | prepend | merge | replace | append-if-missing
+      strategy: append-if-missing # append | prepend | merge | replace | append-if-missing
 ```
 
 ### features Configuration
@@ -583,9 +584,9 @@ capabilities:
       unified_config: true
     swarm:
       default_topology: hierarchical-mesh
-      consensus_algorithm: raft    # raft | paxos | gossip | crdt | byzantine
+      consensus_algorithm: raft # raft | paxos | gossip | crdt | byzantine
     llm:
-      default_provider: anthropic  # anthropic | openai | google | cohere | local
+      default_provider: anthropic # anthropic | openai | google | cohere | local
       load_balancing: false
     advanced:
       sona_learning: false
@@ -593,7 +594,7 @@ capabilities:
       claims_system: false
       plugin_system: true
     mcp:
-      transport: stdio            # stdio | http | websocket
+      transport: stdio # stdio | http | websocket
 ```
 
 ### collision-handling Capability
@@ -608,9 +609,10 @@ capabilities:
       - path: .claude/
         type: directory
         on-conflict:
-          action: prompt          # overwrite | append | prepend | merge-json |
-                                  # merge-yaml | backup | backup-and-replace |
-                                  # merge | prompt | prompt-per-file | skip
+          action:
+            prompt # overwrite | append | prepend | merge-json |
+            # merge-yaml | backup | backup-and-replace |
+            # merge | prompt | prompt-per-file | skip
           backup-suffix: ".backup"
           prompt-options: [merge, overwrite, skip, backup]
     version-markers:
@@ -618,7 +620,7 @@ capabilities:
         type: file
         version: "v2"
         detection:
-          method: content-match   # file-exists | directory-exists | content-match
+          method: content-match # file-exists | directory-exists | content-match
           patterns: ["v2\\.", "version.*2"]
           match-any: true
           exclude-if: [.claude/v3-marker]
@@ -626,7 +628,7 @@ capabilities:
       - name: v2-to-v3-upgrade
         detected-version: v2
         installing-version: v3
-        action: prompt            # stop | skip | proceed | backup | prompt
+        action: prompt # stop | skip | proceed | backup | prompt
         message: "Detected v2 configuration. Choose upgrade strategy:"
         options:
           - label: "Backup and upgrade"
@@ -669,19 +671,19 @@ config:
 
 ### Manifest Categories
 
-| Category | Description |
-|----------|-------------|
-| `base` | Core system components |
-| `agile` | Agile development tools |
-| `language` | Programming languages |
-| `dev-tools` | Development utilities |
-| `infrastructure` | Cloud/container tools |
-| `ai` | AI/ML tools |
-| `database` | Database tools |
-| `monitoring` | Observability tools |
-| `mobile` | Mobile development |
-| `desktop` | Desktop environments |
-| `utilities` | General utilities |
+| Category         | Description             |
+| ---------------- | ----------------------- |
+| `base`           | Core system components  |
+| `agile`          | Agile development tools |
+| `language`       | Programming languages   |
+| `dev-tools`      | Development utilities   |
+| `infrastructure` | Cloud/container tools   |
+| `ai`             | AI/ML tools             |
+| `database`       | Database tools          |
+| `monitoring`     | Observability tools     |
+| `mobile`         | Mobile development      |
+| `desktop`        | Desktop environments    |
+| `utilities`      | General utilities       |
 
 ---
 
@@ -814,17 +816,17 @@ detection_rules:
 
 ### Template Aliases
 
-| Template | Aliases |
-|----------|---------|
-| node | nodejs, javascript |
-| python | py, python3 |
-| go | golang |
-| rust | rs |
-| rails | ruby, ror |
-| spring | java, springboot |
-| dotnet | csharp, c#, .net |
-| terraform | tf, infra |
-| docker | container, containerized |
+| Template  | Aliases                  |
+| --------- | ------------------------ |
+| node      | nodejs, javascript       |
+| python    | py, python3              |
+| go        | golang                   |
+| rust      | rs                       |
+| rails     | ruby, ror                |
+| spring    | java, springboot         |
+| dotnet    | csharp, c#, .net         |
+| terraform | tf, infra                |
+| docker    | container, containerized |
 
 ---
 
@@ -933,19 +935,19 @@ Schema for runtime operational parameters like timeouts, retry policies, and dis
 
 ```yaml
 network:
-  http-timeout-secs: 30         # 1-3600
-  download-timeout-secs: 300    # 1-3600
-  deploy-timeout-secs: 600      # 1-7200
-  download-chunk-size: 1048576  # 1024-10485760 bytes
+  http-timeout-secs: 30 # 1-3600
+  download-timeout-secs: 300 # 1-3600
+  deploy-timeout-secs: 600 # 1-7200
+  download-chunk-size: 1048576 # 1024-10485760 bytes
   user-agent: "sindri-cli/3.0.0"
 
 retry-policies:
   default:
-    max-attempts: 3             # 0-10
-    strategy: exponential-backoff  # none | fixed-delay | exponential-backoff | linear-backoff
-    backoff-multiplier: 2.0     # 1.0-10.0
-    initial-delay-ms: 1000      # 0-60000
-    max-delay-ms: 30000         # 0-300000
+    max-attempts: 3 # 0-10
+    strategy: exponential-backoff # none | fixed-delay | exponential-backoff | linear-backoff
+    backoff-multiplier: 2.0 # 1.0-10.0
+    initial-delay-ms: 1000 # 0-60000
+    max-delay-ms: 30000 # 0-300000
   operations:
     github-api:
       max-attempts: 5
@@ -962,7 +964,7 @@ github:
   raw-url: https://raw.githubusercontent.com
 
 backup:
-  max-backups: 5                # 0-100
+  max-backups: 5 # 0-100
   backup-extension: ".bak"
   include-timestamp: true
   timestamp-format: "%Y%m%d-%H%M%S"
@@ -975,9 +977,9 @@ git-workflow:
   main-branch-names: [main, master]
 
 display:
-  preview-lines: 20             # 1-1000
-  context-lines-before: 3       # 0-100
-  context-lines-after: 3        # 0-100
+  preview-lines: 20 # 1-1000
+  context-lines-before: 3 # 0-100
+  context-lines-after: 3 # 0-100
   color-enabled: true
   verbose: false
 ```
@@ -1085,32 +1087,32 @@ sindri extension validate nodejs
 
 ### New in V3
 
-| Feature | Description |
-|---------|-------------|
-| `image_config` | Structured image configuration with signature verification |
-| `gpu` | GPU configuration for deployment resources |
-| `gpu_tiers` | GPU tier definitions in vm-sizes |
-| `e2b` provider | E2B cloud sandbox support |
-| `k8s` provider | Local Kubernetes (kind/k3d) support |
-| `capabilities.features` | Feature flags configuration |
-| `capabilities.collision-handling` | Conflict resolution for cloned projects |
-| `bom` | Bill of Materials for SBOM compatibility |
-| `runtime-config` | Operational runtime parameters |
-| `platform-rules` | Multi-platform binary distribution |
+| Feature                           | Description                                                |
+| --------------------------------- | ---------------------------------------------------------- |
+| `image_config`                    | Structured image configuration with signature verification |
+| `gpu`                             | GPU configuration for deployment resources                 |
+| `gpu_tiers`                       | GPU tier definitions in vm-sizes                           |
+| `e2b` provider                    | E2B cloud sandbox support                                  |
+| `k8s` provider                    | Local Kubernetes (kind/k3d) support                        |
+| `capabilities.features`           | Feature flags configuration                                |
+| `capabilities.collision-handling` | Conflict resolution for cloned projects                    |
+| `bom`                             | Bill of Materials for SBOM compatibility                   |
+| `runtime-config`                  | Operational runtime parameters                             |
+| `platform-rules`                  | Multi-platform binary distribution                         |
 
 ### Changed in V3
 
-| Field | V2 | V3 |
-|-------|-----|-----|
+| Field                | V2           | V3                                                              |
+| -------------------- | ------------ | --------------------------------------------------------------- |
 | Extension categories | 8 categories | 12 categories (ai-agents, claude, mcp, research, testing added) |
-| Install methods | 4 methods | 7 methods (npm, npm-global, hybrid added) |
-| Workspace path | `/workspace` | `/alt/home/developer/workspace` (configurable) |
-| Schema version | 1.0 | 3.0 |
+| Install methods      | 4 methods    | 7 methods (npm, npm-global, hybrid added)                       |
+| Workspace path       | `/workspace` | `/alt/home/developer/workspace` (configurable)                  |
+| Schema version       | 1.0          | 3.0                                                             |
 
 ### Deprecated in V3
 
-| Feature | Replacement |
-|---------|-------------|
+| Feature                     | Replacement                        |
+| --------------------------- | ---------------------------------- |
 | `deployment.image` (string) | `deployment.image_config` (object) |
 
 ---

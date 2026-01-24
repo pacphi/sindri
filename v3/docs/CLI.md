@@ -32,13 +32,13 @@ sudo cp target/release/sindri /usr/local/bin/
 
 These options can be used with any command:
 
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--verbose` | `-v` | Increase verbosity (-v, -vv, -vvv) |
-| `--quiet` | `-q` | Suppress output |
-| `--config <PATH>` | `-c` | Path to sindri.yaml config file |
-| `--help` | `-h` | Print help information |
-| `--version` | `-V` | Print version information |
+| Option            | Short | Description                        |
+| ----------------- | ----- | ---------------------------------- |
+| `--verbose`       | `-v`  | Increase verbosity (-v, -vv, -vvv) |
+| `--quiet`         | `-q`  | Suppress output                    |
+| `--config <PATH>` | `-c`  | Path to sindri.yaml config file    |
+| `--help`          | `-h`  | Print help information             |
+| `--version`       | `-V`  | Print version information          |
 
 ## Commands
 
@@ -47,16 +47,19 @@ These options can be used with any command:
 Show version information.
 
 **Synopsis:**
+
 ```bash
 sindri version [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option   | Description    |
+| -------- | -------------- |
 | `--json` | Output as JSON |
 
 **Examples:**
+
 ```bash
 # Show version
 sindri version
@@ -76,20 +79,23 @@ Configuration management.
 Initialize a new sindri.yaml configuration file.
 
 **Synopsis:**
+
 ```bash
 sindri config init [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--name <NAME>` | `-n` | - | Project name |
-| `--provider <PROVIDER>` | `-p` | docker | Provider to use |
-| `--profile <PROFILE>` | - | minimal | Extension profile |
-| `--output <PATH>` | `-o` | sindri.yaml | Output file path |
-| `--force` | `-f` | - | Overwrite existing file |
+
+| Option                  | Short | Default     | Description             |
+| ----------------------- | ----- | ----------- | ----------------------- |
+| `--name <NAME>`         | `-n`  | -           | Project name            |
+| `--provider <PROVIDER>` | `-p`  | docker      | Provider to use         |
+| `--profile <PROFILE>`   | -     | minimal     | Extension profile       |
+| `--output <PATH>`       | `-o`  | sindri.yaml | Output file path        |
+| `--force`               | `-f`  | -           | Overwrite existing file |
 
 **Examples:**
+
 ```bash
 # Initialize with defaults
 sindri config init
@@ -106,17 +112,20 @@ sindri config init --force --name my-project
 Validate the configuration file.
 
 **Synopsis:**
+
 ```bash
 sindri config validate [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--file <PATH>` | `-f` | Path to config file (default: find sindri.yaml) |
-| `--check-extensions` | - | Verify that configured extensions exist |
+
+| Option               | Short | Description                                     |
+| -------------------- | ----- | ----------------------------------------------- |
+| `--file <PATH>`      | `-f`  | Path to config file (default: find sindri.yaml) |
+| `--check-extensions` | -     | Verify that configured extensions exist         |
 
 **Examples:**
+
 ```bash
 # Validate default config
 sindri config validate
@@ -130,16 +139,19 @@ sindri config validate --file ./configs/dev.yaml --check-extensions
 Show the resolved configuration.
 
 **Synopsis:**
+
 ```bash
 sindri config show [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option   | Description    |
+| -------- | -------------- |
 | `--json` | Output as JSON |
 
 **Examples:**
+
 ```bash
 # Show human-readable config
 sindri config show
@@ -155,21 +167,24 @@ sindri config show --json
 Deploy the environment.
 
 **Synopsis:**
+
 ```bash
 sindri deploy [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--force` | `-f` | - | Force recreation of environment |
-| `--dry-run` | - | - | Show what would happen without deploying |
-| `--wait` | `-w` | true | Wait for deployment to complete |
-| `--timeout <SECONDS>` | `-t` | 600 | Deployment timeout in seconds |
-| `--skip-validation` | - | - | Skip configuration validation |
-| `--skip-image-verification` | - | - | Skip image signature and provenance verification |
+
+| Option                      | Short | Default | Description                                      |
+| --------------------------- | ----- | ------- | ------------------------------------------------ |
+| `--force`                   | `-f`  | -       | Force recreation of environment                  |
+| `--dry-run`                 | -     | -       | Show what would happen without deploying         |
+| `--wait`                    | `-w`  | true    | Wait for deployment to complete                  |
+| `--timeout <SECONDS>`       | `-t`  | 600     | Deployment timeout in seconds                    |
+| `--skip-validation`         | -     | -       | Skip configuration validation                    |
+| `--skip-image-verification` | -     | -       | Skip image signature and provenance verification |
 
 **Examples:**
+
 ```bash
 # Deploy with defaults
 sindri deploy
@@ -185,12 +200,13 @@ sindri deploy --skip-image-verification
 ```
 
 **Exit Codes:**
-| Code | Description |
-|------|-------------|
-| 0 | Deployment successful |
-| 1 | Configuration error |
-| 2 | Provider error |
-| 3 | Timeout waiting for deployment |
+
+| Code | Description                    |
+| ---- | ------------------------------ |
+| 0    | Deployment successful          |
+| 1    | Configuration error            |
+| 2    | Provider error                 |
+| 3    | Timeout waiting for deployment |
 
 ---
 
@@ -199,16 +215,19 @@ sindri deploy --skip-image-verification
 Connect to a deployed environment.
 
 **Synopsis:**
+
 ```bash
 sindri connect [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--command <CMD>` | `-c` | Command to run instead of interactive shell |
+
+| Option            | Short | Description                                 |
+| ----------------- | ----- | ------------------------------------------- |
+| `--command <CMD>` | `-c`  | Command to run instead of interactive shell |
 
 **Examples:**
+
 ```bash
 # Connect with interactive shell
 sindri connect
@@ -227,17 +246,20 @@ sindri connect --command "python3 /app/script.py"
 Show deployment status.
 
 **Synopsis:**
+
 ```bash
 sindri status [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--json` | - | Output as JSON |
-| `--watch <SECONDS>` | `-w` | Refresh status every N seconds |
+
+| Option              | Short | Description                    |
+| ------------------- | ----- | ------------------------------ |
+| `--json`            | -     | Output as JSON                 |
+| `--watch <SECONDS>` | `-w`  | Refresh status every N seconds |
 
 **Examples:**
+
 ```bash
 # Show status
 sindri status
@@ -256,17 +278,20 @@ sindri status --watch 5
 Destroy the deployment.
 
 **Synopsis:**
+
 ```bash
 sindri destroy [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--force` | `-f` | Skip confirmation prompt |
-| `--volumes` | - | Also remove associated volumes |
+
+| Option      | Short | Description                    |
+| ----------- | ----- | ------------------------------ |
+| `--force`   | `-f`  | Skip confirmation prompt       |
+| `--volumes` | -     | Also remove associated volumes |
 
 **Examples:**
+
 ```bash
 # Destroy with confirmation
 sindri destroy
@@ -289,22 +314,25 @@ Extension management commands.
 Install an extension.
 
 **Synopsis:**
+
 ```bash
 sindri extension install [OPTIONS] [NAME]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Extension name (with optional @version) |
-| `--version <VERSION>` | `-V` | Specific version to install |
-| `--from-config <PATH>` | - | Install extensions from sindri.yaml |
-| `--profile <NAME>` | - | Install all extensions from a profile |
-| `--force` | `-f` | Force reinstall if already installed |
-| `--no-deps` | - | Skip dependency installation |
-| `--yes` | `-y` | Skip confirmation prompt |
+
+| Option                 | Short | Description                             |
+| ---------------------- | ----- | --------------------------------------- |
+| `<NAME>`               | -     | Extension name (with optional @version) |
+| `--version <VERSION>`  | `-V`  | Specific version to install             |
+| `--from-config <PATH>` | -     | Install extensions from sindri.yaml     |
+| `--profile <NAME>`     | -     | Install all extensions from a profile   |
+| `--force`              | `-f`  | Force reinstall if already installed    |
+| `--no-deps`            | -     | Skip dependency installation            |
+| `--yes`                | `-y`  | Skip confirmation prompt                |
 
 **Examples:**
+
 ```bash
 # Install latest version
 sindri extension install mise
@@ -324,18 +352,21 @@ sindri extension install --from-config sindri.yaml
 List available extensions.
 
 **Synopsis:**
+
 ```bash
 sindri extension list [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--category <CATEGORY>` | `-c` | Filter by category |
-| `--installed` | - | Show only installed extensions |
-| `--json` | - | Output as JSON |
+
+| Option                  | Short | Description                    |
+| ----------------------- | ----- | ------------------------------ |
+| `--category <CATEGORY>` | `-c`  | Filter by category             |
+| `--installed`           | -     | Show only installed extensions |
+| `--json`                | -     | Output as JSON                 |
 
 **Examples:**
+
 ```bash
 # List all extensions
 sindri extension list
@@ -352,17 +383,20 @@ sindri extension list --category languages
 Validate an extension definition.
 
 **Synopsis:**
+
 ```bash
 sindri extension validate <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Extension name or path |
-| `--file <PATH>` | `-f` | Path to extension.yaml file |
+
+| Option          | Short | Description                 |
+| --------------- | ----- | --------------------------- |
+| `<NAME>`        | -     | Extension name or path      |
+| `--file <PATH>` | `-f`  | Path to extension.yaml file |
 
 **Examples:**
+
 ```bash
 # Validate installed extension
 sindri extension validate mise
@@ -376,17 +410,20 @@ sindri extension validate my-ext --file ./extension.yaml
 Show extension status.
 
 **Synopsis:**
+
 ```bash
 sindri extension status [NAME] [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option   | Description                                 |
+| -------- | ------------------------------------------- |
 | `[NAME]` | Extension name (shows all if not specified) |
-| `--json` | Output as JSON |
+| `--json` | Output as JSON                              |
 
 **Examples:**
+
 ```bash
 # Show all extension status
 sindri extension status
@@ -400,17 +437,20 @@ sindri extension status mise --json
 Show detailed extension information.
 
 **Synopsis:**
+
 ```bash
 sindri extension info <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option   | Description    |
+| -------- | -------------- |
 | `<NAME>` | Extension name |
 | `--json` | Output as JSON |
 
 **Examples:**
+
 ```bash
 # Show extension info
 sindri extension info claude-code
@@ -424,18 +464,21 @@ sindri extension info mise --json
 Upgrade an installed extension.
 
 **Synopsis:**
+
 ```bash
 sindri extension upgrade <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Extension name |
-| `--version <VERSION>` | `-v` | Target version |
-| `--yes` | `-y` | Skip confirmation prompt |
+
+| Option                | Short | Description              |
+| --------------------- | ----- | ------------------------ |
+| `<NAME>`              | -     | Extension name           |
+| `--version <VERSION>` | `-v`  | Target version           |
+| `--yes`               | `-y`  | Skip confirmation prompt |
 
 **Examples:**
+
 ```bash
 # Upgrade to latest
 sindri extension upgrade mise
@@ -449,18 +492,21 @@ sindri extension upgrade mise --version 2024.2.0 -y
 Remove an installed extension.
 
 **Synopsis:**
+
 ```bash
 sindri extension remove <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Extension name |
-| `--yes` | `-y` | Skip confirmation prompt |
-| `--force` | `-f` | Force removal even if other extensions depend on it |
+
+| Option    | Short | Description                                         |
+| --------- | ----- | --------------------------------------------------- |
+| `<NAME>`  | -     | Extension name                                      |
+| `--yes`   | `-y`  | Skip confirmation prompt                            |
+| `--force` | `-f`  | Force removal even if other extensions depend on it |
 
 **Examples:**
+
 ```bash
 # Remove with confirmation
 sindri extension remove my-extension
@@ -474,17 +520,20 @@ sindri extension remove my-extension --force -y
 Show available versions for an extension.
 
 **Synopsis:**
+
 ```bash
 sindri extension versions <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option   | Description    |
+| -------- | -------------- |
 | `<NAME>` | Extension name |
 | `--json` | Output as JSON |
 
 **Examples:**
+
 ```bash
 # List versions
 sindri extension versions mise
@@ -498,17 +547,20 @@ sindri extension versions mise --json
 Check for extension updates.
 
 **Synopsis:**
+
 ```bash
 sindri extension check [EXTENSIONS...] [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option            | Description                                         |
+| ----------------- | --------------------------------------------------- |
 | `[EXTENSIONS...]` | Specific extensions to check (all if not specified) |
-| `--json` | Output as JSON |
+| `--json`          | Output as JSON                                      |
 
 **Examples:**
+
 ```bash
 # Check all extensions
 sindri extension check
@@ -522,17 +574,20 @@ sindri extension check mise claude-code --json
 Rollback to previous extension version.
 
 **Synopsis:**
+
 ```bash
 sindri extension rollback <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Extension name |
-| `--yes` | `-y` | Skip confirmation prompt |
+
+| Option   | Short | Description              |
+| -------- | ----- | ------------------------ |
+| `<NAME>` | -     | Extension name           |
+| `--yes`  | `-y`  | Skip confirmation prompt |
 
 **Examples:**
+
 ```bash
 # Rollback to previous version
 sindri extension rollback mise
@@ -552,16 +607,19 @@ Extension profile management.
 List available profiles.
 
 **Synopsis:**
+
 ```bash
 sindri profile list [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option   | Description    |
+| -------- | -------------- |
 | `--json` | Output as JSON |
 
 **Examples:**
+
 ```bash
 sindri profile list
 sindri profile list --json
@@ -572,18 +630,21 @@ sindri profile list --json
 Install all extensions in a profile.
 
 **Synopsis:**
+
 ```bash
 sindri profile install <PROFILE> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `<PROFILE>` | - | - | Profile name |
-| `--yes` | `-y` | - | Skip confirmation prompt |
-| `--continue-on-error` | - | true | Continue installing other extensions if one fails |
+
+| Option                | Short | Default | Description                                       |
+| --------------------- | ----- | ------- | ------------------------------------------------- |
+| `<PROFILE>`           | -     | -       | Profile name                                      |
+| `--yes`               | `-y`  | -       | Skip confirmation prompt                          |
+| `--continue-on-error` | -     | true    | Continue installing other extensions if one fails |
 
 **Examples:**
+
 ```bash
 # Install python-data-science profile
 sindri profile install python-data-science
@@ -597,17 +658,20 @@ sindri profile install kubernetes -y
 Reinstall all extensions in a profile.
 
 **Synopsis:**
+
 ```bash
 sindri profile reinstall <PROFILE> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<PROFILE>` | - | Profile name |
-| `--yes` | `-y` | Skip confirmation prompt |
+
+| Option      | Short | Description              |
+| ----------- | ----- | ------------------------ |
+| `<PROFILE>` | -     | Profile name             |
+| `--yes`     | `-y`  | Skip confirmation prompt |
 
 **Examples:**
+
 ```bash
 sindri profile reinstall python-data-science -y
 ```
@@ -617,17 +681,20 @@ sindri profile reinstall python-data-science -y
 Show profile information.
 
 **Synopsis:**
+
 ```bash
 sindri profile info <PROFILE> [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
-| `<PROFILE>` | Profile name |
-| `--json` | Output as JSON |
+
+| Option      | Description    |
+| ----------- | -------------- |
+| `<PROFILE>` | Profile name   |
+| `--json`    | Output as JSON |
 
 **Examples:**
+
 ```bash
 sindri profile info kubernetes
 sindri profile info python-data-science --json
@@ -638,17 +705,20 @@ sindri profile info python-data-science --json
 Check profile installation status.
 
 **Synopsis:**
+
 ```bash
 sindri profile status <PROFILE> [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
-| `<PROFILE>` | Profile name |
-| `--json` | Output as JSON |
+
+| Option      | Description    |
+| ----------- | -------------- |
+| `<PROFILE>` | Profile name   |
+| `--json`    | Output as JSON |
 
 **Examples:**
+
 ```bash
 sindri profile status kubernetes
 ```
@@ -664,16 +734,19 @@ Secrets management commands.
 Validate all secrets are accessible.
 
 **Synopsis:**
+
 ```bash
 sindri secrets validate [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option          | Description                          |
+| --------------- | ------------------------------------ |
 | `--show-values` | Show actual secret values (CAUTION!) |
 
 **Examples:**
+
 ```bash
 # Validate secrets
 sindri secrets validate
@@ -687,17 +760,20 @@ sindri secrets validate --show-values
 List all configured secrets.
 
 **Synopsis:**
+
 ```bash
 sindri secrets list [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
+
+| Option              | Description                             |
+| ------------------- | --------------------------------------- |
+| `--json`            | Output as JSON                          |
 | `--source <SOURCE>` | Filter by source (env, file, vault, s3) |
 
 **Examples:**
+
 ```bash
 # List all secrets
 sindri secrets list
@@ -711,18 +787,21 @@ sindri secrets list --source s3 --json
 Test Vault connectivity.
 
 **Synopsis:**
+
 ```bash
 sindri secrets test-vault [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option            | Description          |
+| ----------------- | -------------------- |
 | `--address <URL>` | Vault server address |
-| `--token <TOKEN>` | Vault token |
-| `--json` | Output as JSON |
+| `--token <TOKEN>` | Vault token          |
+| `--json`          | Output as JSON       |
 
 **Examples:**
+
 ```bash
 sindri secrets test-vault --address https://vault.example.com
 ```
@@ -732,18 +811,21 @@ sindri secrets test-vault --address https://vault.example.com
 Encode a file as base64 for secret storage.
 
 **Synopsis:**
+
 ```bash
 sindri secrets encode-file <FILE> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<FILE>` | - | File to encode |
-| `--output <PATH>` | `-o` | Output file (stdout if not specified) |
-| `--newline` | - | Add trailing newline |
+
+| Option            | Short | Description                           |
+| ----------------- | ----- | ------------------------------------- |
+| `<FILE>`          | -     | File to encode                        |
+| `--output <PATH>` | `-o`  | Output file (stdout if not specified) |
+| `--newline`       | -     | Add trailing newline                  |
 
 **Examples:**
+
 ```bash
 # Encode to stdout
 sindri secrets encode-file ./credentials.json
@@ -761,21 +843,24 @@ S3 encrypted storage commands.
 Initialize S3 backend for encrypted secret storage.
 
 **Synopsis:**
+
 ```bash
 sindri secrets s3 init [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
-| `--bucket <NAME>` | S3 bucket name (required) |
-| `--region <REGION>` | AWS region (required) |
-| `--endpoint <URL>` | Custom S3-compatible endpoint (e.g., MinIO) |
-| `--key-file <PATH>` | Master key path |
-| `--create-bucket` | Create bucket if it doesn't exist |
-| `--output <PATH>` | Output configuration to file |
+
+| Option              | Description                                 |
+| ------------------- | ------------------------------------------- |
+| `--bucket <NAME>`   | S3 bucket name (required)                   |
+| `--region <REGION>` | AWS region (required)                       |
+| `--endpoint <URL>`  | Custom S3-compatible endpoint (e.g., MinIO) |
+| `--key-file <PATH>` | Master key path                             |
+| `--create-bucket`   | Create bucket if it doesn't exist           |
+| `--output <PATH>`   | Output configuration to file                |
 
 **Examples:**
+
 ```bash
 # Initialize S3 backend
 sindri secrets s3 init --bucket my-secrets --region us-east-1 --create-bucket
@@ -790,24 +875,27 @@ sindri secrets s3 init --bucket secrets --region us-east-1 \
 Push a secret to S3.
 
 **Synopsis:**
+
 ```bash
 sindri secrets s3 push <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Secret name |
-| `--value <VALUE>` | - | Secret value |
-| `--from-file <PATH>` | - | Read value from file |
-| `--stdin` | - | Read value from stdin |
-| `--s3-path <PATH>` | - | Custom S3 path |
-| `--bucket <NAME>` | - | Override configured bucket |
-| `--region <REGION>` | - | Override configured region |
-| `--key-file <PATH>` | - | Master key file path |
-| `--force` | `-f` | Overwrite existing secret |
+
+| Option               | Short | Description                |
+| -------------------- | ----- | -------------------------- |
+| `<NAME>`             | -     | Secret name                |
+| `--value <VALUE>`    | -     | Secret value               |
+| `--from-file <PATH>` | -     | Read value from file       |
+| `--stdin`            | -     | Read value from stdin      |
+| `--s3-path <PATH>`   | -     | Custom S3 path             |
+| `--bucket <NAME>`    | -     | Override configured bucket |
+| `--region <REGION>`  | -     | Override configured region |
+| `--key-file <PATH>`  | -     | Master key file path       |
+| `--force`            | `-f`  | Overwrite existing secret  |
 
 **Examples:**
+
 ```bash
 # Push with value
 sindri secrets s3 push DATABASE_URL --value "postgres://..."
@@ -824,22 +912,25 @@ echo "secret-value" | sindri secrets s3 push MY_SECRET --stdin
 Pull a secret from S3.
 
 **Synopsis:**
+
 ```bash
 sindri secrets s3 pull <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Secret name or S3 path |
-| `--output <PATH>` | `-o` | Write to file |
-| `--export` | - | Output as environment variable format |
-| `--bucket <NAME>` | - | Override configured bucket |
-| `--region <REGION>` | - | Override configured region |
-| `--key-file <PATH>` | - | Master key file path |
-| `--show` | - | Display secret value |
+
+| Option              | Short | Description                           |
+| ------------------- | ----- | ------------------------------------- |
+| `<NAME>`            | -     | Secret name or S3 path                |
+| `--output <PATH>`   | `-o`  | Write to file                         |
+| `--export`          | -     | Output as environment variable format |
+| `--bucket <NAME>`   | -     | Override configured bucket            |
+| `--region <REGION>` | -     | Override configured region            |
+| `--key-file <PATH>` | -     | Master key file path                  |
+| `--show`            | -     | Display secret value                  |
 
 **Examples:**
+
 ```bash
 # Pull and show value
 sindri secrets s3 pull DATABASE_URL --show
@@ -857,21 +948,24 @@ sindri secrets s3 pull API_KEY --export
 Synchronize secrets with S3.
 
 **Synopsis:**
+
 ```bash
 sindri secrets s3 sync [OPTIONS]
 ```
 
 **Options:**
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--dry-run` | - | Show what would be synced |
-| `--direction <DIR>` | both | Sync direction: push, pull, both |
-| `--delete-remote` | - | Delete remote secrets not in local config |
-| `--bucket <NAME>` | - | Override configured bucket |
-| `--region <REGION>` | - | Override configured region |
-| `--key-file <PATH>` | - | Master key file path |
+
+| Option              | Default | Description                               |
+| ------------------- | ------- | ----------------------------------------- |
+| `--dry-run`         | -       | Show what would be synced                 |
+| `--direction <DIR>` | both    | Sync direction: push, pull, both          |
+| `--delete-remote`   | -       | Delete remote secrets not in local config |
+| `--bucket <NAME>`   | -       | Override configured bucket                |
+| `--region <REGION>` | -       | Override configured region                |
+| `--key-file <PATH>` | -       | Master key file path                      |
 
 **Examples:**
+
 ```bash
 # Dry run sync
 sindri secrets s3 sync --dry-run
@@ -888,17 +982,20 @@ sindri secrets s3 sync --direction both
 Generate a new master encryption key.
 
 **Synopsis:**
+
 ```bash
 sindri secrets s3 keygen [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--output <PATH>` | `-o` | .sindri-master.key | Output key file path |
-| `--force` | `-f` | - | Overwrite existing key file |
+
+| Option            | Short | Default            | Description                 |
+| ----------------- | ----- | ------------------ | --------------------------- |
+| `--output <PATH>` | `-o`  | .sindri-master.key | Output key file path        |
+| `--force`         | `-f`  | -                  | Overwrite existing key file |
 
 **Examples:**
+
 ```bash
 # Generate key with default path
 sindri secrets s3 keygen
@@ -908,6 +1005,7 @@ sindri secrets s3 keygen --output ./keys/master.key
 ```
 
 **Security Notes:**
+
 - Uses age X25519 encryption
 - Key file should be added to .gitignore
 - Keep key backed up securely
@@ -917,21 +1015,24 @@ sindri secrets s3 keygen --output ./keys/master.key
 Rotate master encryption key.
 
 **Synopsis:**
+
 ```bash
 sindri secrets s3 rotate [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--new-key <PATH>` | - | New master key path (required) |
-| `--old-key <PATH>` | - | Old master key path (defaults to config) |
-| `--add-only` | - | Only add new key, don't remove old |
-| `--bucket <NAME>` | - | Override configured bucket |
-| `--region <REGION>` | - | Override configured region |
-| `--yes` | `-y` | Skip confirmation prompt |
+
+| Option              | Short | Description                              |
+| ------------------- | ----- | ---------------------------------------- |
+| `--new-key <PATH>`  | -     | New master key path (required)           |
+| `--old-key <PATH>`  | -     | Old master key path (defaults to config) |
+| `--add-only`        | -     | Only add new key, don't remove old       |
+| `--bucket <NAME>`   | -     | Override configured bucket               |
+| `--region <REGION>` | -     | Override configured region               |
+| `--yes`             | `-y`  | Skip confirmation prompt                 |
 
 **Examples:**
+
 ```bash
 # Rotate key
 sindri secrets s3 rotate --new-key ./new-master.key
@@ -947,33 +1048,36 @@ sindri secrets s3 rotate --new-key ./new.key --add-only
 Backup workspace to a tar.gz archive.
 
 **Synopsis:**
+
 ```bash
 sindri backup [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--output <PATH>` | `-o` | - | Output file (default: sindri-backup-TIMESTAMP.tar.gz) |
-| `--profile <PROFILE>` | `-p` | standard | Backup profile: user-data, standard, full |
-| `--exclude <PATTERN>` | `-x` | - | Additional exclude patterns (can repeat) |
-| `--exclude-secrets` | - | - | Exclude all secret files |
-| `--encrypt` | `-e` | - | Encrypt backup with age |
-| `--key-file <PATH>` | `-k` | - | Encryption key file (age identity) |
-| `--dry-run` | `-d` | - | Show what would be backed up |
-| `--compression <LEVEL>` | - | 6 | Compression level (0-9) |
-| `--verbose` | `-v` | - | Show all files being backed up |
-| `--yes` | `-y` | - | Skip confirmation prompt |
+
+| Option                  | Short | Default  | Description                                           |
+| ----------------------- | ----- | -------- | ----------------------------------------------------- |
+| `--output <PATH>`       | `-o`  | -        | Output file (default: sindri-backup-TIMESTAMP.tar.gz) |
+| `--profile <PROFILE>`   | `-p`  | standard | Backup profile: user-data, standard, full             |
+| `--exclude <PATTERN>`   | `-x`  | -        | Additional exclude patterns (can repeat)              |
+| `--exclude-secrets`     | -     | -        | Exclude all secret files                              |
+| `--encrypt`             | `-e`  | -        | Encrypt backup with age                               |
+| `--key-file <PATH>`     | `-k`  | -        | Encryption key file (age identity)                    |
+| `--dry-run`             | `-d`  | -        | Show what would be backed up                          |
+| `--compression <LEVEL>` | -     | 6        | Compression level (0-9)                               |
+| `--verbose`             | `-v`  | -        | Show all files being backed up                        |
+| `--yes`                 | `-y`  | -        | Skip confirmation prompt                              |
 
 **Backup Profiles:**
 
-| Profile | Description |
-|---------|-------------|
+| Profile     | Description                          |
+| ----------- | ------------------------------------ |
 | `user-data` | Only user data and config (smallest) |
-| `standard` | User data + extensions (default) |
-| `full` | Everything including caches |
+| `standard`  | User data + extensions (default)     |
+| `full`      | Everything including caches          |
 
 **Examples:**
+
 ```bash
 # Standard backup
 sindri backup
@@ -995,33 +1099,36 @@ sindri backup --dry-run
 Restore workspace from a backup archive.
 
 **Synopsis:**
+
 ```bash
 sindri restore <SOURCE> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `<SOURCE>` | - | - | Backup source (file path, s3://, or https://) |
-| `--mode <MODE>` | `-m` | safe | Restore mode: safe, merge, full |
-| `--target <PATH>` | `-d` | $HOME | Target directory |
-| `--dry-run` | - | - | Show what would be restored |
-| `--no-interactive` | - | - | Skip confirmation prompts |
-| `--auto-upgrade-extensions` | - | - | Auto-upgrade extensions to latest compatible versions |
-| `--decrypt` | - | - | Decrypt with age key |
-| `--key-file <PATH>` | - | - | Decryption key file (age identity) |
-| `--verbose` | `-v` | - | Show all files being restored |
-| `--skip-validation` | - | - | Skip validation of restored files |
+
+| Option                      | Short | Default | Description                                           |
+| --------------------------- | ----- | ------- | ----------------------------------------------------- |
+| `<SOURCE>`                  | -     | -       | Backup source (file path, s3://, or https://)         |
+| `--mode <MODE>`             | `-m`  | safe    | Restore mode: safe, merge, full                       |
+| `--target <PATH>`           | `-d`  | $HOME   | Target directory                                      |
+| `--dry-run`                 | -     | -       | Show what would be restored                           |
+| `--no-interactive`          | -     | -       | Skip confirmation prompts                             |
+| `--auto-upgrade-extensions` | -     | -       | Auto-upgrade extensions to latest compatible versions |
+| `--decrypt`                 | -     | -       | Decrypt with age key                                  |
+| `--key-file <PATH>`         | -     | -       | Decryption key file (age identity)                    |
+| `--verbose`                 | `-v`  | -       | Show all files being restored                         |
+| `--skip-validation`         | -     | -       | Skip validation of restored files                     |
 
 **Restore Modes:**
 
-| Mode | Description |
-|------|-------------|
-| `safe` | Only restore if no conflicts, preserve system markers |
-| `merge` | Merge with existing files, newer wins |
-| `full` | Complete restore, overwrite everything (DANGEROUS) |
+| Mode    | Description                                           |
+| ------- | ----------------------------------------------------- |
+| `safe`  | Only restore if no conflicts, preserve system markers |
+| `merge` | Merge with existing files, newer wins                 |
+| `full`  | Complete restore, overwrite everything (DANGEROUS)    |
 
 **Examples:**
+
 ```bash
 # Safe restore from file
 sindri restore ./sindri-backup-20260115.tar.gz
@@ -1047,21 +1154,24 @@ Project management commands.
 Create a new project from template.
 
 **Synopsis:**
+
 ```bash
 sindri project new <NAME> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<NAME>` | - | Project name |
-| `--project-type <TYPE>` | `-t` | Project type (auto-detected if not specified) |
-| `--interactive` | `-i` | Force interactive type selection |
-| `--git-name <NAME>` | - | Git user name |
-| `--git-email <EMAIL>` | - | Git user email |
-| `--skip-tools` | - | Skip agentic tools installation |
+
+| Option                  | Short | Description                                   |
+| ----------------------- | ----- | --------------------------------------------- |
+| `<NAME>`                | -     | Project name                                  |
+| `--project-type <TYPE>` | `-t`  | Project type (auto-detected if not specified) |
+| `--interactive`         | `-i`  | Force interactive type selection              |
+| `--git-name <NAME>`     | -     | Git user name                                 |
+| `--git-email <EMAIL>`   | -     | Git user email                                |
+| `--skip-tools`          | -     | Skip agentic tools installation               |
 
 **Available Project Types:**
+
 - `rust`, `rust-lib`, `rust-cli`, `rust-workspace`
 - `python`, `python-package`, `python-api`, `python-ml`
 - `typescript`, `typescript-lib`, `typescript-api`
@@ -1072,6 +1182,7 @@ sindri project new <NAME> [OPTIONS]
 - `generic`
 
 **Examples:**
+
 ```bash
 # Auto-detect from name (my-api creates API project)
 sindri project new my-api
@@ -1091,25 +1202,28 @@ sindri project new my-project --git-name "John Doe" --git-email john@example.com
 Clone a project repository with enhancements.
 
 **Synopsis:**
+
 ```bash
 sindri project clone <REPOSITORY> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<REPOSITORY>` | - | Repository URL |
-| `--fork` | `-f` | Fork before cloning |
-| `--branch <BRANCH>` | `-b` | Branch to checkout |
-| `--depth <DEPTH>` | `-d` | Clone depth (shallow clone) |
-| `--git-name <NAME>` | - | Git user name |
-| `--git-email <EMAIL>` | - | Git user email |
-| `--feature <NAME>` | - | Feature branch to create |
-| `--no-deps` | - | Skip dependency installation |
-| `--skip-tools` | - | Skip agentic tools installation |
-| `--no-enhance` | - | Skip all enhancements |
+
+| Option                | Short | Description                     |
+| --------------------- | ----- | ------------------------------- |
+| `<REPOSITORY>`        | -     | Repository URL                  |
+| `--fork`              | `-f`  | Fork before cloning             |
+| `--branch <BRANCH>`   | `-b`  | Branch to checkout              |
+| `--depth <DEPTH>`     | `-d`  | Clone depth (shallow clone)     |
+| `--git-name <NAME>`   | -     | Git user name                   |
+| `--git-email <EMAIL>` | -     | Git user email                  |
+| `--feature <NAME>`    | -     | Feature branch to create        |
+| `--no-deps`           | -     | Skip dependency installation    |
+| `--skip-tools`        | -     | Skip agentic tools installation |
+| `--no-enhance`        | -     | Skip all enhancements           |
 
 **Examples:**
+
 ```bash
 # Clone repository
 sindri project clone https://github.com/user/repo
@@ -1131,27 +1245,30 @@ sindri project clone https://github.com/user/repo --depth 1
 Check system for required tools and dependencies.
 
 **Synopsis:**
+
 ```bash
 sindri doctor [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--provider <PROVIDER>` | `-p` | - | Check tools for specific provider (docker, fly, devpod, e2b, k8s) |
-| `--command <COMMAND>` | - | - | Check tools for specific command (project, extension, secrets, deploy) |
-| `--all` | `-a` | - | Check all tools regardless of current usage |
-| `--ci` | - | - | Exit with non-zero code if required tools are missing |
-| `--format <FORMAT>` | - | human | Output format: human, json, yaml |
-| `--verbose-output` | - | - | Show detailed information including timing |
-| `--check-auth` | - | - | Check authentication status for tools that require it |
-| `--fix` | - | - | Attempt to install missing tools |
-| `--yes` | `-y` | - | Skip confirmation prompts when installing |
-| `--dry-run` | - | - | Show what would be installed without actually installing |
-| `--check-extensions` | - | - | Check tools required by installed extensions |
-| `--extension <NAME>` | - | - | Check a specific extension's tool requirements |
+
+| Option                  | Short | Default | Description                                                            |
+| ----------------------- | ----- | ------- | ---------------------------------------------------------------------- |
+| `--provider <PROVIDER>` | `-p`  | -       | Check tools for specific provider (docker, fly, devpod, e2b, k8s)      |
+| `--command <COMMAND>`   | -     | -       | Check tools for specific command (project, extension, secrets, deploy) |
+| `--all`                 | `-a`  | -       | Check all tools regardless of current usage                            |
+| `--ci`                  | -     | -       | Exit with non-zero code if required tools are missing                  |
+| `--format <FORMAT>`     | -     | human   | Output format: human, json, yaml                                       |
+| `--verbose-output`      | -     | -       | Show detailed information including timing                             |
+| `--check-auth`          | -     | -       | Check authentication status for tools that require it                  |
+| `--fix`                 | -     | -       | Attempt to install missing tools                                       |
+| `--yes`                 | `-y`  | -       | Skip confirmation prompts when installing                              |
+| `--dry-run`             | -     | -       | Show what would be installed without actually installing               |
+| `--check-extensions`    | -     | -       | Check tools required by installed extensions                           |
+| `--extension <NAME>`    | -     | -       | Check a specific extension's tool requirements                         |
 
 **Examples:**
+
 ```bash
 # Basic system check
 sindri doctor
@@ -1170,11 +1287,12 @@ sindri doctor --check-extensions --extension mise
 ```
 
 **Exit Codes (CI mode):**
-| Code | Description |
-|------|-------------|
-| 0 | All required tools available |
-| 1 | Missing required tools |
-| 2 | Missing optional tools |
+
+| Code | Description                  |
+| ---- | ---------------------------- |
+| 0    | All required tools available |
+| 1    | Missing required tools       |
+| 2    | Missing optional tools       |
 
 ---
 
@@ -1183,23 +1301,26 @@ sindri doctor --check-extensions --extension mise
 Upgrade the CLI to a newer version.
 
 **Synopsis:**
+
 ```bash
 sindri upgrade [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--check` | - | Check for updates only |
-| `--list` | - | List available versions |
-| `--version <VERSION>` | - | Install specific version |
-| `--compat <VERSION>` | - | Check extension compatibility for a version |
-| `--prerelease` | - | Include prereleases |
-| `--allow-downgrade` | - | Allow downgrade to older version |
-| `--yes` | `-y` | Skip confirmation prompts |
-| `--force` | `-f` | Force upgrade even if extensions are incompatible |
+
+| Option                | Short | Description                                       |
+| --------------------- | ----- | ------------------------------------------------- |
+| `--check`             | -     | Check for updates only                            |
+| `--list`              | -     | List available versions                           |
+| `--version <VERSION>` | -     | Install specific version                          |
+| `--compat <VERSION>`  | -     | Check extension compatibility for a version       |
+| `--prerelease`        | -     | Include prereleases                               |
+| `--allow-downgrade`   | -     | Allow downgrade to older version                  |
+| `--yes`               | `-y`  | Skip confirmation prompts                         |
+| `--force`             | `-f`  | Force upgrade even if extensions are incompatible |
 
 **Examples:**
+
 ```bash
 # Check for updates
 sindri upgrade --check
@@ -1231,22 +1352,25 @@ Local Kubernetes cluster management using kind or k3d.
 Create a local Kubernetes cluster.
 
 **Synopsis:**
+
 ```bash
 sindri k8s create [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--provider <PROVIDER>` | `-p` | kind | Cluster provider (kind, k3d) |
-| `--name <NAME>` | `-n` | sindri-local | Cluster name |
-| `--nodes <N>` | `-N` | 1 | Number of nodes |
-| `--k8s-version <VERSION>` | - | v1.35.0 | Kubernetes version |
-| `--registry` | - | - | Enable local registry (k3d only) |
-| `--registry-port <PORT>` | - | 5000 | Registry port (k3d only) |
-| `--json` | - | - | Output as JSON |
+
+| Option                    | Short | Default      | Description                      |
+| ------------------------- | ----- | ------------ | -------------------------------- |
+| `--provider <PROVIDER>`   | `-p`  | kind         | Cluster provider (kind, k3d)     |
+| `--name <NAME>`           | `-n`  | sindri-local | Cluster name                     |
+| `--nodes <N>`             | `-N`  | 1            | Number of nodes                  |
+| `--k8s-version <VERSION>` | -     | v1.35.0      | Kubernetes version               |
+| `--registry`              | -     | -            | Enable local registry (k3d only) |
+| `--registry-port <PORT>`  | -     | 5000         | Registry port (k3d only)         |
+| `--json`                  | -     | -            | Output as JSON                   |
 
 **Examples:**
+
 ```bash
 # Create kind cluster
 sindri k8s create
@@ -1266,17 +1390,20 @@ sindri k8s create --k8s-version v1.34.0
 Destroy a local Kubernetes cluster.
 
 **Synopsis:**
+
 ```bash
 sindri k8s destroy [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--name <NAME>` | `-n` | sindri-local | Cluster name |
-| `--force` | `-f` | - | Skip confirmation |
+
+| Option          | Short | Default      | Description       |
+| --------------- | ----- | ------------ | ----------------- |
+| `--name <NAME>` | `-n`  | sindri-local | Cluster name      |
+| `--force`       | `-f`  | -            | Skip confirmation |
 
 **Examples:**
+
 ```bash
 # Destroy with confirmation
 sindri k8s destroy --name my-cluster
@@ -1290,17 +1417,20 @@ sindri k8s destroy --name my-cluster --force
 List local Kubernetes clusters.
 
 **Synopsis:**
+
 ```bash
 sindri k8s list [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--provider <PROVIDER>` | `-p` | Filter by provider (kind, k3d) |
-| `--json` | - | Output as JSON |
+
+| Option                  | Short | Description                    |
+| ----------------------- | ----- | ------------------------------ |
+| `--provider <PROVIDER>` | `-p`  | Filter by provider (kind, k3d) |
+| `--json`                | -     | Output as JSON                 |
 
 **Examples:**
+
 ```bash
 # List all clusters
 sindri k8s list
@@ -1314,18 +1444,21 @@ sindri k8s list --provider kind --json
 Show cluster status.
 
 **Synopsis:**
+
 ```bash
 sindri k8s status [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--name <NAME>` | `-n` | sindri-local | Cluster name |
-| `--provider <PROVIDER>` | `-p` | - | Provider (auto-detected if not specified) |
-| `--json` | - | - | Output as JSON |
+
+| Option                  | Short | Default      | Description                               |
+| ----------------------- | ----- | ------------ | ----------------------------------------- |
+| `--name <NAME>`         | `-n`  | sindri-local | Cluster name                              |
+| `--provider <PROVIDER>` | `-p`  | -            | Provider (auto-detected if not specified) |
+| `--json`                | -     | -            | Output as JSON                            |
 
 **Examples:**
+
 ```bash
 sindri k8s status
 sindri k8s status --name dev-cluster --json
@@ -1336,17 +1469,20 @@ sindri k8s status --name dev-cluster --json
 Show kubeconfig for a cluster.
 
 **Synopsis:**
+
 ```bash
 sindri k8s config [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--name <NAME>` | `-n` | sindri-local | Cluster name |
-| `--provider <PROVIDER>` | `-p` | - | Provider (auto-detected if not specified) |
+
+| Option                  | Short | Default      | Description                               |
+| ----------------------- | ----- | ------------ | ----------------------------------------- |
+| `--name <NAME>`         | `-n`  | sindri-local | Cluster name                              |
+| `--provider <PROVIDER>` | `-p`  | -            | Provider (auto-detected if not specified) |
 
 **Examples:**
+
 ```bash
 # Show kubeconfig
 sindri k8s config
@@ -1361,17 +1497,20 @@ export KUBECONFIG=~/.kube/my-cluster.yaml
 Install cluster management tools (kind/k3d).
 
 **Synopsis:**
+
 ```bash
 sindri k8s install <TOOL> [OPTIONS]
 ```
 
 **Options:**
-| Option | Short | Description |
-|--------|-------|-------------|
-| `<TOOL>` | - | Tool to install (kind, k3d) |
-| `--yes` | `-y` | Skip confirmation |
+
+| Option   | Short | Description                 |
+| -------- | ----- | --------------------------- |
+| `<TOOL>` | -     | Tool to install (kind, k3d) |
+| `--yes`  | `-y`  | Skip confirmation           |
 
 **Examples:**
+
 ```bash
 # Install kind
 sindri k8s install kind
@@ -1391,20 +1530,23 @@ Container image management.
 List available images from registry.
 
 **Synopsis:**
+
 ```bash
 sindri image list [OPTIONS]
 ```
 
 **Options:**
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--registry <URL>` | ghcr.io | Registry URL |
-| `--repository <NAME>` | pacphi/sindri | Repository name |
-| `--filter <PATTERN>` | - | Filter tags by regex pattern |
-| `--include-prerelease` | - | Include prerelease versions |
-| `--json` | - | Output as JSON |
+
+| Option                 | Default       | Description                  |
+| ---------------------- | ------------- | ---------------------------- |
+| `--registry <URL>`     | ghcr.io       | Registry URL                 |
+| `--repository <NAME>`  | pacphi/sindri | Repository name              |
+| `--filter <PATTERN>`   | -             | Filter tags by regex pattern |
+| `--include-prerelease` | -             | Include prerelease versions  |
+| `--json`               | -             | Output as JSON               |
 
 **Examples:**
+
 ```bash
 # List all images
 sindri image list
@@ -1421,19 +1563,22 @@ sindri image list --include-prerelease --json
 Inspect image details.
 
 **Synopsis:**
+
 ```bash
 sindri image inspect <TAG> [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
-| `<TAG>` | Image tag to inspect |
-| `--digest` | Show image digest |
-| `--sbom` | Download and show SBOM (requires cosign) |
-| `--json` | Output as JSON |
+
+| Option     | Description                              |
+| ---------- | ---------------------------------------- |
+| `<TAG>`    | Image tag to inspect                     |
+| `--digest` | Show image digest                        |
+| `--sbom`   | Download and show SBOM (requires cosign) |
+| `--json`   | Output as JSON                           |
 
 **Examples:**
+
 ```bash
 # Inspect image
 sindri image inspect ghcr.io/pacphi/sindri:v3.0.0
@@ -1447,20 +1592,23 @@ sindri image inspect ghcr.io/pacphi/sindri:v3.0.0 --sbom
 Verify image signature and provenance.
 
 **Synopsis:**
+
 ```bash
 sindri image verify <TAG> [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
-| `<TAG>` | Image tag to verify |
-| `--no-signature` | Skip signature verification |
+
+| Option            | Description                  |
+| ----------------- | ---------------------------- |
+| `<TAG>`           | Image tag to verify          |
+| `--no-signature`  | Skip signature verification  |
 | `--no-provenance` | Skip provenance verification |
 
 **Requires:** cosign (install from https://docs.sigstore.dev/cosign/installation/)
 
 **Examples:**
+
 ```bash
 # Full verification
 sindri image verify ghcr.io/pacphi/sindri:v3.0.0
@@ -1474,17 +1622,20 @@ sindri image verify ghcr.io/pacphi/sindri:v3.0.0 --no-provenance
 Show version compatibility matrix.
 
 **Synopsis:**
+
 ```bash
 sindri image versions [OPTIONS]
 ```
 
 **Options:**
-| Option | Default | Description |
-|--------|---------|-------------|
+
+| Option                    | Default | Description                            |
+| ------------------------- | ------- | -------------------------------------- |
 | `--cli-version <VERSION>` | current | CLI version to check compatibility for |
-| `--format <FORMAT>` | table | Output format (table, json) |
+| `--format <FORMAT>`       | table   | Output format (table, json)            |
 
 **Examples:**
+
 ```bash
 # Show compatible images for current CLI
 sindri image versions
@@ -1498,16 +1649,19 @@ sindri image versions --cli-version 3.0.0 --format json
 Show currently deployed image.
 
 **Synopsis:**
+
 ```bash
 sindri image current [OPTIONS]
 ```
 
 **Options:**
-| Option | Description |
-|--------|-------------|
+
+| Option   | Description    |
+| -------- | -------------- |
 | `--json` | Output as JSON |
 
 **Examples:**
+
 ```bash
 sindri image current
 sindri image current --json
@@ -1517,30 +1671,30 @@ sindri image current --json
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `SINDRI_CONFIG` | Path to sindri.yaml config file |
-| `SINDRI_LOG_LEVEL` | Log level (trace, debug, info, warn, error) |
-| `SINDRI_HOME` | Sindri home directory (default: ~/.sindri) |
-| `SINDRI_PROVIDER` | Default provider to use |
-| `GITHUB_TOKEN` | GitHub token for registry authentication |
-| `AWS_PROFILE` | AWS profile for S3 secrets backend |
-| `AWS_REGION` | Default AWS region |
-| `AWS_ACCESS_KEY_ID` | AWS access key |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key |
-| `VAULT_ADDR` | HashiCorp Vault address |
-| `VAULT_TOKEN` | HashiCorp Vault token |
+| Variable                | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| `SINDRI_CONFIG`         | Path to sindri.yaml config file             |
+| `SINDRI_LOG_LEVEL`      | Log level (trace, debug, info, warn, error) |
+| `SINDRI_HOME`           | Sindri home directory (default: ~/.sindri)  |
+| `SINDRI_PROVIDER`       | Default provider to use                     |
+| `GITHUB_TOKEN`          | GitHub token for registry authentication    |
+| `AWS_PROFILE`           | AWS profile for S3 secrets backend          |
+| `AWS_REGION`            | Default AWS region                          |
+| `AWS_ACCESS_KEY_ID`     | AWS access key                              |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key                              |
+| `VAULT_ADDR`            | HashiCorp Vault address                     |
+| `VAULT_TOKEN`           | HashiCorp Vault token                       |
 
 ## Exit Codes
 
-| Code | Description |
-|------|-------------|
-| 0 | Success |
-| 1 | General error |
-| 2 | Configuration error |
-| 3 | Provider error |
-| 4 | Network error |
-| 5 | Authentication error |
+| Code | Description          |
+| ---- | -------------------- |
+| 0    | Success              |
+| 1    | General error        |
+| 2    | Configuration error  |
+| 3    | Provider error       |
+| 4    | Network error        |
+| 5    | Authentication error |
 
 ## Troubleshooting
 
@@ -1551,6 +1705,7 @@ Error: Docker is not running. Please start Docker and try again.
 ```
 
 Start Docker Desktop or the Docker daemon:
+
 ```bash
 # macOS/Windows: Start Docker Desktop
 
@@ -1565,6 +1720,7 @@ Error: kubectl is not installed
 ```
 
 Install kubectl:
+
 ```bash
 # macOS
 brew install kubectl
@@ -1581,6 +1737,7 @@ Error: Failed to create S3 client: credential error
 ```
 
 Configure AWS credentials:
+
 ```bash
 # Set environment variables
 export AWS_ACCESS_KEY_ID=your-key-id
@@ -1597,6 +1754,7 @@ Warning: cosign not installed - SBOM verification requires cosign
 ```
 
 Install cosign:
+
 ```bash
 # macOS
 brew install cosign
@@ -1614,6 +1772,7 @@ Error: Extension 'my-extension' validation failed
 ```
 
 Check extension definition:
+
 ```bash
 sindri extension validate my-extension --file ./extension.yaml
 ```
@@ -1625,6 +1784,7 @@ Error: No cluster provider installed
 ```
 
 Install kind or k3d:
+
 ```bash
 sindri k8s install kind
 # or

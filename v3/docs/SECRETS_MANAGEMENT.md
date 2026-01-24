@@ -24,14 +24,14 @@ Sindri V3 provides a unified, type-safe secrets management system built in Rust 
 
 ### What's New in V3
 
-| Feature | V2 (Bash) | V3 (Rust) |
-|---------|-----------|-----------|
-| S3 Encrypted Storage | Not supported | Full support |
-| Memory Safety | Plaintext in temp files | `zeroize` auto-clearing |
-| Vault Integration | CLI subprocess | Native async HTTP API |
-| Resolution | Sequential | Parallel async |
-| Type Safety | Runtime validation | Compile-time guarantees |
-| Error Handling | Global counters | Structured `Result<T>` |
+| Feature              | V2 (Bash)               | V3 (Rust)               |
+| -------------------- | ----------------------- | ----------------------- |
+| S3 Encrypted Storage | Not supported           | Full support            |
+| Memory Safety        | Plaintext in temp files | `zeroize` auto-clearing |
+| Vault Integration    | CLI subprocess          | Native async HTTP API   |
+| Resolution           | Sequential              | Parallel async          |
+| Type Safety          | Runtime validation      | Compile-time guarantees |
+| Error Handling       | Global counters         | Structured `Result<T>`  |
 
 ### Design Principles
 
@@ -43,12 +43,12 @@ Sindri V3 provides a unified, type-safe secrets management system built in Rust 
 
 ### Supported Secret Sources
 
-| Source | Use Case | Example |
-|--------|----------|---------|
-| `env` | API keys, tokens, passwords | `.env` files, shell exports |
-| `file` | Certificates, SSH keys, config files | TLS certs, private keys |
-| `vault` | Production secrets, rotation | HashiCorp Vault KV store |
-| `s3` | Team collaboration, CI/CD, backup | S3 encrypted storage (new in V3) |
+| Source  | Use Case                             | Example                          |
+| ------- | ------------------------------------ | -------------------------------- |
+| `env`   | API keys, tokens, passwords          | `.env` files, shell exports      |
+| `file`  | Certificates, SSH keys, config files | TLS certs, private keys          |
+| `vault` | Production secrets, rotation         | HashiCorp Vault KV store         |
+| `s3`    | Team collaboration, CI/CD, backup    | S3 encrypted storage (new in V3) |
 
 ### Resolution Priority
 
@@ -121,7 +121,7 @@ secrets:
 
   - name: DATABASE_PASSWORD
     source: env
-    required: true  # Fail deployment if missing
+    required: true # Fail deployment if missing
 ```
 
 #### The `fromFile` Property
@@ -133,7 +133,7 @@ secrets:
   # SSH public key - reads from file automatically
   - name: AUTHORIZED_KEYS
     source: env
-    fromFile: ~/.ssh/id_ed25519.pub  # Supports ~ expansion
+    fromFile: ~/.ssh/id_ed25519.pub # Supports ~ expansion
 
   # Git signing key
   - name: GPG_PUBLIC_KEY
@@ -143,12 +143,12 @@ secrets:
 
 **Key differences: `fromFile` vs `source: file`**
 
-| Feature | `fromFile` | `source: file` |
-|---------|-----------|----------------|
-| **Purpose** | Read file content to env var | Mount file into container |
-| **Result** | Sets environment variable | File exists at `mountPath` |
-| **Use case** | SSH public keys, API keys in files | Certificates, config files |
-| **Container path** | N/A | Required via `mountPath` |
+| Feature            | `fromFile`                         | `source: file`             |
+| ------------------ | ---------------------------------- | -------------------------- |
+| **Purpose**        | Read file content to env var       | Mount file into container  |
+| **Result**         | Sets environment variable          | File exists at `mountPath` |
+| **Use case**       | SSH public keys, API keys in files | Certificates, config files |
+| **Container path** | N/A                                | Required via `mountPath`   |
 
 ### Files (`source: file`)
 
@@ -167,20 +167,21 @@ secrets:
     source: file
     path: ./certs/tls.key
     mountPath: /etc/ssl/private/app.key
-    permissions: "0600"  # Restrictive permissions for private key
+    permissions: "0600" # Restrictive permissions for private key
 ```
 
 #### Configuration Fields
 
-| Field | Required | Description | Default |
-|-------|----------|-------------|---------|
-| `path` | Yes | Local file path (supports `~` expansion) | - |
-| `mountPath` | Yes | Destination path in container | - |
-| `permissions` | No | Unix file permissions (octal) | `"0644"` |
+| Field         | Required | Description                              | Default  |
+| ------------- | -------- | ---------------------------------------- | -------- |
+| `path`        | Yes      | Local file path (supports `~` expansion) | -        |
+| `mountPath`   | Yes      | Destination path in container            | -        |
+| `permissions` | No       | Unix file permissions (octal)            | `"0644"` |
 
 #### Security Validation
 
 V3 includes automatic security validation:
+
 - **Path traversal prevention**: Rejects paths with `..` components
 - **Permission validation**: Ensures octal format is valid
 - **File existence check**: Validates file exists before deployment
@@ -217,7 +218,7 @@ secrets:
     source: vault
     vaultPath: secret/data/sindri/prod/database
     vaultKey: password
-    vaultMount: secret  # Optional, default: secret
+    vaultMount: secret # Optional, default: secret
     required: true
 
   - name: API_SECRET_KEY
@@ -229,11 +230,11 @@ secrets:
 
 #### Configuration Fields
 
-| Field | Required | Description | Default |
-|-------|----------|-------------|---------|
-| `vaultPath` | Yes | Full KV path (e.g., `secret/data/app/prod`) | - |
-| `vaultKey` | Yes | Key within the secret | - |
-| `vaultMount` | No | KV mount point | `"secret"` |
+| Field        | Required | Description                                 | Default    |
+| ------------ | -------- | ------------------------------------------- | ---------- |
+| `vaultPath`  | Yes      | Full KV path (e.g., `secret/data/app/prod`) | -          |
+| `vaultKey`   | Yes      | Key within the secret                       | -          |
+| `vaultMount` | No       | KV mount point                              | `"secret"` |
 
 #### V3 Vault Features
 
@@ -310,7 +311,7 @@ secrets:
     type: s3
     bucket: my-sindri-secrets
     region: us-east-1
-    endpoint: https://s3.amazonaws.com  # Optional, for S3-compatible
+    endpoint: https://s3.amazonaws.com # Optional, for S3-compatible
     prefix: secrets/prod/
     encryption:
       algorithm: chacha20poly1305
@@ -330,7 +331,7 @@ secrets:
     - name: DATABASE_PASSWORD
       source: s3
       s3_path: database/password
-      fallback: env  # Fall back to env if S3 unavailable
+      fallback: env # Fall back to env if S3 unavailable
       required: true
 ```
 
@@ -399,26 +400,26 @@ backend:
 
 ```yaml
 secrets:
-  - name: string          # Required: Environment variable name
-    source: env|file|vault|s3  # Required: Secret source type
-    required: boolean      # Optional: Fail if missing (default: false)
+  - name: string # Required: Environment variable name
+    source: env|file|vault|s3 # Required: Secret source type
+    required: boolean # Optional: Fail if missing (default: false)
 
     # For source: env (optional)
-    fromFile: string       # Read value from file content (supports ~ expansion)
+    fromFile: string # Read value from file content (supports ~ expansion)
 
     # For source: file
-    path: string           # Required: Local file path
-    mountPath: string      # Required: Container destination path
-    permissions: string    # Optional: Unix permissions (default: "0644")
+    path: string # Required: Local file path
+    mountPath: string # Required: Container destination path
+    permissions: string # Optional: Unix permissions (default: "0644")
 
     # For source: vault
-    vaultPath: string      # Required: Vault KV path
-    vaultKey: string       # Required: Key within secret
-    vaultMount: string     # Optional: Mount point (default: "secret")
+    vaultPath: string # Required: Vault KV path
+    vaultKey: string # Required: Key within secret
+    vaultMount: string # Optional: Mount point (default: "secret")
 
     # For source: s3
-    s3_path: string        # Required: Path within S3 prefix
-    fallback: env|vault    # Optional: Fallback source if S3 unavailable
+    s3_path: string # Required: Path within S3 prefix
+    fallback: env|vault # Optional: Fallback source if S3 unavailable
 ```
 
 ### Complete Example
@@ -663,6 +664,7 @@ flyctl secrets set TLS_CERT_BASE64=$(base64 < ./certs/tls.crt) -a my-app
 ```
 
 **File secrets:**
+
 - Encoded as base64 and stored as environment variable
 - Decoded in container entrypoint to proper mount path
 - Permissions set after decoding
@@ -676,7 +678,7 @@ flyctl secrets set TLS_CERT_BASE64=$(base64 < ./certs/tls.crt) -a my-app
 services:
   sindri:
     env_file:
-      - .env.secrets  # Generated from env + vault sources
+      - .env.secrets # Generated from env + vault sources
     secrets:
       - source: tls_cert
         target: /etc/ssl/certs/app.crt
@@ -699,7 +701,7 @@ metadata:
   name: sindri-secrets
 type: Opaque
 data:
-  ANTHROPIC_API_KEY: c2stYW50LWFwaTA...  # base64 encoded
+  ANTHROPIC_API_KEY: c2stYW50LWFwaTA... # base64 encoded
 
 ---
 # File secrets
@@ -709,7 +711,7 @@ metadata:
   name: sindri-files
 type: Opaque
 data:
-  tls.crt: LS0tLS1CRUdJTi...  # base64 encoded
+  tls.crt: LS0tLS1CRUdJTi... # base64 encoded
 ```
 
 ### DevPod / DevContainers
@@ -722,9 +724,7 @@ data:
     "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
     "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}"
   },
-  "mounts": [
-    "source=${localEnv:HOME}/.ssh,target=/home/developer/.ssh,type=bind,readonly"
-  ]
+  "mounts": ["source=${localEnv:HOME}/.ssh,target=/home/developer/.ssh,type=bind,readonly"]
 }
 ```
 
@@ -773,7 +773,7 @@ DATABASE_PASSWORD=local_dev_password
 secrets:
   - name: DATABASE_PASSWORD
     source: vault
-    required: true  # Deployment fails if not available
+    required: true # Deployment fails if not available
 ```
 
 ### 4. Use Restrictive Permissions for Files
@@ -816,11 +816,11 @@ vault kv put secret/sindri/prod/database password=new_password
 
 ### 6. Use Vault or S3 for Production
 
-| Environment | Recommended Source |
-|-------------|-------------------|
-| Development | `.env` files |
-| Staging | S3 or Vault |
-| Production | **Always use Vault or S3** |
+| Environment | Recommended Source         |
+| ----------- | -------------------------- |
+| Development | `.env` files               |
+| Staging     | S3 or Vault                |
+| Production  | **Always use Vault or S3** |
 
 ### 7. V3 Memory Safety
 
@@ -1041,8 +1041,9 @@ Permission denied: /etc/ssl/private/app.key
 **Solutions:**
 
 1. Check permissions in sindri.yaml:
+
    ```yaml
-   permissions: "0600"  # Must be string with quotes
+   permissions: "0600" # Must be string with quotes
    ```
 
 2. Verify mount path is writable by container user
@@ -1101,7 +1102,7 @@ secrets:
     - name: ANTHROPIC_API_KEY
       source: s3
       s3_path: anthropic/api-key
-      fallback: env  # Gradual migration
+      fallback: env # Gradual migration
       required: true
 ```
 

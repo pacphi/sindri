@@ -13,9 +13,9 @@ assignees: ""
 ## Category
 
 - [ ] Language (nodejs, python, golang, etc.)
-- [ ] AI/Agents (claude-*, ollama, etc.)
+- [ ] AI/Agents (claude-\*, ollama, etc.)
 - [ ] DevOps (docker, monitoring, etc.)
-- [ ] MCP Server (*-mcp)
+- [ ] MCP Server (\*-mcp)
 - [ ] Infrastructure (cloud-tools, infra-tools)
 - [ ] Desktop (guacamole, xfce-ubuntu)
 - [ ] Other: <!-- specify -->

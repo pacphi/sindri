@@ -7,11 +7,13 @@ Get from zero to a deployed development environment in 10 minutes.
 Before you begin, ensure you have:
 
 - **Docker** (required for all providers)
+
   ```bash
   docker --version  # Docker 20.10+ required
   ```
 
 - **Git** (for project management)
+
   ```bash
   git --version
   ```
@@ -62,6 +64,7 @@ sindri version
 ```
 
 Expected output:
+
 ```
 sindri 3.0.0
 ```
@@ -104,12 +107,12 @@ extensions:
 
 Edit `sindri.yaml` to set your preferred provider:
 
-| Provider | Best For | Requirements |
-|----------|----------|--------------|
-| `docker-compose` | Local development | Docker only |
-| `fly` | Cloud deployment | flyctl + Fly.io account |
-| `devpod` | Multi-cloud | DevPod CLI |
-| `kubernetes` | K8s clusters | kubectl + cluster access |
+| Provider         | Best For          | Requirements             |
+| ---------------- | ----------------- | ------------------------ |
+| `docker-compose` | Local development | Docker only              |
+| `fly`            | Cloud deployment  | flyctl + Fly.io account  |
+| `devpod`         | Multi-cloud       | DevPod CLI               |
+| `kubernetes`     | K8s clusters      | kubectl + cluster access |
 
 ### Step 3: Deploy
 
@@ -118,6 +121,7 @@ sindri deploy --wait
 ```
 
 The CLI will:
+
 1. Validate your configuration
 2. Resolve and verify the container image
 3. Deploy to your chosen provider
@@ -195,8 +199,8 @@ extensions:
 
 providers:
   fly:
-    region: sjc           # San Jose (or: ord, iad, ams)
-    cpuKind: shared       # Use shared CPU for cost savings
+    region: sjc # San Jose (or: ord, iad, ams)
+    cpuKind: shared # Use shared CPU for cost savings
     autoStopMachines: true
     autoStartMachines: true
 ```
@@ -260,14 +264,14 @@ sindri destroy
 
 Choose a profile based on your development needs:
 
-| Profile | Extensions | Best For |
-|---------|------------|----------|
-| `minimal` | Node.js, Python | Quick tasks, scripting |
-| `fullstack` | Node.js, Python, Docker, devtools | Web development |
-| `ai-dev` | Python, AI toolkit, Jupyter | ML/AI projects |
-| `systems` | Rust, Go, Docker | Systems programming |
-| `devops` | Docker, Terraform, cloud tools | Infrastructure |
-| `enterprise` | All languages + infrastructure | Large projects |
+| Profile      | Extensions                        | Best For               |
+| ------------ | --------------------------------- | ---------------------- |
+| `minimal`    | Node.js, Python                   | Quick tasks, scripting |
+| `fullstack`  | Node.js, Python, Docker, devtools | Web development        |
+| `ai-dev`     | Python, AI toolkit, Jupyter       | ML/AI projects         |
+| `systems`    | Rust, Go, Docker                  | Systems programming    |
+| `devops`     | Docker, Terraform, cloud tools    | Infrastructure         |
+| `enterprise` | All languages + infrastructure    | Large projects         |
 
 Set your profile in `sindri.yaml`:
 
@@ -337,6 +341,7 @@ sindri k8s destroy --name dev    # Delete cluster
 ### "Docker not found"
 
 Install Docker Desktop or Docker Engine:
+
 - macOS/Windows: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Linux: [Docker Engine](https://docs.docker.com/engine/install/)
 

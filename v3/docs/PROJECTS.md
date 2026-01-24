@@ -25,21 +25,21 @@ Create a new project from a template with automatic scaffolding.
 
 #### Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument | Description                                                                |
+| -------- | -------------------------------------------------------------------------- |
 | `<name>` | Project name (required). Used as directory name and in template variables. |
 
 #### Options
 
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--type <TYPE>` | `-t` | Explicit project type (e.g., `node`, `python`, `rust`). If omitted, type is auto-detected from the project name. |
-| `--interactive` | `-i` | Enable interactive type selection. Useful when auto-detection is ambiguous. |
-| `--git-name <NAME>` | | Git user name for this project (uses local config, not global). |
-| `--git-email <EMAIL>` | | Git user email for this project. |
-| `--skip-extensions` | | Skip extension installation. |
-| `--skip-tools` | | Skip tool initialization (CLAUDE.md, hooks). |
-| `--list-types` | | List all available project types and exit. |
+| Option                | Short | Description                                                                                                      |
+| --------------------- | ----- | ---------------------------------------------------------------------------------------------------------------- |
+| `--type <TYPE>`       | `-t`  | Explicit project type (e.g., `node`, `python`, `rust`). If omitted, type is auto-detected from the project name. |
+| `--interactive`       | `-i`  | Enable interactive type selection. Useful when auto-detection is ambiguous.                                      |
+| `--git-name <NAME>`   |       | Git user name for this project (uses local config, not global).                                                  |
+| `--git-email <EMAIL>` |       | Git user email for this project.                                                                                 |
+| `--skip-extensions`   |       | Skip extension installation.                                                                                     |
+| `--skip-tools`        |       | Skip tool initialization (CLAUDE.md, hooks).                                                                     |
+| `--list-types`        |       | List all available project types and exit.                                                                       |
 
 #### Examples
 
@@ -70,22 +70,22 @@ Clone a repository with optional enhancements, including CLAUDE.md generation an
 
 #### Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument       | Description                           |
+| -------------- | ------------------------------------- |
 | `<repository>` | Repository URL (HTTPS or SSH format). |
 
 #### Options
 
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--fork` | | Fork the repository before cloning. Requires GitHub CLI (`gh`). |
-| `--branch <BRANCH>` | `-b` | Checkout a specific branch after cloning. |
-| `--depth <DEPTH>` | | Shallow clone with specified depth (e.g., `--depth 1`). |
-| `--feature <BRANCH>` | | Create a feature branch after cloning. |
-| `--git-name <NAME>` | | Git user name for this project. |
-| `--git-email <EMAIL>` | | Git user email for this project. |
-| `--skip-deps` | | Skip dependency installation. |
-| `--skip-enhance` | | Skip enhancements (CLAUDE.md, hooks, extensions). |
+| Option                | Short | Description                                                     |
+| --------------------- | ----- | --------------------------------------------------------------- |
+| `--fork`              |       | Fork the repository before cloning. Requires GitHub CLI (`gh`). |
+| `--branch <BRANCH>`   | `-b`  | Checkout a specific branch after cloning.                       |
+| `--depth <DEPTH>`     |       | Shallow clone with specified depth (e.g., `--depth 1`).         |
+| `--feature <BRANCH>`  |       | Create a feature branch after cloning.                          |
+| `--git-name <NAME>`   |       | Git user name for this project.                                 |
+| `--git-email <EMAIL>` |       | Git user email for this project.                                |
+| `--skip-deps`         |       | Skip dependency installation.                                   |
+| `--skip-enhance`      |       | Skip enhancements (CLAUDE.md, hooks, extensions).               |
 
 #### Examples
 
@@ -115,19 +115,19 @@ Sindri V3 includes built-in templates for common project types, embedded in the 
 
 ### Available Project Types
 
-| Type | Description | Aliases |
-|------|-------------|---------|
-| `node` | Node.js application | `nodejs`, `javascript`, `js`, `ts`, `typescript` |
-| `python` | Python application | `py`, `python3` |
-| `go` | Go application | `golang` |
-| `rust` | Rust application | `rs` |
-| `rails` | Ruby on Rails application | `ruby`, `ror` |
-| `django` | Django web application | - |
-| `spring` | Spring Boot application | `spring-boot`, `spring-web`, `spring-webmvc` |
-| `dotnet` | .NET application | `csharp`, `c#`, `.net` |
-| `terraform` | Terraform infrastructure project | `tf`, `infra`, `infrastructure` |
-| `docker` | Dockerized application | `container`, `containerized` |
-| `general` | General purpose project | - |
+| Type        | Description                      | Aliases                                          |
+| ----------- | -------------------------------- | ------------------------------------------------ |
+| `node`      | Node.js application              | `nodejs`, `javascript`, `js`, `ts`, `typescript` |
+| `python`    | Python application               | `py`, `python3`                                  |
+| `go`        | Go application                   | `golang`                                         |
+| `rust`      | Rust application                 | `rs`                                             |
+| `rails`     | Ruby on Rails application        | `ruby`, `ror`                                    |
+| `django`    | Django web application           | -                                                |
+| `spring`    | Spring Boot application          | `spring-boot`, `spring-web`, `spring-webmvc`     |
+| `dotnet`    | .NET application                 | `csharp`, `c#`, `.net`                           |
+| `terraform` | Terraform infrastructure project | `tf`, `infra`, `infrastructure`                  |
+| `docker`    | Dockerized application           | `container`, `containerized`                     |
+| `general`   | General purpose project          | -                                                |
 
 ### Template Structure
 
@@ -179,16 +179,16 @@ templates:
 
 The following variables are available for substitution in templates:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `{project_name}` | Project name | `my-awesome-app` |
-| `{author}` | Author name (from git config) | `John Doe` |
-| `{git_user_name}` | Git user name | `John Doe` |
-| `{git_user_email}` | Git user email | `john@example.com` |
-| `{date}` | Current date | `2026-01-24` |
-| `{year}` | Current year | `2026` |
-| `{description}` | Project description | `A web application` |
-| `{license}` | License type | `MIT` |
+| Variable           | Description                   | Example             |
+| ------------------ | ----------------------------- | ------------------- |
+| `{project_name}`   | Project name                  | `my-awesome-app`    |
+| `{author}`         | Author name (from git config) | `John Doe`          |
+| `{git_user_name}`  | Git user name                 | `John Doe`          |
+| `{git_user_email}` | Git user email                | `john@example.com`  |
+| `{date}`           | Current date                  | `2026-01-24`        |
+| `{year}`           | Current year                  | `2026`              |
+| `{description}`    | Project description           | `A web application` |
+| `{license}`        | License type                  | `MIT`               |
 
 ### Template Inheritance
 
@@ -199,7 +199,7 @@ templates:
   nextjs:
     description: "Next.js application (React framework)"
     category: "framework"
-    parent: "node"  # Inherit from node template
+    parent: "node" # Inherit from node template
 
     extensions:
       - nodejs
@@ -225,13 +225,13 @@ Sindri automatically detects project types from project names using pattern matc
 
 ### Detection Examples
 
-| Project Name | Detected Type | Reason |
-|--------------|---------------|--------|
-| `my-express-app` | `node` | Contains "express" pattern |
-| `django-blog` | `django` | Contains "django" pattern |
-| `ml-model` | `python` | Contains "ml" pattern |
-| `api-server` | Ambiguous | Could be `node`, `go`, or `python` |
-| `rust-cli` | `rust` | Contains "rust" pattern |
+| Project Name     | Detected Type | Reason                             |
+| ---------------- | ------------- | ---------------------------------- |
+| `my-express-app` | `node`        | Contains "express" pattern         |
+| `django-blog`    | `django`      | Contains "django" pattern          |
+| `ml-model`       | `python`      | Contains "ml" pattern              |
+| `api-server`     | Ambiguous     | Could be `node`, `go`, or `python` |
+| `rust-cli`       | `rust`        | Contains "rust" pattern            |
 
 ### Handling Ambiguous Detection
 
@@ -300,13 +300,13 @@ When using `--fork`, Sindri:
 
 Sindri sets up helpful aliases for fork management:
 
-| Alias | Command | Description |
-|-------|---------|-------------|
-| `sync-upstream` | `git fetch upstream && git checkout main && git merge upstream/main` | Sync fork with upstream |
-| `update-from-upstream` | `git fetch upstream && git rebase upstream/main` | Rebase on upstream |
-| `push-fork` | `push origin HEAD` | Push to your fork |
-| `pr-branch` | `git checkout -b <name> upstream/main` | Create PR-ready branch |
-| `fork-status` | Shows remotes and branch tracking | View fork status |
+| Alias                  | Command                                                              | Description             |
+| ---------------------- | -------------------------------------------------------------------- | ----------------------- |
+| `sync-upstream`        | `git fetch upstream && git checkout main && git merge upstream/main` | Sync fork with upstream |
+| `update-from-upstream` | `git fetch upstream && git rebase upstream/main`                     | Rebase on upstream      |
+| `push-fork`            | `push origin HEAD`                                                   | Push to your fork       |
+| `pr-branch`            | `git checkout -b <name> upstream/main`                               | Create PR-ready branch  |
+| `fork-status`          | Shows remotes and branch tracking                                    | View fork status        |
 
 Usage:
 
@@ -354,30 +354,37 @@ remove_remote(path, "old-remote").await?;
 
 Sindri automatically generates a `CLAUDE.md` file for AI-first development:
 
-```markdown
+````markdown
 # my-project
 
 ## Project Overview
+
 Node.js application
 
 ## Setup Instructions
+
 ```bash
 npm install
 npm run dev
 ```
+````
 
 ## Development Commands
+
 - `npm start` - Start the application
 - `npm run dev` - Development mode with hot reload
 - `npm test` - Run tests
 
 ## Architecture Notes
+
 [Add architectural decisions and patterns]
 
 ---
+
 Created: 2026-01-24
 Author: John Doe
-```
+
+````
 
 ### Extension Activation
 
@@ -390,9 +397,10 @@ templates:
       - nodejs
       - prettier
       - eslint
-```
+````
 
 When a project is created, these extensions are:
+
 1. Validated for availability
 2. Recorded in `.sindri/extensions.txt`
 3. Ready for installation via the extension system
@@ -403,10 +411,10 @@ Templates can define dependency installation:
 
 ```yaml
 dependencies:
-  detect: "package.json"  # File(s) that indicate dependencies exist
-  command: "npm install"   # Installation command
-  requires: "npm"          # Required tool
-  fetch_command: "npm ci"  # Alternative for CI (fetch-only)
+  detect: "package.json" # File(s) that indicate dependencies exist
+  command: "npm install" # Installation command
+  requires: "npm" # Required tool
+  fetch_command: "npm ci" # Alternative for CI (fetch-only)
 ```
 
 ## API Usage
@@ -505,8 +513,8 @@ fork_repository("https://github.com/original/repo.git", destination, &options).a
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable             | Description                     | Default      |
+| -------------------- | ------------------------------- | ------------ |
 | `WORKSPACE_PROJECTS` | Base directory for new projects | `~/projects` |
 
 ### Git Workflow Configuration
@@ -536,20 +544,20 @@ pub struct GitWorkflowConfig {
 
 The project system provides structured errors for better diagnostics:
 
-| Error | Description |
-|-------|-------------|
-| `ProjectExists` | Project directory already exists |
-| `InvalidProjectName` | Project name contains invalid characters |
-| `UnknownProjectType` | Specified type not found in templates |
-| `GitNotFound` | Git command not available |
-| `GhNotFound` | GitHub CLI not available (required for fork) |
-| `GhNotAuthenticated` | GitHub CLI not authenticated |
-| `CloneFailed` | Repository clone operation failed |
-| `ForkFailed` | Repository fork operation failed |
-| `InvalidBranch` | Invalid branch name |
-| `BranchExists` | Branch already exists |
-| `RemoteNotFound` | Specified remote not found |
-| `RemoteExists` | Remote already exists |
+| Error                | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `ProjectExists`      | Project directory already exists             |
+| `InvalidProjectName` | Project name contains invalid characters     |
+| `UnknownProjectType` | Specified type not found in templates        |
+| `GitNotFound`        | Git command not available                    |
+| `GhNotFound`         | GitHub CLI not available (required for fork) |
+| `GhNotAuthenticated` | GitHub CLI not authenticated                 |
+| `CloneFailed`        | Repository clone operation failed            |
+| `ForkFailed`         | Repository fork operation failed             |
+| `InvalidBranch`      | Invalid branch name                          |
+| `BranchExists`       | Branch already exists                        |
+| `RemoteNotFound`     | Specified remote not found                   |
+| `RemoteExists`       | Remote already exists                        |
 
 ## Requirements
 

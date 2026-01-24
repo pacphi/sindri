@@ -63,18 +63,18 @@ sindri deploy --config /path/to/sindri.yaml
 ### Top-Level Fields
 
 ```yaml
-version: "3.0"          # Required: Configuration schema version
-name: my-dev-env        # Required: Deployment name
+version: "3.0" # Required: Configuration schema version
+name: my-dev-env # Required: Deployment name
 
-deployment:             # Required: Deployment configuration
-  provider: docker      # Required: Target provider
+deployment: # Required: Deployment configuration
+  provider: docker # Required: Target provider
 
-extensions:             # Required: Extension configuration
-  profile: minimal      # Profile or active list
+extensions: # Required: Extension configuration
+  profile: minimal # Profile or active list
 
-secrets: []             # Optional: Secrets to inject
+secrets: [] # Optional: Secrets to inject
 
-providers: {}           # Optional: Provider-specific configuration
+providers: {} # Optional: Provider-specific configuration
 ```
 
 #### version
@@ -119,15 +119,15 @@ name: my-sindri-dev
 
 ```yaml
 deployment:
-  provider: docker              # Required: Provider type
-  image: ghcr.io/org/image:tag  # Optional: Legacy image field
-  image_config:                 # Optional: Structured image config (preferred)
+  provider: docker # Required: Provider type
+  image: ghcr.io/org/image:tag # Optional: Legacy image field
+  image_config: # Optional: Structured image config (preferred)
     registry: ghcr.io/pacphi/sindri
     version: "^3.0.0"
-  resources:                    # Optional: Resource allocation
+  resources: # Optional: Resource allocation
     memory: 4GB
     cpus: 2
-  volumes:                      # Optional: Volume configuration
+  volumes: # Optional: Volume configuration
     workspace:
       size: 20GB
 ```
@@ -140,13 +140,13 @@ deployment:
 
 Target deployment provider.
 
-| Provider | Best For | Access Method | GPU Support |
-|----------|----------|---------------|-------------|
-| `docker` / `docker-compose` | Local development | Direct container | Yes |
-| `fly` | Remote cloud dev | SSH | Yes |
-| `devpod` | IDE integration, multi-cloud | SSH | Yes |
-| `e2b` | AI sandboxes, rapid prototyping | WebSocket PTY | No |
-| `kubernetes` | Enterprise, GitOps | kubectl | Yes |
+| Provider                    | Best For                        | Access Method    | GPU Support |
+| --------------------------- | ------------------------------- | ---------------- | ----------- |
+| `docker` / `docker-compose` | Local development               | Direct container | Yes         |
+| `fly`                       | Remote cloud dev                | SSH              | Yes         |
+| `devpod`                    | IDE integration, multi-cloud    | SSH              | Yes         |
+| `e2b`                       | AI sandboxes, rapid prototyping | WebSocket PTY    | No          |
+| `kubernetes`                | Enterprise, GitOps              | kubectl          | Yes         |
 
 **Note:** `docker` is an alias for `docker-compose`.
 
@@ -233,12 +233,12 @@ image_config:
 
 How to resolve the image version:
 
-| Strategy | Description |
-|----------|-------------|
-| `semver` | Use semantic versioning constraints (default) |
+| Strategy        | Description                                           |
+| --------------- | ----------------------------------------------------- |
+| `semver`        | Use semantic versioning constraints (default)         |
 | `latest-stable` | Always use the newest stable (non-prerelease) version |
-| `pin-to-cli` | Use the same version as the CLI binary |
-| `explicit` | Use explicit `tag_override` or `digest` |
+| `pin-to-cli`    | Use the same version as the CLI binary                |
+| `explicit`      | Use explicit `tag_override` or `digest`               |
 
 ```yaml
 image_config:
@@ -283,7 +283,7 @@ Allow prerelease versions (alpha, beta, rc) in version resolution.
 ```yaml
 image_config:
   version: "^3.0.0"
-  allow_prerelease: true  # Allows 3.1.0-alpha.1, etc.
+  allow_prerelease: true # Allows 3.1.0-alpha.1, etc.
 ```
 
 #### image_config.verify_signature
@@ -321,11 +321,11 @@ image_config:
 
 Container image pull policy:
 
-| Policy | Description |
-|--------|-------------|
-| `Always` | Always pull the image from registry |
+| Policy         | Description                                |
+| -------------- | ------------------------------------------ |
+| `Always`       | Always pull the image from registry        |
 | `IfNotPresent` | Only pull if not present locally (default) |
-| `Never` | Never pull, use local only |
+| `Never`        | Never pull, use local only                 |
 
 ```yaml
 image_config:
@@ -385,11 +385,11 @@ Memory allocation for the environment.
 **Fly.io pricing tiers:**
 
 | Memory | Approximate Cost (with auto-suspend) |
-|--------|--------------------------------------|
-| 1GB | ~$5-10/month |
-| 2GB | ~$10-15/month |
-| 4GB | ~$30-40/month |
-| 8GB | ~$60-80/month |
+| ------ | ------------------------------------ |
+| 1GB    | ~$5-10/month                         |
+| 2GB    | ~$10-15/month                        |
+| 4GB    | ~$30-40/month                        |
+| 8GB    | ~$60-80/month                        |
 
 ```yaml
 resources:
@@ -417,11 +417,11 @@ GPU configuration for compute workloads.
 ```yaml
 resources:
   gpu:
-    enabled: true        # Enable GPU (default: false)
-    type: nvidia         # nvidia | amd (default: nvidia)
-    count: 1             # Number of GPUs: 1-8 (default: 1)
-    tier: gpu-medium     # GPU tier for auto-selection
-    memory: 16GB         # Minimum GPU memory
+    enabled: true # Enable GPU (default: false)
+    type: nvidia # nvidia | amd (default: nvidia)
+    count: 1 # Number of GPUs: 1-8 (default: 1)
+    tier: gpu-medium # GPU tier for auto-selection
+    memory: 16GB # Minimum GPU memory
 ```
 
 ##### gpu.enabled
@@ -454,12 +454,12 @@ Number of GPUs to request.
 
 GPU tier for automatic instance selection. Maps to provider-specific GPU types.
 
-| Tier | Typical GPU | Use Case |
-|------|-------------|----------|
-| `gpu-small` | T4, A10 | Inference, light training |
-| `gpu-medium` | A10G, L4 | Medium training |
-| `gpu-large` | A100 40GB | Large training |
-| `gpu-xlarge` | A100 80GB, H100 | Maximum performance |
+| Tier         | Typical GPU     | Use Case                  |
+| ------------ | --------------- | ------------------------- |
+| `gpu-small`  | T4, A10         | Inference, light training |
+| `gpu-medium` | A10G, L4        | Medium training           |
+| `gpu-large`  | A100 40GB       | Large training            |
+| `gpu-xlarge` | A100 80GB, H100 | Maximum performance       |
 
 ##### gpu.memory
 
@@ -509,15 +509,15 @@ Persistent workspace volume size.
 
 ```yaml
 extensions:
-  profile: fullstack      # Use a profile
+  profile: fullstack # Use a profile
   # OR
-  active:                 # Explicit extension list
+  active: # Explicit extension list
     - nodejs
     - python
     - docker
-  additional:             # Additions to a profile
+  additional: # Additions to a profile
     - github-cli
-  auto_install: true      # Auto-install on startup
+  auto_install: true # Auto-install on startup
 ```
 
 **Mutually exclusive:** Use either `profile` OR `active`, not both.
@@ -531,25 +531,25 @@ Pre-configured extension profile.
 
 **Standard profiles:**
 
-| Profile | Description | Extensions |
-|---------|-------------|------------|
-| `minimal` | Basic development | nodejs, python |
-| `fullstack` | Full-stack web | nodejs, python, docker, nodejs-devtools |
-| `ai-dev` | AI/ML development | nodejs, python, golang, ai-toolkit, mdflow, openskills |
-| `anthropic-dev` | Anthropic toolset | claude-flow, agentic-flow, ai-toolkit |
-| `systems` | Systems programming | rust, golang, docker, infra-tools |
-| `enterprise` | Enterprise development | All languages + jira-mcp, cloud-tools |
-| `devops` | DevOps/SRE | docker, infra-tools, monitoring, cloud-tools |
-| `mobile` | Mobile development | nodejs, linear-mcp, supabase-cli |
+| Profile         | Description            | Extensions                                             |
+| --------------- | ---------------------- | ------------------------------------------------------ |
+| `minimal`       | Basic development      | nodejs, python                                         |
+| `fullstack`     | Full-stack web         | nodejs, python, docker, nodejs-devtools                |
+| `ai-dev`        | AI/ML development      | nodejs, python, golang, ai-toolkit, mdflow, openskills |
+| `anthropic-dev` | Anthropic toolset      | claude-flow, agentic-flow, ai-toolkit                  |
+| `systems`       | Systems programming    | rust, golang, docker, infra-tools                      |
+| `enterprise`    | Enterprise development | All languages + jira-mcp, cloud-tools                  |
+| `devops`        | DevOps/SRE             | docker, infra-tools, monitoring, cloud-tools           |
+| `mobile`        | Mobile development     | nodejs, linear-mcp, supabase-cli                       |
 
 **VisionFlow profiles:**
 
-| Profile | Description |
-|---------|-------------|
-| `visionflow-core` | Document processing (pdf, docx, xlsx, imagemagick, ffmpeg) |
-| `visionflow-data-scientist` | AI research and ML tools (perplexity, pytorch, comfyui) |
-| `visionflow-creative` | 3D modeling and creative tools (blender, qgis) |
-| `visionflow-full` | All 34 VisionFlow extensions |
+| Profile                     | Description                                                |
+| --------------------------- | ---------------------------------------------------------- |
+| `visionflow-core`           | Document processing (pdf, docx, xlsx, imagemagick, ffmpeg) |
+| `visionflow-data-scientist` | AI research and ML tools (perplexity, pytorch, comfyui)    |
+| `visionflow-creative`       | 3D modeling and creative tools (blender, qgis)             |
+| `visionflow-full`           | All 34 VisionFlow extensions                               |
 
 ```yaml
 extensions:
@@ -654,12 +654,12 @@ Environment variable name for the secret.
 
 Source type for the secret.
 
-| Source | Description |
-|--------|-------------|
-| `env` | Environment variable or file content |
-| `file` | Mount file into container |
-| `vault` | HashiCorp Vault secret |
-| `s3` | AWS S3 encrypted secret |
+| Source  | Description                          |
+| ------- | ------------------------------------ |
+| `env`   | Environment variable or file content |
+| `file`  | Mount file into container            |
+| `vault` | HashiCorp Vault secret               |
+| `s3`    | AWS S3 encrypted secret              |
 
 ##### required
 
@@ -709,7 +709,7 @@ HashiCorp Vault secret reference.
   source: vault
   vaultPath: secret/data/myapp
   vaultKey: db_password
-  vaultMount: secret  # Default: "secret"
+  vaultMount: secret # Default: "secret"
 ```
 
 ##### s3Path (source: s3)
@@ -733,19 +733,19 @@ Provider-specific options are under the `providers` key.
 ```yaml
 providers:
   docker:
-    network: bridge              # bridge | host | none
-    restart: unless-stopped      # no | always | on-failure | unless-stopped
-    ports:                       # Additional port mappings
+    network: bridge # bridge | host | none
+    restart: unless-stopped # no | always | on-failure | unless-stopped
+    ports: # Additional port mappings
       - "8080:8080"
       - "3000:3000"
-    privileged: false            # Run in privileged mode (not recommended)
-    extraHosts:                  # Extra /etc/hosts entries
+    privileged: false # Run in privileged mode (not recommended)
+    extraHosts: # Extra /etc/hosts entries
       - "host.docker.internal:host-gateway"
-    runtime: auto                # runc | sysbox-runc | auto
-    dind:                        # Docker-in-Docker configuration
+    runtime: auto # runc | sysbox-runc | auto
+    dind: # Docker-in-Docker configuration
       enabled: true
-      mode: auto                 # sysbox | privileged | socket | auto
-      storageDriver: auto        # auto | overlay2 | fuse-overlayfs | vfs
+      mode: auto # sysbox | privileged | socket | auto
+      storageDriver: auto # auto | overlay2 | fuse-overlayfs | vfs
       storageSize: 20GB
 ```
 
@@ -777,12 +777,12 @@ Container runtime. `auto` uses sysbox-runc if available, falls back to runc.
 
 Docker-in-Docker configuration.
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable DinD |
-| `mode` | string | `auto` | `sysbox` (secure), `privileged` (legacy), `socket`, `auto` |
-| `storageDriver` | string | `auto` | `auto`, `overlay2`, `fuse-overlayfs`, `vfs` |
-| `storageSize` | string | `20GB` | Storage volume size limit |
+| Option          | Type    | Default | Description                                                |
+| --------------- | ------- | ------- | ---------------------------------------------------------- |
+| `enabled`       | boolean | `false` | Enable DinD                                                |
+| `mode`          | string  | `auto`  | `sysbox` (secure), `privileged` (legacy), `socket`, `auto` |
+| `storageDriver` | string  | `auto`  | `auto`, `overlay2`, `fuse-overlayfs`, `vfs`                |
+| `storageSize`   | string  | `20GB`  | Storage volume size limit                                  |
 
 ---
 
@@ -791,13 +791,13 @@ Docker-in-Docker configuration.
 ```yaml
 providers:
   fly:
-    region: sjc                  # Fly.io region code
-    organization: personal       # Fly.io organization
-    sshPort: 10022               # External SSH port (1024-65535)
-    autoStopMachines: true       # Auto-suspend when idle
-    autoStartMachines: true      # Auto-resume on connection
-    cpuKind: shared              # shared | performance
-    highAvailability: false      # Multi-machine deployment
+    region: sjc # Fly.io region code
+    organization: personal # Fly.io organization
+    sshPort: 10022 # External SSH port (1024-65535)
+    autoStopMachines: true # Auto-suspend when idle
+    autoStartMachines: true # Auto-resume on connection
+    cpuKind: shared # shared | performance
+    highAvailability: false # Multi-machine deployment
 ```
 
 ##### fly.region
@@ -807,14 +807,14 @@ providers:
 
 Fly.io region code.
 
-| Region | Location |
-|--------|----------|
-| `sjc` | San Jose, CA (US West) |
-| `iad` | Ashburn, VA (US East) |
-| `lhr` | London, UK |
-| `fra` | Frankfurt, Germany |
-| `nrt` | Tokyo, Japan |
-| `syd` | Sydney, Australia |
+| Region | Location               |
+| ------ | ---------------------- |
+| `sjc`  | San Jose, CA (US West) |
+| `iad`  | Ashburn, VA (US East)  |
+| `lhr`  | London, UK             |
+| `fra`  | Frankfurt, Germany     |
+| `nrt`  | Tokyo, Japan           |
+| `syd`  | Sydney, Australia      |
 
 Full list: https://fly.io/docs/reference/regions/
 
@@ -882,9 +882,9 @@ DevPod supports multiple cloud backends.
 ```yaml
 providers:
   devpod:
-    type: aws                    # Required: aws | gcp | azure | digitalocean | kubernetes | ssh | docker
-    buildRepository: ghcr.io/myorg/sindri  # Registry for image push
-    aws:                         # AWS-specific options
+    type: aws # Required: aws | gcp | azure | digitalocean | kubernetes | ssh | docker
+    buildRepository: ghcr.io/myorg/sindri # Registry for image push
+    aws: # AWS-specific options
       region: us-west-2
       instanceType: c5.xlarge
       diskSize: 40
@@ -912,12 +912,12 @@ AWS EC2 configuration.
 
 ```yaml
 aws:
-  region: us-west-2          # Default: us-west-2
-  instanceType: c5.xlarge    # Default: c5.xlarge
-  diskSize: 40               # Root volume in GB (default: 40)
-  useSpot: false             # Use spot instances
-  subnetId: subnet-xxx       # VPC subnet ID
-  securityGroupId: sg-xxx    # Security group ID
+  region: us-west-2 # Default: us-west-2
+  instanceType: c5.xlarge # Default: c5.xlarge
+  diskSize: 40 # Root volume in GB (default: 40)
+  useSpot: false # Use spot instances
+  subnetId: subnet-xxx # VPC subnet ID
+  securityGroupId: sg-xxx # Security group ID
 ```
 
 ##### devpod.gcp
@@ -926,11 +926,11 @@ GCP Compute Engine configuration.
 
 ```yaml
 gcp:
-  project: my-project        # GCP project ID
-  zone: us-central1-a        # Default: us-central1-a
+  project: my-project # GCP project ID
+  zone: us-central1-a # Default: us-central1-a
   machineType: e2-standard-4 # Default: e2-standard-4
-  diskSize: 40               # Boot disk in GB (default: 40)
-  diskType: pd-balanced      # pd-standard | pd-balanced | pd-ssd
+  diskSize: 40 # Boot disk in GB (default: 40)
+  diskType: pd-balanced # pd-standard | pd-balanced | pd-ssd
 ```
 
 ##### devpod.azure
@@ -939,11 +939,11 @@ Azure VM configuration.
 
 ```yaml
 azure:
-  subscription: xxx-xxx       # Azure subscription ID
-  resourceGroup: devpod-rg    # Default: devpod-resources
-  location: eastus            # Default: eastus
-  vmSize: Standard_D4s_v3     # Default: Standard_D4s_v3
-  diskSize: 40                # OS disk in GB (default: 40)
+  subscription: xxx-xxx # Azure subscription ID
+  resourceGroup: devpod-rg # Default: devpod-resources
+  location: eastus # Default: eastus
+  vmSize: Standard_D4s_v3 # Default: Standard_D4s_v3
+  diskSize: 40 # OS disk in GB (default: 40)
 ```
 
 ##### devpod.digitalocean
@@ -952,9 +952,9 @@ DigitalOcean Droplet configuration.
 
 ```yaml
 digitalocean:
-  region: nyc3               # Default: nyc3
-  size: s-4vcpu-8gb          # Default: s-4vcpu-8gb
-  diskSize: 40               # Block storage in GB (optional)
+  region: nyc3 # Default: nyc3
+  size: s-4vcpu-8gb # Default: s-4vcpu-8gb
+  diskSize: 40 # Block storage in GB (optional)
 ```
 
 ##### devpod.kubernetes
@@ -963,10 +963,10 @@ Kubernetes pod configuration.
 
 ```yaml
 kubernetes:
-  namespace: devpod          # Default: devpod
-  storageClass: standard     # Storage class
-  context: my-cluster        # Kubernetes context
-  nodeSelector:              # Node selector labels
+  namespace: devpod # Default: devpod
+  storageClass: standard # Storage class
+  context: my-cluster # Kubernetes context
+  nodeSelector: # Node selector labels
     gpu: "true"
 ```
 
@@ -977,9 +977,9 @@ SSH provider for existing machines.
 ```yaml
 ssh:
   host: dev.example.com
-  user: root                 # Default: root
-  port: 22                   # Default: 22
-  keyPath: ~/.ssh/id_rsa     # Default: ~/.ssh/id_rsa
+  user: root # Default: root
+  port: 22 # Default: 22
+  keyPath: ~/.ssh/id_rsa # Default: ~/.ssh/id_rsa
 ```
 
 ---
@@ -993,20 +993,20 @@ providers:
   e2b:
     templateAlias: my-sindri-template
     reuseTemplate: true
-    timeout: 3600            # Timeout in seconds (60-86400)
-    autoPause: true          # Pause on timeout
-    autoResume: true         # Resume on connect
-    internetAccess: true     # Outbound internet
-    allowedDomains:          # Whitelist domains (empty = all)
+    timeout: 3600 # Timeout in seconds (60-86400)
+    autoPause: true # Pause on timeout
+    autoResume: true # Resume on connect
+    internetAccess: true # Outbound internet
+    allowedDomains: # Whitelist domains (empty = all)
       - github.com
       - "*.github.com"
-    blockedDomains: []       # Blacklist domains
-    publicAccess: false      # Public URL access
-    metadata:                # Custom metadata
+    blockedDomains: [] # Blacklist domains
+    publicAccess: false # Public URL access
+    metadata: # Custom metadata
       project: my-project
       environment: development
-    team: my-team            # E2B team for billing
-    buildOnDeploy: false     # Force rebuild on deploy
+    team: my-team # E2B team for billing
+    buildOnDeploy: false # Force rebuild on deploy
 ```
 
 **Important:** E2B does not support GPU configuration.
@@ -1018,14 +1018,14 @@ providers:
 ```yaml
 providers:
   k8s:
-    provider: kind           # kind | k3d
+    provider: kind # kind | k3d
     clusterName: sindri-dev
-    version: v1.35.0         # Kubernetes version
-    nodes: 1                 # 1-10 nodes
-    kind:                    # kind-specific options
+    version: v1.35.0 # Kubernetes version
+    nodes: 1 # 1-10 nodes
+    kind: # kind-specific options
       image: kindest/node:v1.35.0
       configFile: ./kind-config.yaml
-    k3d:                     # k3d-specific options
+    k3d: # k3d-specific options
       image: rancher/k3s:v1.35.0-k3s1
       registry:
         enabled: true
@@ -1201,13 +1201,13 @@ Environment variables in the container are set via:
 
 **Common environment variables:**
 
-| Variable | Description |
-|----------|-------------|
-| `SINDRI_NAME` | Deployment name |
+| Variable          | Description         |
+| ----------------- | ------------------- |
+| `SINDRI_NAME`     | Deployment name     |
 | `SINDRI_PROVIDER` | Deployment provider |
-| `SINDRI_VERSION` | Sindri version |
-| `HOME` | User home directory |
-| `WORKSPACE` | Workspace directory |
+| `SINDRI_VERSION`  | Sindri version      |
+| `HOME`            | User home directory |
+| `WORKSPACE`       | Workspace directory |
 
 ---
 
@@ -1236,12 +1236,12 @@ v3/schemas/sindri.schema.json
 
 ### Common Validation Errors
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `name: pattern mismatch` | Name contains invalid characters | Use lowercase, alphanumeric, hyphens only |
-| `provider: unknown` | Invalid provider value | Use: docker, fly, devpod, e2b, kubernetes |
-| `extensions: oneOf failed` | Both profile and active set | Use profile OR active, not both |
-| `version: pattern mismatch` | Invalid version format | Use `X.Y` format (e.g., "3.0") |
+| Error                       | Cause                            | Solution                                  |
+| --------------------------- | -------------------------------- | ----------------------------------------- |
+| `name: pattern mismatch`    | Name contains invalid characters | Use lowercase, alphanumeric, hyphens only |
+| `provider: unknown`         | Invalid provider value           | Use: docker, fly, devpod, e2b, kubernetes |
+| `extensions: oneOf failed`  | Both profile and active set      | Use profile OR active, not both           |
+| `version: pattern mismatch` | Invalid version format           | Use `X.Y` format (e.g., "3.0")            |
 
 ---
 

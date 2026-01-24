@@ -6,18 +6,19 @@ The `sindri doctor` command provides comprehensive system diagnostics, checking 
 
 Sindri V3 relies on various external tools depending on which provider or commands you intend to use:
 
-| Use Case | Required Tools |
-|----------|---------------|
-| **Docker provider** | `docker`, Docker Compose v2 |
-| **Fly.io provider** | `flyctl` CLI (with authentication) |
-| **DevPod provider** | `devpod` |
-| **E2B provider** | `e2b` CLI (with authentication) |
-| **Kubernetes provider** | `kubectl` (with cluster access) |
-| **Project commands** | `git`, optionally `gh` for GitHub workflows |
-| **Extension system** | `mise`, `npm`, `apt-get`, or `curl` depending on installation methods |
-| **Secret management** | `vault` (optional) |
+| Use Case                | Required Tools                                                        |
+| ----------------------- | --------------------------------------------------------------------- |
+| **Docker provider**     | `docker`, Docker Compose v2                                           |
+| **Fly.io provider**     | `flyctl` CLI (with authentication)                                    |
+| **DevPod provider**     | `devpod`                                                              |
+| **E2B provider**        | `e2b` CLI (with authentication)                                       |
+| **Kubernetes provider** | `kubectl` (with cluster access)                                       |
+| **Project commands**    | `git`, optionally `gh` for GitHub workflows                           |
+| **Extension system**    | `mise`, `npm`, `apt-get`, or `curl` depending on installation methods |
+| **Secret management**   | `vault` (optional)                                                    |
 
 The doctor command performs:
+
 - **Parallel tool checking** - All tools checked concurrently for fast diagnostics (~500ms)
 - **Version validation** - Ensures tools meet minimum version requirements
 - **Authentication checks** - Verifies login status for tools requiring auth
@@ -47,20 +48,20 @@ sindri doctor --all
 
 ### Command Options
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--provider <NAME>` | `-p` | Check tools for a specific provider (docker, fly, devpod, e2b, k8s) |
-| `--command <NAME>` | | Check tools for a specific command (project, extension, secrets, deploy) |
-| `--all` | `-a` | Check all tools regardless of current usage |
-| `--ci` | | Exit with non-zero code if required tools are missing (for CI/CD) |
-| `--format <FORMAT>` | | Output format: `human` (default), `json`, `yaml` |
-| `--verbose-output` | | Show detailed information including timing |
-| `--check-auth` | | Check authentication status for tools that require it |
-| `--fix` | | Attempt to install missing tools automatically |
-| `--yes` | `-y` | Skip confirmation prompts when installing (use with `--fix`) |
-| `--dry-run` | | Show what would be installed without executing (use with `--fix`) |
-| `--check-extensions` | | Check tools required by installed extensions |
-| `--extension <NAME>` | | Check a specific extension's tool requirements |
+| Flag                 | Short | Description                                                              |
+| -------------------- | ----- | ------------------------------------------------------------------------ |
+| `--provider <NAME>`  | `-p`  | Check tools for a specific provider (docker, fly, devpod, e2b, k8s)      |
+| `--command <NAME>`   |       | Check tools for a specific command (project, extension, secrets, deploy) |
+| `--all`              | `-a`  | Check all tools regardless of current usage                              |
+| `--ci`               |       | Exit with non-zero code if required tools are missing (for CI/CD)        |
+| `--format <FORMAT>`  |       | Output format: `human` (default), `json`, `yaml`                         |
+| `--verbose-output`   |       | Show detailed information including timing                               |
+| `--check-auth`       |       | Check authentication status for tools that require it                    |
+| `--fix`              |       | Attempt to install missing tools automatically                           |
+| `--yes`              | `-y`  | Skip confirmation prompts when installing (use with `--fix`)             |
+| `--dry-run`          |       | Show what would be installed without executing (use with `--fix`)        |
+| `--check-extensions` |       | Check tools required by installed extensions                             |
+| `--extension <NAME>` |       | Check a specific extension's tool requirements                           |
 
 ## Checks Performed
 
@@ -77,47 +78,47 @@ The doctor command detects:
 
 Tools are organized into categories:
 
-| Category | Tools | Description |
-|----------|-------|-------------|
-| **Core** | `git` | Required for all operations |
-| **Docker Provider** | `docker`, `docker-compose` | Container runtime and orchestration |
-| **Fly.io Provider** | `flyctl` | Fly.io platform CLI |
-| **DevPod Provider** | `devpod` | Dev environments as code |
-| **E2B Provider** | `e2b` | Cloud sandbox CLI |
-| **Kubernetes Provider** | `kubectl` | Kubernetes cluster management |
-| **Extension Backends** | `mise`, `npm`, `apt-get`, `curl` | Extension installation methods |
-| **Secret Management** | `vault` | HashiCorp Vault (optional) |
-| **Optional** | `gh` | GitHub CLI for enhanced workflows |
+| Category                | Tools                            | Description                         |
+| ----------------------- | -------------------------------- | ----------------------------------- |
+| **Core**                | `git`                            | Required for all operations         |
+| **Docker Provider**     | `docker`, `docker-compose`       | Container runtime and orchestration |
+| **Fly.io Provider**     | `flyctl`                         | Fly.io platform CLI                 |
+| **DevPod Provider**     | `devpod`                         | Dev environments as code            |
+| **E2B Provider**        | `e2b`                            | Cloud sandbox CLI                   |
+| **Kubernetes Provider** | `kubectl`                        | Kubernetes cluster management       |
+| **Extension Backends**  | `mise`, `npm`, `apt-get`, `curl` | Extension installation methods      |
+| **Secret Management**   | `vault`                          | HashiCorp Vault (optional)          |
+| **Optional**            | `gh`                             | GitHub CLI for enhanced workflows   |
 
 ### Version Validation
 
 Each tool has minimum version requirements:
 
-| Tool | Minimum Version |
-|------|-----------------|
-| Git | 2.0.0 |
-| Docker | 20.10.0 |
-| Docker Compose | 2.0.0 |
-| flyctl | 0.1.0 |
-| DevPod | 0.4.0 |
-| kubectl | 1.20.0 |
-| mise | 2024.0.0 |
-| npm | 8.0.0 |
-| Vault | 1.10.0 |
-| GitHub CLI | 2.0.0 |
+| Tool           | Minimum Version |
+| -------------- | --------------- |
+| Git            | 2.0.0           |
+| Docker         | 20.10.0         |
+| Docker Compose | 2.0.0           |
+| flyctl         | 0.1.0           |
+| DevPod         | 0.4.0           |
+| kubectl        | 1.20.0          |
+| mise           | 2024.0.0        |
+| npm            | 8.0.0           |
+| Vault          | 1.10.0          |
+| GitHub CLI     | 2.0.0           |
 
 ### Authentication Status
 
 For tools requiring authentication, the doctor checks login status:
 
-| Tool | Auth Check Command | Auth Command |
-|------|-------------------|--------------|
-| Docker | `docker info` | (daemon status) |
-| flyctl | `flyctl auth whoami` | `flyctl auth login` |
-| E2B | `e2b auth status` | `e2b auth login` |
-| kubectl | `kubectl cluster-info` | (kubeconfig) |
-| Vault | `vault status` | `vault login` |
-| GitHub CLI | `gh auth status` | `gh auth login` |
+| Tool       | Auth Check Command     | Auth Command        |
+| ---------- | ---------------------- | ------------------- |
+| Docker     | `docker info`          | (daemon status)     |
+| flyctl     | `flyctl auth whoami`   | `flyctl auth login` |
+| E2B        | `e2b auth status`      | `e2b auth login`    |
+| kubectl    | `kubectl cluster-info` | (kubeconfig)        |
+| Vault      | `vault status`         | `vault login`       |
+| GitHub CLI | `gh auth status`       | `gh auth login`     |
 
 ## Auto-Fix Mode
 
@@ -154,6 +155,7 @@ The auto-fix feature can install:
 - **Cross-platform tools** via curl/wget installers
 
 **Limitations:**
+
 - Cannot fix tools requiring manual download (Docker Desktop on Windows/macOS)
 - Cannot fix authentication issues (requires user interaction)
 - Cannot fix version issues (only installs missing tools)
@@ -163,6 +165,7 @@ The auto-fix feature can install:
 The installer selects the best installation method for your platform:
 
 **macOS:**
+
 ```bash
 brew install git
 brew install --cask docker
@@ -170,6 +173,7 @@ brew install flyctl
 ```
 
 **Debian/Ubuntu:**
+
 ```bash
 sudo apt-get install git
 curl -fsSL https://get.docker.com | sh
@@ -177,12 +181,14 @@ curl -L https://fly.io/install.sh | sh
 ```
 
 **Fedora:**
+
 ```bash
 sudo dnf install git
 sudo dnf install docker-ce docker-ce-cli containerd.io
 ```
 
 **Windows:**
+
 ```bash
 winget install Git.Git
 winget install loft-sh.devpod
@@ -194,16 +200,17 @@ For continuous integration pipelines, use the `--ci` flag for machine-friendly o
 
 ### Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | All required tools available (optional tools may be missing) |
-| 1 | Missing required tools |
-| 2 | Tools present but version too old |
-| 3 | Tools present but not authenticated (when auth is required) |
+| Code | Meaning                                                      |
+| ---- | ------------------------------------------------------------ |
+| 0    | All required tools available (optional tools may be missing) |
+| 1    | Missing required tools                                       |
+| 2    | Tools present but version too old                            |
+| 3    | Tools present but not authenticated (when auth is required)  |
 
 ### CI Examples
 
 **GitHub Actions:**
+
 ```yaml
 jobs:
   check-tools:
@@ -215,6 +222,7 @@ jobs:
 ```
 
 **GitLab CI:**
+
 ```yaml
 check-tools:
   script:
@@ -223,6 +231,7 @@ check-tools:
 ```
 
 **Shell Script:**
+
 ```bash
 #!/bin/bash
 if ! sindri doctor --ci --provider fly; then
@@ -240,6 +249,7 @@ sindri doctor --ci --format json | jq '.overall_status'
 ```
 
 Example JSON output:
+
 ```json
 {
   "platform": {
@@ -323,6 +333,7 @@ sindri doctor --check-extensions
 ```
 
 Output:
+
 ```
 Extension Tool Checks
 ────────────────────────────────────
@@ -347,6 +358,7 @@ sindri doctor --extension my-extension
 ### Initial Setup
 
 Check everything before first use:
+
 ```bash
 sindri doctor --all --check-auth
 ```
@@ -354,6 +366,7 @@ sindri doctor --all --check-auth
 ### Before Deployment
 
 Verify provider tools are ready:
+
 ```bash
 # For Docker deployments
 sindri doctor --provider docker --check-auth
@@ -368,6 +381,7 @@ sindri doctor --provider k8s --check-auth
 ### Troubleshooting Failures
 
 Get verbose output with timing:
+
 ```bash
 sindri doctor --all --verbose-output
 ```
@@ -375,6 +389,7 @@ sindri doctor --all --verbose-output
 ### Automated Environment Setup
 
 Non-interactive installation of missing tools:
+
 ```bash
 sindri doctor --all --fix --yes
 ```
@@ -382,6 +397,7 @@ sindri doctor --all --fix --yes
 ### Extension Development
 
 Check tools needed by your extension:
+
 ```bash
 sindri doctor --extension my-new-extension
 ```
@@ -397,11 +413,13 @@ sindri doctor --extension my-new-extension
 ### Version Too Old
 
 The doctor command compares versions using semver. If you see "version too old":
+
 ```
 ⚠ Docker 19.03.0 - version too old (required: 20.10.0+)
 ```
 
 Upgrade the tool using your package manager:
+
 ```bash
 # macOS
 brew upgrade docker
@@ -413,6 +431,7 @@ sudo apt-get update && sudo apt-get upgrade docker-ce
 ### Authentication Failed
 
 For tools showing "not authenticated":
+
 ```
   ✓ Fly CLI 0.1.130 - (not authenticated)
       Authenticate: flyctl auth login
@@ -423,6 +442,7 @@ Run the suggested authentication command and try again.
 ### Check Timeout
 
 Tool checks have a 5-second timeout. If a check times out:
+
 - Verify the tool is working correctly
 - Check for network issues (some auth checks require network)
 - Try running the tool manually
@@ -430,11 +450,13 @@ Tool checks have a 5-second timeout. If a check times out:
 ### Extension Not Found
 
 If `--extension <name>` fails:
+
 ```
 Error: Extension 'my-extension' not found
 ```
 
 Verify the extension is installed in `~/.sindri/extensions/`:
+
 ```bash
 ls ~/.sindri/extensions/
 ```
