@@ -1,8 +1,14 @@
-# GitHub Actions Workflow Architecture
+# GitHub Actions CI/CD & Workflow Architecture
 
 ## Overview
 
-This document describes the YAML-driven GitHub Actions workflow architecture for Sindri.
+This document describes the CI/CD pipeline and YAML-driven workflow architecture for Sindri v2 (Bash/Docker) and v3 (Rust).
+
+Sindri maintains two parallel versions with independent CI/CD pipelines:
+
+- **v2**: Bash/Docker-based CLI (stable, production-ready)
+- **v3**: Rust-based CLI (in active development)
+
 The architecture follows a configuration-first approach where `sindri.yaml` files drive all testing and deployment.
 
 ## Architecture Principles
@@ -46,9 +52,11 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │
 ├── scripts/                      # Scripts and utilities
 │   ├── generate-slack-notification.sh  # Slack message generator
+│   ├── calculate-profile-resources.sh  # Profile resource calculation
+│   ├── lib/test-helpers.sh       # Shared test utilities
 │   └── providers/                # Provider-specific scripts
 │
-└── WORKFLOW_ARCHITECTURE.md      # This document
+└── dependabot.yml                # Dependency updates
 
 examples/                         # Test fixtures AND user examples
 ├── fly/
@@ -72,29 +80,33 @@ v2/test/                          # v2 Test suites
 └── e2b/                          # E2B provider tests
 ```
 
-## Workflows
+## Path-Based Triggers
 
-### CI Workflows (`ci-v2.yml`, `ci-v3.yml`)
+| Changed Path                  | Triggers         | Example                                 |
+| ----------------------------- | ---------------- | --------------------------------------- |
+| `v2/**`                       | `ci-v2.yml`      | Changes to v2 code, scripts, extensions |
+| `v3/**`                       | `ci-v3.yml`      | Changes to v3 Rust code, extensions     |
+| `.github/workflows/ci-v2.yml` | `ci-v2.yml`      | Self-trigger for workflow changes       |
+| `.github/workflows/ci-v3.yml` | `ci-v3.yml`      | Self-trigger for workflow changes       |
+| `.github/actions/v2/**`       | `ci-v2.yml`      | v2 action changes                       |
+| `.github/actions/v3/**`       | `ci-v3.yml`      | v3 action changes                       |
+| `.github/actions/shared/**`   | Both             | Shared action changes affect both       |
+| `package.json`                | `ci-v2.yml`      | Root tooling affects v2 validation      |
+| Tags `v2.*.*`                 | `release-v2.yml` | v2 release trigger                      |
+| Tags `v3.*.*`                 | `release-v3.yml` | v3 release trigger                      |
 
-Sindri uses bifurcated CI pipelines for v2 and v3:
+## CI Workflows
 
-**ci-v2.yml** - v2 Bash/Docker CI:
+### ci-v2.yml - v2 Bash/Docker CI
 
-- Validates shell scripts (shellcheck)
-- Validates markdown (markdownlint)
-- Builds Docker images
-- Runs unified provider tests via `test-provider.yml`
+**Triggers**: Changes to `v2/` directory
 
-**ci-v3.yml** - v3 Rust CI:
+**Jobs**:
 
-- Rust formatting (`cargo fmt`)
-- Clippy linting (`cargo clippy`)
-- Unit tests (`cargo test`)
-- Release build (`cargo build --release`)
-- Security audit (`cargo audit`)
-- Documentation build (`cargo doc`)
-
-**Note:** YAML/schema validation is handled exclusively by `validate-yaml.yml`, not by the CI workflows.
+- **build**: Docker image from `v2/Dockerfile`
+- **generate-matrix**: Provider test matrix
+- **test-providers**: Unified provider testing
+- **ci-required/ci-status**: Status gates
 
 **Key Design Principle:** Each provider receives identical test coverage:
 
@@ -110,17 +122,32 @@ FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
       └─> Cleanup
 ```
 
-**Triggers:**
+### ci-v3.yml - v3 Rust CI
 
-- Push to main/develop/feature branches (path-filtered)
-- Pull requests (path-filtered)
-- Manual dispatch with provider selection
+**Triggers**: Changes to `v3/` directory
 
-### Validation Workflows
+**Jobs**:
 
-Validation is handled by dedicated workflows, not by the CI workflows:
+- **rust-format**: `cargo fmt --check`
+- **rust-clippy**: `cargo clippy` linting
+- **rust-test**: `cargo test` unit tests
+- **rust-build**: Release build
+- **security-audit**: `cargo audit`
+- **docs-build**: `cargo doc`
+- **test-extensions**: Extension validation
+- **ci-required/ci-status**: Status gates
 
-#### YAML Validation (`validate-yaml.yml`)
+## Validation Workflows
+
+Validation is handled by dedicated workflows (not by ci-\* workflows):
+
+| Workflow                | Triggers            | Purpose                                           |
+| ----------------------- | ------------------- | ------------------------------------------------- |
+| `validate-yaml.yml`     | `**.yaml`, `**.yml` | YAML linting, schema validation, cross-references |
+| `validate-shell.yml`    | `**.sh`             | Shellcheck for v2 and GitHub scripts              |
+| `validate-markdown.yml` | `**.md`             | Markdownlint for v2, v3, and root docs            |
+
+### YAML Validation (`validate-yaml.yml`)
 
 Comprehensive YAML validation for both v2 and v3:
 
@@ -136,7 +163,7 @@ Comprehensive YAML validation for both v2 and v3:
 - Cross-reference validation (profiles → registry → extensions → categories)
 - Extension consistency checks
 
-#### Shell Validation (`validate-shell.yml`)
+### Shell Validation (`validate-shell.yml`)
 
 Shell script validation using shellcheck:
 
@@ -145,7 +172,7 @@ Shell script validation using shellcheck:
 - Skips zsh scripts (shellcheck doesn't support zsh)
 - Triggers on changes to `**.sh` files
 
-#### Markdown Validation (`validate-markdown.yml`)
+### Markdown Validation (`validate-markdown.yml`)
 
 Markdown validation using markdownlint:
 
@@ -153,6 +180,72 @@ Markdown validation using markdownlint:
 - **markdownlint-v3**: Validates `v3/**/*.md`
 - **markdownlint-root**: Validates root and `.github/**/*.md`
 - Triggers on changes to `**.md` files
+
+## Release Workflows
+
+### release-v2.yml - v2 Docker Releases
+
+**Trigger**: Git tags matching `v2.*.*` (e.g., `v2.3.0`, `v2.3.1-beta.1`)
+
+**Process**:
+
+1. Validate tag format (`v2.x.y`)
+2. Generate changelog from `v2/` commits
+3. Build Docker image from `v2/Dockerfile`
+4. Push to GHCR with tags:
+   - `ghcr.io/pacphi/sindri:v2.3.0`
+   - `ghcr.io/pacphi/sindri:v2.3`
+   - `ghcr.io/pacphi/sindri:v2`
+   - `ghcr.io/pacphi/sindri:latest` (for stable releases)
+5. Update `v2/cli/VERSION` and `v2/CHANGELOG.md`
+6. Create GitHub release with install script
+7. Commit version updates to main branch
+
+**Creating a v2 Release**:
+
+```bash
+# Create and push tag
+git tag v2.3.0
+git push origin v2.3.0
+
+# Or with message
+git tag -a v2.3.0 -m "Release v2.3.0"
+git push origin v2.3.0
+```
+
+### release-v3.yml - v3 Rust Binary Releases
+
+**Trigger**: Git tags matching `v3.*.*` (e.g., `v3.0.0`, `v3.1.0-alpha.1`)
+
+**Process**:
+
+1. Validate tag format (`v3.x.y`)
+2. Generate changelog from `v3/` commits
+3. Build release binaries for multiple platforms:
+   - Linux (x86_64, aarch64)
+   - macOS (x86_64, aarch64/Apple Silicon)
+   - Windows (x86_64)
+4. Create release archives:
+   - `.tar.gz` for Unix platforms
+   - `.zip` for Windows
+5. Update `v3/Cargo.toml` version and `v3/CHANGELOG.md`
+6. Create GitHub release with binary assets
+7. Include smart install script (auto-detects platform)
+8. Commit version updates to main branch
+
+**Creating a v3 Release**:
+
+```bash
+# Create and push tag
+git tag v3.0.0
+git push origin v3.0.0
+
+# Or with message
+git tag -a v3.0.0 -m "Release v3.0.0 - First Rust release"
+git push origin v3.0.0
+```
+
+## Testing Workflows
 
 ### Extension Testing Workflow (`test-extensions-v2.yml`)
 
@@ -192,79 +285,6 @@ Config-driven testing for sindri.yaml files:
     config-path: examples/fly/
     test-level: quick
 ```
-
-### Deploy Workflow (`deploy-sindri.yml`)
-
-Reusable deployment accepting only a config file:
-
-```yaml
-- uses: ./.github/workflows/deploy-sindri.yml
-  with:
-    config-path: examples/fly/minimal.sindri.yaml
-```
-
-### Teardown Workflow (`teardown-sindri.yml`)
-
-Reusable cleanup accepting only a config file:
-
-```yaml
-- uses: ./.github/workflows/teardown-sindri.yml
-  with:
-    config-path: examples/fly/minimal.sindri.yaml
-    force: true
-```
-
-### Manual Deploy vs Deploy Sindri: When to Use Each
-
-Two deployment workflows serve different use cases:
-
-| Aspect                   | `manual-deploy.yml`                        | `deploy-sindri.yml`                              |
-| ------------------------ | ------------------------------------------ | ------------------------------------------------ |
-| **Trigger**              | `workflow_dispatch` only (human-initiated) | `workflow_call` + `workflow_dispatch` (reusable) |
-| **Configuration Source** | Generates `sindri.yaml` from UI inputs     | Reads existing `sindri.yaml` file from path      |
-| **Design Pattern**       | Monolithic, self-contained                 | Reusable building block                          |
-| **Lines of Code**        | ~400                                       | ~130                                             |
-
-**Input Approach:**
-
-- **manual-deploy**: UI-driven with extensive options (provider, environment, VM size, region, extension profile, auto-cleanup, test toggles, Slack notifications). Includes provider-specific size/region mapping logic.
-- **deploy-sindri**: Single input (`config-path`). All deployment parameters come from the YAML file itself.
-
-**Job Structure:**
-
-- **manual-deploy** (7 jobs): validate-inputs → build-image → deploy → test-deployment → schedule-cleanup → notify → summary
-- **deploy-sindri** (1 job): parse config → deploy
-
-**Provider Handling:**
-
-```yaml
-# manual-deploy: Uses composite actions
-- uses: ./.github/actions/providers/fly/setup
-- uses: ./.github/actions/providers/fly/deploy
-
-# deploy-sindri: Direct CLI calls
-./v2/cli/sindri deploy --config "$CONFIG" --provider fly
-```
-
-**When to Use Each:**
-
-| Use Case                                      | Recommended Workflow            |
-| --------------------------------------------- | ------------------------------- |
-| One-off manual deployments with UI            | `manual-deploy`                 |
-| CI/CD pipeline integration                    | `deploy-sindri`                 |
-| Calling from other workflows                  | `deploy-sindri` (workflow_call) |
-| Complex deployment with tests + notifications | `manual-deploy`                 |
-| Simple "deploy this config file"              | `deploy-sindri`                 |
-
-**Trade-offs:**
-
-| `manual-deploy`                                        | `deploy-sindri`                                       |
-| ------------------------------------------------------ | ----------------------------------------------------- |
-| ✅ Rich UI with sensible defaults                      | ✅ Config-as-code (sindri.yaml is source of truth)    |
-| ✅ Built-in testing, cleanup scheduling, notifications | ✅ Reusable from other workflows                      |
-| ✅ Provider-specific size/region mapping               | ✅ Simpler, easier to maintain                        |
-| ❌ Harder to version control (inputs are ephemeral)    | ❌ No built-in extras (tests, notifications, cleanup) |
-| ❌ More complex, more maintenance                      | ❌ Less provider-specific intelligence in workflow    |
 
 ### Provider Test Workflow (`test-provider.yml`)
 
@@ -423,6 +443,81 @@ The `sindri.yaml` file specifies the extension profile to deploy:
 extensions:
   profile: fullstack # Uses profile from v2/docker/lib/profiles.yaml
 ```
+
+## Deployment Workflows
+
+### Deploy Workflow (`deploy-sindri.yml`)
+
+Reusable deployment accepting only a config file:
+
+```yaml
+- uses: ./.github/workflows/deploy-sindri.yml
+  with:
+    config-path: examples/fly/minimal.sindri.yaml
+```
+
+### Teardown Workflow (`teardown-sindri.yml`)
+
+Reusable cleanup accepting only a config file:
+
+```yaml
+- uses: ./.github/workflows/teardown-sindri.yml
+  with:
+    config-path: examples/fly/minimal.sindri.yaml
+    force: true
+```
+
+### Manual Deploy vs Deploy Sindri: When to Use Each
+
+Two deployment workflows serve different use cases:
+
+| Aspect                   | `manual-deploy.yml`                        | `deploy-sindri.yml`                              |
+| ------------------------ | ------------------------------------------ | ------------------------------------------------ |
+| **Trigger**              | `workflow_dispatch` only (human-initiated) | `workflow_call` + `workflow_dispatch` (reusable) |
+| **Configuration Source** | Generates `sindri.yaml` from UI inputs     | Reads existing `sindri.yaml` file from path      |
+| **Design Pattern**       | Monolithic, self-contained                 | Reusable building block                          |
+| **Lines of Code**        | ~400                                       | ~130                                             |
+
+**Input Approach:**
+
+- **manual-deploy**: UI-driven with extensive options (provider, environment, VM size, region, extension profile, auto-cleanup, test toggles, Slack notifications). Includes provider-specific size/region mapping logic.
+- **deploy-sindri**: Single input (`config-path`). All deployment parameters come from the YAML file itself.
+
+**Job Structure:**
+
+- **manual-deploy** (7 jobs): validate-inputs → build-image → deploy → test-deployment → schedule-cleanup → notify → summary
+- **deploy-sindri** (1 job): parse config → deploy
+
+**Provider Handling:**
+
+```yaml
+# manual-deploy: Uses composite actions
+- uses: ./.github/actions/providers/fly/setup
+- uses: ./.github/actions/providers/fly/deploy
+
+# deploy-sindri: Direct CLI calls
+./v2/cli/sindri deploy --config "$CONFIG" --provider fly
+```
+
+**When to Use Each:**
+
+| Use Case                                      | Recommended Workflow            |
+| --------------------------------------------- | ------------------------------- |
+| One-off manual deployments with UI            | `manual-deploy`                 |
+| CI/CD pipeline integration                    | `deploy-sindri`                 |
+| Calling from other workflows                  | `deploy-sindri` (workflow_call) |
+| Complex deployment with tests + notifications | `manual-deploy`                 |
+| Simple "deploy this config file"              | `deploy-sindri`                 |
+
+**Trade-offs:**
+
+| `manual-deploy`                                        | `deploy-sindri`                                       |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| ✅ Rich UI with sensible defaults                      | ✅ Config-as-code (sindri.yaml is source of truth)    |
+| ✅ Built-in testing, cleanup scheduling, notifications | ✅ Reusable from other workflows                      |
+| ✅ Provider-specific size/region mapping               | ✅ Simpler, easier to maintain                        |
+| ❌ Harder to version control (inputs are ephemeral)    | ❌ No built-in extras (tests, notifications, cleanup) |
+| ❌ More complex, more maintenance                      | ❌ Less provider-specific intelligence in workflow    |
 
 ## Scripts Directory
 
@@ -606,6 +701,207 @@ k8s-use-kind: "true"
 k8s-use-kind: "false"
 ```
 
+## Dependabot Configuration
+
+Automated dependency updates for all ecosystems:
+
+```yaml
+# Root npm (tooling)
+- package-ecosystem: "npm"
+  directory: "/"
+  schedule: weekly
+  labels: ["dependencies", "tooling"]
+
+# v2 extensions npm
+- package-ecosystem: "npm"
+  directory: "/v2/docker/lib/extensions"
+  schedule: weekly
+  labels: ["dependencies", "v2", "extensions"]
+
+# v3 Cargo workspace
+- package-ecosystem: "cargo"
+  directory: "/v3"
+  schedule: weekly
+  labels: ["dependencies", "v3"]
+  groups: workspace-dependencies
+
+# Docker (v2)
+- package-ecosystem: "docker"
+  directory: "/v2"
+  schedule: weekly
+  labels: ["dependencies", "v2"]
+
+# GitHub Actions
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule: monthly
+  labels: ["dependencies", "ci"]
+```
+
+## Package.json Scripts
+
+All scripts are version-prefixed to avoid confusion:
+
+**v2 Commands**:
+
+```bash
+pnpm v2:validate        # Validate v2 code
+pnpm v2:lint            # Lint v2 code
+pnpm v2:test            # Run v2 tests
+pnpm v2:build           # Build v2 Docker image
+pnpm v2:deploy          # Deploy v2
+pnpm v2:ci              # Run v2 CI locally
+```
+
+**v3 Commands**:
+
+```bash
+pnpm v3:validate        # Validate v3 code (Rust + YAML)
+pnpm v3:lint            # Lint v3 code
+pnpm v3:test            # Run v3 tests (cargo test)
+pnpm v3:build           # Build v3 binaries (cargo build --release)
+pnpm v3:clippy          # Run clippy linter
+pnpm v3:fmt             # Check Rust formatting
+pnpm v3:audit           # Security audit
+pnpm v3:ci              # Run v3 CI locally
+```
+
+**Shared Commands** (apply to both versions):
+
+```bash
+pnpm format             # Format all files (prettier)
+pnpm links:check        # Check markdown links
+pnpm deps:check         # Check for dependency updates
+pnpm audit              # Security audit (npm)
+```
+
+## Branch Protection
+
+Recommended branch protection rules for `main`:
+
+**Status Checks Required**:
+
+- `CI v2 Required Checks` (from ci-v2.yml)
+- `CI v3 Required Checks` (from ci-v3.yml)
+
+**Settings**:
+
+- Require pull request reviews (1 approver)
+- Require status checks to pass
+- Require branches to be up to date
+- Include administrators
+
+## Common Tasks
+
+### Running CI Locally
+
+**v2**:
+
+```bash
+# Full v2 CI
+pnpm v2:ci
+
+# Individual steps
+pnpm v2:validate
+pnpm v2:lint
+pnpm v2:test
+pnpm v2:build
+```
+
+**v3**:
+
+```bash
+# Full v3 CI
+pnpm v3:ci
+
+# Individual steps
+pnpm v3:validate
+pnpm v3:lint
+pnpm v3:test
+pnpm v3:build
+```
+
+### Creating Releases
+
+**v2 Release**:
+
+```bash
+# Update version in v2/cli/VERSION if needed
+echo "2.3.0" > v2/cli/VERSION
+
+# Commit changes
+git add v2/
+git commit -m "chore(v2): prepare for v2.3.0 release"
+
+# Tag and push
+git tag v2.3.0
+git push origin main v2.3.0
+```
+
+**v3 Release**:
+
+```bash
+# Update version in v3/Cargo.toml (workspace.package.version)
+sed -i 's/version = ".*"/version = "3.0.0"/' v3/Cargo.toml
+
+# Commit changes
+git add v3/
+git commit -m "chore(v3): prepare for v3.0.0 release"
+
+# Tag and push
+git tag v3.0.0
+git push origin main v3.0.0
+```
+
+### Debugging Failed Workflows
+
+1. **Check the logs**: Click on the failed job in GitHub Actions
+2. **Run locally**: Use `pnpm v2:ci` or `pnpm v3:ci`
+3. **Manual trigger**: Use workflow_dispatch with custom options
+4. **Skip cleanup**: Enable "skip-cleanup" option to inspect state
+
+### Adding New Actions
+
+**For v2**:
+
+```bash
+mkdir -p .github/actions/v2/my-action
+# Create action.yml
+# Reference in ci-v2.yml
+```
+
+**For v3**:
+
+```bash
+mkdir -p .github/actions/v3/my-action
+# Create action.yml
+# Reference in ci-v3.yml
+```
+
+**Shared**:
+
+```bash
+mkdir -p .github/actions/shared/my-action
+# Create action.yml
+# Reference in both ci-v2.yml and ci-v3.yml
+```
+
+## Extension Management
+
+### v2 Extensions
+
+**Location**: `v2/docker/lib/extensions/`
+**Registry**: `v2/docker/lib/registry.yaml`
+**Includes**: All extensions, including VisionFlow (vf-\* prefixed)
+
+### v3 Extensions
+
+**Location**: `v3/extensions/`
+**Registry**: `v3/registry.yaml`
+**Excludes**: VisionFlow extensions (clean break from v2)
+
+**Migrated**: 44 extensions from v2 (excluding 33 vf-\* extensions)
+
 ## Usage Examples
 
 ### Test All Config Examples (test-profiles.yml)
@@ -693,6 +989,29 @@ Extensions are automatically tested via `test-extensions-v2.yml`:
    - Increase `timeout-minutes` in workflow
    - Check provider resource limits
 
+4. **CI Not Triggering**
+   - Check path patterns: Ensure changed files match path triggers in workflow `on.paths`
+
+```yaml
+# ci-v2.yml triggers on:
+- v2/**
+- .github/workflows/ci-v2.yml
+- .github/actions/v2/**
+```
+
+5. **Both v2 and v3 CI Running**
+   - This is expected if you change files in both directories or shared actions
+
+6. **Release Tag Format Error**
+   - **Error**: "Invalid tag format"
+   - **Solution**: Use correct format:
+     - v2 releases: `v2.x.y` (e.g., v2.3.0, v2.3.1-beta.1)
+     - v3 releases: `v3.x.y` (e.g., v3.0.0, v3.1.0-alpha.1)
+
+7. **Cache Issues**
+   - **Clear cache**: Go to Actions → Caches → Delete cache
+   - **Or**: Push with `[skip ci]` in commit message, then push again
+
 ### Debug Mode
 
 ```bash
@@ -701,7 +1020,19 @@ export DEBUG=true
 ./v2/cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
 ```
 
-## References
+## Future Enhancements
 
+1. **v3 Extension Testing**: Once v3 CLI is functional, enable extension tests
+2. **Cross-version Testing**: Test v2 → v3 migration scenarios
+3. **Performance Benchmarks**: Compare v2 and v3 performance
+4. **Automated Migration Tool**: Help users migrate from v2 to v3
+5. **Feature Parity Dashboard**: Track v2 vs v3 capabilities
+
+## Related Documentation
+
+- [ADR-021: Bifurcated CI/CD v2 and v3](../v3/docs/architecture/adr/021-bifurcated-ci-cd-v2-v3.md)
+- [v2 Documentation](../v2/docs/)
+- [v3 Documentation](../v3/docs/)
+- [Contributing Guide](../CONTRIBUTING.md)
 - [Testing Guide](../docs/TESTING.md)
 - [Examples README](../examples/README.md)
