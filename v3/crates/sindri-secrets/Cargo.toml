@@ -38,6 +38,6 @@ rand = "0.8"
 chrono = { workspace = true }
 
 [dev-dependencies]
-mockall = "0.12"
+mockall = "0.14"
 tempfile = "3.24"
 tokio-test = "0.4"
