@@ -180,8 +180,8 @@ FROM ubuntu:${UBUNTU_VERSION}
 # ------------------------------------------------------------------------------
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEVELOPER_USER=developer
-ARG DEVELOPER_UID=1000
-ARG DEVELOPER_GID=1000
+ARG DEVELOPER_UID=1001
+ARG DEVELOPER_GID=1001
 ARG ALT_HOME=/alt/home/developer
 ARG WORKSPACE=${ALT_HOME}/workspace
 ARG SSH_PORT=2222
