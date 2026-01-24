@@ -107,3 +107,5 @@ Install development tools declaratively using profiles or individual extensions.
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+![Sindri at his forge](sindri.png)
