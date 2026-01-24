@@ -75,6 +75,12 @@ setup_home_directory() {
         mkdir -p "${WORKSPACE}"/{projects,config,scripts,bin}
         mkdir -p "${SINDRI_HOME}"/{extensions,cache,state,logs}
 
+        # Create temp directory on persistent volume (Claude Code plugin compatibility)
+        # Required to prevent EXDEV cross-device link error during plugin installation
+        # fs.rename() cannot cross filesystem boundaries (/tmp is tmpfs, ~/.claude is on volume)
+        # See: https://github.com/anthropics/claude-code/issues/14799
+        mkdir -p "${ALT_HOME}/.cache/tmp"
+
         # Copy skeleton files from /etc/skel
         if [[ -d "$SKEL_DIR" ]]; then
             cp -rn "$SKEL_DIR/." "${ALT_HOME}/" 2>/dev/null || true
@@ -85,6 +91,12 @@ setup_home_directory() {
         if [[ ! -f "${ALT_HOME}/.bashrc" ]]; then
             cat > "${ALT_HOME}/.bashrc" << 'EOF'
 # ~/.bashrc: executed by bash for non-login shells
+
+# Claude Code plugin compatibility - set TMPDIR before interactive check
+# Required to prevent EXDEV cross-device link error during plugin installation
+# fs.rename() cannot cross filesystem boundaries (/tmp is tmpfs, ~/.claude is on volume)
+# See: https://github.com/anthropics/claude-code/issues/14799
+export TMPDIR="${HOME}/.cache/tmp"
 
 # If not running interactively, don't do anything
 case $- in

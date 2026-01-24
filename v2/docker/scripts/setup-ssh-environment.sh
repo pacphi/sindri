@@ -117,4 +117,19 @@ EOF
 chmod +x "$MISE_ENV_FILE"
 echo "  Created mise environment config: $MISE_ENV_FILE"
 
+# Create TMPDIR configuration for Claude Code plugin compatibility
+# Prevents EXDEV error by keeping temp files on same filesystem as ~/.claude
+# See: https://github.com/anthropics/claude-code/issues/14799
+TMPDIR_FILE="$PROFILE_D_DIR/sindri-tmpdir.sh"
+echo "  Creating TMPDIR configuration for Claude Code..."
+cat > "$TMPDIR_FILE" << EOF
+# Claude Code plugin compatibility
+# Set TMPDIR to persistent volume to avoid EXDEV cross-device link errors
+# when installing plugins (fs.rename() cannot cross filesystem boundaries)
+# See: https://github.com/anthropics/claude-code/issues/14799
+export TMPDIR="${ALT_HOME}/.cache/tmp"
+EOF
+chmod +x "$TMPDIR_FILE"
+echo "  Created TMPDIR config: $TMPDIR_FILE"
+
 echo "SSH environment configured successfully"

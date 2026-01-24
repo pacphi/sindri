@@ -267,6 +267,10 @@ COPY v3/docker/config/developer-sudoers /etc/sudoers.d/${DEVELOPER_USER}
 RUN chmod 0440 /etc/sudoers.d/${DEVELOPER_USER} && \
     chmod 644 /etc/ssh/sshd_config
 
+# Configure SSH environment for login shells (TMPDIR for Claude Code plugins)
+COPY v3/docker/scripts/setup-ssh-environment.sh /tmp/
+RUN bash /tmp/setup-ssh-environment.sh && rm /tmp/setup-ssh-environment.sh
+
 # ------------------------------------------------------------------------------
 # Install mise (Tool Version Manager)
 # ------------------------------------------------------------------------------

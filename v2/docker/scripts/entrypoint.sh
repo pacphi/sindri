@@ -72,6 +72,12 @@ setup_home_directory() {
         mkdir -p "${WORKSPACE}"/{projects,config,scripts,bin}
         mkdir -p "${WORKSPACE}/.system"/{manifest,installed,logs}
 
+        # Create temp directory on persistent volume (Claude Code plugin compatibility)
+        # Required to prevent EXDEV cross-device link error during plugin installation
+        # fs.rename() cannot cross filesystem boundaries (/tmp is tmpfs, ~/.claude is on volume)
+        # See: https://github.com/anthropics/claude-code/issues/14799
+        mkdir -p "${ALT_HOME}/.cache/tmp"
+
         # Copy skeleton files from /etc/skel
         if [[ -d "$SKEL_DIR" ]]; then
             cp -rn "$SKEL_DIR/." "${ALT_HOME}/" 2>/dev/null || true
@@ -366,6 +372,12 @@ HEADER
             ((secrets_written++)) || true
         fi
     done < <(env)
+
+    # Always propagate TMPDIR for Claude Code plugin compatibility
+    # This ensures TMPDIR is set in all login shells (SSH, su - user)
+    # Required to prevent EXDEV cross-device link error during plugin installation
+    # See: https://github.com/anthropics/claude-code/issues/14799
+    echo "export TMPDIR=\"${ALT_HOME}/.cache/tmp\"" >> "$secrets_file"
 
     chmod 644 "$secrets_file"
 
