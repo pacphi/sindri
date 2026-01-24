@@ -40,20 +40,13 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │   │   ├── setup-rust/           # Rust toolchain setup with caching
 │   │   └── build-rust/           # Rust workspace build
 │   ├── shared/                   # Shared actions
-│   ├── core/                     # Core functionality
-│   │   ├── setup-sindri/         # Environment setup, config parsing
-│   │   ├── build-image/          # Docker image building with caching
-│   │   └── test-v2/cli/          # CLI command testing
 │   └── providers/                # Provider-specific actions
 │       ├── fly/                  # Fly.io (setup, deploy, test, cleanup)
 │       └── devpod/               # DevPod (setup, deploy, test, cleanup)
 │
-├── scripts/                      # Test scripts and utilities
-│   ├── calculate-profile-resources.sh  # Profile resource calculator
+├── scripts/                      # Scripts and utilities
 │   ├── generate-slack-notification.sh  # Slack message generator
-│   └── lib/
-│       ├── test-helpers.sh       # Shared test functions
-│       └── assertions.sh         # Test assertion functions
+│   └── providers/                # Provider-specific scripts
 │
 └── WORKFLOW_ARCHITECTURE.md      # This document
 
@@ -73,10 +66,10 @@ examples/                         # Test fixtures AND user examples
 │   └── kubernetes/               # K8s examples (uses kind in CI if no KUBECONFIG)
 └── profiles/
 
-test/                             # Test suites
+v2/test/                          # v2 Test suites
 ├── unit/
 │   └── yaml/                     # YAML validation tests
-└── integration/                  # Integration tests
+└── e2b/                          # E2B provider tests
 ```
 
 ## Workflows

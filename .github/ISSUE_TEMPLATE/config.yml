@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: FAQ
+    url: https://sindri-faq.fly.dev
+    about: Check the FAQ for common questions and answers
+  - name: V2 Documentation
+    url: https://github.com/pacphi/sindri/tree/main/v2/docs
+    about: V2 (Bash/Docker) documentation
+  - name: V3 Documentation
+    url: https://github.com/pacphi/sindri/tree/main/v3/docs
+    about: V3 (Rust CLI) documentation and ADRs
+  - name: Contributing Guide
+    url: https://github.com/pacphi/sindri/blob/main/docs/CONTRIBUTING.md
+    about: How to contribute to Sindri

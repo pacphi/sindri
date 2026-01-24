@@ -1,6 +1,6 @@
 # ADR 020: S3-Compatible Encrypted Secret Storage
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-01-21
 **Related**: [ADR-015: Secrets Resolver](015-secrets-resolver-core-architecture.md), [ADR-019: Phase 5 Integration](019-phase-5-secrets-backup-integration.md)
 

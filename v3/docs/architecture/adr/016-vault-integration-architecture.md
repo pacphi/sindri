@@ -1,6 +1,6 @@
 # ADR 016: HashiCorp Vault Integration Architecture
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-01-21
 **Deciders**: Core Team
 **Phase**: Phase 5 - Secrets Management

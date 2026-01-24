@@ -225,6 +225,10 @@ hive-mind-prompt-*.txt
 memory/
 .swarm/
 
+# Agentic QE
+.aqe/
+.agentic-qe/
+
 # DevContainer
 .devcontainer/
 

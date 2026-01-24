@@ -1,6 +1,6 @@
 # ADR 015: Secrets Resolver Core Architecture
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-01-21
 **Deciders**: Core Team
 **Related**: [ADR-001: Rust Migration](001-rust-migration-workspace-architecture.md), [ADR-002: Provider Abstraction](002-provider-abstraction-layer.md), [ADR-004: Async Runtime](004-async-runtime-command-execution.md)

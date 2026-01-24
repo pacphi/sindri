@@ -1,7 +1,8 @@
 # Sindri
 
 [![License](https://img.shields.io/github/license/pacphi/sindri)](LICENSE)
-[![CI](https://github.com/pacphi/sindri/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci.yml)
+[![CI V2](https://github.com/pacphi/sindri/actions/workflows/ci-v2.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci-v2.yml)
+[![CI V3](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml)
 [![FAQ](https://img.shields.io/badge/FAQ-on%20fly.dev-blue)](https://sindri-faq.fly.dev)
 [![GHCR](https://img.shields.io/badge/GHCR-container%20registry-blue)](https://github.com/pacphi/sindri/pkgs/container/sindri)
 [![Security](https://img.shields.io/badge/Security-Cosign%20%2B%20SBOM-green)](v3/docs/image-management.md#security)

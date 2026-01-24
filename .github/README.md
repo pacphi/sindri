@@ -33,9 +33,8 @@ For detailed workflow architecture, test suites, and provider configuration, see
 │   └── cleanup-workflow-runs.yml  # Workflow run cleanup
 ├── actions/
 │   ├── v2/                    # v2-specific actions
-│   ├── v3/                    # v3-specific actions
+│   ├── v3/                    # v3-specific actions (setup-rust, build-rust)
 │   ├── shared/                # Shared actions
-│   ├── core/                  # Core functionality (setup, build, test)
 │   └── providers/             # Provider-specific actions (fly, devpod)
 └── dependabot.yml             # Dependency updates
 ```
