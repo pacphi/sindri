@@ -86,6 +86,10 @@ pub enum Commands {
     /// Container image management
     #[command(subcommand)]
     Image(ImageCommands),
+
+    /// Build VM images with HashiCorp Packer
+    #[command(subcommand)]
+    Packer(PackerCommands),
 }
 
 // Version command
@@ -814,6 +818,198 @@ pub struct ImageVersionsArgs {
 
 #[derive(Args, Debug)]
 pub struct ImageCurrentArgs {
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+// Packer commands for VM image building
+#[derive(Subcommand, Debug)]
+pub enum PackerCommands {
+    /// Build a VM image
+    Build(PackerBuildArgs),
+
+    /// Validate a Packer template
+    Validate(PackerValidateArgs),
+
+    /// List built images
+    List(PackerListArgs),
+
+    /// Delete a VM image
+    Delete(PackerDeleteArgs),
+
+    /// Check Packer prerequisites
+    Doctor(PackerDoctorArgs),
+
+    /// Initialize Packer configuration
+    Init(PackerInitArgs),
+
+    /// Deploy an instance from an image
+    Deploy(PackerDeployArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct PackerBuildArgs {
+    /// Target cloud provider (aws, azure, gcp, oci, alibaba)
+    #[arg(short, long)]
+    pub cloud: String,
+
+    /// Image name prefix
+    #[arg(short, long)]
+    pub name: Option<String>,
+
+    /// Sindri version to install in image
+    #[arg(long, default_value = "latest")]
+    pub sindri_version: String,
+
+    /// Extension profile to install
+    #[arg(long)]
+    pub profile: Option<String>,
+
+    /// Additional extensions to install (comma-separated)
+    #[arg(long)]
+    pub extensions: Option<String>,
+
+    /// Cloud region
+    #[arg(short, long)]
+    pub region: Option<String>,
+
+    /// Instance type / VM size
+    #[arg(long)]
+    pub instance_type: Option<String>,
+
+    /// Disk size in GB
+    #[arg(long)]
+    pub disk_size: Option<u32>,
+
+    /// Enable CIS security hardening
+    #[arg(long)]
+    pub cis_hardening: bool,
+
+    /// Force rebuild even if cached image exists
+    #[arg(short, long)]
+    pub force: bool,
+
+    /// Dry run - generate template without building
+    #[arg(long)]
+    pub dry_run: bool,
+
+    /// Enable debug output
+    #[arg(long)]
+    pub debug: bool,
+
+    /// Path to variable file
+    #[arg(long)]
+    pub var_file: Option<camino::Utf8PathBuf>,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct PackerValidateArgs {
+    /// Target cloud provider
+    #[arg(short, long)]
+    pub cloud: String,
+
+    /// Image name prefix
+    #[arg(short, long)]
+    pub name: Option<String>,
+
+    /// Sindri version
+    #[arg(long, default_value = "latest")]
+    pub sindri_version: String,
+
+    /// Syntax check only
+    #[arg(long)]
+    pub syntax_only: bool,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct PackerListArgs {
+    /// Target cloud provider
+    #[arg(short, long)]
+    pub cloud: String,
+
+    /// Filter by name prefix
+    #[arg(short, long)]
+    pub name: Option<String>,
+
+    /// Cloud region
+    #[arg(short, long)]
+    pub region: Option<String>,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct PackerDeleteArgs {
+    /// Target cloud provider
+    #[arg(short, long)]
+    pub cloud: String,
+
+    /// Image ID to delete
+    pub image_id: String,
+
+    /// Cloud region
+    #[arg(short, long)]
+    pub region: Option<String>,
+
+    /// Skip confirmation
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct PackerDoctorArgs {
+    /// Target cloud provider (or all)
+    #[arg(short, long)]
+    pub cloud: Option<String>,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct PackerInitArgs {
+    /// Target cloud provider
+    #[arg(short, long)]
+    pub cloud: String,
+
+    /// Output directory for generated files
+    #[arg(short, long)]
+    pub output: Option<camino::Utf8PathBuf>,
+
+    /// Force overwrite existing files
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct PackerDeployArgs {
+    /// Target cloud provider
+    #[arg(short, long)]
+    pub cloud: String,
+
+    /// Image ID to deploy
+    pub image_id: String,
+
+    /// Cloud region
+    #[arg(short, long)]
+    pub region: Option<String>,
+
+    /// Instance type / VM size
+    #[arg(long)]
+    pub instance_type: Option<String>,
+
     /// Output as JSON
     #[arg(long)]
     pub json: bool,

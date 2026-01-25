@@ -70,4 +70,3 @@ cd sindri
 - **[Release Process](../docs/RELEASE.md)** - Creating releases and changelog automation
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Security](docs/SECURITY.md)** - Security best practices
-

@@ -1,0 +1,33 @@
+[package]
+name = "sindri-packer"
+description = "HashiCorp Packer provider for Sindri CLI - Multi-cloud VM image building and deployment"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+# Workspace dependencies
+sindri-core = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tera = { workspace = true }
+tracing = { workspace = true }
+duct = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+
+# Local dependencies
+async-trait = "0.1"
+which = "8.0"
+dirs = "6.0"
+rust-embed = { version = "8.11", features = ["interpolate-folder-path"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+serial_test = { workspace = true }

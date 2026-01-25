@@ -1,0 +1,20 @@
+name: sindri-vm
+title: Sindri VM Image Compliance Profile
+maintainer: Sindri Team
+copyright: Sindri Team
+copyright_email: support@sindri.dev
+license: Apache-2.0
+summary: InSpec compliance profile for Sindri VM images
+version: 1.0.0
+
+supports:
+  - platform-name: ubuntu
+    release: 24.*
+  - platform-name: ubuntu
+    release: 22.*
+  - platform-name: debian
+    release: 12.*
+
+depends:
+  - name: linux-baseline
+    url: https://github.com/dev-sec/linux-baseline/archive/master.tar.gz

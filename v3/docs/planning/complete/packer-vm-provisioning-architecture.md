@@ -1,9 +1,9 @@
 # Sindri v3 HashiCorp Packer VM Provisioning Architecture
 
-**Status:** Planning
-**Date:** 2026-01-24
+**Status:** Implemented
+**Date:** 2026-01-24 (Planning) / 2026-01-25 (Implemented)
 **Author:** Sindri Core Team
-**Related:** [ADR-002: Provider Abstraction Layer](../../architecture/adr/002-provider-abstraction-layer.md), [ADR-003: Template-Based Configuration](../../architecture/adr/003-template-based-configuration.md)
+**Related:** [ADR-002: Provider Abstraction Layer](../../architecture/adr/002-provider-abstraction-layer.md), [ADR-003: Template-Based Configuration](../../architecture/adr/003-template-based-configuration.md), [ADR-031: Packer VM Provisioning Architecture](../../architecture/adr/031-packer-vm-provisioning-architecture.md)
 
 ---
 
@@ -2049,11 +2049,11 @@ The `packer` provider follows the same pattern as other Sindri providers (Docker
 
 **Key Configuration Options:**
 
-| Option | Required | Description |
-|--------|----------|-------------|
-| `cloud` | Yes | Target cloud: `aws`, `azure`, `gcp`, `oci`, `alibaba` |
-| `image_id` | No | Use existing image (skip build) |
-| `build.*` | No | Image build settings (when `image_id` not set) |
+| Option     | Required | Description                                           |
+| ---------- | -------- | ----------------------------------------------------- |
+| `cloud`    | Yes      | Target cloud: `aws`, `azure`, `gcp`, `oci`, `alibaba` |
+| `image_id` | No       | Use existing image (skip build)                       |
+| `build.*`  | No       | Image build settings (when `image_id` not set)        |
 
 ### sindri.yaml Schema
 
@@ -2061,7 +2061,7 @@ The `packer` provider follows the same pattern as other Sindri providers (Docker
 # sindri.yaml
 name: my-sindri-env
 version: "3.0.0"
-provider: packer  # Unified packer provider
+provider: packer # Unified packer provider
 
 packer:
   # Target cloud platform (required)
@@ -2104,11 +2104,11 @@ packer:
 
 ### Image Source Logic
 
-| `image_id` | `build.cache` | Behavior |
-|------------|---------------|----------|
-| Set | - | Use specified image directly, no build |
-| Not set | `true` | Look for cached image matching config, build if not found |
-| Not set | `false` | Always build fresh image |
+| `image_id` | `build.cache` | Behavior                                                  |
+| ---------- | ------------- | --------------------------------------------------------- |
+| Set        | -             | Use specified image directly, no build                    |
+| Not set    | `true`        | Look for cached image matching config, build if not found |
+| Not set    | `false`       | Always build fresh image                                  |
 
 ---
 
@@ -2816,9 +2816,9 @@ Each cloud reference document includes:
 
 ## Document History
 
-| Version | Date       | Author           | Changes                       |
-| ------- | ---------- | ---------------- | ----------------------------- |
-| 1.0.0   | 2026-01-24 | Sindri Core Team | Initial architecture document |
+| Version | Date       | Author           | Changes                                                                                                                                                                                                        |
+| ------- | ---------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | 2026-01-24 | Sindri Core Team | Initial architecture document                                                                                                                                                                                  |
 | 1.1.0   | 2026-01-25 | Sindri Core Team | Revised to unified `packer` provider approach: single provider with `cloud` attribute, `image_id` for pre-built images, consistent `sindri deploy` CLI, generated YAML with rich inline comments and citations |
 
 ---

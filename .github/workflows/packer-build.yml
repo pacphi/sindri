@@ -1,0 +1,269 @@
+# Packer VM Image Build Workflow
+# This workflow builds Sindri VM images across multiple cloud providers
+name: Build Sindri VM Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      clouds:
+        description: "Target clouds (comma-separated: aws,azure,gcp,oci,alibaba)"
+        required: true
+        default: "aws"
+        type: string
+      sindri_version:
+        description: "Sindri version to install"
+        required: true
+        default: "latest"
+        type: string
+      profile:
+        description: "Extension profile to install"
+        required: false
+        default: "base"
+        type: string
+      extensions:
+        description: "Additional extensions (comma-separated)"
+        required: false
+        default: ""
+        type: string
+      cis_hardening:
+        description: "Enable CIS security hardening"
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: "Dry run (validate only)"
+        required: false
+        default: false
+        type: boolean
+
+  push:
+    branches:
+      - main
+    paths:
+      - "v3/crates/sindri-packer/**"
+      - ".github/workflows/packer-build.yml"
+
+env:
+  PACKER_VERSION: "1.10.0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate:
+    name: Validate Packer Templates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri-packer
+        run: cargo build -p sindri-packer --release
+
+      - name: Validate AWS template
+        if: contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push'
+        run: |
+          ./target/release/sindri packer validate --cloud aws \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
+
+      - name: Validate Azure template
+        if: contains(github.event.inputs.clouds, 'azure')
+        run: |
+          ./target/release/sindri packer validate --cloud azure \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
+
+      - name: Validate GCP template
+        if: contains(github.event.inputs.clouds, 'gcp')
+        run: |
+          ./target/release/sindri packer validate --cloud gcp \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
+
+  build-aws:
+    name: Build AWS AMI
+    needs: validate
+    if: |
+      (contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push') &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri
+        run: cargo build -p sindri --release
+
+      - name: Build AWS AMI
+        run: |
+          ./target/release/sindri packer build --cloud aws \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
+            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.extensions && format('--extensions {0}', github.event.inputs.extensions) || '' }} \
+            ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
+            --json > build-result.json
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: aws-build-manifest
+          path: |
+            build-result.json
+            manifest.json
+
+  build-azure:
+    name: Build Azure Image
+    needs: validate
+    if: |
+      contains(github.event.inputs.clouds, 'azure') &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri
+        run: cargo build -p sindri --release
+
+      - name: Build Azure Image
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'sindri-packer' }}
+        run: |
+          ./target/release/sindri packer build --cloud azure \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
+            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
+            --json > build-result.json
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-build-manifest
+          path: |
+            build-result.json
+            manifest.json
+
+  build-gcp:
+    name: Build GCP Image
+    needs: validate
+    if: |
+      contains(github.event.inputs.clouds, 'gcp') &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri
+        run: cargo build -p sindri --release
+
+      - name: Build GCP Image
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          ./target/release/sindri packer build --cloud gcp \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
+            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
+            --json > build-result.json
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcp-build-manifest
+          path: |
+            build-result.json
+            manifest.json
+
+  summary:
+    name: Build Summary
+    needs: [build-aws, build-azure, build-gcp]
+    if: always() && github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate Summary
+        run: |
+          echo "## Sindri VM Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Cloud | Status | Image ID |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          for dir in artifacts/*; do
+            if [ -f "$dir/build-result.json" ]; then
+              cloud=$(basename "$dir" | sed 's/-build-manifest//')
+              success=$(jq -r '.success // "unknown"' "$dir/build-result.json")
+              image_id=$(jq -r '.image_id // "N/A"' "$dir/build-result.json")
+              status=$([[ "$success" == "true" ]] && echo "Success" || echo "Failed")
+              echo "| $cloud | $status | $image_id |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

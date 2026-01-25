@@ -508,6 +508,766 @@ pub static TOOL_REGISTRY: &[ToolDefinition] = &[
         docs_url: "https://cli.github.com/",
         optional: true,
     },
+    ToolDefinition {
+        id: "cosign",
+        name: "Cosign",
+        description: "Container image signing and verification tool (Sigstore)",
+        command: "cosign",
+        version_flag: "version",
+        min_version: Some("2.0.0"),
+        categories: &[ToolCategory::Optional],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install cosign",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: Some(PackageManager::Apt),
+                command: "sudo apt-get install cosign",
+                notes: Some("Or download from: https://github.com/sigstore/cosign/releases"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Fedora),
+                package_manager: Some(PackageManager::Dnf),
+                command: "sudo dnf install cosign",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Arch),
+                package_manager: Some(PackageManager::Pacman),
+                command: "sudo pacman -S cosign",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Alpine),
+                package_manager: Some(PackageManager::Apk),
+                command: "apk add cosign",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -sSfL https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 -o /usr/local/bin/cosign && chmod +x /usr/local/bin/cosign",
+                notes: Some("Or use: go install github.com/sigstore/cosign/v2/cmd/cosign@latest"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Scoop),
+                command: "scoop install cosign",
+                notes: Some("Or download from: https://github.com/sigstore/cosign/releases"),
+            },
+        ],
+        docs_url: "https://docs.sigstore.dev/cosign/installation/",
+        optional: true,
+    },
+    // ==========================================================================
+    // Local Kubernetes Clusters
+    // ==========================================================================
+    ToolDefinition {
+        id: "kind",
+        name: "kind",
+        description: "Kubernetes IN Docker - local clusters for testing",
+        command: "kind",
+        version_flag: "version",
+        min_version: Some("0.17.0"),
+        categories: &[ToolCategory::KubernetesClusters],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install kind",
+                notes: Some("Requires Docker to be running"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64 && chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind",
+                notes: Some("Requires Docker to be running"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install kind",
+                notes: Some("Requires Docker Desktop"),
+            },
+        ],
+        docs_url: "https://kind.sigs.k8s.io/docs/user/quick-start/",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "k3d",
+        name: "k3d",
+        description: "K3s in Docker - lightweight Kubernetes clusters",
+        command: "k3d",
+        version_flag: "version",
+        min_version: Some("5.0.0"),
+        categories: &[ToolCategory::KubernetesClusters],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install k3d",
+                notes: Some("Requires Docker to be running"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash",
+                notes: Some("Requires Docker to be running"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install k3d",
+                notes: Some("Requires Docker Desktop"),
+            },
+        ],
+        docs_url: "https://k3d.io/",
+        optional: true,
+    },
+    // ==========================================================================
+    // Packer / VM Image Building
+    // ==========================================================================
+    ToolDefinition {
+        id: "packer",
+        name: "HashiCorp Packer",
+        description: "VM image builder for AWS, Azure, GCP, and more",
+        command: "packer",
+        version_flag: "version",
+        min_version: Some("1.8.0"),
+        categories: &[ToolCategory::ProviderPacker],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install packer",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: Some(PackageManager::Apt),
+                command: "wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo \"deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main\" | sudo tee /etc/apt/sources.list.d/hashicorp.list && sudo apt-get update && sudo apt-get install packer",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Fedora),
+                package_manager: Some(PackageManager::Dnf),
+                command: "sudo dnf install -y dnf-plugins-core && sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo && sudo dnf -y install packer",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install packer",
+                notes: None,
+            },
+        ],
+        docs_url: "https://developer.hashicorp.com/packer/docs",
+        optional: true,
+    },
+    // ==========================================================================
+    // Infrastructure-as-Code Tools
+    // ==========================================================================
+    ToolDefinition {
+        id: "terraform",
+        name: "HashiCorp Terraform",
+        description: "Infrastructure-as-code provisioning tool",
+        command: "terraform",
+        version_flag: "version",
+        min_version: Some("1.0.0"),
+        categories: &[ToolCategory::Infrastructure],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install terraform",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: Some(PackageManager::Apt),
+                command: "wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo \"deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main\" | sudo tee /etc/apt/sources.list.d/hashicorp.list && sudo apt-get update && sudo apt-get install terraform",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Fedora),
+                package_manager: Some(PackageManager::Dnf),
+                command: "sudo dnf install -y dnf-plugins-core && sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo && sudo dnf -y install terraform",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install terraform",
+                notes: None,
+            },
+        ],
+        docs_url: "https://developer.hashicorp.com/terraform/docs",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "ansible",
+        name: "Ansible",
+        description: "Configuration management and automation tool",
+        command: "ansible",
+        version_flag: "--version",
+        min_version: Some("2.10.0"),
+        categories: &[ToolCategory::Infrastructure],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install ansible",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: Some(PackageManager::Apt),
+                command: "sudo apt-get install ansible",
+                notes: Some("Or use pip: pip install ansible"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Fedora),
+                package_manager: Some(PackageManager::Dnf),
+                command: "sudo dnf install ansible",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "pip install ansible",
+                notes: Some("Requires Python and pip"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: None,
+                command: "pip install ansible",
+                notes: Some("Run in WSL or use pip in Windows"),
+            },
+        ],
+        docs_url: "https://docs.ansible.com/",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "pulumi",
+        name: "Pulumi",
+        description: "Infrastructure-as-code using programming languages",
+        command: "pulumi",
+        version_flag: "version",
+        min_version: Some("3.0.0"),
+        categories: &[ToolCategory::Infrastructure],
+        auth_check: Some(AuthCheck {
+            command: "pulumi",
+            args: &["whoami"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install pulumi",
+                notes: Some("Then run: pulumi login"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -fsSL https://get.pulumi.com | sh",
+                notes: Some("Then run: pulumi login"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install pulumi",
+                notes: Some("Then run: pulumi login"),
+            },
+        ],
+        docs_url: "https://www.pulumi.com/docs/",
+        optional: true,
+    },
+    // ==========================================================================
+    // Cloud Provider CLIs
+    // ==========================================================================
+    ToolDefinition {
+        id: "aws",
+        name: "AWS CLI",
+        description: "Amazon Web Services command-line interface",
+        command: "aws",
+        version_flag: "--version",
+        min_version: Some("2.0.0"),
+        categories: &[ToolCategory::CloudCLI],
+        auth_check: Some(AuthCheck {
+            command: "aws",
+            args: &["sts", "get-caller-identity"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install awscli",
+                notes: Some("Then run: aws configure"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\" && unzip awscliv2.zip && sudo ./aws/install",
+                notes: Some("Then run: aws configure"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Winget),
+                command: "winget install Amazon.AWSCLI",
+                notes: Some("Then run: aws configure"),
+            },
+        ],
+        docs_url: "https://docs.aws.amazon.com/cli/",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "az",
+        name: "Azure CLI",
+        description: "Microsoft Azure command-line interface",
+        command: "az",
+        version_flag: "version",
+        min_version: Some("2.40.0"),
+        categories: &[ToolCategory::CloudCLI],
+        auth_check: Some(AuthCheck {
+            command: "az",
+            args: &["account", "show"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install azure-cli",
+                notes: Some("Then run: az login"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: None,
+                command: "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash",
+                notes: Some("Then run: az login"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Fedora),
+                package_manager: Some(PackageManager::Dnf),
+                command: "sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc && sudo dnf install -y https://packages.microsoft.com/config/rhel/9.0/packages-microsoft-prod.rpm && sudo dnf install azure-cli",
+                notes: Some("Then run: az login"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Winget),
+                command: "winget install Microsoft.AzureCLI",
+                notes: Some("Then run: az login"),
+            },
+        ],
+        docs_url: "https://docs.microsoft.com/en-us/cli/azure/",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "gcloud",
+        name: "Google Cloud CLI",
+        description: "Google Cloud Platform command-line interface",
+        command: "gcloud",
+        version_flag: "version",
+        min_version: Some("400.0.0"),
+        categories: &[ToolCategory::CloudCLI],
+        auth_check: Some(AuthCheck {
+            command: "gcloud",
+            args: &["auth", "list"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install --cask google-cloud-sdk",
+                notes: Some("Then run: gcloud init"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: Some(PackageManager::Apt),
+                command: "echo \"deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main\" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && sudo apt-get update && sudo apt-get install google-cloud-cli",
+                notes: Some("Then run: gcloud init"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl https://sdk.cloud.google.com | bash",
+                notes: Some("Then run: gcloud init"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Winget),
+                command: "winget install Google.CloudSDK",
+                notes: Some("Then run: gcloud init"),
+            },
+        ],
+        docs_url: "https://cloud.google.com/sdk/docs/",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "oci",
+        name: "Oracle Cloud CLI",
+        description: "Oracle Cloud Infrastructure command-line interface",
+        command: "oci",
+        version_flag: "--version",
+        min_version: Some("3.0.0"),
+        categories: &[ToolCategory::CloudCLI],
+        auth_check: Some(AuthCheck {
+            command: "oci",
+            args: &["iam", "region", "list"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install oci-cli",
+                notes: Some("Then run: oci setup config"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "bash -c \"$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)\"",
+                notes: Some("Then run: oci setup config"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: None,
+                command: "powershell -NoProfile -ExecutionPolicy Bypass -Command \"iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.ps1'))\"",
+                notes: Some("Then run: oci setup config"),
+            },
+        ],
+        docs_url: "https://docs.oracle.com/en-us/iaas/Content/API/Concepts/cliconcepts.htm",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "aliyun",
+        name: "Alibaba Cloud CLI",
+        description: "Alibaba Cloud command-line interface",
+        command: "aliyun",
+        version_flag: "version",
+        min_version: Some("3.0.0"),
+        categories: &[ToolCategory::CloudCLI],
+        auth_check: Some(AuthCheck {
+            command: "aliyun",
+            args: &["configure", "list"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install aliyun-cli",
+                notes: Some("Then run: aliyun configure"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -sSL https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz | tar xz && sudo mv aliyun /usr/local/bin/",
+                notes: Some("Then run: aliyun configure"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: None,
+                command: "Download from https://aliyuncli.alicdn.com/aliyun-cli-windows-latest-amd64.zip and add to PATH",
+                notes: Some("Then run: aliyun configure"),
+            },
+        ],
+        docs_url: "https://www.alibabacloud.com/help/en/cli/",
+        optional: true,
+    },
+    // ==========================================================================
+    // Additional Extension Backends
+    // ==========================================================================
+    ToolDefinition {
+        id: "pnpm",
+        name: "pnpm",
+        description: "Fast, disk space efficient Node.js package manager",
+        command: "pnpm",
+        version_flag: "--version",
+        min_version: Some("8.0.0"),
+        categories: &[ToolCategory::ExtensionBackend],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install pnpm",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -fsSL https://get.pnpm.io/install.sh | sh -",
+                notes: Some("Or use: npm install -g pnpm"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Winget),
+                command: "winget install pnpm.pnpm",
+                notes: Some("Or use: npm install -g pnpm"),
+            },
+        ],
+        docs_url: "https://pnpm.io/",
+        optional: true,
+    },
+    // ==========================================================================
+    // Kubernetes Utilities
+    // ==========================================================================
+    ToolDefinition {
+        id: "helm",
+        name: "Helm",
+        description: "Kubernetes package manager",
+        command: "helm",
+        version_flag: "version --short",
+        min_version: Some("3.0.0"),
+        categories: &[ToolCategory::Optional, ToolCategory::ProviderKubernetes],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install helm",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install kubernetes-helm",
+                notes: None,
+            },
+        ],
+        docs_url: "https://helm.sh/docs/",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "kustomize",
+        name: "Kustomize",
+        description: "Kubernetes resource customization tool",
+        command: "kustomize",
+        version_flag: "version",
+        min_version: Some("4.0.0"),
+        categories: &[ToolCategory::Optional, ToolCategory::ProviderKubernetes],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install kustomize",
+                notes: Some("Also available via: kubectl kustomize"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -s \"https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh\" | bash && sudo mv kustomize /usr/local/bin/",
+                notes: Some("Also available via: kubectl kustomize"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install kustomize",
+                notes: None,
+            },
+        ],
+        docs_url: "https://kustomize.io/",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "kubectx",
+        name: "kubectx",
+        description: "Switch between Kubernetes contexts quickly",
+        command: "kubectx",
+        version_flag: "--version",
+        min_version: None,
+        categories: &[ToolCategory::Optional],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install kubectx",
+                notes: Some("Also installs kubens"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: Some(PackageManager::Apt),
+                command: "sudo apt-get install kubectx",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx && sudo ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx && sudo ln -s /opt/kubectx/kubens /usr/local/bin/kubens",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install kubectx",
+                notes: None,
+            },
+        ],
+        docs_url: "https://github.com/ahmetb/kubectx",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "kubens",
+        name: "kubens",
+        description: "Switch between Kubernetes namespaces quickly",
+        command: "kubens",
+        version_flag: "--version",
+        min_version: None,
+        categories: &[ToolCategory::Optional],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install kubectx",
+                notes: Some("kubens is included with kubectx"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Debian),
+                package_manager: Some(PackageManager::Apt),
+                command: "sudo apt-get install kubectx",
+                notes: Some("kubens is included with kubectx"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx && sudo ln -s /opt/kubectx/kubens /usr/local/bin/kubens",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install kubens",
+                notes: None,
+            },
+        ],
+        docs_url: "https://github.com/ahmetb/kubectx",
+        optional: true,
+    },
+    ToolDefinition {
+        id: "k9s",
+        name: "k9s",
+        description: "Terminal UI for Kubernetes clusters",
+        command: "k9s",
+        version_flag: "version --short",
+        min_version: Some("0.25.0"),
+        categories: &[ToolCategory::Optional],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install k9s",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -sS https://webi.sh/k9s | sh",
+                notes: Some("Or download from: https://github.com/derailed/k9s/releases"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install k9s",
+                notes: None,
+            },
+        ],
+        docs_url: "https://k9scli.io/",
+        optional: true,
+    },
+    // ==========================================================================
+    // YAML/JSON Utilities
+    // ==========================================================================
+    ToolDefinition {
+        id: "yq",
+        name: "yq",
+        description: "YAML/JSON processor and query tool",
+        command: "yq",
+        version_flag: "--version",
+        min_version: Some("4.0.0"),
+        categories: &[ToolCategory::Optional],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install yq",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -sSfL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq",
+                notes: None,
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Chocolatey),
+                command: "choco install yq",
+                notes: None,
+            },
+        ],
+        docs_url: "https://mikefarah.gitbook.io/yq/",
+        optional: true,
+    },
+    // ==========================================================================
+    // Shell Enhancement Tools
+    // ==========================================================================
+    ToolDefinition {
+        id: "starship",
+        name: "Starship",
+        description: "Cross-shell customizable prompt",
+        command: "starship",
+        version_flag: "--version",
+        min_version: Some("1.0.0"),
+        categories: &[ToolCategory::Optional],
+        auth_check: None,
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Homebrew),
+                command: "brew install starship",
+                notes: Some("Add to shell: eval \"$(starship init bash)\""),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -sS https://starship.rs/install.sh | sh",
+                notes: Some("Add to shell: eval \"$(starship init bash)\""),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Winget),
+                command: "winget install Starship.Starship",
+                notes: Some("Add to PowerShell profile: Invoke-Expression (&starship init powershell)"),
+            },
+        ],
+        docs_url: "https://starship.rs/",
+        optional: true,
+    },
 ];
 
 /// Tool registry operations
@@ -535,6 +1295,10 @@ impl ToolRegistry {
             "devpod" => Some(ToolCategory::ProviderDevpod),
             "e2b" => Some(ToolCategory::ProviderE2B),
             "kubernetes" | "k8s" => Some(ToolCategory::ProviderKubernetes),
+            "packer" | "vm" => Some(ToolCategory::ProviderPacker),
+            "kind" | "k3d" | "local-k8s" => Some(ToolCategory::KubernetesClusters),
+            "terraform" | "ansible" | "pulumi" | "iac" => Some(ToolCategory::Infrastructure),
+            "aws" | "azure" | "gcp" | "cloud" => Some(ToolCategory::CloudCLI),
             _ => None,
         };
 
@@ -562,6 +1326,10 @@ impl ToolRegistry {
                 tools.extend(Self::by_category(ToolCategory::ProviderKubernetes));
                 tools
             }
+            "cluster" | "clusters" => Self::by_category(ToolCategory::KubernetesClusters),
+            "image" | "packer" | "vm" => Self::by_category(ToolCategory::ProviderPacker),
+            "infra" | "infrastructure" => Self::by_category(ToolCategory::Infrastructure),
+            "cloud" => Self::by_category(ToolCategory::CloudCLI),
             _ => vec![],
         }
     }
@@ -667,5 +1435,140 @@ mod tests {
                 tool.id
             );
         }
+    }
+
+    #[test]
+    fn test_get_cosign() {
+        let cosign = ToolRegistry::get("cosign");
+        assert!(cosign.is_some());
+        let cosign = cosign.unwrap();
+        assert_eq!(cosign.name, "Cosign");
+        assert_eq!(cosign.command, "cosign");
+        assert!(cosign.optional);
+        assert!(cosign.categories.contains(&ToolCategory::Optional));
+    }
+
+    #[test]
+    fn test_get_kind() {
+        let kind = ToolRegistry::get("kind");
+        assert!(kind.is_some());
+        let kind = kind.unwrap();
+        assert_eq!(kind.name, "kind");
+        assert!(kind.categories.contains(&ToolCategory::KubernetesClusters));
+    }
+
+    #[test]
+    fn test_get_k3d() {
+        let k3d = ToolRegistry::get("k3d");
+        assert!(k3d.is_some());
+        let k3d = k3d.unwrap();
+        assert_eq!(k3d.name, "k3d");
+        assert!(k3d.categories.contains(&ToolCategory::KubernetesClusters));
+    }
+
+    #[test]
+    fn test_get_packer() {
+        let packer = ToolRegistry::get("packer");
+        assert!(packer.is_some());
+        let packer = packer.unwrap();
+        assert_eq!(packer.name, "HashiCorp Packer");
+        assert!(packer.categories.contains(&ToolCategory::ProviderPacker));
+    }
+
+    #[test]
+    fn test_get_terraform() {
+        let terraform = ToolRegistry::get("terraform");
+        assert!(terraform.is_some());
+        let terraform = terraform.unwrap();
+        assert_eq!(terraform.name, "HashiCorp Terraform");
+        assert!(terraform.categories.contains(&ToolCategory::Infrastructure));
+    }
+
+    #[test]
+    fn test_get_aws_cli() {
+        let aws = ToolRegistry::get("aws");
+        assert!(aws.is_some());
+        let aws = aws.unwrap();
+        assert_eq!(aws.name, "AWS CLI");
+        assert!(aws.categories.contains(&ToolCategory::CloudCLI));
+        assert!(aws.auth_check.is_some());
+    }
+
+    #[test]
+    fn test_by_category_kubernetes_clusters() {
+        let cluster_tools = ToolRegistry::by_category(ToolCategory::KubernetesClusters);
+        assert!(!cluster_tools.is_empty());
+        assert!(cluster_tools.iter().any(|t| t.id == "kind"));
+        assert!(cluster_tools.iter().any(|t| t.id == "k3d"));
+    }
+
+    #[test]
+    fn test_by_category_infrastructure() {
+        let infra_tools = ToolRegistry::by_category(ToolCategory::Infrastructure);
+        assert!(!infra_tools.is_empty());
+        assert!(infra_tools.iter().any(|t| t.id == "terraform"));
+        assert!(infra_tools.iter().any(|t| t.id == "ansible"));
+        assert!(infra_tools.iter().any(|t| t.id == "pulumi"));
+    }
+
+    #[test]
+    fn test_by_category_cloud_cli() {
+        let cloud_tools = ToolRegistry::by_category(ToolCategory::CloudCLI);
+        assert!(!cloud_tools.is_empty());
+        assert!(cloud_tools.iter().any(|t| t.id == "aws"));
+        assert!(cloud_tools.iter().any(|t| t.id == "az"));
+        assert!(cloud_tools.iter().any(|t| t.id == "gcloud"));
+        assert!(cloud_tools.iter().any(|t| t.id == "oci"));
+        assert!(cloud_tools.iter().any(|t| t.id == "aliyun"));
+    }
+
+    #[test]
+    fn test_get_oci_cli() {
+        let oci = ToolRegistry::get("oci");
+        assert!(oci.is_some());
+        let oci = oci.unwrap();
+        assert_eq!(oci.name, "Oracle Cloud CLI");
+        assert!(oci.categories.contains(&ToolCategory::CloudCLI));
+        assert!(oci.auth_check.is_some());
+        assert!(oci.optional);
+    }
+
+    #[test]
+    fn test_get_aliyun_cli() {
+        let aliyun = ToolRegistry::get("aliyun");
+        assert!(aliyun.is_some());
+        let aliyun = aliyun.unwrap();
+        assert_eq!(aliyun.name, "Alibaba Cloud CLI");
+        assert!(aliyun.categories.contains(&ToolCategory::CloudCLI));
+        assert!(aliyun.auth_check.is_some());
+        assert!(aliyun.optional);
+    }
+
+    #[test]
+    fn test_by_provider_packer() {
+        let packer_tools = ToolRegistry::by_provider("packer");
+        assert!(!packer_tools.is_empty());
+        assert!(packer_tools.iter().any(|t| t.id == "packer"));
+    }
+
+    #[test]
+    fn test_by_provider_cloud() {
+        let cloud_tools = ToolRegistry::by_provider("cloud");
+        assert!(!cloud_tools.is_empty());
+    }
+
+    #[test]
+    fn test_by_command_cluster() {
+        let cluster_tools = ToolRegistry::by_command("cluster");
+        assert!(!cluster_tools.is_empty());
+        assert!(cluster_tools.iter().any(|t| t.id == "kind"));
+        assert!(cluster_tools.iter().any(|t| t.id == "k3d"));
+    }
+
+    #[test]
+    fn test_by_command_infra() {
+        let infra_tools = ToolRegistry::by_command("infra");
+        assert!(!infra_tools.is_empty());
+        assert!(infra_tools.iter().any(|t| t.id == "terraform"));
     }
 }

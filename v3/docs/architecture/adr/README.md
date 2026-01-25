@@ -36,6 +36,7 @@ This directory contains Architecture Decision Records documenting key architectu
 | [028](028-config-init-template-generation.md)            | Config Init Template Generation            | -     | Accepted |
 | [029](029-local-kubernetes-cluster-management.md)        | Local Kubernetes Cluster Management        | -     | Accepted |
 | [030](030-kubernetes-ci-integration-testing.md)          | Kubernetes CI Integration Testing          | -     | Accepted |
+| [031](031-packer-vm-provisioning-architecture.md)        | Packer VM Provisioning Architecture        | -     | Accepted |
 
 ## By Phase
 
@@ -86,13 +87,17 @@ This directory contains Architecture Decision Records documenting key architectu
 - **ADR-024**: Template-based project scaffolding (YAML-driven, Tera templates, type detection)
 - **ADR-025**: Git operations and repository management (git2, fork workflow, feature branches)
 
+### Packer VM Provisioning
+
+- **ADR-031**: Multi-cloud VM image building with HashiCorp Packer (AWS, Azure, GCP, OCI, Alibaba)
+
 ## ADR Statistics
 
-- **Total ADRs**: 30
-- **Total Lines**: 13,500+ lines
-- **Total Size**: ~450KB
-- **Phases Covered**: 1-8 + K8s Cluster Management
-- **Implementation Status**: Phases 1-8 complete, K8s cluster management added
+- **Total ADRs**: 31
+- **Total Lines**: 14,000+ lines
+- **Total Size**: ~470KB
+- **Phases Covered**: 1-8 + K8s Cluster Management + Packer VM Provisioning
+- **Implementation Status**: Phases 1-8 complete, K8s cluster management added, Packer provisioning added
 
 ## Key Architectural Themes
 
@@ -135,7 +140,7 @@ This directory contains Architecture Decision Records documenting key architectu
 
 When adding new ADRs:
 
-1. Use sequential numbering (next: 031)
+1. Use sequential numbering (next: 032)
 2. Follow template structure (Context → Decision → Consequences)
 3. Include implementation details and code examples
 4. Link to related ADRs

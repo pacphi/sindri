@@ -108,11 +108,11 @@ Install development tools declaratively using profiles or individual extensions.
 
 Claude Code skills are available to guide extension development for both V2 and V3:
 
-| Skill | Description |
-|-------|-------------|
-| `/extension-guide` | Router skill - helps choose V2 or V3 |
+| Skill                 | Description                               |
+| --------------------- | ----------------------------------------- |
+| `/extension-guide`    | Router skill - helps choose V2 or V3      |
 | `/extension-guide-v2` | V2 extension guide (Bash/Docker platform) |
-| `/extension-guide-v3` | V3 extension guide (Rust CLI platform) |
+| `/extension-guide-v3` | V3 extension guide (Rust CLI platform)    |
 
 When using Claude Code, ask about creating extensions and it will automatically provide guidance:
 

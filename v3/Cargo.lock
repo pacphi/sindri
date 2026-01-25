@@ -4617,6 +4617,7 @@ dependencies = [
  "sindri-doctor",
  "sindri-extensions",
  "sindri-image",
+ "sindri-packer",
  "sindri-projects",
  "sindri-providers",
  "sindri-secrets",
@@ -4765,6 +4766,31 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "which",
+]
+
+[[package]]
+name = "sindri-packer"
+version = "3.0.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "duct",
+ "futures",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "serial_test",
+ "sindri-core",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
  "which",
 ]
 

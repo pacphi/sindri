@@ -2,6 +2,7 @@
 
 mod config_types;
 mod extension_types;
+pub mod packer_config;
 mod platform_matrix;
 mod provider_types;
 mod registry_types;

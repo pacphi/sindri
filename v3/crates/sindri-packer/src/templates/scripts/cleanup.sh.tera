@@ -1,0 +1,125 @@
+#!/bin/bash
+# cleanup.sh - Clean up VM image before snapshotting
+# This script prepares the image for distribution by removing sensitive data
+
+set -euo pipefail
+
+CLEAN_SENSITIVE_DATA="${CLEAN_SENSITIVE_DATA:-true}"
+REMOVE_SSH_KEYS="${REMOVE_SSH_KEYS:-true}"
+
+echo "=== Sindri VM Cleanup ==="
+echo "Clean sensitive data: ${CLEAN_SENSITIVE_DATA}"
+echo "Remove SSH keys: ${REMOVE_SSH_KEYS}"
+
+# Clean apt cache
+echo "Cleaning apt cache..."
+apt-get autoremove -y
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+
+# Clean temporary files
+echo "Cleaning temporary files..."
+rm -rf /tmp/*
+rm -rf /var/tmp/*
+
+# Clean log files
+echo "Cleaning log files..."
+find /var/log -type f -name "*.log" -exec truncate -s 0 {} \;
+find /var/log -type f -name "*.gz" -delete
+find /var/log -type f -name "*.[0-9]" -delete
+journalctl --vacuum-time=1s || true
+
+# Clean shell history
+echo "Cleaning shell history..."
+rm -f /home/*/.bash_history
+rm -f /root/.bash_history
+unset HISTFILE
+
+# Clean cloud-init data (allows re-initialization on new instance)
+echo "Cleaning cloud-init..."
+cloud-init clean --logs || true
+
+if [ "$CLEAN_SENSITIVE_DATA" = "true" ]; then
+    echo "Cleaning sensitive data..."
+
+    # Remove cached credentials
+    rm -rf /home/*/.aws/credentials
+    rm -rf /home/*/.azure/accessTokens.json
+    rm -rf /home/*/.config/gcloud/credentials.db
+    rm -rf /home/*/.config/gcloud/access_tokens.db
+    rm -rf /home/*/.oci/sessions
+    rm -rf /root/.aws/credentials
+
+    # Remove Docker credentials
+    rm -rf /home/*/.docker/config.json
+    rm -rf /root/.docker/config.json
+
+    # Remove git credentials
+    rm -rf /home/*/.git-credentials
+    rm -rf /home/*/.gitconfig
+    rm -rf /root/.git-credentials
+
+    # Remove environment files with potential secrets
+    rm -rf /home/*/.env
+    rm -rf /home/*/.env.local
+
+    # Remove npm/yarn tokens
+    rm -rf /home/*/.npmrc
+    rm -rf /home/*/.yarnrc
+
+    # Clean Sindri state that might contain sensitive info
+    rm -rf /home/*/.sindri/state/*.secret
+    rm -rf /home/*/.sindri/cache/*
+
+    # Remove any ansible artifacts
+    rm -rf /home/*/.ansible
+    rm -rf /tmp/ansible*
+fi
+
+if [ "$REMOVE_SSH_KEYS" = "true" ]; then
+    echo "Removing SSH host keys (will regenerate on first boot)..."
+    rm -f /etc/ssh/ssh_host_*
+
+    echo "Removing user SSH keys..."
+    rm -rf /home/*/.ssh/authorized_keys
+    rm -rf /home/*/.ssh/id_*
+    rm -rf /home/*/.ssh/known_hosts
+    rm -rf /root/.ssh/authorized_keys
+    rm -rf /root/.ssh/id_*
+    rm -rf /root/.ssh/known_hosts
+
+    # Ensure SSH host keys regenerate on boot
+    dpkg-reconfigure openssh-server 2>/dev/null || true
+fi
+
+# Clean machine-id (will regenerate on boot)
+echo "Cleaning machine-id..."
+truncate -s 0 /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+
+# Remove cloud instance metadata
+echo "Cleaning cloud metadata artifacts..."
+rm -rf /var/lib/cloud/instance
+rm -rf /var/lib/cloud/instances/*
+rm -rf /var/lib/cloud/data/*
+
+# Clear swap if present
+echo "Clearing swap..."
+if [ -f /swapfile ]; then
+    swapoff /swapfile 2>/dev/null || true
+    dd if=/dev/zero of=/swapfile bs=1M count=1 2>/dev/null || true
+    swapon /swapfile 2>/dev/null || true
+fi
+
+# Zero out free space for better compression (optional, can be slow)
+# Uncomment if smaller image size is priority
+# echo "Zeroing free space..."
+# dd if=/dev/zero of=/EMPTY bs=1M 2>/dev/null || true
+# rm -f /EMPTY
+
+# Sync filesystem
+echo "Syncing filesystem..."
+sync
+
+echo "=== Cleanup complete ==="
+echo "Image is ready for snapshotting"

@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/sindri",
     "crates/sindri-core",
+    "crates/sindri-packer",
     "crates/sindri-providers",
     "crates/sindri-extensions",
     "crates/sindri-secrets",
@@ -118,6 +119,7 @@ sindri-projects = { path = "crates/sindri-projects" }
 sindri-doctor = { path = "crates/sindri-doctor" }
 sindri-clusters = { path = "crates/sindri-clusters" }
 sindri-image = { path = "crates/sindri-image" }
+sindri-packer = { path = "crates/sindri-packer" }
 
 [profile.release]
 lto = true

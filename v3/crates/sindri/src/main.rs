@@ -39,6 +39,7 @@ async fn main() -> Result<()> {
         Commands::Doctor(args) => commands::doctor::run(args).await,
         Commands::K8s(args) => commands::k8s::run(args).await,
         Commands::Image(args) => commands::image::execute(args).await,
+        Commands::Packer(args) => commands::packer::run(args).await,
     }
 }
 
