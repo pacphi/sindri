@@ -220,23 +220,15 @@ RUN apt-get update && \
         # Build tools (for native extensions)
         build-essential \
         pkg-config \
-        libssl-dev \
-        # GitHub CLI
-        software-properties-common && \
-    # Install GitHub CLI
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
-        dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
-        tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
-    apt-get update && \
-    apt-get install -y gh && \
+        libssl-dev && \
     # Configure locales
     locale-gen en_US.UTF-8 && \
     update-locale LANG=en_US.UTF-8 && \
-    # Cleanup
+    # Cleanup apt cache and remove SSH host keys generated during installation
+    # SSH keys will be generated at runtime by entrypoint.sh for security
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    rm -f /etc/ssh/ssh_host_*
 
 # ------------------------------------------------------------------------------
 # Copy Sindri CLI Binary
@@ -245,6 +237,17 @@ COPY --from=binary-merge /output/sindri /usr/local/bin/sindri
 
 # Verify binary is executable and functional
 RUN sindri --version
+
+# ------------------------------------------------------------------------------
+# Install GitHub CLI from official releases (avoids CVE vulnerabilities)
+# ------------------------------------------------------------------------------
+ARG GH_VERSION=2.86.0
+RUN ARCH=$(dpkg --print-architecture) && \
+    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
+    tar -xzf /tmp/gh.tar.gz -C /tmp && \
+    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /usr/local/bin/ && \
+    rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_linux_${ARCH} && \
+    gh --version
 
 # ------------------------------------------------------------------------------
 # Create Developer User
