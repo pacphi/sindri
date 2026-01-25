@@ -1,7 +1,7 @@
 //! JSON Schema validation for Sindri configurations
 
 use crate::error::{Error, Result};
-use jsonschema::JSONSchema;
+use jsonschema::Validator;
 use rust_embed::RustEmbed;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ struct EmbeddedSchemas;
 /// Schema validator with pre-compiled schemas
 pub struct SchemaValidator {
     /// Compiled schemas by name
-    schemas: HashMap<String, JSONSchema>,
+    schemas: HashMap<String, Validator>,
 }
 
 /// Global schema validator instance
@@ -42,7 +42,7 @@ impl SchemaValidator {
 
                     let schema_value: Value = serde_json::from_str(json_str)?;
 
-                    let compiled = JSONSchema::compile(&schema_value).map_err(|e| {
+                    let compiled = jsonschema::validator_for(&schema_value).map_err(|e| {
                         Error::invalid_config(format!("Failed to compile schema {}: {}", name, e))
                     })?;
 
@@ -81,7 +81,7 @@ impl SchemaValidator {
                         let content = std::fs::read_to_string(&file_path)?;
                         let schema_value: Value = serde_json::from_str(&content)?;
 
-                        let compiled = JSONSchema::compile(&schema_value).map_err(|e| {
+                        let compiled = jsonschema::validator_for(&schema_value).map_err(|e| {
                             Error::invalid_config(format!(
                                 "Failed to compile schema {}: {}",
                                 name, e
@@ -118,21 +118,20 @@ impl SchemaValidator {
             .get(schema_name)
             .ok_or_else(|| Error::schema_not_found(schema_name))?;
 
-        let result = schema.validate(value);
+        let errors: Vec<String> = schema
+            .iter_errors(value)
+            .map(|e| {
+                let path = e.instance_path().to_string();
+                if path.is_empty() {
+                    format!("  - {}", e)
+                } else {
+                    format!("  - {}: {}", path, e)
+                }
+            })
+            .collect();
 
-        if let Err(errors) = result {
-            let error_messages: Vec<String> = errors
-                .map(|e| {
-                    let path = e.instance_path.to_string();
-                    if path.is_empty() {
-                        format!("  - {}", e)
-                    } else {
-                        format!("  - {}: {}", path, e)
-                    }
-                })
-                .collect();
-
-            return Err(Error::schema_validation(error_messages));
+        if !errors.is_empty() {
+            return Err(Error::schema_validation(errors));
         }
 
         Ok(())
@@ -169,7 +168,7 @@ impl SchemaValidator {
     }
 
     /// Load fallback schemas (minimal schemas for when embedded ones aren't available)
-    fn load_fallback_schemas(schemas: &mut HashMap<String, JSONSchema>) -> Result<()> {
+    fn load_fallback_schemas(schemas: &mut HashMap<String, Validator>) -> Result<()> {
         // Minimal sindri schema
         let sindri_schema = serde_json::json!({
             "$schema": "http://json-schema.org/draft-07/schema#",
@@ -239,11 +238,11 @@ impl SchemaValidator {
             }
         });
 
-        let sindri_compiled = JSONSchema::compile(&sindri_schema).map_err(|e| {
+        let sindri_compiled = jsonschema::validator_for(&sindri_schema).map_err(|e| {
             Error::invalid_config(format!("Failed to compile fallback sindri schema: {}", e))
         })?;
 
-        let extension_compiled = JSONSchema::compile(&extension_schema).map_err(|e| {
+        let extension_compiled = jsonschema::validator_for(&extension_schema).map_err(|e| {
             Error::invalid_config(format!(
                 "Failed to compile fallback extension schema: {}",
                 e

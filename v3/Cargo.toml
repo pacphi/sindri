@@ -31,7 +31,7 @@ clap = { version = "4.5", features = ["derive", "env", "wrap_help", "string"] }
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "2.0"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -39,7 +39,7 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 
 # JSON Schema validation
-jsonschema = "0.17"
+jsonschema = "0.40"
 
 # Template rendering
 tera = "1.20"
@@ -48,10 +48,10 @@ tera = "1.20"
 reqwest = { version = "0.11", features = ["json", "rustls-tls", "stream"], default-features = false }
 self_update = "0.39"
 semver = "1.0"
-octocrab = "0.32"
+octocrab = "0.49"
 
 # Process execution
-duct = "0.13"
+duct = "1.1"
 
 # Terminal UI
 indicatif = "0.17"
@@ -86,7 +86,7 @@ toml = "0.8"
 url = "2.5"
 
 # Graph algorithms for dependency resolution
-petgraph = "0.6"
+petgraph = "0.8"
 
 # UUID for unique identifiers
 uuid = { version = "1.19", features = ["v4"] }
@@ -99,9 +99,9 @@ flate2 = "1.1"
 walkdir = "2.5"
 
 # Tool detection
-which = "6.0"
+which = "8.0"
 futures = "0.3"
-dirs = "5.0"
+dirs = "6.0"
 
 # Testing
 tempfile = "3.24"

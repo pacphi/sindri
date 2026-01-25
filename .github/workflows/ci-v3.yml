@@ -200,7 +200,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sindri-v3-binaries-${{ github.sha }}
           path: ./bin
@@ -299,7 +299,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif
@@ -467,7 +467,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sindri-v3-binaries-${{ github.sha }}
           path: ./bin
@@ -512,7 +512,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sindri-v3-binaries-${{ github.sha }}
           path: ./bin
@@ -566,7 +566,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: sindri-v3-binaries-${{ github.sha }}
           path: ./bin

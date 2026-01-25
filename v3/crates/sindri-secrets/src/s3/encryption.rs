@@ -209,8 +209,9 @@ impl SecretEncryptor {
         }
 
         // Encrypt with age
-        let encryptor = age::Encryptor::with_recipients(recipients)
-            .ok_or_else(|| anyhow!("Failed to create encryptor: no recipients provided"))?;
+        let encryptor =
+            age::Encryptor::with_recipients(recipients.iter().map(|r| &**r as &dyn age::Recipient))
+                .map_err(|e| anyhow!("Failed to create encryptor: {}", e))?;
 
         let mut encrypted_dek = Vec::new();
         let mut writer = encryptor
@@ -235,15 +236,10 @@ impl SecretEncryptor {
             .decode(encrypted_dek)
             .context("Failed to decode encrypted DEK")?;
 
-        // Create decryptor
-        let decryptor = match age::Decryptor::new(&encrypted_bytes[..])
-            .map_err(|e| anyhow!("Failed to create decryptor: {}", e))?
-        {
-            age::Decryptor::Recipients(d) => d,
-            _ => return Err(anyhow!("Unexpected decryptor type (passphrase?)")),
-        };
+        // Create decryptor and decrypt with our identity
+        let decryptor = age::Decryptor::new(&encrypted_bytes[..])
+            .map_err(|e| anyhow!("Failed to create decryptor: {}", e))?;
 
-        // Decrypt with our identity
         let mut decrypted_dek = Vec::new();
         let mut reader = decryptor
             .decrypt(std::iter::once(&self.identity as &dyn age::Identity))
