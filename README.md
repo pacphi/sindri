@@ -104,6 +104,28 @@ Deploy to multiple cloud providers using the same configuration:
 
 Install development tools declaratively using profiles or individual extensions.
 
+### 🤖 Claude Code Skills for Extension Development
+
+Claude Code skills are available to guide extension development for both V2 and V3:
+
+| Skill | Description |
+|-------|-------------|
+| `/extension-guide` | Router skill - helps choose V2 or V3 |
+| `/extension-guide-v2` | V2 extension guide (Bash/Docker platform) |
+| `/extension-guide-v3` | V3 extension guide (Rust CLI platform) |
+
+When using Claude Code, ask about creating extensions and it will automatically provide guidance:
+
+```text
+Example prompts:
+- "Help me create a new extension for Lua development"
+- "Create a V3 extension for an MCP server"
+- "What's the difference between V2 and V3 extensions?"
+- "Add capabilities to my extension for project initialization"
+```
+
+See [V2 vs V3 Comparison](docs/v2-v3-comparison-guide.md) for detailed differences.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.

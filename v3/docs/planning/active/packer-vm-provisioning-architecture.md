@@ -30,13 +30,20 @@
 
 ## Executive Summary
 
-This document outlines the architecture for integrating HashiCorp Packer support into Sindri v3, enabling users to build and provision VM images across five major cloud providers:
+This document outlines the architecture for integrating HashiCorp Packer support into Sindri v3 as a **unified `packer` provider**, enabling users to build and provision VM images across five major cloud providers using the familiar `sindri deploy` workflow:
 
 - **Amazon Web Services (AWS)** - EC2 AMI images
 - **Microsoft Azure** - Managed images with Shared Image Gallery
 - **Google Cloud Platform (GCP)** - Compute Engine images
 - **Oracle Cloud Infrastructure (OCI)** - Custom images
 - **Alibaba Cloud** - ECS custom images
+
+### Design Principles
+
+1. **Consistent CLI Experience**: Uses `sindri deploy/connect/status/destroy` - same pattern as Docker, Fly.io, and DevPod providers
+2. **Single Provider, Multiple Clouds**: One `packer` provider with a `cloud` attribute (aws, azure, gcp, oci, alibaba) - similar to DevPod's multi-backend approach
+3. **Optional Pre-built Images**: Use `image_id` to skip building and deploy from existing images
+4. **Config-Driven with Rich Documentation**: Generated YAML includes inline comments with citations to official cloud documentation
 
 The implementation follows Sindri v3's established provider abstraction pattern, using:
 
@@ -47,11 +54,12 @@ The implementation follows Sindri v3's established provider abstraction pattern,
 
 **Key Deliverables:**
 
-1. `sindri-packer` crate with multi-cloud Packer provider
+1. `sindri-packer` crate with unified multi-cloud Packer provider
 2. HCL2 templates for all 5 cloud providers
-3. GitHub Actions reusable workflows
-4. Comprehensive test suite with InSpec validation
-5. Documentation and migration guides
+3. Generated `sindri.yaml` templates with rich inline comments and citations
+4. Per-cloud reference documentation (AWS, Azure, GCP, OCI, Alibaba)
+5. GitHub Actions reusable workflows
+6. Comprehensive test suite with InSpec validation
 
 ---
 
@@ -99,7 +107,7 @@ The [clicktruck](https://github.com/clicktruck) GitHub organization provides exc
 1. **Unified Toolset Image**
    - Same development tools across all clouds
    - ~60GB disk allocation (varies by provider)
-   - Ubuntu 22.04 LTS base image
+   - Ubuntu 24.04 LTS base image
    - SSH access with configurable user
 
 2. **Build Variants**
@@ -130,11 +138,11 @@ The [clicktruck](https://github.com/clicktruck) GitHub organization provides exc
 
 | Provider | Builder         | Base Image               | Disk             | Auth Method       |
 | -------- | --------------- | ------------------------ | ---------------- | ----------------- |
-| AWS      | `amazon-ebs`    | Ubuntu 22.04 (Canonical) | 60GB gp2         | Access keys       |
-| Azure    | `azure-arm`     | Ubuntu 22.04 (Canonical) | 60GB Premium_LRS | Service principal |
-| GCP      | `googlecompute` | Ubuntu 22.04 minimal     | 60GB SSD         | Service account   |
-| OCI      | `oracle-oci`    | Ubuntu 22.04             | 80GB             | API signing key   |
-| Alibaba  | `alicloud-ecs`  | Ubuntu 22.04             | 60GB             | Access key        |
+| AWS      | `amazon-ebs`    | Ubuntu 24.04 (Canonical) | 60GB gp2         | Access keys       |
+| Azure    | `azure-arm`     | Ubuntu 24.04 (Canonical) | 60GB Premium_LRS | Service principal |
+| GCP      | `googlecompute` | Ubuntu 24.04 minimal     | 60GB SSD         | Service account   |
+| OCI      | `oracle-oci`    | Ubuntu 24.04             | 80GB             | API signing key   |
+| Alibaba  | `alicloud-ecs`  | Ubuntu 24.04             | 60GB             | Access key        |
 
 ### HashiCorp Packer Best Practices (2025-2026)
 
@@ -144,7 +152,7 @@ The [clicktruck](https://github.com/clicktruck) GitHub organization provides exc
 packer {
   required_plugins {
     amazon = {
-      version = ">= 1.2.0"
+      version = ">= 1.14.0"
       source  = "github.com/hashicorp/amazon"
     }
   }
@@ -162,7 +170,7 @@ source "amazon-ebs" "base" {
 
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*"
+      name                = "ubuntu/images/*ubuntu-jammy-24.04-amd64-server-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -609,7 +617,7 @@ impl AwsPackerProvider {
                 "--region", region,
                 "--owners", "099720109477",
                 "--filters",
-                "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*",
+                "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-24.04-amd64-server-*",
                 "Name=state,Values=available",
                 "--query", "sort_by(Images, &CreationDate)[-1].ImageId",
                 "--output", "text",
@@ -843,10 +851,11 @@ impl PackerProvider for AwsPackerProvider {
 }
 
 // Implement standard Provider trait for deployment
+// Note: This is the internal AWS backend; users configure via `provider: packer` + `packer.cloud: aws`
 #[async_trait]
 impl Provider for AwsPackerProvider {
     fn name(&self) -> &'static str {
-        "aws-packer"
+        "packer"  // Unified provider name
     }
 
     fn check_prerequisites(&self) -> Result<PrerequisiteStatus> {
@@ -945,7 +954,7 @@ v3/crates/sindri-packer/src/templates/
 packer {
   required_plugins {
     amazon = {
-      version = ">= 1.2.0"
+      version = ">= 1.14.0"
       source  = "github.com/hashicorp/amazon"
     }
   }
@@ -984,7 +993,7 @@ source "amazon-ebs" "sindri" {
 
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
+      name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-24.04-amd64-server-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -1882,17 +1891,22 @@ end
 
 **Deliverables:**
 
-1. `sindri packer` subcommand
-2. `sindri packer build` command
-3. `sindri packer validate` command
-4. `sindri packer list` command
-5. Documentation
+1. Integrate `packer` provider with `sindri deploy` command
+2. Add packer-specific flags (`--rebuild`, `--build-only`, `--list-images`)
+3. `sindri init --provider packer --cloud <target>` template generation
+4. Per-cloud documentation with citations
 
 **Files:**
 
-- `v3/crates/sindri/src/commands/packer.rs`
-- `v3/crates/sindri/src/cli.rs` (update)
-- `v3/docs/PACKER.md`
+- `v3/crates/sindri/src/commands/deploy.rs` (extend for packer)
+- `v3/crates/sindri/src/commands/init.rs` (add packer templates)
+- `v3/crates/sindri/src/templates/packer/` (per-cloud YAML templates)
+- `v3/docs/providers/packer/README.md`
+- `v3/docs/providers/packer/aws.md`
+- `v3/docs/providers/packer/azure.md`
+- `v3/docs/providers/packer/gcp.md`
+- `v3/docs/providers/packer/oci.md`
+- `v3/docs/providers/packer/alibaba.md`
 
 ### Phase 7: GitHub Actions & CI/CD (Week 7-8)
 
@@ -2006,7 +2020,17 @@ v3/
 │               └── compliance.rb
 │
 ├── docs/
-│   ├── PACKER.md
+│   ├── providers/
+│   │   └── packer/
+│   │       ├── README.md              # Overview and quick start
+│   │       ├── aws.md                 # AWS-specific reference
+│   │       ├── azure.md               # Azure-specific reference
+│   │       ├── gcp.md                 # GCP-specific reference
+│   │       ├── oci.md                 # Oracle Cloud-specific reference
+│   │       ├── alibaba.md             # Alibaba Cloud-specific reference
+│   │       ├── image-building.md      # Image build workflow
+│   │       ├── security.md            # Security hardening guide
+│   │       └── troubleshooting.md     # Common issues
 │   └── planning/
 │       └── active/
 │           └── packer-vm-provisioning-architecture.md  # This document
@@ -2019,225 +2043,695 @@ v3/
 
 ## Configuration Schema
 
-### sindri.yaml Extension for Packer
+### Unified Packer Provider Design
+
+The `packer` provider follows the same pattern as other Sindri providers (Docker, Fly.io, DevPod) but adds a `cloud` attribute to specify the target cloud platform. This keeps the CLI experience consistent while supporting multi-cloud VM deployments.
+
+**Key Configuration Options:**
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `cloud` | Yes | Target cloud: `aws`, `azure`, `gcp`, `oci`, `alibaba` |
+| `image_id` | No | Use existing image (skip build) |
+| `build.*` | No | Image build settings (when `image_id` not set) |
+
+### sindri.yaml Schema
 
 ```yaml
 # sindri.yaml
 name: my-sindri-env
 version: "3.0.0"
-provider: aws-packer # New provider type
+provider: packer  # Unified packer provider
 
-# Packer-specific configuration
 packer:
-  image_name: sindri-dev-environment
-  description: "Sindri v3 development environment with AI tools"
-  sindri_version: "3.0.0"
+  # Target cloud platform (required)
+  # Options: aws, azure, gcp, oci, alibaba
+  cloud: aws
 
-  # Extensions to pre-install
-  extensions:
-    - python
-    - node
-    - rust
-    - claude-code
-    - aider
+  # Cloud-specific settings (vary by cloud target)
+  region: us-west-2
+  instance_type: t3.large
+  volume_size: 80
 
-  # Profile to install
-  profile: ai-dev
+  # === IMAGE SOURCE (choose one) ===
 
-  # Cloud configurations
-  clouds:
-    aws:
-      regions:
-        - us-west-2
-        - us-east-1
-      instance_type: t3.large
-      volume_size: 80
-      volume_type: gp3
-      encrypt_boot: true
-      tags:
-        Environment: development
-        Team: platform
+  # Option A: Use a pre-built image (skip build entirely)
+  # image_id: ami-0123456789abcdef0
 
-    azure:
-      subscription_id: "${AZURE_SUBSCRIPTION_ID}"
-      resource_group: sindri-images
-      location: westus2
-      vm_size: Standard_D4s_v4
-      gallery:
-        gallery_name: sindri_gallery
-        image_name: sindri-dev
-        replication_regions:
-          - westus2
-          - eastus
-
-    gcp:
-      project_id: "${GCP_PROJECT_ID}"
-      zone: us-west1-a
-      machine_type: e2-standard-4
-      disk_size: 80
-      enable_secure_boot: true
-      image_family: sindri-dev
-
-  # Build configuration
+  # Option B: Build image with these settings (used when image_id is NOT set)
   build:
-    parallel_builds: 3
-    ssh_timeout: "30m"
-    log_level: info
+    # Extensions to bake into the image
+    extensions:
+      - python
+      - node
+      - rust
+      - claude-code
 
-  # Security configuration
-  security:
-    cis_hardening: true
-    openscap_scan: false
-    clean_sensitive_data: true
-    remove_ssh_keys: true
+    # Extension profile to install
+    profile: ai-dev
+
+    # Cache behavior: reuse existing image if config matches
+    cache: true
+
+    # Image naming prefix for identification
+    name_prefix: sindri-dev
+
+    # Security hardening options
+    security:
+      cis_hardening: true
+      clean_sensitive_data: true
 ```
+
+### Image Source Logic
+
+| `image_id` | `build.cache` | Behavior |
+|------------|---------------|----------|
+| Set | - | Use specified image directly, no build |
+| Not set | `true` | Look for cached image matching config, build if not found |
+| Not set | `false` | Always build fresh image |
 
 ---
 
 ## CLI Commands
 
-### New Packer Subcommand
+### Consistent Deploy Workflow
+
+The `packer` provider uses the **same CLI commands** as all other Sindri providers, maintaining a consistent user experience:
 
 ```
-sindri packer --help
+# Standard deployment workflow (same as docker, fly, devpod)
+sindri deploy              # Build image (if needed) + deploy VM
+sindri connect             # SSH into the running VM
+sindri status              # Show VM status
+sindri stop                # Stop VM (for cost savings)
+sindri start               # Resume stopped VM
+sindri destroy             # Terminate VM
 
-Manage VM images with HashiCorp Packer
-
-USAGE:
-    sindri packer <SUBCOMMAND>
-
-SUBCOMMANDS:
-    build       Build VM images for specified clouds
-    validate    Validate Packer templates
-    list        List available images
-    delete      Delete an image
-    inspect     Show image details
-    help        Print this message or the help of the given subcommand(s)
-
-EXAMPLES:
-    # Build AWS AMI
-    sindri packer build --cloud aws
-
-    # Build for multiple clouds
-    sindri packer build --cloud aws,azure,gcp
-
-    # Build with specific profile
-    sindri packer build --cloud aws --profile ai-dev
-
-    # Validate templates
-    sindri packer validate --cloud all
-
-    # List images
-    sindri packer list --cloud aws
-
-    # Delete an image
-    sindri packer delete --cloud aws --image-id ami-0123456789
+# Packer-specific flags for image management
+sindri deploy --rebuild    # Force fresh image build before deploy
+sindri deploy --build-only # Only build image, don't deploy
+sindri deploy --list-images # List available images for current cloud
 ```
 
-### Command Implementations
+### Usage Examples
+
+```bash
+# Deploy to AWS (builds image automatically if needed)
+sindri deploy
+
+# Deploy to a different cloud (override config)
+sindri deploy --set packer.cloud=azure
+
+# Use a specific pre-built image
+sindri deploy --set packer.image_id=ami-0123456789abcdef0
+
+# Force rebuild the image before deploying
+sindri deploy --rebuild
+
+# Build image only (for CI/CD pipelines)
+sindri deploy --build-only
+# Output: Built image: ami-0abc123... (save this for production config)
+
+# List available images
+sindri deploy --list-images
+
+# Delete an old image
+sindri deploy --delete-image ami-old123
+```
+
+### Command Implementation
 
 ```rust
-// crates/sindri/src/commands/packer.rs
+// crates/sindri/src/commands/deploy.rs (extended for packer provider)
 
-use clap::{Args, Subcommand};
-use sindri_packer::{create_packer_provider, BuildOptions, CloudProvider};
+use sindri_packer::{PackerProvider, BuildOptions};
 
-#[derive(Args)]
-pub struct PackerArgs {
-    #[command(subcommand)]
-    pub command: PackerCommand,
-}
+impl DeployCommand {
+    async fn run_packer_deploy(&self, config: &SindriConfig) -> Result<DeployResult> {
+        let packer_config = config.packer.as_ref()
+            .ok_or_else(|| anyhow!("Packer configuration required"))?;
 
-#[derive(Subcommand)]
-pub enum PackerCommand {
-    /// Build VM images
-    Build(BuildArgs),
-    /// Validate Packer templates
-    Validate(ValidateArgs),
-    /// List available images
-    List(ListArgs),
-    /// Delete an image
-    Delete(DeleteArgs),
-    /// Show image details
-    Inspect(InspectArgs),
-}
+        let provider = PackerProvider::new(packer_config.cloud)?;
 
-#[derive(Args)]
-pub struct BuildArgs {
-    /// Target cloud providers (comma-separated)
-    #[arg(short, long, value_delimiter = ',')]
-    cloud: Vec<String>,
+        // Check for existing image or build new one
+        let image_id = if let Some(id) = &packer_config.image_id {
+            // Use specified image directly
+            info!("Using pre-built image: {}", id);
+            id.clone()
+        } else if self.rebuild {
+            // Force rebuild
+            info!("Building fresh image...");
+            let result = provider.build_image(packer_config, BuildOptions::default()).await?;
+            result.image_id
+        } else if packer_config.build.cache {
+            // Try to find cached image, build if not found
+            match provider.find_cached_image(packer_config).await? {
+                Some(id) => {
+                    info!("Using cached image: {}", id);
+                    id
+                }
+                None => {
+                    info!("No cached image found, building...");
+                    let result = provider.build_image(packer_config, BuildOptions::default()).await?;
+                    result.image_id
+                }
+            }
+        } else {
+            // Always build
+            info!("Building image...");
+            let result = provider.build_image(packer_config, BuildOptions::default()).await?;
+            result.image_id
+        };
 
-    /// Force rebuild even if image exists
-    #[arg(short, long)]
-    force: bool,
-
-    /// Extension profile to install
-    #[arg(long)]
-    profile: Option<String>,
-
-    /// Additional extensions to install
-    #[arg(long, value_delimiter = ',')]
-    extensions: Vec<String>,
-
-    /// Variable file paths
-    #[arg(long)]
-    var_file: Vec<PathBuf>,
-
-    /// Variable overrides (key=value)
-    #[arg(long)]
-    var: Vec<String>,
-
-    /// Enable debug output
-    #[arg(long)]
-    debug: bool,
-
-    /// Run in parallel
-    #[arg(long, default_value = "true")]
-    parallel: bool,
-}
-
-pub async fn run(args: PackerArgs) -> Result<()> {
-    match args.command {
-        PackerCommand::Build(build_args) => run_build(build_args).await,
-        PackerCommand::Validate(validate_args) => run_validate(validate_args).await,
-        PackerCommand::List(list_args) => run_list(list_args).await,
-        PackerCommand::Delete(delete_args) => run_delete(delete_args).await,
-        PackerCommand::Inspect(inspect_args) => run_inspect(inspect_args).await,
+        // Deploy VM from image
+        provider.deploy_from_image(&image_id, packer_config).await
     }
-}
-
-async fn run_build(args: BuildArgs) -> Result<()> {
-    let config = load_packer_config()?;
-
-    let clouds: Vec<CloudProvider> = args.cloud.iter()
-        .map(|c| c.parse())
-        .collect::<Result<_>>()?;
-
-    let opts = BuildOptions {
-        force: args.force,
-        var_files: args.var_file,
-        variables: parse_variables(&args.var)?,
-        debug: args.debug,
-        ..Default::default()
-    };
-
-    if args.parallel && clouds.len() > 1 {
-        // Build in parallel
-        let results = build_multi_cloud(&clouds, &config, opts).await?;
-        display_build_results(&results);
-    } else {
-        // Build sequentially
-        for cloud in clouds {
-            let provider = create_packer_provider(cloud)?;
-            let result = provider.build_image(&config, opts.clone()).await?;
-            display_build_result(&result);
-        }
-    }
-
-    Ok(())
 }
 ```
+
+---
+
+## Generated YAML Templates
+
+When users run `sindri init --provider packer --cloud <target>`, Sindri generates a fully documented `sindri.yaml` with inline comments and citations to official documentation. Each cloud target has its own template with cloud-specific guidance.
+
+### AWS Template (Generated)
+
+```yaml
+# sindri.yaml - AWS Packer Configuration
+# Generated by: sindri init --provider packer --cloud aws
+# Documentation: https://sindri.dev/docs/providers/packer/aws
+
+name: my-dev-environment
+version: "3.0.0"
+provider: packer
+
+packer:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TARGET CLOUD PLATFORM
+  # ═══════════════════════════════════════════════════════════════════════════
+  cloud: aws
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AWS REGION
+  # Where to build and deploy the VM instance.
+  # Ref: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html
+  # Common regions: us-east-1 (N. Virginia), us-west-2 (Oregon), eu-west-1 (Ireland)
+  # ═══════════════════════════════════════════════════════════════════════════
+  region: us-west-2
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EC2 INSTANCE TYPE
+  # Determines CPU, memory, and network performance.
+  # Ref: https://aws.amazon.com/ec2/instance-types/
+  #
+  # Recommended for development:
+  #   t3.medium  - 2 vCPU, 4 GB RAM   (~$0.042/hr) - Light development
+  #   t3.large   - 2 vCPU, 8 GB RAM   (~$0.083/hr) - Standard development
+  #   t3.xlarge  - 4 vCPU, 16 GB RAM  (~$0.166/hr) - Heavy workloads
+  #   m6i.xlarge - 4 vCPU, 16 GB RAM  (~$0.192/hr) - Consistent performance
+  #
+  # For GPU workloads (AI/ML):
+  #   g4dn.xlarge - 4 vCPU, 16 GB RAM, 1 T4 GPU (~$0.526/hr)
+  #   p3.2xlarge  - 8 vCPU, 61 GB RAM, 1 V100 GPU (~$3.06/hr)
+  # ═══════════════════════════════════════════════════════════════════════════
+  instance_type: t3.large
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EBS VOLUME SIZE (GB)
+  # Root volume size for the VM. Sindri base image requires minimum 40GB.
+  # Ref: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html
+  # ═══════════════════════════════════════════════════════════════════════════
+  volume_size: 80
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EBS VOLUME TYPE
+  # Options: gp3 (recommended), gp2, io1, io2
+  # Ref: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html
+  #   gp3 - General Purpose SSD, 3000 IOPS baseline, best price/performance
+  #   gp2 - General Purpose SSD, IOPS scales with size
+  #   io1/io2 - Provisioned IOPS, for high-performance workloads
+  # ═══════════════════════════════════════════════════════════════════════════
+  volume_type: gp3
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BOOT VOLUME ENCRYPTION
+  # Encrypt the EBS root volume using AWS KMS.
+  # Ref: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
+  # Recommended: true for compliance (HIPAA, SOC2, etc.)
+  # ═══════════════════════════════════════════════════════════════════════════
+  encrypt_boot: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IMAGE SOURCE
+  # Choose ONE of the following options:
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # Option A: Use an existing AMI (skip build, fastest deployment)
+  # Find AMIs: aws ec2 describe-images --owners self --query 'Images[*].[ImageId,Name]'
+  # image_id: ami-0123456789abcdef0
+
+  # Option B: Build a new image with these settings
+  build:
+    # Extensions to pre-install in the image
+    # Available: python, node, rust, go, java, claude-code, aider, cursor
+    extensions:
+      - python
+      - node
+      - rust
+
+    # Extension profile (predefined extension sets)
+    # Options: base, web-dev, ai-dev, data-science, devops
+    profile: ai-dev
+
+    # Reuse existing image if configuration matches (recommended)
+    # Set to false to always build fresh
+    cache: true
+
+    # Prefix for AMI names (for identification in AWS Console)
+    name_prefix: sindri-dev
+
+    # Security hardening during image build
+    security:
+      # Apply CIS Benchmark hardening
+      # Ref: https://www.cisecurity.org/benchmark/amazon_linux
+      cis_hardening: true
+
+      # Remove sensitive data before image capture
+      clean_sensitive_data: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPTIONAL: VPC CONFIGURATION
+  # Required if deploying to a private subnet or custom VPC.
+  # Ref: https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html
+  # ═══════════════════════════════════════════════════════════════════════════
+  # vpc_id: vpc-0123456789abcdef0
+  # subnet_id: subnet-0123456789abcdef0
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPTIONAL: RESOURCE TAGS
+  # Applied to all AWS resources (instance, volumes, AMI).
+  # Ref: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html
+  # ═══════════════════════════════════════════════════════════════════════════
+  tags:
+    Environment: development
+    Project: my-project
+    ManagedBy: sindri
+```
+
+### Azure Template (Generated)
+
+```yaml
+# sindri.yaml - Azure Packer Configuration
+# Generated by: sindri init --provider packer --cloud azure
+# Documentation: https://sindri.dev/docs/providers/packer/azure
+
+name: my-dev-environment
+version: "3.0.0"
+provider: packer
+
+packer:
+  cloud: azure
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AZURE SUBSCRIPTION
+  # Your Azure subscription ID. Find it in Azure Portal or with:
+  #   az account show --query id -o tsv
+  # Ref: https://learn.microsoft.com/en-us/azure/azure-portal/get-subscription-tenant-id
+  # ═══════════════════════════════════════════════════════════════════════════
+  subscription_id: "${AZURE_SUBSCRIPTION_ID}"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # RESOURCE GROUP
+  # Azure resource group for the VM and related resources.
+  # Create with: az group create --name sindri-rg --location westus2
+  # Ref: https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-portal
+  # ═══════════════════════════════════════════════════════════════════════════
+  resource_group: sindri-rg
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AZURE REGION
+  # Ref: https://azure.microsoft.com/en-us/explore/global-infrastructure/geographies/
+  # Common: eastus, westus2, westeurope, northeurope, southeastasia
+  # ═══════════════════════════════════════════════════════════════════════════
+  location: westus2
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # VM SIZE
+  # Determines CPU, memory, and pricing.
+  # Ref: https://learn.microsoft.com/en-us/azure/virtual-machines/sizes
+  #
+  # General purpose:
+  #   Standard_D2s_v4  - 2 vCPU, 8 GB RAM   (~$0.096/hr)
+  #   Standard_D4s_v4  - 4 vCPU, 16 GB RAM  (~$0.192/hr)
+  #   Standard_D8s_v4  - 8 vCPU, 32 GB RAM  (~$0.384/hr)
+  #
+  # GPU (AI/ML):
+  #   Standard_NC6s_v3 - 6 vCPU, 112 GB RAM, 1 V100 GPU (~$3.06/hr)
+  # ═══════════════════════════════════════════════════════════════════════════
+  vm_size: Standard_D4s_v4
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OS DISK SIZE (GB)
+  # Ref: https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview
+  # ═══════════════════════════════════════════════════════════════════════════
+  os_disk_size_gb: 80
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STORAGE ACCOUNT TYPE
+  # Ref: https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types
+  # Options:
+  #   Premium_LRS   - Premium SSD, locally redundant (recommended)
+  #   StandardSSD_LRS - Standard SSD
+  #   Standard_LRS  - Standard HDD (cheapest, slowest)
+  # ═══════════════════════════════════════════════════════════════════════════
+  storage_account_type: Premium_LRS
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IMAGE SOURCE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # Option A: Use existing image
+  # image_id: /subscriptions/.../resourceGroups/.../providers/Microsoft.Compute/images/sindri-dev
+
+  # Option B: Build settings
+  build:
+    extensions:
+      - python
+      - node
+    profile: ai-dev
+    cache: true
+    name_prefix: sindri-dev
+    security:
+      cis_hardening: true
+      clean_sensitive_data: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPTIONAL: SHARED IMAGE GALLERY
+  # Distribute images across regions for faster deployment.
+  # Ref: https://learn.microsoft.com/en-us/azure/virtual-machines/shared-image-galleries
+  # ═══════════════════════════════════════════════════════════════════════════
+  # gallery:
+  #   gallery_name: sindri_gallery
+  #   image_name: sindri-dev
+  #   image_version: "1.0.0"
+  #   replication_regions:
+  #     - westus2
+  #     - eastus
+```
+
+### GCP Template (Generated)
+
+```yaml
+# sindri.yaml - GCP Packer Configuration
+# Generated by: sindri init --provider packer --cloud gcp
+# Documentation: https://sindri.dev/docs/providers/packer/gcp
+
+name: my-dev-environment
+version: "3.0.0"
+provider: packer
+
+packer:
+  cloud: gcp
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # GCP PROJECT ID
+  # Your GCP project ID (not the project number).
+  # Find with: gcloud config get-value project
+  # Ref: https://cloud.google.com/resource-manager/docs/creating-managing-projects
+  # ═══════════════════════════════════════════════════════════════════════════
+  project_id: "${GCP_PROJECT_ID}"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ZONE
+  # GCP zone for the VM. Format: region-zone (e.g., us-west1-a)
+  # Ref: https://cloud.google.com/compute/docs/regions-zones
+  # ═══════════════════════════════════════════════════════════════════════════
+  zone: us-west1-a
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MACHINE TYPE
+  # Ref: https://cloud.google.com/compute/docs/machine-resource
+  #
+  # General purpose (E2 - cost-optimized):
+  #   e2-medium   - 2 vCPU, 4 GB RAM   (~$0.034/hr)
+  #   e2-standard-4 - 4 vCPU, 16 GB RAM (~$0.134/hr)
+  #
+  # General purpose (N2 - balanced):
+  #   n2-standard-4 - 4 vCPU, 16 GB RAM (~$0.194/hr)
+  #   n2-standard-8 - 8 vCPU, 32 GB RAM (~$0.388/hr)
+  #
+  # GPU (AI/ML):
+  #   n1-standard-4 + nvidia-tesla-t4 (~$0.35/hr + $0.35/hr GPU)
+  # ═══════════════════════════════════════════════════════════════════════════
+  machine_type: e2-standard-4
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DISK SIZE (GB)
+  # Ref: https://cloud.google.com/compute/docs/disks
+  # ═══════════════════════════════════════════════════════════════════════════
+  disk_size: 80
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DISK TYPE
+  # Ref: https://cloud.google.com/compute/docs/disks#disk-types
+  # Options:
+  #   pd-ssd      - SSD persistent disk (recommended)
+  #   pd-balanced - Balanced persistent disk
+  #   pd-standard - Standard persistent disk (HDD)
+  # ═══════════════════════════════════════════════════════════════════════════
+  disk_type: pd-ssd
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SHIELDED VM / SECURE BOOT
+  # Ref: https://cloud.google.com/compute/shielded-vm/docs/shielded-vm
+  # ═══════════════════════════════════════════════════════════════════════════
+  enable_secure_boot: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IMAGE SOURCE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # Option A: Use existing image
+  # image_id: projects/my-project/global/images/sindri-dev-v1
+
+  # Option B: Build settings
+  build:
+    extensions:
+      - python
+      - node
+    profile: ai-dev
+    cache: true
+    name_prefix: sindri-dev
+
+    # Image family for automatic latest version resolution
+    # Ref: https://cloud.google.com/compute/docs/images/image-families-best-practices
+    image_family: sindri-dev
+
+    security:
+      cis_hardening: true
+      clean_sensitive_data: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPTIONAL: NETWORK CONFIGURATION
+  # Ref: https://cloud.google.com/vpc/docs/vpc
+  # ═══════════════════════════════════════════════════════════════════════════
+  # network: projects/my-project/global/networks/my-vpc
+  # subnetwork: projects/my-project/regions/us-west1/subnetworks/my-subnet
+```
+
+### OCI Template (Generated)
+
+```yaml
+# sindri.yaml - Oracle Cloud Infrastructure Packer Configuration
+# Generated by: sindri init --provider packer --cloud oci
+# Documentation: https://sindri.dev/docs/providers/packer/oci
+
+name: my-dev-environment
+version: "3.0.0"
+provider: packer
+
+packer:
+  cloud: oci
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # COMPARTMENT OCID
+  # The OCID of the compartment where resources will be created.
+  # Find with: oci iam compartment list --query 'data[*].{name:name,id:id}'
+  # Ref: https://docs.oracle.com/en-us/iaas/Content/Identity/Tasks/managingcompartments.htm
+  # ═══════════════════════════════════════════════════════════════════════════
+  compartment_ocid: "${OCI_COMPARTMENT_OCID}"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AVAILABILITY DOMAIN
+  # Format: <region-identifier>:<availability-domain-number>
+  # List with: oci iam availability-domain list
+  # Ref: https://docs.oracle.com/en-us/iaas/Content/General/Concepts/regions.htm
+  # ═══════════════════════════════════════════════════════════════════════════
+  availability_domain: "Uocm:US-ASHBURN-AD-1"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SHAPE (VM TYPE)
+  # Ref: https://docs.oracle.com/en-us/iaas/Content/Compute/References/computeshapes.htm
+  #
+  # Flexible shapes (recommended - pay for what you use):
+  #   VM.Standard.E4.Flex - AMD EPYC, configurable OCPUs
+  #   VM.Standard.A1.Flex - Arm-based Ampere, best price/performance
+  #
+  # Fixed shapes:
+  #   VM.Standard.E4.Flex (1 OCPU, 16 GB) - ~$0.025/hr
+  #   VM.Standard.E4.Flex (4 OCPU, 64 GB) - ~$0.10/hr
+  #
+  # GPU:
+  #   VM.GPU3.1 - 1 V100 GPU - ~$2.95/hr
+  # ═══════════════════════════════════════════════════════════════════════════
+  shape: VM.Standard.E4.Flex
+
+  # For flexible shapes, specify OCPUs and memory
+  shape_config:
+    ocpus: 4
+    memory_in_gbs: 64
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SUBNET OCID
+  # The subnet for the VM's VNIC.
+  # List with: oci network subnet list --compartment-id $COMPARTMENT
+  # Ref: https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingVCNs.htm
+  # ═══════════════════════════════════════════════════════════════════════════
+  subnet_ocid: "${OCI_SUBNET_OCID}"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BOOT VOLUME SIZE (GB)
+  # Ref: https://docs.oracle.com/en-us/iaas/Content/Block/Concepts/bootvolumes.htm
+  # ═══════════════════════════════════════════════════════════════════════════
+  boot_volume_size_gb: 80
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IMAGE SOURCE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # Option A: Use existing image
+  # image_id: ocid1.image.oc1.iad.aaaa...
+
+  # Option B: Build settings
+  build:
+    extensions:
+      - python
+      - node
+    profile: ai-dev
+    cache: true
+    name_prefix: sindri-dev
+    security:
+      cis_hardening: true
+      clean_sensitive_data: true
+```
+
+### Alibaba Cloud Template (Generated)
+
+```yaml
+# sindri.yaml - Alibaba Cloud Packer Configuration
+# Generated by: sindri init --provider packer --cloud alibaba
+# Documentation: https://sindri.dev/docs/providers/packer/alibaba
+
+name: my-dev-environment
+version: "3.0.0"
+provider: packer
+
+packer:
+  cloud: alibaba
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # REGION
+  # Alibaba Cloud region ID.
+  # Ref: https://www.alibabacloud.com/help/en/ecs/product-overview/regions-and-zones
+  # Common: cn-hangzhou, cn-shanghai, cn-beijing, us-west-1, eu-central-1
+  # ═══════════════════════════════════════════════════════════════════════════
+  region: cn-hangzhou
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INSTANCE TYPE
+  # Ref: https://www.alibabacloud.com/help/en/ecs/user-guide/overview-of-instance-families
+  #
+  # General purpose:
+  #   ecs.g6.large   - 2 vCPU, 8 GB RAM
+  #   ecs.g6.xlarge  - 4 vCPU, 16 GB RAM
+  #   ecs.g6.2xlarge - 8 vCPU, 32 GB RAM
+  #
+  # GPU (AI/ML):
+  #   ecs.gn6i-c4g1.xlarge - 4 vCPU, 15 GB, 1 T4 GPU
+  # ═══════════════════════════════════════════════════════════════════════════
+  instance_type: ecs.g6.xlarge
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SYSTEM DISK SIZE (GB)
+  # Ref: https://www.alibabacloud.com/help/en/ecs/user-guide/block-storage-overview
+  # ═══════════════════════════════════════════════════════════════════════════
+  system_disk_size_gb: 80
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SYSTEM DISK CATEGORY
+  # Ref: https://www.alibabacloud.com/help/en/ecs/user-guide/block-storage-overview
+  # Options:
+  #   cloud_essd     - Enhanced SSD (recommended)
+  #   cloud_ssd      - Standard SSD
+  #   cloud_efficiency - Ultra disk
+  # ═══════════════════════════════════════════════════════════════════════════
+  system_disk_category: cloud_essd
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IMAGE SOURCE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # Option A: Use existing image
+  # image_id: m-bp1234567890abcdef
+
+  # Option B: Build settings
+  build:
+    extensions:
+      - python
+      - node
+    profile: ai-dev
+    cache: true
+    name_prefix: sindri-dev
+    security:
+      cis_hardening: true
+      clean_sensitive_data: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPTIONAL: VSWITCH
+  # For deploying in a specific VPC/VSwitch.
+  # Ref: https://www.alibabacloud.com/help/en/vpc/user-guide/create-and-manage-a-vswitch
+  # ═══════════════════════════════════════════════════════════════════════════
+  # vswitch_id: vsw-bp1234567890abcdef
+```
+
+---
+
+## Per-Cloud Documentation Structure
+
+Documentation for the Packer provider is organized into individual reference guides per cloud:
+
+```
+v3/docs/providers/packer/
+├── README.md           # Overview and quick start
+├── aws.md              # AWS-specific reference
+├── azure.md            # Azure-specific reference
+├── gcp.md              # GCP-specific reference
+├── oci.md              # Oracle Cloud-specific reference
+├── alibaba.md          # Alibaba Cloud-specific reference
+├── image-building.md   # Image build workflow details
+├── security.md         # Security hardening guide
+└── troubleshooting.md  # Common issues and solutions
+```
+
+Each cloud reference document includes:
+
+1. **Prerequisites** - Required CLI tools, authentication setup
+2. **Configuration Reference** - All options with descriptions and defaults
+3. **Pricing Guide** - Instance type recommendations with cost estimates
+4. **Networking** - VPC/subnet configuration examples
+5. **Image Management** - List, share, delete operations
+6. **Troubleshooting** - Cloud-specific error resolution
 
 ---
 
@@ -2325,6 +2819,7 @@ async fn run_build(args: BuildArgs) -> Result<()> {
 | Version | Date       | Author           | Changes                       |
 | ------- | ---------- | ---------------- | ----------------------------- |
 | 1.0.0   | 2026-01-24 | Sindri Core Team | Initial architecture document |
+| 1.1.0   | 2026-01-25 | Sindri Core Team | Revised to unified `packer` provider approach: single provider with `cloud` attribute, `image_id` for pre-built images, consistent `sindri deploy` CLI, generated YAML with rich inline comments and citations |
 
 ---
 
@@ -2332,5 +2827,6 @@ async fn run_build(args: BuildArgs) -> Result<()> {
 
 1. Review and approve architecture
 2. Create `sindri-packer` crate scaffold
-3. Begin Phase 1 implementation
-4. Set up CI/CD infrastructure
+3. Implement per-cloud YAML template generators with inline documentation
+4. Begin Phase 1 implementation
+5. Set up CI/CD infrastructure

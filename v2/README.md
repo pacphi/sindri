@@ -71,14 +71,3 @@ cd sindri
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Security](docs/SECURITY.md)** - Security best practices
 
-### Claude Code Integration
-
-A Claude Code skill is available to guide extension development. When using Claude Code, ask about creating extensions and it will automatically provide guidance. See [Sindri Extension Guide](../.claude/skills/sindri-extension-guide/SKILL.md) for the skill definition.
-
-```text
-Example questions:
-- "Help me create a new extension for Lua development"
-- "What fields are required in extension.yaml?"
-- "How do I use the apt installation method?"
-- "Show me an example of a script-based extension"
-```
