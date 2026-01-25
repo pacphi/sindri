@@ -247,6 +247,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_runtime_config_from_file() {
         let (loader, _temp) = create_temp_loader();
 

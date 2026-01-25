@@ -172,7 +172,7 @@ async fn test_download_retry_on_failure() {
         .with_max_retries(3)
         .with_progress(false);
 
-    let platform = PLATFORM_LINUX_X86_64; // Use a standard platform for test
+    let platform = default_test_platform(); // Use platform matching current OS/arch
 
     // First 2 requests fail, third succeeds
     mock_flaky_download(&mock_server, platform, 2, SUCCESS_CONTENT).await;
@@ -225,7 +225,7 @@ async fn test_download_size_mismatch() {
     let mock_server = MockServer::start().await;
     let downloader = BinaryDownloader::new().unwrap().with_progress(false);
 
-    let platform = PLATFORM_LINUX_X86_64;
+    let platform = default_test_platform();
 
     mock_binary_download(&mock_server, platform, SHORT_CONTENT).await;
 
@@ -316,7 +316,7 @@ async fn test_download_with_progress_disabled() {
     let mock_server = MockServer::start().await;
     let downloader = BinaryDownloader::new().unwrap().with_progress(false);
 
-    let platform = PLATFORM_LINUX_X86_64;
+    let platform = default_test_platform();
 
     mock_binary_download(&mock_server, platform, TEST_BINARY_CONTENT).await;
 
@@ -331,7 +331,7 @@ async fn test_concurrent_downloads() {
     use tokio::task::JoinSet;
 
     let mock_server = MockServer::start().await;
-    let platform = PLATFORM_LINUX_X86_64;
+    let platform = default_test_platform();
 
     // Setup multiple mock endpoints
     mock_indexed_downloads(&mock_server, platform, 3).await;

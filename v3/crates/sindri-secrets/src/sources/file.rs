@@ -216,7 +216,10 @@ mod tests {
     use tempfile::TempDir;
 
     fn create_test_context(dir: &Path) -> ResolutionContext {
-        ResolutionContext::new(dir.to_path_buf())
+        // Canonicalize to match what validate_and_resolve_path does
+        // This is especially important on macOS where /var is symlinked to /private/var
+        let canonical_dir = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+        ResolutionContext::new(canonical_dir)
     }
 
     #[tokio::test]
