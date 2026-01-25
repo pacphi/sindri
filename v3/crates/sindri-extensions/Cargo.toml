@@ -28,7 +28,7 @@ camino = { workspace = true }
 uuid = { workspace = true }
 tar = { workspace = true }
 flate2 = { workspace = true }
-dirs = "5.0"
+dirs = "6.0"
 sha2 = "0.10"
 
 [dev-dependencies]

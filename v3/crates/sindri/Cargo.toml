@@ -40,7 +40,7 @@ tracing-subscriber = { workspace = true }
 # Filesystem
 camino = { workspace = true }
 directories = { workspace = true }
-dirs = "5.0"
+dirs = "6.0"
 
 # Version management
 semver = { workspace = true }

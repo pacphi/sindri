@@ -18,6 +18,6 @@ serde_yaml = { workspace = true }
 tera = { workspace = true }
 tracing = { workspace = true }
 duct = { workspace = true }
-which = "6.0"
+which = "8.0"
 chrono = { workspace = true }
 dirs = { workspace = true }
