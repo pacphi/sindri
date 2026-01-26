@@ -89,12 +89,6 @@ Both versions support the **capabilities system** for advanced extensions:
 
 Most extensions don't need capabilities - they're for extensions that manage project setup (like Claude Flow, Agentic QE, Spec-Kit).
 
-## Reference Documentation
-
-- **[V2 vs V3 Comparison](docs/v2-v3-comparison-guide.md)** - Comprehensive comparison
-- **[Extension Authoring](docs/EXTENSION_AUTHORING.md)** - Detailed authoring guide
-- **[Extension Catalog](docs/EXTENSIONS.md)** - Available extensions
-
 ---
 
 **Next Step:** Ask the user which version they need, then invoke the appropriate specialist skill.

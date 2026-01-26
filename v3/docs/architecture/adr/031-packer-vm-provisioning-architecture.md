@@ -180,4 +180,3 @@ pub struct BuildConfig {
 - [CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks)
 - [OpenSCAP](https://www.open-scap.org/)
 - [Chef InSpec](https://docs.chef.io/inspec/)
-- Planning Document: [packer-vm-provisioning-architecture.md](../planning/active/packer-vm-provisioning-architecture.md)
