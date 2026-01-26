@@ -44,7 +44,7 @@ V2 extensions are YAML-driven, declarative configurations for the Bash/Docker-ba
 4. [ ] Validate: `./v2/cli/extension-manager validate {name}`
 5. [ ] Test: `./v2/cli/extension-manager install {name}`
 6. [ ] Create docs: `docs/extensions/{NAME}.md`
-7. [ ] Update catalog: `docs/EXTENSIONS.md`
+7. [ ] Update catalog: `v2/docs/EXTENSIONS.md`
 
 ## Extension Directory Structure
 
@@ -363,7 +363,7 @@ After creating an extension, update:
 
 1. **Registry**: `v2/docker/lib/registry.yaml`
 2. **Extension Doc**: `docs/extensions/{NAME}.md`
-3. **Catalog**: `docs/EXTENSIONS.md`
+3. **Catalog**: `v2/docs/EXTENSIONS.md`
 4. **Profiles** (if applicable): `v2/docker/lib/profiles.yaml`
 
 ## Troubleshooting

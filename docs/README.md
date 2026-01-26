@@ -16,8 +16,8 @@ The original Sindri implementation using Bash scripts and Docker. This version i
 
 **V2 Documentation:**
 
-- [Extensions Catalog](EXTENSIONS.md) - Available extensions and profiles
-- [Extension Authoring](EXTENSION_AUTHORING.md) - Create custom V2 extensions
+- [Extensions Catalog](../v2/docs/EXTENSIONS.md) - Available extensions and profiles
+- [Extension Authoring](../v2/docs/EXTENSION_AUTHORING.md) - Create custom V2 extensions
 - [V2 Architecture](../v2/docs/ARCHITECTURE.md) - System design and components
 - [V2 Configuration](../v2/docs/CONFIGURATION.md) - sindri.yaml configuration reference
 
@@ -34,7 +34,7 @@ The next-generation Sindri implementation built in Rust. This version offers imp
 
 **V3 Documentation:**
 
-- [Getting Started](../v3/docs/getting-started.md) - Quick start guide
+- [Getting Started](../v3/docs/GETTING_STARTED.md) - Quick start guide
 - [CLI Reference](../v3/docs/CLI.md) - Command-line interface documentation
 - [Configuration](../v3/docs/CONFIGURATION.md) - V3 configuration reference
 - [Schema Reference](../v3/docs/SCHEMA.md) - Extension schema documentation
@@ -51,8 +51,9 @@ If you are transitioning between versions, these guides will help:
 
 ### FAQ and Troubleshooting
 
-- [FAQ](faq/FAQ.md) - Frequently asked questions
-- [Troubleshooting](faq/TROUBLESHOOTING.md) - Common issues and solutions
+- [FAQ](https://sindri-faq.fly.dev) - Frequently asked questions (V2-focused)
+- [V2 Troubleshooting](../v2/docs/TROUBLESHOOTING.md) - V2 common issues and solutions
+- [V3 Troubleshooting](../v3/docs/TROUBLESHOOTING.md) - V3 common issues and solutions
 
 ### IDE Integration
 

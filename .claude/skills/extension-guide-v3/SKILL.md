@@ -41,7 +41,7 @@ V3 extensions are YAML-driven, declarative configurations for the modern Rust-ba
 3. [ ] Validate: `sindri extension validate {name}`
 4. [ ] Test: `sindri extension install {name}`
 5. [ ] Create docs: `docs/extensions/{NAME}.md`
-6. [ ] Update catalog: `docs/EXTENSIONS.md`
+6. [ ] Update catalog: `v3/docs/EXTENSIONS.md`
 
 ## Extension Directory Structure
 
@@ -513,7 +513,7 @@ capabilities:
 After creating an extension:
 
 1. **Extension Doc**: `docs/extensions/{NAME}.md`
-2. **Catalog**: `docs/EXTENSIONS.md`
+2. **Catalog**: `v3/docs/EXTENSIONS.md`
 3. **Test locally**: `sindri extension install {name} && sindri extension status {name}`
 
 ## Troubleshooting
