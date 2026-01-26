@@ -11,6 +11,7 @@ The configure system implemented in ADR 032 processes templates unconditionally 
 ### Impact
 
 **Current Limitations:**
+
 - 7 extensions use imperative bash scripts for environment detection
 - Install scripts contain duplicate logic that should be declarative
 - Templates are selected via `if [[ "$CI" == "true" ]]` in bash, not YAML
@@ -18,6 +19,7 @@ The configure system implemented in ADR 032 processes templates unconditionally 
 - No standardized way to express "use template-A in CI, template-B locally"
 
 **Affected Extensions:**
+
 - `claude-marketplace`: Bash script selects between `marketplaces.yml` vs `marketplaces.ci.yml`
 - `ruby`: Bash script skips Rails install entirely in CI
 - `playwright`: Bash script sets `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` in CI
@@ -29,12 +31,14 @@ The configure system implemented in ADR 032 processes templates unconditionally 
 From extension analysis and v2 migration patterns:
 
 **Declarative Conditions:**
+
 - Environment variable matching (equals, not_equals, exists, regex)
 - Platform detection (OS, architecture)
 - Logical operators (any, all, not) for complex conditions
 - Backwards compatible (templates without conditions always process)
 
 **Use Cases:**
+
 - **CI/Local Split**: Different templates for CI (minimal) vs local (full featured)
 - **Platform-Specific**: Linux/macOS/Windows specific configurations
 - **GPU Awareness**: Different configs for GPU vs CPU-only environments
@@ -98,21 +102,25 @@ pub struct PlatformCondition {
 ### Design Principles
 
 **1. Declarative Over Imperative**
+
 - Replace bash script logic with YAML conditions
 - Self-documenting: condition intent is clear from YAML
 - Easier to validate and test
 
 **2. Flexibility**
+
 - Simple conditions for common cases: `{ CI: "true" }`
 - Complex conditions for advanced cases: regex, logical operators
 - Composable: combine env + platform + logical operators
 
 **3. Backwards Compatibility**
+
 - Templates without `condition` field always process (current behavior)
 - Existing extensions continue to work unchanged
 - No breaking changes to extension.yaml schema
 
 **4. Early Evaluation**
+
 - Conditions evaluated before template processing
 - Skipped templates logged for transparency
 - Failed condition evaluations return errors (don't silently skip)
@@ -120,6 +128,7 @@ pub struct PlatformCondition {
 ### Implementation
 
 **Condition Evaluator (`configure/conditions.rs`):**
+
 ```rust
 pub struct ConditionEvaluator {
     platform_info: PlatformInfo,
@@ -133,6 +142,7 @@ impl ConditionEvaluator {
 ```
 
 **Template Processor Integration:**
+
 ```rust
 pub async fn process_template(
     &self,
@@ -152,6 +162,7 @@ pub async fn process_template(
 ```
 
 **Orchestrator Handling:**
+
 ```rust
 async fn process_templates(...) -> Result<Vec<TemplateResult>> {
     for template in templates {
@@ -171,6 +182,7 @@ async fn process_templates(...) -> Result<Vec<TemplateResult>> {
 ### Example 1: CI vs Local Template Selection
 
 **Before (install.sh + extension.yaml):**
+
 ```bash
 # install.sh
 if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
@@ -181,6 +193,7 @@ fi
 ```
 
 **After (extension.yaml only):**
+
 ```yaml
 configure:
   templates:
@@ -196,7 +209,7 @@ configure:
 
     # CI environment gets minimal marketplace list
     - source: marketplaces.ci.yml.example
-      destination: ~/config/marketplaces.yml  # Same destination!
+      destination: ~/config/marketplaces.yml # Same destination!
       mode: overwrite
       condition:
         env:
@@ -328,6 +341,7 @@ configure:
 ### Platform Detection
 
 Uses Rust standard library constants:
+
 ```rust
 fn detect_platform() -> PlatformInfo {
     let os = match std::env::consts::OS {
@@ -366,6 +380,7 @@ fn detect_platform() -> PlatformInfo {
 ### Testing Strategy
 
 **Unit Tests (14 tests in conditions.rs):**
+
 - Simple environment matching
 - Complex expressions (not_equals, exists, regex, in_list)
 - Platform detection
@@ -374,6 +389,7 @@ fn detect_platform() -> PlatformInfo {
 - Edge cases (missing vars, invalid regex)
 
 **Integration Tests (6 tests):**
+
 - CI mode vs local mode template selection
 - Platform-specific templates
 - Wrong platform skip
@@ -381,6 +397,7 @@ fn detect_platform() -> PlatformInfo {
 - Complex multi-condition scenarios
 
 **Test Isolation:**
+
 - Uses `serial_test` crate to serialize tests that modify environment
 - Cleans up environment variables after each test
 - Validates platform detection on current OS
@@ -388,6 +405,7 @@ fn detect_platform() -> PlatformInfo {
 ### Migration Guide for Extensions
 
 **Step 1: Identify Current Logic**
+
 ```bash
 # Find bash conditionals in install.sh
 if [[ "${CI:-}" == "true" ]]; then
@@ -398,6 +416,7 @@ fi
 ```
 
 **Step 2: Convert to Declarative Conditions**
+
 ```yaml
 configure:
   templates:
@@ -420,6 +439,7 @@ configure:
 After verification, bash scripts can be simplified or removed.
 
 **Step 4: Test Both Modes**
+
 ```bash
 # Test local
 unset CI GITHUB_ACTIONS
@@ -433,32 +453,38 @@ sindri extension install <extension> --force
 ## Performance Characteristics
 
 **Condition Evaluation:**
+
 - Average: <1ms per template
 - Platform detection: One-time cost at evaluator creation
 - Environment variable lookup: O(1) via std::env::var
 - Regex compilation: Cached per pattern
 
 **Memory Overhead:**
+
 - ConditionEvaluator: ~200 bytes
 - Platform info cached during evaluation
 - No persistent state between templates
 
 **Impact on Install Time:**
+
 - Negligible for most extensions (<10 templates)
 - Measurable only for extensions with >100 templates
 
 ## Security Considerations
 
 **Path Traversal:**
+
 - Conditions don't affect path validation
 - All existing path security checks still apply
 
 **Code Injection:**
+
 - Conditions are declarative YAML, not executable code
 - No eval or dynamic code execution
 - Regex patterns validated before execution
 
 **Environment Variable Exposure:**
+
 - Conditions only read environment variables
 - No modification of environment during evaluation
 - Sensitive variables (passwords, tokens) not exposed in logs
@@ -466,19 +492,23 @@ sindri extension install <extension> --force
 ## Dependencies
 
 **New dependency:**
+
 - `regex = "1.10"` - Pattern matching in environment variables
 
 **Existing dependencies:**
+
 - `serde`, `serde_yaml` - Condition deserialization
 - `anyhow` - Error handling
 - `tracing` - Logging
 
 **Dev dependencies:**
+
 - `serial_test` - Test isolation for environment variables
 
 ## Future Enhancements
 
 1. **Capability Detection**
+
    ```yaml
    condition:
      capability:
@@ -488,6 +518,7 @@ sindri extension install <extension> --force
    ```
 
 2. **Custom Condition Functions**
+
    ```yaml
    condition:
      function: shell_type  # bash/zsh/fish
@@ -501,6 +532,7 @@ sindri extension install <extension> --force
    - Static analysis of condition coverage
 
 4. **Template Selection Strategies**
+
    ```yaml
    strategy: first-match  # default
    strategy: all-match    # apply all matching templates

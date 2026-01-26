@@ -376,6 +376,6 @@ BOMs are automatically generated:
 
 ## Related Documentation
 
-- [Extension Development](../../docs/EXTENSIONS.md)
+- [Extension Development](EXTENSIONS.md)
 - [Extension Schema](../../v2/docker/lib/schemas/extension.schema.json)
 - [Security Best Practices](./SECURITY.md)

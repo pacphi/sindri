@@ -316,6 +316,120 @@ find docs -name "*.md" | xargs -n1 markdown-link-check -q
 - **CLAUDE.md** - Developer guide for Claude Code
 - **Extension README** - Per-extension documentation (optional)
 
+### Documentation Naming Conventions
+
+All documentation files must follow these naming standards:
+
+| Document Type                 | Naming Pattern                  | Example                                               |
+| ----------------------------- | ------------------------------- | ----------------------------------------------------- |
+| Core documentation            | `UPPER_CASE_UNDERSCORE.md`      | `GETTING_STARTED.md`, `EXTENSION_AUTHORING.md`        |
+| Extension documentation       | `UPPER-CASE-HYPHEN.md`          | `NODEJS-DEVTOOLS.md`, `AI-TOOLKIT.md`                 |
+| Architecture Decision Records | `NNN-kebab-case-description.md` | `001-extension-system.md`, `021-ci-workflow-split.md` |
+
+**Directory organization:**
+
+- Version-specific docs go under `v2/docs/` or `v3/docs/`
+- Shared/version-agnostic docs go under `docs/shared/`
+- Migration and comparison guides go under `docs/shared/migration/`
+
+**Rationale:**
+
+- `UPPER_CASE` signals these are project documentation (not code)
+- Consistent naming enables automated validation via CI
+- Clear separation prevents version confusion
+
+### Version Tagging Requirements
+
+All version-specific documentation **must** include a version header at the top of the file:
+
+```markdown
+# Document Title
+
+> This documentation applies to **Sindri V2**
+
+---
+
+(rest of content)
+```
+
+Or for V3:
+
+```markdown
+# Document Title
+
+> This documentation applies to **Sindri V3**
+
+---
+
+(rest of content)
+```
+
+**When to use version tags:**
+
+- Any document describing V2-only or V3-only features
+- Installation/setup guides specific to a version
+- Extension documentation (V2 and V3 have different extension systems)
+- Architecture documentation (different implementations)
+
+**When NOT to use version tags:**
+
+- Migration guides (they cover both versions)
+- Comparison guides (they cover both versions)
+- IDE integration docs (version-agnostic)
+- This contributing guide (applies to all versions)
+
+### Cross-Reference Guidelines
+
+When linking between documentation files:
+
+**Use relative paths:**
+
+```markdown
+<!-- Good - relative path -->
+
+See [Extension Authoring](./EXTENSION_AUTHORING.md)
+
+<!-- Bad - absolute path -->
+
+See [Extension Authoring](/v2/docs/EXTENSION_AUTHORING.md)
+```
+
+**Always verify links exist:**
+
+```bash
+# Run link checker before committing
+pnpm lint:md
+
+# Or manually check
+find docs -name "*.md" -exec grep -l "broken-link" {} \;
+```
+
+**Update references when moving files:**
+
+1. Before moving: search for all references to the file
+2. Move the file
+3. Update all references to the new location
+4. Run link checker to verify
+
+```bash
+# Find all references to a file
+grep -r "EXTENSIONS.md" docs/ v2/docs/ v3/docs/
+```
+
+**Cross-version references:**
+
+When linking from V2 docs to V3 docs (or vice versa), use explicit version paths:
+
+```markdown
+<!-- From v2/docs/EXTENSIONS.md -->
+
+For V3 extensions, see [V3 Extension Guide](../../v3/docs/EXTENSIONS.md)
+
+<!-- From v3/docs/EXTENSIONS.md -->
+
+For V2 extensions, see [V2 Extension Guide](../../v2/docs/EXTENSIONS.md)
+```
+
 ### Writing Documentation
 
 - **Be concise** - Users scan, not read

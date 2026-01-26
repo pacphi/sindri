@@ -136,7 +136,7 @@ SKIP_AUTO_INSTALL=true  # Forces clean slate regardless of config
 │                    SIMPLIFIED CI PIPELINE                        │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  ci.yml (orchestrator)                                           │
+│  ci-v2.yml (orchestrator)                                        │
 │  ├── validate (shellcheck, yamllint, markdown)                   │
 │  ├── build (Docker image)                                        │
 │  └── v2-test-provider.yml (per provider)                            │
@@ -198,7 +198,7 @@ Secrets flow from GitHub repository → workflow → environment variables:
 
 **Secret Flow**:
 
-1. `ci.yml` declares `secrets: inherit`
+1. `ci-v2.yml` declares `secrets: inherit`
 2. `v2-test-provider.yml` declares all secrets as inputs
 3. Secrets passed as env vars to `setup-credentials`, `deploy`, and `run-tests` steps
 4. Adapter scripts (fly-adapter.sh, devpod-adapter.sh) read from environment
@@ -233,7 +233,7 @@ sindri-test.sh --level extension
 sindri-test.sh --level extension --extension python
 ```
 
-The CI workflows (`ci.yml`, `v2-test-provider.yml`) expose this as an `extension` input.
+The CI workflows (`ci-v2.yml`, `v2-test-provider.yml`) expose this as an `extension` input.
 
 ### Profile Level (Profile Lifecycle)
 
@@ -574,39 +574,39 @@ gh auth login
 
 ### Workflow Reference
 
-| Workflow              | Purpose                    | When to Use                                                 |
-| --------------------- | -------------------------- | ----------------------------------------------------------- |
-| `ci.yml`              | Full CI pipeline           | Validate all changes before merging                         |
+| Workflow                 | Purpose                    | When to Use                                                 |
+| ------------------------ | -------------------------- | ----------------------------------------------------------- |
+| `ci-v2.yml`              | Full V2 CI pipeline        | Validate all V2 changes before merging                      |
 | `v2-test-extensions.yml` | Test individual extensions | Debugging extension issues or validating new extensions     |
 | `v2-test-profiles.yml`   | Test sindri.yaml configs   | Validating example configurations or profile changes        |
 | `v2-manual-deploy.yml`   | Deploy to any provider     | Creating persistent dev environments or testing deployments |
 | `v2-deploy-sindri.yml`   | Reusable deployment        | Called by other workflows (rarely triggered directly)       |
 
-### CI Workflow (`ci.yml`)
+### CI Workflow (`ci-v2.yml`)
 
 The main CI pipeline runs validation, builds the image, and tests across providers.
 
 ```bash
 # Run with defaults (docker, fly, devpod-k8s providers, profile level)
-gh workflow run ci.yml
+gh workflow run ci-v2.yml
 
 # Test specific providers
-gh workflow run ci.yml -f providers="docker,fly"
+gh workflow run ci-v2.yml -f providers="docker,fly"
 
 # Test all providers
-gh workflow run ci.yml -f providers="all"
+gh workflow run ci-v2.yml -f providers="all"
 
 # Run quick tests only (faster feedback)
-gh workflow run ci.yml -f test-level="quick"
+gh workflow run ci-v2.yml -f test-level="quick"
 
 # Test a specific extension
-gh workflow run ci.yml -f test-level="extension" -f extension="python"
+gh workflow run ci-v2.yml -f test-level="extension" -f extension="python"
 
 # Test a specific profile
-gh workflow run ci.yml -f test-level="profile" -f extension-profile="fullstack"
+gh workflow run ci-v2.yml -f test-level="profile" -f extension-profile="fullstack"
 
 # Skip cleanup for debugging failed tests
-gh workflow run ci.yml -f skip-cleanup=true
+gh workflow run ci-v2.yml -f skip-cleanup=true
 ```
 
 **When to use:**
@@ -719,7 +719,7 @@ gh workflow run v2-manual-deploy.yml \
 
 ```bash
 # List recent workflow runs
-gh run list --workflow=ci.yml
+gh run list --workflow=ci-v2.yml
 
 # Watch a running workflow
 gh run watch
@@ -756,10 +756,10 @@ cat /alt/home/developer/workspace/.system/logs/failing-ext-install.log
 
 ```bash
 # Quick validation
-gh workflow run ci.yml -f test-level="quick" -f providers="docker"
+gh workflow run ci-v2.yml -f test-level="quick" -f providers="docker"
 
 # Full validation
-gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
+gh workflow run ci-v2.yml -f test-level="profile" -f providers="docker,fly"
 ```
 
 ---
@@ -769,10 +769,10 @@ gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
 | File                                             | Purpose                                         |
 | ------------------------------------------------ | ----------------------------------------------- |
 | `/docker/scripts/sindri-test.sh`                 | Unified test script (runs inside container)     |
-| `.github/workflows/ci.yml`                       | Main CI orchestrator                            |
-| `.github/workflows/v2-test-provider.yml`            | Per-provider test workflow                      |
-| `.github/workflows/v2-test-extensions.yml`          | Registry-based extension testing (Docker-only)  |
-| `.github/workflows/v2-test-profiles.yml`            | Config-driven profile testing (discovers files) |
+| `.github/workflows/ci-v2.yml`                    | Main V2 CI orchestrator                         |
+| `.github/workflows/v2-test-provider.yml`         | Per-provider test workflow                      |
+| `.github/workflows/v2-test-extensions.yml`       | Registry-based extension testing (Docker-only)  |
+| `.github/workflows/v2-test-profiles.yml`         | Config-driven profile testing (discovers files) |
 | `.github/scripts/providers/run-on-provider.sh`   | Provider execution abstraction                  |
 | `.github/scripts/providers/setup-credentials.sh` | Unified credential setup                        |
 
@@ -782,5 +782,5 @@ gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
 
 - [TESTING.md](TESTING.md) - General testing philosophy
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture overview
-- [EXTENSION_AUTHORING.md](../../docs/EXTENSION_AUTHORING.md) - Creating new extensions
+- [EXTENSION_AUTHORING.md](EXTENSION_AUTHORING.md) - Creating new extensions
 - [CONTRIBUTING.md](../../docs/CONTRIBUTING.md) - Development workflow and standards

@@ -288,4 +288,7 @@ jobs:
           echo "| Extension | Install | Validate | Duration |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|---------|----------|----------|" >> $GITHUB_STEP_SUMMARY
 
-          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | \(if .install.result == "success" then "pass" else "fail" end) | \(if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | " +
+            (if .install.result == "success" then "pass" else "fail" end) + " | " +
+            (if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) +
+            " | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

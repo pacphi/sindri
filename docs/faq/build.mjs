@@ -21,7 +21,7 @@ const OUTPUT_FILE = join(__dirname, 'index.html');
 
 const HTML_TEMPLATE = join(SRC_DIR, 'index.html');
 const JS_FILE = join(SRC_DIR, 'faq.js');
-const DATA_FILE = join(SRC_DIR, 'faq-data.json');
+const DATA_FILE = join(SRC_DIR, 'v2-faq-data.json');
 
 console.log('Building FAQ page...');
 console.log(`  Source: ${SRC_DIR}`);

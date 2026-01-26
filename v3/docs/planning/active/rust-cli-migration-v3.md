@@ -1312,25 +1312,25 @@ impl ExtensionDistributor {
 # ~/.sindri/manifest.yaml
 schema_version: "1.0"
 cli_version: "3.0.0"
-last_updated: "2025-01-21T10:00:00Z"
+last_updated: "2026-01-21T10:00:00Z"
 
 extensions:
   python:
     version: "1.2.0"
-    installed_at: "2025-01-20T15:30:00Z"
+    installed_at: "2026-01-20T15:30:00Z"
     source: "github:sindri/sindri-extensions"
     previous_versions:
       - "1.1.0"
 
   nodejs:
     version: "2.0.0"
-    installed_at: "2025-01-19T10:00:00Z"
+    installed_at: "2026-01-19T10:00:00Z"
     source: "github:sindri/sindri-extensions"
     previous_versions: []
 
   mise-config:
     version: "1.0.0"
-    installed_at: "2025-01-18T08:00:00Z"
+    installed_at: "2026-01-18T08:00:00Z"
     source: "github:sindri/sindri-extensions"
     protected: true # Base extension, cannot be removed
 ```
@@ -1376,7 +1376,7 @@ sindri extension info python
   Category: language
   Description: Python 3.13 with uv package manager
   Source: github:sindri/sindri-extensions
-  Installed: 2025-01-20
+  Installed: 2026-01-20
   Dependencies: mise-config
 ```
 

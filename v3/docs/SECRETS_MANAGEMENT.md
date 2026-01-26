@@ -1120,4 +1120,4 @@ sindri deploy
 - [ADR-015: Secrets Resolver Core Architecture](./architecture/adr/015-secrets-resolver-core-architecture.md)
 - [ADR-016: Vault Integration Architecture](./architecture/adr/016-vault-integration-architecture.md)
 - [ADR-020: S3 Encrypted Secret Storage](./architecture/adr/020-s3-encrypted-secret-storage.md)
-- [Getting Started](./getting-started.md)
+- [Getting Started](./GETTING_STARTED.md)

@@ -65,6 +65,7 @@ grep -n 'if.*arch' install.sh
 ```
 
 Common patterns:
+
 - CI detection: `if [[ "${CI:-}" == "true" ]]`
 - Platform detection: `if [[ "$(uname)" == "Linux" ]]`
 - Architecture: `if [[ "$(uname -m)" == "x86_64" ]]`
@@ -74,14 +75,14 @@ Common patterns:
 
 Convert bash logic to YAML conditions:
 
-| Bash Pattern | YAML Condition |
-|--------------|----------------|
-| `[[ "${CI}" == "true" ]]` | `env: { CI: "true" }` |
-| `[[ "${CI:-}" != "true" ]]` | `env: { CI: { not_equals: "true" } }` |
-| `[[ -n "${VAR}" ]]` | `env: { VAR: { exists: true } }` |
-| `[[ -z "${VAR}" ]]` | `env: { VAR: { exists: false } }` |
-| `[[ "$(uname)" == "Linux" ]]` | `platform: { os: ["linux"] }` |
-| `[[ "$(uname -m)" == "x86_64" ]]` | `platform: { arch: ["x86_64"] }` |
+| Bash Pattern                      | YAML Condition                        |
+| --------------------------------- | ------------------------------------- |
+| `[[ "${CI}" == "true" ]]`         | `env: { CI: "true" }`                 |
+| `[[ "${CI:-}" != "true" ]]`       | `env: { CI: { not_equals: "true" } }` |
+| `[[ -n "${VAR}" ]]`               | `env: { VAR: { exists: true } }`      |
+| `[[ -z "${VAR}" ]]`               | `env: { VAR: { exists: false } }`     |
+| `[[ "$(uname)" == "Linux" ]]`     | `platform: { os: ["linux"] }`         |
+| `[[ "$(uname -m)" == "x86_64" ]]` | `platform: { arch: ["x86_64"] }`      |
 
 ### Step 3: Update extension.yaml
 
@@ -279,6 +280,7 @@ configure:
 ### Environment Variable Conditions
 
 **Simple key-value matching**:
+
 ```yaml
 condition:
   env:
@@ -287,26 +289,28 @@ condition:
 ```
 
 **Complex expressions**:
+
 ```yaml
 condition:
   env:
     CI:
-      equals: "true"          # Exact match
+      equals: "true" # Exact match
     BUILD_ENV:
-      not_equals: "local"     # Not equal
+      not_equals: "local" # Not equal
     API_KEY:
-      exists: true            # Variable must exist
+      exists: true # Variable must exist
     WORKSPACE:
-      matches: "^/home/.*/workspace$"  # Regex pattern
+      matches: "^/home/.*/workspace$" # Regex pattern
     DEPLOY_ENV:
-      in_list: ["staging", "production"]  # Must be in list
+      in_list: ["staging", "production"] # Must be in list
 ```
 
 **Logical operators**:
+
 ```yaml
 condition:
   env:
-    any:  # OR logic
+    any: # OR logic
       - CI: "true"
       - GITHUB_ACTIONS: "true"
 ```
@@ -314,7 +318,7 @@ condition:
 ```yaml
 condition:
   env:
-    all:  # AND logic
+    all: # AND logic
       - CI: "true"
       - DEPLOY_ENV: "production"
 ```
@@ -322,7 +326,7 @@ condition:
 ```yaml
 condition:
   env:
-    not_any:  # NOR logic
+    not_any: # NOR logic
       - CI: "true"
       - GITHUB_ACTIONS: "true"
 ```
@@ -330,6 +334,7 @@ condition:
 ### Platform Conditions
 
 **Operating system**:
+
 ```yaml
 condition:
   platform:
@@ -338,6 +343,7 @@ condition:
 ```
 
 **Architecture**:
+
 ```yaml
 condition:
   platform:
@@ -346,20 +352,23 @@ condition:
 ```
 
 **Combined**:
+
 ```yaml
 condition:
   platform:
     os: ["linux"]
-    arch: ["x86_64", "aarch64"]  # Linux on either architecture
+    arch: ["x86_64", "aarch64"] # Linux on either architecture
 ```
 
 **Supported values**:
+
 - OS: `linux`, `macos`, `windows`
 - Arch: `x86_64`, `aarch64`, `arm64`
 
 ### Combining Conditions
 
 **Template-level operators**:
+
 ```yaml
 # All conditions must match (AND)
 condition:
@@ -380,6 +389,7 @@ condition:
 ```
 
 **Nested combinations**:
+
 ```yaml
 # Complex logic: (CI=true OR GITHUB_ACTIONS=true) AND os=linux
 condition:
@@ -415,6 +425,7 @@ docker run --rm -v $(pwd):/workspace ubuntu:latest bash -c "cd /workspace && sin
 ### Integration Testing
 
 1. **Create test extension**:
+
 ```yaml
 # test-extension.yaml
 metadata:
@@ -448,6 +459,7 @@ configure:
 ```
 
 2. **Test both modes**:
+
 ```bash
 # Local mode
 unset CI
@@ -584,6 +596,7 @@ configure:
 **Symptoms**: Template file exists but is not copied to destination.
 
 **Diagnosis**:
+
 ```bash
 # Enable debug logging
 export RUST_LOG=debug
@@ -594,6 +607,7 @@ sindri extension install <extension>
 ```
 
 **Solutions**:
+
 1. Check condition syntax in YAML
 2. Verify environment variables are set correctly
 3. Test condition in isolation (create minimal test extension)
@@ -604,6 +618,7 @@ sindri extension install <extension>
 **Symptoms**: CI template used in local mode or vice versa.
 
 **Diagnosis**:
+
 ```bash
 # Check environment variables
 env | grep -E '(CI|GITHUB_ACTIONS)'
@@ -613,6 +628,7 @@ env | grep -E '(CI|GITHUB_ACTIONS)'
 ```
 
 **Solutions**:
+
 1. Ensure mutually exclusive conditions (use `not_any` for negation)
 2. Check for leftover environment variables from previous tests
 3. Verify template processing order (first match wins)
@@ -622,6 +638,7 @@ env | grep -E '(CI|GITHUB_ACTIONS)'
 **Symptoms**: Extension install fails with YAML parsing error.
 
 **Diagnosis**:
+
 ```bash
 # Validate YAML syntax
 yamllint extension.yaml
@@ -633,6 +650,7 @@ yamllint extension.yaml
 ```
 
 **Solutions**:
+
 1. Use YAML validator
 2. Check examples in this guide
 3. Reference ADR 033 for complete syntax
@@ -643,6 +661,7 @@ yamllint extension.yaml
 **Symptoms**: Wrong OS/architecture template selected.
 
 **Diagnosis**:
+
 ```bash
 # Check detected platform
 rustc -vV | grep host
@@ -655,6 +674,7 @@ rustc -vV | grep host
 ```
 
 **Solutions**:
+
 1. Use correct platform values: `linux`, `macos`, `windows`
 2. Use correct architecture values: `x86_64`, `aarch64`, `arm64`
 3. Test on actual target platform

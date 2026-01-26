@@ -44,8 +44,8 @@ cd sindri
 
 ### Extensions
 
-- **[Extension Catalog](../docs/EXTENSIONS.md)** - Available extensions and usage
-- **[Extension Authoring](../docs/EXTENSION_AUTHORING.md)** - Creating custom extensions
+- **[Extension Catalog](docs/EXTENSIONS.md)** - Available extensions and usage
+- **[Extension Authoring](docs/EXTENSION_AUTHORING.md)** - Creating custom extensions
 - **[Bill of Materials](docs/BOM.md)** - Software tracking and SBOM generation
 
 ### Deployment

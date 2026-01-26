@@ -487,6 +487,7 @@ bom: # Bill of Materials
 Templates can include optional `condition` fields to enable environment-based template selection. This replaces bash script logic with declarative YAML conditions.
 
 **Use Cases**:
+
 - CI vs local template selection
 - Platform-specific configurations (Linux/macOS/Windows)
 - GPU-aware templates
@@ -495,6 +496,7 @@ Templates can include optional `condition` fields to enable environment-based te
 #### Environment Variable Conditions
 
 **Simple key-value matching**:
+
 ```yaml
 condition:
   env:
@@ -503,38 +505,40 @@ condition:
 ```
 
 **Complex expressions**:
+
 ```yaml
 condition:
   env:
     CI:
-      equals: "true"          # Exact match
+      equals: "true" # Exact match
     BUILD_ENV:
-      not_equals: "local"     # Not equal
+      not_equals: "local" # Not equal
     API_KEY:
-      exists: true            # Variable must exist
+      exists: true # Variable must exist
     WORKSPACE:
-      matches: "^/home/.*/workspace$"  # Regex pattern
+      matches: "^/home/.*/workspace$" # Regex pattern
     DEPLOY_ENV:
-      in_list: ["staging", "production"]  # Must be in list
+      in_list: ["staging", "production"] # Must be in list
 ```
 
 **Logical operators**:
+
 ```yaml
 condition:
   env:
-    any:  # OR logic - at least one must match
+    any: # OR logic - at least one must match
       - CI: "true"
       - GITHUB_ACTIONS: "true"
 
-    all:  # AND logic - all must match
+    all: # AND logic - all must match
       - CI: "true"
       - DEPLOY_ENV: "production"
 
-    not_any:  # NOR logic - none must match
+    not_any: # NOR logic - none must match
       - CI: "true"
       - GITHUB_ACTIONS: "true"
 
-    not_all:  # NAND logic - not all must match
+    not_all: # NAND logic - not all must match
       - STAGING: "true"
       - PRODUCTION: "true"
 ```
@@ -542,6 +546,7 @@ condition:
 #### Platform Conditions
 
 **Operating system matching**:
+
 ```yaml
 condition:
   platform:
@@ -550,6 +555,7 @@ condition:
 ```
 
 **Architecture matching**:
+
 ```yaml
 condition:
   platform:
@@ -558,12 +564,14 @@ condition:
 ```
 
 **Supported values**:
+
 - OS: `linux`, `macos`, `windows`
 - Arch: `x86_64`, `aarch64`, `arm64`
 
 #### Combining Conditions
 
 **Template-level logical operators**:
+
 ```yaml
 # All conditions must match (AND)
 condition:
@@ -584,6 +592,7 @@ condition:
 ```
 
 **Nested combinations**:
+
 ```yaml
 # Complex: (CI=true OR GITHUB_ACTIONS=true) AND os=linux
 condition:
@@ -611,7 +620,7 @@ configure:
 
     # CI environment template
     - source: templates/ci-config.yml
-      destination: ~/.myapp/config.yml  # Same destination
+      destination: ~/.myapp/config.yml # Same destination
       mode: overwrite
       condition:
         env:
@@ -661,6 +670,7 @@ configure:
 ```
 
 **References**:
+
 - [ADR 033: Environment-Based Template Selection](architecture/adr/033-environment-based-template-selection.md)
 - [Migration Guide](EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md)
 - [Migration Status](EXTENSION_MIGRATION_STATUS.md)
@@ -1428,6 +1438,6 @@ providers:
 
 ## See Also
 
-- [Configuration Guide](getting-started.md) - Getting started with Sindri V3
-- [Image Management](image-management.md) - Image verification and management
+- [Configuration Guide](GETTING_STARTED.md) - Getting started with Sindri V3
+- [Image Management](IMAGE_MANAGEMENT.md) - Image verification and management
 - [Architecture](architecture/) - V3 architecture documentation

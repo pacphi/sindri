@@ -8,11 +8,11 @@
 //! ```yaml
 //! schema_version: "1.0"
 //! cli_version: "3.0.0"
-//! last_updated: "2025-01-21T10:00:00Z"
+//! last_updated: "2026-01-21T10:00:00Z"
 //! extensions:
 //!   python:
 //!     version: "1.2.0"
-//!     installed_at: "2025-01-20T15:30:00Z"
+//!     installed_at: "2026-01-20T15:30:00Z"
 //!     source: "github:pacphi/sindri"
 //!     state: installed
 //! ```

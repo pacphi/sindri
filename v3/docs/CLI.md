@@ -1798,4 +1798,4 @@ sindri k8s install k3d
 - [Backup & Restore](./BACKUP_RESTORE.md) - Backup strategies and procedures
 - [Projects](./PROJECTS.md) - Project creation and templates
 - [Doctor](./DOCTOR.md) - System diagnostics guide
-- [Image Management](./image-management.md) - Container image security
+- [Image Management](./IMAGE_MANAGEMENT.md) - Container image security

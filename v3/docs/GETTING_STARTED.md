@@ -209,7 +209,7 @@ extensions:
   profile: minimal
 ```
 
-**Includes:** git, vim, basic shell tools
+**Includes:** nodejs, python
 
 ### Mobile
 
@@ -220,7 +220,7 @@ extensions:
   profile: mobile
 ```
 
-**Includes:** Android SDK, iOS tools, Flutter
+**Includes:** nodejs, linear-mcp, supabase-cli
 
 ### Fullstack
 
@@ -231,7 +231,7 @@ extensions:
   profile: fullstack
 ```
 
-**Includes:** Node.js, Python, databases, Docker-in-Docker
+**Includes:** nodejs, python, docker, nodejs-devtools
 
 ### AI-Dev
 
@@ -242,7 +242,7 @@ extensions:
   profile: ai-dev
 ```
 
-**Includes:** Python, Jupyter, TensorFlow, PyTorch
+**Includes:** nodejs, python, golang, spec-kit, ollama, ai-toolkit
 
 ## Version Resolution Strategies
 
@@ -290,7 +290,7 @@ Uses a specific tag or digest.
 
 ## Next Steps
 
-- Read the [Image Management Guide](image-management.md)
+- Read the [Image Management Guide](IMAGE_MANAGEMENT.md)
 
 ## Getting Help
 

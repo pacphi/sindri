@@ -1303,6 +1303,6 @@ sindri migrate rollback
 
 ## Related Documentation
 
-- [Getting Started](getting-started.md)
-- [Image Management](image-management.md)
+- [Getting Started](GETTING_STARTED.md)
+- [Image Management](IMAGE_MANAGEMENT.md)
 - [Architecture Decision Records](architecture/adr/README.md)

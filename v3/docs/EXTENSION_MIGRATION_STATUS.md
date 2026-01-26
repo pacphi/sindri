@@ -17,6 +17,7 @@ This document tracks the migration of extensions from bash-based environment det
 **Migration Date**: 2026-01-26
 
 **Changes Made**:
+
 - Added conditional templates to `extension.yaml`:
   - Local environment: `marketplaces.yml.example` → `~/config/marketplaces.yml`
   - CI environment: `marketplaces.ci.yml.example` → `~/config/marketplaces.yml`
@@ -24,6 +25,7 @@ This document tracks the migration of extensions from bash-based environment det
 - Updated `remove` paths: Removed `~/config/marketplaces.ci.yml` (no longer provisioned separately)
 
 **Condition Used**:
+
 ```yaml
 # Local
 condition:
@@ -41,12 +43,14 @@ condition:
 ```
 
 **Benefits**:
+
 - Template selection visible in extension.yaml
 - No bash conditional logic needed
 - Same destination for both templates (simplified remove)
 - 40% reduction in install.sh complexity
 
 **Files Modified**:
+
 - `v3/extensions/claude-marketplace/extension.yaml`
 - `v3/extensions/claude-marketplace/install.sh`
 
@@ -57,6 +61,7 @@ condition:
 **Current Behavior**: Bash script skips Rails install entirely in CI
 
 **Recommended Approach**:
+
 ```yaml
 configure:
   templates:
@@ -77,6 +82,7 @@ configure:
 **Current Behavior**: Bash script sets `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` in CI
 
 **Recommended Approach**:
+
 ```yaml
 configure:
   environment:
@@ -102,6 +108,7 @@ configure:
 ```
 
 **Note**: Environment variables don't currently support conditions. Either:
+
 1. Keep bash script for env var setting
 2. Use conditional config files instead
 3. Wait for environment variable condition support (future enhancement)
@@ -114,6 +121,7 @@ configure:
 **Current Behavior**: Bash script exits early in CI (complete skip)
 
 **Recommended Approach**:
+
 ```yaml
 # Option 1: Skip all configure in CI
 configure:
@@ -148,6 +156,7 @@ configure:
 **Current Behavior**: Similar patterns (needs investigation)
 
 **Action Required**:
+
 1. Analyze `install.sh` for conditional logic
 2. Identify environment-based template selection
 3. Map to YAML conditions
@@ -160,6 +169,7 @@ configure:
 **Current Behavior**: Similar patterns (needs investigation)
 
 **Action Required**:
+
 1. Analyze `install.sh` for conditional logic
 2. Identify environment-based template selection
 3. Map to YAML conditions
@@ -172,6 +182,7 @@ configure:
 **Current Behavior**: Similar patterns (needs investigation)
 
 **Action Required**:
+
 1. Analyze `install.sh` for conditional logic
 2. Identify environment-based template selection
 3. Map to YAML conditions
@@ -194,6 +205,7 @@ grep -n 'if.*GITHUB_ACTIONS' install.sh
 ### Step 2: Design Condition Structure
 
 Map bash conditionals to YAML:
+
 - `[[ "${CI}" == "true" ]]` → `env: { CI: "true" }`
 - `[[ -n "${VAR}" ]]` → `env: { VAR: { exists: true } }`
 - `[[ "$(uname)" == "Linux" ]]` → `platform: { os: ["linux"] }`
@@ -201,6 +213,7 @@ Map bash conditionals to YAML:
 ### Step 3: Update extension.yaml
 
 Add `condition` field to templates:
+
 ```yaml
 configure:
   templates:
@@ -215,6 +228,7 @@ configure:
 ### Step 4: Simplify or Remove Bash Script
 
 Options:
+
 1. **Remove entirely** if only used for template selection
 2. **Simplify** to remove conditional logic
 3. **Keep** for non-template tasks (downloading, building)
@@ -234,6 +248,7 @@ sindri extension install <extension> --force
 ### Step 6: Document Changes
 
 Update extension documentation:
+
 - What changed
 - Why (declarative vs imperative)
 - How to test
@@ -241,6 +256,7 @@ Update extension documentation:
 ## Benefits of Migration
 
 **For Extension Authors**:
+
 - ✅ Declarative configuration (YAML vs bash)
 - ✅ Easier to understand and maintain
 - ✅ Type-safe condition evaluation
@@ -248,12 +264,14 @@ Update extension documentation:
 - ✅ Self-documenting template selection
 
 **For Extension Users**:
+
 - ✅ Transparent template selection (visible in YAML)
 - ✅ Consistent behavior across extensions
 - ✅ Better error messages
 - ✅ Install logs show which templates were used/skipped
 
 **For Sindri Platform**:
+
 - ✅ Standardized conditional logic
 - ✅ Reduced bash script complexity
 - ✅ Improved security (declarative > imperative)
@@ -326,13 +344,14 @@ condition:
 ### Environment Variable Conditions
 
 Add condition support to environment variables:
+
 ```yaml
 configure:
   environment:
     - key: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD
       value: "1"
       scope: session
-      condition:  # Not yet supported
+      condition: # Not yet supported
         env:
           CI: "true"
 ```
@@ -342,13 +361,14 @@ configure:
 ### Capability Detection
 
 Add runtime capability detection:
+
 ```yaml
 condition:
   capability:
-    gpu: true          # GPU present
-    container: true    # Running in container
-    network: true      # Network available
-    shell: "zsh"       # Shell type
+    gpu: true # GPU present
+    container: true # Running in container
+    network: true # Network available
+    shell: "zsh" # Shell type
 ```
 
 **Tracking**: Future enhancement (see ADR 033)
@@ -356,6 +376,7 @@ condition:
 ### Condition Debugging
 
 Add debugging command to show condition evaluation:
+
 ```bash
 sindri extension install --debug-conditions <extension>
 # Output:
@@ -373,6 +394,7 @@ sindri extension install --debug-conditions <extension>
 **Net Change**: +5 lines (but declarative vs imperative)
 
 **Projected Impact** (all 7 extensions):
+
 - Bash lines removed: ~70 lines
 - YAML lines added: ~105 lines
 - Simplified bash scripts: 7
@@ -406,6 +428,7 @@ sindri extension install --debug-conditions <extension>
 
 **Remaining Migrations**: 6 extensions
 **Estimated Time**: 4-6 hours
+
 - 3 simple migrations: 1.5 hours
 - 3 TBD migrations: 2.5-4.5 hours (depending on complexity)
 

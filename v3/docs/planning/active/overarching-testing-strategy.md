@@ -158,15 +158,15 @@ predicates = "3.1"
 
 **Effectiveness Rating: 6/10**
 
-| Component                 | Status    | Effectiveness                              |
-| ------------------------- | --------- | ------------------------------------------ |
-| sindri-packer crate       | ✅ Exists | Good - 5 cloud providers                   |
-| HCL2 templates (Tera)     | ✅ Exists | Good - embedded templates                  |
+| Component                    | Status    | Effectiveness                              |
+| ---------------------------- | --------- | ------------------------------------------ |
+| sindri-packer crate          | ✅ Exists | Good - 5 cloud providers                   |
+| HCL2 templates (Tera)        | ✅ Exists | Good - embedded templates                  |
 | v3-packer-build.yml workflow | ✅ Exists | Good - parallel cloud builds               |
 | v3-packer-test.yml workflow  | ✅ Exists | Medium - InSpec tests exist                |
-| InSpec controls           | ✅ Exists | Basic - sindri_installed, docker_installed |
-| Unit tests per provider   | ✅ Exists | Medium - template generation tests         |
-| Security hardening        | ✅ Exists | CIS benchmarks implemented                 |
+| InSpec controls              | ✅ Exists | Basic - sindri_installed, docker_installed |
+| Unit tests per provider      | ✅ Exists | Medium - template generation tests         |
+| Security hardening           | ✅ Exists | CIS benchmarks implemented                 |
 
 ### Critical Gaps
 
@@ -391,7 +391,7 @@ jobs:
 | `v3/crates/sindri-packer/Cargo.toml`     | Add test dependencies             |
 | `Makefile`                               | Add v3-ext-_, v3-packer-_ targets |
 | `.github/workflows/ci-v3.yml`            | Integrate test workflows          |
-| `.github/workflows/v3-packer-test.yml`      | Enhanced InSpec testing           |
+| `.github/workflows/v3-packer-test.yml`   | Enhanced InSpec testing           |
 | `v3/test/integration/sindri/inspec.yml`  | Add new control dependencies      |
 
 ---

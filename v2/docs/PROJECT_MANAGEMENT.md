@@ -343,4 +343,4 @@ Available variables in templates:
 ## See Also
 
 - [Extension Manager](../cli/extension-manager) - Manage Sindri extensions
-- [Extension Authoring](../../docs/EXTENSION_AUTHORING.md) - Create custom extensions
+- [Extension Authoring](EXTENSION_AUTHORING.md) - Create custom extensions

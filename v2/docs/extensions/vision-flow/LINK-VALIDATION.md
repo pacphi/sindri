@@ -50,7 +50,7 @@ Comprehensive validation of all relative links in VisionFlow documentation.
 
 **Documentation Links**:
 
-- ✓ examples/profiles/vision-flow/README.md → docs/extensions/vision-flow/ ✓
+- ✓ examples/profiles/vision-flow/README.md → v2/docs/extensions/vision-flow/ ✓
 - ✓ All profile references valid ✓
 
 ---

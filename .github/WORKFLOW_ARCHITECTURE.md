@@ -63,9 +63,13 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │
 ├── scripts/                      # Scripts and utilities
 │   ├── generate-slack-notification.sh  # Slack message generator
-│   ├── calculate-profile-resources.sh  # Profile resource calculation
-│   ├── lib/test-helpers.sh       # Shared test utilities
 │   ├── providers/                # Provider-specific scripts
+│   │   ├── common-setup.sh       # Common provider setup utilities
+│   │   ├── setup-credentials.sh  # Credential setup for providers
+│   │   ├── run-on-provider.sh    # Execute commands on providers
+│   │   ├── docker-setup.sh       # Docker provider setup
+│   │   ├── fly-setup.sh          # Fly.io provider setup
+│   │   └── devpod-setup.sh       # DevPod provider setup
 │   └── v3/                       # v3-specific scripts
 │       ├── discover-extensions.sh  # Extension discovery (profiles, categories)
 │       └── k3d-manager.sh          # k3d cluster lifecycle management
@@ -570,7 +574,7 @@ Reusable cleanup accepting only a config file:
 
 Two deployment workflows serve different use cases (note: `v2-manual-deploy.yml` is for v2 Bash/Docker deployments only):
 
-| Aspect                   | `v2-manual-deploy.yml`                     | `v2-deploy-sindri.yml`                              |
+| Aspect                   | `v2-manual-deploy.yml`                     | `v2-deploy-sindri.yml`                           |
 | ------------------------ | ------------------------------------------ | ------------------------------------------------ |
 | **Version**              | v2 only (Bash/Docker)                      | v2 (v3 support planned)                          |
 | **Trigger**              | `workflow_dispatch` only (human-initiated) | `workflow_call` + `workflow_dispatch` (reusable) |
@@ -623,12 +627,17 @@ Two deployment workflows serve different use cases (note: `v2-manual-deploy.yml`
 
 The `.github/scripts/` directory contains test utilities:
 
-| Script                           | Purpose                                                              |
-| -------------------------------- | -------------------------------------------------------------------- |
-| `calculate-profile-resources.sh` | Calculates aggregate resources for a profile (disk, memory, timeout) |
-| `generate-slack-notification.sh` | Generates Slack messages for deployment notifications                |
-| `lib/test-helpers.sh`            | Shared logging, retry, and VM interaction functions                  |
-| `lib/assertions.sh`              | Test assertion functions (equals, contains, file exists, etc.)       |
+| Script                           | Purpose                                               |
+| -------------------------------- | ----------------------------------------------------- |
+| `generate-slack-notification.sh` | Generates Slack messages for deployment notifications |
+| `providers/common-setup.sh`      | Common provider setup utilities                       |
+| `providers/setup-credentials.sh` | Credential setup for providers                        |
+| `providers/run-on-provider.sh`   | Execute commands on providers                         |
+| `providers/docker-setup.sh`      | Docker provider setup                                 |
+| `providers/fly-setup.sh`         | Fly.io provider setup                                 |
+| `providers/devpod-setup.sh`      | DevPod provider setup                                 |
+| `v3/discover-extensions.sh`      | Extension discovery for v3 (profiles, categories)     |
+| `v3/k3d-manager.sh`              | k3d cluster lifecycle management                      |
 
 **Extension Testing:** All extension tests are now integrated into the `v2-test-provider.yml` workflow with 9 phases:
 
