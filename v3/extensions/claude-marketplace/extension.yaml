@@ -21,15 +21,31 @@ install:
     timeout: 300
 configure:
   templates:
+    # Local environment gets full marketplace list (9 marketplaces)
     - source: marketplaces.yml.example
       destination: ~/config/marketplaces.yml
       mode: overwrite
+      condition:
+        env:
+          not_any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+
+    # CI environment gets minimal marketplace list (3 marketplaces)
     - source: marketplaces.ci.yml.example
-      destination: ~/config/marketplaces.ci.yml
+      destination: ~/config/marketplaces.yml
       mode: overwrite
+      condition:
+        env:
+          any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+
+    # Claude settings.json merged in all environments
     - source: default-settings.json
       destination: ~/.claude/settings.json
       mode: merge
+      condition: null  # Always process
 validate:
   commands:
     - name: claude
@@ -37,7 +53,6 @@ validate:
 remove:
   paths:
     - ~/config/marketplaces.yml
-    - ~/config/marketplaces.ci.yml
 upgrade:
   strategy: none
 bom:

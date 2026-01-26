@@ -37,6 +37,8 @@ This directory contains Architecture Decision Records documenting key architectu
 | [029](029-local-kubernetes-cluster-management.md)        | Local Kubernetes Cluster Management        | -     | Accepted |
 | [030](030-kubernetes-ci-integration-testing.md)          | Kubernetes CI Integration Testing          | -     | Accepted |
 | [031](031-packer-vm-provisioning-architecture.md)        | Packer VM Provisioning Architecture        | -     | Accepted |
+| [032](032-extension-configure-processing.md)             | Extension Configure Processing             | 4     | Accepted |
+| [033](033-environment-based-template-selection.md)       | Environment-Based Template Selection       | 4     | Accepted |
 
 ## By Phase
 
@@ -66,6 +68,8 @@ This directory contains Architecture Decision Records documenting key architectu
 - **ADR-013**: Three-level schema validation strategy
 - **ADR-014**: SBOM generation with SPDX/CycloneDX
 - **ADR-026**: Extension version lifecycle (versions, rollback, history tracking)
+- **ADR-032**: Extension configure processing (templates, environment variables, paths)
+- **ADR-033**: Environment-based template selection (conditional templates, platform detection)
 
 ### Phase 5: Secrets & Backup (Weeks 15-17) ✨ **COMPLETE**
 
@@ -93,9 +97,9 @@ This directory contains Architecture Decision Records documenting key architectu
 
 ## ADR Statistics
 
-- **Total ADRs**: 31
-- **Total Lines**: 14,000+ lines
-- **Total Size**: ~470KB
+- **Total ADRs**: 33
+- **Total Lines**: 15,000+ lines
+- **Total Size**: ~490KB
 - **Phases Covered**: 1-8 + K8s Cluster Management + Packer VM Provisioning
 - **Implementation Status**: Phases 1-8 complete, K8s cluster management added, Packer provisioning added
 
@@ -140,7 +144,7 @@ This directory contains Architecture Decision Records documenting key architectu
 
 When adding new ADRs:
 
-1. Use sequential numbering (next: 032)
+1. Use sequential numbering (next: 034)
 2. Follow template structure (Context → Decision → Consequences)
 3. Include implementation details and code examples
 4. Link to related ADRs

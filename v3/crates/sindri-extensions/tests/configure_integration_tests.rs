@@ -1,7 +1,9 @@
 // Integration tests for configure processing
 
+use serial_test::serial;
 use sindri_core::types::{
-    ConfigureConfig, EnvironmentConfig, EnvironmentScope, TemplateConfig, TemplateMode,
+    ConfigureConfig, EnvCondition, EnvConditionLogical, EnvironmentConfig, EnvironmentScope,
+    PlatformCondition, TemplateCondition, TemplateConfig, TemplateMode,
 };
 use sindri_extensions::ConfigureProcessor;
 use std::fs;
@@ -32,6 +34,7 @@ async fn test_configure_processor_template_overwrite() {
             source: "template.txt".to_string(),
             destination: "~/output.txt".to_string(),
             mode: TemplateMode::Overwrite,
+            condition: None,
         }],
         environment: vec![],
     };
@@ -75,6 +78,7 @@ async fn test_configure_processor_template_append() {
             source: "template.txt".to_string(),
             destination: "~/output.txt".to_string(),
             mode: TemplateMode::Append,
+            condition: None,
         }],
         environment: vec![],
     };
@@ -113,6 +117,7 @@ async fn test_configure_processor_template_skip_if_exists() {
             source: "template.txt".to_string(),
             destination: "~/output.txt".to_string(),
             mode: TemplateMode::SkipIfExists,
+            condition: None,
         }],
         environment: vec![],
     };
@@ -161,6 +166,7 @@ nested:
             source: "template.yaml".to_string(),
             destination: "~/config.yaml".to_string(),
             mode: TemplateMode::Merge,
+            condition: None,
         }],
         environment: vec![],
     };
@@ -290,11 +296,13 @@ async fn test_configure_processor_full_workflow() {
                 source: "config.txt".to_string(),
                 destination: "~/.myapp/config.txt".to_string(),
                 mode: TemplateMode::Overwrite,
+                condition: None,
             },
             TemplateConfig {
                 source: "readme.txt".to_string(),
                 destination: "~/.myapp/readme.txt".to_string(),
                 mode: TemplateMode::SkipIfExists,
+                condition: None,
             },
         ],
         environment: vec![
@@ -344,6 +352,7 @@ async fn test_configure_processor_idempotency() {
             source: "template.txt".to_string(),
             destination: "~/output.txt".to_string(),
             mode: TemplateMode::Overwrite,
+            condition: None,
         }],
         environment: vec![EnvironmentConfig {
             key: "IDEMPOTENT_VAR".to_string(),
@@ -370,4 +379,313 @@ async fn test_configure_processor_idempotency() {
         1,
         "Environment variable should only appear once"
     );
+}
+
+#[tokio::test]
+#[serial]
+async fn test_conditional_template_ci_mode() {
+    let temp = TempDir::new().unwrap();
+    let ext_dir = setup_test_extension(&temp, "test-ext").await;
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(&home_dir).unwrap();
+
+    // Create two templates
+    fs::write(ext_dir.join("local.txt"), "Local content").unwrap();
+    fs::write(ext_dir.join("ci.txt"), "CI content").unwrap();
+
+    // Set CI environment
+    std::env::set_var("CI", "true");
+
+    let config = ConfigureConfig {
+        templates: vec![
+            TemplateConfig {
+                source: "local.txt".to_string(),
+                destination: "~/output.txt".to_string(),
+                mode: TemplateMode::Overwrite,
+                condition: Some(TemplateCondition {
+                    env: Some(EnvCondition::Logical(EnvConditionLogical {
+                        not_any: Some(vec![[("CI".to_string(), "true".to_string())]
+                            .into_iter()
+                            .collect()]),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                }),
+            },
+            TemplateConfig {
+                source: "ci.txt".to_string(),
+                destination: "~/output.txt".to_string(),
+                mode: TemplateMode::Overwrite,
+                condition: Some(TemplateCondition {
+                    env: Some(EnvCondition::Simple(
+                        [("CI".to_string(), "true".to_string())]
+                            .into_iter()
+                            .collect(),
+                    )),
+                    ..Default::default()
+                }),
+            },
+        ],
+        environment: vec![],
+    };
+
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
+
+    let result = processor.execute("test-ext", &config).await.unwrap();
+
+    // Only CI template should be processed (local template skipped)
+    assert_eq!(result.templates_processed, 1);
+
+    // Verify CI content was written
+    let output = fs::read_to_string(home_dir.join("output.txt")).unwrap();
+    assert_eq!(output, "CI content");
+
+    // Cleanup
+    std::env::remove_var("CI");
+}
+
+#[tokio::test]
+#[serial]
+async fn test_conditional_template_local_mode() {
+    let temp = TempDir::new().unwrap();
+    let ext_dir = setup_test_extension(&temp, "test-ext").await;
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(&home_dir).unwrap();
+
+    // Create two templates
+    fs::write(ext_dir.join("local.txt"), "Local content").unwrap();
+    fs::write(ext_dir.join("ci.txt"), "CI content").unwrap();
+
+    // Ensure CI is not set
+    std::env::remove_var("CI");
+    std::env::remove_var("GITHUB_ACTIONS");
+
+    let config = ConfigureConfig {
+        templates: vec![
+            TemplateConfig {
+                source: "local.txt".to_string(),
+                destination: "~/output.txt".to_string(),
+                mode: TemplateMode::Overwrite,
+                condition: Some(TemplateCondition {
+                    env: Some(EnvCondition::Logical(EnvConditionLogical {
+                        not_any: Some(vec![
+                            [("CI".to_string(), "true".to_string())]
+                                .into_iter()
+                                .collect(),
+                            [("GITHUB_ACTIONS".to_string(), "true".to_string())]
+                                .into_iter()
+                                .collect(),
+                        ]),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                }),
+            },
+            TemplateConfig {
+                source: "ci.txt".to_string(),
+                destination: "~/output.txt".to_string(),
+                mode: TemplateMode::Overwrite,
+                condition: Some(TemplateCondition {
+                    env: Some(EnvCondition::Logical(EnvConditionLogical {
+                        any: Some(vec![
+                            [("CI".to_string(), "true".to_string())]
+                                .into_iter()
+                                .collect(),
+                            [("GITHUB_ACTIONS".to_string(), "true".to_string())]
+                                .into_iter()
+                                .collect(),
+                        ]),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                }),
+            },
+        ],
+        environment: vec![],
+    };
+
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
+
+    let result = processor.execute("test-ext", &config).await.unwrap();
+
+    // Only local template should be processed (CI template skipped)
+    assert_eq!(result.templates_processed, 1);
+
+    // Verify local content was written
+    let output = fs::read_to_string(home_dir.join("output.txt")).unwrap();
+    assert_eq!(output, "Local content");
+}
+
+#[tokio::test]
+async fn test_conditional_template_platform() {
+    let temp = TempDir::new().unwrap();
+    let ext_dir = setup_test_extension(&temp, "test-ext").await;
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(&home_dir).unwrap();
+
+    fs::write(ext_dir.join("config.txt"), "Platform-specific").unwrap();
+
+    let current_os = std::env::consts::OS;
+    let os_name = match current_os {
+        "linux" => "linux",
+        "macos" => "macos",
+        "windows" => "windows",
+        _ => "unknown",
+    };
+
+    let config = ConfigureConfig {
+        templates: vec![TemplateConfig {
+            source: "config.txt".to_string(),
+            destination: "~/config.txt".to_string(),
+            mode: TemplateMode::Overwrite,
+            condition: Some(TemplateCondition {
+                platform: Some(PlatformCondition {
+                    os: Some(vec![os_name.to_string()]),
+                    arch: None,
+                }),
+                ..Default::default()
+            }),
+        }],
+        environment: vec![],
+    };
+
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
+
+    let result = processor.execute("test-ext", &config).await.unwrap();
+
+    // Should match current platform
+    assert_eq!(result.templates_processed, 1);
+    assert!(home_dir.join("config.txt").exists());
+}
+
+#[tokio::test]
+async fn test_conditional_template_wrong_platform() {
+    let temp = TempDir::new().unwrap();
+    let ext_dir = setup_test_extension(&temp, "test-ext").await;
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(&home_dir).unwrap();
+
+    fs::write(ext_dir.join("config.txt"), "Platform-specific").unwrap();
+
+    let config = ConfigureConfig {
+        templates: vec![TemplateConfig {
+            source: "config.txt".to_string(),
+            destination: "~/config.txt".to_string(),
+            mode: TemplateMode::Overwrite,
+            condition: Some(TemplateCondition {
+                platform: Some(PlatformCondition {
+                    os: Some(vec!["nonexistent_os".to_string()]),
+                    arch: None,
+                }),
+                ..Default::default()
+            }),
+        }],
+        environment: vec![],
+    };
+
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
+
+    let result = processor.execute("test-ext", &config).await.unwrap();
+
+    // Template should be skipped due to platform mismatch
+    assert_eq!(result.templates_processed, 0);
+    assert!(!home_dir.join("config.txt").exists());
+}
+
+#[tokio::test]
+async fn test_conditional_template_no_condition() {
+    let temp = TempDir::new().unwrap();
+    let ext_dir = setup_test_extension(&temp, "test-ext").await;
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(&home_dir).unwrap();
+
+    fs::write(ext_dir.join("config.txt"), "Unconditional").unwrap();
+
+    let config = ConfigureConfig {
+        templates: vec![TemplateConfig {
+            source: "config.txt".to_string(),
+            destination: "~/config.txt".to_string(),
+            mode: TemplateMode::Overwrite,
+            condition: None, // No condition means always process
+        }],
+        environment: vec![],
+    };
+
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
+
+    let result = processor.execute("test-ext", &config).await.unwrap();
+
+    // Should always process when no condition is specified
+    assert_eq!(result.templates_processed, 1);
+    assert!(home_dir.join("config.txt").exists());
+}
+
+#[tokio::test]
+#[serial]
+async fn test_conditional_template_complex_conditions() {
+    let temp = TempDir::new().unwrap();
+    let ext_dir = setup_test_extension(&temp, "test-ext").await;
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(&home_dir).unwrap();
+
+    fs::write(ext_dir.join("config.txt"), "Complex conditions").unwrap();
+
+    // Set up environment for complex condition
+    std::env::set_var("CI", "true");
+    std::env::set_var("DEPLOY_ENV", "staging");
+
+    let current_os = std::env::consts::OS;
+    let os_name = match current_os {
+        "linux" => "linux",
+        "macos" => "macos",
+        "windows" => "windows",
+        _ => "unknown",
+    };
+
+    let config = ConfigureConfig {
+        templates: vec![TemplateConfig {
+            source: "config.txt".to_string(),
+            destination: "~/config.txt".to_string(),
+            mode: TemplateMode::Overwrite,
+            condition: Some(TemplateCondition {
+                all: Some(vec![
+                    TemplateCondition {
+                        env: Some(EnvCondition::Simple(
+                            [("CI".to_string(), "true".to_string())]
+                                .into_iter()
+                                .collect(),
+                        )),
+                        ..Default::default()
+                    },
+                    TemplateCondition {
+                        platform: Some(PlatformCondition {
+                            os: Some(vec![os_name.to_string()]),
+                            arch: None,
+                        }),
+                        ..Default::default()
+                    },
+                ]),
+                ..Default::default()
+            }),
+        }],
+        environment: vec![],
+    };
+
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
+
+    let result = processor.execute("test-ext", &config).await.unwrap();
+
+    // Should process because both CI=true AND platform matches
+    assert_eq!(result.templates_processed, 1);
+    assert!(home_dir.join("config.txt").exists());
+
+    // Cleanup
+    std::env::remove_var("CI");
+    std::env::remove_var("DEPLOY_ENV");
 }

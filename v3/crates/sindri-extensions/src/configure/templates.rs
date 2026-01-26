@@ -1,5 +1,6 @@
 // Template processing for configure phase
 
+use super::conditions::ConditionEvaluator;
 use super::path::PathResolver;
 use anyhow::{bail, Context, Result};
 use chrono::Local;
@@ -42,11 +43,29 @@ impl TemplateProcessor {
     }
 
     /// Process a single template
+    /// Returns None if the template condition is not met and the template is skipped
     pub async fn process_template(
         &self,
         extension_name: &str,
         template: &TemplateConfig,
-    ) -> Result<TemplateResult> {
+    ) -> Result<Option<TemplateResult>> {
+        // Evaluate condition if present
+        if let Some(condition) = &template.condition {
+            let evaluator = ConditionEvaluator::new();
+            let should_process = evaluator
+                .evaluate(condition)
+                .context("Failed to evaluate template condition")?;
+
+            if !should_process {
+                tracing::debug!(
+                    "Skipping template {:?} -> {:?} (condition not met)",
+                    template.source,
+                    template.destination
+                );
+                return Ok(None);
+            }
+        }
+
         let resolver = PathResolver::new(self.extension_dir.clone(), self.home_dir.clone());
 
         // Resolve source and destination paths
@@ -79,12 +98,12 @@ impl TemplateProcessor {
             }
         };
 
-        Ok(TemplateResult {
+        Ok(Some(TemplateResult {
             source,
             destination,
             backup_path,
             mode: template.mode,
-        })
+        }))
     }
 
     /// Apply overwrite mode: backup existing file and copy template

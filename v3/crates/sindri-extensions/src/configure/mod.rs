@@ -3,10 +3,12 @@
 // This module handles the `configure` section in extension.yaml files,
 // processing templates and environment variables to configure the system.
 
+mod conditions;
 mod environment;
 mod path;
 mod templates;
 
+pub use conditions::ConditionEvaluator;
 pub use environment::{EnvironmentProcessor, EnvironmentResult};
 pub use path::PathResolver;
 pub use templates::{FileType, TemplateProcessor, TemplateResult};
@@ -102,7 +104,7 @@ impl ConfigureProcessor {
 
         let mut results = Vec::new();
         for template in templates {
-            let result = template_processor
+            match template_processor
                 .process_template(extension_name, template)
                 .await
                 .with_context(|| {
@@ -110,8 +112,17 @@ impl ConfigureProcessor {
                         "Failed to process template: {} -> {}",
                         template.source, template.destination
                     )
-                })?;
-            results.push(result);
+                })? {
+                Some(result) => results.push(result),
+                None => {
+                    // Template was skipped due to condition not being met
+                    tracing::info!(
+                        "Template {:?} -> {:?} skipped (condition not met)",
+                        template.source,
+                        template.destination
+                    );
+                }
+            }
         }
 
         Ok(results)

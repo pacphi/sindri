@@ -383,6 +383,37 @@ configure:
     - source: templates/config.yaml
       destination: ~/.config/myapp/config.yaml
       mode: overwrite # overwrite | append | merge | skip-if-exists
+      condition: # Optional: Template selection conditions (NEW in v3.1)
+        env: # Environment variable conditions
+          CI: "true" # Simple: CI=true
+          # OR complex:
+          BUILD_ENV:
+            equals: "production"
+            not_equals: "local"
+            exists: true
+            matches: "^prod.*" # Regex pattern
+            in_list: ["staging", "production"]
+          # OR logical operators:
+          any: # At least one must match
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+          all: # All must match
+            - DEPLOY: "true"
+          not_any: # None must match
+            - CI: "true"
+          not_all: # Not all must match
+            - CI: "true"
+        platform: # Platform conditions
+          os: ["linux", "macos", "windows"]
+          arch: ["x86_64", "aarch64", "arm64"]
+        any: # Template-level OR logic
+          - env: { CI: "true" }
+          - platform: { os: ["linux"] }
+        all: # Template-level AND logic
+          - env: { CI: "true" }
+          - platform: { os: ["linux"] }
+        not: # Template-level NOT logic
+          env: { CI: "true" }
 
   environment:
     - key: MY_VAR
@@ -450,6 +481,189 @@ bom: # Bill of Materials
         algorithm: sha256
         value: abc123...
 ```
+
+### Template Conditions (NEW in v3.1)
+
+Templates can include optional `condition` fields to enable environment-based template selection. This replaces bash script logic with declarative YAML conditions.
+
+**Use Cases**:
+- CI vs local template selection
+- Platform-specific configurations (Linux/macOS/Windows)
+- GPU-aware templates
+- Multi-environment deployments (dev/staging/prod)
+
+#### Environment Variable Conditions
+
+**Simple key-value matching**:
+```yaml
+condition:
+  env:
+    CI: "true"
+    DEPLOY_ENV: "production"
+```
+
+**Complex expressions**:
+```yaml
+condition:
+  env:
+    CI:
+      equals: "true"          # Exact match
+    BUILD_ENV:
+      not_equals: "local"     # Not equal
+    API_KEY:
+      exists: true            # Variable must exist
+    WORKSPACE:
+      matches: "^/home/.*/workspace$"  # Regex pattern
+    DEPLOY_ENV:
+      in_list: ["staging", "production"]  # Must be in list
+```
+
+**Logical operators**:
+```yaml
+condition:
+  env:
+    any:  # OR logic - at least one must match
+      - CI: "true"
+      - GITHUB_ACTIONS: "true"
+
+    all:  # AND logic - all must match
+      - CI: "true"
+      - DEPLOY_ENV: "production"
+
+    not_any:  # NOR logic - none must match
+      - CI: "true"
+      - GITHUB_ACTIONS: "true"
+
+    not_all:  # NAND logic - not all must match
+      - STAGING: "true"
+      - PRODUCTION: "true"
+```
+
+#### Platform Conditions
+
+**Operating system matching**:
+```yaml
+condition:
+  platform:
+    os: ["linux"]              # Single OS
+    os: ["linux", "macos"]    # Multiple OS options
+```
+
+**Architecture matching**:
+```yaml
+condition:
+  platform:
+    arch: ["x86_64"]              # 64-bit Intel/AMD
+    arch: ["aarch64", "arm64"]    # ARM 64-bit
+```
+
+**Supported values**:
+- OS: `linux`, `macos`, `windows`
+- Arch: `x86_64`, `aarch64`, `arm64`
+
+#### Combining Conditions
+
+**Template-level logical operators**:
+```yaml
+# All conditions must match (AND)
+condition:
+  all:
+    - env: { CI: "true" }
+    - platform: { os: ["linux"] }
+
+# At least one condition must match (OR)
+condition:
+  any:
+    - env: { CI: "true" }
+    - env: { GITHUB_ACTIONS: "true" }
+
+# Invert condition (NOT)
+condition:
+  not:
+    env: { CI: "true" }
+```
+
+**Nested combinations**:
+```yaml
+# Complex: (CI=true OR GITHUB_ACTIONS=true) AND os=linux
+condition:
+  all:
+    - any:
+        - env: { CI: "true" }
+        - env: { GITHUB_ACTIONS: "true" }
+    - platform: { os: ["linux"] }
+```
+
+#### Example: CI vs Local Template Selection
+
+```yaml
+configure:
+  templates:
+    # Local environment template
+    - source: templates/local-config.yml
+      destination: ~/.myapp/config.yml
+      mode: overwrite
+      condition:
+        env:
+          not_any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+
+    # CI environment template
+    - source: templates/ci-config.yml
+      destination: ~/.myapp/config.yml  # Same destination
+      mode: overwrite
+      condition:
+        env:
+          any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+```
+
+#### Example: Platform-Specific Templates
+
+```yaml
+configure:
+  templates:
+    # Linux configuration
+    - source: templates/linux-config.sh
+      destination: ~/.config/app/config.sh
+      condition:
+        platform:
+          os: ["linux"]
+
+    # macOS configuration
+    - source: templates/macos-config.sh
+      destination: ~/.config/app/config.sh
+      condition:
+        platform:
+          os: ["macos"]
+```
+
+#### Example: GPU-Aware Templates
+
+```yaml
+configure:
+  templates:
+    # GPU-accelerated config
+    - source: templates/gpu-config.toml
+      destination: ~/.myapp/config.toml
+      condition:
+        env:
+          NVIDIA_VISIBLE_DEVICES: { exists: true }
+
+    # CPU-only config
+    - source: templates/cpu-config.toml
+      destination: ~/.myapp/config.toml
+      condition:
+        env:
+          NVIDIA_VISIBLE_DEVICES: { exists: false }
+```
+
+**References**:
+- [ADR 033: Environment-Based Template Selection](architecture/adr/033-environment-based-template-selection.md)
+- [Migration Guide](EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md)
+- [Migration Status](EXTENSION_MIGRATION_STATUS.md)
 
 ### Extension Categories
 
