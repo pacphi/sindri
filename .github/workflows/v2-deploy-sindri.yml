@@ -1,7 +1,7 @@
 ---
-# .github/workflows/deploy-sindri.yml
-# Reusable workflow for deploying Sindri configurations
-name: Deploy Sindri
+# .github/workflows/v2-deploy-sindri.yml
+# Reusable workflow for deploying Sindri v2 configurations
+name: "v2: Deploy Sindri"
 
 on:
   workflow_call:

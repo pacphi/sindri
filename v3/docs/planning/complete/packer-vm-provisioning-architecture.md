@@ -1187,7 +1187,7 @@ sindri doctor
 ### Reusable Workflow for Packer Builds
 
 ```yaml
-# .github/workflows/packer-build.yml
+# .github/workflows/v3-packer-build.yml
 name: Build Sindri VM Images
 
 on:
@@ -1215,7 +1215,7 @@ on:
       - main
     paths:
       - "v3/packer/**"
-      - ".github/workflows/packer-build.yml"
+      - ".github/workflows/v3-packer-build.yml"
 
 env:
   PACKER_VERSION: "1.10.0"
@@ -1919,8 +1919,8 @@ end
 
 **Files:**
 
-- `.github/workflows/packer-build.yml`
-- `.github/workflows/packer-test.yml`
+- `.github/workflows/v3-packer-build.yml`
+- `.github/workflows/v3-packer-test.yml`
 - `v3/test/integration/sindri/`
 
 ### Phase 8: Security & Hardening (Week 8-9)

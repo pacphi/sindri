@@ -1,4 +1,4 @@
-name: CI v2
+name: "v2: CI"
 
 # v2 Bash/Docker CI Pipeline
 # Triggers on changes to v2 directory and related configurations
@@ -9,7 +9,6 @@ on:
     paths:
       - 'v2/**'
       - '.github/workflows/ci-v2.yml'
-      - '.github/actions/v2/**'
       - '.github/actions/shared/**'
       - 'package.json'
   pull_request:
@@ -17,7 +16,6 @@ on:
     paths:
       - 'v2/**'
       - '.github/workflows/ci-v2.yml'
-      - '.github/actions/v2/**'
       - '.github/actions/shared/**'
       - 'package.json'
   workflow_dispatch:
@@ -253,7 +251,7 @@ jobs:
       fail-fast: false
       matrix:
         provider: ${{ fromJson(needs.generate-matrix.outputs.providers) }}
-    uses: ./.github/workflows/test-provider.yml
+    uses: ./.github/workflows/v2-test-provider.yml
     with:
       provider: ${{ matrix.provider }}
       test-level: ${{ github.event.inputs.test-level || 'profile' }}

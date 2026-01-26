@@ -1,7 +1,7 @@
 ---
-# .github/workflows/teardown-sindri.yml
-# Reusable workflow for tearing down Sindri deployments
-name: Teardown Sindri
+# .github/workflows/v2-teardown-sindri.yml
+# Reusable workflow for tearing down Sindri v2 deployments
+name: "v2: Teardown Sindri"
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: Manual Deploy
+name: "v2: Manual Deploy"
 
 on:
   workflow_dispatch:
@@ -179,6 +179,7 @@ jobs:
         id: build
         uses: ./.github/actions/shared/build-image
         with:
+          dockerfile: v2/Dockerfile
           image-tag: sindri:${{ env.DEPLOYMENT_ID }}
           cache-key-prefix: sindri-deploy
 
@@ -293,7 +294,7 @@ jobs:
     name: Test Deployment
     needs: [validate-inputs, deploy]
     if: github.event.inputs.run-tests == 'true'
-    uses: ./.github/workflows/test-provider.yml
+    uses: ./.github/workflows/v2-test-provider.yml
     with:
       provider: ${{ github.event.inputs.provider }}
       test-level: quick

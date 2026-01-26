@@ -1,6 +1,6 @@
-name: Test Provider
+name: "v2: Test Provider"
 
-# Simplified provider testing workflow
+# Simplified provider testing workflow for v2
 # All tests run INSIDE the container via /docker/scripts/sindri-test.sh
 # Supports three test levels: quick, extension, profile
 

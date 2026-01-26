@@ -1,8 +1,8 @@
 ---
-# .github/workflows/test-profiles.yml
+# .github/workflows/v2-test-profiles.yml
 # Test sindri.yaml configuration files from examples directory
-# Tests profile-based deployments across different providers
-name: Test Profiles
+# Tests profile-based deployments across different providers (v2)
+name: "v2: Test Profiles"
 
 on:
   workflow_call:

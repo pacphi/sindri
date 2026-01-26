@@ -1,0 +1,83 @@
+metadata:
+  name: test-full
+  version: "1.0.0"
+  description: Full-featured test extension
+  category: testing
+  tags:
+    - test
+    - development
+  authors:
+    - Test Author
+  license: MIT
+  homepage: https://example.com
+  repository: https://github.com/example/test-full
+
+requirements:
+  install_timeout: 300
+  memory_gb: 2
+  disk_gb: 5
+
+install:
+  method: hybrid
+  script:
+    path: scripts/install.sh
+    timeout: 120
+    args:
+      - --verbose
+  mise:
+    configFile: mise.toml
+    reshim_after_install: true
+
+validate:
+  commands:
+    - name: test-cmd
+      versionFlag: "--version"
+      expected_pattern: "test-cmd \\d+\\.\\d+\\.\\d+"
+
+configure:
+  templates:
+    - source: config.template
+      destination: ~/.test-full/config
+      mode: user
+  environment:
+    - name: TEST_FULL_HOME
+      value: ~/.test-full
+      scope: user
+
+capabilities:
+  hooks:
+    pre_install:
+      command: "echo 'Pre-install hook executed'"
+      description: "Runs before installation"
+    post_install:
+      command: "echo 'Post-install hook executed'"
+      description: "Runs after installation"
+    pre_remove:
+      command: "echo 'Pre-remove hook executed'"
+      description: "Runs before removal"
+    post_remove:
+      command: "echo 'Post-remove hook executed'"
+      description: "Runs after removal"
+
+remove:
+  script:
+    path: scripts/remove.sh
+    timeout: 60
+
+upgrade:
+  strategy: in-place
+  pre_upgrade_script:
+    path: scripts/pre-upgrade.sh
+    timeout: 30
+
+bom:
+  tools:
+    - name: test-tool
+      version: "1.0.0"
+      source: script
+      type: utility
+      license: MIT
+      homepage: https://example.com
+  files:
+    - path: ~/.test-full/bin/test-cmd
+      type: binary

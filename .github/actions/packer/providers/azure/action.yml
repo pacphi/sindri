@@ -1,0 +1,136 @@
+name: 'Azure Instance Manager'
+description: 'Launch and terminate Azure VMs for Packer image testing'
+
+inputs:
+  action:
+    description: 'Action to perform (launch, terminate)'
+    required: true
+  image-id:
+    description: 'Azure image ID/name'
+    required: false
+  instance-id:
+    description: 'VM name to terminate'
+    required: false
+  region:
+    description: 'Azure region'
+    required: false
+    default: 'westus2'
+  instance-type:
+    description: 'Azure VM size'
+    required: false
+    default: 'Standard_D2s_v4'
+  resource-group:
+    description: 'Azure resource group'
+    required: false
+    default: 'sindri-test'
+
+outputs:
+  instance-id:
+    description: 'VM name'
+    value: ${{ steps.launch.outputs.instance_id }}
+  public-ip:
+    description: 'Public IP address'
+    value: ${{ steps.launch.outputs.public_ip }}
+  ssh-key-path:
+    description: 'Path to SSH private key'
+    value: ${{ steps.launch.outputs.ssh_key_path }}
+  ssh-user:
+    description: 'SSH username'
+    value: 'azureuser'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Launch Azure VM
+      if: inputs.action == 'launch'
+      id: launch
+      shell: bash
+      run: |
+        echo "Launching Azure VM from image: ${{ inputs.image-id }}"
+
+        VM_NAME="sindri-test-$(date +%s)"
+
+        # Create resource group if it doesn't exist
+        az group create \
+          --name ${{ inputs.resource-group }} \
+          --location ${{ inputs.region }} \
+          --only-show-errors || true
+
+        # Create VM
+        az vm create \
+          --resource-group ${{ inputs.resource-group }} \
+          --name "$VM_NAME" \
+          --image ${{ inputs.image-id }} \
+          --admin-username azureuser \
+          --generate-ssh-keys \
+          --public-ip-sku Standard \
+          --size ${{ inputs.instance-type }} \
+          --location ${{ inputs.region }} \
+          --tags Purpose=packer-test AutoTerminate=true \
+          --output json > /tmp/azure-vm-info.json
+
+        PUBLIC_IP=$(jq -r '.publicIpAddress' /tmp/azure-vm-info.json)
+
+        echo "VM Name: $VM_NAME"
+        echo "Public IP: $PUBLIC_IP"
+
+        echo "instance_id=$VM_NAME" >> $GITHUB_OUTPUT
+        echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+        echo "ssh_key_path=$HOME/.ssh/id_rsa" >> $GITHUB_OUTPUT
+
+        # Wait for SSH
+        echo "Waiting for SSH to be ready..."
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 azureuser@$PUBLIC_IP "echo SSH ready" 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i/30)"
+          sleep 10
+        done
+
+    - name: Terminate Azure VM
+      if: inputs.action == 'terminate'
+      shell: bash
+      run: |
+        VM_NAME="${{ inputs.instance-id }}"
+
+        if [[ -n "$VM_NAME" && "$VM_NAME" != "null" ]]; then
+          echo "Terminating Azure VM: $VM_NAME"
+
+          # Delete VM and associated resources
+          az vm delete \
+            --resource-group ${{ inputs.resource-group }} \
+            --name "$VM_NAME" \
+            --yes \
+            --force-deletion true \
+            --no-wait
+
+          echo "VM deletion initiated"
+
+          # Cleanup associated resources (NIC, disk, public IP)
+          sleep 30
+
+          # Delete NIC
+          az network nic delete \
+            --resource-group ${{ inputs.resource-group }} \
+            --name "${VM_NAME}VMNic" \
+            --no-wait || true
+
+          # Delete OS disk
+          az disk delete \
+            --resource-group ${{ inputs.resource-group }} \
+            --name "${VM_NAME}_OsDisk_1_*" \
+            --yes \
+            --no-wait || true
+
+          # Delete public IP
+          az network public-ip delete \
+            --resource-group ${{ inputs.resource-group }} \
+            --name "${VM_NAME}PublicIP" \
+            --no-wait || true
+
+          echo "VM and resources cleanup initiated"
+        else
+          echo "No VM name provided, skipping termination"
+        fi

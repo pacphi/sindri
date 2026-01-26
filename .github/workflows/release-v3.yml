@@ -1,4 +1,4 @@
-name: Release v3
+name: "v3: Release"
 
 # v3 Rust Binary Release Pipeline
 # Triggers on tags matching v3.*.* (e.g., v3.0.0, v3.1.0-alpha.1)

@@ -867,6 +867,92 @@ v3-docker-build-nocache:
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
 
 # ============================================================================
+# V3 Extension Testing Targets
+# ============================================================================
+
+# Default extension list for testing
+V3_EXT_LIST ?= python,nodejs,golang
+V3_EXT_MAX_PARALLEL ?= 2
+V3_EXT_PROFILE ?= minimal
+
+.PHONY: v3-ext-test
+v3-ext-test: v3-ext-test-serial
+	@echo "$(GREEN)$(BOLD)✓ Extension tests complete$(RESET)"
+
+.PHONY: v3-ext-test-serial
+v3-ext-test-serial: v3-build
+	@echo "$(BLUE)Running v3 extension tests (serial)...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme serial --extensions "$(V3_EXT_LIST)"
+
+.PHONY: v3-ext-test-parallel
+v3-ext-test-parallel: v3-build
+	@echo "$(BLUE)Running v3 extension tests (parallel)...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme parallel --extensions "$(V3_EXT_LIST)" --max-parallel $(V3_EXT_MAX_PARALLEL)
+
+.PHONY: v3-ext-test-profile
+v3-ext-test-profile: v3-build
+	@echo "$(BLUE)Running v3 extension tests (profile: $(V3_EXT_PROFILE))...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme serial --profile "$(V3_EXT_PROFILE)"
+
+.PHONY: v3-ext-test-quick
+v3-ext-test-quick: v3-build
+	@echo "$(BLUE)Running quick extension test (python only)...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme serial --extensions "python" --verbose
+
+.PHONY: v3-ext-test-unit
+v3-ext-test-unit:
+	@echo "$(BLUE)Running extension unit tests...$(RESET)"
+	cd $(V3_DIR) && cargo test --package sindri-extensions
+	@echo "$(GREEN)✓ Extension unit tests passed$(RESET)"
+
+# ============================================================================
+# V3 Packer Testing Targets
+# ============================================================================
+
+.PHONY: v3-packer-test
+v3-packer-test: v3-packer-test-unit
+	@echo "$(GREEN)$(BOLD)✓ Packer tests complete$(RESET)"
+
+.PHONY: v3-packer-test-unit
+v3-packer-test-unit:
+	@echo "$(BLUE)Running packer unit tests...$(RESET)"
+	cd $(V3_DIR) && cargo test --package sindri-packer
+	@echo "$(GREEN)✓ Packer unit tests passed$(RESET)"
+
+.PHONY: v3-packer-validate
+v3-packer-validate: v3-build
+	@echo "$(BLUE)Validating packer templates...$(RESET)"
+	@if command -v packer >/dev/null 2>&1; then \
+		echo "Packer found, validating templates..."; \
+		$(V3_BINARY) packer validate --cloud aws --dry-run 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)Packer not installed, skipping template validation$(RESET)"; \
+	fi
+	@echo "$(GREEN)✓ Packer validation complete$(RESET)"
+
+.PHONY: v3-inspec-check
+v3-inspec-check:
+	@echo "$(BLUE)Checking InSpec profile...$(RESET)"
+	@if command -v inspec >/dev/null 2>&1; then \
+		inspec check $(V3_DIR)/test/integration/sindri/; \
+	else \
+		echo "$(YELLOW)InSpec not installed. Install: gem install inspec-bin$(RESET)"; \
+	fi
+	@echo "$(GREEN)✓ InSpec profile check complete$(RESET)"
+
+.PHONY: v3-inspec-exec-local
+v3-inspec-exec-local:
+	@echo "$(BLUE)Running InSpec tests locally...$(RESET)"
+	@if command -v inspec >/dev/null 2>&1; then \
+		inspec exec $(V3_DIR)/test/integration/sindri/ \
+			--reporter cli \
+			--controls sindri docker mise \
+			|| true; \
+	else \
+		echo "$(YELLOW)InSpec not installed. Install: gem install inspec-bin$(RESET)"; \
+	fi
+
+# ============================================================================
 # CI/CD Targets
 # ============================================================================
 

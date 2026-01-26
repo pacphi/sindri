@@ -339,7 +339,7 @@ When adding features:
 
 - **ci.yml** - Main CI orchestrator with unified provider testing
 - **validate-yaml.yml** - Comprehensive YAML schema validation
-- **test-provider.yml** - Full test suite per provider (CLI + extensions + integration)
+- **v2-test-provider.yml** - Full test suite per provider (CLI + extensions + integration)
 - **release.yml** - Release automation
 
 ### Unified Provider Testing

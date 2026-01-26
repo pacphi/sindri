@@ -1,6 +1,6 @@
-# Packer VM Image Build Workflow
-# This workflow builds Sindri VM images across multiple cloud providers
-name: Build Sindri VM Images
+# Packer VM Image Build Workflow (v3)
+# This workflow builds Sindri v3 VM images across multiple cloud providers
+name: "v3: Build Sindri VM Images"
 
 on:
   workflow_dispatch:
@@ -41,7 +41,7 @@ on:
       - main
     paths:
       - "v3/crates/sindri-packer/**"
-      - ".github/workflows/packer-build.yml"
+      - ".github/workflows/v3-packer-build.yml"
 
 env:
   PACKER_VERSION: "1.10.0"

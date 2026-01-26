@@ -29,23 +29,34 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │   ├── validate-yaml.yml         # YAML/schema validation (both versions)
 │   ├── validate-shell.yml        # Shell script validation (shellcheck)
 │   ├── validate-markdown.yml     # Markdown validation (markdownlint)
-│   ├── test-extensions-v2.yml    # Registry-based v2 extension testing (Docker-only)
-│   ├── test-profiles.yml         # Config-driven profile testing (discovers sindri.yaml)
-│   ├── test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
-│   ├── deploy-sindri.yml         # Reusable deployment
-│   ├── teardown-sindri.yml       # Reusable teardown
-│   ├── manual-deploy.yml         # Manual deployment workflow
+│   ├── v2-test-extensions.yml    # Registry-based v2 extension testing (Docker-only)
+│   ├── v2-test-profiles.yml         # Config-driven profile testing (discovers sindri.yaml)
+│   ├── v2-test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
+│   ├── v2-deploy-sindri.yml         # Reusable deployment
+│   ├── v2-teardown-sindri.yml       # Reusable teardown
+│   ├── v2-manual-deploy.yml      # v2 manual deployment (UI-driven)
 │   ├── release-v2.yml            # v2 release automation (Docker images)
 │   ├── release-v3.yml            # v3 release automation (Rust binaries)
 │   ├── check-links.yml           # Documentation link checking
 │   └── cleanup-workflow-runs.yml # Workflow run cleanup
 │
 ├── actions/                      # Composite Actions
-│   ├── v2/                       # v2-specific actions
+│   ├── shared/                   # Shared actions (used by v2, available to v3)
+│   │   ├── build-image/          # Docker image build
+│   │   ├── deploy-provider/      # Deploy to provider
+│   │   └── cleanup-provider/     # Provider cleanup
 │   ├── v3/                       # v3-specific actions
 │   │   ├── setup-rust/           # Rust toolchain setup with caching
 │   │   └── build-rust/           # Rust workspace build
-│   ├── shared/                   # Shared actions
+│   ├── packer/                   # Multi-cloud VM image actions
+│   │   ├── launch-instance/      # Launch test instances
+│   │   ├── terminate-instance/   # Terminate test instances
+│   │   └── providers/            # Cloud-specific implementations
+│   │       ├── aws/              # AWS EC2
+│   │       ├── azure/            # Azure VMs
+│   │       ├── gcp/              # GCP Compute
+│   │       ├── oci/              # Oracle Cloud Infrastructure
+│   │       └── alibaba/          # Alibaba Cloud ECS
 │   └── providers/                # Provider-specific actions
 │       ├── fly/                  # Fly.io (setup, deploy, test, cleanup)
 │       └── devpod/               # DevPod (setup, deploy, test, cleanup)
@@ -54,7 +65,10 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │   ├── generate-slack-notification.sh  # Slack message generator
 │   ├── calculate-profile-resources.sh  # Profile resource calculation
 │   ├── lib/test-helpers.sh       # Shared test utilities
-│   └── providers/                # Provider-specific scripts
+│   ├── providers/                # Provider-specific scripts
+│   └── v3/                       # v3-specific scripts
+│       ├── discover-extensions.sh  # Extension discovery (profiles, categories)
+│       └── k3d-manager.sh          # k3d cluster lifecycle management
 │
 └── dependabot.yml                # Dependency updates
 
@@ -80,6 +94,33 @@ v2/test/                          # v2 Test suites
 └── e2b/                          # E2B provider tests
 ```
 
+## Shared Actions
+
+The `.github/actions/shared/` directory contains reusable composite actions:
+
+### build-image
+
+Builds Docker images with intelligent caching.
+
+| Input              | Required | Default         | Description                                                   |
+| ------------------ | -------- | --------------- | ------------------------------------------------------------- |
+| `dockerfile`       | **Yes**  | -               | Path to Dockerfile (e.g., `v2/Dockerfile` or `v3/Dockerfile`) |
+| `image-tag`        | No       | `sindri:latest` | Docker image tag to build                                     |
+| `context`          | No       | `.`             | Build context path                                            |
+| `push`             | No       | `false`         | Whether to push to registry                                   |
+| `registry`         | No       | -               | Docker registry URL                                           |
+| `cache-key-prefix` | No       | `sindri-docker` | Cache key prefix for layer caching                            |
+| `platforms`        | No       | `linux/amd64`   | Target platforms for multi-arch build                         |
+| `no-cache`         | No       | `false`         | Disable build cache                                           |
+
+### deploy-provider
+
+Deploys to a specified provider using v2 adapters.
+
+### cleanup-provider
+
+Cleans up provider resources after deployment.
+
 ## Path-Based Triggers
 
 | Changed Path                  | Triggers         | Example                                 |
@@ -88,9 +129,11 @@ v2/test/                          # v2 Test suites
 | `v3/**`                       | `ci-v3.yml`      | Changes to v3 Rust code, extensions     |
 | `.github/workflows/ci-v2.yml` | `ci-v2.yml`      | Self-trigger for workflow changes       |
 | `.github/workflows/ci-v3.yml` | `ci-v3.yml`      | Self-trigger for workflow changes       |
-| `.github/actions/v2/**`       | `ci-v2.yml`      | v2 action changes                       |
+| `.github/actions/shared/**`   | `ci-v2.yml`      | Shared action changes (build, deploy)   |
 | `.github/actions/v3/**`       | `ci-v3.yml`      | v3 action changes                       |
-| `.github/actions/shared/**`   | Both             | Shared action changes affect both       |
+| `.github/actions/packer/**`   | `ci-v3.yml`      | Packer VM image action changes          |
+| `.github/workflows/v3-*.yml`  | `ci-v3.yml`      | v3 extension testing workflows          |
+| `.github/scripts/v3/**`       | `ci-v3.yml`      | v3 scripts (discovery, k3d management)  |
 | `package.json`                | `ci-v2.yml`      | Root tooling affects v2 validation      |
 | Tags `v2.*.*`                 | `release-v2.yml` | v2 release trigger                      |
 | Tags `v3.*.*`                 | `release-v3.yml` | v3 release trigger                      |
@@ -112,7 +155,7 @@ v2/test/                          # v2 Test suites
 
 ```text
 FOR EACH provider in [docker, fly, devpod-aws, devpod-do, ...]:
-  └─> test-provider.yml
+  └─> v2-test-provider.yml
       ├─> Setup credentials
       ├─> Deploy infrastructure
       ├─> Run sindri-test.sh (inside container)
@@ -247,7 +290,7 @@ git push origin v3.0.0
 
 ## Testing Workflows
 
-### Extension Testing Workflow (`test-extensions-v2.yml`)
+### Extension Testing Workflow (`v2-test-extensions.yml`)
 
 Registry-based extension testing that runs in Docker (fast, local):
 
@@ -258,17 +301,73 @@ Registry-based extension testing that runs in Docker (fast, local):
 
 ```yaml
 # Example: Test specific extensions
-- uses: ./.github/workflows/test-extensions-v2.yml
+- uses: ./.github/workflows/v2-test-extensions.yml
   with:
     extensions: nodejs,python,golang
 
 # Example: Test all non-protected extensions
-- uses: ./.github/workflows/test-extensions-v2.yml
+- uses: ./.github/workflows/v2-test-extensions.yml
   with:
     extensions: all
 ```
 
-### Profile Testing Workflow (`test-profiles.yml`)
+### V3 Extension Testing System
+
+The v3 extension testing system uses a multi-workflow architecture with dynamic extension discovery and multi-provider support.
+
+**Main Workflow** (`v3-extension-test.yml`):
+
+- **Selection modes**: profile, category, specific, all, changed
+- **Providers**: docker, fly, k3d, devpod, packer
+- **Dynamic discovery** from `v3/extensions/` folder
+
+**Selection Modes**:
+
+| Mode       | Description                       | Example                           |
+| ---------- | --------------------------------- | --------------------------------- |
+| `profile`  | Test extensions in a profile      | `minimal`, `ai-dev`, `fullstack`  |
+| `category` | Test all extensions in a category | `languages`, `ai-agents`, `cloud` |
+| `specific` | Test specific extensions          | `nodejs,python,docker`            |
+| `all`      | Test all discovered extensions    | N/A                               |
+| `changed`  | Test extensions modified in PR    | N/A                               |
+
+**Provider Workflows**:
+
+| Workflow                 | Provider | Resource Limit | Use Case                    |
+| ------------------------ | -------- | -------------- | --------------------------- |
+| `v3-provider-docker.yml` | Docker   | 2GB            | Local testing, CI runners   |
+| `v3-provider-fly.yml`    | Fly.io   | 8GB            | Cloud VMs with auto-suspend |
+| `v3-provider-k3d.yml`    | k3d      | 4GB            | Kubernetes testing          |
+| `v3-provider-devpod.yml` | DevPod   | 16GB           | Multi-cloud (AWS/GCP/Azure) |
+| `v3-provider-packer.yml` | Packer   | 32GB           | VM image testing            |
+
+**Extension Lifecycle Test Pattern**:
+
+```bash
+# Each provider runs the same test sequence
+sindri extension install "$EXT" --yes
+sindri extension validate "$EXT"
+sindri extension test "$EXT"  # optional
+sindri extension remove "$EXT" --yes
+```
+
+**Example Usage**:
+
+```bash
+# Test minimal profile on Docker
+gh workflow run v3-extension-test.yml \
+  -f selection-mode=profile \
+  -f profile=minimal \
+  -f providers=docker
+
+# Test specific extensions on multiple providers
+gh workflow run v3-extension-test.yml \
+  -f selection-mode=specific \
+  -f extensions="nodejs,python,golang" \
+  -f providers=docker,k3d,fly
+```
+
+### Profile Testing Workflow (`v2-test-profiles.yml`)
 
 Config-driven testing for sindri.yaml files:
 
@@ -280,13 +379,13 @@ Config-driven testing for sindri.yaml files:
 
 ```yaml
 # Example: Test all Fly.io examples
-- uses: ./.github/workflows/test-profiles.yml
+- uses: ./.github/workflows/v2-test-profiles.yml
   with:
     config-path: examples/fly/
     test-level: quick
 ```
 
-### Provider Test Workflow (`test-provider.yml`)
+### Provider Test Workflow (`v2-test-provider.yml`)
 
 **Unified provider testing** that runs the complete test suite for a single provider:
 
@@ -404,7 +503,7 @@ Profiles are defined in `v2/docker/lib/profiles.yaml` with varying resource requ
 
 ### Profile Resource Calculation
 
-The `test-provider.yml` workflow calculates resource requirements based on the selected profile:
+The `v2-test-provider.yml` workflow calculates resource requirements based on the selected profile:
 
 1. **Resource Aggregation**: Sums `diskSpace`, `memory`, and `installTime` from all extensions in a profile
 2. **Tier Classification**: Maps totals to resource tiers (small/medium/large/xlarge)
@@ -446,33 +545,34 @@ extensions:
 
 ## Deployment Workflows
 
-### Deploy Workflow (`deploy-sindri.yml`)
+### Deploy Workflow (`v2-deploy-sindri.yml`)
 
 Reusable deployment accepting only a config file:
 
 ```yaml
-- uses: ./.github/workflows/deploy-sindri.yml
+- uses: ./.github/workflows/v2-deploy-sindri.yml
   with:
     config-path: examples/fly/minimal.sindri.yaml
 ```
 
-### Teardown Workflow (`teardown-sindri.yml`)
+### Teardown Workflow (`v2-teardown-sindri.yml`)
 
 Reusable cleanup accepting only a config file:
 
 ```yaml
-- uses: ./.github/workflows/teardown-sindri.yml
+- uses: ./.github/workflows/v2-teardown-sindri.yml
   with:
     config-path: examples/fly/minimal.sindri.yaml
     force: true
 ```
 
-### Manual Deploy vs Deploy Sindri: When to Use Each
+### Manual Deploy v2 vs Deploy Sindri: When to Use Each
 
-Two deployment workflows serve different use cases:
+Two deployment workflows serve different use cases (note: `v2-manual-deploy.yml` is for v2 Bash/Docker deployments only):
 
-| Aspect                   | `manual-deploy.yml`                        | `deploy-sindri.yml`                              |
+| Aspect                   | `v2-manual-deploy.yml`                     | `v2-deploy-sindri.yml`                              |
 | ------------------------ | ------------------------------------------ | ------------------------------------------------ |
+| **Version**              | v2 only (Bash/Docker)                      | v2 (v3 support planned)                          |
 | **Trigger**              | `workflow_dispatch` only (human-initiated) | `workflow_call` + `workflow_dispatch` (reusable) |
 | **Configuration Source** | Generates `sindri.yaml` from UI inputs     | Reads existing `sindri.yaml` file from path      |
 | **Design Pattern**       | Monolithic, self-contained                 | Reusable building block                          |
@@ -480,18 +580,18 @@ Two deployment workflows serve different use cases:
 
 **Input Approach:**
 
-- **manual-deploy**: UI-driven with extensive options (provider, environment, VM size, region, extension profile, auto-cleanup, test toggles, Slack notifications). Includes provider-specific size/region mapping logic.
+- **manual-deploy-v2**: UI-driven with extensive options (provider, environment, VM size, region, extension profile, auto-cleanup, test toggles, Slack notifications). Includes provider-specific size/region mapping logic.
 - **deploy-sindri**: Single input (`config-path`). All deployment parameters come from the YAML file itself.
 
 **Job Structure:**
 
-- **manual-deploy** (7 jobs): validate-inputs → build-image → deploy → test-deployment → schedule-cleanup → notify → summary
+- **manual-deploy-v2** (7 jobs): validate-inputs → build-image → deploy → test-deployment → schedule-cleanup → notify → summary
 - **deploy-sindri** (1 job): parse config → deploy
 
 **Provider Handling:**
 
 ```yaml
-# manual-deploy: Uses composite actions
+# manual-deploy-v2: Uses composite actions
 - uses: ./.github/actions/providers/fly/setup
 - uses: ./.github/actions/providers/fly/deploy
 
@@ -503,21 +603,21 @@ Two deployment workflows serve different use cases:
 
 | Use Case                                      | Recommended Workflow            |
 | --------------------------------------------- | ------------------------------- |
-| One-off manual deployments with UI            | `manual-deploy`                 |
+| One-off v2 manual deployments with UI         | `manual-deploy-v2`              |
 | CI/CD pipeline integration                    | `deploy-sindri`                 |
 | Calling from other workflows                  | `deploy-sindri` (workflow_call) |
-| Complex deployment with tests + notifications | `manual-deploy`                 |
+| Complex deployment with tests + notifications | `manual-deploy-v2`              |
 | Simple "deploy this config file"              | `deploy-sindri`                 |
 
 **Trade-offs:**
 
-| `manual-deploy`                                        | `deploy-sindri`                                       |
+| `manual-deploy-v2`                                     | `deploy-sindri`                                       |
 | ------------------------------------------------------ | ----------------------------------------------------- |
 | ✅ Rich UI with sensible defaults                      | ✅ Config-as-code (sindri.yaml is source of truth)    |
 | ✅ Built-in testing, cleanup scheduling, notifications | ✅ Reusable from other workflows                      |
 | ✅ Provider-specific size/region mapping               | ✅ Simpler, easier to maintain                        |
-| ❌ Harder to version control (inputs are ephemeral)    | ❌ No built-in extras (tests, notifications, cleanup) |
-| ❌ More complex, more maintenance                      | ❌ Less provider-specific intelligence in workflow    |
+| ❌ v2 only (no v3 support yet)                         | ❌ No built-in extras (tests, notifications, cleanup) |
+| ❌ Harder to version control (inputs are ephemeral)    | ❌ Less provider-specific intelligence in workflow    |
 
 ## Scripts Directory
 
@@ -530,7 +630,7 @@ The `.github/scripts/` directory contains test utilities:
 | `lib/test-helpers.sh`            | Shared logging, retry, and VM interaction functions                  |
 | `lib/assertions.sh`              | Test assertion functions (equals, contains, file exists, etc.)       |
 
-**Extension Testing:** All extension tests are now integrated into the `test-provider.yml` workflow with 9 phases:
+**Extension Testing:** All extension tests are now integrated into the `v2-test-provider.yml` workflow with 9 phases:
 
 1. Profile Installation
 2. Extension Discovery
@@ -547,7 +647,7 @@ The `.github/scripts/` directory contains test utilities:
 
 ## YAML-Driven Testing Flow
 
-### Profile Testing (test-profiles.yml)
+### Profile Testing (v2-test-profiles.yml)
 
 ```text
 ┌───────────────────────────────────┐
@@ -556,7 +656,7 @@ The `.github/scripts/` directory contains test utilities:
                  │
                  ▼
 ┌─────────────────────────────────┐
-│  test-profiles.yml              │
+│  v2-test-profiles.yml              │
 │  - Discover configs             │
 │  - Parse provider/profile       │
 └────────────────┬────────────────┘
@@ -581,7 +681,7 @@ The `.github/scripts/` directory contains test utilities:
                   └─────────────┘
 ```
 
-### Extension Testing (test-extensions-v2.yml)
+### Extension Testing (v2-test-extensions.yml)
 
 ```text
 ┌───────────────────────────────────┐
@@ -590,7 +690,7 @@ The `.github/scripts/` directory contains test utilities:
                  │
                  ▼
 ┌─────────────────────────────────┐
-│  test-extensions-v2.yml            │
+│  v2-test-extensions.yml            │
 │  - Parse input (split/expand)   │
 │  - Query registry for "all"     │
 └────────────────┬────────────────┘
@@ -862,15 +962,15 @@ git push origin main v3.0.0
 
 ### Adding New Actions
 
-**For v2**:
+**Shared (used by both v2 and v3)**:
 
 ```bash
-mkdir -p .github/actions/v2/my-action
+mkdir -p .github/actions/shared/my-action
 # Create action.yml
-# Reference in ci-v2.yml
+# Reference in ci-v2.yml and/or ci-v3.yml
 ```
 
-**For v3**:
+**For v3 only**:
 
 ```bash
 mkdir -p .github/actions/v3/my-action
@@ -878,12 +978,12 @@ mkdir -p .github/actions/v3/my-action
 # Reference in ci-v3.yml
 ```
 
-**Shared**:
+**For Packer (multi-cloud VM images)**:
 
 ```bash
-mkdir -p .github/actions/shared/my-action
-# Create action.yml
-# Reference in both ci-v2.yml and ci-v3.yml
+mkdir -p .github/actions/packer/providers/my-cloud
+# Create action.yml with launch/terminate actions
+# Reference in launch-instance/action.yml and terminate-instance/action.yml
 ```
 
 ## Extension Management
@@ -904,7 +1004,7 @@ mkdir -p .github/actions/shared/my-action
 
 ## Usage Examples
 
-### Test All Config Examples (test-profiles.yml)
+### Test All Config Examples (v2-test-profiles.yml)
 
 ```yaml
 # Via workflow_dispatch
@@ -912,21 +1012,21 @@ config-path: examples/
 test-level: quick
 ```
 
-### Test Specific Provider Configs (test-profiles.yml)
+### Test Specific Provider Configs (v2-test-profiles.yml)
 
 ```yaml
 config-path: examples/fly/
 test-level: profile
 ```
 
-### Test Single Configuration (test-profiles.yml)
+### Test Single Configuration (v2-test-profiles.yml)
 
 ```yaml
 config-path: examples/fly/minimal.sindri.yaml
 test-level: all
 ```
 
-### Test Individual Extensions (test-extensions-v2.yml)
+### Test Individual Extensions (v2-test-extensions.yml)
 
 ```yaml
 # Single extension
@@ -959,14 +1059,14 @@ extensions: all
 
 1. Create a new `sindri.yaml` file in appropriate `examples/` subdirectory
 2. The file is automatically:
-   - Discovered by `test-profiles.yml`
+   - Discovered by `v2-test-profiles.yml`
    - Validated against schema
    - Used as documentation for users
 3. No workflow changes needed
 
 ### Adding Extension Tests
 
-Extensions are automatically tested via `test-extensions-v2.yml`:
+Extensions are automatically tested via `v2-test-extensions.yml`:
 
 1. Add new extension to `v2/docker/lib/registry.yaml`
 2. Create extension definition in `v2/docker/lib/extensions/<name>/extension.yaml`

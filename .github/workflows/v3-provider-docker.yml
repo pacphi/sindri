@@ -1,0 +1,256 @@
+# Reusable Workflow: Docker Provider
+# Tests extensions in Docker containers with resource limits
+name: "v3: Provider - Docker"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extension names to test'
+        type: string
+        required: true
+      max-parallel:
+        description: 'Maximum parallel jobs'
+        type: number
+        default: 4
+      sindri-image:
+        description: 'Sindri container image'
+        type: string
+        default: 'ghcr.io/sindri-dev/sindri:latest'
+
+    outputs:
+      results:
+        description: 'Test results JSON'
+        value: ${{ jobs.summary.outputs.results }}
+      passed:
+        description: 'Number of passed tests'
+        value: ${{ jobs.summary.outputs.passed }}
+      failed:
+        description: 'Number of failed tests'
+        value: ${{ jobs.summary.outputs.failed }}
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Build sindri CLI first
+  build:
+    name: Build Sindri CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3
+
+      - name: Build CLI
+        working-directory: v3
+        run: cargo build --release
+
+      - name: Upload CLI
+        uses: actions/upload-artifact@v4
+        with:
+          name: sindri-cli
+          path: v3/target/release/sindri
+          retention-days: 1
+
+  # Test each extension
+  test:
+    name: "Test: ${{ matrix.extension }}"
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        extension: ${{ fromJson(inputs.extensions) }}
+
+    outputs:
+      result: ${{ steps.report.outputs.result }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download CLI
+        uses: actions/download-artifact@v4
+        with:
+          name: sindri-cli
+          path: /tmp/sindri
+
+      - name: Setup CLI
+        run: |
+          chmod +x /tmp/sindri/sindri
+          sudo mv /tmp/sindri/sindri /usr/local/bin/sindri
+          sindri --version
+
+      - name: Get Extension Requirements
+        id: requirements
+        run: |
+          EXT_FILE="v3/extensions/${{ matrix.extension }}/extension.yaml"
+          if [[ -f "$EXT_FILE" ]]; then
+            MEMORY=$(yq -r '.requirements.memory // 512' "$EXT_FILE")
+            TIMEOUT=$(yq -r '.requirements.installTimeout // 300' "$EXT_FILE")
+          else
+            MEMORY=512
+            TIMEOUT=300
+          fi
+          echo "memory=${MEMORY}m" >> $GITHUB_OUTPUT
+          echo "timeout=$TIMEOUT" >> $GITHUB_OUTPUT
+
+      - name: Install Extension
+        id: install
+        timeout-minutes: 10
+        run: |
+          echo "::group::Installing ${{ matrix.extension }}"
+          START_TIME=$(date +%s)
+
+          if sindri extension install ${{ matrix.extension }} --yes 2>&1 | tee install.log; then
+            INSTALL_RESULT="success"
+          else
+            INSTALL_RESULT="failure"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+
+          echo "::endgroup::"
+          echo "result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+
+      - name: Validate Extension
+        id: validate
+        if: steps.install.outputs.result == 'success'
+        timeout-minutes: 5
+        run: |
+          echo "::group::Validating ${{ matrix.extension }}"
+
+          if sindri extension validate ${{ matrix.extension }} 2>&1 | tee validate.log; then
+            VALIDATE_RESULT="success"
+          else
+            VALIDATE_RESULT="failure"
+          fi
+
+          echo "::endgroup::"
+          echo "result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Remove Extension
+        id: remove
+        if: steps.install.outputs.result == 'success'
+        timeout-minutes: 5
+        run: |
+          echo "::group::Removing ${{ matrix.extension }}"
+
+          if sindri extension remove ${{ matrix.extension }} --yes 2>&1 | tee remove.log; then
+            REMOVE_RESULT="success"
+          else
+            REMOVE_RESULT="failure"
+          fi
+
+          echo "::endgroup::"
+          echo "result=$REMOVE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Create Test Report
+        id: report
+        if: always()
+        run: |
+          cat > test-result.json << EOF
+          {
+            "extension": "${{ matrix.extension }}",
+            "provider": "docker",
+            "install": {
+              "result": "${{ steps.install.outputs.result || 'error' }}",
+              "duration": ${{ steps.install.outputs.duration || 0 }}
+            },
+            "validate": {
+              "result": "${{ steps.validate.outputs.result || 'skipped' }}"
+            },
+            "remove": {
+              "result": "${{ steps.remove.outputs.result || 'skipped' }}"
+            },
+            "overall": "${{ steps.install.outputs.result == 'success' && steps.validate.outputs.result == 'success' && 'passed' || 'failed' }}"
+          }
+          EOF
+
+          cat test-result.json
+          echo "result=$(cat test-result.json | jq -c .)" >> $GITHUB_OUTPUT
+
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docker-result-${{ matrix.extension }}
+          path: |
+            test-result.json
+            install.log
+            validate.log
+            remove.log
+          retention-days: 7
+
+  # Aggregate results
+  summary:
+    name: Test Summary
+    needs: [build, test]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.aggregate.outputs.results }}
+      passed: ${{ steps.aggregate.outputs.passed }}
+      failed: ${{ steps.aggregate.outputs.failed }}
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: docker-result-*
+
+      - name: Aggregate Results
+        id: aggregate
+        run: |
+          RESULTS="[]"
+          PASSED=0
+          FAILED=0
+
+          for dir in results/*/; do
+            if [[ -f "$dir/test-result.json" ]]; then
+              RESULT=$(cat "$dir/test-result.json")
+              RESULTS=$(echo "$RESULTS" | jq --argjson r "$RESULT" '. + [$r]')
+
+              OVERALL=$(echo "$RESULT" | jq -r '.overall')
+              if [[ "$OVERALL" == "passed" ]]; then
+                ((PASSED++))
+              else
+                ((FAILED++))
+              fi
+            fi
+          done
+
+          {
+            echo "results<<EOF"
+            echo "$RESULTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+
+      - name: Generate Summary
+        run: |
+          echo "## Docker Provider Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Passed:** ${{ steps.aggregate.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed:** ${{ steps.aggregate.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Extension | Install | Validate | Remove | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|----------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | \(if .install.result == "success" then "pass" else "fail" end) | \(if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) | \(if .remove.result == "success" then "pass" elif .remove.result == "skipped" then "skip" else "fail" end) | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

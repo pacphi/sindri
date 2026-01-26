@@ -1,0 +1,211 @@
+# Reusable Workflow: Extension Discovery
+# Returns extension metadata as JSON for matrix generation
+name: "v3: Discover Extensions"
+
+on:
+  workflow_call:
+    inputs:
+      filter-mode:
+        description: 'Filter mode: all, profile, category, changed'
+        type: string
+        default: 'all'
+      filter-value:
+        description: 'Filter value (profile name, category name, or base ref for changed)'
+        type: string
+        default: ''
+      filter-memory:
+        description: 'Max memory requirement in MB (0 = no limit)'
+        type: number
+        default: 0
+      filter-gpu:
+        description: 'Exclude GPU-required extensions'
+        type: boolean
+        default: true
+      filter-heavy:
+        description: 'Exclude heavy extensions (>4GB memory, >10min install)'
+        type: boolean
+        default: false
+
+    outputs:
+      extensions:
+        description: 'JSON array of extension metadata'
+        value: ${{ jobs.discover.outputs.extensions }}
+      extension-names:
+        description: 'JSON array of extension names only'
+        value: ${{ jobs.discover.outputs.extension_names }}
+      count:
+        description: 'Number of extensions found'
+        value: ${{ jobs.discover.outputs.count }}
+      categories:
+        description: 'JSON array of unique categories'
+        value: ${{ jobs.discover.outputs.categories }}
+      profiles:
+        description: 'JSON array of available profiles'
+        value: ${{ jobs.discover.outputs.profiles }}
+
+jobs:
+  discover:
+    name: Discover Extensions
+    runs-on: ubuntu-latest
+    outputs:
+      extensions: ${{ steps.discover.outputs.extensions }}
+      extension_names: ${{ steps.discover.outputs.extension_names }}
+      count: ${{ steps.discover.outputs.count }}
+      categories: ${{ steps.discover.outputs.categories }}
+      profiles: ${{ steps.discover.outputs.profiles }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for changed detection
+
+      - name: Setup yq
+        uses: mikefarah/yq@v4
+
+      - name: Discover Extensions
+        id: discover
+        run: |
+          set -euo pipefail
+
+          FILTER_MODE="${{ inputs.filter-mode }}"
+          FILTER_VALUE="${{ inputs.filter-value }}"
+          FILTER_MEMORY="${{ inputs.filter-memory }}"
+          FILTER_GPU="${{ inputs.filter-gpu }}"
+          FILTER_HEAVY="${{ inputs.filter-heavy }}"
+
+          echo "Filter mode: $FILTER_MODE"
+          echo "Filter value: $FILTER_VALUE"
+
+          # Build filter args
+          FILTER_ARGS=""
+          if [[ "$FILTER_MEMORY" -gt 0 ]]; then
+            FILTER_ARGS="$FILTER_ARGS --filter-memory $FILTER_MEMORY"
+          fi
+          if [[ "$FILTER_GPU" == "true" ]]; then
+            FILTER_ARGS="$FILTER_ARGS --filter-gpu"
+          fi
+          if [[ "$FILTER_HEAVY" == "true" ]]; then
+            FILTER_ARGS="$FILTER_ARGS --filter-heavy"
+          fi
+
+          # Get extensions based on filter mode
+          case "$FILTER_MODE" in
+            profile)
+              if [[ -z "$FILTER_VALUE" ]]; then
+                echo "::error::Profile name required for profile filter mode"
+                exit 1
+              fi
+              EXTENSION_NAMES=$(.github/scripts/v3/discover-extensions.sh profile "$FILTER_VALUE")
+              ;;
+            category)
+              if [[ -z "$FILTER_VALUE" ]]; then
+                echo "::error::Category name required for category filter mode"
+                exit 1
+              fi
+              EXTENSION_NAMES=$(.github/scripts/v3/discover-extensions.sh category "$FILTER_VALUE")
+              ;;
+            changed)
+              BASE_REF="${FILTER_VALUE:-main}"
+              EXTENSION_NAMES=$(.github/scripts/v3/discover-extensions.sh changed "$BASE_REF")
+              ;;
+            all|*)
+              # Get full extension data with filters
+              EXTENSIONS=$(.github/scripts/v3/discover-extensions.sh discover json $FILTER_ARGS)
+              EXTENSION_NAMES=$(echo "$EXTENSIONS" | jq '[.[].name]')
+              ;;
+          esac
+
+          # If we only have names (from profile/category/changed), build full extension data
+          if [[ "$FILTER_MODE" != "all" ]]; then
+            EXTENSIONS="[]"
+            for name in $(echo "$EXTENSION_NAMES" | jq -r '.[]'); do
+              EXT_FILE="v3/extensions/$name/extension.yaml"
+              if [[ -f "$EXT_FILE" ]]; then
+                EXT_DATA=$(yq -o json "$EXT_FILE" | jq --arg name "$name" '{
+                  name: $name,
+                  version: (.metadata.version // "1.0.0"),
+                  description: (.metadata.description // ""),
+                  category: (.metadata.category // "unknown"),
+                  requirements: {
+                    memory: (.requirements.memory // 256),
+                    disk: (.requirements.diskSpace // 100),
+                    install_time: (.requirements.installTime // 60),
+                    gpu_required: (.requirements.gpu.required // false)
+                  }
+                }')
+
+                # Apply filters
+                SKIP=false
+                if [[ "$FILTER_MEMORY" -gt 0 ]]; then
+                  MEM=$(echo "$EXT_DATA" | jq -r '.requirements.memory')
+                  [[ "$MEM" -gt "$FILTER_MEMORY" ]] && SKIP=true
+                fi
+                if [[ "$FILTER_GPU" == "true" ]]; then
+                  GPU=$(echo "$EXT_DATA" | jq -r '.requirements.gpu_required')
+                  [[ "$GPU" == "true" ]] && SKIP=true
+                fi
+                if [[ "$FILTER_HEAVY" == "true" ]]; then
+                  MEM=$(echo "$EXT_DATA" | jq -r '.requirements.memory')
+                  TIME=$(echo "$EXT_DATA" | jq -r '.requirements.install_time')
+                  [[ "$MEM" -gt 4096 || "$TIME" -gt 600 ]] && SKIP=true
+                fi
+
+                if [[ "$SKIP" == "false" ]]; then
+                  EXTENSIONS=$(echo "$EXTENSIONS" | jq --argjson ext "$EXT_DATA" '. + [$ext]')
+                fi
+              fi
+            done
+            EXTENSION_NAMES=$(echo "$EXTENSIONS" | jq '[.[].name]')
+          fi
+
+          # Get categories
+          CATEGORIES=$(.github/scripts/v3/discover-extensions.sh categories 2>/dev/null || echo '[]')
+
+          # Get profiles
+          PROFILES=$(.github/scripts/v3/discover-extensions.sh profiles 2>/dev/null || echo '[]')
+
+          # Count
+          COUNT=$(echo "$EXTENSIONS" | jq 'length')
+
+          echo "Found $COUNT extensions"
+
+          # Output (handle multiline JSON)
+          {
+            echo "extensions<<EOF"
+            echo "$EXTENSIONS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "extension_names<<EOF"
+            echo "$EXTENSION_NAMES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+          {
+            echo "categories<<EOF"
+            echo "$CATEGORIES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "profiles<<EOF"
+            echo "$PROFILES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "## Extension Discovery Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Filter Mode:** ${{ inputs.filter-mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Filter Value:** ${{ inputs.filter-value || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Extensions Found:** ${{ steps.discover.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Extensions" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.discover.outputs.extension_names }}' | jq '.' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -566,7 +566,7 @@
       "id": "cicd-workflows-overview",
       "category": "cicd",
       "question": "What GitHub Actions workflows are available?",
-      "answer": "Five main workflows: ci.yml (full CI pipeline - runs on push/PR), test-extensions.yml (test individual extensions from registry), test-profiles.yml (test sindri.yaml configs from examples/), manual-deploy.yml (deploy to any provider on-demand), and deploy-sindri.yml (reusable deployment workflow). Each can be triggered manually via GitHub UI or 'gh workflow run'.",
+      "answer": "Five main workflows: ci.yml (full CI pipeline - runs on push/PR), v2-test-extensions.yml (test individual v2 extensions from registry), v2-test-profiles.yml (test sindri.yaml configs from examples/), v2-manual-deploy.yml (deploy to any provider on-demand), and v2-deploy-sindri.yml (reusable deployment workflow). Each can be triggered manually via GitHub UI or 'gh workflow run'.",
       "tags": ["workflows", "github", "actions", "overview"],
       "docs": [".github/workflows/", "docs/CI_WORKFLOW_IN_DEPTH.md"]
     },
@@ -574,7 +574,7 @@
       "id": "cicd-trigger-workflows",
       "category": "cicd",
       "question": "How do I trigger CI workflows manually with gh CLI?",
-      "answer": "Use 'gh workflow run <workflow>.yml' with field flags. Examples: 'gh workflow run ci.yml -f providers=\"docker,fly\" -f test-level=\"quick\"' for quick CI, 'gh workflow run test-extensions.yml -f extensions=\"nodejs,python\"' to test extensions, 'gh workflow run test-profiles.yml -f config-path=\"examples/fly/\"' to test configs. Add '-f skip-cleanup=true' for debugging.",
+      "answer": "Use 'gh workflow run <workflow>.yml' with field flags. Examples: 'gh workflow run ci.yml -f providers=\"docker,fly\" -f test-level=\"quick\"' for quick CI, 'gh workflow run v2-test-extensions.yml -f extensions=\"nodejs,python\"' to test extensions, 'gh workflow run v2-test-profiles.yml -f config-path=\"examples/fly/\"' to test configs. Add '-f skip-cleanup=true' for debugging.",
       "tags": ["gh", "cli", "trigger", "workflow"],
       "docs": ["docs/CI_WORKFLOW_IN_DEPTH.md"]
     },

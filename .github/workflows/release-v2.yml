@@ -1,4 +1,4 @@
-name: Release v2
+name: "v2: Release"
 
 # v2 Docker Release Pipeline
 # Triggers on tags matching v2.*.* (e.g., v2.3.0, v2.3.1-beta.1)

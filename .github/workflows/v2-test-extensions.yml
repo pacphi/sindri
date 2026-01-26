@@ -1,8 +1,8 @@
 ---
-# .github/workflows/test-extensions.yml
-# Test individual extensions from the registry
+# .github/workflows/v2-test-extensions.yml
+# Test individual v2 extensions from the registry
 # Supports single extension, comma-separated list, or 'all' for all non-protected extensions
-name: Test Extensions
+name: "v2: Test Extensions"
 
 on:
   workflow_call:

@@ -1,0 +1,395 @@
+# V3 Extension Testing Workflow - Main Entry Point
+# Provides dynamic discovery, user selection, and multi-provider testing
+name: "v3: Extension Tests"
+
+on:
+  workflow_dispatch:
+    inputs:
+      selection-mode:
+        description: 'Extension selection mode'
+        required: true
+        type: choice
+        options:
+          - profile
+          - category
+          - specific
+          - all
+          - changed
+        default: 'profile'
+
+      profile:
+        description: 'Profile name (if mode=profile)'
+        required: false
+        type: choice
+        options:
+          - minimal
+          - fullstack
+          - ai-dev
+          - anthropic-dev
+          - systems
+          - enterprise
+          - devops
+          - mobile
+        default: 'minimal'
+
+      category:
+        description: 'Category name (if mode=category)'
+        required: false
+        type: choice
+        options:
+          - ai-agents
+          - ai-dev
+          - claude
+          - cloud
+          - desktop
+          - devops
+          - documentation
+          - languages
+          - mcp
+          - productivity
+          - research
+          - testing
+        default: 'languages'
+
+      extensions:
+        description: 'Comma-separated extension names (if mode=specific)'
+        required: false
+        type: string
+        default: 'nodejs,python'
+
+      providers:
+        description: 'Comma-separated providers to test on'
+        required: false
+        type: string
+        default: 'docker'
+
+      max-parallel:
+        description: 'Maximum parallel jobs per provider'
+        required: false
+        type: number
+        default: 4
+
+      filter-heavy:
+        description: 'Exclude heavy extensions (>4GB memory, >10min install)'
+        required: false
+        type: boolean
+        default: true
+
+  # Allow calling from other workflows
+  workflow_call:
+    inputs:
+      selection-mode:
+        type: string
+        default: 'profile'
+      profile:
+        type: string
+        default: 'minimal'
+      category:
+        type: string
+        default: 'languages'
+      extensions:
+        type: string
+        default: 'nodejs,python'
+      providers:
+        type: string
+        default: 'docker'
+      max-parallel:
+        type: number
+        default: 4
+      filter-heavy:
+        type: boolean
+        default: true
+
+  # Run on PRs that touch extensions
+  pull_request:
+    paths:
+      - 'v3/extensions/**'
+      - 'v3/registry.yaml'
+      - 'v3/profiles.yaml'
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Resolve which extensions to test
+  resolve-selection:
+    name: Resolve Extension Selection
+    runs-on: ubuntu-latest
+    outputs:
+      extensions: ${{ steps.resolve.outputs.extensions }}
+      extension_names: ${{ steps.resolve.outputs.extension_names }}
+      count: ${{ steps.resolve.outputs.count }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup yq
+        uses: mikefarah/yq@v4
+
+      - name: Resolve Extensions
+        id: resolve
+        run: |
+          set -euo pipefail
+
+          MODE="${{ inputs.selection-mode || 'changed' }}"
+          FILTER_HEAVY="${{ inputs.filter-heavy }}"
+
+          echo "Selection mode: $MODE"
+
+          # Build filter args
+          FILTER_ARGS=""
+          if [[ "$FILTER_HEAVY" == "true" ]]; then
+            FILTER_ARGS="$FILTER_ARGS --filter-heavy"
+          fi
+          # Always exclude GPU extensions on GitHub runners
+          FILTER_ARGS="$FILTER_ARGS --filter-gpu"
+
+          case "$MODE" in
+            profile)
+              PROFILE="${{ inputs.profile }}"
+              echo "Expanding profile: $PROFILE"
+              EXTENSION_NAMES=$(.github/scripts/v3/discover-extensions.sh profile "$PROFILE")
+              ;;
+            category)
+              CATEGORY="${{ inputs.category }}"
+              echo "Filtering by category: $CATEGORY"
+              EXTENSION_NAMES=$(.github/scripts/v3/discover-extensions.sh category "$CATEGORY")
+              ;;
+            specific)
+              EXTS="${{ inputs.extensions }}"
+              echo "Using specific extensions: $EXTS"
+              EXTENSION_NAMES=$(echo "$EXTS" | tr ',' '\n' | jq -R . | jq -s .)
+              ;;
+            all)
+              echo "Discovering all extensions"
+              EXTENSIONS=$(.github/scripts/v3/discover-extensions.sh discover json $FILTER_ARGS)
+              EXTENSION_NAMES=$(echo "$EXTENSIONS" | jq '[.[].name]')
+              ;;
+            changed)
+              echo "Detecting changed extensions"
+              if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+                BASE_REF="${{ github.base_ref }}"
+              else
+                BASE_REF="main"
+              fi
+              EXTENSION_NAMES=$(.github/scripts/v3/discover-extensions.sh changed "$BASE_REF")
+
+              # If no changes, fall back to minimal profile
+              if [[ $(echo "$EXTENSION_NAMES" | jq 'length') -eq 0 ]]; then
+                echo "No changed extensions, using minimal profile"
+                EXTENSION_NAMES=$(.github/scripts/v3/discover-extensions.sh profile "minimal")
+              fi
+              ;;
+          esac
+
+          # Build full extension data for matrix generation
+          EXTENSIONS="[]"
+          for name in $(echo "$EXTENSION_NAMES" | jq -r '.[]'); do
+            EXT_FILE="v3/extensions/$name/extension.yaml"
+            if [[ -f "$EXT_FILE" ]]; then
+              EXT_DATA=$(yq -o json "$EXT_FILE" | jq --arg name "$name" '{
+                name: $name,
+                version: (.metadata.version // "1.0.0"),
+                description: (.metadata.description // ""),
+                category: (.metadata.category // "unknown"),
+                requirements: {
+                  memory: (.requirements.memory // 256),
+                  disk: (.requirements.diskSpace // 100),
+                  install_time: (.requirements.installTime // 60),
+                  gpu_required: (.requirements.gpu.required // false)
+                }
+              }')
+
+              # Apply filters
+              SKIP=false
+              if [[ "$FILTER_HEAVY" == "true" ]]; then
+                MEM=$(echo "$EXT_DATA" | jq -r '.requirements.memory')
+                TIME=$(echo "$EXT_DATA" | jq -r '.requirements.install_time')
+                [[ "$MEM" -gt 4096 || "$TIME" -gt 600 ]] && SKIP=true
+              fi
+
+              GPU=$(echo "$EXT_DATA" | jq -r '.requirements.gpu_required')
+              [[ "$GPU" == "true" ]] && SKIP=true
+
+              if [[ "$SKIP" == "false" ]]; then
+                EXTENSIONS=$(echo "$EXTENSIONS" | jq --argjson ext "$EXT_DATA" '. + [$ext]')
+              fi
+            fi
+          done
+
+          # Refresh names after filtering
+          EXTENSION_NAMES=$(echo "$EXTENSIONS" | jq '[.[].name]')
+          COUNT=$(echo "$EXTENSIONS" | jq 'length')
+
+          echo "Resolved $COUNT extensions"
+
+          # Output
+          {
+            echo "extensions<<EOF"
+            echo "$EXTENSIONS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "extension_names<<EOF"
+            echo "$EXTENSION_NAMES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+  # Generate provider-specific matrices
+  generate-matrices:
+    name: Generate Provider Matrices
+    needs: resolve-selection
+    if: needs.resolve-selection.outputs.count > 0
+    uses: ./.github/workflows/v3-matrix-generator.yml
+    with:
+      extensions: ${{ needs.resolve-selection.outputs.extensions }}
+      providers: ${{ inputs.providers || 'docker' }}
+
+  # Docker provider tests
+  test-docker:
+    name: Docker Tests
+    needs: [resolve-selection, generate-matrices]
+    if: |
+      contains(inputs.providers || 'docker', 'docker') &&
+      fromJson(needs.generate-matrices.outputs.docker-count) > 0
+    uses: ./.github/workflows/v3-provider-docker.yml
+    with:
+      extensions: ${{ needs.generate-matrices.outputs.docker-extensions }}
+      max-parallel: ${{ inputs.max-parallel || 4 }}
+
+  # Fly.io provider tests
+  test-fly:
+    name: Fly.io Tests
+    needs: [resolve-selection, generate-matrices]
+    if: |
+      contains(inputs.providers || '', 'fly') &&
+      fromJson(needs.generate-matrices.outputs.fly-count) > 0
+    uses: ./.github/workflows/v3-provider-fly.yml
+    with:
+      extensions: ${{ needs.generate-matrices.outputs.fly-extensions }}
+      max-parallel: ${{ inputs.max-parallel || 2 }}
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  # k3d provider tests
+  test-k3d:
+    name: k3d Tests
+    needs: [resolve-selection, generate-matrices]
+    if: |
+      contains(inputs.providers || '', 'k3d') &&
+      fromJson(needs.generate-matrices.outputs.k3d-count) > 0
+    uses: ./.github/workflows/v3-provider-k3d.yml
+    with:
+      extensions: ${{ needs.generate-matrices.outputs.k3d-extensions }}
+      max-parallel: ${{ inputs.max-parallel || 4 }}
+
+  # DevPod provider tests
+  test-devpod:
+    name: DevPod Tests
+    needs: [resolve-selection, generate-matrices]
+    if: |
+      contains(inputs.providers || '', 'devpod') &&
+      fromJson(needs.generate-matrices.outputs.devpod-count) > 0
+    uses: ./.github/workflows/v3-provider-devpod.yml
+    with:
+      extensions: ${{ needs.generate-matrices.outputs.devpod-extensions }}
+      max-parallel: ${{ inputs.max-parallel || 2 }}
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+  # Packer provider tests
+  test-packer:
+    name: Packer Tests
+    needs: [resolve-selection, generate-matrices]
+    if: |
+      contains(inputs.providers || '', 'packer') &&
+      fromJson(needs.generate-matrices.outputs.packer-count) > 0
+    uses: ./.github/workflows/v3-provider-packer.yml
+    with:
+      extensions: ${{ needs.generate-matrices.outputs.packer-extensions }}
+      max-parallel: ${{ inputs.max-parallel || 2 }}
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+      OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+      OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+      OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+      OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+      ALIBABA_ACCESS_KEY: ${{ secrets.ALIBABA_ACCESS_KEY }}
+      ALIBABA_SECRET_KEY: ${{ secrets.ALIBABA_SECRET_KEY }}
+
+  # Final summary
+  summary:
+    name: Test Summary
+    needs: [resolve-selection, generate-matrices, test-docker, test-fly, test-k3d, test-devpod, test-packer]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "# V3 Extension Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Selection Mode:** ${{ inputs.selection-mode || 'changed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Profile:** ${{ inputs.profile || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Category:** ${{ inputs.category || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Providers:** ${{ inputs.providers || 'docker' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Extensions Count:** ${{ needs.resolve-selection.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Provider Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | Extensions | Passed | Failed | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------------|--------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Docker results
+          if [[ "${{ needs.test-docker.result }}" != "skipped" ]]; then
+            DOCKER_STATUS="${{ needs.test-docker.result == 'success' && 'pass' || 'fail' }}"
+            echo "| Docker | ${{ needs.generate-matrices.outputs.docker-count }} | ${{ needs.test-docker.outputs.passed || '?' }} | ${{ needs.test-docker.outputs.failed || '?' }} | $DOCKER_STATUS |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fly.io results
+          if [[ "${{ needs.test-fly.result }}" != "skipped" ]]; then
+            FLY_STATUS="${{ needs.test-fly.result == 'success' && 'pass' || 'fail' }}"
+            echo "| Fly.io | ${{ needs.generate-matrices.outputs.fly-count }} | ${{ needs.test-fly.outputs.passed || '?' }} | ${{ needs.test-fly.outputs.failed || '?' }} | $FLY_STATUS |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # k3d results
+          if [[ "${{ needs.test-k3d.result }}" != "skipped" ]]; then
+            K3D_STATUS="${{ needs.test-k3d.result == 'success' && 'pass' || 'fail' }}"
+            echo "| k3d | ${{ needs.generate-matrices.outputs.k3d-count }} | ${{ needs.test-k3d.outputs.passed || '?' }} | ${{ needs.test-k3d.outputs.failed || '?' }} | $K3D_STATUS |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # DevPod results
+          if [[ "${{ needs.test-devpod.result }}" != "skipped" ]]; then
+            DEVPOD_STATUS="${{ needs.test-devpod.result == 'success' && 'pass' || 'fail' }}"
+            echo "| DevPod | ${{ needs.generate-matrices.outputs.devpod-count }} | ${{ needs.test-devpod.outputs.passed || '?' }} | ${{ needs.test-devpod.outputs.failed || '?' }} | $DEVPOD_STATUS |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Packer results
+          if [[ "${{ needs.test-packer.result }}" != "skipped" ]]; then
+            PACKER_STATUS="${{ needs.test-packer.result == 'success' && 'pass' || 'fail' }}"
+            echo "| Packer | ${{ needs.generate-matrices.outputs.packer-count }} | ${{ needs.test-packer.outputs.passed || '?' }} | ${{ needs.test-packer.outputs.failed || '?' }} | $PACKER_STATUS |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Extensions Tested" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '${{ needs.resolve-selection.outputs.extension_names }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

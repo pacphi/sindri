@@ -1,6 +1,6 @@
-# Packer VM Image Test Workflow
-# This workflow tests Sindri VM images using InSpec compliance profiles
-name: Test Sindri VM Images
+# Packer VM Image Test Workflow (v3)
+# This workflow tests Sindri v3 VM images using InSpec compliance profiles
+name: "v3: Test Sindri VM Images"
 
 on:
   workflow_dispatch:

@@ -102,7 +102,7 @@ This document describes the comprehensive container image lifecycle management s
   - generate-sbom job (Syft)
   - Enhanced release assets
 
-- **test-provider.yml** - Updated with:
+- **v2-test-provider.yml** - Updated with:
   - use-registry input parameter
   - GHCR pull support
   - Backward compatible artifact support

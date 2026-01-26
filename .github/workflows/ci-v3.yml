@@ -1,4 +1,4 @@
-name: CI v3
+name: "v3: CI"
 
 # v3 Rust CI Pipeline
 # Triggers on changes to v3 directory and related configurations
@@ -9,15 +9,17 @@ on:
     paths:
       - 'v3/**'
       - '.github/workflows/ci-v3.yml'
+      - '.github/workflows/v3-*.yml'
       - '.github/actions/v3/**'
-      - '.github/actions/shared/**'
+      - '.github/scripts/v3/**'
   pull_request:
     branches: [main, develop, feature/v3]
     paths:
       - 'v3/**'
       - '.github/workflows/ci-v3.yml'
+      - '.github/workflows/v3-*.yml'
       - '.github/actions/v3/**'
-      - '.github/actions/shared/**'
+      - '.github/scripts/v3/**'
   workflow_dispatch:
     inputs:
       test-extensions:
