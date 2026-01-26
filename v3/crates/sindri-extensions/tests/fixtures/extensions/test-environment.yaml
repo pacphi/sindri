@@ -1,0 +1,22 @@
+metadata:
+  name: test-environment
+  version: 1.0.0
+  description: Test extension for environment variable processing
+  categories: [test]
+
+install:
+  method: script
+  script:
+    command: "echo 'Test install'"
+
+configure:
+  environment:
+    - key: TEST_VAR_SESSION
+      value: session_value
+      scope: session
+    - key: TEST_VAR_BASHRC
+      value: bashrc_value
+      scope: bashrc
+    - key: TEST_VAR_PROFILE
+      value: profile_value
+      scope: profile

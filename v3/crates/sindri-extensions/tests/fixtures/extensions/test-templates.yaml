@@ -1,0 +1,25 @@
+metadata:
+  name: test-templates
+  version: 1.0.0
+  description: Test extension for template processing
+  categories: [test]
+
+install:
+  method: script
+  script:
+    command: "echo 'Test install'"
+
+configure:
+  templates:
+    - source: simple.txt
+      destination: ~/test-output/simple.txt
+      mode: overwrite
+    - source: append-test.txt
+      destination: ~/test-output/append.txt
+      mode: append
+    - source: skip-test.txt
+      destination: ~/test-output/skip.txt
+      mode: skip-if-exists
+    - source: merge-test.yaml
+      destination: ~/test-output/merge.yaml
+      mode: merge

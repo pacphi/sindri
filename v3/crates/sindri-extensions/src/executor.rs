@@ -3,6 +3,7 @@
 //! This module orchestrates extension installation by interpreting YAML declarations
 //! and executing the appropriate installation method (mise, apt, binary, npm, script, hybrid).
 
+use crate::configure::ConfigureProcessor;
 use anyhow::{anyhow, Context, Result};
 use regex::Regex;
 use sindri_core::types::{AptInstallConfig, Extension, HookConfig, InstallMethod};
@@ -89,6 +90,11 @@ impl ExtensionExecutor {
                             .await?;
                     }
                 }
+            }
+
+            // Execute configure phase
+            if let Some(configure) = &extension.configure {
+                self.execute_configure(name, configure).await?;
             }
         }
 
@@ -636,6 +642,41 @@ impl ExtensionExecutor {
             let stderr = String::from_utf8_lossy(&output.stderr);
             warn!("{} hook failed for {}: {}", phase, ext_name, stderr);
             // Don't fail the installation if hooks fail, just warn
+        }
+
+        Ok(())
+    }
+
+    /// Execute configure phase (templates and environment variables)
+    async fn execute_configure(
+        &self,
+        ext_name: &str,
+        configure: &sindri_core::types::ConfigureConfig,
+    ) -> Result<()> {
+        info!("Executing configure phase for {}", ext_name);
+
+        let ext_dir = self.extension_dir.join(ext_name);
+        let processor = ConfigureProcessor::new(
+            ext_dir,
+            self.workspace_dir.clone(),
+            self.home_dir.clone(),
+        );
+
+        let result = processor
+            .execute(ext_name, configure)
+            .await
+            .context(format!("Configure phase failed for {}", ext_name))?;
+
+        info!(
+            "Configure completed for {}: {} templates, {} env vars",
+            ext_name, result.templates_processed, result.environment_vars_set
+        );
+
+        if !result.backups_created.is_empty() {
+            debug!(
+                "Created {} backup(s) during configure",
+                result.backups_created.len()
+            );
         }
 
         Ok(())

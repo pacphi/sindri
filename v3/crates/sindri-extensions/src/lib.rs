@@ -8,8 +8,10 @@
 //! - Bill of Materials (BOM) generation
 //! - GitHub-based extension distribution
 //! - Profile-based batch installation
+//! - Configure processing (templates and environment variables)
 
 pub mod bom;
+pub mod configure;
 pub mod dependency;
 pub mod distribution;
 pub mod executor;
@@ -20,6 +22,7 @@ pub mod types;
 pub mod validator;
 
 pub use bom::BomGenerator;
+pub use configure::ConfigureProcessor;
 pub use dependency::DependencyResolver;
 pub use distribution::{
     CompatibilityMatrix, ExtensionDistributor, ExtensionManifest, ManifestEntry,
