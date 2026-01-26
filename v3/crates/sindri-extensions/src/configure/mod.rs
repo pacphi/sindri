@@ -26,6 +26,7 @@ pub struct ConfigureResult {
 /// Main orchestrator for configure processing
 pub struct ConfigureProcessor {
     extension_dir: PathBuf,
+    #[allow(dead_code)] // Reserved for future use in rollback transactions
     workspace_dir: PathBuf,
     home_dir: PathBuf,
 }
@@ -96,10 +97,8 @@ impl ConfigureProcessor {
         extension_name: &str,
         templates: &[sindri_core::types::TemplateConfig],
     ) -> Result<Vec<TemplateResult>> {
-        let template_processor = TemplateProcessor::new(
-            self.extension_dir.clone(),
-            self.home_dir.clone(),
-        );
+        let template_processor =
+            TemplateProcessor::new(self.extension_dir.clone(), self.home_dir.clone());
 
         let mut results = Vec::new();
         for template in templates {
@@ -130,9 +129,7 @@ impl ConfigureProcessor {
             let result = env_processor
                 .set_variable(env_var)
                 .await
-                .with_context(|| {
-                    format!("Failed to set environment variable: {}", env_var.key)
-                })?;
+                .with_context(|| format!("Failed to set environment variable: {}", env_var.key))?;
             results.push(result);
         }
 

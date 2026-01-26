@@ -22,7 +22,10 @@ impl PathResolver {
     pub async fn resolve_source(&self, extension_name: &str, source: &str) -> Result<PathBuf> {
         // Check for path traversal in the input before any processing
         if source.contains("..") {
-            bail!("Source path contains parent directory (..) components: {}", source);
+            bail!(
+                "Source path contains parent directory (..) components: {}",
+                source
+            );
         }
 
         // Expand variables in the source path
@@ -30,7 +33,10 @@ impl PathResolver {
 
         // Check again after expansion
         if expanded.contains("..") {
-            bail!("Source path contains parent directory (..) components: {}", expanded);
+            bail!(
+                "Source path contains parent directory (..) components: {}",
+                expanded
+            );
         }
 
         // Resolve relative to extension directory
@@ -46,7 +52,9 @@ impl PathResolver {
     pub async fn resolve_destination(&self, destination: &str) -> Result<PathBuf> {
         // Handle tilde expansion first (before shellexpand)
         let path_to_expand = if destination.starts_with('~') {
-            let without_tilde = destination.strip_prefix("~/").unwrap_or(destination.strip_prefix('~').unwrap_or(destination));
+            let without_tilde = destination
+                .strip_prefix("~/")
+                .unwrap_or(destination.strip_prefix('~').unwrap_or(destination));
             format!("{}/{}", self.home_dir.display(), without_tilde)
         } else {
             destination.to_string()
@@ -91,22 +99,36 @@ impl PathResolver {
         // Do this before attempting canonicalization since the file might not exist yet
         let path_str = path.to_string_lossy();
         if path_str.contains("..") {
-            bail!("Source path contains parent directory (..) components: {:?}", path);
+            bail!(
+                "Source path contains parent directory (..) components: {:?}",
+                path
+            );
         }
 
         // Check if path components contain parent directory references
-        if path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
-            bail!("Source path contains parent directory (..) components: {:?}", path);
+        if path
+            .components()
+            .any(|c| matches!(c, std::path::Component::ParentDir))
+        {
+            bail!(
+                "Source path contains parent directory (..) components: {:?}",
+                path
+            );
         }
 
         // Only canonicalize if the path exists
         if path.exists() {
-            let canonical = path.canonicalize()
+            let canonical = path
+                .canonicalize()
                 .with_context(|| format!("Failed to canonicalize source path: {:?}", path))?;
 
             // Canonicalize extension directory for comparison
-            let canonical_ext_dir = extension_dir.canonicalize()
-                .with_context(|| format!("Failed to canonicalize extension directory: {:?}", extension_dir))?;
+            let canonical_ext_dir = extension_dir.canonicalize().with_context(|| {
+                format!(
+                    "Failed to canonicalize extension directory: {:?}",
+                    extension_dir
+                )
+            })?;
 
             // Ensure the path is within the extension directory
             if !canonical.starts_with(&canonical_ext_dir) {
@@ -135,12 +157,21 @@ impl PathResolver {
         // Check for path traversal attempts (..) in the path string
         let path_str = path.to_string_lossy();
         if path_str.contains("..") {
-            bail!("Destination path contains parent directory (..) components: {:?}", path);
+            bail!(
+                "Destination path contains parent directory (..) components: {:?}",
+                path
+            );
         }
 
         // Check if path components contain parent directory references
-        if path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
-            bail!("Destination path contains parent directory (..) components: {:?}", path);
+        if path
+            .components()
+            .any(|c| matches!(c, std::path::Component::ParentDir))
+        {
+            bail!(
+                "Destination path contains parent directory (..) components: {:?}",
+                path
+            );
         }
 
         // List of protected system paths that should not be modified
@@ -234,7 +265,10 @@ mod tests {
         let result = resolver.resolve_destination("/etc/passwd").await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("protected system path"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("protected system path"));
     }
 
     #[tokio::test]

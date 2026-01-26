@@ -48,7 +48,7 @@ impl EnvironmentProcessor {
         Ok(EnvironmentResult {
             key: var.key.clone(),
             value: var.value.clone(),
-            scope: var.scope.clone(),
+            scope: var.scope,
         })
     }
 

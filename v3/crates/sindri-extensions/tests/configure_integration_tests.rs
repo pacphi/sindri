@@ -1,7 +1,9 @@
 // Integration tests for configure processing
 
+use sindri_core::types::{
+    ConfigureConfig, EnvironmentConfig, EnvironmentScope, TemplateConfig, TemplateMode,
+};
 use sindri_extensions::ConfigureProcessor;
-use sindri_core::types::{ConfigureConfig, EnvironmentConfig, EnvironmentScope, TemplateConfig, TemplateMode};
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -34,11 +36,8 @@ async fn test_configure_processor_template_overwrite() {
         environment: vec![],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await;
     assert!(result.is_ok());
@@ -80,11 +79,8 @@ async fn test_configure_processor_template_append() {
         environment: vec![],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await.unwrap();
     assert_eq!(result.templates_processed, 1);
@@ -121,11 +117,8 @@ async fn test_configure_processor_template_skip_if_exists() {
         environment: vec![],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await.unwrap();
     assert_eq!(result.templates_processed, 1);
@@ -172,11 +165,8 @@ nested:
         environment: vec![],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await.unwrap();
     assert_eq!(result.templates_processed, 1);
@@ -213,20 +203,14 @@ async fn test_configure_processor_environment_session() {
         }],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await.unwrap();
     assert_eq!(result.environment_vars_set, 1);
 
     // Verify session variable was set
-    assert_eq!(
-        std::env::var("TEST_SESSION_VAR").unwrap(),
-        "session_value"
-    );
+    assert_eq!(std::env::var("TEST_SESSION_VAR").unwrap(), "session_value");
 }
 
 #[tokio::test]
@@ -245,11 +229,8 @@ async fn test_configure_processor_environment_bashrc() {
         }],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await.unwrap();
     assert_eq!(result.environment_vars_set, 1);
@@ -278,11 +259,8 @@ async fn test_configure_processor_environment_profile() {
         }],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await.unwrap();
     assert_eq!(result.environment_vars_set, 1);
@@ -333,11 +311,8 @@ async fn test_configure_processor_full_workflow() {
         ],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await.unwrap();
 
@@ -377,11 +352,8 @@ async fn test_configure_processor_idempotency() {
         }],
     };
 
-    let processor = ConfigureProcessor::new(
-        ext_dir.clone(),
-        temp.path().to_path_buf(),
-        home_dir.clone(),
-    );
+    let processor =
+        ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     // Run configure twice
     processor.execute("test-ext", &config).await.unwrap();

@@ -70,17 +70,12 @@ impl TemplateProcessor {
         }
 
         let backup_path = match &template.mode {
-            TemplateMode::Overwrite => {
-                self.apply_overwrite(&source, &destination).await?
-            }
-            TemplateMode::Append => {
-                self.apply_append(&source, &destination).await?
-            }
-            TemplateMode::SkipIfExists => {
-                self.apply_skip_if_exists(&source, &destination).await?
-            }
+            TemplateMode::Overwrite => self.apply_overwrite(&source, &destination).await?,
+            TemplateMode::Append => self.apply_append(&source, &destination).await?,
+            TemplateMode::SkipIfExists => self.apply_skip_if_exists(&source, &destination).await?,
             TemplateMode::Merge => {
-                self.apply_merge(&source, &destination, extension_name).await?
+                self.apply_merge(&source, &destination, extension_name)
+                    .await?
             }
         };
 
@@ -88,7 +83,7 @@ impl TemplateProcessor {
             source,
             destination,
             backup_path,
-            mode: template.mode.clone(),
+            mode: template.mode,
         })
     }
 
@@ -144,7 +139,7 @@ impl TemplateProcessor {
                 .context("Failed to read existing file")?;
 
             // Simple duplicate check: if content is already present, skip
-            if existing.contains(&content.trim()) {
+            if existing.contains(content.trim()) {
                 tracing::info!("Content already present in {:?}, skipping append", dest);
                 return Ok(backup);
             }
@@ -225,15 +220,15 @@ impl TemplateProcessor {
         let source_content = async_fs::read_to_string(source)
             .await
             .context("Failed to read source YAML")?;
-        let source_yaml: serde_yaml::Value = serde_yaml::from_str(&source_content)
-            .context("Failed to parse source YAML")?;
+        let source_yaml: serde_yaml::Value =
+            serde_yaml::from_str(&source_content).context("Failed to parse source YAML")?;
 
         let merged = if dest.exists() {
             let dest_content = async_fs::read_to_string(dest)
                 .await
                 .context("Failed to read destination YAML")?;
-            let mut dest_yaml: serde_yaml::Value = serde_yaml::from_str(&dest_content)
-                .context("Failed to parse destination YAML")?;
+            let mut dest_yaml: serde_yaml::Value =
+                serde_yaml::from_str(&dest_content).context("Failed to parse destination YAML")?;
 
             // Deep merge: source values take precedence
             merge_yaml_values(&mut dest_yaml, source_yaml);
@@ -242,8 +237,8 @@ impl TemplateProcessor {
             source_yaml
         };
 
-        let merged_content = serde_yaml::to_string(&merged)
-            .context("Failed to serialize merged YAML")?;
+        let merged_content =
+            serde_yaml::to_string(&merged).context("Failed to serialize merged YAML")?;
 
         async_fs::write(dest, merged_content)
             .await
@@ -257,15 +252,15 @@ impl TemplateProcessor {
         let source_content = async_fs::read_to_string(source)
             .await
             .context("Failed to read source JSON")?;
-        let source_json: serde_json::Value = serde_json::from_str(&source_content)
-            .context("Failed to parse source JSON")?;
+        let source_json: serde_json::Value =
+            serde_json::from_str(&source_content).context("Failed to parse source JSON")?;
 
         let merged = if dest.exists() {
             let dest_content = async_fs::read_to_string(dest)
                 .await
                 .context("Failed to read destination JSON")?;
-            let mut dest_json: serde_json::Value = serde_json::from_str(&dest_content)
-                .context("Failed to parse destination JSON")?;
+            let mut dest_json: serde_json::Value =
+                serde_json::from_str(&dest_content).context("Failed to parse destination JSON")?;
 
             // Deep merge: source values take precedence
             merge_json_values(&mut dest_json, source_json);
@@ -274,8 +269,8 @@ impl TemplateProcessor {
             source_json
         };
 
-        let merged_content = serde_json::to_string_pretty(&merged)
-            .context("Failed to serialize merged JSON")?;
+        let merged_content =
+            serde_json::to_string_pretty(&merged).context("Failed to serialize merged JSON")?;
 
         async_fs::write(dest, merged_content)
             .await
@@ -428,28 +423,41 @@ mod tests {
     #[tokio::test]
     async fn test_detect_file_type() {
         let temp = TempDir::new().unwrap();
-        let processor = TemplateProcessor::new(
-            temp.path().to_path_buf(),
-            temp.path().to_path_buf(),
-        );
+        let processor =
+            TemplateProcessor::new(temp.path().to_path_buf(), temp.path().to_path_buf());
 
-        assert_eq!(processor.detect_file_type(Path::new("config.yaml")), FileType::Yaml);
-        assert_eq!(processor.detect_file_type(Path::new("data.json")), FileType::Json);
-        assert_eq!(processor.detect_file_type(Path::new("script.sh")), FileType::Shell);
-        assert_eq!(processor.detect_file_type(Path::new(".bashrc")), FileType::Shell);
-        assert_eq!(processor.detect_file_type(Path::new("readme.txt")), FileType::Other);
+        assert_eq!(
+            processor.detect_file_type(Path::new("config.yaml")),
+            FileType::Yaml
+        );
+        assert_eq!(
+            processor.detect_file_type(Path::new("data.json")),
+            FileType::Json
+        );
+        assert_eq!(
+            processor.detect_file_type(Path::new("script.sh")),
+            FileType::Shell
+        );
+        assert_eq!(
+            processor.detect_file_type(Path::new(".bashrc")),
+            FileType::Shell
+        );
+        assert_eq!(
+            processor.detect_file_type(Path::new("readme.txt")),
+            FileType::Other
+        );
     }
 
     #[tokio::test]
     async fn test_create_backup() {
         let temp = TempDir::new().unwrap();
-        let processor = TemplateProcessor::new(
-            temp.path().to_path_buf(),
-            temp.path().to_path_buf(),
-        );
+        let processor =
+            TemplateProcessor::new(temp.path().to_path_buf(), temp.path().to_path_buf());
 
         let test_file = temp.path().join("test.txt");
-        async_fs::write(&test_file, "original content").await.unwrap();
+        async_fs::write(&test_file, "original content")
+            .await
+            .unwrap();
 
         let backup = processor.create_backup(&test_file).await.unwrap();
 
