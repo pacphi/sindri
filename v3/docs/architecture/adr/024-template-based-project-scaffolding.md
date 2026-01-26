@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-22
 **Deciders**: Core Team
-**Related**: [ADR-003: Template-Based Configuration](003-template-based-configuration.md), [ADR-008: Extension Type System YAML Deserialization](008-extension-type-system-yaml-deserialization.md), [ADR-023: Phase 7 Project Management Architecture](023-phase-7-project-management-architecture.md), [Rust Migration Plan](../../planning/active/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21)
+**Related**: [ADR-003: Template-Based Configuration](003-template-based-configuration.md), [ADR-008: Extension Type System YAML Deserialization](008-extension-type-system-yaml-deserialization.md), [ADR-023: Phase 7 Project Management Architecture](023-phase-7-project-management-architecture.md), [Rust Migration Plan](../../planning/complete/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21)
 
 ## Context
 

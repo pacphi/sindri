@@ -52,7 +52,7 @@ sindri/
 
 Extensions are YAML-defined packages that install and configure development tools.
 
-**Architecture Decision:** See [ADR-001: Extension Capabilities System](../../v2/docs/architecture/adr/001-extension-capabilities-system.md) for the design rationale behind optional capabilities (project-init, auth, hooks, mcp).
+**Architecture Decision:** See [ADR-001: Extension Capabilities System](./architecture/adr/001-extension-capabilities-system.md) for the design rationale behind optional capabilities (project-init, auth, hooks, mcp).
 
 **Extension Definition (extension.yaml):**
 

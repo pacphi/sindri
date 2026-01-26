@@ -549,9 +549,9 @@ sindri extension install <extension> --force
 ## References
 
 - ADR 032: Extension Configure Processing
-- [Condition types](../../v3/crates/sindri-core/src/types/extension_types.rs)
-- [Condition evaluator](../../v3/crates/sindri-extensions/src/configure/conditions.rs)
-- [Integration tests](../../v3/crates/sindri-extensions/tests/configure_integration_tests.rs)
+- [Condition types](../../../crates/sindri-core/src/types/extension_types.rs)
+- [Condition evaluator](../../../crates/sindri-extensions/src/configure/conditions.rs)
+- [Integration tests](../../../crates/sindri-extensions/tests/configure_integration_tests.rs)
 
 ## Related ADRs
 

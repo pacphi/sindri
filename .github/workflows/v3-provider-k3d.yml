@@ -305,9 +305,9 @@ jobs:
 
               OVERALL=$(echo "$RESULT" | jq -r '.overall')
               if [[ "$OVERALL" == "passed" ]]; then
-                ((PASSED++))
+                PASSED=$((PASSED + 1))
               else
-                ((FAILED++))
+                FAILED=$((FAILED + 1))
               fi
             fi
           done

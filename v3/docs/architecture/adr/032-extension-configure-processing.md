@@ -320,10 +320,9 @@ Example path resolutions:
 
 ## References
 
-- [v2 executor implementation](../../v2/cli/extension-manager-modules/executor.sh:653-712)
-- [ConfigureConfig type definition](../../v3/crates/sindri-core/src/types/extension_types.rs)
-- [Technical implementation plan](../plans/configure-processing-implementation-plan.md)
-- [Extension.yaml schema documentation](../../v3/extensions/README.md)
+- [v2 executor implementation](../../../../v2/cli/extension-manager-modules/executor.sh)
+- [ConfigureConfig type definition](../../../crates/sindri-core/src/types/extension_types.rs)
+- [Extension.yaml schema documentation](../../extensions/README.md)
 
 ## Related ADRs
 

@@ -3,9 +3,6 @@
 # Manages k3d cluster lifecycle with local registry for fast pod pulls
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-
 # Defaults
 DEFAULT_CLUSTER_NAME="sindri-test"
 DEFAULT_REGISTRY_NAME="sindri-registry"

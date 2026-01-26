@@ -138,7 +138,7 @@ This directory contains Architecture Decision Records documenting key architectu
 
 ## Related Documentation
 
-- [Rust Migration Plan](../../planning/active/rust-cli-migration-v3.md)
+- [Rust Migration Plan](../../planning/complete/rust-cli-migration-v3.md)
 
 ## Contributing
 

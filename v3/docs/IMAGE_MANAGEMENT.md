@@ -620,4 +620,4 @@ Use Dependabot or Renovate to update version constraints:
 
 ## Related Documentation
 
-- [Planning Documentation](planning/active/container-image-lifecycle-management.md) - Architecture and design
+- [Planning Documentation](planning/complete/container-image-lifecycle-management.md) - Architecture and design

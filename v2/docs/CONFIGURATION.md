@@ -742,7 +742,7 @@ v2/docker/lib/schemas/sindri.schema.json
 
 ## Related Documentation
 
-- [Quickstart](../../v2/docs/QUICKSTART.md)
+- [Quickstart](./QUICKSTART.md)
 - [Extension Catalog](EXTENSIONS.md)
 - [Docker Deployment](providers/DOCKER.md)
 - [Fly.io Deployment](providers/FLY.md)

@@ -164,7 +164,7 @@ Create pull request on GitHub with:
    extension-manager install myext
    ```
 
-See: [Extension Authoring Guide](EXTENSION_AUTHORING.md)
+See: [Extension Authoring Guide](../v2/docs/EXTENSION_AUTHORING.md)
 
 ## Testing Guidelines
 
@@ -387,11 +387,11 @@ When linking between documentation files:
 ```markdown
 <!-- Good - relative path -->
 
-See [Extension Authoring](./EXTENSION_AUTHORING.md)
+See [My Doc](./MY_DOC.md)
 
 <!-- Bad - absolute path -->
 
-See [Extension Authoring](/v2/docs/EXTENSION_AUTHORING.md)
+See [My Doc](/path/to/MY_DOC.md)
 ```
 
 **Always verify links exist:**
@@ -421,13 +421,13 @@ grep -r "EXTENSIONS.md" docs/ v2/docs/ v3/docs/
 When linking from V2 docs to V3 docs (or vice versa), use explicit version paths:
 
 ```markdown
-<!-- From v2/docs/EXTENSIONS.md -->
+<!-- From v2/docs/SOME_DOC.md linking to v3 -->
 
-For V3 extensions, see [V3 Extension Guide](../../v3/docs/EXTENSIONS.md)
+For V3 docs, see [V3 Doc](../../v3/docs/SOME_DOC.md)
 
-<!-- From v3/docs/EXTENSIONS.md -->
+<!-- From v3/docs/SOME_DOC.md linking to v2 -->
 
-For V2 extensions, see [V2 Extension Guide](../../v2/docs/EXTENSIONS.md)
+For V2 docs, see [V2 Doc](../../v2/docs/SOME_DOC.md)
 ```
 
 ### Writing Documentation
