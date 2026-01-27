@@ -39,6 +39,8 @@ This directory contains Architecture Decision Records documenting key architectu
 | [031](031-packer-vm-provisioning-architecture.md)        | Packer VM Provisioning Architecture        | -     | Accepted |
 | [032](032-extension-configure-processing.md)             | Extension Configure Processing             | 4     | Accepted |
 | [033](033-environment-based-template-selection.md)       | Environment-Based Template Selection       | 4     | Accepted |
+| [034](034-image-handling-consistency-framework.md)       | Image Handling Consistency Framework       | -     | Proposed |
+| [035](035-dockerfile-path-standardization.md)            | Dockerfile Path Standardization            | -     | Proposed |
 
 ## By Phase
 
