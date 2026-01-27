@@ -29,7 +29,7 @@
 # Build Arguments
 # ------------------------------------------------------------------------------
 ARG UBUNTU_VERSION=24.04
-ARG RUST_VERSION=1.75
+ARG RUST_VERSION=1.92
 ARG SINDRI_VERSION=3.0.0
 ARG SINDRI_REPO=https://github.com/pacphi/sindri
 ARG BUILD_FROM_SOURCE=false
