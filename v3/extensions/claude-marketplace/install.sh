@@ -9,12 +9,8 @@ source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 
 print_status "Installing Claude marketplace configuration..."
 
-# Ensure config directories exist (configure system will copy templates)
+# Ensure Claude config directory exists (configure system will merge JSON templates)
 CLAUDE_CONFIG_DIR="$HOME/.claude"
-WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
-MARKETPLACES_CONFIG_DIR="${WORKSPACE}/config"
-
-mkdir -p "$MARKETPLACES_CONFIG_DIR"
 mkdir -p "$CLAUDE_CONFIG_DIR"
 
 print_success "Claude marketplace configuration complete"

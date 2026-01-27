@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "beads-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "steveyegge/beads"
+      }
+    },
+    "cc-blueprint-toolkit": {
+      "source": {
+        "source": "github",
+        "repo": "croffasia/cc-blueprint-toolkit"
+      }
+    },
+    "claude-equity-research-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "quant-sentiment-ai/claude-equity-research"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "beads@beads-marketplace": true,
+    "bp@cc-blueprint-toolkit": true,
+    "trading-ideas@claude-equity-research-marketplace": true
+  }
+}
