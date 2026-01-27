@@ -121,7 +121,6 @@ Note: Marketplace configuration in `~/.claude/settings.json` is preserved. To re
 
 ## Related Extensions
 
-- [claude](CLAUDE.md) - Claude Code CLI (required)
 - [openskills](OPENSKILLS.md) - Skills management
 - [nodejs](NODEJS.md) - Node.js runtime (recommended)
 

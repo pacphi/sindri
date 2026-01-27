@@ -38,7 +38,7 @@ Templates are environment-aware and merge directly into Claude settings:
 
 **Local Environment (non-CI):**
 
-- marketplaces.local.json -> ~/.claude/settings.json (8 marketplaces, merged)
+- marketplaces.local.json -> ~/.claude/settings.json (9 marketplaces, merged)
 - default-settings.json -> ~/.claude/settings.json (merged)
 
 **CI Environment (CI=true or GITHUB_ACTIONS=true):**
@@ -66,7 +66,7 @@ None - configuration-only extension.
 
 ### Full Configuration (Local)
 
-The local configuration includes 8 marketplaces:
+The local configuration includes 9 marketplaces:
 
 1. **beads-marketplace** - Natural language programming with Claude
 2. **cc-blueprint-toolkit** - Project scaffolding and architecture templates
@@ -76,6 +76,7 @@ The local configuration includes 8 marketplaces:
 6. **awesome-claude-skills** - Community-curated skills collection
 7. **claude-code-marketplace** - Prompt improver
 8. **spring-m11n-marketplace** - Spring Boot 4.x migrations
+9. **everything-claude-code** - Comprehensive Claude Code resources and examples
 
 ### CI Configuration (Minimal)
 
@@ -148,7 +149,6 @@ Note: Marketplace configuration in `~/.claude/settings.json` is preserved. To re
 
 ## Related Extensions
 
-- [claude](CLAUDE.md) - Claude Code CLI (required)
 - [openskills](OPENSKILLS.md) - Skill management CLI
 - [nodejs](NODEJS.md) - Node.js runtime (recommended for many plugins)
 

@@ -12,9 +12,11 @@ V3 extensions are YAML-driven, declarative configurations for the modern Rust-ba
 | Resource | Path |
 |----------|------|
 | **Extensions Directory** | `v3/extensions/` |
+| **Registry** | `v3/registry.yaml` |
 | **Schema** | `v3/schemas/extension.schema.json` |
 | **Compatibility Matrix** | `v3/compatibility-matrix.yaml` |
-| **Extension Docs** | `docs/extensions/{NAME}.md` |
+| **Extension Docs** | `v3/docs/extensions/{NAME}.md` |
+| **Catalog** | `v3/docs/EXTENSIONS.md` |
 
 ## V3 Categories
 
@@ -40,8 +42,9 @@ V3 extensions are YAML-driven, declarative configurations for the modern Rust-ba
 2. [ ] Create `extension.yaml` with required sections
 3. [ ] Validate: `sindri extension validate {name}`
 4. [ ] Test: `sindri extension install {name}`
-5. [ ] Create docs: `docs/extensions/{NAME}.md`
+5. [ ] Create docs: `v3/docs/extensions/{NAME}.md`
 6. [ ] Update catalog: `v3/docs/EXTENSIONS.md`
+7. [ ] Add to registry: `v3/registry.yaml` (alphabetically by category)
 
 ## Extension Directory Structure
 
@@ -501,7 +504,7 @@ capabilities:
 
 ## V3-Specific Notes
 
-1. **No Registry File**: V3 auto-discovers extensions from `v3/extensions/` directory
+1. **Extension Discovery**: V3 auto-discovers extensions from `v3/extensions/` directory, but `v3/registry.yaml` must be maintained for registry listing
 2. **Rust Validation**: V3 uses native Rust schema validation (faster, stricter)
 3. **Enhanced Binary Downloads**: Supports GitHub release asset patterns
 4. **GPU Requirements**: First-class GPU specification for AI workloads
@@ -512,9 +515,22 @@ capabilities:
 
 After creating an extension:
 
-1. **Extension Doc**: `docs/extensions/{NAME}.md`
-2. **Catalog**: `v3/docs/EXTENSIONS.md`
-3. **Test locally**: `sindri extension install {name} && sindri extension status {name}`
+1. **Extension Doc**: `v3/docs/extensions/{NAME}.md`
+2. **Catalog**: `v3/docs/EXTENSIONS.md` (add to category table + extension list)
+3. **Registry**: `v3/registry.yaml` (add alphabetically under correct category)
+4. **Test locally**: `sindri extension install {name} && sindri extension status {name}`
+
+### Registry Entry Format
+
+Add to `v3/registry.yaml` under the appropriate category section (alphabetically):
+
+```yaml
+extensions:
+  # Category Section (e.g., # MCP Servers)
+  your-extension:
+    category: "mcp"
+    description: "Brief description matching extension.yaml"
+```
 
 ## Troubleshooting
 

@@ -48,6 +48,12 @@
         "source": "github",
         "repo": "agentic-incubator/java-spring-modernization-marketplace"
       }
+    },
+    "everything-claude-code": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      }
     }
   },
   "enabledPlugins": {
@@ -87,6 +93,7 @@
     "document-skills-pptx@awesome-claude-skills": true,
     "document-skills-xlsx@awesome-claude-skills": true,
     "prompt-improver@claude-code-marketplace": true,
-    "spring-m11n@spring-m11n-marketplace": true
+    "spring-m11n@spring-m11n-marketplace": true,
+    "everything-claude-code@everything-claude-code": true
   }
 }

@@ -39,7 +39,7 @@ V3 extensions are organized into the following categories:
 | ----------------- | ------------------------------------------------ | ----- |
 | **languages**     | Programming language runtimes and toolchains     | 10    |
 | **devops**        | Infrastructure, deployment, and operations tools | 4     |
-| **claude**        | Claude Code integrations and workflow tools      | 7     |
+| **claude**        | Claude Code integrations and workflow tools      | 8     |
 | **ai-agents**     | AI agent frameworks and orchestration            | 4     |
 | **ai-dev**        | AI development tools and LLM interfaces          | 3     |
 | **mcp**           | Model Context Protocol servers                   | 5     |
@@ -89,6 +89,7 @@ V3 extensions are organized into the following categories:
 | **claudish**           | 1.0.0   | Claude Code CLI proxy for OpenRouter models via local Anthropic API proxy           | mise           |
 | **claudeup**           | 1.0.0   | TUI tool for managing Claude Code plugins, MCPs, and configuration settings         | mise           |
 | **claude-marketplace** | 2.0.0   | Claude Code plugin marketplace integration via YAML configuration                   | script         |
+| **compahook**          | 1.0.0   | Persistent memory layer for Claude Code's /compact command                          | mise           |
 
 ### AI Agents
 
@@ -114,6 +115,7 @@ V3 extensions are organized into the following categories:
 | **linear-mcp**     | 2.1.0   | Linear MCP server using Claude Code's native HTTP transport                   | script         |
 | **jira-mcp**       | 2.0.0   | Atlassian MCP server using Claude Code's native SSE transport                 | script         |
 | **context7-mcp**   | 1.0.0   | Context7 MCP server for version-specific library documentation                | script         |
+| **excalidraw-mcp** | 1.0.0   | Real-time Excalidraw diagram creation and manipulation via MCP server         | hybrid         |
 | **pal-mcp-server** | 9.8.2   | AI orchestration and multi-model collaboration MCP server with 18 tools       | script         |
 | **monitoring**     | 2.0.0   | Claude monitoring and usage tracking tools (claude-monitor, claude-usage-cli) | script         |
 
@@ -357,9 +359,9 @@ bom: # Optional: Software Bill of Materials
 
 ## Summary Statistics
 
-- **Total Extensions**: 44
+- **Total Extensions**: 46
 - **Categories**: 12
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
-- **Extensions with project-init**: 10
-- **Extensions with MCP integration**: 3
-- **Extensions with dependencies**: 20
+- **Extensions with project-init**: 11
+- **Extensions with MCP integration**: 5
+- **Extensions with dependencies**: 22

@@ -49,6 +49,9 @@ extensions:
   claudish:
     category: "claude"
     description: "Claude shell integration"
+  compahook:
+    category: "claude"
+    description: "Persistent memory layer for Claude Code's /compact command"
 
   # Cloud & Infrastructure
   cloud-tools:
@@ -65,6 +68,9 @@ extensions:
   context7-mcp:
     category: "mcp"
     description: "Context7 MCP server"
+  excalidraw-mcp:
+    category: "mcp"
+    description: "Real-time Excalidraw diagram creation via MCP"
   jira-mcp:
     category: "mcp"
     description: "Jira MCP integration"

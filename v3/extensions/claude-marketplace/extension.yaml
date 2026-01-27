@@ -2,7 +2,7 @@
 metadata:
   name: claude-marketplace
   version: 2.0.0
-  description: Claude Code plugin marketplace integration via YAML configuration
+  description: Claude Code plugin marketplace integration via JSON configuration
   category: claude
   author: Sindri Team
   dependencies: []
@@ -21,7 +21,7 @@ install:
     timeout: 300
 configure:
   templates:
-    # Local environment gets full marketplace list (8 marketplaces)
+    # Local environment gets full marketplace list (9 marketplaces)
     - source: marketplaces.local.json
       destination: ~/.claude/settings.json
       mode: merge

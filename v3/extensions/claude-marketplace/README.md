@@ -157,11 +157,12 @@ The `marketplaces.local.json` includes these pre-selected marketplaces:
 | **awesome-claude-skills**              | Community-curated collection of useful skills       | ComposioHQ/awesome-claude-skills                        |
 | **claude-code-marketplace**            | Prompt improver for enriching vague prompts         | severity1/claude-code-prompt-improver                   |
 | **spring-m11n-marketplace**            | Automated Spring Boot 4.x migrations                | agentic-incubator/java-spring-modernization-marketplace |
+| **everything-claude-code**             | Comprehensive Claude Code resources and examples    | affaan-m/everything-claude-code                         |
 
 ### File Locations
 
 - **Claude Settings**: `~/.claude/settings.json` (merged configuration)
-- **Local Template**: `marketplaces.local.json` (full list, 8 marketplaces)
+- **Local Template**: `marketplaces.local.json` (full list, 9 marketplaces)
 - **CI Template**: `marketplaces.ci.json` (CI testing, 3 marketplaces)
 - **Default Settings**: Extension includes `default-settings.json` (model/thinking config)
 
@@ -171,7 +172,7 @@ The extension automatically selects the appropriate template based on environmen
 
 **Local Environment** (default):
 
-- Uses `marketplaces.local.json` (8 marketplaces)
+- Uses `marketplaces.local.json` (9 marketplaces)
 - Full marketplace collection for development
 
 **CI Environment** (`CI=true` or `GITHUB_ACTIONS=true`):

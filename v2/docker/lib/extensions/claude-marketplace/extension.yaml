@@ -2,7 +2,7 @@
 metadata:
   name: claude-marketplace
   version: 2.0.0
-  description: Claude Code plugin marketplace integration via YAML configuration
+  description: Claude Code plugin marketplace integration via JSON configuration
   category: ai
   author: Sindri Team
   dependencies: []
