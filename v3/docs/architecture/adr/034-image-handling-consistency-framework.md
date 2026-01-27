@@ -188,15 +188,27 @@ pub fn find_dockerfile() -> Option<PathBuf> {
 
 ## Implementation
 
-### Phase 0: Remove Default Fallback ✅ **COMPLETE**
+### Phase 0: GitHub Repository Cloning for Build Context ✅ **COMPLETE**
 
-- Priority: HIGH
-- Effort: Low
+- Priority: CRITICAL
+- Effort: Medium
 - **Status**: Implemented on 2026-01-27
 - **Changes**:
-  - `sindri-core/src/config/loader.rs:288-296`: Removed default fallback, now returns `Error::invalid_config("No image configured")`
+  - `sindri-core/src/config/loader.rs:288-296`: Removed default fallback from `resolve_image()`, now returns `Error::invalid_config("No image configured")`
   - `sindri/src/commands/status.rs:43-49`: Always display `Image:` field, show "none" when unconfigured
-- **Rationale**: Supports build-on-demand providers and makes configuration explicit
+  - `sindri-providers/src/utils.rs:111-211`: **REPLACED** `find_dockerfile()` with `fetch_sindri_build_context()` that shallow clones the Sindri repository from GitHub, added `get_git_sha()` to extract commit SHA
+  - `sindri-providers/src/docker.rs:463-497`: Updated `deploy()` to clone Sindri repo, use v3 directory as build context, and tag as `sindri:{cli_version}-{gitsha}`
+  - `sindri-providers/src/docker.rs:741-753`: Updated `plan()` to expect GitHub-cloned build context and use `sindri:{cli_version}-SOURCE` placeholder tag
+  - `sindri-providers/src/templates/context.rs:164-168`: Changed template context to use `sindri:{cli_version}-SOURCE` when no image specified
+- **Rationale**:
+  - **CRITICAL**: Sindri v3 provides the containerized development environment - users should NOT provide their own Dockerfiles
+  - Shallow clones the entire Sindri repository to get v3 directory with all dependencies (Dockerfile, scripts, build context)
+  - Version-matched to CLI version (tries `v{version}` tag, falls back to `main` branch)
+  - Cached in `~/.cache/sindri/repos/sindri-{version}/v3/` for reuse
+  - **Source build tagging**: Uses semver pre-release format `sindri:{version}-{gitsha}` for full traceability
+  - Ensures consistency across all deployments
+  - Eliminates user confusion about Dockerfile ownership
+  - Maintains compatibility with pre-built image workflow
 
 ### Phase 1: image_config Support (All Providers)
 

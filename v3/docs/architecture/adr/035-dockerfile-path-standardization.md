@@ -1,9 +1,16 @@
 # ADR 035: Dockerfile Path Standardization
 
-**Status**: Proposed
+**Status**: Superseded
 **Date**: 2026-01-27
+**Superseded By**: [ADR-037: Image Naming and Tagging Strategy](037-image-naming-and-tagging-strategy.md)
 **Deciders**: Core Team
 **Related**: [ADR-034: Image Handling Consistency Framework](034-image-handling-consistency-framework.md)
+
+---
+
+**SUPERSEDED NOTICE**: This ADR has been superseded by a fundamental architectural change. Instead of searching for user-provided Dockerfiles, Sindri now clones its own GitHub repository to get the official Sindri v3 Dockerfile and build context. See [ADR-037](037-image-naming-and-tagging-strategy.md) for the new approach.
+
+---
 
 ## Context
 

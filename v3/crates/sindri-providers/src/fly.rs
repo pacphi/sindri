@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, find_dockerfile_or_error, get_command_version};
+use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -111,7 +111,7 @@ impl FlyProvider {
     }
 
     /// Generate fly.toml from config
-    fn generate_fly_toml(
+    async fn generate_fly_toml(
         &self,
         config: &SindriConfig,
         output_dir: &Path,
@@ -124,8 +124,14 @@ impl FlyProvider {
         // Set CI mode
         context.ci_mode = ci_mode;
 
-        // Find Dockerfile using standard search paths (ADR-035)
-        let dockerfile_path = find_dockerfile_or_error()?;
+        // Fetch Sindri v3 build context from GitHub (ADR-034, ADR-037)
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("sindri")
+            .join("repos");
+
+        let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
+        let dockerfile_path = v3_dir.join("Dockerfile");
         context.env_vars.insert(
             "dockerfile_path".to_string(),
             dockerfile_path.to_string_lossy().to_string(),
@@ -484,7 +490,9 @@ impl Provider for FlyProvider {
         }
 
         // Generate fly.toml
-        let fly_toml_path = self.generate_fly_toml(config, &self.output_dir, false)?;
+        let fly_toml_path = self
+            .generate_fly_toml(config, &self.output_dir, false)
+            .await?;
 
         if opts.dry_run {
             return Ok(DeployResult {

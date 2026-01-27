@@ -161,11 +161,11 @@ impl TemplateContext {
         Self {
             name: file.name.clone(),
             profile,
-            image: file
-                .deployment
-                .image
-                .clone()
-                .unwrap_or_else(|| "sindri:latest".to_string()),
+            image: file.deployment.image.clone().unwrap_or_else(|| {
+                // Default tag format: sindri:{version}-SOURCE
+                // Actual tag determined at build time with git SHA
+                format!("sindri:{}-SOURCE", env!("CARGO_PKG_VERSION"))
+            }),
             memory,
             cpus,
             volume_size,

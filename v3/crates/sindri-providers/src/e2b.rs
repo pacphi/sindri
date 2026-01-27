@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, find_dockerfile_or_error, get_command_version};
+use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -199,14 +199,20 @@ impl E2bProvider {
     }
 
     /// Generate E2B Dockerfile from Sindri Dockerfile
-    fn generate_e2b_dockerfile(
+    async fn generate_e2b_dockerfile(
         &self,
         _config: &SindriConfig,
         e2b_config: &E2bDeployConfig,
         output_dir: &Path,
     ) -> Result<PathBuf> {
-        // Find Dockerfile using standard search paths (ADR-035)
-        let dockerfile_path = find_dockerfile_or_error()?;
+        // Fetch Sindri v3 build context from GitHub (ADR-034, ADR-037)
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("sindri")
+            .join("repos");
+
+        let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
+        let dockerfile_path = v3_dir.join("Dockerfile");
 
         let dockerfile_content =
             std::fs::read_to_string(&dockerfile_path).context("Failed to read Dockerfile")?;
@@ -307,7 +313,8 @@ impl E2bProvider {
         info!("Building E2B template: {}", &e2b_config.template_alias);
 
         // Generate template files
-        self.generate_e2b_dockerfile(config, e2b_config, &self.output_dir)?;
+        self.generate_e2b_dockerfile(config, e2b_config, &self.output_dir)
+            .await?;
         self.generate_e2b_toml(config, e2b_config, &self.output_dir)?;
 
         let template_dir = self.output_dir.join("template");

@@ -460,24 +460,56 @@ impl Provider for DockerProvider {
             ));
         }
 
-        // Resolve image: use specified image OR build from Dockerfile OR use default
+        // Resolve image: use specified image OR build from Sindri repository
         let has_image_specified =
             file.deployment.image.is_some() || file.deployment.image_config.is_some();
 
         let image = if has_image_specified {
             // Use resolve_image() for full image_config support
             config.resolve_image().await?
-        } else if let Some(dockerfile) = crate::utils::find_dockerfile() {
-            // Build from Dockerfile
-            let tag = format!("{}:latest", name);
-            info!("No image specified, building from {}", dockerfile.display());
-            self.build_image(&tag, &dockerfile, &PathBuf::from("."), opts.force)
+        } else {
+            // Fetch official Sindri v3 build context from GitHub and build
+            let cache_dir = dirs::cache_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("sindri")
+                .join("repos");
+
+            let v3_dir = crate::utils::fetch_sindri_build_context(&cache_dir, None)
+                .await
+                .map_err(|e| {
+                    anyhow!(
+                        "Failed to fetch Sindri build context from GitHub: {}. \
+                        Ensure git is installed and you have network access. \
+                        You can also specify a pre-built image using 'deployment.image' \
+                        or 'deployment.image_config' in sindri.yaml",
+                        e
+                    )
+                })?;
+
+            // Get the git SHA for unique tagging
+            let repo_dir = v3_dir.parent().unwrap();
+            let git_sha = crate::utils::get_git_sha(repo_dir)
+                .await
+                .unwrap_or_else(|_| "unknown".to_string());
+
+            // Tag format: sindri:{cli_version}-{gitsha}
+            // Example: sindri:3.0.0-a1b2c3d
+            let cli_version = env!("CARGO_PKG_VERSION");
+            let tag = format!("sindri:{}-{}", cli_version, git_sha);
+
+            let dockerfile = v3_dir.join("Dockerfile");
+
+            info!(
+                "No image specified, building Sindri v3 image {} from {} (commit: {})",
+                tag,
+                v3_dir.display(),
+                git_sha
+            );
+
+            // Build from the v3 directory as context
+            self.build_image(&tag, &dockerfile, &v3_dir, opts.force)
                 .await?;
             tag
-        } else {
-            // Default fallback
-            info!("No image or Dockerfile found, using default");
-            "ghcr.io/pacphi/sindri:latest".to_string()
         };
 
         debug!("Using image: {}", image);
@@ -745,8 +777,20 @@ impl Provider for DockerProvider {
         let file = config.inner();
         let dind_mode = self.detect_dind_mode(config);
 
-        // Resolve image using the image_config priority chain
-        let image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+        // Resolve image: use specified image OR build from Sindri Dockerfile
+        let has_image_specified =
+            file.deployment.image.is_some() || file.deployment.image_config.is_some();
+
+        let image = if has_image_specified {
+            // Use resolve_image() for full image_config support
+            config.resolve_image().await.map_err(|e| anyhow!("{}", e))?
+        } else {
+            // Will build from Sindri repository fetched from GitHub
+            // Tag format: sindri:{cli_version}-{gitsha} (e.g., sindri:3.0.0-a1b2c3d)
+            // Note: We use a placeholder for planning; actual SHA determined at build time
+            let cli_version = env!("CARGO_PKG_VERSION");
+            format!("sindri:{}-SOURCE", cli_version)
+        };
 
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,

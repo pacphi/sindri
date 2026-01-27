@@ -108,35 +108,148 @@ pub fn format_bytes(bytes: u64) -> String {
     }
 }
 
-/// Find Dockerfile using standard search paths
+/// Clone Sindri repository for Docker build context
 ///
-/// Search order (per ADR-035):
-/// 1. ./Dockerfile - Project root (default)
-/// 2. ./v3/Dockerfile - Sindri v3 specific (fallback)
-/// 3. ./deploy/Dockerfile - Deploy-specific (fallback)
+/// Performs a shallow clone of the Sindri repository to get the v3 directory
+/// with all its dependencies (Dockerfile, scripts, build context, etc.).
+/// The repository version is matched to the CLI version.
+///
+/// # Arguments
+/// * `cache_dir` - Directory to cache the cloned repository
+/// * `version` - Optional version to fetch (defaults to CLI version)
 ///
 /// # Returns
-/// Path to the first Dockerfile found, or None if no Dockerfile exists
-pub fn find_dockerfile() -> Option<std::path::PathBuf> {
-    use std::path::PathBuf;
+/// Path to the v3 directory containing the Dockerfile and build context
+///
+/// # Note
+/// This function replaces the old find_dockerfile() which searched for user-provided
+/// Dockerfiles. Sindri v3 uses its own official Dockerfile from the GitHub repository,
+/// not user-provided ones. A shallow clone is necessary because v3/Dockerfile has
+/// dependencies on other files in the v3 directory.
+pub async fn fetch_sindri_build_context(
+    cache_dir: &std::path::Path,
+    version: Option<&str>,
+) -> Result<std::path::PathBuf> {
+    use tokio::fs;
+    use tracing::{debug, info, warn};
 
-    let candidates = ["./Dockerfile", "./v3/Dockerfile", "./deploy/Dockerfile"];
+    // Determine which version to fetch (default to CLI version)
+    let target_version = version.unwrap_or(env!("CARGO_PKG_VERSION"));
 
-    for candidate in &candidates {
-        let path = PathBuf::from(candidate);
-        if path.exists() {
-            return Some(path);
+    // Determine Git ref (try tag first, fallback to main)
+    let git_ref = format!("v{}", target_version);
+
+    info!(
+        "Fetching Sindri v3 build context (version: {})",
+        target_version
+    );
+
+    // Create cache directory if it doesn't exist
+    fs::create_dir_all(cache_dir).await?;
+
+    // Repository cache path
+    let repo_dir = cache_dir.join(format!("sindri-{}", target_version));
+    let v3_dir = repo_dir.join("v3");
+
+    // Return cached v3 directory if it exists and is valid
+    if v3_dir.join("Dockerfile").exists() {
+        debug!("Using cached Sindri v3 directory at {}", v3_dir.display());
+        return Ok(v3_dir);
+    }
+
+    // Remove stale clone if it exists
+    if repo_dir.exists() {
+        debug!("Removing stale clone at {}", repo_dir.display());
+        fs::remove_dir_all(&repo_dir).await?;
+    }
+
+    // Shallow clone the repository
+    info!("Cloning Sindri repository (ref: {})", git_ref);
+
+    let clone_result = tokio::process::Command::new("git")
+        .args([
+            "clone",
+            "--depth",
+            "1",
+            "--branch",
+            &git_ref,
+            "--single-branch",
+            "https://github.com/pacphi/sindri.git",
+            repo_dir.to_str().unwrap(),
+        ])
+        .output()
+        .await;
+
+    // If versioned clone fails, try main branch
+    if clone_result.is_err() || !clone_result.as_ref().unwrap().status.success() {
+        warn!("Failed to clone tag {}, trying main branch", git_ref);
+
+        // Remove failed clone attempt
+        if repo_dir.exists() {
+            fs::remove_dir_all(&repo_dir).await?;
+        }
+
+        let main_result = tokio::process::Command::new("git")
+            .args([
+                "clone",
+                "--depth",
+                "1",
+                "--branch",
+                "main",
+                "--single-branch",
+                "https://github.com/pacphi/sindri.git",
+                repo_dir.to_str().unwrap(),
+            ])
+            .output()
+            .await?;
+
+        if !main_result.status.success() {
+            let stderr = String::from_utf8_lossy(&main_result.stderr);
+            return Err(anyhow!(
+                "Failed to clone Sindri repository from GitHub: {}",
+                stderr
+            ));
         }
     }
 
-    None
+    // Verify v3 directory exists
+    if !v3_dir.join("Dockerfile").exists() {
+        return Err(anyhow!(
+            "Cloned repository doesn't contain v3/Dockerfile at expected location"
+        ));
+    }
+
+    info!("Sindri v3 build context ready at {}", v3_dir.display());
+    Ok(v3_dir)
 }
 
-/// Find Dockerfile, returning an error with searched paths if not found
-pub fn find_dockerfile_or_error() -> Result<std::path::PathBuf> {
-    find_dockerfile().ok_or_else(|| {
-        anyhow!(
-            "No Dockerfile found. Searched in:\n  - ./Dockerfile\n  - ./v3/Dockerfile\n  - ./deploy/Dockerfile"
-        )
-    })
+/// Get the Git SHA of the cloned Sindri repository
+///
+/// Returns the short SHA (7 characters) of the HEAD commit in the cloned repository.
+/// This is used to tag on-demand builds with a unique identifier.
+///
+/// # Arguments
+/// * `repo_dir` - Path to the cloned repository
+///
+/// # Returns
+/// Short Git SHA (7 characters) or error
+pub async fn get_git_sha(repo_dir: &std::path::Path) -> Result<String> {
+    let output = tokio::process::Command::new("git")
+        .args([
+            "-C",
+            repo_dir.to_str().unwrap(),
+            "rev-parse",
+            "--short=7",
+            "HEAD",
+        ])
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!("Failed to get git SHA: {}", stderr));
+    }
+
+    let sha = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(sha)
 }

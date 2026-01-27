@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, find_dockerfile_or_error, get_command_version};
+use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -314,9 +314,15 @@ impl DevPodProvider {
         config: &SindriConfig,
         provider_type: &str,
     ) -> Result<Option<String>> {
-        // Find Dockerfile using standard search paths (ADR-035)
-        let dockerfile = find_dockerfile_or_error()?;
-        let base_dir = dockerfile.parent().unwrap_or(Path::new("."));
+        // Fetch Sindri v3 build context from GitHub (ADR-034, ADR-037)
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("sindri")
+            .join("repos");
+
+        let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
+        let dockerfile = v3_dir.join("Dockerfile");
+        let base_dir = &v3_dir;
 
         // For docker provider, use Dockerfile directly
         if provider_type == "docker" {
