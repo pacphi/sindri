@@ -229,18 +229,29 @@ impl DevPodProvider {
     }
 
     /// Build Docker image
-    async fn build_image(&self, tag: &str, dockerfile: &Path, context_dir: &Path) -> Result<()> {
+    async fn build_image(
+        &self,
+        tag: &str,
+        dockerfile: &Path,
+        context_dir: &Path,
+        build_from_source: bool,
+    ) -> Result<()> {
         info!("Building Docker image: {}", tag);
 
-        let status = Command::new("docker")
-            .args([
-                "build",
-                "-t",
-                tag,
-                "-f",
-                &dockerfile.to_string_lossy(),
-                &context_dir.to_string_lossy(),
-            ])
+        let mut cmd = Command::new("docker");
+        let dockerfile_str = dockerfile.to_string_lossy();
+        let context_str = context_dir.to_string_lossy();
+
+        cmd.args(["build", "-t", tag, "-f", &dockerfile_str]);
+
+        // Pass BUILD_FROM_SOURCE=true to Dockerfile when building from cloned repo
+        if build_from_source {
+            cmd.arg("--build-arg").arg("BUILD_FROM_SOURCE=true");
+        }
+
+        cmd.arg(context_str.as_ref());
+
+        let status = cmd
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .status()
@@ -342,7 +353,8 @@ impl DevPodProvider {
             if let Some(local_cluster) = self.detect_local_k8s_cluster(k8s_context).await {
                 // Build and load into local cluster
                 let image_tag = "sindri:latest";
-                self.build_image(image_tag, &dockerfile, repo_dir).await?;
+                self.build_image(image_tag, &dockerfile, repo_dir, true)
+                    .await?;
                 self.load_image_to_local_cluster(image_tag, &local_cluster)
                     .await?;
                 return Ok(Some(image_tag.to_string()));
@@ -368,7 +380,8 @@ impl DevPodProvider {
             }
 
             // Build and push
-            self.build_image(&image_tag, &dockerfile, repo_dir).await?;
+            self.build_image(&image_tag, &dockerfile, repo_dir, true)
+                .await?;
             self.push_image(&image_tag).await?;
 
             return Ok(Some(image_tag));

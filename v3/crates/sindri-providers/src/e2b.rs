@@ -233,7 +233,12 @@ impl E2bProvider {
         let mut e2b_dockerfile = String::from("# E2B Template Dockerfile for Sindri\n");
         e2b_dockerfile
             .push_str("# Generated from Sindri Dockerfile with E2B-specific configuration\n\n");
-        e2b_dockerfile.push_str(&dockerfile_content);
+
+        // Set BUILD_FROM_SOURCE=true for on-demand builds
+        let dockerfile_with_build_arg =
+            dockerfile_content.replace("ARG BUILD_FROM_SOURCE=false", "ARG BUILD_FROM_SOURCE=true");
+
+        e2b_dockerfile.push_str(&dockerfile_with_build_arg);
 
         // Add E2B-specific environment variables
         e2b_dockerfile.push_str("\n# E2B-specific configuration\n");
