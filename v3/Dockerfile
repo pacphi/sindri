@@ -78,7 +78,7 @@ RUN if [ "$BUILD_FROM_SOURCE" = "true" ]; then \
             ca-certificates && \
         rm -rf /var/lib/apt/lists/* && \
         echo "Building sindri from source for ${TARGETARCH}..." && \
-        git clone --depth 1 --branch "v${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
+        git clone --depth 1 --branch "${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
         cd /tmp/sindri/v3 && \
         cargo build --release --bin sindri && \
         mkdir -p /output && \
