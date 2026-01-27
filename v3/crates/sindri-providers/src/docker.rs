@@ -287,47 +287,6 @@ impl DockerProvider {
         }
     }
 
-    /// Build Docker image from Dockerfile
-    ///
-    /// This method is used when no pre-built image is specified in the config.
-    /// It builds a local image using the specified Dockerfile and context directory.
-    ///
-    /// Note: For on-demand builds, the binary should be pre-built with cargo and
-    /// placed in v3/bin/ before calling this method. The Dockerfile's builder-local
-    /// stage will pick it up from there.
-    async fn build_image(
-        &self,
-        tag: &str,
-        dockerfile: &Path,
-        context_dir: &Path,
-        force: bool,
-    ) -> Result<()> {
-        let mut args = vec!["build", "-t", tag, "-f"];
-        let dockerfile_str = dockerfile.to_string_lossy();
-        args.push(&dockerfile_str);
-
-        if force {
-            args.push("--no-cache");
-        }
-
-        let context_str = context_dir.to_string_lossy();
-        args.push(&context_str);
-
-        info!("Building Docker image: {}", tag);
-        let output = Command::new("docker")
-            .args(&args)
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .status()
-            .await?;
-
-        if !output.success() {
-            return Err(anyhow!("Docker build failed"));
-        }
-
-        Ok(())
-    }
-
     /// Clean up volumes for a deployment
     async fn cleanup_volumes(&self, name: &str, project_name: &str) -> Result<()> {
         // Find volumes matching our patterns
@@ -468,17 +427,24 @@ impl Provider for DockerProvider {
         let has_image_specified =
             file.deployment.image.is_some() || file.deployment.image_config.is_some();
 
-        let image = if has_image_specified {
+        let should_build_from_source = file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        let image = if has_image_specified && !should_build_from_source {
             // Use resolve_image() for full image_config support
             config.resolve_image().await?
-        } else {
+        } else if should_build_from_source || !has_image_specified {
             // Fetch official Sindri v3 build context from GitHub and build
             let cache_dir = dirs::cache_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join("sindri")
                 .join("repos");
 
-            let v3_dir = crate::utils::fetch_sindri_build_context(&cache_dir, None)
+            let (v3_dir, git_ref_used) = crate::utils::fetch_sindri_build_context(&cache_dir, None)
                 .await
                 .map_err(|e| {
                     anyhow!(
@@ -510,14 +476,60 @@ impl Provider for DockerProvider {
                 git_sha
             );
 
-            // Build and prepare the binary (compile with cargo, copy to v3/bin/)
-            crate::utils::build_and_prepare_binary(&v3_dir).await?;
+            // Determine which git ref to use for Docker build
+            // Priority: YAML config > git ref we actually cloned from
+            let sindri_version = file
+                .deployment
+                .build_from_source
+                .as_ref()
+                .and_then(|b| b.git_ref.clone())
+                .unwrap_or_else(|| git_ref_used.clone());
 
-            // Build Docker image from the repository root as context
-            // The Dockerfile will use the binary from v3/bin/ (builder-local stage)
-            self.build_image(&tag, &dockerfile, repo_dir, opts.force)
+            // Build Docker image with BUILD_FROM_SOURCE=true
+            // The Dockerfile will clone and build inside Docker (Linux environment)
+            let mut args = vec!["build", "-t", &tag, "-f"];
+            let dockerfile_str = dockerfile.to_string_lossy();
+            args.push(&dockerfile_str);
+
+            if opts.force {
+                args.push("--no-cache");
+            }
+
+            // Pass build args for source build
+            args.push("--build-arg");
+            args.push("BUILD_FROM_SOURCE=true");
+            args.push("--build-arg");
+
+            let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
+            args.push(&sindri_version_arg);
+
+            let context_str = repo_dir.to_string_lossy();
+            args.push(&context_str);
+
+            info!(
+                "Building Docker image from source (ref: {}) - this will take 3-5 minutes...",
+                sindri_version
+            );
+            let output = Command::new("docker")
+                .args(&args)
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .status()
                 .await?;
+
+            if !output.success() {
+                return Err(anyhow!("Docker build failed"));
+            }
+
             tag
+        } else {
+            // Neither image specified nor build_from_source enabled
+            return Err(anyhow!(
+                "No image configured. Please specify:\n\
+                1. deployment.image or deployment.image_config in sindri.yaml, OR\n\
+                2. Enable deployment.buildFromSource.enabled in sindri.yaml, OR\n\
+                3. Use --from-source flag when deploying"
+            ));
         };
 
         debug!("Using image: {}", image);

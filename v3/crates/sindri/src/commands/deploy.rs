@@ -15,8 +15,29 @@ pub async fn run(args: DeployArgs) -> Result<()> {
 
     output::header(&format!("Deploying sindri to {}", config.provider()));
 
-    // Resolve image version (optional - may build from source)
-    let resolved_image = {
+    // Check if building from source (via flag or YAML config)
+    let build_from_source = args.from_source
+        || config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+    // Resolve image or prepare for source build
+    let resolved_image = if build_from_source {
+        // Building from source - skip image resolution
+        output::info("Building from Sindri repository source");
+        if let Some(build_config) = &config.inner().deployment.build_from_source {
+            if let Some(ref_name) = &build_config.git_ref {
+                output::info(&format!("Using git ref: {}", ref_name));
+            }
+        }
+        output::info("");
+        None
+    } else {
+        // Use pre-built image
         match config.resolve_image().await {
             Ok(image) => {
                 output::info(&format!("Using image: {}", image));
@@ -31,10 +52,11 @@ pub async fn run(args: DeployArgs) -> Result<()> {
                 Some(image)
             }
             Err(_) => {
-                // No image configured - will build from source
-                output::info("No image specified - will build from Sindri repository");
-                output::info("");
-                None
+                return Err(anyhow::anyhow!(
+                    "No image configured. Please specify:\n\
+                    1. deployment.image or deployment.image_config in sindri.yaml, OR\n\
+                    2. Use --from-source flag to build from Sindri repository"
+                ));
             }
         }
     };

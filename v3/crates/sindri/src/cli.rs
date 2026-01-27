@@ -180,6 +180,10 @@ pub struct DeployArgs {
     /// Skip image signature and provenance verification
     #[arg(long)]
     pub skip_image_verification: bool,
+
+    /// Build from source instead of using pre-built image (for Sindri developers)
+    #[arg(long, alias = "fs")]
+    pub from_source: bool,
 }
 
 // Connect command

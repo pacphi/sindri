@@ -188,27 +188,38 @@ pub fn find_dockerfile() -> Option<PathBuf> {
 
 ## Implementation
 
-### Phase 0: GitHub Repository Cloning for Build Context ✅ **COMPLETE**
+### Phase 0: GitHub Repository Cloning with Explicit Source Build Control ✅ **COMPLETE**
 
 - Priority: CRITICAL
 - Effort: Medium
 - **Status**: Implemented on 2026-01-27
 - **Changes**:
-  - `sindri-core/src/config/loader.rs:288-296`: Removed default fallback from `resolve_image()`, now returns `Error::invalid_config("No image configured")`
+  - `sindri-core/src/config/loader.rs:126-132`: Added `build_from_source: None` to default config initialization
+  - `sindri-core/src/types/config_types.rs`: Added `BuildFromSourceConfig` struct with `enabled` and `git_ref` fields
+  - `sindri/src/cli.rs`: Added `--from-source` flag (alias: `--fs`) to `DeployArgs`
+  - `sindri/src/commands/deploy.rs`: Check flag/config before image resolution, require explicit image or --from-source
   - `sindri/src/commands/status.rs:43-49`: Always display `Image:` field, show "none" when unconfigured
-  - `sindri-providers/src/utils.rs:111-211`: **REPLACED** `find_dockerfile()` with `fetch_sindri_build_context()` that shallow clones the Sindri repository from GitHub, added `get_git_sha()` to extract commit SHA
-  - `sindri-providers/src/docker.rs:463-497`: Updated `deploy()` to clone Sindri repo, use v3 directory as build context, and tag as `sindri:{cli_version}-{gitsha}`
-  - `sindri-providers/src/docker.rs:741-753`: Updated `plan()` to expect GitHub-cloned build context and use `sindri:{cli_version}-SOURCE` placeholder tag
-  - `sindri-providers/src/templates/context.rs:164-168`: Changed template context to use `sindri:{cli_version}-SOURCE` when no image specified
+  - `sindri-providers/src/utils.rs:111-225`: Modified `fetch_sindri_build_context()` to return tuple `(v3_dir, git_ref_used)` tracking which ref was cloned, added `get_git_sha()` for commit tracking
+  - `sindri-providers/src/docker.rs:467-571`: Check `buildFromSource.enabled`, pass `SINDRI_VERSION` build arg using config gitRef or detected ref, build inline with proper args
+  - `sindri-providers/src/devpod.rs`: Updated to handle tuple return, pass sindri_version to build_image()
+  - `sindri-providers/src/fly.rs`: Updated to handle tuple return, pass sindri_version to template
+  - `sindri-providers/src/templates/fly.toml.tera`: Use `{{ sindri_version }}` variable for build args
+  - `sindri-providers/src/e2b.rs`: Updated to handle tuple return, inject SINDRI_VERSION into generated Dockerfile
+  - `v3/docs/providers/DOCKER.md`: Added "Image Deployment Options" section explaining buildFromSource
+  - `v3/docs/providers/FLY.md`: Added "Image Deployment Options" section
+  - `v3/docs/providers/DEVPOD.md`: Added "Image Deployment Options" section
+  - `v3/docs/providers/E2B.md`: Added "Image Deployment Options" section
+  - `v3/docs/CONFIGURATION.md`: Added comprehensive `deployment.buildFromSource` documentation
 - **Rationale**:
   - **CRITICAL**: Sindri v3 provides the containerized development environment - users should NOT provide their own Dockerfiles
-  - Shallow clones the entire Sindri repository to get v3 directory with all dependencies (Dockerfile, scripts, build context)
-  - Version-matched to CLI version (tries `v{version}` tag, falls back to `main` branch)
+  - **Explicit opt-in**: Regular users must specify an image (no surprise builds). Sindri developers explicitly use `--from-source` flag or YAML config
+  - **Cross-platform compatible**: Builds inside Docker (Linux) avoiding macOS→Linux cross-compilation issues
+  - Shallow clones the Sindri repository to get v3 directory with all dependencies (Dockerfile, scripts, build context)
+  - **Flexible git ref**: Can test specific branches, tags, or commits via YAML config
   - Cached in `~/.cache/sindri/repos/sindri-{version}/v3/` for reuse
   - **Source build tagging**: Uses semver pre-release format `sindri:{version}-{gitsha}` for full traceability
   - Ensures consistency across all deployments
   - Eliminates user confusion about Dockerfile ownership
-  - Maintains compatibility with pre-built image workflow
 
 ### Phase 1: image_config Support (All Providers)
 

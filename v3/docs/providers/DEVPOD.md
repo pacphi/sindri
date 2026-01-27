@@ -166,6 +166,45 @@ providers:
       namespace: gpu-workloads
 ```
 
+### Image Deployment Options
+
+DevPod builds Docker images for deployment. You can control which source to build from:
+
+#### Option 1: Default Build (Recommended for Users)
+
+```yaml
+deployment:
+  provider: devpod
+  # Uses official Sindri Dockerfile from releases
+```
+
+#### Option 2: Build from Source (For Sindri Developers)
+
+**Using CLI flag:**
+
+```bash
+sindri deploy --from-source
+```
+
+**Using YAML configuration:**
+
+```yaml
+deployment:
+  provider: devpod
+  buildFromSource:
+    enabled: true
+    gitRef: "main"  # Optional: branch, tag, or commit SHA
+
+# Test a specific feature branch
+deployment:
+  provider: devpod
+  buildFromSource:
+    enabled: true
+    gitRef: "feature/my-feature"
+```
+
+This builds from your specified Sindri repository branch, allowing you to test code changes before pushing to production.
+
 ## Deployment Commands
 
 ```bash

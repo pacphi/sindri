@@ -119,7 +119,7 @@ pub fn format_bytes(bytes: u64) -> String {
 /// * `version` - Optional version to fetch (defaults to CLI version)
 ///
 /// # Returns
-/// Path to the v3 directory containing the Dockerfile and build context
+/// Tuple of (v3_dir path, git_ref_used) where git_ref_used is the branch/tag that was successfully cloned
 ///
 /// # Note
 /// This function replaces the old find_dockerfile() which searched for user-provided
@@ -129,7 +129,7 @@ pub fn format_bytes(bytes: u64) -> String {
 pub async fn fetch_sindri_build_context(
     cache_dir: &std::path::Path,
     version: Option<&str>,
-) -> Result<std::path::PathBuf> {
+) -> Result<(std::path::PathBuf, String)> {
     use tokio::fs;
     use tracing::{debug, info, warn};
 
@@ -154,7 +154,13 @@ pub async fn fetch_sindri_build_context(
     // Return cached v3 directory if it exists and is valid
     if v3_dir.join("Dockerfile").exists() {
         debug!("Using cached Sindri v3 directory at {}", v3_dir.display());
-        return Ok(v3_dir);
+        // Detect which ref was used (check if it's from a tag or main)
+        let git_ref_used = if git_ref != "vmain" {
+            git_ref.clone()
+        } else {
+            "main".to_string()
+        };
+        return Ok((v3_dir, git_ref_used));
     }
 
     // Remove stale clone if it exists
@@ -210,8 +216,13 @@ pub async fn fetch_sindri_build_context(
                 stderr
             ));
         }
+
+        // Successfully cloned from main branch
+        info!("Sindri v3 build context ready at {}", v3_dir.display());
+        return Ok((v3_dir, "main".to_string()));
     }
 
+    // Successfully cloned from version tag
     // Verify v3 directory exists
     if !v3_dir.join("Dockerfile").exists() {
         return Err(anyhow!(
@@ -220,7 +231,7 @@ pub async fn fetch_sindri_build_context(
     }
 
     info!("Sindri v3 build context ready at {}", v3_dir.display());
-    Ok(v3_dir)
+    Ok((v3_dir, git_ref))
 }
 
 /// Get the Git SHA of the cloned Sindri repository
@@ -280,46 +291,4 @@ pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> Resul
     }
 
     Ok(())
-}
-
-/// Build Sindri binary from cloned source and prepare for Docker build
-///
-/// Compiles the Sindri binary using cargo and copies it to v3/bin/ directory
-/// in the cloned repository. This allows the Dockerfile's builder-local stage
-/// to pick it up, avoiding the need for BUILD_FROM_SOURCE=true which would
-/// redundantly clone the repository again inside Docker.
-///
-/// # Arguments
-/// * `v3_dir` - Path to the v3 directory in the cloned repository
-///
-/// # Returns
-/// Path to the compiled binary in v3/bin/sindri
-pub async fn build_and_prepare_binary(v3_dir: &std::path::Path) -> Result<std::path::PathBuf> {
-    use tokio::process::Command;
-    use tracing::info;
-
-    info!("Compiling Sindri binary from source...");
-
-    // Build using cargo
-    let cargo_status = Command::new("cargo")
-        .args(["build", "--release", "--bin", "sindri"])
-        .current_dir(v3_dir)
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit())
-        .status()
-        .await?;
-
-    if !cargo_status.success() {
-        return Err(anyhow!("Failed to compile Sindri binary from source"));
-    }
-
-    // Copy the built binary to v3/bin/ for Dockerfile's builder-local stage
-    let built_binary = v3_dir.join("target/release/sindri");
-    let bin_dir = v3_dir.join("bin");
-    std::fs::create_dir_all(&bin_dir)?;
-    let dest_binary = bin_dir.join("sindri");
-    std::fs::copy(&built_binary, &dest_binary)?;
-
-    info!("Binary ready at {}", dest_binary.display());
-    Ok(dest_binary)
 }

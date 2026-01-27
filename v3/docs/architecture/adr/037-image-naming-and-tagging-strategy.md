@@ -161,12 +161,64 @@ deployment:
 
 ## Implementation
 
+### Explicit Source Build Control (2026-01-27)
+
+To avoid unexpected long builds for regular users and enable Sindri developers to test code changes, source builds are now **explicit opt-in**:
+
+#### CLI Flag: `--from-source`
+
+```bash
+# Regular user (uses pre-built image)
+sindri deploy
+
+# Sindri developer (builds from source)
+sindri deploy --from-source
+```
+
+#### YAML Configuration
+
+```yaml
+deployment:
+  provider: docker
+  buildFromSource:
+    enabled: true
+    gitRef: "feature/my-branch" # Optional: branch, tag, or commit SHA (defaults to cloned ref)
+```
+
+#### Resolution Logic
+
+```
+1. If image or image_config specified AND NOT buildFromSource.enabled
+   → Use pre-built image
+
+2. If --from-source flag OR buildFromSource.enabled
+   → Build from source (clones repo, builds in Docker)
+
+3. Otherwise
+   → Error: Must specify image or use --from-source
+```
+
+#### Git Ref Priority
+
+When building from source, the git ref used for cloning inside Docker follows this priority:
+
+```
+1. buildFromSource.gitRef (from YAML config)
+2. Git ref that was successfully cloned (tag or "main")
+3. Default: "main"
+```
+
 ### Changes Made (2026-01-27)
 
-- `sindri-providers/src/utils.rs:193-211`: Added `get_git_sha()` function to extract git SHA from cloned repository
-- `sindri-providers/src/docker.rs:463-497`: Changed source build tag from `{name}:latest` to `sindri:{cli_version}-{gitsha}`
-- `sindri-providers/src/docker.rs:741-753`: Updated plan() to use `sindri:{cli_version}-SOURCE` placeholder
-- `sindri-providers/src/templates/context.rs:164-168`: Changed template default to `sindri:{cli_version}-SOURCE`
+- `sindri-core/src/types/config_types.rs`: Added `BuildFromSourceConfig` struct with `enabled` and `git_ref` fields
+- `sindri/src/cli.rs`: Added `--from-source` flag (alias: `--fs`) to `DeployArgs`
+- `sindri/src/commands/deploy.rs`: Check flag/config before attempting image resolution, show clear error if neither image nor --from-source specified
+- `sindri-providers/src/utils.rs`: Modified `fetch_sindri_build_context()` to return tuple `(v3_dir, git_ref_used)` for tracking which ref was cloned
+- `sindri-providers/src/docker.rs`: Check `buildFromSource.enabled` config, pass `SINDRI_VERSION` build arg using config gitRef or detected ref
+- `sindri-providers/src/devpod.rs`: Updated to handle tuple return, pass sindri_version to build_image()
+- `sindri-providers/src/fly.rs`: Updated to handle tuple return, pass sindri_version to template
+- `sindri-providers/src/templates/fly.toml.tera`: Use `{{ sindri_version }}` variable instead of hardcoded "main"
+- `sindri-providers/src/e2b.rs`: Updated to handle tuple return, inject SINDRI_VERSION into generated Dockerfile
 
 ### Future Work
 

@@ -116,6 +116,45 @@ providers:
       environment: production
 ```
 
+### Image Deployment Options
+
+E2B always builds templates from the Sindri Dockerfile. You can control which source to build from:
+
+#### Option 1: Default Build (Recommended for Users)
+
+```yaml
+deployment:
+  provider: e2b
+  # Uses official Sindri Dockerfile from releases
+```
+
+#### Option 2: Build from Source (For Sindri Developers)
+
+**Using CLI flag:**
+
+```bash
+sindri deploy --from-source
+```
+
+**Using YAML configuration:**
+
+```yaml
+deployment:
+  provider: e2b
+  buildFromSource:
+    enabled: true
+    gitRef: "main"  # Optional: branch, tag, or commit SHA
+
+# Test a specific feature branch
+deployment:
+  provider: e2b
+  buildFromSource:
+    enabled: true
+    gitRef: "feature/my-feature"
+```
+
+This builds the E2B template from your specified Sindri repository branch, allowing you to test code changes.
+
 ## Deployment Commands
 
 ```bash

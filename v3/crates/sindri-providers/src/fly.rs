@@ -2,9 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{
-    build_and_prepare_binary, command_exists, fetch_sindri_build_context, get_command_version,
-};
+use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -132,11 +130,17 @@ impl FlyProvider {
             .join("sindri")
             .join("repos");
 
-        let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
+        let (v3_dir, git_ref_used) = fetch_sindri_build_context(&cache_dir, None).await?;
         let repo_dir = v3_dir.parent().unwrap();
 
-        // Build and prepare the binary (compile with cargo, copy to v3/bin/)
-        build_and_prepare_binary(&v3_dir).await?;
+        // Determine which git ref to use for Docker build
+        let sindri_version = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.clone())
+            .unwrap_or(git_ref_used);
 
         // For Fly, we need to generate fly.toml in the repo root and use relative paths
         // because flyctl uses the fly.toml directory as the build context
@@ -152,11 +156,14 @@ impl FlyProvider {
             .env_vars
             .insert("dockerfile_path".to_string(), dockerfile_path);
 
-        // Store repo_dir for later use
+        // Store repo_dir and sindri_version for later use
         context.env_vars.insert(
             "repo_dir".to_string(),
             repo_dir.to_string_lossy().to_string(),
         );
+        context
+            .env_vars
+            .insert("sindri_version".to_string(), sindri_version);
 
         // Add Fly.io specific context variables
         context

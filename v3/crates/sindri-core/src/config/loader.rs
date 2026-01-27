@@ -127,6 +127,7 @@ impl SindriConfig {
                 provider,
                 image: Some("ghcr.io/pacphi/sindri:latest".to_string()),
                 image_config: None,
+                build_from_source: None,
                 resources: ResourcesConfig::default(),
                 volumes: VolumesConfig::default(),
             },

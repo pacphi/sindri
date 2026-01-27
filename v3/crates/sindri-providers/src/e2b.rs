@@ -3,8 +3,7 @@
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
 use crate::utils::{
-    build_and_prepare_binary, command_exists, copy_dir_recursive, fetch_sindri_build_context,
-    get_command_version,
+    command_exists, copy_dir_recursive, fetch_sindri_build_context, get_command_version,
 };
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
@@ -214,11 +213,17 @@ impl E2bProvider {
             .join("sindri")
             .join("repos");
 
-        let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
+        let (v3_dir, git_ref_used) = fetch_sindri_build_context(&cache_dir, None).await?;
         let dockerfile_path = v3_dir.join("Dockerfile");
 
-        // Build and prepare the binary (compile with cargo, copy to v3/bin/)
-        build_and_prepare_binary(&v3_dir).await?;
+        // Determine which git ref to use for Docker build
+        let sindri_version = _config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.clone())
+            .unwrap_or(git_ref_used);
 
         let dockerfile_content =
             std::fs::read_to_string(&dockerfile_path).context("Failed to read Dockerfile")?;
@@ -238,7 +243,16 @@ impl E2bProvider {
         let mut e2b_dockerfile = String::from("# E2B Template Dockerfile for Sindri\n");
         e2b_dockerfile
             .push_str("# Generated from Sindri Dockerfile with E2B-specific configuration\n\n");
-        e2b_dockerfile.push_str(&dockerfile_content);
+
+        // Set BUILD_FROM_SOURCE and SINDRI_VERSION for source builds
+        let dockerfile_with_args = dockerfile_content
+            .replace("ARG BUILD_FROM_SOURCE=false", "ARG BUILD_FROM_SOURCE=true")
+            .replace(
+                "ARG SINDRI_VERSION=3.0.0",
+                &format!("ARG SINDRI_VERSION={}", sindri_version),
+            );
+
+        e2b_dockerfile.push_str(&dockerfile_with_args);
 
         // Add E2B-specific environment variables
         e2b_dockerfile.push_str("\n# E2B-specific configuration\n");

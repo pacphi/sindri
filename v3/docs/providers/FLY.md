@@ -148,31 +148,49 @@ Fly.io supports deploying pre-built images OR building from Dockerfile:
 - **Pre-built image**: Skips remote build, deploys in ~30 seconds
 - **Dockerfile build**: Builds server-side on Fly.io, takes 2-5 minutes
 
-### Using Pre-built Images
+### Using Pre-built Images (Recommended)
 
 ```yaml
-# Skip Fly.io build, deploy pre-built image directly
+# Use official Sindri image
 deployment:
   provider: fly
-  image: ghcr.io/myorg/app:v1.0.0
+  image: ghcr.io/pacphi/sindri:3.0.0
 
 # Or with version resolution
 deployment:
   provider: fly
   image_config:
-    registry: ghcr.io/myorg/app
-    version: "^1.0.0"
+    registry: ghcr.io/pacphi/sindri
+    version: "^3.0.0"
     verify_signature: true
 ```
 
-### Building from Dockerfile
+### Building from Source (For Sindri Developers)
+
+**Using CLI flag:**
+
+```bash
+sindri deploy --from-source
+```
+
+**Using YAML configuration:**
 
 ```yaml
-# Builds on Fly.io (slower but no registry needed)
 deployment:
   provider: fly
-  # No image specified - builds from ./Dockerfile
+  buildFromSource:
+    enabled: true
+    gitRef: "main"  # Optional: branch, tag, or commit SHA
+
+# Test a specific feature branch
+deployment:
+  provider: fly
+  buildFromSource:
+    enabled: true
+    gitRef: "feature/my-feature"
 ```
+
+This clones the Sindri repository and builds inside Docker on Fly.io's infrastructure (3-5 minute builds). The image is tagged as `sindri:{version}-{gitsha}` for traceability.
 
 ### CI/CD Workflow
 

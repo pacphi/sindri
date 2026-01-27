@@ -184,26 +184,56 @@ sindri deploy
 sindri deploy --force
 ```
 
-### Build vs Pre-built Image
+### Image Deployment Options
+
+#### Option 1: Pre-built Image (Recommended for Users)
 
 ```yaml
-# Option 1: Build from Dockerfile (default)
 deployment:
   provider: docker
-  # No image specified - builds from ./Dockerfile
+  image: ghcr.io/pacphi/sindri:3.0.0
+```
 
-# Option 2: Use pre-built image
-deployment:
-  provider: docker
-  image: ghcr.io/myorg/app:v1.0.0
+#### Option 2: Image Version Resolution
 
-# Option 3: Use image_config for version resolution
+```yaml
 deployment:
   provider: docker
   image_config:
-    registry: ghcr.io/myorg/app
-    version: "^1.0.0"
+    registry: ghcr.io/pacphi/sindri
+    version: "^3.0.0"
+    resolution_strategy: semver
 ```
+
+#### Option 3: Build from Source (For Sindri Developers)
+
+**Using CLI flag:**
+
+```bash
+sindri deploy --from-source
+```
+
+**Using YAML configuration:**
+
+```yaml
+deployment:
+  provider: docker
+  buildFromSource:
+    enabled: true
+    gitRef: "main" # Optional: branch, tag, or commit SHA (defaults to main)
+```
+
+**Custom branch/commit:**
+
+```yaml
+deployment:
+  provider: docker
+  buildFromSource:
+    enabled: true
+    gitRef: "feature/my-feature" # Test your development branch
+```
+
+This builds from the Sindri repository source, compiling inside Docker for Linux compatibility. The image is tagged as `sindri:{version}-{gitsha}` for traceability.
 
 ## Deployment Commands
 

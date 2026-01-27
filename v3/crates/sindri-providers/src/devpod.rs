@@ -2,9 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{
-    build_and_prepare_binary, command_exists, fetch_sindri_build_context, get_command_version,
-};
+use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -231,14 +229,32 @@ impl DevPodProvider {
     }
 
     /// Build Docker image
-    async fn build_image(&self, tag: &str, dockerfile: &Path, context_dir: &Path) -> Result<()> {
+    async fn build_image(
+        &self,
+        tag: &str,
+        dockerfile: &Path,
+        context_dir: &Path,
+        sindri_version: &str,
+    ) -> Result<()> {
         info!("Building Docker image: {}", tag);
 
         let dockerfile_str = dockerfile.to_string_lossy();
         let context_str = context_dir.to_string_lossy();
+        let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
 
         let status = Command::new("docker")
-            .args(["build", "-t", tag, "-f", &dockerfile_str, &context_str])
+            .args([
+                "build",
+                "-t",
+                tag,
+                "-f",
+                &dockerfile_str,
+                "--build-arg",
+                "BUILD_FROM_SOURCE=true",
+                "--build-arg",
+                &sindri_version_arg,
+                &context_str,
+            ])
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .status()
@@ -318,12 +334,18 @@ impl DevPodProvider {
             .join("sindri")
             .join("repos");
 
-        let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
+        let (v3_dir, git_ref_used) = fetch_sindri_build_context(&cache_dir, None).await?;
         let dockerfile = v3_dir.join("Dockerfile");
         let repo_dir = v3_dir.parent().unwrap(); // Repository root for build context
 
-        // Build and prepare the binary (compile with cargo, copy to v3/bin/)
-        build_and_prepare_binary(&v3_dir).await?;
+        // Store git_ref for Docker build args
+        let sindri_version = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.clone())
+            .unwrap_or(git_ref_used);
 
         // For docker provider, use Dockerfile directly
         if provider_type == "docker" {
@@ -343,7 +365,8 @@ impl DevPodProvider {
             if let Some(local_cluster) = self.detect_local_k8s_cluster(k8s_context).await {
                 // Build and load into local cluster
                 let image_tag = "sindri:latest";
-                self.build_image(image_tag, &dockerfile, repo_dir).await?;
+                self.build_image(image_tag, &dockerfile, repo_dir, &sindri_version)
+                    .await?;
                 self.load_image_to_local_cluster(image_tag, &local_cluster)
                     .await?;
                 return Ok(Some(image_tag.to_string()));
@@ -369,7 +392,8 @@ impl DevPodProvider {
             }
 
             // Build and push
-            self.build_image(&image_tag, &dockerfile, repo_dir).await?;
+            self.build_image(&image_tag, &dockerfile, repo_dir, &sindri_version)
+                .await?;
             self.push_image(&image_tag).await?;
 
             return Ok(Some(image_tag));

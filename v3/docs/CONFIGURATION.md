@@ -422,6 +422,83 @@ image_config:
   certificate_oidc_issuer: "https://token.actions.githubusercontent.com"
 ```
 
+#### deployment.buildFromSource
+
+**Type:** `object`
+**Required:** No
+**For:** Sindri developers testing code changes
+
+Configuration for building from Sindri repository source instead of using pre-built images. This is an explicit opt-in feature primarily for Sindri developers.
+
+```yaml
+deployment:
+  buildFromSource:
+    enabled: true
+    gitRef: "main" # Optional: branch, tag, or commit SHA
+```
+
+**When to use:**
+
+- ✅ **Sindri developers** testing code changes in feature branches
+- ✅ **Testing unreleased features** before they're published
+- ❌ **NOT for regular users** - use pre-built images instead
+
+**CLI usage:**
+
+```bash
+# Build from source (respects YAML config)
+sindri deploy --from-source
+
+# Or with alias
+sindri deploy --fs
+```
+
+##### buildFromSource.enabled
+
+**Type:** `boolean`
+**Default:** `false`
+
+Enable building from Sindri repository source.
+
+```yaml
+buildFromSource:
+  enabled: true
+```
+
+##### buildFromSource.gitRef
+
+**Type:** `string`
+**Default:** Detected from clone (tag or "main")
+
+Git reference to build from. Can be a branch name, tag, or commit SHA.
+
+```yaml
+buildFromSource:
+  enabled: true
+  gitRef: "feature/my-feature"  # Test your development branch
+
+# Or test a specific commit
+buildFromSource:
+  enabled: true
+  gitRef: "abc123def"  # Commit SHA
+
+# Or test a pre-release tag
+buildFromSource:
+  enabled: true
+  gitRef: "v3.1.0-beta.1"
+```
+
+**Build process:**
+
+1. Clones Sindri repository from GitHub
+2. Builds Rust binary inside Docker (Linux environment)
+3. Tags image as `sindri:{version}-{gitsha}`
+4. Takes 3-5 minutes (includes cargo compilation)
+
+**Priority:**
+
+If both `image` and `buildFromSource.enabled` are specified, `buildFromSource` takes precedence.
+
 ---
 
 ### Resources Configuration
