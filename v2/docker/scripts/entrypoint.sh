@@ -69,6 +69,7 @@ setup_home_directory() {
 
         # Create directory structure
         mkdir -p "${ALT_HOME}"/{.ssh,.config,.local/{share,state,bin},.cache}
+        mkdir -p "${ALT_HOME}/.local/share/mise"
         mkdir -p "${WORKSPACE}"/{projects,config,scripts,bin}
         mkdir -p "${WORKSPACE}/.system"/{manifest,installed,logs}
 
@@ -178,6 +179,10 @@ EOF
     else
         print_status "Home directory already initialized"
     fi
+
+    # Always ensure mise directory exists with correct ownership
+    # This handles cases where .initialized marker exists but mise directory doesn't
+    mkdir -p "${ALT_HOME}/.local/share/mise"
 
     # Always ensure correct ownership (critical for volume mounts)
     chown -R "${DEVELOPER_USER}:${DEVELOPER_USER}" "$ALT_HOME"

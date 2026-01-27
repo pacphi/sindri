@@ -120,11 +120,11 @@ configure:
   environment:
     - key: EXPRESS_SERVER_URL
       value: "http://localhost:3000"
-      scope: project
+      scope: session
       description: "URL for the Excalidraw canvas server"
     - key: ENABLE_CANVAS_SYNC
       value: "true"
-      scope: project
+      scope: session
       description: "Enable real-time canvas synchronization"
 
 bom:
