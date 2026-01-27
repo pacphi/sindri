@@ -283,6 +283,12 @@ COPY v3/docker/scripts/install-mise.sh /tmp/
 RUN bash /tmp/install-mise.sh && rm /tmp/install-mise.sh
 
 # ------------------------------------------------------------------------------
+# Install Nerd Fonts (for Starship icons/symbols)
+# ------------------------------------------------------------------------------
+COPY v3/docker/scripts/install-nerd-fonts.sh /tmp/
+RUN bash /tmp/install-nerd-fonts.sh && rm /tmp/install-nerd-fonts.sh
+
+# ------------------------------------------------------------------------------
 # Install Starship (Optional Shell Prompt)
 # ------------------------------------------------------------------------------
 COPY v3/docker/scripts/install-starship.sh /tmp/
