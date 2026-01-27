@@ -1035,7 +1035,6 @@ capabilities:
 
 10. **Claude Flow extension updates** (commit: d170c89)
     - claude-flow-v2: Fixed validation regex pattern, set ms.md command to overwrite mode
-    - claude-flow-v3: Renamed prd-to-docs → prd2build, updated validation for alpha versions
     - claude-flow-v3: Added CF_MCP_AUTOSTART=false to disable automatic MCP server startup
     - Impact: Better version detection and user control over MCP server lifecycle
 

@@ -49,7 +49,6 @@ extension-manager install claude-flow-v3
 ### Templates
 
 - claude-flow-v3.aliases - Shell aliases
-- commands/prd2build.md - PRD to documentation command
 - commands/github/check-ci.md - GitHub CI check command
 - commands/git/commit.md - Intelligent commit command
 
@@ -189,7 +188,6 @@ extension-manager remove claude-flow-v3
 **Requires confirmation.** Removes:
 
 - mise claude-flow tools
-- ~/.claude/commands/prd2build.md
 - ~/.claude/commands/github/check-ci.md
 - ~/.claude/commands/git/commit.md
 
