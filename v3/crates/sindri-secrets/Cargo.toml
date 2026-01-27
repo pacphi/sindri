@@ -19,7 +19,7 @@ reqwest = { workspace = true, features = ["json"] }
 async-trait = "0.1"
 shellexpand = "3.1"
 zeroize = { version = "1.8", features = ["derive"] }
-base64 = "0.21"
+base64 = "0.22"
 vaultrs = "0.7"
 dotenvy = "0.15"
 tempfile = "3.24"
@@ -32,7 +32,7 @@ aws-config = "1.8"
 # Encryption
 chacha20poly1305 = "0.10"
 age = "0.11"
-rand = "0.8"
+rand = "0.9"
 
 # Time handling
 chrono = { workspace = true }
