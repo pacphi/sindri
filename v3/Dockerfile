@@ -217,6 +217,7 @@ RUN apt-get update && \
         sudo \
         locales \
         tzdata \
+        fontconfig \
         # Build tools (for native extensions)
         build-essential \
         pkg-config \
