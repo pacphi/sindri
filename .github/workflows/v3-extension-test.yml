@@ -128,7 +128,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup yq
-        uses: mikefarah/yq@v4
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
       - name: Resolve Extensions
         id: resolve
