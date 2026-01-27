@@ -13,11 +13,12 @@ use sindri_core::types::{
     ActionType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan, DeploymentState,
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// E2B provider for cloud sandboxes
 pub struct E2bProvider {
@@ -200,6 +201,50 @@ impl E2bProvider {
             .map(|t| t.template_id)
     }
 
+    /// Resolve secrets and return them as env vars
+    async fn resolve_secrets(
+        &self,
+        config: &SindriConfig,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<HashMap<String, String>> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, return empty map
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(HashMap::new());
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Convert to HashMap for ENV statements
+        let mut env_vars = HashMap::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // This is an environment variable secret
+                env_vars.insert(name.clone(), value.to_string());
+            } else {
+                warn!("E2B provider currently only supports environment variable secrets. File secret '{}' will be skipped.", name);
+            }
+        }
+
+        info!("Resolved {} environment variable secrets", env_vars.len());
+        Ok(env_vars)
+    }
+
     /// Generate E2B Dockerfile from Sindri Dockerfile
     async fn generate_e2b_dockerfile(
         &self,
@@ -290,6 +335,17 @@ impl E2bProvider {
                     npm_token
                 ),
             );
+        }
+
+        // Resolve and add secrets as environment variables
+        let secret_env_vars = self.resolve_secrets(_config, None).await?;
+        if !secret_env_vars.is_empty() {
+            e2b_dockerfile.push_str("\n# Secrets from sindri.yaml\n");
+            for (key, value) in secret_env_vars {
+                // Escape quotes in values
+                let escaped_value = value.replace('\"', "\\\"");
+                e2b_dockerfile.push_str(&format!("ENV {}=\"{}\"\n", key, escaped_value));
+            }
         }
 
         e2b_dockerfile.push_str("\n# Set working directory for E2B\n");

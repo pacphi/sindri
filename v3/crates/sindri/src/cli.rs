@@ -184,6 +184,10 @@ pub struct DeployArgs {
     /// Build from source instead of using pre-built image (for Sindri developers)
     #[arg(long, alias = "fs")]
     pub from_source: bool,
+
+    /// Path to .env file (default: look for .env/.env.local in config directory)
+    #[arg(long)]
+    pub env_file: Option<Utf8PathBuf>,
 }
 
 // Connect command

@@ -11,6 +11,7 @@ use sindri_core::types::{
     ActionType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan, DeploymentState,
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -544,6 +545,98 @@ impl KubernetesProvider {
             Ok(None)
         }
     }
+
+    /// Resolve secrets and create Kubernetes Secret resources
+    async fn ensure_app_secrets(
+        &self,
+        config: &SindriConfig,
+        namespace: &str,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<Option<String>> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, skip
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(None);
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Create Kubernetes Secret manifest
+        let secret_name = format!("{}-secrets", config.name());
+
+        // Build base64-encoded secret data
+        let mut secret_data = Vec::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // Base64 encode the value
+                use base64::{engine::general_purpose, Engine};
+                let encoded = general_purpose::STANDARD.encode(value);
+                secret_data.push(format!("  {}: {}", name, encoded));
+            } else {
+                warn!("Kubernetes provider currently only supports environment variable secrets. File secret '{}' will be skipped.", name);
+            }
+        }
+
+        if secret_data.is_empty() {
+            debug!("No environment variable secrets to create");
+            return Ok(None);
+        }
+
+        // Generate Secret manifest
+        let secret_manifest = format!(
+            r#"apiVersion: v1
+kind: Secret
+metadata:
+  name: {}
+  namespace: {}
+type: Opaque
+data:
+{}
+"#,
+            secret_name,
+            namespace,
+            secret_data.join("\n")
+        );
+
+        // Write to temp file
+        let temp_file = std::env::temp_dir().join(format!("{}-secrets.yaml", config.name()));
+        std::fs::write(&temp_file, secret_manifest)?;
+
+        // Apply the secret
+        debug!("Creating Kubernetes Secret: {}", secret_name);
+        let output = Command::new("kubectl")
+            .args(["apply", "-f"])
+            .arg(&temp_file)
+            .output()
+            .await?;
+
+        // Clean up temp file
+        let _ = std::fs::remove_file(temp_file);
+
+        if output.status.success() {
+            info!("Created Kubernetes Secret: {}", secret_name);
+            Ok(Some(secret_name))
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            warn!("Failed to create Kubernetes Secret: {}", stderr);
+            Ok(None)
+        }
+    }
 }
 
 impl Default for KubernetesProvider {
@@ -734,7 +827,12 @@ impl Provider for KubernetesProvider {
             .ensure_image_pull_secret(k8s_config.namespace, registry)
             .await?;
 
-        // Note: The template will use the secret if it exists
+        // Create application secrets
+        let _app_secret = self
+            .ensure_app_secrets(config, k8s_config.namespace, None)
+            .await?;
+
+        // Note: The templates will use the secrets if they exist
         // Template context is updated in generate_manifests
 
         // Apply manifests

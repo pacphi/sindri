@@ -182,6 +182,8 @@ sindri deploy [OPTIONS]
 | `--timeout <SECONDS>`       | `-t`  | 600     | Deployment timeout in seconds                    |
 | `--skip-validation`         | -     | -       | Skip configuration validation                    |
 | `--skip-image-verification` | -     | -       | Skip image signature and provenance verification |
+| `--env-file <PATH>`         | -     | -       | Path to custom .env file for secrets             |
+| `--from-source`             | `--fs`| -       | Build from Sindri repository source              |
 
 **Examples:**
 
@@ -197,7 +199,26 @@ sindri deploy --force --timeout 900
 
 # Skip image verification for local development
 sindri deploy --skip-image-verification
+
+# Use custom .env file (relative to sindri.yaml location)
+sindri deploy --env-file config/production.env
+
+# Use custom .env file (absolute path)
+sindri deploy --env-file /secrets/.env
+
+# Combine custom config and custom env file
+sindri deploy --config /path/to/sindri.yaml --env-file /path/to/.env
 ```
+
+**Secrets Resolution:**
+
+When you deploy, Sindri performs a preflight check to detect `.env` files:
+
+- **Default behavior**: Looks for `.env` and `.env.local` in the same directory as `sindri.yaml`
+- **Custom path**: Use `--env-file` to specify a different location
+- **Priority**: shell env > `.env.local` > `.env` > `fromFile` > S3 > Vault
+
+See [SECRETS_MANAGEMENT.md](SECRETS_MANAGEMENT.md) for complete secrets documentation.
 
 **Exit Codes:**
 

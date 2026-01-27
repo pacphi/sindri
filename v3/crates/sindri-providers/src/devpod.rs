@@ -11,11 +11,12 @@ use sindri_core::types::{
     ActionType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan, DeploymentState,
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// DevPod provider for multi-cloud development environments
 pub struct DevPodProvider {
@@ -411,8 +412,52 @@ impl DevPodProvider {
         Ok(None)
     }
 
-    /// Generate devcontainer.json
-    fn generate_devcontainer(
+    /// Resolve secrets and return them as env vars
+    async fn resolve_secrets(
+        &self,
+        config: &SindriConfig,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<HashMap<String, String>> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, return empty map
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(HashMap::new());
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Convert to HashMap for containerEnv
+        let mut env_vars = HashMap::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // This is an environment variable secret
+                env_vars.insert(name.clone(), value.to_string());
+            } else {
+                warn!("DevPod provider currently only supports environment variable secrets. File secret '{}' will be skipped.", name);
+            }
+        }
+
+        info!("Resolved {} environment variable secrets", env_vars.len());
+        Ok(env_vars)
+    }
+
+    /// Generate devcontainer.json with secrets
+    async fn generate_devcontainer(
         &self,
         config: &SindriConfig,
         image_tag: Option<&str>,
@@ -426,6 +471,10 @@ impl DevPodProvider {
         if let Some(image) = image_tag {
             context.image = image.to_string();
         }
+
+        // Resolve and add secrets to containerEnv
+        let secret_env_vars = self.resolve_secrets(config, None).await?;
+        context = context.with_env_vars(secret_env_vars);
 
         let content = self.templates.render("devcontainer.json", &context)?;
         let devcontainer_path = devcontainer_dir.join("devcontainer.json");
@@ -690,8 +739,10 @@ impl Provider for DevPodProvider {
         // Prepare image (build/push/load as needed)
         let image_tag = self.prepare_image(config, &provider_type).await?;
 
-        // Generate devcontainer.json
-        let devcontainer_path = self.generate_devcontainer(config, image_tag.as_deref())?;
+        // Generate devcontainer.json with secrets
+        let devcontainer_path = self
+            .generate_devcontainer(config, image_tag.as_deref())
+            .await?;
 
         if opts.dry_run {
             return Ok(DeployResult {

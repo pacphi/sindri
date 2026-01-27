@@ -4674,6 +4674,7 @@ dependencies = [
  "sindri-update",
  "tabled",
  "tar",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -4883,6 +4884,7 @@ version = "3.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "dirs",
  "duct",
@@ -4890,6 +4892,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sindri-core",
+ "sindri-secrets",
  "tera",
  "thiserror 2.0.18",
  "tokio",

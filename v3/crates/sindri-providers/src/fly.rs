@@ -11,11 +11,12 @@ use sindri_core::types::{
     ActionType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan, DeploymentState,
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// Fly.io provider for cloud deployment
 pub struct FlyProvider {
@@ -467,6 +468,82 @@ impl FlyProvider {
         let file = config.inner();
         file.deployment.image.is_some() || file.deployment.image_config.is_some()
     }
+
+    /// Resolve secrets and set them using flyctl secrets
+    async fn resolve_and_set_secrets(
+        &self,
+        config: &SindriConfig,
+        app_name: &str,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<()> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, skip
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(());
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Prepare secrets for flyctl
+        let mut secret_pairs = Vec::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // This is an environment variable secret
+                secret_pairs.push(format!("{}={}", name, value));
+            } else {
+                warn!("Fly.io provider currently only supports environment variable secrets. File secret '{}' will be skipped.", name);
+            }
+        }
+
+        if secret_pairs.is_empty() {
+            debug!("No environment variable secrets to set");
+            return Ok(());
+        }
+
+        info!("Setting {} secrets via flyctl...", secret_pairs.len());
+
+        // Use flyctl secrets import to set all secrets at once
+        let secrets_input = secret_pairs.join("\n");
+
+        let mut child = Command::new("flyctl")
+            .args(["secrets", "import", "-a", app_name])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        // Write secrets to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            stdin.write_all(secrets_input.as_bytes()).await?;
+            stdin.flush().await?;
+        }
+
+        let output = child.wait_with_output().await?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow!("Failed to set secrets: {}", stderr));
+        }
+
+        info!("Secrets set successfully");
+        Ok(())
+    }
 }
 
 impl Default for FlyProvider {
@@ -561,6 +638,9 @@ impl Provider for FlyProvider {
         if !self.app_exists(&name).await {
             self.create_app(&name, fly_config.organization).await?;
         }
+
+        // Resolve and set secrets
+        self.resolve_and_set_secrets(config, &name, None).await?;
 
         // Create volume if it doesn't exist
         if !self.volume_exists(&name, "home_data").await {

@@ -110,6 +110,60 @@ Embedded security hardening directly into provisioning scripts:
 - **InSpec Testing**: Post-build compliance verification via GitHub Actions
 - **Sensitive Data Cleanup**: Remove SSH keys, cloud metadata, bash history before snapshotting
 
+### 6. Secrets Handling for VM Images
+
+**Critical Design Decision**: Packer handles secrets **fundamentally differently** than runtime providers.
+
+**Runtime Providers** (Docker, Fly, DevPod, E2B, Kubernetes):
+- Inject secrets into running environments (covered by ADR-015, ADR-038)
+- Secrets persist for container/app lifetime
+- Use `sindri.yaml` secrets configuration
+
+**Packer Provider** (VM Images):
+- Uses secrets **temporarily during build** only
+- Secrets **MUST be cleaned** before image distribution
+- Uses manual `environment` HashMap (NOT `sindri.yaml` secrets)
+
+**Implementation:**
+
+```yaml
+# Build-time environment variables (manual configuration)
+packer:
+  build:
+    environment:
+      NPM_TOKEN: "${env.NPM_TOKEN}"
+      GITHUB_TOKEN: "${env.GITHUB_TOKEN}"
+```
+
+**Automatic cleanup** (`cleanup.sh.tera`):
+
+```bash
+# Lines 63-64: Remove environment files
+rm -rf /home/*/.env
+rm -rf /home/*/.env.local
+
+# Lines 46-51: Remove cloud credentials
+rm -rf /home/*/.aws/credentials
+rm -rf /home/*/.docker/config.json
+rm -rf /home/*/.config/gcloud/credentials.db
+# ... and more
+```
+
+**Security Guarantees:**
+
+1. Build-time secrets (NPM_TOKEN, GITHUB_TOKEN) are used during provisioning
+2. `cleanup.sh` removes ALL sensitive files before snapshot
+3. Final VM image contains NO secrets
+4. Instances launched from image must configure runtime secrets separately
+
+**Why NOT integrate with `sindri.yaml` secrets:**
+
+❌ **Risk of secret leakage**: If users configure runtime secrets (DATABASE_PASSWORD, API keys) in `sindri.yaml`, Packer might bake them into the image
+✅ **Explicit separation**: Manual `environment` configuration makes it clear these are build-time only
+✅ **Automatic cleanup**: `cleanup.sh` is cloud-agnostic and comprehensive
+
+**Future Enhancement**: Could add `build_only: true` flag to `sindri.yaml` secrets for Packer integration, but this adds complexity and risk.
+
 ## Consequences
 
 ### Positive

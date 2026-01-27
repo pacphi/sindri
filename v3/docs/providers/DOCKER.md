@@ -302,41 +302,124 @@ networks:
 
 ## Secrets Management
 
-### Using .env File
+**Sindri automatically resolves and injects secrets from your `sindri.yaml` configuration** before deployment.
 
-Create `.env` in your project directory (do not commit to git):
+### Automatic Secrets Resolution
+
+When you run `sindri deploy`, the Docker provider:
+
+1. **Resolves secrets** from all configured sources (env, vault, s3, file)
+2. **Creates `.env.secrets`** file with resolved environment variable secrets
+3. **References the file** in generated `docker-compose.yml` via `env_file`
+4. **Cleans up** the secrets file after container starts
+
+**Preflight check output:**
+```
+Found environment files in /path/to/project: .env.local, .env
+Secrets will be resolved with priority: shell env > .env.local > .env
+```
+
+### Using .env Files
+
+Create `.env` in the same directory as `sindri.yaml` (add to `.gitignore`):
 
 ```bash
-# .env
+# .env (committed - safe defaults)
+NODE_ENV=development
+LOG_LEVEL=info
+
+# .env.local (gitignored - personal secrets)
 ANTHROPIC_API_KEY=sk-ant-...
 GITHUB_TOKEN=ghp_...
 GIT_USER_NAME=Your Name
 GIT_USER_EMAIL=you@example.com
 ```
 
-The generated `docker-compose.yml` will reference this:
+**Resolution priority**: `shell env > .env.local > .env > vault > s3`
+
+### Using Custom .env File Path
+
+```bash
+# Deploy with custom .env file
+sindri deploy --env-file config/production.env
+
+# Use absolute path
+sindri deploy --env-file /secrets/.env
+```
+
+### Configure Secrets in sindri.yaml
+
+```yaml
+secrets:
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  - name: DATABASE_PASSWORD
+    source: vault
+    vaultPath: secret/data/myapp
+    vaultKey: password
+    required: true
+
+  - name: S3_BACKUP_KEY
+    source: s3
+    s3_path: backup/api-key
+```
+
+The Docker provider will:
+- Load `ANTHROPIC_API_KEY` from `.env` or shell environment
+- Fetch `DATABASE_PASSWORD` from HashiCorp Vault
+- Pull `S3_BACKUP_KEY` from encrypted S3 storage
+- Write all secrets to `.env.secrets`
+- Mount the file into the container
+
+### Generated docker-compose.yml
 
 ```yaml
 services:
   sindri:
-    env_file: .env
+    env_file:
+      - .env.secrets  # Auto-generated, contains resolved secrets
+    # ... rest of config
 ```
 
-### Using .env.secrets
+### Supported Secret Types
 
-For additional secrets:
-
-```bash
-# .env.secrets
-NPM_TOKEN=npm_...
-PYPI_TOKEN=pypi-...
-```
+✅ **Environment variables** (`source: env`, `vault`, `s3`)
+⚠️ **File secrets** Not currently supported - use manual mounts
 
 ### Environment Variable Override
 
+You can still override secrets at deploy time:
+
 ```bash
-ANTHROPIC_API_KEY=sk-ant-... sindri deploy
+ANTHROPIC_API_KEY=sk-ant-override sindri deploy
 ```
+
+Shell environment variables have the **highest priority** in secret resolution.
+
+### Security Best Practices
+
+1. **Add to .gitignore:**
+   ```gitignore
+   .env.local
+   .env.*.local
+   .env.secrets
+   ```
+
+2. **Use .env.local for personal secrets** (never commit)
+
+3. **Mark production secrets as required:**
+   ```yaml
+   secrets:
+     - name: DATABASE_PASSWORD
+       source: vault
+       required: true
+   ```
+
+4. **Use Vault or S3 for production** (not .env files)
+
+See [SECRETS_MANAGEMENT.md](../SECRETS_MANAGEMENT.md) for complete documentation.
 
 ## Volume Management
 
