@@ -3,7 +3,8 @@
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
 use crate::utils::{
-    command_exists, copy_dir_recursive, fetch_sindri_build_context, get_command_version,
+    build_and_prepare_binary, command_exists, copy_dir_recursive, fetch_sindri_build_context,
+    get_command_version,
 };
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
@@ -216,6 +217,9 @@ impl E2bProvider {
         let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
         let dockerfile_path = v3_dir.join("Dockerfile");
 
+        // Build and prepare the binary (compile with cargo, copy to v3/bin/)
+        build_and_prepare_binary(&v3_dir).await?;
+
         let dockerfile_content =
             std::fs::read_to_string(&dockerfile_path).context("Failed to read Dockerfile")?;
 
@@ -224,6 +228,7 @@ impl E2bProvider {
 
         // Copy v3 directory to template_dir to preserve COPY statement paths
         // E2B builds from template_dir, so we need v3/docker, v3/bin, etc. to exist there
+        // The binary is already built and placed in v3/bin/ by build_and_prepare_binary()
         let dest_v3_dir = template_dir.join("v3");
         if dest_v3_dir.exists() {
             std::fs::remove_dir_all(&dest_v3_dir)?;
@@ -233,12 +238,7 @@ impl E2bProvider {
         let mut e2b_dockerfile = String::from("# E2B Template Dockerfile for Sindri\n");
         e2b_dockerfile
             .push_str("# Generated from Sindri Dockerfile with E2B-specific configuration\n\n");
-
-        // Set BUILD_FROM_SOURCE=true for on-demand builds
-        let dockerfile_with_build_arg =
-            dockerfile_content.replace("ARG BUILD_FROM_SOURCE=false", "ARG BUILD_FROM_SOURCE=true");
-
-        e2b_dockerfile.push_str(&dockerfile_with_build_arg);
+        e2b_dockerfile.push_str(&dockerfile_content);
 
         // Add E2B-specific environment variables
         e2b_dockerfile.push_str("\n# E2B-specific configuration\n");

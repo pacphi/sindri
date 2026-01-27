@@ -7,13 +7,9 @@ primary_region = "{{ fly_region }}"
 # Build configuration
 # Context must be repo root because Dockerfile COPY commands use v3/docker/* paths
 # Note: dockerfile path is relative to working directory, not context
+# Binary is pre-built with cargo and placed in v3/bin/ before Docker build
 [build]
   dockerfile = "{{ dockerfile_path }}"
-{% if repo_dir %}
-  # Build from source when using cloned Sindri repository
-  [build.args]
-    BUILD_FROM_SOURCE = "true"
-{% endif %}
 
 [env]
   DEV_USER = "developer"

@@ -2,7 +2,9 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
+use crate::utils::{
+    build_and_prepare_binary, command_exists, fetch_sindri_build_context, get_command_version,
+};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -229,29 +231,14 @@ impl DevPodProvider {
     }
 
     /// Build Docker image
-    async fn build_image(
-        &self,
-        tag: &str,
-        dockerfile: &Path,
-        context_dir: &Path,
-        build_from_source: bool,
-    ) -> Result<()> {
+    async fn build_image(&self, tag: &str, dockerfile: &Path, context_dir: &Path) -> Result<()> {
         info!("Building Docker image: {}", tag);
 
-        let mut cmd = Command::new("docker");
         let dockerfile_str = dockerfile.to_string_lossy();
         let context_str = context_dir.to_string_lossy();
 
-        cmd.args(["build", "-t", tag, "-f", &dockerfile_str]);
-
-        // Pass BUILD_FROM_SOURCE=true to Dockerfile when building from cloned repo
-        if build_from_source {
-            cmd.arg("--build-arg").arg("BUILD_FROM_SOURCE=true");
-        }
-
-        cmd.arg(context_str.as_ref());
-
-        let status = cmd
+        let status = Command::new("docker")
+            .args(["build", "-t", tag, "-f", &dockerfile_str, &context_str])
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .status()
@@ -335,6 +322,9 @@ impl DevPodProvider {
         let dockerfile = v3_dir.join("Dockerfile");
         let repo_dir = v3_dir.parent().unwrap(); // Repository root for build context
 
+        // Build and prepare the binary (compile with cargo, copy to v3/bin/)
+        build_and_prepare_binary(&v3_dir).await?;
+
         // For docker provider, use Dockerfile directly
         if provider_type == "docker" {
             return Ok(None);
@@ -353,8 +343,7 @@ impl DevPodProvider {
             if let Some(local_cluster) = self.detect_local_k8s_cluster(k8s_context).await {
                 // Build and load into local cluster
                 let image_tag = "sindri:latest";
-                self.build_image(image_tag, &dockerfile, repo_dir, true)
-                    .await?;
+                self.build_image(image_tag, &dockerfile, repo_dir).await?;
                 self.load_image_to_local_cluster(image_tag, &local_cluster)
                     .await?;
                 return Ok(Some(image_tag.to_string()));
@@ -380,8 +369,7 @@ impl DevPodProvider {
             }
 
             // Build and push
-            self.build_image(&image_tag, &dockerfile, repo_dir, true)
-                .await?;
+            self.build_image(&image_tag, &dockerfile, repo_dir).await?;
             self.push_image(&image_tag).await?;
 
             return Ok(Some(image_tag));

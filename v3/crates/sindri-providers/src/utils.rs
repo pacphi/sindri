@@ -281,3 +281,45 @@ pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> Resul
 
     Ok(())
 }
+
+/// Build Sindri binary from cloned source and prepare for Docker build
+///
+/// Compiles the Sindri binary using cargo and copies it to v3/bin/ directory
+/// in the cloned repository. This allows the Dockerfile's builder-local stage
+/// to pick it up, avoiding the need for BUILD_FROM_SOURCE=true which would
+/// redundantly clone the repository again inside Docker.
+///
+/// # Arguments
+/// * `v3_dir` - Path to the v3 directory in the cloned repository
+///
+/// # Returns
+/// Path to the compiled binary in v3/bin/sindri
+pub async fn build_and_prepare_binary(v3_dir: &std::path::Path) -> Result<std::path::PathBuf> {
+    use tokio::process::Command;
+    use tracing::info;
+
+    info!("Compiling Sindri binary from source...");
+
+    // Build using cargo
+    let cargo_status = Command::new("cargo")
+        .args(["build", "--release", "--bin", "sindri"])
+        .current_dir(v3_dir)
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .status()
+        .await?;
+
+    if !cargo_status.success() {
+        return Err(anyhow!("Failed to compile Sindri binary from source"));
+    }
+
+    // Copy the built binary to v3/bin/ for Dockerfile's builder-local stage
+    let built_binary = v3_dir.join("target/release/sindri");
+    let bin_dir = v3_dir.join("bin");
+    std::fs::create_dir_all(&bin_dir)?;
+    let dest_binary = bin_dir.join("sindri");
+    std::fs::copy(&built_binary, &dest_binary)?;
+
+    info!("Binary ready at {}", dest_binary.display());
+    Ok(dest_binary)
+}

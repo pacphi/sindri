@@ -291,13 +291,16 @@ impl DockerProvider {
     ///
     /// This method is used when no pre-built image is specified in the config.
     /// It builds a local image using the specified Dockerfile and context directory.
+    ///
+    /// Note: For on-demand builds, the binary should be pre-built with cargo and
+    /// placed in v3/bin/ before calling this method. The Dockerfile's builder-local
+    /// stage will pick it up from there.
     async fn build_image(
         &self,
         tag: &str,
         dockerfile: &Path,
         context_dir: &Path,
         force: bool,
-        build_from_source: bool,
     ) -> Result<()> {
         let mut args = vec!["build", "-t", tag, "-f"];
         let dockerfile_str = dockerfile.to_string_lossy();
@@ -305,12 +308,6 @@ impl DockerProvider {
 
         if force {
             args.push("--no-cache");
-        }
-
-        // Pass BUILD_FROM_SOURCE=true to Dockerfile when building from cloned repo
-        if build_from_source {
-            args.push("--build-arg");
-            args.push("BUILD_FROM_SOURCE=true");
         }
 
         let context_str = context_dir.to_string_lossy();
@@ -513,9 +510,12 @@ impl Provider for DockerProvider {
                 git_sha
             );
 
-            // Build from the repository root as context (Dockerfile COPY paths are relative to repo root)
-            // Pass build_from_source=true to enable Rust source compilation in Dockerfile
-            self.build_image(&tag, &dockerfile, repo_dir, opts.force, true)
+            // Build and prepare the binary (compile with cargo, copy to v3/bin/)
+            crate::utils::build_and_prepare_binary(&v3_dir).await?;
+
+            // Build Docker image from the repository root as context
+            // The Dockerfile will use the binary from v3/bin/ (builder-local stage)
+            self.build_image(&tag, &dockerfile, repo_dir, opts.force)
                 .await?;
             tag
         };

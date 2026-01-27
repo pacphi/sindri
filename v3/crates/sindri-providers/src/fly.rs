@@ -2,7 +2,9 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
+use crate::utils::{
+    build_and_prepare_binary, command_exists, fetch_sindri_build_context, get_command_version,
+};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -132,6 +134,9 @@ impl FlyProvider {
 
         let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
         let repo_dir = v3_dir.parent().unwrap();
+
+        // Build and prepare the binary (compile with cargo, copy to v3/bin/)
+        build_and_prepare_binary(&v3_dir).await?;
 
         // For Fly, we need to generate fly.toml in the repo root and use relative paths
         // because flyctl uses the fly.toml directory as the build context
