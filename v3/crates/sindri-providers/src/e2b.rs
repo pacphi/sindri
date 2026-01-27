@@ -2,7 +2,9 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
+use crate::utils::{
+    command_exists, copy_dir_recursive, fetch_sindri_build_context, get_command_version,
+};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -219,6 +221,14 @@ impl E2bProvider {
 
         let template_dir = output_dir.join("template");
         std::fs::create_dir_all(&template_dir)?;
+
+        // Copy v3 directory to template_dir to preserve COPY statement paths
+        // E2B builds from template_dir, so we need v3/docker, v3/bin, etc. to exist there
+        let dest_v3_dir = template_dir.join("v3");
+        if dest_v3_dir.exists() {
+            std::fs::remove_dir_all(&dest_v3_dir)?;
+        }
+        copy_dir_recursive(&v3_dir, &dest_v3_dir)?;
 
         let mut e2b_dockerfile = String::from("# E2B Template Dockerfile for Sindri\n");
         e2b_dockerfile

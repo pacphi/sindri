@@ -253,3 +253,31 @@ pub async fn get_git_sha(repo_dir: &std::path::Path) -> Result<String> {
     let sha = String::from_utf8_lossy(&output.stdout).trim().to_string();
     Ok(sha)
 }
+
+/// Recursively copy a directory and its contents
+///
+/// Used by E2B provider to copy the v3 directory into the template build context.
+///
+/// # Arguments
+/// * `src` - Source directory
+/// * `dst` - Destination directory
+pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> Result<()> {
+    use std::fs;
+
+    fs::create_dir_all(dst)?;
+
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+
+        if file_type.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+
+    Ok(())
+}

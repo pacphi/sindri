@@ -322,7 +322,7 @@ impl DevPodProvider {
 
         let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
         let dockerfile = v3_dir.join("Dockerfile");
-        let base_dir = &v3_dir;
+        let repo_dir = v3_dir.parent().unwrap(); // Repository root for build context
 
         // For docker provider, use Dockerfile directly
         if provider_type == "docker" {
@@ -342,7 +342,7 @@ impl DevPodProvider {
             if let Some(local_cluster) = self.detect_local_k8s_cluster(k8s_context).await {
                 // Build and load into local cluster
                 let image_tag = "sindri:latest";
-                self.build_image(image_tag, &dockerfile, base_dir).await?;
+                self.build_image(image_tag, &dockerfile, repo_dir).await?;
                 self.load_image_to_local_cluster(image_tag, &local_cluster)
                     .await?;
                 return Ok(Some(image_tag.to_string()));
@@ -368,7 +368,7 @@ impl DevPodProvider {
             }
 
             // Build and push
-            self.build_image(&image_tag, &dockerfile, base_dir).await?;
+            self.build_image(&image_tag, &dockerfile, repo_dir).await?;
             self.push_image(&image_tag).await?;
 
             return Ok(Some(image_tag));

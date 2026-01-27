@@ -131,10 +131,26 @@ impl FlyProvider {
             .join("repos");
 
         let v3_dir = fetch_sindri_build_context(&cache_dir, None).await?;
-        let dockerfile_path = v3_dir.join("Dockerfile");
+        let repo_dir = v3_dir.parent().unwrap();
+
+        // For Fly, we need to generate fly.toml in the repo root and use relative paths
+        // because flyctl uses the fly.toml directory as the build context
+        let dockerfile_path = if output_dir == Path::new(".") || output_dir.is_relative() {
+            // Generate fly.toml in repo root for correct build context
+            "v3/Dockerfile".to_string()
+        } else {
+            // Use absolute path if custom output_dir specified
+            v3_dir.join("Dockerfile").to_string_lossy().to_string()
+        };
+
+        context
+            .env_vars
+            .insert("dockerfile_path".to_string(), dockerfile_path);
+
+        // Store repo_dir for later use
         context.env_vars.insert(
-            "dockerfile_path".to_string(),
-            dockerfile_path.to_string_lossy().to_string(),
+            "repo_dir".to_string(),
+            repo_dir.to_string_lossy().to_string(),
         );
 
         // Add Fly.io specific context variables
@@ -189,8 +205,18 @@ impl FlyProvider {
         // Render template
         let fly_toml_content = self.templates.render("fly.toml", &context)?;
 
-        let fly_toml_path = output_dir.join("fly.toml");
-        std::fs::create_dir_all(output_dir)?;
+        // Determine where to save fly.toml
+        // If building from source (repo_dir in env_vars), save in repo root for correct build context
+        // Otherwise save in output_dir
+        let fly_toml_path = if let Some(repo_dir_str) = context.env_vars.get("repo_dir") {
+            let repo_path = PathBuf::from(repo_dir_str);
+            std::fs::create_dir_all(&repo_path)?;
+            repo_path.join("fly.toml")
+        } else {
+            std::fs::create_dir_all(output_dir)?;
+            output_dir.join("fly.toml")
+        };
+
         std::fs::write(&fly_toml_path, fly_toml_content)?;
 
         info!("Generated fly.toml at {}", fly_toml_path.display());

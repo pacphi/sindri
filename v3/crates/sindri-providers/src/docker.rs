@@ -506,8 +506,8 @@ impl Provider for DockerProvider {
                 git_sha
             );
 
-            // Build from the v3 directory as context
-            self.build_image(&tag, &dockerfile, &v3_dir, opts.force)
+            // Build from the repository root as context (Dockerfile COPY paths are relative to repo root)
+            self.build_image(&tag, &dockerfile, repo_dir, opts.force)
                 .await?;
             tag
         };
