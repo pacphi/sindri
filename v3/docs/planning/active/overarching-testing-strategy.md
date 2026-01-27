@@ -12,18 +12,20 @@ This document defines the comprehensive testing strategy for Sindri V3, covering
 **Version**: 1.1.0
 
 ### Implementation Progress Summary
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Extension Test Infrastructure | ✅ COMPLETE |
-| 2 | Extension Lifecycle Tests | 🟡 PARTIAL (60%) - missing removal & upgrade tests |
-| 3 | Extension CI Workflow | ✅ COMPLETE |
-| 4 | Local Extension Testing | ✅ COMPLETE |
-| 5 | Packer Test Infrastructure | ✅ COMPLETE |
-| 6 | InSpec Controls Expansion | ✅ COMPLETE (missing performance.rb) |
-| 7 | Packer CI Workflow Enhancement | ✅ COMPLETE |
-| 8 | Local Packer Testing | ✅ COMPLETE |
+
+| Phase | Description                    | Status                                             |
+| ----- | ------------------------------ | -------------------------------------------------- |
+| 1     | Extension Test Infrastructure  | ✅ COMPLETE                                        |
+| 2     | Extension Lifecycle Tests      | 🟡 PARTIAL (60%) - missing removal & upgrade tests |
+| 3     | Extension CI Workflow          | ✅ COMPLETE                                        |
+| 4     | Local Extension Testing        | ✅ COMPLETE                                        |
+| 5     | Packer Test Infrastructure     | ✅ COMPLETE                                        |
+| 6     | InSpec Controls Expansion      | ✅ COMPLETE (missing performance.rb)               |
+| 7     | Packer CI Workflow Enhancement | ✅ COMPLETE                                        |
+| 8     | Local Packer Testing           | ✅ COMPLETE                                        |
 
 **Remaining Work:**
+
 - `removal_lifecycle_tests.rs` - Extension removal tests
 - `upgrade_lifecycle_tests.rs` - Extension upgrade tests
 - `performance.rb` - InSpec performance controls
@@ -241,17 +243,17 @@ predicates = "3.1"
 
 ### Phase Timeline _(Updated 2026-01-26)_
 
-| Phase | Description                    | Duration | Status         |
-| ----- | ------------------------------ | -------- | -------------- |
-| 0     | Documentation                  | Day 1    | ✅ Complete    |
-| 1     | Extension Test Infrastructure  | Week 1-2 | ✅ Complete    |
+| Phase | Description                    | Duration | Status           |
+| ----- | ------------------------------ | -------- | ---------------- |
+| 0     | Documentation                  | Day 1    | ✅ Complete      |
+| 1     | Extension Test Infrastructure  | Week 1-2 | ✅ Complete      |
 | 2     | Extension Lifecycle Tests      | Week 2-3 | 🟡 Partial (60%) |
-| 3     | Extension CI Workflow          | Week 3-4 | ✅ Complete    |
-| 4     | Local Extension Testing        | Week 4-5 | ✅ Complete    |
-| 5     | Packer Test Infrastructure     | Week 5-6 | ✅ Complete    |
-| 6     | InSpec Controls Expansion      | Week 6-7 | ✅ Complete    |
-| 7     | Packer CI Workflow Enhancement | Week 7-8 | ✅ Complete    |
-| 8     | Local Packer Testing           | Week 8   | ✅ Complete    |
+| 3     | Extension CI Workflow          | Week 3-4 | ✅ Complete      |
+| 4     | Local Extension Testing        | Week 4-5 | ✅ Complete      |
+| 5     | Packer Test Infrastructure     | Week 5-6 | ✅ Complete      |
+| 6     | InSpec Controls Expansion      | Week 6-7 | ✅ Complete      |
+| 7     | Packer CI Workflow Enhancement | Week 7-8 | ✅ Complete      |
+| 8     | Local Packer Testing           | Week 8   | ✅ Complete      |
 
 ### Phase 1: Extension Test Infrastructure
 

@@ -147,15 +147,15 @@ The extension uses JSON templates that follow Claude Code's official settings fo
 
 The `marketplaces.local.json` includes these pre-selected marketplaces:
 
-| Marketplace                            | Description                                         | Repository                                           |
-| -------------------------------------- | --------------------------------------------------- | ---------------------------------------------------- |
-| **beads-marketplace**                  | Natural language programming with Claude            | steveyegge/beads                                     |
-| **cc-blueprint-toolkit**               | Project scaffolding and architecture templates      | croffasia/cc-blueprint-toolkit                       |
-| **claude-equity-research-marketplace** | Financial analysis and equity research tools        | quant-sentiment-ai/claude-equity-research            |
-| **n8n-mcp-skills**                     | Workflow automation integration                     | czlonkowski/n8n-skills                               |
-| **life-sciences**                      | Anthropic's official life sciences research plugins | anthropics/life-sciences                             |
-| **awesome-claude-skills**              | Community-curated collection of useful skills       | ComposioHQ/awesome-claude-skills                     |
-| **claude-code-marketplace**            | Prompt improver for enriching vague prompts         | severity1/claude-code-prompt-improver                |
+| Marketplace                            | Description                                         | Repository                                              |
+| -------------------------------------- | --------------------------------------------------- | ------------------------------------------------------- |
+| **beads-marketplace**                  | Natural language programming with Claude            | steveyegge/beads                                        |
+| **cc-blueprint-toolkit**               | Project scaffolding and architecture templates      | croffasia/cc-blueprint-toolkit                          |
+| **claude-equity-research-marketplace** | Financial analysis and equity research tools        | quant-sentiment-ai/claude-equity-research               |
+| **n8n-mcp-skills**                     | Workflow automation integration                     | czlonkowski/n8n-skills                                  |
+| **life-sciences**                      | Anthropic's official life sciences research plugins | anthropics/life-sciences                                |
+| **awesome-claude-skills**              | Community-curated collection of useful skills       | ComposioHQ/awesome-claude-skills                        |
+| **claude-code-marketplace**            | Prompt improver for enriching vague prompts         | severity1/claude-code-prompt-improver                   |
 | **spring-m11n-marketplace**            | Automated Spring Boot 4.x migrations                | agentic-incubator/java-spring-modernization-marketplace |
 
 ### File Locations
@@ -170,14 +170,17 @@ The `marketplaces.local.json` includes these pre-selected marketplaces:
 The extension automatically selects the appropriate template based on environment:
 
 **Local Environment** (default):
+
 - Uses `marketplaces.local.json` (8 marketplaces)
 - Full marketplace collection for development
 
 **CI Environment** (`CI=true` or `GITHUB_ACTIONS=true`):
+
 - Uses `marketplaces.ci.json` (3 marketplaces)
 - Minimal set for reliable CI testing
 
 CI Test Marketplaces:
+
 - beads-marketplace
 - cc-blueprint-toolkit
 - claude-equity-research-marketplace

@@ -4,13 +4,13 @@ Claude Code plugin marketplace integration via JSON configuration.
 
 ## Overview
 
-| Property         | Value                   |
-| ---------------- | ----------------------- |
-| **Category**     | ai                      |
-| **Version**      | 2.0.0                   |
-| **Installation** | script                  |
-| **Disk Space**   | 50 MB                   |
-| **Dependencies** | jq (pre-installed)      |
+| Property         | Value              |
+| ---------------- | ------------------ |
+| **Category**     | ai                 |
+| **Version**      | 2.0.0              |
+| **Installation** | script             |
+| **Disk Space**   | 50 MB              |
+| **Dependencies** | jq (pre-installed) |
 
 ## Description
 
@@ -26,10 +26,10 @@ Claude Code plugin marketplace integration via JSON configuration - provides plu
 
 ### Templates
 
-| Template                | Destination                   | Mode  | Description                       |
-| ----------------------- | ----------------------------- | ----- | --------------------------------- |
-| `default-settings.json` | `~/.claude/settings.json`     | merge | Default Claude settings           |
-| _Selected by script_    | _Via install.sh_              | merge | Marketplace config (local or CI)  |
+| Template                | Destination               | Mode  | Description                      |
+| ----------------------- | ------------------------- | ----- | -------------------------------- |
+| `default-settings.json` | `~/.claude/settings.json` | merge | Default Claude settings          |
+| _Selected by script_    | _Via install.sh_          | merge | Marketplace config (local or CI) |
 
 **Environment-Aware Selection:**
 
@@ -94,6 +94,7 @@ extension-manager install claude-marketplace
 ```
 
 The install script:
+
 1. Detects CI environment (`CI=true` or `GITHUB_ACTIONS=true`)
 2. Selects appropriate JSON template
 3. Uses `jq` to merge into `~/.claude/settings.json`
