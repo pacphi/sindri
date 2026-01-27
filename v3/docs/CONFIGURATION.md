@@ -9,6 +9,7 @@ Complete reference for `sindri.yaml` configuration file in Sindri v3.
 - [Configuration Schema](#configuration-schema)
   - [Top-Level Fields](#top-level-fields)
   - [Deployment Configuration](#deployment-configuration)
+  - [Image vs Dockerfile Priority](#image-vs-dockerfile-priority)
   - [Image Configuration](#image-configuration)
   - [Resources Configuration](#resources-configuration)
   - [Extensions Configuration](#extensions-configuration)
@@ -165,6 +166,71 @@ Docker image to deploy. **Deprecated in v3** - use `image_config` instead for st
 ```yaml
 deployment:
   image: ghcr.io/pacphi/sindri:v3.0.0
+```
+
+---
+
+## Image vs Dockerfile Priority
+
+Sindri follows this priority order for image resolution across all providers:
+
+1. **image_config.digest** - Immutable production deployments (SHA256 digest)
+2. **image_config.tag_override** - Explicit tag override (e.g., `v3.0.0-beta.1`)
+3. **image_config.version** - Semantic version constraint (e.g., `^3.0.0`)
+4. **image** - Legacy full image reference (e.g., `ghcr.io/org/app:v1.0.0`)
+5. **Local Dockerfile** - Build on-demand (provider-dependent)
+6. **Default** - `ghcr.io/pacphi/sindri:latest`
+
+### Build Support by Provider
+
+| Provider   | Builds from Dockerfile? | When?                       | Override with Image?     |
+| ---------- | ----------------------- | --------------------------- | ------------------------ |
+| Docker     | Yes                     | When no image specified     | Yes                      |
+| Fly        | Yes                     | When no image specified     | Yes                      |
+| DevPod     | Yes                     | Cloud providers (with push) | Yes                      |
+| E2B        | Yes                     | Always (template system)    | No (Dockerfile required) |
+| Kubernetes | No                      | Never - use CI/CD           | Yes (image required)     |
+
+### Examples
+
+#### Pre-built Image (All Providers)
+
+```yaml
+deployment:
+  provider: docker # or fly, devpod, kubernetes
+  image: ghcr.io/myorg/app:v1.0.0
+# Deploys this image directly, no build
+```
+
+#### Semantic Versioning (All Providers)
+
+```yaml
+deployment:
+  provider: docker # or fly, devpod, kubernetes
+  image_config:
+    registry: ghcr.io/myorg/app
+    version: "^1.0.0" # Resolves to latest 1.x.x
+    verify_signature: true
+# Resolves version, verifies signature, then deploys
+```
+
+#### Build from Dockerfile (Docker, Fly, DevPod, E2B)
+
+```yaml
+deployment:
+  provider: docker # or fly, devpod, e2b
+  # No image specified - builds from ./Dockerfile
+```
+
+#### Immutable Digest (Production)
+
+```yaml
+deployment:
+  provider: kubernetes
+  image_config:
+    registry: ghcr.io/myorg/app
+    digest: sha256:abc123...
+# Deploys exact immutable image (best for production)
 ```
 
 ---

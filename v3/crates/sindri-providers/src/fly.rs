@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, get_command_version};
+use crate::utils::{command_exists, find_dockerfile_or_error, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -123,6 +123,13 @@ impl FlyProvider {
 
         // Set CI mode
         context.ci_mode = ci_mode;
+
+        // Find Dockerfile using standard search paths (ADR-035)
+        let dockerfile_path = find_dockerfile_or_error()?;
+        context.env_vars.insert(
+            "dockerfile_path".to_string(),
+            dockerfile_path.to_string_lossy().to_string(),
+        );
 
         // Add Fly.io specific context variables
         context
@@ -359,6 +366,54 @@ impl FlyProvider {
 
         Ok(())
     }
+
+    /// Deploy using a pre-built image (skip Dockerfile build)
+    async fn flyctl_deploy_image(
+        &self,
+        image: &str,
+        fly_toml_path: &Path,
+        config: &FlyDeployConfig<'_>,
+    ) -> Result<()> {
+        info!("Deploying pre-built image to Fly.io: {}", image);
+
+        let mut args = vec![
+            "deploy",
+            "--image",
+            image,
+            "--ha=false",
+            "--wait-timeout",
+            "600",
+        ];
+
+        // Add organization if specified (and not "personal")
+        let org_string: String;
+        if config.organization != "personal" {
+            org_string = config.organization.to_string();
+            args.push("--org");
+            args.push(&org_string);
+        }
+
+        let status = Command::new("flyctl")
+            .args(&args)
+            .current_dir(fly_toml_path.parent().unwrap_or(Path::new(".")))
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()
+            .await?;
+
+        if !status.success() {
+            return Err(anyhow!("flyctl deploy with image failed"));
+        }
+
+        Ok(())
+    }
+
+    /// Check if a pre-built image should be used instead of building from Dockerfile
+    fn should_use_prebuilt_image(&self, config: &SindriConfig) -> bool {
+        let file = config.inner();
+        file.deployment.image.is_some() || file.deployment.image_config.is_some()
+    }
 }
 
 impl Default for FlyProvider {
@@ -463,8 +518,21 @@ impl Provider for FlyProvider {
             .await?;
         }
 
-        // Deploy
-        self.flyctl_deploy(&fly_toml_path, opts.force).await?;
+        // Check if we should use a pre-built image
+        if self.should_use_prebuilt_image(config) {
+            // Resolve and deploy using pre-built image
+            let image = config
+                .resolve_image()
+                .await
+                .map_err(|e| anyhow!("Failed to resolve image: {}", e))?;
+            info!("Using pre-built image: {}", image);
+            self.flyctl_deploy_image(&image, &fly_toml_path, &fly_config)
+                .await?;
+        } else {
+            // Build from Dockerfile (existing behavior)
+            info!("No image specified, building from Dockerfile");
+            self.flyctl_deploy(&fly_toml_path, opts.force).await?;
+        }
 
         let ssh_host = format!("{}.fly.dev", name);
 
@@ -542,12 +610,15 @@ impl Provider for FlyProvider {
 
         let (machine_id, state) = self.get_machine_state(&name).await?;
 
+        // Resolve image using the image_config priority chain
+        let image = config.resolve_image().await.ok();
+
         Ok(DeploymentStatus {
             name,
             provider: "fly".to_string(),
             state,
             instance_id: machine_id,
-            image: config.image().map(|s| s.to_string()),
+            image,
             addresses: vec![],
             resources: None,
             timestamps: Default::default(),
@@ -589,6 +660,9 @@ impl Provider for FlyProvider {
         let name = fly_config.name.to_string();
         info!("Planning Fly.io deployment for {}", name);
 
+        // Resolve image using the image_config priority chain
+        let image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,
             resource: "fly.toml".to_string(),
@@ -614,7 +688,7 @@ impl Provider for FlyProvider {
         actions.push(PlannedAction {
             action: ActionType::Create,
             resource: format!("machine:{}", name),
-            description: "Deploy Fly.io machine".to_string(),
+            description: format!("Deploy Fly.io machine with image {}", image),
         });
 
         let resources = vec![
@@ -653,6 +727,7 @@ impl Provider for FlyProvider {
                         "memory_mb".to_string(),
                         serde_json::json!(fly_config.memory_mb),
                     );
+                    m.insert("image".to_string(), serde_json::json!(image));
                     m
                 },
             },

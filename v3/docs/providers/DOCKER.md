@@ -156,6 +156,55 @@ sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 ```
 
+## Dockerfile Build Support
+
+The Docker provider supports building images from Dockerfile when no pre-built image is specified:
+
+- If `image` or `image_config` is specified - Uses the specified image
+- If no image specified but Dockerfile exists - Builds from Dockerfile
+- If neither exists - Uses default `ghcr.io/pacphi/sindri:latest`
+
+### Dockerfile Search Order
+
+When building, the provider searches for Dockerfile in this order:
+
+1. `./Dockerfile` (project root - default)
+2. `./v3/Dockerfile` (Sindri v3 specific - fallback)
+3. `./deploy/Dockerfile` (deploy-specific - fallback)
+
+### Force Rebuild
+
+Use `sindri deploy --force` to rebuild even if an image exists locally.
+
+```bash
+# Normal deploy (uses cached image if present)
+sindri deploy
+
+# Force rebuild from Dockerfile
+sindri deploy --force
+```
+
+### Build vs Pre-built Image
+
+```yaml
+# Option 1: Build from Dockerfile (default)
+deployment:
+  provider: docker
+  # No image specified - builds from ./Dockerfile
+
+# Option 2: Use pre-built image
+deployment:
+  provider: docker
+  image: ghcr.io/myorg/app:v1.0.0
+
+# Option 3: Use image_config for version resolution
+deployment:
+  provider: docker
+  image_config:
+    registry: ghcr.io/myorg/app
+    version: "^1.0.0"
+```
+
 ## Deployment Commands
 
 ```bash

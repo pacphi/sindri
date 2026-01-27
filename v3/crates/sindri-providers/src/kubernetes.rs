@@ -163,7 +163,13 @@ impl KubernetesProvider {
             storage_class,
             volume_size,
             gpu_enabled,
-            image: file.deployment.image.as_deref().unwrap_or("sindri:latest"),
+            // Note: image is set to a placeholder here since get_k8s_config is sync
+            // The actual resolved image should be obtained via config.resolve_image().await
+            image: file
+                .deployment
+                .image
+                .as_deref()
+                .unwrap_or("ghcr.io/pacphi/sindri:latest"),
         }
     }
 
@@ -628,6 +634,10 @@ impl Provider for KubernetesProvider {
         let name = k8s_config.name.to_string();
         info!("Deploying {} to Kubernetes", name);
 
+        // Resolve image using the image_config priority chain
+        let resolved_image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+        info!("Using resolved image: {}", resolved_image);
+
         // Check prerequisites
         let prereqs = self.check_prerequisites()?;
         if !prereqs.satisfied {
@@ -711,14 +721,14 @@ impl Provider for KubernetesProvider {
         // Load image to local cluster if needed
         if matches!(cluster_type, ClusterType::Kind | ClusterType::K3d) {
             if let Some(cluster_name) = self.get_current_cluster_name().await {
-                self.load_image_to_cluster(&cluster_type, k8s_config.image, &cluster_name)
+                self.load_image_to_cluster(&cluster_type, &resolved_image, &cluster_name)
                     .await?;
             }
         }
 
         // Create ImagePullSecret for private registries
-        // Extract registry from image
-        let registry = k8s_config.image.split('/').next().unwrap_or("ghcr.io");
+        // Extract registry from resolved image
+        let registry = resolved_image.split('/').next().unwrap_or("ghcr.io");
 
         let _image_pull_secret = self
             .ensure_image_pull_secret(k8s_config.namespace, registry)
@@ -759,8 +769,8 @@ impl Provider for KubernetesProvider {
                 )),
             }),
             messages: vec![format!(
-                "Deployment '{}' created successfully in namespace '{}'",
-                name, k8s_config.namespace
+                "Deployment '{}' created successfully in namespace '{}' with image '{}'",
+                name, k8s_config.namespace, resolved_image
             )],
             warnings: vec![],
         })
@@ -850,12 +860,15 @@ impl Provider for KubernetesProvider {
 
         details.insert("namespace".to_string(), k8s_config.namespace.to_string());
 
+        // Resolve image using the image_config priority chain
+        let image = config.resolve_image().await.ok();
+
         Ok(DeploymentStatus {
             name,
             provider: "kubernetes".to_string(),
             state,
             instance_id: pod_name,
-            image: config.image().map(|s| s.to_string()),
+            image,
             addresses: vec![],
             resources: None,
             timestamps: Default::default(),
@@ -893,6 +906,9 @@ impl Provider for KubernetesProvider {
         let name = k8s_config.name.to_string();
         info!("Planning Kubernetes deployment for {}", name);
 
+        // Resolve image using the image_config priority chain
+        let resolved_image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,
             resource: "k8s-deployment.yaml".to_string(),
@@ -918,7 +934,7 @@ impl Provider for KubernetesProvider {
             actions.push(PlannedAction {
                 action: ActionType::Create,
                 resource: format!("deployment:{}", name),
-                description: "Create Kubernetes deployment".to_string(),
+                description: format!("Create Kubernetes deployment with image {}", resolved_image),
             });
 
             actions.push(PlannedAction {
@@ -939,7 +955,7 @@ impl Provider for KubernetesProvider {
                         serde_json::json!(k8s_config.namespace),
                     );
                     m.insert("replicas".to_string(), serde_json::json!(1));
-                    m.insert("image".to_string(), serde_json::json!(k8s_config.image));
+                    m.insert("image".to_string(), serde_json::json!(resolved_image));
                     m
                 },
             },
@@ -1021,6 +1037,8 @@ struct K8sDeployConfig<'a> {
     storage_class: Option<&'a str>,
     volume_size: String,
     gpu_enabled: bool,
+    // Note: image is resolved async via config.resolve_image() rather than stored here
+    #[allow(dead_code)]
     image: &'a str,
 }
 

@@ -8,7 +8,7 @@ primary_region = "{{ fly_region }}"
 # Context must be repo root because Dockerfile COPY commands use v3/docker/* paths
 # Note: dockerfile path is relative to working directory, not context
 [build]
-  dockerfile = "v3/Dockerfile"
+  dockerfile = "{{ dockerfile_path }}"
 
 [env]
   DEV_USER = "developer"

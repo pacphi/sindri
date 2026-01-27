@@ -39,15 +39,37 @@ crates/sindri/
 
 ### 2. Provider Abstraction Layer (`sindri-providers`)
 
-Async trait-based abstraction supporting five deployment providers.
+Async trait-based abstraction supporting five deployment providers with **standardized image handling**.
 
 **Supported Providers**:
 
 - **Docker**: Local container-based development with Docker Compose v2
+  - **Image Handling**: Pre-built images OR local Dockerfile builds
 - **Fly.io**: Edge deployment with Fly Machines API
+  - **Image Handling**: Pre-built images OR server-side Dockerfile builds
 - **DevPod**: Multi-backend development (Kubernetes, AWS, Docker)
+  - **Image Handling**: Smart builds (cloud=build+push, local=dockerfile)
 - **E2B**: Ephemeral cloud sandboxes for AI agents
+  - **Image Handling**: Dockerfile-based template builds (required)
 - **Kubernetes**: Production cluster deployments
+  - **Image Handling**: Pre-built images only (no builds)
+
+**Image Resolution Priority** (all providers):
+
+1. `image_config.digest` - Immutable (production-safe)
+2. `image_config.tag_override` - Explicit tag
+3. `image_config.version` - Semantic version constraint
+4. `image` - Legacy full reference
+5. Local Dockerfile - Build on-demand (provider-dependent)
+6. Default - `ghcr.io/pacphi/sindri:latest`
+
+**Dockerfile Path Standardization**: All providers search in priority order:
+
+- `./Dockerfile` (project root - default)
+- `./v3/Dockerfile` (Sindri v3 specific - fallback)
+- `./deploy/Dockerfile` (deploy-specific - fallback)
+
+See [ADR-034](architecture/adr/034-image-handling-consistency-framework.md) and [ADR-035](architecture/adr/035-dockerfile-path-standardization.md) for details.
 
 ```rust
 #[async_trait]
@@ -60,6 +82,30 @@ pub trait Provider: Send + Sync {
     fn check_prerequisites(&self) -> Result<PrerequisiteStatus>;
 }
 ```
+
+#### Image Resolution & Verification
+
+**Image Resolution** (`sindri-core/src/config/loader.rs:185-297`):
+
+- 6-level priority chain from digest to default
+- Semantic version constraint resolution via `sindri-image` crate
+- Registry API integration for tag enumeration
+- GitHub token support for private registries
+
+**Image Verification** (`sindri-image/src/verify.rs`):
+
+- Cosign signature verification
+- SLSA provenance attestation validation
+- Certificate identity and OIDC issuer validation
+- SBOM (Software Bill of Materials) fetching
+
+**Dockerfile Discovery** (`sindri-providers/src/utils.rs`):
+
+- Standardized path search across all providers
+- Priority order: `./Dockerfile` → `./v3/Dockerfile` → `./deploy/Dockerfile`
+- Clear error messages with searched paths
+
+This architecture enables consistent image handling across all deployment providers while maintaining provider-specific optimization strategies.
 
 ### 3. Extension System (`sindri-extensions`)
 
@@ -89,14 +135,23 @@ crates/sindri-extensions/
 
 ### 4. Configuration Management (`sindri-core`)
 
-Type-safe configuration loading, validation, and schema enforcement.
+Type-safe configuration loading, validation, and schema enforcement with **structured image handling**.
 
 **Key Types**:
 
 - `SindriConfig`: Root configuration from sindri.yaml
-- `DeploymentConfig`: Provider-agnostic deployment settings
+- `DeploymentConfig`: Provider-agnostic deployment settings with `image_config` support
+- `ImageConfig`: Structured image configuration with semver resolution, verification
 - `ExtensionConfig`: Extension system configuration
 - `SecretsConfig`: Multi-source secret definitions
+
+**Image Configuration Features**:
+
+- Semantic versioning with constraint resolution (e.g., `^3.0.0`)
+- Image signature verification via cosign
+- SLSA provenance attestation verification
+- Immutable digest pinning for production
+- Pull policy control (Always, IfNotPresent, Never)
 
 **Template Engine**: Tera templates for provider-specific configuration generation.
 
@@ -137,7 +192,7 @@ Profile-based workspace backup with streaming tar.gz compression.
 
 ## Architecture Decision Records
 
-The v3 architecture is documented across 33 ADRs covering 8 development phases.
+The v3 architecture is documented across 35 ADRs covering 8 development phases.
 
 ### Phase 1: Foundation
 
@@ -145,13 +200,15 @@ The v3 architecture is documented across 33 ADRs covering 8 development phases.
 | -------------------------------------------------------------------- | ------------------------------------- | -------- |
 | [001](architecture/adr/001-rust-migration-workspace-architecture.md) | Rust Migration Workspace Architecture | Accepted |
 
-### Phase 2: Provider Framework
+### Phase 2: Provider Framework & Configuration
 
-| ADR                                                            | Title                               | Status   |
-| -------------------------------------------------------------- | ----------------------------------- | -------- |
-| [002](architecture/adr/002-provider-abstraction-layer.md)      | Provider Abstraction Layer          | Accepted |
-| [003](architecture/adr/003-template-based-configuration.md)    | Template-Based Configuration (Tera) | Accepted |
-| [004](architecture/adr/004-async-runtime-command-execution.md) | Async Runtime Command Execution     | Accepted |
+| ADR                                                                 | Title                                | Status   |
+| ------------------------------------------------------------------- | ------------------------------------ | -------- |
+| [002](architecture/adr/002-provider-abstraction-layer.md)           | Provider Abstraction Layer           | Accepted |
+| [003](architecture/adr/003-template-based-configuration.md)         | Template-Based Configuration (Tera)  | Accepted |
+| [004](architecture/adr/004-async-runtime-command-execution.md)      | Async Runtime Command Execution      | Accepted |
+| [034](architecture/adr/034-image-handling-consistency-framework.md) | Image Handling Consistency Framework | Accepted |
+| [035](architecture/adr/035-dockerfile-path-standardization.md)      | Dockerfile Path Standardization      | Accepted |
 
 ### Phase 3: Additional Providers
 
@@ -325,7 +382,7 @@ sindri-providers (implementations)
 
 **Statistics**:
 
-- **Total ADRs**: 33
+- **Total ADRs**: 35
 - **ADR Documentation**: ~15,000 lines, ~490KB
 - **Phases Covered**: 1-8 + K8s Cluster Management + Packer VM Provisioning
 - **Implementation Status**: Phases 1-8 complete

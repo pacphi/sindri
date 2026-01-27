@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, get_command_version};
+use crate::utils::{command_exists, find_dockerfile_or_error, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -314,8 +314,9 @@ impl DevPodProvider {
         config: &SindriConfig,
         provider_type: &str,
     ) -> Result<Option<String>> {
-        let base_dir = self.output_dir.parent().unwrap_or(&self.output_dir);
-        let dockerfile = base_dir.join("Dockerfile");
+        // Find Dockerfile using standard search paths (ADR-035)
+        let dockerfile = find_dockerfile_or_error()?;
+        let base_dir = dockerfile.parent().unwrap_or(Path::new("."));
 
         // For docker provider, use Dockerfile directly
         if provider_type == "docker" {

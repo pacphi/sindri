@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, get_command_version};
+use crate::utils::{command_exists, find_dockerfile_or_error, get_command_version};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -205,15 +205,8 @@ impl E2bProvider {
         e2b_config: &E2bDeployConfig,
         output_dir: &Path,
     ) -> Result<PathBuf> {
-        let base_dir = std::env::current_dir()?;
-        let dockerfile_path = base_dir.join("Dockerfile");
-
-        if !dockerfile_path.exists() {
-            return Err(anyhow!(
-                "Dockerfile not found at {}",
-                dockerfile_path.display()
-            ));
-        }
+        // Find Dockerfile using standard search paths (ADR-035)
+        let dockerfile_path = find_dockerfile_or_error()?;
 
         let dockerfile_content =
             std::fs::read_to_string(&dockerfile_path).context("Failed to read Dockerfile")?;

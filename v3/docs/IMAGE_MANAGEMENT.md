@@ -118,8 +118,8 @@ image_config:
 
 **Constraint Syntax:**
 
-- `^3.0.0` - Compatible versions (3.0.0 ≤ version < 4.0.0)
-- `~3.1.0` - Approximate versions (3.1.0 ≤ version < 3.2.0)
+- `^3.0.0` - Compatible versions (3.0.0 <= version < 4.0.0)
+- `~3.1.0` - Approximate versions (3.1.0 <= version < 3.2.0)
 - `>=3.0.0` - Greater than or equal
 - `3.0.0` - Exact version
 
@@ -261,6 +261,27 @@ cosign verify-attestation \
   ghcr.io/pacphi/sindri:v3.0.0
 ```
 
+## Image Resolution Priority
+
+When deploying, Sindri resolves the container image using the following priority order:
+
+1. **Digest pinning** (`image_config.digest`) - For immutable, reproducible deployments
+2. **Tag override** (`image_config.tag_override`) - For explicit version control
+3. **Semantic versioning** (`image_config.version`) - For automatic version resolution
+4. **Legacy image field** (`image`) - For backward compatibility
+5. **Local Dockerfile build** - When no image specified (provider-dependent)
+6. **Default fallback** - `ghcr.io/pacphi/sindri:latest`
+
+### Dockerfile Path Search Order
+
+When building from Dockerfile, all providers search in this order:
+
+1. `./Dockerfile` (project root - default)
+2. `./v3/Dockerfile` (Sindri v3 specific - fallback)
+3. `./deploy/Dockerfile` (deploy-specific - fallback)
+
+This standardization ensures consistent behavior across Docker, Fly, DevPod, and E2B providers.
+
 ## Migration Guide
 
 ### From Legacy Image Field
@@ -378,12 +399,12 @@ sindri image verify ghcr.io/pacphi/sindri:v3.0.0 --no-provenance
 
 ```
 Verifying signature...
-✅ Signature verified
+  Signature verified
    Issuer: https://token.actions.githubusercontent.com
    Subject: https://github.com/pacphi/sindri
 
 Verifying provenance...
-✅ Provenance verified (SLSA Level 3)
+  Provenance verified (SLSA Level 3)
    Builder: GitHub Actions
    Source: https://github.com/pacphi/sindri
 ```

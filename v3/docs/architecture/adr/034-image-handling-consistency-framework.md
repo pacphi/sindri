@@ -246,4 +246,4 @@ pub fn find_dockerfile() -> Option<PathBuf> {
 
 **Planning Document**:
 
-- `v3/docs/planning/active/image-handling-consistency.md` - Full implementation plan
+- `v3/docs/planning/complete/image-handling-consistency.md` - Full implementation plan (✅ COMPLETE)

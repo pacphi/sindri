@@ -180,6 +180,102 @@ spec:
     gpu: nvidia
 ```
 
+## Image Requirements
+
+Kubernetes provider does NOT build images during deployment (per K8s best practices).
+
+Images should be:
+
+1. Built in CI/CD pipelines
+2. Pushed to accessible registries
+3. Deployed via Sindri with explicit image reference
+
+### Why No Build?
+
+Kubernetes clusters are designed to pull images from registries, not build them. This approach ensures:
+
+- **Immutable deployments** - Same image deploys the same way every time
+- **Faster deployments** - No build step, just pull and run
+- **GitOps compatibility** - Image tags can be tracked in version control
+- **Security** - Images can be scanned before deployment
+
+### Providing Images
+
+```yaml
+# Option 1: Explicit image reference
+deployment:
+  provider: kubernetes
+  image: ghcr.io/myorg/app:v1.0.0
+
+# Option 2: Use image_config for version resolution
+deployment:
+  provider: kubernetes
+  image_config:
+    registry: ghcr.io/myorg/app
+    version: "^1.0.0"
+    verify_signature: true
+
+# Option 3: Immutable digest (best for production)
+deployment:
+  provider: kubernetes
+  image_config:
+    registry: ghcr.io/myorg/app
+    digest: sha256:abc123...
+```
+
+### CI/CD Workflow for Kubernetes
+
+Build images in your CI/CD pipeline, then deploy:
+
+```yaml
+# GitHub Actions example
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
+          docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Kubernetes
+        run: |
+          cat > sindri.yaml << EOF
+          deployment:
+            provider: kubernetes
+            image_config:
+              registry: ghcr.io/${{ github.repository }}
+              digest: sha256:${{ needs.build.outputs.digest }}
+              verify_signature: true
+          EOF
+          sindri deploy
+```
+
+### Production Best Practices
+
+For production deployments, use immutable digests:
+
+```yaml
+deployment:
+  provider: kubernetes
+  image_config:
+    registry: ghcr.io/myorg/app
+    digest: sha256:abc123... # Immutable - same image every time
+    verify_signature: true # Verify image authenticity
+    verify_provenance: true # Verify build provenance
+```
+
+This ensures:
+
+- Reproducible deployments
+- Rollback capability (just change the digest)
+- Audit trail of what was deployed
+
 ## Deployment Commands
 
 ```bash

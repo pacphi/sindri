@@ -107,3 +107,36 @@ pub fn format_bytes(bytes: u64) -> String {
         format!("{}B", bytes)
     }
 }
+
+/// Find Dockerfile using standard search paths
+///
+/// Search order (per ADR-035):
+/// 1. ./Dockerfile - Project root (default)
+/// 2. ./v3/Dockerfile - Sindri v3 specific (fallback)
+/// 3. ./deploy/Dockerfile - Deploy-specific (fallback)
+///
+/// # Returns
+/// Path to the first Dockerfile found, or None if no Dockerfile exists
+pub fn find_dockerfile() -> Option<std::path::PathBuf> {
+    use std::path::PathBuf;
+
+    let candidates = ["./Dockerfile", "./v3/Dockerfile", "./deploy/Dockerfile"];
+
+    for candidate in &candidates {
+        let path = PathBuf::from(candidate);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
+    None
+}
+
+/// Find Dockerfile, returning an error with searched paths if not found
+pub fn find_dockerfile_or_error() -> Result<std::path::PathBuf> {
+    find_dockerfile().ok_or_else(|| {
+        anyhow!(
+            "No Dockerfile found. Searched in:\n  - ./Dockerfile\n  - ./v3/Dockerfile\n  - ./deploy/Dockerfile"
+        )
+    })
+}

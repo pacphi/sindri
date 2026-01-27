@@ -141,6 +141,77 @@ providers:
 | `gpu-large`  | L40s      | 16    | 64GB   |
 | `gpu-xlarge` | A100 80GB | 32    | 128GB  |
 
+## Image Override Capability
+
+Fly.io supports deploying pre-built images OR building from Dockerfile:
+
+- **Pre-built image**: Skips remote build, deploys in ~30 seconds
+- **Dockerfile build**: Builds server-side on Fly.io, takes 2-5 minutes
+
+### Using Pre-built Images
+
+```yaml
+# Skip Fly.io build, deploy pre-built image directly
+deployment:
+  provider: fly
+  image: ghcr.io/myorg/app:v1.0.0
+
+# Or with version resolution
+deployment:
+  provider: fly
+  image_config:
+    registry: ghcr.io/myorg/app
+    version: "^1.0.0"
+    verify_signature: true
+```
+
+### Building from Dockerfile
+
+```yaml
+# Builds on Fly.io (slower but no registry needed)
+deployment:
+  provider: fly
+  # No image specified - builds from ./Dockerfile
+```
+
+### CI/CD Workflow
+
+Build once in CI, deploy multiple times:
+
+```yaml
+# GitHub Actions example
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and push image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
+          docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Fly.io
+        run: |
+          cat > sindri.yaml << EOF
+          deployment:
+            provider: fly
+            image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          EOF
+          sindri deploy
+```
+
+**sindri.yaml for CI/CD:**
+
+```yaml
+deployment:
+  provider: fly
+  image: ghcr.io/myorg/app:${CI_COMMIT_SHA}
+```
+
 ## Deployment Commands
 
 ```bash
@@ -172,18 +243,18 @@ sindri destroy
 
 ```text
                     Fly Proxy Layer
-                    ┌─────────────┐
-    SSH Connection  │   Routes    │     ┌─────────────────┐
-    ───────────────▶│   traffic   │────▶│ Sindri Machine  │
-                    │   Monitors  │     │                 │
-                    │   idle time │     │ • SSH daemon    │
-                    └─────────────┘     │ • Extensions    │
-                           │            └─────────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │ No traffic? │
-                    │  Suspend    │
-                    └─────────────┘
+                    +--------------+
+    SSH Connection  |   Routes     |     +------------------+
+    --------------->|   traffic    |---->| Sindri Machine   |
+                    |   Monitors   |     |                  |
+                    |   idle time  |     | - SSH daemon     |
+                    +--------------+     | - Extensions     |
+                           |             +------------------+
+                           |
+                    +------v------+
+                    | No traffic? |
+                    |  Suspend    |
+                    +-------------+
 ```
 
 **Auto-suspend behavior:**

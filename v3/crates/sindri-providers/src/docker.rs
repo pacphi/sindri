@@ -287,8 +287,10 @@ impl DockerProvider {
         }
     }
 
-    /// Build Docker image
-    #[allow(dead_code)]
+    /// Build Docker image from Dockerfile
+    ///
+    /// This method is used when no pre-built image is specified in the config.
+    /// It builds a local image using the specified Dockerfile and context directory.
     async fn build_image(
         &self,
         tag: &str,
@@ -444,6 +446,7 @@ impl Provider for DockerProvider {
     }
 
     async fn deploy(&self, config: &SindriConfig, opts: DeployOptions) -> Result<DeployResult> {
+        let file = config.inner();
         let name = config.name().to_string();
         info!("Deploying {} with Docker provider", name);
 
@@ -457,6 +460,28 @@ impl Provider for DockerProvider {
             ));
         }
 
+        // Resolve image: use specified image OR build from Dockerfile OR use default
+        let has_image_specified =
+            file.deployment.image.is_some() || file.deployment.image_config.is_some();
+
+        let image = if has_image_specified {
+            // Use resolve_image() for full image_config support
+            config.resolve_image().await?
+        } else if let Some(dockerfile) = crate::utils::find_dockerfile() {
+            // Build from Dockerfile
+            let tag = format!("{}:latest", name);
+            info!("No image specified, building from {}", dockerfile.display());
+            self.build_image(&tag, &dockerfile, &PathBuf::from("."), opts.force)
+                .await?;
+            tag
+        } else {
+            // Default fallback
+            info!("No image or Dockerfile found, using default");
+            "ghcr.io/pacphi/sindri:latest".to_string()
+        };
+
+        debug!("Using image: {}", image);
+
         // Generate docker-compose.yml
         let compose_path = self.generate_compose(config, &self.output_dir)?;
 
@@ -468,8 +493,9 @@ impl Provider for DockerProvider {
                 instance_id: None,
                 connection: None,
                 messages: vec![format!(
-                    "Would deploy {} using docker-compose.yml at {}",
+                    "Would deploy {} using image '{}' and docker-compose.yml at {}",
                     name,
+                    image,
                     compose_path.display()
                 )],
                 warnings: vec![],
@@ -535,9 +561,10 @@ impl Provider for DockerProvider {
                     name
                 )),
             }),
-            messages: vec![
-                format!("Container '{}' deployed successfully", name),
-            ],
+            messages: vec![format!(
+                "Container '{}' deployed successfully with image '{}'",
+                name, image
+            )],
             warnings: vec![],
         })
     }
@@ -649,12 +676,15 @@ impl Provider for DockerProvider {
             Default::default()
         };
 
+        // Resolve image for status display using the image_config priority chain
+        let image = config.resolve_image().await.ok();
+
         Ok(DeploymentStatus {
             name,
             provider: "docker".to_string(),
             state,
             instance_id,
-            image: config.image().map(|s| s.to_string()),
+            image,
             addresses: vec![],
             resources,
             timestamps,
@@ -715,15 +745,17 @@ impl Provider for DockerProvider {
         let file = config.inner();
         let dind_mode = self.detect_dind_mode(config);
 
+        // Resolve image using the image_config priority chain
+        let image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,
             resource: "docker-compose.yml".to_string(),
             description: "Generate Docker Compose configuration".to_string(),
         }];
 
-        // Check if image needs to be built
-        let image = file.deployment.image.as_deref().unwrap_or("sindri:latest");
-        if image == "sindri:latest" {
+        // Check if image needs to be built (only for local untagged images)
+        if image == "sindri:latest" || (image.ends_with(":latest") && !image.contains('/')) {
             actions.push(PlannedAction {
                 action: ActionType::Create,
                 resource: format!("image:{}", image),
