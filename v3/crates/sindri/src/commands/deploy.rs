@@ -13,27 +13,30 @@ pub async fn run(args: DeployArgs) -> Result<()> {
     // Load config
     let config = SindriConfig::load(None)?;
 
-    output::header(&format!(
-        "Deploying {} to {}",
-        config.name(),
-        config.provider()
-    ));
+    output::header(&format!("Deploying sindri to {}", config.provider()));
 
-    // Resolve image version
+    // Resolve image version (optional - may build from source)
     let resolved_image = {
-        let spinner = output::spinner("Resolving image version...");
-        let image = config.resolve_image().await?;
-        spinner.finish_and_clear();
-        output::info(&format!("Using image: {}", image));
-        output::info("");
+        match config.resolve_image().await {
+            Ok(image) => {
+                output::info(&format!("Using image: {}", image));
+                output::info("");
 
-        // Verify image if configured and not skipped
-        if !args.skip_image_verification && should_verify_image(&config, &args) {
-            verify_image(&image, &config).await?;
-            output::info("");
+                // Verify image if configured and not skipped
+                if !args.skip_image_verification && should_verify_image(&config, &args) {
+                    verify_image(&image, &config).await?;
+                    output::info("");
+                }
+
+                Some(image)
+            }
+            Err(_) => {
+                // No image configured - will build from source
+                output::info("No image specified - will build from Sindri repository");
+                output::info("");
+                None
+            }
         }
-
-        image
     };
 
     // Create provider
@@ -67,10 +70,12 @@ pub async fn run(args: DeployArgs) -> Result<()> {
         verbose: false,
     };
 
-    // Update config with resolved image
-    // Note: This is for informational purposes - the providers should use resolve_image() themselves
-    // or retrieve the image from the config
-    output::info(&format!("Deploying with image: {}", resolved_image));
+    // Display deployment info
+    if let Some(image) = &resolved_image {
+        output::info(&format!("Deploying with image: {}", image));
+    } else {
+        output::info("Building from source...");
+    }
     output::info("");
 
     // Dry run
