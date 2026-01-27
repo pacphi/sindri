@@ -438,23 +438,32 @@ impl Provider for DockerProvider {
             // Use resolve_image() for full image_config support
             config.resolve_image().await?
         } else if should_build_from_source || !has_image_specified {
+            // Determine which git ref to clone for getting the Dockerfile
+            // Use the gitRef from config if specified, otherwise use CLI version
+            let version_to_fetch = file
+                .deployment
+                .build_from_source
+                .as_ref()
+                .and_then(|b| b.git_ref.as_deref());
+
             // Fetch official Sindri v3 build context from GitHub and build
             let cache_dir = dirs::cache_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join("sindri")
                 .join("repos");
 
-            let (v3_dir, git_ref_used) = crate::utils::fetch_sindri_build_context(&cache_dir, None)
-                .await
-                .map_err(|e| {
-                    anyhow!(
-                        "Failed to fetch Sindri build context from GitHub: {}. \
+            let (v3_dir, git_ref_used) =
+                crate::utils::fetch_sindri_build_context(&cache_dir, version_to_fetch)
+                    .await
+                    .map_err(|e| {
+                        anyhow!(
+                            "Failed to fetch Sindri build context from GitHub: {}. \
                         Ensure git is installed and you have network access. \
                         You can also specify a pre-built image using 'deployment.image' \
                         or 'deployment.image_config' in sindri.yaml",
-                        e
-                    )
-                })?;
+                            e
+                        )
+                    })?;
 
             // Get the git SHA for unique tagging
             let repo_dir = v3_dir.parent().unwrap();

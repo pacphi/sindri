@@ -328,13 +328,22 @@ impl DevPodProvider {
         config: &SindriConfig,
         provider_type: &str,
     ) -> Result<Option<String>> {
+        // Determine which git ref to clone for getting the Dockerfile
+        let version_to_fetch = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.as_deref());
+
         // Fetch Sindri v3 build context from GitHub (ADR-034, ADR-037)
         let cache_dir = dirs::cache_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("sindri")
             .join("repos");
 
-        let (v3_dir, git_ref_used) = fetch_sindri_build_context(&cache_dir, None).await?;
+        let (v3_dir, git_ref_used) =
+            fetch_sindri_build_context(&cache_dir, version_to_fetch).await?;
         let dockerfile = v3_dir.join("Dockerfile");
         let repo_dir = v3_dir.parent().unwrap(); // Repository root for build context
 

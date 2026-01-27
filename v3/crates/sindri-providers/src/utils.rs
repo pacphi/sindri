@@ -116,7 +116,7 @@ pub fn format_bytes(bytes: u64) -> String {
 ///
 /// # Arguments
 /// * `cache_dir` - Directory to cache the cloned repository
-/// * `version` - Optional version to fetch (defaults to CLI version)
+/// * `git_ref` - Optional git ref (branch, tag, or commit SHA) to fetch (defaults to "v{CLI_VERSION}")
 ///
 /// # Returns
 /// Tuple of (v3_dir path, git_ref_used) where git_ref_used is the branch/tag that was successfully cloned
@@ -128,39 +128,37 @@ pub fn format_bytes(bytes: u64) -> String {
 /// dependencies on other files in the v3 directory.
 pub async fn fetch_sindri_build_context(
     cache_dir: &std::path::Path,
-    version: Option<&str>,
+    git_ref: Option<&str>,
 ) -> Result<(std::path::PathBuf, String)> {
     use tokio::fs;
     use tracing::{debug, info, warn};
 
-    // Determine which version to fetch (default to CLI version)
-    let target_version = version.unwrap_or(env!("CARGO_PKG_VERSION"));
+    // Determine which git ref to fetch
+    // If specified, use as-is (could be branch, tag, commit SHA)
+    // Otherwise default to version tag
+    let git_ref = if let Some(ref_str) = git_ref {
+        ref_str.to_string()
+    } else {
+        // Default to CLI version tag
+        format!("v{}", env!("CARGO_PKG_VERSION"))
+    };
 
-    // Determine Git ref (try tag first, fallback to main)
-    let git_ref = format!("v{}", target_version);
+    // For caching purposes, use the git ref as the cache key
+    let cache_key = git_ref.replace('/', "-"); // Replace slashes for filesystem compatibility
 
-    info!(
-        "Fetching Sindri v3 build context (version: {})",
-        target_version
-    );
+    info!("Fetching Sindri v3 build context (ref: {})", git_ref);
 
     // Create cache directory if it doesn't exist
     fs::create_dir_all(cache_dir).await?;
 
-    // Repository cache path
-    let repo_dir = cache_dir.join(format!("sindri-{}", target_version));
+    // Repository cache path (use cache_key for filesystem safety)
+    let repo_dir = cache_dir.join(format!("sindri-{}", cache_key));
     let v3_dir = repo_dir.join("v3");
 
     // Return cached v3 directory if it exists and is valid
     if v3_dir.join("Dockerfile").exists() {
         debug!("Using cached Sindri v3 directory at {}", v3_dir.display());
-        // Detect which ref was used (check if it's from a tag or main)
-        let git_ref_used = if git_ref != "vmain" {
-            git_ref.clone()
-        } else {
-            "main".to_string()
-        };
-        return Ok((v3_dir, git_ref_used));
+        return Ok((v3_dir, git_ref.clone()));
     }
 
     // Remove stale clone if it exists

@@ -207,13 +207,22 @@ impl E2bProvider {
         e2b_config: &E2bDeployConfig,
         output_dir: &Path,
     ) -> Result<PathBuf> {
+        // Determine which git ref to clone for getting the Dockerfile
+        let version_to_fetch = _config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.as_deref());
+
         // Fetch Sindri v3 build context from GitHub (ADR-034, ADR-037)
         let cache_dir = dirs::cache_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("sindri")
             .join("repos");
 
-        let (v3_dir, git_ref_used) = fetch_sindri_build_context(&cache_dir, None).await?;
+        let (v3_dir, git_ref_used) =
+            fetch_sindri_build_context(&cache_dir, version_to_fetch).await?;
         let dockerfile_path = v3_dir.join("Dockerfile");
 
         // Determine which git ref to use for Docker build
