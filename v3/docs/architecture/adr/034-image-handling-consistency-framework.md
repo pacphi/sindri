@@ -1,7 +1,8 @@
 # ADR 034: Image Handling Consistency Framework
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-01-27
+**Updated**: 2026-01-27
 **Deciders**: Core Team
 **Related**: [ADR-002: Provider Abstraction Layer](002-provider-abstraction-layer.md), [ADR-005: Provider-Specific Implementations](005-provider-specific-implementations.md)
 
@@ -78,7 +79,7 @@ deployment:
 
 ### Standardized Image Resolution Priority
 
-All providers follow this **6-level priority chain**:
+All providers follow this **5-level priority chain** (no default fallback):
 
 ```
 1. image_config.digest         → Immutable (production-safe)
@@ -86,10 +87,15 @@ All providers follow this **6-level priority chain**:
 3. image_config.version        → Semantic version constraint
 4. image                       → Legacy full reference
 5. Local Dockerfile            → Build on-demand (provider-dependent)
-6. Default fallback            → ghcr.io/pacphi/sindri:latest
 ```
 
-**Implementation**: Leverage existing `config.resolve_image().await?` method in `sindri-core/src/config/loader.rs:185-297` which already implements this full chain.
+**No Default Fallback**: When no image is configured (neither `image` nor `image_config`), the system returns an error from `resolve_image()` rather than defaulting to `ghcr.io/pacphi/sindri:latest`. This supports:
+
+- **Build-on-demand providers** (Docker, Fly, DevPod, E2B) that can build from local Dockerfile
+- **Clear status reporting**: `sindri status` displays `Image: none` instead of showing a misleading default
+- **Explicit configuration**: Users must consciously choose an image or rely on provider-specific build logic
+
+**Implementation**: The `config.resolve_image().await?` method in `sindri-core/src/config/loader.rs:185-297` implements this priority chain and returns `Error::invalid_config("No image configured")` when none is specified.
 
 ### Provider-Specific Build Support
 
@@ -158,7 +164,8 @@ pub fn find_dockerfile() -> Option<PathBuf> {
 4. **CI/CD Ready**: Build in CI, deploy via Sindri
 5. **Local Dev**: Docker/DevPod/E2B build locally for fast iteration
 6. **Production Safe**: Kubernetes enforces pre-built images from registries
-7. **Backward Compatible**: Existing configs continue to work
+7. **Explicit Configuration**: No hidden defaults - users see `Image: none` in status when unconfigured
+8. **Build-on-Demand Support**: Providers can implement their own fallback to Dockerfile builds
 
 ### Negative
 
@@ -166,6 +173,7 @@ pub fn find_dockerfile() -> Option<PathBuf> {
 2. **Testing Burden**: New unit + integration tests required
 3. **Documentation**: All provider docs need updates
 4. **E2B Research**: May not support image-based templates
+5. **Breaking Change**: Configs without image specification that relied on default fallback will show `Image: none` in status (not an error, just more explicit)
 
 ### Risks & Mitigation
 
@@ -179,6 +187,16 @@ pub fn find_dockerfile() -> Option<PathBuf> {
 **Mitigation**: Comprehensive documentation with decision tree
 
 ## Implementation
+
+### Phase 0: Remove Default Fallback ✅ **COMPLETE**
+
+- Priority: HIGH
+- Effort: Low
+- **Status**: Implemented on 2026-01-27
+- **Changes**:
+  - `sindri-core/src/config/loader.rs:288-296`: Removed default fallback, now returns `Error::invalid_config("No image configured")`
+  - `sindri/src/commands/status.rs:43-49`: Always display `Image:` field, show "none" when unconfigured
+- **Rationale**: Supports build-on-demand providers and makes configuration explicit
 
 ### Phase 1: image_config Support (All Providers)
 

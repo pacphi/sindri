@@ -39,8 +39,9 @@ This directory contains Architecture Decision Records documenting key architectu
 | [031](031-packer-vm-provisioning-architecture.md)        | Packer VM Provisioning Architecture        | -     | Accepted |
 | [032](032-extension-configure-processing.md)             | Extension Configure Processing             | 4     | Accepted |
 | [033](033-environment-based-template-selection.md)       | Environment-Based Template Selection       | 4     | Accepted |
-| [034](034-image-handling-consistency-framework.md)       | Image Handling Consistency Framework       | -     | Proposed |
+| [034](034-image-handling-consistency-framework.md)       | Image Handling Consistency Framework       | -     | Accepted |
 | [035](035-dockerfile-path-standardization.md)            | Dockerfile Path Standardization            | -     | Proposed |
+| [036](036-build-time-image-metadata-caching.md)          | Build-Time Image Metadata Caching          | -     | Accepted |
 
 ## By Phase
 
@@ -97,13 +98,18 @@ This directory contains Architecture Decision Records documenting key architectu
 
 - **ADR-031**: Multi-cloud VM image building with HashiCorp Packer (AWS, Azure, GCP, OCI, Alibaba)
 
+### Image Management
+
+- **ADR-034**: Image handling consistency framework across providers
+- **ADR-036**: Build-time image metadata caching for zero-friction first use
+
 ## ADR Statistics
 
-- **Total ADRs**: 33
-- **Total Lines**: 15,000+ lines
-- **Total Size**: ~490KB
-- **Phases Covered**: 1-8 + K8s Cluster Management + Packer VM Provisioning
-- **Implementation Status**: Phases 1-8 complete, K8s cluster management added, Packer provisioning added
+- **Total ADRs**: 34
+- **Total Lines**: 15,600+ lines
+- **Total Size**: ~510KB
+- **Phases Covered**: 1-8 + K8s Cluster Management + Packer VM Provisioning + Image Management
+- **Implementation Status**: Phases 1-8 complete, K8s cluster management added, Packer provisioning added, Image metadata caching added
 
 ## Key Architectural Themes
 
@@ -146,7 +152,7 @@ This directory contains Architecture Decision Records documenting key architectu
 
 When adding new ADRs:
 
-1. Use sequential numbering (next: 034)
+1. Use sequential numbering (next: 037)
 2. Follow template structure (Context → Decision → Consequences)
 3. Include implementation details and code examples
 4. Link to related ADRs

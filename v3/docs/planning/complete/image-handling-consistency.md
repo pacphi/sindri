@@ -1280,6 +1280,7 @@ deployment:
 ```
 
 **Success Criteria**:
+
 - All providers documented with image handling behavior
 - Priority order clearly explained
 - Examples provided for each scenario
@@ -1302,6 +1303,7 @@ deployment:
 When users run `sindri config init`, the generated `sindri.yaml` should serve as both configuration AND documentation, explaining all supported deployment methods with clear examples.
 
 **Current Gaps**:
+
 1. No documentation of image handling variants (legacy `image` vs new `image_config`)
 2. No explanation of what happens when no image is specified
 3. Missing examples for all supported `image_config` attributes
@@ -1646,14 +1648,14 @@ The ARCHITECTURE.md document is the primary reference for Sindri v3's architectu
 
 ### Core Changes ✅
 
-| File                                           | Changes                                       | Lines  | Status      |
-| ---------------------------------------------- | --------------------------------------------- | ------ | ----------- |
-| `v3/crates/sindri-providers/src/docker.rs`     | Removed dead code, added build logic          | +59    | ✅ COMPLETE |
-| `v3/crates/sindri-providers/src/fly.rs`        | Added `flyctl_deploy_image()`, image override | +85    | ✅ COMPLETE |
-| `v3/crates/sindri-providers/src/devpod.rs`     | Uses `find_dockerfile()` helper               | +7     | ✅ COMPLETE |
-| `v3/crates/sindri-providers/src/e2b.rs`        | Uses `find_dockerfile()` helper               | +13    | ✅ COMPLETE |
-| `v3/crates/sindri-providers/src/kubernetes.rs` | Uses `resolve_image()` in deploy/plan         | +38    | ✅ COMPLETE |
-| `v3/crates/sindri-providers/src/utils.rs`      | Added `find_dockerfile()` functions           | +33    | ✅ COMPLETE |
+| File                                           | Changes                                       | Lines | Status      |
+| ---------------------------------------------- | --------------------------------------------- | ----- | ----------- |
+| `v3/crates/sindri-providers/src/docker.rs`     | Removed dead code, added build logic          | +59   | ✅ COMPLETE |
+| `v3/crates/sindri-providers/src/fly.rs`        | Added `flyctl_deploy_image()`, image override | +85   | ✅ COMPLETE |
+| `v3/crates/sindri-providers/src/devpod.rs`     | Uses `find_dockerfile()` helper               | +7    | ✅ COMPLETE |
+| `v3/crates/sindri-providers/src/e2b.rs`        | Uses `find_dockerfile()` helper               | +13   | ✅ COMPLETE |
+| `v3/crates/sindri-providers/src/kubernetes.rs` | Uses `resolve_image()` in deploy/plan         | +38   | ✅ COMPLETE |
+| `v3/crates/sindri-providers/src/utils.rs`      | Added `find_dockerfile()` functions           | +33   | ✅ COMPLETE |
 
 ### Template Changes ✅
 

@@ -198,6 +198,63 @@ pub enum PullPolicy {
     Never,
 }
 
+/// Cached image metadata embedded in the binary at build time
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedImageMetadata {
+    /// When this cache was generated (ISO 8601 timestamp)
+    pub generated_at: String,
+    /// Registry hostname
+    pub registry: String,
+    /// Repository path
+    pub repository: String,
+    /// Cached tags (limited to MAX_CACHED_VERSIONS)
+    pub tags: Vec<CachedTagInfo>,
+}
+
+/// Simplified tag information for caching
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedTagInfo {
+    /// Tag name (e.g., "v3.0.0")
+    pub tag: String,
+    /// Image digest
+    pub digest: String,
+    /// Creation timestamp (ISO 8601)
+    pub created: String,
+}
+
+impl CachedImageMetadata {
+    /// Maximum number of versions to cache at build time
+    pub const MAX_CACHED_VERSIONS: usize = 5;
+
+    /// Time-to-live in days before cache is considered stale
+    pub const TTL_DAYS: i64 = 120;
+
+    /// Check if the cache is stale (older than TTL_DAYS)
+    pub fn is_stale(&self) -> bool {
+        use chrono::{DateTime, Utc};
+
+        if let Ok(generated) = DateTime::parse_from_rfc3339(&self.generated_at) {
+            let age = Utc::now().signed_duration_since(generated.with_timezone(&Utc));
+            age.num_days() > Self::TTL_DAYS
+        } else {
+            true // If we can't parse the date, consider it stale
+        }
+    }
+
+    /// Get the age of the cache in days
+    pub fn age_days(&self) -> i64 {
+        use chrono::{DateTime, Utc};
+
+        if let Ok(generated) = DateTime::parse_from_rfc3339(&self.generated_at) {
+            Utc::now()
+                .signed_duration_since(generated.with_timezone(&Utc))
+                .num_days()
+        } else {
+            i64::MAX // Unknown age
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

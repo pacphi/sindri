@@ -291,9 +291,8 @@ impl SindriConfig {
             return Ok(image.clone());
         }
 
-        // Priority 5: Default fallback
-        info!("No image configuration found, using default");
-        Ok("ghcr.io/pacphi/sindri:latest".to_string())
+        // No image configured - this is valid for providers that build on demand
+        Err(Error::invalid_config("No image configured"))
     }
 
     /// Serialize configuration to YAML

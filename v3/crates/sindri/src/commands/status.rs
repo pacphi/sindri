@@ -44,9 +44,9 @@ pub async fn run(args: StatusArgs) -> Result<()> {
                 output::kv("Instance ID", id);
             }
 
-            if let Some(image) = &status.image {
-                output::kv("Image", image);
-            }
+            // Always show image field, display "none" if not configured
+            let image_display = status.image.as_deref().unwrap_or("none");
+            output::kv("Image", image_display);
 
             if !status.addresses.is_empty() {
                 println!("\nAddresses:");

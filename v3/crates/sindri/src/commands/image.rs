@@ -4,10 +4,12 @@ use crate::cli::{
     ImageCommands, ImageCurrentArgs, ImageInspectArgs, ImageListArgs, ImageVerifyArgs,
     ImageVersionsArgs,
 };
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use sindri_core::SindriConfig;
-use sindri_image::{ImageReference, ImageVerifier, RegistryClient, VersionResolver};
-use tracing::{debug, info};
+use sindri_image::{
+    CachedImageMetadata, ImageReference, ImageVerifier, RegistryClient, VersionResolver,
+};
+use tracing::{debug, info, warn};
 
 /// Execute image command
 pub async fn execute(cmd: ImageCommands) -> Result<()> {
@@ -22,34 +24,117 @@ pub async fn execute(cmd: ImageCommands) -> Result<()> {
 
 /// List available images from registry
 async fn list(args: ImageListArgs) -> Result<()> {
-    info!("Listing images from registry: {}", args.registry);
-
     let repository = args
         .repository
+        .clone()
         .unwrap_or_else(|| "pacphi/sindri".to_string());
 
     // Get GitHub token from environment (optional)
     let github_token = std::env::var("GITHUB_TOKEN").ok();
 
-    // Create registry client
-    let mut registry_client = RegistryClient::new(&args.registry);
-    if let Some(token) = github_token {
-        registry_client = registry_client.with_token(token);
+    // Strategy: Try live fetch first if token available, fall back to cache
+    let tags = if let Some(token) = github_token {
+        info!("Fetching latest images from registry: {}", args.registry);
+        match fetch_live_tags(&args.registry, &repository, &token).await {
+            Ok(tags) => tags,
+            Err(e) => {
+                // Check if it's an authentication error
+                if e.to_string().contains("401") || e.to_string().contains("Unauthorized") {
+                    return Err(anyhow!(
+                        "Authentication failed (401 Unauthorized).\n\n\
+                         Your GITHUB_TOKEN may be invalid or expired.\n\
+                         Please generate a new token at: https://github.com/settings/tokens\n\
+                         Required scope: read:packages\n\n\
+                         Then set it: export GITHUB_TOKEN=ghp_your_token_here"
+                    ));
+                }
+
+                // For other errors, warn and try cache
+                warn!("Failed to fetch from registry: {}", e);
+                warn!("Falling back to cached image data...");
+                load_cached_tags()?
+            }
+        }
+    } else {
+        info!("No GITHUB_TOKEN found, using cached image data");
+        load_cached_tags()?
+    };
+
+    // Check if we got any tags
+    if tags.is_empty() {
+        return Err(anyhow!(
+            "No image data available.\n\n\
+             This can happen because:\n\
+             1. The CLI was built without cached image metadata\n\
+             2. No GITHUB_TOKEN is set for live fetching\n\n\
+             To fix:\n\
+             - Set GITHUB_TOKEN: export GITHUB_TOKEN=ghp_your_token_here\n\
+             - Or update to the latest CLI version with cached metadata\n\n\
+             Generate token at: https://github.com/settings/tokens (requires 'read:packages' scope)"
+        ));
     }
 
-    // List tags
-    let mut tags = registry_client
-        .list_tags(&repository)
+    // Apply filters
+    let filtered_tags = apply_filters(tags, &args);
+
+    // Output
+    display_tags(&filtered_tags, &args, &repository)?;
+
+    Ok(())
+}
+
+/// Fetch tags from registry (live)
+async fn fetch_live_tags(registry: &str, repository: &str, token: &str) -> Result<Vec<String>> {
+    let registry_client = RegistryClient::new(registry).with_token(token);
+
+    let tags = registry_client
+        .list_tags(repository)
         .await
-        .context("Failed to list tags")?;
+        .context("Failed to list tags from registry")?;
 
-    debug!("Found {} tags", tags.len());
+    debug!("Fetched {} tags from live registry", tags.len());
+    Ok(tags)
+}
 
-    // Filter tags if pattern provided
+/// Load tags from embedded cache
+fn load_cached_tags() -> Result<Vec<String>> {
+    // Load embedded cache
+    const EMBEDDED_CACHE: &str = include_str!(concat!(env!("OUT_DIR"), "/image_metadata.json"));
+
+    let cache: CachedImageMetadata =
+        serde_json::from_str(EMBEDDED_CACHE).context("Failed to parse embedded image cache")?;
+
+    // Check if cache is stale
+    if cache.is_stale() {
+        let age = cache.age_days();
+        warn!(
+            "⚠️  Cached image data is {} days old (cache TTL: {} days)",
+            age,
+            CachedImageMetadata::TTL_DAYS
+        );
+        warn!("   Consider updating the CLI or setting GITHUB_TOKEN for latest data");
+        println!();
+    }
+
+    // Extract just the tag names
+    let tags: Vec<String> = cache.tags.iter().map(|t| t.tag.clone()).collect();
+
+    debug!(
+        "Loaded {} tags from cache (generated: {})",
+        tags.len(),
+        cache.generated_at
+    );
+    Ok(tags)
+}
+
+/// Apply filters to tag list
+fn apply_filters(mut tags: Vec<String>, args: &ImageListArgs) -> Vec<String> {
+    // Filter by pattern if provided
     if let Some(filter) = &args.filter {
-        let regex = regex::Regex::new(filter)?;
-        tags.retain(|tag| regex.is_match(tag));
-        debug!("After filtering: {} tags", tags.len());
+        if let Ok(regex) = regex::Regex::new(filter) {
+            tags.retain(|tag| regex.is_match(tag));
+            debug!("After regex filter: {} tags", tags.len());
+        }
     }
 
     // Filter prereleases if not included
@@ -61,7 +146,7 @@ async fn list(args: ImageListArgs) -> Result<()> {
                 Err(_) => true, // Keep non-semver tags
             }
         });
-        debug!("After removing prereleases: {} tags", tags.len());
+        debug!("After prerelease filter: {} tags", tags.len());
     }
 
     // Sort tags (newest first)
@@ -75,7 +160,11 @@ async fn list(args: ImageListArgs) -> Result<()> {
         }
     });
 
-    // Output
+    tags
+}
+
+/// Display tags to user
+fn display_tags(tags: &[String], args: &ImageListArgs, repository: &str) -> Result<()> {
     if args.json {
         println!("{}", serde_json::to_string_pretty(&tags)?);
     } else {
@@ -89,7 +178,6 @@ async fn list(args: ImageListArgs) -> Result<()> {
             println!("... and {} more (use --json to see all)", tags.len() - 20);
         }
     }
-
     Ok(())
 }
 
