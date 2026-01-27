@@ -986,4 +986,7 @@ clean-v2:
 clean-v3:
 	@echo "$(BLUE)Cleaning v3 Rust artifacts...$(RESET)"
 	cd $(V3_DIR) && cargo clean
+	@echo "$(BLUE)Cleaning v3 cached repositories...$(RESET)"
+	@rm -rf ~/Library/Caches/sindri/repos 2>/dev/null || true
+	@rm -rf ~/.cache/sindri/repos 2>/dev/null || true
 	@echo "$(GREEN)✓ v3 artifacts cleaned$(RESET)"
