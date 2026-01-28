@@ -30,12 +30,25 @@ export SINDRI_STATUS_SHOWN=1
 
 # Check extension installation status
 if [[ -f "$BOOTSTRAP_MARKER" ]]; then
-    # Installation complete - show brief success message (only once per session)
-    if [[ ! -f "${SINDRI_HOME}/.login-notified" ]]; then
+    # Bootstrap marker exists - verify extensions are actually installed
+    # Check if manifest exists and has entries (not just marker from old volume)
+    MANIFEST="${SINDRI_HOME}/manifest.yaml"
+    if [[ -f "$MANIFEST" ]] && grep -q "installed:" "$MANIFEST" 2>/dev/null; then
+        # Extensions actually installed - show success (only once per session)
+        if [[ ! -f "${SINDRI_HOME}/.login-notified" ]]; then
+            echo ""
+            echo "✅ Extensions ready! Run 'sindri extension list --installed' to see all installed tools."
+            echo ""
+            touch "${SINDRI_HOME}/.login-notified"
+        fi
+    else
+        # Marker exists but no extensions - stale marker from previous deployment
         echo ""
-        echo "✅ Extensions ready! Run 'sindri extension list --installed' to see all installed tools."
+        echo "⚠️  Extension marker found but no extensions installed."
+        echo "   This may happen after redeploying with a persisted volume."
+        echo "   To install extensions: sindri profile install <profile>"
+        echo "   Or restart container to trigger auto-install: rm ~/.sindri/bootstrap-complete"
         echo ""
-        touch "${SINDRI_HOME}/.login-notified"
     fi
 elif [[ -f "$INSTALL_LOG" ]]; then
     # Check if installation is in progress
