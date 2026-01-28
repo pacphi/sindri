@@ -18,6 +18,102 @@ Sindri V3 uses a **provider-agnostic architecture** where a single `sindri.yaml`
 | E2B        | Ultra-fast cloud sandboxes           | AI agents, rapid prototyping       |
 | Kubernetes | Container orchestration              | Production, enterprise deployments |
 
+## Docker Image Architecture
+
+Sindri v3 uses a **two-Dockerfile architecture** to separate production and development build modes:
+
+### Dockerfile Selection
+
+| Mode            | File             | Extensions           | Size   | Build Time | Use Case                         |
+| --------------- | ---------------- | -------------------- | ------ | ---------- | -------------------------------- |
+| **Production**  | `Dockerfile`     | Runtime installation | ~800MB | 2-5 min    | Production, CI/CD, cloud         |
+| **Development** | `Dockerfile.dev` | Bundled              | ~1.2GB | ~8 min     | Development, testing, air-gapped |
+
+### Configuration
+
+Control Dockerfile selection via `sindri.yaml`:
+
+```yaml
+deployment:
+  buildFromSource:
+    enabled: false  # Use Dockerfile (production, default)
+    # OR
+    enabled: true   # Use Dockerfile.dev (development)
+    gitRef: main    # Optional: specific git branch/tag for source build
+```
+
+### Production Mode (Dockerfile)
+
+**Characteristics:**
+
+- Uses pre-compiled binary from GitHub releases or CI artifacts
+- Extensions installed at runtime to `${HOME}/.sindri/extensions`
+- Respects `ALT_HOME=/alt/home/developer` volume mount
+- Smaller image, faster builds
+- Network required for extension downloads
+
+**Example sindri.yaml:**
+
+```yaml
+deployment:
+  provider: fly
+  # buildFromSource not specified (defaults to production mode)
+```
+
+**Environment:**
+
+- `SINDRI_EXT_HOME=${HOME}/.sindri/extensions` (expands to `/alt/home/developer/.sindri/extensions`)
+
+### Development Mode (Dockerfile.dev)
+
+**Characteristics:**
+
+- Builds from Rust source (`cargo build --release`)
+- Extensions bundled at `/opt/sindri/extensions`
+- Includes `registry.yaml`, `profiles.yaml`, `common.sh`
+- Larger image, longer builds
+- Extensions available immediately (no downloads)
+
+**Example sindri.yaml:**
+
+```yaml
+deployment:
+  provider: docker
+  buildFromSource:
+    enabled: true
+    gitRef: v3.0.0 # Optional: build from specific version
+```
+
+**Environment:**
+
+- `SINDRI_EXT_HOME=/opt/sindri/extensions`
+
+### Volume Mount Architecture
+
+Sindri uses `ALT_HOME=/alt/home/developer` for volume-mounted home directory:
+
+```dockerfile
+# Production Dockerfile sets:
+ENV SINDRI_EXT_HOME=${HOME}/.sindri/extensions
+
+# At container runtime:
+# $HOME → /alt/home/developer (from ALT_HOME)
+# $SINDRI_EXT_HOME → /alt/home/developer/.sindri/extensions
+```
+
+**Why `${HOME}` instead of hardcoded paths?**
+
+- Respects `ALT_HOME` volume mount set by providers
+- Works correctly across different container runtimes
+- Allows custom home directory overrides
+- Avoids hardcoded `/home/developer` or `~` paths
+
+For detailed Dockerfile comparison and migration guide, see:
+
+- [README: Building Docker Images](../README.md#building-docker-images)
+- [EXTENSIONS: Extension Loading Mechanisms](EXTENSIONS.md#extension-loading-mechanisms)
+- [ADR-040: Two-Dockerfile Architecture](architecture/adr/040-two-dockerfile-architecture.md)
+
 ## Provider Comparison
 
 | Feature                | Docker         | Fly.io      | DevPod            | E2B               | Kubernetes         |

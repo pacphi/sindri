@@ -268,7 +268,22 @@ impl E2bProvider {
 
         let (v3_dir, git_ref_used) =
             fetch_sindri_build_context(&cache_dir, version_to_fetch).await?;
-        let dockerfile_path = v3_dir.join("Dockerfile");
+
+        // Select appropriate Dockerfile based on build mode
+        let should_build_from_source = _config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        let dockerfile_name = if should_build_from_source {
+            "Dockerfile.dev"
+        } else {
+            "Dockerfile"
+        };
+        let dockerfile_path = v3_dir.join(dockerfile_name);
 
         // Determine which git ref to use for Docker build
         let sindri_version = _config
@@ -295,20 +310,16 @@ impl E2bProvider {
         copy_dir_recursive(&v3_dir, &dest_v3_dir)?;
 
         let mut e2b_dockerfile = String::from("# E2B Template Dockerfile for Sindri\n");
-        e2b_dockerfile
-            .push_str("# Generated from Sindri Dockerfile with E2B-specific configuration\n\n");
+        e2b_dockerfile.push_str(&format!(
+            "# Generated from Sindri {} with E2B-specific configuration\n\n",
+            dockerfile_name
+        ));
 
-        // Set BUILD_FROM_SOURCE, SINDRI_VERSION, and SINDRI_SOURCE_REF for source builds
-        let dockerfile_with_args = dockerfile_content
-            .replace("ARG BUILD_FROM_SOURCE=false", "ARG BUILD_FROM_SOURCE=true")
-            .replace(
-                "ARG SINDRI_VERSION=3.0.0",
-                &format!("ARG SINDRI_VERSION={}", sindri_version),
-            )
-            .replace(
-                "ARG SINDRI_SOURCE_REF",
-                &format!("ARG SINDRI_SOURCE_REF={}", sindri_version),
-            );
+        // Update SINDRI_VERSION if needed (Dockerfile choice already determines build mode)
+        let dockerfile_with_args = dockerfile_content.replace(
+            "ARG SINDRI_VERSION=3.0.0",
+            &format!("ARG SINDRI_VERSION={}", sindri_version),
+        );
 
         e2b_dockerfile.push_str(&dockerfile_with_args);
 

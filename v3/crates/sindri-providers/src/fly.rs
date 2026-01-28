@@ -152,14 +152,29 @@ impl FlyProvider {
             .and_then(|b| b.git_ref.clone())
             .unwrap_or(git_ref_used);
 
+        // Select appropriate Dockerfile based on build mode
+        let should_build_from_source = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        let dockerfile_name = if should_build_from_source {
+            "Dockerfile.dev"
+        } else {
+            "Dockerfile"
+        };
+
         // For Fly, we need to generate fly.toml in the repo root and use relative paths
         // because flyctl uses the fly.toml directory as the build context
         let dockerfile_path = if output_dir == Path::new(".") || output_dir.is_relative() {
             // Generate fly.toml in repo root for correct build context
-            "v3/Dockerfile".to_string()
+            format!("v3/{}", dockerfile_name)
         } else {
             // Use absolute path if custom output_dir specified
-            v3_dir.join("Dockerfile").to_string_lossy().to_string()
+            v3_dir.join(dockerfile_name).to_string_lossy().to_string()
         };
 
         context

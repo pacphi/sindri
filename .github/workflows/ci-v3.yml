@@ -244,6 +244,9 @@ jobs:
       # - Multi-arch requires pre-compiled binaries for each architecture
       # - ARM64 builds happen during releases (not CI) when binaries are published
       # This avoids builder-binary trying to download non-existent ARM releases
+      # - Using production Dockerfile which uses pre-built binary from v3/bin/
+      # - Pre-built binary is copied in previous step for faster builds (~2 min)
+      # - For development builds with bundled extensions, use v3/Dockerfile.dev
       - name: Build and push image
         id: build
         uses: docker/build-push-action@v6
@@ -259,7 +262,7 @@ jobs:
           provenance: mode=max
           sbom: true
           build-args: |
-            BUILD_FROM_SOURCE=false
+            SINDRI_VERSION=${{ env.VERSION }}
 
       - name: Export image info
         run: |

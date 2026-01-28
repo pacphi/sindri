@@ -161,29 +161,33 @@ impl TemplateContext {
         // Build environment variables map
         let mut env_vars = HashMap::new();
 
-        // Add build-from-source environment variables if enabled
-        if file
+        // Set SINDRI_EXT_HOME based on build mode
+        let ext_home = if file
             .deployment
             .build_from_source
             .as_ref()
             .map(|b| b.enabled)
             .unwrap_or(false)
         {
-            env_vars.insert("SINDRI_BUILD_FROM_SOURCE".to_string(), "true".to_string());
+            // Development mode: bundled extensions at /opt/sindri/extensions
+            // (built using Dockerfile.dev)
+            "/opt/sindri/extensions".to_string()
+        } else {
+            // Production mode: runtime-installed extensions at ${HOME}/.sindri/extensions
+            // (built using Dockerfile, respects ALT_HOME=/alt/home/developer volume mount)
+            "${HOME}/.sindri/extensions".to_string()
+        };
 
-            if let Some(git_ref) = file
-                .deployment
-                .build_from_source
-                .as_ref()
-                .and_then(|b| b.git_ref.as_ref())
-            {
-                env_vars.insert("SINDRI_SOURCE_REF".to_string(), git_ref.clone());
-            }
+        env_vars.insert("SINDRI_EXT_HOME".to_string(), ext_home);
 
-            env_vars.insert(
-                "SINDRI_EXTENSIONS_SOURCE".to_string(),
-                "/opt/sindri/extensions".to_string(),
-            );
+        // Keep SINDRI_SOURCE_REF for debugging purposes if building from source
+        if let Some(git_ref) = file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.as_ref())
+        {
+            env_vars.insert("SINDRI_SOURCE_REF".to_string(), git_ref.clone());
         }
 
         Self {

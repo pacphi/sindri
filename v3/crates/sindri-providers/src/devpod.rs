@@ -348,7 +348,22 @@ impl DevPodProvider {
 
         let (v3_dir, git_ref_used) =
             fetch_sindri_build_context(&cache_dir, version_to_fetch).await?;
-        let dockerfile = v3_dir.join("Dockerfile");
+
+        // Select appropriate Dockerfile based on build mode
+        let should_build_from_source = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        let dockerfile_name = if should_build_from_source {
+            "Dockerfile.dev"
+        } else {
+            "Dockerfile"
+        };
+        let dockerfile = v3_dir.join(dockerfile_name);
         let repo_dir = v3_dir.parent().unwrap(); // Repository root for build context
 
         // Store git_ref for Docker build args

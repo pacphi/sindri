@@ -98,21 +98,24 @@ impl ExtensionRegistry {
     pub async fn load_from_github(cache_dir: PathBuf, branch: &str) -> Result<Self> {
         debug!("Loading registry from GitHub (branch: {})", branch);
 
-        // Check for source-based build files first
-        let source_build = std::env::var("SINDRI_BUILD_FROM_SOURCE")
-            .unwrap_or_default()
-            .to_lowercase()
-            == "true";
+        // Check for bundled registry/profiles files (development mode with bundled extensions)
+        if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
+            // Derive registry location from extension home parent directory
+            // e.g., SINDRI_EXT_HOME=/opt/sindri/extensions -> /opt/sindri/registry.yaml
+            let ext_path = PathBuf::from(&ext_home);
+            if let Some(parent) = ext_path.parent() {
+                let bundled_registry = parent.join("registry.yaml");
+                let bundled_profiles = parent.join("profiles.yaml");
 
-        if source_build {
-            let source_registry = PathBuf::from("/opt/sindri/registry.yaml");
-            let source_profiles = PathBuf::from("/opt/sindri/profiles.yaml");
-
-            if source_registry.exists() && source_profiles.exists() {
-                debug!("Loading registry from source build files");
-                return Self::load_local(&source_registry, &source_profiles);
-            } else {
-                debug!("Source build enabled but files not found, falling back to GitHub");
+                if bundled_registry.exists() && bundled_profiles.exists() {
+                    debug!("Loading registry from bundled files at {:?}", parent);
+                    return Self::load_local(&bundled_registry, &bundled_profiles);
+                } else {
+                    debug!(
+                        "SINDRI_EXT_HOME set but bundled files not found at {:?}, falling back to GitHub",
+                        parent
+                    );
+                }
             }
         }
 

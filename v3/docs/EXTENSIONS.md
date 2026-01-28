@@ -348,45 +348,110 @@ bom: # Optional: Software Bill of Materials
 
 ## Extension Loading Mechanisms
 
-Sindri uses a prioritized extension loading system that supports different deployment modes (local development, build-from-source, and production releases).
+Sindri uses a prioritized extension loading system that supports different deployment modes (local development, development Docker images, and production Docker images).
 
 ### Loading Priority
 
 When loading extension definitions, Sindri checks the following locations in order:
 
-#### 1. Source Build Extensions (`/opt/sindri/extensions/`)
+#### 1. SINDRI_EXT_HOME Path
 
-**When used**: Docker images built with `buildFromSource.enabled: true`
+**When used**: All Docker deployments (production and development)
 
-**How it works**: During Docker image build, extension definitions are copied from the cloned repository into `/opt/sindri/`:
+**How it works**: The `SINDRI_EXT_HOME` environment variable specifies the extensions directory path. Sindri checks both flat structure (bundled extensions) and versioned structure (downloaded extensions):
 
-- `v3/extensions/` → `/opt/sindri/extensions/`
-- `v3/registry.yaml` → `/opt/sindri/registry.yaml`
-- `v3/profiles.yaml` → `/opt/sindri/profiles.yaml`
+**Flat structure** (bundled in development images):
 
-**Environment variables**:
+```
+/opt/sindri/extensions/
+├── nodejs/extension.yaml
+├── python/extension.yaml
+├── docker/extension.yaml
+└── ...
+```
 
-- `SINDRI_BUILD_FROM_SOURCE=true` - Signals source-based deployment
-- `SINDRI_SOURCE_REF=<git-ref>` - Git reference used for build (e.g., `main`, `v3.0.0`)
-- `SINDRI_EXTENSIONS_SOURCE=/opt/sindri/extensions` - Path to source extensions
+**Versioned structure** (downloaded in production):
 
-**Example**:
+```
+${HOME}/.sindri/extensions/
+├── nodejs/
+│   ├── 2.1.0/
+│   │   ├── extension.yaml
+│   │   └── scripts/
+│   └── 2.0.0/              # Old version kept for rollback
+└── python/
+    └── 1.3.0/
+        ├── extension.yaml
+        └── scripts/
+```
+
+**Environment variable**:
+
+- `SINDRI_EXT_HOME` - Path to extensions directory
+
+**Docker Deployment Modes**:
+
+| Mode            | Dockerfile       | SINDRI_EXT_HOME              | Extensions Bundled        |
+| --------------- | ---------------- | ---------------------------- | ------------------------- |
+| **Production**  | `Dockerfile`     | `${HOME}/.sindri/extensions` | No (installed at runtime) |
+| **Development** | `Dockerfile.dev` | `/opt/sindri/extensions`     | Yes (bundled in image)    |
+
+The production Dockerfile uses `${HOME}` which expands at runtime to respect the `ALT_HOME=/alt/home/developer` volume mount, ensuring extensions are installed to `/alt/home/developer/.sindri/extensions` in containers.
+
+**Example (Production)**:
 
 ```bash
-# Inside a buildFromSource container
+# Inside a production container (built with Dockerfile)
+$ echo $SINDRI_EXT_HOME
+/alt/home/developer/.sindri/extensions
+
+$ echo $HOME
+/alt/home/developer
+
+$ sindri extension install python
+# Downloads from GitHub releases
+# Installs to: /alt/home/developer/.sindri/extensions/python/1.3.0/
+```
+
+**Example (Development)**:
+
+```bash
+# Inside a development container (built with Dockerfile.dev)
+$ echo $SINDRI_EXT_HOME
+/opt/sindri/extensions
+
 $ ls /opt/sindri/extensions/
 nodejs/  python/  docker/  rust/  golang/  ...
-
-$ echo $SINDRI_BUILD_FROM_SOURCE
-true
 
 $ sindri extension install ruby
 # Loads from: /opt/sindri/extensions/ruby/extension.yaml
 ```
 
-#### 2. Development Extensions (`v3/extensions/`)
+#### 2. Fallback: Home Directory (`~/.sindri/extensions/`)
 
-**When used**: Local development when running `sindri` from source
+**When used**: When `SINDRI_EXT_HOME` is not set (local development, non-Docker environments)
+
+**How it works**: Falls back to `dirs::home_dir()` or `$HOME` environment variable (never hardcoded paths):
+
+```rust
+// Fallback resolution order:
+1. dirs::home_dir().join(".sindri/extensions")  // XDG-compliant
+2. std::env::var("HOME").map(|h| format!("{}/.sindri/extensions", h))
+3. "/alt/home/developer/.sindri/extensions"  // Ultimate fallback
+```
+
+**Example**:
+
+```bash
+# Local development (SINDRI_EXT_HOME not set)
+$ sindri extension install python
+# Downloads from GitHub releases
+# Installs to: ~/.sindri/extensions/python/1.3.0/
+```
+
+#### 3. Development Path (`v3/extensions/`)
+
+**When used**: Local development when running `sindri` from source via `cargo run`
 
 **How it works**: Resolves extension paths relative to the compiled binary's location:
 
@@ -408,40 +473,57 @@ $ cargo run -- extension install nodejs
 # Loads from: v3/extensions/nodejs/extension.yaml
 ```
 
-#### 3. Downloaded Extensions (`~/.sindri/extensions/`)
+### Custom Extension Path
 
-**When used**: Production deployments using release images (e.g., `ghcr.io/pacphi/sindri:3.0.0`)
+You can override the default extension location by setting `SINDRI_EXT_HOME`:
 
-**How it works**: Extensions are downloaded from GitHub releases and extracted to:
-
-```
-~/.sindri/extensions/
-├── nodejs/
-│   ├── 2.1.0/
-│   │   ├── extension.yaml
-│   │   └── scripts/
-│   └── 2.0.0/              # Old version kept for rollback
-└── python/
-    └── 1.3.0/
-        ├── extension.yaml
-        └── scripts/
+```bash
+# Use custom extensions directory
+export SINDRI_EXT_HOME=/custom/path/to/extensions
+sindri extension install nodejs
+# Loads from: /custom/path/to/extensions/nodejs/extension.yaml
 ```
 
-**Distribution flow**:
+### Registry Loading
+
+The registry metadata (`registry.yaml` and `profiles.yaml`) is loaded based on `SINDRI_EXT_HOME`:
+
+- If `SINDRI_EXT_HOME` is set: Checks parent directory (e.g., `/opt/sindri/registry.yaml`)
+- Otherwise: Downloads from GitHub and caches at `~/.sindri/cache/registry.yaml`
+
+**Example**:
+
+```bash
+# Development container (bundled registry)
+$ echo $SINDRI_EXT_HOME
+/opt/sindri/extensions
+
+$ sindri profile list
+# Uses: /opt/sindri/registry.yaml and /opt/sindri/profiles.yaml
+
+# Production container (downloaded registry)
+$ echo $SINDRI_EXT_HOME
+/alt/home/developer/.sindri/extensions
+
+$ sindri profile list
+# Downloads from GitHub, caches at ~/.sindri/cache/registry.yaml
+```
+
+### Distribution Flow (Production Mode)
 
 1. Registry loaded from GitHub (cached at `~/.sindri/cache/registry.yaml`)
 2. Compatibility matrix checked for CLI version
 3. Extension archive downloaded: `https://github.com/sindri/sindri-extensions/releases/download/python@1.3.0/python-1.3.0.tar.gz`
-4. Archive extracted to: `~/.sindri/extensions/python/1.3.0/`
+4. Archive extracted to: `${SINDRI_EXT_HOME}/python/1.3.0/`
 5. Extension definition loaded from extracted location
 
 **Example**:
 
 ```bash
-# Inside a release container
+# Inside a production container
 $ sindri extension install python
 # Downloads from GitHub releases
-# Extracts to: ~/.sindri/extensions/python/1.3.0/
+# Extracts to: /alt/home/developer/.sindri/extensions/python/1.3.0/
 # Loads: ~/.sindri/extensions/python/1.3.0/extension.yaml
 ```
 

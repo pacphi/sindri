@@ -63,8 +63,8 @@ For detailed installation instructions and first deployment walkthrough, see the
 
 ### Extension System
 
-| Document                                                                   | Description                           |
-| -------------------------------------------------------------------------- | ------------------------------------- |
+| Document                                                                                   | Description                           |
+| ------------------------------------------------------------------------------------------ | ------------------------------------- |
 | [Extension Migration Status](docs/planning/active/EXTENSION_MIGRATION_STATUS.md)           | V2 to V3 extension migration tracking |
 | [Conditional Templates](docs/planning/active/EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md) | Environment-based template selection  |
 
@@ -111,6 +111,77 @@ Pre-configured extension bundles for common use cases:
 - Additional requirements vary by provider (see [Quickstart](docs/QUICKSTART.md#prerequisites))
 
 Run `sindri doctor` to check your system and optionally install missing tools.
+
+## Building Docker Images
+
+Sindri v3 provides two Dockerfiles for different use cases:
+
+### Production Image (`Dockerfile`)
+
+**Use Case**: Production deployments, CI/CD pipelines, smaller images
+
+**Features**:
+
+- Uses pre-compiled binary (from GitHub releases or CI artifacts)
+- No bundled extensions (installed at runtime via `sindri extension install`)
+- Smaller image size (~800MB)
+- Faster builds (2-5 minutes)
+- Extensions installed to `${HOME}/.sindri/extensions` (respects `ALT_HOME=/alt/home/developer` volume mount)
+
+**Build Command**:
+
+```bash
+# Build production image (downloads binary from releases)
+docker build -f v3/Dockerfile -t sindri:prod .
+
+# Or using Makefile
+make v3-docker-build-from-binary
+```
+
+### Development Image (`Dockerfile.dev`)
+
+**Use Case**: Development, testing, air-gapped deployments
+
+**Features**:
+
+- Builds from Rust source (`cargo build --release`)
+- Bundled extensions at `/opt/sindri/extensions`
+- Larger image size (~1.2GB)
+- Longer builds (~8 minutes)
+- Extensions available immediately without installation
+
+**Build Command**:
+
+```bash
+# Build development image (compiles from source)
+docker build -f v3/Dockerfile.dev -t sindri:dev .
+
+# Or using Makefile
+make v3-docker-build-from-source
+```
+
+### Environment Variables
+
+Both images use `SINDRI_EXT_HOME` to configure the extensions directory:
+
+- **Production**: `SINDRI_EXT_HOME=${HOME}/.sindri/extensions` (respects volume-mounted home directory)
+- **Development**: `SINDRI_EXT_HOME=/opt/sindri/extensions` (bundled in image)
+
+The `${HOME}` variable expansion respects the `ALT_HOME=/alt/home/developer` volume mount used by deployment providers, ensuring extensions are installed to the correct location in containerized environments.
+
+### Choosing the Right Dockerfile
+
+| Criterion           | Production (`Dockerfile`)   | Development (`Dockerfile.dev`) |
+| ------------------- | --------------------------- | ------------------------------ |
+| Build time          | 2-5 minutes                 | ~8 minutes                     |
+| Image size          | ~800MB                      | ~1.2GB                         |
+| Extensions          | Runtime installation        | Pre-bundled                    |
+| Use case            | Production, CI/CD           | Development, testing           |
+| Binary source       | Pre-compiled                | Built from source              |
+| Air-gapped support  | No                          | Yes                            |
+| Custom path support | Yes (via `SINDRI_EXT_HOME`) | Yes (via `SINDRI_EXT_HOME`)    |
+
+For more details on deployment modes and Dockerfile selection, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Contributing
 

@@ -829,39 +829,37 @@ v3-docker-build: v3-docker-build-from-binary
 
 .PHONY: v3-docker-build-from-binary
 v3-docker-build-from-binary:
-	@echo "$(BLUE)Building v3 Docker image from pre-compiled binary (local tag)...$(RESET)"
-	@echo "$(BLUE)This will download the binary from GitHub releases (~5 min)$(RESET)"
+	@echo "$(BLUE)Building v3 production Docker image from pre-compiled binary (local tag)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile (production) - downloads binary from GitHub releases (~5 min)$(RESET)"
 	docker build -t sindri:v3-local \
-		--build-arg BUILD_FROM_SOURCE=false \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-local$(RESET)"
 
 .PHONY: v3-docker-build-from-source
 v3-docker-build-from-source:
-	@echo "$(BLUE)Building v3 Docker image from Rust source (~8 min)...$(RESET)"
-	@echo "$(YELLOW)Note: This build mode compiles Rust code from scratch$(RESET)"
-	docker build -t sindri:v3-source \
-		--build-arg BUILD_FROM_SOURCE=true \
-		-f $(V3_DIR)/Dockerfile \
+	@echo "$(BLUE)Building v3 development Docker image from Rust source (~8 min)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile.dev (development) - builds from source with bundled extensions$(RESET)"
+	docker build -t sindri:v3-dev \
+		-f $(V3_DIR)/Dockerfile.dev \
 		$(PROJECT_ROOT)
-	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-source$(RESET)"
+	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-dev$(RESET)"
 
 .PHONY: v3-docker-build-latest
 v3-docker-build-latest:
-	@echo "$(BLUE)Building v3 Docker image (latest tag)...$(RESET)"
+	@echo "$(BLUE)Building v3 production Docker image (latest tag)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile (production)$(RESET)"
 	docker build -t sindri:v3-latest \
-		--build-arg BUILD_FROM_SOURCE=false \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
 
 .PHONY: v3-docker-build-nocache
 v3-docker-build-nocache:
-	@echo "$(BLUE)Building v3 Docker image (no cache)...$(RESET)"
+	@echo "$(BLUE)Building v3 production Docker image (no cache)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile (production)$(RESET)"
 	@echo "$(YELLOW)Warning: This will take longer than normal$(RESET)"
 	docker build --no-cache -t sindri:v3-latest \
-		--build-arg BUILD_FROM_SOURCE=false \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"

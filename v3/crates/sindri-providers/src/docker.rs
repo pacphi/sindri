@@ -565,12 +565,24 @@ impl Provider for DockerProvider {
             let cli_version = env!("CARGO_PKG_VERSION");
             let tag = format!("sindri:{}-{}", cli_version, git_sha);
 
-            let dockerfile = v3_dir.join("Dockerfile");
+            // Select appropriate Dockerfile based on build mode
+            let dockerfile_name = if should_build_from_source {
+                "Dockerfile.dev"
+            } else {
+                "Dockerfile"
+            };
+            let dockerfile = v3_dir.join(dockerfile_name);
 
             info!(
-                "No image specified, building Sindri v3 image {} from {} (commit: {})",
+                "Building {} image {} from {} using {} (commit: {})",
+                if should_build_from_source {
+                    "development"
+                } else {
+                    "production"
+                },
                 tag,
                 v3_dir.display(),
+                dockerfile_name,
                 git_sha
             );
 
@@ -583,8 +595,8 @@ impl Provider for DockerProvider {
                 .and_then(|b| b.git_ref.clone())
                 .unwrap_or_else(|| git_ref_used.clone());
 
-            // Build Docker image with BUILD_FROM_SOURCE=true
-            // The Dockerfile will clone and build inside Docker (Linux environment)
+            // Build Docker image using selected Dockerfile
+            // Dockerfile choice (production vs development) is implicit in the file selected
             let mut args = vec!["build", "-t", &tag, "-f"];
             let dockerfile_str = dockerfile.to_string_lossy();
             args.push(&dockerfile_str);
@@ -593,18 +605,10 @@ impl Provider for DockerProvider {
                 args.push("--no-cache");
             }
 
-            // Pass build args for source build
+            // Pass SINDRI_VERSION build arg (used by both Dockerfiles)
             args.push("--build-arg");
-            args.push("BUILD_FROM_SOURCE=true");
-            args.push("--build-arg");
-
             let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
             args.push(&sindri_version_arg);
-
-            // Pass SOURCE_REF for environment variable
-            args.push("--build-arg");
-            let source_ref_arg = format!("SINDRI_SOURCE_REF={}", sindri_version);
-            args.push(&source_ref_arg);
 
             let context_str = repo_dir.to_string_lossy();
             args.push(&context_str);

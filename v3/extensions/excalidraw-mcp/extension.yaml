@@ -46,7 +46,7 @@ capabilities:
     commands:
       - command: "docker run -d -p 3000:3000 --name mcp-excalidraw-canvas --restart unless-stopped ghcr.io/yctimlin/mcp_excalidraw-canvas:latest"
         description: "Start Excalidraw canvas server in Docker"
-        requiresAuth: false
+        requiresAuth: "none"
         conditional: true
     state-markers:
       - path: ".excalidraw-mcp"
@@ -132,7 +132,7 @@ bom:
     - name: mcp-excalidraw-server
       version: dynamic
       source: npm
-      type: mcp-server
+      type: server
       license: MIT
 
   docker:
