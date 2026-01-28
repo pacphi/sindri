@@ -106,7 +106,9 @@ impl ProfileInstaller {
             profile.extensions.clone()
         };
 
-        // Step 2: Load extension definitions for dependency resolution
+        // Step 2: Load extension definitions for extensions explicitly listed in profile
+        // This loads extension.yaml for each extension in the profile (e.g., nodejs, python)
+        // so the DependencyResolver can read their metadata and discover dependencies
         self.load_extension_definitions(&profile_extensions).await?;
 
         // Step 3: Resolve dependencies for all extensions
@@ -128,6 +130,11 @@ impl ProfileInstaller {
             "Total extensions to install (with deps): {}",
             all_extensions.len()
         );
+
+        // Step 3.5: Load extension definitions for ALL extensions including dependencies
+        // This ensures dependencies not in the original profile (e.g., mise-config) get loaded.
+        // load_extension_definitions() skips already-loaded extensions, so this is safe and idempotent.
+        self.load_extension_definitions(&all_extensions).await?;
 
         // Step 4: Separate protected and regular extensions
         let (protected_exts, regular_exts): (Vec<_>, Vec<_>) = all_extensions
@@ -269,7 +276,9 @@ impl ProfileInstaller {
             profile.extensions.clone()
         };
 
-        // Step 2: Load extension definitions for dependency resolution
+        // Step 2: Load extension definitions for extensions explicitly listed in profile
+        // This loads extension.yaml for each extension in the profile (e.g., nodejs, python)
+        // so the DependencyResolver can read their metadata and discover dependencies
         self.load_extension_definitions(&profile_extensions).await?;
 
         // Step 3: Resolve dependencies
@@ -286,6 +295,11 @@ impl ProfileInstaller {
                 }
             }
         }
+
+        // Step 3.5: Load extension definitions for ALL extensions including dependencies
+        // This ensures dependencies not in the original profile (e.g., mise-config) get loaded.
+        // load_extension_definitions() skips already-loaded extensions, so this is safe and idempotent.
+        self.load_extension_definitions(&all_extensions).await?;
 
         // Step 4: Remove all extensions first (in reverse order to handle dependencies)
         info!("Removing existing extensions...");
