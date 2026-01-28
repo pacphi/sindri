@@ -672,8 +672,8 @@ configure:
 **References**:
 
 - [ADR 033: Environment-Based Template Selection](architecture/adr/033-environment-based-template-selection.md)
-- [Migration Guide](EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md)
-- [Migration Status](EXTENSION_MIGRATION_STATUS.md)
+- [Migration Guide](planning/active/EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md)
+- [Migration Status](planning/active/EXTENSION_MIGRATION_STATUS.md)
 
 ### Extension Categories
 
