@@ -318,7 +318,9 @@ install_extensions_background() {
         # Falls back to ${ALT_HOME}/.sindri/extensions for production builds (Dockerfile)
         # Note: Use ALT_HOME not HOME because 'su - developer' resets HOME to /home/developer
         local ext_home="${SINDRI_EXT_HOME:-${ALT_HOME}/.sindri/extensions}"
-        local env_vars="SINDRI_EXT_HOME=${ext_home} SINDRI_SOURCE_REF=${SINDRI_SOURCE_REF:-}"
+        # CRITICAL: Set HOME to ALT_HOME so sindri writes manifest/state to volume-mounted location
+        # Without this, 'su - developer' resets HOME=/home/developer (ephemeral) and extensions are lost on restart
+        local env_vars="HOME=${ALT_HOME} SINDRI_EXT_HOME=${ext_home} SINDRI_SOURCE_REF=${SINDRI_SOURCE_REF:-}"
 
         if [[ -f "sindri.yaml" ]]; then
             # Priority 1: Install from sindri.yaml if present
