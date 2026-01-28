@@ -724,13 +724,13 @@ impl Provider for DockerProvider {
             instance_id: Some(name.clone()),
             connection: Some(ConnectionInfo {
                 ssh_command: Some(format!(
-                    "docker exec -it -u developer -w /alt/home/developer {} bash -l",
+                    "docker exec -it -e HOME=/alt/home/developer -u developer -w /alt/home/developer {} bash -l",
                     name
                 )),
                 http_url: None,
                 https_url: None,
                 instructions: Some(format!(
-                    "Connect with: sindri connect\nOr: docker exec -it -u developer -w /alt/home/developer {} bash -l",
+                    "Connect with: sindri connect\nOr: docker exec -it -e HOME=/alt/home/developer -u developer -w /alt/home/developer {} bash -l",
                     name
                 )),
             }),
@@ -758,6 +758,8 @@ impl Provider for DockerProvider {
             .args([
                 "exec",
                 "-it",
+                "-e",
+                "HOME=/alt/home/developer",
                 "-u",
                 "developer",
                 "-w",

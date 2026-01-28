@@ -989,4 +989,6 @@ clean-v3:
 	@echo "$(BLUE)Cleaning v3 cached repositories...$(RESET)"
 	@rm -rf ~/Library/Caches/sindri/repos 2>/dev/null || true
 	@rm -rf ~/.cache/sindri/repos 2>/dev/null || true
+	@echo "$(BLUE)Cleaning Docker build cache...$(RESET)"
+	@docker builder prune --all --force 2>/dev/null || true
 	@echo "$(GREEN)✓ v3 artifacts cleaned$(RESET)"
