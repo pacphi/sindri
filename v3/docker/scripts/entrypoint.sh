@@ -92,6 +92,10 @@ setup_home_directory() {
             cat > "${ALT_HOME}/.bashrc" << 'EOF'
 # ~/.bashrc: executed by bash for non-login shells
 
+# Sindri extension directory - set at runtime to respect volume-mounted HOME
+# Only set if not already defined (preserves bundled path from Dockerfile.dev)
+export SINDRI_EXT_HOME="${SINDRI_EXT_HOME:-${HOME}/.sindri/extensions}"
+
 # Claude Code plugin compatibility - set TMPDIR before interactive check
 # Required to prevent EXDEV cross-device link error during plugin installation
 # fs.rename() cannot cross filesystem boundaries (/tmp is tmpfs, ~/.claude is on volume)
@@ -148,6 +152,12 @@ EOF
         print_success "Home directory initialized"
     else
         print_status "Home directory already initialized"
+
+        # Ensure SINDRI_EXT_HOME is in existing .bashrc (migration for existing deployments)
+        if [[ -f "${ALT_HOME}/.bashrc" ]] && ! grep -q "SINDRI_EXT_HOME" "${ALT_HOME}/.bashrc"; then
+            print_status "Updating .bashrc with SINDRI_EXT_HOME..."
+            sed -i '1i# Sindri extension directory - set at runtime to respect volume-mounted HOME\n# Only set if not already defined (preserves bundled path from Dockerfile.dev)\nexport SINDRI_EXT_HOME="${SINDRI_EXT_HOME:-${HOME}/.sindri/extensions}"\n' "${ALT_HOME}/.bashrc"
+        fi
     fi
 
     # Ensure correct ownership
@@ -303,8 +313,12 @@ install_extensions_background() {
         cd "$WORKSPACE"
 
         # Determine installation method (priority order)
-        # Preserve SINDRI_* environment variables for extension loading
-        local env_vars="SINDRI_BUILD_FROM_SOURCE=${SINDRI_BUILD_FROM_SOURCE:-} SINDRI_SOURCE_REF=${SINDRI_SOURCE_REF:-} SINDRI_EXTENSIONS_SOURCE=${SINDRI_EXTENSIONS_SOURCE:-}"
+        # Set SINDRI_EXT_HOME at runtime using ALT_HOME (the volume-mounted home)
+        # Preserves existing value if already set (e.g., /opt/sindri/extensions from Dockerfile.dev)
+        # Falls back to ${ALT_HOME}/.sindri/extensions for production builds (Dockerfile)
+        # Note: Use ALT_HOME not HOME because 'su - developer' resets HOME to /home/developer
+        local ext_home="${SINDRI_EXT_HOME:-${ALT_HOME}/.sindri/extensions}"
+        local env_vars="SINDRI_EXT_HOME=${ext_home} SINDRI_SOURCE_REF=${SINDRI_SOURCE_REF:-}"
 
         if [[ -f "sindri.yaml" ]]; then
             # Priority 1: Install from sindri.yaml if present

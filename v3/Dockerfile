@@ -199,10 +199,9 @@ RUN sindri --version
 # - Respects volume-mounted home directory (ALT_HOME=/alt/home/developer)
 # - Extensions installed via: sindri extension install <name>
 #
-# The ${HOME} variable is used (not hardcoded paths) to respect the
-# ALT_HOME=/alt/home/developer volume mount used by deployment providers.
+# NOTE: SINDRI_EXT_HOME is set at RUNTIME by entrypoint.sh (not here at build time)
+# to ensure it correctly expands ${HOME} after volume mounts are applied.
 # ------------------------------------------------------------------------------
-ENV SINDRI_EXT_HOME=${HOME}/.sindri/extensions
 
 # ------------------------------------------------------------------------------
 # Install GitHub CLI from official releases (avoids CVE vulnerabilities)
