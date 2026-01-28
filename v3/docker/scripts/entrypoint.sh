@@ -316,24 +316,56 @@ install_extensions_background() {
         # Set SINDRI_EXT_HOME at runtime using ALT_HOME (the volume-mounted home)
         # Preserves existing value if already set (e.g., /opt/sindri/extensions from Dockerfile.dev)
         # Falls back to ${ALT_HOME}/.sindri/extensions for production builds (Dockerfile)
-        # Note: Use ALT_HOME not HOME because 'su - developer' resets HOME to /home/developer
         local ext_home="${SINDRI_EXT_HOME:-${ALT_HOME}/.sindri/extensions}"
-        # CRITICAL: Set HOME to ALT_HOME so sindri writes manifest/state to volume-mounted location
-        # Without this, 'su - developer' resets HOME=/home/developer (ephemeral) and extensions are lost on restart
-        local env_vars="HOME=${ALT_HOME} SINDRI_EXT_HOME=${ext_home} SINDRI_SOURCE_REF=${SINDRI_SOURCE_REF:-}"
+
+        # CRITICAL: Export variables BEFORE sudo (v2 pattern)
+        # sudo --preserve-env requires variables to be exported first
+        # This ensures mise installs to the correct location from the start
+        export HOME="${ALT_HOME}"
+        export PATH="${ALT_HOME}/.local/share/mise/shims:${PATH}"
+        export WORKSPACE="${WORKSPACE}"
+        export SINDRI_EXT_HOME="${ext_home}"
+        export SINDRI_SOURCE_REF="${SINDRI_SOURCE_REF:-}"
+        export MISE_DATA_DIR="${ALT_HOME}/.local/share/mise"
+        export MISE_CONFIG_DIR="${ALT_HOME}/.config/mise"
+        export MISE_CACHE_DIR="${ALT_HOME}/.cache/mise"
+        export MISE_STATE_DIR="${ALT_HOME}/.local/state/mise"
+
+        # Build preserve list dynamically from environment (prevents staleness)
+        # Auto-discovers all relevant variables instead of hardcoding
+        local preserve_list="HOME,PATH,WORKSPACE"
+
+        # Add all SINDRI_* variables
+        local sindri_vars=$(env | grep -E '^SINDRI_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$sindri_vars" ]] && preserve_list="${preserve_list},${sindri_vars}"
+
+        # Add all MISE_* variables
+        local mise_vars=$(env | grep -E '^MISE_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$mise_vars" ]] && preserve_list="${preserve_list},${mise_vars}"
+
+        # Add all GIT_* variables
+        local git_vars=$(env | grep -E '^GIT_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$git_vars" ]] && preserve_list="${preserve_list},${git_vars}"
+
+        # Add all credential/secret variables (comprehensive pattern)
+        # Matches: *_TOKEN, *_API_KEY, *_KEY, *_KEYS, *_PASSWORD, *_PASS, *_USERNAME, *_USER, *_URL, *_SECRET
+        local credential_vars=$(env | grep -E '_(TOKEN|API_KEY|KEY|KEYS|PASSWORD|PASS|USERNAME|USER|URL|SECRET)$' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$credential_vars" ]] && preserve_list="${preserve_list},${credential_vars}"
+
+        local env_vars="$preserve_list"
 
         if [[ -f "sindri.yaml" ]]; then
             # Priority 1: Install from sindri.yaml if present
             print_status "Installing extensions from sindri.yaml..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "$env_vars cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" >> "$install_log" 2>&1
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" >> "$install_log" 2>&1
         elif [[ -n "${INSTALL_PROFILE:-}" ]]; then
             # Priority 2: Install from INSTALL_PROFILE environment variable
             print_status "Installing profile: ${INSTALL_PROFILE}..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "$env_vars sindri profile install '${INSTALL_PROFILE}' --yes" >> "$install_log" 2>&1
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes >> "$install_log" 2>&1
         else
             # Priority 3: Default to minimal profile
             print_status "Installing minimal profile (default)..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "$env_vars sindri profile install minimal --yes" >> "$install_log" 2>&1
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install minimal --yes >> "$install_log" 2>&1
         fi
 
         # Mark as complete if successful
