@@ -5,7 +5,6 @@
 **Deciders**: Architecture Team
 **Related ADRs**:
 
-- [ADR-034: Sindri V3 Dockerfile Unification](034-dockerfile-unification.md)
 - [ADR-035: Dockerfile Path Standardization](035-dockerfile-path-standardization.md)
 - [ADR-037: Image Naming and Tagging Strategy](037-image-naming-and-tagging-strategy.md)
 
@@ -13,7 +12,7 @@
 
 ## Context
 
-The Sindri v3 Dockerfile implemented in ADR-034 used a single monolithic Dockerfile with complex conditional logic to support three build modes:
+The original Sindri v3 Dockerfile used a single monolithic Dockerfile with complex conditional logic to support three build modes:
 
 1. **Local binary** from build context (CI workflows)
 2. **Downloaded binary** from GitHub releases (production)
@@ -283,7 +282,6 @@ If critical issues discovered:
 
 ## References
 
-- [ADR-034: Sindri V3 Dockerfile Unification](034-dockerfile-unification.md) - Original unified Dockerfile design
 - [ADR-035: Dockerfile Path Standardization](035-dockerfile-path-standardization.md) - Path handling decisions
 - [ADR-037: Image Naming and Tagging Strategy](037-image-naming-and-tagging-strategy.md) - Image versioning context
 - [Docker Best Practices: ENV](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#env) - Variable expansion guidance

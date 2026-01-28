@@ -209,7 +209,7 @@ make v3-docker-build-from-source
 
 - **Full Changelog**: https://github.com/pacphi/sindri/compare/v3.0.0...v3.1.0
 - **ADR-040**: [Two-Dockerfile Architecture](docs/architecture/adr/040-two-dockerfile-architecture.md)
-- **Migration Guide**: [docs/DEPLOYMENT.md#migration-from-v2](docs/DEPLOYMENT.md#migration-from-v2)
+- **Migration Guide**: [V2 to V3 Migration Guide](../docs/v2-v3-migration-guide.md)
 
 ---
 

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # ==============================================================================
 # Sindri v3 Dockerfile (Production)
 # ==============================================================================
@@ -19,6 +20,11 @@
 #   - Smaller image (~800MB vs dev's ~1.2GB)
 #   - Faster builds (2-5 min vs dev's ~8 min)
 #   - Extensions installed to ${HOME}/.sindri/extensions (respects ALT_HOME)
+#
+# Layer optimizations:
+#   - Layers ordered by change frequency (least → most frequent)
+#   - Consolidated COPY + RUN operations for scripts
+#   - Multi-stage GH CLI download (parallel build, isolated caching)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -26,6 +32,7 @@
 # ------------------------------------------------------------------------------
 ARG UBUNTU_VERSION=24.04
 ARG SINDRI_VERSION=3.0.0
+ARG GH_VERSION=2.86.0
 
 # ==============================================================================
 # Stage 1a: Local Binary from Build Context (CI workflows)
@@ -117,7 +124,23 @@ RUN mkdir -p /output && \
     chmod +x /output/sindri
 
 # ==============================================================================
-# Stage 3: Runtime Image
+# Stage 3: Download GitHub CLI (parallel build, isolated caching)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS gh-downloader
+
+ARG GH_VERSION
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    ARCH=$(dpkg --print-architecture) && \
+    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
+    tar -xzf /tmp/gh.tar.gz -C /tmp && \
+    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /gh && \
+    chmod +x /gh
+
+# ==============================================================================
+# Stage 4: Runtime Image
 # ==============================================================================
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -132,7 +155,9 @@ ARG ALT_HOME=/alt/home/developer
 ARG WORKSPACE=${ALT_HOME}/workspace
 ARG SSH_PORT=2222
 
-# Set environment variables
+# ------------------------------------------------------------------------------
+# Environment Variables (rarely change)
+# ------------------------------------------------------------------------------
 ENV DEVELOPER_USER=${DEVELOPER_USER} \
     ALT_HOME=${ALT_HOME} \
     WORKSPACE=${WORKSPACE} \
@@ -143,7 +168,7 @@ ENV DEVELOPER_USER=${DEVELOPER_USER} \
     LC_ALL=C.UTF-8
 
 # ------------------------------------------------------------------------------
-# Install System Packages
+# Install System Packages (changes infrequently)
 # ------------------------------------------------------------------------------
 # Key changes from v2:
 # - REMOVED: jq, yq, python3-jsonschema (replaced by Rust CLI)
@@ -152,38 +177,82 @@ ENV DEVELOPER_USER=${DEVELOPER_USER} \
 # - KEPT: openssh-server (SSH access)
 # - KEPT: gh (GitHub CLI - may become extension in future)
 # ------------------------------------------------------------------------------
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        # Core utilities
-        ca-certificates \
-        curl \
-        wget \
-        git \
-        openssh-server \
-        sudo \
-        locales \
-        tzdata \
-        fontconfig \
-        unzip \
-        # Build tools (for native extensions)
-        build-essential \
-        pkg-config \
-        libssl-dev && \
-    # Configure locales
-    locale-gen en_US.UTF-8 && \
-    update-locale LANG=en_US.UTF-8 && \
-    # Cleanup apt cache and remove SSH host keys generated during installation
-    # SSH keys will be generated at runtime by entrypoint.sh for security
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    rm -f /etc/ssh/ssh_host_*
+RUN <<EOF
+apt-get update
+apt-get install -y --no-install-recommends \
+    ca-certificates curl wget git openssh-server sudo \
+    locales tzdata fontconfig unzip \
+    build-essential pkg-config libssl-dev
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+apt-get clean
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+rm -f /etc/ssh/ssh_host_*
+EOF
 
 # ------------------------------------------------------------------------------
-# Copy Sindri CLI Binary
+# Create Developer User (changes infrequently)
+# ------------------------------------------------------------------------------
+RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
+    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
+    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
+    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
+
+# ------------------------------------------------------------------------------
+# Setup SSH Server and Configuration (changes infrequently)
+# ------------------------------------------------------------------------------
+COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
+COPY v3/docker/config/developer-sudoers /etc/sudoers.d/developer
+
+RUN mkdir -p /run/sshd /etc/ssh/sshd_config.d && \
+    chmod 0440 /etc/sudoers.d/developer && \
+    chmod 644 /etc/ssh/sshd_config
+
+# ------------------------------------------------------------------------------
+# Copy GitHub CLI Binary (cached independently via multi-stage)
+# ------------------------------------------------------------------------------
+COPY --from=gh-downloader /gh /usr/local/bin/gh
+RUN gh --version
+
+# ------------------------------------------------------------------------------
+# Install Tools: All setup scripts in single layer (changes occasionally)
+# ------------------------------------------------------------------------------
+# Consolidates 12 layers → 2 layers for mise, fonts, starship, SSH env, MOTD
+COPY v3/docker/scripts/setup-ssh-environment.sh \
+     v3/docker/scripts/install-mise.sh \
+     v3/docker/scripts/install-nerd-fonts.sh \
+     v3/docker/scripts/install-starship.sh \
+     v3/docker/scripts/setup-motd.sh \
+     v3/docker/scripts/check-extension-status.sh \
+     v3/docker/scripts/show-motd.sh \
+     /tmp/scripts/
+
+RUN <<EOF
+bash /tmp/scripts/setup-ssh-environment.sh
+bash /tmp/scripts/install-mise.sh
+bash /tmp/scripts/install-nerd-fonts.sh
+bash /tmp/scripts/install-starship.sh
+bash /tmp/scripts/setup-motd.sh
+mkdir -p /etc/profile.d
+cp /tmp/scripts/show-motd.sh /etc/profile.d/00-show-motd.sh
+chmod +x /etc/profile.d/00-show-motd.sh
+cp /tmp/scripts/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh
+chmod +x /etc/profile.d/sindri-extension-status.sh
+rm -rf /tmp/scripts
+EOF
+
+# ------------------------------------------------------------------------------
+# Setup Directories and Permissions
+# ------------------------------------------------------------------------------
+RUN mkdir -p /docker/scripts /docker/config && \
+    mkdir -p ${ALT_HOME} ${WORKSPACE} && \
+    chown -R ${DEVELOPER_USER}:${DEVELOPER_USER} ${ALT_HOME} && \
+    chmod 755 /docker /docker/scripts /docker/config
+
+# ------------------------------------------------------------------------------
+# Copy Sindri CLI Binary (changes frequently - placed late for better caching)
 # ------------------------------------------------------------------------------
 COPY --from=binary-merge /output/sindri /usr/local/bin/sindri
-
-# Verify binary is executable and functional
 RUN sindri --version
 
 # ------------------------------------------------------------------------------
@@ -204,89 +273,12 @@ RUN sindri --version
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-# Install GitHub CLI from official releases (avoids CVE vulnerabilities)
-# ------------------------------------------------------------------------------
-ARG GH_VERSION=2.86.0
-RUN ARCH=$(dpkg --print-architecture) && \
-    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
-    tar -xzf /tmp/gh.tar.gz -C /tmp && \
-    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /usr/local/bin/ && \
-    rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_linux_${ARCH} && \
-    gh --version
-
-# ------------------------------------------------------------------------------
-# Create Developer User
-# ------------------------------------------------------------------------------
-RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
-    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
-    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
-    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
-
-# ------------------------------------------------------------------------------
-# Setup SSH Server
-# ------------------------------------------------------------------------------
-RUN mkdir -p /run/sshd && \
-    mkdir -p /etc/ssh/sshd_config.d
-
-# Copy SSH configuration
-COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
-COPY v3/docker/config/developer-sudoers /etc/sudoers.d/${DEVELOPER_USER}
-
-RUN chmod 0440 /etc/sudoers.d/${DEVELOPER_USER} && \
-    chmod 644 /etc/ssh/sshd_config
-
-# Configure SSH environment for login shells (TMPDIR for Claude Code plugins)
-COPY v3/docker/scripts/setup-ssh-environment.sh /tmp/
-RUN bash /tmp/setup-ssh-environment.sh && rm /tmp/setup-ssh-environment.sh
-
-# ------------------------------------------------------------------------------
-# Install mise (Tool Version Manager)
-# ------------------------------------------------------------------------------
-# mise is critical for managing language runtimes installed via extensions
-# (node, python, ruby, go, etc.)
-COPY v3/docker/scripts/install-mise.sh /tmp/
-RUN bash /tmp/install-mise.sh && rm /tmp/install-mise.sh
-
-# ------------------------------------------------------------------------------
-# Install Nerd Fonts (for Starship icons/symbols)
-# ------------------------------------------------------------------------------
-COPY v3/docker/scripts/install-nerd-fonts.sh /tmp/
-RUN bash /tmp/install-nerd-fonts.sh && rm /tmp/install-nerd-fonts.sh
-
-# ------------------------------------------------------------------------------
-# Install Starship (Optional Shell Prompt)
-# ------------------------------------------------------------------------------
-COPY v3/docker/scripts/install-starship.sh /tmp/
-RUN bash /tmp/install-starship.sh && rm /tmp/install-starship.sh
-
-# ------------------------------------------------------------------------------
-# Setup Directories and Permissions
-# ------------------------------------------------------------------------------
-RUN mkdir -p /docker/scripts /docker/config && \
-    mkdir -p ${ALT_HOME} ${WORKSPACE} && \
-    chown -R ${DEVELOPER_USER}:${DEVELOPER_USER} ${ALT_HOME} && \
-    chmod 755 /docker /docker/scripts /docker/config
-
-# ------------------------------------------------------------------------------
-# Copy Entrypoint and Support Scripts
+# Copy Entrypoint and Support Scripts (changes occasionally)
 # ------------------------------------------------------------------------------
 COPY v3/docker/scripts/entrypoint.sh /docker/scripts/
 COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
-COPY v3/docker/scripts/setup-motd.sh /tmp/
-COPY v3/docker/scripts/check-extension-status.sh /tmp/
-COPY v3/docker/scripts/show-motd.sh /tmp/
 
-RUN chmod +x /docker/scripts/entrypoint.sh && \
-    chmod +x /docker/scripts/healthcheck.sh && \
-    bash /tmp/setup-motd.sh && \
-    rm /tmp/setup-motd.sh && \
-    # Install login shell scripts
-    mkdir -p /etc/profile.d && \
-    cp /tmp/show-motd.sh /etc/profile.d/00-show-motd.sh && \
-    chmod +x /etc/profile.d/00-show-motd.sh && \
-    cp /tmp/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh && \
-    chmod +x /etc/profile.d/sindri-extension-status.sh && \
-    rm /tmp/show-motd.sh /tmp/check-extension-status.sh
+RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
 
 # ------------------------------------------------------------------------------
 # Runtime Configuration

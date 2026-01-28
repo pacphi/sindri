@@ -1,10 +1,11 @@
+# syntax=docker/dockerfile:1.4
 # ==============================================================================
 # Sindri v3 Dockerfile.dev (Development)
 # ==============================================================================
 # Multi-stage build for Sindri v3 with source compilation and bundled extensions
 #
 # Build mode:
-#   - Builds from source using cargo build --release (~8 min build)
+#   - Builds from source using cargo-chef for dependency caching
 #   - Bundles extensions, registry, profiles at /opt/sindri/
 #   - Larger image (~1.2GB vs production's ~800MB)
 #   - Useful for development, testing, and air-gapped deployments
@@ -12,9 +13,16 @@
 # Key differences from Dockerfile (production):
 #   - Builds from source (not pre-compiled binary)
 #   - Bundled extensions at /opt/sindri/extensions
-#   - Longer builds (~8 min vs production's 2-5 min)
+#   - Uses cargo-chef for dependency layer caching (~50% faster rebuilds)
 #   - Larger image size (~1.2GB vs production's ~800MB)
 #   - Extensions available immediately without installation
+#
+# Layer optimizations:
+#   - cargo-chef separates dependency build from application build
+#   - BuildKit cache mounts for cargo registry/git
+#   - Layers ordered by change frequency (least → most frequent)
+#   - Consolidated COPY + RUN operations for scripts
+#   - Multi-stage GH CLI download (parallel build, isolated caching)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -24,10 +32,60 @@ ARG UBUNTU_VERSION=24.04
 ARG RUST_VERSION=1.92
 ARG SINDRI_VERSION=3.0.0
 ARG SINDRI_REPO=https://github.com/pacphi/sindri
+ARG GH_VERSION=2.86.0
 
 # ==============================================================================
-# Stage 1: Build from Source
+# Stage 1a: Prepare Recipe (cargo-chef)
 # ==============================================================================
+# Creates a recipe.json that captures dependency information for caching
+FROM rust:${RUST_VERSION}-slim-bookworm AS chef
+
+RUN cargo install cargo-chef --locked
+
+WORKDIR /app
+
+ARG SINDRI_VERSION
+ARG SINDRI_REPO
+
+# Clone repository to prepare recipe
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    git clone --depth 1 --branch "${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
+    cp -r /tmp/sindri/v3/* .
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+# ==============================================================================
+# Stage 1b: Build Dependencies (cached layer)
+# ==============================================================================
+# This stage builds only dependencies based on the recipe.json
+# Dependencies are cached and only rebuilt when Cargo.toml/Cargo.lock change
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder-deps
+
+RUN cargo install cargo-chef --locked
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        pkg-config \
+        libssl-dev \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=chef /app/recipe.json recipe.json
+
+# Build dependencies with cache mounts for faster rebuilds
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo chef cook --release --recipe-path recipe.json
+
+# ==============================================================================
+# Stage 1c: Build Application
+# ==============================================================================
+# Only application code is rebuilt here - dependencies are already compiled
 FROM rust:${RUST_VERSION}-slim-bookworm AS builder
 
 ARG SINDRI_VERSION
@@ -43,17 +101,41 @@ RUN apt-get update && \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Clone repository and build
-RUN echo "Building sindri from source for ${TARGETARCH}..." && \
+WORKDIR /app
+
+# Copy compiled dependencies from builder-deps
+COPY --from=builder-deps /app/target target
+COPY --from=builder-deps /usr/local/cargo /usr/local/cargo
+
+# Clone source and build application (only app code recompiled)
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    echo "Building sindri from source for ${TARGETARCH}..." && \
     git clone --depth 1 --branch "${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
-    cd /tmp/sindri/v3 && \
+    cp -r /tmp/sindri/v3/* . && \
     cargo build --release --bin sindri && \
     mkdir -p /output && \
     cp target/release/sindri /output/sindri && \
     chmod +x /output/sindri
 
 # ==============================================================================
-# Stage 2: Runtime Image
+# Stage 2: Download GitHub CLI (parallel build, isolated caching)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS gh-downloader
+
+ARG GH_VERSION
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    ARCH=$(dpkg --print-architecture) && \
+    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
+    tar -xzf /tmp/gh.tar.gz -C /tmp && \
+    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /gh && \
+    chmod +x /gh
+
+# ==============================================================================
+# Stage 3: Runtime Image
 # ==============================================================================
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -68,7 +150,9 @@ ARG ALT_HOME=/alt/home/developer
 ARG WORKSPACE=${ALT_HOME}/workspace
 ARG SSH_PORT=2222
 
-# Set environment variables
+# ------------------------------------------------------------------------------
+# Environment Variables (rarely change)
+# ------------------------------------------------------------------------------
 ENV DEVELOPER_USER=${DEVELOPER_USER} \
     ALT_HOME=${ALT_HOME} \
     WORKSPACE=${WORKSPACE} \
@@ -79,40 +163,84 @@ ENV DEVELOPER_USER=${DEVELOPER_USER} \
     LC_ALL=C.UTF-8
 
 # ------------------------------------------------------------------------------
-# Install System Packages
+# Install System Packages (changes infrequently)
 # ------------------------------------------------------------------------------
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        # Core utilities
-        ca-certificates \
-        curl \
-        wget \
-        git \
-        openssh-server \
-        sudo \
-        locales \
-        tzdata \
-        fontconfig \
-        unzip \
-        # Build tools (for native extensions)
-        build-essential \
-        pkg-config \
-        libssl-dev && \
-    # Configure locales
-    locale-gen en_US.UTF-8 && \
-    update-locale LANG=en_US.UTF-8 && \
-    # Cleanup apt cache and remove SSH host keys generated during installation
-    # SSH keys will be generated at runtime by entrypoint.sh for security
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    rm -f /etc/ssh/ssh_host_*
+RUN <<EOF
+apt-get update
+apt-get install -y --no-install-recommends \
+    ca-certificates curl wget git openssh-server sudo \
+    locales tzdata fontconfig unzip \
+    build-essential pkg-config libssl-dev
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+apt-get clean
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+rm -f /etc/ssh/ssh_host_*
+EOF
 
 # ------------------------------------------------------------------------------
-# Copy Sindri CLI Binary
+# Create Developer User (changes infrequently)
+# ------------------------------------------------------------------------------
+RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
+    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
+    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
+    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
+
+# ------------------------------------------------------------------------------
+# Setup SSH Server and Configuration (changes infrequently)
+# ------------------------------------------------------------------------------
+COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
+COPY v3/docker/config/developer-sudoers /etc/sudoers.d/developer
+
+RUN mkdir -p /run/sshd /etc/ssh/sshd_config.d && \
+    chmod 0440 /etc/sudoers.d/developer && \
+    chmod 644 /etc/ssh/sshd_config
+
+# ------------------------------------------------------------------------------
+# Copy GitHub CLI Binary (cached independently via multi-stage)
+# ------------------------------------------------------------------------------
+COPY --from=gh-downloader /gh /usr/local/bin/gh
+RUN gh --version
+
+# ------------------------------------------------------------------------------
+# Install Tools: All setup scripts in single layer (changes occasionally)
+# ------------------------------------------------------------------------------
+# Consolidates 12 layers → 2 layers for mise, fonts, starship, SSH env, MOTD
+COPY v3/docker/scripts/setup-ssh-environment.sh \
+     v3/docker/scripts/install-mise.sh \
+     v3/docker/scripts/install-nerd-fonts.sh \
+     v3/docker/scripts/install-starship.sh \
+     v3/docker/scripts/setup-motd.sh \
+     v3/docker/scripts/check-extension-status.sh \
+     v3/docker/scripts/show-motd.sh \
+     /tmp/scripts/
+
+RUN <<EOF
+bash /tmp/scripts/setup-ssh-environment.sh
+bash /tmp/scripts/install-mise.sh
+bash /tmp/scripts/install-nerd-fonts.sh
+bash /tmp/scripts/install-starship.sh
+bash /tmp/scripts/setup-motd.sh
+mkdir -p /etc/profile.d
+cp /tmp/scripts/show-motd.sh /etc/profile.d/00-show-motd.sh
+chmod +x /etc/profile.d/00-show-motd.sh
+cp /tmp/scripts/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh
+chmod +x /etc/profile.d/sindri-extension-status.sh
+rm -rf /tmp/scripts
+EOF
+
+# ------------------------------------------------------------------------------
+# Setup Directories and Permissions
+# ------------------------------------------------------------------------------
+RUN mkdir -p /docker/scripts /docker/config && \
+    mkdir -p ${ALT_HOME} ${WORKSPACE} && \
+    chown -R ${DEVELOPER_USER}:${DEVELOPER_USER} ${ALT_HOME} && \
+    chmod 755 /docker /docker/scripts /docker/config
+
+# ------------------------------------------------------------------------------
+# Copy Sindri CLI Binary (changes frequently - placed late for better caching)
 # ------------------------------------------------------------------------------
 COPY --from=builder /output/sindri /usr/local/bin/sindri
-
-# Verify binary is executable and functional
 RUN sindri --version
 
 # ------------------------------------------------------------------------------
@@ -140,89 +268,12 @@ COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/common.sh /opt/sindri/common
 ENV SINDRI_EXT_HOME=/opt/sindri/extensions
 
 # ------------------------------------------------------------------------------
-# Install GitHub CLI from official releases (avoids CVE vulnerabilities)
-# ------------------------------------------------------------------------------
-ARG GH_VERSION=2.86.0
-RUN ARCH=$(dpkg --print-architecture) && \
-    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
-    tar -xzf /tmp/gh.tar.gz -C /tmp && \
-    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /usr/local/bin/ && \
-    rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_linux_${ARCH} && \
-    gh --version
-
-# ------------------------------------------------------------------------------
-# Create Developer User
-# ------------------------------------------------------------------------------
-RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
-    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
-    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
-    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
-
-# ------------------------------------------------------------------------------
-# Setup SSH Server
-# ------------------------------------------------------------------------------
-RUN mkdir -p /run/sshd && \
-    mkdir -p /etc/ssh/sshd_config.d
-
-# Copy SSH configuration
-COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
-COPY v3/docker/config/developer-sudoers /etc/sudoers.d/${DEVELOPER_USER}
-
-RUN chmod 0440 /etc/sudoers.d/${DEVELOPER_USER} && \
-    chmod 644 /etc/ssh/sshd_config
-
-# Configure SSH environment for login shells (TMPDIR for Claude Code plugins)
-COPY v3/docker/scripts/setup-ssh-environment.sh /tmp/
-RUN bash /tmp/setup-ssh-environment.sh && rm /tmp/setup-ssh-environment.sh
-
-# ------------------------------------------------------------------------------
-# Install mise (Tool Version Manager)
-# ------------------------------------------------------------------------------
-# mise is critical for managing language runtimes installed via extensions
-# (node, python, ruby, go, etc.)
-COPY v3/docker/scripts/install-mise.sh /tmp/
-RUN bash /tmp/install-mise.sh && rm /tmp/install-mise.sh
-
-# ------------------------------------------------------------------------------
-# Install Nerd Fonts (for Starship icons/symbols)
-# ------------------------------------------------------------------------------
-COPY v3/docker/scripts/install-nerd-fonts.sh /tmp/
-RUN bash /tmp/install-nerd-fonts.sh && rm /tmp/install-nerd-fonts.sh
-
-# ------------------------------------------------------------------------------
-# Install Starship (Optional Shell Prompt)
-# ------------------------------------------------------------------------------
-COPY v3/docker/scripts/install-starship.sh /tmp/
-RUN bash /tmp/install-starship.sh && rm /tmp/install-starship.sh
-
-# ------------------------------------------------------------------------------
-# Setup Directories and Permissions
-# ------------------------------------------------------------------------------
-RUN mkdir -p /docker/scripts /docker/config && \
-    mkdir -p ${ALT_HOME} ${WORKSPACE} && \
-    chown -R ${DEVELOPER_USER}:${DEVELOPER_USER} ${ALT_HOME} && \
-    chmod 755 /docker /docker/scripts /docker/config
-
-# ------------------------------------------------------------------------------
-# Copy Entrypoint and Support Scripts
+# Copy Entrypoint and Support Scripts (changes occasionally)
 # ------------------------------------------------------------------------------
 COPY v3/docker/scripts/entrypoint.sh /docker/scripts/
 COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
-COPY v3/docker/scripts/setup-motd.sh /tmp/
-COPY v3/docker/scripts/check-extension-status.sh /tmp/
-COPY v3/docker/scripts/show-motd.sh /tmp/
 
-RUN chmod +x /docker/scripts/entrypoint.sh && \
-    chmod +x /docker/scripts/healthcheck.sh && \
-    bash /tmp/setup-motd.sh && \
-    rm /tmp/setup-motd.sh && \
-    # Install login shell scripts
-    mkdir -p /etc/profile.d && \
-    cp /tmp/show-motd.sh /etc/profile.d/00-show-motd.sh && \
-    chmod +x /etc/profile.d/00-show-motd.sh && \
-    cp /tmp/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh && \
-    chmod +x /etc/profile.d/sindri-extension-status.sh && \
-    rm /tmp/show-motd.sh /tmp/check-extension-status.sh
+RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
 
 # ------------------------------------------------------------------------------
 # Runtime Configuration

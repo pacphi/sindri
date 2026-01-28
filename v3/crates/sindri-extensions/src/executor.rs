@@ -536,25 +536,23 @@ impl ExtensionExecutor {
 
         let mut has_steps = false;
 
-        // Execute in order: script -> mise -> apt
-        // This order ensures base dependencies are installed first
+        // Execute in order: apt -> mise -> npm -> binary -> script
+        // This order ensures:
+        // - apt installs system dependencies first
+        // - mise installs runtime/language tools
+        // - npm/binary install additional tools
+        // - script runs last for post-processing that may depend on above
 
-        // Execute script installation if specified
-        if extension.install.script.is_some() {
+        // Execute apt installation if specified
+        if extension.install.apt.is_some() {
             has_steps = true;
-            self.install_script(extension, timeout).await?;
+            self.install_apt(extension).await?;
         }
 
         // Execute mise installation if specified
         if extension.install.mise.is_some() {
             has_steps = true;
             self.install_mise(extension).await?;
-        }
-
-        // Execute apt installation if specified
-        if extension.install.apt.is_some() {
-            has_steps = true;
-            self.install_apt(extension).await?;
         }
 
         // Execute npm installation if specified
@@ -567,6 +565,12 @@ impl ExtensionExecutor {
         if extension.install.binary.is_some() {
             has_steps = true;
             self.install_binary(extension).await?;
+        }
+
+        // Execute script installation if specified (runs last)
+        if extension.install.script.is_some() {
+            has_steps = true;
+            self.install_script(extension, timeout).await?;
         }
 
         if !has_steps {

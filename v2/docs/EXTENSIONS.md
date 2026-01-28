@@ -1,6 +1,6 @@
 # Extension Catalog
 
-> **Version Notice:** This documentation applies to **Sindri V2** only. For V3 extension documentation, see [V3 CLI Documentation](../../v3/docs/CLI.md) and [V3 Extension Migration Status](../../v3/docs/EXTENSION_MIGRATION_STATUS.md).
+> **Version Notice:** This documentation applies to **Sindri V2** only. For V3 extension documentation, see [V3 CLI Documentation](../../v3/docs/CLI.md) and [V3 Extension Migration Status](../../v3/docs/planning/active/EXTENSION_MIGRATION_STATUS.md).
 
 Comprehensive guide to all available Sindri extensions. Each extension is documented in detail in the [extensions/](extensions/) directory.
 

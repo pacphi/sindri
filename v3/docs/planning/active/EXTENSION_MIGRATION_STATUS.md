@@ -404,8 +404,8 @@ sindri extension install --debug-conditions <extension>
 
 - [Migration Guide](EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md)
 - [ADR 033: Environment-Based Template Selection](../../architecture/adr/033-environment-based-template-selection.md)
-- [Condition Evaluator Source](../../../../crates/sindri-extensions/src/configure/conditions.rs)
-- [Integration Tests](../../../../crates/sindri-extensions/tests/configure_integration_tests.rs)
+- [Condition Evaluator Source](../../../../v3/crates/sindri-extensions/src/configure/conditions.rs)
+- [Integration Tests](../../../../v3/crates/sindri-extensions/tests/configure_integration_tests.rs)
 
 ## Next Steps
 

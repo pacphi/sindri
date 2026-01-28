@@ -73,19 +73,10 @@ jobs:
         with:
           components: clippy
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('v3/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-clippy-
-            ${{ runner.os }}-cargo-
+          workspaces: v3 -> target
 
       - name: Run Clippy
         run: |
@@ -101,19 +92,10 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('v3/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-test-
-            ${{ runner.os }}-cargo-
+          workspaces: v3 -> target
 
       - name: Run tests
         run: |
@@ -143,19 +125,18 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('v3/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-
-            ${{ runner.os }}-cargo-
+          workspaces: v3 -> target
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Configure sccache
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
       - name: Build release binaries
         run: |
@@ -374,8 +355,11 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        run: cargo binstall cargo-audit --no-confirm
 
       - name: Run cargo audit
         run: |
@@ -395,16 +379,10 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-docs-${{ hashFiles('v3/**/Cargo.lock') }}
+          workspaces: v3 -> target
 
       - name: Build documentation
         run: |

@@ -700,8 +700,8 @@ Use this checklist to track your migration progress:
 - [ADR 033: Environment-Based Template Selection](../../architecture/adr/033-environment-based-template-selection.md)
 - [ADR 032: Extension Configure Processing](../../architecture/adr/032-extension-configure-processing.md)
 - [Extension Schema Documentation](../../SCHEMA.md)
-- [Condition Evaluator Source](../../../../crates/sindri-extensions/src/configure/conditions.rs)
-- [Integration Tests](../../../../crates/sindri-extensions/tests/configure_integration_tests.rs)
+- [Condition Evaluator Source](../../../../v3/crates/sindri-extensions/src/configure/conditions.rs)
+- [Integration Tests](../../../../v3/crates/sindri-extensions/tests/configure_integration_tests.rs)
 
 ## Getting Help
 
