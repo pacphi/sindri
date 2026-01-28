@@ -333,11 +333,17 @@ RUN mkdir -p /docker/scripts /docker/config && \
 COPY v3/docker/scripts/entrypoint.sh /docker/scripts/
 COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
 COPY v3/docker/scripts/setup-motd.sh /tmp/
+COPY v3/docker/scripts/check-extension-status.sh /tmp/
 
 RUN chmod +x /docker/scripts/entrypoint.sh && \
     chmod +x /docker/scripts/healthcheck.sh && \
     bash /tmp/setup-motd.sh && \
-    rm /tmp/setup-motd.sh
+    rm /tmp/setup-motd.sh && \
+    # Install extension status check for login shells
+    mkdir -p /etc/profile.d && \
+    cp /tmp/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh && \
+    chmod +x /etc/profile.d/sindri-extension-status.sh && \
+    rm /tmp/check-extension-status.sh
 
 # ------------------------------------------------------------------------------
 # Runtime Configuration
