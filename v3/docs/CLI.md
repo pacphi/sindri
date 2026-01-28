@@ -174,16 +174,16 @@ sindri deploy [OPTIONS]
 
 **Options:**
 
-| Option                      | Short | Default | Description                                      |
-| --------------------------- | ----- | ------- | ------------------------------------------------ |
-| `--force`                   | `-f`  | -       | Force recreation of environment                  |
-| `--dry-run`                 | -     | -       | Show what would happen without deploying         |
-| `--wait`                    | `-w`  | true    | Wait for deployment to complete                  |
-| `--timeout <SECONDS>`       | `-t`  | 600     | Deployment timeout in seconds                    |
-| `--skip-validation`         | -     | -       | Skip configuration validation                    |
-| `--skip-image-verification` | -     | -       | Skip image signature and provenance verification |
-| `--env-file <PATH>`         | -     | -       | Path to custom .env file for secrets             |
-| `--from-source`             | `--fs`| -       | Build from Sindri repository source              |
+| Option                      | Short  | Default | Description                                      |
+| --------------------------- | ------ | ------- | ------------------------------------------------ |
+| `--force`                   | `-f`   | -       | Force recreation of environment                  |
+| `--dry-run`                 | -      | -       | Show what would happen without deploying         |
+| `--wait`                    | `-w`   | true    | Wait for deployment to complete                  |
+| `--timeout <SECONDS>`       | `-t`   | 600     | Deployment timeout in seconds                    |
+| `--skip-validation`         | -      | -       | Skip configuration validation                    |
+| `--skip-image-verification` | -      | -       | Skip image signature and provenance verification |
+| `--env-file <PATH>`         | -      | -       | Path to custom .env file for secrets             |
+| `--from-source`             | `--fs` | -       | Build from Sindri repository source              |
 
 **Examples:**
 

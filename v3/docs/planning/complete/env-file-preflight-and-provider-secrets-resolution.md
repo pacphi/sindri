@@ -57,6 +57,7 @@ pub struct DeployArgs {
 **File**: `v3/crates/sindri/src/commands/deploy.rs`
 
 Implemented `check_env_files()` function that:
+
 - Detects `.env` and `.env.local` files in config directory
 - Respects custom `--env-file` paths
 - Provides clear, actionable feedback to users
@@ -65,12 +66,14 @@ Implemented `check_env_files()` function that:
 **Output Examples:**
 
 ✅ **Files found:**
+
 ```
 Found environment files in /path/to/project: .env.local, .env
 Secrets will be resolved with priority: shell env > .env.local > .env
 ```
 
 ℹ️ **No files:**
+
 ```
 No .env files found in /path/to/project (this is OK)
 Secrets will be loaded from environment variables, Vault, S3, or other sources
@@ -105,16 +108,19 @@ impl ResolutionContext {
 **File**: `v3/crates/sindri-secrets/src/sources/env.rs`
 
 Updated `load_env_files()` to:
+
 - Check for `custom_env_file` first
 - Fall back to standard `.env.local` and `.env` if not provided
 - Cache loaded env files properly
 
 **Priority when custom file is used:**
+
 1. Shell environment variables
 2. Custom .env file
 3. fromFile property
 
 **Priority when no custom file:**
+
 1. Shell environment variables
 2. .env.local
 3. .env
@@ -142,6 +148,7 @@ async fn resolve_secrets(
 ```
 
 **Process:**
+
 1. Resolves secrets before `docker-compose up`
 2. Writes `.env.secrets` file
 3. Docker Compose loads via `env_file` directive
@@ -165,6 +172,7 @@ async fn resolve_and_set_secrets(
 ```
 
 **Process:**
+
 1. Resolves secrets from all sources
 2. Formats as `KEY=value` pairs
 3. Pipes to `flyctl secrets import` via stdin
@@ -186,6 +194,7 @@ async fn resolve_secrets(
 ```
 
 **Process:**
+
 1. Resolves secrets from all sources
 2. Populates `containerEnv` in `devcontainer.json`
 3. DevPod passes to container on startup
@@ -206,6 +215,7 @@ async fn resolve_secrets(
 ```
 
 **Process:**
+
 1. Resolves secrets from all sources
 2. Adds `ENV KEY="value"` statements to `e2b.Dockerfile`
 3. Secrets baked into E2B template image
@@ -231,6 +241,7 @@ async fn ensure_app_secrets(
 ```
 
 **Process:**
+
 1. Resolves secrets from all sources
 2. Creates `{app-name}-secrets` Secret resource
 3. Base64 encodes all values
@@ -381,11 +392,12 @@ secrets:
 
 ### Build-Time Provider
 
-| Provider | Mechanism                                  | Secrets Support           | Security Model                |
-| -------- | ------------------------------------------ | ------------------------- | ----------------------------- |
-| Packer   | Manual `environment` HashMap in config     | ⚠️ Build-time only        | Auto-cleanup before snapshot  |
+| Provider | Mechanism                              | Secrets Support    | Security Model               |
+| -------- | -------------------------------------- | ------------------ | ---------------------------- |
+| Packer   | Manual `environment` HashMap in config | ⚠️ Build-time only | Auto-cleanup before snapshot |
 
 **Packer Note**: Packer is intentionally NOT included in the automatic secrets resolution system because:
+
 1. It builds distributable VM images (not runtime environments)
 2. Secrets used during build MUST be cleaned before snapshot
 3. Manual configuration makes it explicit that secrets are build-time only
@@ -396,26 +408,31 @@ See [ADR-031](../../architecture/adr/031-packer-vm-provisioning-architecture.md#
 ## Security Considerations
 
 ### Docker Provider
+
 - ✅ `.env.secrets` has 0600 permissions (owner read/write only)
 - ✅ File is cleaned up after container starts
 - ✅ Never logged or printed
 
 ### Fly Provider
+
 - ✅ Secrets piped via stdin (not command args)
 - ✅ Encrypted by Fly.io platform
 - ✅ Not stored in local files
 
 ### DevPod Provider
+
 - ⚠️ Secrets in `devcontainer.json` (local file)
 - ℹ️ Only for local/trusted environments
 - ⚠️ Add `.devcontainer/` to `.gitignore`
 
 ### E2B Provider
+
 - ⚠️ Secrets baked into Docker image layers
 - ⚠️ Only use for development/testing
 - ❌ DO NOT use production secrets with E2B
 
 ### Kubernetes Provider
+
 - ✅ Native Secret resources
 - ✅ Base64 encoded
 - ✅ Temp files cleaned up
@@ -453,6 +470,7 @@ cargo test --package sindri check_env_files
 **No migration required!** This is a fully backward-compatible enhancement.
 
 Existing configurations work unchanged:
+
 ```yaml
 secrets:
   - name: ANTHROPIC_API_KEY
@@ -464,6 +482,7 @@ secrets:
 **Recommended setup:**
 
 1. Create `.env.local` in the same directory as `sindri.yaml`:
+
    ```bash
    # .env.local (gitignored)
    ANTHROPIC_API_KEY=sk-ant-...
@@ -471,6 +490,7 @@ secrets:
    ```
 
 2. Add to `.gitignore`:
+
    ```gitignore
    .env.local
    .env.*.local
@@ -478,6 +498,7 @@ secrets:
    ```
 
 3. Configure in `sindri.yaml`:
+
    ```yaml
    secrets:
      - name: ANTHROPIC_API_KEY
@@ -504,13 +525,13 @@ secrets:
 
 ### Provider Limitations
 
-| Provider   | Env Var Secrets | File Secrets | Notes                                    |
-| ---------- | --------------- | ------------ | ---------------------------------------- |
-| Docker     | ✅ Full         | ⚠️ Partial   | File secrets need manual mount config    |
-| Fly        | ✅ Full         | ❌ No        | Fly.io only supports env vars            |
-| DevPod     | ✅ Full         | ❌ No        | Could use mounts in future               |
-| E2B        | ✅ Full         | ❌ No        | Template-based, no runtime mounts        |
-| Kubernetes | ✅ Full         | ❌ No        | Could create ConfigMap/Secret volumes    |
+| Provider   | Env Var Secrets | File Secrets | Notes                                 |
+| ---------- | --------------- | ------------ | ------------------------------------- |
+| Docker     | ✅ Full         | ⚠️ Partial   | File secrets need manual mount config |
+| Fly        | ✅ Full         | ❌ No        | Fly.io only supports env vars         |
+| DevPod     | ✅ Full         | ❌ No        | Could use mounts in future            |
+| E2B        | ✅ Full         | ❌ No        | Template-based, no runtime mounts     |
+| Kubernetes | ✅ Full         | ❌ No        | Could create ConfigMap/Secret volumes |
 
 ## Related Documentation
 
@@ -541,12 +562,14 @@ secrets:
 ### User Experience
 
 **Before:**
+
 ```
 ❌ Error: env file /private/tmp/.env.secrets not found
    (User confused about what went wrong)
 ```
 
 **After:**
+
 ```
 ✅ Found environment files: .env.local, .env
 ✅ Secrets will be resolved with priority: shell env > .env.local > .env

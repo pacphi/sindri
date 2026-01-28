@@ -314,6 +314,7 @@ When you run `sindri deploy`, the Docker provider:
 4. **Cleans up** the secrets file after container starts
 
 **Preflight check output:**
+
 ```
 Found environment files in /path/to/project: .env.local, .env
 Secrets will be resolved with priority: shell env > .env.local > .env
@@ -367,6 +368,7 @@ secrets:
 ```
 
 The Docker provider will:
+
 - Load `ANTHROPIC_API_KEY` from `.env` or shell environment
 - Fetch `DATABASE_PASSWORD` from HashiCorp Vault
 - Pull `S3_BACKUP_KEY` from encrypted S3 storage
@@ -379,7 +381,7 @@ The Docker provider will:
 services:
   sindri:
     env_file:
-      - .env.secrets  # Auto-generated, contains resolved secrets
+      - .env.secrets # Auto-generated, contains resolved secrets
     # ... rest of config
 ```
 
@@ -401,6 +403,7 @@ Shell environment variables have the **highest priority** in secret resolution.
 ### Security Best Practices
 
 1. **Add to .gitignore:**
+
    ```gitignore
    .env.local
    .env.*.local
@@ -410,6 +413,7 @@ Shell environment variables have the **highest priority** in secret resolution.
 2. **Use .env.local for personal secrets** (never commit)
 
 3. **Mark production secrets as required:**
+
    ```yaml
    secrets:
      - name: DATABASE_PASSWORD

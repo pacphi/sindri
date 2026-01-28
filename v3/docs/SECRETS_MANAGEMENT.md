@@ -507,12 +507,14 @@ sindri deploy --config /path/to/sindri.yaml --env-file /path/to/.env
 When you run `sindri deploy`, Sindri performs a preflight check to detect `.env` files:
 
 **If .env files are found:**
+
 ```
 Found environment files in /path/to/project: .env.local, .env
 Secrets will be resolved with priority: shell env > .env.local > .env
 ```
 
 **If no .env files are found:**
+
 ```
 No .env files found in /path/to/project (this is OK)
 Secrets will be loaded from environment variables, Vault, S3, or other sources
@@ -521,6 +523,7 @@ Or use --env-file to specify a custom location
 ```
 
 **If custom .env file is used:**
+
 ```
 Using custom .env file: /path/to/custom.env
 ```
@@ -702,11 +705,13 @@ Each provider handles secrets differently based on their platform capabilities.
 Sindri providers fall into two categories:
 
 **Runtime Providers** (Docker, Fly, DevPod, E2B, Kubernetes):
+
 - Secrets are **injected into running environments**
 - Secrets **persist** for the lifetime of the deployment
 - Use `sindri.yaml` secrets configuration
 
 **Build-Time Provider** (Packer):
+
 - Secrets are **used temporarily during VM image builds**
 - Secrets are **automatically cleaned** before image snapshot
 - Use `environment` HashMap for build-time variables
@@ -719,6 +724,7 @@ Sindri providers fall into two categories:
 **Mechanism:** `.env.secrets` file + `env_file` directive
 
 Sindri automatically:
+
 1. Resolves secrets from sources (env, vault, s3, file)
 2. Writes environment variable secrets to `.env.secrets`
 3. References the file in `docker-compose.yml` via `env_file`
@@ -735,6 +741,7 @@ services:
 **File secrets:** Currently file secrets are not automatically mounted. Use Docker volumes or mounts manually.
 
 **Supported secret types:**
+
 - ✅ Environment variables (env, vault, s3)
 - ⚠️ File secrets (manual mount required)
 
@@ -743,6 +750,7 @@ services:
 **Mechanism:** `flyctl secrets import` command
 
 Sindri automatically:
+
 1. Resolves secrets from sources (env, vault, s3)
 2. Uses `flyctl secrets import` to securely set secrets
 3. Secrets are encrypted and injected as environment variables in the Fly machine
@@ -756,6 +764,7 @@ flyctl secrets import -a my-app
 **File secrets:** Not currently supported by Fly provider.
 
 **Supported secret types:**
+
 - ✅ Environment variables (env, vault, s3)
 - ❌ File secrets
 
@@ -764,6 +773,7 @@ flyctl secrets import -a my-app
 **Mechanism:** Kubernetes `Secret` resources
 
 Sindri automatically:
+
 1. Resolves secrets from sources (env, vault, s3)
 2. Creates a Kubernetes Secret resource named `{app-name}-secrets`
 3. Base64 encodes all secret values
@@ -785,6 +795,7 @@ data:
 **File secrets:** Not currently supported by Kubernetes provider.
 
 **Supported secret types:**
+
 - ✅ Environment variables (env, vault, s3)
 - ❌ File secrets (future enhancement)
 
@@ -793,6 +804,7 @@ data:
 **Mechanism:** `containerEnv` in devcontainer.json
 
 Sindri automatically:
+
 1. Resolves secrets from sources (env, vault, s3)
 2. Populates `containerEnv` in generated `devcontainer.json`
 3. DevPod passes these as environment variables to the container
@@ -809,6 +821,7 @@ Sindri automatically:
 **File secrets:** Not currently supported by DevPod provider.
 
 **Supported secret types:**
+
 - ✅ Environment variables (env, vault, s3)
 - ❌ File secrets
 
@@ -817,6 +830,7 @@ Sindri automatically:
 **Mechanism:** `ENV` statements in Dockerfile
 
 Sindri automatically:
+
 1. Resolves secrets from sources (env, vault, s3)
 2. Injects `ENV` statements into the generated E2B Dockerfile
 3. Secrets are baked into the E2B template image
@@ -832,6 +846,7 @@ ENV DATABASE_PASSWORD="..."
 **File secrets:** Not currently supported by E2B provider.
 
 **Supported secret types:**
+
 - ✅ Environment variables (env, vault, s3)
 - ❌ File secrets
 
@@ -852,8 +867,8 @@ packer:
   cloud: aws
   build:
     environment:
-      NPM_TOKEN: "${env.NPM_TOKEN}"        # From shell environment
-      GITHUB_TOKEN: "${env.GITHUB_TOKEN}"  # From shell environment
+      NPM_TOKEN: "${env.NPM_TOKEN}" # From shell environment
+      GITHUB_TOKEN: "${env.GITHUB_TOKEN}" # From shell environment
 ```
 
 **How it works:**
@@ -896,6 +911,7 @@ sindri packer build --cloud aws --name my-image
 **What NOT to do:**
 
 ❌ **DO NOT** configure runtime secrets in Packer builds:
+
 ```yaml
 # WRONG - Don't do this with Packer
 secrets:
@@ -905,6 +921,7 @@ secrets:
 ```
 
 ✅ **DO** use environment variables for build-time tools:
+
 ```yaml
 # CORRECT - Build-time only
 packer:
@@ -916,16 +933,17 @@ packer:
 
 **Use case examples:**
 
-| Build-Time Secret (✅ OK) | Runtime Secret (❌ WRONG)       |
-| ------------------------- | ------------------------------- |
-| NPM_TOKEN (download pkgs) | ANTHROPIC_API_KEY (app needs)   |
-| GITHUB_TOKEN (clone repo) | DATABASE_PASSWORD (app needs)   |
-| PYPI_TOKEN (pip install)  | AWS_SECRET_KEY (app needs)      |
-| DOCKER_AUTH (pull images) | STRIPE_API_KEY (app needs)      |
+| Build-Time Secret (✅ OK) | Runtime Secret (❌ WRONG)     |
+| ------------------------- | ----------------------------- |
+| NPM_TOKEN (download pkgs) | ANTHROPIC_API_KEY (app needs) |
+| GITHUB_TOKEN (clone repo) | DATABASE_PASSWORD (app needs) |
+| PYPI_TOKEN (pip install)  | AWS_SECRET_KEY (app needs)    |
+| DOCKER_AUTH (pull images) | STRIPE_API_KEY (app needs)    |
 
 **For runtime secrets with Packer-built VMs:**
 
 Use cloud-native secret management:
+
 - **AWS**: AWS Systems Manager Parameter Store, Secrets Manager
 - **Azure**: Azure Key Vault
 - **GCP**: Google Secret Manager
@@ -933,6 +951,7 @@ Use cloud-native secret management:
 Or deploy a secrets management tool (Vault, Doppler) on the instances launched from your VM images.
 
 **Supported secret types:**
+
 - ✅ Build-time environment variables (manual configuration)
 - ❌ Runtime secrets (use cloud-native solutions instead)
 - ❌ Automatic resolution from sindri.yaml (not implemented)

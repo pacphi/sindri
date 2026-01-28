@@ -10,6 +10,7 @@
 Users were experiencing confusing deployment failures when `.env` files were missing or located in unexpected directories. The errors manifested differently across providers:
 
 ### Problem 1: Docker Provider Error
+
 ```
 Error: env file /private/tmp/.env.secrets not found: stat /private/tmp/.env.secrets: no such file or directory
 ```
@@ -19,6 +20,7 @@ Error: env file /private/tmp/.env.secrets not found: stat /private/tmp/.env.secr
 ### Problem 2: Unclear .env File Location
 
 Users didn't know where to place `.env` files:
+
 - Should it be in the current directory?
 - Should it be with `sindri.yaml`?
 - What if `sindri.yaml` is in a custom location (`--config` flag)?
@@ -26,6 +28,7 @@ Users didn't know where to place `.env` files:
 ### Problem 3: No Custom .env Path Support
 
 Users with non-standard project layouts (e.g., monorepos) couldn't specify custom `.env` file paths:
+
 ```
 project/
 ├── config/
@@ -71,6 +74,7 @@ async fn resolve_secrets(
 ```
 
 **Implementation per provider:**
+
 - **Docker**: Write `.env.secrets`, reference in `docker-compose.yml`
 - **Fly**: Use `flyctl secrets import` via stdin
 - **DevPod**: Populate `containerEnv` in `devcontainer.json`
@@ -108,12 +112,14 @@ fn check_env_files(
 **Output Examples:**
 
 ✅ **Success case:**
+
 ```
 Found environment files in /path/to/project: .env.local, .env
 Secrets will be resolved with priority: shell env > .env.local > .env
 ```
 
 ℹ️ **No files case:**
+
 ```
 No .env files found in /path/to/project (this is OK)
 Secrets will be loaded from environment variables, Vault, S3, or other sources
@@ -122,6 +128,7 @@ Or use --env-file to specify a custom location
 ```
 
 ⚠️ **Custom file missing:**
+
 ```
 Custom .env file not found: /path/to/custom.env
 Secrets will be loaded from environment variables or other sources
@@ -227,12 +234,14 @@ async fn load_env_files(&self, ctx: &ResolutionContext) -> Result<EnvFiles> {
 ### Testing Strategy
 
 **Unit tests:**
+
 - `test_check_env_files_with_both_files()`: Detects both .env and .env.local
 - `test_check_env_files_with_no_files()`: Handles missing files gracefully
 - `test_check_env_files_with_custom_path()`: Uses custom --env-file path
 - `test_check_env_files_custom_path_not_found()`: Warns when custom file missing
 
 **Integration tests:**
+
 - Docker: Deploy with secrets, verify `.env.secrets` created
 - Fly: Deploy with secrets, verify `flyctl secrets import` called
 - DevPod: Deploy with secrets, verify `containerEnv` populated
@@ -284,6 +293,7 @@ secrets:
 The Packer provider is **intentionally excluded** from automatic secrets resolution:
 
 **Rationale:**
+
 - Packer builds distributable VM images (not runtime environments)
 - Secrets used during build MUST be cleaned before snapshot
 - Manual `environment` configuration prevents accidental secret leakage
@@ -292,6 +302,7 @@ The Packer provider is **intentionally excluded** from automatic secrets resolut
 **Current approach:** Users manually configure build-time env vars in `packer.build.environment`
 
 **Alternative considered:** Add `build_only: true` flag to secrets, but rejected due to:
+
 - Increased complexity
 - Risk of users misunderstanding and baking secrets into images
 - Manual configuration makes intent clearer

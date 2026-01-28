@@ -175,9 +175,19 @@ impl KubernetesProvider {
     }
 
     /// Generate Kubernetes manifests
-    fn generate_manifests(&self, config: &SindriConfig, output_dir: &Path) -> Result<PathBuf> {
+    fn generate_manifests(
+        &self,
+        config: &SindriConfig,
+        output_dir: &Path,
+        image_override: Option<&str>,
+    ) -> Result<PathBuf> {
         let k8s_config = self.get_k8s_config(config);
         let mut context = TemplateContext::from_config(config, "none");
+
+        // Apply image override if provided
+        if let Some(image) = image_override {
+            context.image = image.to_string();
+        }
 
         // Add K8s-specific context
         let mut k8s_ctx = HashMap::new();
@@ -775,8 +785,9 @@ impl Provider for KubernetesProvider {
             }
         }
 
-        // Generate manifests
-        let manifest_path = self.generate_manifests(config, &self.output_dir)?;
+        // Generate manifests with the resolved image
+        let manifest_path =
+            self.generate_manifests(config, &self.output_dir, Some(&resolved_image))?;
 
         if opts.dry_run {
             return Ok(DeployResult {

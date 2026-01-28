@@ -115,11 +115,13 @@ Embedded security hardening directly into provisioning scripts:
 **Critical Design Decision**: Packer handles secrets **fundamentally differently** than runtime providers.
 
 **Runtime Providers** (Docker, Fly, DevPod, E2B, Kubernetes):
+
 - Inject secrets into running environments (covered by ADR-015, ADR-038)
 - Secrets persist for container/app lifetime
 - Use `sindri.yaml` secrets configuration
 
 **Packer Provider** (VM Images):
+
 - Uses secrets **temporarily during build** only
 - Secrets **MUST be cleaned** before image distribution
 - Uses manual `environment` HashMap (NOT `sindri.yaml` secrets)

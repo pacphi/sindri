@@ -144,9 +144,19 @@ impl DockerProvider {
     }
 
     /// Generate docker-compose.yml from config
-    fn generate_compose(&self, config: &SindriConfig, output_dir: &Path) -> Result<PathBuf> {
+    fn generate_compose(
+        &self,
+        config: &SindriConfig,
+        output_dir: &Path,
+        image_override: Option<&str>,
+    ) -> Result<PathBuf> {
         let dind_mode = self.detect_dind_mode(config);
-        let context = TemplateContext::from_config(config, &dind_mode);
+        let mut context = TemplateContext::from_config(config, &dind_mode);
+
+        // Apply image override if provided
+        if let Some(image) = image_override {
+            context.image = image.to_string();
+        }
 
         let compose_content = self.templates.render("docker-compose.yml", &context)?;
         let compose_path = output_dir.join("docker-compose.yml");
@@ -631,8 +641,8 @@ impl Provider for DockerProvider {
             }
         };
 
-        // Generate docker-compose.yml
-        let compose_path = self.generate_compose(config, &self.output_dir)?;
+        // Generate docker-compose.yml with the resolved image
+        let compose_path = self.generate_compose(config, &self.output_dir, Some(&image))?;
 
         if opts.dry_run {
             self.cleanup_secrets_file(secrets_file.as_ref());
