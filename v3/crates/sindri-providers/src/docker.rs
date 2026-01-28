@@ -725,7 +725,10 @@ impl Provider for DockerProvider {
 
         // Stop existing container if force
         if opts.force && self.container_exists(&name).await {
-            info!("Removing existing container with project name '{}'...", project_name);
+            info!(
+                "Removing existing container with project name '{}'...",
+                project_name
+            );
             let _ = self
                 .docker_compose_with_project(&["down", "-v"], &compose_path, &project_name)
                 .await;
@@ -935,7 +938,10 @@ impl Provider for DockerProvider {
 
         // Run docker compose down first
         if compose_path.exists() {
-            info!("Running docker compose down with project name '{}'...", project_name);
+            info!(
+                "Running docker compose down with project name '{}'...",
+                project_name
+            );
             match self
                 .docker_compose_with_project(
                     &["down", "--volumes", "--remove-orphans"],
