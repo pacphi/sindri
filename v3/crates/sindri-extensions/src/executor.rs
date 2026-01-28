@@ -485,8 +485,11 @@ impl ExtensionExecutor {
         // Execute script with timeout
         debug!("Running install script: {:?}", script_path);
 
+        // CRITICAL: Pass absolute path to bash so BASH_SOURCE contains full path
+        // This allows scripts to use dirname resolution to find common.sh
+        // If we pass relative path, BASH_SOURCE is just filename and dirname fails
         let mut cmd = Command::new("bash");
-        cmd.arg(&script_path);
+        cmd.arg(script_path.canonicalize().unwrap_or(script_path.clone()));
         cmd.args(&script_config.args);
         cmd.current_dir(&ext_dir);
         cmd.stdout(Stdio::piped());
