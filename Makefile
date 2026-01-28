@@ -189,8 +189,8 @@ endef
 	v3-doc v3-run v3-run-debug v3-install \
 	v3-docker-build v3-docker-build-latest v3-docker-build-nocache \
 	v3-docker-build-from-source v3-docker-build-from-binary \
-	ci ci-v2 ci-v3 \
-	clean clean-v2 clean-v3
+	ci v2-ci v3-ci \
+	clean v2-clean v3-clean
 
 # ============================================================================
 # Default Target
@@ -282,13 +282,13 @@ help:
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ CI/CD Targets ═══════════════════════════════════════════════════$(RESET)"
 	@echo "  ci                     - Run full CI (v2 + v3)"
-	@echo "  ci-v2                  - Run v2 CI pipeline"
-	@echo "  ci-v3                  - Run v3 CI pipeline"
+	@echo "  v2-ci                  - Run v2 CI pipeline"
+	@echo "  v3-ci                  - Run v3 CI pipeline"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ Utility ═════════════════════════════════════════════════════════$(RESET)"
 	@echo "  clean                  - Clean all build artifacts"
-	@echo "  clean-v2               - Clean v2 Docker images"
-	@echo "  clean-v3               - Clean v3 Rust artifacts"
+	@echo "  v2-clean               - Clean v2 Docker images"
+	@echo "  v3-clean               - Clean v3 Rust artifacts"
 	@echo ""
 
 # ============================================================================
@@ -957,15 +957,15 @@ v3-inspec-exec-local:
 # ============================================================================
 
 .PHONY: ci
-ci: ci-v2 ci-v3
+ci: v2-ci v3-ci
 	@echo "$(GREEN)$(BOLD)✓ Full CI pipeline passed$(RESET)"
 
-.PHONY: ci-v2
-ci-v2: v2-validate v2-build
+.PHONY: v2-ci
+v2-ci: v2-validate v2-build
 	@echo "$(GREEN)$(BOLD)✓ v2 CI pipeline passed$(RESET)"
 
-.PHONY: ci-v3
-ci-v3: v3-validate v3-build
+.PHONY: v3-ci
+v3-ci: v3-validate v3-build
 	@echo "$(GREEN)$(BOLD)✓ v3 CI pipeline passed$(RESET)"
 
 # ============================================================================
@@ -973,17 +973,17 @@ ci-v3: v3-validate v3-build
 # ============================================================================
 
 .PHONY: clean
-clean: clean-v2 clean-v3
+clean: v2-clean v3-clean
 	@echo "$(GREEN)✓ All build artifacts cleaned$(RESET)"
 
-.PHONY: clean-v2
-clean-v2:
+.PHONY: v2-clean
+v2-clean:
 	@echo "$(BLUE)Cleaning v2 Docker images...$(RESET)"
 	@docker images | grep sindri | awk '{print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
 	@echo "$(GREEN)✓ v2 artifacts cleaned$(RESET)"
 
-.PHONY: clean-v3
-clean-v3:
+.PHONY: v3-clean
+v3-clean:
 	@echo "$(BLUE)Cleaning v3 Rust artifacts...$(RESET)"
 	cd $(V3_DIR) && cargo clean
 	@echo "$(BLUE)Cleaning v3 cached repositories...$(RESET)"

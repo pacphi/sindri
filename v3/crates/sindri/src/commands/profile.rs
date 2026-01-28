@@ -44,8 +44,25 @@ fn get_cache_dir() -> Result<PathBuf> {
     Ok(home.join(".sindri").join("cache"))
 }
 
-/// Get extensions directory (~/.sindri/extensions)
+/// Get extensions directory
+///
+/// Returns the appropriate extensions directory based on deployment mode:
+/// - Source builds: Uses SINDRI_EXTENSIONS_SOURCE (e.g., /opt/sindri/extensions)
+/// - Downloaded/installed extensions: Uses ~/.sindri/extensions
 fn get_extensions_dir() -> Result<PathBuf> {
+    // Check if this is a source build
+    let source_build = std::env::var("SINDRI_BUILD_FROM_SOURCE")
+        .unwrap_or_default()
+        .to_lowercase()
+        == "true";
+
+    if source_build {
+        if let Ok(source_path) = std::env::var("SINDRI_EXTENSIONS_SOURCE") {
+            return Ok(std::path::PathBuf::from(source_path));
+        }
+    }
+
+    // Default to home directory for downloaded extensions
     let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
     Ok(home.join(".sindri").join("extensions"))
 }
