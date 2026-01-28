@@ -303,18 +303,21 @@ install_extensions_background() {
         cd "$WORKSPACE"
 
         # Determine installation method (priority order)
+        # Preserve SINDRI_* environment variables for extension loading
+        local env_vars="SINDRI_BUILD_FROM_SOURCE=${SINDRI_BUILD_FROM_SOURCE:-} SINDRI_SOURCE_REF=${SINDRI_SOURCE_REF:-} SINDRI_EXTENSIONS_SOURCE=${SINDRI_EXTENSIONS_SOURCE:-}"
+
         if [[ -f "sindri.yaml" ]]; then
             # Priority 1: Install from sindri.yaml if present
             print_status "Installing extensions from sindri.yaml..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" >> "$install_log" 2>&1
+            su - "$DEVELOPER_USER" -c "$env_vars cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" >> "$install_log" 2>&1
         elif [[ -n "${SINDRI_PROFILE:-}" ]]; then
             # Priority 2: Install from SINDRI_PROFILE environment variable
             print_status "Installing profile: ${SINDRI_PROFILE}..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "sindri extension install --profile '${SINDRI_PROFILE}' --yes" >> "$install_log" 2>&1
+            su - "$DEVELOPER_USER" -c "$env_vars sindri extension install --profile '${SINDRI_PROFILE}' --yes" >> "$install_log" 2>&1
         else
             # Priority 3: Default to minimal profile
             print_status "Installing minimal profile (default)..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "sindri extension install --profile minimal --yes" >> "$install_log" 2>&1
+            su - "$DEVELOPER_USER" -c "$env_vars sindri extension install --profile minimal --yes" >> "$install_log" 2>&1
         fi
 
         # Mark as complete if successful
