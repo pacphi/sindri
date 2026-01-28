@@ -197,6 +197,42 @@ impl DockerProvider {
         Ok(output)
     }
 
+    /// Run docker compose command with explicit project name
+    async fn docker_compose_with_project(
+        &self,
+        args: &[&str],
+        compose_file: &Path,
+        project_name: &str,
+    ) -> Result<std::process::Output> {
+        let mut cmd = Command::new("docker");
+        cmd.arg("compose")
+            .arg("-f")
+            .arg(compose_file)
+            .arg("--project-name")
+            .arg(project_name)
+            .args(args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        debug!(
+            "Running: docker compose -f {} --project-name {} {}",
+            compose_file.display(),
+            project_name,
+            args.join(" ")
+        );
+        let output = cmd.output().await?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            warn!(
+                "Docker compose command failed (project: {}): {}",
+                project_name, stderr
+            );
+        }
+
+        Ok(output)
+    }
+
     /// Check if a container is running
     async fn is_container_running(&self, name: &str) -> bool {
         let output = Command::new("docker")
@@ -680,15 +716,26 @@ impl Provider for DockerProvider {
             ));
         }
 
+        // Derive project name from output directory for consistent volume naming
+        let project_name = self
+            .output_dir
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "sindri".to_string());
+
         // Stop existing container if force
         if opts.force && self.container_exists(&name).await {
-            info!("Removing existing container...");
-            let _ = self.docker_compose(&["down", "-v"], &compose_path).await;
+            info!("Removing existing container with project name '{}'...", project_name);
+            let _ = self
+                .docker_compose_with_project(&["down", "-v"], &compose_path, &project_name)
+                .await;
         }
 
         // Start container
-        info!("Starting container...");
-        let output = self.docker_compose(&["up", "-d"], &compose_path).await?;
+        info!("Starting container with project name '{}'...", project_name);
+        let output = self
+            .docker_compose_with_project(&["up", "-d"], &compose_path, &project_name)
+            .await?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -888,10 +935,29 @@ impl Provider for DockerProvider {
 
         // Run docker compose down first
         if compose_path.exists() {
-            info!("Running docker compose down...");
-            let _ = self
-                .docker_compose(&["down", "--volumes", "--remove-orphans"], &compose_path)
-                .await;
+            info!("Running docker compose down with project name '{}'...", project_name);
+            match self
+                .docker_compose_with_project(
+                    &["down", "--volumes", "--remove-orphans"],
+                    &compose_path,
+                    &project_name,
+                )
+                .await
+            {
+                Ok(output) => {
+                    if output.status.success() {
+                        info!("Docker compose down completed successfully");
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        warn!("Docker compose down had issues: {}", stderr);
+                        warn!("Will attempt manual cleanup as fallback");
+                    }
+                }
+                Err(e) => {
+                    warn!("Docker compose down failed: {}", e);
+                    warn!("Will attempt manual cleanup as fallback");
+                }
+            }
         }
 
         // Manual container cleanup as fallback
