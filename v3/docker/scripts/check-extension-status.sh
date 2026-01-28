@@ -12,9 +12,13 @@ case $- in
       *) return 0;;
 esac
 
-SINDRI_HOME="${HOME}/.sindri"
+# CRITICAL: Use ALT_HOME if set (volume-mounted location where extensions are installed)
+# On login shell, HOME=/home/developer but extensions are at /alt/home/developer
+# This ensures we check the correct location where auto-install wrote the data
+SINDRI_HOME="${ALT_HOME:-${HOME}}/.sindri"
 BOOTSTRAP_MARKER="${SINDRI_HOME}/bootstrap-complete"
 INSTALL_LOG="${SINDRI_HOME}/logs/install.log"
+MANIFEST="${SINDRI_HOME}/manifest.yaml"
 STATUS_SHOWN_MARKER="${SINDRI_HOME}/.status-shown-${RANDOM}"
 
 # Skip if extensions are disabled
@@ -31,9 +35,8 @@ export SINDRI_STATUS_SHOWN=1
 # Check extension installation status
 if [[ -f "$BOOTSTRAP_MARKER" ]]; then
     # Bootstrap marker exists - verify extensions are actually installed
-    # Check if manifest exists and has entries (not just marker from old volume)
-    MANIFEST="${SINDRI_HOME}/manifest.yaml"
-    if [[ -f "$MANIFEST" ]] && grep -q "installed:" "$MANIFEST" 2>/dev/null; then
+    # Check manifest for installed/failed state (not just "installing")
+    if [[ -f "$MANIFEST" ]] && grep -q "state: installed" "$MANIFEST" 2>/dev/null; then
         # Extensions actually installed - show success (only once per session)
         if [[ ! -f "${SINDRI_HOME}/.login-notified" ]]; then
             echo ""
@@ -41,13 +44,35 @@ if [[ -f "$BOOTSTRAP_MARKER" ]]; then
             echo ""
             touch "${SINDRI_HOME}/.login-notified"
         fi
-    else
-        # Marker exists but no extensions - stale marker from previous deployment
+    elif [[ -f "$MANIFEST" ]] && grep -q "state: failed" "$MANIFEST" 2>/dev/null; then
+        # Installation completed but some extensions failed
         echo ""
-        echo "⚠️  Extension marker found but no extensions installed."
-        echo "   This may happen after redeploying with a persisted volume."
-        echo "   To install extensions: sindri profile install <profile>"
-        echo "   Or restart container to trigger auto-install: rm ~/.sindri/bootstrap-complete"
+        echo "⚠️  Extension installation completed with failures"
+        echo "   Check status: sindri extension status"
+        echo "   View log:     tail ~/.sindri/logs/install.log"
+        echo "   Retry:        sindri profile install <profile> --yes"
+        echo ""
+    elif [[ -f "$MANIFEST" ]] && grep -q "state: installing\|version: installing" "$MANIFEST" 2>/dev/null; then
+        # Installation in progress or just finished
+        if pgrep -f "sindri.*install" > /dev/null 2>&1; then
+            echo ""
+            echo "⏳ Extension installation in progress..."
+            echo "   Monitor: tail -f ~/.sindri/logs/install.log"
+            echo "   Status:  sindri extension status"
+            echo ""
+        else
+            # Installation finished, extensions may still be validating
+            echo ""
+            echo "✅ Extension installation completed"
+            echo "   Verify: sindri extension list --installed"
+            echo ""
+        fi
+    else
+        # Marker exists but manifest is missing or corrupted - genuine stale volume case
+        echo ""
+        echo "⚠️  Extension marker found but manifest is invalid"
+        echo "   This may indicate a stale volume from a previous deployment"
+        echo "   Retry installation: sindri profile install <profile> --yes"
         echo ""
     fi
 elif [[ -f "$INSTALL_LOG" ]]; then
