@@ -4,6 +4,7 @@
 //! and executing the appropriate installation method (mise, apt, binary, npm, script, hybrid).
 
 use crate::configure::ConfigureProcessor;
+use crate::validation::ValidationConfig;
 use anyhow::{anyhow, Context, Result};
 use regex::Regex;
 use sindri_core::types::{AptInstallConfig, Extension, HookConfig, InstallMethod};
@@ -585,9 +586,27 @@ impl ExtensionExecutor {
     }
 
     /// Validate an installed extension
+    ///
+    /// Sets up comprehensive PATH including:
+    /// - mise shims (for node, python, etc.)
+    /// - npm global packages directory
+    /// - Go binaries
+    /// - Cargo binaries
+    /// - User local binaries
+    /// - Additional paths from SINDRI_VALIDATION_EXTRA_PATHS
     pub async fn validate_extension(&self, extension: &Extension) -> Result<bool> {
         let name = &extension.metadata.name;
         info!("Validating extension: {}", name);
+
+        // Build comprehensive PATH for validation
+        // This ensures tools installed via various methods are discoverable
+        let validation_config = ValidationConfig::new(&self.home_dir, &self.workspace_dir);
+        let validation_path = validation_config.build_validation_path();
+
+        debug!(
+            "Validation PATH includes: {:?}",
+            validation_config.get_all_paths()
+        );
 
         for cmd in &extension.validate.commands {
             let args = vec![cmd.version_flag.as_str()];
@@ -596,6 +615,7 @@ impl ExtensionExecutor {
 
             let output = Command::new(&cmd.name)
                 .args(&args)
+                .env("PATH", &validation_path)
                 .output()
                 .await
                 .context(format!("Failed to run validation command: {}", cmd.name))?;

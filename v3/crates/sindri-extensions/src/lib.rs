@@ -19,6 +19,7 @@ pub mod manifest;
 pub mod profile;
 pub mod registry;
 pub mod types;
+pub mod validation;
 pub mod validator;
 
 pub use bom::BomGenerator;
@@ -31,4 +32,5 @@ pub use executor::ExtensionExecutor;
 pub use manifest::ManifestManager;
 pub use profile::{ProfileInstallResult, ProfileInstaller, ProfileStatus};
 pub use registry::ExtensionRegistry;
+pub use validation::{ValidationConfig, DEFAULT_VALIDATION_PATHS, VALIDATION_EXTRA_PATHS_ENV};
 pub use validator::ExtensionValidator;
