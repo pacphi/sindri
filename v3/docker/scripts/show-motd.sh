@@ -3,8 +3,9 @@
 # Only show for interactive shells to avoid breaking scripts
 case $- in
     *i*)
-        if [ -f /etc/motd ]; then
+        if [[ -f /etc/motd ]]; then
             cat /etc/motd
         fi
         ;;
+    *) ;;
 esac
