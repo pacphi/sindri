@@ -601,6 +601,11 @@ impl Provider for DockerProvider {
             let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
             args.push(&sindri_version_arg);
 
+            // Pass SOURCE_REF for environment variable
+            args.push("--build-arg");
+            let source_ref_arg = format!("SINDRI_SOURCE_REF={}", sindri_version);
+            args.push(&source_ref_arg);
+
             let context_str = repo_dir.to_string_lossy();
             args.push(&context_str);
 

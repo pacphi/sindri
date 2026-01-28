@@ -242,6 +242,7 @@ impl DevPodProvider {
         let dockerfile_str = dockerfile.to_string_lossy();
         let context_str = context_dir.to_string_lossy();
         let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
+        let source_ref_arg = format!("SINDRI_SOURCE_REF={}", sindri_version);
 
         let status = Command::new("docker")
             .args([
@@ -254,6 +255,8 @@ impl DevPodProvider {
                 "BUILD_FROM_SOURCE=true",
                 "--build-arg",
                 &sindri_version_arg,
+                "--build-arg",
+                &source_ref_arg,
                 &context_str,
             ])
             .stdout(Stdio::inherit())

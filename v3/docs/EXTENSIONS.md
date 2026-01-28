@@ -346,6 +346,172 @@ bom: # Optional: Software Bill of Materials
 
 ---
 
+## Extension Loading Mechanisms
+
+Sindri uses a prioritized extension loading system that supports different deployment modes (local development, build-from-source, and production releases).
+
+### Loading Priority
+
+When loading extension definitions, Sindri checks the following locations in order:
+
+#### 1. Source Build Extensions (`/opt/sindri/extensions/`)
+
+**When used**: Docker images built with `buildFromSource.enabled: true`
+
+**How it works**: During Docker image build, extension definitions are copied from the cloned repository into `/opt/sindri/`:
+- `v3/extensions/` → `/opt/sindri/extensions/`
+- `v3/registry.yaml` → `/opt/sindri/registry.yaml`
+- `v3/profiles.yaml` → `/opt/sindri/profiles.yaml`
+
+**Environment variables**:
+- `SINDRI_BUILD_FROM_SOURCE=true` - Signals source-based deployment
+- `SINDRI_SOURCE_REF=<git-ref>` - Git reference used for build (e.g., `main`, `v3.0.0`)
+- `SINDRI_EXTENSIONS_SOURCE=/opt/sindri/extensions` - Path to source extensions
+
+**Example**:
+```bash
+# Inside a buildFromSource container
+$ ls /opt/sindri/extensions/
+nodejs/  python/  docker/  rust/  golang/  ...
+
+$ echo $SINDRI_BUILD_FROM_SOURCE
+true
+
+$ sindri extension install ruby
+# Loads from: /opt/sindri/extensions/ruby/extension.yaml
+```
+
+#### 2. Development Extensions (`v3/extensions/`)
+
+**When used**: Local development when running `sindri` from source
+
+**How it works**: Resolves extension paths relative to the compiled binary's location:
+```
+sindri-extensions/  (crate)
+  ↓ parent
+crates/
+  ↓ parent
+v3/
+  ↓ join
+v3/extensions/<name>/extension.yaml
+```
+
+**Example**:
+```bash
+# Running from v3/ directory during development
+$ cargo run -- extension install nodejs
+# Loads from: v3/extensions/nodejs/extension.yaml
+```
+
+#### 3. Downloaded Extensions (`~/.sindri/extensions/`)
+
+**When used**: Production deployments using release images (e.g., `ghcr.io/pacphi/sindri:3.0.0`)
+
+**How it works**: Extensions are downloaded from GitHub releases and extracted to:
+```
+~/.sindri/extensions/
+├── nodejs/
+│   ├── 2.1.0/
+│   │   ├── extension.yaml
+│   │   └── scripts/
+│   └── 2.0.0/              # Old version kept for rollback
+└── python/
+    └── 1.3.0/
+        ├── extension.yaml
+        └── scripts/
+```
+
+**Distribution flow**:
+1. Registry loaded from GitHub (cached at `~/.sindri/cache/registry.yaml`)
+2. Compatibility matrix checked for CLI version
+3. Extension archive downloaded: `https://github.com/sindri/sindri-extensions/releases/download/python@1.3.0/python-1.3.0.tar.gz`
+4. Archive extracted to: `~/.sindri/extensions/python/1.3.0/`
+5. Extension definition loaded from extracted location
+
+**Example**:
+```bash
+# Inside a release container
+$ sindri extension install python
+# Downloads from GitHub releases
+# Extracts to: ~/.sindri/extensions/python/1.3.0/
+# Loads: ~/.sindri/extensions/python/1.3.0/extension.yaml
+```
+
+### Deployment Comparison
+
+| Aspect                     | Build-from-Source                      | Release-Based                             |
+| -------------------------- | -------------------------------------- | ----------------------------------------- |
+| **Extension definitions**  | `/opt/sindri/extensions/`              | `~/.sindri/extensions/<name>/<version>/`  |
+| **Registry source**        | `/opt/sindri/registry.yaml`            | GitHub → `~/.sindri/cache/registry.yaml`  |
+| **Version management**     | Single version (baked in at build)     | Multiple versions with rollback support   |
+| **Network dependency**     | None (files copied at build time)      | First install requires GitHub access      |
+| **Update mechanism**       | Requires image rebuild                 | `sindri extension upgrade`                |
+| **Disk usage**             | Smaller (single version per extension) | Larger (keeps old versions for rollback)  |
+| **Offline support**        | Full (all files local)                 | Partial (cached files work offline)       |
+| **Use case**               | Development, edge, air-gapped          | Production, cloud, CI/CD                  |
+| **Set via config**         | `deployment.buildFromSource.enabled`   | `deployment.image: ghcr.io/...`           |
+
+### Manual Extension Installation in Containers
+
+Users can SSH into deployed containers and install additional extensions:
+
+**Build-from-Source containers**:
+```bash
+# SSH into container
+$ ssh developer@sindri-container
+
+# Extensions load from baked-in source files
+$ sindri extension install golang
+# ✓ Registry loaded from: /opt/sindri/registry.yaml
+# ✓ Extension loaded from: /opt/sindri/extensions/golang/extension.yaml
+# ✓ Installs via method defined in extension.yaml (mise/apt/script/etc.)
+```
+
+**Release containers**:
+```bash
+# SSH into container
+$ ssh developer@sindri-container
+
+# Extensions download from GitHub
+$ sindri extension install golang
+# → Fetches registry from GitHub (cached 1 hour)
+# → Checks compatibility matrix for CLI version
+# → Downloads: golang@1.0.1.tar.gz from GitHub releases
+# → Extracts to: ~/.sindri/extensions/golang/1.0.1/
+# → Installs via method defined in extension.yaml
+```
+
+### Registry Loading Priority
+
+Similar to extensions, the registry (list of available extensions and profiles) uses a prioritized loading system:
+
+1. **Source files** (if `SINDRI_BUILD_FROM_SOURCE=true`):
+   - `/opt/sindri/registry.yaml`
+   - `/opt/sindri/profiles.yaml`
+
+2. **Cached files** (if valid and fresh):
+   - `~/.sindri/cache/registry.yaml` (1-hour TTL)
+   - `~/.sindri/cache/profiles.yaml`
+
+3. **GitHub download**:
+   - `https://raw.githubusercontent.com/pacphi/sindri/main/v3/registry.yaml`
+   - `https://raw.githubusercontent.com/pacphi/sindri/main/v3/profiles.yaml`
+
+4. **Expired cache** (fallback if GitHub unreachable):
+   - Uses expired cached files as last resort
+
+### Environment Variables Reference
+
+| Variable                      | Description                                        | Example                    | Set By                 |
+| ----------------------------- | -------------------------------------------------- | -------------------------- | ---------------------- |
+| `SINDRI_BUILD_FROM_SOURCE`    | Signals source-based deployment                    | `true`                     | Docker ENV / templates |
+| `SINDRI_SOURCE_REF`           | Git reference used for build                       | `main`, `v3.0.0`           | Docker ARG             |
+| `SINDRI_EXTENSIONS_SOURCE`    | Path to source-based extensions                    | `/opt/sindri/extensions`   | Docker ENV             |
+
+These variables are automatically set during deployment when using `buildFromSource.enabled: true` in `sindri.yaml`.
+
+---
+
 ## See Also
 
 - [EXTENSION_AUTHORING.md](EXTENSION_AUTHORING.md) - Guide to creating new extensions

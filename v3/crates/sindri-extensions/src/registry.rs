@@ -90,11 +90,31 @@ impl ExtensionRegistry {
 
     /// Load registry from GitHub with caching
     ///
-    /// Downloads registry.yaml and profiles.yaml from GitHub,
-    /// caching them locally for TTL duration. Falls back to cache
-    /// if network is unavailable.
+    /// Priority order:
+    /// 1. Local source files (if BUILD_FROM_SOURCE=true): /opt/sindri/registry.yaml
+    /// 2. Cached files (if valid): ~/.sindri/cache/registry.yaml
+    /// 3. Fresh download from GitHub
+    /// 4. Expired cache (fallback)
     pub async fn load_from_github(cache_dir: PathBuf, branch: &str) -> Result<Self> {
         debug!("Loading registry from GitHub (branch: {})", branch);
+
+        // Check for source-based build files first
+        let source_build = std::env::var("SINDRI_BUILD_FROM_SOURCE")
+            .unwrap_or_default()
+            .to_lowercase()
+            == "true";
+
+        if source_build {
+            let source_registry = PathBuf::from("/opt/sindri/registry.yaml");
+            let source_profiles = PathBuf::from("/opt/sindri/profiles.yaml");
+
+            if source_registry.exists() && source_profiles.exists() {
+                debug!("Loading registry from source build files");
+                return Self::load_local(&source_registry, &source_profiles);
+            } else {
+                debug!("Source build enabled but files not found, falling back to GitHub");
+            }
+        }
 
         // Ensure cache directory exists
         std::fs::create_dir_all(&cache_dir)?;

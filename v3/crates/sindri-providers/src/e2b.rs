@@ -298,12 +298,16 @@ impl E2bProvider {
         e2b_dockerfile
             .push_str("# Generated from Sindri Dockerfile with E2B-specific configuration\n\n");
 
-        // Set BUILD_FROM_SOURCE and SINDRI_VERSION for source builds
+        // Set BUILD_FROM_SOURCE, SINDRI_VERSION, and SINDRI_SOURCE_REF for source builds
         let dockerfile_with_args = dockerfile_content
             .replace("ARG BUILD_FROM_SOURCE=false", "ARG BUILD_FROM_SOURCE=true")
             .replace(
                 "ARG SINDRI_VERSION=3.0.0",
                 &format!("ARG SINDRI_VERSION={}", sindri_version),
+            )
+            .replace(
+                "ARG SINDRI_SOURCE_REF",
+                &format!("ARG SINDRI_SOURCE_REF={}", sindri_version),
             );
 
         e2b_dockerfile.push_str(&dockerfile_with_args);

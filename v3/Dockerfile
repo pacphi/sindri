@@ -241,6 +241,29 @@ COPY --from=binary-merge /output/sindri /usr/local/bin/sindri
 RUN sindri --version
 
 # ------------------------------------------------------------------------------
+# Copy Extension Definitions (for source-based builds)
+# ------------------------------------------------------------------------------
+# When BUILD_FROM_SOURCE=true, copy extension definitions from the cloned repo
+# This makes extensions available without needing to download from GitHub releases
+
+ARG BUILD_FROM_SOURCE=false
+ARG SINDRI_SOURCE_REF
+
+# Create directory for source extensions
+RUN mkdir -p /opt/sindri
+
+# Copy extensions, registry, and profiles if building from source
+# Note: These files are in the build context when BUILD_FROM_SOURCE=true
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/extensions/ /opt/sindri/extensions/
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/registry.yaml /opt/sindri/registry.yaml
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/profiles.yaml /opt/sindri/profiles.yaml
+
+# Set environment variables to signal source-based extension loading
+ENV SINDRI_BUILD_FROM_SOURCE=${BUILD_FROM_SOURCE}
+ENV SINDRI_SOURCE_REF=${SINDRI_SOURCE_REF}
+ENV SINDRI_EXTENSIONS_SOURCE=/opt/sindri/extensions
+
+# ------------------------------------------------------------------------------
 # Install GitHub CLI from official releases (avoids CVE vulnerabilities)
 # ------------------------------------------------------------------------------
 ARG GH_VERSION=2.86.0

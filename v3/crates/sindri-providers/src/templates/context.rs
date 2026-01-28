@@ -158,6 +158,34 @@ impl TemplateContext {
                 storage_driver: "auto".to_string(),
             });
 
+        // Build environment variables map
+        let mut env_vars = HashMap::new();
+
+        // Add build-from-source environment variables if enabled
+        if file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false)
+        {
+            env_vars.insert("SINDRI_BUILD_FROM_SOURCE".to_string(), "true".to_string());
+
+            if let Some(git_ref) = file
+                .deployment
+                .build_from_source
+                .as_ref()
+                .and_then(|b| b.git_ref.as_ref())
+            {
+                env_vars.insert("SINDRI_SOURCE_REF".to_string(), git_ref.clone());
+            }
+
+            env_vars.insert(
+                "SINDRI_EXTENSIONS_SOURCE".to_string(),
+                "/opt/sindri/extensions".to_string(),
+            );
+        }
+
         Self {
             name: file.name.clone(),
             profile,
@@ -183,7 +211,7 @@ impl TemplateContext {
             ports,
             has_secrets: !file.secrets.is_empty(),
             secrets_file: ".env.secrets".to_string(),
-            env_vars: HashMap::new(),
+            env_vars,
             ci_mode: false,
         }
     }

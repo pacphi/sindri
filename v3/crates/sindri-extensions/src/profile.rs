@@ -5,6 +5,7 @@
 //! dependency resolution and progress tracking.
 
 use anyhow::{anyhow, Context, Result};
+use std::path::PathBuf;
 use tracing::{debug, info, warn};
 
 use crate::dependency::DependencyResolver;
@@ -376,18 +377,25 @@ impl ProfileInstaller {
 
     /// Load extension definitions from registry
     ///
-    /// Loads extension.yaml files for the given extensions. Tries in order:
+    /// Loads extension.yaml files for the given extensions. Tries in priority order:
     /// 1. Already loaded in registry (skip)
-    /// 2. Local development path: v3/extensions/<name>/extension.yaml
-    /// 3. Downloaded from GitHub releases: ~/.sindri/extensions/<name>/<version>/extension.yaml
-    ///
-    /// For production use, extensions should be downloaded via ExtensionDistributor first.
-    /// For development, extensions can be loaded directly from v3/extensions/.
+    /// 2. Source-based build path: /opt/sindri/extensions/<name>/extension.yaml (when BUILD_FROM_SOURCE=true)
+    /// 3. Local development path: v3/extensions/<name>/extension.yaml (for local development)
+    /// 4. Downloaded from GitHub releases: ~/.sindri/extensions/<name>/<version>/extension.yaml (future)
     async fn load_extension_definitions(&mut self, extension_names: &[String]) -> Result<()> {
         debug!(
             "Loading definitions for {} extensions",
             extension_names.len()
         );
+
+        // Check if we're in a source-based build
+        let source_build = std::env::var("SINDRI_BUILD_FROM_SOURCE")
+            .unwrap_or_default()
+            .to_lowercase()
+            == "true";
+
+        let source_path = std::env::var("SINDRI_EXTENSIONS_SOURCE")
+            .unwrap_or_else(|_| "/opt/sindri/extensions".to_string());
 
         for name in extension_names {
             // Check that extension exists in registry metadata
@@ -405,7 +413,33 @@ impl ProfileInstaller {
                 continue;
             }
 
-            // Try loading from local development path (v3/extensions/<name>/extension.yaml)
+            // Priority 1: Source-based build path (container runtime with BUILD_FROM_SOURCE=true)
+            if source_build {
+                let ext_path = PathBuf::from(&source_path)
+                    .join(name)
+                    .join("extension.yaml");
+
+                if ext_path.exists() {
+                    debug!(
+                        "Loading extension '{}' from source build: {:?}",
+                        name, ext_path
+                    );
+                    self.registry
+                        .load_extension(name, &ext_path)
+                        .context(format!(
+                            "Failed to load extension '{}' from {:?}",
+                            name, ext_path
+                        ))?;
+                    continue;
+                } else {
+                    warn!(
+                        "Extension '{}' not found at source path {:?}, trying fallbacks",
+                        name, ext_path
+                    );
+                }
+            }
+
+            // Priority 2: Local development path (v3/extensions/<name>/extension.yaml)
             let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .parent() // sindri-extensions -> crates
                 .and_then(|p| p.parent()) // crates -> v3
@@ -427,15 +461,70 @@ impl ProfileInstaller {
                 }
             }
 
-            // If not in development mode, extension should have been downloaded
-            // via ExtensionDistributor to ~/.sindri/extensions/<name>/<version>/extension.yaml
-            // For now, return an error if we can't find it
+            // Priority 3: Downloaded extensions (future: via ExtensionDistributor)
+            // Check ~/.sindri/extensions/<name>/<version>/extension.yaml
+            if let Some(home) = dirs::home_dir() {
+                let downloaded_base = home.join(".sindri").join("extensions").join(name);
+
+                if downloaded_base.exists() {
+                    // Find the latest version directory
+                    if let Ok(versions) = std::fs::read_dir(&downloaded_base) {
+                        let versions: Vec<_> = versions
+                            .filter_map(|entry| entry.ok())
+                            .filter(|entry| entry.path().is_dir())
+                            .collect();
+
+                        // Try each version (newest first)
+                        for entry in versions.iter().rev() {
+                            let ext_path = entry.path().join("extension.yaml");
+                            if ext_path.exists() {
+                                debug!(
+                                    "Loading extension '{}' from downloaded path: {:?}",
+                                    name, ext_path
+                                );
+                                self.registry
+                                    .load_extension(name, &ext_path)
+                                    .context(format!(
+                                        "Failed to load extension '{}' from {:?}",
+                                        name, ext_path
+                                    ))?;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // All fallbacks exhausted - return error with helpful diagnostics
+            let source_hint = if source_build {
+                format!(
+                    "- Source build: {}/{}/extension.yaml [checked, not found]\n",
+                    source_path, name
+                )
+            } else {
+                String::new()
+            };
+
             return Err(anyhow!(
-                "Extension '{}' definition not loaded. \
-                 For development, place extension.yaml at v3/extensions/{}/extension.yaml. \
-                 For production, use ExtensionDistributor to download from GitHub releases.",
+                "Extension '{}' definition not loaded. Tried:\n\
+                 {}\
+                 - Dev path: v3/extensions/{}/extension.yaml [not found]\n\
+                 - Downloaded: ~/.sindri/extensions/{}/*/extension.yaml [not found]\n\
+                 \n\
+                 Solutions:\n\
+                 1. For source builds: ensure v3/extensions/ is copied during Docker build\n\
+                 2. For development: run from v3/ directory\n\
+                 3. For production: use ExtensionDistributor to download from GitHub releases\n\
+                 \n\
+                 Debug info:\n\
+                 - BUILD_FROM_SOURCE: {}\n\
+                 - EXTENSIONS_SOURCE: {}",
                 name,
-                name
+                source_hint,
+                name,
+                name,
+                source_build,
+                source_path
             ));
         }
 

@@ -14,6 +14,7 @@ primary_region = "{{ fly_region }}"
   [build.args]
     BUILD_FROM_SOURCE = "true"
     SINDRI_VERSION = "{{ sindri_version }}"
+    SINDRI_SOURCE_REF = "{{ sindri_version }}"
 {% endif %}
 
 [env]
