@@ -136,8 +136,24 @@ impl ExtensionExecutor {
             .await
             .context("Failed to create mise conf.d directory")?;
 
+        // Copy config to conf.d BEFORE installing
+        let dest_config = mise_conf_dir.join(format!("{}.toml", name));
+        tokio::fs::copy(&config_path, &dest_config)
+            .await
+            .context("Failed to copy mise config to conf.d")?;
+
+        // Trust the config directory (required by mise 2024+)
+        // Trust the entire conf.d directory to cover all config files
+        let _ = Command::new("mise")
+            .arg("trust")
+            .arg(&mise_conf_dir)
+            .output()
+            .await;
+
+        debug!("Configuration saved and trusted in {:?}", mise_conf_dir);
+
         // Step 3: Install tools
-        debug!("[3/4] Installing tools with mise (timeout: 5min, 3 retries if needed)...");
+        debug!("[3/5] Installing tools with mise (timeout: 5min, 3 retries if needed)...");
 
         // Change to workspace directory for installation
         let original_dir = std::env::current_dir()?;
@@ -190,23 +206,8 @@ impl ExtensionExecutor {
         // Restore original directory
         std::env::set_current_dir(original_dir)?;
 
-        // Step 4: Copy config to conf.d on success
-        let dest_config = mise_conf_dir.join(format!("{}.toml", name));
-        tokio::fs::copy(&config_path, &dest_config)
-            .await
-            .context("Failed to copy mise config to conf.d")?;
-
-        // Trust the config file (required by mise 2024+)
-        let _ = Command::new("mise")
-            .arg("trust")
-            .arg(&dest_config)
-            .output()
-            .await;
-
-        debug!("Configuration saved to {:?}", mise_conf_dir);
-
-        // Step 5: Reshim to update shims
-        debug!("[4/4] Running mise reshim to update shims...");
+        // Step 4: Reshim to update shims
+        debug!("[4/5] Running mise reshim to update shims...");
         if mise_config.reshim_after_install {
             let _ = Command::new("mise").arg("reshim").output().await;
         }
