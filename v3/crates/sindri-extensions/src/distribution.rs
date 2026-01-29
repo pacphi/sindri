@@ -88,6 +88,9 @@ impl ExtensionDistributor {
     /// # Arguments
     /// * `name` - Extension name
     /// * `version` - Optional specific version (defaults to latest compatible)
+    ///
+    /// In bundled mode (SINDRI_EXT_HOME set), installs from bundled extensions.
+    /// Otherwise, downloads from GitHub releases.
     pub async fn install(&self, name: &str, version: Option<&str>) -> Result<()> {
         info!("Installing extension: {}", name);
 
@@ -116,10 +119,28 @@ impl ExtensionDistributor {
                 }
                 ver
             }
-            None => self
-                .find_latest_compatible(name, &version_req)
-                .await
-                .context("Failed to find latest compatible version")?,
+            None => {
+                // In bundled mode, determine version from bundled extension
+                if let Some(bundled_version) = self.get_bundled_extension_version(name).await? {
+                    if version_req.matches(&bundled_version) {
+                        debug!("Using bundled extension {} version {}", name, bundled_version);
+                        bundled_version
+                    } else {
+                        return Err(anyhow!(
+                            "Bundled extension {} version {} is not compatible with CLI {}. Compatible range: {}",
+                            name,
+                            bundled_version,
+                            self.cli_version,
+                            version_req
+                        ));
+                    }
+                } else {
+                    // Not bundled, find latest compatible from GitHub
+                    self.find_latest_compatible(name, &version_req)
+                        .await
+                        .context("Failed to find latest compatible version")?
+                }
+            }
         };
 
         info!(
@@ -133,25 +154,30 @@ impl ExtensionDistributor {
             return Ok(());
         }
 
-        // 5. Download extension archive
-        let archive_path = self
-            .download_extension(name, &target_version)
-            .await
-            .context("Failed to download extension")?;
+        // 5. Get extension directory (bundled or downloaded)
+        let ext_dir = if let Some(bundled_dir) = self.get_bundled_extension_dir(name).await? {
+            info!("Using bundled extension from {:?}", bundled_dir);
+            bundled_dir
+        } else {
+            // Download extension archive
+            let archive_path = self
+                .download_extension(name, &target_version)
+                .await
+                .context("Failed to download extension")?;
 
-        // 6. Extract to extensions directory
-        let ext_dir = self
-            .extract_extension(&archive_path, name, &target_version)
-            .context("Failed to extract extension")?;
+            // Extract to extensions directory
+            self.extract_extension(&archive_path, name, &target_version)
+                .context("Failed to extract extension")?
+        };
 
-        // 7. Load and validate extension definition
+        // 6. Load and validate extension definition
         let extension = self
             .load_extension(&ext_dir)
             .context("Failed to load extension definition")?;
         self.validate_extension(&extension)
             .context("Extension validation failed")?;
 
-        // 8. Resolve and install dependencies
+        // 7. Resolve and install dependencies
         for dep in extension
             .metadata
             .dependencies
@@ -164,7 +190,7 @@ impl ExtensionDistributor {
             }
         }
 
-        // 9. Update manifest
+        // 8. Update manifest
         self.update_manifest(name, &target_version)
             .await
             .context("Failed to update manifest")?;
@@ -245,8 +271,65 @@ impl ExtensionDistributor {
         Ok(())
     }
 
+    /// Get bundled extension directory if available
+    ///
+    /// Returns Some(PathBuf) if the extension exists in SINDRI_EXT_HOME, None otherwise.
+    async fn get_bundled_extension_dir(&self, name: &str) -> Result<Option<PathBuf>> {
+        if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
+            let bundled_ext_dir = std::path::PathBuf::from(&ext_home).join(name);
+
+            if bundled_ext_dir.exists() && bundled_ext_dir.join("extension.yaml").exists() {
+                debug!("Found bundled extension at {:?}", bundled_ext_dir);
+                return Ok(Some(bundled_ext_dir));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Get bundled extension version if available
+    ///
+    /// Returns Some(Version) if the extension exists in SINDRI_EXT_HOME, None otherwise.
+    async fn get_bundled_extension_version(&self, name: &str) -> Result<Option<Version>> {
+        if let Some(bundled_dir) = self.get_bundled_extension_dir(name).await? {
+            let extension = self.load_extension(&bundled_dir)
+                .context("Failed to load bundled extension")?;
+            let version = Version::parse(&extension.metadata.version)
+                .context(format!("Invalid version in bundled extension: {}", extension.metadata.version))?;
+            return Ok(Some(version));
+        }
+        Ok(None)
+    }
+
     /// Get the compatibility matrix from cache or GitHub
+    ///
+    /// In bundled mode (SINDRI_EXT_HOME set), loads from /opt/sindri/compatibility-matrix.yaml.
+    /// Otherwise, fetches from GitHub with local caching.
     pub async fn get_compatibility_matrix(&self) -> Result<CompatibilityMatrix> {
+        // Check for bundled mode (build-from-source with extensions at /opt/sindri)
+        if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
+            let bundled_path = std::path::PathBuf::from(&ext_home)
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("/opt/sindri"))
+                .join("compatibility-matrix.yaml");
+
+            if bundled_path.exists() {
+                debug!("Using bundled compatibility matrix from {:?}", bundled_path);
+                let content = fs::read_to_string(&bundled_path)
+                    .await
+                    .context(format!(
+                        "Failed to read bundled compatibility matrix at {}",
+                        bundled_path.display()
+                    ))?;
+                return serde_yaml::from_str(&content)
+                    .context("Failed to parse bundled compatibility matrix");
+            } else {
+                debug!(
+                    "Bundled compatibility matrix not found at {:?}, falling back to cache/GitHub",
+                    bundled_path
+                );
+            }
+        }
+
         let cache_path = self.cache_dir.join("compatibility-matrix.yaml");
 
         // Check cache
