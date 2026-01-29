@@ -19,7 +19,7 @@ reqwest = { workspace = true, features = ["json"] }
 async-trait = "0.1"
 shellexpand = "3.1"
 zeroize = { version = "1.8", features = ["derive"] }
-base64 = "0.21"
+base64 = "0.22"
 vaultrs = "0.7"
 dotenvy = "0.15"
 tempfile = "3.24"
