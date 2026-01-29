@@ -66,6 +66,9 @@ flate2 = "1.1"
 tar = "0.4"
 reqwest = { workspace = true }
 
+# TLS crypto provider (required for rustls 0.23+)
+rustls = { version = "0.23", features = ["aws-lc-rs"], default-features = false }
+
 [build-dependencies]
 chrono = "0.4"
 tokio = { workspace = true }

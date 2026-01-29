@@ -808,7 +808,7 @@ impl Provider for DockerProvider {
         }
 
         // Run docker exec interactively
-        let status = Command::new("docker")
+        let _status = Command::new("docker")
             .args([
                 "exec",
                 "-it",
@@ -828,10 +828,9 @@ impl Provider for DockerProvider {
             .status()
             .await?;
 
-        if !status.success() {
-            return Err(anyhow!("Failed to connect to container"));
-        }
-
+        // Note: We don't check exit status here because exiting from an interactive
+        // shell is the normal way to disconnect. Any exit (whether code 0 or non-zero)
+        // indicates the user intentionally left the session, not a connection failure.
         Ok(())
     }
 

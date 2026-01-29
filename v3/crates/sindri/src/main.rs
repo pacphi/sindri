@@ -15,6 +15,10 @@ use cli::{Cli, Commands};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Initialize rustls crypto provider (required for rustls 0.23+)
+    // This must be done before any TLS operations
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
     // Parse CLI args
     let cli = Cli::parse();
 
