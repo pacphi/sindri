@@ -51,7 +51,7 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 
 # Additional dependencies for new commands
-base64 = "0.21"
+base64 = "0.22"
 chrono = { workspace = true }
 globset = { workspace = true }
 glob = "0.3"
