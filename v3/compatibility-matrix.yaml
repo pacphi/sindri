@@ -3,7 +3,7 @@
 # and documents breaking changes between versions.
 #
 # Schema Version: 1.0
-# Last Updated: 2026-01-22
+# Last Updated: 2026-01-28
 
 schema_version: "1.0"
 
@@ -20,33 +20,76 @@ cli_versions:
     # Format: extension_name: "semver_range"
     compatible_extensions:
       # Core extensions (always installed)
-      mise-config: ">=1.0.0,<2.0.0"
+      mise-config: ">=2.0.0,<3.0.0"
 
       # Language extensions
       python: ">=1.0.0,<2.0.0"
-      nodejs: ">=2.0.0,<3.0.0"
+      nodejs: ">=1.1.0,<2.0.0"
       rust: ">=1.0.0,<2.0.0"
-      go: ">=1.0.0,<2.0.0"
-      java: ">=1.0.0,<2.0.0"
+      golang: ">=1.0.1,<2.0.0"
+      jvm: ">=2.0.0,<3.0.0"
+      dotnet: ">=2.1.0,<3.0.0"
+      php: ">=2.1.0,<3.0.0"
+      ruby: ">=2.0.0,<3.0.0"
+      haskell: ">=1.0.1,<2.0.0"
 
-      # Database extensions
-      postgresql: ">=1.0.0,<2.0.0"
-      mysql: ">=1.0.0,<2.0.0"
-      redis: ">=1.0.0,<2.0.0"
-      mongodb: ">=1.0.0,<2.0.0"
+      # AI & Agentic Tools
+      agent-browser: ">=0.6.0,<1.0.0"
+      agent-manager: ">=2.0.0,<3.0.0"
+      agentic-flow: ">=1.0.0,<2.0.0"
+      agentic-qe: ">=1.1.0,<2.0.0"
+      ai-toolkit: ">=2.1.0,<3.0.0"
 
-      # Tool extensions
-      docker: ">=1.0.0,<2.0.0"
-      kubectl: ">=1.0.0,<2.0.0"
-      terraform: ">=1.0.0,<2.0.0"
-      vault: ">=1.0.0,<2.0.0"
+      # Claude Ecosystem
+      claude-code-mux: ">=1.0.0,<2.0.0"
+      claude-codepro: ">=4.5.0,<5.0.0"
+      claude-flow-v2: ">=2.7.0,<3.0.0"
+      claude-flow-v3: ">=3.0.0,<4.0.0"
+      claude-marketplace: ">=2.0.0,<3.0.0"
+      claudeup: ">=1.0.0,<2.0.0"
+      claudish: ">=1.0.0,<2.0.0"
+      compahook: ">=1.0.0,<2.0.0"
 
-      # Editor extensions
-      vscode: ">=1.0.0,<2.0.0"
-      neovim: ">=1.0.0,<2.0.0"
+      # Cloud & Infrastructure
+      cloud-tools: ">=2.0.0,<3.0.0"
+      infra-tools: ">=2.0.0,<3.0.0"
+      monitoring: ">=2.0.0,<3.0.0"
 
-      # MCP extensions
-      mcp-server: ">=1.0.0,<2.0.0"
+      # DevOps & Tools
+      docker: ">=1.1.0,<2.0.0"
+      github-cli: ">=2.0.0,<3.0.0"
+      supabase-cli: ">=2.0.0,<3.0.0"
+      tmux-workspace: ">=2.0.0,<3.0.0"
+
+      # MCP Servers
+      context7-mcp: ">=1.0.0,<2.0.0"
+      excalidraw-mcp: ">=1.0.0,<2.0.0"
+      jira-mcp: ">=2.0.0,<3.0.0"
+      linear-mcp: ">=2.1.0,<3.0.0"
+      pal-mcp-server: ">=9.8.0,<10.0.0"
+
+      # Development Tools
+      nodejs-devtools: ">=2.2.0,<3.0.0"
+
+      # AI/ML Tools
+      goose: ">=1.0.0,<2.0.0"
+      ollama: ">=1.0.0,<2.0.0"
+
+      # Desktop & UI
+      guacamole: ">=2.0.0,<3.0.0"
+      xfce-ubuntu: ">=2.0.0,<3.0.0"
+
+      # Testing
+      playwright: ">=2.0.0,<3.0.0"
+
+      # Documentation & Content
+      mdflow: ">=1.0.0,<2.0.0"
+      spec-kit: ">=1.0.0,<2.0.0"
+
+      # Productivity
+      openskills: ">=2.0.0,<3.0.0"
+      ralph: ">=1.0.0,<2.0.0"
+      ruvnet-research: ">=1.0.0,<2.0.0"
 
     # Breaking changes introduced in this version
     breaking_changes:
@@ -56,6 +99,9 @@ cli_versions:
       - "Extension install methods standardized (mise, apt, binary, npm, script, hybrid)"
       - "Removed deprecated 'manual' install method - use 'script' instead"
       - "Extension hooks now support pre/post install lifecycle events"
+      - "Fixed naming: 'java' → 'jvm', 'go' → 'golang' for consistency"
+      - "Removed phantom extensions that don't exist in v3"
+      - "Added 39 missing extensions to compatibility matrix"
 
   # CLI v3.1.x series (planned enhancements)
   "3.1.x":
@@ -63,33 +109,76 @@ cli_versions:
 
     compatible_extensions:
       # Core extensions
-      mise-config: ">=1.1.0,<2.0.0"
+      mise-config: ">=2.1.0,<3.0.0"
 
       # Language extensions (updated for new features)
       python: ">=1.1.0,<2.0.0"
-      nodejs: ">=2.1.0,<3.0.0"
+      nodejs: ">=1.2.0,<2.0.0"
       rust: ">=1.1.0,<2.0.0"
-      go: ">=1.1.0,<2.0.0"
-      java: ">=1.1.0,<2.0.0"
+      golang: ">=1.1.0,<2.0.0"
+      jvm: ">=2.1.0,<3.0.0"
+      dotnet: ">=2.2.0,<3.0.0"
+      php: ">=2.2.0,<3.0.0"
+      ruby: ">=2.1.0,<3.0.0"
+      haskell: ">=1.1.0,<2.0.0"
 
-      # Database extensions
-      postgresql: ">=1.1.0,<2.0.0"
-      mysql: ">=1.1.0,<2.0.0"
-      redis: ">=1.1.0,<2.0.0"
-      mongodb: ">=1.1.0,<2.0.0"
+      # AI & Agentic Tools
+      agent-browser: ">=0.7.0,<1.0.0"
+      agent-manager: ">=2.1.0,<3.0.0"
+      agentic-flow: ">=1.1.0,<2.0.0"
+      agentic-qe: ">=1.2.0,<2.0.0"
+      ai-toolkit: ">=2.2.0,<3.0.0"
 
-      # Tool extensions
-      docker: ">=1.1.0,<2.0.0"
-      kubectl: ">=1.1.0,<2.0.0"
-      terraform: ">=1.1.0,<2.0.0"
-      vault: ">=1.1.0,<2.0.0"
+      # Claude Ecosystem
+      claude-code-mux: ">=1.1.0,<2.0.0"
+      claude-codepro: ">=4.6.0,<5.0.0"
+      claude-flow-v2: ">=2.8.0,<3.0.0"
+      claude-flow-v3: ">=3.1.0,<4.0.0"
+      claude-marketplace: ">=2.1.0,<3.0.0"
+      claudeup: ">=1.1.0,<2.0.0"
+      claudish: ">=1.1.0,<2.0.0"
+      compahook: ">=1.1.0,<2.0.0"
 
-      # Editor extensions
-      vscode: ">=1.1.0,<2.0.0"
-      neovim: ">=1.1.0,<2.0.0"
+      # Cloud & Infrastructure
+      cloud-tools: ">=2.1.0,<3.0.0"
+      infra-tools: ">=2.1.0,<3.0.0"
+      monitoring: ">=2.1.0,<3.0.0"
 
-      # MCP extensions
-      mcp-server: ">=1.1.0,<2.0.0"
+      # DevOps & Tools
+      docker: ">=1.2.0,<2.0.0"
+      github-cli: ">=2.1.0,<3.0.0"
+      supabase-cli: ">=2.1.0,<3.0.0"
+      tmux-workspace: ">=2.1.0,<3.0.0"
+
+      # MCP Servers
+      context7-mcp: ">=1.1.0,<2.0.0"
+      excalidraw-mcp: ">=1.1.0,<2.0.0"
+      jira-mcp: ">=2.1.0,<3.0.0"
+      linear-mcp: ">=2.2.0,<3.0.0"
+      pal-mcp-server: ">=9.9.0,<10.0.0"
+
+      # Development Tools
+      nodejs-devtools: ">=2.3.0,<3.0.0"
+
+      # AI/ML Tools
+      goose: ">=1.1.0,<2.0.0"
+      ollama: ">=1.1.0,<2.0.0"
+
+      # Desktop & UI
+      guacamole: ">=2.1.0,<3.0.0"
+      xfce-ubuntu: ">=2.1.0,<3.0.0"
+
+      # Testing
+      playwright: ">=2.1.0,<3.0.0"
+
+      # Documentation & Content
+      mdflow: ">=1.1.0,<2.0.0"
+      spec-kit: ">=1.1.0,<2.0.0"
+
+      # Productivity
+      openskills: ">=2.1.0,<3.0.0"
+      ralph: ">=1.1.0,<2.0.0"
+      ruvnet-research: ">=1.1.0,<2.0.0"
 
     breaking_changes:
       - "Extension schema v1.1 adds support for conditional dependencies"
@@ -101,23 +190,74 @@ cli_versions:
     extension_schema: "2.0"
 
     compatible_extensions:
-      mise-config: ">=2.0.0,<3.0.0"
+      mise-config: ">=3.0.0,<4.0.0"
       python: ">=2.0.0,<3.0.0"
-      nodejs: ">=3.0.0,<4.0.0"
+      nodejs: ">=2.0.0,<3.0.0"
       rust: ">=2.0.0,<3.0.0"
-      go: ">=2.0.0,<3.0.0"
-      java: ">=2.0.0,<3.0.0"
-      postgresql: ">=2.0.0,<3.0.0"
-      mysql: ">=2.0.0,<3.0.0"
-      redis: ">=2.0.0,<3.0.0"
-      mongodb: ">=2.0.0,<3.0.0"
+      golang: ">=2.0.0,<3.0.0"
+      jvm: ">=3.0.0,<4.0.0"
+      dotnet: ">=3.0.0,<4.0.0"
+      php: ">=3.0.0,<4.0.0"
+      ruby: ">=3.0.0,<4.0.0"
+      haskell: ">=2.0.0,<3.0.0"
+
+      # AI & Agentic Tools
+      agent-browser: ">=1.0.0,<2.0.0"
+      agent-manager: ">=3.0.0,<4.0.0"
+      agentic-flow: ">=2.0.0,<3.0.0"
+      agentic-qe: ">=2.0.0,<3.0.0"
+      ai-toolkit: ">=3.0.0,<4.0.0"
+
+      # Claude Ecosystem
+      claude-code-mux: ">=2.0.0,<3.0.0"
+      claude-codepro: ">=5.0.0,<6.0.0"
+      claude-flow-v2: ">=3.0.0,<4.0.0"
+      claude-flow-v3: ">=4.0.0,<5.0.0"
+      claude-marketplace: ">=3.0.0,<4.0.0"
+      claudeup: ">=2.0.0,<3.0.0"
+      claudish: ">=2.0.0,<3.0.0"
+      compahook: ">=2.0.0,<3.0.0"
+
+      # Cloud & Infrastructure
+      cloud-tools: ">=3.0.0,<4.0.0"
+      infra-tools: ">=3.0.0,<4.0.0"
+      monitoring: ">=3.0.0,<4.0.0"
+
+      # DevOps & Tools
       docker: ">=2.0.0,<3.0.0"
-      kubectl: ">=2.0.0,<3.0.0"
-      terraform: ">=2.0.0,<3.0.0"
-      vault: ">=2.0.0,<3.0.0"
-      vscode: ">=2.0.0,<3.0.0"
-      neovim: ">=2.0.0,<3.0.0"
-      mcp-server: ">=2.0.0,<3.0.0"
+      github-cli: ">=3.0.0,<4.0.0"
+      supabase-cli: ">=3.0.0,<4.0.0"
+      tmux-workspace: ">=3.0.0,<4.0.0"
+
+      # MCP Servers
+      context7-mcp: ">=2.0.0,<3.0.0"
+      excalidraw-mcp: ">=2.0.0,<3.0.0"
+      jira-mcp: ">=3.0.0,<4.0.0"
+      linear-mcp: ">=3.0.0,<4.0.0"
+      pal-mcp-server: ">=10.0.0,<11.0.0"
+
+      # Development Tools
+      nodejs-devtools: ">=3.0.0,<4.0.0"
+
+      # AI/ML Tools
+      goose: ">=2.0.0,<3.0.0"
+      ollama: ">=2.0.0,<3.0.0"
+
+      # Desktop & UI
+      guacamole: ">=3.0.0,<4.0.0"
+      xfce-ubuntu: ">=3.0.0,<4.0.0"
+
+      # Testing
+      playwright: ">=3.0.0,<4.0.0"
+
+      # Documentation & Content
+      mdflow: ">=2.0.0,<3.0.0"
+      spec-kit: ">=2.0.0,<3.0.0"
+
+      # Productivity
+      openskills: ">=3.0.0,<4.0.0"
+      ralph: ">=2.0.0,<3.0.0"
+      ruvnet-research: ">=2.0.0,<3.0.0"
 
     breaking_changes:
       - "Extension schema v2.0 (future) - major architectural changes"
