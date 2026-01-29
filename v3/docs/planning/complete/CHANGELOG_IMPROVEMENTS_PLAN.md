@@ -110,29 +110,41 @@ Created comprehensive documentation:
 ### New Files Created
 
 ```
-.github/scripts/generate-changelog.sh          (executable)
-.github/scripts/validate-versions.sh           (executable)
-.github/scripts/generate-migration-guide.sh    (executable)
-.github/templates/release-notes-template.md
-v1/CHANGELOG.md                                 (migrated)
-v2/CHANGELOG.md                                 (migrated)
-docs/CHANGELOG_MANAGEMENT.md
-CHANGELOG.md.backup                             (backup)
+sindri/
+├── .github/
+│   ├── scripts/
+│   │   ├── generate-changelog.sh          (executable)
+│   │   ├── validate-versions.sh           (executable)
+│   │   └── generate-migration-guide.sh    (executable)
+│   └── templates/
+│       └── release-notes-template.md
+├── docs/
+│   └── CHANGELOG_MANAGEMENT.md
+├── v1/
+│   └── CHANGELOG.md                       (migrated)
+├── v2/
+│   └── CHANGELOG.md                       (migrated)
+└── CHANGELOG.md.backup                    (backup)
 ```
 
 ### Modified Files
 
 ```
-CHANGELOG.md                                    (replaced with link library)
-.github/workflows/release-v2.yml               (refactored)
-.github/workflows/release-v3.yml               (refactored)
-docs/RELEASE.md                                (updated)
+sindri/
+├── .github/workflows/
+│   ├── release-v2.yml                 (refactored)
+│   └── release-v3.yml                 (refactored)
+├── docs/
+│   └── RELEASE.md                     (updated)
+└── CHANGELOG.md                       (replaced with link library)
 ```
 
 ### Removed Files
 
 ```
-.github/scripts/split-changelog.sh             (one-time migration script)
+sindri/
+└── .github/scripts/
+    └── split-changelog.sh             (one-time migration script)
 ```
 
 ---
