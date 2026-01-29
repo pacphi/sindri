@@ -57,105 +57,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate changelog
+      - name: Generate changelog using consolidated script
         id: changelog
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
-          current_tag="v$version"
 
-          # Get previous v3 tag
-          previous_tag=$(git tag -l "v3.*" --sort=-version:refname | grep -A 1 "^$current_tag$" | tail -1 || echo "")
-
-          if [[ -z "$previous_tag" ]] || [[ "$previous_tag" == "$current_tag" ]]; then
-            echo "No previous v3 tag found, using all v3 commits"
-            commit_range="$current_tag"
-          else
-            echo "Generating changelog from $previous_tag to $current_tag"
-            commit_range="$previous_tag..$current_tag"
-          fi
-
-          # Initialize changelog sections
-          features=""
-          fixes=""
-          docs=""
-          deps=""
-          perf=""
-          refactor=""
-          chore=""
-          tests=""
-          other=""
-
-          # Parse commits in v3 directory only
-          while IFS= read -r commit; do
-            [[ -z "$commit" ]] && continue
-
-            # Extract commit hash and message
-            hash="${commit:0:7}"
-            message="${commit:8}"
-
-            # Categorize by conventional commit prefix
-            case "$message" in
-              feat:*|feat\(*) features+="- $message ($hash)"$'\n' ;;
-              fix:*|fix\(*)   fixes+="- $message ($hash)"$'\n' ;;
-              docs:*|docs\(*) docs+="- $message ($hash)"$'\n' ;;
-              deps:*|deps\(*) deps+="- $message ($hash)"$'\n' ;;
-              perf:*|perf\(*) perf+="- $message ($hash)"$'\n' ;;
-              refactor:*|refactor\(*) refactor+="- $message ($hash)"$'\n' ;;
-              chore:*|chore\(*) chore+="- $message ($hash)"$'\n' ;;
-              test:*|test\(*) tests+="- $message ($hash)"$'\n' ;;
-              ci:*|ci\(*)     chore+="- $message ($hash)"$'\n' ;;
-              style:*|style\(*) chore+="- $message ($hash)"$'\n' ;;
-              *)              other+="- $message ($hash)"$'\n' ;;
-            esac
-          done < <(git log --oneline "$commit_range" -- v3/ 2>/dev/null || git log --oneline -- v3/)
-
-          # Build changelog content
-          changelog="## [$version] - $(date +%Y-%m-%d)"$'\n\n'
-
-          [[ -n "$features" ]] && changelog+="### :sparkles: Features"$'\n\n'"$features"$'\n'
-          [[ -n "$fixes" ]] && changelog+="### :bug: Bug Fixes"$'\n\n'"$fixes"$'\n'
-          [[ -n "$docs" ]] && changelog+="### :books: Documentation"$'\n\n'"$docs"$'\n'
-          [[ -n "$deps" ]] && changelog+="### :package: Dependencies"$'\n\n'"$deps"$'\n'
-          [[ -n "$perf" ]] && changelog+="### :zap: Performance"$'\n\n'"$perf"$'\n'
-          [[ -n "$refactor" ]] && changelog+="### :recycle: Refactoring"$'\n\n'"$refactor"$'\n'
-          [[ -n "$tests" ]] && changelog+="### :white_check_mark: Tests"$'\n\n'"$tests"$'\n'
-          [[ -n "$chore" ]] && changelog+="### :wrench: Maintenance"$'\n\n'"$chore"$'\n'
-          [[ -n "$other" ]] && changelog+="### :gear: Other Changes"$'\n\n'"$other"$'\n'
-
-          # Add installation instructions
-          changelog+="### Installation"$'\n\n'
-          changelog+="#### Docker Image"$'\n'
-          changelog+='```bash'$'\n'
-          changelog+="# Pull the Docker image"$'\n'
-          changelog+="docker pull ghcr.io/${{ github.repository }}:$version"$'\n\n'
-          changelog+="# Run a container"$'\n'
-          changelog+="docker run -d --name sindri \\"$'\n'
-          changelog+="  -e SINDRI_PROFILE=minimal \\"$'\n'
-          changelog+="  -v sindri_home:/alt/home/developer \\"$'\n'
-          changelog+="  ghcr.io/${{ github.repository }}:$version"$'\n'
-          changelog+='```'$'\n\n'
-          changelog+="#### CLI Binary"$'\n'
-          changelog+='```bash'$'\n'
-          changelog+="# Download and install from release assets"$'\n'
-          changelog+="# Linux (x86_64)"$'\n'
-          changelog+="wget https://github.com/${{ github.repository }}/releases/download/v$version/sindri-v$version-linux-x86_64.tar.gz"$'\n'
-          changelog+="tar -xzf sindri-v$version-linux-x86_64.tar.gz"$'\n'
-          changelog+="sudo mv sindri /usr/local/bin/"$'\n\n'
-          changelog+="# macOS (Apple Silicon)"$'\n'
-          changelog+="wget https://github.com/${{ github.repository }}/releases/download/v$version/sindri-v$version-macos-aarch64.tar.gz"$'\n'
-          changelog+="tar -xzf sindri-v$version-macos-aarch64.tar.gz"$'\n'
-          changelog+="sudo mv sindri /usr/local/bin/"$'\n'
-          changelog+='```'$'\n\n'
-
-          # Add diff link if previous tag exists
-          if [[ -n "$previous_tag" ]] && [[ "$previous_tag" != "$current_tag" ]]; then
-            changelog+="**Full Changelog**: https://github.com/${{ github.repository }}/compare/$previous_tag...$current_tag"$'\n'
-          fi
-
-          # Save changelog to file for artifact
-          echo "$changelog" > changelog.md
+          # Use consolidated changelog generation script
+          ./.github/scripts/generate-changelog.sh "$version" "v3" "v3/" "changelog.md"
 
           # Output for GitHub Actions (escape newlines)
+          changelog=$(cat changelog.md)
           {
             echo "changelog<<CHANGELOG_EOF"
             echo "$changelog"
@@ -602,6 +513,12 @@ jobs:
           sed -i 's/^version = ".*"$/version = "'"$version"'"/' v3/Cargo.toml
 
           echo "Updated v3/Cargo.toml to version $version"
+
+      - name: Validate version consistency
+        run: |
+          ./.github/scripts/validate-versions.sh || {
+            echo "::warning::Version validation found issues, but proceeding with release"
+          }
 
       - name: Commit version updates
         run: |
