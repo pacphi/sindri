@@ -57,7 +57,7 @@ duct = "1.1"
 indicatif = "0.18"
 dialoguer = "0.12"
 owo-colors = "4.2"
-tabled = "0.14"
+tabled = "0.20"
 console = "0.16"
 
 # Filesystem
