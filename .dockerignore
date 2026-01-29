@@ -1,0 +1,146 @@
+# ==============================================================================
+# Sindri Docker Build - Comprehensive .dockerignore
+# ==============================================================================
+# Applied to all Docker builds (v2 and v3) when build context is repo root
+# Prevents sensitive files and unnecessary data from entering build context
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Security - Sensitive Files (CRITICAL)
+# ------------------------------------------------------------------------------
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+*.env
+*.env.*
+.env.local
+.env.production
+.env.development
+.env.test
+secrets/
+.anthropic
+.claude/
+.vault-token
+id_rsa*
+*.ppk
+credentials.json
+*credentials*
+*secret*
+*password*
+.aws/
+.gcp/
+.azure/
+
+# ------------------------------------------------------------------------------
+# Git (large, not needed in image)
+# ------------------------------------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# ------------------------------------------------------------------------------
+# IDE/Editor Files
+# ------------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.settings/
+
+# ------------------------------------------------------------------------------
+# OS Files
+# ------------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------------------------------------------
+# Dependencies (large, installed fresh in container)
+# ------------------------------------------------------------------------------
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+target/
+.cargo/
+
+# ------------------------------------------------------------------------------
+# CI/CD and Deployment (not needed in runtime)
+# ------------------------------------------------------------------------------
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+azure-pipelines.yml
+fly.toml
+.fly/
+.devcontainer/
+
+# ------------------------------------------------------------------------------
+# Documentation (not needed in runtime)
+# ------------------------------------------------------------------------------
+docs/
+*.md
+!README.md
+!CLAUDE.md
+LICENSE
+CONTRIBUTING.md
+CHANGELOG.md
+RELEASE_NOTES.*
+
+# ------------------------------------------------------------------------------
+# Examples and Tests (not needed in runtime)
+# ------------------------------------------------------------------------------
+examples/
+test-results/
+coverage/
+.nyc_output/
+*.test.js
+*.spec.js
+__tests__/
+
+# ------------------------------------------------------------------------------
+# Archives and Temporary Files
+# ------------------------------------------------------------------------------
+.archives/
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+
+# ------------------------------------------------------------------------------
+# Local Sindri Configuration (user-specific)
+# ------------------------------------------------------------------------------
+sindri.yaml
+sindri.*.yaml
+!sindri.example.yaml
+
+# ------------------------------------------------------------------------------
+# Logs
+# ------------------------------------------------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
