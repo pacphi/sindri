@@ -89,7 +89,7 @@ url = "2.5"
 petgraph = "0.8"
 
 # UUID for unique identifiers
-uuid = { version = "1.19", features = ["v4"] }
+uuid = { version = "1.20", features = ["v4"] }
 
 # Archive handling (for binary downloads)
 tar = "0.4"
