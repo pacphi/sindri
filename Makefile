@@ -189,6 +189,7 @@ endef
 	v3-doc v3-run v3-run-debug v3-install \
 	v3-docker-build v3-docker-build-latest v3-docker-build-nocache \
 	v3-docker-build-from-source v3-docker-build-from-binary \
+	v3-cycle \
 	ci v2-ci v3-ci \
 	clean v2-clean v3-clean
 
@@ -279,6 +280,8 @@ help:
 	@echo "  v3-docker-build-nocache - Build v3 Docker image (no cache)"
 	@echo "  v3-docker-build-from-source - Build v3 Docker from source"
 	@echo "  v3-docker-build-from-binary - Build v3 Docker from binary (default)"
+	@echo "  v3-cycle               - Full dev cycle: destroy→rmi→clean→install→deploy→connect"
+	@echo "                           Usage: make v3-cycle CONFIG=/path/to/sindri.yaml"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ CI/CD Targets ═══════════════════════════════════════════════════$(RESET)"
 	@echo "  ci                     - Run full CI (v2 + v3)"
@@ -863,6 +866,100 @@ v3-docker-build-nocache:
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
+
+# ============================================================================
+# V3 Full Development Cycle
+# ============================================================================
+#
+# Performs a complete v3 development cycle:
+#   1. Destroy existing deployment
+#   2. Remove all sindri Docker images
+#   3. Clean v3 build artifacts
+#   4. Install v3 binary
+#   5. Deploy new environment
+#   6. Connect to the environment
+#
+# Usage:
+#   make v3-cycle CONFIG=/path/to/sindri.yaml
+#   make v3-cycle CONFIG=/path/to/sindri.yaml FORCE=1  # Skip confirmation
+# ============================================================================
+
+CONFIG ?=
+FORCE ?=
+
+.PHONY: v3-cycle
+v3-cycle:
+	@if [ -z "$(CONFIG)" ]; then \
+		echo "$(RED)Error: CONFIG parameter is required$(RESET)"; \
+		echo "$(YELLOW)Usage: make v3-cycle CONFIG=/path/to/sindri.yaml$(RESET)"; \
+		echo "       make v3-cycle CONFIG=/path/to/sindri.yaml FORCE=1  # Skip confirmation"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(CONFIG)" ]; then \
+		echo "$(RED)Error: Config file not found: $(CONFIG)$(RESET)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "$(BOLD)$(YELLOW)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
+	@echo "$(BOLD)$(YELLOW)║                    V3 Full Development Cycle                       ║$(RESET)"
+	@echo "$(BOLD)$(YELLOW)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
+	@echo ""
+	@echo "$(BOLD)Config file:$(RESET) $(CONFIG)"
+	@echo ""
+	@echo "$(BOLD)Operations to be performed:$(RESET)"
+	@echo "  1. $(BLUE)sindri destroy$(RESET) --config $(CONFIG) -f"
+	@echo "  2. $(BLUE)docker rmi -f$(RESET) <all sindri images>"
+	@echo "  3. $(BLUE)make v3-clean$(RESET)"
+	@echo "  4. $(BLUE)make v3-install$(RESET)"
+	@echo "  5. $(BLUE)sindri deploy$(RESET) --config $(CONFIG) -f"
+	@echo "  6. $(BLUE)sindri connect$(RESET) --config $(CONFIG)"
+	@echo ""
+	@IMAGES=$$(docker images --filter=reference='sindri*' --format '{{.ID}}\t{{.Repository}}:{{.Tag}}\t{{.Size}}' 2>/dev/null); \
+	if [ -n "$$IMAGES" ]; then \
+		echo "$(BOLD)$(RED)Docker images to be removed:$(RESET)"; \
+		echo "$$IMAGES" | while IFS=$$'\t' read -r id name size; do \
+			echo "  $(RED)✗$(RESET) $$name ($$id) - $$size"; \
+		done; \
+	else \
+		echo "$(YELLOW)No sindri Docker images currently exist$(RESET)"; \
+	fi
+	@echo ""
+	@if [ "$(FORCE)" != "1" ]; then \
+		printf "$(BOLD)Proceed with full cycle? [y/N] $(RESET)"; \
+		read confirm; \
+		if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+			echo "$(YELLOW)Operation cancelled$(RESET)"; \
+			exit 0; \
+		fi; \
+	else \
+		echo "$(YELLOW)FORCE=1 set, skipping confirmation$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Step 1/6: Destroying existing deployment ═══════════════════════$(RESET)"
+	@sindri destroy --config $(CONFIG) -f || echo "$(YELLOW)No deployment to destroy (continuing)$(RESET)"
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Step 2/6: Removing sindri Docker images ═════════════════════════$(RESET)"
+	@IMAGE_IDS=$$(docker images --filter=reference='sindri*' --format '{{.ID}}' 2>/dev/null | sort -u); \
+	if [ -n "$$IMAGE_IDS" ]; then \
+		echo "$$IMAGE_IDS" | xargs docker rmi -f; \
+		echo "$(GREEN)✓ Images removed$(RESET)"; \
+	else \
+		echo "$(YELLOW)No images to remove$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Step 3/6: Cleaning v3 artifacts ═════════════════════════════════$(RESET)"
+	@$(MAKE) v3-clean
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Step 4/6: Installing v3 binary ══════════════════════════════════$(RESET)"
+	@$(MAKE) v3-install
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Step 5/6: Deploying ═════════════════════════════════════════════$(RESET)"
+	@sindri deploy --config $(CONFIG) -f
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Step 6/6: Connecting ════════════════════════════════════════════$(RESET)"
+	@sindri connect --config $(CONFIG)
+	@echo ""
+	@echo "$(GREEN)$(BOLD)✓ V3 full development cycle complete$(RESET)"
 
 # ============================================================================
 # V3 Extension Testing Targets
