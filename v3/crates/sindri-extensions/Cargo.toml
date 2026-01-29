@@ -36,7 +36,7 @@ shellexpand = "3.1"
 tempfile = "3.24"
 serial_test = { workspace = true }
 tokio-test = "0.4"
-mockall = "0.13"
+mockall = "0.14"
 proptest = "1.5"
 test-case = "3.3"
 predicates = "3.1"

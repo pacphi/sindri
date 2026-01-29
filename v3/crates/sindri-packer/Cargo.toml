@@ -32,7 +32,7 @@ rust-embed = { version = "8.11", features = ["interpolate-folder-path"] }
 tempfile = { workspace = true }
 serial_test = { workspace = true }
 tokio-test = "0.4"
-mockall = "0.13"
+mockall = "0.14"
 
 # Integration test definitions
 [[test]]

@@ -2766,20 +2766,6 @@ dependencies = [
 
 [[package]]
 name = "mockall"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39a6bfcc6c8c7eed5ee98b9c3e33adc726054389233e201c95dab2d41a3839d2"
-dependencies = [
- "cfg-if",
- "downcast",
- "fragile",
- "mockall_derive 0.13.1",
- "predicates",
- "predicates-tree",
-]
-
-[[package]]
-name = "mockall"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f58d964098a5f9c6b63d0798e5372fd04708193510a7af313c22e9f29b7b620b"
@@ -2787,21 +2773,9 @@ dependencies = [
  "cfg-if",
  "downcast",
  "fragile",
- "mockall_derive 0.14.0",
+ "mockall_derive",
  "predicates",
  "predicates-tree",
-]
-
-[[package]]
-name = "mockall_derive"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25ca3004c2efe9011bd4e461bd8256445052b9615405b4f7ea43fc8ca5c20898"
-dependencies = [
- "cfg-if",
- "proc-macro2",
- "quote",
- "syn 2.0.114",
 ]
 
 [[package]]
@@ -3806,14 +3780,12 @@ dependencies = [
  "tokio",
  "tokio-native-tls",
  "tokio-rustls 0.26.4",
- "tokio-util",
  "tower",
  "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams",
  "web-sys",
  "webpki-roots",
 ]
@@ -3851,12 +3823,14 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-rustls 0.26.4",
+ "tokio-util",
  "tower",
  "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
  "web-sys",
 ]
 
@@ -4601,7 +4575,7 @@ dependencies = [
  "owo-colors",
  "rand 0.9.2",
  "regex",
- "reqwest 0.12.28",
+ "reqwest 0.13.1",
  "rustls 0.23.36",
  "semver",
  "serde",
@@ -4659,7 +4633,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "reqwest 0.12.28",
+ "reqwest 0.13.1",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -4726,13 +4700,13 @@ dependencies = [
  "dirs",
  "duct",
  "flate2",
- "mockall 0.13.1",
+ "mockall",
  "octocrab",
  "petgraph",
  "predicates",
  "proptest",
  "regex",
- "reqwest 0.12.28",
+ "reqwest 0.13.1",
  "semver",
  "serde",
  "serde_json",
@@ -4761,7 +4735,7 @@ dependencies = [
  "chrono",
  "duct",
  "regex",
- "reqwest 0.12.28",
+ "reqwest 0.13.1",
  "semver",
  "serde",
  "serde_json",
@@ -4783,7 +4757,7 @@ dependencies = [
  "dirs",
  "duct",
  "futures",
- "mockall 0.13.1",
+ "mockall",
  "rust-embed",
  "serde",
  "serde_json",
@@ -4858,10 +4832,10 @@ dependencies = [
  "chacha20poly1305",
  "chrono",
  "dotenvy",
- "mockall 0.14.0",
+ "mockall",
  "rand 0.9.2",
  "regex",
- "reqwest 0.12.28",
+ "reqwest 0.13.1",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -4891,7 +4865,7 @@ dependencies = [
  "indicatif 0.18.3",
  "octocrab",
  "owo-colors",
- "reqwest 0.12.28",
+ "reqwest 0.13.1",
  "self_update",
  "semver",
  "serde",
