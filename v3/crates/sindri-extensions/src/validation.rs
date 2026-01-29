@@ -114,10 +114,7 @@ impl ValidationConfig {
                 for entry in entries.filter_map(|e| e.ok()) {
                     let current_bin = entry.path().join("current").join("bin");
                     if current_bin.exists() && !self.path_in_list(&current_bin, &current_path) {
-                        debug!(
-                            "Adding SDKMAN candidate path: {}",
-                            current_bin.display()
-                        );
+                        debug!("Adding SDKMAN candidate path: {}", current_bin.display());
                         paths.push(current_bin.to_string_lossy().to_string());
                     }
                 }

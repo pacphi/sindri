@@ -490,10 +490,17 @@ impl ExtensionExecutor {
         // If we pass relative path, BASH_SOURCE is just filename and dirname fails
         let mut cmd = Command::new("bash");
         let resolved_script = script_path.canonicalize().unwrap_or_else(|e| {
-            warn!("Failed to canonicalize {:?}: {}, using original path", script_path, e);
+            warn!(
+                "Failed to canonicalize {:?}: {}, using original path",
+                script_path, e
+            );
             script_path.clone()
         });
-        debug!("Executing script: bash {} (cwd: {:?})", resolved_script.display(), ext_dir);
+        debug!(
+            "Executing script: bash {} (cwd: {:?})",
+            resolved_script.display(),
+            ext_dir
+        );
         cmd.arg(&resolved_script);
         cmd.args(&script_config.args);
         cmd.current_dir(&ext_dir);
