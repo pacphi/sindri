@@ -1,7 +1,7 @@
 ---
 metadata:
   name: claude-cli
-  version: latest
+  version: 1.0.0
   description: Claude Code CLI - Official Anthropic AI coding assistant
   category: claude
   author: Anthropic
