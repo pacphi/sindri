@@ -193,7 +193,38 @@ impl ExtensionDistributor {
             }
         }
 
-        // 8. Update manifest
+        // 8. Execute installation using ExtensionExecutor
+        info!("Executing installation for {} {}", name, target_version);
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+        let workspace_dir =
+            std::env::current_dir().context("Could not determine current directory")?;
+
+        let executor = crate::executor::ExtensionExecutor::new(
+            ext_dir.parent().unwrap_or(&ext_dir),
+            workspace_dir,
+            home_dir,
+        );
+
+        executor
+            .install(&extension)
+            .await
+            .context(format!("Failed to execute installation for {}", name))?;
+
+        // 9. Validate installation
+        let validation_result = executor
+            .validate_extension(&extension)
+            .await
+            .context("Failed to validate installation")?;
+
+        if !validation_result {
+            return Err(anyhow!(
+                "Extension {} failed post-installation validation",
+                name
+            ));
+        }
+
+        // 10. Update manifest
         self.update_manifest(name, &target_version)
             .await
             .context("Failed to update manifest")?;
