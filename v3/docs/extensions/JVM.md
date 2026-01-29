@@ -1,6 +1,6 @@
 # JVM Extension
 
-> Version: 2.0.0 | Category: languages | Last Updated: 2026-01-26
+> Version: 2.1.0 | Category: languages | Last Updated: 2026-01-29
 
 ## Overview
 
@@ -24,7 +24,7 @@ JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise.
 - **Memory**: 4096 MB
 - **Install Time**: ~180 seconds
 - **Validation Timeout**: 60 seconds (JVM tools have slow cold start)
-- **Dependencies**: None
+- **Dependencies**: sdkman
 
 ### Network Domains
 

@@ -1,6 +1,6 @@
 # V3 Extensions Documentation
 
-> Last Updated: 2026-01-26 | Total Extensions: 44
+> Last Updated: 2026-01-29 | Total Extensions: 48
 
 This directory contains documentation for all V3 extensions available in Sindri.
 
@@ -14,7 +14,7 @@ This directory contains documentation for all V3 extensions available in Sindri.
 | DevOps         | 6     | Infrastructure, cloud, and deployment tools  |
 | MCP            | 5     | Model Context Protocol servers               |
 | AI Development | 3     | AI development tools and LLMs                |
-| Productivity   | 5     | Development productivity tools               |
+| Productivity   | 6     | Development productivity and package tools   |
 | Desktop        | 2     | Desktop environments and remote access       |
 | Research       | 1     | Research and analysis tools                  |
 
@@ -31,7 +31,7 @@ Core programming language support.
 | [GOLANG](GOLANG.md)                   | 1.0.1   | Go 1.25 via mise                    |
 | [RUST](RUST.md)                       | 1.0.2   | Rust stable via rustup              |
 | [DOTNET](DOTNET.md)                   | 2.1.0   | .NET SDK 10.0 and 8.0               |
-| [JVM](JVM.md)                         | 2.0.0   | Java, Kotlin, Scala, Clojure        |
+| [JVM](JVM.md)                         | 2.1.0   | Java, Kotlin, Scala, Clojure        |
 | [RUBY](RUBY.md)                       | 2.0.0   | Ruby 3.4.7 with Rails and Bundler   |
 | [PHP](PHP.md)                         | 2.1.0   | PHP 8.4 with Composer and Symfony   |
 | [HASKELL](HASKELL.md)                 | 1.0.1   | Haskell with GHC, Cabal, Stack, HLS |
@@ -110,17 +110,18 @@ Tools for developing with and running AI models.
 
 ---
 
-## Productivity
+## Productivity & Package Managers
 
 Development productivity and workflow tools.
 
-| Extension                           | Version | Description                      |
-| ----------------------------------- | ------- | -------------------------------- |
-| [MISE-CONFIG](MISE-CONFIG.md)       | 2.0.0   | Global mise tool version manager |
-| [TMUX-WORKSPACE](TMUX-WORKSPACE.md) | 2.0.0   | Terminal multiplexer setup       |
-| [MDFLOW](MDFLOW.md)                 | 1.0.0   | Markdown to AI agent CLI         |
-| [OPENSKILLS](OPENSKILLS.md)         | 2.0.0   | Claude Code skill manager        |
-| [PLAYWRIGHT](PLAYWRIGHT.md)         | 2.0.0   | Browser automation framework     |
+| Extension                           | Version | Description                         |
+| ----------------------------------- | ------- | ----------------------------------- |
+| [MISE-CONFIG](MISE-CONFIG.md)       | 2.0.0   | Global mise tool version manager    |
+| [SDKMAN](SDKMAN.md)                 | 1.0.0   | SDKMAN for JVM tools and SDKs       |
+| [TMUX-WORKSPACE](TMUX-WORKSPACE.md) | 2.0.0   | Terminal multiplexer setup          |
+| [MDFLOW](MDFLOW.md)                 | 1.0.0   | Markdown to AI agent CLI            |
+| [OPENSKILLS](OPENSKILLS.md)         | 2.0.0   | Claude Code skill manager           |
+| [PLAYWRIGHT](PLAYWRIGHT.md)         | 2.0.0   | Browser automation framework        |
 
 ---
 
@@ -188,6 +189,9 @@ mise-config
   |     |-- pal-mcp-server
   |     |-- monitoring
   |-- haskell
+
+sdkman
+  |-- jvm
 
 docker
   |-- supabase-cli
