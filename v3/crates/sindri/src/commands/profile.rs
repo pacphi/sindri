@@ -22,6 +22,7 @@ use crate::cli::{
     ProfileStatusArgs,
 };
 use crate::output;
+use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir};
 
 /// Main entry point for profile subcommands
 pub async fn run(cmd: ProfileCommands) -> Result<()> {
@@ -37,33 +38,6 @@ pub async fn run(cmd: ProfileCommands) -> Result<()> {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/// Get cache directory (~/.sindri/cache)
-fn get_cache_dir() -> Result<PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("cache"))
-}
-
-/// Get extensions directory
-///
-/// Returns the appropriate extensions directory based on deployment mode:
-/// - SINDRI_EXT_HOME: Custom or bundled path (e.g., /opt/sindri/extensions)
-/// - Fallback: ~/.sindri/extensions (respects XDG and system conventions)
-fn get_extensions_dir() -> Result<PathBuf> {
-    // Check for explicit SINDRI_EXT_HOME environment variable
-    if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
-        return Ok(std::path::PathBuf::from(ext_home));
-    }
-
-    // Fallback to home directory for downloaded extensions (never hardcode paths)
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("extensions"))
-}
-
-/// Get home directory (~)
-fn get_home_dir() -> Result<PathBuf> {
-    dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
-}
 
 /// Get workspace directory (current directory)
 fn get_workspace_dir() -> Result<PathBuf> {

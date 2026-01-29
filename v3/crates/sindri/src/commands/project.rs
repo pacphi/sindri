@@ -14,6 +14,7 @@ use std::process::Command;
 
 use crate::cli::{CloneProjectArgs, NewProjectArgs, ProjectCommands};
 use crate::output;
+use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir, get_manifest_path};
 
 // Import template system from sindri-projects
 use sindri_projects::templates::{
@@ -35,14 +36,13 @@ use sindri_extensions::{ExtensionDistributor, ManifestManager};
 /// 3. Updates the manifest to track installation
 async fn activate_extension(extension_name: &str) -> Result<()> {
     // Get home directory for paths
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    let cache_dir = home.join(".sindri").join("cache");
-    let extensions_dir = home.join(".sindri").join("extensions");
+    let cache_dir = get_cache_dir()?;
+    let extensions_dir = get_extensions_dir()?;
 
     // Check if already installed
     let manifest = ManifestManager::load_default().unwrap_or_else(|_| {
         // Create new manifest if it doesn't exist
-        let manifest_path = home.join(".sindri").join("manifest.yaml");
+        let manifest_path = get_manifest_path().expect("Failed to get manifest path");
         ManifestManager::new(manifest_path).expect("Failed to create manifest")
     });
 
@@ -1818,8 +1818,8 @@ fn initialize_project_tools() -> Result<()> {
     };
 
     // Get home directory for extension paths
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    let extensions_dir = home.join(".sindri").join("extensions");
+    let home = get_home_dir()?;
+    let extensions_dir = get_extensions_dir()?;
     let workspace_dir = std::env::current_dir().context("Failed to get current directory")?;
 
     // Create executor for running project-init capabilities (reserved for future use)
@@ -2027,11 +2027,10 @@ fn get_initialized_extensions_for_project(
     };
 
     // Get home directory for extension paths
-    let home = match dirs::home_dir() {
-        Some(h) => h,
-        None => return Ok(results),
+    let extensions_dir = match get_extensions_dir() {
+        Ok(dir) => dir,
+        Err(_) => return Ok(results),
     };
-    let extensions_dir = home.join(".sindri").join("extensions");
 
     // Check each installed extension for relevant capabilities
     for (name, ext_info) in manifest.list_installed() {

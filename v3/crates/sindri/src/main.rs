@@ -5,6 +5,7 @@
 mod cli;
 mod commands;
 mod output;
+pub mod utils;
 mod version;
 
 use anyhow::Result;

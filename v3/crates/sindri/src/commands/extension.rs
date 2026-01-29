@@ -25,27 +25,8 @@ use crate::cli::{
 };
 use crate::output;
 
-/// Helper function to get the cache directory
-fn get_cache_dir() -> Result<std::path::PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("cache"))
-}
-
-/// Helper function to get the extensions directory
-///
-/// Returns the appropriate extensions directory based on deployment mode:
-/// - SINDRI_EXT_HOME: Custom or bundled path (e.g., /opt/sindri/extensions)
-/// - Fallback: ~/.sindri/extensions (respects XDG and system conventions)
-fn get_extensions_dir() -> Result<std::path::PathBuf> {
-    // Check for explicit SINDRI_EXT_HOME environment variable
-    if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
-        return Ok(std::path::PathBuf::from(ext_home));
-    }
-
-    // Fallback to home directory for downloaded extensions (never hardcode paths)
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("extensions"))
-}
+// Re-export utility functions for use in this module
+use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir};
 
 /// Helper function to get the CLI version
 fn get_cli_version() -> Result<semver::Version> {
@@ -166,7 +147,7 @@ async fn install_by_name(
     }
 
     // Get home directory for cache and extensions
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+    let home = get_home_dir()?;
     let cache_dir = home.join(".sindri").join("cache");
     let extensions_dir = home.join(".sindri").join("extensions");
 
@@ -347,7 +328,7 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
     ));
 
     // Get home directory for cache and manifest
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+    let home = get_home_dir()?;
     let cache_dir = home.join(".sindri").join("cache");
     let manifest_path = home.join(".sindri").join("manifest.yaml");
 
@@ -1171,8 +1152,7 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
             // Remove mise configuration
             if let Some(mise_remove) = &remove_config.mise {
                 output::info("Removing mise configuration...");
-                let home = dirs::home_dir()
-                    .ok_or_else(|| anyhow!("Could not determine home directory"))?;
+                let home = get_home_dir()?;
 
                 if mise_remove.remove_config {
                     let config_file = home
@@ -1253,7 +1233,7 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
                 output::info(&format!("Removing path: {}", path));
 
                 let expanded_path = if path.starts_with("~/") {
-                    if let Some(home) = dirs::home_dir() {
+                    if let Ok(home) = get_home_dir() {
                         home.join(path.trim_start_matches("~/"))
                     } else {
                         std::path::PathBuf::from(path)
