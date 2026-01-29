@@ -403,17 +403,19 @@ impl ProfileInstaller {
         );
 
         // Determine extensions directory from SINDRI_EXT_HOME or fallback to home directory
+        // IMPORTANT: Check HOME env var BEFORE dirs::home_dir() for Docker compatibility
+        // In containers, HOME may be set to ALT_HOME but dirs::home_dir() reads /etc/passwd
         let ext_home = std::env::var("SINDRI_EXT_HOME")
             .ok()
             .or_else(|| {
-                // Fallback 1: Construct from dirs::home_dir() (respects XDG and system conventions)
-                dirs::home_dir().map(|h| h.join(".sindri/extensions").to_string_lossy().to_string())
-            })
-            .or_else(|| {
-                // Fallback 2: Construct from HOME env var (respects ALT_HOME volume mount)
+                // Fallback 1: HOME env var (respects ALT_HOME volume mount in Docker)
                 std::env::var("HOME")
                     .ok()
                     .map(|h| format!("{}/.sindri/extensions", h))
+            })
+            .or_else(|| {
+                // Fallback 2: dirs::home_dir() for non-container environments
+                dirs::home_dir().map(|h| h.join(".sindri/extensions").to_string_lossy().to_string())
             })
             .unwrap_or_else(|| {
                 // Fallback 3: Default path (should rarely be used)

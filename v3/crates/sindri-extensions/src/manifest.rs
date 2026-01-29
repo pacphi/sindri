@@ -63,8 +63,13 @@ impl ManifestManager {
     }
 
     /// Get the default manifest path
+    ///
+    /// Prefers HOME env var over dirs::home_dir() for Docker container compatibility
+    /// where HOME may be set to ALT_HOME for volume mount support.
     pub fn default_manifest_path() -> Result<PathBuf> {
-        let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+        let home = std::env::var("HOME").map(PathBuf::from).or_else(|_| {
+            dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
+        })?;
         Ok(home.join(".sindri").join("manifest.yaml"))
     }
 

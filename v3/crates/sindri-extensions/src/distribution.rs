@@ -195,8 +195,12 @@ impl ExtensionDistributor {
 
         // 8. Execute installation using ExtensionExecutor
         info!("Executing installation for {} {}", name, target_version);
-        let home_dir =
-            dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+        // Prefer HOME env var for Docker compatibility (ALT_HOME volume mount)
+        let home_dir = std::env::var("HOME")
+            .map(std::path::PathBuf::from)
+            .or_else(|_| {
+                dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
+            })?;
         let workspace_dir =
             std::env::current_dir().context("Could not determine current directory")?;
 
