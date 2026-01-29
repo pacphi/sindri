@@ -123,7 +123,10 @@ impl ExtensionDistributor {
                 // In bundled mode, determine version from bundled extension
                 if let Some(bundled_version) = self.get_bundled_extension_version(name).await? {
                     if version_req.matches(&bundled_version) {
-                        debug!("Using bundled extension {} version {}", name, bundled_version);
+                        debug!(
+                            "Using bundled extension {} version {}",
+                            name, bundled_version
+                        );
                         bundled_version
                     } else {
                         return Err(anyhow!(
@@ -291,10 +294,13 @@ impl ExtensionDistributor {
     /// Returns Some(Version) if the extension exists in SINDRI_EXT_HOME, None otherwise.
     async fn get_bundled_extension_version(&self, name: &str) -> Result<Option<Version>> {
         if let Some(bundled_dir) = self.get_bundled_extension_dir(name).await? {
-            let extension = self.load_extension(&bundled_dir)
+            let extension = self
+                .load_extension(&bundled_dir)
                 .context("Failed to load bundled extension")?;
-            let version = Version::parse(&extension.metadata.version)
-                .context(format!("Invalid version in bundled extension: {}", extension.metadata.version))?;
+            let version = Version::parse(&extension.metadata.version).context(format!(
+                "Invalid version in bundled extension: {}",
+                extension.metadata.version
+            ))?;
             return Ok(Some(version));
         }
         Ok(None)
@@ -314,12 +320,10 @@ impl ExtensionDistributor {
 
             if bundled_path.exists() {
                 debug!("Using bundled compatibility matrix from {:?}", bundled_path);
-                let content = fs::read_to_string(&bundled_path)
-                    .await
-                    .context(format!(
-                        "Failed to read bundled compatibility matrix at {}",
-                        bundled_path.display()
-                    ))?;
+                let content = fs::read_to_string(&bundled_path).await.context(format!(
+                    "Failed to read bundled compatibility matrix at {}",
+                    bundled_path.display()
+                ))?;
                 return serde_yaml::from_str(&content)
                     .context("Failed to parse bundled compatibility matrix");
             } else {

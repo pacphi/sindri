@@ -4,11 +4,11 @@
 
 We actively maintain and provide security updates for the following versions:
 
-| Version | Status | Support Level |
-|---------|--------|---------------|
-| v3.x    | ✅ Active Development | Full security support |
-| v2.x    | 🔧 Maintenance Mode | Critical security fixes only |
-| v1.x    | ❌ End of Life | No security updates |
+| Version | Status                | Support Level                |
+| ------- | --------------------- | ---------------------------- |
+| v3.x    | ✅ Active Development | Full security support        |
+| v2.x    | 🔧 Maintenance Mode   | Critical security fixes only |
+| v1.x    | ❌ End of Life        | No security updates          |
 
 ## Reporting a Vulnerability
 
@@ -97,5 +97,6 @@ We currently do not offer a bug bounty program, but we deeply appreciate securit
 ## Questions?
 
 For general security questions (not vulnerability reports), please:
+
 - Open a [GitHub Discussion](https://github.com/pacphi/sindri/discussions)
 - Tag it with the `security` label

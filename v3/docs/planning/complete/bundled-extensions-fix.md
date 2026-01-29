@@ -89,12 +89,14 @@ let ext_dir = if let Some(bundled_dir) = self.get_bundled_extension_dir(name).aw
 ## Detection Logic
 
 **Bundled Mode Detection:**
+
 - Checks for `SINDRI_EXT_HOME` environment variable
 - In Dockerfile.dev: `ENV SINDRI_EXT_HOME=/opt/sindri/extensions`
 - Extensions at: `/opt/sindri/extensions/<extension-name>/`
 - Compatibility matrix at: `/opt/sindri/compatibility-matrix.yaml`
 
 **Fallback to GitHub:**
+
 - Only when `SINDRI_EXT_HOME` is not set
 - Or when bundled files don't exist
 - Maintains backward compatibility with production images
@@ -123,6 +125,7 @@ sindri extension install jvm
 ### Expected Behavior
 
 **Before Fix:**
+
 ```
 ⬢ [Docker] ❯ sindri extension install jvm
 ℹ Installing extension: jvm
@@ -134,6 +137,7 @@ Caused by:
 ```
 
 **After Fix:**
+
 ```
 ⬢ [Docker] ❯ sindri extension install jvm
 ℹ Installing extension: jvm
