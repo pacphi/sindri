@@ -672,7 +672,7 @@ Remaining items:
 
 ### Planning Documents
 
-- **[Rust CLI Migration Plan](./rust-cli-migration-v3.md)**
+- **[Rust CLI Migration Plan](../complete/rust-cli-migration-v3.md)**
   - Original v3 migration strategy
   - Phase-by-phase implementation plan
   - Comparison with v2 architecture

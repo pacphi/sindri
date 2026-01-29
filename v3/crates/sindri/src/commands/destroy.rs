@@ -1,6 +1,7 @@
 //! Destroy command
 
 use anyhow::Result;
+use camino::Utf8Path;
 use dialoguer::Confirm;
 use sindri_core::config::SindriConfig;
 use sindri_providers::create_provider;
@@ -8,9 +9,9 @@ use sindri_providers::create_provider;
 use crate::cli::DestroyArgs;
 use crate::output;
 
-pub async fn run(args: DestroyArgs) -> Result<()> {
+pub async fn run(args: DestroyArgs, config_path: Option<&Utf8Path>) -> Result<()> {
     // Load config
-    let config = SindriConfig::load(None)?;
+    let config = SindriConfig::load(config_path)?;
 
     // Confirm destruction
     if !args.force {

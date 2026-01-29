@@ -1,0 +1,106 @@
+#!/bin/bash
+# init.sh - System initialization for Sindri VM image
+# This script prepares the base system before Sindri installation
+
+set -euo pipefail
+
+echo "=== Sindri VM Initialization ==="
+echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# Wait for cloud-init to complete
+echo "Waiting for cloud-init to complete..."
+cloud-init status --wait || true
+
+# Update package lists
+echo "Updating package lists..."
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+
+# Upgrade existing packages
+echo "Upgrading system packages..."
+apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+
+# Install essential packages
+echo "Installing essential packages..."
+apt-get install -y --no-install-recommends \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    unzip \
+    wget \
+    jq \
+    git \
+    build-essential \
+    pkg-config \
+    libssl-dev
+
+# Install Docker
+echo "Installing Docker..."
+if ! command -v docker &> /dev/null; then
+    curl -fsSL https://get.docker.com | sh
+    usermod -aG docker ubuntu
+    systemctl enable docker
+    systemctl start docker
+fi
+
+# Create Sindri directories
+echo "Creating Sindri directories..."
+mkdir -p /home/ubuntu/.sindri/{state,extensions,cache,logs}
+mkdir -p /usr/local/sindri/{bin,share}
+chown -R ubuntu:ubuntu /home/ubuntu/.sindri
+chown -R ubuntu:ubuntu /usr/local/sindri
+
+# Set up environment
+echo "Configuring environment..."
+cat >> /etc/profile.d/sindri.sh << 'SINDRI_ENV'
+# Sindri Environment Configuration
+export SINDRI_HOME="/home/ubuntu/.sindri"
+export SINDRI_EXTENSIONS_DIR="$SINDRI_HOME/extensions"
+export SINDRI_STATE_DIR="$SINDRI_HOME/state"
+export SINDRI_CACHE_DIR="$SINDRI_HOME/cache"
+export PATH="$PATH:/usr/local/sindri/bin"
+SINDRI_ENV
+
+chmod +x /etc/profile.d/sindri.sh
+source /etc/profile.d/sindri.sh
+
+# Configure system limits
+echo "Configuring system limits..."
+cat >> /etc/security/limits.d/sindri.conf << 'LIMITS'
+# Sindri system limits
+ubuntu soft nofile 65535
+ubuntu hard nofile 65535
+ubuntu soft nproc 65535
+ubuntu hard nproc 65535
+LIMITS
+
+# Enable unattended upgrades for security patches
+echo "Configuring unattended upgrades..."
+apt-get install -y unattended-upgrades
+dpkg-reconfigure -f noninteractive unattended-upgrades
+
+# Configure journald to reduce disk usage
+echo "Configuring journald..."
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/sindri.conf << 'JOURNALD'
+[Journal]
+SystemMaxUse=500M
+SystemKeepFree=1G
+MaxRetentionSec=1week
+JOURNALD
+
+systemctl restart systemd-journald
+
+# Set timezone to UTC
+echo "Setting timezone to UTC..."
+timedatectl set-timezone UTC
+
+# Clean up apt cache
+echo "Cleaning up..."
+apt-get autoremove -y
+apt-get clean
+
+echo "=== Initialization complete ==="

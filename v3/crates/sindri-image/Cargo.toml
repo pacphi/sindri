@@ -30,6 +30,9 @@ which = { workspace = true }
 # Logging
 tracing = { workspace = true }
 
+# Date/time handling
+chrono = { workspace = true }
+
 # Process execution
 duct = { workspace = true }
 

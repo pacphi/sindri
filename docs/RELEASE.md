@@ -2,18 +2,27 @@
 
 This guide explains how to create and publish new releases for Sindri.
 
+> **📚 Related Documentation**:
+>
+> - [Changelog Management Guide](CHANGELOG_MANAGEMENT.md) - Detailed changelog structure and automation
+> - [Contributing Guide](CONTRIBUTING.md) - Development workflow and conventions
+> - [Version-Specific Changelogs](../CHANGELOG.md) - Navigate to v1, v2, or v3 changelogs
+
 ## Overview
 
-Sindri uses **automated releases** triggered by Git tags. The entire release workflow is defined in
-`.github/workflows/release.yml` and follows semantic versioning principles.
+Sindri uses **automated releases** triggered by Git tags with **version-specific workflows**:
 
-When you push a version tag, GitHub Actions automatically:
+- **v2 releases**: `.github/workflows/release-v2.yml` (Bash/Docker)
+- **v3 releases**: `.github/workflows/release-v3.yml` (Rust)
 
-- Validates the tag format
-- Generates a changelog from commit messages
-- Updates CHANGELOG.md
-- Builds and publishes Docker image to GHCR
-- Creates release assets
+When you push a version tag (e.g., `v2.3.0` or `v3.1.0`), GitHub Actions automatically:
+
+- Validates the tag format and version
+- Generates a changelog from commit messages (filtered by v2/ or v3/ directory)
+- Updates the version-specific CHANGELOG.md (v2/CHANGELOG.md or v3/CHANGELOG.md)
+- Validates version consistency across files
+- Builds and publishes Docker images to GHCR
+- Creates release assets (binaries for v3)
 - Publishes a GitHub Release
 - Updates documentation (for stable releases)
 

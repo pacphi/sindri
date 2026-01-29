@@ -16,7 +16,7 @@ use sindri_update::compatibility::{CompatResult, CompatibilityChecker, Incompati
 fn test_compatibility_checker_creation() {
     let checker = CompatibilityChecker::new();
     // Should create successfully without a loaded matrix
-    assert!(std::ptr::addr_of!(checker) != std::ptr::null());
+    assert!(!std::ptr::addr_of!(checker).is_null());
 }
 
 #[test]
@@ -334,7 +334,7 @@ fn test_extension_version_comparison_semantics() {
 fn test_compatibility_checker_default() {
     let checker = CompatibilityChecker::default();
     // Should create successfully
-    assert!(std::ptr::addr_of!(checker) != std::ptr::null());
+    assert!(!std::ptr::addr_of!(checker).is_null());
 }
 
 #[test]

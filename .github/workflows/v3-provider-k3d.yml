@@ -1,0 +1,339 @@
+# Reusable Workflow: k3d Provider
+# Tests extensions in Kubernetes pods using k3d cluster
+name: "v3: Provider - k3d"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extension names to test'
+        type: string
+        required: true
+      max-parallel:
+        description: 'Maximum parallel pods'
+        type: number
+        default: 4
+      cluster-agents:
+        description: 'Number of k3d agent nodes'
+        type: number
+        default: 0
+
+    outputs:
+      results:
+        description: 'Test results JSON'
+        value: ${{ jobs.summary.outputs.results }}
+      passed:
+        description: 'Number of passed tests'
+        value: ${{ jobs.summary.outputs.passed }}
+      failed:
+        description: 'Number of failed tests'
+        value: ${{ jobs.summary.outputs.failed }}
+
+env:
+  CLUSTER_NAME: sindri-test
+  REGISTRY_NAME: sindri-registry
+  REGISTRY_PORT: 5050
+  SINDRI_IMAGE: ghcr.io/sindri-dev/sindri:latest
+
+jobs:
+  # Setup k3d cluster with local registry
+  setup-cluster:
+    name: Setup k3d Cluster
+    runs-on: ubuntu-latest
+    outputs:
+      cluster_ready: ${{ steps.create.outputs.ready }}
+      registry_url: ${{ steps.create.outputs.registry_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+          k3d version
+
+      - name: Create Registry and Cluster
+        id: create
+        run: |
+          # Create local registry
+          k3d registry create ${{ env.REGISTRY_NAME }} --port ${{ env.REGISTRY_PORT }}
+
+          # Create cluster with registry
+          k3d cluster create ${{ env.CLUSTER_NAME }} \
+            --registry-use k3d-${{ env.REGISTRY_NAME }}:${{ env.REGISTRY_PORT }} \
+            --agents ${{ inputs.cluster-agents }} \
+            --wait \
+            --timeout 300s \
+            --k3s-arg "--disable=traefik@server:0" \
+            --k3s-arg "--disable=servicelb@server:0"
+
+          # Wait for cluster to be ready
+          kubectl wait --for=condition=Ready nodes --all --timeout=120s
+
+          echo "ready=true" >> $GITHUB_OUTPUT
+          echo "registry_url=localhost:${{ env.REGISTRY_PORT }}" >> $GITHUB_OUTPUT
+
+      - name: Push Sindri Image to Registry
+        run: |
+          docker pull ${{ env.SINDRI_IMAGE }}
+          docker tag ${{ env.SINDRI_IMAGE }} localhost:${{ env.REGISTRY_PORT }}/sindri:latest
+          docker push localhost:${{ env.REGISTRY_PORT }}/sindri:latest
+
+      - name: Export Kubeconfig
+        run: |
+          k3d kubeconfig get ${{ env.CLUSTER_NAME }} > kubeconfig.yaml
+
+      - name: Upload Kubeconfig
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubeconfig
+          path: kubeconfig.yaml
+          retention-days: 1
+
+  # Test each extension in a pod
+  test:
+    name: "Test: ${{ matrix.extension }}"
+    needs: setup-cluster
+    if: needs.setup-cluster.outputs.cluster_ready == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        extension: ${{ fromJson(inputs.extensions) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Download Kubeconfig
+        uses: actions/download-artifact@v4
+        with:
+          name: kubeconfig
+
+      - name: Setup Kubectl
+        run: |
+          mkdir -p ~/.kube
+          mv kubeconfig.yaml ~/.kube/config
+          kubectl cluster-info
+
+      - name: Get Extension Requirements
+        id: requirements
+        run: |
+          EXT_FILE="v3/extensions/${{ matrix.extension }}/extension.yaml"
+          if [[ -f "$EXT_FILE" ]]; then
+            MEMORY=$(yq -r '.requirements.memory // 512' "$EXT_FILE")
+            CPU=$(yq -r '.requirements.cpu // 500' "$EXT_FILE")
+          else
+            MEMORY=512
+            CPU=500
+          fi
+          echo "memory=${MEMORY}Mi" >> $GITHUB_OUTPUT
+          echo "cpu=${CPU}m" >> $GITHUB_OUTPUT
+
+      - name: Deploy Test Pod
+        id: deploy
+        run: |
+          POD_NAME="test-${{ matrix.extension }}"
+          POD_NAME=$(echo "$POD_NAME" | tr '_' '-' | tr '[:upper:]' '[:lower:]')
+
+          kubectl apply -f - <<EOF
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: ${POD_NAME}
+            labels:
+              app: sindri-test
+              extension: ${{ matrix.extension }}
+          spec:
+            containers:
+            - name: sindri
+              image: k3d-${{ env.REGISTRY_NAME }}:${{ env.REGISTRY_PORT }}/sindri:latest
+              imagePullPolicy: Always
+              resources:
+                requests:
+                  memory: "${{ steps.requirements.outputs.memory }}"
+                  cpu: "${{ steps.requirements.outputs.cpu }}"
+                limits:
+                  memory: "${{ steps.requirements.outputs.memory }}"
+                  cpu: "${{ steps.requirements.outputs.cpu }}"
+              command: ["sleep", "infinity"]
+            restartPolicy: Never
+          EOF
+
+          echo "pod_name=$POD_NAME" >> $GITHUB_OUTPUT
+
+          # Wait for pod to be ready
+          kubectl wait --for=condition=Ready pod/$POD_NAME --timeout=120s
+
+      - name: Run Extension Tests
+        id: test
+        timeout-minutes: 15
+        run: |
+          POD_NAME="${{ steps.deploy.outputs.pod_name }}"
+
+          echo "::group::Installing ${{ matrix.extension }}"
+          START_TIME=$(date +%s)
+
+          if kubectl exec "$POD_NAME" -- sindri extension install ${{ matrix.extension }} --yes 2>&1 | tee install.log; then
+            INSTALL_RESULT="success"
+          else
+            INSTALL_RESULT="failure"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "::endgroup::"
+
+          if [[ "$INSTALL_RESULT" == "success" ]]; then
+            echo "::group::Validating ${{ matrix.extension }}"
+            if kubectl exec "$POD_NAME" -- sindri extension validate ${{ matrix.extension }} 2>&1 | tee validate.log; then
+              VALIDATE_RESULT="success"
+            else
+              VALIDATE_RESULT="failure"
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Removing ${{ matrix.extension }}"
+            kubectl exec "$POD_NAME" -- sindri extension remove ${{ matrix.extension }} --yes 2>&1 | tee remove.log || true
+            echo "::endgroup::"
+          else
+            VALIDATE_RESULT="skipped"
+          fi
+
+          echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
+          echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Cleanup Pod
+        if: always()
+        run: |
+          POD_NAME="${{ steps.deploy.outputs.pod_name }}"
+          if [[ -n "$POD_NAME" ]]; then
+            kubectl delete pod "$POD_NAME" --ignore-not-found --wait=false
+          fi
+
+      - name: Create Test Report
+        id: report
+        if: always()
+        run: |
+          cat > test-result.json << EOF
+          {
+            "extension": "${{ matrix.extension }}",
+            "provider": "k3d",
+            "install": {
+              "result": "${{ steps.test.outputs.install_result || 'error' }}",
+              "duration": ${{ steps.test.outputs.install_duration || 0 }}
+            },
+            "validate": {
+              "result": "${{ steps.test.outputs.validate_result || 'skipped' }}"
+            },
+            "overall": "${{ steps.test.outputs.install_result == 'success' && steps.test.outputs.validate_result == 'success' && 'passed' || 'failed' }}"
+          }
+          EOF
+
+          cat test-result.json
+
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k3d-result-${{ matrix.extension }}
+          path: |
+            test-result.json
+            install.log
+            validate.log
+          retention-days: 7
+
+  # Cleanup cluster
+  cleanup-cluster:
+    name: Cleanup k3d Cluster
+    needs: [setup-cluster, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Download Kubeconfig
+        uses: actions/download-artifact@v4
+        with:
+          name: kubeconfig
+        continue-on-error: true
+
+      - name: Delete Cluster
+        run: |
+          k3d cluster delete ${{ env.CLUSTER_NAME }} || true
+          k3d registry delete ${{ env.REGISTRY_NAME }} || true
+          echo "Cluster and registry cleaned up"
+
+  # Aggregate results
+  summary:
+    name: Test Summary
+    needs: [setup-cluster, test, cleanup-cluster]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.aggregate.outputs.results }}
+      passed: ${{ steps.aggregate.outputs.passed }}
+      failed: ${{ steps.aggregate.outputs.failed }}
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: k3d-result-*
+
+      - name: Aggregate Results
+        id: aggregate
+        run: |
+          RESULTS="[]"
+          PASSED=0
+          FAILED=0
+
+          for dir in results/*/; do
+            if [[ -f "$dir/test-result.json" ]]; then
+              RESULT=$(cat "$dir/test-result.json")
+              RESULTS=$(echo "$RESULTS" | jq --argjson r "$RESULT" '. + [$r]')
+
+              OVERALL=$(echo "$RESULT" | jq -r '.overall')
+              if [[ "$OVERALL" == "passed" ]]; then
+                PASSED=$((PASSED + 1))
+              else
+                FAILED=$((FAILED + 1))
+              fi
+            fi
+          done
+
+          {
+            echo "results<<EOF"
+            echo "$RESULTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+
+      - name: Generate Summary
+        run: |
+          echo "## k3d Provider Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Cluster Agents:** ${{ inputs.cluster-agents }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Passed:** ${{ steps.aggregate.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed:** ${{ steps.aggregate.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Extension | Install | Validate | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|----------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | " +
+            (if .install.result == "success" then "pass" else "fail" end) + " | " +
+            (if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) +
+            " | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

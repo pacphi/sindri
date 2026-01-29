@@ -1,0 +1,156 @@
+#!/bin/bash
+# install-sindri.sh - Install Sindri CLI and extensions
+# This script downloads and installs the Sindri binary and optional extensions
+
+set -euo pipefail
+
+SINDRI_VERSION="${SINDRI_VERSION:-latest}"
+INSTALL_PROFILE="${INSTALL_PROFILE:-base}"
+EXTENSIONS="${EXTENSIONS:-}"
+GITHUB_REPO="{{ github_repo | default(value="pacphi/sindri") }}"
+
+echo "=== Installing Sindri v${SINDRI_VERSION} ==="
+echo "Profile: ${INSTALL_PROFILE}"
+echo "Extensions: ${EXTENSIONS:-none}"
+
+# Determine architecture
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64)  ARCH="x86_64" ;;
+    aarch64) ARCH="aarch64" ;;
+    arm64)   ARCH="aarch64" ;;
+    *)
+        echo "ERROR: Unsupported architecture: $ARCH"
+        exit 1
+        ;;
+esac
+
+echo "Architecture: $ARCH"
+
+# Determine OS
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+case $OS in
+    linux)   OS="linux" ;;
+    darwin)  OS="darwin" ;;
+    *)
+        echo "ERROR: Unsupported operating system: $OS"
+        exit 1
+        ;;
+esac
+
+echo "Operating System: $OS"
+
+# Resolve 'latest' version
+if [ "$SINDRI_VERSION" = "latest" ]; then
+    echo "Resolving latest version..."
+    SINDRI_VERSION=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | jq -r '.tag_name' | sed 's/^v//')
+    if [ -z "$SINDRI_VERSION" ] || [ "$SINDRI_VERSION" = "null" ]; then
+        echo "ERROR: Could not determine latest version"
+        exit 1
+    fi
+    echo "Latest version: $SINDRI_VERSION"
+fi
+
+# Download Sindri binary
+SINDRI_URL="https://github.com/${GITHUB_REPO}/releases/download/v${SINDRI_VERSION}/sindri-${SINDRI_VERSION}-${OS}-${ARCH}.tar.gz"
+DOWNLOAD_DIR="/tmp/sindri-install"
+
+echo "Downloading from: $SINDRI_URL"
+mkdir -p "$DOWNLOAD_DIR"
+cd "$DOWNLOAD_DIR"
+
+# Download with retry
+MAX_RETRIES=3
+RETRY_DELAY=5
+for i in $(seq 1 $MAX_RETRIES); do
+    if curl -fsSL "$SINDRI_URL" -o sindri.tar.gz; then
+        echo "Download successful"
+        break
+    fi
+    if [ $i -eq $MAX_RETRIES ]; then
+        echo "ERROR: Failed to download Sindri after $MAX_RETRIES attempts"
+        exit 1
+    fi
+    echo "Download failed, retrying in ${RETRY_DELAY}s..."
+    sleep $RETRY_DELAY
+done
+
+# Extract and install
+echo "Extracting archive..."
+tar -xzf sindri.tar.gz
+
+echo "Installing binary..."
+if [ -f sindri ]; then
+    sudo mv sindri /usr/local/bin/sindri
+elif [ -f ./sindri-*/sindri ]; then
+    sudo mv ./sindri-*/sindri /usr/local/bin/sindri
+else
+    echo "ERROR: Could not find sindri binary in archive"
+    ls -la
+    exit 1
+fi
+
+sudo chmod +x /usr/local/bin/sindri
+
+# Verify installation
+echo "Verifying installation..."
+if ! sindri --version; then
+    echo "ERROR: Sindri installation verification failed"
+    exit 1
+fi
+
+# Create Sindri directories
+echo "Creating Sindri directories..."
+SINDRI_HOME="${HOME}/.sindri"
+mkdir -p "${SINDRI_HOME}"/{state,extensions,cache,logs}
+
+# Initialize Sindri
+echo "Initializing Sindri..."
+sindri init --non-interactive || true
+
+# Install profile if specified
+if [ -n "$INSTALL_PROFILE" ] && [ "$INSTALL_PROFILE" != "none" ]; then
+    echo "Installing profile: $INSTALL_PROFILE"
+    if sindri profile list 2>/dev/null | grep -q "$INSTALL_PROFILE"; then
+        sindri profile install "$INSTALL_PROFILE" --yes || {
+            echo "WARNING: Profile installation failed, continuing..."
+        }
+    else
+        echo "WARNING: Profile '$INSTALL_PROFILE' not found, skipping..."
+    fi
+fi
+
+# Install additional extensions
+if [ -n "$EXTENSIONS" ]; then
+    echo "Installing extensions..."
+    IFS=',' read -ra EXT_ARRAY <<< "$EXTENSIONS"
+    for ext in "${EXT_ARRAY[@]}"; do
+        ext=$(echo "$ext" | xargs)  # Trim whitespace
+        if [ -n "$ext" ]; then
+            echo "Installing extension: $ext"
+            sindri extension install "$ext" --yes || {
+                echo "WARNING: Extension '$ext' installation failed, continuing..."
+            }
+        fi
+    done
+fi
+
+# Clean up download directory
+echo "Cleaning up..."
+rm -rf "$DOWNLOAD_DIR"
+
+echo "=== Sindri installation complete ==="
+
+# Run sindri doctor to verify health
+echo "Running health check..."
+sindri doctor || {
+    echo "WARNING: Health check reported issues, but installation completed"
+}
+
+# Display installed version and extensions
+echo ""
+echo "Installed Sindri version:"
+sindri --version
+echo ""
+echo "Installed extensions:"
+sindri extension list 2>/dev/null || echo "  (none or command not available)"

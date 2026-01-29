@@ -3,6 +3,8 @@
 //! This module orchestrates extension installation by interpreting YAML declarations
 //! and executing the appropriate installation method (mise, apt, binary, npm, script, hybrid).
 
+use crate::configure::ConfigureProcessor;
+use crate::validation::ValidationConfig;
 use anyhow::{anyhow, Context, Result};
 use regex::Regex;
 use sindri_core::types::{AptInstallConfig, Extension, HookConfig, InstallMethod};
@@ -90,6 +92,11 @@ impl ExtensionExecutor {
                     }
                 }
             }
+
+            // Execute configure phase
+            if let Some(configure) = &extension.configure {
+                self.execute_configure(name, configure).await?;
+            }
         }
 
         result
@@ -129,8 +136,24 @@ impl ExtensionExecutor {
             .await
             .context("Failed to create mise conf.d directory")?;
 
+        // Copy config to conf.d BEFORE installing
+        let dest_config = mise_conf_dir.join(format!("{}.toml", name));
+        tokio::fs::copy(&config_path, &dest_config)
+            .await
+            .context("Failed to copy mise config to conf.d")?;
+
+        // Trust the config directory (required by mise 2024+)
+        // Trust the entire conf.d directory to cover all config files
+        let _ = Command::new("mise")
+            .arg("trust")
+            .arg(&mise_conf_dir)
+            .output()
+            .await;
+
+        debug!("Configuration saved and trusted in {:?}", mise_conf_dir);
+
         // Step 3: Install tools
-        debug!("[3/4] Installing tools with mise (timeout: 5min, 3 retries if needed)...");
+        debug!("[3/5] Installing tools with mise (timeout: 5min, 3 retries if needed)...");
 
         // Change to workspace directory for installation
         let original_dir = std::env::current_dir()?;
@@ -183,23 +206,8 @@ impl ExtensionExecutor {
         // Restore original directory
         std::env::set_current_dir(original_dir)?;
 
-        // Step 4: Copy config to conf.d on success
-        let dest_config = mise_conf_dir.join(format!("{}.toml", name));
-        tokio::fs::copy(&config_path, &dest_config)
-            .await
-            .context("Failed to copy mise config to conf.d")?;
-
-        // Trust the config file (required by mise 2024+)
-        let _ = Command::new("mise")
-            .arg("trust")
-            .arg(&dest_config)
-            .output()
-            .await;
-
-        debug!("Configuration saved to {:?}", mise_conf_dir);
-
-        // Step 5: Reshim to update shims
-        debug!("[4/4] Running mise reshim to update shims...");
+        // Step 4: Reshim to update shims
+        debug!("[4/5] Running mise reshim to update shims...");
         if mise_config.reshim_after_install {
             let _ = Command::new("mise").arg("reshim").output().await;
         }
@@ -477,8 +485,11 @@ impl ExtensionExecutor {
         // Execute script with timeout
         debug!("Running install script: {:?}", script_path);
 
+        // CRITICAL: Pass absolute path to bash so BASH_SOURCE contains full path
+        // This allows scripts to use dirname resolution to find common.sh
+        // If we pass relative path, BASH_SOURCE is just filename and dirname fails
         let mut cmd = Command::new("bash");
-        cmd.arg(&script_path);
+        cmd.arg(script_path.canonicalize().unwrap_or(script_path.clone()));
         cmd.args(&script_config.args);
         cmd.current_dir(&ext_dir);
         cmd.stdout(Stdio::piped());
@@ -530,25 +541,23 @@ impl ExtensionExecutor {
 
         let mut has_steps = false;
 
-        // Execute in order: script -> mise -> apt
-        // This order ensures base dependencies are installed first
+        // Execute in order: apt -> mise -> npm -> binary -> script
+        // This order ensures:
+        // - apt installs system dependencies first
+        // - mise installs runtime/language tools
+        // - npm/binary install additional tools
+        // - script runs last for post-processing that may depend on above
 
-        // Execute script installation if specified
-        if extension.install.script.is_some() {
+        // Execute apt installation if specified
+        if extension.install.apt.is_some() {
             has_steps = true;
-            self.install_script(extension, timeout).await?;
+            self.install_apt(extension).await?;
         }
 
         // Execute mise installation if specified
         if extension.install.mise.is_some() {
             has_steps = true;
             self.install_mise(extension).await?;
-        }
-
-        // Execute apt installation if specified
-        if extension.install.apt.is_some() {
-            has_steps = true;
-            self.install_apt(extension).await?;
         }
 
         // Execute npm installation if specified
@@ -563,6 +572,12 @@ impl ExtensionExecutor {
             self.install_binary(extension).await?;
         }
 
+        // Execute script installation if specified (runs last)
+        if extension.install.script.is_some() {
+            has_steps = true;
+            self.install_script(extension, timeout).await?;
+        }
+
         if !has_steps {
             return Err(anyhow!("No installation steps specified for hybrid method"));
         }
@@ -575,9 +590,27 @@ impl ExtensionExecutor {
     }
 
     /// Validate an installed extension
+    ///
+    /// Sets up comprehensive PATH including:
+    /// - mise shims (for node, python, etc.)
+    /// - npm global packages directory
+    /// - Go binaries
+    /// - Cargo binaries
+    /// - User local binaries
+    /// - Additional paths from SINDRI_VALIDATION_EXTRA_PATHS
     pub async fn validate_extension(&self, extension: &Extension) -> Result<bool> {
         let name = &extension.metadata.name;
         info!("Validating extension: {}", name);
+
+        // Build comprehensive PATH for validation
+        // This ensures tools installed via various methods are discoverable
+        let validation_config = ValidationConfig::new(&self.home_dir, &self.workspace_dir);
+        let validation_path = validation_config.build_validation_path();
+
+        debug!(
+            "Validation PATH includes: {:?}",
+            validation_config.get_all_paths()
+        );
 
         for cmd in &extension.validate.commands {
             let args = vec![cmd.version_flag.as_str()];
@@ -586,6 +619,7 @@ impl ExtensionExecutor {
 
             let output = Command::new(&cmd.name)
                 .args(&args)
+                .env("PATH", &validation_path)
                 .output()
                 .await
                 .context(format!("Failed to run validation command: {}", cmd.name))?;
@@ -636,6 +670,38 @@ impl ExtensionExecutor {
             let stderr = String::from_utf8_lossy(&output.stderr);
             warn!("{} hook failed for {}: {}", phase, ext_name, stderr);
             // Don't fail the installation if hooks fail, just warn
+        }
+
+        Ok(())
+    }
+
+    /// Execute configure phase (templates and environment variables)
+    async fn execute_configure(
+        &self,
+        ext_name: &str,
+        configure: &sindri_core::types::ConfigureConfig,
+    ) -> Result<()> {
+        info!("Executing configure phase for {}", ext_name);
+
+        let ext_dir = self.extension_dir.join(ext_name);
+        let processor =
+            ConfigureProcessor::new(ext_dir, self.workspace_dir.clone(), self.home_dir.clone());
+
+        let result = processor
+            .execute(ext_name, configure)
+            .await
+            .context(format!("Configure phase failed for {}", ext_name))?;
+
+        info!(
+            "Configure completed for {}: {} templates, {} env vars",
+            ext_name, result.templates_processed, result.environment_vars_set
+        );
+
+        if !result.backups_created.is_empty() {
+            debug!(
+                "Created {} backup(s) during configure",
+                result.backups_created.len()
+            );
         }
 
         Ok(())

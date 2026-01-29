@@ -36,8 +36,9 @@ pub mod verify;
 pub use registry::RegistryClient;
 pub use resolver::VersionResolver;
 pub use types::{
-    ImageInfo, ImageManifest, ImageReference, Platform, ProvenanceVerification, PullPolicy,
-    ResolutionStrategy, Sbom, SbomPackage, SignatureInfo, SignatureVerification,
+    CachedImageMetadata, CachedTagInfo, ImageInfo, ImageManifest, ImageReference, Platform,
+    ProvenanceVerification, PullPolicy, ResolutionStrategy, Sbom, SbomPackage, SignatureInfo,
+    SignatureVerification,
 };
 pub use verify::ImageVerifier;
 

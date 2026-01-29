@@ -19,7 +19,72 @@ name: {{ name }}
 # =============================================================================
 deployment:
   provider: {{ provider }}
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IMAGE DEPLOYMENT OPTIONS
+  # ═══════════════════════════════════════════════════════════════════════════
+  #
+  # Choose ONE of the following image configuration methods:
+  #
+  # ───────────────────────────────────────────────────────────────────────────
+  # Option 1: Pre-built image (legacy - simple)
+  # ───────────────────────────────────────────────────────────────────────────
+  # image: ghcr.io/myorg/app:v1.0.0
+  #
+  # ───────────────────────────────────────────────────────────────────────────
+  # Option 2: Semantic versioning with verification (recommended)
+  # ───────────────────────────────────────────────────────────────────────────
+  # image_config:
+  #   registry: ghcr.io/myorg/app
+  #   version: "^1.0.0"           # Resolves to latest 1.x.x
+  #   verify_signature: true      # Verify with cosign
+  #   verify_provenance: true     # Verify SLSA provenance
+  #   pull_policy: IfNotPresent   # Always | IfNotPresent | Never
+  #
+  # ───────────────────────────────────────────────────────────────────────────
+  # Option 3: Explicit tag override
+  # ───────────────────────────────────────────────────────────────────────────
+  # image_config:
+  #   registry: ghcr.io/myorg/app
+  #   tag_override: v1.0.0-beta.1
+  #
+  # ───────────────────────────────────────────────────────────────────────────
+  # Option 4: Immutable digest (production)
+  # ───────────────────────────────────────────────────────────────────────────
+  # image_config:
+  #   registry: ghcr.io/myorg/app
+  #   digest: sha256:abc123...
+  #
+  # ───────────────────────────────────────────────────────────────────────────
+  # Option 5: Build from local Dockerfile
+  # ───────────────────────────────────────────────────────────────────────────
+  # (Leave image/image_config commented out)
+  # Sindri will build from ./Dockerfile if no image specified
+  # Supported providers: docker, fly, devpod, e2b
+  #
+  # ═══════════════════════════════════════════════════════════════════════════
+  # IMAGE RESOLUTION PRIORITY ORDER
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1. image_config.digest      (immutable - highest priority)
+  # 2. image_config.tag_override (explicit tag)
+  # 3. image_config.version     (semver constraint resolution)
+  # 4. image                    (legacy full reference)
+  # 5. Local Dockerfile         (provider-dependent build)
+  # 6. Default: ghcr.io/pacphi/sindri:latest
+  # ═══════════════════════════════════════════════════════════════════════════
+{% if provider == "kubernetes" %}
+  # Kubernetes does NOT support building from Dockerfile.
+  # You MUST specify a pre-built image for this provider.
   image: ghcr.io/pacphi/sindri:latest
+{% elif provider == "fly" %}
+  # Fly.io: Pre-built image (~30s deploy) or Dockerfile build (2-5 min)
+  image: ghcr.io/pacphi/sindri:latest
+{% elif provider == "e2b" %}
+  # E2B requires Dockerfile build (pre-built images not supported)
+  # Leave image commented out - E2B builds template from Dockerfile
+{% else %}
+  image: ghcr.io/pacphi/sindri:latest
+{% endif %}
 
   resources:
     memory: 4GB     # 1GB, 2GB, 4GB, 8GB, 16GB

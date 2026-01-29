@@ -1,0 +1,88 @@
+name: 'Terminate Test Instance'
+description: 'Terminate a cloud instance after testing (multi-cloud)'
+
+inputs:
+  cloud:
+    description: 'Cloud provider (aws, azure, gcp, oci, alibaba)'
+    required: true
+  instance-id:
+    description: 'Instance ID to terminate'
+    required: true
+  region:
+    description: 'Cloud region/zone'
+    required: false
+    default: 'us-west-2'
+  force:
+    description: 'Force termination without waiting'
+    required: false
+    default: 'true'
+  # Provider-specific inputs
+  resource-group:
+    description: 'Azure resource group'
+    required: false
+    default: 'sindri-test'
+  project-id:
+    description: 'GCP project ID'
+    required: false
+  compartment-id:
+    description: 'OCI compartment OCID'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    # AWS Provider
+    - name: Terminate AWS Instance
+      if: inputs.cloud == 'aws'
+      uses: ./.github/actions/packer/providers/aws
+      with:
+        action: terminate
+        instance-id: ${{ inputs.instance-id }}
+        region: ${{ inputs.region }}
+
+    # Azure Provider
+    - name: Terminate Azure VM
+      if: inputs.cloud == 'azure'
+      uses: ./.github/actions/packer/providers/azure
+      with:
+        action: terminate
+        instance-id: ${{ inputs.instance-id }}
+        region: ${{ inputs.region || 'westus2' }}
+        resource-group: ${{ inputs.resource-group }}
+
+    # GCP Provider
+    - name: Terminate GCP Instance
+      if: inputs.cloud == 'gcp'
+      uses: ./.github/actions/packer/providers/gcp
+      with:
+        action: terminate
+        instance-id: ${{ inputs.instance-id }}
+        region: ${{ inputs.region || 'us-central1-a' }}
+        project-id: ${{ inputs.project-id }}
+
+    # OCI Provider
+    - name: Terminate OCI Instance
+      if: inputs.cloud == 'oci'
+      uses: ./.github/actions/packer/providers/oci
+      with:
+        action: terminate
+        instance-id: ${{ inputs.instance-id }}
+        region: ${{ inputs.region || 'us-ashburn-1' }}
+
+    # Alibaba Provider
+    - name: Terminate Alibaba Instance
+      if: inputs.cloud == 'alibaba'
+      uses: ./.github/actions/packer/providers/alibaba
+      with:
+        action: terminate
+        instance-id: ${{ inputs.instance-id }}
+        region: ${{ inputs.region || 'us-west-1' }}
+
+    # Cleanup SSH Keys
+    - name: Cleanup SSH Keys
+      shell: bash
+      run: |
+        # Clean up any temporary SSH keys
+        rm -f /tmp/ssh_key /tmp/ssh_key_aws /tmp/ssh_key_oci /tmp/ssh_key_alibaba 2>/dev/null || true
+        rm -f /tmp/ssh_key.pub /tmp/ssh_key_oci.pub /tmp/ssh_key_alibaba.pub 2>/dev/null || true
+        echo "Cleaned up temporary SSH keys"

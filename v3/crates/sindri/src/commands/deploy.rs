@@ -1,6 +1,7 @@
 //! Deploy command
 
 use anyhow::Result;
+use camino::Utf8Path;
 use sindri_core::config::SindriConfig;
 use sindri_core::types::DeployOptions;
 use sindri_image::ImageVerifier;
@@ -9,31 +10,59 @@ use sindri_providers::create_provider;
 use crate::cli::DeployArgs;
 use crate::output;
 
-pub async fn run(args: DeployArgs) -> Result<()> {
+pub async fn run(args: DeployArgs, config_path: Option<&Utf8Path>) -> Result<()> {
     // Load config
-    let config = SindriConfig::load(None)?;
+    let config = SindriConfig::load(config_path)?;
 
-    output::header(&format!(
-        "Deploying {} to {}",
-        config.name(),
-        config.provider()
-    ));
+    // Perform preflight check for .env files
+    check_env_files(&config, args.env_file.as_deref())?;
 
-    // Resolve image version
-    let resolved_image = {
-        let spinner = output::spinner("Resolving image version...");
-        let image = config.resolve_image().await?;
-        spinner.finish_and_clear();
-        output::info(&format!("Using image: {}", image));
-        output::info("");
+    output::header(&format!("Deploying sindri to {}", config.provider()));
 
-        // Verify image if configured and not skipped
-        if !args.skip_image_verification && should_verify_image(&config, &args) {
-            verify_image(&image, &config).await?;
-            output::info("");
+    // Check if building from source (via flag or YAML config)
+    let build_from_source = args.from_source
+        || config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+    // Resolve image or prepare for source build
+    let resolved_image = if build_from_source {
+        // Building from source - skip image resolution
+        output::info("Building from Sindri repository source");
+        if let Some(build_config) = &config.inner().deployment.build_from_source {
+            if let Some(ref_name) = &build_config.git_ref {
+                output::info(&format!("Using git ref: {}", ref_name));
+            }
         }
+        output::info("");
+        None
+    } else {
+        // Use pre-built image
+        match config.resolve_image().await {
+            Ok(image) => {
+                output::info(&format!("Using image: {}", image));
+                output::info("");
 
-        image
+                // Verify image if configured and not skipped
+                if !args.skip_image_verification && should_verify_image(&config, &args) {
+                    verify_image(&image, &config).await?;
+                    output::info("");
+                }
+
+                Some(image)
+            }
+            Err(_) => {
+                return Err(anyhow::anyhow!(
+                    "No image configured. Please specify:\n\
+                    1. deployment.image or deployment.image_config in sindri.yaml, OR\n\
+                    2. Use --from-source flag to build from Sindri repository"
+                ));
+            }
+        }
     };
 
     // Create provider
@@ -67,10 +96,12 @@ pub async fn run(args: DeployArgs) -> Result<()> {
         verbose: false,
     };
 
-    // Update config with resolved image
-    // Note: This is for informational purposes - the providers should use resolve_image() themselves
-    // or retrieve the image from the config
-    output::info(&format!("Deploying with image: {}", resolved_image));
+    // Display deployment info
+    if let Some(image) = &resolved_image {
+        output::info(&format!("Deploying with image: {}", image));
+    } else {
+        output::info("Building from source...");
+    }
     output::info("");
 
     // Dry run
@@ -205,4 +236,146 @@ async fn verify_image(image: &str, config: &SindriConfig) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Check for .env files and provide informational feedback
+fn check_env_files(config: &SindriConfig, custom_env_file: Option<&Utf8Path>) -> Result<()> {
+    let config_dir = config
+        .config_path
+        .parent()
+        .unwrap_or_else(|| Utf8Path::new("."));
+
+    // If custom env file is provided, check that path
+    if let Some(env_file_path) = custom_env_file {
+        let full_path = if env_file_path.is_absolute() {
+            env_file_path.to_path_buf()
+        } else {
+            config_dir.join(env_file_path)
+        };
+
+        if full_path.exists() {
+            output::info(&format!("Using custom .env file: {}", full_path.as_str()));
+        } else {
+            output::warning(&format!(
+                "Custom .env file not found: {}",
+                full_path.as_str()
+            ));
+            output::info("Secrets will be loaded from environment variables or other sources");
+        }
+        return Ok(());
+    }
+
+    // Check for default .env files in config directory
+    let env_local_path = config_dir.join(".env.local");
+    let env_path = config_dir.join(".env");
+
+    let mut found_files = Vec::new();
+
+    if env_local_path.exists() {
+        found_files.push(".env.local");
+    }
+    if env_path.exists() {
+        found_files.push(".env");
+    }
+
+    if !found_files.is_empty() {
+        output::info(&format!(
+            "Found environment files in {}: {}",
+            config_dir.as_str(),
+            found_files.join(", ")
+        ));
+        output::info("Secrets will be resolved with priority: shell env > .env.local > .env");
+    } else {
+        output::info(&format!(
+            "No .env files found in {} (this is OK)",
+            config_dir.as_str()
+        ));
+        output::info(
+            "Secrets will be loaded from environment variables, Vault, S3, or other sources",
+        );
+        output::info("To use .env files, create .env or .env.local in the config directory");
+        output::info("Or use --env-file to specify a custom location");
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_check_env_files_with_both_files() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = Utf8PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+
+        // Create .env and .env.local
+        fs::write(config_dir.join(".env"), "KEY=value").unwrap();
+        fs::write(config_dir.join(".env.local"), "SECRET=hidden").unwrap();
+
+        // Create a mock config
+        let config_path = config_dir.join("sindri.yaml");
+        fs::write(&config_path, "version: '3.0'\nname: test\ndeployment:\n  provider: docker\nextensions:\n  profile: minimal").unwrap();
+
+        let config = SindriConfig::load(Some(&config_path)).unwrap();
+
+        // Should not error
+        let result = check_env_files(&config, None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_check_env_files_with_no_files() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = Utf8PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+
+        // Create a mock config without .env files
+        let config_path = config_dir.join("sindri.yaml");
+        fs::write(&config_path, "version: '3.0'\nname: test\ndeployment:\n  provider: docker\nextensions:\n  profile: minimal").unwrap();
+
+        let config = SindriConfig::load(Some(&config_path)).unwrap();
+
+        // Should not error (just informational)
+        let result = check_env_files(&config, None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_check_env_files_with_custom_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = Utf8PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+
+        // Create custom .env file
+        let custom_env = config_dir.join("custom.env");
+        fs::write(&custom_env, "CUSTOM=value").unwrap();
+
+        // Create a mock config
+        let config_path = config_dir.join("sindri.yaml");
+        fs::write(&config_path, "version: '3.0'\nname: test\ndeployment:\n  provider: docker\nextensions:\n  profile: minimal").unwrap();
+
+        let config = SindriConfig::load(Some(&config_path)).unwrap();
+
+        // Should detect custom file
+        let result = check_env_files(&config, Some(&Utf8PathBuf::from("custom.env")));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_check_env_files_custom_path_not_found() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = Utf8PathBuf::from_path_buf(temp_dir.path().to_path_buf()).unwrap();
+
+        // Create a mock config without custom env file
+        let config_path = config_dir.join("sindri.yaml");
+        fs::write(&config_path, "version: '3.0'\nname: test\ndeployment:\n  provider: docker\nextensions:\n  profile: minimal").unwrap();
+
+        let config = SindriConfig::load(Some(&config_path)).unwrap();
+
+        // Should warn but not error
+        let result = check_env_files(&config, Some(&Utf8PathBuf::from("missing.env")));
+        assert!(result.is_ok());
+    }
 }

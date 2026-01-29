@@ -230,7 +230,7 @@ extensions:
     - github-cli
 ```
 
-**Available extensions:** See [Extension Catalog](../../docs/EXTENSIONS.md)
+**Available extensions:** See [Extension Catalog](EXTENSIONS.md)
 
 ### Option 3: Mixed (Profile + Additions)
 
@@ -742,8 +742,8 @@ v2/docker/lib/schemas/sindri.schema.json
 
 ## Related Documentation
 
-- [Quickstart](../../v2/docs/QUICKSTART.md)
-- [Extension Catalog](../../docs/EXTENSIONS.md)
+- [Quickstart](./QUICKSTART.md)
+- [Extension Catalog](EXTENSIONS.md)
 - [Docker Deployment](providers/DOCKER.md)
 - [Fly.io Deployment](providers/FLY.md)
 - [DevPod Integration](providers/DEVPOD.md)

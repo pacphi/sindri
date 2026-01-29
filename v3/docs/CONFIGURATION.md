@@ -9,6 +9,7 @@ Complete reference for `sindri.yaml` configuration file in Sindri v3.
 - [Configuration Schema](#configuration-schema)
   - [Top-Level Fields](#top-level-fields)
   - [Deployment Configuration](#deployment-configuration)
+  - [Image vs Dockerfile Priority](#image-vs-dockerfile-priority)
   - [Image Configuration](#image-configuration)
   - [Resources Configuration](#resources-configuration)
   - [Extensions Configuration](#extensions-configuration)
@@ -165,6 +166,71 @@ Docker image to deploy. **Deprecated in v3** - use `image_config` instead for st
 ```yaml
 deployment:
   image: ghcr.io/pacphi/sindri:v3.0.0
+```
+
+---
+
+## Image vs Dockerfile Priority
+
+Sindri follows this priority order for image resolution across all providers:
+
+1. **image_config.digest** - Immutable production deployments (SHA256 digest)
+2. **image_config.tag_override** - Explicit tag override (e.g., `v3.0.0-beta.1`)
+3. **image_config.version** - Semantic version constraint (e.g., `^3.0.0`)
+4. **image** - Legacy full image reference (e.g., `ghcr.io/org/app:v1.0.0`)
+5. **Local Dockerfile** - Build on-demand (provider-dependent)
+6. **Default** - `ghcr.io/pacphi/sindri:latest`
+
+### Build Support by Provider
+
+| Provider   | Builds from Dockerfile? | When?                       | Override with Image?     |
+| ---------- | ----------------------- | --------------------------- | ------------------------ |
+| Docker     | Yes                     | When no image specified     | Yes                      |
+| Fly        | Yes                     | When no image specified     | Yes                      |
+| DevPod     | Yes                     | Cloud providers (with push) | Yes                      |
+| E2B        | Yes                     | Always (template system)    | No (Dockerfile required) |
+| Kubernetes | No                      | Never - use CI/CD           | Yes (image required)     |
+
+### Examples
+
+#### Pre-built Image (All Providers)
+
+```yaml
+deployment:
+  provider: docker # or fly, devpod, kubernetes
+  image: ghcr.io/myorg/app:v1.0.0
+# Deploys this image directly, no build
+```
+
+#### Semantic Versioning (All Providers)
+
+```yaml
+deployment:
+  provider: docker # or fly, devpod, kubernetes
+  image_config:
+    registry: ghcr.io/myorg/app
+    version: "^1.0.0" # Resolves to latest 1.x.x
+    verify_signature: true
+# Resolves version, verifies signature, then deploys
+```
+
+#### Build from Dockerfile (Docker, Fly, DevPod, E2B)
+
+```yaml
+deployment:
+  provider: docker # or fly, devpod, e2b
+  # No image specified - builds from ./Dockerfile
+```
+
+#### Immutable Digest (Production)
+
+```yaml
+deployment:
+  provider: kubernetes
+  image_config:
+    registry: ghcr.io/myorg/app
+    digest: sha256:abc123...
+# Deploys exact immutable image (best for production)
 ```
 
 ---
@@ -355,6 +421,83 @@ OIDC issuer for signature verification.
 image_config:
   certificate_oidc_issuer: "https://token.actions.githubusercontent.com"
 ```
+
+#### deployment.buildFromSource
+
+**Type:** `object`
+**Required:** No
+**For:** Sindri developers testing code changes
+
+Configuration for building from Sindri repository source instead of using pre-built images. This is an explicit opt-in feature primarily for Sindri developers.
+
+```yaml
+deployment:
+  buildFromSource:
+    enabled: true
+    gitRef: "main" # Optional: branch, tag, or commit SHA
+```
+
+**When to use:**
+
+- ✅ **Sindri developers** testing code changes in feature branches
+- ✅ **Testing unreleased features** before they're published
+- ❌ **NOT for regular users** - use pre-built images instead
+
+**CLI usage:**
+
+```bash
+# Build from source (respects YAML config)
+sindri deploy --from-source
+
+# Or with alias
+sindri deploy --fs
+```
+
+##### buildFromSource.enabled
+
+**Type:** `boolean`
+**Default:** `false`
+
+Enable building from Sindri repository source.
+
+```yaml
+buildFromSource:
+  enabled: true
+```
+
+##### buildFromSource.gitRef
+
+**Type:** `string`
+**Default:** Detected from clone (tag or "main")
+
+Git reference to build from. Can be a branch name, tag, or commit SHA.
+
+```yaml
+buildFromSource:
+  enabled: true
+  gitRef: "feature/my-feature"  # Test your development branch
+
+# Or test a specific commit
+buildFromSource:
+  enabled: true
+  gitRef: "abc123def"  # Commit SHA
+
+# Or test a pre-release tag
+buildFromSource:
+  enabled: true
+  gitRef: "v3.1.0-beta.1"
+```
+
+**Build process:**
+
+1. Clones Sindri repository from GitHub
+2. Builds Rust binary inside Docker (Linux environment)
+3. Tags image as `sindri:{version}-{gitsha}`
+4. Takes 3-5 minutes (includes cargo compilation)
+
+**Priority:**
+
+If both `image` and `buildFromSource.enabled` are specified, `buildFromSource` takes precedence.
 
 ---
 
@@ -1303,6 +1446,6 @@ sindri migrate rollback
 
 ## Related Documentation
 
-- [Getting Started](getting-started.md)
-- [Image Management](image-management.md)
+- [Getting Started](GETTING_STARTED.md)
+- [Image Management](IMAGE_MANAGEMENT.md)
 - [Architecture Decision Records](architecture/adr/README.md)

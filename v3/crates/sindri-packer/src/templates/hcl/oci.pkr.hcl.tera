@@ -1,0 +1,182 @@
+{# oci.pkr.hcl.tera - Oracle Cloud Infrastructure Image Packer Template for Sindri #}
+packer {
+  required_plugins {
+    oracle = {
+      version = ">= 1.0.0"
+      source  = "github.com/hashicorp/oracle"
+    }
+  }
+}
+
+variable "image_name" {
+  type    = string
+  default = "{{ image_name }}"
+}
+
+variable "sindri_version" {
+  type    = string
+  default = "{{ sindri_version }}"
+}
+
+variable "compartment_ocid" {
+  type    = string
+  default = "{{ compartment_ocid }}"
+}
+
+variable "availability_domain" {
+  type    = string
+  default = "{{ availability_domain }}"
+}
+
+variable "shape" {
+  type    = string
+  default = "{{ shape | default(value="VM.Standard.E4.Flex") }}"
+}
+
+variable "boot_volume_size_gb" {
+  type    = number
+  default = {{ boot_volume_size_gb | default(value=60) }}
+}
+
+source "oracle-oci" "sindri" {
+  # OCI Configuration - uses OCI config file or environment variables
+  # OCI_USER_ID, OCI_FINGERPRINT, OCI_TENANCY_ID, OCI_REGION, OCI_KEY_FILE
+
+  compartment_ocid    = var.compartment_ocid
+  availability_domain = var.availability_domain
+
+  # Image configuration
+  image_name = "${var.image_name}-{{timestamp}}"
+
+  # Source image - Ubuntu 24.04
+  base_image_filter {
+    compartment_id         = var.compartment_ocid
+    operating_system       = "Canonical Ubuntu"
+    operating_system_version = "24.04"
+    display_name_search    = ".*aarch64.*"
+  }
+
+  # Instance configuration
+  shape    = var.shape
+{% if ocpus %}
+  shape_config {
+    ocpus         = {{ ocpus }}
+    memory_in_gbs = {{ memory_in_gbs | default(value=16) }}
+  }
+{% endif %}
+
+  subnet_ocid = "{{ subnet_ocid }}"
+
+  # Disk configuration
+  disk_size = var.boot_volume_size_gb
+
+  ssh_username = "ubuntu"
+  ssh_timeout  = "{{ ssh_timeout | default(value="20m") }}"
+
+  # Freeform tags (OCI equivalent of tags)
+  image_freeform_tags = {
+    Name          = var.image_name
+    SindriVersion = var.sindri_version
+    BuildDate     = "{{timestamp}}"
+    BuiltBy       = "packer"
+    ManagedBy     = "sindri"
+{% for key, value in freeform_tags %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+
+{% if defined_tags %}
+  image_defined_tags = {
+{% for namespace, tags in defined_tags %}
+    "{{ namespace }}" = {
+{% for key, value in tags %}
+      "{{ key }}" = "{{ value }}"
+{% endfor %}
+    }
+{% endfor %}
+  }
+{% endif %}
+}
+
+build {
+  name    = "sindri-oci"
+  sources = ["source.oracle-oci.sindri"]
+
+  # Upload provisioning scripts
+  provisioner "file" {
+    source      = "scripts/"
+    destination = "/tmp/sindri-scripts/"
+  }
+
+{% if file_uploads | length > 0 %}
+  # Upload additional files
+{% for upload in file_uploads %}
+  provisioner "file" {
+    source      = "{{ upload.source }}"
+    destination = "{{ upload.destination }}"
+  }
+
+{% endfor %}
+{% endif %}
+  # Run initialization
+  provisioner "shell" {
+    inline = [
+      "chmod +x /tmp/sindri-scripts/*.sh",
+      "sudo /tmp/sindri-scripts/init.sh"
+    ]
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+{% for key, value in environment %}
+      "{{ key }}={{ value }}",
+{% endfor %}
+    ]
+  }
+
+  # Install Sindri
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/install-sindri.sh"
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+      "INSTALL_PROFILE={{ profile | default(value="base") }}",
+      "EXTENSIONS={{ extensions | join(sep=",") }}"
+    ]
+  }
+
+{% if cis_hardening %}
+  # CIS Benchmark Hardening
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/security-hardening.sh"
+    environment_vars = [
+      "CIS_LEVEL=1"
+    ]
+  }
+
+{% endif %}
+{% if ansible_playbook %}
+  # Ansible provisioning
+  provisioner "ansible" {
+    playbook_file = "{{ ansible_playbook }}"
+  }
+
+{% endif %}
+  # Cleanup
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/cleanup.sh"
+    environment_vars = [
+      "CLEAN_SENSITIVE_DATA={{ clean_sensitive_data | default(value=true) | lower }}",
+      "REMOVE_SSH_KEYS={{ remove_ssh_keys | default(value=true) | lower }}"
+    ]
+  }
+
+  # Generate manifest
+  post-processor "manifest" {
+    output     = "manifest.json"
+    strip_path = true
+    custom_data = {
+      sindri_version   = var.sindri_version
+      build_time       = "{{timestamp}}"
+      cloud            = "oci"
+      compartment_ocid = var.compartment_ocid
+    }
+  }
+}

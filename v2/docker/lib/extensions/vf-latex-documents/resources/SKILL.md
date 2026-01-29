@@ -186,7 +186,7 @@ The `.bib` file is the **single source of truth**. Never use inline URLs.
   author = {Author Name},
   title = {Page Title},
   url = {https://example.com},
-  urldate = {2025-01-15},
+  urldate = {2026-01-15},
   year = {2025}
 }
 ```

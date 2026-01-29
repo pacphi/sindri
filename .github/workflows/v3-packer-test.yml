@@ -1,0 +1,296 @@
+# Packer VM Image Test Workflow (v3)
+# This workflow tests Sindri v3 VM images using InSpec compliance profiles
+name: "v3: Test Sindri VM Images"
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud:
+        description: "Cloud provider to test"
+        required: true
+        type: choice
+        options:
+          - aws
+          - azure
+          - gcp
+      image_id:
+        description: "Image ID to test"
+        required: true
+        type: string
+      region:
+        description: "Cloud region"
+        required: false
+        default: "us-west-2"
+        type: string
+
+  workflow_run:
+    workflows: ["Build Sindri VM Images"]
+    types:
+      - completed
+
+env:
+  INSPEC_VERSION: "5.22.36"
+
+jobs:
+  test-aws:
+    name: Test AWS AMI
+    if: github.event.inputs.cloud == 'aws' || github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ github.event.inputs.region || 'us-west-2' }}
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install InSpec
+        run: |
+          gem install inspec-bin -v ${{ env.INSPEC_VERSION }}
+          inspec --chef-license=accept-silent
+
+      - name: Download Build Manifest
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: aws-build-manifest
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Get Image ID
+        id: image
+        run: |
+          if [ -n "${{ github.event.inputs.image_id }}" ]; then
+            echo "image_id=${{ github.event.inputs.image_id }}" >> $GITHUB_OUTPUT
+          elif [ -f build-result.json ]; then
+            echo "image_id=$(jq -r '.image_id' build-result.json)" >> $GITHUB_OUTPUT
+          else
+            echo "No image ID available"
+            exit 1
+          fi
+
+      - name: Launch Test Instance
+        id: instance
+        run: |
+          INSTANCE_ID=$(aws ec2 run-instances \
+            --image-id ${{ steps.image.outputs.image_id }} \
+            --instance-type t3.medium \
+            --key-name sindri-test \
+            --security-group-ids ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --subnet-id ${{ secrets.AWS_SUBNET_ID }} \
+            --query 'Instances[0].InstanceId' \
+            --output text)
+
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+
+          # Wait for instance to be running
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+          # Get public IP
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+
+          # Wait for SSH to be ready
+          sleep 60
+
+      - name: Run InSpec Tests
+        env:
+          SSH_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+        run: |
+          # Write SSH key
+          echo "$SSH_KEY" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+
+          # Run InSpec profile
+          inspec exec v3/test/integration/sindri/ \
+            -t ssh://ubuntu@${{ steps.instance.outputs.public_ip }} \
+            -i /tmp/ssh_key \
+            --reporter cli json:test-results.json
+
+      - name: Cleanup Test Instance
+        if: always()
+        run: |
+          if [ -n "${{ steps.instance.outputs.instance_id }}" ]; then
+            aws ec2 terminate-instances \
+              --instance-ids ${{ steps.instance.outputs.instance_id }}
+          fi
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aws-test-results
+          path: test-results.json
+
+  test-azure:
+    name: Test Azure Image
+    if: github.event.inputs.cloud == 'azure'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install InSpec
+        run: |
+          gem install inspec-bin -v ${{ env.INSPEC_VERSION }}
+          inspec --chef-license=accept-silent
+
+      - name: Create Test VM
+        id: vm
+        run: |
+          # Create test VM from image
+          az vm create \
+            --resource-group sindri-test \
+            --name sindri-test-vm \
+            --image ${{ github.event.inputs.image_id }} \
+            --admin-username ubuntu \
+            --generate-ssh-keys \
+            --public-ip-sku Standard \
+            --output json > vm-info.json
+
+          PUBLIC_IP=$(jq -r '.publicIpAddress' vm-info.json)
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+
+          # Wait for SSH
+          sleep 60
+
+      - name: Run InSpec Tests
+        run: |
+          inspec exec v3/test/integration/sindri/ \
+            -t ssh://ubuntu@${{ steps.vm.outputs.public_ip }} \
+            --reporter cli json:test-results.json
+
+      - name: Cleanup Test VM
+        if: always()
+        run: |
+          az vm delete \
+            --resource-group sindri-test \
+            --name sindri-test-vm \
+            --yes --no-wait
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: azure-test-results
+          path: test-results.json
+
+  test-gcp:
+    name: Test GCP Image
+    if: github.event.inputs.cloud == 'gcp'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install InSpec
+        run: |
+          gem install inspec-bin -v ${{ env.INSPEC_VERSION }}
+          inspec --chef-license=accept-silent
+
+      - name: Create Test Instance
+        id: instance
+        run: |
+          gcloud compute instances create sindri-test-vm \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --zone=${{ github.event.inputs.region || 'us-central1-a' }} \
+            --machine-type=e2-medium \
+            --image=${{ github.event.inputs.image_id }} \
+            --format=json > instance-info.json
+
+          EXTERNAL_IP=$(jq -r '.[0].networkInterfaces[0].accessConfigs[0].natIP' instance-info.json)
+          echo "external_ip=$EXTERNAL_IP" >> $GITHUB_OUTPUT
+
+          # Wait for SSH
+          sleep 60
+
+      - name: Run InSpec Tests
+        run: |
+          inspec exec v3/test/integration/sindri/ \
+            -t ssh://ubuntu@${{ steps.instance.outputs.external_ip }} \
+            --reporter cli json:test-results.json
+
+      - name: Cleanup Test Instance
+        if: always()
+        run: |
+          gcloud compute instances delete sindri-test-vm \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --zone=${{ github.event.inputs.region || 'us-central1-a' }} \
+            --quiet
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gcp-test-results
+          path: test-results.json
+
+  summary:
+    name: Test Summary
+    needs: [test-aws, test-azure, test-gcp]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate Summary
+        run: |
+          echo "## Sindri VM Image Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for dir in artifacts/*; do
+            if [ -f "$dir/test-results.json" ]; then
+              cloud=$(basename "$dir" | sed 's/-test-results//')
+              passed=$(jq '.statistics.controls.passed.total // 0' "$dir/test-results.json")
+              failed=$(jq '.statistics.controls.failed.total // 0' "$dir/test-results.json")
+              echo "### $cloud" >> $GITHUB_STEP_SUMMARY
+              echo "- Passed: $passed" >> $GITHUB_STEP_SUMMARY
+              echo "- Failed: $failed" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

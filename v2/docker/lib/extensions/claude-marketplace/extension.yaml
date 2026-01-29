@@ -2,7 +2,7 @@
 metadata:
   name: claude-marketplace
   version: 2.0.0
-  description: Claude Code plugin marketplace integration via YAML configuration
+  description: Claude Code plugin marketplace integration via JSON configuration
   category: ai
   author: Sindri Team
   dependencies: []
@@ -24,12 +24,7 @@ install:
 
 configure:
   templates:
-    - source: marketplaces.yml.example
-      destination: ~/config/marketplaces.yml
-      mode: overwrite
-    - source: marketplaces.ci.yml.example
-      destination: ~/config/marketplaces.ci.yml
-      mode: overwrite
+    # Claude settings.json merged by install.sh (CI/local selection happens there)
     - source: default-settings.json
       destination: ~/.claude/settings.json
       mode: merge
@@ -40,9 +35,7 @@ validate:
       expectedPattern: "\\d+\\.\\d+\\.\\d+.*Claude Code"
 
 remove:
-  paths:
-    - ~/config/marketplaces.yml
-    - ~/config/marketplaces.ci.yml
+  paths: []
 
 upgrade:
   strategy: none

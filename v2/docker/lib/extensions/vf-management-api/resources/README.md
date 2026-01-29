@@ -185,7 +185,7 @@ Comprehensive system health check including GPU, providers, and system resources
 
 ```json
 {
-  "timestamp": "2025-01-01T12:00:00.000Z",
+  "timestamp": "2026-01-01T12:00:00.000Z",
   "api": {
     "uptime": 3600,
     "version": "1.0.0",
@@ -246,7 +246,7 @@ Simple health check endpoint (no authentication required).
 ```json
 {
   "status": "healthy",
-  "timestamp": "2025-01-01T12:00:00.000Z"
+  "timestamp": "2026-01-01T12:00:00.000Z"
 }
 ```
 
@@ -260,7 +260,7 @@ Kubernetes-style readiness check (no authentication required).
 {
   "ready": true,
   "activeTasks": 2,
-  "timestamp": "2025-01-01T12:00:00.000Z"
+  "timestamp": "2026-01-01T12:00:00.000Z"
 }
 ```
 
@@ -298,7 +298,7 @@ Logs are persisted to Docker volume: `management-logs`
 ```json
 {
   "level": "info",
-  "time": "2025-01-01T12:00:00.000Z",
+  "time": "2026-01-01T12:00:00.000Z",
   "reqId": "req-123",
   "msg": "Request completed",
   "responseTime": 45

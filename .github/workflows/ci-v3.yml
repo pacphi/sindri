@@ -1,4 +1,4 @@
-name: CI v3
+name: "v3: CI"
 
 # v3 Rust CI Pipeline
 # Triggers on changes to v3 directory and related configurations
@@ -9,15 +9,17 @@ on:
     paths:
       - 'v3/**'
       - '.github/workflows/ci-v3.yml'
+      - '.github/workflows/v3-*.yml'
       - '.github/actions/v3/**'
-      - '.github/actions/shared/**'
+      - '.github/scripts/v3/**'
   pull_request:
     branches: [main, develop, feature/v3]
     paths:
       - 'v3/**'
       - '.github/workflows/ci-v3.yml'
+      - '.github/workflows/v3-*.yml'
       - '.github/actions/v3/**'
-      - '.github/actions/shared/**'
+      - '.github/scripts/v3/**'
   workflow_dispatch:
     inputs:
       test-extensions:
@@ -71,19 +73,10 @@ jobs:
         with:
           components: clippy
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('v3/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-clippy-
-            ${{ runner.os }}-cargo-
+          workspaces: v3 -> target
 
       - name: Run Clippy
         run: |
@@ -99,19 +92,10 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('v3/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-test-
-            ${{ runner.os }}-cargo-
+          workspaces: v3 -> target
 
       - name: Run tests
         run: |
@@ -141,19 +125,18 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('v3/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-
-            ${{ runner.os }}-cargo-
+          workspaces: v3 -> target
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Configure sccache
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
       - name: Build release binaries
         run: |
@@ -242,6 +225,9 @@ jobs:
       # - Multi-arch requires pre-compiled binaries for each architecture
       # - ARM64 builds happen during releases (not CI) when binaries are published
       # This avoids builder-binary trying to download non-existent ARM releases
+      # - Using production Dockerfile which uses pre-built binary from v3/bin/
+      # - Pre-built binary is copied in previous step for faster builds (~2 min)
+      # - For development builds with bundled extensions, use v3/Dockerfile.dev
       - name: Build and push image
         id: build
         uses: docker/build-push-action@v6
@@ -257,7 +243,7 @@ jobs:
           provenance: mode=max
           sbom: true
           build-args: |
-            BUILD_FROM_SOURCE=false
+            SINDRI_VERSION=${{ env.VERSION }}
 
       - name: Export image info
         run: |
@@ -369,8 +355,11 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        run: cargo binstall cargo-audit --no-confirm
 
       - name: Run cargo audit
         run: |
@@ -390,16 +379,10 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Cargo dependencies
-        uses: actions/cache@v5
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            v3/target/
-          key: ${{ runner.os }}-cargo-docs-${{ hashFiles('v3/**/Cargo.lock') }}
+          workspaces: v3 -> target
 
       - name: Build documentation
         run: |

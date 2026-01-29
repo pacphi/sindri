@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 sindri-core = { workspace = true }
+sindri-secrets = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
@@ -21,3 +22,4 @@ duct = { workspace = true }
 which = "8.0"
 chrono = { workspace = true }
 dirs = { workspace = true }
+base64 = "0.22"

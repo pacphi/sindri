@@ -46,6 +46,7 @@ profiles:
       - ai-toolkit
       - claudish
       - claude-marketplace
+      - compahook
       - infra-tools
       - jvm
       - mdflow

@@ -1,0 +1,2 @@
+This is a simple template file.
+It will be copied as-is to the destination.

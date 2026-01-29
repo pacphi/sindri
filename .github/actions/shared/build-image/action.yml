@@ -7,9 +7,8 @@ inputs:
     required: false
     default: sindri:latest
   dockerfile:
-    description: Path to v2/Dockerfile
-    required: false
-    default: v2/Dockerfile
+    description: Path to Dockerfile (e.g., v2/Dockerfile or v3/Dockerfile)
+    required: true
   context:
     description: Build context path
     required: false

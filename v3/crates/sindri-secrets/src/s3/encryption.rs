@@ -111,11 +111,11 @@ impl SecretEncryptor {
     ) -> Result<S3SecretMetadata> {
         // Generate random DEK
         let mut dek = Zeroizing::new([0u8; DEK_SIZE]);
-        rand::thread_rng().fill_bytes(dek.as_mut());
+        rand::rng().fill_bytes(dek.as_mut());
 
         // Generate random nonce
         let mut nonce_bytes = [0u8; NONCE_SIZE];
-        rand::thread_rng().fill_bytes(&mut nonce_bytes);
+        rand::rng().fill_bytes(&mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
 
         // Create cipher from DEK

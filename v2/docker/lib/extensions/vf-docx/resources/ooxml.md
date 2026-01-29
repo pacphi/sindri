@@ -364,7 +364,7 @@ doc["word/document.xml"].insert_after(node, '<w:ins><w:r><w:t>new text</w:t></w:
 # Goal: Delete only "financial" to make it "quarterly report"
 node = doc["word/document.xml"].get_node(tag="w:ins", attrs={"w:id": "5"})
 # IMPORTANT: Preserve w:author="Jane Smith" on the outer <w:ins> to maintain authorship
-replacement = '''<w:ins w:author="Jane Smith" w:date="2025-01-15T10:00:00Z">
+replacement = '''<w:ins w:author="Jane Smith" w:date="2026-01-15T10:00:00Z">
   <w:r><w:t>quarterly </w:t></w:r>
   <w:del><w:r><w:delText>financial </w:delText></w:r></w:del>
   <w:r><w:t>report</w:t></w:r>
@@ -375,13 +375,13 @@ doc["word/document.xml"].replace_node(node, replacement)
 # Original: <w:ins w:author="Jane Smith"><w:r><w:t>in silence, safe and sound</w:t></w:r></w:ins>
 # Goal: Change "safe and sound" to "soft and unbound"
 node = doc["word/document.xml"].get_node(tag="w:ins", attrs={"w:id": "8"})
-replacement = f'''<w:ins w:author="Jane Smith" w:date="2025-01-15T10:00:00Z">
+replacement = f'''<w:ins w:author="Jane Smith" w:date="2026-01-15T10:00:00Z">
   <w:r><w:t>in silence, </w:t></w:r>
 </w:ins>
 <w:ins>
   <w:r><w:t>soft and unbound</w:t></w:r>
 </w:ins>
-<w:ins w:author="Jane Smith" w:date="2025-01-15T10:00:00Z">
+<w:ins w:author="Jane Smith" w:date="2026-01-15T10:00:00Z">
   <w:del><w:r><w:delText>safe and sound</w:delText></w:r></w:del>
 </w:ins>'''
 doc["word/document.xml"].replace_node(node, replacement)

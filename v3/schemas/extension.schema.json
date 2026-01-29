@@ -43,10 +43,10 @@
           ]
         },
         "author": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "homepage": {
-          "type": "string",
+          "type": ["string", "null"],
           "format": "uri"
         },
         "dependencies": {
@@ -58,7 +58,7 @@
       }
     },
     "requirements": {
-      "type": "object",
+      "type": ["object", "null"],
       "properties": {
         "domains": {
           "type": "array",
@@ -68,17 +68,17 @@
           }
         },
         "diskSpace": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 0,
           "description": "Required disk space in MB"
         },
         "memory": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 0,
           "description": "Additional runtime memory needed in MB (beyond base system)"
         },
         "installTime": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 0,
           "description": "Estimated installation time in seconds"
         },
@@ -101,7 +101,7 @@
           }
         },
         "gpu": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "GPU requirements for this extension",
           "properties": {
             "required": {
@@ -150,7 +150,7 @@
           "enum": ["mise", "apt", "binary", "npm", "npm-global", "script", "hybrid"]
         },
         "npm": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "NPM global installation configuration (for npm-global method)",
           "properties": {
             "package": {
@@ -161,7 +161,7 @@
           "required": ["package"]
         },
         "mise": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "configFile": {
               "type": "string"
@@ -173,7 +173,7 @@
           }
         },
         "apt": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "repositories": {
               "type": "array",
@@ -182,7 +182,7 @@
                 "required": ["gpgKey", "sources"],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": ["string", "null"]
                   },
                   "gpgKey": {
                     "type": "string",
@@ -207,7 +207,7 @@
           }
         },
         "binary": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "downloads": {
               "type": "array",
@@ -251,7 +251,7 @@
           }
         },
         "script": {
-          "type": "object",
+          "type": ["object", "null"],
           "required": ["path"],
           "properties": {
             "path": {
@@ -272,7 +272,7 @@
       }
     },
     "configure": {
-      "type": "object",
+      "type": ["object", "null"],
       "properties": {
         "templates": {
           "type": "array",
@@ -333,13 +333,13 @@
                 "default": "--version"
               },
               "expectedPattern": {
-                "type": "string"
+                "type": ["string", "null"]
               }
             }
           }
         },
         "mise": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "tools": {
               "type": "array",
@@ -356,14 +356,14 @@
       }
     },
     "remove": {
-      "type": "object",
+      "type": ["object", "null"],
       "properties": {
         "confirmation": {
           "type": "boolean",
           "default": true
         },
         "mise": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "removeConfig": {
               "type": "boolean",
@@ -378,7 +378,7 @@
           }
         },
         "apt": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "packages": {
               "type": "array",
@@ -395,7 +395,7 @@
           }
         },
         "script": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "path": {
               "type": "string",
@@ -416,7 +416,7 @@
       }
     },
     "upgrade": {
-      "type": "object",
+      "type": ["object", "null"],
       "properties": {
         "strategy": {
           "type": "string",
@@ -425,7 +425,7 @@
           "description": "Upgrade strategy: automatic (use built-in upgrade), manual (custom script), none (no upgrade support), reinstall (remove and install), in-place (update existing)"
         },
         "mise": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "upgradeAll": {
               "type": "boolean",
@@ -442,7 +442,7 @@
           }
         },
         "apt": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "packages": {
               "type": "array",
@@ -458,7 +458,7 @@
           }
         },
         "script": {
-          "type": "object",
+          "type": ["object", "null"],
           "properties": {
             "path": {
               "type": "string",
@@ -473,11 +473,11 @@
       }
     },
     "capabilities": {
-      "type": "object",
+      "type": ["object", "null"],
       "description": "Optional capabilities for project initialization, authentication, hooks, and MCP integration",
       "properties": {
         "project-init": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Project initialization commands and state markers",
           "properties": {
             "enabled": {
@@ -525,7 +525,7 @@
                     "enum": ["directory", "file", "symlink"]
                   },
                   "description": {
-                    "type": "string"
+                    "type": ["string", "null"]
                   }
                 },
                 "required": ["path", "type"]
@@ -538,7 +538,7 @@
                   "type": "string"
                 },
                 "expectedPattern": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 },
                 "expectedExitCode": {
                   "type": "integer",
@@ -551,7 +551,7 @@
           "required": ["enabled"]
         },
         "auth": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Authentication requirements",
           "properties": {
             "provider": {
@@ -615,11 +615,11 @@
           "required": ["provider"]
         },
         "hooks": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Lifecycle hooks",
           "properties": {
             "pre-install": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "command": {
                   "type": "string"
@@ -631,7 +631,7 @@
               "required": ["command"]
             },
             "post-install": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "command": {
                   "type": "string"
@@ -643,7 +643,7 @@
               "required": ["command"]
             },
             "pre-project-init": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "command": {
                   "type": "string"
@@ -655,7 +655,7 @@
               "required": ["command"]
             },
             "post-project-init": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "command": {
                   "type": "string"
@@ -669,7 +669,7 @@
           }
         },
         "mcp": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "MCP server registration",
           "properties": {
             "enabled": {
@@ -715,7 +715,7 @@
           "required": ["enabled"]
         },
         "project-context": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Project context file management",
           "properties": {
             "enabled": {
@@ -740,7 +740,7 @@
           "required": ["enabled"]
         },
         "features": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Feature flags and configuration for advanced capabilities",
           "properties": {
             "core": {
@@ -840,7 +840,7 @@
           }
         },
         "collision-handling": {
-          "type": "object",
+          "type": ["object", "null"],
           "description": "Declarative collision detection and resolution for cloned projects with existing configurations",
           "properties": {
             "enabled": {
@@ -884,11 +884,11 @@
                         "description": "Conflict resolution action"
                       },
                       "separator": {
-                        "type": "string",
+                        "type": ["string", "null"],
                         "description": "Separator for append/prepend actions (e.g., '\\n\\n---\\n\\n')"
                       },
                       "backup-suffix": {
-                        "type": "string",
+                        "type": ["string", "null"],
                         "default": ".backup",
                         "description": "Suffix for backup files/directories"
                       },
@@ -1026,7 +1026,7 @@
       }
     },
     "bom": {
-      "type": "object",
+      "type": ["object", "null"],
       "description": "Bill of Materials - declarative listing of software installed by this extension",
       "properties": {
         "tools": {
@@ -1070,17 +1070,17 @@
                 "description": "Software license (e.g., MIT, Apache-2.0, GPL-3.0)"
               },
               "homepage": {
-                "type": "string",
+                "type": ["string", "null"],
                 "format": "uri",
                 "description": "Project homepage URL"
               },
               "downloadUrl": {
-                "type": "string",
+                "type": ["string", "null"],
                 "format": "uri",
                 "description": "Download URL (for binaries)"
               },
               "checksum": {
-                "type": "object",
+                "type": ["object", "null"],
                 "properties": {
                   "algorithm": {
                     "type": "string",
@@ -1092,11 +1092,11 @@
                 }
               },
               "purl": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Package URL (PURL) for SBOM compatibility"
               },
               "cpe": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Common Platform Enumeration for vulnerability scanning"
               }
             }
@@ -1119,7 +1119,7 @@
                 "description": "File type"
               },
               "checksum": {
-                "type": "object",
+                "type": ["object", "null"],
                 "properties": {
                   "algorithm": {
                     "type": "string",

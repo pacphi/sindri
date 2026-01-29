@@ -54,8 +54,8 @@ This skill guides you through creating declarative YAML extensions for Sindri. E
 | **Profiles**        | `v2/docker/lib/profiles.yaml`                 | Extension profile definitions      |
 | **Categories**      | `v2/docker/lib/categories.yaml`               | Category definitions               |
 | **Extension Docs**  | `docs/extensions/{NAME}.md`                   | Individual extension documentation |
-| **Catalog**         | `docs/EXTENSIONS.md`                          | Overview of all extensions         |
-| **Authoring Guide** | `docs/EXTENSION_AUTHORING.md`                 | Detailed authoring reference       |
+| **Catalog**         | `v2/docs/EXTENSIONS.md`                          | Overview of all extensions         |
+| **Authoring Guide** | `v2/docs/EXTENSION_AUTHORING.md`                 | Detailed authoring reference       |
 | **Slides**          | `docs/slides/extensions.html`                 | Visual presentation                |
 
 ## Quick Start Checklist
@@ -555,7 +555,7 @@ echo "my-tool installed successfully"
   - Include: overview, installation, configuration, usage examples
   - For VisionFlow: `docs/extensions/vision-flow/VF-{NAME}.md`
 
-- [ ] **Extension Catalog** - Update `docs/EXTENSIONS.md`
+- [ ] **Extension Catalog** - Update `v2/docs/EXTENSIONS.md`
   - Add to appropriate category table
   - Include link to extension doc
 
@@ -563,12 +563,12 @@ echo "my-tool installed successfully"
 
 - [ ] **Profiles** - If adding extension to profiles:
   - Update `v2/docker/lib/profiles.yaml`
-  - Update relevant profile descriptions in `docs/EXTENSIONS.md`
+  - Update relevant profile descriptions in `v2/docs/EXTENSIONS.md`
 
 - [ ] **Categories** - If adding new category:
   - Update `v2/docker/lib/categories.yaml`
   - Update `v2/docker/lib/schemas/extension.schema.json` (category enum)
-  - Update category docs in `docs/EXTENSIONS.md`
+  - Update category docs in `v2/docs/EXTENSIONS.md`
 
 - [ ] **Schema** - If adding new extension fields:
   - Update `v2/docker/lib/schemas/extension.schema.json`

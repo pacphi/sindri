@@ -4,6 +4,9 @@ set -euo pipefail
 # Bootstrap pnpm via direct npm install
 # This works around mise npm backend bug where pnpm itself times out
 # After bootstrap, mise can use pnpm for all npm: packages
+#
+# IMPORTANT: Installs to ~/.npm-global/bin to match mise.toml NPM_CONFIG_PREFIX
+# This ensures pnpm is in a known PATH location for validation
 
 source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 
@@ -25,24 +28,29 @@ if [[ ! -f "$NPM_CLI" ]]; then
     exit 1
 fi
 
-# Install pnpm globally via direct npm (bypasses mise)
-print_status "Installing pnpm@10 via npm..."
-"$NODE_BIN" "$NPM_CLI" install -g pnpm@10 || {
+# Set npm global prefix to match mise.toml configuration
+# This ensures pnpm is installed to ~/.npm-global/bin which is in PATH
+NPM_GLOBAL_PREFIX="${HOME}/.npm-global"
+mkdir -p "$NPM_GLOBAL_PREFIX"
+
+# Install pnpm globally with explicit prefix
+print_status "Installing pnpm@10 to ${NPM_GLOBAL_PREFIX}..."
+"$NODE_BIN" "$NPM_CLI" install -g --prefix "$NPM_GLOBAL_PREFIX" pnpm@10 || {
     print_error "Failed to install pnpm"
     exit 1
 }
 
-# Verify pnpm is available
-PNPM_BIN="${NODE_DIR}bin/pnpm"
+# Verify pnpm is available in the expected location
+PNPM_BIN="${NPM_GLOBAL_PREFIX}/bin/pnpm"
 if [[ -f "$PNPM_BIN" ]]; then
     PNPM_VERSION=$("$PNPM_BIN" --version 2>/dev/null || echo "unknown")
-    print_success "pnpm $PNPM_VERSION installed successfully"
+    print_success "pnpm $PNPM_VERSION installed to ${NPM_GLOBAL_PREFIX}/bin"
 else
-    print_error "pnpm binary not found after installation"
+    print_error "pnpm binary not found at $PNPM_BIN after installation"
     exit 1
 fi
 
-# Refresh mise shims to include pnpm
+# Refresh mise shims (for other tools, not pnpm which is in npm-global)
 print_status "Refreshing mise shims..."
 mise reshim 2>/dev/null || true
 hash -r 2>/dev/null || true

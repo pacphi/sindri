@@ -1,0 +1,195 @@
+{# alibaba.pkr.hcl.tera - Alibaba Cloud ECS Image Packer Template for Sindri #}
+packer {
+  required_plugins {
+    alicloud = {
+      version = ">= 1.1.0"
+      source  = "github.com/hashicorp/alicloud"
+    }
+  }
+}
+
+variable "image_name" {
+  type    = string
+  default = "{{ image_name }}"
+}
+
+variable "sindri_version" {
+  type    = string
+  default = "{{ sindri_version }}"
+}
+
+variable "region" {
+  type    = string
+  default = "{{ region | default(value="cn-hangzhou") }}"
+}
+
+variable "instance_type" {
+  type    = string
+  default = "{{ instance_type | default(value="ecs.g6.xlarge") }}"
+}
+
+variable "system_disk_size_gb" {
+  type    = number
+  default = {{ system_disk_size_gb | default(value=80) }}
+}
+
+source "alicloud-ecs" "sindri" {
+  # Alibaba Cloud credentials via environment variables
+  # ALICLOUD_ACCESS_KEY, ALICLOUD_SECRET_KEY, or ALICLOUD_PROFILE
+
+  region = var.region
+
+  # Image configuration
+  image_name        = "${var.image_name}-{{timestamp}}"
+  image_description = "Sindri v3 development environment{% if description %} - {{ description }}{% endif %}"
+  image_version     = "{{ sindri_version }}"
+
+  # Source image - Ubuntu 24.04 LTS
+  image_family   = "ubuntu_24_04_x64"
+  image_owners   = ["system"]
+
+  # Instance configuration
+  instance_type = var.instance_type
+  instance_name = "packer-sindri-builder"
+
+  # Disk configuration
+  system_disk_mapping {
+    disk_category = "{{ system_disk_category | default(value="cloud_essd") }}"
+    disk_size     = var.system_disk_size_gb
+  }
+
+{% if vswitch_id %}
+  vswitch_id = "{{ vswitch_id }}"
+{% endif %}
+
+{% if security_group_id %}
+  security_group_id = "{{ security_group_id }}"
+{% endif %}
+
+  # Network configuration
+  internet_charge_type       = "PayByTraffic"
+  internet_max_bandwidth_out = 5
+  io_optimized               = true
+
+  ssh_username = "root"
+  ssh_timeout  = "{{ ssh_timeout | default(value="20m") }}"
+
+  # Tags
+  tags = {
+    Name          = var.image_name
+    SindriVersion = var.sindri_version
+    BuildDate     = "{{timestamp}}"
+    BuiltBy       = "packer"
+    ManagedBy     = "sindri"
+{% for key, value in tags %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+
+{% if image_share_accounts | length > 0 %}
+  # Share image with other accounts
+  image_share_account = [{% for a in image_share_accounts %}"{{ a }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+
+{% if image_copy_regions | length > 0 %}
+  # Copy image to other regions
+  image_copy_regions = [{% for r in image_copy_regions %}"{{ r }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+}
+
+build {
+  name    = "sindri-alibaba"
+  sources = ["source.alicloud-ecs.sindri"]
+
+  # Upload provisioning scripts
+  provisioner "file" {
+    source      = "scripts/"
+    destination = "/tmp/sindri-scripts/"
+  }
+
+{% if file_uploads | length > 0 %}
+  # Upload additional files
+{% for upload in file_uploads %}
+  provisioner "file" {
+    source      = "{{ upload.source }}"
+    destination = "{{ upload.destination }}"
+  }
+
+{% endfor %}
+{% endif %}
+  # Run initialization (Alibaba uses root by default)
+  provisioner "shell" {
+    inline = [
+      "chmod +x /tmp/sindri-scripts/*.sh",
+      "/tmp/sindri-scripts/init.sh"
+    ]
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+{% for key, value in environment %}
+      "{{ key }}={{ value }}",
+{% endfor %}
+    ]
+  }
+
+  # Create ubuntu user for Sindri (Alibaba Cloud uses root by default)
+  provisioner "shell" {
+    inline = [
+      "useradd -m -s /bin/bash ubuntu || true",
+      "usermod -aG sudo ubuntu || true",
+      "echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu",
+      "mkdir -p /home/ubuntu/.ssh",
+      "cp /root/.ssh/authorized_keys /home/ubuntu/.ssh/ || true",
+      "chown -R ubuntu:ubuntu /home/ubuntu"
+    ]
+  }
+
+  # Install Sindri
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/install-sindri.sh"
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+      "INSTALL_PROFILE={{ profile | default(value="base") }}",
+      "EXTENSIONS={{ extensions | join(sep=",") }}",
+      "HOME=/home/ubuntu"
+    ]
+  }
+
+{% if cis_hardening %}
+  # CIS Benchmark Hardening
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/security-hardening.sh"
+    environment_vars = [
+      "CIS_LEVEL=1"
+    ]
+  }
+
+{% endif %}
+{% if ansible_playbook %}
+  # Ansible provisioning
+  provisioner "ansible" {
+    playbook_file = "{{ ansible_playbook }}"
+    user          = "root"
+  }
+
+{% endif %}
+  # Cleanup
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/cleanup.sh"
+    environment_vars = [
+      "CLEAN_SENSITIVE_DATA={{ clean_sensitive_data | default(value=true) | lower }}",
+      "REMOVE_SSH_KEYS={{ remove_ssh_keys | default(value=true) | lower }}"
+    ]
+  }
+
+  # Generate manifest
+  post-processor "manifest" {
+    output     = "manifest.json"
+    strip_path = true
+    custom_data = {
+      sindri_version = var.sindri_version
+      build_time     = "{{timestamp}}"
+      cloud          = "alibaba"
+      region         = var.region
+    }
+  }
+}

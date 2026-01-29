@@ -2,6 +2,8 @@
 
 This guide covers how to record reveal.js slide decks with background music and "Now Playing" overlays for YouTube upload.
 
+> **Note**: These slide decks are for **Sindri V2** (Bash/Docker platform). Each slide includes version indicators in the header and footer.
+
 ## Overview
 
 | Tool           | Purpose                           | Cost |
@@ -21,7 +23,7 @@ Best for: Live recording with real-time "Now Playing" overlay
 2. **Add Browser Source for Slides**:
    - Click `+` in Sources panel
    - Select "Browser"
-   - Set URL to your slide deck: `file:///path/to/docs/slides/getting-started.html`
+   - Set URL to your slide deck: `file:///path/to/v2/docs/slides/v2-getting-started.html`
    - Set dimensions to 1920x1080
 
 3. **Add Apple Music "Now Playing" Overlay**:
@@ -150,12 +152,12 @@ Since Camtasia doesn't have a live "Now Playing" feature, you'll need to add it 
 
 Current configuration: `autoSlide: 5000` (5 seconds per slide)
 
-| Slide Deck                  | Estimated Slides | Duration          | Changes                                       |
-| --------------------------- | ---------------- | ----------------- | --------------------------------------------- |
-| getting-started.html        | ~45              | ~3 min 45 sec     | Added: 6 E2B slides + 5 Backup/Restore slides |
-| extensions.html             | ~39              | ~3 min 15 sec     | Added: 1 Docker DinD slide                    |
-| workspace-and-projects.html | ~33              | ~2 min 45 sec     | No changes                                    |
-| **Total**                   | ~117             | **~9 min 45 sec** | **+11 slides, +45 seconds**                   |
+| Slide Deck                     | Estimated Slides | Duration          | Changes                                       |
+| ------------------------------ | ---------------- | ----------------- | --------------------------------------------- |
+| v2-getting-started.html        | ~45              | ~3 min 45 sec     | Added: 6 E2B slides + 5 Backup/Restore slides |
+| v2-extensions.html             | ~39              | ~3 min 15 sec     | Added: 1 Docker DinD slide                    |
+| v2-workspace-and-projects.html | ~33              | ~2 min 45 sec     | No changes                                    |
+| **Total**                      | ~117             | **~9 min 45 sec** | **+11 slides, +45 seconds**                   |
 
 To adjust timing, edit the `autoSlide` value in each HTML file:
 

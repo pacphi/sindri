@@ -79,6 +79,14 @@ pub enum ToolCategory {
     ProviderE2B,
     /// Kubernetes provider tools
     ProviderKubernetes,
+    /// Local Kubernetes cluster tools (kind, k3d)
+    KubernetesClusters,
+    /// Packer/VM image building tools
+    ProviderPacker,
+    /// Infrastructure-as-code tools (terraform, pulumi, ansible)
+    Infrastructure,
+    /// Cloud provider CLIs (aws, az, gcloud)
+    CloudCLI,
     /// Extension installation backends
     ExtensionBackend,
     /// Secret management tools
@@ -97,6 +105,10 @@ impl ToolCategory {
             Self::ProviderDevpod => "DevPod Provider",
             Self::ProviderE2B => "E2B Provider",
             Self::ProviderKubernetes => "Kubernetes Provider",
+            Self::KubernetesClusters => "Local Kubernetes Clusters",
+            Self::ProviderPacker => "Packer/VM Images",
+            Self::Infrastructure => "Infrastructure-as-Code",
+            Self::CloudCLI => "Cloud Provider CLIs",
             Self::ExtensionBackend => "Extension Backends",
             Self::Secrets => "Secret Management",
             Self::Optional => "Optional Tools",

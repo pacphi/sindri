@@ -1,0 +1,110 @@
+name: 'GCP Instance Manager'
+description: 'Launch and terminate GCP Compute Engine instances for Packer image testing'
+
+inputs:
+  action:
+    description: 'Action to perform (launch, terminate)'
+    required: true
+  image-id:
+    description: 'GCP image name'
+    required: false
+  instance-id:
+    description: 'Instance name to terminate'
+    required: false
+  region:
+    description: 'GCP zone'
+    required: false
+    default: 'us-central1-a'
+  instance-type:
+    description: 'Machine type'
+    required: false
+    default: 'e2-medium'
+  project-id:
+    description: 'GCP project ID'
+    required: false
+
+outputs:
+  instance-id:
+    description: 'Instance name'
+    value: ${{ steps.launch.outputs.instance_id }}
+  public-ip:
+    description: 'External IP address'
+    value: ${{ steps.launch.outputs.public_ip }}
+  ssh-key-path:
+    description: 'Path to SSH private key'
+    value: ${{ steps.launch.outputs.ssh_key_path }}
+  ssh-user:
+    description: 'SSH username'
+    value: 'ubuntu'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Launch GCP Instance
+      if: inputs.action == 'launch'
+      id: launch
+      shell: bash
+      run: |
+        echo "Launching GCP instance from image: ${{ inputs.image-id }}"
+
+        INSTANCE_NAME="sindri-test-$(date +%s)"
+        ZONE="${{ inputs.region }}"
+        PROJECT="${{ inputs.project-id }}"
+
+        # Set project if provided
+        if [[ -n "$PROJECT" ]]; then
+          gcloud config set project "$PROJECT"
+        fi
+
+        # Create instance
+        gcloud compute instances create "$INSTANCE_NAME" \
+          --zone="$ZONE" \
+          --machine-type=${{ inputs.instance-type }} \
+          --image=${{ inputs.image-id }} \
+          --tags=packer-test,auto-terminate \
+          --metadata=enable-oslogin=true \
+          --format=json > /tmp/gcp-instance-info.json
+
+        EXTERNAL_IP=$(jq -r '.[0].networkInterfaces[0].accessConfigs[0].natIP' /tmp/gcp-instance-info.json)
+
+        echo "Instance Name: $INSTANCE_NAME"
+        echo "External IP: $EXTERNAL_IP"
+
+        echo "instance_id=$INSTANCE_NAME" >> $GITHUB_OUTPUT
+        echo "public_ip=$EXTERNAL_IP" >> $GITHUB_OUTPUT
+        echo "ssh_key_path=$HOME/.ssh/google_compute_engine" >> $GITHUB_OUTPUT
+
+        # Wait for SSH
+        echo "Waiting for SSH to be ready..."
+        for i in {1..30}; do
+          if gcloud compute ssh "$INSTANCE_NAME" --zone="$ZONE" --command="echo SSH ready" 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i/30)"
+          sleep 10
+        done
+
+    - name: Terminate GCP Instance
+      if: inputs.action == 'terminate'
+      shell: bash
+      run: |
+        INSTANCE_NAME="${{ inputs.instance-id }}"
+        ZONE="${{ inputs.region }}"
+        PROJECT="${{ inputs.project-id }}"
+
+        if [[ -n "$PROJECT" ]]; then
+          gcloud config set project "$PROJECT"
+        fi
+
+        if [[ -n "$INSTANCE_NAME" && "$INSTANCE_NAME" != "null" ]]; then
+          echo "Terminating GCP instance: $INSTANCE_NAME"
+
+          gcloud compute instances delete "$INSTANCE_NAME" \
+            --zone="$ZONE" \
+            --quiet
+
+          echo "Instance deleted"
+        else
+          echo "No instance name provided, skipping termination"
+        fi

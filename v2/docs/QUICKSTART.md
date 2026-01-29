@@ -15,10 +15,10 @@ git clone https://github.com/pacphi/sindri
 cd sindri
 
 # Make CLI executable
-chmod +x cli/sindri
+chmod +x v2/cli/sindri
 
 # Add to PATH (optional)
-export PATH="$PWD/cli:$PATH"
+export PATH="$PWD/v2/cli:$PATH"
 ```
 
 ## Initialize Configuration

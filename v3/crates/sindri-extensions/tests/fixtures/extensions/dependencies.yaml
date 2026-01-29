@@ -1,0 +1,19 @@
+metadata:
+  name: test-deps
+  version: "1.0.0"
+  description: Test extension with dependencies
+  category: testing
+  dependencies:
+    - test-minimal
+    - test-hooks
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 60
+
+validate:
+  commands:
+    - name: echo
+      versionFlag: "test"

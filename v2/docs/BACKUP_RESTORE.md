@@ -80,7 +80,7 @@ The Sindri home directory (`/alt/home/developer`) contains multiple categories o
 
 ```bash
 # Safe restore (default - won't overwrite existing files)
-./v2/cli/sindri restore ./backups/sindri-backup-2025-01-15.tar.gz
+./v2/cli/sindri restore ./backups/sindri-backup-2026-01-15.tar.gz
 
 # Preview what will happen
 ./v2/cli/sindri restore ./backups/backup.tar.gz --dry-run
@@ -386,7 +386,7 @@ export AWS_PROFILE=sindri-backup
 ### Restore from S3
 
 ```bash
-./v2/cli/sindri restore s3://my-bucket/sindri-backups/backup-2025-01-15.tar.gz
+./v2/cli/sindri restore s3://my-bucket/sindri-backups/backup-2026-01-15.tar.gz
 ```
 
 ### S3-Compatible Storage

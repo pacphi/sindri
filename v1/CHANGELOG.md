@@ -1,0 +1,625 @@
+# Changelog - Sindri v1
+
+All notable changes to Sindri v1 will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+**Note**: Sindri v1 is archived. No new releases will be made for v1.
+
+See [RELEASE_NOTES.v2.md](../RELEASE_NOTES.v2.md) for migration guidance to v2.
+
+---
+
+## [1.13.0] - 2026-01-03
+
+### :sparkles: Features
+
+- feat: add e2b provider adapter (#24) (df1b462)
+- feat(backup): add backup and restore commands (#23) (d5028c9)
+- feat: improve Docker extension (#22) (ec2bf47)
+
+### :books: Documentation
+
+- docs(slides): add E2B provider and Backup/Restore sections (43b10cf)
+- docs(faq): add 15 FAQ items for recent features (4b45dbf)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.12.1 (45225fd)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.13.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.12.1...v1.13.0
+
+## [1.12.1] - 2025-12-24
+
+### :sparkles: Features
+
+- feat(project-mgmt): add claude-flow AgentDB backend initialization (3f18fa7)
+
+### :bug: Bug Fixes
+
+- fix(validation): increase default timeout from 10s to 30s (c449354)
+
+### :wrench: Maintenance
+
+- ci(deps): bump actions/upload-artifact from 4 to 6 (#21) (81561e7)
+- chore(release): update CHANGELOG.md and VERSION for v1.12.0 (af92621)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.12.1
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.12.0...v1.12.1
+
+## [1.12.0] - 2025-12-19
+
+### :sparkles: Features
+
+- feat(python): add uv package manager and improve project tools (bc6b5bb)
+- feat(extensions): add context7-mcp extension (370b753)
+
+### :bug: Bug Fixes
+
+- fix(context7-mcp): remove broken links in SKILL.md (0bfce5e)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.11.0 (e81309d)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.12.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.11.0...v1.12.0
+
+## [1.11.0] - 2025-12-18
+
+### :sparkles: Features
+
+- feat(project-mgmt): add automatic agentic tool initialization (2b7303f)
+
+### :bug: Bug Fixes
+
+- fix(project-core): use claude-flow command instead of alias (57ec267)
+- fix(project-core): separate variable declaration and assignment (131f8fe)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.10.0 (a74d762)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.11.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.10.0...v1.11.0
+
+## [1.10.0] - 2025-12-18
+
+### :sparkles: Features
+
+- feat(docker): add starship prompt with Nerd Fonts support (8b35d87)
+- feat(nodejs-devtools): add pnpm package manager (f4a0dab)
+
+### :books: Documentation
+
+- docs: reorganize security and IDE documentation (92bfdda)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.9.0 (308e34e)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.10.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.9.0...v1.10.0
+
+## [1.9.0] - 2025-12-18
+
+### :bug: Bug Fixes
+
+- fix: implement security improvements (#20) (751adfa)
+- fix(extensions): resolve profile defaulting and extension installation issues (2d7b824)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.8.0 (d568a16)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.9.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.8.0...v1.9.0
+
+## [1.8.0] - 2025-12-16
+
+### :sparkles: Features
+
+- feat(linear-mcp): upgrade to OAuth-based remote MCP v2.0.0 (fbae7bc)
+- feat(cli): add reinstall and reinstall-profile commands (d4d75dc)
+- feat(extensions): add standalone ollama extension (41824f8)
+
+### :bug: Bug Fixes
+
+- fix(adapters): enable auto-install for additional extensions (1d744c2)
+- fix(extensions): resolve validation failures for 4 extensions (78b9720)
+- fix(extensions): correct validation patterns for cli tools (31151df)
+- fix(extensions): add npm global bin to validation PATH (75e3fac)
+- fix(extensions): improve validation and domain requirements (40b0190)
+- fix(mdflow): add bun runtime dependency (f90d4a4)
+- fix(secrets): propagate provider secrets to login shells (dfa8cd9)
+- fix(extensions): prevent false installed markers and fix validation (95f9712)
+- fix(docs): address markdown lint issues (a05bc48)
+- fix(ci): skip fly provider tests for Dependabot PRs (685fbe7)
+
+### :books: Documentation
+
+- docs: align documentation to current implementation state (#19) (1bf4f45)
+- docs: add security and documentation audit reports (1f74a01)
+
+### :recycle: Refactoring
+
+- refactor(jira-mcp): use native SSE transport v2.0.0 (4de3dec)
+- refactor(linear-mcp): use native HTTP transport v2.1.0 (330fd03)
+- refactor(extensions): migrate npm packages to mise npm: backend (885144c)
+- refactor(supabase-cli): switch to deb package installation (4b516d8)
+
+### :wrench: Maintenance
+
+- ci(deps): bump actions/download-artifact from 4 to 7 (#18) (8c50676)
+- ci(deps): bump actions/upload-artifact from 4 to 6 (#17) (afea5df)
+- chore(release): update CHANGELOG.md and VERSION for v1.7.1 (b50a9d9)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.8.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.7.1...v1.8.0
+
+## [1.7.1] - 2025-12-14
+
+### :sparkles: Features
+
+- feat(fly): add --rebuild flag for cache-free deploys (6c70eca)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.7.0 (bbc2946)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.7.1
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.7.0...v1.7.1
+
+## [1.7.0] - 2025-12-14
+
+### :sparkles: Features
+
+- feat: add more useful extensions (#16) (3e5a436)
+
+### :books: Documentation
+
+- docs: update extension count to 73 (032b764)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.6.1 (9951935)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.7.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.6.1...v1.7.0
+
+## [1.6.1] - 2025-12-10
+
+### :bug: Bug Fixes
+
+- fix: add /v2/docker/cli to PATH for SSH sessions (28c96b1)
+
+### :books: Documentation
+
+- docs: regenerate FAQ with new question (54 total) (568b246)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.6.0 (6a9c737)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.6.1
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.6.0...v1.6.1
+
+## [1.6.0] - 2025-12-09
+
+### :sparkles: Features
+
+- feat: run extension install in background for faster startup (7a05d51)
+- feat: add FAQ (#14) (8cc41b6)
+- feat: extension installation fixes/improvements (#15) (4ab68cf)
+
+### :bug: Bug Fixes
+
+- fix: prevent auto-suspend during extension install (6087503)
+- fix: support sudo for apt installations as non-root user (35243ec)
+- fix: resolve test warnings and add missing domain declarations (39225bf)
+- fix: consolidate YAML schema validation and fix bash 3.2 compatibility (6c3469e)
+- fix: resolve mise conf.d pollution and missing reshim issues (96bbaa9)
+
+### :books: Documentation
+
+- docs: add VS Code Remote SSH setup guide for Fly.io (4284508)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.5.1 (9b6727f)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.6.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.5.1...v1.6.0
+
+## [1.5.1] - 2025-12-07
+
+### :bug: Bug Fixes
+
+- fix: add profile validation and diagnostics for Docker CI (daf4998)
+- fix: add resource-aware CI for extension testing (13722f4)
+- fix: pass FLY_API_TOKEN to cleanup step (3f446b8)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.5.0 (1e4304c)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.5.1
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.5.0...v1.5.1
+
+## [1.5.0] - 2025-12-07
+
+### :sparkles: Features
+
+- feat: CI workflow enhancements (#12) (8d2f232)
+
+### :bug: Bug Fixes
+
+- fix: use POSIX-compliant arithmetic in cleanup workflow (10d6878)
+- fix: add /v2/docker/cli to PATH in generated .bashrc (5e772f2)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.4.0 (2fc237f)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.5.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.4.0...v1.5.0
+
+## [1.4.0] - 2025-12-05
+
+### :sparkles: Features
+
+- feat: add claudeup extension for Claude Code plugin management (6ab3761)
+
+### :bug: Bug Fixes
+
+- fix: resolve SSH authentication and improve Fly.io connect experience (864e77d)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.3.0 (31f9862)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.4.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.3.0...v1.4.0
+
+## [1.3.0] - 2025-12-05
+
+### :sparkles: Features
+
+- feat: add autoInstall flag to control extension installation (b08b050)
+- feat: auto-install extensions on container startup and improve shell environment (8641235)
+
+### :bug: Bug Fixes
+
+- fix: add timeout to BOM version resolution and use VERSION file (028d77a)
+- fix: bake MISE_YES and MISE_TRUSTED_CONFIG_PATHS into Docker image (ce366c2)
+- fix: explicitly trust mise config files after creation (44b4689)
+- fix: propagate MISE_YES=1 to docker exec bash -c commands (0777f85)
+- fix: resolve mise trust prompts in CI environments (db163de)
+
+### :recycle: Refactoring
+
+- refactor: centralize mise trust config in mise-config extension (7eec1db)
+
+### :wrench: Maintenance
+
+- chore(release): update CHANGELOG.md and VERSION for v1.2.0 (e2c48ad)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.3.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.2.0...v1.3.0
+
+## [1.2.0] - 2025-12-04
+
+### :sparkles: Features
+
+- feat(release): auto-bump VERSION file on release (3aa2d19)
+- feat: add fromFile property for reading secrets from local files (136d10b)
+- feat: increase the number of extensions bundled with anthropic-dev profile (1f5c381)
+
+### :books: Documentation
+
+- docs: update CHANGELOG.md for v1.1.0 (4b746b3)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.2.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.1.0...v1.2.0
+
+## [1.1.0] - 2025-12-04
+
+### :sparkles: Features
+
+- feat: enhance sindri.yaml with comprehensive docs (66ddeca)
+
+### :bug: Bug Fixes
+
+- fix: improve Fly.io cleanup reliability (4d1f16f)
+
+### :books: Documentation
+
+- docs: add presenter avatar and social links to slides (c9054ef)
+- docs: add auto-play to slides and recording guide (d04972e)
+- docs: update extensions count in gettting started slide deck (58fa1dc)
+- docs: update CHANGELOG.md for v1.0.0 (e9196f2)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.1.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```
+
+**Full Changelog**: https://github.com/pacphi/sindri/compare/v1.0.0...v1.1.0
+
+## [1.0.0] - 2025-12-03
+
+### :sparkles: Features
+
+- feat: add GPU provisioning support across all providers (#10) (f57eadf)
+- feat(extensions): add claudish and ruvnet-research extensions (ef5b42e)
+- feat: add better devpod k8s support (#9) (16ca90d)
+- feat(extension): add new extension for Haskell development (4693e2f)
+- feat(claude-skill): add new claude code skill to guide creation of new Sindri extensions (02bb8f7)
+- feat: refactor GitHub actions and workflows (#1) (a40ccd3)
+
+### :bug: Bug Fixes
+
+- fix: add better devpod k8s support - part 2 (#11) (c7475c0)
+- fix(ci): use correct DevPod status JSON field names (78da9a5)
+- fix(ci): expand tilde in kubeconfig path for DevPod (db8b1ee)
+- fix(ci): align DevPod provider names with deploy step (448ad71)
+- fix(ci): use heredoc for multiline JSON in DevPod setup (3f30154)
+- fix(fly): make adjustments to Github actions and workflows supporting CI for Fly.io deployments and testing (#7) (0091f18)
+- fix(haskell): correct bom tool types to match schema (825ad47)
+- fix(fly): remove health check on port 22 that never passes (e9093a4)
+- fix(fly): change health check from HTTP to TCP for SSH service (56922e8)
+- fix(fly): correct flyctl CLI commands and improve error handling (0c8ffb8)
+- fix: resolve linting issues in validation workflow (b408033)
+
+### :books: Documentation
+
+- docs: clarify K8s deployment is via DevPod, not native provider (1c66a70)
+- docs: clarify DevPod multi-backend architecture and K8s paths (e1e1981)
+- docs: update extensions count in README (837ec57)
+- docs: add reveal.js slide decks for getting started and extensions (5233833)
+- docs: add LICENSE (0a8e81d)
+
+### :wrench: Maintenance
+
+- style(docs): fix markdown table column alignment (656a303)
+- ci(deps): upgrade actions/checkout from v5 to v6 (cd6f63c)
+- ci(deps): bump GitHub Actions dependencies (6d73a88)
+- chore: add FLY_API_TOKEN to all Fly.io operations (ff724f4)
+- chore: fix npm warnings and improve code quality (7737fc0)
+
+### :gear: Other Changes
+
+- Initial commit (9f1b2b7)
+
+### Installation
+
+```bash
+# Clone and checkout
+git clone https://github.com/pacphi/sindri.git
+cd sindri
+git checkout v1.0.0
+
+# Deploy (choose your provider)
+./v2/cli/sindri deploy --provider docker   # Local Docker
+./v2/cli/sindri deploy --provider fly      # Fly.io
+./v2/cli/sindri deploy --provider devpod   # DevContainer
+```

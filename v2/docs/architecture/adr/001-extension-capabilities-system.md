@@ -342,7 +342,7 @@ validate:
 - Schema: `/../docker/lib/schemas/extension.schema.json` (lines 474-834)
 - Implementation: `/../docker/lib/capability-manager.sh`
 - Auth System: `/../docker/lib/auth-manager.sh`
-- Extension Authoring Guide: `/docs/EXTENSION_AUTHORING.md`
+- Extension Authoring Guide: `/v2/docs/EXTENSION_AUTHORING.md`
 
 ## Collision Handling Enhancement (January 2026)
 
@@ -421,7 +421,7 @@ fi
 **Documentation:**
 
 - Schema: `/../docker/lib/schemas/extension.schema.json` (lines 835-953)
-- Examples: `/docs/extensions/COLLISION_HANDLING_EXAMPLES.md`
+- Examples: `/v2/docs/extensions/COLLISION_HANDLING_EXAMPLES.md`
 - Implementation: `/../docker/lib/capability-manager.sh` (lines 427-668)
 
 ## Future Enhancements

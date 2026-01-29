@@ -1,0 +1,290 @@
+name: "v2: Test Provider"
+
+# Simplified provider testing workflow for v2
+# All tests run INSIDE the container via /docker/scripts/sindri-test.sh
+# Supports three test levels: quick, extension, profile
+
+on:
+  workflow_call:
+    inputs:
+      provider:
+        description: Provider to test (docker, fly, e2b, devpod-aws, devpod-gcp, devpod-azure, devpod-do, devpod-k8s)
+        required: true
+        type: string
+      test-level:
+        description: Test level (quick, extension, profile, all)
+        required: false
+        default: profile
+        type: string
+      extension-profile:
+        description: Extension profile to test
+        required: false
+        default: minimal
+        type: string
+      extension:
+        description: Extension to test (for extension-level tests)
+        required: false
+        default: nodejs
+        type: string
+      skip-cleanup:
+        description: Skip resource cleanup for debugging
+        required: false
+        default: false
+        type: boolean
+      timeout-minutes:
+        description: Maximum time for the test
+        required: false
+        default: 30
+        type: number
+      image:
+        description: Docker image to use
+        required: false
+        default: "sindri:latest"
+        type: string
+      image-artifact:
+        description: Name of image artifact to download
+        required: false
+        default: ""
+        type: string
+      use-registry:
+        description: Pull image from registry instead of artifact (requires image to be pushed to GHCR)
+        required: false
+        default: false
+        type: boolean
+
+    secrets:
+      NPM_TOKEN:
+        description: npm registry auth token (bypasses rate limits)
+        required: false
+      FLY_API_TOKEN:
+        required: false
+      E2B_API_KEY:
+        required: false
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: false
+      AZURE_CLIENT_ID:
+        required: false
+      AZURE_CLIENT_SECRET:
+        required: false
+      AZURE_TENANT_ID:
+        required: false
+      DIGITALOCEAN_TOKEN:
+        required: false
+      KUBECONFIG:
+        required: false
+
+    outputs:
+      test-status:
+        description: Overall test status
+        value: ${{ jobs.test.outputs.status }}
+      target-id:
+        description: Deployment target ID
+        value: ${{ jobs.test.outputs.target-id }}
+
+jobs:
+  test:
+    name: Test ${{ inputs.provider }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    outputs:
+      status: ${{ steps.run-tests.outputs.status }}
+      target-id: ${{ steps.deploy.outputs.target-id }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate profile for CI runner
+        if: inputs.provider == 'docker'
+        run: |
+          PROFILE="${{ inputs.extension-profile }}"
+          TEST_LEVEL="${{ inputs.test-level }}"
+
+          # Profiles that are safe for GitHub Actions runners (~7GB RAM)
+          # Other profiles require too much memory for standard CI runners
+          CI_SAFE_PROFILES="minimal mobile"
+
+          # Only validate for profile-level tests (extension tests use fullstack config)
+          if [[ "$TEST_LEVEL" == "profile" ]]; then
+            if ! echo "$CI_SAFE_PROFILES" | grep -qw "$PROFILE"; then
+              echo "::error title=Profile Too Heavy::Profile '$PROFILE' requires more memory than GitHub Actions runners provide (~7GB)"
+              echo ""
+              echo "The following profiles are CI-safe for Docker provider:"
+              echo "  - minimal (2GB)"
+              echo "  - mobile (extensions only need ~256MB)"
+              echo ""
+              echo "Heavy profiles should be tested on:"
+              echo "  - Fly.io (cloud VMs with configurable memory)"
+              echo "  - DevPod with cloud providers (AWS, GCP, Azure)"
+              echo "  - Self-hosted runners with more resources"
+              exit 1
+            fi
+            echo "✓ Profile '$PROFILE' is CI-safe for Docker provider"
+          fi
+
+      - name: Setup credentials
+        run: |
+          chmod +x .github/scripts/providers/setup-credentials.sh
+          source .github/scripts/providers/setup-credentials.sh "${{ inputs.provider }}"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+      - name: Deploy to provider
+        id: deploy
+        uses: ./.github/actions/shared/deploy-provider
+        with:
+          provider: ${{ inputs.provider }}
+          image: ${{ inputs.image }}
+          image-artifact: ${{ inputs.image-artifact }}
+          use-registry: ${{ inputs.use-registry }}
+          extension-profile: ${{ inputs.extension-profile }}
+          test-level: ${{ inputs.test-level }}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          TARGET_ID="${{ steps.deploy.outputs.target-id }}"
+
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  STAGE 3: Running Tests                                      ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "Test Configuration:"
+          echo "  Provider:   ${{ inputs.provider }}"
+          echo "  Target ID:  $TARGET_ID"
+          echo "  Test Level: ${{ inputs.test-level }}"
+          echo "  Profile:    ${{ inputs.extension-profile }}"
+          echo "  Extension:  ${{ inputs.extension }}"
+          echo ""
+          echo "This stage executes sindri-test.sh INSIDE the deployed container."
+          echo "The test script will:"
+          echo "  1. Run CLI validation tests (sindri, extension-manager)"
+          echo "  2. Install extensions from the '${{ inputs.extension-profile }}' profile"
+          echo "  3. Activate mise environment for installed tools"
+          echo "  4. Validate all installed extensions work correctly"
+          echo "  5. Clean up by removing installed extensions"
+          echo ""
+          echo "────────────────────────────────────────────────────────────────"
+
+          # Single remote call executes entire test suite
+          chmod +x .github/scripts/providers/run-on-provider.sh
+
+          set +e
+          OUTPUT=$(.github/scripts/providers/run-on-provider.sh \
+            "${{ inputs.provider }}" \
+            "$TARGET_ID" \
+            "/docker/scripts/sindri-test.sh --level ${{ inputs.test-level }} --profile ${{ inputs.extension-profile }} --extension ${{ inputs.extension }}")
+          EXIT_CODE=$?
+          set -e
+
+          echo "$OUTPUT"
+
+          echo ""
+          echo "────────────────────────────────────────────────────────────────"
+
+          # Set outputs
+          if [[ $EXIT_CODE -eq 0 ]]; then
+            echo ""
+            echo "✅ Tests passed"
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "::notice title=Tests Passed::All tests passed for ${{ inputs.provider }}"
+          else
+            echo ""
+            echo "❌ Tests failed"
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "::error title=Tests Failed::Tests failed for ${{ inputs.provider }}"
+            exit 1
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+          # Pass GITHUB_TOKEN for mise API rate limits and attestation verification
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Collect diagnostics on failure
+        if: failure() && inputs.provider == 'docker'
+        run: |
+          TARGET_ID="${{ steps.deploy.outputs.target-id }}"
+          echo "=== Container resource stats ==="
+          docker stats "$TARGET_ID" --no-stream 2>/dev/null || echo "Container not running"
+
+          echo ""
+          echo "=== Container state ==="
+          docker inspect "$TARGET_ID" --format='Status: {{.State.Status}} | OOMKilled: {{.State.OOMKilled}} | ExitCode: {{.State.ExitCode}}' 2>/dev/null || echo "Container not found"
+
+          echo ""
+          echo "=== Container logs (last 100 lines) ==="
+          docker logs --tail 100 "$TARGET_ID" 2>&1 || echo "No logs available"
+
+          echo ""
+          echo "=== Extension manager logs ==="
+          docker exec "$TARGET_ID" cat /alt/home/developer/workspace/.system/logs/*.log 2>/dev/null || echo "No extension logs"
+
+          echo ""
+          echo "=== Host memory info ==="
+          free -h
+
+          echo ""
+          echo "=== dmesg OOM messages ==="
+          dmesg 2>/dev/null | grep -i "oom\|killed" | tail -20 || echo "No OOM messages (or no access)"
+
+      - name: Cleanup
+        if: always() && inputs.skip-cleanup != true
+        uses: ./.github/actions/shared/cleanup-provider
+        with:
+          provider: ${{ inputs.provider }}
+          target-id: ${{ steps.deploy.outputs.target-id }}
+          force: true
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Provider Test Summary: ${{ inputs.provider }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Attribute | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | ${{ inputs.provider }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Level | ${{ inputs.test-level }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Profile | ${{ inputs.extension-profile }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Extension | ${{ inputs.extension }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ steps.run-tests.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Target ID | ${{ steps.deploy.outputs.target-id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ steps.run-tests.outputs.status }}" == "success" ]]; then
+            echo "✅ **All tests passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Tests failed**" >> $GITHUB_STEP_SUMMARY
+          fi

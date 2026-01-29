@@ -1,0 +1,169 @@
+name: 'Launch Test Instance'
+description: 'Launch a cloud instance from a Packer-built image for testing (multi-cloud)'
+
+inputs:
+  cloud:
+    description: 'Cloud provider (aws, azure, gcp, oci, alibaba)'
+    required: true
+  image-id:
+    description: 'Image ID to launch'
+    required: true
+  region:
+    description: 'Cloud region/zone'
+    required: false
+    default: 'us-west-2'
+  instance-type:
+    description: 'Instance type/size'
+    required: false
+    default: ''  # Will use provider-specific default
+  ssh-key-name:
+    description: 'SSH key name (AWS only)'
+    required: false
+    default: 'sindri-test'
+  # Provider-specific inputs
+  compartment-id:
+    description: 'OCI compartment OCID'
+    required: false
+  subnet-id:
+    description: 'Subnet ID (OCI, Alibaba)'
+    required: false
+  vswitch-id:
+    description: 'VSwitch ID (Alibaba)'
+    required: false
+  security-group-id:
+    description: 'Security group ID (AWS, Alibaba)'
+    required: false
+  resource-group:
+    description: 'Azure resource group'
+    required: false
+    default: 'sindri-test'
+  project-id:
+    description: 'GCP project ID'
+    required: false
+
+outputs:
+  instance-id:
+    description: 'Instance ID'
+    value: ${{ steps.launch.outputs.instance_id }}
+  public-ip:
+    description: 'Public IP address'
+    value: ${{ steps.launch.outputs.public_ip }}
+  ssh-key-path:
+    description: 'Path to SSH private key'
+    value: ${{ steps.launch.outputs.ssh_key_path }}
+  ssh-user:
+    description: 'SSH username'
+    value: ${{ steps.launch.outputs.ssh_user }}
+
+runs:
+  using: 'composite'
+  steps:
+    # AWS Provider
+    - name: Launch AWS Instance
+      if: inputs.cloud == 'aws'
+      id: launch-aws
+      uses: ./.github/actions/packer/providers/aws
+      with:
+        action: launch
+        image-id: ${{ inputs.image-id }}
+        region: ${{ inputs.region }}
+        instance-type: ${{ inputs.instance-type || 't3.medium' }}
+        ssh-key-name: ${{ inputs.ssh-key-name }}
+        security-group-id: ${{ inputs.security-group-id }}
+        subnet-id: ${{ inputs.subnet-id }}
+
+    # Azure Provider
+    - name: Launch Azure VM
+      if: inputs.cloud == 'azure'
+      id: launch-azure
+      uses: ./.github/actions/packer/providers/azure
+      with:
+        action: launch
+        image-id: ${{ inputs.image-id }}
+        region: ${{ inputs.region || 'westus2' }}
+        instance-type: ${{ inputs.instance-type || 'Standard_D2s_v4' }}
+        resource-group: ${{ inputs.resource-group }}
+
+    # GCP Provider
+    - name: Launch GCP Instance
+      if: inputs.cloud == 'gcp'
+      id: launch-gcp
+      uses: ./.github/actions/packer/providers/gcp
+      with:
+        action: launch
+        image-id: ${{ inputs.image-id }}
+        region: ${{ inputs.region || 'us-central1-a' }}
+        instance-type: ${{ inputs.instance-type || 'e2-medium' }}
+        project-id: ${{ inputs.project-id }}
+
+    # OCI Provider
+    - name: Launch OCI Instance
+      if: inputs.cloud == 'oci'
+      id: launch-oci
+      uses: ./.github/actions/packer/providers/oci
+      with:
+        action: launch
+        image-id: ${{ inputs.image-id }}
+        region: ${{ inputs.region || 'us-ashburn-1' }}
+        instance-type: ${{ inputs.instance-type || 'VM.Standard.E4.Flex' }}
+        compartment-id: ${{ inputs.compartment-id }}
+        subnet-id: ${{ inputs.subnet-id }}
+
+    # Alibaba Provider
+    - name: Launch Alibaba Instance
+      if: inputs.cloud == 'alibaba'
+      id: launch-alibaba
+      uses: ./.github/actions/packer/providers/alibaba
+      with:
+        action: launch
+        image-id: ${{ inputs.image-id }}
+        region: ${{ inputs.region || 'us-west-1' }}
+        instance-type: ${{ inputs.instance-type || 'ecs.g6.large' }}
+        vswitch-id: ${{ inputs.vswitch-id || inputs.subnet-id }}
+        security-group-id: ${{ inputs.security-group-id }}
+
+    # Aggregate outputs
+    - name: Set Outputs
+      id: launch
+      shell: bash
+      run: |
+        CLOUD="${{ inputs.cloud }}"
+
+        case "$CLOUD" in
+          aws)
+            echo "instance_id=${{ steps.launch-aws.outputs.instance-id }}" >> $GITHUB_OUTPUT
+            echo "public_ip=${{ steps.launch-aws.outputs.public-ip }}" >> $GITHUB_OUTPUT
+            echo "ssh_key_path=${{ steps.launch-aws.outputs.ssh-key-path }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ steps.launch-aws.outputs.ssh-user || 'ubuntu' }}" >> $GITHUB_OUTPUT
+            ;;
+          azure)
+            echo "instance_id=${{ steps.launch-azure.outputs.instance-id }}" >> $GITHUB_OUTPUT
+            echo "public_ip=${{ steps.launch-azure.outputs.public-ip }}" >> $GITHUB_OUTPUT
+            echo "ssh_key_path=${{ steps.launch-azure.outputs.ssh-key-path }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ steps.launch-azure.outputs.ssh-user || 'azureuser' }}" >> $GITHUB_OUTPUT
+            ;;
+          gcp)
+            echo "instance_id=${{ steps.launch-gcp.outputs.instance-id }}" >> $GITHUB_OUTPUT
+            echo "public_ip=${{ steps.launch-gcp.outputs.public-ip }}" >> $GITHUB_OUTPUT
+            echo "ssh_key_path=${{ steps.launch-gcp.outputs.ssh-key-path }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ steps.launch-gcp.outputs.ssh-user || 'ubuntu' }}" >> $GITHUB_OUTPUT
+            ;;
+          oci)
+            echo "instance_id=${{ steps.launch-oci.outputs.instance-id }}" >> $GITHUB_OUTPUT
+            echo "public_ip=${{ steps.launch-oci.outputs.public-ip }}" >> $GITHUB_OUTPUT
+            echo "ssh_key_path=${{ steps.launch-oci.outputs.ssh-key-path }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ steps.launch-oci.outputs.ssh-user || 'opc' }}" >> $GITHUB_OUTPUT
+            ;;
+          alibaba)
+            echo "instance_id=${{ steps.launch-alibaba.outputs.instance-id }}" >> $GITHUB_OUTPUT
+            echo "public_ip=${{ steps.launch-alibaba.outputs.public-ip }}" >> $GITHUB_OUTPUT
+            echo "ssh_key_path=${{ steps.launch-alibaba.outputs.ssh-key-path }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ steps.launch-alibaba.outputs.ssh-user || 'root' }}" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "::error::Unknown cloud provider: $CLOUD"
+            exit 1
+            ;;
+        esac
+
+        echo "Launched $CLOUD instance successfully"

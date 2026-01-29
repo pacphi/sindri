@@ -218,10 +218,10 @@ impl<'a> ExtensionValidator<'a> {
         }
 
         // Validate auth if present
+        // Note: auth.methods is optional; if not specified, both api-key and cli-auth are accepted
         if let Some(auth) = &capabilities.auth {
-            if auth.methods.is_empty() {
-                anyhow::bail!("auth.methods cannot be empty if specified");
-            }
+            // No validation needed - methods can be empty to allow both authentication types
+            let _ = auth; // Suppress unused variable warning
         }
 
         // Validate MCP if enabled
@@ -245,9 +245,22 @@ impl<'a> ExtensionValidator<'a> {
 
     /// Check if version is valid semver or pattern like ">=1.0.0"
     fn is_valid_version_or_pattern(version: &str) -> bool {
-        // Allow "latest" or "dynamic"
-        if version == "latest" || version == "dynamic" {
+        // Allow special version keywords
+        if matches!(version, "latest" | "dynamic" | "remote") {
             return true;
+        }
+
+        // Allow version patterns like "9.x", "1.2.x"
+        if version.ends_with(".x") {
+            let base = version.trim_end_matches(".x");
+            let parts: Vec<&str> = base.split('.').collect();
+            return parts.iter().all(|p| p.parse::<u32>().is_ok());
+        }
+
+        // Allow pre-release versions (e.g., "3.0.0-alpha", "1.2.3-beta.1")
+        if version.contains('-') {
+            let base_version = version.split('-').next().unwrap();
+            return Self::is_valid_semver(base_version);
         }
 
         // Strip version operators

@@ -107,3 +107,186 @@ pub fn format_bytes(bytes: u64) -> String {
         format!("{}B", bytes)
     }
 }
+
+/// Clone Sindri repository for Docker build context
+///
+/// Performs a shallow clone of the Sindri repository to get the v3 directory
+/// with all its dependencies (Dockerfile, scripts, build context, etc.).
+/// The repository version is matched to the CLI version.
+///
+/// # Arguments
+/// * `cache_dir` - Directory to cache the cloned repository
+/// * `git_ref` - Optional git ref (branch, tag, or commit SHA) to fetch (defaults to "v{CLI_VERSION}")
+///
+/// # Returns
+/// Tuple of (v3_dir path, git_ref_used) where git_ref_used is the branch/tag that was successfully cloned
+///
+/// # Note
+/// This function replaces the old find_dockerfile() which searched for user-provided
+/// Dockerfiles. Sindri v3 uses its own official Dockerfile from the GitHub repository,
+/// not user-provided ones. A shallow clone is necessary because v3/Dockerfile has
+/// dependencies on other files in the v3 directory.
+pub async fn fetch_sindri_build_context(
+    cache_dir: &std::path::Path,
+    git_ref: Option<&str>,
+) -> Result<(std::path::PathBuf, String)> {
+    use tokio::fs;
+    use tracing::{debug, info, warn};
+
+    // Determine which git ref to fetch
+    // If specified, use as-is (could be branch, tag, commit SHA)
+    // Otherwise default to version tag
+    let git_ref = if let Some(ref_str) = git_ref {
+        ref_str.to_string()
+    } else {
+        // Default to CLI version tag
+        format!("v{}", env!("CARGO_PKG_VERSION"))
+    };
+
+    // For caching purposes, use the git ref as the cache key
+    let cache_key = git_ref.replace('/', "-"); // Replace slashes for filesystem compatibility
+
+    info!("Fetching Sindri v3 build context (ref: {})", git_ref);
+
+    // Create cache directory if it doesn't exist
+    fs::create_dir_all(cache_dir).await?;
+
+    // Repository cache path (use cache_key for filesystem safety)
+    let repo_dir = cache_dir.join(format!("sindri-{}", cache_key));
+    let v3_dir = repo_dir.join("v3");
+
+    // Return cached v3 directory if it exists and is valid
+    if v3_dir.join("Dockerfile").exists() {
+        debug!("Using cached Sindri v3 directory at {}", v3_dir.display());
+        return Ok((v3_dir, git_ref.clone()));
+    }
+
+    // Remove stale clone if it exists
+    if repo_dir.exists() {
+        debug!("Removing stale clone at {}", repo_dir.display());
+        fs::remove_dir_all(&repo_dir).await?;
+    }
+
+    // Shallow clone the repository
+    info!("Cloning Sindri repository (ref: {})", git_ref);
+
+    let clone_result = tokio::process::Command::new("git")
+        .args([
+            "clone",
+            "--depth",
+            "1",
+            "--branch",
+            &git_ref,
+            "--single-branch",
+            "https://github.com/pacphi/sindri.git",
+            repo_dir.to_str().unwrap(),
+        ])
+        .output()
+        .await;
+
+    // If versioned clone fails, try main branch
+    if clone_result.is_err() || !clone_result.as_ref().unwrap().status.success() {
+        warn!("Failed to clone tag {}, trying main branch", git_ref);
+
+        // Remove failed clone attempt
+        if repo_dir.exists() {
+            fs::remove_dir_all(&repo_dir).await?;
+        }
+
+        let main_result = tokio::process::Command::new("git")
+            .args([
+                "clone",
+                "--depth",
+                "1",
+                "--branch",
+                "main",
+                "--single-branch",
+                "https://github.com/pacphi/sindri.git",
+                repo_dir.to_str().unwrap(),
+            ])
+            .output()
+            .await?;
+
+        if !main_result.status.success() {
+            let stderr = String::from_utf8_lossy(&main_result.stderr);
+            return Err(anyhow!(
+                "Failed to clone Sindri repository from GitHub: {}",
+                stderr
+            ));
+        }
+
+        // Successfully cloned from main branch
+        info!("Sindri v3 build context ready at {}", v3_dir.display());
+        return Ok((v3_dir, "main".to_string()));
+    }
+
+    // Successfully cloned from version tag
+    // Verify v3 directory exists
+    if !v3_dir.join("Dockerfile").exists() {
+        return Err(anyhow!(
+            "Cloned repository doesn't contain v3/Dockerfile at expected location"
+        ));
+    }
+
+    info!("Sindri v3 build context ready at {}", v3_dir.display());
+    Ok((v3_dir, git_ref))
+}
+
+/// Get the Git SHA of the cloned Sindri repository
+///
+/// Returns the short SHA (7 characters) of the HEAD commit in the cloned repository.
+/// This is used to tag on-demand builds with a unique identifier.
+///
+/// # Arguments
+/// * `repo_dir` - Path to the cloned repository
+///
+/// # Returns
+/// Short Git SHA (7 characters) or error
+pub async fn get_git_sha(repo_dir: &std::path::Path) -> Result<String> {
+    let output = tokio::process::Command::new("git")
+        .args([
+            "-C",
+            repo_dir.to_str().unwrap(),
+            "rev-parse",
+            "--short=7",
+            "HEAD",
+        ])
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!("Failed to get git SHA: {}", stderr));
+    }
+
+    let sha = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(sha)
+}
+
+/// Recursively copy a directory and its contents
+///
+/// Used by E2B provider to copy the v3 directory into the template build context.
+///
+/// # Arguments
+/// * `src` - Source directory
+/// * `dst` - Destination directory
+pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> Result<()> {
+    use std::fs;
+
+    fs::create_dir_all(dst)?;
+
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+
+        if file_type.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+
+    Ok(())
+}

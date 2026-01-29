@@ -1,4 +1,4 @@
-name: CI v2
+name: "v2: CI"
 
 # v2 Bash/Docker CI Pipeline
 # Triggers on changes to v2 directory and related configurations
@@ -9,7 +9,6 @@ on:
     paths:
       - 'v2/**'
       - '.github/workflows/ci-v2.yml'
-      - '.github/actions/v2/**'
       - '.github/actions/shared/**'
       - 'package.json'
   pull_request:
@@ -17,7 +16,6 @@ on:
     paths:
       - 'v2/**'
       - '.github/workflows/ci-v2.yml'
-      - '.github/actions/v2/**'
       - '.github/actions/shared/**'
       - 'package.json'
   workflow_dispatch:
@@ -245,17 +243,43 @@ jobs:
   # Unified Provider Testing
   # ============================================
 
-  test-providers:
-    name: Test v2 on ${{ matrix.provider }}
+  test-docker:
+    name: Test v2 on Docker
     needs: [build, generate-matrix]
-    if: needs.generate-matrix.outputs.providers != '[]'
-    strategy:
-      fail-fast: false
-      matrix:
-        provider: ${{ fromJson(needs.generate-matrix.outputs.providers) }}
-    uses: ./.github/workflows/test-provider.yml
+    if: contains(fromJson(needs.generate-matrix.outputs.providers), 'docker')
+    uses: ./.github/workflows/v2-test-provider.yml
     with:
-      provider: ${{ matrix.provider }}
+      provider: docker
+      test-level: ${{ github.event.inputs.test-level || 'profile' }}
+      extension-profile: ${{ github.event.inputs.extension-profile || 'minimal' }}
+      extension: ${{ github.event.inputs.extension || 'nodejs' }}
+      skip-cleanup: ${{ github.event.inputs.skip-cleanup == 'true' }}
+      image: sindri-v2:ci-${{ github.sha }}
+      image-artifact: sindri-v2-image-${{ github.sha }}
+    secrets: inherit
+
+  test-fly:
+    name: Test v2 on Fly.io
+    needs: [build, generate-matrix]
+    if: contains(fromJson(needs.generate-matrix.outputs.providers), 'fly')
+    uses: ./.github/workflows/v2-test-provider.yml
+    with:
+      provider: fly
+      test-level: ${{ github.event.inputs.test-level || 'profile' }}
+      extension-profile: ${{ github.event.inputs.extension-profile || 'minimal' }}
+      extension: ${{ github.event.inputs.extension || 'nodejs' }}
+      skip-cleanup: ${{ github.event.inputs.skip-cleanup == 'true' }}
+      image: sindri-v2:ci-${{ github.sha }}
+      image-artifact: sindri-v2-image-${{ github.sha }}
+    secrets: inherit
+
+  test-devpod-k8s:
+    name: Test v2 on DevPod K8s
+    needs: [build, generate-matrix]
+    if: contains(fromJson(needs.generate-matrix.outputs.providers), 'devpod-k8s')
+    uses: ./.github/workflows/v2-test-provider.yml
+    with:
+      provider: devpod-k8s
       test-level: ${{ github.event.inputs.test-level || 'profile' }}
       extension-profile: ${{ github.event.inputs.extension-profile || 'minimal' }}
       extension: ${{ github.event.inputs.extension || 'nodejs' }}
@@ -270,7 +294,7 @@ jobs:
 
   mark-passed:
     name: Mark as Promotion Candidate
-    needs: [build, security-scan, test-providers]
+    needs: [build, security-scan, test-docker, test-fly, test-devpod-k8s]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -344,13 +368,17 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - ci-required
-      - test-providers
+      - test-docker
+      - test-fly
+      - test-devpod-k8s
     if: ${{ always() }}
     steps:
       - name: Check overall status
         run: |
           REQUIRED="${{ needs.ci-required.result }}"
-          TEST_PROVIDERS="${{ needs.test-providers.result }}"
+          TEST_DOCKER="${{ needs.test-docker.result }}"
+          TEST_FLY="${{ needs.test-fly.result }}"
+          TEST_DEVPOD_K8S="${{ needs.test-devpod-k8s.result }}"
 
           # Required checks must pass
           if [[ "$REQUIRED" != "success" ]]; then
@@ -359,16 +387,30 @@ jobs:
           fi
 
           # Provider tests should pass if they ran
-          if [[ "$TEST_PROVIDERS" != "skipped" ]] && [[ "$TEST_PROVIDERS" != "success" ]]; then
-            echo "❌ CI v2 failed - provider tests failed"
-            echo "  test-providers: $TEST_PROVIDERS"
+          if [[ "$TEST_DOCKER" != "skipped" ]] && [[ "$TEST_DOCKER" != "success" ]]; then
+            echo "❌ CI v2 failed - docker provider tests failed"
+            echo "  test-docker: $TEST_DOCKER"
+            exit 1
+          fi
+
+          if [[ "$TEST_FLY" != "skipped" ]] && [[ "$TEST_FLY" != "success" ]]; then
+            echo "❌ CI v2 failed - fly provider tests failed"
+            echo "  test-fly: $TEST_FLY"
+            exit 1
+          fi
+
+          if [[ "$TEST_DEVPOD_K8S" != "skipped" ]] && [[ "$TEST_DEVPOD_K8S" != "success" ]]; then
+            echo "❌ CI v2 failed - devpod-k8s provider tests failed"
+            echo "  test-devpod-k8s: $TEST_DEVPOD_K8S"
             exit 1
           fi
 
           echo "✅ CI v2 passed"
           echo "Results:"
           echo "  ci-required: $REQUIRED"
-          echo "  test-providers: $TEST_PROVIDERS"
+          echo "  test-docker: $TEST_DOCKER"
+          echo "  test-fly: $TEST_FLY"
+          echo "  test-devpod-k8s: $TEST_DEVPOD_K8S"
 
       - name: Generate summary
         if: always()
@@ -385,7 +427,9 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Required Checks | ${{ needs.ci-required.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test Providers | ${{ needs.test-providers.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Docker | ${{ needs.test-docker.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Fly.io | ${{ needs.test-fly.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test DevPod K8s | ${{ needs.test-devpod-k8s.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Metadata" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: v2 (Bash/Docker)" >> $GITHUB_STEP_SUMMARY

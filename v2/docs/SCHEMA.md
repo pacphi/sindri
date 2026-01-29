@@ -580,6 +580,6 @@ See individual extension schemas for details on creating custom extensions.
 ## See Also
 
 - [Configuration Guide](CONFIGURATION.md) - Comprehensive configuration documentation
-- [Extension Authoring](../../docs/EXTENSION_AUTHORING.md) - Creating custom extensions
+- [Extension Authoring](EXTENSION_AUTHORING.md) - Creating custom extensions
 - [Deployment Guide](DEPLOYMENT.md) - Provider-specific deployment details
 - [Examples](../../examples/README.md) - Example configurations

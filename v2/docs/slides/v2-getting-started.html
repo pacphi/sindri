@@ -1,0 +1,1286 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sindri V2: Getting Started - Deploy Anywhere</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+    <style>
+        :root {
+            --r-heading-color: #58a6ff;
+            --r-link-color: #79c0ff;
+            --r-selection-background-color: #388bfd;
+        }
+        .reveal h1 { font-size: 2.2em; }
+        .reveal h2 { font-size: 1.6em; color: #58a6ff; }
+        .reveal h3 { font-size: 1.3em; color: #8b949e; }
+        .reveal pre { font-size: 0.55em; }
+        .reveal code { background: #161b22; padding: 0.2em 0.4em; border-radius: 4px; }
+        .reveal pre code { padding: 1em; }
+        .reveal ul { font-size: 0.9em; }
+        .reveal li { margin: 0.5em 0; }
+        .highlight { color: #58a6ff; font-weight: bold; }
+        .success { color: #3fb950; }
+        .warning { color: #d29922; }
+        .provider-box {
+            display: inline-block;
+            padding: 0.5em 1em;
+            margin: 0.3em;
+            background: #21262d;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+        .comparison-table { font-size: 0.65em; }
+        .comparison-table td, .comparison-table th {
+            padding: 0.4em 0.8em;
+            border: 1px solid #30363d;
+        }
+        .comparison-table th { background: #21262d; }
+        .emoji { font-size: 1.5em; margin-right: 0.3em; }
+        .small { font-size: 0.7em; color: #8b949e; }
+        .architecture-diagram {
+            background: #161b22;
+            padding: 1em;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.5em;
+            text-align: left;
+            white-space: pre;
+        }
+        .cost-badge {
+            display: inline-block;
+            padding: 0.2em 0.6em;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 0.5em;
+        }
+        .cost-free { background: #238636; }
+        .cost-low { background: #1f6feb; }
+        .cost-med { background: #9e6a03; }
+        .presenter-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .presenter-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            object-fit: cover;
+        }
+        .presenter-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .presenter-links a {
+            display: block;
+            width: 24px;
+            height: 24px;
+            opacity: 0.7;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .presenter-links a:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .presenter-links svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+        /* V2 Version Header */
+        .version-header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 1001;
+            background: linear-gradient(135deg, #238636 0%, #1f6feb 100%);
+            color: white;
+            padding: 0.4em 1.2em;
+            font-size: 0.85em;
+            font-weight: bold;
+            border-bottom-left-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            letter-spacing: 0.5px;
+        }
+        .version-header::before {
+            content: "V2";
+            display: inline-block;
+            background: white;
+            color: #238636;
+            padding: 0.1em 0.4em;
+            border-radius: 4px;
+            margin-right: 0.5em;
+            font-size: 0.9em;
+        }
+        /* V2 Version Footer */
+        .version-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            background: rgba(13, 17, 23, 0.95);
+            color: #8b949e;
+            padding: 0.5em 1em;
+            font-size: 0.7em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #30363d;
+        }
+        .version-footer .version-badge {
+            background: linear-gradient(135deg, #238636 0%, #1f6feb 100%);
+            color: white;
+            padding: 0.2em 0.6em;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .version-footer .version-info {
+            display: flex;
+            gap: 1.5em;
+            align-items: center;
+        }
+        .version-footer a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+        .version-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<!-- V2 Version Header -->
+<div class="version-header">Sindri V2 Documentation</div>
+
+<!-- V2 Version Footer -->
+<div class="version-footer">
+    <div class="version-badge">Sindri V2</div>
+    <div class="version-info">
+        <span>Bash/Docker Platform</span>
+        <span>|</span>
+        <a href="https://github.com/pacphi/sindri/tree/main/v2">v2 Documentation</a>
+    </div>
+</div>
+
+<div class="presenter-info">
+    <img src="avatar.jpg" alt="Presenter" class="presenter-avatar">
+    <div class="presenter-links">
+        <a href="https://github.com/pacphi" target="_blank" title="GitHub">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+        <a href="https://www.linkedin.com/in/cphillipson/" target="_blank" title="LinkedIn">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+    </div>
+</div>
+<div class="reveal">
+<div class="slides">
+
+<!-- Title Slide -->
+<section data-background-gradient="linear-gradient(135deg, #0d1117 0%, #161b22 100%)">
+    <h1>Sindri</h1>
+    <h3>Declarative Cloud Development Environments</h3>
+    <p class="small">Deploy to Docker, Fly.io, DevPod, or E2B with a single YAML file</p>
+    <p style="margin-top: 2em;">
+        <span class="provider-box">Docker</span>
+        <span class="provider-box">Fly.io</span>
+        <span class="provider-box">DevPod</span>
+        <span class="provider-box">E2B</span>
+    </p>
+    <p class="small">DevPod backends: Kubernetes, AWS, GCP, Azure, DigitalOcean, SSH</p>
+</section>
+
+<!-- What is Sindri -->
+<section>
+    <h2>What is Sindri?</h2>
+    <ul>
+        <li><span class="highlight">Provider-Agnostic</span> - One config, multiple targets</li>
+        <li><span class="highlight">YAML-First</span> - Declarative, not imperative</li>
+        <li><span class="highlight">Fast Startup</span> - 10-15 second cold starts</li>
+        <li><span class="highlight">Extension System</span> - 70+ pre-built tools</li>
+        <li><span class="highlight">Persistent Storage</span> - Your work survives restarts</li>
+    </ul>
+    <p class="small" style="margin-top: 1.5em;">Named after the Norse dwarf who forged powerful tools for the gods</p>
+</section>
+
+<!-- Core Architecture -->
+<section>
+    <section>
+        <h2>Core Architecture</h2>
+        <div class="architecture-diagram">
+sindri.yaml                    (Your Configuration)
+    │
+    └── sindri CLI             (Unified interface)
+        │
+        ├── docker-adapter.sh  → docker-compose.yml → Local Container
+        ├── fly-adapter.sh     → fly.toml          → Fly.io Cloud
+        └── devpod-adapter.sh  → devcontainer.json → DevPod/K8s
+
+Each adapter handles: deploy | connect | status | plan | destroy
+        </div>
+        <p style="margin-top: 1em;">Single CLI delegates to provider-specific adapters for full lifecycle management</p>
+    </section>
+
+    <section>
+        <h2>Volume Architecture</h2>
+        <div class="architecture-diagram">
+/docker/lib/              (Immutable - baked into image)
+├── extensions/           Extension definitions
+├── schemas/              JSON validation schemas
+└── scripts/              System scripts
+
+/alt/home/developer/      (Mutable - persistent volume = $HOME)
+├── workspace/            Your projects live here
+│   ├── projects/         Code repositories
+│   └── .system/          Extension state & manifests
+├── .local/share/mise/    Tool installations
+└── .config/              User configuration
+        </div>
+    </section>
+</section>
+
+<!-- Quick Start -->
+<section>
+    <h2>Quick Start</h2>
+    <pre><code class="language-bash"># Clone the repository
+git clone https://github.com/pacphi/sindri
+cd sindri
+
+# Add CLI to PATH
+chmod +x cli/sindri
+export PATH="$PWD/cli:$PATH"
+
+# Initialize configuration
+./cli/sindri config init
+
+# Deploy (defaults to Docker)
+./cli/sindri deploy</code></pre>
+    <p class="small">Prerequisites: Docker, yq (<code>brew install yq</code>)</p>
+</section>
+
+<!-- The sindri.yaml File -->
+<section>
+    <section>
+        <h2>The sindri.yaml File</h2>
+        <pre><code class="language-yaml">version: 1.0
+name: my-dev-env
+
+deployment:
+  provider: docker  # docker | fly | devpod
+  resources:
+    memory: 2GB
+    cpus: 1
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: fullstack  # Pre-configured bundle
+
+providers:
+  docker:
+    ports:
+      - "3000:3000"</code></pre>
+    </section>
+
+    <section>
+        <h2>Extension Options</h2>
+        <pre><code class="language-yaml"># Option 1: Use a profile
+extensions:
+  profile: fullstack
+
+# Option 2: List specific extensions
+extensions:
+  active:
+    - nodejs
+    - python
+    - docker
+
+# Option 3: Profile + additional
+extensions:
+  profile: minimal
+  additional:
+    - docker
+    - rust</code></pre>
+    </section>
+</section>
+
+<!-- Examples Directory -->
+<section>
+    <h2>50+ Ready-to-Use Examples</h2>
+    <p>Skip the boilerplate - start with a tested configuration:</p>
+    <pre><code class="language-bash">examples/
+├── fly/          # 10 Fly.io examples
+├── docker/       # 12 Docker examples
+├── devpod/       # 18 DevPod examples (AWS, GCP, Azure, K8s)
+├── e2b/          # 6 E2B examples
+├── profiles/     # 9 profile-based configurations
+├── custom/       # 7 custom extension combinations
+└── k8s/          # 2 local Kubernetes examples (kind, k3d)
+
+# Copy, customize, and deploy
+cp examples/fly/minimal.sindri.yaml sindri.yaml
+./cli/sindri deploy</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Every example is tested in CI - if it's in <code>examples/</code>, it works!
+    </p>
+</section>
+
+<!-- DOCKER SECTION -->
+<section data-background="#238636">
+    <h1>Docker</h1>
+    <h3>Local Development</h3>
+    <p class="cost-badge cost-free">FREE</p>
+</section>
+
+<section>
+    <h2>Deploy to Docker</h2>
+    <pre><code class="language-bash"># Initialize and deploy
+./cli/sindri config init
+./cli/sindri deploy --provider docker
+
+# Connect to container
+docker exec -it sindri-docker /docker/scripts/entrypoint.sh /bin/bash
+
+# View logs
+docker compose logs -f
+
+# Teardown (preserves data)
+docker compose down
+
+# Teardown (removes everything)
+docker compose down -v</code></pre>
+</section>
+
+<section>
+    <h2>Docker Configuration</h2>
+    <pre><code class="language-yaml">version: 1.0
+name: sindri-local
+
+deployment:
+  provider: docker
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: fullstack
+
+providers:
+  docker:
+    ports:
+      - "3000:3000"   # Web app
+      - "8080:8080"   # API server
+      - "5432:5432"   # PostgreSQL
+    volumes:
+      - "./projects:/workspace/projects"
+    network: sindri-network</code></pre>
+</section>
+
+<section>
+    <h2>Docker Secrets</h2>
+    <p>Create a <code>.env</code> file (never commit to git!):</p>
+    <pre><code class="language-bash"># .env
+ANTHROPIC_API_KEY=sk-ant-api03-...
+GITHUB_TOKEN=ghp_...
+GIT_USER_NAME=Your Name
+GIT_USER_EMAIL=you@example.com</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        Secrets are automatically loaded by Docker Compose
+    </p>
+</section>
+
+<section>
+    <h2>Docker Best Practices</h2>
+    <ul>
+        <li>Use <code>.env</code> files - never hardcode secrets</li>
+        <li>Set resource limits to prevent runaway containers</li>
+        <li>Use named volumes for persistent data</li>
+        <li>Mount SSH keys read-only if needed</li>
+        <li>Test locally before deploying to cloud</li>
+    </ul>
+</section>
+
+<!-- FLY.IO SECTION -->
+<section data-background="#1f6feb">
+    <h1>Fly.io</h1>
+    <h3>Cloud Development</h3>
+    <p class="cost-badge cost-low">~$6-50/month</p>
+</section>
+
+<section>
+    <h2>Deploy to Fly.io</h2>
+    <pre><code class="language-bash"># Authenticate
+flyctl auth login
+
+# Deploy
+./cli/sindri deploy --provider fly
+
+# Set secrets
+flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-app
+flyctl secrets set GITHUB_TOKEN=ghp_... -a my-app
+flyctl secrets set GIT_USER_NAME="Your Name" -a my-app
+
+# Connect via SSH
+ssh developer@my-app.fly.dev -p 10022
+
+# Or use Fly console
+flyctl ssh console -a my-app</code></pre>
+</section>
+
+<section>
+    <h2>Fly.io Configuration</h2>
+    <pre><code class="language-yaml">version: 1.0
+name: sindri-cloud
+
+deployment:
+  provider: fly
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: fullstack
+
+providers:
+  fly:
+    region: sjc              # San Jose, CA
+    cpuKind: performance     # shared | performance
+    autoStopMachines: true   # Cost savings!
+    autoStartMachines: true  # Auto-resume</code></pre>
+</section>
+
+<section>
+    <h2>Fly.io Cost Optimization</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Tier</th>
+            <th>Memory</th>
+            <th>CPU</th>
+            <th>Monthly Cost</th>
+        </tr>
+        <tr>
+            <td>Minimal</td>
+            <td>1GB</td>
+            <td>1 shared</td>
+            <td>~$6-11</td>
+        </tr>
+        <tr>
+            <td>Standard</td>
+            <td>2GB</td>
+            <td>1 shared</td>
+            <td>~$14-20</td>
+        </tr>
+        <tr>
+            <td>Performance</td>
+            <td>4GB</td>
+            <td>2 dedicated</td>
+            <td>~$45-55</td>
+        </tr>
+    </table>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">Pro tip:</span> Enable <code>autoStopMachines: true</code> to pay only for active time!
+    </p>
+</section>
+
+<section>
+    <h2>Fly.io Regions</h2>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+        <span class="provider-box">sjc - San Jose</span>
+        <span class="provider-box">iad - Virginia</span>
+        <span class="provider-box">lhr - London</span>
+        <span class="provider-box">fra - Frankfurt</span>
+        <span class="provider-box">nrt - Tokyo</span>
+        <span class="provider-box">syd - Sydney</span>
+    </div>
+    <p class="small" style="margin-top: 1em;">Choose the region closest to you for best latency</p>
+</section>
+
+<section>
+    <h2>Fly.io Features</h2>
+    <ul>
+        <li><span class="highlight">Auto-Suspend</span> - Machine sleeps after 5 min idle</li>
+        <li><span class="highlight">Auto-Resume</span> - Wakes on SSH connection</li>
+        <li><span class="highlight">Volume Auto-Extend</span> - Grows at 80% capacity</li>
+        <li><span class="highlight">Health Checks</span> - TCP checks on SSH port</li>
+        <li><span class="highlight">Swap Memory</span> - Automatically configured</li>
+    </ul>
+</section>
+
+<section>
+    <h2>Fly.io Management</h2>
+    <pre><code class="language-bash"># Check status
+flyctl status -a my-app
+
+# View logs
+flyctl logs -a my-app
+
+# List volumes
+flyctl volumes list -a my-app
+
+# Open dashboard
+flyctl dashboard -a my-app
+
+# Scale resources
+flyctl scale memory 4096 -a my-app
+
+# Destroy app
+flyctl apps destroy my-app</code></pre>
+</section>
+
+<!-- DEVPOD SECTION -->
+<section data-background="#9e6a03">
+    <h1>DevPod</h1>
+    <h3>IDE Integration</h3>
+    <p class="cost-badge cost-free">FREE (local)</p>
+</section>
+
+<section>
+    <h2>Deploy to DevPod</h2>
+    <pre><code class="language-bash"># Deploy workspace (handles provider setup automatically)
+./cli/sindri deploy --provider devpod
+
+# Check status
+./cli/sindri status
+
+# Connect via sindri (auto-detects)
+./cli/sindri connect
+
+# Or connect via devpod directly
+devpod ssh my-sindri-dev
+
+# Open in VS Code
+devpod up my-sindri-dev --ide vscode
+
+# Destroy
+./cli/sindri destroy</code></pre>
+</section>
+
+<section>
+    <h2>DevPod Configuration</h2>
+    <pre><code class="language-yaml">version: 1.0
+name: sindri-devpod
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+
+extensions:
+  profile: fullstack
+
+providers:
+  devpod:
+    vscodeExtensions:
+      - ms-python.python
+      - dbaeumer.vscode-eslint
+      - esbenp.prettier-vscode
+      - golang.go
+    forwardPorts:
+      - 3000
+      - 5432
+      - 6379</code></pre>
+</section>
+
+<section>
+    <h2>DevPod Multi-Provider</h2>
+    <pre><code class="language-bash"># Local Docker
+devpod up . --provider docker
+
+# Kubernetes cluster
+devpod up . --provider kubernetes \
+  --options "NAMESPACE=dev"
+
+# AWS EC2
+devpod up . --provider aws \
+  --options "REGION=us-west-2,INSTANCE_TYPE=t3.medium"
+
+# Any SSH server
+devpod up . --provider ssh \
+  --options "HOST=dev.example.com,USER=developer"</code></pre>
+</section>
+
+<section>
+    <h2>DevPod Backend Options</h2>
+    <p>DevPod is a <span class="highlight">meta-provider</span> - one tool, many backends:</p>
+    <table class="comparison-table">
+        <tr>
+            <th>Backend</th>
+            <th>CI Provider</th>
+            <th>Use Case</th>
+        </tr>
+        <tr>
+            <td>Docker</td>
+            <td>-</td>
+            <td>Local development</td>
+        </tr>
+        <tr>
+            <td>AWS EC2</td>
+            <td>devpod-aws</td>
+            <td>Cloud dev on AWS</td>
+        </tr>
+        <tr>
+            <td>GCP / Azure / DO</td>
+            <td>devpod-gcp/azure/do</td>
+            <td>Cloud dev</td>
+        </tr>
+        <tr>
+            <td>Kubernetes</td>
+            <td>devpod-k8s</td>
+            <td>K8s pod-based dev</td>
+        </tr>
+        <tr>
+            <td>SSH</td>
+            <td>devpod-ssh</td>
+            <td>Any SSH server</td>
+        </tr>
+    </table>
+</section>
+
+<section>
+    <h2>DevPod + Kubernetes</h2>
+    <pre><code class="language-yaml"># sindri.yaml
+deployment:
+  provider: devpod
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: sindri-dev
+      storageClass: standard</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">CI Tip:</span> No KUBECONFIG secret? CI auto-creates a kind cluster!
+    </p>
+    <p class="small">
+        Example configs: <code>examples/devpod/kubernetes/</code> (deploy to existing cluster)<br>
+        Local clusters: <code>examples/k8s/</code> (create cluster + deploy)
+    </p>
+</section>
+
+<section>
+    <h2>DevPod Image Strategy</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Provider</th>
+            <th>Strategy</th>
+            <th>Config</th>
+        </tr>
+        <tr>
+            <td>Docker (local)</td>
+            <td>Build from Dockerfile</td>
+            <td><span class="success">None</span></td>
+        </tr>
+        <tr>
+            <td>kind / k3d</td>
+            <td>Auto-detect & load</td>
+            <td><span class="success">Zero-config</span></td>
+        </tr>
+        <tr>
+            <td>External K8s</td>
+            <td>Build & push</td>
+            <td><code>buildRepository</code></td>
+        </tr>
+        <tr>
+            <td>AWS / GCP / Azure</td>
+            <td>Build & push</td>
+            <td><code>buildRepository</code></td>
+        </tr>
+    </table>
+    <p class="small" style="margin-top: 1em;">
+        <span class="highlight">Local clusters:</span> Sindri detects kind/k3d contexts and loads images automatically
+    </p>
+</section>
+
+<section>
+    <h2>Build Repository Config</h2>
+    <p class="small">For external Kubernetes or cloud providers:</p>
+    <pre><code class="language-yaml"># sindri.yaml
+providers:
+  devpod:
+    type: kubernetes
+    buildRepository: ghcr.io/myorg/sindri
+    kubernetes:
+      namespace: sindri-dev</code></pre>
+    <p class="small" style="margin-top: 1em;">Or via CLI:</p>
+    <pre><code class="language-bash">sindri deploy --provider devpod --build-repository ghcr.io/myorg/sindri</code></pre>
+    <p class="small" style="margin-top: 1em;">
+        <span class="highlight">Credentials:</span> env vars, <code>.env</code> files, or <code>~/.docker/config.json</code><br>
+        <span class="success">Auto-login:</span> ghcr.io (GITHUB_TOKEN), ECR (AWS CLI), GCR (GOOGLE_APPLICATION_CREDENTIALS)
+    </p>
+</section>
+
+<section>
+    <h2>DevPod Benefits</h2>
+    <ul>
+        <li><span class="highlight">IDE Integration</span> - Full VS Code features</li>
+        <li><span class="highlight">Reproducible</span> - Same environment everywhere</li>
+        <li><span class="highlight">GitHub Codespaces</span> - Push .devcontainer, use from GitHub</li>
+        <li><span class="highlight">Multi-Provider</span> - Docker, K8s, AWS, GCP, Azure</li>
+        <li><span class="highlight">DevContainer Standard</span> - Industry-standard format</li>
+    </ul>
+</section>
+
+<!-- E2B SECTION -->
+<section data-background="#3fb950">
+    <h1>E2B</h1>
+    <h3>Ultra-Fast Cloud Sandboxes</h3>
+    <p class="cost-badge cost-low">$0.05-0.20/hour (pay per second)</p>
+</section>
+
+<section>
+    <h2>Deploy to E2B</h2>
+    <p><span class="highlight">~150ms startup</span> from snapshots - the fastest option available</p>
+    <pre><code class="language-bash"># Authenticate with E2B
+export E2B_API_KEY="e2b_..."
+
+# Deploy to E2B cloud sandbox
+./cli/sindri deploy --provider e2b
+
+# Connect via WebSocket PTY (firewall-friendly)
+./cli/sindri connect
+
+# Work in your sandbox
+claude  # Start Claude Code
+cd /workspace && git clone https://github.com/your/project.git</code></pre>
+    <p class="small">Best for: <span class="success">AI agents</span>, rapid prototyping, ephemeral testing environments</p>
+</section>
+
+<section>
+    <h2>E2B Configuration</h2>
+    <pre><code class="language-yaml">version: 1.0
+name: sindri-e2b-dev
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 2GB        # 512MB - 8GB
+    cpus: 2           # 1 - 8 vCPUs
+
+extensions:
+  profile: fullstack
+
+providers:
+  e2b:
+    timeout: 300       # 5 min idle timeout
+    autoPause: true    # Pause instead of kill
+    autoResume: true   # Resume on connect
+
+    # Network policies
+    allowedDomains:
+      - github.com
+      - api.anthropic.com</code></pre>
+</section>
+
+<section>
+    <h2>E2B Unique Features</h2>
+    <ul>
+        <li><span class="highlight">Pause/Resume</span> - Preserves memory + filesystem state</li>
+        <li><span class="highlight">Per-Second Billing</span> - $0.05-0.20/hour, only pay when active</li>
+        <li><span class="highlight">Template Management</span> - Create snapshots for instant reproduction</li>
+        <li><span class="highlight">Network Policies</span> - Domain allowlist/blocklist for security</li>
+        <li><span class="highlight">WebSocket PTY</span> - Works through corporate firewalls (no SSH)</li>
+    </ul>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">Tip:</span> Use <code>autoPause: true</code> to save costs during idle periods
+    </p>
+</section>
+
+<section>
+    <h2>E2B Commands</h2>
+    <pre><code class="language-bash"># Lifecycle management
+./cli/sindri deploy --provider e2b
+./cli/sindri connect              # Auto-resumes if paused
+./cli/sindri status
+./cli/sindri destroy
+
+# Pause/Resume (unique to E2B)
+./cli/sindri pause                # Pause to preserve state
+./cli/sindri resume               # Resume paused instance
+
+# Template management
+./cli/sindri template create      # Create template from current state
+./cli/sindri template list        # List available templates</code></pre>
+</section>
+
+<section>
+    <h2>E2B: When to Use</h2>
+    <h3>Best For</h3>
+    <ul>
+        <li>AI agent code execution sandboxes</li>
+        <li>Rapid prototyping (sub-second startup)</li>
+        <li>CI/CD ephemeral test environments</li>
+        <li>Remote work through corporate firewalls</li>
+    </ul>
+    <h3 style="margin-top: 1em;">Limitations</h3>
+    <ul>
+        <li>No GPU support</li>
+        <li>WebSocket PTY only (no SSH)</li>
+        <li>30-day pause retention limit</li>
+        <li>VS Code Remote SSH not supported</li>
+    </ul>
+</section>
+
+<!-- Provider Comparison -->
+<section>
+    <h2>Provider Comparison</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Feature</th>
+            <th>Docker</th>
+            <th>Fly.io</th>
+            <th>DevPod</th>
+            <th>E2B</th>
+        </tr>
+        <tr>
+            <td>Best For</td>
+            <td>Local dev</td>
+            <td>Cloud dev</td>
+            <td>IDE users</td>
+            <td>AI agents</td>
+        </tr>
+        <tr>
+            <td>Cost</td>
+            <td class="success">Free</td>
+            <td>$6-50/mo</td>
+            <td class="success">Free*</td>
+            <td>$0.05-0.20/hr</td>
+        </tr>
+        <tr>
+            <td>Startup Time</td>
+            <td>10-30s</td>
+            <td>10-60s</td>
+            <td>30-60s</td>
+            <td class="success">~150ms</td>
+        </tr>
+        <tr>
+            <td>Setup Time</td>
+            <td>&lt; 1 min</td>
+            <td>&lt; 5 min</td>
+            <td>&lt; 2 min</td>
+            <td>&lt; 3 min</td>
+        </tr>
+        <tr>
+            <td>Auto-Suspend</td>
+            <td>Manual</td>
+            <td class="success">Yes</td>
+            <td>Manual</td>
+            <td class="success">Pause/Resume</td>
+        </tr>
+        <tr>
+            <td>Remote Access</td>
+            <td>Local only</td>
+            <td class="success">SSH/Web</td>
+            <td>SSH/VSCode</td>
+            <td>WebSocket PTY</td>
+        </tr>
+    </table>
+    <p class="small">* DevPod is free for local; cloud providers have their own costs</p>
+</section>
+
+<!-- CLI Reference -->
+<section>
+    <section>
+        <h2>CLI Reference</h2>
+        <h3>Sindri CLI</h3>
+        <pre><code class="language-bash"># Configuration
+sindri config init          # Create sindri.yaml
+sindri config validate      # Validate config
+
+# Deployment Lifecycle
+sindri deploy               # Deploy (uses provider in config)
+sindri deploy --provider X  # Deploy to specific provider
+sindri connect              # SSH to environment
+sindri status               # Check deployment status
+sindri plan                 # Show deployment plan (dry-run)
+sindri destroy              # Teardown
+sindri destroy --force      # Teardown without confirmation
+
+# Backup & Restore
+sindri backup --profile standard --output ./backups/
+sindri restore ./backups/backup.tar.gz --mode safe --dry-run
+sindri restore ./backups/backup.tar.gz --mode merge
+
+# E2B Provider Commands
+sindri pause                # Pause E2B instance (preserves state)
+sindri resume               # Resume paused instance
+sindri template create      # Create template from current state
+sindri template list        # List available templates</code></pre>
+    </section>
+
+    <section>
+        <h2>CLI Reference</h2>
+        <h3>Extension Manager</h3>
+        <pre><code class="language-bash"># List & Info
+extension-manager list              # List all extensions
+extension-manager list-profiles     # List profiles
+extension-manager info nodejs       # Show details
+
+# Installation
+extension-manager install nodejs    # Install one
+extension-manager install-profile fullstack  # Install profile
+
+# Validation
+extension-manager validate nodejs   # Validate extension
+extension-manager validate-all      # Validate all
+
+# Status
+extension-manager status nodejs     # Check status
+extension-manager bom               # Bill of materials</code></pre>
+    </section>
+</section>
+
+<!-- Workflow Examples -->
+<section>
+    <section>
+        <h2>Workflow: Local Development</h2>
+        <pre><code class="language-bash"># 1. Clone and setup
+git clone https://github.com/pacphi/sindri && cd sindri
+
+# 2. Create config
+./cli/sindri config init
+
+# 3. Deploy locally
+./cli/sindri deploy --provider docker
+
+# 4. Connect and work
+docker exec -it sindri-docker /docker/scripts/entrypoint.sh /bin/bash
+cd /workspace
+extension-manager install-profile fullstack
+
+# 5. Develop your projects
+git clone https://github.com/you/your-project
+cd your-project && pnpm install && pnpm run dev</code></pre>
+    </section>
+
+    <section>
+        <h2>Workflow: Cloud Development</h2>
+        <pre><code class="language-bash"># 1. Authenticate
+flyctl auth login
+
+# 2. Configure for Fly.io
+vim sindri.yaml  # Set provider: fly
+
+# 3. Deploy
+./cli/sindri deploy --provider fly
+
+# 4. Set secrets
+flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a my-app
+
+# 5. Connect from anywhere
+ssh developer@my-app.fly.dev -p 10022
+
+# 6. Machine auto-suspends when idle
+# Auto-resumes on next SSH connection!</code></pre>
+    </section>
+</section>
+
+<!-- Pre-installed Tools -->
+<section>
+    <h2>Pre-installed Tools</h2>
+    <p>The base image includes these tools system-wide:</p>
+    <table class="comparison-table">
+        <tr>
+            <th>Tool</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td><code>mise</code></td>
+            <td>Unified tool version manager</td>
+        </tr>
+        <tr>
+            <td><code>claude</code></td>
+            <td>Claude Code CLI for AI development</td>
+        </tr>
+        <tr>
+            <td><code>gh</code></td>
+            <td>GitHub CLI</td>
+        </tr>
+        <tr>
+            <td><code>yq</code></td>
+            <td>YAML processor</td>
+        </tr>
+    </table>
+    <p class="small" style="margin-top: 1em;">
+        Additional tools installed via extensions on persistent volume
+    </p>
+</section>
+
+<!-- Supported Secrets -->
+<section>
+    <section>
+        <h2>Supported Secrets</h2>
+        <div style="display: flex; gap: 2em; font-size: 0.7em;">
+            <div>
+                <h4>Core</h4>
+                <ul>
+                    <li>ANTHROPIC_API_KEY</li>
+                    <li>GITHUB_TOKEN</li>
+                    <li>GIT_USER_NAME</li>
+                    <li>GIT_USER_EMAIL</li>
+                </ul>
+            </div>
+            <div>
+                <h4>AI Services</h4>
+                <ul>
+                    <li>OPENROUTER_API_KEY</li>
+                    <li>GOOGLE_GEMINI_API_KEY</li>
+                    <li>PERPLEXITY_API_KEY</li>
+                    <li>XAI_API_KEY</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Package Registries</h4>
+                <ul>
+                    <li>NPM_TOKEN</li>
+                    <li>PYPI_TOKEN</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>SSH Keys with <code>fromFile</code></h2>
+        <p>Read secrets directly from local files - zero manual export!</p>
+        <pre><code class="language-yaml">secrets:
+  # SSH public key - auto-reads from file
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+
+  # API keys from environment or .env files
+  - name: ANTHROPIC_API_KEY
+    source: env</code></pre>
+        <p class="small" style="margin-top: 1em;">
+            <span class="highlight">Resolution priority:</span> shell env &rarr; .env.local &rarr; .env &rarr; fromFile
+        </p>
+    </section>
+
+    <section>
+        <h2>SSH Key Direction</h2>
+        <div class="architecture-diagram">
+┌─────────────────┐                    ┌─────────────────────┐
+│  Your Laptop    │ ──── SSH ────────► │   Sindri Container  │
+│                 │                    │                     │
+│ Private Key     │    Authenticates   │ Public Key          │
+│ ~/.ssh/id_ed25519│                   │ AUTHORIZED_KEYS     │
+└─────────────────┘                    └─────────────────────┘
+        </div>
+        <ul style="font-size: 0.7em; margin-top: 1em;">
+            <li><span class="success">SSH INTO container:</span> Use AUTHORIZED_KEYS (public key)</li>
+            <li><span class="warning">SSH OUT from container:</span> Mount private key with <code>source: file</code></li>
+        </ul>
+        <p class="small">Never mount your personal private key - use dedicated deploy keys!</p>
+    </section>
+</section>
+
+<!-- BACKUP & RESTORE SECTION -->
+<section data-background="#d29922">
+    <h1>Backup & Restore</h1>
+    <h3>Workspace Portability</h3>
+</section>
+
+<section>
+    <h2>Backup Your Workspace</h2>
+    <p>Preserve your projects, configs, and development environment</p>
+    <ul>
+        <li><span class="highlight">What's backed up:</span> Projects, SSH keys, Claude data, configs</li>
+        <li><span class="highlight">Why backup:</span> Migration, disaster recovery, multi-machine sync</li>
+        <li><span class="highlight">Three profiles:</span> user-data, standard, full</li>
+    </ul>
+    <pre><code class="language-bash"># Standard backup (recommended)
+./cli/sindri backup --output ./backups/
+
+# User data only (smallest, safest for migration)
+./cli/sindri backup --profile user-data --output ./backups/
+
+# Full backup (disaster recovery)
+./cli/sindri backup --profile full --output ./backups/</code></pre>
+</section>
+
+<section>
+    <h2>Backup Profiles</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Profile</th>
+            <th>Size</th>
+            <th>Includes</th>
+            <th>Best For</th>
+        </tr>
+        <tr>
+            <td class="success">user-data</td>
+            <td>Small (100MB-1GB)</td>
+            <td>Projects, scripts, SSH keys, Claude data</td>
+            <td>Migration to new instance</td>
+        </tr>
+        <tr>
+            <td class="info">standard</td>
+            <td>Medium (1-5GB)</td>
+            <td>user-data + shell RC + app configs</td>
+            <td>Regular backups (default)</td>
+        </tr>
+        <tr>
+            <td class="warning">full</td>
+            <td>Large (5-20GB)</td>
+            <td>Everything except caches</td>
+            <td>Disaster recovery</td>
+        </tr>
+    </table>
+    <p class="small" style="margin-top: 1em;">
+        <span class="success">Tip:</span> Use <code>user-data</code> for clean migrations, <code>standard</code> for regular backups
+    </p>
+</section>
+
+<section>
+    <h2>Restore Modes</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Mode</th>
+            <th>Behavior</th>
+            <th>Safety</th>
+        </tr>
+        <tr>
+            <td class="success">safe</td>
+            <td>Never overwrite existing files (default)</td>
+            <td>Safest - no data loss</td>
+        </tr>
+        <tr>
+            <td class="info">merge</td>
+            <td>Backup existing files before restoring</td>
+            <td>Safe - conflicts preserved</td>
+        </tr>
+        <tr>
+            <td class="warning">full</td>
+            <td>Overwrite everything from backup</td>
+            <td>Dangerous - replaces all files</td>
+        </tr>
+    </table>
+    <pre><code class="language-bash"># Preview what will happen (dry-run)
+./cli/sindri restore ./backups/backup.tar.gz --dry-run
+
+# Safe restore (default - won't overwrite)
+./cli/sindri restore ./backups/backup.tar.gz
+
+# Merge with existing (recommended)
+./cli/sindri restore ./backups/backup.tar.gz --mode merge</code></pre>
+</section>
+
+<section>
+    <h2>Backup & Restore Workflows</h2>
+    <h3>Migration Between Providers</h3>
+    <pre><code class="language-bash"># On Docker instance
+./cli/sindri backup --profile user-data --output ./backups/
+
+# Deploy to Fly.io
+./cli/sindri deploy --provider fly
+
+# Restore on Fly.io
+./cli/sindri restore ./backups/backup.tar.gz</code></pre>
+    <h3 style="margin-top: 1em;">Cloud Backup with S3</h3>
+    <pre><code class="language-bash"># Backup and upload to S3
+./cli/sindri backup --output ./backups/
+aws s3 cp ./backups/backup.tar.gz s3://my-bucket/
+
+# Download and restore from S3
+aws s3 cp s3://my-bucket/backup.tar.gz ./
+./cli/sindri restore ./backup.tar.gz --mode safe</code></pre>
+</section>
+
+<!-- Troubleshooting -->
+<section>
+    <h2>Troubleshooting</h2>
+    <pre><code class="language-bash"># Config validation fails?
+yamllint sindri.yaml
+sindri config validate --verbose
+
+# Docker issues?
+docker compose logs sindri
+docker compose ps
+docker stats
+
+# Fly.io issues?
+flyctl status -a my-app
+flyctl logs -a my-app
+flyctl ssh console -a my-app
+
+# Port conflicts?
+lsof -i :3000  # Find what's using the port</code></pre>
+</section>
+
+<!-- Summary -->
+<section>
+    <h2>Summary</h2>
+    <ul>
+        <li><span class="highlight">One Config</span> - sindri.yaml works everywhere</li>
+        <li><span class="highlight">Docker</span> - Free, local, immediate</li>
+        <li><span class="highlight">Fly.io</span> - Cloud, auto-suspend, accessible anywhere</li>
+        <li><span class="highlight">DevPod</span> - IDE integration, multi-cloud</li>
+        <li><span class="highlight">70+ Extensions</span> - Languages, tools, AI frameworks</li>
+        <li><span class="highlight">12 Profiles</span> - Pre-configured bundles for common workflows</li>
+    </ul>
+</section>
+
+<!-- Get Started -->
+<section data-background-gradient="linear-gradient(135deg, #238636 0%, #1f6feb 100%)">
+    <h2>Get Started Today</h2>
+    <pre><code class="language-bash">git clone https://github.com/pacphi/sindri
+cd sindri
+./cli/sindri config init
+./cli/sindri deploy</code></pre>
+    <p style="margin-top: 2em;">
+        <a href="https://github.com/pacphi/sindri" style="color: white;">
+            github.com/pacphi/sindri
+        </a>
+    </p>
+</section>
+
+<!-- Questions -->
+<section>
+    <h1>Questions?</h1>
+    <p style="margin-top: 2em;">
+        <a href="https://github.com/pacphi/sindri">GitHub Repository</a>
+    </p>
+    <p class="small">
+        Documentation: <code>docs/</code> directory
+    </p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/markdown/markdown.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+    Reveal.initialize({
+        hash: true,
+        slideNumber: true,
+        transition: 'slide',
+        autoSlide: 5000,
+        autoSlideStoppable: true,
+        loop: true,
+        plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+    });
+</script>
+</body>
+</html>

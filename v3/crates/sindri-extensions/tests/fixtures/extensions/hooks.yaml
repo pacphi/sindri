@@ -1,0 +1,25 @@
+metadata:
+  name: test-hooks
+  version: "1.0.0"
+  description: Test extension with hooks for lifecycle testing
+  category: testing
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 60
+
+validate:
+  commands:
+    - name: echo
+      versionFlag: "test"
+
+capabilities:
+  hooks:
+    pre_install:
+      command: "echo 'PRE_INSTALL_HOOK_EXECUTED' > /tmp/test-hooks-pre"
+      description: "Pre-install hook that creates a marker file"
+    post_install:
+      command: "echo 'POST_INSTALL_HOOK_EXECUTED' > /tmp/test-hooks-post"
+      description: "Post-install hook that creates a marker file"

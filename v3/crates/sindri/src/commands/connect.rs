@@ -1,15 +1,16 @@
 //! Connect command
 
 use anyhow::Result;
+use camino::Utf8Path;
 use sindri_core::config::SindriConfig;
 use sindri_providers::create_provider;
 
 use crate::cli::ConnectArgs;
 use crate::output;
 
-pub async fn run(_args: ConnectArgs) -> Result<()> {
+pub async fn run(_args: ConnectArgs, config_path: Option<&Utf8Path>) -> Result<()> {
     // Load config
-    let config = SindriConfig::load(None)?;
+    let config = SindriConfig::load(config_path)?;
 
     output::info(&format!("Connecting to {}...", config.name()));
 

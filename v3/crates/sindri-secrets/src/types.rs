@@ -147,6 +147,9 @@ pub struct ResolutionContext {
 
     /// Validation mode (don't actually resolve, just check availability)
     pub validation_mode: bool,
+
+    /// Custom .env file path (overrides default .env/.env.local)
+    pub custom_env_file: Option<PathBuf>,
 }
 
 impl ResolutionContext {
@@ -155,6 +158,7 @@ impl ResolutionContext {
             config_dir,
             allow_optional_failures: true,
             validation_mode: false,
+            custom_env_file: None,
         }
     }
 
@@ -165,6 +169,11 @@ impl ResolutionContext {
 
     pub fn with_strict_mode(mut self, strict: bool) -> Self {
         self.allow_optional_failures = !strict;
+        self
+    }
+
+    pub fn with_custom_env_file(mut self, path: Option<PathBuf>) -> Self {
+        self.custom_env_file = path;
         self
     }
 }

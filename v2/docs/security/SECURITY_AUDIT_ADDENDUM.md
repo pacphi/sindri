@@ -686,7 +686,7 @@ install:
 
 1. `cli/extension-manager-modules/executor.sh` - Add checksum verification logic
 2. `v2/docker/lib/schemas/extension.schema.json` - Add integrity property
-3. `docs/EXTENSION_AUTHORING.md` - Document integrity verification
+3. `v2/docs/EXTENSION_AUTHORING.md` - Document integrity verification
 
 **Testing:**
 
@@ -1191,7 +1191,7 @@ docker exec sindri-dev ping other-container  # Should fail (isolated)
    - Update SECURITY_AUDIT_REPORT.md status
    - Document accepted risks (if any)
    - Update docs/SECURITY.md
-   - Update docs/EXTENSION_AUTHORING.md
+   - Update v2/docs/EXTENSION_AUTHORING.md
    - Add troubleshooting guides
 
 8. **Audit Report Completion**
@@ -1326,7 +1326,7 @@ docker exec sindri-dev ping other-container  # Should fail (isolated)
 
 - [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md) - Original audit findings
 - [docs/SECURITY.md](../SECURITY.md) - Security guidelines
-- [docs/EXTENSION_AUTHORING.md](../../../docs/EXTENSION_AUTHORING.md) - Extension development guide
+- [v2/docs/EXTENSION_AUTHORING.md](../EXTENSION_AUTHORING.md) - Extension development guide
 - [docs/DEPLOYMENT.md](../DEPLOYMENT.md) - Deployment procedures
 
 ---

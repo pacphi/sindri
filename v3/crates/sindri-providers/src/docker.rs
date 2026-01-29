@@ -11,6 +11,7 @@ use sindri_core::types::{
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
     ResourceUsage,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -143,9 +144,19 @@ impl DockerProvider {
     }
 
     /// Generate docker-compose.yml from config
-    fn generate_compose(&self, config: &SindriConfig, output_dir: &Path) -> Result<PathBuf> {
+    fn generate_compose(
+        &self,
+        config: &SindriConfig,
+        output_dir: &Path,
+        image_override: Option<&str>,
+    ) -> Result<PathBuf> {
         let dind_mode = self.detect_dind_mode(config);
-        let context = TemplateContext::from_config(config, &dind_mode);
+        let mut context = TemplateContext::from_config(config, &dind_mode);
+
+        // Apply image override if provided
+        if let Some(image) = image_override {
+            context.image = image.to_string();
+        }
 
         let compose_content = self.templates.render("docker-compose.yml", &context)?;
         let compose_path = output_dir.join("docker-compose.yml");
@@ -181,6 +192,42 @@ impl DockerProvider {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             warn!("Docker compose command failed: {}", stderr);
+        }
+
+        Ok(output)
+    }
+
+    /// Run docker compose command with explicit project name
+    async fn docker_compose_with_project(
+        &self,
+        args: &[&str],
+        compose_file: &Path,
+        project_name: &str,
+    ) -> Result<std::process::Output> {
+        let mut cmd = Command::new("docker");
+        cmd.arg("compose")
+            .arg("-f")
+            .arg(compose_file)
+            .arg("--project-name")
+            .arg(project_name)
+            .args(args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        debug!(
+            "Running: docker compose -f {} --project-name {} {}",
+            compose_file.display(),
+            project_name,
+            args.join(" ")
+        );
+        let output = cmd.output().await?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            warn!(
+                "Docker compose command failed (project: {}): {}",
+                project_name, stderr
+            );
         }
 
         Ok(output)
@@ -287,41 +334,6 @@ impl DockerProvider {
         }
     }
 
-    /// Build Docker image
-    #[allow(dead_code)]
-    async fn build_image(
-        &self,
-        tag: &str,
-        dockerfile: &Path,
-        context_dir: &Path,
-        force: bool,
-    ) -> Result<()> {
-        let mut args = vec!["build", "-t", tag, "-f"];
-        let dockerfile_str = dockerfile.to_string_lossy();
-        args.push(&dockerfile_str);
-
-        if force {
-            args.push("--no-cache");
-        }
-
-        let context_str = context_dir.to_string_lossy();
-        args.push(&context_str);
-
-        info!("Building Docker image: {}", tag);
-        let output = Command::new("docker")
-            .args(&args)
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .status()
-            .await?;
-
-        if !output.success() {
-            return Err(anyhow!("Docker build failed"));
-        }
-
-        Ok(())
-    }
-
     /// Clean up volumes for a deployment
     async fn cleanup_volumes(&self, name: &str, project_name: &str) -> Result<()> {
         // Find volumes matching our patterns
@@ -379,6 +391,84 @@ impl DockerProvider {
         }
 
         Ok(())
+    }
+
+    /// Resolve secrets and write them to .env.secrets file
+    async fn resolve_secrets(
+        &self,
+        config: &SindriConfig,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<Option<PathBuf>> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, skip
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(None);
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Write environment variable secrets to .env.secrets file
+        let secrets_file = self.output_dir.join(".env.secrets");
+        let mut env_content = String::new();
+        env_content.push_str("# Auto-generated secrets file - DO NOT COMMIT\n");
+        env_content.push_str("# Generated by Sindri CLI\n\n");
+
+        let mut has_env_secrets = false;
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // This is an environment variable secret
+                env_content.push_str(&format!("{}={}\n", name, value));
+                has_env_secrets = true;
+            }
+        }
+
+        if has_env_secrets {
+            std::fs::write(&secrets_file, env_content)?;
+            info!(
+                "Wrote {} environment secrets to {}",
+                resolved.len(),
+                secrets_file.display()
+            );
+
+            // Set restrictive permissions (0600 = owner read/write only)
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mut perms = std::fs::metadata(&secrets_file)?.permissions();
+                perms.set_mode(0o600);
+                std::fs::set_permissions(&secrets_file, perms)?;
+            }
+
+            Ok(Some(secrets_file))
+        } else {
+            debug!("No environment variable secrets to write");
+            Ok(None)
+        }
+    }
+
+    /// Clean up secrets file
+    fn cleanup_secrets_file(&self, secrets_file: Option<&PathBuf>) {
+        if let Some(path) = secrets_file {
+            if path.exists() {
+                debug!("Removing secrets file: {}", path.display());
+                let _ = std::fs::remove_file(path);
+            }
+        }
     }
 }
 
@@ -444,6 +534,7 @@ impl Provider for DockerProvider {
     }
 
     async fn deploy(&self, config: &SindriConfig, opts: DeployOptions) -> Result<DeployResult> {
+        let file = config.inner();
         let name = config.name().to_string();
         info!("Deploying {} with Docker provider", name);
 
@@ -457,10 +548,149 @@ impl Provider for DockerProvider {
             ));
         }
 
-        // Generate docker-compose.yml
-        let compose_path = self.generate_compose(config, &self.output_dir)?;
+        // Resolve image: use specified image OR build from Sindri repository
+        let has_image_specified =
+            file.deployment.image.is_some() || file.deployment.image_config.is_some();
+
+        let should_build_from_source = file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        let image = if has_image_specified && !should_build_from_source {
+            // Use resolve_image() for full image_config support
+            config.resolve_image().await?
+        } else if should_build_from_source || !has_image_specified {
+            // Determine which git ref to clone for getting the Dockerfile
+            // Use the gitRef from config if specified, otherwise use CLI version
+            let version_to_fetch = file
+                .deployment
+                .build_from_source
+                .as_ref()
+                .and_then(|b| b.git_ref.as_deref());
+
+            // Fetch official Sindri v3 build context from GitHub and build
+            let cache_dir = dirs::cache_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("sindri")
+                .join("repos");
+
+            let (v3_dir, git_ref_used) =
+                crate::utils::fetch_sindri_build_context(&cache_dir, version_to_fetch)
+                    .await
+                    .map_err(|e| {
+                        anyhow!(
+                            "Failed to fetch Sindri build context from GitHub: {}. \
+                        Ensure git is installed and you have network access. \
+                        You can also specify a pre-built image using 'deployment.image' \
+                        or 'deployment.image_config' in sindri.yaml",
+                            e
+                        )
+                    })?;
+
+            // Get the git SHA for unique tagging
+            let repo_dir = v3_dir.parent().unwrap();
+            let git_sha = crate::utils::get_git_sha(repo_dir)
+                .await
+                .unwrap_or_else(|_| "unknown".to_string());
+
+            // Tag format: sindri:{cli_version}-{gitsha}
+            // Example: sindri:3.0.0-a1b2c3d
+            let cli_version = env!("CARGO_PKG_VERSION");
+            let tag = format!("sindri:{}-{}", cli_version, git_sha);
+
+            // Select appropriate Dockerfile based on build mode
+            let dockerfile_name = if should_build_from_source {
+                "Dockerfile.dev"
+            } else {
+                "Dockerfile"
+            };
+            let dockerfile = v3_dir.join(dockerfile_name);
+
+            info!(
+                "Building {} image {} from {} using {} (commit: {})",
+                if should_build_from_source {
+                    "development"
+                } else {
+                    "production"
+                },
+                tag,
+                v3_dir.display(),
+                dockerfile_name,
+                git_sha
+            );
+
+            // Determine which git ref to use for Docker build
+            // Priority: YAML config > git ref we actually cloned from
+            let sindri_version = file
+                .deployment
+                .build_from_source
+                .as_ref()
+                .and_then(|b| b.git_ref.clone())
+                .unwrap_or_else(|| git_ref_used.clone());
+
+            // Build Docker image using selected Dockerfile
+            // Dockerfile choice (production vs development) is implicit in the file selected
+            let mut args = vec!["build", "-t", &tag, "-f"];
+            let dockerfile_str = dockerfile.to_string_lossy();
+            args.push(&dockerfile_str);
+
+            if opts.force {
+                args.push("--no-cache");
+            }
+
+            // Pass SINDRI_VERSION build arg (used by both Dockerfiles)
+            args.push("--build-arg");
+            let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
+            args.push(&sindri_version_arg);
+
+            let context_str = repo_dir.to_string_lossy();
+            args.push(&context_str);
+
+            info!(
+                "Building Docker image from source (ref: {}) - this will take 3-5 minutes...",
+                sindri_version
+            );
+            let output = Command::new("docker")
+                .args(&args)
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .status()
+                .await?;
+
+            if !output.success() {
+                return Err(anyhow!("Docker build failed"));
+            }
+
+            tag
+        } else {
+            // Neither image specified nor build_from_source enabled
+            return Err(anyhow!(
+                "No image configured. Please specify:\n\
+                1. deployment.image or deployment.image_config in sindri.yaml, OR\n\
+                2. Enable deployment.buildFromSource.enabled in sindri.yaml, OR\n\
+                3. Use --from-source flag when deploying"
+            ));
+        };
+
+        debug!("Using image: {}", image);
+
+        // Resolve secrets and write to .env.secrets
+        let secrets_file = match self.resolve_secrets(config, None).await {
+            Ok(path) => path,
+            Err(e) => {
+                warn!("Failed to resolve secrets: {}", e);
+                return Err(anyhow!("Secret resolution failed: {}", e));
+            }
+        };
+
+        // Generate docker-compose.yml with the resolved image
+        let compose_path = self.generate_compose(config, &self.output_dir, Some(&image))?;
 
         if opts.dry_run {
+            self.cleanup_secrets_file(secrets_file.as_ref());
             return Ok(DeployResult {
                 success: true,
                 name: name.clone(),
@@ -468,8 +698,9 @@ impl Provider for DockerProvider {
                 instance_id: None,
                 connection: None,
                 messages: vec![format!(
-                    "Would deploy {} using docker-compose.yml at {}",
+                    "Would deploy {} using image '{}' and docker-compose.yml at {}",
                     name,
+                    image,
                     compose_path.display()
                 )],
                 warnings: vec![],
@@ -478,24 +709,40 @@ impl Provider for DockerProvider {
 
         // Check if container already exists
         if self.container_exists(&name).await && !opts.force {
+            self.cleanup_secrets_file(secrets_file.as_ref());
             return Err(anyhow!(
                 "Container '{}' already exists. Use --force to recreate.",
                 name
             ));
         }
 
+        // Derive project name from output directory for consistent volume naming
+        let project_name = self
+            .output_dir
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "sindri".to_string());
+
         // Stop existing container if force
         if opts.force && self.container_exists(&name).await {
-            info!("Removing existing container...");
-            let _ = self.docker_compose(&["down", "-v"], &compose_path).await;
+            info!(
+                "Removing existing container with project name '{}'...",
+                project_name
+            );
+            let _ = self
+                .docker_compose_with_project(&["down", "-v"], &compose_path, &project_name)
+                .await;
         }
 
         // Start container
-        info!("Starting container...");
-        let output = self.docker_compose(&["up", "-d"], &compose_path).await?;
+        info!("Starting container with project name '{}'...", project_name);
+        let output = self
+            .docker_compose_with_project(&["up", "-d"], &compose_path, &project_name)
+            .await?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            self.cleanup_secrets_file(secrets_file.as_ref());
             return Err(anyhow!("Failed to start container: {}", stderr));
         }
 
@@ -511,12 +758,18 @@ impl Provider for DockerProvider {
             }
 
             if !self.is_container_running(&name).await {
+                self.cleanup_secrets_file(secrets_file.as_ref());
                 return Err(anyhow!(
                     "Container failed to start within {} seconds",
                     timeout
                 ));
             }
         }
+
+        // Container is running, clean up secrets file
+        // Note: Keep the file for a brief moment to ensure container has fully read it
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        self.cleanup_secrets_file(secrets_file.as_ref());
 
         Ok(DeployResult {
             success: true,
@@ -525,19 +778,20 @@ impl Provider for DockerProvider {
             instance_id: Some(name.clone()),
             connection: Some(ConnectionInfo {
                 ssh_command: Some(format!(
-                    "docker exec -it {} /docker/scripts/entrypoint.sh /bin/bash",
+                    "docker exec -it -e HOME=/alt/home/developer -u developer -w /alt/home/developer {} bash -l",
                     name
                 )),
                 http_url: None,
                 https_url: None,
                 instructions: Some(format!(
-                    "Connect with: sindri connect\nOr: docker exec -it {} /docker/scripts/entrypoint.sh /bin/bash",
+                    "Connect with: sindri connect\nOr: docker exec -it -e HOME=/alt/home/developer -u developer -w /alt/home/developer {} bash -l",
                     name
                 )),
             }),
-            messages: vec![
-                format!("Container '{}' deployed successfully", name),
-            ],
+            messages: vec![format!(
+                "Container '{}' deployed successfully with image '{}'",
+                name, image
+            )],
             warnings: vec![],
         })
     }
@@ -554,13 +808,19 @@ impl Provider for DockerProvider {
         }
 
         // Run docker exec interactively
-        let status = Command::new("docker")
+        let _status = Command::new("docker")
             .args([
                 "exec",
                 "-it",
+                "-e",
+                "HOME=/alt/home/developer",
+                "-u",
+                "developer",
+                "-w",
+                "/alt/home/developer",
                 name,
-                "/docker/scripts/entrypoint.sh",
-                "/bin/bash",
+                "bash",
+                "-l",
             ])
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
@@ -568,10 +828,9 @@ impl Provider for DockerProvider {
             .status()
             .await?;
 
-        if !status.success() {
-            return Err(anyhow!("Failed to connect to container"));
-        }
-
+        // Note: We don't check exit status here because exiting from an interactive
+        // shell is the normal way to disconnect. Any exit (whether code 0 or non-zero)
+        // indicates the user intentionally left the session, not a connection failure.
         Ok(())
     }
 
@@ -649,12 +908,15 @@ impl Provider for DockerProvider {
             Default::default()
         };
 
+        // Resolve image for status display using the image_config priority chain
+        let image = config.resolve_image().await.ok();
+
         Ok(DeploymentStatus {
             name,
             provider: "docker".to_string(),
             state,
             instance_id,
-            image: config.image().map(|s| s.to_string()),
+            image,
             addresses: vec![],
             resources,
             timestamps,
@@ -675,10 +937,32 @@ impl Provider for DockerProvider {
 
         // Run docker compose down first
         if compose_path.exists() {
-            info!("Running docker compose down...");
-            let _ = self
-                .docker_compose(&["down", "--volumes", "--remove-orphans"], &compose_path)
-                .await;
+            info!(
+                "Running docker compose down with project name '{}'...",
+                project_name
+            );
+            match self
+                .docker_compose_with_project(
+                    &["down", "--volumes", "--remove-orphans"],
+                    &compose_path,
+                    &project_name,
+                )
+                .await
+            {
+                Ok(output) => {
+                    if output.status.success() {
+                        info!("Docker compose down completed successfully");
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        warn!("Docker compose down had issues: {}", stderr);
+                        warn!("Will attempt manual cleanup as fallback");
+                    }
+                }
+                Err(e) => {
+                    warn!("Docker compose down failed: {}", e);
+                    warn!("Will attempt manual cleanup as fallback");
+                }
+            }
         }
 
         // Manual container cleanup as fallback
@@ -715,15 +999,29 @@ impl Provider for DockerProvider {
         let file = config.inner();
         let dind_mode = self.detect_dind_mode(config);
 
+        // Resolve image: use specified image OR build from Sindri Dockerfile
+        let has_image_specified =
+            file.deployment.image.is_some() || file.deployment.image_config.is_some();
+
+        let image = if has_image_specified {
+            // Use resolve_image() for full image_config support
+            config.resolve_image().await.map_err(|e| anyhow!("{}", e))?
+        } else {
+            // Will build from Sindri repository fetched from GitHub
+            // Tag format: sindri:{cli_version}-{gitsha} (e.g., sindri:3.0.0-a1b2c3d)
+            // Note: We use a placeholder for planning; actual SHA determined at build time
+            let cli_version = env!("CARGO_PKG_VERSION");
+            format!("sindri:{}-SOURCE", cli_version)
+        };
+
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,
             resource: "docker-compose.yml".to_string(),
             description: "Generate Docker Compose configuration".to_string(),
         }];
 
-        // Check if image needs to be built
-        let image = file.deployment.image.as_deref().unwrap_or("sindri:latest");
-        if image == "sindri:latest" {
+        // Check if image needs to be built (only for local untagged images)
+        if image == "sindri:latest" || (image.ends_with(":latest") && !image.contains('/')) {
             actions.push(PlannedAction {
                 action: ActionType::Create,
                 resource: format!("image:{}", image),

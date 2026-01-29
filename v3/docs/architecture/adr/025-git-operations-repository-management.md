@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-22
 **Deciders**: Core Team
-**Related**: [ADR-023: Phase 7 Project Management Architecture](023-phase-7-project-management-architecture.md), [ADR-024: Template-Based Project Scaffolding](024-template-based-project-scaffolding.md), [Rust Migration Plan](../../planning/active/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21)
+**Related**: [ADR-023: Phase 7 Project Management Architecture](023-phase-7-project-management-architecture.md), [ADR-024: Template-Based Project Scaffolding](024-template-based-project-scaffolding.md), [Rust Migration Plan](../../planning/complete/rust-cli-migration-v3.md#phase-7-project-management-weeks-20-21)
 
 ## Context
 

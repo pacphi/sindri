@@ -44,8 +44,18 @@ fn get_cache_dir() -> Result<PathBuf> {
     Ok(home.join(".sindri").join("cache"))
 }
 
-/// Get extensions directory (~/.sindri/extensions)
+/// Get extensions directory
+///
+/// Returns the appropriate extensions directory based on deployment mode:
+/// - SINDRI_EXT_HOME: Custom or bundled path (e.g., /opt/sindri/extensions)
+/// - Fallback: ~/.sindri/extensions (respects XDG and system conventions)
 fn get_extensions_dir() -> Result<PathBuf> {
+    // Check for explicit SINDRI_EXT_HOME environment variable
+    if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
+        return Ok(std::path::PathBuf::from(ext_home));
+    }
+
+    // Fallback to home directory for downloaded extensions (never hardcode paths)
     let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
     Ok(home.join(".sindri").join("extensions"))
 }

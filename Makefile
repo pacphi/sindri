@@ -189,8 +189,8 @@ endef
 	v3-doc v3-run v3-run-debug v3-install \
 	v3-docker-build v3-docker-build-latest v3-docker-build-nocache \
 	v3-docker-build-from-source v3-docker-build-from-binary \
-	ci ci-v2 ci-v3 \
-	clean clean-v2 clean-v3
+	ci v2-ci v3-ci \
+	clean v2-clean v3-clean
 
 # ============================================================================
 # Default Target
@@ -282,13 +282,13 @@ help:
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ CI/CD Targets ═══════════════════════════════════════════════════$(RESET)"
 	@echo "  ci                     - Run full CI (v2 + v3)"
-	@echo "  ci-v2                  - Run v2 CI pipeline"
-	@echo "  ci-v3                  - Run v3 CI pipeline"
+	@echo "  v2-ci                  - Run v2 CI pipeline"
+	@echo "  v3-ci                  - Run v3 CI pipeline"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ Utility ═════════════════════════════════════════════════════════$(RESET)"
 	@echo "  clean                  - Clean all build artifacts"
-	@echo "  clean-v2               - Clean v2 Docker images"
-	@echo "  clean-v3               - Clean v3 Rust artifacts"
+	@echo "  v2-clean               - Clean v2 Docker images"
+	@echo "  v3-clean               - Clean v3 Rust artifacts"
 	@echo ""
 
 # ============================================================================
@@ -829,57 +829,141 @@ v3-docker-build: v3-docker-build-from-binary
 
 .PHONY: v3-docker-build-from-binary
 v3-docker-build-from-binary:
-	@echo "$(BLUE)Building v3 Docker image from pre-compiled binary (local tag)...$(RESET)"
-	@echo "$(BLUE)This will download the binary from GitHub releases (~5 min)$(RESET)"
+	@echo "$(BLUE)Building v3 production Docker image from pre-compiled binary (local tag)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile (production) - downloads binary from GitHub releases (~5 min)$(RESET)"
 	docker build -t sindri:v3-local \
-		--build-arg BUILD_FROM_SOURCE=false \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-local$(RESET)"
 
 .PHONY: v3-docker-build-from-source
 v3-docker-build-from-source:
-	@echo "$(BLUE)Building v3 Docker image from Rust source (~8 min)...$(RESET)"
-	@echo "$(YELLOW)Note: This build mode compiles Rust code from scratch$(RESET)"
-	docker build -t sindri:v3-source \
-		--build-arg BUILD_FROM_SOURCE=true \
-		-f $(V3_DIR)/Dockerfile \
+	@echo "$(BLUE)Building v3 development Docker image from Rust source (~8 min)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile.dev (development) - builds from source with bundled extensions$(RESET)"
+	docker build -t sindri:v3-dev \
+		-f $(V3_DIR)/Dockerfile.dev \
 		$(PROJECT_ROOT)
-	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-source$(RESET)"
+	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-dev$(RESET)"
 
 .PHONY: v3-docker-build-latest
 v3-docker-build-latest:
-	@echo "$(BLUE)Building v3 Docker image (latest tag)...$(RESET)"
+	@echo "$(BLUE)Building v3 production Docker image (latest tag)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile (production)$(RESET)"
 	docker build -t sindri:v3-latest \
-		--build-arg BUILD_FROM_SOURCE=false \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
 
 .PHONY: v3-docker-build-nocache
 v3-docker-build-nocache:
-	@echo "$(BLUE)Building v3 Docker image (no cache)...$(RESET)"
+	@echo "$(BLUE)Building v3 production Docker image (no cache)...$(RESET)"
+	@echo "$(BLUE)Using Dockerfile (production)$(RESET)"
 	@echo "$(YELLOW)Warning: This will take longer than normal$(RESET)"
 	docker build --no-cache -t sindri:v3-latest \
-		--build-arg BUILD_FROM_SOURCE=false \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
+
+# ============================================================================
+# V3 Extension Testing Targets
+# ============================================================================
+
+# Default extension list for testing
+V3_EXT_LIST ?= python,nodejs,golang
+V3_EXT_MAX_PARALLEL ?= 2
+V3_EXT_PROFILE ?= minimal
+
+.PHONY: v3-ext-test
+v3-ext-test: v3-ext-test-serial
+	@echo "$(GREEN)$(BOLD)✓ Extension tests complete$(RESET)"
+
+.PHONY: v3-ext-test-serial
+v3-ext-test-serial: v3-build
+	@echo "$(BLUE)Running v3 extension tests (serial)...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme serial --extensions "$(V3_EXT_LIST)"
+
+.PHONY: v3-ext-test-parallel
+v3-ext-test-parallel: v3-build
+	@echo "$(BLUE)Running v3 extension tests (parallel)...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme parallel --extensions "$(V3_EXT_LIST)" --max-parallel $(V3_EXT_MAX_PARALLEL)
+
+.PHONY: v3-ext-test-profile
+v3-ext-test-profile: v3-build
+	@echo "$(BLUE)Running v3 extension tests (profile: $(V3_EXT_PROFILE))...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme serial --profile "$(V3_EXT_PROFILE)"
+
+.PHONY: v3-ext-test-quick
+v3-ext-test-quick: v3-build
+	@echo "$(BLUE)Running quick extension test (python only)...$(RESET)"
+	./scripts/v3-extension-test.sh --scheme serial --extensions "python" --verbose
+
+.PHONY: v3-ext-test-unit
+v3-ext-test-unit:
+	@echo "$(BLUE)Running extension unit tests...$(RESET)"
+	cd $(V3_DIR) && cargo test --package sindri-extensions
+	@echo "$(GREEN)✓ Extension unit tests passed$(RESET)"
+
+# ============================================================================
+# V3 Packer Testing Targets
+# ============================================================================
+
+.PHONY: v3-packer-test
+v3-packer-test: v3-packer-test-unit
+	@echo "$(GREEN)$(BOLD)✓ Packer tests complete$(RESET)"
+
+.PHONY: v3-packer-test-unit
+v3-packer-test-unit:
+	@echo "$(BLUE)Running packer unit tests...$(RESET)"
+	cd $(V3_DIR) && cargo test --package sindri-packer
+	@echo "$(GREEN)✓ Packer unit tests passed$(RESET)"
+
+.PHONY: v3-packer-validate
+v3-packer-validate: v3-build
+	@echo "$(BLUE)Validating packer templates...$(RESET)"
+	@if command -v packer >/dev/null 2>&1; then \
+		echo "Packer found, validating templates..."; \
+		$(V3_BINARY) packer validate --cloud aws --dry-run 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)Packer not installed, skipping template validation$(RESET)"; \
+	fi
+	@echo "$(GREEN)✓ Packer validation complete$(RESET)"
+
+.PHONY: v3-inspec-check
+v3-inspec-check:
+	@echo "$(BLUE)Checking InSpec profile...$(RESET)"
+	@if command -v inspec >/dev/null 2>&1; then \
+		inspec check $(V3_DIR)/test/integration/sindri/; \
+	else \
+		echo "$(YELLOW)InSpec not installed. Install: gem install inspec-bin$(RESET)"; \
+	fi
+	@echo "$(GREEN)✓ InSpec profile check complete$(RESET)"
+
+.PHONY: v3-inspec-exec-local
+v3-inspec-exec-local:
+	@echo "$(BLUE)Running InSpec tests locally...$(RESET)"
+	@if command -v inspec >/dev/null 2>&1; then \
+		inspec exec $(V3_DIR)/test/integration/sindri/ \
+			--reporter cli \
+			--controls sindri docker mise \
+			|| true; \
+	else \
+		echo "$(YELLOW)InSpec not installed. Install: gem install inspec-bin$(RESET)"; \
+	fi
 
 # ============================================================================
 # CI/CD Targets
 # ============================================================================
 
 .PHONY: ci
-ci: ci-v2 ci-v3
+ci: v2-ci v3-ci
 	@echo "$(GREEN)$(BOLD)✓ Full CI pipeline passed$(RESET)"
 
-.PHONY: ci-v2
-ci-v2: v2-validate v2-build
+.PHONY: v2-ci
+v2-ci: v2-validate v2-build
 	@echo "$(GREEN)$(BOLD)✓ v2 CI pipeline passed$(RESET)"
 
-.PHONY: ci-v3
-ci-v3: v3-validate v3-build
+.PHONY: v3-ci
+v3-ci: v3-validate v3-build
 	@echo "$(GREEN)$(BOLD)✓ v3 CI pipeline passed$(RESET)"
 
 # ============================================================================
@@ -887,17 +971,22 @@ ci-v3: v3-validate v3-build
 # ============================================================================
 
 .PHONY: clean
-clean: clean-v2 clean-v3
+clean: v2-clean v3-clean
 	@echo "$(GREEN)✓ All build artifacts cleaned$(RESET)"
 
-.PHONY: clean-v2
-clean-v2:
+.PHONY: v2-clean
+v2-clean:
 	@echo "$(BLUE)Cleaning v2 Docker images...$(RESET)"
 	@docker images | grep sindri | awk '{print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
 	@echo "$(GREEN)✓ v2 artifacts cleaned$(RESET)"
 
-.PHONY: clean-v3
-clean-v3:
+.PHONY: v3-clean
+v3-clean:
 	@echo "$(BLUE)Cleaning v3 Rust artifacts...$(RESET)"
 	cd $(V3_DIR) && cargo clean
+	@echo "$(BLUE)Cleaning v3 cached repositories...$(RESET)"
+	@rm -rf ~/Library/Caches/sindri/repos 2>/dev/null || true
+	@rm -rf ~/.cache/sindri/repos 2>/dev/null || true
+	@echo "$(BLUE)Cleaning Docker build cache...$(RESET)"
+	@docker builder prune --all --force 2>/dev/null || true
 	@echo "$(GREEN)✓ v3 artifacts cleaned$(RESET)"
