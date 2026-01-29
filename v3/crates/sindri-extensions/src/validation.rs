@@ -20,6 +20,7 @@
 //! - `.cargo/bin` - Rust/Cargo tools
 //! - `.fly/bin` - Fly.io CLI
 //! - `.npm-global/bin` - npm global packages (via NPM_CONFIG_PREFIX)
+//! - `~/.sdkman/candidates/*/current/bin` - SDKMAN-managed JVM tools (dynamic discovery)
 
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -33,6 +34,7 @@ use tracing::debug;
 /// - Cargo/Rust binaries
 /// - Fly.io CLI
 /// - User-local binaries
+/// - SDKMAN (dynamically discovered from ~/.sdkman/candidates/*/current/bin)
 pub const DEFAULT_VALIDATION_PATHS: &[&str] = &[
     ".local/share/mise/shims", // mise-managed tools (node, npm, python, etc.)
     ".local/bin",              // User binaries (uv, goose, claude-monitor, etc.)
@@ -83,8 +85,9 @@ impl ValidationConfig {
     ///
     /// Returns a colon-separated PATH string that includes:
     /// 1. Default validation paths (resolved to absolute)
-    /// 2. Extra paths from environment/configuration
-    /// 3. Current PATH
+    /// 2. SDKMAN candidate paths (dynamic discovery)
+    /// 3. Extra paths from environment/configuration
+    /// 4. Current PATH
     pub fn build_validation_path(&self) -> String {
         let current_path = std::env::var("PATH").unwrap_or_default();
         let mut paths: Vec<String> = Vec::new();
@@ -95,6 +98,29 @@ impl ValidationConfig {
             if resolved.exists() && !self.path_in_list(&resolved, &current_path) {
                 debug!("Adding validation path: {}", resolved.display());
                 paths.push(resolved.to_string_lossy().to_string());
+            }
+        }
+
+        // Add SDKMAN candidates to PATH for JVM tools (java, kotlin, scala, mvn, gradle)
+        // SDKMAN uses ~/.sdkman/candidates/<tool>/current/bin
+        let sdkman_dir = std::env::var("SDKMAN_DIR")
+            .ok()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| self.home_dir.join(".sdkman"));
+
+        let candidates_dir = sdkman_dir.join("candidates");
+        if candidates_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&candidates_dir) {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    let current_bin = entry.path().join("current").join("bin");
+                    if current_bin.exists() && !self.path_in_list(&current_bin, &current_path) {
+                        debug!(
+                            "Adding SDKMAN candidate path: {}",
+                            current_bin.display()
+                        );
+                        paths.push(current_bin.to_string_lossy().to_string());
+                    }
+                }
             }
         }
 
