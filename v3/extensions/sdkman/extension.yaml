@@ -55,7 +55,7 @@ remove:
   confirmation: true
 
 upgrade:
-  strategy: script
+  strategy: manual
   script:
     path: scripts/upgrade.sh
     timeout: 300
