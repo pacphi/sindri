@@ -7,7 +7,8 @@ metadata:
   category: mcp
   author: Sindri Team
   homepage: https://linear.app/docs/mcp
-  dependencies: []
+  dependencies:
+    - claude-cli
 requirements:
   domains:
     - api.linear.app

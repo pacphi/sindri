@@ -35,20 +35,21 @@ Sindri V3 introduces significant improvements to the extension system:
 
 V3 extensions are organized into the following categories:
 
-| Category          | Description                                      | Count |
-| ----------------- | ------------------------------------------------ | ----- |
-| **languages**     | Programming language runtimes and toolchains     | 10    |
-| **devops**        | Infrastructure, deployment, and operations tools | 4     |
-| **claude**        | Claude Code integrations and workflow tools      | 8     |
-| **ai-agents**     | AI agent frameworks and orchestration            | 4     |
-| **ai-dev**        | AI development tools and LLM interfaces          | 3     |
-| **mcp**           | Model Context Protocol servers                   | 5     |
-| **productivity**  | Developer productivity and workflow tools        | 4     |
-| **testing**       | Testing frameworks and automation                | 1     |
-| **documentation** | Documentation generation and management          | 2     |
-| **cloud**         | Cloud service integrations                       | 1     |
-| **desktop**       | Desktop environments and remote access           | 2     |
-| **research**      | Research and analysis tools                      | 1     |
+| Category            | Description                                      | Count |
+| ------------------- | ------------------------------------------------ | ----- |
+| **languages**       | Programming language runtimes and toolchains     | 10    |
+| **claude**          | Claude Code integrations and workflow tools      | 9     |
+| **devops**          | Infrastructure, deployment, and operations tools | 4     |
+| **ai-agents**       | AI agent frameworks and orchestration            | 4     |
+| **ai-dev**          | AI development tools and LLM interfaces          | 3     |
+| **mcp**             | Model Context Protocol servers                   | 6     |
+| **package-manager** | SDK and package management tools                 | 2     |
+| **productivity**    | Developer productivity and workflow tools        | 3     |
+| **testing**         | Testing frameworks and automation                | 1     |
+| **documentation**   | Documentation generation and management          | 2     |
+| **cloud**           | Cloud service integrations                       | 1     |
+| **desktop**         | Desktop environments and remote access           | 2     |
+| **research**        | Research and analysis tools                      | 1     |
 
 ---
 
@@ -56,18 +57,18 @@ V3 extensions are organized into the following categories:
 
 ### Languages
 
-| Extension           | Version | Description                                                           | Install Method |
-| ------------------- | ------- | --------------------------------------------------------------------- | -------------- |
-| **nodejs**          | 1.1.0   | Node.js LTS via mise with pnpm package manager                        | hybrid         |
-| **python**          | 1.1.1   | Python 3.13 with uv package manager via mise                          | mise           |
-| **rust**            | 1.0.2   | Rust stable via rustup                                                | script         |
-| **golang**          | 1.0.1   | Go 1.25 via mise                                                      | mise           |
-| **dotnet**          | 2.1.0   | .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools         | script         |
-| **jvm**             | 2.0.0   | JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen | script         |
-| **php**             | 2.1.0   | PHP 8.4 with Composer, Symfony CLI, and development tools             | script         |
-| **ruby**            | 2.0.0   | Ruby 3.4.7 via mise with Rails and Bundler                            | script         |
-| **haskell**         | 1.0.1   | Haskell development environment with GHC, Cabal, Stack, and HLS       | mise           |
-| **nodejs-devtools** | 2.2.0   | TypeScript, ESLint, Prettier, and Node.js development tools           | mise           |
+| Extension           | Version | Description                                                                     | Install Method |
+| ------------------- | ------- | ------------------------------------------------------------------------------- | -------------- |
+| **nodejs**          | 1.1.0   | Node.js LTS via mise with pnpm package manager                                  | hybrid         |
+| **python**          | 1.1.1   | Python 3.13 with uv package manager via mise                                    | mise           |
+| **rust**            | 1.0.2   | Rust stable via rustup                                                          | script         |
+| **golang**          | 1.0.1   | Go 1.25 via mise                                                                | mise           |
+| **dotnet**          | 2.1.0   | .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools                   | script         |
+| **jvm**             | 2.1.0   | JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise | script         |
+| **php**             | 2.1.0   | PHP 8.4 with Composer, Symfony CLI, and development tools                       | script         |
+| **ruby**            | 2.0.0   | Ruby 3.4.7 via mise with Rails and Bundler                                      | script         |
+| **haskell**         | 1.0.1   | Haskell development environment with GHC, Cabal, Stack, and HLS                 | mise           |
+| **nodejs-devtools** | 2.2.0   | TypeScript, ESLint, Prettier, and Node.js development tools                     | mise           |
 
 ### DevOps
 
@@ -82,6 +83,7 @@ V3 extensions are organized into the following categories:
 
 | Extension              | Version | Description                                                                         | Install Method |
 | ---------------------- | ------- | ----------------------------------------------------------------------------------- | -------------- |
+| **claude-cli**         | latest  | Claude Code CLI - Official Anthropic AI coding assistant                            | script         |
 | **claude-flow-v3**     | 3.0.0   | Next-gen multi-agent orchestration with 10x performance, 150x faster search (alpha) | mise           |
 | **claude-flow-v2**     | 2.7.47  | AI-powered multi-agent orchestration system for Claude Code workflows (stable)      | mise           |
 | **claude-codepro**     | 4.5.29  | Production-grade TDD-enforced development environment with automated quality checks | script         |
@@ -119,11 +121,17 @@ V3 extensions are organized into the following categories:
 | **pal-mcp-server** | 9.8.2   | AI orchestration and multi-model collaboration MCP server with 18 tools       | script         |
 | **monitoring**     | 2.0.0   | Claude monitoring and usage tracking tools (claude-monitor, claude-usage-cli) | script         |
 
+### Package Managers
+
+| Extension       | Version | Description                                                 | Install Method |
+| --------------- | ------- | ----------------------------------------------------------- | -------------- |
+| **mise-config** | 2.0.0   | Global mise configuration and settings                      | script         |
+| **sdkman**      | 1.0.0   | SDKMAN - The Software Development Kit Manager for JVM tools | script         |
+
 ### Productivity
 
 | Extension          | Version | Description                                                                      | Install Method |
 | ------------------ | ------- | -------------------------------------------------------------------------------- | -------------- |
-| **mise-config**    | 2.0.0   | Global mise configuration and settings                                           | script         |
 | **openskills**     | 2.0.0   | OpenSkills CLI for managing Claude Code skills from Anthropic's marketplace      | mise           |
 | **ralph**          | 1.0.0   | AI-driven autonomous development system with discovery, planning, and deployment | script         |
 | **tmux-workspace** | 2.0.0   | Tmux workspace management with helper scripts and auto-start functionality       | apt            |
@@ -217,16 +225,16 @@ sindri extension upgrade --all
 
 Profiles provide pre-configured extension sets for common use cases:
 
-| Profile           | Extensions                                             |
-| ----------------- | ------------------------------------------------------ |
-| **minimal**       | nodejs, python                                         |
-| **fullstack**     | nodejs, python, docker, nodejs-devtools                |
-| **ai-dev**        | nodejs, python, golang, ai-toolkit, mdflow, openskills |
-| **anthropic-dev** | claude-flow, agentic-flow, ai-toolkit                  |
-| **systems**       | rust, golang, docker, infra-tools                      |
-| **enterprise**    | All languages + jira-mcp, cloud-tools                  |
-| **devops**        | docker, infra-tools, monitoring, cloud-tools           |
-| **mobile**        | nodejs, linear-mcp, supabase-cli                       |
+| Profile           | Extensions                                                      |
+| ----------------- | --------------------------------------------------------------- |
+| **minimal**       | nodejs, python                                                  |
+| **fullstack**     | nodejs, python, docker, nodejs-devtools                         |
+| **ai-dev**        | claude-cli, nodejs, python, golang, ai-toolkit, mdflow          |
+| **anthropic-dev** | claude-cli, claude-flow-v3, agentic-qe, ralph, ai-toolkit, etc. |
+| **systems**       | rust, golang, docker, infra-tools                               |
+| **enterprise**    | claude-cli, all languages, jira-mcp, cloud-tools                |
+| **devops**        | docker, infra-tools, monitoring, cloud-tools                    |
+| **mobile**        | nodejs, linear-mcp, supabase-cli                                |
 
 Configure profiles in `sindri.yaml`:
 
@@ -617,9 +625,9 @@ These variables are automatically set during deployment when using `buildFromSou
 
 ## Summary Statistics
 
-- **Total Extensions**: 46
-- **Categories**: 12
+- **Total Extensions**: 48
+- **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 11
-- **Extensions with MCP integration**: 5
-- **Extensions with dependencies**: 22
+- **Extensions with MCP integration**: 6
+- **Extensions with dependencies**: 31

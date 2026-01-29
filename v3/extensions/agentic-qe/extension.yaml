@@ -8,6 +8,7 @@ metadata:
   author: Sindri Team
   homepage: https://github.com/proffesor-for-testing/agentic-qe
   dependencies:
+    - claude-cli
     - nodejs
 requirements:
   domains:

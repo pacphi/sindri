@@ -40,14 +40,14 @@ V3 extensions are declarative packages that define how to install, configure, va
 
 ### Key Differences from V2
 
-| Aspect              | V2       | V3                                                   |
-| ------------------- | -------- | ---------------------------------------------------- |
-| CLI                 | Bash     | Rust                                                 |
-| Categories          | 8        | 12 (added ai-agents, claude, mcp, research, testing) |
-| Install methods     | 4        | 7 (added npm, npm-global, hybrid)                    |
-| Template conditions | None     | Environment-based selection                          |
-| Capabilities        | Basic    | Extended (collision-handling, features, mcp)         |
-| Bill of Materials   | Optional | Recommended for all tools                            |
+| Aspect              | V2       | V3                                                                    |
+| ------------------- | -------- | --------------------------------------------------------------------- |
+| CLI                 | Bash     | Rust                                                                  |
+| Categories          | 8        | 13 (added ai-agents, claude, mcp, package-manager, research, testing) |
+| Install methods     | 4        | 7 (added npm, npm-global, hybrid)                                     |
+| Template conditions | None     | Environment-based selection                                           |
+| Capabilities        | Basic    | Extended (collision-handling, features, mcp)                          |
+| Bill of Materials   | Optional | Recommended for all tools                                             |
 
 ---
 
@@ -166,20 +166,21 @@ metadata:
 
 **Available Categories:**
 
-| Category        | Description               |
-| --------------- | ------------------------- |
-| `ai-agents`     | AI agent frameworks       |
-| `ai-dev`        | AI/ML development tools   |
-| `claude`        | Claude-specific tools     |
-| `cloud`         | Cloud provider tools      |
-| `desktop`       | Desktop environments      |
-| `devops`        | DevOps and infrastructure |
-| `documentation` | Documentation tools       |
-| `languages`     | Programming languages     |
-| `mcp`           | MCP servers               |
-| `productivity`  | Productivity tools        |
-| `research`      | Research tools            |
-| `testing`       | Testing frameworks        |
+| Category          | Description               |
+| ----------------- | ------------------------- |
+| `ai-agents`       | AI agent frameworks       |
+| `ai-dev`          | AI/ML development tools   |
+| `claude`          | Claude-specific tools     |
+| `cloud`           | Cloud provider tools      |
+| `desktop`         | Desktop environments      |
+| `devops`          | DevOps and infrastructure |
+| `documentation`   | Documentation tools       |
+| `languages`       | Programming languages     |
+| `mcp`             | MCP servers               |
+| `package-manager` | Package management tools  |
+| `productivity`    | Productivity tools        |
+| `research`        | Research tools            |
+| `testing`         | Testing frameworks        |
 
 #### requirements (Optional)
 

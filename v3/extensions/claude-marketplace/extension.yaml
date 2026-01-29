@@ -5,7 +5,8 @@ metadata:
   description: Claude Code plugin marketplace integration via JSON configuration
   category: claude
   author: Sindri Team
-  dependencies: []
+  dependencies:
+    - claude-cli
 requirements:
   domains:
     - schemastore.org

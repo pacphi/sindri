@@ -8,6 +8,7 @@ metadata:
   license: MIT
   homepage: https://github.com/ruvnet/agentic-flow
   dependencies:
+    - claude-cli
     - nodejs
 requirements:
   domains:

@@ -7,7 +7,8 @@ metadata:
   category: mcp
   author: Sindri Team
   homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/
-  dependencies: []
+  dependencies:
+    - claude-cli
 requirements:
   domains:
     - atlassian.net

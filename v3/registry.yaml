@@ -28,6 +28,9 @@ extensions:
     description: "AI development toolkit"
 
   # Claude Ecosystem
+  claude-cli:
+    category: "claude"
+    description: "Claude Code CLI - Official Anthropic AI coding assistant"
   claude-code-mux:
     category: "claude"
     description: "Claude Code multiplexer"
@@ -156,10 +159,15 @@ extensions:
     category: "documentation"
     description: "Specification toolkit"
 
-  # Productivity
+  # Package Managers
   mise-config:
-    category: "productivity"
-    description: "Mise configuration management"
+    category: "package-manager"
+    description: "Global mise configuration and settings"
+  sdkman:
+    category: "package-manager"
+    description: "SDKMAN - The Software Development Kit Manager for JVM tools"
+
+  # Productivity
   openskills:
     category: "productivity"
     description: "Skills management platform"
@@ -199,6 +207,9 @@ categories:
   mcp:
     name: "MCP Servers"
     description: "Model Context Protocol servers"
+  package-manager:
+    name: "Package Managers"
+    description: "SDK and package management tools"
   productivity:
     name: "Productivity"
     description: "Productivity and workflow tools"

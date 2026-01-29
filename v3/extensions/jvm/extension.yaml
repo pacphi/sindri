@@ -1,17 +1,16 @@
 ---
 metadata:
   name: jvm
-  version: 2.0.0
+  version: 2.1.0
   description: >-
-    JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise
+    JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise
   category: languages
   author: Sindri Team
-  dependencies: []
+  dependencies:
+    - sdkman
 requirements:
   domains:
-    # SDKMAN core
-    - sdkman.io
-    - get.sdkman.io
+    # SDKMAN API (for tool downloads)
     - api.sdkman.io
     # Gradle distribution
     - downloads.gradle-dn.com
@@ -65,7 +64,6 @@ validate:
       versionFlag: "version"
 remove:
   paths:
-    - ~/.sdkman
     - ~/.m2
     - ~/.gradle
 upgrade:

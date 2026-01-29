@@ -1,0 +1,71 @@
+---
+metadata:
+  name: sdkman
+  version: 1.0.0
+  description: SDKMAN - The Software Development Kit Manager for JVM tools
+  category: package-manager
+  author: SDKMAN Team
+  license: Apache-2.0
+  homepage: https://sdkman.io
+  dependencies: []
+  tags:
+    - sdk-manager
+    - jvm
+    - java
+    - package-manager
+
+requirements:
+  domains:
+    - sdkman.io
+    - get.sdkman.io
+    - api.sdkman.io
+  diskSpace: 100
+  memory: 128
+  installTime: 60
+  validationTimeout: 30
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 300
+
+configure:
+  templates:
+    - source: bashrc.template
+      destination: ~/.bashrc
+      mode: append
+    - source: profile.template
+      destination: ~/.profile
+      mode: append
+  environment:
+    - key: SDKMAN_DIR
+      value: "$HOME/.sdkman"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: sdk
+      versionFlag: version
+      expectedPattern: "SDKMAN!"
+
+remove:
+  paths:
+    - ~/.sdkman
+  confirmation: true
+
+upgrade:
+  strategy: script
+  script:
+    path: scripts/upgrade.sh
+    timeout: 300
+
+bom:
+  tools:
+    - name: sdkman
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://sdkman.io
+      purl: pkg:generic/sdkman
