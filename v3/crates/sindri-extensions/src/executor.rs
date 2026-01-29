@@ -489,7 +489,12 @@ impl ExtensionExecutor {
         // This allows scripts to use dirname resolution to find common.sh
         // If we pass relative path, BASH_SOURCE is just filename and dirname fails
         let mut cmd = Command::new("bash");
-        cmd.arg(script_path.canonicalize().unwrap_or(script_path.clone()));
+        let resolved_script = script_path.canonicalize().unwrap_or_else(|e| {
+            warn!("Failed to canonicalize {:?}: {}, using original path", script_path, e);
+            script_path.clone()
+        });
+        debug!("Executing script: bash {} (cwd: {:?})", resolved_script.display(), ext_dir);
+        cmd.arg(&resolved_script);
         cmd.args(&script_config.args);
         cmd.current_dir(&ext_dir);
         cmd.stdout(Stdio::piped());
@@ -497,7 +502,7 @@ impl ExtensionExecutor {
 
         let mut child = cmd.spawn().context("Failed to spawn install script")?;
 
-        // Stream output
+        // Stream stdout
         if let Some(stdout) = child.stdout.take() {
             let reader = tokio::io::BufReader::new(stdout);
             let mut lines = reader.lines();
@@ -505,6 +510,18 @@ impl ExtensionExecutor {
             tokio::spawn(async move {
                 while let Ok(Some(line)) = lines.next_line().await {
                     info!("script: {}", line);
+                }
+            });
+        }
+
+        // Stream stderr
+        if let Some(stderr) = child.stderr.take() {
+            let reader = tokio::io::BufReader::new(stderr);
+            let mut lines = reader.lines();
+
+            tokio::spawn(async move {
+                while let Ok(Some(line)) = lines.next_line().await {
+                    warn!("script: {}", line);
                 }
             });
         }
