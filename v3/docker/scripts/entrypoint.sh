@@ -336,48 +336,54 @@ install_extensions_background() {
         local preserve_list="HOME,PATH,WORKSPACE"
 
         # Add all SINDRI_* variables
-        local sindri_vars=$(env | grep -E '^SINDRI_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        local sindri_vars
+        sindri_vars=$(env | grep -E '^SINDRI_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
         [[ -n "$sindri_vars" ]] && preserve_list="${preserve_list},${sindri_vars}"
 
         # Add all MISE_* variables
-        local mise_vars=$(env | grep -E '^MISE_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        local mise_vars
+        mise_vars=$(env | grep -E '^MISE_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
         [[ -n "$mise_vars" ]] && preserve_list="${preserve_list},${mise_vars}"
 
         # Add all GIT_* variables
-        local git_vars=$(env | grep -E '^GIT_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        local git_vars
+        git_vars=$(env | grep -E '^GIT_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
         [[ -n "$git_vars" ]] && preserve_list="${preserve_list},${git_vars}"
 
         # Add all credential/secret variables (comprehensive pattern)
         # Matches: *_TOKEN, *_API_KEY, *_KEY, *_KEYS, *_PASSWORD, *_PASS, *_USERNAME, *_USER, *_URL, *_SECRET
-        local credential_vars=$(env | grep -E '_(TOKEN|API_KEY|KEY|KEYS|PASSWORD|PASS|USERNAME|USER|URL|SECRET)$' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        local credential_vars
+        credential_vars=$(env | grep -E '_(TOKEN|API_KEY|KEY|KEYS|PASSWORD|PASS|USERNAME|USER|URL|SECRET)$' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
         [[ -n "$credential_vars" ]] && preserve_list="${preserve_list},${credential_vars}"
 
         local env_vars="$preserve_list"
 
         if [[ -f "sindri.yaml" ]]; then
             # Priority 1: Install from sindri.yaml if present
-            print_status "Installing extensions from sindri.yaml..." >> "$install_log" 2>&1
-            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" >> "$install_log" 2>&1
+            print_status "Installing extensions from sindri.yaml..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         elif [[ -n "${INSTALL_PROFILE:-}" ]]; then
             # Priority 2: Install from INSTALL_PROFILE environment variable
-            print_status "Installing profile: ${INSTALL_PROFILE}..." >> "$install_log" 2>&1
-            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes >> "$install_log" 2>&1
+            print_status "Installing profile: ${INSTALL_PROFILE}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         else
             # Priority 3: Default to minimal profile
-            print_status "Installing minimal profile (default)..." >> "$install_log" 2>&1
-            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install minimal --yes >> "$install_log" 2>&1
+            print_status "Installing minimal profile (default)..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install minimal --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         fi
 
+        # Capture exit code before checking it
+        local exit_code=$?
+
         # Mark as complete if successful
-        if [[ $? -eq 0 ]]; then
+        if [[ $exit_code -eq 0 ]]; then
             touch "$bootstrap_marker"
             chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
-            print_success "Extension installation complete" >> "$install_log" 2>&1
-            echo "✅ Extension installation complete. Check log at: ~/.sindri/logs/install.log" >> "$install_log" 2>&1
+            print_success "Extension installation complete" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "✅ Extension installation complete. Check log at: ~/.sindri/logs/install.log" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         else
-            local exit_code=$?
-            print_error "Extension installation failed (exit code: ${exit_code})" >> "$install_log" 2>&1
-            echo "❌ Extension installation failed. Check log at: ~/.sindri/logs/install.log" >> "$install_log" 2>&1
+            print_error "Extension installation failed (exit code: ${exit_code})" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "❌ Extension installation failed. Check log at: ~/.sindri/logs/install.log" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         fi
     ) &
 

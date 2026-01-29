@@ -28,7 +28,6 @@ echo "Generating migration guide: $FROM_VERSION → $TO_VERSION" >&2
 
 # Extract version prefix (v2, v3, etc.)
 TO_PREFIX=$(echo "$TO_VERSION" | grep -oP '^v\d+')
-FROM_PREFIX=$(echo "$FROM_VERSION" | grep -oP '^v\d+')
 
 # Determine path filter based on target version
 if [[ "$TO_PREFIX" == "v3" ]]; then
@@ -55,24 +54,20 @@ while IFS= read -r commit_hash; do
 
   # Check for breaking change indicators
   is_breaking=false
-  breaking_reason=""
 
   # Method 1: ! in commit type (e.g., feat!:, fix!:)
   if [[ "$subject" =~ ^[a-z]+(\(.+\))?!: ]]; then
     is_breaking=true
-    breaking_reason="Breaking change indicator (!) in commit message"
   fi
 
   # Method 2: BREAKING CHANGE: in footer
   if echo "$full_message" | grep -qi "^BREAKING CHANGE:"; then
     is_breaking=true
-    breaking_reason="BREAKING CHANGE footer found"
   fi
 
   # Method 3: BREAKING-CHANGE: variant
   if echo "$full_message" | grep -qi "^BREAKING-CHANGE:"; then
     is_breaking=true
-    breaking_reason="BREAKING-CHANGE footer found"
   fi
 
   if [[ "$is_breaking" == "true" ]]; then

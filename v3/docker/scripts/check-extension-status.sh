@@ -19,7 +19,6 @@ SINDRI_HOME="${ALT_HOME:-${HOME}}/.sindri"
 BOOTSTRAP_MARKER="${SINDRI_HOME}/bootstrap-complete"
 INSTALL_LOG="${SINDRI_HOME}/logs/install.log"
 MANIFEST="${SINDRI_HOME}/manifest.yaml"
-STATUS_SHOWN_MARKER="${SINDRI_HOME}/.status-shown-${RANDOM}"
 
 # Skip if extensions are disabled
 if [[ "${SKIP_AUTO_INSTALL:-false}" == "true" ]]; then
