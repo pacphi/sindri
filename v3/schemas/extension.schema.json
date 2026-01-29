@@ -92,7 +92,7 @@
           "type": "integer",
           "minimum": 0,
           "default": 30,
-          "description": "Maximum validation timeout in seconds (default: 30s)"
+          "description": "Maximum validation timeout in seconds (default: 30s, overridable via SINDRI_VALIDATION_TIMEOUT env var)"
         },
         "secrets": {
           "type": "array",

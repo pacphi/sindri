@@ -205,6 +205,23 @@ requirements:
     cudaVersion: "12.0"
 ```
 
+**Validation Timeout Guidelines**
+
+Some tools may take longer than the default 30-second timeout during validation (especially on first run). Set a custom timeout in the requirements section:
+
+```yaml
+requirements:
+  validationTimeout: 60 # Seconds (default: 30)
+```
+
+Use longer timeouts for:
+
+- JVM tools (Java, Scala, Kotlin) - recommend 60s
+- Tools that download on first run - recommend 30-45s
+- CLI tools that initialize config on first run - recommend 30s
+
+The timeout can also be overridden globally via the `SINDRI_VALIDATION_TIMEOUT` environment variable.
+
 #### install (Required)
 
 The installation method determines how the tool is installed.

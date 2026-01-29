@@ -11,7 +11,6 @@ use sindri_core::types::{AptInstallConfig, Extension, HookConfig, InstallMethod}
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
-use tokio::io::AsyncBufReadExt;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
 
@@ -234,14 +233,64 @@ impl ExtensionExecutor {
             .spawn()
             .context("Failed to spawn mise install command")?;
 
-        // Stream output
-        if let Some(stdout) = child.stdout.take() {
-            let reader = tokio::io::BufReader::new(stdout);
-            let mut lines = reader.lines();
-
+        // Stream stdout - read in small chunks to avoid buffering delays
+        if let Some(mut stdout) = child.stdout.take() {
             tokio::spawn(async move {
-                while let Ok(Some(line)) = lines.next_line().await {
-                    debug!("mise: {}", line);
+                use tokio::io::AsyncReadExt;
+                let mut buffer = vec![0u8; 512];
+                let mut line_buffer = String::new();
+
+                while let Ok(n) = stdout.read(&mut buffer).await {
+                    if n == 0 {
+                        break;
+                    }
+
+                    let chunk = String::from_utf8_lossy(&buffer[..n]);
+                    line_buffer.push_str(&chunk);
+
+                    // Flush on newline or carriage return
+                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
+                        let line = line_buffer[..pos].trim_end();
+                        if !line.is_empty() {
+                            debug!("mise: {}", line);
+                        }
+                        line_buffer = line_buffer[pos + 1..].to_string();
+                    }
+                }
+
+                if !line_buffer.trim().is_empty() {
+                    debug!("mise: {}", line_buffer.trim());
+                }
+            });
+        }
+
+        // Stream stderr - read in small chunks to avoid buffering delays
+        if let Some(mut stderr) = child.stderr.take() {
+            tokio::spawn(async move {
+                use tokio::io::AsyncReadExt;
+                let mut buffer = vec![0u8; 512];
+                let mut line_buffer = String::new();
+
+                while let Ok(n) = stderr.read(&mut buffer).await {
+                    if n == 0 {
+                        break;
+                    }
+
+                    let chunk = String::from_utf8_lossy(&buffer[..n]);
+                    line_buffer.push_str(&chunk);
+
+                    // Flush on newline or carriage return
+                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
+                        let line = line_buffer[..pos].trim_end();
+                        if !line.is_empty() {
+                            debug!("mise: {}", line);
+                        }
+                        line_buffer = line_buffer[pos + 1..].to_string();
+                    }
+                }
+
+                if !line_buffer.trim().is_empty() {
+                    debug!("mise: {}", line_buffer.trim());
                 }
             });
         }
@@ -509,26 +558,66 @@ impl ExtensionExecutor {
 
         let mut child = cmd.spawn().context("Failed to spawn install script")?;
 
-        // Stream stdout
-        if let Some(stdout) = child.stdout.take() {
-            let reader = tokio::io::BufReader::new(stdout);
-            let mut lines = reader.lines();
-
+        // Stream stdout - read in small chunks to avoid buffering delays
+        if let Some(mut stdout) = child.stdout.take() {
             tokio::spawn(async move {
-                while let Ok(Some(line)) = lines.next_line().await {
-                    info!("script: {}", line);
+                use tokio::io::AsyncReadExt;
+                let mut buffer = vec![0u8; 512]; // Smaller buffer for faster output
+                let mut line_buffer = String::new();
+
+                while let Ok(n) = stdout.read(&mut buffer).await {
+                    if n == 0 {
+                        break;
+                    }
+
+                    let chunk = String::from_utf8_lossy(&buffer[..n]);
+                    line_buffer.push_str(&chunk);
+
+                    // Flush on newline or carriage return
+                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
+                        let line = line_buffer[..pos].trim_end();
+                        if !line.is_empty() {
+                            info!("script: {}", line);
+                        }
+                        line_buffer = line_buffer[pos + 1..].to_string();
+                    }
+                }
+
+                // Flush any remaining output
+                if !line_buffer.trim().is_empty() {
+                    info!("script: {}", line_buffer.trim());
                 }
             });
         }
 
-        // Stream stderr
-        if let Some(stderr) = child.stderr.take() {
-            let reader = tokio::io::BufReader::new(stderr);
-            let mut lines = reader.lines();
-
+        // Stream stderr - read in small chunks to avoid buffering delays
+        if let Some(mut stderr) = child.stderr.take() {
             tokio::spawn(async move {
-                while let Ok(Some(line)) = lines.next_line().await {
-                    warn!("script: {}", line);
+                use tokio::io::AsyncReadExt;
+                let mut buffer = vec![0u8; 512]; // Smaller buffer for faster output
+                let mut line_buffer = String::new();
+
+                while let Ok(n) = stderr.read(&mut buffer).await {
+                    if n == 0 {
+                        break;
+                    }
+
+                    let chunk = String::from_utf8_lossy(&buffer[..n]);
+                    line_buffer.push_str(&chunk);
+
+                    // Flush on newline or carriage return
+                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
+                        let line = line_buffer[..pos].trim_end();
+                        if !line.is_empty() {
+                            warn!("script: {}", line);
+                        }
+                        line_buffer = line_buffer[pos + 1..].to_string();
+                    }
+                }
+
+                // Flush any remaining output
+                if !line_buffer.trim().is_empty() {
+                    warn!("script: {}", line_buffer.trim());
                 }
             });
         }
@@ -626,6 +715,22 @@ impl ExtensionExecutor {
         let name = &extension.metadata.name;
         info!("Validating extension: {}", name);
 
+        // Get validation timeout from extension or use default
+        // Default is 30s to accommodate slower environments (e.g., Fly.io with network-attached volumes)
+        // where tools may take longer due to I/O latency
+        let validation_timeout = extension
+            .requirements
+            .as_ref()
+            .map(|r| r.validation_timeout as u64)
+            .unwrap_or_else(|| {
+                std::env::var("SINDRI_VALIDATION_TIMEOUT")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(30)
+            });
+
+        debug!("Validation timeout: {}s", validation_timeout);
+
         // Build comprehensive PATH for validation
         // This ensures tools installed via various methods are discoverable
         let validation_config = ValidationConfig::new(&self.home_dir, &self.workspace_dir);
@@ -641,12 +746,32 @@ impl ExtensionExecutor {
 
             debug!("Validating command: {} {}", cmd.name, cmd.version_flag);
 
-            let output = Command::new(&cmd.name)
+            // Execute validation command with timeout
+            let timeout_duration = Duration::from_secs(validation_timeout);
+            let cmd_future = Command::new(&cmd.name)
                 .args(&args)
                 .env("PATH", &validation_path)
-                .output()
-                .await
-                .context(format!("Failed to run validation command: {}", cmd.name))?;
+                .output();
+
+            let output_result = tokio::time::timeout(timeout_duration, cmd_future).await;
+
+            let output = match output_result {
+                Ok(Ok(output)) => output,
+                Ok(Err(e)) => {
+                    return Err(anyhow!(
+                        "Failed to run validation command {}: {}",
+                        cmd.name,
+                        e
+                    ));
+                }
+                Err(_) => {
+                    warn!(
+                        "Validation timed out: {} took longer than {}s",
+                        cmd.name, validation_timeout
+                    );
+                    return Ok(false);
+                }
+            };
 
             if !output.status.success() {
                 warn!("Validation failed: {} not found or not working", cmd.name);
@@ -654,16 +779,21 @@ impl ExtensionExecutor {
             }
 
             if let Some(pattern) = &cmd.expected_pattern {
+                // Check both stdout and stderr (some tools like java output to stderr)
                 let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let combined_output = format!("{}{}", stdout, stderr);
+
                 let re =
                     Regex::new(pattern).context(format!("Invalid regex pattern: {}", pattern))?;
 
-                if !re.is_match(&stdout) {
+                if !re.is_match(&combined_output) {
                     warn!(
-                        "Version pattern mismatch for {}: expected {}, got {}",
+                        "Version pattern mismatch for {}: expected {}, got stdout='{}' stderr='{}'",
                         cmd.name,
                         pattern,
-                        stdout.trim()
+                        stdout.trim(),
+                        stderr.trim()
                     );
                     return Ok(false);
                 }
