@@ -334,4 +334,4 @@ The changelog management system has been successfully implemented across all 5 p
 
 ---
 
-**Questions?** See [CHANGELOG_MANAGEMENT.md](../../../docs/CHANGELOG_MANAGEMENT.md) or open a [discussion](https://github.com/pacphi/sindri/discussions).
+**Questions?** See [CHANGELOG_MANAGEMENT.md](../../../../docs/CHANGELOG_MANAGEMENT.md) or open a [discussion](https://github.com/pacphi/sindri/discussions).
