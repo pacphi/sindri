@@ -233,11 +233,12 @@ impl ExtensionExecutor {
             .spawn()
             .context("Failed to spawn mise install command")?;
 
-        // Stream stdout - read in small chunks to avoid buffering delays
+        // Stream stdout - only log complete lines (ending with \n)
+        // Discard carriage return progress indicators
         if let Some(mut stdout) = child.stdout.take() {
             tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
-                let mut buffer = vec![0u8; 512];
+                let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
 
                 while let Ok(n) = stdout.read(&mut buffer).await {
@@ -246,29 +247,33 @@ impl ExtensionExecutor {
                     }
 
                     let chunk = String::from_utf8_lossy(&buffer[..n]);
-                    line_buffer.push_str(&chunk);
-
-                    // Flush on newline or carriage return
-                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
-                        let line = line_buffer[..pos].trim_end();
-                        if !line.is_empty() {
-                            debug!("mise: {}", line);
+                    for ch in chunk.chars() {
+                        match ch {
+                            '\n' => {
+                                let line = line_buffer.trim();
+                                if !line.is_empty() {
+                                    debug!("mise: {}", line);
+                                }
+                                line_buffer.clear();
+                            }
+                            '\r' => line_buffer.clear(),
+                            _ => line_buffer.push(ch),
                         }
-                        line_buffer = line_buffer[pos + 1..].to_string();
                     }
                 }
 
-                if !line_buffer.trim().is_empty() {
-                    debug!("mise: {}", line_buffer.trim());
+                let line = line_buffer.trim();
+                if !line.is_empty() {
+                    debug!("mise: {}", line);
                 }
             });
         }
 
-        // Stream stderr - read in small chunks to avoid buffering delays
+        // Stream stderr - same logic
         if let Some(mut stderr) = child.stderr.take() {
             tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
-                let mut buffer = vec![0u8; 512];
+                let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
 
                 while let Ok(n) = stderr.read(&mut buffer).await {
@@ -277,20 +282,24 @@ impl ExtensionExecutor {
                     }
 
                     let chunk = String::from_utf8_lossy(&buffer[..n]);
-                    line_buffer.push_str(&chunk);
-
-                    // Flush on newline or carriage return
-                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
-                        let line = line_buffer[..pos].trim_end();
-                        if !line.is_empty() {
-                            debug!("mise: {}", line);
+                    for ch in chunk.chars() {
+                        match ch {
+                            '\n' => {
+                                let line = line_buffer.trim();
+                                if !line.is_empty() {
+                                    debug!("mise: {}", line);
+                                }
+                                line_buffer.clear();
+                            }
+                            '\r' => line_buffer.clear(),
+                            _ => line_buffer.push(ch),
                         }
-                        line_buffer = line_buffer[pos + 1..].to_string();
                     }
                 }
 
-                if !line_buffer.trim().is_empty() {
-                    debug!("mise: {}", line_buffer.trim());
+                let line = line_buffer.trim();
+                if !line.is_empty() {
+                    debug!("mise: {}", line);
                 }
             });
         }
@@ -558,11 +567,13 @@ impl ExtensionExecutor {
 
         let mut child = cmd.spawn().context("Failed to spawn install script")?;
 
-        // Stream stdout - read in small chunks to avoid buffering delays
+        // Stream stdout - only log complete lines (ending with \n)
+        // Carriage returns (\r) are used for progress indicators that overwrite
+        // the current line in a terminal - we discard these to avoid log spam
         if let Some(mut stdout) = child.stdout.take() {
             tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
-                let mut buffer = vec![0u8; 512]; // Smaller buffer for faster output
+                let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
 
                 while let Ok(n) = stdout.read(&mut buffer).await {
@@ -571,30 +582,42 @@ impl ExtensionExecutor {
                     }
 
                     let chunk = String::from_utf8_lossy(&buffer[..n]);
-                    line_buffer.push_str(&chunk);
 
-                    // Flush on newline or carriage return
-                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
-                        let line = line_buffer[..pos].trim_end();
-                        if !line.is_empty() {
-                            info!("script: {}", line);
+                    for ch in chunk.chars() {
+                        match ch {
+                            '\n' => {
+                                // Complete line - log it
+                                let line = line_buffer.trim();
+                                if !line.is_empty() {
+                                    info!("script: {}", line);
+                                }
+                                line_buffer.clear();
+                            }
+                            '\r' => {
+                                // Carriage return - discard current line (progress indicator)
+                                line_buffer.clear();
+                            }
+                            _ => {
+                                line_buffer.push(ch);
+                            }
                         }
-                        line_buffer = line_buffer[pos + 1..].to_string();
                     }
                 }
 
                 // Flush any remaining output
-                if !line_buffer.trim().is_empty() {
-                    info!("script: {}", line_buffer.trim());
+                let line = line_buffer.trim();
+                if !line.is_empty() {
+                    info!("script: {}", line);
                 }
             });
         }
 
-        // Stream stderr - read in small chunks to avoid buffering delays
+        // Stream stderr - same logic, but many tools use stderr for normal output
+        // so we use debug level, not warn
         if let Some(mut stderr) = child.stderr.take() {
             tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
-                let mut buffer = vec![0u8; 512]; // Smaller buffer for faster output
+                let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
 
                 while let Ok(n) = stderr.read(&mut buffer).await {
@@ -603,21 +626,32 @@ impl ExtensionExecutor {
                     }
 
                     let chunk = String::from_utf8_lossy(&buffer[..n]);
-                    line_buffer.push_str(&chunk);
 
-                    // Flush on newline or carriage return
-                    while let Some(pos) = line_buffer.find(&['\n', '\r'][..]) {
-                        let line = line_buffer[..pos].trim_end();
-                        if !line.is_empty() {
-                            warn!("script: {}", line);
+                    for ch in chunk.chars() {
+                        match ch {
+                            '\n' => {
+                                // Complete line - log it
+                                let line = line_buffer.trim();
+                                if !line.is_empty() {
+                                    debug!("script: {}", line);
+                                }
+                                line_buffer.clear();
+                            }
+                            '\r' => {
+                                // Carriage return - discard current line (progress indicator)
+                                line_buffer.clear();
+                            }
+                            _ => {
+                                line_buffer.push(ch);
+                            }
                         }
-                        line_buffer = line_buffer[pos + 1..].to_string();
                     }
                 }
 
                 // Flush any remaining output
-                if !line_buffer.trim().is_empty() {
-                    warn!("script: {}", line_buffer.trim());
+                let line = line_buffer.trim();
+                if !line.is_empty() {
+                    debug!("script: {}", line);
                 }
             });
         }
