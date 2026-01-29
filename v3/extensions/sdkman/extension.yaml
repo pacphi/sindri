@@ -27,7 +27,7 @@ requirements:
 install:
   method: script
   script:
-    path: scripts/install.sh
+    path: install.sh
     timeout: 300
 
 configure:
@@ -45,8 +45,8 @@ configure:
 
 validate:
   commands:
-    - name: sdk
-      versionFlag: version
+    - name: sdk-validate
+      versionFlag: ""
       expectedPattern: "SDKMAN!"
 
 remove:
@@ -57,7 +57,7 @@ remove:
 upgrade:
   strategy: manual
   script:
-    path: scripts/upgrade.sh
+    path: upgrade.sh
     timeout: 300
 
 bom:

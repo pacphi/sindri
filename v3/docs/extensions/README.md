@@ -189,9 +189,10 @@ mise-config
   |     |-- pal-mcp-server
   |     |-- monitoring
   |-- haskell
+  |-- jvm (also: sdkman)
 
 sdkman
-  |-- jvm
+  |-- jvm (also: mise-config)
 
 docker
   |-- supabase-cli

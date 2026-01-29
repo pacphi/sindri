@@ -168,6 +168,7 @@ Many extensions depend on mise-config for tool management:
 - [nodejs](NODEJS.md)
 - [python](PYTHON.md)
 - [golang](GOLANG.md)
+- [jvm](JVM.md) - Uses mise for Clojure and Leiningen
 - [haskell](HASKELL.md)
 - [infra-tools](INFRA-TOOLS.md)
 - [nodejs-devtools](NODEJS-DEVTOOLS.md)

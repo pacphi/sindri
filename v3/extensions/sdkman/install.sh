@@ -46,4 +46,12 @@ fi
 
 print_success "SDKMAN installed: $(sdk version 2>/dev/null | head -1)"
 print_status "SDKMAN directory: $SDKMAN_DIR"
+
+# Install sdk-validate wrapper for validation
+mkdir -p "$HOME/.local/bin"
+EXTENSION_DIR="$(dirname "${BASH_SOURCE[0]}")"
+cp "$EXTENSION_DIR/sdk-validate" "$HOME/.local/bin/sdk-validate"
+chmod +x "$HOME/.local/bin/sdk-validate"
+print_status "Installed sdk-validate wrapper to ~/.local/bin/"
+
 print_status "Note: Run 'source ~/.bashrc' or start a new shell to use 'sdk' command"

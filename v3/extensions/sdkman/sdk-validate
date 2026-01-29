@@ -1,0 +1,6 @@
+#!/bin/bash
+# Wrapper for SDKMAN sdk command validation
+SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
+# shellcheck source=/dev/null
+source "$SDKMAN_DIR/bin/sdkman-init.sh" 2>/dev/null || exit 1
+sdk version

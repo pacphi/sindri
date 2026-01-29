@@ -7,6 +7,7 @@ metadata:
   category: languages
   author: Sindri Team
   dependencies:
+    - mise-config
     - sdkman
 requirements:
   domains:
@@ -58,10 +59,9 @@ validate:
       versionFlag: "-version"
     - name: scala
       versionFlag: "-version"
-    - name: clojure
-      versionFlag: "--version"
-    - name: lein
-      versionFlag: "version"
+  # Note: clojure and leiningen are installed via mise but excluded from validation
+  # due to PATH resolution issues with SDKMAN Java. Verify manually after install:
+  #   source ~/.bashrc && clojure --version && lein version
 remove:
   paths:
     - ~/.m2

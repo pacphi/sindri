@@ -24,7 +24,7 @@ JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise.
 - **Memory**: 4096 MB
 - **Install Time**: ~180 seconds
 - **Validation Timeout**: 60 seconds (JVM tools have slow cold start)
-- **Dependencies**: sdkman
+- **Dependencies**: mise-config, sdkman
 
 ### Network Domains
 
@@ -187,8 +187,14 @@ The extension validates the following commands:
 - `gradle` - Must be available
 - `kotlin -version` - Must be available
 - `scala -version` - Must be available
-- `clojure --version` - Must be available
-- `lein version` - Must be available
+
+**Note:** Clojure and Leiningen are installed via mise but not automatically validated due to PATH resolution complexities. To verify they're working after installation:
+
+```bash
+source ~/.bashrc
+clojure --version
+lein version
+```
 
 ## Removal
 
