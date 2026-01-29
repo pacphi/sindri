@@ -33,9 +33,10 @@ Choose the changelog for your version:
 
 Upgrading between major versions? These guides will help:
 
+<!-- Migration guide to be published with v3.0.0 release
 - **[v2 → v3 Migration Guide](RELEASE_NOTES.v3.md)** - Upgrading from v2 (Bash/Docker) to v3 (Rust)
   - Breaking changes, code examples, step-by-step migration
-  - _Note: To be published with v3.0.0 release_
+-->
 
 - **[v1 → v2 Migration Guide](RELEASE_NOTES.v2.md)** - Upgrading from v1 to v2
   - Extension system changes, capability-based architecture, removed extensions
@@ -46,8 +47,8 @@ Upgrading between major versions? These guides will help:
 
 - **[Latest Release](https://github.com/pacphi/sindri/releases/latest)** - Download the newest version
 - **[All Releases](https://github.com/pacphi/sindri/releases)** - Browse release history
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to Sindri
-- **[Security Policy](SECURITY.md)** - Report security vulnerabilities
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute to Sindri
+- **[Security Policy](docs/SECURITY.md)** - Report security vulnerabilities
 
 ---
 
