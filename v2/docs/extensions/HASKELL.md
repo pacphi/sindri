@@ -1,47 +1,47 @@
 # Haskell
 
-Haskell development environment with GHC, Cabal, Stack, and HLS via mise.
+Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup.
 
 ## Overview
 
-| Property         | Value                         |
-| ---------------- | ----------------------------- |
-| **Category**     | language                      |
-| **Version**      | 1.0.1                         |
-| **Installation** | mise                          |
-| **Disk Space**   | 2000 MB                       |
-| **Memory**       | 4096 MB                       |
-| **Dependencies** | [mise-config](MISE-CONFIG.md) |
+| Property         | Value          |
+| ---------------- | -------------- |
+| **Category**     | language       |
+| **Version**      | 2.0.0          |
+| **Installation** | script (ghcup) |
+| **Disk Space**   | 6000 MB        |
+| **Memory**       | 4096 MB        |
+| **Dependencies** | None           |
+
+## What's New in 2.0.0
+
+- **Switched from mise to ghcup**: Uses the official Haskell toolchain installer
+- **Full toolchain support**: GHC, Cabal, Stack, and HLS all managed by ghcup
+- **Better version management**: Use `ghcup tui` or `ghcup list` to manage versions
 
 ## Description
 
-Complete Haskell development environment providing the Glasgow Haskell Compiler (GHC), Cabal build system, Stack tool, and Haskell Language Server (HLS) for IDE integration.
+Complete Haskell development environment providing the Glasgow Haskell Compiler (GHC), Cabal build system, Stack tool, and Haskell Language Server (HLS) for IDE integration. All tools are managed via ghcup, the official Haskell toolchain installer.
 
 ## Installed Tools
 
-| Tool                      | Type            | Description                     | License      |
-| ------------------------- | --------------- | ------------------------------- | ------------ |
-| `ghc`                     | compiler        | Glasgow Haskell Compiler        | BSD-3-Clause |
-| `cabal`                   | package-manager | Haskell package manager         | BSD-3-Clause |
-| `stack`                   | cli-tool        | Haskell build and project tool  | BSD-3-Clause |
-| `haskell-language-server` | server          | Language server for IDE support | Apache-2.0   |
+| Tool                      | Version  | Type            | Description                     | License      |
+| ------------------------- | -------- | --------------- | ------------------------------- | ------------ |
+| `ghcup`                   | 0.1.50.x | cli-tool        | Haskell toolchain installer     | LGPL-3.0     |
+| `ghc`                     | 9.12.2   | compiler        | Glasgow Haskell Compiler        | BSD-3-Clause |
+| `cabal`                   | 3.14.x   | package-manager | Haskell package manager         | BSD-3-Clause |
+| `stack`                   | 3.3.x    | cli-tool        | Haskell build and project tool  | BSD-3-Clause |
+| `haskell-language-server` | 2.13.x   | server          | Language server for IDE support | Apache-2.0   |
 
 ## Configuration
 
-### mise.toml
-
-```toml
-[tools]
-haskell = "9.8"
-hls = "2.12.0.0"
-```
-
 ### Environment Variables
 
-| Variable     | Value    | Description          |
-| ------------ | -------- | -------------------- |
-| `CABAL_DIR`  | ~/.cabal | Cabal data directory |
-| `STACK_ROOT` | ~/.stack | Stack root directory |
+| Variable                    | Value    | Description               |
+| --------------------------- | -------- | ------------------------- |
+| `GHCUP_INSTALL_BASE_PREFIX` | ${HOME}  | ghcup installation prefix |
+| `CABAL_DIR`                 | ~/.cabal | Cabal data directory      |
+| `STACK_ROOT`                | ~/.stack | Stack root directory      |
 
 ## Network Requirements
 
@@ -49,6 +49,7 @@ hls = "2.12.0.0"
 - `hackage.haskell.org` - Haskell package repository
 - `stackage.org` - Curated package sets
 - `downloads.haskell.org` - GHC downloads
+- `get-ghcup.haskell.org` - ghcup installer
 
 ## Installation
 
@@ -66,6 +67,23 @@ haskell-language-server-wrapper --version  # Expected: haskell-language-server X
 ```
 
 ## Usage Examples
+
+### Managing Versions with ghcup
+
+```bash
+# Interactive TUI
+ghcup tui
+
+# List all installed tools
+ghcup list
+
+# Install a different GHC version
+ghcup install ghc 9.8.4
+ghcup set ghc 9.8.4
+
+# Upgrade ghcup itself
+ghcup upgrade
+```
 
 ### Create a New Project with Cabal
 
@@ -97,7 +115,7 @@ ghci
 extension-manager remove haskell
 ```
 
-Removes mise configuration and all Haskell tools.
+Runs `ghcup nuke` to remove all Haskell tools and configuration.
 
 ## Related Extensions
 

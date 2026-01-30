@@ -90,7 +90,7 @@ sindri config init [OPTIONS]
 | ----------------------- | ----- | ----------- | ----------------------- |
 | `--name <NAME>`         | `-n`  | -           | Project name            |
 | `--provider <PROVIDER>` | `-p`  | docker      | Provider to use         |
-| `--profile <PROFILE>`   | -     | minimal     | Extension profile       |
+| `--profile <PROFILE>`   | -     | -           | Extension profile       |
 | `--output <PATH>`       | `-o`  | sindri.yaml | Output file path        |
 | `--force`               | `-f`  | -           | Overwrite existing file |
 

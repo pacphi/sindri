@@ -1,26 +1,33 @@
 # Haskell Extension
 
-> Version: 1.0.1 | Category: languages | Last Updated: 2026-01-26
+> Version: 2.0.0 | Category: languages | Last Updated: 2026-01-30
 
 ## Overview
 
-Haskell development environment with GHC, Cabal, Stack, and HLS. Provides a complete functional programming environment with IDE support.
+Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup. Provides a complete functional programming environment with IDE support.
+
+## What's New in 2.0.0
+
+- **Switched from mise to ghcup**: Uses the official Haskell toolchain installer for reliable installation
+- **Full toolchain support**: GHC, Cabal, Stack, and HLS all managed by ghcup
+- **Better version management**: Use `ghcup tui` or `ghcup list` to manage installed versions
 
 ## What It Provides
 
-| Tool                    | Type            | License      | Description              |
-| ----------------------- | --------------- | ------------ | ------------------------ |
-| ghc                     | compiler        | BSD-3-Clause | Glasgow Haskell Compiler |
-| cabal                   | package-manager | BSD-3-Clause | Cabal build system       |
-| stack                   | cli-tool        | BSD-3-Clause | Stack build tool         |
-| haskell-language-server | server          | Apache-2.0   | IDE support for Haskell  |
+| Tool                    | Version  | Type            | License      | Description                 |
+| ----------------------- | -------- | --------------- | ------------ | --------------------------- |
+| ghcup                   | 0.1.50.x | cli-tool        | LGPL-3.0     | Haskell toolchain installer |
+| ghc                     | 9.12.2   | compiler        | BSD-3-Clause | Glasgow Haskell Compiler    |
+| cabal                   | 3.14.x   | package-manager | BSD-3-Clause | Cabal build system          |
+| stack                   | 3.3.x    | cli-tool        | BSD-3-Clause | Stack build tool            |
+| haskell-language-server | 2.13.x   | server          | Apache-2.0   | IDE support for Haskell     |
 
 ## Requirements
 
 - **Disk Space**: 6000 MB (6 GB)
 - **Memory**: 4096 MB
-- **Install Time**: ~180 seconds
-- **Dependencies**: mise-config
+- **Install Time**: ~300 seconds
+- **Dependencies**: None (standalone installation)
 
 ### Network Domains
 
@@ -28,25 +35,42 @@ Haskell development environment with GHC, Cabal, Stack, and HLS. Provides a comp
 - hackage.haskell.org
 - stackage.org
 - downloads.haskell.org
+- get-ghcup.haskell.org
 
 ## Installation
 
 ```bash
-extension-manager install haskell
+sindri extension install haskell
 ```
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable     | Value    | Description                   |
-| ------------ | -------- | ----------------------------- |
-| `CABAL_DIR`  | ~/.cabal | Cabal configuration directory |
-| `STACK_ROOT` | ~/.stack | Stack root directory          |
+| Variable                    | Value    | Description                   |
+| --------------------------- | -------- | ----------------------------- |
+| `GHCUP_INSTALL_BASE_PREFIX` | ${HOME}  | ghcup installation prefix     |
+| `CABAL_DIR`                 | ~/.cabal | Cabal configuration directory |
+| `STACK_ROOT`                | ~/.stack | Stack root directory          |
 
 ### Install Method
 
-Uses mise for tool management with automatic shim refresh.
+Uses ghcup for tool management. After installation, use ghcup to manage versions:
+
+```bash
+# Interactive TUI
+ghcup tui
+
+# List installed tools
+ghcup list
+
+# Install a different GHC version
+ghcup install ghc 9.8.4
+ghcup set ghc 9.8.4
+
+# Upgrade tools
+ghcup upgrade
+```
 
 ## Usage Examples
 
@@ -154,6 +178,25 @@ fibonacci n
   | otherwise = fibonacci (n-1) + fibonacci (n-2)
 ```
 
+## Version Management with ghcup
+
+```bash
+# See all available GHC versions
+ghcup list -t ghc
+
+# Install specific GHC version
+ghcup install ghc 9.8.4
+
+# Set active GHC version
+ghcup set ghc 9.8.4
+
+# Install HLS for a specific GHC
+ghcup install hls --set
+
+# Remove an old version
+ghcup rm ghc 9.6.5
+```
+
 ## Validation
 
 The extension validates the following commands:
@@ -166,11 +209,43 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove haskell
+sindri extension remove haskell
 ```
 
-This removes mise Haskell tools (haskell, hls).
+This runs `ghcup nuke` to remove all Haskell tools and cleans up environment configuration.
+
+## Troubleshooting
+
+### PATH Issues
+
+If tools aren't found after installation:
+
+```bash
+source ~/.profile
+# or start a new shell
+```
+
+### HLS Not Working
+
+HLS requires a compatible GHC version. Check compatibility:
+
+```bash
+ghcup list -t hls
+```
+
+### Switching GHC Versions
+
+```bash
+# See installed versions
+ghcup list -t ghc -c installed
+
+# Switch version
+ghcup set ghc <version>
+
+# You may need to reinstall HLS for the new GHC
+ghcup install hls --set
+```
 
 ## Related Extensions
 
-- [mise-config](MISE-CONFIG.md) - Required mise configuration
+- [jvm](JVM.md) - JVM languages (alternative FP with Scala/Clojure)

@@ -77,7 +77,7 @@ sindri 3.0.0
 # Create a project directory
 mkdir my-dev-env && cd my-dev-env
 
-# Initialize with defaults (Docker provider, minimal profile)
+# Initialize with defaults (Docker provider)
 sindri config init
 
 # Or specify provider and profile
