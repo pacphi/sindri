@@ -69,12 +69,8 @@ impl TemplateContext {
     pub fn from_config(config: &SindriConfig, detected_dind_mode: &str) -> Self {
         let file = config.inner();
 
-        // Get profile
-        let profile = file
-            .extensions
-            .profile
-            .clone()
-            .unwrap_or_else(|| "base".to_string());
+        // Get profile (empty string if not specified - no default fallback)
+        let profile = file.extensions.profile.clone().unwrap_or_default();
 
         // Get active extensions
         let custom_extensions = file
@@ -161,24 +157,41 @@ impl TemplateContext {
         // Build environment variables map
         let mut env_vars = HashMap::new();
 
-        // Set SINDRI_EXT_HOME based on build mode
-        let ext_home = if file
+        // SINDRI_EXT_HOME logic:
+        // - For buildFromSource: explicitly set /opt/sindri/extensions (Dockerfile.dev bundles them)
+        // - For registry images (ghcr.io/...): set ${HOME}/.sindri/extensions (production mode)
+        // - For local images (sindri:latest): DON'T override - let image's ENV take precedence
+        //   This allows Dockerfile.dev's ENV SINDRI_EXT_HOME=/opt/sindri/extensions to work
+        let is_build_from_source = file
             .deployment
             .build_from_source
             .as_ref()
             .map(|b| b.enabled)
-            .unwrap_or(false)
-        {
-            // Development mode: bundled extensions at /opt/sindri/extensions
-            // (built using Dockerfile.dev)
-            "/opt/sindri/extensions".to_string()
-        } else {
-            // Production mode: runtime-installed extensions at ${HOME}/.sindri/extensions
-            // (built using Dockerfile, respects ALT_HOME=/alt/home/developer volume mount)
-            "${HOME}/.sindri/extensions".to_string()
-        };
+            .unwrap_or(false);
 
-        env_vars.insert("SINDRI_EXT_HOME".to_string(), ext_home);
+        let is_registry_image = file
+            .deployment
+            .image
+            .as_ref()
+            .map(|img| img.contains('/')) // Registry images have org/repo format
+            .unwrap_or(false)
+            || file.deployment.image_config.is_some();
+
+        if is_build_from_source {
+            // Explicit buildFromSource: use bundled extensions
+            env_vars.insert(
+                "SINDRI_EXT_HOME".to_string(),
+                "/opt/sindri/extensions".to_string(),
+            );
+        } else if is_registry_image {
+            // Production image from registry: use runtime-installed extensions
+            env_vars.insert(
+                "SINDRI_EXT_HOME".to_string(),
+                "${HOME}/.sindri/extensions".to_string(),
+            );
+        }
+        // For local images (e.g., sindri:latest): don't set SINDRI_EXT_HOME
+        // Let the image's built-in ENV take precedence
 
         // Keep SINDRI_SOURCE_REF for debugging purposes if building from source
         if let Some(git_ref) = file

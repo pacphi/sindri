@@ -430,6 +430,10 @@ image_config:
 
 Configuration for building from Sindri repository source instead of using pre-built images. This is an explicit opt-in feature primarily for Sindri developers.
 
+> **Important:** This clones from GitHub, so your changes must be pushed first.
+> For testing local/uncommitted changes without pushing, use `make v3-cycle-fast` instead.
+> See [MAINTAINER_GUIDE.md](MAINTAINER_GUIDE.md#two-development-paths) for the full guide.
+
 ```yaml
 deployment:
   buildFromSource:
@@ -439,8 +443,10 @@ deployment:
 
 **When to use:**
 
-- ✅ **Sindri developers** testing code changes in feature branches
+- ✅ **Sindri developers** verifying pushed code in feature branches
+- ✅ **CI/CD pipelines** building from specific commits/tags
 - ✅ **Testing unreleased features** before they're published
+- ❌ **NOT for local uncommitted changes** - use `make v3-cycle-fast` instead
 - ❌ **NOT for regular users** - use pre-built images instead
 
 **CLI usage:**
@@ -490,10 +496,14 @@ buildFromSource:
 
 **Build process:**
 
-1. Clones Sindri repository from GitHub
-2. Builds Rust binary inside Docker (Linux environment)
-3. Tags image as `sindri:{version}-{gitsha}`
-4. Takes 3-5 minutes (includes cargo compilation)
+1. Clones Sindri repository from GitHub (your changes must be pushed!)
+2. Checks out the specified `gitRef` (branch, tag, or commit)
+3. Builds Rust binary inside Docker using `Dockerfile.dev`
+4. Tags image as `sindri:{version}-{gitsha}`
+5. Takes 3-5 minutes (includes cargo compilation)
+
+> **Note:** This builds from the **GitHub clone**, not your local working directory.
+> Local uncommitted changes will NOT be included. Use `make v3-cycle-fast` for local testing.
 
 **Priority:**
 

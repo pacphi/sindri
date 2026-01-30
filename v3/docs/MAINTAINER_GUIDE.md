@@ -2,6 +2,7 @@
 
 ## Table of Contents
 
+- [Two Development Paths](#two-development-paths)
 - [Quick Reference](#quick-reference)
 - [Development Workflow](#development-workflow)
 - [Base Image Management](#base-image-management)
@@ -9,6 +10,156 @@
 - [Build Optimization](#build-optimization)
 - [Troubleshooting](#troubleshooting)
 - [Release Process](#release-process)
+
+## Two Development Paths
+
+Sindri v3 supports two distinct development workflows. Understanding when to use each is essential for efficient development.
+
+### Path A: Makefile (Local Development) - Recommended
+
+**Use this for daily development. No git push required.**
+
+```bash
+make v3-cycle-fast CONFIG=sindri.yaml
+```
+
+**How it works:**
+
+```
+Your local working directory
+         ↓
+┌────────────────────────────────────────────────────┐
+│ 1. docker build -f Dockerfile.dev .                │
+│    • COPY v3/crates/ (your local files)            │
+│    • COPY v3/extensions/ (your local files)        │
+│    • Compiles from YOUR working directory          │
+│    → Creates sindri:latest                         │
+│                                                    │
+│ 2. cargo install (installs CLI locally)            │
+│                                                    │
+│ 3. sindri deploy --config sindri.yaml              │
+│    • Uses the already-built sindri:latest          │
+│    • NO additional build step                      │
+└────────────────────────────────────────────────────┘
+         ↓
+Container running with YOUR LOCAL changes
+✅ No push to GitHub required
+✅ Test uncommitted changes
+✅ Fastest iteration (1-2 min incremental)
+```
+
+**When to use:**
+
+- Daily development and testing
+- Rapid iteration on CLI code
+- Testing extension changes
+- Debugging locally before committing
+
+**Your sindri.yaml for Path A:**
+
+```yaml
+# sindri.yaml for local development (Path A)
+workspace:
+  name: sindri-dev02
+
+deployment:
+  provider: docker
+  image: sindri:latest # ← Key: reference the locally-built image
+
+extensions:
+  - cloud-tools
+  - github
+  # ... your extensions
+```
+
+> **Important:** For Path A, use `image: sindri:latest` - nothing else!
+>
+> | Config Option                       | Use for Path A? | Why                              |
+> | ----------------------------------- | --------------- | -------------------------------- |
+> | `image: sindri:latest`              | ✅ **Yes**      | Uses the image built by Makefile |
+> | `buildFromSource.enabled: true`     | ❌ No           | Would clone from GitHub          |
+> | `imageConfig.registry: ghcr.io/...` | ❌ No           | Would pull from registry         |
+>
+> The Makefile builds `sindri:latest` from your local files. Your config just tells
+> `sindri deploy` to use that already-built image.
+
+---
+
+### Path B: CLI --from-source (Remote Testing) - Requires Push
+
+**Use this to verify pushed code works correctly.**
+
+```bash
+# First, push your changes
+git push origin feature/my-branch
+
+# Then deploy from that branch
+sindri deploy --from-source --config sindri.yaml
+```
+
+Or via config:
+
+```yaml
+# sindri.yaml
+deployment:
+  buildFromSource:
+    enabled: true
+    gitRef: "feature/my-branch" # branch, tag, or commit SHA
+```
+
+**How it works:**
+
+```
+GitHub repository (pushed code)
+         ↓
+┌────────────────────────────────────────────────────┐
+│ 1. sindri deploy --from-source                     │
+│    • Clones github.com/pacphi/sindri               │
+│    • Uses gitRef from config (or CLI version)      │
+│    • Caches clone in ~/.cache/sindri/repos/        │
+│                                                    │
+│ 2. docker build -f Dockerfile.dev <cloned-repo>    │
+│    • Builds from the CLONED repository             │
+│    • NOT your local working directory              │
+│    → Creates sindri:<version>-<sha>                │
+└────────────────────────────────────────────────────┘
+         ↓
+Container running with PUSHED changes
+⚠️  Requires git push first
+⚠️  Tests the remote state, not local
+```
+
+**When to use:**
+
+- Verifying pushed code before PR merge
+- CI/CD pipelines
+- Testing specific branches, tags, or commits
+- Reproducing issues from a known git state
+
+---
+
+### Quick Decision Guide
+
+| Scenario                              | Use    | Command                         |
+| ------------------------------------- | ------ | ------------------------------- |
+| "I changed some code, let me test it" | Path A | `make v3-cycle-fast CONFIG=...` |
+| "Does my pushed PR work?"             | Path B | `sindri deploy --from-source`   |
+| "Test this specific commit"           | Path B | Set `gitRef: "abc1234"`         |
+| "Rapid iteration (many changes)"      | Path A | `make v3-cycle-fast CONFIG=...` |
+| "CI/CD build"                         | Path B | `--from-source` with gitRef     |
+
+---
+
+### Key Differences Summary
+
+| Aspect                    | Path A (Makefile)       | Path B (--from-source)   |
+| ------------------------- | ----------------------- | ------------------------ |
+| Source                    | Local working directory | Cloned from GitHub       |
+| Requires push             | ❌ No                   | ✅ Yes                   |
+| Tests uncommitted changes | ✅ Yes                  | ❌ No                    |
+| Build location            | Your machine            | Your machine             |
+| Typical use               | Daily dev               | Pre-merge validation     |
+| Config needed             | Just `CONFIG=` path     | `gitRef` in yaml or flag |
 
 ## Quick Reference
 

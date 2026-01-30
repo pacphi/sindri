@@ -167,9 +167,14 @@ deployment:
 
 ### Building from Source (For Sindri Developers)
 
+> **Important:** This clones from GitHub - your changes must be pushed first!
+> For local Docker testing of uncommitted changes, use `make v3-cycle-fast` with the Docker provider.
+> See [MAINTAINER_GUIDE.md](../MAINTAINER_GUIDE.md#two-development-paths) for the full guide.
+
 **Using CLI flag:**
 
 ```bash
+# First push your changes, then:
 sindri deploy --from-source
 ```
 
@@ -182,7 +187,7 @@ deployment:
     enabled: true
     gitRef: "main"  # Optional: branch, tag, or commit SHA
 
-# Test a specific feature branch
+# Test a specific pushed feature branch
 deployment:
   provider: fly
   buildFromSource:
@@ -190,7 +195,7 @@ deployment:
     gitRef: "feature/my-feature"
 ```
 
-This clones the Sindri repository and builds inside Docker on Fly.io's infrastructure (3-5 minute builds). The image is tagged as `sindri:{version}-{gitsha}` for traceability.
+This clones from GitHub and builds inside Docker on Fly.io's infrastructure (3-5 minute builds). The image is tagged as `sindri:{version}-{gitsha}` for traceability.
 
 ### CI/CD Workflow
 

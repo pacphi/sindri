@@ -207,9 +207,14 @@ deployment:
 
 #### Option 3: Build from Source (For Sindri Developers)
 
+> **Important:** This clones from GitHub - your changes must be pushed first!
+> For testing local/uncommitted changes, use `make v3-cycle-fast` instead.
+> See [MAINTAINER_GUIDE.md](../MAINTAINER_GUIDE.md#two-development-paths) for the full guide.
+
 **Using CLI flag:**
 
 ```bash
+# First push your changes, then:
 sindri deploy --from-source
 ```
 
@@ -230,10 +235,20 @@ deployment:
   provider: docker
   buildFromSource:
     enabled: true
-    gitRef: "feature/my-feature" # Test your development branch
+    gitRef: "feature/my-feature" # Test your pushed feature branch
 ```
 
-This builds from the Sindri repository source, compiling inside Docker for Linux compatibility. The image is tagged as `sindri:{version}-{gitsha}` for traceability.
+This clones from GitHub and builds inside Docker for Linux compatibility. The image is tagged as `sindri:{version}-{gitsha}` for traceability.
+
+#### Option 4: Local Development (No Push Required)
+
+For testing uncommitted local changes without pushing to GitHub:
+
+```bash
+make v3-cycle-fast CONFIG=sindri.yaml
+```
+
+This uses your local working directory files directly. See [MAINTAINER_GUIDE.md](../MAINTAINER_GUIDE.md#two-development-paths) for details.
 
 ## Deployment Commands
 

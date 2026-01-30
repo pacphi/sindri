@@ -389,7 +389,7 @@ install_extensions_background() {
         local env_vars="$preserve_list"
 
         if [[ -f "sindri.yaml" ]]; then
-            # Priority 1: Install from sindri.yaml if present
+            # Priority 1: Install from sindri.yaml if present in workspace
             print_status "Installing extensions from sindri.yaml..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
             sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         elif [[ -n "${INSTALL_PROFILE:-}" ]]; then
@@ -397,9 +397,16 @@ install_extensions_background() {
             print_status "Installing profile: ${INSTALL_PROFILE}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
             sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         else
-            # Priority 3: Default to minimal profile
-            print_status "Installing minimal profile (default)..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install minimal --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            # No profile specified - inform user instead of assuming a default
+            print_status "No extensions profile configured." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "To install extensions, either:" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "  1. Add 'extensions.profile: <name>' to your sindri.yaml" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "  2. Run: sindri profile install <profile> --yes" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "Available profiles: minimal, fullstack, ai-dev, anthropic-dev, systems, enterprise, devops, mobile" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            # Return success - no extensions is a valid state
+            touch "$bootstrap_marker"
+            chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
+            return 0
         fi
 
         # Capture exit code before checking it

@@ -174,21 +174,21 @@ sindri deploy [OPTIONS]
 
 **Options:**
 
-| Option                      | Short  | Default | Description                                      |
-| --------------------------- | ------ | ------- | ------------------------------------------------ |
-| `--force`                   | `-f`   | -       | Force recreation of environment                  |
-| `--dry-run`                 | -      | -       | Show what would happen without deploying         |
-| `--wait`                    | `-w`   | true    | Wait for deployment to complete                  |
-| `--timeout <SECONDS>`       | `-t`   | 600     | Deployment timeout in seconds                    |
-| `--skip-validation`         | -      | -       | Skip configuration validation                    |
-| `--skip-image-verification` | -      | -       | Skip image signature and provenance verification |
-| `--env-file <PATH>`         | -      | -       | Path to custom .env file for secrets             |
-| `--from-source`             | `--fs` | -       | Build from Sindri repository source              |
+| Option                      | Short  | Default | Description                                         |
+| --------------------------- | ------ | ------- | --------------------------------------------------- |
+| `--force`                   | `-f`   | -       | Force recreation of environment                     |
+| `--dry-run`                 | -      | -       | Show what would happen without deploying            |
+| `--wait`                    | `-w`   | true    | Wait for deployment to complete                     |
+| `--timeout <SECONDS>`       | `-t`   | 600     | Deployment timeout in seconds                       |
+| `--skip-validation`         | -      | -       | Skip configuration validation                       |
+| `--skip-image-verification` | -      | -       | Skip image signature and provenance verification    |
+| `--env-file <PATH>`         | -      | -       | Path to custom .env file for secrets                |
+| `--from-source`             | `--fs` | -       | Build from Sindri GitHub repository (requires push) |
 
 **Examples:**
 
 ```bash
-# Deploy with defaults
+# Deploy with defaults (uses pre-built image)
 sindri deploy
 
 # Dry run to preview changes
@@ -208,7 +208,29 @@ sindri deploy --env-file /secrets/.env
 
 # Combine custom config and custom env file
 sindri deploy --config /path/to/sindri.yaml --env-file /path/to/.env
+
+# Build from source (requires push to GitHub first)
+sindri deploy --from-source
 ```
+
+**Building from Source vs Local Development:**
+
+The `--from-source` flag clones the Sindri repository from GitHub and builds from that clone.
+This is useful for CI/CD and verifying pushed code, but **requires your changes to be pushed first**.
+
+| Goal                           | Method                          | Push Required |
+| ------------------------------ | ------------------------------- | ------------- |
+| Test local/uncommitted changes | `make v3-cycle-fast CONFIG=...` | No            |
+| Verify pushed code works       | `sindri deploy --from-source`   | Yes           |
+| CI/CD builds                   | `--from-source` with `gitRef`   | Yes           |
+
+For local development without pushing, use the Makefile workflow instead:
+
+```bash
+make v3-cycle-fast CONFIG=sindri.yaml
+```
+
+See [MAINTAINER_GUIDE.md](MAINTAINER_GUIDE.md#two-development-paths) for the complete guide.
 
 **Secrets Resolution:**
 

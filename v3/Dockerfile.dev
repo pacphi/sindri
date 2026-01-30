@@ -1,33 +1,52 @@
 # syntax=docker/dockerfile:1.4
 # ==============================================================================
-# Sindri v3 Dockerfile.dev - Fast Development Builds
+# Sindri v3 Dockerfile.dev - Development Builds (Local Source)
 # ==============================================================================
-# Multi-stage build optimized for rapid development iteration with bundled extensions.
+# Multi-stage build for development iteration with bundled extensions.
 #
+# IMPORTANT: This Dockerfile uses COPY to build from local files.
+# It does NOT clone from GitHub - it builds whatever is in your working directory.
+#
+# Two usage contexts:
+#
+#   1. LOCAL DEVELOPMENT (Path A - Makefile):
+#      The Makefile runs: docker build -f v3/Dockerfile.dev -t sindri:latest .
+#      This copies YOUR LOCAL working directory files into the build.
+#      No git push required. Test uncommitted changes instantly.
+#
+#   2. FROM-SOURCE BUILDS (Path B - CLI):
+#      When using `sindri deploy --from-source`, the CLI first clones the
+#      repository from GitHub, then runs this Dockerfile against the clone.
+#      The COPY commands pull from the cloned repo, not your local machine.
+#      Requires git push first.
+#
+# See v3/docs/MAINTAINER_GUIDE.md for the full "Two Development Paths" guide.
+#
+# ------------------------------------------------------------------------------
+# Build Performance (with base image):
+# ------------------------------------------------------------------------------
+# - First build: 3-5 minutes
+# - Incremental builds: 1-2 minutes (code changes only)
+# - Clean rebuild: 3-5 minutes (dependencies cached)
+#
+# ------------------------------------------------------------------------------
+# Base Image:
+# ------------------------------------------------------------------------------
 # Uses pre-built base image (ghcr.io/pacphi/sindri:base-latest) containing:
 # - Rust 1.92 toolchain
 # - cargo-chef for dependency caching
 # - System packages (Ubuntu 24.04)
 # - GitHub CLI
 #
-# Build time performance:
-# - First build: 3-5 minutes (with base image)
-# - Incremental builds: 1-2 minutes (code changes only)
-# - Clean rebuild: 3-5 minutes (dependencies cached)
+# ------------------------------------------------------------------------------
+# Quick Commands:
+# ------------------------------------------------------------------------------
+#   make v3-docker-build-fast           # Build image from local files
+#   make v3-cycle-fast CONFIG=sindri.yaml  # Full local dev cycle
 #
-# Build modes:
-#   1. With public base (default, recommended):
-#      docker build -f v3/Dockerfile.dev -t sindri:latest .
-#
-#   2. With local base:
-#      docker build -f v3/Dockerfile.dev --build-arg BASE_IMAGE=sindri:base-latest -t sindri:latest .
-#
-# For maintainers:
-#   - Use 'make v3-docker-build-fast' for fast builds
-#   - Use 'make v3-cycle-fast CONFIG=sindri.yaml' for full dev cycle
-#   - See v3/docs/MAINTAINER_GUIDE.md for details
-#
-# Key optimizations:
+# ------------------------------------------------------------------------------
+# Key Optimizations:
+# ------------------------------------------------------------------------------
 # - Base image separates slow-changing layers (rebuilt quarterly)
 # - cargo-chef caches dependencies (rebuilt only when Cargo.toml changes)
 # - BuildKit cache mounts for cargo registry/git
@@ -39,8 +58,6 @@
 # Build Arguments
 # ------------------------------------------------------------------------------
 ARG BASE_IMAGE=ghcr.io/pacphi/sindri:base-latest
-ARG SINDRI_VERSION=3.0.0
-ARG SINDRI_REPO=https://github.com/pacphi/sindri
 
 # ==============================================================================
 # Stage 1: Prepare Recipe (cargo-chef)
@@ -51,15 +68,9 @@ RUN cargo install cargo-chef --locked
 
 WORKDIR /app
 
-ARG SINDRI_VERSION
-ARG SINDRI_REPO
-
-# Clone repository to prepare recipe
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git ca-certificates && \
-    rm -rf /var/lib/apt/lists/* && \
-    git clone --depth 1 --branch "${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
-    cp -r /tmp/sindri/v3/* .
+# Copy local source for recipe preparation (uses local files, not git clone)
+COPY v3/Cargo.toml v3/Cargo.lock ./
+COPY v3/crates/ ./crates/
 
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -92,14 +103,11 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # ==============================================================================
 FROM rust:1.92-slim-bookworm AS builder
 
-ARG SINDRI_VERSION
-ARG SINDRI_REPO
 ARG TARGETARCH
 
 # Install build dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git \
         pkg-config \
         libssl-dev \
         ca-certificates && \
@@ -111,12 +119,16 @@ WORKDIR /app
 COPY --from=builder-deps /app/target target
 COPY --from=builder-deps /usr/local/cargo /usr/local/cargo
 
-# Clone source and build application (only source code recompiled)
+# Copy local source for building (uses local files, not git clone)
+COPY v3/Cargo.toml v3/Cargo.lock ./
+COPY v3/crates/ ./crates/
+COPY v3/embedded/ ./embedded/
+COPY v3/schemas/ ./schemas/
+
+# Build application (only source code recompiled)
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     echo "Building sindri from source for ${TARGETARCH}..." && \
-    git clone --depth 1 --branch "${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
-    cp -r /tmp/sindri/v3/* . && \
     cargo build --release --bin sindri && \
     mkdir -p /output && \
     cp target/release/sindri /output/sindri && \
