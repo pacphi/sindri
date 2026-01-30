@@ -551,7 +551,9 @@ $ sindri extension install python
 
 ### Manual Extension Installation in Containers
 
-Users can SSH into deployed containers and install additional extensions:
+Users can SSH into deployed containers and install additional extensions.
+
+> **DinD Mode Requirement:** Extensions using `apt` packages require sudo, which works in `none`, `sysbox`, and `privileged` DinD modes. In `socket` mode (production security), sudo is blocked by `no-new-privileges`. See [Docker Provider documentation](providers/DOCKER.md#security-model-by-dind-mode) for details.
 
 **Build-from-Source containers**:
 

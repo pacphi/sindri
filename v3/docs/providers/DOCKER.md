@@ -113,6 +113,38 @@ providers:
 | `privileged` | Low      | Full privileged mode (not recommended)                        |
 | `auto`       | Auto     | Uses sysbox if available, falls back to privileged if allowed |
 
+### Security Model by DinD Mode
+
+Each DinD mode applies different security controls based on its use case:
+
+| Mode         | no-new-privileges | seccomp | sudo Works? | Use Case                     |
+| ------------ | ----------------- | ------- | ----------- | ---------------------------- |
+| `socket`     | YES               | default | NO          | Production (shared daemon)   |
+| `sysbox`     | NO                | n/a     | YES         | Development (user namespace) |
+| `privileged` | NO                | n/a     | YES         | Legacy DinD                  |
+| `none`       | NO                | n/a     | YES         | Development (no Docker)      |
+
+**Why `none` mode allows sudo:**
+
+- `none` mode has no Docker access, so there's no privilege escalation path to the host
+- Developer has `NOPASSWD` sudo configured in sudoers (intentional for extension installation)
+- Blocking sudo only prevents legitimate use (apt package installation) without security benefit
+- Production deployments should use `socket` mode which maintains `no-new-privileges`
+
+**Runtime extension installation:**
+
+With `none` mode (the default), you can install extensions that require apt packages at runtime:
+
+```bash
+# SSH into the container
+sindri connect
+
+# Install extensions with apt dependencies
+sindri extension install goose    # Requires libxcb
+sindri extension install dotnet   # Requires apt packages
+sindri extension install php      # Requires php-fpm
+```
+
 **Sysbox Detection:**
 
 The provider automatically detects Sysbox runtime:

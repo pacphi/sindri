@@ -79,10 +79,9 @@ services:
     group_add:
       - docker
 {% else %}
-    # Standard security hardening
-    security_opt:
-      - no-new-privileges:true
-      - seccomp:unconfined
+    # Standard mode (no DinD): allow sudo for extension installation
+    # Security note: no-new-privileges only applied in socket mode
+    # when sharing Docker daemon with host (production-like security)
     cap_drop:
       - ALL
     cap_add:

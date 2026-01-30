@@ -681,6 +681,64 @@ ssh-add ~/.ssh/id_ed25519
 flyctl ssh issue --agent -a my-app
 ```
 
+#### Sudo/Apt Installation Fails in Container
+
+**Symptom:**
+
+```text
+sudo: effective uid is not 0, is /usr/bin/sudo on a file system with the 'nosuid' option set or an NFS file system without root privileges?
+```
+
+or:
+
+```text
+sudo: PERM_SUDOERS: setresuid(-1, 1, -1): Operation not permitted
+```
+
+**Cause:**
+
+The container is running with `no-new-privileges` security flag, which blocks sudo. This happens in **socket** mode (when sharing the host Docker daemon).
+
+**Solution:**
+
+Check the DinD mode in your deployment:
+
+```bash
+# Check current DinD mode
+grep SINDRI_DIND_MODE docker-compose.yml
+```
+
+| Mode         | sudo Works? | Description                         |
+| ------------ | ----------- | ----------------------------------- |
+| `none`       | YES         | Default development mode            |
+| `sysbox`     | YES         | User namespace isolation            |
+| `privileged` | YES         | Legacy DinD                         |
+| `socket`     | NO          | Production security (shared daemon) |
+
+**Options if sudo is blocked:**
+
+1. **Use a different DinD mode** (if you need sudo):
+
+   ```yaml
+   # sindri.yaml
+   providers:
+     docker:
+       dind:
+         mode: none # or sysbox
+   ```
+
+2. **Use sudo-free installation methods** (recommended for production):
+   - Extensions like `cloud-tools` use pip and tarball extraction
+   - See [ADR-041](architecture/adr/041-security-hardened-extension-installation.md) for patterns
+
+3. **Pre-install at build time**:
+   - Add apt packages to your Dockerfile
+   - Use `extensions.profile` in sindri.yaml for build-time installation
+
+**Security Note:**
+
+Socket mode applies `no-new-privileges` intentionally - when sharing the host Docker daemon, preventing privilege escalation is important. For development, use `none` or `sysbox` mode to allow sudo.
+
 ---
 
 ## Debugging
