@@ -26,7 +26,7 @@ else
   # Ensure user-local bin directory exists and is in PATH
   mkdir -p "$HOME/.local/bin" "$HOME/.local/aws-cli"
   if curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "/tmp/awscliv2.zip"; then
-    (cd /tmp && unzip -q awscliv2.zip && ./aws/install --install-dir "$HOME/.local/aws-cli" --bin-dir "$HOME/.local/bin" --update 2>/dev/null)
+    (cd /tmp && unzip -o -q awscliv2.zip && ./aws/install --install-dir "$HOME/.local/aws-cli" --bin-dir "$HOME/.local/bin" --update 2>/dev/null)
     rm -rf /tmp/aws /tmp/awscliv2.zip
     print_success "AWS CLI installed to ~/.local/bin"
   else
