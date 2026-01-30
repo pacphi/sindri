@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo
         uses: actions/cache@v4
@@ -112,7 +112,7 @@ jobs:
           aws-region: us-west-2
 
       - name: Install Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
@@ -160,7 +160,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Install Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
@@ -212,7 +212,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Install Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
