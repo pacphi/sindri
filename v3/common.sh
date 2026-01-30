@@ -128,6 +128,22 @@ get_github_release_version() {
     echo "$version"
 }
 
+# Clean up APT caches and temporary files
+# Usage: cleanup_apt_cache
+cleanup_apt_cache() {
+    print_debug "Cleaning up APT caches to free disk space..."
+
+    # Clean apt cache (handle sudo failure gracefully for no-new-privileges containers)
+    if command_exists apt-get; then
+        sudo apt-get clean 2>/dev/null || true
+        sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+        sudo rm -rf /var/cache/apt/archives/* 2>/dev/null || true
+    fi
+
+    # Clean up temporary files (safe without sudo)
+    rm -rf /tmp/*.tar.gz /tmp/*.zip /tmp/*.deb 2>/dev/null || true
+}
+
 # Export functions for use in subshells
 export -f print_status print_success print_warning print_error print_header print_debug print_info
-export -f command_exists is_user ensure_directory retry_command get_github_release_version
+export -f command_exists is_user ensure_directory retry_command get_github_release_version cleanup_apt_cache
