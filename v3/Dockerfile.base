@@ -120,11 +120,20 @@ RUN apt-get update && \
 # ==============================================================================
 FROM runtime-base
 
+# Copy Rust toolchain from builder stage
+COPY --from=rust-builder-base /usr/local/cargo /usr/local/cargo
+COPY --from=rust-builder-base /usr/local/rustup /usr/local/rustup
+
+# Set Rust environment variables
+ENV CARGO_HOME=/usr/local/cargo \
+    RUSTUP_HOME=/usr/local/rustup \
+    PATH="/usr/local/cargo/bin:${PATH}"
+
 # Copy GitHub CLI from parallel build
 COPY --from=gh-downloader /gh /usr/local/bin/gh
 
-# Verify GitHub CLI works
-RUN gh --version
+# Verify tools work
+RUN gh --version && rustc --version && cargo --version
 
 # Create docker directories (for scripts/config to be added by Dockerfile.dev)
 RUN mkdir -p /docker/scripts /docker/config && \
