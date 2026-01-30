@@ -280,8 +280,17 @@ help:
 	@echo "  v3-docker-build-nocache - Build v3 Docker image (no cache)"
 	@echo "  v3-docker-build-from-source - Build v3 Docker from source"
 	@echo "  v3-docker-build-from-binary - Build v3 Docker from binary (default)"
-	@echo "  v3-cycle               - Full dev cycle: destroy→rmi→clean→install→deploy→connect"
-	@echo "                           Usage: make v3-cycle CONFIG=/path/to/sindri.yaml"
+	@echo "  v3-docker-build-base   - Build base image (15-20 min, once per Rust version)"
+	@echo "  v3-docker-build-fast   - Fast build using base (3-5 min, recommended)"
+	@echo "  v3-cycle-fast          - Fast dev cycle (3-5 min, keeps caches)"
+	@echo "                           Usage: make v3-cycle-fast CONFIG=/path/to/sindri.yaml"
+	@echo "  v3-cycle-clean         - Clean dev cycle (10-15 min, clears caches)"
+	@echo "  v3-cycle-nuclear       - Full rebuild (40-50 min, nuclear option)"
+	@echo "  v3-cycle               - Alias for v3-cycle-nuclear"
+	@echo "  v3-cache-status        - Show cache usage"
+	@echo "  v3-cache-clear-soft    - Clear incremental caches"
+	@echo "  v3-cache-clear-medium  - Clear cargo + build cache"
+	@echo "  v3-cache-clear-hard    - Clear all except base"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ CI/CD Targets ═══════════════════════════════════════════════════$(RESET)"
 	@echo "  ci                     - Run full CI (v2 + v3)"
@@ -867,6 +876,205 @@ v3-docker-build-nocache:
 		$(PROJECT_ROOT)
 	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
 
+
+# ==============================================================================
+# V3 Base Image Management & Fast Development Builds
+# ==============================================================================
+
+.PHONY: v3-docker-build-base
+v3-docker-build-base:
+	@echo "$(BOLD)$(BLUE)Building v3 base image (slow, build once)...$(RESET)"
+	@echo "This image contains:"
+	@echo "  - Rust toolchain"
+	@echo "  - cargo-chef"
+	@echo "  - System packages (Ubuntu, build tools)"
+	@echo "  - GitHub CLI"
+	@echo ""
+	@echo "Build time: ~15-20 minutes (on ARM64)"
+	@echo "Rebuild only when Rust version or system deps change"
+	@echo ""
+	docker build \
+		-f $(V3_DIR)/Dockerfile.base \
+		-t sindri:base-$(VERSION) \
+		-t sindri:base-latest \
+		$(V3_DIR)
+	@echo ""
+	@echo "$(GREEN)✓ Base image built: sindri:base-latest$(RESET)"
+	@echo "  This image can be reused for weeks/months"
+	@echo "  Use 'make v3-docker-build-fast' for fast incremental builds"
+
+.PHONY: v3-docker-build-fast
+v3-docker-build-fast:
+	@echo "$(BOLD)$(BLUE)Building v3 image (fast, using base)...$(RESET)"
+	@echo "Prerequisites: Base image from GHCR or local"
+	@echo "  Pull: docker pull ghcr.io/pacphi/sindri:base-latest"
+	@echo "  Or build: make v3-docker-build-base"
+	@echo ""
+	@echo "Building with cargo cache (fast incremental)..."
+	docker build \
+		-f $(V3_DIR)/Dockerfile.dev \
+		--build-arg SINDRI_VERSION=$(GIT_COMMIT) \
+		-t sindri:$(VERSION)-$(GIT_COMMIT) \
+		-t sindri:latest \
+		.
+	@echo ""
+	@echo "$(GREEN)✓ Fast build complete: sindri:latest$(RESET)"
+	@echo "  Build time: ~3-5 min (incremental: 1-2 min)"
+
+.PHONY: v3-docker-build-fast-nocache
+v3-docker-build-fast-nocache:
+	@echo "$(BOLD)$(BLUE)Building v3 image (fast, no cargo cache)...$(RESET)"
+	docker build \
+		--no-cache \
+		-f $(V3_DIR)/Dockerfile.dev \
+		--build-arg SINDRI_VERSION=$(GIT_COMMIT) \
+		-t sindri:$(VERSION)-$(GIT_COMMIT) \
+		-t sindri:latest \
+		.
+	@echo ""
+	@echo "$(GREEN)✓ Fast build (no cache) complete$(RESET)"
+
+# ==============================================================================
+# V3 Smart Cache Management
+# ==============================================================================
+
+.PHONY: v3-cache-status
+v3-cache-status:
+	@echo "$(BOLD)$(BLUE)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
+	@echo "$(BOLD)$(BLUE)║                      V3 Cache Status                               ║$(RESET)"
+	@echo "$(BOLD)$(BLUE)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
+	@echo ""
+	@echo "$(BOLD)Docker Images:$(RESET)"
+	@docker images --filter=reference='sindri*' --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}' 2>/dev/null || true
+	@echo ""
+	@echo "$(BOLD)BuildKit Cache:$(RESET)"
+	@docker buildx du 2>/dev/null || docker system df | grep "Build Cache" || echo "No cache data"
+	@echo ""
+	@echo "$(BOLD)Cargo Target Directory:$(RESET)"
+	@if [ -d $(V3_DIR)/target ]; then \
+		du -sh $(V3_DIR)/target 2>/dev/null || echo "Not found"; \
+	else \
+		echo "Not found"; \
+	fi
+
+.PHONY: v3-cache-clear-soft
+v3-cache-clear-soft:
+	@echo "$(YELLOW)Clearing soft caches (cargo incremental)...$(RESET)"
+	@echo "Keeps: Docker build cache, Base images, Cargo dependencies"
+	@echo "Clears: Cargo incremental compilation cache, Sindri repo cache"
+	@echo ""
+	@rm -rf ~/Library/Caches/sindri/repos 2>/dev/null || true
+	@rm -rf ~/.cache/sindri/repos 2>/dev/null || true
+	@if [ -d $(V3_DIR)/target ]; then \
+		cd $(V3_DIR) && cargo clean -p sindri; \
+	fi
+	@echo "$(GREEN)✓ Soft cache cleared$(RESET)"
+
+.PHONY: v3-cache-clear-medium
+v3-cache-clear-medium:
+	@echo "$(YELLOW)Clearing medium caches (cargo + build cache)...$(RESET)"
+	@echo "Keeps: Base images, Docker system cache"
+	@echo "Clears: All cargo artifacts, Sindri repo cache, BuildKit cache"
+	@echo ""
+	@rm -rf ~/Library/Caches/sindri/repos 2>/dev/null || true
+	@rm -rf ~/.cache/sindri/repos 2>/dev/null || true
+	@if [ -d $(V3_DIR)/target ]; then \
+		cd $(V3_DIR) && cargo clean; \
+	fi
+	@docker buildx prune --filter "until=1h" --force 2>/dev/null || true
+	@echo "$(GREEN)✓ Medium cache cleared$(RESET)"
+
+.PHONY: v3-cache-clear-hard
+v3-cache-clear-hard:
+	@echo "$(RED)Clearing hard caches (nuclear)...$(RESET)"
+	@echo "Keeps: Base images (sindri:base-*)"
+	@echo "Clears: All cargo artifacts, All Sindri images (except base), All BuildKit cache"
+	@echo ""
+	@printf "$(BOLD)Are you sure? This is destructive. [y/N] $(RESET)" && \
+	read confirm && [ "$$confirm" = "y" ] || { echo "Cancelled"; exit 1; }
+	@echo ""
+	@$(MAKE) v3-clean
+	@docker images --filter=reference='sindri:*' --format '{{.ID}}\t{{.Repository}}:{{.Tag}}' | \
+		grep -v 'sindri:base-' | awk '{print $$1}' | xargs docker rmi -f 2>/dev/null || true
+	@docker buildx prune --all --force 2>/dev/null || true
+	@echo "$(GREEN)✓ Hard cache cleared (base image preserved)$(RESET)"
+
+.PHONY: v3-cache-nuke
+v3-cache-nuke:
+	@echo "$(RED)$(BOLD)NUCLEAR OPTION: Clearing EVERYTHING...$(RESET)"
+	@echo "This will remove: ALL Sindri images (including base), ALL cargo artifacts, ALL Docker build cache"
+	@echo ""
+	@printf "$(BOLD)$(RED)Are you ABSOLUTELY sure? You'll need to rebuild base image. [y/N] $(RESET)" && \
+	read confirm && [ "$$confirm" = "y" ] || { echo "Cancelled"; exit 1; }
+	@echo ""
+	@$(MAKE) v3-clean
+	@docker images --filter=reference='sindri*' --format '{{.ID}}' | xargs docker rmi -f 2>/dev/null || true
+	@docker buildx prune --all --force 2>/dev/null || true
+	@echo "$(RED)✓ NUKED: Base image will need to be rebuilt$(RESET)"
+
+# ==============================================================================
+# V3 Fast Development Cycle Modes
+# ==============================================================================
+
+.PHONY: v3-cycle-fast
+v3-cycle-fast:
+	@if [ -z "$(CONFIG)" ]; then \
+		echo "$(RED)Error: CONFIG parameter required$(RESET)"; \
+		echo "Usage: make v3-cycle-fast CONFIG=/path/to/sindri.yaml"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "$(BOLD)$(GREEN)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
+	@echo "$(BOLD)$(GREEN)║                    V3 Fast Development Cycle                       ║$(RESET)"
+	@echo "$(BOLD)$(GREEN)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
+	@echo ""
+	@echo "$(BOLD)Mode:$(RESET) Incremental (keeps caches, reuses base image)"
+	@echo "$(BOLD)Time:$(RESET) ~3-5 minutes"
+	@echo "$(BOLD)Config:$(RESET) $(CONFIG)"
+	@echo ""
+	@$(MAKE) v3-cache-clear-soft
+	@sindri destroy --config $(CONFIG) -f || true
+	@$(MAKE) v3-docker-build-fast
+	@$(MAKE) v3-install
+	@sindri deploy --config $(CONFIG) --from-source
+	@echo ""
+	@echo "$(GREEN)✓ Fast cycle complete!$(RESET)"
+	@echo "  Connect: sindri connect --config $(CONFIG)"
+
+.PHONY: v3-cycle-clean
+v3-cycle-clean:
+	@if [ -z "$(CONFIG)" ]; then \
+		echo "$(RED)Error: CONFIG parameter required$(RESET)"; \
+		echo "Usage: make v3-cycle-clean CONFIG=/path/to/sindri.yaml"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "$(BOLD)$(YELLOW)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
+	@echo "$(BOLD)$(YELLOW)║                   V3 Clean Development Cycle                       ║$(RESET)"
+	@echo "$(BOLD)$(YELLOW)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
+	@echo ""
+	@echo "$(BOLD)Mode:$(RESET) Clean build (clears caches, keeps base image)"
+	@echo "$(BOLD)Time:$(RESET) ~10-15 minutes"
+	@echo "$(BOLD)Config:$(RESET) $(CONFIG)"
+	@echo ""
+	@$(MAKE) v3-cache-clear-medium
+	@sindri destroy --config $(CONFIG) -f || true
+	@docker images --filter=reference='sindri:*' --format '{{.ID}}\t{{.Repository}}:{{.Tag}}' | \
+		grep -v 'sindri:base-' | awk '{print $$1}' | xargs docker rmi -f 2>/dev/null || true
+	@$(MAKE) v3-docker-build-fast-nocache
+	@$(MAKE) v3-install
+	@sindri deploy --config $(CONFIG) --from-source
+	@echo ""
+	@echo "$(GREEN)✓ Clean cycle complete!$(RESET)"
+
+.PHONY: v3-cycle-nuclear
+v3-cycle-nuclear:
+	@echo "$(RED)$(BOLD)WARNING: This is the NUCLEAR option$(RESET)"
+	@echo "Time: 40-50 minutes (rebuilds everything from scratch)"
+	@echo "Use v3-cycle-fast (3-5 min) or v3-cycle-clean (10-15 min) instead"
+	@echo ""
+	@$(MAKE) v3-cycle CONFIG=$(CONFIG)
+
 # ============================================================================
 # V3 Full Development Cycle
 # ============================================================================
@@ -1086,4 +1294,5 @@ v3-clean:
 	@rm -rf ~/.cache/sindri/repos 2>/dev/null || true
 	@echo "$(BLUE)Cleaning Docker build cache...$(RESET)"
 	@docker builder prune --all --force 2>/dev/null || true
+	@docker buildx prune --all --force 2>/dev/null || true
 	@echo "$(GREEN)✓ v3 artifacts cleaned$(RESET)"

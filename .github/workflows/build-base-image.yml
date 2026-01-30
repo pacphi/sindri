@@ -1,0 +1,267 @@
+name: Build Base Image
+
+# Purpose: Build and publish the multi-arch base image for fast development builds
+#
+# This workflow builds the base image containing all slow-changing dependencies:
+# - Rust toolchain
+# - cargo-chef
+# - System packages (Ubuntu)
+# - GitHub CLI
+#
+# The base image is used by Dockerfile.dev to speed up builds from 40-50 min to 3-5 min.
+#
+# Architectures: linux/amd64, linux/arm64
+# Build time: ~30-40 minutes (parallel builds)
+# Trigger: Manual (workflow_dispatch) or on Dockerfile.base changes
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      rust_version:
+        description: 'Rust version (e.g., 1.92)'
+        required: false
+        default: '1.92'
+      ubuntu_version:
+        description: 'Ubuntu version (e.g., 24.04)'
+        required: false
+        default: '24.04'
+      gh_version:
+        description: 'GitHub CLI version (e.g., 2.86.0)'
+        required: false
+        default: '2.86.0'
+      push_to_ghcr:
+        description: 'Push to GHCR (true/false)'
+        required: false
+        default: 'true'
+        type: boolean
+
+  # Automatic trigger on base Dockerfile changes
+  push:
+    branches: [main, develop]
+    paths:
+      - 'v3/Dockerfile.base'
+      - '.github/workflows/build-base-image.yml'
+
+  # Allow triggering from other workflows
+  workflow_call:
+    inputs:
+      rust_version:
+        description: 'Rust version'
+        required: false
+        default: '1.92'
+        type: string
+      ubuntu_version:
+        description: 'Ubuntu version'
+        required: false
+        default: '24.04'
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    name: Build Multi-Arch Base Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # For signing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set build arguments
+        id: args
+        run: |
+          RUST_VERSION="${{ github.event.inputs.rust_version || '1.92' }}"
+          UBUNTU_VERSION="${{ github.event.inputs.ubuntu_version || '24.04' }}"
+          GH_VERSION="${{ github.event.inputs.gh_version || '2.86.0' }}"
+
+          echo "rust_version=$RUST_VERSION" >> $GITHUB_OUTPUT
+          echo "ubuntu_version=$UBUNTU_VERSION" >> $GITHUB_OUTPUT
+          echo "gh_version=$GH_VERSION" >> $GITHUB_OUTPUT
+
+          # Generate version tag (major.minor from Rust version)
+          VERSION=$(echo "$RUST_VERSION" | cut -d. -f1,2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          echo "Building base image:"
+          echo "  Rust: $RUST_VERSION"
+          echo "  Ubuntu: $UBUNTU_VERSION"
+          echo "  GitHub CLI: $GH_VERSION"
+          echo "  Version tag: $VERSION"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+          # Use max parallelism for faster builds
+          buildkitd-flags: --allow-insecure-entitlement network.host
+
+      - name: Log in to GitHub Container Registry
+        if: github.event.inputs.push_to_ghcr != 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+            prefix=base-,onlatest=true
+          tags: |
+            # Version-specific tag (e.g., base-1.92)
+            type=raw,value=${{ steps.args.outputs.version }}
+            # Latest tag for base
+            type=raw,value=latest
+            # Rust version tag (e.g., base-rust1.92)
+            type=raw,value=rust${{ steps.args.outputs.rust_version }}
+            # Date tag (e.g., base-2026.01.30)
+            type=raw,value={{date 'YYYY.MM.DD'}}
+          labels: |
+            org.opencontainers.image.title=Sindri Base Image
+            org.opencontainers.image.description=Base image for Sindri v3 development builds
+            sindri.type=base
+            sindri.rust.version=${{ steps.args.outputs.rust_version }}
+            sindri.ubuntu.version=${{ steps.args.outputs.ubuntu_version }}
+            sindri.gh.version=${{ steps.args.outputs.gh_version }}
+
+      - name: Build and push base image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: v3/Dockerfile.base
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event.inputs.push_to_ghcr != 'false' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            RUST_VERSION=${{ steps.args.outputs.rust_version }}
+            UBUNTU_VERSION=${{ steps.args.outputs.ubuntu_version }}
+            GH_VERSION=${{ steps.args.outputs.gh_version }}
+          # Cache configuration for faster rebuilds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Provenance and SBOM for security
+          provenance: mode=max
+          sbom: true
+
+      - name: Generate build summary
+        if: always()
+        run: |
+          echo "## Base Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Configuration:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Rust Version: \`${{ steps.args.outputs.rust_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Ubuntu Version: \`${{ steps.args.outputs.ubuntu_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub CLI Version: \`${{ steps.args.outputs.gh_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Platforms: \`linux/amd64\`, \`linux/arm64\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Images Published:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" | sed 's/,/\n/g' >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Pull Command:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:base-latest" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Usage in Dockerfile:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`dockerfile" >> $GITHUB_STEP_SUMMARY
+          echo "FROM ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:base-${{ steps.args.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Test the base image locally" >> $GITHUB_STEP_SUMMARY
+          echo "2. Update \`v3/Dockerfile.dev\` to use this base" >> $GITHUB_STEP_SUMMARY
+          echo "3. Rebuild development images (should be 3-5 min)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Test base image
+        if: success()
+        run: |
+          echo "Testing base image..."
+
+          # Pull the image
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:base-latest
+
+          # Test that expected tools exist
+          echo "Checking GitHub CLI..."
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:base-latest gh --version
+
+          echo "Checking Rust toolchain..."
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:base-latest rustc --version
+
+          echo "Checking system packages..."
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:base-latest which git curl wget
+
+          echo "✅ Base image tests passed!"
+
+      - name: Image size report
+        if: success()
+        run: |
+          echo "## Image Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Get image sizes for each architecture
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:base-latest | \
+            grep -A 5 "Platform:" >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "## ❌ Base Image Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The base image build failed. Check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Common Issues:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Network timeout downloading Rust/packages" >> $GITHUB_STEP_SUMMARY
+          echo "- QEMU issues with ARM64 emulation" >> $GITHUB_STEP_SUMMARY
+          echo "- Insufficient runner resources" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Retry Options:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Re-run this workflow" >> $GITHUB_STEP_SUMMARY
+          echo "2. Build locally: \`make v3-docker-build-base\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Build single arch: Remove one platform and retry" >> $GITHUB_STEP_SUMMARY
+
+  # Cleanup old base images
+  cleanup-old-images:
+    name: Cleanup Old Base Images
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: success() && github.event_name != 'pull_request'
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete old base image versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.event.repository.name }}
+          package-type: container
+          min-versions-to-keep: 5
+          ignore-versions: '^base-(latest|[0-9]+\.[0-9]+)$'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup summary
+        run: |
+          echo "## Package Cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Removed old base image versions (keeping last 5)" >> $GITHUB_STEP_SUMMARY
+          echo "Preserved: base-latest, base-X.Y (major.minor versions)" >> $GITHUB_STEP_SUMMARY

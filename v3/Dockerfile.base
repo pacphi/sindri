@@ -1,0 +1,177 @@
+# syntax=docker/dockerfile:1.4
+# ==============================================================================
+# Sindri v3 Dockerfile.base - Stable Foundation Layer
+# ==============================================================================
+# This image contains all the slow-changing dependencies:
+# - Rust toolchain (246MB, rarely changes)
+# - cargo-chef (stable version)
+# - System packages (Ubuntu, build tools)
+# - GitHub CLI (stable version)
+#
+# Build this image once per Rust version bump or major dependency change.
+# Dockerfile.dev and Dockerfile will use this as their base.
+#
+# Rebuild triggers:
+# - Rust version change (RUST_VERSION arg)
+# - Ubuntu version change (UBUNTU_VERSION arg)
+# - System package updates needed
+# - GitHub CLI version change
+#
+# Build: docker build -f v3/Dockerfile.base -t sindri:base-v3.0.0 v3
+# Tag:   docker tag sindri:base-v3.0.0 sindri:base-latest
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Build Arguments
+# ------------------------------------------------------------------------------
+ARG UBUNTU_VERSION=24.04
+ARG RUST_VERSION=1.92
+ARG GH_VERSION=2.86.0
+
+# ==============================================================================
+# Stage 1: Rust Builder Base (with cargo-chef)
+# ==============================================================================
+FROM rust:${RUST_VERSION}-slim-bookworm AS rust-builder-base
+
+# Install cargo-chef (compile-time tool, stable version)
+RUN cargo install cargo-chef --locked
+
+# Install build dependencies (rarely change)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        pkg-config \
+        libssl-dev \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ==============================================================================
+# Stage 2: Runtime Base (Ubuntu with system tools)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS runtime-base
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG DEVELOPER_USER=developer
+ARG DEVELOPER_UID=1001
+ARG DEVELOPER_GID=1001
+ARG ALT_HOME=/alt/home/developer
+ARG WORKSPACE=${ALT_HOME}/workspace
+ARG SSH_PORT=2222
+
+# Environment variables (stable, rarely change)
+ENV DEVELOPER_USER=${DEVELOPER_USER} \
+    ALT_HOME=${ALT_HOME} \
+    WORKSPACE=${WORKSPACE} \
+    SSH_PORT=${SSH_PORT} \
+    DEBIAN_FRONTEND=noninteractive \
+    TERM=xterm-256color \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+# Install system packages (changes infrequently)
+# This is the SLOWEST part (28+ minutes on ARM64) - cache it!
+RUN <<EOF
+apt-get update
+apt-get install -y --no-install-recommends \
+    ca-certificates curl wget git openssh-server sudo \
+    locales tzdata fontconfig unzip zip \
+    build-essential pkg-config libssl-dev
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+apt-get clean
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+rm -f /etc/ssh/ssh_host_*
+EOF
+
+# Create developer user (stable, rarely changes)
+RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
+    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
+    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
+    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
+
+# ==============================================================================
+# Stage 3: GitHub CLI Downloader (parallel build, cached independently)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS gh-downloader
+
+ARG GH_VERSION
+ARG TARGETARCH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Map Docker's TARGETARCH to dpkg architecture names
+    case "${TARGETARCH}" in \
+        amd64) ARCH="amd64" ;; \
+        arm64) ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    echo "Downloading GitHub CLI for linux_${ARCH}..." && \
+    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
+    tar -xzf /tmp/gh.tar.gz -C /tmp && \
+    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /gh && \
+    chmod +x /gh && \
+    echo "GitHub CLI ${GH_VERSION} installed for ${ARCH}"
+
+# ==============================================================================
+# Final Stage: Complete Base Image
+# ==============================================================================
+FROM runtime-base
+
+# Copy GitHub CLI from parallel build
+COPY --from=gh-downloader /gh /usr/local/bin/gh
+
+# Verify GitHub CLI works
+RUN gh --version
+
+# Create docker directories (for scripts/config to be added by Dockerfile.dev)
+RUN mkdir -p /docker/scripts /docker/config && \
+    chmod 755 /docker /docker/scripts /docker/config
+
+# Create workspace directories
+RUN mkdir -p ${ALT_HOME} ${WORKSPACE} && \
+    chown -R ${DEVELOPER_USER}:${DEVELOPER_USER} ${ALT_HOME}
+
+# Mark this as a base image
+LABEL sindri.base.version="3.0.0" \
+      sindri.base.rust="${RUST_VERSION}" \
+      sindri.base.ubuntu="${UBUNTU_VERSION}" \
+      sindri.base.gh="${GH_VERSION}" \
+      sindri.type="base"
+
+# ==============================================================================
+# Usage:
+# ==============================================================================
+# Single-arch build (local development):
+#   docker build -f v3/Dockerfile.base -t sindri:base-3.0.0 v3
+#   docker tag sindri:base-3.0.0 sindri:base-latest
+#
+# Multi-arch build (for publishing):
+#   docker buildx build \
+#     --platform linux/amd64,linux/arm64 \
+#     -f v3/Dockerfile.base \
+#     -t ghcr.io/pacphi/sindri:base-3.0.0 \
+#     -t ghcr.io/pacphi/sindri:base-latest \
+#     --push \
+#     v3
+#
+# Or use GitHub Actions workflow (recommended):
+#   GitHub UI: Actions > Build Base Image > Run workflow
+#
+# Use in Dockerfile.dev:
+#   FROM ghcr.io/pacphi/sindri:base-latest
+#   # Or for local builds:
+#   # FROM sindri:base-latest
+#
+# Rebuild only when:
+#   - Rust version changes (update RUST_VERSION arg)
+#   - Ubuntu version changes (update UBUNTU_VERSION arg)
+#   - System dependencies change
+#   - GitHub CLI version changes (update GH_VERSION arg)
+#
+# Supported architectures:
+#   - linux/amd64 (x86_64, Intel/AMD processors)
+#   - linux/arm64 (ARM64/aarch64, Apple Silicon, ARM servers)
+# ==============================================================================

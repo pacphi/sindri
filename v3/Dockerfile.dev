@@ -1,44 +1,51 @@
 # syntax=docker/dockerfile:1.4
 # ==============================================================================
-# Sindri v3 Dockerfile.dev (Development)
+# Sindri v3 Dockerfile.dev - Fast Development Builds
 # ==============================================================================
-# Multi-stage build for Sindri v3 with source compilation and bundled extensions
+# Multi-stage build optimized for rapid development iteration with bundled extensions.
 #
-# Build mode:
-#   - Builds from source using cargo-chef for dependency caching
-#   - Bundles extensions, registry, profiles at /opt/sindri/
-#   - Larger image (~1.2GB vs production's ~800MB)
-#   - Useful for development, testing, and air-gapped deployments
+# Uses pre-built base image (ghcr.io/pacphi/sindri:base-latest) containing:
+# - Rust 1.92 toolchain
+# - cargo-chef for dependency caching
+# - System packages (Ubuntu 24.04)
+# - GitHub CLI
 #
-# Key differences from Dockerfile (production):
-#   - Builds from source (not pre-compiled binary)
-#   - Bundled extensions at /opt/sindri/extensions
-#   - Uses cargo-chef for dependency layer caching (~50% faster rebuilds)
-#   - Larger image size (~1.2GB vs production's ~800MB)
-#   - Extensions available immediately without installation
+# Build time performance:
+# - First build: 3-5 minutes (with base image)
+# - Incremental builds: 1-2 minutes (code changes only)
+# - Clean rebuild: 3-5 minutes (dependencies cached)
 #
-# Layer optimizations:
-#   - cargo-chef separates dependency build from application build
-#   - BuildKit cache mounts for cargo registry/git
-#   - Layers ordered by change frequency (least → most frequent)
-#   - Consolidated COPY + RUN operations for scripts
-#   - Multi-stage GH CLI download (parallel build, isolated caching)
+# Build modes:
+#   1. With public base (default, recommended):
+#      docker build -f v3/Dockerfile.dev -t sindri:latest .
+#
+#   2. With local base:
+#      docker build -f v3/Dockerfile.dev --build-arg BASE_IMAGE=sindri:base-latest -t sindri:latest .
+#
+# For maintainers:
+#   - Use 'make v3-docker-build-fast' for fast builds
+#   - Use 'make v3-cycle-fast CONFIG=sindri.yaml' for full dev cycle
+#   - See v3/docs/MAINTAINER_GUIDE.md for details
+#
+# Key optimizations:
+# - Base image separates slow-changing layers (rebuilt quarterly)
+# - cargo-chef caches dependencies (rebuilt only when Cargo.toml changes)
+# - BuildKit cache mounts for cargo registry/git
+# - Incremental compilation for application code
+# - Extensions bundled for offline/air-gapped deployments
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
 # Build Arguments
 # ------------------------------------------------------------------------------
-ARG UBUNTU_VERSION=24.04
-ARG RUST_VERSION=1.92
+ARG BASE_IMAGE=ghcr.io/pacphi/sindri:base-latest
 ARG SINDRI_VERSION=3.0.0
 ARG SINDRI_REPO=https://github.com/pacphi/sindri
-ARG GH_VERSION=2.86.0
 
 # ==============================================================================
-# Stage 1a: Prepare Recipe (cargo-chef)
+# Stage 1: Prepare Recipe (cargo-chef)
 # ==============================================================================
-# Creates a recipe.json that captures dependency information for caching
-FROM rust:${RUST_VERSION}-slim-bookworm AS chef
+FROM rust:1.92-slim-bookworm AS chef
 
 RUN cargo install cargo-chef --locked
 
@@ -57,11 +64,9 @@ RUN apt-get update && \
 RUN cargo chef prepare --recipe-path recipe.json
 
 # ==============================================================================
-# Stage 1b: Build Dependencies (cached layer)
+# Stage 2: Build Dependencies (cached - only rebuilds when Cargo.toml changes)
 # ==============================================================================
-# This stage builds only dependencies based on the recipe.json
-# Dependencies are cached and only rebuilt when Cargo.toml/Cargo.lock change
-FROM rust:${RUST_VERSION}-slim-bookworm AS builder-deps
+FROM rust:1.92-slim-bookworm AS builder-deps
 
 RUN cargo install cargo-chef --locked
 
@@ -77,16 +82,15 @@ WORKDIR /app
 
 COPY --from=chef /app/recipe.json recipe.json
 
-# Build dependencies with cache mounts for faster rebuilds
+# Build dependencies with cache mounts (FAST incremental builds)
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     cargo chef cook --release --recipe-path recipe.json
 
 # ==============================================================================
-# Stage 1c: Build Application
+# Stage 3: Build Application (FAST - only rebuilds when source changes)
 # ==============================================================================
-# Only application code is rebuilt here - dependencies are already compiled
-FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+FROM rust:1.92-slim-bookworm AS builder
 
 ARG SINDRI_VERSION
 ARG SINDRI_REPO
@@ -103,11 +107,11 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Copy compiled dependencies from builder-deps
+# Copy compiled dependencies from builder-deps (CACHED unless Cargo.toml changes)
 COPY --from=builder-deps /app/target target
 COPY --from=builder-deps /usr/local/cargo /usr/local/cargo
 
-# Clone source and build application (only app code recompiled)
+# Clone source and build application (only source code recompiled)
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     echo "Building sindri from source for ${TARGETARCH}..." && \
@@ -119,93 +123,22 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     chmod +x /output/sindri
 
 # ==============================================================================
-# Stage 2: Download GitHub CLI (parallel build, isolated caching)
+# Stage 4: Runtime Image (inherits from base)
 # ==============================================================================
-FROM ubuntu:${UBUNTU_VERSION} AS gh-downloader
-
-ARG GH_VERSION
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget ca-certificates && \
-    rm -rf /var/lib/apt/lists/* && \
-    ARCH=$(dpkg --print-architecture) && \
-    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
-    tar -xzf /tmp/gh.tar.gz -C /tmp && \
-    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /gh && \
-    chmod +x /gh
-
-# ==============================================================================
-# Stage 3: Runtime Image
-# ==============================================================================
-FROM ubuntu:${UBUNTU_VERSION}
+FROM ${BASE_IMAGE}
 
 # ------------------------------------------------------------------------------
-# Runtime Build Arguments
+# Runtime environment already set by base image
 # ------------------------------------------------------------------------------
-ARG DEBIAN_FRONTEND=noninteractive
-ARG DEVELOPER_USER=developer
-ARG DEVELOPER_UID=1001
-ARG DEVELOPER_GID=1001
-ARG ALT_HOME=/alt/home/developer
-ARG WORKSPACE=${ALT_HOME}/workspace
-ARG SSH_PORT=2222
+# Inherited from base:
+# - Ubuntu 24.04 with system packages
+# - Developer user and workspace directories
+# - GitHub CLI
+# - SSH server configuration structure
 
 # ------------------------------------------------------------------------------
-# Environment Variables (rarely change)
+# Install mise, fonts, starship (changes occasionally)
 # ------------------------------------------------------------------------------
-ENV DEVELOPER_USER=${DEVELOPER_USER} \
-    ALT_HOME=${ALT_HOME} \
-    WORKSPACE=${WORKSPACE} \
-    SSH_PORT=${SSH_PORT} \
-    DEBIAN_FRONTEND=noninteractive \
-    TERM=xterm-256color \
-    LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
-
-# ------------------------------------------------------------------------------
-# Install System Packages (changes infrequently)
-# ------------------------------------------------------------------------------
-RUN <<EOF
-apt-get update
-apt-get install -y --no-install-recommends \
-    ca-certificates curl wget git openssh-server sudo \
-    locales tzdata fontconfig unzip zip \
-    build-essential pkg-config libssl-dev
-locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8
-apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-rm -f /etc/ssh/ssh_host_*
-EOF
-
-# ------------------------------------------------------------------------------
-# Create Developer User (changes infrequently)
-# ------------------------------------------------------------------------------
-RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
-    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
-    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
-    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
-
-# ------------------------------------------------------------------------------
-# Setup SSH Server and Configuration (changes infrequently)
-# ------------------------------------------------------------------------------
-COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
-COPY v3/docker/config/developer-sudoers /etc/sudoers.d/developer
-
-RUN mkdir -p /run/sshd /etc/ssh/sshd_config.d && \
-    chmod 0440 /etc/sudoers.d/developer && \
-    chmod 644 /etc/ssh/sshd_config
-
-# ------------------------------------------------------------------------------
-# Copy GitHub CLI Binary (cached independently via multi-stage)
-# ------------------------------------------------------------------------------
-COPY --from=gh-downloader /gh /usr/local/bin/gh
-RUN gh --version
-
-# ------------------------------------------------------------------------------
-# Install Tools: All setup scripts in single layer (changes occasionally)
-# ------------------------------------------------------------------------------
-# Consolidates 12 layers → 2 layers for mise, fonts, starship, SSH env, MOTD
 COPY v3/docker/scripts/setup-ssh-environment.sh \
      v3/docker/scripts/install-mise.sh \
      v3/docker/scripts/install-nerd-fonts.sh \
@@ -230,42 +163,32 @@ rm -rf /tmp/scripts
 EOF
 
 # ------------------------------------------------------------------------------
-# Setup Directories and Permissions
+# Setup SSH and Configuration (changes occasionally)
 # ------------------------------------------------------------------------------
-RUN mkdir -p /docker/scripts /docker/config && \
-    mkdir -p ${ALT_HOME} ${WORKSPACE} && \
-    chown -R ${DEVELOPER_USER}:${DEVELOPER_USER} ${ALT_HOME} && \
-    chmod 755 /docker /docker/scripts /docker/config
+COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
+COPY v3/docker/config/developer-sudoers /etc/sudoers.d/developer
+
+RUN mkdir -p /run/sshd /etc/ssh/sshd_config.d && \
+    chmod 0440 /etc/sudoers.d/developer && \
+    chmod 644 /etc/ssh/sshd_config
 
 # ------------------------------------------------------------------------------
-# Copy Sindri CLI Binary (changes frequently - placed late for better caching)
+# Copy Sindri CLI Binary (FAST - changes frequently during development)
 # ------------------------------------------------------------------------------
 COPY --from=builder /output/sindri /usr/local/bin/sindri
 RUN sindri --version
 
 # ------------------------------------------------------------------------------
-# Bundle Extensions (Development Mode)
-# ------------------------------------------------------------------------------
-# In development mode, extensions ARE bundled with the image at /opt/sindri/
-# This provides immediate availability without installation and supports
-# air-gapped deployments.
-#
-# Extensions are copied from the build context (repository) and include:
-# - extension definitions (extensions/)
-# - registry metadata (registry.yaml)
-# - profile configurations (profiles.yaml)
-# - common utilities (common.sh)
+# Bundle Extensions (FAST - changes frequently during development)
 # ------------------------------------------------------------------------------
 RUN mkdir -p /opt/sindri
 
-# Copy extensions and configuration from build context
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/extensions/ /opt/sindri/extensions/
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/registry.yaml /opt/sindri/registry.yaml
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/profiles.yaml /opt/sindri/profiles.yaml
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/compatibility-matrix.yaml /opt/sindri/compatibility-matrix.yaml
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/common.sh /opt/sindri/common.sh
 
-# Set SINDRI_EXT_HOME to point to bundled extensions
 ENV SINDRI_EXT_HOME=/opt/sindri/extensions
 
 # ------------------------------------------------------------------------------
@@ -282,13 +205,26 @@ RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
 WORKDIR ${WORKSPACE}
 EXPOSE ${SSH_PORT}
 
-# Comprehensive health check
-# - Checks SSH daemon
-# - Checks extension installation status
-# - Checks critical directories
-# - Checks Sindri CLI functionality
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD /docker/scripts/healthcheck.sh > /dev/null 2>&1 || exit 1
 
-# Run entrypoint as root (it will start SSH daemon and manage permissions)
 ENTRYPOINT ["/docker/scripts/entrypoint.sh"]
+
+# ==============================================================================
+# Development Workflow:
+# ==============================================================================
+# 1. Build base once (or when Rust/deps change):
+#      make v3-docker-build-base
+#
+# 2. Fast incremental builds (CLI/extensions changed):
+#      make v3-docker-build-fast
+#
+# 3. Full rebuild (when you need to):
+#      make v3-docker-build-from-source
+#
+# Build times:
+# - Base image: 15-20 min (build once, reuse for weeks/months)
+# - Fast build (incremental): 1-2 min
+# - Fast build (clean): 3-5 min
+# - Full rebuild: 40-50 min
+# ==============================================================================
