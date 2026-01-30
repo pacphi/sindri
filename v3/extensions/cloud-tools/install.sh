@@ -18,6 +18,17 @@ case "$ARCH" in
   *) print_warning "Unsupported architecture: $ARCH"; AWS_ARCH="x86_64"; ALI_ARCH="amd64"; DO_ARCH="amd64" ;;
 esac
 
+# Check Python availability for Azure CLI
+PYTHON_AVAILABLE=false
+if command_exists python3; then
+  PYTHON_VERSION=$(python3 --version 2>&1 | grep -oP '(?<=Python )\d+\.\d+' || echo "0.0")
+  PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+  PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+  if [[ "$PYTHON_MAJOR" -ge 3 ]] && [[ "$PYTHON_MINOR" -ge 10 ]]; then
+    PYTHON_AVAILABLE=true
+  fi
+fi
+
 # AWS CLI - user-local install to avoid sudo (C-5 security compliance)
 print_status "Installing AWS CLI..."
 if command_exists aws; then
@@ -26,7 +37,7 @@ else
   # Ensure user-local bin directory exists and is in PATH
   mkdir -p "$HOME/.local/bin" "$HOME/.local/aws-cli"
   if curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "/tmp/awscliv2.zip"; then
-    (cd /tmp && unzip -q awscliv2.zip && ./aws/install --install-dir "$HOME/.local/aws-cli" --bin-dir "$HOME/.local/bin" --update 2>/dev/null)
+    (cd /tmp && unzip -o -q awscliv2.zip && bash aws/install --install-dir "$HOME/.local/aws-cli" --bin-dir "$HOME/.local/bin" --update 2>/dev/null)
     rm -rf /tmp/aws /tmp/awscliv2.zip
     print_success "AWS CLI installed to ~/.local/bin"
   else
@@ -35,29 +46,47 @@ else
   fi
 fi
 
-# Azure CLI
+# Azure CLI - user-local install via pip (no sudo required)
 print_status "Installing Azure CLI..."
 if command_exists az; then
   print_warning "Azure CLI already installed"
 else
-  if curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash 2>/dev/null; then
-    print_success "Azure CLI installed"
+  # Azure CLI requires Python 3.10+ (pip install azure-cli)
+  if [[ "$PYTHON_AVAILABLE" == "true" ]]; then
+    if python3 -m pip install --user azure-cli 2>/dev/null; then
+      # Ensure ~/.local/bin is in PATH
+      export PATH="$HOME/.local/bin:$PATH"
+      print_success "Azure CLI installed to ~/.local/bin"
+    else
+      print_warning "Failed to install Azure CLI via pip"
+    fi
   else
-    print_warning "Failed to install Azure CLI"
+    print_warning "Skipping Azure CLI (requires Python 3.10+, found $PYTHON_VERSION)"
   fi
 fi
 
-# Google Cloud CLI
+# Google Cloud SDK - tarball install to user directory (no sudo required)
 print_status "Installing Google Cloud CLI..."
 if command_exists gcloud; then
   print_warning "Google Cloud CLI already installed"
 else
-  echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list > /dev/null
-  if curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - 2>/dev/null; then
-    sudo apt-get update && sudo apt-get install -y google-cloud-cli
-    print_success "Google Cloud CLI installed"
+  # Download and extract Google Cloud SDK to user directory
+  # Google uses "x86_64" and "arm" (not "aarch64")
+  case "$ARCH" in
+    x86_64|amd64) GCLOUD_ARCH="x86_64" ;;
+    aarch64|arm64) GCLOUD_ARCH="arm" ;;
+    *) print_warning "Unsupported architecture for Google Cloud SDK: $ARCH"; GCLOUD_ARCH="x86_64" ;;
+  esac
+
+  if curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz" -o "/tmp/google-cloud-sdk.tar.gz"; then
+    tar -xzf /tmp/google-cloud-sdk.tar.gz -C "$HOME"
+    "$HOME/google-cloud-sdk/install.sh" --quiet --usage-reporting=false --path-update=false --command-completion=false 2>/dev/null
+    export PATH="$HOME/google-cloud-sdk/bin:$PATH"
+    rm -f /tmp/google-cloud-sdk.tar.gz
+    print_success "Google Cloud SDK installed to ~/google-cloud-sdk"
   else
-    print_warning "Failed to install Google Cloud CLI"
+    print_warning "Failed to download Google Cloud SDK"
+    rm -f /tmp/google-cloud-sdk.tar.gz
   fi
 fi
 
@@ -137,15 +166,34 @@ else
   fi
 fi
 
-# IBM Cloud CLI
+# IBM Cloud CLI - tarball install to user directory (no sudo required)
 print_status "Installing IBM Cloud CLI..."
 if command_exists ibmcloud; then
   print_warning "IBM Cloud CLI already installed"
 else
-  if curl -fsSL https://clis.cloud.ibm.com/install/linux | sh 2>/dev/null; then
-    print_success "IBM Cloud CLI installed"
+  # Determine architecture for download
+  case "$ARCH" in
+    x86_64|amd64) IBM_ARCH="amd64" ;;
+    aarch64|arm64) IBM_ARCH="arm64" ;;
+    *) print_warning "Unsupported architecture for IBM Cloud CLI: $ARCH"; IBM_ARCH="amd64" ;;
+  esac
+
+  # Get latest version from GitHub releases
+  IBM_VERSION=$(get_github_release_version "IBM-Cloud/ibm-cloud-cli-release" false)
+
+  if [[ -n "$IBM_VERSION" ]]; then
+    mkdir -p "$HOME/.local/ibmcloud" "$HOME/.local/bin"
+    if curl -fsSL "https://download.clis.cloud.ibm.com/ibm-cloud-cli/${IBM_VERSION}/binaries/IBM_Cloud_CLI_${IBM_VERSION}_linux_${IBM_ARCH}.tgz" -o "/tmp/ibmcloud.tgz"; then
+      tar -xzf /tmp/ibmcloud.tgz -C "$HOME/.local/ibmcloud" --strip-components=1
+      ln -sf "$HOME/.local/ibmcloud/ibmcloud" "$HOME/.local/bin/ibmcloud"
+      rm -f /tmp/ibmcloud.tgz
+      print_success "IBM Cloud CLI v${IBM_VERSION} installed to ~/.local/bin"
+    else
+      print_warning "Failed to download IBM Cloud CLI"
+      rm -f /tmp/ibmcloud.tgz
+    fi
   else
-    print_warning "Failed to install IBM Cloud CLI"
+    print_warning "Failed to fetch IBM Cloud CLI version from GitHub"
   fi
 fi
 

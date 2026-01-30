@@ -19,17 +19,19 @@
           "category": {
             "type": "string",
             "enum": [
-              "base",
-              "agile",
-              "language",
-              "dev-tools",
-              "infrastructure",
-              "ai",
-              "database",
-              "monitoring",
-              "mobile",
+              "ai-agents",
+              "ai-dev",
+              "claude",
+              "cloud",
               "desktop",
-              "utilities"
+              "devops",
+              "documentation",
+              "languages",
+              "mcp",
+              "package-manager",
+              "productivity",
+              "research",
+              "testing"
             ],
             "description": "Category this extension belongs to"
           },

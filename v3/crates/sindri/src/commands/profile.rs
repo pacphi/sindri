@@ -22,6 +22,7 @@ use crate::cli::{
     ProfileStatusArgs,
 };
 use crate::output;
+use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir};
 
 /// Main entry point for profile subcommands
 pub async fn run(cmd: ProfileCommands) -> Result<()> {
@@ -37,23 +38,6 @@ pub async fn run(cmd: ProfileCommands) -> Result<()> {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/// Get cache directory (~/.sindri/cache)
-fn get_cache_dir() -> Result<PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("cache"))
-}
-
-/// Get extensions directory (~/.sindri/extensions)
-fn get_extensions_dir() -> Result<PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("extensions"))
-}
-
-/// Get home directory (~)
-fn get_home_dir() -> Result<PathBuf> {
-    dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
-}
 
 /// Get workspace directory (current directory)
 fn get_workspace_dir() -> Result<PathBuf> {

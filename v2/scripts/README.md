@@ -74,6 +74,6 @@ docker run --rm --runtime=sysbox-runc alpine echo "Sysbox works!"
 
 ### More Information
 
-- [Docker Extension Documentation](../../docs/extensions/DOCKER.md)
+- [Docker Extension Documentation](../docs/extensions/DOCKER.md)
 - [Sysbox GitHub](https://github.com/nestybox/sysbox)
 - [Sysbox DinD Guide](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/dind.md)

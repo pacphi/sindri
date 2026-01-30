@@ -5,6 +5,7 @@
 //! dependency resolution and progress tracking.
 
 use anyhow::{anyhow, Context, Result};
+use std::path::PathBuf;
 use tracing::{debug, info, warn};
 
 use crate::dependency::DependencyResolver;
@@ -105,7 +106,9 @@ impl ProfileInstaller {
             profile.extensions.clone()
         };
 
-        // Step 2: Load extension definitions for dependency resolution
+        // Step 2: Load extension definitions for extensions explicitly listed in profile
+        // This loads extension.yaml for each extension in the profile (e.g., nodejs, python)
+        // so the DependencyResolver can read their metadata and discover dependencies
         self.load_extension_definitions(&profile_extensions).await?;
 
         // Step 3: Resolve dependencies for all extensions
@@ -127,6 +130,11 @@ impl ProfileInstaller {
             "Total extensions to install (with deps): {}",
             all_extensions.len()
         );
+
+        // Step 3.5: Load extension definitions for ALL extensions including dependencies
+        // This ensures dependencies not in the original profile (e.g., mise-config) get loaded.
+        // load_extension_definitions() skips already-loaded extensions, so this is safe and idempotent.
+        self.load_extension_definitions(&all_extensions).await?;
 
         // Step 4: Separate protected and regular extensions
         let (protected_exts, regular_exts): (Vec<_>, Vec<_>) = all_extensions
@@ -268,7 +276,9 @@ impl ProfileInstaller {
             profile.extensions.clone()
         };
 
-        // Step 2: Load extension definitions for dependency resolution
+        // Step 2: Load extension definitions for extensions explicitly listed in profile
+        // This loads extension.yaml for each extension in the profile (e.g., nodejs, python)
+        // so the DependencyResolver can read their metadata and discover dependencies
         self.load_extension_definitions(&profile_extensions).await?;
 
         // Step 3: Resolve dependencies
@@ -285,6 +295,11 @@ impl ProfileInstaller {
                 }
             }
         }
+
+        // Step 3.5: Load extension definitions for ALL extensions including dependencies
+        // This ensures dependencies not in the original profile (e.g., mise-config) get loaded.
+        // load_extension_definitions() skips already-loaded extensions, so this is safe and idempotent.
+        self.load_extension_definitions(&all_extensions).await?;
 
         // Step 4: Remove all extensions first (in reverse order to handle dependencies)
         info!("Removing existing extensions...");
@@ -376,18 +391,38 @@ impl ProfileInstaller {
 
     /// Load extension definitions from registry
     ///
-    /// Loads extension.yaml files for the given extensions. Tries in order:
+    /// Loads extension.yaml files for the given extensions. Tries in priority order:
     /// 1. Already loaded in registry (skip)
-    /// 2. Local development path: v3/extensions/<name>/extension.yaml
-    /// 3. Downloaded from GitHub releases: ~/.sindri/extensions/<name>/<version>/extension.yaml
-    ///
-    /// For production use, extensions should be downloaded via ExtensionDistributor first.
-    /// For development, extensions can be loaded directly from v3/extensions/.
+    /// 2. Source-based build path: /opt/sindri/extensions/<name>/extension.yaml (when BUILD_FROM_SOURCE=true)
+    /// 3. Local development path: v3/extensions/<name>/extension.yaml (for local development)
+    /// 4. Downloaded from GitHub releases: ~/.sindri/extensions/<name>/<version>/extension.yaml (future)
     async fn load_extension_definitions(&mut self, extension_names: &[String]) -> Result<()> {
         debug!(
             "Loading definitions for {} extensions",
             extension_names.len()
         );
+
+        // Determine extensions directory from SINDRI_EXT_HOME or fallback to home directory
+        // IMPORTANT: Check HOME env var BEFORE dirs::home_dir() for Docker compatibility
+        // In containers, HOME may be set to ALT_HOME but dirs::home_dir() reads /etc/passwd
+        let ext_home = std::env::var("SINDRI_EXT_HOME")
+            .ok()
+            .or_else(|| {
+                // Fallback 1: HOME env var (respects ALT_HOME volume mount in Docker)
+                std::env::var("HOME")
+                    .ok()
+                    .map(|h| format!("{}/.sindri/extensions", h))
+            })
+            .or_else(|| {
+                // Fallback 2: dirs::home_dir() for non-container environments
+                dirs::home_dir().map(|h| h.join(".sindri/extensions").to_string_lossy().to_string())
+            })
+            .unwrap_or_else(|| {
+                // Fallback 3: Default path (should rarely be used)
+                "/alt/home/developer/.sindri/extensions".to_string()
+            });
+
+        debug!("Using extensions directory: {}", ext_home);
 
         for name in extension_names {
             // Check that extension exists in registry metadata
@@ -405,7 +440,60 @@ impl ProfileInstaller {
                 continue;
             }
 
-            // Try loading from local development path (v3/extensions/<name>/extension.yaml)
+            // Priority 1: SINDRI_EXT_HOME or fallback directory
+            // Check both flat structure (bundled) and versioned structure (downloaded)
+            let ext_base = PathBuf::from(&ext_home).join(name);
+
+            // Try flat structure first (bundled extensions at /opt/sindri/extensions/<name>/extension.yaml)
+            let flat_path = ext_base.join("extension.yaml");
+            if flat_path.exists() {
+                debug!(
+                    "Loading extension '{}' from extensions directory: {:?}",
+                    name, flat_path
+                );
+                self.registry
+                    .load_extension(name, &flat_path)
+                    .context(format!(
+                        "Failed to load extension '{}' from {:?}",
+                        name, flat_path
+                    ))?;
+                continue;
+            }
+
+            // Try versioned structure (downloaded extensions at ~/.sindri/extensions/<name>/<version>/extension.yaml)
+            if ext_base.exists() {
+                if let Ok(versions) = std::fs::read_dir(&ext_base) {
+                    let mut found = false;
+                    let versions: Vec<_> = versions
+                        .filter_map(|entry| entry.ok())
+                        .filter(|entry| entry.path().is_dir())
+                        .collect();
+
+                    // Try each version directory (newest first)
+                    for entry in versions.iter().rev() {
+                        let ext_path = entry.path().join("extension.yaml");
+                        if ext_path.exists() {
+                            debug!(
+                                "Loading extension '{}' from versioned directory: {:?}",
+                                name, ext_path
+                            );
+                            self.registry
+                                .load_extension(name, &ext_path)
+                                .context(format!(
+                                    "Failed to load extension '{}' from {:?}",
+                                    name, ext_path
+                                ))?;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if found {
+                        continue;
+                    }
+                }
+            }
+
+            // Priority 2: Relative path for local development (cargo run only)
             let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .parent() // sindri-extensions -> crates
                 .and_then(|p| p.parent()) // crates -> v3
@@ -427,15 +515,29 @@ impl ProfileInstaller {
                 }
             }
 
-            // If not in development mode, extension should have been downloaded
-            // via ExtensionDistributor to ~/.sindri/extensions/<name>/<version>/extension.yaml
-            // For now, return an error if we can't find it
+            // All fallbacks exhausted - return error with helpful diagnostics
             return Err(anyhow!(
-                "Extension '{}' definition not loaded. \
-                 For development, place extension.yaml at v3/extensions/{}/extension.yaml. \
-                 For production, use ExtensionDistributor to download from GitHub releases.",
+                "Extension '{}' definition not loaded. Tried:\n\
+                 - Extensions directory: {}/{}/extension.yaml [not found]\n\
+                 - Versioned directory: {}/{}/<version>/extension.yaml [not found]\n\
+                 - Dev path: v3/extensions/{}/extension.yaml [not found]\n\
+                 \n\
+                 Solutions:\n\
+                 1. For Docker builds: use Dockerfile.dev to bundle extensions at /opt/sindri/extensions\n\
+                 2. For production: install extension with 'sindri extension install {}'\n\
+                 3. For development: run from v3/ directory\n\
+                 4. Custom path: set SINDRI_EXT_HOME environment variable\n\
+                 \n\
+                 Debug info:\n\
+                 - SINDRI_EXT_HOME: {}",
                 name,
-                name
+                ext_home,
+                name,
+                ext_home,
+                name,
+                name,
+                name,
+                std::env::var("SINDRI_EXT_HOME").unwrap_or_else(|_| format!("<not set, using fallback: {}>", ext_home))
             ));
         }
 

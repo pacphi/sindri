@@ -1,0 +1,144 @@
+name: 'AWS Instance Manager'
+description: 'Launch and terminate AWS EC2 instances for Packer image testing'
+
+inputs:
+  action:
+    description: 'Action to perform (launch, terminate)'
+    required: true
+  image-id:
+    description: 'AMI ID to launch'
+    required: false
+  instance-id:
+    description: 'Instance ID to terminate'
+    required: false
+  region:
+    description: 'AWS region'
+    required: false
+    default: 'us-west-2'
+  instance-type:
+    description: 'EC2 instance type'
+    required: false
+    default: 't3.medium'
+  ssh-key-name:
+    description: 'SSH key pair name'
+    required: false
+    default: 'sindri-test'
+  security-group-id:
+    description: 'Security group ID'
+    required: false
+  subnet-id:
+    description: 'Subnet ID'
+    required: false
+
+outputs:
+  instance-id:
+    description: 'Launched instance ID'
+    value: ${{ steps.launch.outputs.instance_id }}
+  public-ip:
+    description: 'Public IP address'
+    value: ${{ steps.launch.outputs.public_ip }}
+  ssh-key-path:
+    description: 'Path to SSH private key'
+    value: ${{ steps.launch.outputs.ssh_key_path }}
+  ssh-user:
+    description: 'SSH username'
+    value: 'ubuntu'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Launch AWS Instance
+      if: inputs.action == 'launch'
+      id: launch
+      shell: bash
+      run: |
+        echo "Launching AWS EC2 instance from AMI: ${{ inputs.image-id }}"
+
+        # Build run-instances command
+        RUN_ARGS="--image-id ${{ inputs.image-id }}"
+        RUN_ARGS="$RUN_ARGS --instance-type ${{ inputs.instance-type }}"
+        RUN_ARGS="$RUN_ARGS --key-name ${{ inputs.ssh-key-name }}"
+        RUN_ARGS="$RUN_ARGS --region ${{ inputs.region }}"
+
+        if [[ -n "${{ inputs.security-group-id }}" ]]; then
+          RUN_ARGS="$RUN_ARGS --security-group-ids ${{ inputs.security-group-id }}"
+        fi
+
+        if [[ -n "${{ inputs.subnet-id }}" ]]; then
+          RUN_ARGS="$RUN_ARGS --subnet-id ${{ inputs.subnet-id }}"
+        fi
+
+        RUN_ARGS="$RUN_ARGS --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=sindri-packer-test},{Key=Purpose,Value=packer-test},{Key=AutoTerminate,Value=true}]'"
+
+        INSTANCE_ID=$(aws ec2 run-instances \
+          $RUN_ARGS \
+          --query 'Instances[0].InstanceId' \
+          --output text)
+
+        echo "Instance ID: $INSTANCE_ID"
+        echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+
+        # Wait for instance to be running
+        echo "Waiting for instance to be running..."
+        aws ec2 wait instance-running \
+          --instance-ids $INSTANCE_ID \
+          --region ${{ inputs.region }}
+
+        # Get public IP
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --instance-ids $INSTANCE_ID \
+          --region ${{ inputs.region }} \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+
+        echo "Public IP: $PUBLIC_IP"
+        echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+
+        # Write SSH key from environment variable
+        if [[ -n "${AWS_SSH_PRIVATE_KEY:-}" ]]; then
+          echo "$AWS_SSH_PRIVATE_KEY" > /tmp/ssh_key_aws
+          chmod 600 /tmp/ssh_key_aws
+          echo "ssh_key_path=/tmp/ssh_key_aws" >> $GITHUB_OUTPUT
+        else
+          echo "ssh_key_path=$HOME/.ssh/id_rsa" >> $GITHUB_OUTPUT
+        fi
+
+        # Wait for SSH to be ready
+        echo "Waiting for SSH to be ready..."
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/ssh_key_aws ubuntu@$PUBLIC_IP "echo SSH ready" 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i/30)"
+          sleep 10
+        done
+
+    - name: Terminate AWS Instance
+      if: inputs.action == 'terminate'
+      shell: bash
+      run: |
+        INSTANCE_ID="${{ inputs.instance-id }}"
+
+        if [[ -n "$INSTANCE_ID" && "$INSTANCE_ID" != "null" ]]; then
+          echo "Terminating AWS instance: $INSTANCE_ID"
+
+          aws ec2 terminate-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --region ${{ inputs.region }}
+
+          echo "Instance termination initiated"
+
+          # Wait for termination
+          aws ec2 wait instance-terminated \
+            --instance-ids "$INSTANCE_ID" \
+            --region ${{ inputs.region }} \
+            --timeout 300 || true
+
+          echo "Instance terminated"
+        else
+          echo "No instance ID provided, skipping termination"
+        fi
+
+        # Cleanup SSH key
+        rm -f /tmp/ssh_key_aws 2>/dev/null || true

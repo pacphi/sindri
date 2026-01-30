@@ -41,6 +41,10 @@ pub struct DeploymentConfig {
     #[serde(default)]
     pub image_config: Option<ImageConfig>,
 
+    /// Build from source configuration (for Sindri developers)
+    #[serde(default, rename = "buildFromSource")]
+    pub build_from_source: Option<BuildFromSourceConfig>,
+
     /// Resource configuration
     #[serde(default)]
     pub resources: ResourcesConfig,
@@ -95,6 +99,20 @@ pub struct ImageConfig {
     /// OIDC issuer for signature verification
     #[serde(default)]
     pub certificate_oidc_issuer: Option<String>,
+}
+
+/// Build from source configuration (for Sindri developers)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildFromSourceConfig {
+    /// Enable building from source
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// Git ref to build from (branch name, tag, or commit SHA)
+    /// Defaults to "main" if not specified
+    #[serde(default)]
+    pub git_ref: Option<String>,
 }
 
 /// Image resolution strategy

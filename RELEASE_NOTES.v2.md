@@ -106,8 +106,8 @@ capabilities:
 **References:**
 
 - [ADR-001: Extension Capabilities System](v2/docs/architecture/adr/001-extension-capabilities-system.md)
-- [Extension Authoring Guide](docs/EXTENSION_AUTHORING.md)
-- [Collision Handling Examples](docs/extensions/COLLISION_HANDLING_EXAMPLES.md)
+- [Extension Authoring Guide](v2/docs/EXTENSION_AUTHORING.md)
+- [Collision Handling Examples](v2/docs/extensions/COLLISION_HANDLING_EXAMPLES.md)
 
 ---
 
@@ -199,9 +199,9 @@ grep -q '"sona"' .claude/config.json   # V3 marker
 
 **References:**
 
-- [Claude Flow V2 Documentation](docs/extensions/CLAUDE-FLOW-V2.md) - Stable version
-- [Claude Flow V3 Documentation](docs/extensions/CLAUDE-FLOW-V3.md) - Alpha version
-- [Claude Flow Comparison](docs/extensions/CLAUDE-FLOW.md) - Feature comparison
+- [Claude Flow V2 Documentation](v2/docs/extensions/CLAUDE-FLOW-V2.md) - Stable version
+- [Claude Flow V3 Documentation](v2/docs/extensions/CLAUDE-FLOW-V3.md) - Alpha version
+- [Claude Flow Comparison](v2/docs/extensions/CLAUDE-FLOW.md) - Feature comparison
 
 ---
 
@@ -289,7 +289,7 @@ mise install npm:typescript@latest
 
 **References:**
 
-- [Node.js Extension Documentation](docs/extensions/NODEJS.md)
+- [Node.js Extension Documentation](v2/docs/extensions/NODEJS.md)
 - [pnpm Documentation](https://pnpm.io/)
 
 ---
@@ -698,7 +698,7 @@ Ralph is a comprehensive AI development orchestration system featuring:
 extension-manager install ralph
 ```
 
-**Documentation:** [docs/extensions/RALPH.md](docs/extensions/RALPH.md)
+**Documentation:** [v2/docs/extensions/RALPH.md](v2/docs/extensions/RALPH.md)
 
 ---
 
@@ -761,38 +761,38 @@ pnpm: 2 seconds (content-addressable store)
    - Problem statement, decision, consequences
    - Implementation details
 
-2. **[Collision Handling Examples](docs/extensions/COLLISION_HANDLING_EXAMPLES.md)**
+2. **[Collision Handling Examples](v2/docs/extensions/COLLISION_HANDLING_EXAMPLES.md)**
    - Complete collision-handling YAML examples
    - Detection methods (file-exists, directory-exists, content-match)
    - Scenario definitions and action types
 
-3. **[Claude Flow V2 Documentation](docs/extensions/CLAUDE-FLOW-V2.md)**
+3. **[Claude Flow V2 Documentation](v2/docs/extensions/CLAUDE-FLOW-V2.md)**
    - Stable version features (158+ aliases, MetaSaver routing)
    - Installation and configuration
    - Migration from V1
 
-4. **[Claude Flow V3 Documentation](docs/extensions/CLAUDE-FLOW-V3.md)**
+4. **[Claude Flow V3 Documentation](v2/docs/extensions/CLAUDE-FLOW-V3.md)**
    - Alpha version features (SONA, UnifiedSwarmCoordinator, 15 MCP tools)
    - Advanced capabilities (swarm topology, consensus, security scanning)
    - 10x performance improvements
 
-5. **[Spec-Kit Extension](docs/extensions/SPEC-KIT.md)**
+5. **[Spec-Kit Extension](v2/docs/extensions/SPEC-KIT.md)**
    - GitHub specification kit integration
    - AI-powered workflow automation
    - Auto-commit lifecycle hook
 
-6. **[Ralph Extension](docs/extensions/RALPH.md)**
+6. **[Ralph Extension](v2/docs/extensions/RALPH.md)**
    - AI-driven autonomous development system
    - Discovery, planning, development, and deployment workflows
    - Integration patterns and best practices
 
 ### Updated Documentation
 
-- [Extension Authoring Guide](docs/EXTENSION_AUTHORING.md) - Capability examples
+- [Extension Authoring Guide](v2/docs/EXTENSION_AUTHORING.md) - Capability examples
 - [Architecture Guide](v2/docs/ARCHITECTURE.md) - ADR references
 - [Secrets Management](v2/docs/SECRETS_MANAGEMENT.md) - Multi-method auth
-- [Extensions Catalog](docs/EXTENSIONS.md) - Updated with Ralph extension
-- [Rust Extension](docs/extensions/RUST.md) - Comprehensive troubleshooting for `/tmp` noexec issue, rustup migration details
+- [Extensions Catalog](v2/docs/EXTENSIONS.md) - Updated with Ralph extension
+- [Rust Extension](v2/docs/extensions/RUST.md) - Comprehensive troubleshooting for `/tmp` noexec issue, rustup migration details
 - [FAQ](docs/FAQ.md) - 60+ questions (was 40+)
 
 ---
@@ -911,7 +911,7 @@ capabilities:
   ./v2/cli/sindri profiles list  # Validate
   ```
 - [ ] If you clone repositories with existing configurations:
-  - [ ] Read [Collision Handling Examples](docs/extensions/COLLISION_HANDLING_EXAMPLES.md)
+  - [ ] Read [Collision Handling Examples](v2/docs/extensions/COLLISION_HANDLING_EXAMPLES.md)
   - [ ] Test clone-project with collision detection
 - [ ] If you use npm directly in workflows:
   - [ ] Review [Package Manager Migration](#3-package-manager-migration-npm--pnpm)
@@ -1022,7 +1022,7 @@ capabilities:
    - Fix: Migrated from mise to custom rustup installation using `$HOME/.cache/tmp` executable directory
    - Added workaround script setting `TMPDIR=$HOME/.cache/tmp` before rustup installation
    - Impact: Rust extension now installs successfully on OrbStack and security-hardened Docker environments
-   - Documentation: Added comprehensive troubleshooting guide to [docs/extensions/RUST.md](docs/extensions/RUST.md)
+   - Documentation: Added comprehensive troubleshooting guide to [v2/docs/extensions/RUST.md](v2/docs/extensions/RUST.md)
 
 ### Enhancement Fixes
 
@@ -1035,7 +1035,6 @@ capabilities:
 
 10. **Claude Flow extension updates** (commit: d170c89)
     - claude-flow-v2: Fixed validation regex pattern, set ms.md command to overwrite mode
-    - claude-flow-v3: Renamed prd-to-docs → prd2build, updated validation for alpha versions
     - claude-flow-v3: Added CF_MCP_AUTOSTART=false to disable automatic MCP server startup
     - Impact: Better version detection and user control over MCP server lifecycle
 
@@ -1167,7 +1166,7 @@ This release represents a major architectural improvement to Sindri's extension 
 
 - **Main Documentation:** [docs/](docs/)
 - **Architecture:** [docs/ARCHITECTURE.md](v2/docs/ARCHITECTURE.md)
-- **Extension Authoring:** [docs/EXTENSION_AUTHORING.md](docs/EXTENSION_AUTHORING.md)
+- **Extension Authoring:** [v2/docs/EXTENSION_AUTHORING.md](v2/docs/EXTENSION_AUTHORING.md)
 - **ADRs:** [v3/docs/architecture/adr/](v2/docs/architecture/adr/)
 - **FAQ:** [docs/FAQ.md](docs/FAQ.md)
 

@@ -1,0 +1,1458 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sindri V2 Extensions: Build Your Perfect Environment</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/night.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+    <style>
+        :root {
+            --r-heading-color: #a371f7;
+            --r-link-color: #d2a8ff;
+            --r-selection-background-color: #8957e5;
+        }
+        .reveal h1 { font-size: 2.2em; }
+        .reveal h2 { font-size: 1.6em; color: #a371f7; }
+        .reveal h3 { font-size: 1.3em; color: #8b949e; }
+        .reveal pre { font-size: 0.52em; }
+        .reveal code { background: #161b22; padding: 0.2em 0.4em; border-radius: 4px; }
+        .reveal pre code { padding: 1em; }
+        .reveal ul { font-size: 0.85em; }
+        .reveal li { margin: 0.4em 0; }
+        .highlight { color: #a371f7; font-weight: bold; }
+        .success { color: #3fb950; }
+        .warning { color: #d29922; }
+        .info { color: #58a6ff; }
+        .category-box {
+            display: inline-block;
+            padding: 0.4em 0.8em;
+            margin: 0.2em;
+            background: #21262d;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            font-size: 0.8em;
+        }
+        .category-language { border-color: #3fb950; }
+        .category-devtools { border-color: #58a6ff; }
+        .category-ai { border-color: #a371f7; }
+        .category-infra { border-color: #d29922; }
+        .category-monitoring { border-color: #f85149; }
+        .comparison-table { font-size: 0.6em; }
+        .comparison-table td, .comparison-table th {
+            padding: 0.3em 0.6em;
+            border: 1px solid #30363d;
+        }
+        .comparison-table th { background: #21262d; }
+        .small { font-size: 0.7em; color: #8b949e; }
+        .architecture-diagram {
+            background: #161b22;
+            padding: 1em;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.45em;
+            text-align: left;
+            white-space: pre;
+        }
+        .method-badge {
+            display: inline-block;
+            padding: 0.15em 0.5em;
+            border-radius: 4px;
+            font-size: 0.75em;
+            margin-left: 0.3em;
+        }
+        .method-mise { background: #238636; }
+        .method-apt { background: #1f6feb; }
+        .method-script { background: #9e6a03; }
+        .method-npm { background: #f85149; }
+        .method-binary { background: #8957e5; }
+        .profile-card {
+            background: #21262d;
+            border-radius: 8px;
+            padding: 0.8em;
+            margin: 0.3em;
+            border: 1px solid #30363d;
+            text-align: left;
+            font-size: 0.7em;
+        }
+        .profile-card h4 { color: #a371f7; margin: 0 0 0.5em 0; }
+        .extension-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5em;
+            font-size: 0.65em;
+        }
+        .ext-item {
+            background: #21262d;
+            padding: 0.5em;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .presenter-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .presenter-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            object-fit: cover;
+        }
+        .presenter-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .presenter-links a {
+            display: block;
+            width: 24px;
+            height: 24px;
+            opacity: 0.7;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .presenter-links a:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .presenter-links svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+        /* V2 Version Header */
+        .version-header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 1001;
+            background: linear-gradient(135deg, #238636 0%, #1f6feb 100%);
+            color: white;
+            padding: 0.4em 1.2em;
+            font-size: 0.85em;
+            font-weight: bold;
+            border-bottom-left-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            letter-spacing: 0.5px;
+        }
+        .version-header::before {
+            content: "V2";
+            display: inline-block;
+            background: white;
+            color: #238636;
+            padding: 0.1em 0.4em;
+            border-radius: 4px;
+            margin-right: 0.5em;
+            font-size: 0.9em;
+        }
+        /* V2 Version Footer */
+        .version-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            background: rgba(13, 17, 23, 0.95);
+            color: #8b949e;
+            padding: 0.5em 1em;
+            font-size: 0.7em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #30363d;
+        }
+        .version-footer .version-badge {
+            background: linear-gradient(135deg, #238636 0%, #1f6feb 100%);
+            color: white;
+            padding: 0.2em 0.6em;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .version-footer .version-info {
+            display: flex;
+            gap: 1.5em;
+            align-items: center;
+        }
+        .version-footer a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+        .version-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<!-- V2 Version Header -->
+<div class="version-header">Sindri V2 Documentation</div>
+
+<!-- V2 Version Footer -->
+<div class="version-footer">
+    <div class="version-badge">Sindri V2</div>
+    <div class="version-info">
+        <span>Bash/Docker Platform</span>
+        <span>|</span>
+        <a href="https://github.com/pacphi/sindri/tree/main/v2">v2 Documentation</a>
+    </div>
+</div>
+
+<div class="presenter-info">
+    <img src="avatar.jpg" alt="Presenter" class="presenter-avatar">
+    <div class="presenter-links">
+        <a href="https://github.com/pacphi" target="_blank" title="GitHub">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </a>
+        <a href="https://www.linkedin.com/in/cphillipson/" target="_blank" title="LinkedIn">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+    </div>
+</div>
+<div class="reveal">
+<div class="slides">
+
+<!-- Title Slide -->
+<section data-background-gradient="linear-gradient(135deg, #0d1117 0%, #21262d 100%)">
+    <h1>Sindri Extensions</h1>
+    <h3>Build Your Perfect Development Environment</h3>
+    <p class="small">73+ declarative YAML extensions for languages, tools, and AI frameworks</p>
+    <p style="margin-top: 2em;">
+        <span class="category-box category-language">Languages</span>
+        <span class="category-box category-devtools">Dev Tools</span>
+        <span class="category-box category-ai">AI</span>
+        <span class="category-box category-infra">Infrastructure</span>
+    </p>
+</section>
+
+<!-- What are Extensions -->
+<section>
+    <h2>What are Extensions?</h2>
+    <ul>
+        <li><span class="highlight">Declarative YAML</span> - Not bash scripts</li>
+        <li><span class="highlight">Schema-Validated</span> - JSON Schema enforcement</li>
+        <li><span class="highlight">Dependency Aware</span> - Automatic resolution</li>
+        <li><span class="highlight">Multiple Methods</span> - mise, apt, npm, binary, script, hybrid</li>
+        <li><span class="highlight">BOM Tracking</span> - Software bill of materials</li>
+    </ul>
+    <p class="small" style="margin-top: 1.5em;">
+        Extensions live in <code>/docker/lib/extensions/</code> and are installed to persistent storage
+    </p>
+</section>
+
+<!-- Extension Architecture -->
+<section>
+    <section>
+        <h2>Extension Architecture</h2>
+        <div class="architecture-diagram">
+extension.yaml              (Definition)
+    │
+    ├── metadata            Name, version, description, category
+    ├── requirements        Domains, disk space, secrets
+    ├── install             Method: mise | apt | binary | script | hybrid
+    ├── configure           Environment variables, templates
+    ├── validate            Commands to verify installation
+    ├── upgrade             Strategy and scripts
+    ├── remove              Cleanup paths and confirmation
+    └── bom                 Bill of Materials (auto-generated)
+        </div>
+    </section>
+
+    <section>
+        <h2>Extension Locations</h2>
+        <div class="architecture-diagram">
+/docker/lib/                    (Immutable - in image)
+├── extensions/                 Extension definitions
+│   ├── nodejs/extension.yaml
+│   ├── python/extension.yaml
+│   └── ... (70+ extensions)
+├── registry.yaml               Extension registry
+├── profiles.yaml               Profile definitions
+├── categories.yaml             Category definitions
+└── schemas/                    JSON validation schemas
+    └── extension.schema.json
+
+/workspace/.system/             (Mutable - persistent volume)
+├── manifest/                   Installed extension state
+├── installed/                  Installation markers
+├── logs/                       Extension logs
+└── bom/                        Bill of Materials
+        </div>
+    </section>
+</section>
+
+<!-- Installation Methods -->
+<section>
+    <h2>Installation Methods</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Method</th>
+            <th>Use Case</th>
+            <th>Examples</th>
+        </tr>
+        <tr>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>Language runtimes & dev tools</td>
+            <td>Node.js, Python, Go, Rust</td>
+        </tr>
+        <tr>
+            <td><span class="method-badge method-apt">apt</span></td>
+            <td>System packages</td>
+            <td>Docker, PHP, .NET</td>
+        </tr>
+        <tr>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>Node.js packages (via pnpm)</td>
+            <td>TypeScript, ESLint, Prettier</td>
+        </tr>
+        <tr>
+            <td><span class="method-badge method-binary">binary</span></td>
+            <td>Direct downloads</td>
+            <td>Terraform, kubectl</td>
+        </tr>
+        <tr>
+            <td><span class="method-badge method-script">script</span></td>
+            <td>Complex installations</td>
+            <td>AI Toolkit, Cloud Tools</td>
+        </tr>
+    </table>
+</section>
+
+<!-- AVAILABLE EXTENSIONS SECTION -->
+<section data-background="#238636">
+    <h1>Available Extensions</h1>
+    <h3>73 Pre-built Tools</h3>
+</section>
+
+<!-- Language Extensions -->
+<section>
+    <h2>Language Runtimes</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Extension</th>
+            <th>Language</th>
+            <th>Version</th>
+            <th>Method</th>
+            <th>Disk</th>
+        </tr>
+        <tr>
+            <td>nodejs</td>
+            <td>Node.js</td>
+            <td>LTS</td>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>600 MB</td>
+        </tr>
+        <tr>
+            <td>python</td>
+            <td>Python</td>
+            <td>3.13</td>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>400 MB</td>
+        </tr>
+        <tr>
+            <td>golang</td>
+            <td>Go</td>
+            <td>1.24</td>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>500 MB</td>
+        </tr>
+        <tr>
+            <td>rust</td>
+            <td>Rust</td>
+            <td>stable</td>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>1000 MB</td>
+        </tr>
+        <tr>
+            <td>ruby</td>
+            <td>Ruby</td>
+            <td>3.4.7</td>
+            <td><span class="method-badge method-mise">mise</span></td>
+            <td>500 MB</td>
+        </tr>
+        <tr>
+            <td>jvm</td>
+            <td>Java/Kotlin/Scala</td>
+            <td>21</td>
+            <td><span class="method-badge method-script">script</span></td>
+            <td>1500 MB</td>
+        </tr>
+        <tr>
+            <td>dotnet</td>
+            <td>.NET</td>
+            <td>10.0 & 8.0</td>
+            <td><span class="method-badge method-apt">apt</span></td>
+            <td>2000 MB</td>
+        </tr>
+        <tr>
+            <td>php</td>
+            <td>PHP</td>
+            <td>8.4</td>
+            <td><span class="method-badge method-apt">apt</span></td>
+            <td>300 MB</td>
+        </tr>
+        <tr>
+            <td>haskell</td>
+            <td>Haskell</td>
+            <td>GHC 9.x</td>
+            <td><span class="method-badge method-script">script</span></td>
+            <td>1500 MB</td>
+        </tr>
+    </table>
+</section>
+
+<!-- AI Extensions -->
+<section>
+    <h2>AI & ML Extensions</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Extension</th>
+            <th>Purpose</th>
+            <th>Tools Included</th>
+        </tr>
+        <tr>
+            <td class="highlight">claude-codepro</td>
+            <td>TDD-enforced Claude Code environment</td>
+            <td>Quality checks, semantic search, persistent memory</td>
+        </tr>
+        <tr>
+            <td class="highlight">ai-toolkit</td>
+            <td>Comprehensive AI tools</td>
+            <td>Ollama, Fabric, Codex, Gemini CLI, Grok</td>
+        </tr>
+        <tr>
+            <td class="highlight">openskills</td>
+            <td>Claude Code skills manager</td>
+            <td>openskills CLI</td>
+        </tr>
+        <tr>
+            <td class="highlight">claude-code-mux</td>
+            <td>AI routing proxy</td>
+            <td>18+ AI provider support</td>
+        </tr>
+        <tr>
+            <td class="highlight">agent-manager</td>
+            <td>AI agent orchestration</td>
+            <td>Multi-agent management</td>
+        </tr>
+        <tr>
+            <td class="highlight">claude-marketplace</td>
+            <td>Plugin marketplace</td>
+            <td>Claude Code plugins</td>
+        </tr>
+        <tr>
+            <td class="highlight">claudeup</td>
+            <td>Claude Code management TUI</td>
+            <td>Plugins, MCPs, configuration</td>
+        </tr>
+        <tr>
+            <td class="highlight">ruvnet-research</td>
+            <td>AI research tools</td>
+            <td>Goalie, Research-Swarm</td>
+        </tr>
+        <tr>
+            <td class="highlight">claudish</td>
+            <td>OpenRouter model proxy</td>
+            <td>Claude Code with OpenRouter models</td>
+        </tr>
+        <tr>
+            <td class="highlight">claude-flow-v2 / v3</td>
+            <td>Multi-agent orchestration</td>
+            <td>Hive-mind, swarm, GOAP (v3: 10x faster)</td>
+        </tr>
+        <tr>
+            <td class="highlight">agentic-flow</td>
+            <td>Agentic workflow orchestration</td>
+            <td>Flow automation & coordination</td>
+        </tr>
+        <tr>
+            <td class="highlight">goose</td>
+            <td>AI coding agent</td>
+            <td>Tool use & code generation</td>
+        </tr>
+        <tr>
+            <td class="highlight">mdflow</td>
+            <td>Markdown to AI agents</td>
+            <td>Claude, Codex, Gemini, Copilot</td>
+        </tr>
+        <tr>
+            <td class="highlight">pal-mcp-server</td>
+            <td>AI orchestration MCP</td>
+            <td>18 tools: chat, thinkdeep, planner, consensus, codereview, debug, clink</td>
+        </tr>
+        <tr>
+            <td class="highlight">context7-mcp</td>
+            <td>Library documentation MCP</td>
+            <td>Up-to-date docs (optional API key)</td>
+        </tr>
+    </table>
+</section>
+
+<!-- Development Tools -->
+<section>
+    <h2>Development Tools</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Extension</th>
+            <th>Purpose</th>
+            <th>Dependencies</th>
+        </tr>
+        <tr>
+            <td>nodejs-devtools</td>
+            <td>TypeScript, ESLint, Prettier, pnpm</td>
+            <td>nodejs</td>
+        </tr>
+        <tr>
+            <td>playwright</td>
+            <td>Browser automation testing</td>
+            <td>nodejs</td>
+        </tr>
+        <tr>
+            <td>agent-browser</td>
+            <td>Browser automation for AI agents</td>
+            <td>nodejs, playwright</td>
+        </tr>
+        <tr>
+            <td>agentic-qe</td>
+            <td>AI-powered test generation</td>
+            <td>nodejs</td>
+        </tr>
+        <tr>
+            <td>tmux-workspace</td>
+            <td>Terminal multiplexer workspace</td>
+            <td>none</td>
+        </tr>
+    </table>
+</section>
+
+<!-- Infrastructure Extensions -->
+<section>
+    <h2>Infrastructure & DevOps</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Extension</th>
+            <th>Tools Included</th>
+            <th>Disk</th>
+        </tr>
+        <tr>
+            <td class="info">docker</td>
+            <td>Docker Engine, Docker Compose, containerd</td>
+            <td>1000 MB</td>
+        </tr>
+        <tr>
+            <td class="info">infra-tools</td>
+            <td>Terraform, kubectl, Helm, Ansible, Pulumi, Packer, Vagrant + more</td>
+            <td>2000+ MB</td>
+        </tr>
+        <tr>
+            <td class="info">cloud-tools</td>
+            <td>AWS CLI, Azure CLI, gcloud, OCI, Alibaba, DigitalOcean, IBM</td>
+            <td>1500+ MB</td>
+        </tr>
+        <tr>
+            <td class="info">monitoring</td>
+            <td>htop, ctop, glances, claude-monitor</td>
+            <td>200 MB</td>
+        </tr>
+    </table>
+</section>
+
+<section>
+    <h2>Docker Extension - DinD Support</h2>
+    <p><span class="highlight">Docker-in-Docker (DinD)</span> enables containerized workloads to build and run their own containers</p>
+    <table class="comparison-table">
+        <tr>
+            <th>Mode</th>
+            <th>Security</th>
+            <th>Performance</th>
+            <th>Requirements</th>
+            <th>Best For</th>
+        </tr>
+        <tr>
+            <td class="success">sysbox</td>
+            <td>Excellent</td>
+            <td>Fast (overlay2)</td>
+            <td>Host setup (kernel 5.12+)</td>
+            <td>Production CI/CD, multi-tenant</td>
+        </tr>
+        <tr>
+            <td class="warning">privileged</td>
+            <td>Poor</td>
+            <td>Slow (VFS)</td>
+            <td>None</td>
+            <td>Quick testing, single-tenant</td>
+        </tr>
+        <tr>
+            <td class="info">socket</td>
+            <td>Shared</td>
+            <td>Native</td>
+            <td>None</td>
+            <td>Simple builds, shared environments</td>
+        </tr>
+        <tr>
+            <td class="success">auto</td>
+            <td>Varies</td>
+            <td>Varies</td>
+            <td>Auto-detect</td>
+            <td>Automatic selection (recommended)</td>
+        </tr>
+    </table>
+    <pre><code class="language-yaml"># sindri.yaml - Configure DinD mode
+providers:
+  docker:
+    dind:
+      mode: auto          # sysbox, privileged, socket, or auto
+      driver: overlay2    # Storage driver
+      size: 20GB         # Storage allocation</code></pre>
+    <p class="small">See <code>docs/providers/DOCKER.md</code> for Sysbox setup: <code>./scripts/setup-sysbox-host.sh</code></p>
+</section>
+
+<!-- VisionFlow Extensions Section -->
+<section>
+    <section>
+        <h2>VisionFlow Extensions (33)</h2>
+        <p class="small">From <a href="https://github.com/DreamLab-AI/VisionFlow">VisionFlow Project</a> - AI workflows, document processing, creative tools</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1em; font-size: 0.65em;">
+            <div>
+                <h4 style="color: #a371f7; margin: 0.3em 0;">AI Tools (9)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-perplexity, vf-web-summary, vf-deepseek-reasoning,
+                    vf-comfyui, vf-pytorch-ml, vf-ontology-enrich,
+                    vf-import-to-ontology, vf-gemini-flow, vf-zai-service
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #58a6ff; margin: 0.3em 0;">Dev Tools (7)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-playwright-mcp, vf-chrome-devtools, vf-jupyter-notebooks,
+                    vf-webapp-testing, vf-kicad, vf-ngspice,
+                    vf-mcp-builder
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #3fb950; margin: 0.3em 0;">Desktop & Creative (5)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-blender, vf-qgis, vf-pbr-rendering,
+                    vf-canvas-design, vf-vnc-desktop
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #d29922; margin: 0.3em 0;">Utilities (10)</h4>
+                <div style="background: #21262d; padding: 0.5em; border-radius: 4px;">
+                    vf-imagemagick, vf-ffmpeg-processing, vf-latex-documents,
+                    vf-pdf, vf-docx, vf-pptx, vf-xlsx,
+                    vf-wardley-maps, vf-slack-gif-creator, vf-algorithmic-art
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>VisionFlow Infrastructure (2)</h2>
+        <table class="comparison-table">
+            <tr>
+                <th>Extension</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>vf-docker-manager</td>
+                <td>Docker container management MCP</td>
+            </tr>
+            <tr>
+                <td>vf-management-api</td>
+                <td>API management and monitoring</td>
+            </tr>
+        </table>
+    </section>
+</section>
+
+<!-- PROFILES SECTION -->
+<section data-background="#1f6feb">
+    <h1>Extension Profiles</h1>
+    <h3>Pre-configured Bundles</h3>
+</section>
+
+<!-- Profile Overview -->
+<section>
+    <h2>Available Profiles (12)</h2>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5em;">
+        <div class="profile-card">
+            <h4>minimal</h4>
+            nodejs, python<br>
+            <span class="small">~1GB | Quick scripting</span>
+        </div>
+        <div class="profile-card">
+            <h4>fullstack</h4>
+            nodejs, python, docker, nodejs-devtools<br>
+            <span class="small">~4GB | Web development</span>
+        </div>
+        <div class="profile-card">
+            <h4>ai-dev</h4>
+            nodejs, python, ai-toolkit, openskills, monitoring<br>
+            <span class="small">~5GB | AI/ML projects</span>
+        </div>
+        <div class="profile-card">
+            <h4>systems</h4>
+            rust, golang, docker, infra-tools<br>
+            <span class="small">~6GB | Systems programming</span>
+        </div>
+        <div class="profile-card">
+            <h4>devops</h4>
+            docker, infra-tools, cloud-tools, monitoring<br>
+            <span class="small">~6GB | Infrastructure</span>
+        </div>
+        <div class="profile-card">
+            <h4>enterprise</h4>
+            All languages + docker + cloud-tools<br>
+            <span class="small">~15GB | Multi-language</span>
+        </div>
+        <div class="profile-card">
+            <h4>mobile</h4>
+            nodejs<br>
+            <span class="small">~1GB | Mobile development</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-core</h4>
+            9 extensions: Document processing & automation<br>
+            <span class="small">~3GB | Document workflows</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-data-scientist</h4>
+            7 extensions: AI research & ML tools<br>
+            <span class="small">~5GB | Data science</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-creative</h4>
+            5 extensions: 3D modeling & creative tools<br>
+            <span class="small">~4GB | Creative dev</span>
+        </div>
+        <div class="profile-card" style="border-color: #a371f7;">
+            <h4>visionflow-full</h4>
+            All 34 VisionFlow extensions<br>
+            <span class="small">~12GB | Complete suite</span>
+        </div>
+    </div>
+</section>
+
+<!-- Anthropic-Dev Profile -->
+<section>
+    <h2>anthropic-dev Profile</h2>
+    <p class="small">The most comprehensive profile for Claude/AI development (24 extensions)</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 1em; justify-content: center; font-size: 0.6em;">
+        <div style="text-align: left;">
+            <h4 style="color: #a371f7; margin: 0 0 0.3em 0;">AI & Agents (11)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">agent-manager</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">claude-flow-v3</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ralph</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ollama</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ai-toolkit</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">claudish</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">claude-marketplace</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">mdflow</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">openskills</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">pal-mcp-server</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">ruvnet-research</div>
+        </div>
+        <div style="text-align: left;">
+            <h4 style="color: #3fb950; margin: 0 0 0.3em 0;">Languages (3)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">golang</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">jvm</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">rust</div>
+        </div>
+        <div style="text-align: left;">
+            <h4 style="color: #58a6ff; margin: 0 0 0.3em 0;">Dev Tools (5)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">agent-browser</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">agentic-qe</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">nodejs-devtools</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">playwright</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">tmux-workspace</div>
+        </div>
+        <div style="text-align: left;">
+            <h4 style="color: #d29922; margin: 0 0 0.3em 0;">Infrastructure (4)</h4>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">cloud-tools</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">infra-tools</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">linear-mcp</div>
+            <div class="ext-item" style="display: inline-block; margin: 0.1em;">supabase-cli</div>
+        </div>
+    </div>
+    <p class="small" style="margin-top: 1em;">~10-12GB | Advanced AI development</p>
+</section>
+
+<!-- Using Profiles -->
+<section>
+    <h2>Using Profiles</h2>
+    <pre><code class="language-yaml"># In sindri.yaml - use profile alone
+extensions:
+  profile: fullstack
+
+# Or profile + additional extensions
+extensions:
+  profile: minimal
+  additional:
+    - docker
+    - rust
+    - ai-toolkit</code></pre>
+    <pre><code class="language-bash"># Via CLI
+extension-manager install-profile fullstack
+
+# List available profiles
+extension-manager list-profiles</code></pre>
+</section>
+
+<!-- CREATING EXTENSIONS SECTION -->
+<section data-background="#8957e5">
+    <h1>Creating Extensions</h1>
+    <h3>Build Your Own</h3>
+</section>
+
+<!-- Extension Structure -->
+<section>
+    <h2>Extension YAML Structure</h2>
+    <pre><code class="language-yaml">metadata:
+  name: myext
+  version: 1.0.0
+  description: My custom extension
+  category: dev-tools
+  dependencies: []
+
+requirements:
+  domains: [example.com]
+  diskSpace: 100
+  secrets: []
+
+install:
+  method: mise  # or: apt, npm, binary, script, hybrid
+
+configure:
+  environment:
+    - key: MYEXT_HOME
+      value: ~/.myext
+      scope: bashrc
+
+validate:
+  commands:
+    - name: myext
+      expectedPattern: "v\\d+"
+
+remove:
+  confirmation: true
+  paths:
+    - ~/.myext</code></pre>
+</section>
+
+<!-- Installation Methods Deep Dive -->
+<section>
+    <section>
+        <h2>Method: mise</h2>
+        <p>For language runtimes and dev tools via mise/asdf</p>
+        <pre><code class="language-yaml">install:
+  method: mise
+  mise:
+    configFile: mise.toml</code></pre>
+        <pre><code class="language-toml"># mise.toml
+[tools]
+node = "lts"
+python = "3.13"
+uv = "0.9"
+go = "1.25"</code></pre>
+    </section>
+
+    <section>
+        <h2>Method: apt</h2>
+        <p>For system packages via APT</p>
+        <pre><code class="language-yaml">install:
+  method: apt
+  apt:
+    repositories:
+      - gpgKey: https://example.com/key.gpg
+        sources: "deb [arch=amd64] https://repo.example.com ubuntu jammy"
+    packages:
+      - mypackage
+      - another-package</code></pre>
+    </section>
+
+    <section>
+        <h2>Method: npm</h2>
+        <p>For Node.js packages</p>
+        <pre><code class="language-yaml">install:
+  method: npm
+  npm:
+    packages:
+      - typescript
+      - "@types/node"
+      - "eslint@^8.0.0"</code></pre>
+    </section>
+
+    <section>
+        <h2>Method: binary</h2>
+        <p>For direct binary downloads</p>
+        <pre><code class="language-yaml">install:
+  method: binary
+  binary:
+    downloads:
+      - name: mytool
+        source:
+          url: https://github.com/org/repo/releases/download/v1.0/mytool
+          # OR architecture-specific
+          urls:
+            amd64: https://.../mytool-linux-amd64
+            arm64: https://.../mytool-linux-arm64
+        destination: /workspace/bin
+        chmod: "755"</code></pre>
+    </section>
+
+    <section>
+        <h2>Method: script</h2>
+        <p>For complex custom installations</p>
+        <pre><code class="language-yaml">install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 600  # seconds</code></pre>
+        <pre><code class="language-bash"># scripts/install.sh
+#!/bin/bash
+set -euo pipefail
+
+# Custom installation logic
+curl -fsSL https://example.com/install.sh | bash
+# Configure...
+# Verify...</code></pre>
+    </section>
+
+    <section>
+        <h2>Method: hybrid</h2>
+        <p>Combine multiple methods sequentially</p>
+        <pre><code class="language-yaml">install:
+  method: hybrid
+  steps:
+    - method: apt
+      apt:
+        packages: [build-essential, libssl-dev]
+    - method: script
+      script:
+        path: scripts/compile.sh
+    - method: binary
+      binary:
+        downloads:
+          - name: helper-tool
+            source:
+              url: https://example.com/tool
+            destination: /workspace/bin</code></pre>
+    </section>
+</section>
+
+<!-- Step-by-Step Creation -->
+<section>
+    <section>
+        <h2>Creating an Extension</h2>
+        <h3>Step 1: Create Directory</h3>
+        <pre><code class="language-bash">mkdir -p docker/lib/extensions/myext/{templates,scripts}</code></pre>
+        <div class="architecture-diagram">
+docker/lib/extensions/myext/
+├── extension.yaml      # Main definition
+├── mise.toml          # If using mise method
+├── templates/         # Config file templates
+│   └── config.tmpl
+└── scripts/           # Custom scripts
+    ├── install.sh
+    └── validate.sh
+        </div>
+    </section>
+
+    <section>
+        <h2>Creating an Extension</h2>
+        <h3>Step 2: Write extension.yaml</h3>
+        <pre><code class="language-yaml">metadata:
+  name: myext
+  version: 1.0.0
+  description: My awesome extension
+  category: dev-tools
+  dependencies: [nodejs]  # Requires nodejs first
+
+requirements:
+  domains: [api.myext.com, github.com]
+  diskSpace: 200
+
+install:
+  method: npm
+  npm:
+    packages:
+      - "@myorg/myext-cli"
+
+configure:
+  environment:
+    - key: MYEXT_API_URL
+      value: https://api.myext.com
+      scope: bashrc
+
+validate:
+  commands:
+    - name: myext
+      versionFlag: "--version"
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"</code></pre>
+    </section>
+
+    <section>
+        <h2>Creating an Extension</h2>
+        <h3>Step 3: Add to Registry</h3>
+        <p>Edit <code>docker/lib/registry.yaml</code>:</p>
+        <pre><code class="language-yaml">extensions:
+  # ... existing extensions ...
+
+  myext:
+    category: dev-tools
+    description: My awesome extension
+    dependencies:
+      - nodejs</code></pre>
+    </section>
+
+    <section>
+        <h2>Creating an Extension</h2>
+        <h3>Step 4: Test Locally</h3>
+        <pre><code class="language-bash"># Build image with new extension
+docker build -t sindri:test -f Dockerfile .
+
+# Run container
+docker run -it -v sindri-workspace:/workspace sindri:test
+
+# Inside container: test installation
+extension-manager validate myext
+extension-manager install myext
+extension-manager status myext
+
+# Verify the tool works
+myext --version</code></pre>
+    </section>
+</section>
+
+<!-- Configuration Templates -->
+<section>
+    <h2>Configuration Templates</h2>
+    <pre><code class="language-yaml"># In extension.yaml
+configure:
+  templates:
+    - source: templates/config.tmpl
+      destination: ~/.myext/config.yaml
+  environment:
+    - key: MYEXT_CONFIG
+      value: ~/.myext/config.yaml
+      scope: bashrc</code></pre>
+    <pre><code class="language-yaml"># templates/config.tmpl
+api:
+  endpoint: ${MYEXT_API_URL}
+  timeout: 30
+user:
+  name: ${GIT_USER_NAME}
+  email: ${GIT_USER_EMAIL}</code></pre>
+</section>
+
+<!-- Validation Patterns -->
+<section>
+    <h2>Validation Patterns</h2>
+    <pre><code class="language-yaml">validate:
+  # Check command exists and version matches pattern
+  commands:
+    - name: mytool
+      versionFlag: "--version"
+      expectedPattern: "v\\d+\\.\\d+\\.\\d+"
+
+    - name: helper
+      versionFlag: "version"
+      expectedPattern: "helper \\d+"
+
+  # Verify mise tools are installed
+  mise:
+    tools: [mytool, helper]
+    minToolCount: 2
+
+  # Custom validation script
+  script:
+    path: scripts/validate.sh</code></pre>
+</section>
+
+<!-- REGISTRY & CATEGORIES -->
+<section data-background="#9e6a03">
+    <h1>Registry & Categories</h1>
+    <h3>Organizing Extensions</h3>
+</section>
+
+<!-- Registry Structure -->
+<section>
+    <h2>Registry Structure</h2>
+    <p><code>docker/lib/registry.yaml</code></p>
+    <pre><code class="language-yaml">version: 1.0
+
+extensions:
+  nodejs:
+    category: language
+    description: Node.js LTS runtime via mise
+    dependencies: [mise-config]
+
+  python:
+    category: language
+    description: Python 3.13 with uv package manager via mise
+    dependencies: [mise-config]
+
+  nodejs-devtools:
+    category: dev-tools
+    description: TypeScript, ESLint, Prettier, pnpm
+    dependencies:
+      - nodejs
+
+  ai-toolkit:
+    category: ai
+    description: Comprehensive AI development tools
+    dependencies:
+      - nodejs
+      - python
+      - golang
+      - github-cli</code></pre>
+</section>
+
+<!-- Categories -->
+<section>
+    <h2>Extension Categories</h2>
+    <p><code>docker/lib/categories.yaml</code></p>
+    <table class="comparison-table">
+        <tr>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Examples</th>
+        </tr>
+        <tr>
+            <td class="success">base</td>
+            <td>Core system components</td>
+            <td>mise-config, github-cli</td>
+        </tr>
+        <tr>
+            <td class="success">language</td>
+            <td>Programming language runtimes</td>
+            <td>nodejs, python, rust, golang</td>
+        </tr>
+        <tr>
+            <td class="info">dev-tools</td>
+            <td>Development tools & utilities</td>
+            <td>nodejs-devtools, playwright</td>
+        </tr>
+        <tr>
+            <td class="warning">infrastructure</td>
+            <td>Cloud & container tools</td>
+            <td>docker, infra-tools, cloud-tools</td>
+        </tr>
+        <tr>
+            <td class="highlight">ai</td>
+            <td>AI/ML frameworks & tools</td>
+            <td>ai-toolkit, openskills</td>
+        </tr>
+        <tr>
+            <td style="color: #f85149;">monitoring</td>
+            <td>Observability tools</td>
+            <td>monitoring</td>
+        </tr>
+        <tr>
+            <td class="info">agile</td>
+            <td>Agile & project management</td>
+            <td>linear-mcp, jira-mcp</td>
+        </tr>
+        <tr>
+            <td class="success">utilities</td>
+            <td>General utilities & tools</td>
+            <td>tmux-workspace</td>
+        </tr>
+        <tr>
+            <td class="warning">desktop</td>
+            <td>Desktop environments & GUI</td>
+            <td>xfce-ubuntu, guacamole</td>
+        </tr>
+        <tr>
+            <td class="highlight">database</td>
+            <td>Database systems & tools</td>
+            <td>supabase-cli</td>
+        </tr>
+        <tr>
+            <td style="color: #a371f7;">mobile</td>
+            <td>Mobile development tools</td>
+            <td>nodejs, supabase-cli</td>
+        </tr>
+    </table>
+</section>
+
+<!-- Modifying Registry -->
+<section>
+    <h2>Adding to Registry</h2>
+    <pre><code class="language-yaml"># docker/lib/registry.yaml
+extensions:
+  # Add your extension
+  myext:
+    category: dev-tools
+    description: My awesome development tool
+    dependencies:
+      - nodejs</code></pre>
+    <pre><code class="language-bash"># Validate the registry
+pnpm validate:yaml
+
+# Or manually
+yamllint docker/lib/registry.yaml</code></pre>
+</section>
+
+<!-- Creating Custom Profiles -->
+<section>
+    <h2>Creating Custom Profiles</h2>
+    <p>Edit <code>docker/lib/profiles.yaml</code>:</p>
+    <pre><code class="language-yaml">profiles:
+  # ... existing profiles ...
+
+  my-team:
+    description: Custom profile for my team
+    extensions:
+      - nodejs
+      - python
+      - docker
+      - myext
+      - ai-toolkit
+      - monitoring</code></pre>
+    <pre><code class="language-bash"># Use your new profile
+extension-manager install-profile my-team
+
+# Or in sindri.yaml
+extensions:
+  profile: my-team</code></pre>
+</section>
+
+<!-- EXTENSION MANAGEMENT -->
+<section data-background="#f85149">
+    <h1>Extension Management</h1>
+    <h3>CLI Commands</h3>
+</section>
+
+<!-- Management Commands -->
+<section>
+    <h2>Extension Manager CLI</h2>
+    <pre><code class="language-bash"># List & Discovery
+extension-manager list                    # List all extensions
+extension-manager list --category ai      # Filter by category
+extension-manager list-profiles           # List all profiles
+extension-manager list-categories         # List all categories
+extension-manager info nodejs             # Show extension details
+extension-manager search "typescript"     # Search extensions
+
+# Installation
+extension-manager install nodejs          # Install single
+extension-manager install nodejs python   # Install multiple
+extension-manager install-profile fullstack  # Install profile
+
+# Reinstallation (remove + install)
+extension-manager reinstall nodejs        # Reinstall single
+extension-manager reinstall-profile base  # Reinstall profile
+
+# Status & Validation
+extension-manager status nodejs           # Check status
+extension-manager status-all              # Check all
+extension-manager validate nodejs         # Validate extension
+extension-manager validate-all            # Validate all
+
+# Bill of Materials
+extension-manager bom                     # Show all BOMs
+extension-manager bom nodejs              # Show specific BOM
+extension-manager bom-regenerate          # Regenerate all BOMs</code></pre>
+</section>
+
+<!-- Dependency Resolution -->
+<section>
+    <h2>Dependency Resolution</h2>
+    <pre><code class="language-bash"># View dependency tree
+extension-manager resolve ai-toolkit</code></pre>
+    <div class="architecture-diagram">
+ai-toolkit
+├── nodejs        (will install first)
+├── python        (will install second)
+├── golang        (will install third)
+└── github-cli    (will install fourth)
+    └── (ai-toolkit installs last)
+    </div>
+    <p class="small" style="margin-top: 1em;">
+        Dependencies are automatically resolved and installed in topological order
+    </p>
+</section>
+
+<!-- Bill of Materials -->
+<section>
+    <h2>Bill of Materials (BOM)</h2>
+    <pre><code class="language-yaml"># Auto-generated in extension.yaml
+bom:
+  components:
+    - name: node
+      version: "22.11.0"
+      type: runtime
+      source: mise
+
+    - name: npm
+      version: "10.9.0"
+      type: tool
+      source: mise</code></pre>
+    <ul class="small">
+        <li>Security auditing & vulnerability tracking</li>
+        <li>License compliance verification</li>
+        <li>Software composition analysis (SBOM)</li>
+        <li>Upgrade tracking</li>
+    </ul>
+</section>
+
+<!-- BEST PRACTICES -->
+<section data-background="#21262d">
+    <h1>Best Practices</h1>
+</section>
+
+<section>
+    <h2>Extension Development Tips</h2>
+    <ul>
+        <li><span class="highlight">Keep it simple</span> - Use existing methods when possible</li>
+        <li><span class="highlight">Validate thoroughly</span> - Add comprehensive validation checks</li>
+        <li><span class="highlight">Document requirements</span> - Be explicit about domains and disk space</li>
+        <li><span class="highlight">Handle errors</span> - Scripts should exit on failure (<code>set -euo pipefail</code>)</li>
+        <li><span class="highlight">Clean uninstall</span> - Remove all artifacts in remove section</li>
+        <li><span class="highlight">Use templates</span> - For configuration files needing customization</li>
+        <li><span class="highlight">Respect dependencies</span> - List all required extensions</li>
+        <li><span class="highlight">Test locally</span> - Validate in Docker before deploying</li>
+    </ul>
+</section>
+
+<section>
+    <h2>Upgrade Strategies</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Strategy</th>
+            <th>Description</th>
+            <th>When to Use</th>
+        </tr>
+        <tr>
+            <td><code>automatic</code></td>
+            <td>Handled by package manager</td>
+            <td>mise, apt managed tools</td>
+        </tr>
+        <tr>
+            <td><code>manual</code></td>
+            <td>Custom upgrade scripts</td>
+            <td>Complex installations</td>
+        </tr>
+        <tr>
+            <td><code>none</code></td>
+            <td>Static versioning</td>
+            <td>Critical dependencies</td>
+        </tr>
+    </table>
+    <pre><code class="language-yaml">upgrade:
+  strategy: manual
+  script:
+    path: scripts/upgrade.sh</code></pre>
+</section>
+
+<!-- Quick Reference -->
+<section>
+    <h2>Quick Reference</h2>
+    <table class="comparison-table">
+        <tr>
+            <th>Task</th>
+            <th>Command / File</th>
+        </tr>
+        <tr>
+            <td>List all extensions</td>
+            <td><code>extension-manager list</code></td>
+        </tr>
+        <tr>
+            <td>Install profile</td>
+            <td><code>extension-manager install-profile X</code></td>
+        </tr>
+        <tr>
+            <td>Validate extension</td>
+            <td><code>extension-manager validate X</code></td>
+        </tr>
+        <tr>
+            <td>Add to registry</td>
+            <td>Edit <code>docker/lib/registry.yaml</code></td>
+        </tr>
+        <tr>
+            <td>Create profile</td>
+            <td>Edit <code>docker/lib/profiles.yaml</code></td>
+        </tr>
+        <tr>
+            <td>Add category</td>
+            <td>Edit <code>docker/lib/categories.yaml</code></td>
+        </tr>
+        <tr>
+            <td>Extension schema</td>
+            <td><code>docker/lib/schemas/extension.schema.json</code></td>
+        </tr>
+    </table>
+</section>
+
+<!-- Summary -->
+<section>
+    <h2>Summary</h2>
+    <ul>
+        <li><span class="highlight">70+ Extensions</span> - Languages, AI, DevOps, Infrastructure, VisionFlow</li>
+        <li><span class="highlight">13 Profiles</span> - minimal to enterprise + VisionFlow</li>
+        <li><span class="highlight">6 Install Methods</span> - mise, apt, npm, binary, script, hybrid</li>
+        <li><span class="highlight">YAML-First</span> - Declarative, schema-validated</li>
+        <li><span class="highlight">Auto Dependencies</span> - Topological resolution</li>
+        <li><span class="highlight">BOM Tracking</span> - Security & compliance</li>
+    </ul>
+</section>
+
+<!-- Get Started -->
+<section data-background-gradient="linear-gradient(135deg, #8957e5 0%, #a371f7 100%)">
+    <h2>Create Your First Extension</h2>
+    <pre><code class="language-bash"># 1. Create directory
+mkdir -p docker/lib/extensions/myext
+
+# 2. Create extension.yaml
+vim docker/lib/extensions/myext/extension.yaml
+
+# 3. Add to registry
+vim docker/lib/registry.yaml
+
+# 4. Validate
+extension-manager validate myext
+
+# 5. Install and test
+extension-manager install myext</code></pre>
+</section>
+
+<!-- Questions -->
+<section>
+    <h1>Questions?</h1>
+    <p style="margin-top: 2em;">
+        <a href="https://github.com/pacphi/sindri">GitHub Repository</a>
+    </p>
+    <p class="small">
+        Extension docs: <code>docs/extensions/</code><br>
+        Schema reference: <code>docker/lib/schemas/</code>
+    </p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/markdown/markdown.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+    Reveal.initialize({
+        hash: true,
+        slideNumber: true,
+        transition: 'slide',
+        autoSlide: 5000,
+        autoSlideStoppable: true,
+        loop: true,
+        plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+    });
+</script>
+</body>
+</html>

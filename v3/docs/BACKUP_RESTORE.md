@@ -604,7 +604,7 @@ The following features are planned but not yet implemented in V3:
 
 - [ADR-017: Backup System Architecture](architecture/adr/017-backup-system-architecture.md)
 - [ADR-018: Restore System Architecture](architecture/adr/018-restore-system-architecture.md)
-- [Getting Started](getting-started.md)
+- [Getting Started](GETTING_STARTED.md)
 
 ---
 

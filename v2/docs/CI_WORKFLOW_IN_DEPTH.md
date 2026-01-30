@@ -136,10 +136,10 @@ SKIP_AUTO_INSTALL=true  # Forces clean slate regardless of config
 │                    SIMPLIFIED CI PIPELINE                        │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  ci.yml (orchestrator)                                           │
+│  ci-v2.yml (orchestrator)                                        │
 │  ├── validate (shellcheck, yamllint, markdown)                   │
 │  ├── build (Docker image)                                        │
-│  └── test-provider.yml (per provider)                            │
+│  └── v2-test-provider.yml (per provider)                            │
 │      │                                                           │
 │      └── Single Job:                                             │
 │          1. Setup credentials                                    │
@@ -198,8 +198,8 @@ Secrets flow from GitHub repository → workflow → environment variables:
 
 **Secret Flow**:
 
-1. `ci.yml` declares `secrets: inherit`
-2. `test-provider.yml` declares all secrets as inputs
+1. `ci-v2.yml` declares `secrets: inherit`
+2. `v2-test-provider.yml` declares all secrets as inputs
 3. Secrets passed as env vars to `setup-credentials`, `deploy`, and `run-tests` steps
 4. Adapter scripts (fly-adapter.sh, devpod-adapter.sh) read from environment
 
@@ -233,7 +233,7 @@ sindri-test.sh --level extension
 sindri-test.sh --level extension --extension python
 ```
 
-The CI workflows (`ci.yml`, `test-provider.yml`) expose this as an `extension` input.
+The CI workflows (`ci-v2.yml`, `v2-test-provider.yml`) expose this as an `extension` input.
 
 ### Profile Level (Profile Lifecycle)
 
@@ -424,7 +424,7 @@ Summary: 3 passed, 1 failed
 
 Two specialized workflows handle different testing scenarios:
 
-### test-extensions.yml (Registry-Based)
+### v2-test-extensions.yml (Registry-Based)
 
 Tests individual extensions directly from the registry without requiring sindri.yaml files.
 
@@ -462,7 +462,7 @@ When `all` is specified, these base extensions are excluded:
 - `mise-config`
 - `github-cli`
 
-### test-profiles.yml (Config-Based)
+### v2-test-profiles.yml (Config-Based)
 
 Tests sindri.yaml configuration files from the `examples/` directory.
 
@@ -574,39 +574,39 @@ gh auth login
 
 ### Workflow Reference
 
-| Workflow              | Purpose                    | When to Use                                                 |
-| --------------------- | -------------------------- | ----------------------------------------------------------- |
-| `ci.yml`              | Full CI pipeline           | Validate all changes before merging                         |
-| `test-extensions.yml` | Test individual extensions | Debugging extension issues or validating new extensions     |
-| `test-profiles.yml`   | Test sindri.yaml configs   | Validating example configurations or profile changes        |
-| `manual-deploy.yml`   | Deploy to any provider     | Creating persistent dev environments or testing deployments |
-| `deploy-sindri.yml`   | Reusable deployment        | Called by other workflows (rarely triggered directly)       |
+| Workflow                 | Purpose                    | When to Use                                                 |
+| ------------------------ | -------------------------- | ----------------------------------------------------------- |
+| `ci-v2.yml`              | Full V2 CI pipeline        | Validate all V2 changes before merging                      |
+| `v2-test-extensions.yml` | Test individual extensions | Debugging extension issues or validating new extensions     |
+| `v2-test-profiles.yml`   | Test sindri.yaml configs   | Validating example configurations or profile changes        |
+| `v2-manual-deploy.yml`   | Deploy to any provider     | Creating persistent dev environments or testing deployments |
+| `v2-deploy-sindri.yml`   | Reusable deployment        | Called by other workflows (rarely triggered directly)       |
 
-### CI Workflow (`ci.yml`)
+### CI Workflow (`ci-v2.yml`)
 
 The main CI pipeline runs validation, builds the image, and tests across providers.
 
 ```bash
 # Run with defaults (docker, fly, devpod-k8s providers, profile level)
-gh workflow run ci.yml
+gh workflow run ci-v2.yml
 
 # Test specific providers
-gh workflow run ci.yml -f providers="docker,fly"
+gh workflow run ci-v2.yml -f providers="docker,fly"
 
 # Test all providers
-gh workflow run ci.yml -f providers="all"
+gh workflow run ci-v2.yml -f providers="all"
 
 # Run quick tests only (faster feedback)
-gh workflow run ci.yml -f test-level="quick"
+gh workflow run ci-v2.yml -f test-level="quick"
 
 # Test a specific extension
-gh workflow run ci.yml -f test-level="extension" -f extension="python"
+gh workflow run ci-v2.yml -f test-level="extension" -f extension="python"
 
 # Test a specific profile
-gh workflow run ci.yml -f test-level="profile" -f extension-profile="fullstack"
+gh workflow run ci-v2.yml -f test-level="profile" -f extension-profile="fullstack"
 
 # Skip cleanup for debugging failed tests
-gh workflow run ci.yml -f skip-cleanup=true
+gh workflow run ci-v2.yml -f skip-cleanup=true
 ```
 
 **When to use:**
@@ -615,22 +615,22 @@ gh workflow run ci.yml -f skip-cleanup=true
 - After modifying extension definitions or schemas
 - When testing provider adapter changes
 
-### Test Extensions Workflow (`test-extensions.yml`)
+### Test Extensions Workflow (`v2-test-extensions.yml`)
 
 Tests individual extensions directly from the registry (Docker-only, no sindri.yaml needed).
 
 ```bash
 # Test a single extension
-gh workflow run test-extensions.yml -f extensions="nodejs"
+gh workflow run v2-test-extensions.yml -f extensions="nodejs"
 
 # Test multiple extensions
-gh workflow run test-extensions.yml -f extensions="nodejs,python,golang"
+gh workflow run v2-test-extensions.yml -f extensions="nodejs,python,golang"
 
 # Test all non-protected extensions (70+)
-gh workflow run test-extensions.yml -f extensions="all"
+gh workflow run v2-test-extensions.yml -f extensions="all"
 
 # Keep containers running for debugging
-gh workflow run test-extensions.yml -f extensions="python" -f skip-cleanup=true
+gh workflow run v2-test-extensions.yml -f extensions="python" -f skip-cleanup=true
 ```
 
 **When to use:**
@@ -640,25 +640,25 @@ gh workflow run test-extensions.yml -f extensions="python" -f skip-cleanup=true
 - Testing extension upgrades or changes
 - Verifying dependency resolution
 
-### Test Profiles Workflow (`test-profiles.yml`)
+### Test Profiles Workflow (`v2-test-profiles.yml`)
 
 Tests sindri.yaml configuration files from the `examples/` directory.
 
 ```bash
 # Test a specific config file
-gh workflow run test-profiles.yml -f config-path="examples/fly/minimal.sindri.yaml"
+gh workflow run v2-test-profiles.yml -f config-path="examples/fly/minimal.sindri.yaml"
 
 # Test all Fly.io examples
-gh workflow run test-profiles.yml -f config-path="examples/fly/"
+gh workflow run v2-test-profiles.yml -f config-path="examples/fly/"
 
 # Test all Docker examples
-gh workflow run test-profiles.yml -f config-path="examples/docker/"
+gh workflow run v2-test-profiles.yml -f config-path="examples/docker/"
 
 # Test all examples (comprehensive)
-gh workflow run test-profiles.yml -f config-path="examples/"
+gh workflow run v2-test-profiles.yml -f config-path="examples/"
 
 # Run profile-level tests (full lifecycle)
-gh workflow run test-profiles.yml \
+gh workflow run v2-test-profiles.yml \
   -f config-path="examples/docker/fullstack.sindri.yaml" \
   -f test-level="profile"
 ```
@@ -669,13 +669,13 @@ gh workflow run test-profiles.yml \
 - Testing profile definitions
 - Verifying provider-specific configurations
 
-### Manual Deploy Workflow (`manual-deploy.yml`)
+### Manual Deploy Workflow (`v2-manual-deploy.yml`)
 
 Creates a persistent deployment for development or testing.
 
 ```bash
 # Deploy to Fly.io (production)
-gh workflow run manual-deploy.yml \
+gh workflow run v2-manual-deploy.yml \
   -f provider="fly" \
   -f environment="production" \
   -f extension-profile="fullstack" \
@@ -683,26 +683,26 @@ gh workflow run manual-deploy.yml \
   -f region="sjc"
 
 # Deploy to Docker locally
-gh workflow run manual-deploy.yml \
+gh workflow run v2-manual-deploy.yml \
   -f provider="docker" \
   -f environment="development" \
   -f extension-profile="minimal"
 
 # Deploy to AWS via DevPod
-gh workflow run manual-deploy.yml \
+gh workflow run v2-manual-deploy.yml \
   -f provider="devpod-aws" \
   -f environment="staging" \
   -f extension-profile="ai-dev" \
   -f vm-size="large"
 
 # Deploy with auto-cleanup after 8 hours
-gh workflow run manual-deploy.yml \
+gh workflow run v2-manual-deploy.yml \
   -f provider="fly" \
   -f environment="development" \
   -f auto-cleanup="8"
 
 # Deploy and run tests
-gh workflow run manual-deploy.yml \
+gh workflow run v2-manual-deploy.yml \
   -f provider="fly" \
   -f environment="staging" \
   -f run-tests=true
@@ -719,7 +719,7 @@ gh workflow run manual-deploy.yml \
 
 ```bash
 # List recent workflow runs
-gh run list --workflow=ci.yml
+gh run list --workflow=ci-v2.yml
 
 # Watch a running workflow
 gh run watch
@@ -740,7 +740,7 @@ gh run download <run-id>
 
 ```bash
 # 1. Run extension test with skip-cleanup
-gh workflow run test-extensions.yml -f extensions="failing-ext" -f skip-cleanup=true
+gh workflow run v2-test-extensions.yml -f extensions="failing-ext" -f skip-cleanup=true
 
 # 2. Watch the run
 gh run watch
@@ -756,10 +756,10 @@ cat /alt/home/developer/workspace/.system/logs/failing-ext-install.log
 
 ```bash
 # Quick validation
-gh workflow run ci.yml -f test-level="quick" -f providers="docker"
+gh workflow run ci-v2.yml -f test-level="quick" -f providers="docker"
 
 # Full validation
-gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
+gh workflow run ci-v2.yml -f test-level="profile" -f providers="docker,fly"
 ```
 
 ---
@@ -769,10 +769,10 @@ gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
 | File                                             | Purpose                                         |
 | ------------------------------------------------ | ----------------------------------------------- |
 | `/docker/scripts/sindri-test.sh`                 | Unified test script (runs inside container)     |
-| `.github/workflows/ci.yml`                       | Main CI orchestrator                            |
-| `.github/workflows/test-provider.yml`            | Per-provider test workflow                      |
-| `.github/workflows/test-extensions.yml`          | Registry-based extension testing (Docker-only)  |
-| `.github/workflows/test-profiles.yml`            | Config-driven profile testing (discovers files) |
+| `.github/workflows/ci-v2.yml`                    | Main V2 CI orchestrator                         |
+| `.github/workflows/v2-test-provider.yml`         | Per-provider test workflow                      |
+| `.github/workflows/v2-test-extensions.yml`       | Registry-based extension testing (Docker-only)  |
+| `.github/workflows/v2-test-profiles.yml`         | Config-driven profile testing (discovers files) |
 | `.github/scripts/providers/run-on-provider.sh`   | Provider execution abstraction                  |
 | `.github/scripts/providers/setup-credentials.sh` | Unified credential setup                        |
 
@@ -782,5 +782,5 @@ gh workflow run ci.yml -f test-level="profile" -f providers="docker,fly"
 
 - [TESTING.md](TESTING.md) - General testing philosophy
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture overview
-- [EXTENSION_AUTHORING.md](../../docs/EXTENSION_AUTHORING.md) - Creating new extensions
+- [EXTENSION_AUTHORING.md](EXTENSION_AUTHORING.md) - Creating new extensions
 - [CONTRIBUTING.md](../../docs/CONTRIBUTING.md) - Development workflow and standards

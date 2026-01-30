@@ -5,7 +5,7 @@
 [![CI V3](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml)
 [![FAQ](https://img.shields.io/badge/FAQ-on%20fly.dev-blue)](https://sindri-faq.fly.dev)
 [![GHCR](https://img.shields.io/badge/GHCR-container%20registry-blue)](https://github.com/pacphi/sindri/pkgs/container/sindri)
-[![Security](https://img.shields.io/badge/Security-Cosign%20%2B%20SBOM-green)](v3/docs/image-management.md#security)
+[![Security](https://img.shields.io/badge/Security-Cosign%20%2B%20SBOM-green)](v3/docs/IMAGE_MANAGEMENT.md#security)
 
 A declarative, provider-agnostic cloud development environment system. Deploy consistent development environments to Fly.io, local Docker, or via DevPod to Kubernetes, AWS, GCP, Azure, and other cloud providers using YAML-defined extensions.
 
@@ -103,6 +103,28 @@ Deploy to multiple cloud providers using the same configuration:
 ### 🔧 Extension System
 
 Install development tools declaratively using profiles or individual extensions.
+
+### 🤖 Claude Code Skills for Extension Development
+
+Claude Code skills are available to guide extension development for both V2 and V3:
+
+| Skill                 | Description                               |
+| --------------------- | ----------------------------------------- |
+| `/extension-guide`    | Router skill - helps choose V2 or V3      |
+| `/extension-guide-v2` | V2 extension guide (Bash/Docker platform) |
+| `/extension-guide-v3` | V3 extension guide (Rust CLI platform)    |
+
+When using Claude Code, ask about creating extensions and it will automatically provide guidance:
+
+```text
+Example prompts:
+- "Help me create a new extension for Lua development"
+- "Create a V3 extension for an MCP server"
+- "What's the difference between V2 and V3 extensions?"
+- "Add capabilities to my extension for project initialization"
+```
+
+See [V2 vs V3 Comparison](docs/v2-v3-comparison-guide.md) for detailed differences.
 
 ## License
 

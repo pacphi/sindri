@@ -1,6 +1,6 @@
 # Sindri Configuration Examples
 
-Ready-to-use configuration files for deploying Sindri to various providers. **61 examples** covering all profiles, providers, and configuration permutations.
+Ready-to-use configuration files for deploying Sindri to various providers. **67 examples** covering all profiles, providers, and configuration permutations.
 
 ## Quick Start
 
@@ -13,26 +13,28 @@ Ready-to-use configuration files for deploying Sindri to various providers. **61
 
 ### Example Types
 
-| Type                 | Count | Description                            |
-| -------------------- | ----- | -------------------------------------- |
-| **Profile-based**    | 37    | Use curated extension profiles         |
-| **Custom**           | 7     | Hand-picked extensions (no profile)    |
-| **Provider-focused** | 24    | Provider-specific features and regions |
+| Type              | Count | Description                         |
+| ----------------- | ----- | ----------------------------------- |
+| **Profile-based** | 51    | Use curated extension profiles      |
+| **Custom**        | 7     | Hand-picked extensions (no profile) |
+| **Reference**     | 9     | Profile reference configurations    |
 
-### Coverage Matrix (Profiles × Providers)
+### Coverage Matrix (Profiles x Providers)
 
-| Profile       | Fly | Docker | E2B | DevPod | Custom | Total |
-| ------------- | --- | ------ | --- | ------ | ------ | ----- |
-| minimal       | 4   | 1      | 1   | 11     | -      | 17    |
-| fullstack     | 2   | 1      | 1   | 2      | -      | 6     |
-| ai-dev        | 1   | 1      | 1   | 2      | -      | 5     |
-| anthropic-dev | 1   | 1      | -   | -      | -      | 2     |
-| systems       | 1   | 1      | -   | 1      | -      | 3     |
-| devops        | 1   | 1      | -   | 1      | -      | 3     |
-| enterprise    | -   | 1      | -   | -      | -      | 1     |
-| mobile        | 1   | 1      | -   | -      | -      | 2     |
-| **Custom**    | 2   | 2      | 3   | 1      | 2      | 10    |
-| **Total**     | 15  | 11     | 6   | 18     | 2      | 50    |
+| Profile       | Fly | Docker | E2B | DevPod | K8s | Custom | Profiles | Total |
+| ------------- | --- | ------ | --- | ------ | --- | ------ | -------- | ----- |
+| minimal       | 1   | 1      | 1   | 6      | 2   | -      | 1        | 12    |
+| fullstack     | 1   | 1      | 1   | 2      | -   | -      | 1        | 6     |
+| ai-dev        | -   | 1      | 1   | 3      | -   | -      | 1        | 6     |
+| anthropic-dev | 1   | 1      | -   | -      | -   | -      | -        | 2     |
+| systems       | 1   | 1      | -   | 1      | -   | -      | -        | 3     |
+| devops        | -   | 1      | -   | 1      | -   | -      | 1        | 3     |
+| enterprise    | -   | 1      | -   | -      | -   | -      | 1        | 2     |
+| mobile        | 1   | 1      | -   | -      | -   | -      | -        | 2     |
+| **Other**     | 5   | 7      | 3   | 5      | -   | 7      | 5        | 32    |
+| **Total**     | 10  | 15     | 6   | 18     | 2   | 7      | 9        | 67    |
+
+**Note:** "Other" includes region-specific configs, GPU examples, specialized setups (DinD, vision-flow, etc.), and custom extension combinations.
 
 ## Directory Structure
 
@@ -40,16 +42,17 @@ Ready-to-use configuration files for deploying Sindri to various providers. **61
 
 | Directory              | Provider       | Examples | Description                               |
 | ---------------------- | -------------- | -------- | ----------------------------------------- |
-| `fly/`                 | Fly.io         | 17       | Deploy to Fly.io's global edge network    |
-| `docker/`              | Docker Compose | 11       | Local development with Docker             |
+| `fly/`                 | Fly.io         | 10       | Deploy to Fly.io's global edge network    |
+| `docker/`              | Docker Compose | 15       | Local development with Docker             |
 | `e2b/`                 | E2B            | 6        | Ultra-fast cloud sandboxes (~150ms start) |
 | `devpod/aws/`          | DevPod + AWS   | 5        | EC2-based development environments        |
-| `devpod/gcp/`          | DevPod + GCP   | 4        | GCE-based development environments        |
-| `devpod/azure/`        | DevPod + Azure | 3        | Azure VM-based development environments   |
+| `devpod/gcp/`          | DevPod + GCP   | 5        | GCE-based development environments        |
+| `devpod/azure/`        | DevPod + Azure | 2        | Azure VM-based development environments   |
 | `devpod/digitalocean/` | DevPod + DO    | 2        | DigitalOcean droplet environments         |
-| `devpod/kubernetes/`   | DevPod + K8s   | 3        | Kubernetes pod-based environments         |
+| `devpod/kubernetes/`   | DevPod + K8s   | 4        | Kubernetes pod-based environments         |
 | `k8s/`                 | Kind/K3d       | 2        | Local cluster creation + deployment       |
 | `custom/`              | Mixed          | 7        | Custom extension combinations             |
+| `profiles/`            | Reference      | 9        | Profile reference configurations          |
 
 ### By Extension Profile
 
@@ -71,7 +74,7 @@ Each example includes:
 - Comments explaining each option
 - Tested in CI (if it's here, it works)
 
-### Fly.io Examples (17 examples)
+### Fly.io Examples (10 examples)
 
 Production-ready deployments to Fly.io's global edge network.
 
@@ -80,19 +83,17 @@ fly/
 ├── minimal.sindri.yaml               # Basic (1GB RAM, shared CPU)
 ├── fullstack.sindri.yaml             # Full dev environment (4GB RAM, dedicated CPU)
 ├── production.sindri.yaml            # Production-ready with secrets
-├── ai-dev.sindri.yaml                # AI/ML development (4GB RAM)
 ├── anthropic-dev.sindri.yaml         # Full Anthropic toolset (8GB RAM, always-on)
 ├── systems.sindri.yaml               # Rust/Go systems programming (4GB RAM)
 ├── mobile.sindri.yaml                # Mobile development backend (6GB RAM)
-├── devops.sindri.yaml                # DevOps tools (4GB RAM)
-├── enterprise.sindri.yaml            # All languages (8GB RAM)
+├── gpu-ml-training.sindri.yaml       # GPU-accelerated ML training
 └── regions/                          # Region-specific deployments
     ├── ord.sindri.yaml               # Chicago region
     ├── ams.sindri.yaml               # Amsterdam region
     └── iad.sindri.yaml               # Virginia region
 ```
 
-### Docker Examples (11 examples)
+### Docker Examples (15 examples)
 
 Local development with Docker Compose.
 
@@ -105,7 +106,14 @@ docker/
 ├── systems.sindri.yaml        # Rust/Go (6GB RAM)
 ├── devops.sindri.yaml         # DevOps tools with privileged mode (8GB RAM)
 ├── enterprise.sindri.yaml     # All languages (16GB RAM, multi-port)
-└── mobile.sindri.yaml         # Mobile development (8GB RAM, Expo ports)
+├── mobile.sindri.yaml         # Mobile development (8GB RAM, Expo ports)
+├── gpu-ai-dev.sindri.yaml     # GPU-accelerated AI development
+├── claude-codepro.sindri.yaml # Claude Code Pro setup
+├── agent-browser.sindri.yaml  # Browser automation agent
+├── pal-mcp-server.sindri.yaml # PAL MCP server setup
+├── dind-privileged.sindri.yaml # Docker-in-Docker (privileged mode)
+├── dind-socket.sindri.yaml    # Docker-in-Docker (socket mount)
+└── dind-sysbox.sindri.yaml    # Docker-in-Docker (Sysbox runtime)
 ```
 
 ### E2B Examples (6 examples)
@@ -129,7 +137,7 @@ e2b/
 - WebSocket PTY terminal (no SSH required)
 - Per-second billing (~$0.13/hr for 2 vCPU, 2GB)
 
-### DevPod Examples (19 examples)
+### DevPod Examples (18 examples)
 
 Cloud-based development environments via DevPod.
 
@@ -146,6 +154,7 @@ devpod/
 │   ├── minimal.sindri.yaml         # n2-standard-2 basic setup
 │   ├── fullstack.sindri.yaml       # n2-standard-4 (8GB RAM, 4 CPU)
 │   ├── ai-dev.sindri.yaml          # n2-highmem-8 (16GB RAM)
+│   ├── gpu-inference.sindri.yaml   # GPU inference workloads
 │   └── regions/
 │       └── europe-west1.sindri.yaml # Belgium region
 ├── azure/
@@ -159,7 +168,8 @@ devpod/
 └── kubernetes/
     ├── minimal.sindri.yaml         # Basic K8s pod
     ├── devops.sindri.yaml          # DevOps in K8s (standard storage)
-    └── systems.sindri.yaml         # Rust/Go in K8s (fast-ssd storage)
+    ├── systems.sindri.yaml         # Rust/Go in K8s (fast-ssd storage)
+    └── gpu-workload.sindri.yaml    # GPU workloads in K8s
 ```
 
 ### Local Kubernetes Examples (2 examples)
@@ -361,15 +371,15 @@ You can manually trigger tests using GitHub Actions:
 
 1. Go to **Actions** → **Test Sindri Configuration**
 2. Click **Run workflow**
-3. Select a config path from the dropdown (52 individual examples or directories)
+3. Select a config path from the dropdown (67 individual examples or directories)
 4. Choose test suite: `smoke`, `integration`, or `full`
 5. Optionally skip cleanup for debugging
 
 **Available test targets:**
 
-- Individual files: All 55 examples are available
+- Individual files: All 67 examples are available
 - Directories: `examples/fly/`, `examples/docker/`, `examples/devpod/aws/`, etc.
-- All examples: `examples/` (tests all 55 configurations)
+- All examples: `examples/` (tests all 67 configurations)
 
 ## See Also
 

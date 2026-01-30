@@ -179,16 +179,16 @@ pnpm lint:md
 
 The CI system uses these workflows:
 
-| Workflow              | Purpose                                                       |
-| --------------------- | ------------------------------------------------------------- |
-| `ci.yml`              | Main CI orchestrator - validation, build, unified testing     |
-| `validate-yaml.yml`   | Comprehensive YAML validation                                 |
-| `test-extensions.yml` | Registry-based extension testing (single, multiple, or all)   |
-| `test-profiles.yml`   | Config-driven profile testing (discovers sindri.yaml files)   |
-| `deploy-sindri.yml`   | Reusable deployment workflow                                  |
-| `teardown-sindri.yml` | Reusable cleanup workflow                                     |
-| `test-provider.yml`   | Full test suite per provider (CLI + extensions + integration) |
-| `release.yml`         | Release automation                                            |
+| Workflow                 | Purpose                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| `ci.yml`                 | Main CI orchestrator - validation, build, unified testing     |
+| `validate-yaml.yml`      | Comprehensive YAML validation                                 |
+| `test-extensions.yml`    | Registry-based extension testing (single, multiple, or all)   |
+| `v2-test-profiles.yml`   | Config-driven profile testing (discovers sindri.yaml files)   |
+| `v2-deploy-sindri.yml`   | Reusable deployment workflow                                  |
+| `v2-teardown-sindri.yml` | Reusable cleanup workflow                                     |
+| `test-provider.yml`      | Full test suite per provider (CLI + extensions + integration) |
+| `release.yml`            | Release automation                                            |
 
 ### CI Test Flow (Simplified)
 
@@ -304,7 +304,7 @@ kind create cluster --name my-cluster
 
 ### Testing Profiles (Config-based)
 
-The `test-profiles.yml` workflow discovers and tests sindri.yaml configuration files:
+The `v2-test-profiles.yml` workflow discovers and tests sindri.yaml configuration files:
 
 ```yaml
 # Run via workflow_dispatch
@@ -480,5 +480,5 @@ extension-manager validate nodejs
 ## Related Documentation
 
 - [Configuration Guide](CONFIGURATION.md)
-- [Extension Authoring](../../docs/EXTENSION_AUTHORING.md)
+- [Extension Authoring](EXTENSION_AUTHORING.md)
 - [Contributing Guide](../../docs/CONTRIBUTING.md)

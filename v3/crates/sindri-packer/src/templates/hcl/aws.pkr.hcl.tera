@@ -1,0 +1,186 @@
+{# aws.pkr.hcl.tera - AWS AMI Packer Template for Sindri #}
+packer {
+  required_plugins {
+    amazon = {
+      version = ">= 1.3.0"
+      source  = "github.com/hashicorp/amazon"
+    }
+  }
+}
+
+variable "image_name" {
+  type    = string
+  default = "{{ image_name }}"
+}
+
+variable "sindri_version" {
+  type    = string
+  default = "{{ sindri_version }}"
+}
+
+variable "instance_type" {
+  type    = string
+  default = "{{ instance_type | default(value="t3.large") }}"
+}
+
+variable "region" {
+  type    = string
+  default = "{{ region | default(value="us-west-2") }}"
+}
+
+variable "volume_size" {
+  type    = number
+  default = {{ volume_size | default(value=60) }}
+}
+
+source "amazon-ebs" "sindri" {
+  ami_name        = "${var.image_name}-{{timestamp}}"
+  ami_description = "Sindri v3 development environment{% if description %} - {{ description }}{% endif %}"
+  instance_type   = var.instance_type
+  region          = var.region
+
+  source_ami_filter {
+    filters = {
+      name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"
+      root-device-type    = "ebs"
+      virtualization-type = "hvm"
+    }
+    most_recent = true
+    owners      = ["099720109477"] # Canonical
+  }
+
+  ssh_username = "ubuntu"
+  ssh_timeout  = "{{ ssh_timeout | default(value="20m") }}"
+
+  launch_block_device_mappings {
+    device_name           = "/dev/sda1"
+    volume_size           = var.volume_size
+    volume_type           = "{{ volume_type | default(value="gp3") }}"
+    delete_on_termination = true
+    encrypted             = {{ encrypt_boot | default(value=true) | lower }}
+  }
+
+{% if vpc_id %}
+  vpc_id    = "{{ vpc_id }}"
+{% endif %}
+{% if subnet_id %}
+  subnet_id = "{{ subnet_id }}"
+{% endif %}
+
+{% if ami_regions | length > 0 %}
+  ami_regions = [{% for r in ami_regions %}"{{ r }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+
+{% if ami_users | length > 0 %}
+  ami_users = [{% for u in ami_users %}"{{ u }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+
+{% if ami_groups | length > 0 %}
+  ami_groups = [{% for g in ami_groups %}"{{ g }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+
+  tags = {
+    Name          = var.image_name
+    SindriVersion = var.sindri_version
+    BuildDate     = "{{timestamp}}"
+    BuiltBy       = "packer"
+    ManagedBy     = "sindri"
+{% for key, value in tags %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+
+  run_tags = {
+    Name    = "Packer Builder - ${var.image_name}"
+    Purpose = "ami-build"
+  }
+}
+
+build {
+  name    = "sindri-aws"
+  sources = ["source.amazon-ebs.sindri"]
+
+  # Upload provisioning scripts
+  provisioner "file" {
+    source      = "scripts/"
+    destination = "/tmp/sindri-scripts/"
+  }
+
+{% if file_uploads | length > 0 %}
+  # Upload additional files
+{% for upload in file_uploads %}
+  provisioner "file" {
+    source      = "{{ upload.source }}"
+    destination = "{{ upload.destination }}"
+  }
+
+{% endfor %}
+{% endif %}
+  # Run initialization
+  provisioner "shell" {
+    inline = [
+      "chmod +x /tmp/sindri-scripts/*.sh",
+      "sudo /tmp/sindri-scripts/init.sh"
+    ]
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+{% for key, value in environment %}
+      "{{ key }}={{ value }}",
+{% endfor %}
+    ]
+  }
+
+  # Install Sindri
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/install-sindri.sh"
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+      "INSTALL_PROFILE={{ profile | default(value="base") }}",
+      "EXTENSIONS={{ extensions | join(sep=",") }}"
+    ]
+  }
+
+{% if cis_hardening %}
+  # CIS Benchmark Hardening
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/security-hardening.sh"
+    environment_vars = [
+      "CIS_LEVEL=1"
+    ]
+  }
+
+{% endif %}
+{% if ansible_playbook %}
+  # Ansible provisioning
+  provisioner "ansible" {
+    playbook_file = "{{ ansible_playbook }}"
+  }
+
+{% endif %}
+  # Cleanup
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/cleanup.sh"
+    environment_vars = [
+      "CLEAN_SENSITIVE_DATA={{ clean_sensitive_data | default(value=true) | lower }}",
+      "REMOVE_SSH_KEYS={{ remove_ssh_keys | default(value=true) | lower }}"
+    ]
+  }
+
+  # Generate manifest
+  post-processor "manifest" {
+    output     = "manifest.json"
+    strip_path = true
+    custom_data = {
+      sindri_version = var.sindri_version
+      build_time     = "{{timestamp}}"
+    }
+  }
+
+{% if checksum_types | length > 0 %}
+  # Generate checksums
+  post-processor "checksum" {
+    checksum_types = [{% for t in checksum_types %}"{{ t }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+    output         = "checksums.txt"
+  }
+{% endif %}
+}

@@ -8,6 +8,7 @@ metadata:
   author: Sindri Team
   homepage: https://github.com/sandstream/ralph-inferno
   dependencies:
+    - claude-cli
     - nodejs
 requirements:
   domains:

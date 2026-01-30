@@ -463,6 +463,4 @@ ls ~/.sindri/extensions/
 
 ## Related Documentation
 
-- [ADR-027: Tool Dependency Management System](/v3/docs/architecture/adr/027-tool-dependency-management-system.md)
-- [Extension Development Guide](/v3/docs/extensions/DEVELOPMENT.md)
-- [Provider Configuration](/v3/docs/PROVIDERS.md)
+- [ADR-027: Tool Dependency Management System](./architecture/adr/027-tool-dependency-management-system.md)

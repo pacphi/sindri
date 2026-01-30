@@ -1,0 +1,142 @@
+metadata:
+  name: excalidraw-mcp
+  version: 1.0.0
+  description: Real-time Excalidraw diagram creation and manipulation via MCP server
+  category: mcp
+  dependencies: [nodejs]
+
+install:
+  method: hybrid
+  hybrid:
+    steps:
+      # Step 1: Install the npm package globally
+      - method: npm-global
+        npm:
+          package: "mcp-excalidraw-server@latest"
+
+      # Step 2: Pull the canvas Docker image
+      - method: script
+        script:
+          path: scripts/install.sh
+          args: []
+          timeout: 300
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - ghcr.io
+  diskSpace: 200
+  memory: 512
+  installTime: 120
+  installTimeout: 300
+  validationTimeout: 30
+  secrets: []
+
+validate:
+  commands:
+    - name: docker
+      args: ["images", "ghcr.io/yctimlin/mcp_excalidraw-canvas"]
+      expectedPattern: "mcp_excalidraw-canvas"
+      description: "Verify canvas Docker image is pulled"
+
+capabilities:
+  project-init:
+    enabled: true
+    priority: 60
+    commands:
+      - command: "docker run -d -p 3000:3000 --name mcp-excalidraw-canvas --restart unless-stopped ghcr.io/yctimlin/mcp_excalidraw-canvas:latest"
+        description: "Start Excalidraw canvas server in Docker"
+        requiresAuth: "none"
+        conditional: true
+    state-markers:
+      - path: ".excalidraw-mcp"
+        type: directory
+    validation:
+      command: "docker ps --filter name=mcp-excalidraw-canvas --format '{{.Status}}'"
+      expectedPattern: "Up"
+
+  hooks:
+    post-install:
+      command: "docker pull ghcr.io/yctimlin/mcp_excalidraw-canvas:latest"
+      description: "Ensure canvas image is up-to-date"
+
+    post-project-init:
+      command: "sleep 2 && curl -f http://localhost:3000/health || echo 'Canvas server starting...'"
+      description: "Verify canvas server health"
+
+  mcp:
+    enabled: true
+    server:
+      command: "npx"
+      args: ["-y", "mcp-excalidraw-server"]
+      env:
+        EXPRESS_SERVER_URL: "http://localhost:3000"
+        ENABLE_CANVAS_SYNC: "true"
+    tools:
+      - name: "create_element"
+        description: "Create a new element on the Excalidraw canvas"
+      - name: "update_element"
+        description: "Update an existing element"
+      - name: "delete_element"
+        description: "Delete an element from the canvas"
+      - name: "query_elements"
+        description: "Query elements on the canvas"
+      - name: "get_resource"
+        description: "Get canvas resources"
+      - name: "batch_create_elements"
+        description: "Create multiple elements at once"
+      - name: "align_elements"
+        description: "Align elements on the canvas"
+      - name: "distribute_elements"
+        description: "Distribute elements evenly"
+      - name: "group_elements"
+        description: "Group multiple elements together"
+      - name: "ungroup_elements"
+        description: "Ungroup elements"
+      - name: "lock_elements"
+        description: "Lock elements to prevent modification"
+      - name: "unlock_elements"
+        description: "Unlock elements"
+      - name: "create_from_mermaid"
+        description: "Convert Mermaid diagrams to Excalidraw format"
+
+  project-context:
+    enabled: true
+    mergeFile:
+      source: templates/SKILL.md
+      target: CLAUDE.md
+      strategy: append-if-missing
+
+  collision-handling:
+    enabled: true
+    conflict-rules:
+      - path: ".excalidraw-mcp"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+
+configure:
+  environment:
+    - key: EXPRESS_SERVER_URL
+      value: "http://localhost:3000"
+      scope: session
+      description: "URL for the Excalidraw canvas server"
+    - key: ENABLE_CANVAS_SYNC
+      value: "true"
+      scope: session
+      description: "Enable real-time canvas synchronization"
+
+bom:
+  tools:
+    - name: mcp-excalidraw-server
+      version: dynamic
+      source: npm
+      type: server
+      license: MIT
+
+  docker:
+    - image: ghcr.io/yctimlin/mcp_excalidraw-canvas
+      version: latest
+      purpose: "Canvas server for Excalidraw diagrams"
+      license: MIT

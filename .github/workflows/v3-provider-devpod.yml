@@ -1,0 +1,294 @@
+# Reusable Workflow: DevPod Provider
+# Tests extensions in DevPod devcontainers across multiple cloud providers
+name: "v3: Provider - DevPod"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extension names to test'
+        type: string
+        required: true
+      max-parallel:
+        description: 'Maximum parallel jobs'
+        type: number
+        default: 2
+      devpod-provider:
+        description: 'DevPod cloud provider (docker, aws, gcp, azure)'
+        type: string
+        default: 'docker'
+
+    outputs:
+      results:
+        description: 'Test results JSON'
+        value: ${{ jobs.summary.outputs.results }}
+      passed:
+        description: 'Number of passed tests'
+        value: ${{ jobs.summary.outputs.passed }}
+      failed:
+        description: 'Number of failed tests'
+        value: ${{ jobs.summary.outputs.failed }}
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        description: 'AWS credentials (for aws provider)'
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        description: 'AWS credentials (for aws provider)'
+        required: false
+      GCP_CREDENTIALS:
+        description: 'GCP service account JSON (for gcp provider)'
+        required: false
+      AZURE_CREDENTIALS:
+        description: 'Azure credentials JSON (for azure provider)'
+        required: false
+
+env:
+  DEVPOD_VERSION: v0.5.18
+
+jobs:
+  # Test each extension in DevPod
+  test:
+    name: "Test: ${{ matrix.extension }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        extension: ${{ fromJson(inputs.extensions) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install DevPod
+        run: |
+          curl -L -o devpod "https://github.com/loft-sh/devpod/releases/download/${{ env.DEVPOD_VERSION }}/devpod-linux-amd64"
+          chmod +x devpod
+          sudo mv devpod /usr/local/bin/
+          devpod version
+
+      - name: Configure DevPod Provider
+        run: |
+          PROVIDER="${{ inputs.devpod-provider }}"
+
+          case "$PROVIDER" in
+            docker)
+              devpod provider add docker || true
+              devpod provider use docker
+              ;;
+            aws)
+              devpod provider add aws || true
+              devpod provider use aws
+              devpod provider set-options aws \
+                --option AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+                --option AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+              ;;
+            gcp)
+              devpod provider add gcp || true
+              devpod provider use gcp
+              echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp-creds.json
+              devpod provider set-options gcp \
+                --option GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json
+              ;;
+            azure)
+              devpod provider add azure || true
+              devpod provider use azure
+              ;;
+          esac
+
+      - name: Get Extension Requirements
+        id: requirements
+        run: |
+          EXT_FILE="v3/extensions/${{ matrix.extension }}/extension.yaml"
+          if [[ -f "$EXT_FILE" ]]; then
+            MEMORY=$(yq -r '.requirements.memory // 2048' "$EXT_FILE")
+            # Map to machine spec
+            if [[ $MEMORY -le 2048 ]]; then
+              MACHINE="2-cores-4gb"
+            elif [[ $MEMORY -le 4096 ]]; then
+              MACHINE="4-cores-8gb"
+            elif [[ $MEMORY -le 8192 ]]; then
+              MACHINE="8-cores-16gb"
+            else
+              MACHINE="16-cores-32gb"
+            fi
+          else
+            MACHINE="2-cores-4gb"
+          fi
+          echo "machine=$MACHINE" >> $GITHUB_OUTPUT
+
+      - name: Create devcontainer.json
+        run: |
+          mkdir -p .devcontainer
+          cat > .devcontainer/devcontainer.json << 'EOF'
+          {
+            "name": "Sindri Test",
+            "image": "ghcr.io/sindri-dev/sindri:latest",
+            "features": {},
+            "postCreateCommand": "sindri --version",
+            "remoteUser": "developer"
+          }
+          EOF
+
+      - name: Create DevPod Workspace
+        id: create
+        run: |
+          WORKSPACE_NAME="sindri-test-${{ matrix.extension }}"
+          WORKSPACE_NAME=$(echo "$WORKSPACE_NAME" | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-63)
+
+          echo "Creating DevPod workspace: $WORKSPACE_NAME"
+
+          devpod up . \
+            --id "$WORKSPACE_NAME" \
+            --ide none \
+            --provider ${{ inputs.devpod-provider }} \
+            --debug
+
+          echo "workspace_name=$WORKSPACE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Run Extension Tests
+        id: test
+        timeout-minutes: 20
+        run: |
+          WORKSPACE="${{ steps.create.outputs.workspace_name }}"
+
+          echo "::group::Installing ${{ matrix.extension }}"
+          START_TIME=$(date +%s)
+
+          if devpod ssh "$WORKSPACE" --command "sindri extension install ${{ matrix.extension }} --yes" 2>&1 | tee install.log; then
+            INSTALL_RESULT="success"
+          else
+            INSTALL_RESULT="failure"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "::endgroup::"
+
+          if [[ "$INSTALL_RESULT" == "success" ]]; then
+            echo "::group::Validating ${{ matrix.extension }}"
+            if devpod ssh "$WORKSPACE" --command "sindri extension validate ${{ matrix.extension }}" 2>&1 | tee validate.log; then
+              VALIDATE_RESULT="success"
+            else
+              VALIDATE_RESULT="failure"
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Removing ${{ matrix.extension }}"
+            devpod ssh "$WORKSPACE" --command "sindri extension remove ${{ matrix.extension }} --yes" 2>&1 | tee remove.log || true
+            echo "::endgroup::"
+          else
+            VALIDATE_RESULT="skipped"
+          fi
+
+          echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
+          echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Cleanup DevPod Workspace
+        if: always()
+        run: |
+          WORKSPACE="${{ steps.create.outputs.workspace_name }}"
+          if [[ -n "$WORKSPACE" ]]; then
+            echo "Deleting DevPod workspace: $WORKSPACE"
+            devpod delete "$WORKSPACE" --force || true
+          fi
+
+      - name: Create Test Report
+        id: report
+        if: always()
+        run: |
+          cat > test-result.json << EOF
+          {
+            "extension": "${{ matrix.extension }}",
+            "provider": "devpod",
+            "devpod_provider": "${{ inputs.devpod-provider }}",
+            "install": {
+              "result": "${{ steps.test.outputs.install_result || 'error' }}",
+              "duration": ${{ steps.test.outputs.install_duration || 0 }}
+            },
+            "validate": {
+              "result": "${{ steps.test.outputs.validate_result || 'skipped' }}"
+            },
+            "overall": "${{ steps.test.outputs.install_result == 'success' && steps.test.outputs.validate_result == 'success' && 'passed' || 'failed' }}"
+          }
+          EOF
+
+          cat test-result.json
+
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: devpod-result-${{ matrix.extension }}
+          path: |
+            test-result.json
+            install.log
+            validate.log
+          retention-days: 7
+
+  # Aggregate results
+  summary:
+    name: Test Summary
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.aggregate.outputs.results }}
+      passed: ${{ steps.aggregate.outputs.passed }}
+      failed: ${{ steps.aggregate.outputs.failed }}
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: devpod-result-*
+
+      - name: Aggregate Results
+        id: aggregate
+        run: |
+          RESULTS="[]"
+          PASSED=0
+          FAILED=0
+
+          for dir in results/*/; do
+            if [[ -f "$dir/test-result.json" ]]; then
+              RESULT=$(cat "$dir/test-result.json")
+              RESULTS=$(echo "$RESULTS" | jq --argjson r "$RESULT" '. + [$r]')
+
+              OVERALL=$(echo "$RESULT" | jq -r '.overall')
+              if [[ "$OVERALL" == "passed" ]]; then
+                PASSED=$((PASSED + 1))
+              else
+                FAILED=$((FAILED + 1))
+              fi
+            fi
+          done
+
+          {
+            echo "results<<EOF"
+            echo "$RESULTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+
+      - name: Generate Summary
+        run: |
+          echo "## DevPod Provider Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Cloud Provider:** ${{ inputs.devpod-provider }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Passed:** ${{ steps.aggregate.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed:** ${{ steps.aggregate.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Extension | Install | Validate | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|----------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | " +
+            (if .install.result == "success" then "pass" else "fail" end) + " | " +
+            (if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) +
+            " | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

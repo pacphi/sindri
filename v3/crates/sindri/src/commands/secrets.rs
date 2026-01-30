@@ -99,10 +99,12 @@ async fn validate(args: ValidateArgs) -> Result<()> {
     output::header(&format!("Validating {} secrets", secrets.len()));
 
     let spinner = output::spinner("Resolving secrets...");
-    // Create resolution context from config directory or current directory
-    let config_dir = dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".sindri");
+    // Create resolution context from config file's directory
+    let config_dir = config
+        .config_path
+        .parent()
+        .map(|p| p.to_path_buf().into())
+        .unwrap_or_else(|| PathBuf::from("."));
     let context = ResolutionContext::new(config_dir);
     let resolver = SecretResolver::new(context);
     let results = resolver.resolve_all(secrets).await;

@@ -1,0 +1,235 @@
+name: 'Alibaba Cloud Instance Manager'
+description: 'Launch and terminate Alibaba Cloud ECS instances for Packer image testing'
+
+inputs:
+  action:
+    description: 'Action to perform (launch, terminate)'
+    required: true
+  image-id:
+    description: 'Alibaba Cloud image ID'
+    required: false
+  instance-id:
+    description: 'Instance ID to terminate'
+    required: false
+  region:
+    description: 'Alibaba Cloud region'
+    required: false
+    default: 'us-west-1'
+  instance-type:
+    description: 'ECS instance type'
+    required: false
+    default: 'ecs.g6.large'
+  vpc-id:
+    description: 'VPC ID'
+    required: false
+  vswitch-id:
+    description: 'VSwitch ID'
+    required: true
+  security-group-id:
+    description: 'Security group ID'
+    required: true
+
+outputs:
+  instance-id:
+    description: 'Instance ID'
+    value: ${{ steps.launch.outputs.instance_id }}
+  public-ip:
+    description: 'Public IP address'
+    value: ${{ steps.launch.outputs.public_ip }}
+  ssh-key-path:
+    description: 'Path to SSH private key'
+    value: ${{ steps.launch.outputs.ssh_key_path }}
+  ssh-user:
+    description: 'SSH username'
+    value: 'root'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Aliyun CLI
+      if: inputs.action == 'launch' || inputs.action == 'terminate'
+      shell: bash
+      run: |
+        # Install Aliyun CLI if not present
+        if ! command -v aliyun &>/dev/null; then
+          echo "Installing Aliyun CLI..."
+          curl -o aliyun-cli-linux-latest-amd64.tgz https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz
+          tar -xzf aliyun-cli-linux-latest-amd64.tgz
+          sudo mv aliyun /usr/local/bin/
+          rm aliyun-cli-linux-latest-amd64.tgz
+        fi
+
+        # Configure Aliyun CLI
+        aliyun configure set \
+          --profile default \
+          --mode AK \
+          --region ${{ inputs.region }} \
+          --access-key-id "${ALICLOUD_ACCESS_KEY}" \
+          --access-key-secret "${ALICLOUD_SECRET_KEY}"
+
+    - name: Launch Alibaba Cloud Instance
+      if: inputs.action == 'launch'
+      id: launch
+      shell: bash
+      run: |
+        echo "Launching Alibaba Cloud ECS instance from image: ${{ inputs.image-id }}"
+
+        INSTANCE_NAME="sindri-test-$(date +%s)"
+
+        # Generate SSH key for this instance
+        ssh-keygen -t rsa -b 4096 -f /tmp/ssh_key_alibaba -N "" -q
+
+        # Create key pair
+        KEY_NAME="sindri-test-key-$(date +%s)"
+        aliyun ecs ImportKeyPair \
+          --RegionId ${{ inputs.region }} \
+          --KeyPairName "$KEY_NAME" \
+          --PublicKeyBody "$(cat /tmp/ssh_key_alibaba.pub)"
+
+        # Create instance
+        RESULT=$(aliyun ecs RunInstances \
+          --RegionId ${{ inputs.region }} \
+          --ImageId ${{ inputs.image-id }} \
+          --InstanceType ${{ inputs.instance-type }} \
+          --InstanceName "$INSTANCE_NAME" \
+          --SecurityGroupId ${{ inputs.security-group-id }} \
+          --VSwitchId ${{ inputs.vswitch-id }} \
+          --KeyPairName "$KEY_NAME" \
+          --InternetChargeType PayByTraffic \
+          --InternetMaxBandwidthOut 100 \
+          --SystemDisk.Category cloud_essd \
+          --SystemDisk.Size 40 \
+          --Tag.1.Key Purpose \
+          --Tag.1.Value packer-test \
+          --Tag.2.Key AutoTerminate \
+          --Tag.2.Value true \
+          --Amount 1)
+
+        INSTANCE_ID=$(echo "$RESULT" | jq -r '.InstanceIdSets.InstanceIdSet[0]')
+
+        echo "Instance ID: $INSTANCE_ID"
+        echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+
+        # Wait for instance to be running
+        echo "Waiting for instance to be running..."
+        for i in {1..30}; do
+          STATUS=$(aliyun ecs DescribeInstanceStatus \
+            --RegionId ${{ inputs.region }} \
+            --InstanceId.1 "$INSTANCE_ID" \
+            | jq -r '.InstanceStatuses.InstanceStatus[0].Status')
+
+          if [[ "$STATUS" == "Running" ]]; then
+            echo "Instance is running"
+            break
+          fi
+          echo "Current status: $STATUS ($i/30)"
+          sleep 10
+        done
+
+        # Allocate and associate EIP
+        EIP_RESULT=$(aliyun vpc AllocateEipAddress \
+          --RegionId ${{ inputs.region }} \
+          --Bandwidth 100 \
+          --InternetChargeType PayByTraffic)
+
+        EIP_ID=$(echo "$EIP_RESULT" | jq -r '.AllocationId')
+        PUBLIC_IP=$(echo "$EIP_RESULT" | jq -r '.EipAddress')
+
+        # Associate EIP with instance
+        aliyun vpc AssociateEipAddress \
+          --RegionId ${{ inputs.region }} \
+          --AllocationId "$EIP_ID" \
+          --InstanceId "$INSTANCE_ID" \
+          --InstanceType EcsInstance
+
+        echo "Public IP: $PUBLIC_IP"
+        echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+        echo "ssh_key_path=/tmp/ssh_key_alibaba" >> $GITHUB_OUTPUT
+        echo "eip_id=$EIP_ID" >> $GITHUB_OUTPUT
+        echo "key_name=$KEY_NAME" >> $GITHUB_OUTPUT
+
+        chmod 600 /tmp/ssh_key_alibaba
+
+        # Wait for SSH
+        echo "Waiting for SSH to be ready..."
+        sleep 60  # Alibaba Cloud instances take longer to initialize
+        for i in {1..30}; do
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/ssh_key_alibaba root@$PUBLIC_IP "echo SSH ready" 2>/dev/null; then
+            echo "SSH is ready"
+            break
+          fi
+          echo "Waiting for SSH... ($i/30)"
+          sleep 10
+        done
+
+    - name: Terminate Alibaba Cloud Instance
+      if: inputs.action == 'terminate'
+      shell: bash
+      run: |
+        INSTANCE_ID="${{ inputs.instance-id }}"
+
+        if [[ -n "$INSTANCE_ID" && "$INSTANCE_ID" != "null" ]]; then
+          echo "Terminating Alibaba Cloud instance: $INSTANCE_ID"
+
+          # Get instance details to find associated resources
+          INSTANCE_INFO=$(aliyun ecs DescribeInstances \
+            --RegionId ${{ inputs.region }} \
+            --InstanceIds "['$INSTANCE_ID']")
+
+          # Get EIP allocation ID
+          EIP_ADDR=$(echo "$INSTANCE_INFO" | jq -r '.Instances.Instance[0].EipAddress.IpAddress // empty')
+
+          if [[ -n "$EIP_ADDR" ]]; then
+            # Find EIP ID
+            EIP_INFO=$(aliyun vpc DescribeEipAddresses \
+              --RegionId ${{ inputs.region }} \
+              --EipAddress "$EIP_ADDR")
+
+            EIP_ID=$(echo "$EIP_INFO" | jq -r '.EipAddresses.EipAddress[0].AllocationId // empty')
+
+            if [[ -n "$EIP_ID" ]]; then
+              # Unassociate and release EIP
+              aliyun vpc UnassociateEipAddress \
+                --RegionId ${{ inputs.region }} \
+                --AllocationId "$EIP_ID" \
+                --InstanceId "$INSTANCE_ID" \
+                --InstanceType EcsInstance || true
+
+              sleep 5
+
+              aliyun vpc ReleaseEipAddress \
+                --RegionId ${{ inputs.region }} \
+                --AllocationId "$EIP_ID" || true
+
+              echo "EIP released"
+            fi
+          fi
+
+          # Stop and delete instance
+          aliyun ecs StopInstance \
+            --RegionId ${{ inputs.region }} \
+            --InstanceId "$INSTANCE_ID" \
+            --ForceStop true || true
+
+          sleep 10
+
+          aliyun ecs DeleteInstance \
+            --RegionId ${{ inputs.region }} \
+            --InstanceId "$INSTANCE_ID" \
+            --Force true
+
+          echo "Instance terminated"
+
+          # Cleanup key pair (best effort)
+          KEY_NAME=$(echo "$INSTANCE_INFO" | jq -r '.Instances.Instance[0].KeyPairName // empty')
+          if [[ -n "$KEY_NAME" && "$KEY_NAME" == sindri-test-key-* ]]; then
+            aliyun ecs DeleteKeyPairs \
+              --RegionId ${{ inputs.region }} \
+              --KeyPairNames "$KEY_NAME" || true
+          fi
+        else
+          echo "No instance ID provided, skipping termination"
+        fi
+
+        # Cleanup SSH key
+        rm -f /tmp/ssh_key_alibaba /tmp/ssh_key_alibaba.pub 2>/dev/null || true

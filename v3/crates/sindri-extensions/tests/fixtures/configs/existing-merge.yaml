@@ -1,0 +1,4 @@
+existing_key: existing_value
+nested:
+  from_existing: true
+  priority: low

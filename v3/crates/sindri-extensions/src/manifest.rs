@@ -8,11 +8,11 @@
 //! ```yaml
 //! schema_version: "1.0"
 //! cli_version: "3.0.0"
-//! last_updated: "2025-01-21T10:00:00Z"
+//! last_updated: "2026-01-21T10:00:00Z"
 //! extensions:
 //!   python:
 //!     version: "1.2.0"
-//!     installed_at: "2025-01-20T15:30:00Z"
+//!     installed_at: "2026-01-20T15:30:00Z"
 //!     source: "github:pacphi/sindri"
 //!     state: installed
 //! ```
@@ -63,8 +63,13 @@ impl ManifestManager {
     }
 
     /// Get the default manifest path
+    ///
+    /// Prefers HOME env var over dirs::home_dir() for Docker container compatibility
+    /// where HOME may be set to ALT_HOME for volume mount support.
     pub fn default_manifest_path() -> Result<PathBuf> {
-        let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+        let home = std::env::var("HOME").map(PathBuf::from).or_else(|_| {
+            dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
+        })?;
         Ok(home.join(".sindri").join("manifest.yaml"))
     }
 
@@ -439,8 +444,8 @@ mod tests {
             .mark_installed("rust", "1.70.0", "github:pacphi/sindri")
             .unwrap();
 
-        manager.update_version("rust", "1.75.0").unwrap();
-        assert_eq!(manager.get_version("rust"), Some("1.75.0"));
+        manager.update_version("rust", "1.92.0").unwrap();
+        assert_eq!(manager.get_version("rust"), Some("1.92.0"));
     }
 
     #[test]

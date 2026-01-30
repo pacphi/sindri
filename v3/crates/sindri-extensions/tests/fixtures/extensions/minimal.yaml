@@ -1,0 +1,16 @@
+metadata:
+  name: test-minimal
+  version: "1.0.0"
+  description: Minimal test extension for unit tests
+  category: testing
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 60
+
+validate:
+  commands:
+    - name: echo
+      versionFlag: "test"

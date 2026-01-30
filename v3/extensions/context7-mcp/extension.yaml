@@ -7,7 +7,8 @@ metadata:
   category: mcp
   author: Sindri Team
   homepage: https://github.com/upstash/context7
-  dependencies: []
+  dependencies:
+    - claude-cli
 requirements:
   domains:
     - mcp.context7.com

@@ -25,17 +25,8 @@ use crate::cli::{
 };
 use crate::output;
 
-/// Helper function to get the cache directory
-fn get_cache_dir() -> Result<std::path::PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("cache"))
-}
-
-/// Helper function to get the extensions directory
-fn get_extensions_dir() -> Result<std::path::PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
-    Ok(home.join(".sindri").join("extensions"))
-}
+// Re-export utility functions for use in this module
+use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir};
 
 /// Helper function to get the CLI version
 fn get_cli_version() -> Result<semver::Version> {
@@ -156,7 +147,7 @@ async fn install_by_name(
     }
 
     // Get home directory for cache and extensions
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+    let home = get_home_dir()?;
     let cache_dir = home.join(".sindri").join("cache");
     let extensions_dir = home.join(".sindri").join("extensions");
 
@@ -207,45 +198,85 @@ async fn install_from_config(
     let config = SindriConfig::load(Some(&config_path))?;
     let ext_config = config.extensions();
 
-    // If profile specified in config, delegate to profile install
+    // Case 1: Profile specified - install profile first, then additional extensions
     if let Some(profile_name) = &ext_config.profile {
-        return install_from_profile(profile_name.clone(), yes).await;
-    }
+        // Install the profile
+        install_from_profile(profile_name.clone(), yes).await?;
 
-    // Collect extensions from active + additional lists
-    let mut extensions = Vec::new();
-    if let Some(active) = &ext_config.active {
-        extensions.extend(active.iter().cloned());
-    }
-    if let Some(additional) = &ext_config.additional {
-        extensions.extend(additional.iter().cloned());
-    }
+        // Install additional extensions on top of profile (if any)
+        if let Some(additional) = &ext_config.additional {
+            if !additional.is_empty() {
+                if !yes {
+                    output::info(&format!(
+                        "Installing {} additional extension(s) on top of profile '{}':",
+                        additional.len(),
+                        profile_name
+                    ));
+                    for ext in additional {
+                        println!("  - {}", ext);
+                    }
+                    let confirmed = Confirm::new()
+                        .with_prompt("Continue?")
+                        .default(true)
+                        .interact()?;
+                    if !confirmed {
+                        output::info("Cancelled additional installations");
+                        return Ok(());
+                    }
+                }
 
-    if extensions.is_empty() {
-        output::warning("No extensions specified in config file");
+                // Install each additional extension
+                for ext in additional {
+                    install_by_name(ext.clone(), None, force, no_deps).await?;
+                }
+            }
+        }
+
         return Ok(());
     }
 
-    // Confirmation prompt (unless --yes)
-    if !yes {
-        output::info(&format!("Installing {} extension(s):", extensions.len()));
-        for ext in &extensions {
-            println!("  - {}", ext);
-        }
-        let confirmed = Confirm::new()
-            .with_prompt("Continue?")
-            .default(true)
-            .interact()?;
-        if !confirmed {
-            output::info("Cancelled");
-            return Ok(());
-        }
+    // Case 2: Active list specified (no profile)
+    // Validate: additional should ONLY work with profile
+    if ext_config.additional.is_some() && !ext_config.additional.as_ref().unwrap().is_empty() {
+        return Err(anyhow!(
+            "Configuration error: 'extensions.additional' can only be used with 'extensions.profile'. \
+             Use 'extensions.active' for explicit extension lists without a profile."
+        ));
     }
 
-    // Install each extension
-    for ext in &extensions {
-        install_by_name(ext.clone(), None, force, no_deps).await?;
+    // Install from active list
+    if let Some(active) = &ext_config.active {
+        if active.is_empty() {
+            output::warning("No extensions specified in config file");
+            return Ok(());
+        }
+
+        // Confirmation prompt (unless --yes)
+        if !yes {
+            output::info(&format!("Installing {} extension(s):", active.len()));
+            for ext in active {
+                println!("  - {}", ext);
+            }
+            let confirmed = Confirm::new()
+                .with_prompt("Continue?")
+                .default(true)
+                .interact()?;
+            if !confirmed {
+                output::info("Cancelled");
+                return Ok(());
+            }
+        }
+
+        // Install each extension
+        for ext in active {
+            install_by_name(ext.clone(), None, force, no_deps).await?;
+        }
+
+        return Ok(());
     }
+
+    // Case 3: No profile, no active list
+    output::warning("No extensions specified in config file");
     Ok(())
 }
 
@@ -297,7 +328,7 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
     ));
 
     // Get home directory for cache and manifest
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))?;
+    let home = get_home_dir()?;
     let cache_dir = home.join(".sindri").join("cache");
     let manifest_path = home.join(".sindri").join("manifest.yaml");
 
@@ -1121,8 +1152,7 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
             // Remove mise configuration
             if let Some(mise_remove) = &remove_config.mise {
                 output::info("Removing mise configuration...");
-                let home = dirs::home_dir()
-                    .ok_or_else(|| anyhow!("Could not determine home directory"))?;
+                let home = get_home_dir()?;
 
                 if mise_remove.remove_config {
                     let config_file = home
@@ -1203,7 +1233,7 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
                 output::info(&format!("Removing path: {}", path));
 
                 let expanded_path = if path.starts_with("~/") {
-                    if let Some(home) = dirs::home_dir() {
+                    if let Ok(home) = get_home_dir() {
                         home.join(path.trim_start_matches("~/"))
                     } else {
                         std::path::PathBuf::from(path)

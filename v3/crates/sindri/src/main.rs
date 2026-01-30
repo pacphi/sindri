@@ -5,6 +5,7 @@
 mod cli;
 mod commands;
 mod output;
+pub mod utils;
 mod version;
 
 use anyhow::Result;
@@ -15,6 +16,10 @@ use cli::{Cli, Commands};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Initialize rustls crypto provider (required for rustls 0.23+)
+    // This must be done before any TLS operations
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
     // Parse CLI args
     let cli = Cli::parse();
 
@@ -25,10 +30,10 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Version(args) => commands::version::run(args),
         Commands::Config(args) => commands::config::run(args).await,
-        Commands::Deploy(args) => commands::deploy::run(args).await,
-        Commands::Connect(args) => commands::connect::run(args).await,
-        Commands::Status(args) => commands::status::run(args).await,
-        Commands::Destroy(args) => commands::destroy::run(args).await,
+        Commands::Deploy(args) => commands::deploy::run(args, cli.config.as_deref()).await,
+        Commands::Connect(args) => commands::connect::run(args, cli.config.as_deref()).await,
+        Commands::Status(args) => commands::status::run(args, cli.config.as_deref()).await,
+        Commands::Destroy(args) => commands::destroy::run(args, cli.config.as_deref()).await,
         Commands::Extension(args) => commands::extension::run(args).await,
         Commands::Profile(args) => commands::profile::run(args).await,
         Commands::Upgrade(args) => commands::upgrade::run(args).await,
@@ -39,6 +44,7 @@ async fn main() -> Result<()> {
         Commands::Doctor(args) => commands::doctor::run(args).await,
         Commands::K8s(args) => commands::k8s::run(args).await,
         Commands::Image(args) => commands::image::execute(args).await,
+        Commands::Packer(args) => commands::packer::run(args).await,
     }
 }
 

@@ -174,14 +174,16 @@ sindri deploy [OPTIONS]
 
 **Options:**
 
-| Option                      | Short | Default | Description                                      |
-| --------------------------- | ----- | ------- | ------------------------------------------------ |
-| `--force`                   | `-f`  | -       | Force recreation of environment                  |
-| `--dry-run`                 | -     | -       | Show what would happen without deploying         |
-| `--wait`                    | `-w`  | true    | Wait for deployment to complete                  |
-| `--timeout <SECONDS>`       | `-t`  | 600     | Deployment timeout in seconds                    |
-| `--skip-validation`         | -     | -       | Skip configuration validation                    |
-| `--skip-image-verification` | -     | -       | Skip image signature and provenance verification |
+| Option                      | Short  | Default | Description                                      |
+| --------------------------- | ------ | ------- | ------------------------------------------------ |
+| `--force`                   | `-f`   | -       | Force recreation of environment                  |
+| `--dry-run`                 | -      | -       | Show what would happen without deploying         |
+| `--wait`                    | `-w`   | true    | Wait for deployment to complete                  |
+| `--timeout <SECONDS>`       | `-t`   | 600     | Deployment timeout in seconds                    |
+| `--skip-validation`         | -      | -       | Skip configuration validation                    |
+| `--skip-image-verification` | -      | -       | Skip image signature and provenance verification |
+| `--env-file <PATH>`         | -      | -       | Path to custom .env file for secrets             |
+| `--from-source`             | `--fs` | -       | Build from Sindri repository source              |
 
 **Examples:**
 
@@ -197,7 +199,26 @@ sindri deploy --force --timeout 900
 
 # Skip image verification for local development
 sindri deploy --skip-image-verification
+
+# Use custom .env file (relative to sindri.yaml location)
+sindri deploy --env-file config/production.env
+
+# Use custom .env file (absolute path)
+sindri deploy --env-file /secrets/.env
+
+# Combine custom config and custom env file
+sindri deploy --config /path/to/sindri.yaml --env-file /path/to/.env
 ```
+
+**Secrets Resolution:**
+
+When you deploy, Sindri performs a preflight check to detect `.env` files:
+
+- **Default behavior**: Looks for `.env` and `.env.local` in the same directory as `sindri.yaml`
+- **Custom path**: Use `--env-file` to specify a different location
+- **Priority**: shell env > `.env.local` > `.env` > `fromFile` > S3 > Vault
+
+See [SECRETS_MANAGEMENT.md](SECRETS_MANAGEMENT.md) for complete secrets documentation.
 
 **Exit Codes:**
 
@@ -1798,4 +1819,4 @@ sindri k8s install k3d
 - [Backup & Restore](./BACKUP_RESTORE.md) - Backup strategies and procedures
 - [Projects](./PROJECTS.md) - Project creation and templates
 - [Doctor](./DOCTOR.md) - System diagnostics guide
-- [Image Management](./image-management.md) - Container image security
+- [Image Management](./IMAGE_MANAGEMENT.md) - Container image security

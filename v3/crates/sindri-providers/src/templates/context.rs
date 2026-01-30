@@ -158,14 +158,46 @@ impl TemplateContext {
                 storage_driver: "auto".to_string(),
             });
 
+        // Build environment variables map
+        let mut env_vars = HashMap::new();
+
+        // Set SINDRI_EXT_HOME based on build mode
+        let ext_home = if file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false)
+        {
+            // Development mode: bundled extensions at /opt/sindri/extensions
+            // (built using Dockerfile.dev)
+            "/opt/sindri/extensions".to_string()
+        } else {
+            // Production mode: runtime-installed extensions at ${HOME}/.sindri/extensions
+            // (built using Dockerfile, respects ALT_HOME=/alt/home/developer volume mount)
+            "${HOME}/.sindri/extensions".to_string()
+        };
+
+        env_vars.insert("SINDRI_EXT_HOME".to_string(), ext_home);
+
+        // Keep SINDRI_SOURCE_REF for debugging purposes if building from source
+        if let Some(git_ref) = file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.as_ref())
+        {
+            env_vars.insert("SINDRI_SOURCE_REF".to_string(), git_ref.clone());
+        }
+
         Self {
             name: file.name.clone(),
             profile,
-            image: file
-                .deployment
-                .image
-                .clone()
-                .unwrap_or_else(|| "sindri:latest".to_string()),
+            image: file.deployment.image.clone().unwrap_or_else(|| {
+                // Default tag format: sindri:{version}-SOURCE
+                // Actual tag determined at build time with git SHA
+                format!("sindri:{}-SOURCE", env!("CARGO_PKG_VERSION"))
+            }),
             memory,
             cpus,
             volume_size,
@@ -183,7 +215,7 @@ impl TemplateContext {
             ports,
             has_secrets: !file.secrets.is_empty(),
             secrets_file: ".env.secrets".to_string(),
-            env_vars: HashMap::new(),
+            env_vars,
             ci_mode: false,
         }
     }

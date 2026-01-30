@@ -1,0 +1,183 @@
+{# gcp.pkr.hcl.tera - GCP Compute Image Packer Template for Sindri #}
+packer {
+  required_plugins {
+    googlecompute = {
+      version = ">= 1.1.0"
+      source  = "github.com/hashicorp/googlecompute"
+    }
+  }
+}
+
+variable "image_name" {
+  type    = string
+  default = "{{ image_name }}"
+}
+
+variable "sindri_version" {
+  type    = string
+  default = "{{ sindri_version }}"
+}
+
+variable "project_id" {
+  type    = string
+  default = "{{ project_id }}"
+}
+
+variable "zone" {
+  type    = string
+  default = "{{ zone | default(value="us-central1-a") }}"
+}
+
+variable "machine_type" {
+  type    = string
+  default = "{{ machine_type | default(value="e2-standard-2") }}"
+}
+
+variable "disk_size" {
+  type    = number
+  default = {{ disk_size | default(value=60) }}
+}
+
+source "googlecompute" "sindri" {
+  project_id = var.project_id
+  zone       = var.zone
+
+  # Image configuration
+  image_name        = "${var.image_name}-{{timestamp}}"
+  image_description = "Sindri v3 development environment{% if description %} - {{ description }}{% endif %}"
+{% if image_family %}
+  image_family      = "{{ image_family }}"
+{% endif %}
+
+  # Source image - Ubuntu 24.04 LTS
+  source_image_family = "ubuntu-2404-lts-amd64"
+  source_image_project_id = ["ubuntu-os-cloud"]
+
+  # Instance configuration
+  machine_type       = var.machine_type
+  disk_size          = var.disk_size
+  disk_type          = "{{ disk_type | default(value="pd-ssd") }}"
+
+{% if network %}
+  network            = "{{ network }}"
+{% endif %}
+{% if subnetwork %}
+  subnetwork         = "{{ subnetwork }}"
+{% endif %}
+
+  ssh_username = "ubuntu"
+  ssh_timeout  = "{{ ssh_timeout | default(value="20m") }}"
+
+{% if enable_secure_boot %}
+  # Shielded VM configuration
+  enable_secure_boot          = true
+  enable_vtpm                 = true
+  enable_integrity_monitoring = true
+{% endif %}
+
+  # Image encryption
+{% if image_encryption_key %}
+  image_encryption_key {
+    kms_key_self_link = "{{ image_encryption_key }}"
+  }
+{% endif %}
+
+  # Labels (GCP equivalent of tags)
+  image_labels = {
+    name           = var.image_name
+    sindri_version = "{{ sindri_version | replace(from=".", to="-") }}"
+    build_date     = "{{timestamp | replace(from="/", to="-")}}"
+    built_by       = "packer"
+    managed_by     = "sindri"
+{% for key, value in labels %}
+    {{ key | replace(from="_", to="-") | lower }} = "{{ value | replace(from="_", to="-") | lower }}"
+{% endfor %}
+  }
+
+  labels = {
+    purpose = "packer-build"
+  }
+}
+
+build {
+  name    = "sindri-gcp"
+  sources = ["source.googlecompute.sindri"]
+
+  # Upload provisioning scripts
+  provisioner "file" {
+    source      = "scripts/"
+    destination = "/tmp/sindri-scripts/"
+  }
+
+{% if file_uploads | length > 0 %}
+  # Upload additional files
+{% for upload in file_uploads %}
+  provisioner "file" {
+    source      = "{{ upload.source }}"
+    destination = "{{ upload.destination }}"
+  }
+
+{% endfor %}
+{% endif %}
+  # Run initialization
+  provisioner "shell" {
+    inline = [
+      "chmod +x /tmp/sindri-scripts/*.sh",
+      "sudo /tmp/sindri-scripts/init.sh"
+    ]
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+{% for key, value in environment %}
+      "{{ key }}={{ value }}",
+{% endfor %}
+    ]
+  }
+
+  # Install Sindri
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/install-sindri.sh"
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+      "INSTALL_PROFILE={{ profile | default(value="base") }}",
+      "EXTENSIONS={{ extensions | join(sep=",") }}"
+    ]
+  }
+
+{% if cis_hardening %}
+  # CIS Benchmark Hardening
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/security-hardening.sh"
+    environment_vars = [
+      "CIS_LEVEL=1"
+    ]
+  }
+
+{% endif %}
+{% if ansible_playbook %}
+  # Ansible provisioning
+  provisioner "ansible" {
+    playbook_file = "{{ ansible_playbook }}"
+  }
+
+{% endif %}
+  # Cleanup
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/cleanup.sh"
+    environment_vars = [
+      "CLEAN_SENSITIVE_DATA={{ clean_sensitive_data | default(value=true) | lower }}",
+      "REMOVE_SSH_KEYS={{ remove_ssh_keys | default(value=true) | lower }}"
+    ]
+  }
+
+  # Generate manifest
+  post-processor "manifest" {
+    output     = "manifest.json"
+    strip_path = true
+    custom_data = {
+      sindri_version = var.sindri_version
+      build_time     = "{{timestamp}}"
+      cloud          = "gcp"
+      project_id     = var.project_id
+    }
+  }
+}

@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-21
 **Deciders**: Core Team
-**Related**: [ADR-001: Rust Migration](001-rust-migration-workspace-architecture.md), [Extension Authoring Guide](../../../../docs/EXTENSION_AUTHORING.md)
+**Related**: [ADR-001: Rust Migration](001-rust-migration-workspace-architecture.md), [Extension Authoring Guide](../../EXTENSION_AUTHORING.md)
 
 ## Context
 

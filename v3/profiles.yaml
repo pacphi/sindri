@@ -21,6 +21,7 @@ profiles:
   ai-dev:
     description: AI/ML development environment
     extensions:
+      - claude-cli
       - nodejs
       - python
       - golang
@@ -37,6 +38,7 @@ profiles:
   anthropic-dev:
     description: AI development with Anthropic toolset bias (v3 default - 10x performance)
     extensions:
+      - claude-cli
       - agent-manager
       - claude-flow-v3
       - agentic-qe
@@ -46,6 +48,7 @@ profiles:
       - ai-toolkit
       - claudish
       - claude-marketplace
+      - compahook
       - infra-tools
       - jvm
       - mdflow
@@ -72,6 +75,7 @@ profiles:
   enterprise:
     description: Enterprise development (all languages)
     extensions:
+      - claude-cli
       - nodejs
       - python
       - golang

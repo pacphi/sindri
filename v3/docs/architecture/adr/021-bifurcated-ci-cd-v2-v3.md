@@ -214,7 +214,7 @@ jobs:
 
 **Separate workflows**:
 
-- `test-extensions-v2.yml`: Tests `v2/docker/lib/extensions/` (Docker-based)
+- `v2-test-extensions.yml`: Tests `v2/docker/lib/extensions/` (Docker-based)
 - `test-extensions-v3.yml`: Tests `v3/extensions/` (Rust-based, when CLI ready)
 
 ### 5. Dependabot Configuration

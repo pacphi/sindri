@@ -1,0 +1,178 @@
+{# azure.pkr.hcl.tera - Azure Managed Image Packer Template for Sindri #}
+packer {
+  required_plugins {
+    azure = {
+      version = ">= 2.1.0"
+      source  = "github.com/hashicorp/azure"
+    }
+  }
+}
+
+variable "image_name" {
+  type    = string
+  default = "{{ image_name }}"
+}
+
+variable "sindri_version" {
+  type    = string
+  default = "{{ sindri_version }}"
+}
+
+variable "location" {
+  type    = string
+  default = "{{ location | default(value="eastus") }}"
+}
+
+variable "vm_size" {
+  type    = string
+  default = "{{ vm_size | default(value="Standard_D2s_v3") }}"
+}
+
+variable "os_disk_size_gb" {
+  type    = number
+  default = {{ os_disk_size_gb | default(value=60) }}
+}
+
+source "azure-arm" "sindri" {
+  # Use managed identity or service principal via environment variables
+  # AZURE_SUBSCRIPTION_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID
+  use_azure_cli_auth = true
+
+  subscription_id = "{{ subscription_id }}"
+  location        = var.location
+
+  # Managed image destination
+  managed_image_resource_group_name = "{{ resource_group }}"
+  managed_image_name                = "${var.image_name}-{{timestamp}}"
+
+  # Source image - Ubuntu 24.04 LTS
+  image_publisher = "Canonical"
+  image_offer     = "ubuntu-24_04-lts"
+  image_sku       = "server"
+
+  # VM configuration
+  vm_size         = var.vm_size
+  os_type         = "Linux"
+  os_disk_size_gb = var.os_disk_size_gb
+  disk_caching_type = "ReadWrite"
+  storage_account_type = "{{ storage_account_type | default(value="Premium_LRS") }}"
+
+  ssh_username = "ubuntu"
+  ssh_timeout  = "{{ ssh_timeout | default(value="20m") }}"
+
+{% if gallery_name %}
+  # Shared Image Gallery configuration
+  shared_image_gallery_destination {
+    subscription        = "{{ subscription_id }}"
+    resource_group      = "{{ resource_group }}"
+    gallery_name        = "{{ gallery_name }}"
+    image_name          = "{{ gallery_image_name | default(value=image_name) }}"
+    image_version       = "{{ gallery_image_version | default(value="1.0.0") }}"
+{% if replication_regions | length > 0 %}
+    replication_regions = [{% for r in replication_regions %}"{{ r }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+  }
+{% endif %}
+
+  azure_tags = {
+    Name          = var.image_name
+    SindriVersion = var.sindri_version
+    BuildDate     = "{{timestamp}}"
+    BuiltBy       = "packer"
+    ManagedBy     = "sindri"
+{% for key, value in tags %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+}
+
+build {
+  name    = "sindri-azure"
+  sources = ["source.azure-arm.sindri"]
+
+  # Upload provisioning scripts
+  provisioner "file" {
+    source      = "scripts/"
+    destination = "/tmp/sindri-scripts/"
+  }
+
+{% if file_uploads | length > 0 %}
+  # Upload additional files
+{% for upload in file_uploads %}
+  provisioner "file" {
+    source      = "{{ upload.source }}"
+    destination = "{{ upload.destination }}"
+  }
+
+{% endfor %}
+{% endif %}
+  # Run initialization
+  provisioner "shell" {
+    inline = [
+      "chmod +x /tmp/sindri-scripts/*.sh",
+      "sudo /tmp/sindri-scripts/init.sh"
+    ]
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+{% for key, value in environment %}
+      "{{ key }}={{ value }}",
+{% endfor %}
+    ]
+  }
+
+  # Install Sindri
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/install-sindri.sh"
+    environment_vars = [
+      "SINDRI_VERSION={{ sindri_version }}",
+      "INSTALL_PROFILE={{ profile | default(value="base") }}",
+      "EXTENSIONS={{ extensions | join(sep=",") }}"
+    ]
+  }
+
+{% if cis_hardening %}
+  # CIS Benchmark Hardening
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/security-hardening.sh"
+    environment_vars = [
+      "CIS_LEVEL=1"
+    ]
+  }
+
+{% endif %}
+{% if ansible_playbook %}
+  # Ansible provisioning
+  provisioner "ansible" {
+    playbook_file = "{{ ansible_playbook }}"
+  }
+
+{% endif %}
+  # Cleanup
+  provisioner "shell" {
+    script = "/tmp/sindri-scripts/cleanup.sh"
+    environment_vars = [
+      "CLEAN_SENSITIVE_DATA={{ clean_sensitive_data | default(value=true) | lower }}",
+      "REMOVE_SSH_KEYS={{ remove_ssh_keys | default(value=true) | lower }}"
+    ]
+  }
+
+  # Deprovision Azure agent (required for generalization)
+  provisioner "shell" {
+    execute_command = "chmod +x {% raw %}{{ .Path }}{% endraw %}; {% raw %}{{ .Vars }}{% endraw %} sudo -E sh '{% raw %}{{ .Path }}{% endraw %}'"
+    inline = [
+      "/usr/sbin/waagent -force -deprovision+user && export HISTSIZE=0 && sync"
+    ]
+    inline_shebang = "/bin/sh -x"
+  }
+
+  # Generate manifest
+  post-processor "manifest" {
+    output     = "manifest.json"
+    strip_path = true
+    custom_data = {
+      sindri_version = var.sindri_version
+      build_time     = "{{timestamp}}"
+      cloud          = "azure"
+    }
+  }
+}

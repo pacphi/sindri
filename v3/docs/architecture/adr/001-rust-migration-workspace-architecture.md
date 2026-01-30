@@ -3,7 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-01-21
 **Deciders**: Core Team
-**Related**: [Rust Migration Plan](../../planning/active/rust-cli-migration-v3.md)
+**Related**: [Rust Migration Plan](../../planning/complete/rust-cli-migration-v3.md)
 
 ## Context
 

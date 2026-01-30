@@ -18,7 +18,7 @@
 #   GIT_USER_EMAIL       - Git user.email configuration
 #   GITHUB_TOKEN         - GitHub token for git credential helper
 #   SSH_PORT             - SSH daemon port (default: 2222)
-#   SINDRI_PROFILE       - Profile to install (default: minimal)
+#   INSTALL_PROFILE      - Profile to install (default: minimal)
 #   SKIP_AUTO_INSTALL    - Set to "true" to skip automatic extension installation
 # ==============================================================================
 
@@ -92,6 +92,10 @@ setup_home_directory() {
             cat > "${ALT_HOME}/.bashrc" << 'EOF'
 # ~/.bashrc: executed by bash for non-login shells
 
+# Sindri extension directory - set at runtime to respect volume-mounted HOME
+# Only set if not already defined (preserves bundled path from Dockerfile.dev)
+export SINDRI_EXT_HOME="${SINDRI_EXT_HOME:-${HOME}/.sindri/extensions}"
+
 # Claude Code plugin compatibility - set TMPDIR before interactive check
 # Required to prevent EXDEV cross-device link error during plugin installation
 # fs.rename() cannot cross filesystem boundaries (/tmp is tmpfs, ~/.claude is on volume)
@@ -148,6 +152,7 @@ EOF
         print_success "Home directory initialized"
     else
         print_status "Home directory already initialized"
+
     fi
 
     # Ensure correct ownership
@@ -210,6 +215,41 @@ persist_ssh_host_keys() {
 
     # Ensure correct ownership
     chown -R "${DEVELOPER_USER}:${DEVELOPER_USER}" "$host_keys_dir" 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
+# setup_sindri_environment - Write SINDRI_* variables to profile.d for SSH sessions
+# ------------------------------------------------------------------------------
+setup_sindri_environment() {
+    # Capture all SINDRI_* environment variables and write to /etc/profile.d/
+    # This makes docker-compose environment variables (like SINDRI_EXT_HOME)
+    # available in SSH login shells
+
+    local sindri_profile="/etc/profile.d/sindri-runtime.sh"
+
+    print_status "Configuring SINDRI environment variables for SSH sessions..."
+
+    # Start the profile script
+    cat > "$sindri_profile" << 'PROFILE_HEADER'
+# Sindri runtime environment variables
+# Auto-generated from docker-compose environment at container startup
+PROFILE_HEADER
+
+    # Capture all SINDRI_* variables currently set
+    local sindri_vars
+    sindri_vars=$(env | grep -E '^SINDRI_')
+
+    if [[ -n "$sindri_vars" ]]; then
+        while IFS= read -r line; do
+            # Export each variable
+            echo "export $line" >> "$sindri_profile"
+        done <<< "$sindri_vars"
+
+        chmod +x "$sindri_profile"
+        print_success "SINDRI environment variables configured for SSH sessions"
+    else
+        print_status "No SINDRI_* environment variables found"
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -303,30 +343,77 @@ install_extensions_background() {
         cd "$WORKSPACE"
 
         # Determine installation method (priority order)
+        # Set SINDRI_EXT_HOME at runtime using ALT_HOME (the volume-mounted home)
+        # Preserves existing value if already set (e.g., /opt/sindri/extensions from Dockerfile.dev)
+        # Falls back to ${ALT_HOME}/.sindri/extensions for production builds (Dockerfile)
+        local ext_home="${SINDRI_EXT_HOME:-${ALT_HOME}/.sindri/extensions}"
+
+        # CRITICAL: Export variables BEFORE sudo (v2 pattern)
+        # sudo --preserve-env requires variables to be exported first
+        # This ensures mise installs to the correct location from the start
+        export HOME="${ALT_HOME}"
+        export PATH="${ALT_HOME}/.local/share/mise/shims:${PATH}"
+        export WORKSPACE="${WORKSPACE}"
+        export SINDRI_EXT_HOME="${ext_home}"
+        export SINDRI_SOURCE_REF="${SINDRI_SOURCE_REF:-}"
+        export MISE_DATA_DIR="${ALT_HOME}/.local/share/mise"
+        export MISE_CONFIG_DIR="${ALT_HOME}/.config/mise"
+        export MISE_CACHE_DIR="${ALT_HOME}/.cache/mise"
+        export MISE_STATE_DIR="${ALT_HOME}/.local/state/mise"
+
+        # Build preserve list dynamically from environment (prevents staleness)
+        # Auto-discovers all relevant variables instead of hardcoding
+        local preserve_list="HOME,PATH,WORKSPACE"
+
+        # Add all SINDRI_* variables
+        local sindri_vars
+        sindri_vars=$(env | grep -E '^SINDRI_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$sindri_vars" ]] && preserve_list="${preserve_list},${sindri_vars}"
+
+        # Add all MISE_* variables
+        local mise_vars
+        mise_vars=$(env | grep -E '^MISE_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$mise_vars" ]] && preserve_list="${preserve_list},${mise_vars}"
+
+        # Add all GIT_* variables
+        local git_vars
+        git_vars=$(env | grep -E '^GIT_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$git_vars" ]] && preserve_list="${preserve_list},${git_vars}"
+
+        # Add all credential/secret variables (comprehensive pattern)
+        # Matches: *_TOKEN, *_API_KEY, *_KEY, *_KEYS, *_PASSWORD, *_PASS, *_USERNAME, *_USER, *_URL, *_SECRET
+        local credential_vars
+        credential_vars=$(env | grep -E '_(TOKEN|API_KEY|KEY|KEYS|PASSWORD|PASS|USERNAME|USER|URL|SECRET)$' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+        [[ -n "$credential_vars" ]] && preserve_list="${preserve_list},${credential_vars}"
+
+        local env_vars="$preserve_list"
+
         if [[ -f "sindri.yaml" ]]; then
             # Priority 1: Install from sindri.yaml if present
-            print_status "Installing extensions from sindri.yaml..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" >> "$install_log" 2>&1
-        elif [[ -n "${SINDRI_PROFILE:-}" ]]; then
-            # Priority 2: Install from SINDRI_PROFILE environment variable
-            print_status "Installing profile: ${SINDRI_PROFILE}..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "sindri extension install --profile '${SINDRI_PROFILE}' --yes" >> "$install_log" 2>&1
+            print_status "Installing extensions from sindri.yaml..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+        elif [[ -n "${INSTALL_PROFILE:-}" ]]; then
+            # Priority 2: Install from INSTALL_PROFILE environment variable
+            print_status "Installing profile: ${INSTALL_PROFILE}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         else
             # Priority 3: Default to minimal profile
-            print_status "Installing minimal profile (default)..." >> "$install_log" 2>&1
-            su - "$DEVELOPER_USER" -c "sindri extension install --profile minimal --yes" >> "$install_log" 2>&1
+            print_status "Installing minimal profile (default)..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install minimal --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         fi
 
+        # Capture exit code before checking it
+        local exit_code=$?
+
         # Mark as complete if successful
-        if [[ $? -eq 0 ]]; then
+        if [[ $exit_code -eq 0 ]]; then
             touch "$bootstrap_marker"
             chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
-            print_success "Extension installation complete" >> "$install_log" 2>&1
-            echo "✅ Extension installation complete. Check log at: ~/.sindri/logs/install.log" >> "$install_log" 2>&1
+            print_success "Extension installation complete" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "✅ Extension installation complete. Check log at: ~/.sindri/logs/install.log" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         else
-            local exit_code=$?
-            print_error "Extension installation failed (exit code: ${exit_code})" >> "$install_log" 2>&1
-            echo "❌ Extension installation failed. Check log at: ~/.sindri/logs/install.log" >> "$install_log" 2>&1
+            print_error "Extension installation failed (exit code: ${exit_code})" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "❌ Extension installation failed. Check log at: ~/.sindri/logs/install.log" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         fi
     ) &
 
@@ -368,19 +455,22 @@ print_status "========================================="
 # Step 1: Setup home directory and user environment
 setup_home_directory
 
-# Step 2: Configure SSH keys
+# Step 2: Setup SINDRI environment variables for SSH sessions
+setup_sindri_environment
+
+# Step 3: Configure SSH keys
 setup_ssh_keys
 
-# Step 3: Persist SSH host keys for stable fingerprints
+# Step 4: Persist SSH host keys for stable fingerprints
 persist_ssh_host_keys
 
-# Step 4: Configure Git
+# Step 5: Configure Git
 setup_git_config
 
-# Step 5: Install extensions in background (non-blocking)
+# Step 6: Install extensions in background (non-blocking)
 install_extensions_background
 
-# Step 6: Start SSH daemon (foreground if not CI mode)
+# Step 7: Start SSH daemon (foreground if not CI mode)
 if [[ "${CI_MODE:-false}" != "true" ]]; then
     start_ssh_daemon
 

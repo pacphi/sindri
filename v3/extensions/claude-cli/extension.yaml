@@ -1,0 +1,66 @@
+---
+metadata:
+  name: claude-cli
+  version: 1.0.0
+  description: Claude Code CLI - Official Anthropic AI coding assistant
+  category: claude
+  author: Anthropic
+  license: Proprietary
+  homepage: https://claude.ai/code
+  dependencies: []
+  tags:
+    - claude-code
+    - ai-assistant
+    - anthropic
+
+requirements:
+  domains:
+    - claude.ai
+    - api.anthropic.com
+  diskSpace: 200
+  memory: 256
+  installTime: 120
+  validationTimeout: 60
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 300
+    args: []
+
+configure:
+  files:
+    - source: settings.json
+      destination: ~/.claude/settings.json
+      mode: create-if-missing
+      description: Default Claude Code settings
+  environment:
+    - key: PATH
+      value: "$HOME/.local/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: claude
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+.*Claude Code"
+
+remove:
+  paths:
+    - ~/.local/bin/claude
+    - ~/.claude
+  confirmation: true
+
+upgrade:
+  strategy: reinstall
+
+bom:
+  tools:
+    - name: claude-code
+      version: dynamic
+      source: binary
+      type: cli-tool
+      license: Proprietary
+      homepage: https://claude.ai/code
+      purl: pkg:generic/anthropic/claude-code

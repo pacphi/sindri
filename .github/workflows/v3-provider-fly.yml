@@ -1,0 +1,264 @@
+# Reusable Workflow: Fly.io Provider
+# Tests extensions on Fly.io VMs with auto-suspend
+name: "v3: Provider - Fly.io"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extension names to test'
+        type: string
+        required: true
+      max-parallel:
+        description: 'Maximum parallel jobs'
+        type: number
+        default: 2
+      fly-region:
+        description: 'Fly.io region'
+        type: string
+        default: 'sjc'
+      fly-vm-size:
+        description: 'Default VM size'
+        type: string
+        default: 'shared-cpu-2x'
+
+    outputs:
+      results:
+        description: 'Test results JSON'
+        value: ${{ jobs.summary.outputs.results }}
+      passed:
+        description: 'Number of passed tests'
+        value: ${{ jobs.summary.outputs.passed }}
+      failed:
+        description: 'Number of failed tests'
+        value: ${{ jobs.summary.outputs.failed }}
+
+    secrets:
+      FLY_API_TOKEN:
+        description: 'Fly.io API token'
+        required: true
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+jobs:
+  # Test each extension on Fly.io
+  test:
+    name: "Test: ${{ matrix.extension }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        extension: ${{ fromJson(inputs.extensions) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Get Extension Requirements
+        id: requirements
+        run: |
+          EXT_FILE="v3/extensions/${{ matrix.extension }}/extension.yaml"
+          if [[ -f "$EXT_FILE" ]]; then
+            MEMORY=$(yq -r '.requirements.memory // 1024' "$EXT_FILE")
+            # Map memory to Fly VM size
+            if [[ $MEMORY -le 512 ]]; then
+              VM_SIZE="shared-cpu-1x"
+            elif [[ $MEMORY -le 2048 ]]; then
+              VM_SIZE="shared-cpu-2x"
+            elif [[ $MEMORY -le 4096 ]]; then
+              VM_SIZE="shared-cpu-4x"
+            else
+              VM_SIZE="shared-cpu-8x"
+            fi
+          else
+            VM_SIZE="${{ inputs.fly-vm-size }}"
+          fi
+          echo "vm_size=$VM_SIZE" >> $GITHUB_OUTPUT
+
+      - name: Create Fly App
+        id: create
+        run: |
+          APP_NAME="sindri-test-${{ matrix.extension }}-$(date +%s)"
+          APP_NAME=$(echo "$APP_NAME" | tr '_' '-' | cut -c1-63)
+
+          echo "Creating Fly app: $APP_NAME"
+
+          # Create fly.toml
+          cat > fly.toml << EOF
+          app = "$APP_NAME"
+          primary_region = "${{ inputs.fly-region }}"
+
+          [build]
+            image = "ghcr.io/sindri-dev/sindri:latest"
+
+          [[vm]]
+            cpu_kind = "shared"
+            cpus = 2
+            memory_mb = 2048
+
+          [processes]
+            app = "sleep infinity"
+          EOF
+
+          flyctl apps create "$APP_NAME" --org personal || true
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+
+      - name: Deploy to Fly
+        id: deploy
+        run: |
+          echo "Deploying to Fly.io..."
+          flyctl deploy --app ${{ steps.create.outputs.app_name }} \
+            --vm-size ${{ steps.requirements.outputs.vm_size }} \
+            --region ${{ inputs.fly-region }} \
+            --wait-timeout 300
+
+      - name: Run Extension Tests
+        id: test
+        timeout-minutes: 15
+        run: |
+          APP_NAME="${{ steps.create.outputs.app_name }}"
+
+          echo "::group::Installing ${{ matrix.extension }}"
+          START_TIME=$(date +%s)
+
+          if flyctl ssh console --app "$APP_NAME" -C "sindri extension install ${{ matrix.extension }} --yes" 2>&1 | tee install.log; then
+            INSTALL_RESULT="success"
+          else
+            INSTALL_RESULT="failure"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "::endgroup::"
+
+          if [[ "$INSTALL_RESULT" == "success" ]]; then
+            echo "::group::Validating ${{ matrix.extension }}"
+            if flyctl ssh console --app "$APP_NAME" -C "sindri extension validate ${{ matrix.extension }}" 2>&1 | tee validate.log; then
+              VALIDATE_RESULT="success"
+            else
+              VALIDATE_RESULT="failure"
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Removing ${{ matrix.extension }}"
+            flyctl ssh console --app "$APP_NAME" -C "sindri extension remove ${{ matrix.extension }} --yes" 2>&1 | tee remove.log || true
+            echo "::endgroup::"
+          else
+            VALIDATE_RESULT="skipped"
+          fi
+
+          echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
+          echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Cleanup Fly App
+        if: always()
+        run: |
+          APP_NAME="${{ steps.create.outputs.app_name }}"
+          if [[ -n "$APP_NAME" ]]; then
+            echo "Destroying Fly app: $APP_NAME"
+            flyctl apps destroy "$APP_NAME" --yes || true
+          fi
+
+      - name: Create Test Report
+        id: report
+        if: always()
+        run: |
+          cat > test-result.json << EOF
+          {
+            "extension": "${{ matrix.extension }}",
+            "provider": "fly",
+            "install": {
+              "result": "${{ steps.test.outputs.install_result || 'error' }}",
+              "duration": ${{ steps.test.outputs.install_duration || 0 }}
+            },
+            "validate": {
+              "result": "${{ steps.test.outputs.validate_result || 'skipped' }}"
+            },
+            "overall": "${{ steps.test.outputs.install_result == 'success' && steps.test.outputs.validate_result == 'success' && 'passed' || 'failed' }}"
+          }
+          EOF
+
+          cat test-result.json
+          echo "result=$(cat test-result.json | jq -c .)" >> $GITHUB_OUTPUT
+
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fly-result-${{ matrix.extension }}
+          path: |
+            test-result.json
+            install.log
+            validate.log
+          retention-days: 7
+
+  # Aggregate results
+  summary:
+    name: Test Summary
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.aggregate.outputs.results }}
+      passed: ${{ steps.aggregate.outputs.passed }}
+      failed: ${{ steps.aggregate.outputs.failed }}
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: fly-result-*
+
+      - name: Aggregate Results
+        id: aggregate
+        run: |
+          RESULTS="[]"
+          PASSED=0
+          FAILED=0
+
+          for dir in results/*/; do
+            if [[ -f "$dir/test-result.json" ]]; then
+              RESULT=$(cat "$dir/test-result.json")
+              RESULTS=$(echo "$RESULTS" | jq --argjson r "$RESULT" '. + [$r]')
+
+              OVERALL=$(echo "$RESULT" | jq -r '.overall')
+              if [[ "$OVERALL" == "passed" ]]; then
+                PASSED=$((PASSED + 1))
+              else
+                FAILED=$((FAILED + 1))
+              fi
+            fi
+          done
+
+          {
+            echo "results<<EOF"
+            echo "$RESULTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+
+      - name: Generate Summary
+        run: |
+          echo "## Fly.io Provider Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ inputs.fly-region }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Passed:** ${{ steps.aggregate.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed:** ${{ steps.aggregate.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Extension | Install | Validate | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|----------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | " +
+            (if .install.result == "success" then "pass" else "fail" end) + " | " +
+            (if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) +
+            " | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

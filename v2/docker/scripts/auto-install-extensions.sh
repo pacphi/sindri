@@ -110,9 +110,27 @@ install_extensions() {
     export MISE_CACHE_DIR="${ALT_HOME}/.cache/mise"
     export MISE_STATE_DIR="${ALT_HOME}/.local/state/mise"
 
-    # List of variable names to preserve (not VAR=value, just names)
-    # Include secrets that extensions may need during installation
-    local env_vars="HOME,PATH,WORKSPACE,ALT_HOME,DOCKER_LIB,MISE_DATA_DIR,MISE_CONFIG_DIR,MISE_CACHE_DIR,MISE_STATE_DIR,GITHUB_TOKEN,ANTHROPIC_API_KEY,GIT_USER_NAME,GIT_USER_EMAIL"
+    # Build preserve list dynamically from environment (prevents staleness)
+    # Auto-discovers all relevant variables instead of hardcoding
+    local preserve_list="HOME,PATH,WORKSPACE,ALT_HOME,DOCKER_LIB"
+
+    # Add all SINDRI_* and MISE_* variables
+    local tool_vars
+    tool_vars=$(env | grep -E '^(SINDRI_|MISE_)' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+    [[ -n "$tool_vars" ]] && preserve_list="${preserve_list},${tool_vars}"
+
+    # Add all GIT_* variables
+    local git_vars
+    git_vars=$(env | grep -E '^GIT_' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+    [[ -n "$git_vars" ]] && preserve_list="${preserve_list},${git_vars}"
+
+    # Add all credential/secret variables (comprehensive pattern)
+    # Matches: *_TOKEN, *_API_KEY, *_KEY, *_KEYS, *_PASSWORD, *_PASS, *_USERNAME, *_USER, *_URL, *_SECRET
+    local credential_vars
+    credential_vars=$(env | grep -E '_(TOKEN|API_KEY|KEY|KEYS|PASSWORD|PASS|USERNAME|USER|URL|SECRET)$' | cut -d= -f1 | tr '\n' ',' | sed 's/,$//')
+    [[ -n "$credential_vars" ]] && preserve_list="${preserve_list},${credential_vars}"
+
+    local env_vars="$preserve_list"
 
     local install_success=true
     local installed_profile=""

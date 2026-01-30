@@ -90,11 +90,34 @@ impl ExtensionRegistry {
 
     /// Load registry from GitHub with caching
     ///
-    /// Downloads registry.yaml and profiles.yaml from GitHub,
-    /// caching them locally for TTL duration. Falls back to cache
-    /// if network is unavailable.
+    /// Priority order:
+    /// 1. Local source files (if BUILD_FROM_SOURCE=true): /opt/sindri/registry.yaml
+    /// 2. Cached files (if valid): ~/.sindri/cache/registry.yaml
+    /// 3. Fresh download from GitHub
+    /// 4. Expired cache (fallback)
     pub async fn load_from_github(cache_dir: PathBuf, branch: &str) -> Result<Self> {
         debug!("Loading registry from GitHub (branch: {})", branch);
+
+        // Check for bundled registry/profiles files (development mode with bundled extensions)
+        if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
+            // Derive registry location from extension home parent directory
+            // e.g., SINDRI_EXT_HOME=/opt/sindri/extensions -> /opt/sindri/registry.yaml
+            let ext_path = PathBuf::from(&ext_home);
+            if let Some(parent) = ext_path.parent() {
+                let bundled_registry = parent.join("registry.yaml");
+                let bundled_profiles = parent.join("profiles.yaml");
+
+                if bundled_registry.exists() && bundled_profiles.exists() {
+                    debug!("Loading registry from bundled files at {:?}", parent);
+                    return Self::load_local(&bundled_registry, &bundled_profiles);
+                } else {
+                    debug!(
+                        "SINDRI_EXT_HOME set but bundled files not found at {:?}, falling back to GitHub",
+                        parent
+                    );
+                }
+            }
+        }
 
         // Ensure cache directory exists
         std::fs::create_dir_all(&cache_dir)?;

@@ -12,7 +12,7 @@
 
 // Configuration
 const CONFIG = {
-  dataUrl: 'faq-data.json',
+  dataUrl: 'v2-faq-data.json',
   githubBaseUrl: 'https://github.com/pacphi/sindri/blob/main/',
   debounceMs: 150,
   animationDurationMs: 300,

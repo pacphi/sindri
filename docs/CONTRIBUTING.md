@@ -164,7 +164,7 @@ Create pull request on GitHub with:
    extension-manager install myext
    ```
 
-See: [Extension Authoring Guide](EXTENSION_AUTHORING.md)
+See: [Extension Authoring Guide](../v2/docs/EXTENSION_AUTHORING.md)
 
 ## Testing Guidelines
 
@@ -316,6 +316,120 @@ find docs -name "*.md" | xargs -n1 markdown-link-check -q
 - **CLAUDE.md** - Developer guide for Claude Code
 - **Extension README** - Per-extension documentation (optional)
 
+### Documentation Naming Conventions
+
+All documentation files must follow these naming standards:
+
+| Document Type                 | Naming Pattern                  | Example                                               |
+| ----------------------------- | ------------------------------- | ----------------------------------------------------- |
+| Core documentation            | `UPPER_CASE_UNDERSCORE.md`      | `GETTING_STARTED.md`, `EXTENSION_AUTHORING.md`        |
+| Extension documentation       | `UPPER-CASE-HYPHEN.md`          | `NODEJS-DEVTOOLS.md`, `AI-TOOLKIT.md`                 |
+| Architecture Decision Records | `NNN-kebab-case-description.md` | `001-extension-system.md`, `021-ci-workflow-split.md` |
+
+**Directory organization:**
+
+- Version-specific docs go under `v2/docs/` or `v3/docs/`
+- Shared/version-agnostic docs go under `docs/shared/`
+- Migration and comparison guides go under `docs/shared/migration/`
+
+**Rationale:**
+
+- `UPPER_CASE` signals these are project documentation (not code)
+- Consistent naming enables automated validation via CI
+- Clear separation prevents version confusion
+
+### Version Tagging Requirements
+
+All version-specific documentation **must** include a version header at the top of the file:
+
+```markdown
+# Document Title
+
+> This documentation applies to **Sindri V2**
+
+---
+
+(rest of content)
+```
+
+Or for V3:
+
+```markdown
+# Document Title
+
+> This documentation applies to **Sindri V3**
+
+---
+
+(rest of content)
+```
+
+**When to use version tags:**
+
+- Any document describing V2-only or V3-only features
+- Installation/setup guides specific to a version
+- Extension documentation (V2 and V3 have different extension systems)
+- Architecture documentation (different implementations)
+
+**When NOT to use version tags:**
+
+- Migration guides (they cover both versions)
+- Comparison guides (they cover both versions)
+- IDE integration docs (version-agnostic)
+- This contributing guide (applies to all versions)
+
+### Cross-Reference Guidelines
+
+When linking between documentation files:
+
+**Use relative paths:**
+
+```markdown
+<!-- Good - relative path -->
+
+See [My Doc](./MY_DOC.md)
+
+<!-- Bad - absolute path -->
+
+See [My Doc](/path/to/MY_DOC.md)
+```
+
+**Always verify links exist:**
+
+```bash
+# Run link checker before committing
+pnpm lint:md
+
+# Or manually check
+find docs -name "*.md" -exec grep -l "broken-link" {} \;
+```
+
+**Update references when moving files:**
+
+1. Before moving: search for all references to the file
+2. Move the file
+3. Update all references to the new location
+4. Run link checker to verify
+
+```bash
+# Find all references to a file
+grep -r "EXTENSIONS.md" docs/ v2/docs/ v3/docs/
+```
+
+**Cross-version references:**
+
+When linking from V2 docs to V3 docs (or vice versa), use explicit version paths:
+
+```markdown
+<!-- From v2/docs/SOME_DOC.md linking to v3 -->
+
+For V3 docs, see [V3 Doc](../../v3/docs/SOME_DOC.md)
+
+<!-- From v3/docs/SOME_DOC.md linking to v2 -->
+
+For V2 docs, see [V2 Doc](../../v2/docs/SOME_DOC.md)
+```
+
 ### Writing Documentation
 
 - **Be concise** - Users scan, not read
@@ -339,7 +453,7 @@ When adding features:
 
 - **ci.yml** - Main CI orchestrator with unified provider testing
 - **validate-yaml.yml** - Comprehensive YAML schema validation
-- **test-provider.yml** - Full test suite per provider (CLI + extensions + integration)
+- **v2-test-provider.yml** - Full test suite per provider (CLI + extensions + integration)
 - **release.yml** - Release automation
 
 ### Unified Provider Testing

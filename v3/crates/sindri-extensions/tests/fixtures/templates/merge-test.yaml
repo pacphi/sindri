@@ -1,0 +1,4 @@
+new_key: new_value
+nested:
+  from_template: true
+  priority: high

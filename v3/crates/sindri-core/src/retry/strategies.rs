@@ -63,7 +63,7 @@ pub fn calculate_delay(policy: &RetryPolicy, attempt: u32, jitter: bool) -> Dura
     // Apply jitter if requested (adds up to 25% random variation)
     let final_delay_ms = if jitter && capped_delay_ms > 0 {
         let jitter_range = capped_delay_ms / 4;
-        let jitter_value = rand::thread_rng().gen_range(0..=jitter_range);
+        let jitter_value = rand::rng().random_range(0..=jitter_range);
         capped_delay_ms + jitter_value
     } else {
         capped_delay_ms

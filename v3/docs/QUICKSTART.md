@@ -291,8 +291,8 @@ extension-manager install docker
 
 ## Next Steps
 
-- **[Getting Started Guide](getting-started.md)** - Detailed setup instructions
-- **[Image Management](image-management.md)** - Container versioning and security
+- **[Getting Started Guide](GETTING_STARTED.md)** - Detailed setup instructions
+- **[Image Management](IMAGE_MANAGEMENT.md)** - Container versioning and security
 - **[Examples](../../examples/README.md)** - 60+ ready-to-use configurations
 - **Architecture Decisions** - See `docs/architecture/adr/` for design rationale
 

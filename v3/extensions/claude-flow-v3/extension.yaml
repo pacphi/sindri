@@ -8,14 +8,16 @@ metadata:
   license: MIT
   homepage: https://github.com/ruvnet/claude-flow
   dependencies:
+    - claude-cli
     - nodejs
 requirements:
   domains:
     - registry.npmjs.org
     - github.com
-  diskSpace: 150
+  diskSpace: 250
   memory: 256
   installTime: 90
+  installTimeout: 300
 install:
   method: mise
   mise:
@@ -25,9 +27,6 @@ configure:
     - source: claude-flow-v3.aliases
       destination: ~/.bashrc
       mode: append
-    - source: commands/prd2build.md
-      destination: ~/.claude/commands/prd2build.md
-      mode: overwrite
       description: Convert PRD to comprehensive documentation
     - source: commands/github/check-ci.md
       destination: ~/.claude/commands/github/check-ci.md
@@ -75,7 +74,6 @@ remove:
     tools:
       - "npm:claude-flow"
   paths:
-    - ~/.claude/commands/prd2build.md
     - ~/.claude/commands/github/check-ci.md
     - ~/.claude/commands/git/commit.md
   confirmation: true
@@ -140,8 +138,8 @@ capabilities:
   # Lifecycle hooks (v3-specific)
   hooks:
     post-install:
-      command: "claude-flow --version | grep -q 'v3\\.' && echo 'Claude Flow v3 installed successfully'"
-      description: "Verify v3 installation"
+      command: "bash scripts/install-plugins.sh"
+      description: "Verify v3 installation and install core plugins"
     post-project-init:
       command: "true"
       description: "v3 initialization complete"

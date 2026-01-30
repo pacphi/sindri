@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, get_command_version};
+use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -11,11 +11,12 @@ use sindri_core::types::{
     ActionType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan, DeploymentState,
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// Fly.io provider for cloud deployment
 pub struct FlyProvider {
@@ -111,7 +112,7 @@ impl FlyProvider {
     }
 
     /// Generate fly.toml from config
-    fn generate_fly_toml(
+    async fn generate_fly_toml(
         &self,
         config: &SindriConfig,
         output_dir: &Path,
@@ -123,6 +124,71 @@ impl FlyProvider {
 
         // Set CI mode
         context.ci_mode = ci_mode;
+
+        // Determine which git ref to clone for getting the Dockerfile
+        let version_to_fetch = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.as_deref());
+
+        // Fetch Sindri v3 build context from GitHub (ADR-034, ADR-037)
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("sindri")
+            .join("repos");
+
+        let (v3_dir, git_ref_used) =
+            fetch_sindri_build_context(&cache_dir, version_to_fetch).await?;
+        let repo_dir = v3_dir.parent().unwrap();
+
+        // Determine which git ref to use for Docker build
+        let sindri_version = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.clone())
+            .unwrap_or(git_ref_used);
+
+        // Select appropriate Dockerfile based on build mode
+        let should_build_from_source = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        let dockerfile_name = if should_build_from_source {
+            "Dockerfile.dev"
+        } else {
+            "Dockerfile"
+        };
+
+        // For Fly, we need to generate fly.toml in the repo root and use relative paths
+        // because flyctl uses the fly.toml directory as the build context
+        let dockerfile_path = if output_dir == Path::new(".") || output_dir.is_relative() {
+            // Generate fly.toml in repo root for correct build context
+            format!("v3/{}", dockerfile_name)
+        } else {
+            // Use absolute path if custom output_dir specified
+            v3_dir.join(dockerfile_name).to_string_lossy().to_string()
+        };
+
+        context
+            .env_vars
+            .insert("dockerfile_path".to_string(), dockerfile_path);
+
+        // Store repo_dir and sindri_version for later use
+        context.env_vars.insert(
+            "repo_dir".to_string(),
+            repo_dir.to_string_lossy().to_string(),
+        );
+        context
+            .env_vars
+            .insert("sindri_version".to_string(), sindri_version);
 
         // Add Fly.io specific context variables
         context
@@ -176,8 +242,18 @@ impl FlyProvider {
         // Render template
         let fly_toml_content = self.templates.render("fly.toml", &context)?;
 
-        let fly_toml_path = output_dir.join("fly.toml");
-        std::fs::create_dir_all(output_dir)?;
+        // Determine where to save fly.toml
+        // If building from source (repo_dir in env_vars), save in repo root for correct build context
+        // Otherwise save in output_dir
+        let fly_toml_path = if let Some(repo_dir_str) = context.env_vars.get("repo_dir") {
+            let repo_path = PathBuf::from(repo_dir_str);
+            std::fs::create_dir_all(&repo_path)?;
+            repo_path.join("fly.toml")
+        } else {
+            std::fs::create_dir_all(output_dir)?;
+            output_dir.join("fly.toml")
+        };
+
         std::fs::write(&fly_toml_path, fly_toml_content)?;
 
         info!("Generated fly.toml at {}", fly_toml_path.display());
@@ -359,6 +435,130 @@ impl FlyProvider {
 
         Ok(())
     }
+
+    /// Deploy using a pre-built image (skip Dockerfile build)
+    async fn flyctl_deploy_image(
+        &self,
+        image: &str,
+        fly_toml_path: &Path,
+        config: &FlyDeployConfig<'_>,
+    ) -> Result<()> {
+        info!("Deploying pre-built image to Fly.io: {}", image);
+
+        let mut args = vec![
+            "deploy",
+            "--image",
+            image,
+            "--ha=false",
+            "--wait-timeout",
+            "600",
+        ];
+
+        // Add organization if specified (and not "personal")
+        let org_string: String;
+        if config.organization != "personal" {
+            org_string = config.organization.to_string();
+            args.push("--org");
+            args.push(&org_string);
+        }
+
+        let status = Command::new("flyctl")
+            .args(&args)
+            .current_dir(fly_toml_path.parent().unwrap_or(Path::new(".")))
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()
+            .await?;
+
+        if !status.success() {
+            return Err(anyhow!("flyctl deploy with image failed"));
+        }
+
+        Ok(())
+    }
+
+    /// Check if a pre-built image should be used instead of building from Dockerfile
+    fn should_use_prebuilt_image(&self, config: &SindriConfig) -> bool {
+        let file = config.inner();
+        file.deployment.image.is_some() || file.deployment.image_config.is_some()
+    }
+
+    /// Resolve secrets and set them using flyctl secrets
+    async fn resolve_and_set_secrets(
+        &self,
+        config: &SindriConfig,
+        app_name: &str,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<()> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, skip
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(());
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Prepare secrets for flyctl
+        let mut secret_pairs = Vec::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // This is an environment variable secret
+                secret_pairs.push(format!("{}={}", name, value));
+            } else {
+                warn!("Fly.io provider currently only supports environment variable secrets. File secret '{}' will be skipped.", name);
+            }
+        }
+
+        if secret_pairs.is_empty() {
+            debug!("No environment variable secrets to set");
+            return Ok(());
+        }
+
+        info!("Setting {} secrets via flyctl...", secret_pairs.len());
+
+        // Use flyctl secrets import to set all secrets at once
+        let secrets_input = secret_pairs.join("\n");
+
+        let mut child = Command::new("flyctl")
+            .args(["secrets", "import", "-a", app_name])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        // Write secrets to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            stdin.write_all(secrets_input.as_bytes()).await?;
+            stdin.flush().await?;
+        }
+
+        let output = child.wait_with_output().await?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow!("Failed to set secrets: {}", stderr));
+        }
+
+        info!("Secrets set successfully");
+        Ok(())
+    }
 }
 
 impl Default for FlyProvider {
@@ -429,7 +629,9 @@ impl Provider for FlyProvider {
         }
 
         // Generate fly.toml
-        let fly_toml_path = self.generate_fly_toml(config, &self.output_dir, false)?;
+        let fly_toml_path = self
+            .generate_fly_toml(config, &self.output_dir, false)
+            .await?;
 
         if opts.dry_run {
             return Ok(DeployResult {
@@ -452,6 +654,9 @@ impl Provider for FlyProvider {
             self.create_app(&name, fly_config.organization).await?;
         }
 
+        // Resolve and set secrets
+        self.resolve_and_set_secrets(config, &name, None).await?;
+
         // Create volume if it doesn't exist
         if !self.volume_exists(&name, "home_data").await {
             self.create_volume(
@@ -463,8 +668,21 @@ impl Provider for FlyProvider {
             .await?;
         }
 
-        // Deploy
-        self.flyctl_deploy(&fly_toml_path, opts.force).await?;
+        // Check if we should use a pre-built image
+        if self.should_use_prebuilt_image(config) {
+            // Resolve and deploy using pre-built image
+            let image = config
+                .resolve_image()
+                .await
+                .map_err(|e| anyhow!("Failed to resolve image: {}", e))?;
+            info!("Using pre-built image: {}", image);
+            self.flyctl_deploy_image(&image, &fly_toml_path, &fly_config)
+                .await?;
+        } else {
+            // Build from Dockerfile (existing behavior)
+            info!("No image specified, building from Dockerfile");
+            self.flyctl_deploy(&fly_toml_path, opts.force).await?;
+        }
 
         let ssh_host = format!("{}.fly.dev", name);
 
@@ -542,12 +760,15 @@ impl Provider for FlyProvider {
 
         let (machine_id, state) = self.get_machine_state(&name).await?;
 
+        // Resolve image using the image_config priority chain
+        let image = config.resolve_image().await.ok();
+
         Ok(DeploymentStatus {
             name,
             provider: "fly".to_string(),
             state,
             instance_id: machine_id,
-            image: config.image().map(|s| s.to_string()),
+            image,
             addresses: vec![],
             resources: None,
             timestamps: Default::default(),
@@ -589,6 +810,9 @@ impl Provider for FlyProvider {
         let name = fly_config.name.to_string();
         info!("Planning Fly.io deployment for {}", name);
 
+        // Resolve image using the image_config priority chain
+        let image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,
             resource: "fly.toml".to_string(),
@@ -614,7 +838,7 @@ impl Provider for FlyProvider {
         actions.push(PlannedAction {
             action: ActionType::Create,
             resource: format!("machine:{}", name),
-            description: "Deploy Fly.io machine".to_string(),
+            description: format!("Deploy Fly.io machine with image {}", image),
         });
 
         let resources = vec![
@@ -653,6 +877,7 @@ impl Provider for FlyProvider {
                         "memory_mb".to_string(),
                         serde_json::json!(fly_config.memory_mb),
                     );
+                    m.insert("image".to_string(), serde_json::json!(image));
                     m
                 },
             },

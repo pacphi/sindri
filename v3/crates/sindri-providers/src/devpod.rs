@@ -2,7 +2,7 @@
 
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
-use crate::utils::{command_exists, get_command_version};
+use crate::utils::{command_exists, fetch_sindri_build_context, get_command_version};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
@@ -11,11 +11,12 @@ use sindri_core::types::{
     ActionType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan, DeploymentState,
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// DevPod provider for multi-cloud development environments
 pub struct DevPodProvider {
@@ -229,8 +230,19 @@ impl DevPodProvider {
     }
 
     /// Build Docker image
-    async fn build_image(&self, tag: &str, dockerfile: &Path, context_dir: &Path) -> Result<()> {
+    async fn build_image(
+        &self,
+        tag: &str,
+        dockerfile: &Path,
+        context_dir: &Path,
+        sindri_version: &str,
+    ) -> Result<()> {
         info!("Building Docker image: {}", tag);
+
+        let dockerfile_str = dockerfile.to_string_lossy();
+        let context_str = context_dir.to_string_lossy();
+        let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
+        let source_ref_arg = format!("SINDRI_SOURCE_REF={}", sindri_version);
 
         let status = Command::new("docker")
             .args([
@@ -238,8 +250,14 @@ impl DevPodProvider {
                 "-t",
                 tag,
                 "-f",
-                &dockerfile.to_string_lossy(),
-                &context_dir.to_string_lossy(),
+                &dockerfile_str,
+                "--build-arg",
+                "BUILD_FROM_SOURCE=true",
+                "--build-arg",
+                &sindri_version_arg,
+                "--build-arg",
+                &source_ref_arg,
+                &context_str,
             ])
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
@@ -314,8 +332,48 @@ impl DevPodProvider {
         config: &SindriConfig,
         provider_type: &str,
     ) -> Result<Option<String>> {
-        let base_dir = self.output_dir.parent().unwrap_or(&self.output_dir);
-        let dockerfile = base_dir.join("Dockerfile");
+        // Determine which git ref to clone for getting the Dockerfile
+        let version_to_fetch = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.as_deref());
+
+        // Fetch Sindri v3 build context from GitHub (ADR-034, ADR-037)
+        let cache_dir = dirs::cache_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("sindri")
+            .join("repos");
+
+        let (v3_dir, git_ref_used) =
+            fetch_sindri_build_context(&cache_dir, version_to_fetch).await?;
+
+        // Select appropriate Dockerfile based on build mode
+        let should_build_from_source = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        let dockerfile_name = if should_build_from_source {
+            "Dockerfile.dev"
+        } else {
+            "Dockerfile"
+        };
+        let dockerfile = v3_dir.join(dockerfile_name);
+        let repo_dir = v3_dir.parent().unwrap(); // Repository root for build context
+
+        // Store git_ref for Docker build args
+        let sindri_version = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .and_then(|b| b.git_ref.clone())
+            .unwrap_or(git_ref_used);
 
         // For docker provider, use Dockerfile directly
         if provider_type == "docker" {
@@ -335,7 +393,8 @@ impl DevPodProvider {
             if let Some(local_cluster) = self.detect_local_k8s_cluster(k8s_context).await {
                 // Build and load into local cluster
                 let image_tag = "sindri:latest";
-                self.build_image(image_tag, &dockerfile, base_dir).await?;
+                self.build_image(image_tag, &dockerfile, repo_dir, &sindri_version)
+                    .await?;
                 self.load_image_to_local_cluster(image_tag, &local_cluster)
                     .await?;
                 return Ok(Some(image_tag.to_string()));
@@ -361,7 +420,8 @@ impl DevPodProvider {
             }
 
             // Build and push
-            self.build_image(&image_tag, &dockerfile, base_dir).await?;
+            self.build_image(&image_tag, &dockerfile, repo_dir, &sindri_version)
+                .await?;
             self.push_image(&image_tag).await?;
 
             return Ok(Some(image_tag));
@@ -370,8 +430,52 @@ impl DevPodProvider {
         Ok(None)
     }
 
-    /// Generate devcontainer.json
-    fn generate_devcontainer(
+    /// Resolve secrets and return them as env vars
+    async fn resolve_secrets(
+        &self,
+        config: &SindriConfig,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<HashMap<String, String>> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, return empty map
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(HashMap::new());
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Convert to HashMap for containerEnv
+        let mut env_vars = HashMap::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // This is an environment variable secret
+                env_vars.insert(name.clone(), value.to_string());
+            } else {
+                warn!("DevPod provider currently only supports environment variable secrets. File secret '{}' will be skipped.", name);
+            }
+        }
+
+        info!("Resolved {} environment variable secrets", env_vars.len());
+        Ok(env_vars)
+    }
+
+    /// Generate devcontainer.json with secrets
+    async fn generate_devcontainer(
         &self,
         config: &SindriConfig,
         image_tag: Option<&str>,
@@ -385,6 +489,10 @@ impl DevPodProvider {
         if let Some(image) = image_tag {
             context.image = image.to_string();
         }
+
+        // Resolve and add secrets to containerEnv
+        let secret_env_vars = self.resolve_secrets(config, None).await?;
+        context = context.with_env_vars(secret_env_vars);
 
         let content = self.templates.render("devcontainer.json", &context)?;
         let devcontainer_path = devcontainer_dir.join("devcontainer.json");
@@ -649,8 +757,10 @@ impl Provider for DevPodProvider {
         // Prepare image (build/push/load as needed)
         let image_tag = self.prepare_image(config, &provider_type).await?;
 
-        // Generate devcontainer.json
-        let devcontainer_path = self.generate_devcontainer(config, image_tag.as_deref())?;
+        // Generate devcontainer.json with secrets
+        let devcontainer_path = self
+            .generate_devcontainer(config, image_tag.as_deref())
+            .await?;
 
         if opts.dry_run {
             return Ok(DeployResult {

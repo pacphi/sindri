@@ -2,10 +2,11 @@
 metadata:
   name: claude-marketplace
   version: 2.0.0
-  description: Claude Code plugin marketplace integration via YAML configuration
+  description: Claude Code plugin marketplace integration via JSON configuration
   category: claude
   author: Sindri Team
-  dependencies: []
+  dependencies:
+    - claude-cli
 requirements:
   domains:
     - schemastore.org
@@ -21,23 +22,37 @@ install:
     timeout: 300
 configure:
   templates:
-    - source: marketplaces.yml.example
-      destination: ~/config/marketplaces.yml
-      mode: overwrite
-    - source: marketplaces.ci.yml.example
-      destination: ~/config/marketplaces.ci.yml
-      mode: overwrite
+    # Local environment gets full marketplace list (9 marketplaces)
+    - source: marketplaces.local.json
+      destination: ~/.claude/settings.json
+      mode: merge
+      condition:
+        env:
+          not_any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+
+    # CI environment gets minimal marketplace list (3 marketplaces)
+    - source: marketplaces.ci.json
+      destination: ~/.claude/settings.json
+      mode: merge
+      condition:
+        env:
+          any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+
+    # Claude settings.json merged in all environments
     - source: default-settings.json
       destination: ~/.claude/settings.json
       mode: merge
+      condition: null  # Always process
 validate:
   commands:
     - name: claude
       expectedPattern: "\\d+\\.\\d+\\.\\d+.*Claude Code"
 remove:
-  paths:
-    - ~/config/marketplaces.yml
-    - ~/config/marketplaces.ci.yml
+  paths: []
 upgrade:
   strategy: none
 bom:

@@ -1,0 +1,375 @@
+# Reusable Workflow: Packer Provider
+# Tests extensions on VM images built with Packer
+name: "v3: Provider - Packer"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extension names to test'
+        type: string
+        required: true
+      max-parallel:
+        description: 'Maximum parallel jobs'
+        type: number
+        default: 2
+      cloud:
+        description: 'Cloud provider for VM instances (aws, azure, gcp, oci, alibaba)'
+        type: string
+        default: 'aws'
+      region:
+        description: 'Cloud region'
+        type: string
+        default: 'us-west-2'
+
+    outputs:
+      results:
+        description: 'Test results JSON'
+        value: ${{ jobs.summary.outputs.results }}
+      passed:
+        description: 'Number of passed tests'
+        value: ${{ jobs.summary.outputs.passed }}
+      failed:
+        description: 'Number of failed tests'
+        value: ${{ jobs.summary.outputs.failed }}
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+      AZURE_CLIENT_ID:
+        required: false
+      AZURE_CLIENT_SECRET:
+        required: false
+      AZURE_SUBSCRIPTION_ID:
+        required: false
+      AZURE_TENANT_ID:
+        required: false
+      GCP_CREDENTIALS:
+        required: false
+      OCI_USER_OCID:
+        required: false
+      OCI_TENANCY_OCID:
+        required: false
+      OCI_FINGERPRINT:
+        required: false
+      OCI_PRIVATE_KEY:
+        required: false
+      ALIBABA_ACCESS_KEY:
+        required: false
+      ALIBABA_SECRET_KEY:
+        required: false
+
+jobs:
+  # Build Packer image first (if needed)
+  build-image:
+    name: Build Packer Image
+    runs-on: ubuntu-latest
+    outputs:
+      image_id: ${{ steps.build.outputs.image_id }}
+      image_ready: ${{ steps.build.outputs.ready }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+
+      - name: Configure Cloud Credentials
+        run: |
+          CLOUD="${{ inputs.cloud }}"
+
+          case "$CLOUD" in
+            aws)
+              echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+              echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+              echo "AWS_DEFAULT_REGION=${{ inputs.region }}" >> $GITHUB_ENV
+              ;;
+            azure)
+              echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+              echo "ARM_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}" >> $GITHUB_ENV
+              echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+              echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+              ;;
+            gcp)
+              echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp-creds.json
+              echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json" >> $GITHUB_ENV
+              ;;
+            oci)
+              echo "OCI_USER_OCID=${{ secrets.OCI_USER_OCID }}" >> $GITHUB_ENV
+              echo "OCI_TENANCY_OCID=${{ secrets.OCI_TENANCY_OCID }}" >> $GITHUB_ENV
+              echo "OCI_FINGERPRINT=${{ secrets.OCI_FINGERPRINT }}" >> $GITHUB_ENV
+              mkdir -p ~/.oci
+              echo '${{ secrets.OCI_PRIVATE_KEY }}' > ~/.oci/oci_api_key.pem
+              chmod 600 ~/.oci/oci_api_key.pem
+              ;;
+            alibaba)
+              echo "ALICLOUD_ACCESS_KEY=${{ secrets.ALIBABA_ACCESS_KEY }}" >> $GITHUB_ENV
+              echo "ALICLOUD_SECRET_KEY=${{ secrets.ALIBABA_SECRET_KEY }}" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Check for Existing Image
+        id: check
+        run: |
+          # Check if recent sindri image exists (skip rebuild if < 24h old)
+          CLOUD="${{ inputs.cloud }}"
+          IMAGE_EXISTS=false
+
+          case "$CLOUD" in
+            aws)
+              IMAGE_ID=$(aws ec2 describe-images \
+                --owners self \
+                --filters "Name=name,Values=sindri-v3-*" "Name=state,Values=available" \
+                --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
+                --output text 2>/dev/null || echo "")
+
+              if [[ -n "$IMAGE_ID" && "$IMAGE_ID" != "None" ]]; then
+                IMAGE_EXISTS=true
+              fi
+              ;;
+          esac
+
+          echo "image_exists=$IMAGE_EXISTS" >> $GITHUB_OUTPUT
+          echo "existing_image_id=${IMAGE_ID:-}" >> $GITHUB_OUTPUT
+
+      - name: Build Packer Image
+        id: build
+        if: steps.check.outputs.image_exists != 'true'
+        working-directory: v3/packer
+        run: |
+          CLOUD="${{ inputs.cloud }}"
+
+          packer init .
+          packer build \
+            -var "cloud=$CLOUD" \
+            -var "region=${{ inputs.region }}" \
+            -machine-readable \
+            . | tee packer-output.log
+
+          # Extract image ID from output
+          IMAGE_ID=$(grep 'artifact,0,id' packer-output.log | cut -d',' -f6 | cut -d':' -f2)
+
+          echo "image_id=$IMAGE_ID" >> $GITHUB_OUTPUT
+          echo "ready=true" >> $GITHUB_OUTPUT
+
+      - name: Use Existing Image
+        if: steps.check.outputs.image_exists == 'true'
+        id: existing
+        run: |
+          echo "Using existing image: ${{ steps.check.outputs.existing_image_id }}"
+          echo "image_id=${{ steps.check.outputs.existing_image_id }}" >> $GITHUB_OUTPUT
+          echo "ready=true" >> $GITHUB_OUTPUT
+
+  # Test each extension on VM instance
+  test:
+    name: "Test: ${{ matrix.extension }}"
+    needs: build-image
+    if: needs.build-image.outputs.image_ready == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        extension: ${{ fromJson(inputs.extensions) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Cloud CLI
+        run: |
+          CLOUD="${{ inputs.cloud }}"
+
+          case "$CLOUD" in
+            aws)
+              echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+              echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+              echo "AWS_DEFAULT_REGION=${{ inputs.region }}" >> $GITHUB_ENV
+              ;;
+            gcp)
+              echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp-creds.json
+              gcloud auth activate-service-account --key-file=/tmp/gcp-creds.json
+              ;;
+            azure)
+              az login --service-principal \
+                -u "${{ secrets.AZURE_CLIENT_ID }}" \
+                -p "${{ secrets.AZURE_CLIENT_SECRET }}" \
+                --tenant "${{ secrets.AZURE_TENANT_ID }}"
+              ;;
+          esac
+
+      - name: Launch Test Instance
+        id: launch
+        uses: ./.github/actions/packer/launch-instance
+        with:
+          cloud: ${{ inputs.cloud }}
+          image-id: ${{ needs.build-image.outputs.image_id }}
+          region: ${{ inputs.region }}
+
+      - name: Wait for Instance
+        run: |
+          echo "Waiting for SSH to be ready..."
+          PUBLIC_IP="${{ steps.launch.outputs.public-ip }}"
+          SSH_KEY="${{ steps.launch.outputs.ssh-key-path }}"
+
+          for i in {1..30}; do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "$SSH_KEY" ubuntu@"$PUBLIC_IP" "echo SSH ready" 2>/dev/null; then
+              echo "SSH is ready"
+              break
+            fi
+            echo "Waiting for SSH... ($i/30)"
+            sleep 10
+          done
+
+      - name: Run Extension Tests
+        id: test
+        timeout-minutes: 20
+        run: |
+          PUBLIC_IP="${{ steps.launch.outputs.public-ip }}"
+          SSH_KEY="${{ steps.launch.outputs.ssh-key-path }}"
+
+          SSH_CMD="ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$PUBLIC_IP"
+
+          echo "::group::Installing ${{ matrix.extension }}"
+          START_TIME=$(date +%s)
+
+          if $SSH_CMD "sindri extension install ${{ matrix.extension }} --yes" 2>&1 | tee install.log; then
+            INSTALL_RESULT="success"
+          else
+            INSTALL_RESULT="failure"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "::endgroup::"
+
+          if [[ "$INSTALL_RESULT" == "success" ]]; then
+            echo "::group::Validating ${{ matrix.extension }}"
+            if $SSH_CMD "sindri extension validate ${{ matrix.extension }}" 2>&1 | tee validate.log; then
+              VALIDATE_RESULT="success"
+            else
+              VALIDATE_RESULT="failure"
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Removing ${{ matrix.extension }}"
+            $SSH_CMD "sindri extension remove ${{ matrix.extension }} --yes" 2>&1 | tee remove.log || true
+            echo "::endgroup::"
+          else
+            VALIDATE_RESULT="skipped"
+          fi
+
+          echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
+          echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Terminate Instance
+        if: always()
+        uses: ./.github/actions/packer/terminate-instance
+        with:
+          cloud: ${{ inputs.cloud }}
+          instance-id: ${{ steps.launch.outputs.instance-id }}
+          region: ${{ inputs.region }}
+
+      - name: Create Test Report
+        id: report
+        if: always()
+        run: |
+          cat > test-result.json << EOF
+          {
+            "extension": "${{ matrix.extension }}",
+            "provider": "packer",
+            "cloud": "${{ inputs.cloud }}",
+            "install": {
+              "result": "${{ steps.test.outputs.install_result || 'error' }}",
+              "duration": ${{ steps.test.outputs.install_duration || 0 }}
+            },
+            "validate": {
+              "result": "${{ steps.test.outputs.validate_result || 'skipped' }}"
+            },
+            "overall": "${{ steps.test.outputs.install_result == 'success' && steps.test.outputs.validate_result == 'success' && 'passed' || 'failed' }}"
+          }
+          EOF
+
+          cat test-result.json
+
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: packer-result-${{ matrix.extension }}
+          path: |
+            test-result.json
+            install.log
+            validate.log
+          retention-days: 7
+
+  # Aggregate results
+  summary:
+    name: Test Summary
+    needs: [build-image, test]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.aggregate.outputs.results }}
+      passed: ${{ steps.aggregate.outputs.passed }}
+      failed: ${{ steps.aggregate.outputs.failed }}
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: packer-result-*
+
+      - name: Aggregate Results
+        id: aggregate
+        run: |
+          RESULTS="[]"
+          PASSED=0
+          FAILED=0
+
+          for dir in results/*/; do
+            if [[ -f "$dir/test-result.json" ]]; then
+              RESULT=$(cat "$dir/test-result.json")
+              RESULTS=$(echo "$RESULTS" | jq --argjson r "$RESULT" '. + [$r]')
+
+              OVERALL=$(echo "$RESULT" | jq -r '.overall')
+              if [[ "$OVERALL" == "passed" ]]; then
+                PASSED=$((PASSED + 1))
+              else
+                FAILED=$((FAILED + 1))
+              fi
+            fi
+          done
+
+          {
+            echo "results<<EOF"
+            echo "$RESULTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+
+      - name: Generate Summary
+        run: |
+          echo "## Packer Provider Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Cloud:** ${{ inputs.cloud }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ inputs.region }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image ID:** ${{ needs.build-image.outputs.image_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Passed:** ${{ steps.aggregate.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed:** ${{ steps.aggregate.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Extension | Install | Validate | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|----------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | " +
+            (if .install.result == "success" then "pass" else "fail" end) + " | " +
+            (if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) +
+            " | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

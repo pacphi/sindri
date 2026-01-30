@@ -81,6 +81,7 @@ pub enum ExtensionCategory {
     Documentation,
     Languages,
     Mcp,
+    PackageManager,
     Productivity,
     Research,
     Testing,
@@ -98,6 +99,7 @@ impl std::fmt::Display for ExtensionCategory {
             ExtensionCategory::Documentation => write!(f, "documentation"),
             ExtensionCategory::Languages => write!(f, "languages"),
             ExtensionCategory::Mcp => write!(f, "mcp"),
+            ExtensionCategory::PackageManager => write!(f, "package-manager"),
             ExtensionCategory::Productivity => write!(f, "productivity"),
             ExtensionCategory::Research => write!(f, "research"),
             ExtensionCategory::Testing => write!(f, "testing"),
@@ -388,6 +390,10 @@ pub struct TemplateConfig {
     /// Template mode
     #[serde(default = "default_template_mode")]
     pub mode: TemplateMode,
+
+    /// Optional condition for template selection
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub condition: Option<TemplateCondition>,
 }
 
 fn default_template_mode() -> TemplateMode {
@@ -403,6 +409,100 @@ pub enum TemplateMode {
     Append,
     Merge,
     SkipIfExists,
+}
+
+/// Template condition for environment-based selection
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct TemplateCondition {
+    /// Environment variable conditions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env: Option<EnvCondition>,
+
+    /// Platform conditions (OS, architecture)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<PlatformCondition>,
+
+    /// Logical OR - at least one condition must match
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub any: Option<Vec<TemplateCondition>>,
+
+    /// Logical AND - all conditions must match
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub all: Option<Vec<TemplateCondition>>,
+
+    /// Logical NOT - invert the nested condition
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub not: Option<Box<TemplateCondition>>,
+}
+
+/// Environment variable condition (untagged for flexible syntax)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum EnvCondition {
+    /// Simple key-value: { CI: "true" }
+    Simple(HashMap<String, String>),
+
+    /// Complex with operators: { CI: { equals: "true" } }
+    Complex(HashMap<String, EnvConditionExpr>),
+
+    /// Logical operators: { any: [...], all: [...], not_any: [...] }
+    Logical(EnvConditionLogical),
+}
+
+/// Environment variable condition expression
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct EnvConditionExpr {
+    /// Value must equal this string
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub equals: Option<String>,
+
+    /// Value must not equal this string
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub not_equals: Option<String>,
+
+    /// Variable must exist (true) or not exist (false)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exists: Option<bool>,
+
+    /// Value must match regex pattern
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matches: Option<String>,
+
+    /// Value must be in this list
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub in_list: Option<Vec<String>>,
+}
+
+/// Environment variable logical operators
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct EnvConditionLogical {
+    /// At least one condition must match
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub any: Option<Vec<HashMap<String, String>>>,
+
+    /// All conditions must match
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub all: Option<Vec<HashMap<String, String>>>,
+
+    /// None of these conditions must match
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub not_any: Option<Vec<HashMap<String, String>>>,
+
+    /// Not all of these conditions must match
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub not_all: Option<Vec<HashMap<String, String>>>,
+}
+
+/// Platform condition (OS and/or architecture)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlatformCondition {
+    /// Operating systems: ["linux", "macos", "windows"]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os: Option<Vec<String>>,
+
+    /// Architectures: ["x86_64", "aarch64", "arm64"]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arch: Option<Vec<String>>,
 }
 
 /// Environment variable configuration

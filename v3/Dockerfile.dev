@@ -1,0 +1,230 @@
+# syntax=docker/dockerfile:1.4
+# ==============================================================================
+# Sindri v3 Dockerfile.dev - Fast Development Builds
+# ==============================================================================
+# Multi-stage build optimized for rapid development iteration with bundled extensions.
+#
+# Uses pre-built base image (ghcr.io/pacphi/sindri:base-latest) containing:
+# - Rust 1.92 toolchain
+# - cargo-chef for dependency caching
+# - System packages (Ubuntu 24.04)
+# - GitHub CLI
+#
+# Build time performance:
+# - First build: 3-5 minutes (with base image)
+# - Incremental builds: 1-2 minutes (code changes only)
+# - Clean rebuild: 3-5 minutes (dependencies cached)
+#
+# Build modes:
+#   1. With public base (default, recommended):
+#      docker build -f v3/Dockerfile.dev -t sindri:latest .
+#
+#   2. With local base:
+#      docker build -f v3/Dockerfile.dev --build-arg BASE_IMAGE=sindri:base-latest -t sindri:latest .
+#
+# For maintainers:
+#   - Use 'make v3-docker-build-fast' for fast builds
+#   - Use 'make v3-cycle-fast CONFIG=sindri.yaml' for full dev cycle
+#   - See v3/docs/MAINTAINER_GUIDE.md for details
+#
+# Key optimizations:
+# - Base image separates slow-changing layers (rebuilt quarterly)
+# - cargo-chef caches dependencies (rebuilt only when Cargo.toml changes)
+# - BuildKit cache mounts for cargo registry/git
+# - Incremental compilation for application code
+# - Extensions bundled for offline/air-gapped deployments
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Build Arguments
+# ------------------------------------------------------------------------------
+ARG BASE_IMAGE=ghcr.io/pacphi/sindri:base-latest
+ARG SINDRI_VERSION=3.0.0
+ARG SINDRI_REPO=https://github.com/pacphi/sindri
+
+# ==============================================================================
+# Stage 1: Prepare Recipe (cargo-chef)
+# ==============================================================================
+FROM rust:1.92-slim-bookworm AS chef
+
+RUN cargo install cargo-chef --locked
+
+WORKDIR /app
+
+ARG SINDRI_VERSION
+ARG SINDRI_REPO
+
+# Clone repository to prepare recipe
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    git clone --depth 1 --branch "${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
+    cp -r /tmp/sindri/v3/* .
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+# ==============================================================================
+# Stage 2: Build Dependencies (cached - only rebuilds when Cargo.toml changes)
+# ==============================================================================
+FROM rust:1.92-slim-bookworm AS builder-deps
+
+RUN cargo install cargo-chef --locked
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        pkg-config \
+        libssl-dev \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=chef /app/recipe.json recipe.json
+
+# Build dependencies with cache mounts (FAST incremental builds)
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo chef cook --release --recipe-path recipe.json
+
+# ==============================================================================
+# Stage 3: Build Application (FAST - only rebuilds when source changes)
+# ==============================================================================
+FROM rust:1.92-slim-bookworm AS builder
+
+ARG SINDRI_VERSION
+ARG SINDRI_REPO
+ARG TARGETARCH
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        pkg-config \
+        libssl-dev \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy compiled dependencies from builder-deps (CACHED unless Cargo.toml changes)
+COPY --from=builder-deps /app/target target
+COPY --from=builder-deps /usr/local/cargo /usr/local/cargo
+
+# Clone source and build application (only source code recompiled)
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    echo "Building sindri from source for ${TARGETARCH}..." && \
+    git clone --depth 1 --branch "${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
+    cp -r /tmp/sindri/v3/* . && \
+    cargo build --release --bin sindri && \
+    mkdir -p /output && \
+    cp target/release/sindri /output/sindri && \
+    chmod +x /output/sindri
+
+# ==============================================================================
+# Stage 4: Runtime Image (inherits from base)
+# ==============================================================================
+FROM ${BASE_IMAGE}
+
+# ------------------------------------------------------------------------------
+# Runtime environment already set by base image
+# ------------------------------------------------------------------------------
+# Inherited from base:
+# - Ubuntu 24.04 with system packages
+# - Developer user and workspace directories
+# - GitHub CLI
+# - SSH server configuration structure
+
+# ------------------------------------------------------------------------------
+# Install mise, fonts, starship (changes occasionally)
+# ------------------------------------------------------------------------------
+COPY v3/docker/scripts/setup-ssh-environment.sh \
+     v3/docker/scripts/install-mise.sh \
+     v3/docker/scripts/install-nerd-fonts.sh \
+     v3/docker/scripts/install-starship.sh \
+     v3/docker/scripts/setup-motd.sh \
+     v3/docker/scripts/check-extension-status.sh \
+     v3/docker/scripts/show-motd.sh \
+     /tmp/scripts/
+
+RUN <<EOF
+bash /tmp/scripts/setup-ssh-environment.sh
+bash /tmp/scripts/install-mise.sh
+bash /tmp/scripts/install-nerd-fonts.sh
+bash /tmp/scripts/install-starship.sh
+bash /tmp/scripts/setup-motd.sh
+mkdir -p /etc/profile.d
+cp /tmp/scripts/show-motd.sh /etc/profile.d/00-show-motd.sh
+chmod +x /etc/profile.d/00-show-motd.sh
+cp /tmp/scripts/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh
+chmod +x /etc/profile.d/sindri-extension-status.sh
+rm -rf /tmp/scripts
+EOF
+
+# ------------------------------------------------------------------------------
+# Setup SSH and Configuration (changes occasionally)
+# ------------------------------------------------------------------------------
+COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
+COPY v3/docker/config/developer-sudoers /etc/sudoers.d/developer
+
+RUN mkdir -p /run/sshd /etc/ssh/sshd_config.d && \
+    chmod 0440 /etc/sudoers.d/developer && \
+    chmod 644 /etc/ssh/sshd_config
+
+# ------------------------------------------------------------------------------
+# Copy Sindri CLI Binary (FAST - changes frequently during development)
+# ------------------------------------------------------------------------------
+COPY --from=builder /output/sindri /usr/local/bin/sindri
+RUN sindri --version
+
+# ------------------------------------------------------------------------------
+# Bundle Extensions (FAST - changes frequently during development)
+# ------------------------------------------------------------------------------
+RUN mkdir -p /opt/sindri
+
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/extensions/ /opt/sindri/extensions/
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/registry.yaml /opt/sindri/registry.yaml
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/profiles.yaml /opt/sindri/profiles.yaml
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/compatibility-matrix.yaml /opt/sindri/compatibility-matrix.yaml
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/common.sh /opt/sindri/common.sh
+
+ENV SINDRI_EXT_HOME=/opt/sindri/extensions
+
+# ------------------------------------------------------------------------------
+# Copy Entrypoint and Support Scripts (changes occasionally)
+# ------------------------------------------------------------------------------
+COPY v3/docker/scripts/entrypoint.sh /docker/scripts/
+COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
+
+RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
+
+# ------------------------------------------------------------------------------
+# Runtime Configuration
+# ------------------------------------------------------------------------------
+WORKDIR ${WORKSPACE}
+EXPOSE ${SSH_PORT}
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD /docker/scripts/healthcheck.sh > /dev/null 2>&1 || exit 1
+
+ENTRYPOINT ["/docker/scripts/entrypoint.sh"]
+
+# ==============================================================================
+# Development Workflow:
+# ==============================================================================
+# 1. Build base once (or when Rust/deps change):
+#      make v3-docker-build-base
+#
+# 2. Fast incremental builds (CLI/extensions changed):
+#      make v3-docker-build-fast
+#
+# 3. Full rebuild (when you need to):
+#      make v3-docker-build-from-source
+#
+# Build times:
+# - Base image: 15-20 min (build once, reuse for weeks/months)
+# - Fast build (incremental): 1-2 min
+# - Fast build (clean): 3-5 min
+# - Full rebuild: 40-50 min
+# ==============================================================================

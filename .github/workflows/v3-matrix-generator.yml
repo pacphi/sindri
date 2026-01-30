@@ -1,0 +1,181 @@
+# Reusable Workflow: Matrix Generator
+# Filters extensions per provider based on resource limits
+name: "v3: Matrix Generator"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extensions with requirements'
+        type: string
+        required: true
+      providers:
+        description: 'Comma-separated list of providers to generate matrices for'
+        type: string
+        default: 'docker'
+
+    outputs:
+      docker-extensions:
+        description: 'Extensions suitable for Docker (2GB max)'
+        value: ${{ jobs.generate.outputs.docker }}
+      fly-extensions:
+        description: 'Extensions suitable for Fly.io (8GB max)'
+        value: ${{ jobs.generate.outputs.fly }}
+      k3d-extensions:
+        description: 'Extensions suitable for k3d (4GB max)'
+        value: ${{ jobs.generate.outputs.k3d }}
+      devpod-extensions:
+        description: 'Extensions suitable for DevPod (16GB max)'
+        value: ${{ jobs.generate.outputs.devpod }}
+      packer-extensions:
+        description: 'Extensions suitable for Packer (32GB max)'
+        value: ${{ jobs.generate.outputs.packer }}
+      docker-count:
+        description: 'Count of Docker extensions'
+        value: ${{ jobs.generate.outputs.docker_count }}
+      fly-count:
+        description: 'Count of Fly.io extensions'
+        value: ${{ jobs.generate.outputs.fly_count }}
+      k3d-count:
+        description: 'Count of k3d extensions'
+        value: ${{ jobs.generate.outputs.k3d_count }}
+      devpod-count:
+        description: 'Count of DevPod extensions'
+        value: ${{ jobs.generate.outputs.devpod_count }}
+      packer-count:
+        description: 'Count of Packer extensions'
+        value: ${{ jobs.generate.outputs.packer_count }}
+
+env:
+  # Resource limits per provider (MB)
+  DOCKER_MEMORY_LIMIT: 2048      # GitHub runner limit
+  FLY_MEMORY_LIMIT: 8192         # Fly.io max VM
+  K3D_MEMORY_LIMIT: 4096         # Single node cluster
+  DEVPOD_MEMORY_LIMIT: 16384     # Cloud VM
+  PACKER_MEMORY_LIMIT: 32768     # VM image builds
+
+jobs:
+  generate:
+    name: Generate Provider Matrices
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+      fly: ${{ steps.filter.outputs.fly }}
+      k3d: ${{ steps.filter.outputs.k3d }}
+      devpod: ${{ steps.filter.outputs.devpod }}
+      packer: ${{ steps.filter.outputs.packer }}
+      docker_count: ${{ steps.filter.outputs.docker_count }}
+      fly_count: ${{ steps.filter.outputs.fly_count }}
+      k3d_count: ${{ steps.filter.outputs.k3d_count }}
+      devpod_count: ${{ steps.filter.outputs.devpod_count }}
+      packer_count: ${{ steps.filter.outputs.packer_count }}
+
+    steps:
+      - name: Filter Extensions by Provider
+        id: filter
+        run: |
+          set -euo pipefail
+
+          EXTENSIONS='${{ inputs.extensions }}'
+          PROVIDERS="${{ inputs.providers }}"
+
+          echo "Processing extensions for providers: $PROVIDERS"
+
+          # Filter function
+          filter_by_memory() {
+            local max_memory=$1
+            echo "$EXTENSIONS" | jq --argjson limit "$max_memory" '[
+              .[] |
+              select(.requirements.memory <= $limit) |
+              select(.requirements.gpu_required != true)
+            ]'
+          }
+
+          # Generate matrices for each provider
+          DOCKER_EXTS="[]"
+          FLY_EXTS="[]"
+          K3D_EXTS="[]"
+          DEVPOD_EXTS="[]"
+          PACKER_EXTS="[]"
+
+          if echo "$PROVIDERS" | grep -q "docker"; then
+            DOCKER_EXTS=$(filter_by_memory ${{ env.DOCKER_MEMORY_LIMIT }})
+            echo "Docker: $(echo "$DOCKER_EXTS" | jq 'length') extensions"
+          fi
+
+          if echo "$PROVIDERS" | grep -q "fly"; then
+            FLY_EXTS=$(filter_by_memory ${{ env.FLY_MEMORY_LIMIT }})
+            echo "Fly.io: $(echo "$FLY_EXTS" | jq 'length') extensions"
+          fi
+
+          if echo "$PROVIDERS" | grep -q "k3d"; then
+            K3D_EXTS=$(filter_by_memory ${{ env.K3D_MEMORY_LIMIT }})
+            echo "k3d: $(echo "$K3D_EXTS" | jq 'length') extensions"
+          fi
+
+          if echo "$PROVIDERS" | grep -q "devpod"; then
+            DEVPOD_EXTS=$(filter_by_memory ${{ env.DEVPOD_MEMORY_LIMIT }})
+            echo "DevPod: $(echo "$DEVPOD_EXTS" | jq 'length') extensions"
+          fi
+
+          if echo "$PROVIDERS" | grep -q "packer"; then
+            PACKER_EXTS=$(filter_by_memory ${{ env.PACKER_MEMORY_LIMIT }})
+            echo "Packer: $(echo "$PACKER_EXTS" | jq 'length') extensions"
+          fi
+
+          # Extract just names for matrix use
+          DOCKER_NAMES=$(echo "$DOCKER_EXTS" | jq '[.[].name]')
+          FLY_NAMES=$(echo "$FLY_EXTS" | jq '[.[].name]')
+          K3D_NAMES=$(echo "$K3D_EXTS" | jq '[.[].name]')
+          DEVPOD_NAMES=$(echo "$DEVPOD_EXTS" | jq '[.[].name]')
+          PACKER_NAMES=$(echo "$PACKER_EXTS" | jq '[.[].name]')
+
+          # Output matrices
+          {
+            echo "docker<<EOF"
+            echo "$DOCKER_NAMES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "fly<<EOF"
+            echo "$FLY_NAMES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "k3d<<EOF"
+            echo "$K3D_NAMES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "devpod<<EOF"
+            echo "$DEVPOD_NAMES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "packer<<EOF"
+            echo "$PACKER_NAMES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          # Output counts
+          echo "docker_count=$(echo "$DOCKER_NAMES" | jq 'length')" >> $GITHUB_OUTPUT
+          echo "fly_count=$(echo "$FLY_NAMES" | jq 'length')" >> $GITHUB_OUTPUT
+          echo "k3d_count=$(echo "$K3D_NAMES" | jq 'length')" >> $GITHUB_OUTPUT
+          echo "devpod_count=$(echo "$DEVPOD_NAMES" | jq 'length')" >> $GITHUB_OUTPUT
+          echo "packer_count=$(echo "$PACKER_NAMES" | jq 'length')" >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "## Provider Matrix Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | Memory Limit | Extension Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------------|-----------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker | ${{ env.DOCKER_MEMORY_LIMIT }}MB | ${{ steps.filter.outputs.docker_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fly.io | ${{ env.FLY_MEMORY_LIMIT }}MB | ${{ steps.filter.outputs.fly_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| k3d | ${{ env.K3D_MEMORY_LIMIT }}MB | ${{ steps.filter.outputs.k3d_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| DevPod | ${{ env.DEVPOD_MEMORY_LIMIT }}MB | ${{ steps.filter.outputs.devpod_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Packer | ${{ env.PACKER_MEMORY_LIMIT }}MB | ${{ steps.filter.outputs.packer_count }} |" >> $GITHUB_STEP_SUMMARY

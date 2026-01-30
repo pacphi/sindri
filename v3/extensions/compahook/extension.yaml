@@ -1,0 +1,94 @@
+metadata:
+  name: compahook
+  version: 1.0.0
+  description: Persistent memory layer for Claude Code's /compact command
+  category: claude
+  tags:
+    - claude-code
+    - hooks
+    - compaction
+    - memory
+    - context
+  dependencies:
+    - nodejs
+  profiles:
+    - anthropic-dev
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: COMPAHOOK_DEBUG
+      value: "0"
+      scope: bashrc
+      description: "Enable debug logging (set to 1 for debug output)"
+
+validate:
+  commands:
+    - name: compahook
+      args: ["status"]
+      expectedPattern: "compahook: installed"
+      description: "Verify compahook installation"
+
+capabilities:
+  hooks:
+    post-install:
+      command: "compahook install"
+      description: "Register compahook hooks in ~/.claude/settings.json"
+
+requirements:
+  domains:
+    - registry.npmjs.org
+  diskSpace: 50
+  memory: 128
+  installTime: 60
+  installTimeout: 300
+  validationTimeout: 15
+
+bom:
+  tools:
+    - name: node
+      version: dynamic
+      source: mise
+      type: runtime
+      license: MIT
+    - name: compahook
+      version: latest
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://www.npmjs.com/package/compahook
+
+docs:
+  description: |
+    compahook provides persistent memory across Claude Code's conversation compaction cycles.
+
+    When Claude Code compacts a conversation, important details like architectural decisions,
+    error resolutions, and file edit purposes can be lost. compahook solves this by:
+
+    - Collecting file edits and commands during normal work (PostToolUse hook)
+    - Extracting and scoring high-signal information before compaction (PreCompact hook)
+    - Re-injecting structured context when the session resumes (SessionStart hook)
+
+    The post-install hook automatically registers the hooks in ~/.claude/settings.json.
+
+  quickstart: |
+    # Verify installation (hooks are auto-registered during install)
+    compahook status
+
+    # View metrics for current project
+    compahook stats
+
+    # Live monitoring
+    compahook watch
+
+    # Global metrics across all projects
+    compahook stats --global
+
+  references:
+    - title: "npm Package"
+      url: "https://www.npmjs.com/package/compahook"

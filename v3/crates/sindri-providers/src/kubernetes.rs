@@ -11,6 +11,7 @@ use sindri_core::types::{
     ActionType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan, DeploymentState,
     DeploymentStatus, PlannedAction, PlannedResource, Prerequisite, PrerequisiteStatus,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -163,14 +164,30 @@ impl KubernetesProvider {
             storage_class,
             volume_size,
             gpu_enabled,
-            image: file.deployment.image.as_deref().unwrap_or("sindri:latest"),
+            // Note: image is set to a placeholder here since get_k8s_config is sync
+            // The actual resolved image should be obtained via config.resolve_image().await
+            image: file
+                .deployment
+                .image
+                .as_deref()
+                .unwrap_or("ghcr.io/pacphi/sindri:latest"),
         }
     }
 
     /// Generate Kubernetes manifests
-    fn generate_manifests(&self, config: &SindriConfig, output_dir: &Path) -> Result<PathBuf> {
+    fn generate_manifests(
+        &self,
+        config: &SindriConfig,
+        output_dir: &Path,
+        image_override: Option<&str>,
+    ) -> Result<PathBuf> {
         let k8s_config = self.get_k8s_config(config);
         let mut context = TemplateContext::from_config(config, "none");
+
+        // Apply image override if provided
+        if let Some(image) = image_override {
+            context.image = image.to_string();
+        }
 
         // Add K8s-specific context
         let mut k8s_ctx = HashMap::new();
@@ -538,6 +555,98 @@ impl KubernetesProvider {
             Ok(None)
         }
     }
+
+    /// Resolve secrets and create Kubernetes Secret resources
+    async fn ensure_app_secrets(
+        &self,
+        config: &SindriConfig,
+        namespace: &str,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<Option<String>> {
+        let secrets = config.secrets();
+
+        // If no secrets configured, skip
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(None);
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        // Create resolution context from config directory
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        // Resolve all secrets
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        // Create Kubernetes Secret manifest
+        let secret_name = format!("{}-secrets", config.name());
+
+        // Build base64-encoded secret data
+        let mut secret_data = Vec::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                // Base64 encode the value
+                use base64::{engine::general_purpose, Engine};
+                let encoded = general_purpose::STANDARD.encode(value);
+                secret_data.push(format!("  {}: {}", name, encoded));
+            } else {
+                warn!("Kubernetes provider currently only supports environment variable secrets. File secret '{}' will be skipped.", name);
+            }
+        }
+
+        if secret_data.is_empty() {
+            debug!("No environment variable secrets to create");
+            return Ok(None);
+        }
+
+        // Generate Secret manifest
+        let secret_manifest = format!(
+            r#"apiVersion: v1
+kind: Secret
+metadata:
+  name: {}
+  namespace: {}
+type: Opaque
+data:
+{}
+"#,
+            secret_name,
+            namespace,
+            secret_data.join("\n")
+        );
+
+        // Write to temp file
+        let temp_file = std::env::temp_dir().join(format!("{}-secrets.yaml", config.name()));
+        std::fs::write(&temp_file, secret_manifest)?;
+
+        // Apply the secret
+        debug!("Creating Kubernetes Secret: {}", secret_name);
+        let output = Command::new("kubectl")
+            .args(["apply", "-f"])
+            .arg(&temp_file)
+            .output()
+            .await?;
+
+        // Clean up temp file
+        let _ = std::fs::remove_file(temp_file);
+
+        if output.status.success() {
+            info!("Created Kubernetes Secret: {}", secret_name);
+            Ok(Some(secret_name))
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            warn!("Failed to create Kubernetes Secret: {}", stderr);
+            Ok(None)
+        }
+    }
 }
 
 impl Default for KubernetesProvider {
@@ -628,6 +737,10 @@ impl Provider for KubernetesProvider {
         let name = k8s_config.name.to_string();
         info!("Deploying {} to Kubernetes", name);
 
+        // Resolve image using the image_config priority chain
+        let resolved_image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+        info!("Using resolved image: {}", resolved_image);
+
         // Check prerequisites
         let prereqs = self.check_prerequisites()?;
         if !prereqs.satisfied {
@@ -672,8 +785,9 @@ impl Provider for KubernetesProvider {
             }
         }
 
-        // Generate manifests
-        let manifest_path = self.generate_manifests(config, &self.output_dir)?;
+        // Generate manifests with the resolved image
+        let manifest_path =
+            self.generate_manifests(config, &self.output_dir, Some(&resolved_image))?;
 
         if opts.dry_run {
             return Ok(DeployResult {
@@ -711,20 +825,25 @@ impl Provider for KubernetesProvider {
         // Load image to local cluster if needed
         if matches!(cluster_type, ClusterType::Kind | ClusterType::K3d) {
             if let Some(cluster_name) = self.get_current_cluster_name().await {
-                self.load_image_to_cluster(&cluster_type, k8s_config.image, &cluster_name)
+                self.load_image_to_cluster(&cluster_type, &resolved_image, &cluster_name)
                     .await?;
             }
         }
 
         // Create ImagePullSecret for private registries
-        // Extract registry from image
-        let registry = k8s_config.image.split('/').next().unwrap_or("ghcr.io");
+        // Extract registry from resolved image
+        let registry = resolved_image.split('/').next().unwrap_or("ghcr.io");
 
         let _image_pull_secret = self
             .ensure_image_pull_secret(k8s_config.namespace, registry)
             .await?;
 
-        // Note: The template will use the secret if it exists
+        // Create application secrets
+        let _app_secret = self
+            .ensure_app_secrets(config, k8s_config.namespace, None)
+            .await?;
+
+        // Note: The templates will use the secrets if they exist
         // Template context is updated in generate_manifests
 
         // Apply manifests
@@ -759,8 +878,8 @@ impl Provider for KubernetesProvider {
                 )),
             }),
             messages: vec![format!(
-                "Deployment '{}' created successfully in namespace '{}'",
-                name, k8s_config.namespace
+                "Deployment '{}' created successfully in namespace '{}' with image '{}'",
+                name, k8s_config.namespace, resolved_image
             )],
             warnings: vec![],
         })
@@ -850,12 +969,15 @@ impl Provider for KubernetesProvider {
 
         details.insert("namespace".to_string(), k8s_config.namespace.to_string());
 
+        // Resolve image using the image_config priority chain
+        let image = config.resolve_image().await.ok();
+
         Ok(DeploymentStatus {
             name,
             provider: "kubernetes".to_string(),
             state,
             instance_id: pod_name,
-            image: config.image().map(|s| s.to_string()),
+            image,
             addresses: vec![],
             resources: None,
             timestamps: Default::default(),
@@ -893,6 +1015,9 @@ impl Provider for KubernetesProvider {
         let name = k8s_config.name.to_string();
         info!("Planning Kubernetes deployment for {}", name);
 
+        // Resolve image using the image_config priority chain
+        let resolved_image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,
             resource: "k8s-deployment.yaml".to_string(),
@@ -918,7 +1043,7 @@ impl Provider for KubernetesProvider {
             actions.push(PlannedAction {
                 action: ActionType::Create,
                 resource: format!("deployment:{}", name),
-                description: "Create Kubernetes deployment".to_string(),
+                description: format!("Create Kubernetes deployment with image {}", resolved_image),
             });
 
             actions.push(PlannedAction {
@@ -939,7 +1064,7 @@ impl Provider for KubernetesProvider {
                         serde_json::json!(k8s_config.namespace),
                     );
                     m.insert("replicas".to_string(), serde_json::json!(1));
-                    m.insert("image".to_string(), serde_json::json!(k8s_config.image));
+                    m.insert("image".to_string(), serde_json::json!(resolved_image));
                     m
                 },
             },
@@ -1021,6 +1146,8 @@ struct K8sDeployConfig<'a> {
     storage_class: Option<&'a str>,
     volume_size: String,
     gpu_enabled: bool,
+    // Note: image is resolved async via config.resolve_image() rather than stored here
+    #[allow(dead_code)]
     image: &'a str,
 }
 

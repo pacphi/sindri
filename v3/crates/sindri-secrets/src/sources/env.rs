@@ -34,7 +34,7 @@ impl EnvSource {
         }
     }
 
-    /// Load .env files from the config directory
+    /// Load .env files from the config directory or custom path
     async fn load_env_files(&self, ctx: &ResolutionContext) -> Result<EnvFiles> {
         // Check cache first
         {
@@ -44,6 +44,36 @@ impl EnvSource {
                     return Ok(cached.clone());
                 }
             }
+        }
+
+        // If custom env file is provided, use only that
+        if let Some(custom_path) = &ctx.custom_env_file {
+            let env = if custom_path.exists() {
+                debug!("Loading custom .env file from: {}", custom_path.display());
+                Self::parse_env_file(custom_path).with_context(|| {
+                    format!(
+                        "Failed to parse custom .env file: {}",
+                        custom_path.display()
+                    )
+                })?
+            } else {
+                debug!("Custom .env file not found: {}", custom_path.display());
+                HashMap::new()
+            };
+
+            let files = EnvFiles {
+                env_local: HashMap::new(),
+                env,
+                config_dir: ctx.config_dir.clone(),
+            };
+
+            // Cache the loaded files
+            {
+                let mut cache = self.env_cache.write().await;
+                *cache = Some(files.clone());
+            }
+
+            return Ok(files);
         }
 
         // Load .env.local

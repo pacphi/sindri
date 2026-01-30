@@ -332,7 +332,7 @@ env:
 2. **Verify GITHUB_TOKEN propagation in CI:**
 
    ```yaml
-   # .github/workflows/test-provider.yml
+   # .github/workflows/v2-test-provider.yml
    env:
      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
    ```
@@ -412,7 +412,7 @@ wait
 - `docker/lib/extensions/python/mise.toml` - Primary fix location
 - `docker/lib/extensions/infra-tools/mise.toml` - Reference implementation
 - `cli/extension-manager-modules/executor.sh` - Token propagation
-- `.github/workflows/test-provider.yml` - CI token configuration
+- `.github/workflows/v2-test-provider.yml` - CI token configuration
 
 ## Appendix C: Monitoring
 

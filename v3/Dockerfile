@@ -1,38 +1,38 @@
+# syntax=docker/dockerfile:1.4
 # ==============================================================================
-# Sindri v3 Dockerfile
+# Sindri v3 Dockerfile (Production)
 # ==============================================================================
-# Multi-stage build for Sindri v3 with Rust CLI
+# Multi-stage build for Sindri v3 with pre-compiled binary
 #
 # Build modes (priority order):
 #   1. Local binary from build context (v3/bin/sindri)
 #      - Used by CI workflows that pre-compile the binary
 #      - Fastest builds (~2 min)
 #
-#   2. Pre-compiled binary from releases (BUILD_FROM_SOURCE=false, default)
+#   2. Pre-compiled binary from releases (default)
 #      - Downloads binary from GitHub releases (~5 min build)
 #      - Smaller build context, faster builds
 #      - Production-ready binaries
 #
-#   3. Build from source (BUILD_FROM_SOURCE=true)
-#      - Builds from Rust source code (~8 min build)
-#      - Supports custom features, architectures
-#      - Development and testing
+# Key differences from Dockerfile.dev:
+#   - Uses pre-compiled binaries (no source build)
+#   - NO bundled extensions (installed at runtime via sindri CLI)
+#   - Smaller image (~800MB vs dev's ~1.2GB)
+#   - Faster builds (2-5 min vs dev's ~8 min)
+#   - Extensions installed to ${HOME}/.sindri/extensions (respects ALT_HOME)
 #
-# Key differences from v2:
-#   - No bundled extensions (all installed at runtime via sindri CLI)
-#   - Removed jq, yq, python3-jsonschema (replaced by Rust CLI)
-#   - Smaller base image (~800MB vs v2's 2.5GB)
-#   - Faster builds (5-8 min vs v2's 15-20 min)
+# Layer optimizations:
+#   - Layers ordered by change frequency (least → most frequent)
+#   - Consolidated COPY + RUN operations for scripts
+#   - Multi-stage GH CLI download (parallel build, isolated caching)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
 # Build Arguments
 # ------------------------------------------------------------------------------
 ARG UBUNTU_VERSION=24.04
-ARG RUST_VERSION=1.75
 ARG SINDRI_VERSION=3.0.0
-ARG SINDRI_REPO=https://github.com/pacphi/sindri
-ARG BUILD_FROM_SOURCE=false
+ARG GH_VERSION=2.86.0
 
 # ==============================================================================
 # Stage 1a: Local Binary from Build Context (CI workflows)
@@ -59,75 +59,37 @@ RUN if [ -f /tmp/local-bin/sindri ]; then \
     fi
 
 # ==============================================================================
-# Stage 1b: Build from Source (conditional)
-# ==============================================================================
-FROM rust:${RUST_VERSION}-slim-bookworm AS builder-source
-
-ARG SINDRI_VERSION
-ARG SINDRI_REPO
-ARG BUILD_FROM_SOURCE
-ARG TARGETARCH
-
-# Only build if BUILD_FROM_SOURCE=true
-RUN if [ "$BUILD_FROM_SOURCE" = "true" ]; then \
-        apt-get update && \
-        apt-get install -y --no-install-recommends \
-            git \
-            pkg-config \
-            libssl-dev \
-            ca-certificates && \
-        rm -rf /var/lib/apt/lists/* && \
-        echo "Building sindri from source for ${TARGETARCH}..." && \
-        git clone --depth 1 --branch "v${SINDRI_VERSION}" "${SINDRI_REPO}" /tmp/sindri && \
-        cd /tmp/sindri/v3 && \
-        cargo build --release --bin sindri && \
-        mkdir -p /output && \
-        cp target/release/sindri /output/sindri && \
-        chmod +x /output/sindri; \
-    else \
-        mkdir -p /output && \
-        touch /output/.skip; \
-    fi
-
-# ==============================================================================
-# Stage 1c: Download Pre-compiled Binary (fallback)
+# Stage 1b: Download Pre-compiled Binary (fallback)
 # ==============================================================================
 # This stage attempts to download a pre-compiled binary from GitHub releases.
 # If the release doesn't exist (e.g., during CI before any release is published),
-# it gracefully creates a .skip marker to allow fallback to other build methods.
+# it gracefully creates a .skip marker to allow fallback to local binary.
 FROM ubuntu:${UBUNTU_VERSION} AS builder-binary
 
 ARG SINDRI_VERSION
-ARG BUILD_FROM_SOURCE
 ARG TARGETARCH
 
-# Only download if BUILD_FROM_SOURCE=false
-RUN if [ "$BUILD_FROM_SOURCE" != "true" ]; then \
-        apt-get update && \
-        apt-get install -y --no-install-recommends \
-            wget \
-            ca-certificates && \
-        rm -rf /var/lib/apt/lists/* && \
-        mkdir -p /output && \
-        # Determine architecture for binary download
-        case "${TARGETARCH}" in \
-            amd64) ARCH_SUFFIX="x86_64" ;; \
-            arm64) ARCH_SUFFIX="aarch64" ;; \
-            *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
-        esac && \
-        echo "Attempting to download sindri binary for linux-${ARCH_SUFFIX}..." && \
-        if wget -qO /tmp/sindri.tar.gz \
-            "https://github.com/pacphi/sindri/releases/download/v${SINDRI_VERSION}/sindri-v${SINDRI_VERSION}-linux-${ARCH_SUFFIX}.tar.gz" 2>/dev/null; then \
-            tar -xzf /tmp/sindri.tar.gz -C /output && \
-            chmod +x /output/sindri && \
-            rm /tmp/sindri.tar.gz && \
-            echo "Successfully downloaded binary from releases"; \
-        else \
-            echo "Release v${SINDRI_VERSION} not available, marking as skip (will use local or source build)"; \
-            touch /output/.skip; \
-        fi; \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wget \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /output && \
+    # Determine architecture for binary download
+    case "${TARGETARCH}" in \
+        amd64) ARCH_SUFFIX="x86_64" ;; \
+        arm64) ARCH_SUFFIX="aarch64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    echo "Attempting to download sindri binary for linux-${ARCH_SUFFIX}..." && \
+    if wget -qO /tmp/sindri.tar.gz \
+        "https://github.com/pacphi/sindri/releases/download/v${SINDRI_VERSION}/sindri-v${SINDRI_VERSION}-linux-${ARCH_SUFFIX}.tar.gz" 2>/dev/null; then \
+        tar -xzf /tmp/sindri.tar.gz -C /output && \
+        chmod +x /output/sindri && \
+        rm /tmp/sindri.tar.gz && \
+        echo "Successfully downloaded binary from releases"; \
     else \
-        mkdir -p /output && \
+        echo "Release v${SINDRI_VERSION} not available, marking as skip (will use local build)"; \
         touch /output/.skip; \
     fi
 
@@ -136,14 +98,12 @@ RUN if [ "$BUILD_FROM_SOURCE" != "true" ]; then \
 # ==============================================================================
 # Priority order:
 #   1. Local binary from build context (CI workflows)
-#   2. Source build (if BUILD_FROM_SOURCE=true)
-#   3. Downloaded binary from releases (default fallback)
+#   2. Downloaded binary from releases (default fallback)
 FROM ubuntu:${UBUNTU_VERSION} AS binary-merge
 
-ARG BUILD_FROM_SOURCE
+ARG SINDRI_VERSION
 
 COPY --from=builder-local /output /tmp/local
-COPY --from=builder-source /output /tmp/source
 COPY --from=builder-binary /output /tmp/binary
 
 # Copy the appropriate binary to /output based on priority
@@ -151,24 +111,33 @@ RUN mkdir -p /output && \
     if [ -f /tmp/local/sindri ] && [ ! -f /tmp/local/.skip ]; then \
         echo "Using local binary from build context (CI artifact)"; \
         cp /tmp/local/sindri /output/sindri; \
-    elif [ "$BUILD_FROM_SOURCE" = "true" ]; then \
-        if [ -f /tmp/source/sindri ]; then \
-            echo "Using source-built binary"; \
-            cp /tmp/source/sindri /output/sindri; \
-        else \
-            echo "ERROR: Source build failed - binary not found" && exit 1; \
-        fi; \
     elif [ -f /tmp/binary/sindri ] && [ ! -f /tmp/binary/.skip ]; then \
         echo "Using downloaded binary from releases"; \
         cp /tmp/binary/sindri /output/sindri; \
     else \
         echo "ERROR: No binary available. Options:" && \
         echo "  1. Provide local binary in v3/bin/sindri (CI workflows)" && \
-        echo "  2. Set BUILD_FROM_SOURCE=true to build from source" && \
-        echo "  3. Ensure GitHub release v${SINDRI_VERSION:-3.0.0} exists with binaries" && \
+        echo "  2. Ensure GitHub release v${SINDRI_VERSION:-3.0.0} exists with binaries" && \
+        echo "  3. Use Dockerfile.dev to build from source" && \
         exit 1; \
     fi && \
     chmod +x /output/sindri
+
+# ==============================================================================
+# Stage 3: Download GitHub CLI (parallel build, isolated caching)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS gh-downloader
+
+ARG GH_VERSION
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    ARCH=$(dpkg --print-architecture) && \
+    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
+    tar -xzf /tmp/gh.tar.gz -C /tmp && \
+    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /gh && \
+    chmod +x /gh
 
 # ==============================================================================
 # Stage 4: Runtime Image
@@ -186,7 +155,9 @@ ARG ALT_HOME=/alt/home/developer
 ARG WORKSPACE=${ALT_HOME}/workspace
 ARG SSH_PORT=2222
 
-# Set environment variables
+# ------------------------------------------------------------------------------
+# Environment Variables (rarely change)
+# ------------------------------------------------------------------------------
 ENV DEVELOPER_USER=${DEVELOPER_USER} \
     ALT_HOME=${ALT_HOME} \
     WORKSPACE=${WORKSPACE} \
@@ -197,7 +168,7 @@ ENV DEVELOPER_USER=${DEVELOPER_USER} \
     LC_ALL=C.UTF-8
 
 # ------------------------------------------------------------------------------
-# Install System Packages
+# Install System Packages (changes infrequently)
 # ------------------------------------------------------------------------------
 # Key changes from v2:
 # - REMOVED: jq, yq, python3-jsonschema (replaced by Rust CLI)
@@ -206,51 +177,21 @@ ENV DEVELOPER_USER=${DEVELOPER_USER} \
 # - KEPT: openssh-server (SSH access)
 # - KEPT: gh (GitHub CLI - may become extension in future)
 # ------------------------------------------------------------------------------
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        # Core utilities
-        ca-certificates \
-        curl \
-        wget \
-        git \
-        openssh-server \
-        sudo \
-        locales \
-        tzdata \
-        # Build tools (for native extensions)
-        build-essential \
-        pkg-config \
-        libssl-dev && \
-    # Configure locales
-    locale-gen en_US.UTF-8 && \
-    update-locale LANG=en_US.UTF-8 && \
-    # Cleanup apt cache and remove SSH host keys generated during installation
-    # SSH keys will be generated at runtime by entrypoint.sh for security
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    rm -f /etc/ssh/ssh_host_*
+RUN <<EOF
+apt-get update
+apt-get install -y --no-install-recommends \
+    ca-certificates curl wget git openssh-server sudo \
+    locales tzdata fontconfig unzip zip \
+    build-essential pkg-config libssl-dev
+locale-gen en_US.UTF-8
+update-locale LANG=en_US.UTF-8
+apt-get clean
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+rm -f /etc/ssh/ssh_host_*
+EOF
 
 # ------------------------------------------------------------------------------
-# Copy Sindri CLI Binary
-# ------------------------------------------------------------------------------
-COPY --from=binary-merge /output/sindri /usr/local/bin/sindri
-
-# Verify binary is executable and functional
-RUN sindri --version
-
-# ------------------------------------------------------------------------------
-# Install GitHub CLI from official releases (avoids CVE vulnerabilities)
-# ------------------------------------------------------------------------------
-ARG GH_VERSION=2.86.0
-RUN ARCH=$(dpkg --print-architecture) && \
-    wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
-    tar -xzf /tmp/gh.tar.gz -C /tmp && \
-    mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /usr/local/bin/ && \
-    rm -rf /tmp/gh.tar.gz /tmp/gh_${GH_VERSION}_linux_${ARCH} && \
-    gh --version
-
-# ------------------------------------------------------------------------------
-# Create Developer User
+# Create Developer User (changes infrequently)
 # ------------------------------------------------------------------------------
 RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
     useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
@@ -258,35 +199,47 @@ RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
     chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
 
 # ------------------------------------------------------------------------------
-# Setup SSH Server
+# Setup SSH Server and Configuration (changes infrequently)
 # ------------------------------------------------------------------------------
-RUN mkdir -p /run/sshd && \
-    mkdir -p /etc/ssh/sshd_config.d
-
-# Copy SSH configuration
 COPY v3/docker/config/sshd_config /etc/ssh/sshd_config
-COPY v3/docker/config/developer-sudoers /etc/sudoers.d/${DEVELOPER_USER}
+COPY v3/docker/config/developer-sudoers /etc/sudoers.d/developer
 
-RUN chmod 0440 /etc/sudoers.d/${DEVELOPER_USER} && \
+RUN mkdir -p /run/sshd /etc/ssh/sshd_config.d && \
+    chmod 0440 /etc/sudoers.d/developer && \
     chmod 644 /etc/ssh/sshd_config
 
-# Configure SSH environment for login shells (TMPDIR for Claude Code plugins)
-COPY v3/docker/scripts/setup-ssh-environment.sh /tmp/
-RUN bash /tmp/setup-ssh-environment.sh && rm /tmp/setup-ssh-environment.sh
+# ------------------------------------------------------------------------------
+# Copy GitHub CLI Binary (cached independently via multi-stage)
+# ------------------------------------------------------------------------------
+COPY --from=gh-downloader /gh /usr/local/bin/gh
+RUN gh --version
 
 # ------------------------------------------------------------------------------
-# Install mise (Tool Version Manager)
+# Install Tools: All setup scripts in single layer (changes occasionally)
 # ------------------------------------------------------------------------------
-# mise is critical for managing language runtimes installed via extensions
-# (node, python, ruby, go, etc.)
-COPY v3/docker/scripts/install-mise.sh /tmp/
-RUN bash /tmp/install-mise.sh && rm /tmp/install-mise.sh
+# Consolidates 12 layers → 2 layers for mise, fonts, starship, SSH env, MOTD
+COPY v3/docker/scripts/setup-ssh-environment.sh \
+     v3/docker/scripts/install-mise.sh \
+     v3/docker/scripts/install-nerd-fonts.sh \
+     v3/docker/scripts/install-starship.sh \
+     v3/docker/scripts/setup-motd.sh \
+     v3/docker/scripts/check-extension-status.sh \
+     v3/docker/scripts/show-motd.sh \
+     /tmp/scripts/
 
-# ------------------------------------------------------------------------------
-# Install Starship (Optional Shell Prompt)
-# ------------------------------------------------------------------------------
-COPY v3/docker/scripts/install-starship.sh /tmp/
-RUN bash /tmp/install-starship.sh && rm /tmp/install-starship.sh
+RUN <<EOF
+bash /tmp/scripts/setup-ssh-environment.sh
+bash /tmp/scripts/install-mise.sh
+bash /tmp/scripts/install-nerd-fonts.sh
+bash /tmp/scripts/install-starship.sh
+bash /tmp/scripts/setup-motd.sh
+mkdir -p /etc/profile.d
+cp /tmp/scripts/show-motd.sh /etc/profile.d/00-show-motd.sh
+chmod +x /etc/profile.d/00-show-motd.sh
+cp /tmp/scripts/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh
+chmod +x /etc/profile.d/sindri-extension-status.sh
+rm -rf /tmp/scripts
+EOF
 
 # ------------------------------------------------------------------------------
 # Setup Directories and Permissions
@@ -297,16 +250,35 @@ RUN mkdir -p /docker/scripts /docker/config && \
     chmod 755 /docker /docker/scripts /docker/config
 
 # ------------------------------------------------------------------------------
-# Copy Entrypoint and Support Scripts
+# Copy Sindri CLI Binary (changes frequently - placed late for better caching)
+# ------------------------------------------------------------------------------
+COPY --from=binary-merge /output/sindri /usr/local/bin/sindri
+RUN sindri --version
+
+# ------------------------------------------------------------------------------
+# Extension Configuration (Production Mode)
+# ------------------------------------------------------------------------------
+# In production mode, extensions are NOT bundled with the image.
+# Instead, they are installed at runtime to ${HOME}/.sindri/extensions
+# which resolves to /alt/home/developer/.sindri/extensions in the container.
+#
+# This approach:
+# - Reduces image size (~800MB vs ~1.2GB for dev image)
+# - Allows extensions to be updated independently of the image
+# - Respects volume-mounted home directory (ALT_HOME=/alt/home/developer)
+# - Extensions installed via: sindri extension install <name>
+#
+# NOTE: SINDRI_EXT_HOME is set at RUNTIME by entrypoint.sh (not here at build time)
+# to ensure it correctly expands ${HOME} after volume mounts are applied.
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Copy Entrypoint and Support Scripts (changes occasionally)
 # ------------------------------------------------------------------------------
 COPY v3/docker/scripts/entrypoint.sh /docker/scripts/
 COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
-COPY v3/docker/scripts/setup-motd.sh /tmp/
 
-RUN chmod +x /docker/scripts/entrypoint.sh && \
-    chmod +x /docker/scripts/healthcheck.sh && \
-    bash /tmp/setup-motd.sh && \
-    rm /tmp/setup-motd.sh
+RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
 
 # ------------------------------------------------------------------------------
 # Runtime Configuration
