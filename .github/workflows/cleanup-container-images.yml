@@ -1,0 +1,227 @@
+name: Cleanup Container Images
+
+# Purpose: Smart cleanup of orphaned container images
+#
+# This workflow safely removes orphaned container image versions while preserving:
+# - All tagged manifests
+# - Platform manifests referenced by multi-arch images (amd64, arm64)
+# - Attestation manifests (provenance, SBOM)
+#
+# Only truly orphaned untagged versions older than the minimum age are deleted.
+
+on:
+  # Run weekly on Sunday at 3am UTC
+  schedule:
+    - cron: '0 3 * * 0'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      min_age_days:
+        description: 'Minimum age in days before deletion (default: 7)'
+        required: false
+        default: '7'
+      dry_run:
+        description: 'Dry run - show what would be deleted without deleting'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  cleanup:
+    name: Cleanup Orphaned Images
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Collect referenced digests from all tags
+        id: collect-refs
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          REFS_FILE=$(mktemp)
+
+          echo "Collecting digests referenced by tagged manifests..."
+
+          # Get all tags for this package
+          TAGS=$(gh api "/users/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions" \
+            --paginate \
+            --jq '.[] | select(.metadata.container.tags | length > 0) | .metadata.container.tags[]' 2>/dev/null || echo "")
+
+          if [ -z "$TAGS" ]; then
+            echo "No tagged versions found"
+            echo "refs_file=" >> $GITHUB_OUTPUT
+            echo "tag_count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          TAG_COUNT=$(echo "$TAGS" | wc -l | tr -d ' ')
+          echo "Found $TAG_COUNT tags to inspect"
+
+          # For each tag, get all referenced digests (platform manifests + attestations)
+          for TAG in $TAGS; do
+            echo "Inspecting tag: $TAG"
+
+            # Get the manifest list and extract all referenced digests
+            docker buildx imagetools inspect "$IMAGE:$TAG" --raw 2>/dev/null | \
+              jq -r '.. | .digest? // empty' 2>/dev/null >> "$REFS_FILE" || true
+
+            # Also add the manifest list's own digest
+            docker buildx imagetools inspect "$IMAGE:$TAG" 2>/dev/null | \
+              grep -oP 'Digest:\s+\Ksha256:[a-f0-9]+' >> "$REFS_FILE" || true
+          done
+
+          # Deduplicate
+          sort -u "$REFS_FILE" -o "$REFS_FILE"
+
+          REF_COUNT=$(wc -l < "$REFS_FILE" | tr -d ' ')
+          echo "Found $REF_COUNT unique referenced digests that must be preserved"
+
+          echo "refs_file=$REFS_FILE" >> $GITHUB_OUTPUT
+          echo "tag_count=$TAG_COUNT" >> $GITHUB_OUTPUT
+          echo "ref_count=$REF_COUNT" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete orphaned untagged versions
+        id: cleanup
+        run: |
+          set -euo pipefail
+
+          REFS_FILE="${{ steps.collect-refs.outputs.refs_file }}"
+          MIN_AGE_DAYS="${{ github.event.inputs.min_age_days || '7' }}"
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+
+          DELETED_COUNT=0
+          SKIPPED_REF_COUNT=0
+          SKIPPED_YOUNG_COUNT=0
+
+          if [ -z "$REFS_FILE" ] || [ ! -f "$REFS_FILE" ]; then
+            echo "No reference file found, creating empty one"
+            REFS_FILE=$(mktemp)
+          fi
+
+          echo "Configuration:"
+          echo "  Minimum age: $MIN_AGE_DAYS days"
+          echo "  Dry run: $DRY_RUN"
+          echo ""
+
+          # Calculate cutoff date
+          CUTOFF_DATE=$(date -u -d "$MIN_AGE_DAYS days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || \
+                        date -u -v-${MIN_AGE_DAYS}d +%Y-%m-%dT%H:%M:%SZ)
+
+          echo "Will only delete versions created before: $CUTOFF_DATE"
+          echo ""
+
+          # Get all untagged versions
+          echo "Fetching untagged package versions..."
+          VERSIONS=$(gh api "/users/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions" \
+            --paginate \
+            --jq '.[] | select(.metadata.container.tags | length == 0) | {id: .id, digest: .name, created: .created_at}' 2>/dev/null || echo "")
+
+          if [ -z "$VERSIONS" ]; then
+            echo "No untagged versions found"
+            echo "deleted_count=0" >> $GITHUB_OUTPUT
+            echo "skipped_ref_count=0" >> $GITHUB_OUTPUT
+            echo "skipped_young_count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          TOTAL_UNTAGGED=$(echo "$VERSIONS" | jq -s 'length')
+          echo "Found $TOTAL_UNTAGGED untagged versions to evaluate"
+          echo ""
+
+          # Process each untagged version
+          echo "$VERSIONS" | jq -c '.' | while read -r VERSION; do
+            VERSION_ID=$(echo "$VERSION" | jq -r '.id')
+            DIGEST=$(echo "$VERSION" | jq -r '.digest')
+            CREATED=$(echo "$VERSION" | jq -r '.created')
+
+            # Check age
+            if [[ "$CREATED" > "$CUTOFF_DATE" ]]; then
+              echo "SKIP (too young): $DIGEST (created $CREATED)"
+              SKIPPED_YOUNG_COUNT=$((SKIPPED_YOUNG_COUNT + 1))
+              continue
+            fi
+
+            # Check if this digest is referenced by any tag
+            if grep -q "$DIGEST" "$REFS_FILE" 2>/dev/null; then
+              echo "SKIP (referenced): $DIGEST (created $CREATED)"
+              SKIPPED_REF_COUNT=$((SKIPPED_REF_COUNT + 1))
+            else
+              if [ "$DRY_RUN" = "true" ]; then
+                echo "WOULD DELETE: $DIGEST (orphaned, created $CREATED)"
+              else
+                echo "DELETE: $DIGEST (orphaned, created $CREATED)"
+                if gh api -X DELETE "/users/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions/$VERSION_ID" 2>/dev/null; then
+                  DELETED_COUNT=$((DELETED_COUNT + 1))
+                else
+                  echo "  Warning: Failed to delete (may require admin permissions)"
+                fi
+              fi
+            fi
+          done
+
+          echo ""
+          echo "========================================"
+          echo "Cleanup Summary:"
+          echo "  Deleted: $DELETED_COUNT"
+          echo "  Skipped (referenced): $SKIPPED_REF_COUNT"
+          echo "  Skipped (too young): $SKIPPED_YOUNG_COUNT"
+          echo "========================================"
+
+          echo "deleted_count=$DELETED_COUNT" >> $GITHUB_OUTPUT
+          echo "skipped_ref_count=$SKIPPED_REF_COUNT" >> $GITHUB_OUTPUT
+          echo "skipped_young_count=$SKIPPED_YOUNG_COUNT" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate summary
+        if: always()
+        run: |
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+
+          echo "## 🧹 Container Image Cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "> **DRY RUN** - No images were actually deleted" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- Minimum age: ${{ github.event.inputs.min_age_days || '7' }} days" >> $GITHUB_STEP_SUMMARY
+          echo "- Package: \`${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tags inspected | ${{ steps.collect-refs.outputs.tag_count || '0' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Protected digests | ${{ steps.collect-refs.outputs.ref_count || '0' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deleted (orphaned) | ${{ steps.cleanup.outputs.deleted_count || '0' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skipped (referenced) | ${{ steps.cleanup.outputs.skipped_ref_count || '0' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skipped (too young) | ${{ steps.cleanup.outputs.skipped_young_count || '0' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### What was preserved" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All tagged manifests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Platform manifests (amd64, arm64) referenced by multi-arch images" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Attestation manifests (provenance, SBOM)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Versions younger than ${{ github.event.inputs.min_age_days || '7' }} days" >> $GITHUB_STEP_SUMMARY

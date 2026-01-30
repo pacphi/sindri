@@ -385,6 +385,38 @@ docker buildx ls
        platform: [linux/amd64, linux/arm64]
    ```
 
+## Registry Cleanup for Multi-Arch Images
+
+Multi-arch images have a special structure that naive cleanup can break:
+
+```
+base-latest (manifest list)
+├── sha256:abc... (linux/amd64 platform manifest)
+├── sha256:def... (linux/arm64 platform manifest)
+├── sha256:ghi... (amd64 attestation)
+└── sha256:jkl... (arm64 attestation)
+```
+
+The platform manifests are **untagged** but **essential** - deleting them breaks the manifest list.
+
+### Smart Cleanup Workflow
+
+The cleanup workflow (`.github/workflows/cleanup-container-images.yml`) is designed to be multi-arch safe:
+
+1. **Collects all referenced digests** from tagged manifest lists
+2. **Preserves platform manifests** (amd64, arm64) that tags depend on
+3. **Preserves attestation manifests** (provenance, SBOM)
+4. **Only deletes truly orphaned** untagged versions
+
+```bash
+# Manual cleanup with dry-run (safe to test)
+gh workflow run cleanup-container-images.yml -f dry_run=true
+
+# View what would be deleted without actually deleting
+```
+
+**Schedule:** Weekly (Sunday 3am UTC)
+
 ## Resources
 
 - [Docker Multi-Arch Documentation](https://docs.docker.com/build/building/multi-platform/)
