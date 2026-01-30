@@ -675,9 +675,9 @@ echo "$(date): $(time make v3-docker-build-fast 2>&1)" >> build-times.log
 ## Additional Resources
 
 - [Implementation Plan](planning/complete/fast-dev-builds-base-image.md)
-- [Architecture: Docker Builds](docs/architecture/docker-build-architecture.md)
-- [Contributing Guide](../CONTRIBUTING.md)
-- [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- [Contributing Guide](../../docs/CONTRIBUTING.md)
+- [Troubleshooting Guide](TROUBLESHOOTING.md)
+<!-- - [Architecture: Docker Builds](architecture/docker-build-architecture.md) (TODO: Create this document) -->
 
 ## Getting Help
 

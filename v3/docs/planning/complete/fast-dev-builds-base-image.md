@@ -548,7 +548,7 @@ make v3-cache-status
 
 - [Maintainer Guide](../../MAINTAINER_GUIDE.md) - Daily development workflows
 - [Multi-Arch Support](../../MULTI_ARCH_SUPPORT.md) - Architecture-specific details
-- [Contributing Guide](../../../../CONTRIBUTING.md) - For new contributors
+- [Contributing Guide](../../../../docs/CONTRIBUTING.md) - For new contributors
 - [GitHub Workflow: Build Base Image](../../../../.github/workflows/build-base-image.yml) - Automation
 
 ## Changelog
