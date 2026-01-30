@@ -17,8 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Download yq
-RUN wget -qO /tmp/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
+# Download yq with pinned version for reproducibility and security tracking
+ARG YQ_VERSION=4.50.1
+RUN ARCH=$(dpkg --print-architecture) && \
+    wget -qO /tmp/yq "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH}" && \
     chmod +x /tmp/yq
 
 # =============================================================================
