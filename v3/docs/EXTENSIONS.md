@@ -72,12 +72,12 @@ V3 extensions are organized into the following categories:
 
 ### DevOps
 
-| Extension       | Version | Description                                                               | Install Method |
-| --------------- | ------- | ------------------------------------------------------------------------- | -------------- |
-| **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                   | hybrid         |
-| **infra-tools** | 2.0.0   | Infrastructure and DevOps tooling (Terraform, K8s, Ansible, Helm)         | hybrid         |
-| **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                      | script         |
-| **cloud-tools** | 2.0.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM) | script         |
+| Extension       | Version | Description                                                                                        | Install Method |
+| --------------- | ------- | -------------------------------------------------------------------------------------------------- | -------------- |
+| **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                                            | hybrid         |
+| **infra-tools** | 2.0.0   | Infrastructure and DevOps tooling (Terraform, K8s, Ansible, Helm)                                  | hybrid         |
+| **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                                               | script         |
+| **cloud-tools** | 2.0.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM) - sudo-free installation | script         |
 
 ### Claude Code Integrations
 

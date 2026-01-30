@@ -1,6 +1,6 @@
 # Cloud Tools Extension
 
-> Version: 2.0.0 | Category: devops | Last Updated: 2026-01-26
+> Version: 2.0.0 | Category: devops | Last Updated: 2026-01-29
 
 ## Overview
 
@@ -23,17 +23,17 @@ Cloud provider CLI tools for AWS, Azure, GCP, Fly.io, OCI, Alibaba Cloud, Digita
 - **Disk Space**: 2500 MB
 - **Memory**: 256 MB
 - **Install Time**: ~180 seconds
-- **Dependencies**: None
+- **Dependencies**: python (required for Azure CLI pip installation)
 
 ### Network Domains
 
 - amazonaws.com, awscli.amazonaws.com
-- aka.ms
-- google.com, packages.cloud.google.com
+- pypi.org, files.pythonhosted.org (Azure CLI pip installation)
+- google.com, dl.google.com (Google Cloud SDK tarball)
 - fly.io
 - github.com, api.github.com, raw.githubusercontent.com
 - alicdn.com, aliyuncli.alicdn.com
-- ibm.com, clis.cloud.ibm.com
+- ibm.com, clis.cloud.ibm.com, download.clis.cloud.ibm.com
 
 ### Secrets (Optional)
 
@@ -45,6 +45,35 @@ Cloud provider CLI tools for AWS, Azure, GCP, Fly.io, OCI, Alibaba Cloud, Digita
 
 ```bash
 extension-manager install cloud-tools
+```
+
+### Security-Hardened Installation
+
+This extension uses sudo-free, user-local installation methods for all cloud CLIs to ensure compatibility with security-hardened containers (`no-new-privileges` flag and `/tmp` mounted `noexec`).
+
+**Installation Methods:**
+
+- **AWS CLI**: User-local installer to `~/.local/bin/aws`
+- **Azure CLI**: pip installation to `~/.local/bin/az` (requires Python 3.10+)
+- **Google Cloud SDK**: Tarball extraction to `~/google-cloud-sdk/bin/gcloud`
+- **Fly.io CLI**: User install script to `~/.fly/bin/flyctl`
+- **Oracle CLI**: User install script to `~/bin/oci`
+- **Alibaba CLI**: Binary download to `~/.local/bin/aliyun`
+- **DigitalOcean CLI**: Binary download to `~/.local/bin/doctl`
+- **IBM Cloud CLI**: Tarball extraction to `~/.local/bin/ibmcloud`
+
+All tools install to user directories without requiring sudo or root access, ensuring compatibility with production security policies.
+
+**Python Requirement:**
+
+Azure CLI requires Python 3.10 or higher for pip installation. The python extension is automatically installed as a dependency. If Python is unavailable or below version 3.10, Azure CLI installation will be skipped with a warning, but all other cloud CLIs will still install successfully.
+
+**PATH Configuration:**
+
+All cloud CLI tools are automatically added to your PATH via the bashrc template:
+
+```bash
+export PATH="$HOME/.local/bin:$HOME/google-cloud-sdk/bin:$HOME/.fly/bin:$HOME/bin:$PATH"
 ```
 
 ## Configuration

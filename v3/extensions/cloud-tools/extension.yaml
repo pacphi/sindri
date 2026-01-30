@@ -5,14 +5,16 @@ metadata:
   description: Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)
   category: devops
   author: Sindri Team
-  dependencies: []
+  dependencies:
+    - python  # Required for Azure CLI (pip install azure-cli)
 requirements:
   domains:
     - amazonaws.com
     - awscli.amazonaws.com
-    - aka.ms
+    - pypi.org
+    - files.pythonhosted.org
     - google.com
-    - packages.cloud.google.com
+    - dl.google.com
     - fly.io
     - github.com
     - api.github.com
@@ -21,6 +23,7 @@ requirements:
     - aliyuncli.alicdn.com
     - ibm.com
     - clis.cloud.ibm.com
+    - download.clis.cloud.ibm.com
   diskSpace: 2500
   memory: 256
   installTime: 180

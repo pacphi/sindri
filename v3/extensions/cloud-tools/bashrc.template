@@ -1,4 +1,7 @@
 
+# Add cloud CLI tools to PATH
+export PATH="$HOME/.local/bin:$HOME/google-cloud-sdk/bin:$HOME/.fly/bin:$HOME/bin:$PATH"
+
 # Cloud CLI aliases
 # AWS
 alias awsl="aws s3 ls"

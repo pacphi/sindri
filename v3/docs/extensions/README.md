@@ -114,14 +114,14 @@ Tools for developing with and running AI models.
 
 Development productivity and workflow tools.
 
-| Extension                           | Version | Description                         |
-| ----------------------------------- | ------- | ----------------------------------- |
-| [MISE-CONFIG](MISE-CONFIG.md)       | 2.0.0   | Global mise tool version manager    |
-| [SDKMAN](SDKMAN.md)                 | 1.0.0   | SDKMAN for JVM tools and SDKs       |
-| [TMUX-WORKSPACE](TMUX-WORKSPACE.md) | 2.0.0   | Terminal multiplexer setup          |
-| [MDFLOW](MDFLOW.md)                 | 1.0.0   | Markdown to AI agent CLI            |
-| [OPENSKILLS](OPENSKILLS.md)         | 2.0.0   | Claude Code skill manager           |
-| [PLAYWRIGHT](PLAYWRIGHT.md)         | 2.0.0   | Browser automation framework        |
+| Extension                           | Version | Description                      |
+| ----------------------------------- | ------- | -------------------------------- |
+| [MISE-CONFIG](MISE-CONFIG.md)       | 2.0.0   | Global mise tool version manager |
+| [SDKMAN](SDKMAN.md)                 | 1.0.0   | SDKMAN for JVM tools and SDKs    |
+| [TMUX-WORKSPACE](TMUX-WORKSPACE.md) | 2.0.0   | Terminal multiplexer setup       |
+| [MDFLOW](MDFLOW.md)                 | 1.0.0   | Markdown to AI agent CLI         |
+| [OPENSKILLS](OPENSKILLS.md)         | 2.0.0   | Claude Code skill manager        |
+| [PLAYWRIGHT](PLAYWRIGHT.md)         | 2.0.0   | Browser automation framework     |
 
 ---
 
