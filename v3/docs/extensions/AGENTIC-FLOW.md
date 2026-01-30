@@ -27,7 +27,7 @@ Multi-model AI agent framework for Claude Code with cost optimization (alpha). P
 ## Installation
 
 ```bash
-extension-manager install agentic-flow
+sindri extension install agentic-flow
 ```
 
 ## Configuration
@@ -118,7 +118,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove agentic-flow
+sindri extension remove agentic-flow
 ```
 
 **Requires confirmation.** Removes mise agentic-flow tools.

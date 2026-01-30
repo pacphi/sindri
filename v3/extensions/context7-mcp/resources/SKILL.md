@@ -171,7 +171,7 @@ If you see rate limit errors without an API key:
 ## Removal
 
 ```bash
-extension-manager remove context7-mcp
+sindri extension remove context7-mcp
 ```
 
 This removes:

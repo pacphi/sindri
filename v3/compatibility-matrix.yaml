@@ -275,7 +275,7 @@ migration_notes: |
 
   ### Extension Compatibility
   - All v2.x bash-based extensions must be upgraded to v3.x format
-  - Run `sindri extension upgrade --all` to update compatible extensions
+  - Upgrade extensions individually with `sindri extension upgrade <name>`
   - Extensions not yet updated for v3.x will show as incompatible
 
   ### Manifest Migration

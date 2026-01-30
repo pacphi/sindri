@@ -33,7 +33,7 @@ PHP 8.4 with Composer, Symfony CLI, and development tools. Provides a complete P
 ## Installation
 
 ```bash
-extension-manager install php
+sindri extension install php
 ```
 
 ## Configuration
@@ -174,7 +174,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove php
+sindri extension remove php
 ```
 
 This removes:

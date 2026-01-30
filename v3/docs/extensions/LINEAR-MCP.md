@@ -28,7 +28,7 @@ Linear MCP server using Claude Code's native HTTP transport. No API key required
 ## Installation
 
 ```bash
-extension-manager install linear-mcp
+sindri extension install linear-mcp
 ```
 
 ## Configuration
@@ -102,7 +102,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove linear-mcp
+sindri extension remove linear-mcp
 ```
 
 Runs uninstall script and removes ~/extensions/linear-mcp.

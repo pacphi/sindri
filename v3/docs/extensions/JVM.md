@@ -38,7 +38,7 @@ JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise.
 ## Installation
 
 ```bash
-extension-manager install jvm
+sindri extension install jvm
 ```
 
 ## Configuration
@@ -199,7 +199,7 @@ lein version
 ## Removal
 
 ```bash
-extension-manager remove jvm
+sindri extension remove jvm
 ```
 
 This removes:

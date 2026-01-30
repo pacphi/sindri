@@ -412,7 +412,7 @@ q login --license pro
 
 ```bash
 # Install AWS CLI via cloud-tools extension
-extension-manager install cloud-tools
+sindri extension install cloud-tools
 
 # Verify installation
 aws --version

@@ -29,7 +29,7 @@ It provides:
 
 ```bash
 # Install openskills (auto-activates if needed)
-extension-manager install openskills
+sindri extension install openskills
 
 # Or use interactive mode
 extension-manager --interactive
@@ -37,7 +37,7 @@ extension-manager --interactive
 # Or manually activate then install
 # Edit: docker/lib/extensions.d/active-extensions.conf
 # Add line: openskills
-extension-manager install-all
+sindri extension install-all
 ```
 
 ### Verification
@@ -172,8 +172,8 @@ exec bash -l
 npm list -g --depth=0
 
 # Reinstall if needed
-extension-manager uninstall openskills
-extension-manager install openskills
+sindri extension remove openskills
+sindri extension install openskills
 ```
 
 ### Node.js Version Too Old
@@ -190,7 +190,7 @@ mise use node@lts
 node --version
 
 # Reinstall openskills
-extension-manager install openskills
+sindri extension install openskills
 ```
 
 ### Git Not Available
@@ -237,7 +237,7 @@ cat AGENTS.md
 openskills --version
 
 # Upgrade via extension-manager
-extension-manager upgrade openskills
+sindri extension upgrade openskills
 
 # Verify new version
 openskills --version
@@ -245,19 +245,13 @@ openskills --version
 
 ### Automatic Upgrade
 
-```bash
-# Upgrade all extensions
-extension-manager upgrade-all
 
-# Preview upgrades first (dry-run)
-extension-manager upgrade-all --dry-run
-```
 
 ## Removal
 
 ```bash
 # Uninstall openskills
-extension-manager uninstall openskills
+sindri extension remove openskills
 
 # You'll be prompted to optionally remove:
 # - Config directory (~/.openskills)

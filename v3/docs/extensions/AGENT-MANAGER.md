@@ -28,7 +28,7 @@ Claude Code agent manager for managing AI agents. Provides centralized managemen
 ## Installation
 
 ```bash
-extension-manager install agent-manager
+sindri extension install agent-manager
 ```
 
 ## Configuration
@@ -118,7 +118,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove agent-manager
+sindri extension remove agent-manager
 ```
 
 **Requires confirmation.** Removes:

@@ -30,7 +30,7 @@ Docker Engine and Compose with Docker-in-Docker support. Provides containerizati
 ## Installation
 
 ```bash
-extension-manager install docker
+sindri extension install docker
 ```
 
 ## Configuration
@@ -154,7 +154,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove docker
+sindri extension remove docker
 ```
 
 This removes Docker packages and runs the cleanup script. **Requires confirmation.**

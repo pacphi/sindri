@@ -64,4 +64,4 @@ EOF
 chmod 644 "$PROFILE_SCRIPT"
 
 print_success "mise installation complete"
-print_status "Users can install tools via: extension-manager install nodejs"
+print_status "Users can install tools via: sindri extension install nodejs"

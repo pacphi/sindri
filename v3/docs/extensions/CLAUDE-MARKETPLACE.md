@@ -27,7 +27,7 @@ Claude Code plugin marketplace integration via JSON configuration. Provides auto
 ## Installation
 
 ```bash
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 ```
 
 ## Configuration
@@ -123,7 +123,7 @@ The extension merges JSON into `~/.claude/settings.json`:
 cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
 
 # Reinstall to update (idempotent)
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 
 # Claude Code automatically registers marketplaces
 claude /plugin marketplace list
@@ -142,7 +142,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove claude-marketplace
+sindri extension remove claude-marketplace
 ```
 
 Note: Marketplace configuration in `~/.claude/settings.json` is preserved. To remove manually, edit the file and delete `extraKnownMarketplaces` and `enabledPlugins` sections.

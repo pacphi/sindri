@@ -216,9 +216,6 @@ sindri extension remove --yes nodejs
 ```bash
 # Upgrade a specific extension
 sindri extension upgrade nodejs
-
-# Upgrade all extensions
-sindri extension upgrade --all
 ```
 
 ### Using Profiles

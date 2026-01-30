@@ -27,7 +27,7 @@ Playwright browser automation framework with Chromium. Provides end-to-end testi
 ## Installation
 
 ```bash
-extension-manager install playwright
+sindri extension install playwright
 ```
 
 ## Configuration
@@ -170,7 +170,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove playwright
+sindri extension remove playwright
 ```
 
 This removes:

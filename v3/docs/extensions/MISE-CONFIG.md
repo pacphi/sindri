@@ -22,7 +22,7 @@ Global mise configuration and settings. Provides the foundation for tool version
 ## Installation
 
 ```bash
-extension-manager install mise-config
+sindri extension install mise-config
 ```
 
 ## Configuration
@@ -154,7 +154,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove mise-config
+sindri extension remove mise-config
 ```
 
 This removes:

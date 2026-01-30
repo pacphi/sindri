@@ -24,7 +24,7 @@ Factory AI Droid is installed automatically as part of the **ai-tools** extensio
 
 ```bash
 # Install ai-tools extension (includes Droid)
-extension-manager install ai-tools
+sindri extension install ai-tools
 
 # Or use interactive mode
 extension-manager --interactive
@@ -1298,7 +1298,7 @@ extension-manager status ai-tools
 
 ```bash
 # Upgrade all AI tools (includes Droid)
-extension-manager upgrade ai-tools
+sindri extension upgrade ai-tools
 ```
 
 **Note**: Factory AI CLI manages its own updates automatically. Running the upgrade command will check for updates
@@ -1308,7 +1308,7 @@ across all AI tools.
 
 ```bash
 # Remove entire ai-tools extension (includes all AI CLIs)
-extension-manager remove ai-tools
+sindri extension remove ai-tools
 ```
 
 You'll be prompted whether to keep or remove:

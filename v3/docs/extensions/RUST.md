@@ -28,7 +28,7 @@ Rust stable via rustup. Provides the Rust programming language toolchain includi
 ## Installation
 
 ```bash
-extension-manager install rust
+sindri extension install rust
 ```
 
 ## Configuration
@@ -135,7 +135,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove rust
+sindri extension remove rust
 ```
 
 This runs the removal script to uninstall rustup and associated tools.

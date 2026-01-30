@@ -584,13 +584,13 @@ extension-manager status ai-tools
 ### Upgrade
 
 ```bash
-extension-manager upgrade ai-tools
+sindri extension upgrade ai-tools
 ```
 
 ### Uninstall
 
 ```bash
-extension-manager remove ai-tools
+sindri extension remove ai-tools
 ```
 
 ---

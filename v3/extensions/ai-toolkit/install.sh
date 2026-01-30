@@ -30,7 +30,7 @@ if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   print_status "CI mode detected - skipping native tools (Fabric)"
 else
   # Note: Ollama is now a separate extension for better isolation
-  # Install it with: extension-manager install ollama
+  # Install it with: sindri extension install ollama
 
   # Fabric - Go install (standard Go module installation)
   print_status "Installing Fabric (go install)..."

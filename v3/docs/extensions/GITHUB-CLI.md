@@ -31,7 +31,7 @@ GitHub CLI authentication and workflow configuration. Provides the `gh` command 
 ## Installation
 
 ```bash
-extension-manager install github-cli
+sindri extension install github-cli
 ```
 
 ## Configuration
@@ -164,7 +164,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove github-cli
+sindri extension remove github-cli
 ```
 
 This removes the GitHub CLI configuration files:

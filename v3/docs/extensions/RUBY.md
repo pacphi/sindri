@@ -29,7 +29,7 @@ Ruby 3.4.7 via mise with Rails and Bundler. Provides a complete Ruby development
 ## Installation
 
 ```bash
-extension-manager install ruby
+sindri extension install ruby
 ```
 
 ## Configuration
@@ -159,7 +159,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove ruby
+sindri extension remove ruby
 ```
 
 This removes:

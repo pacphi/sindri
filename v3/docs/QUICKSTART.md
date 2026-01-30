@@ -284,9 +284,9 @@ Or install extensions individually inside your environment:
 
 ```bash
 # Inside the container
-extension-manager install nodejs
-extension-manager install python
-extension-manager install docker
+sindri extension install nodejs
+sindri extension install python
+sindri extension install docker
 ```
 
 ## Next Steps

@@ -28,7 +28,7 @@ Headless browser automation CLI for AI agents with snapshot-based element select
 ## Installation
 
 ```bash
-extension-manager install agent-browser
+sindri extension install agent-browser
 ```
 
 ## Configuration
@@ -132,7 +132,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove agent-browser
+sindri extension remove agent-browser
 ```
 
 **Requires confirmation.** Removes:

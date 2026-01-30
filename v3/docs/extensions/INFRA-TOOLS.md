@@ -43,7 +43,7 @@ Infrastructure and DevOps tooling including Terraform, Kubernetes tools, and Con
 ## Installation
 
 ```bash
-extension-manager install infra-tools
+sindri extension install infra-tools
 ```
 
 ## Configuration
@@ -203,7 +203,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove infra-tools
+sindri extension remove infra-tools
 ```
 
 **Requires confirmation.** Removes mise tools and installed binaries.

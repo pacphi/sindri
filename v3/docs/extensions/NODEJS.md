@@ -30,7 +30,7 @@ Node.js LTS via mise with pnpm package manager. Provides a complete Node.js deve
 ## Installation
 
 ```bash
-extension-manager install nodejs
+sindri extension install nodejs
 ```
 
 ## Configuration
@@ -94,7 +94,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove nodejs
+sindri extension remove nodejs
 ```
 
 This removes the mise configuration and nodejs tools.

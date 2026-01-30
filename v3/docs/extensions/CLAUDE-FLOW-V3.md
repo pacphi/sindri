@@ -27,7 +27,7 @@ Next-gen multi-agent orchestration with modular packages, 10x performance, and 1
 ## Installation
 
 ```bash
-extension-manager install claude-flow-v3
+sindri extension install claude-flow-v3
 ```
 
 ## Configuration
@@ -182,7 +182,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove claude-flow-v3
+sindri extension remove claude-flow-v3
 ```
 
 **Requires confirmation.** Removes:

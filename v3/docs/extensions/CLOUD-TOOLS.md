@@ -44,7 +44,7 @@ Cloud provider CLI tools for AWS, Azure, GCP, Fly.io, OCI, Alibaba Cloud, Digita
 ## Installation
 
 ```bash
-extension-manager install cloud-tools
+sindri extension install cloud-tools
 ```
 
 ### Security-Hardened Installation
@@ -209,7 +209,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove cloud-tools
+sindri extension remove cloud-tools
 ```
 
 This removes CLI tools and configurations.

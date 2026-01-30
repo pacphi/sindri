@@ -34,7 +34,7 @@ Supabase CLI for local development, migrations, and edge functions. Full-feature
 ## Installation
 
 ```bash
-extension-manager install supabase-cli
+sindri extension install supabase-cli
 ```
 
 ## Configuration
@@ -175,7 +175,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove supabase-cli
+sindri extension remove supabase-cli
 ```
 
 This removes:

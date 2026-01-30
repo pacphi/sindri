@@ -26,7 +26,7 @@ OpenSkills CLI for managing Claude Code skills from Anthropic's marketplace. Bro
 ## Installation
 
 ```bash
-extension-manager install openskills
+sindri extension install openskills
 ```
 
 ## Configuration
@@ -131,7 +131,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove openskills
+sindri extension remove openskills
 ```
 
 **Requires confirmation.** Removes:

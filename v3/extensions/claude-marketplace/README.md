@@ -30,7 +30,7 @@ No external tools (yq/jq) are required - the extension uses native V3 JSON merge
 
 ```bash
 # Install claude-marketplace (auto-configures settings.json)
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 
 # Or use interactive mode
 extension-manager --interactive
@@ -58,7 +58,7 @@ The extension automatically configures marketplaces and plugins:
 1. **Install extension** (merges JSON templates into settings.json):
 
    ```bash
-   extension-manager install claude-marketplace
+   sindri extension install claude-marketplace
    ```
 
 2. **Invoke Claude Code** (automatic marketplace and plugin installation):
@@ -234,7 +234,7 @@ cat ~/.claude/settings.json | jq empty
 
 # If corrupt, start fresh
 rm ~/.claude/settings.json
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 
 # Verify merge
 cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
@@ -248,7 +248,7 @@ cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
 
 ```bash
 # Reinstall to merge JSON templates
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 
 # Verify merge
 cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
@@ -272,7 +272,7 @@ echo "GITHUB_ACTIONS=${GITHUB_ACTIONS:-<not set>}"
 unset CI GITHUB_ACTIONS
 
 # Reinstall
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 ```
 
 ## Customization
@@ -312,7 +312,7 @@ To customize marketplace configuration:
 4. **Reinstall**:
 
    ```bash
-   extension-manager install claude-marketplace
+   sindri extension install claude-marketplace
    ```
 
 ### Multiple Source Types
@@ -367,7 +367,7 @@ If you're upgrading from a previous version that used YAML configuration:
 2. **Upgrade the extension**:
 
    ```bash
-   extension-manager install claude-marketplace
+   sindri extension install claude-marketplace
    ```
 
 3. **Verify configuration** (should be preserved or enhanced):
@@ -386,7 +386,7 @@ If you're upgrading from a previous version that used YAML configuration:
 
 ```bash
 # Uninstall claude-marketplace
-extension-manager uninstall claude-marketplace
+sindri extension remove claude-marketplace
 
 # Note: Marketplace configuration in settings.json is preserved
 # To remove manually:
@@ -399,7 +399,7 @@ extension-manager uninstall claude-marketplace
 
 ```bash
 # 1. Install extension (merges JSON templates into settings.json)
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 
 # 2. Invoke Claude (automatic marketplace/plugin installation)
 claude
@@ -430,7 +430,7 @@ extension-manager status claude-marketplace
 ```bash
 # Test with CI environment
 export CI=true
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 
 # Verify only 3 marketplaces configured
 cat ~/.claude/settings.json | jq '.extraKnownMarketplaces | length'
@@ -438,7 +438,7 @@ cat ~/.claude/settings.json | jq '.extraKnownMarketplaces | length'
 
 # Unset for local development
 unset CI
-extension-manager install claude-marketplace
+sindri extension install claude-marketplace
 
 # Verify full marketplace list
 cat ~/.claude/settings.json | jq '.extraKnownMarketplaces | length'

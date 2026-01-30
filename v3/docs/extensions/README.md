@@ -152,10 +152,10 @@ Install any extension using the extension-manager:
 
 ```bash
 # Install a single extension
-extension-manager install <extension-name>
+sindri extension install <extension-name>
 
 # Install multiple extensions
-extension-manager install nodejs python docker
+sindri extension install nodejs python docker
 
 # List available extensions
 extension-manager list

@@ -32,7 +32,7 @@ Production-grade TDD-enforced development environment for Claude Code with autom
 ## Installation
 
 ```bash
-extension-manager install claude-codepro
+sindri extension install claude-codepro
 ```
 
 ## Configuration
@@ -152,7 +152,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove claude-codepro
+sindri extension remove claude-codepro
 ```
 
 **Requires confirmation.**
