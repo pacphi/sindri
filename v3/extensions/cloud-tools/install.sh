@@ -71,7 +71,13 @@ if command_exists gcloud; then
   print_warning "Google Cloud CLI already installed"
 else
   # Download and extract Google Cloud SDK to user directory
-  GCLOUD_ARCH="${ARCH}"
+  # Google uses "x86_64" and "arm" (not "aarch64")
+  case "$ARCH" in
+    x86_64|amd64) GCLOUD_ARCH="x86_64" ;;
+    aarch64|arm64) GCLOUD_ARCH="arm" ;;
+    *) print_warning "Unsupported architecture for Google Cloud SDK: $ARCH"; GCLOUD_ARCH="x86_64" ;;
+  esac
+
   if curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz" -o "/tmp/google-cloud-sdk.tar.gz"; then
     tar -xzf /tmp/google-cloud-sdk.tar.gz -C "$HOME"
     "$HOME/google-cloud-sdk/install.sh" --quiet --usage-reporting=false --path-update=false --command-completion=false 2>/dev/null
