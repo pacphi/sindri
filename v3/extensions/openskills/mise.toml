@@ -5,4 +5,4 @@
 # query timeouts that can poison subsequent mise operations.
 
 [tools]
-"npm:openskills" = "1.3"
+"npm:openskills" = "1.5.0"
