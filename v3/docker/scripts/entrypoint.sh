@@ -153,11 +153,6 @@ EOF
     else
         print_status "Home directory already initialized"
 
-        # Ensure SINDRI_EXT_HOME is in existing .bashrc (migration for existing deployments)
-        if [[ -f "${ALT_HOME}/.bashrc" ]] && ! grep -q "SINDRI_EXT_HOME" "${ALT_HOME}/.bashrc"; then
-            print_status "Updating .bashrc with SINDRI_EXT_HOME..."
-            sed -i '1i# Sindri extension directory - set at runtime to respect volume-mounted HOME\n# Only set if not already defined (preserves bundled path from Dockerfile.dev)\nexport SINDRI_EXT_HOME="${SINDRI_EXT_HOME:-${HOME}/.sindri/extensions}"\n' "${ALT_HOME}/.bashrc"
-        fi
     fi
 
     # Ensure correct ownership
@@ -220,6 +215,41 @@ persist_ssh_host_keys() {
 
     # Ensure correct ownership
     chown -R "${DEVELOPER_USER}:${DEVELOPER_USER}" "$host_keys_dir" 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
+# setup_sindri_environment - Write SINDRI_* variables to profile.d for SSH sessions
+# ------------------------------------------------------------------------------
+setup_sindri_environment() {
+    # Capture all SINDRI_* environment variables and write to /etc/profile.d/
+    # This makes docker-compose environment variables (like SINDRI_EXT_HOME)
+    # available in SSH login shells
+
+    local sindri_profile="/etc/profile.d/sindri-runtime.sh"
+
+    print_status "Configuring SINDRI environment variables for SSH sessions..."
+
+    # Start the profile script
+    cat > "$sindri_profile" << 'PROFILE_HEADER'
+# Sindri runtime environment variables
+# Auto-generated from docker-compose environment at container startup
+PROFILE_HEADER
+
+    # Capture all SINDRI_* variables currently set
+    local sindri_vars
+    sindri_vars=$(env | grep -E '^SINDRI_')
+
+    if [[ -n "$sindri_vars" ]]; then
+        while IFS= read -r line; do
+            # Export each variable
+            echo "export $line" >> "$sindri_profile"
+        done <<< "$sindri_vars"
+
+        chmod +x "$sindri_profile"
+        print_success "SINDRI environment variables configured for SSH sessions"
+    else
+        print_status "No SINDRI_* environment variables found"
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -425,19 +455,22 @@ print_status "========================================="
 # Step 1: Setup home directory and user environment
 setup_home_directory
 
-# Step 2: Configure SSH keys
+# Step 2: Setup SINDRI environment variables for SSH sessions
+setup_sindri_environment
+
+# Step 3: Configure SSH keys
 setup_ssh_keys
 
-# Step 3: Persist SSH host keys for stable fingerprints
+# Step 4: Persist SSH host keys for stable fingerprints
 persist_ssh_host_keys
 
-# Step 4: Configure Git
+# Step 5: Configure Git
 setup_git_config
 
-# Step 5: Install extensions in background (non-blocking)
+# Step 6: Install extensions in background (non-blocking)
 install_extensions_background
 
-# Step 6: Start SSH daemon (foreground if not CI mode)
+# Step 7: Start SSH daemon (foreground if not CI mode)
 if [[ "${CI_MODE:-false}" != "true" ]]; then
     start_ssh_daemon
 
