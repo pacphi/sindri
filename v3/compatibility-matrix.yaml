@@ -32,7 +32,7 @@ cli_versions:
       dotnet: ">=2.1.0,<3.0.0"
       php: ">=2.1.0,<3.0.0"
       ruby: ">=2.0.0,<3.0.0"
-      haskell: ">=1.0.1,<2.0.0"
+      haskell: ">=2.0.0,<3.0.0"
 
       # AI & Agentic Tools
       agent-browser: ">=0.6.0,<1.0.0"
@@ -123,7 +123,7 @@ cli_versions:
       dotnet: ">=2.2.0,<3.0.0"
       php: ">=2.2.0,<3.0.0"
       ruby: ">=2.1.0,<3.0.0"
-      haskell: ">=1.1.0,<2.0.0"
+      haskell: ">=2.0.0,<3.0.0"
 
       # AI & Agentic Tools
       agent-browser: ">=0.7.0,<1.0.0"
