@@ -11,7 +11,7 @@ cd sindri
 ./v2/cli/sindri config init
 
 # Edit sindri.yaml for your needs
-# See examples/ directory for templates
+# See examples/v2/ directory for v2 templates
 
 # Deploy locally
 ./v2/cli/sindri deploy --provider docker

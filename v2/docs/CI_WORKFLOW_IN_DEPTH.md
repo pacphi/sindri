@@ -92,7 +92,7 @@ installing the configured extension profile on container startup.
 sindri.yaml**.
 
 ```yaml
-# examples/docker/minimal.sindri.yaml
+# examples/v2/docker/minimal.sindri.yaml
 extensions:
   profile: minimal
   # autoInstall defaults to true for end users
@@ -478,10 +478,10 @@ Tests sindri.yaml configuration files from the `examples/` directory.
 
 ```yaml
 # Single config
-config-path: examples/fly/minimal.sindri.yaml
+config-path: examples/v2/fly/minimal.sindri.yaml
 
 # All Fly.io configs
-config-path: examples/fly/
+config-path: examples/v2/fly/
 
 # All configs
 config-path: examples/
@@ -646,20 +646,20 @@ Tests sindri.yaml configuration files from the `examples/` directory.
 
 ```bash
 # Test a specific config file
-gh workflow run v2-test-profiles.yml -f config-path="examples/fly/minimal.sindri.yaml"
+gh workflow run v2-test-profiles.yml -f config-path="examples/v2/fly/minimal.sindri.yaml"
 
 # Test all Fly.io examples
-gh workflow run v2-test-profiles.yml -f config-path="examples/fly/"
+gh workflow run v2-test-profiles.yml -f config-path="examples/v2/fly/"
 
 # Test all Docker examples
-gh workflow run v2-test-profiles.yml -f config-path="examples/docker/"
+gh workflow run v2-test-profiles.yml -f config-path="examples/v2/docker/"
 
 # Test all examples (comprehensive)
 gh workflow run v2-test-profiles.yml -f config-path="examples/"
 
 # Run profile-level tests (full lifecycle)
 gh workflow run v2-test-profiles.yml \
-  -f config-path="examples/docker/fullstack.sindri.yaml" \
+  -f config-path="examples/v2/docker/fullstack.sindri.yaml" \
   -f test-level="profile"
 ```
 

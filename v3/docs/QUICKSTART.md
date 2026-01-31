@@ -293,7 +293,7 @@ sindri extension install docker
 
 - **[Getting Started Guide](GETTING_STARTED.md)** - Detailed setup instructions
 - **[Image Management](IMAGE_MANAGEMENT.md)** - Container versioning and security
-- **[Examples](../../examples/README.md)** - 60+ ready-to-use configurations
+- **[Examples](../../examples/v3/)** - Ready-to-use V3 configurations
 - **Architecture Decisions** - See `docs/architecture/adr/` for design rationale
 
 ## CLI Command Reference

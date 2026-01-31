@@ -70,20 +70,20 @@ deployment:
   # 3. image_config.version     (semver constraint resolution)
   # 4. image                    (legacy full reference)
   # 5. Local Dockerfile         (provider-dependent build)
-  # 6. Default: ghcr.io/pacphi/sindri:latest
+  # 6. Default: ghcr.io/pacphi/sindri:v3-latest
   # ═══════════════════════════════════════════════════════════════════════════
 {% if provider == "kubernetes" %}
   # Kubernetes does NOT support building from Dockerfile.
   # You MUST specify a pre-built image for this provider.
-  image: ghcr.io/pacphi/sindri:latest
+  image: ghcr.io/pacphi/sindri:v3-latest
 {% elif provider == "fly" %}
   # Fly.io: Pre-built image (~30s deploy) or Dockerfile build (2-5 min)
-  image: ghcr.io/pacphi/sindri:latest
+  image: ghcr.io/pacphi/sindri:v3-latest
 {% elif provider == "e2b" %}
   # E2B requires Dockerfile build (pre-built images not supported)
   # Leave image commented out - E2B builds template from Dockerfile
 {% else %}
-  image: ghcr.io/pacphi/sindri:latest
+  image: ghcr.io/pacphi/sindri:v3-latest
 {% endif %}
 
   resources:

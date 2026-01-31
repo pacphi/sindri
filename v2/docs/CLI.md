@@ -86,7 +86,7 @@ sindri config validate [--config <file>]
 sindri config validate
 
 # Validate specific file
-sindri config validate --config examples/fly/minimal.sindri.yaml
+sindri config validate --config examples/v2/fly/minimal.sindri.yaml
 
 # Validate all examples
 for f in examples/**/*.sindri.yaml; do
@@ -137,7 +137,7 @@ sindri deploy --provider docker
 sindri deploy --provider fly --rebuild
 
 # Deploy using example config
-sindri deploy --config examples/fly/minimal.sindri.yaml
+sindri deploy --config examples/v2/fly/minimal.sindri.yaml
 
 # Deploy DevPod environment
 sindri deploy --provider devpod
@@ -173,7 +173,7 @@ sindri plan [--config <file>]
 **Example:**
 
 ```bash
-sindri plan --config examples/fly/production.sindri.yaml
+sindri plan --config examples/v2/fly/production.sindri.yaml
 ```
 
 ### sindri destroy
@@ -203,7 +203,7 @@ sindri destroy --force
 sindri destroy --provider fly
 
 # Teardown using config
-sindri destroy --config examples/fly/minimal.sindri.yaml
+sindri destroy --config examples/v2/fly/minimal.sindri.yaml
 ```
 
 **Cleanup Actions:**
@@ -305,7 +305,7 @@ sindri test [--config <file>] [--suite <name>]
 sindri test --suite smoke
 
 # Test specific configuration
-sindri test --config examples/fly/ai-dev.sindri.yaml --suite integration
+sindri test --config examples/v2/fly/ai-dev.sindri.yaml --suite integration
 
 # Run full test suite
 sindri test --suite full
@@ -981,7 +981,7 @@ All CLI commands follow standard exit code conventions:
 
 ```bash
 # Deploy multiple configurations
-for config in examples/fly/*.sindri.yaml; do
+for config in examples/v2/fly/*.sindri.yaml; do
   sindri deploy --config "$config"
 done
 

@@ -35,7 +35,7 @@ This directory contains example Sindri configurations for the E2B provider.
 export E2B_API_KEY=your-api-key
 
 # Deploy minimal example
-sindri deploy -f examples/e2b/minimal.sindri.yaml
+sindri deploy -f examples/v2/e2b/minimal.sindri.yaml
 
 # Connect to sandbox
 sindri connect

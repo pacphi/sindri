@@ -266,7 +266,7 @@ providers:
 
 ### Example Configurations
 
-See `examples/docker/` for complete configurations:
+See `examples/v2/docker/` for complete configurations:
 
 - `dind-sysbox.sindri.yaml` - Secure DinD with Sysbox
 - `dind-privileged.sindri.yaml` - Legacy privileged DinD

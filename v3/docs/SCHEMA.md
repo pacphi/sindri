@@ -1298,7 +1298,7 @@ if validator.has_schema("manifest") {
 sindri config validate
 
 # Validate specific file
-sindri config validate --config examples/fly/minimal.sindri.yaml
+sindri config validate --config examples/v3/fly/minimal.sindri.yaml
 
 # Validate extension
 sindri extension validate nodejs

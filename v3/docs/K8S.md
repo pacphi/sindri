@@ -364,7 +364,7 @@ providers:
 
 ### Example: Kind Minimal Setup
 
-File: `examples/k8s/kind-minimal.sindri.yaml`
+File: `examples/v3/k8s/kind-minimal.sindri.yaml`
 
 ```yaml
 version: "1.0"
@@ -400,18 +400,18 @@ providers:
 
 ```bash
 # Create cluster
-sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
+sindri k8s create --config examples/v3/k8s/kind-minimal.sindri.yaml
 
 # Deploy Sindri
-sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+sindri deploy --config examples/v3/k8s/kind-minimal.sindri.yaml
 
 # Destroy
-sindri k8s destroy --config examples/k8s/kind-minimal.sindri.yaml
+sindri k8s destroy --config examples/v3/k8s/kind-minimal.sindri.yaml
 ```
 
 ### Example: K3d with Registry
 
-File: `examples/k8s/k3d-with-registry.sindri.yaml`
+File: `examples/v3/k8s/k3d-with-registry.sindri.yaml`
 
 ```yaml
 version: "1.0"
@@ -458,14 +458,14 @@ providers:
 
 ```bash
 # Create cluster with registry
-sindri k8s create --config examples/k8s/k3d-with-registry.sindri.yaml
+sindri k8s create --config examples/v3/k8s/k3d-with-registry.sindri.yaml
 
 # Push custom images
 docker tag myapp localhost:5000/myapp
 docker push localhost:5000/myapp
 
 # Deploy
-sindri deploy --config examples/k8s/k3d-with-registry.sindri.yaml
+sindri deploy --config examples/v3/k8s/k3d-with-registry.sindri.yaml
 ```
 
 ## Troubleshooting

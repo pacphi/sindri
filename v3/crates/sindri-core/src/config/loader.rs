@@ -125,7 +125,7 @@ impl SindriConfig {
             name: name.to_string(),
             deployment: DeploymentConfig {
                 provider,
-                image: Some("ghcr.io/pacphi/sindri:latest".to_string()),
+                image: Some("ghcr.io/pacphi/sindri:v3-latest".to_string()),
                 image_config: None,
                 build_from_source: None,
                 resources: ResourcesConfig::default(),
@@ -348,7 +348,7 @@ name: {name}
 
 deployment:
   provider: {provider}
-  image: ghcr.io/pacphi/sindri:latest
+  image: ghcr.io/pacphi/sindri:v3-latest
   resources:
     memory: 4GB
     cpus: 2

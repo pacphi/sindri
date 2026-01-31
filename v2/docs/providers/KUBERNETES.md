@@ -22,7 +22,7 @@ Pod, PVC, and Service creation while providing DevContainer compatibility and ID
 
 ```bash
 # 1. Create sindri.yaml (or use an example)
-cp examples/devpod/kubernetes/minimal.sindri.yaml sindri.yaml
+cp examples/v2/devpod/kubernetes/minimal.sindri.yaml sindri.yaml
 
 # 2. Deploy
 ./v2/cli/sindri deploy
@@ -38,10 +38,10 @@ cp examples/devpod/kubernetes/minimal.sindri.yaml sindri.yaml
 
 ```bash
 # 1. Create a local kind cluster
-./v2/cli/sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
+./v2/cli/sindri k8s create --config examples/v2/k8s/kind-minimal.sindri.yaml
 
 # 2. Deploy Sindri to it
-./v2/cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+./v2/cli/sindri deploy --config examples/v2/k8s/kind-minimal.sindri.yaml
 
 # 3. Connect
 ./v2/cli/sindri connect
@@ -189,7 +189,7 @@ Sindri can create and manage local Kubernetes clusters for development.
 ./v2/cli/sindri k8s list
 
 # Create cluster from config
-./v2/cli/sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
+./v2/cli/sindri k8s create --config examples/v2/k8s/kind-minimal.sindri.yaml
 
 # Get kubeconfig for external tools
 ./v2/cli/sindri k8s config --name sindri-kind-local
@@ -201,7 +201,7 @@ Sindri can create and manage local Kubernetes clusters for development.
 ### kind Cluster Configuration
 
 ```yaml
-# examples/k8s/kind-minimal.sindri.yaml
+# examples/v2/k8s/kind-minimal.sindri.yaml
 version: "1.0"
 name: sindri-kind-local
 
@@ -378,12 +378,12 @@ devpod up . --recreate
 
 | Example                                               | Use Case                |
 | ----------------------------------------------------- | ----------------------- |
-| `examples/devpod/kubernetes/minimal.sindri.yaml`      | Basic K8s deployment    |
-| `examples/devpod/kubernetes/devops.sindri.yaml`       | DevOps tooling          |
-| `examples/devpod/kubernetes/systems.sindri.yaml`      | Systems programming     |
-| `examples/devpod/kubernetes/gpu-workload.sindri.yaml` | GPU/AI workloads        |
-| `examples/k8s/kind-minimal.sindri.yaml`               | Local kind cluster      |
-| `examples/k8s/k3d-with-registry.sindri.yaml`          | Local k3d with registry |
+| `examples/v2/devpod/kubernetes/minimal.sindri.yaml`      | Basic K8s deployment    |
+| `examples/v2/devpod/kubernetes/devops.sindri.yaml`       | DevOps tooling          |
+| `examples/v2/devpod/kubernetes/systems.sindri.yaml`      | Systems programming     |
+| `examples/v2/devpod/kubernetes/gpu-workload.sindri.yaml` | GPU/AI workloads        |
+| `examples/v2/k8s/kind-minimal.sindri.yaml`               | Local kind cluster      |
+| `examples/v2/k8s/k3d-with-registry.sindri.yaml`          | Local k3d with registry |
 
 ## Related Documentation
 

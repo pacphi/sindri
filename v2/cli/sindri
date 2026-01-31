@@ -106,11 +106,11 @@ EXAMPLES:
     sindri deploy --provider fly --rebuild  # Force rebuild on Fly.io
     sindri deploy --provider devpod
     sindri deploy --provider e2b
-    sindri deploy --config examples/fly/minimal.sindri.yaml
+    sindri deploy --config examples/v2/fly/minimal.sindri.yaml
     sindri connect
     sindri destroy --provider docker
     sindri destroy --force
-    sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+    sindri test --config examples/v2/fly/minimal.sindri.yaml --suite smoke
     sindri pause                             # E2B: pause sandbox
     sindri template list                     # E2B: list templates
 

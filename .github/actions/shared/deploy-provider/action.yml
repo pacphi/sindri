@@ -57,25 +57,25 @@ runs:
           # Map provider + profile to example config
           case "${{ inputs.provider }}" in
             docker)
-              CONFIG="examples/docker/${PROFILE}.sindri.yaml"
+              CONFIG="examples/v2/docker/${PROFILE}.sindri.yaml"
               ;;
             fly)
-              CONFIG="examples/fly/${PROFILE}.sindri.yaml"
+              CONFIG="examples/v2/fly/${PROFILE}.sindri.yaml"
               ;;
             devpod-aws)
-              CONFIG="examples/devpod/aws/${PROFILE}.sindri.yaml"
+              CONFIG="examples/v2/devpod/aws/${PROFILE}.sindri.yaml"
               ;;
             devpod-gcp)
-              CONFIG="examples/devpod/gcp/${PROFILE}.sindri.yaml"
+              CONFIG="examples/v2/devpod/gcp/${PROFILE}.sindri.yaml"
               ;;
             devpod-azure)
-              CONFIG="examples/devpod/azure/${PROFILE}.sindri.yaml"
+              CONFIG="examples/v2/devpod/azure/${PROFILE}.sindri.yaml"
               ;;
             devpod-do)
-              CONFIG="examples/devpod/digitalocean/${PROFILE}.sindri.yaml"
+              CONFIG="examples/v2/devpod/digitalocean/${PROFILE}.sindri.yaml"
               ;;
             devpod-k8s|kubernetes)
-              CONFIG="examples/devpod/kubernetes/${PROFILE}.sindri.yaml"
+              CONFIG="examples/v2/devpod/kubernetes/${PROFILE}.sindri.yaml"
               ;;
             *)
               echo "::error::Unknown provider: ${{ inputs.provider }}"
@@ -87,13 +87,13 @@ runs:
           if [[ ! -f "$CONFIG" ]]; then
             echo "::warning::Profile config $CONFIG not found, falling back to minimal"
             case "${{ inputs.provider }}" in
-              docker) CONFIG="examples/docker/minimal.sindri.yaml" ;;
-              fly) CONFIG="examples/fly/minimal.sindri.yaml" ;;
-              devpod-aws) CONFIG="examples/devpod/aws/minimal.sindri.yaml" ;;
-              devpod-gcp) CONFIG="examples/devpod/gcp/minimal.sindri.yaml" ;;
-              devpod-azure) CONFIG="examples/devpod/azure/minimal.sindri.yaml" ;;
-              devpod-do) CONFIG="examples/devpod/digitalocean/minimal.sindri.yaml" ;;
-              devpod-k8s|kubernetes) CONFIG="examples/devpod/kubernetes/minimal.sindri.yaml" ;;
+              docker) CONFIG="examples/v2/docker/minimal.sindri.yaml" ;;
+              fly) CONFIG="examples/v2/fly/minimal.sindri.yaml" ;;
+              devpod-aws) CONFIG="examples/v2/devpod/aws/minimal.sindri.yaml" ;;
+              devpod-gcp) CONFIG="examples/v2/devpod/gcp/minimal.sindri.yaml" ;;
+              devpod-azure) CONFIG="examples/v2/devpod/azure/minimal.sindri.yaml" ;;
+              devpod-do) CONFIG="examples/v2/devpod/digitalocean/minimal.sindri.yaml" ;;
+              devpod-k8s|kubernetes) CONFIG="examples/v2/devpod/kubernetes/minimal.sindri.yaml" ;;
             esac
           fi
         fi

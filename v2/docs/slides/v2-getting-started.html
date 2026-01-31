@@ -331,7 +331,7 @@ extensions:
 └── k8s/          # 2 local Kubernetes examples (kind, k3d)
 
 # Copy, customize, and deploy
-cp examples/fly/minimal.sindri.yaml sindri.yaml
+cp examples/v2/fly/minimal.sindri.yaml sindri.yaml
 ./cli/sindri deploy</code></pre>
     <p class="small" style="margin-top: 1em;">
         Every example is tested in CI - if it's in <code>examples/</code>, it works!
@@ -672,8 +672,8 @@ providers:
         <span class="success">CI Tip:</span> No KUBECONFIG secret? CI auto-creates a kind cluster!
     </p>
     <p class="small">
-        Example configs: <code>examples/devpod/kubernetes/</code> (deploy to existing cluster)<br>
-        Local clusters: <code>examples/k8s/</code> (create cluster + deploy)
+        Example configs: <code>examples/v2/devpod/kubernetes/</code> (deploy to existing cluster)<br>
+        Local clusters: <code>examples/v2/k8s/</code> (create cluster + deploy)
     </p>
 </section>
 

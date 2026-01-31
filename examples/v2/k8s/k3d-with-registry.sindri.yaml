@@ -1,9 +1,9 @@
 ---
 # Sindri with local k3d cluster and registry
 # Usage:
-#   1. Create cluster: sindri k8s create --config examples/k8s/k3d-with-registry.sindri.yaml
-#   2. Deploy Sindri:  sindri deploy --config examples/k8s/k3d-with-registry.sindri.yaml
-#   3. Destroy:        sindri k8s destroy --config examples/k8s/k3d-with-registry.sindri.yaml
+#   1. Create cluster: sindri k8s create --config examples/v2/k8s/k3d-with-registry.sindri.yaml
+#   2. Deploy Sindri:  sindri deploy --config examples/v2/k8s/k3d-with-registry.sindri.yaml
+#   3. Destroy:        sindri k8s destroy --config examples/v2/k8s/k3d-with-registry.sindri.yaml
 #
 # The local registry allows pushing custom images:
 #   docker tag myimage localhost:5000/myimage

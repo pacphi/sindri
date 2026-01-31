@@ -1,0 +1,61 @@
+---
+# Sindri v3 Configuration - Docker Anthropic Development
+# AI development with full Anthropic toolset including claude-cli
+# Note: v3 uses 'anthropic-dev' profile (replaces v2's 'ai-dev')
+version: "3.0"
+name: sindri-v3-docker-anthropic-dev
+
+deployment:
+  provider: docker
+  image: ghcr.io/pacphi/sindri:v3-latest
+  resources:
+    memory: 16GB
+    cpus: 8
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 100GB
+
+extensions:
+  # anthropic-dev profile includes claude-cli in v3
+  profile: anthropic-dev
+  autoInstall: true
+
+secrets:
+  # Anthropic API key for claude-cli
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  # GitHub for code context
+  - name: GITHUB_TOKEN
+    source: env
+
+  # Cloud credentials for cloud-tools
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+  - name: AZURE_CLIENT_ID
+    source: env
+  - name: AZURE_CLIENT_SECRET
+    source: env
+  - name: AZURE_TENANT_ID
+    source: env
+
+  # Project management - linear-mcp
+  - name: LINEAR_API_KEY
+    source: env
+
+  # Infrastructure - supabase-cli
+  - name: SUPABASE_ACCESS_TOKEN
+    source: env
+
+providers:
+  docker:
+    network: bridge
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # API server
+      - "3000:3000"  # Web UI
+      - "5173:5173"  # Vite dev server
