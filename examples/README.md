@@ -27,11 +27,13 @@ examples/
 ### Sindri v2 (Bash/Docker Platform)
 
 Use examples in `v2/` if you're running Sindri v2, identifiable by:
+
 - Using the `sindri` bash CLI script
 - Running `sindri --version` shows `v2.x.x`
 - Configuration files use `version: "2.0"` or earlier
 
 **Key v2 behaviors:**
+
 - Image defaults to `sindri:latest` if not specified
 - VisionFlow profiles available (`visionflow-base`, `visionflow-cuda`, etc.)
 - `ai-dev` profile available
@@ -39,11 +41,13 @@ Use examples in `v2/` if you're running Sindri v2, identifiable by:
 ### Sindri v3 (Rust CLI Platform)
 
 Use examples in `v3/` if you're running Sindri v3, identifiable by:
+
 - Using the `sindri` Rust binary
 - Running `sindri --version` shows `3.x.x`
 - Configuration files use `version: "3.0"`
 
 **Key v3 differences from v2:**
+
 - **Must specify image** - no silent defaults (fails or builds from Dockerfile)
 - Use `ghcr.io/pacphi/sindri:v3-latest` for the official image
 - VisionFlow profiles **removed** (use standard profiles with extensions)
@@ -80,12 +84,12 @@ extensions:
 
 ## Image Tags
 
-| Tag | Description |
-|-----|-------------|
-| `ghcr.io/pacphi/sindri:v2-latest` | Latest stable v2 release |
-| `ghcr.io/pacphi/sindri:v3-latest` | Latest stable v3 release |
-| `ghcr.io/pacphi/sindri:latest` | Latest stable release (currently points to v3) |
-| `sindri:local` | Locally built image (for development) |
+| Tag                               | Description                                    |
+| --------------------------------- | ---------------------------------------------- |
+| `ghcr.io/pacphi/sindri:v2-latest` | Latest stable v2 release                       |
+| `ghcr.io/pacphi/sindri:v3-latest` | Latest stable v3 release                       |
+| `ghcr.io/pacphi/sindri:latest`    | Latest stable release (currently points to v3) |
+| `sindri:local`                    | Locally built image (for development)          |
 
 ## Documentation
 

@@ -245,8 +245,6 @@ openskills --version
 
 ### Automatic Upgrade
 
-
-
 ## Removal
 
 ```bash

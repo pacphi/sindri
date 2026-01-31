@@ -376,8 +376,8 @@ devpod up . --recreate
 
 ## Example Configurations
 
-| Example                                               | Use Case                |
-| ----------------------------------------------------- | ----------------------- |
+| Example                                                  | Use Case                |
+| -------------------------------------------------------- | ----------------------- |
 | `examples/v2/devpod/kubernetes/minimal.sindri.yaml`      | Basic K8s deployment    |
 | `examples/v2/devpod/kubernetes/devops.sindri.yaml`       | DevOps tooling          |
 | `examples/v2/devpod/kubernetes/systems.sindri.yaml`      | Systems programming     |

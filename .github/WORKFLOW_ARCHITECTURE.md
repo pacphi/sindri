@@ -777,8 +777,8 @@ This enables fast CI feedback without requiring users to maintain external Kuber
 
 Two directories serve different Kubernetes use cases:
 
-| Directory                     | Purpose                                             | Used By CI         |
-| ----------------------------- | --------------------------------------------------- | ------------------ |
+| Directory                        | Purpose                                             | Used By CI         |
+| -------------------------------- | --------------------------------------------------- | ------------------ |
 | `examples/v2/devpod/kubernetes/` | Deploy Sindri TO an existing K8s cluster via DevPod | Yes (`devpod-k8s`) |
 | `examples/v2/k8s/`               | Create AND deploy to local clusters (kind, k3d)     | No (manual use)    |
 
