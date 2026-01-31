@@ -141,7 +141,6 @@ extensions:
 
 - `minimal` - Basic Node.js + Python
 - `fullstack` - Full-stack development
-- `ai-dev` - AI/ML development
 - `anthropic-dev` - Anthropic development toolset
 - `systems` - Systems programming (Rust, Go)
 - `enterprise` - Multi-language enterprise stack
@@ -1424,7 +1423,7 @@ deployment:
       memory: "48GB"
 
 extensions:
-  profile: ai-dev
+  profile: anthropic-dev
   additional:
     - cuda-toolkit
 

@@ -91,7 +91,7 @@ deployment:
     memory: "4Gi"
 
 extensions:
-  profile: minimal # or: mobile, fullstack, ai-dev
+  profile: minimal # or: mobile, fullstack, anthropic-dev
   auto_install: true
 ```
 
@@ -233,16 +233,16 @@ extensions:
 
 **Includes:** nodejs, python, docker, nodejs-devtools
 
-### AI-Dev
+### Anthropic-Dev
 
-AI/ML development environment.
+AI development environment with Anthropic toolset.
 
 ```yaml
 extensions:
-  profile: ai-dev
+  profile: anthropic-dev
 ```
 
-**Includes:** nodejs, python, golang, spec-kit, ollama, ai-toolkit
+**Includes:** claude-cli, claude-flow-v3, agentic-qe, ralph, ai-toolkit, and more
 
 ## Version Resolution Strategies
 

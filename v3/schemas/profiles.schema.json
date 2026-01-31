@@ -4,11 +4,20 @@
   "title": "Sindri Extension Profiles",
   "description": "Schema for extension profile definitions",
   "type": "object",
-  "required": ["version", "profiles"],
+  "required": ["version", "profiles", "display_order"],
   "properties": {
     "version": {
       "type": ["string", "number"],
       "description": "Schema version"
+    },
+    "display_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Order in which profiles should be displayed in UI and templates"
     },
     "profiles": {
       "type": "object",

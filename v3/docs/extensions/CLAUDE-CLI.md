@@ -36,7 +36,6 @@ Or install as part of a profile:
 
 ```bash
 sindri profile install anthropic-dev
-sindri profile install ai-dev
 sindri profile install enterprise
 ```
 

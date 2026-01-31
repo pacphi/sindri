@@ -26,7 +26,7 @@ Sindri V3 introduces significant improvements to the extension system:
 
 - **extension.yaml**: Declarative YAML file defining the extension's metadata, requirements, installation method, configuration, and capabilities
 - **Categories**: Extensions are grouped by function (languages, devops, claude, mcp, ai-agents, etc.)
-- **Profiles**: Pre-configured sets of extensions for common use cases (minimal, fullstack, ai-dev, etc.)
+- **Profiles**: Pre-configured sets of extensions for common use cases (minimal, fullstack, anthropic-dev, etc.)
 - **Dependencies**: Extensions can declare dependencies on other extensions for ordered installation
 
 ---
@@ -226,7 +226,6 @@ Profiles provide pre-configured extension sets for common use cases:
 | ----------------- | --------------------------------------------------------------- |
 | **minimal**       | nodejs, python                                                  |
 | **fullstack**     | nodejs, python, docker, nodejs-devtools                         |
-| **ai-dev**        | claude-cli, nodejs, python, golang, ai-toolkit, mdflow          |
 | **anthropic-dev** | claude-cli, claude-flow-v3, agentic-qe, ralph, ai-toolkit, etc. |
 | **systems**       | rust, golang, docker, infra-tools                               |
 | **enterprise**    | claude-cli, all languages, jira-mcp, cloud-tools                |

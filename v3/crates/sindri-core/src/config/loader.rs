@@ -405,7 +405,7 @@ deployment:
       type: nvidia
       tier: gpu-medium
 extensions:
-  profile: ai-dev
+  profile: anthropic-dev
   additional:
     - docker
 secrets:

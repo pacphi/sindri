@@ -160,31 +160,248 @@ extensions:
 # Secrets are injected as environment variables into the container.
 # Source types: env (from host), file (mount as file), vault (HashiCorp Vault)
 secrets:
+  # ---------------------------------------------------------------------------
+  # Core Authentication
+  # ---------------------------------------------------------------------------
   # SSH public key for VS Code Remote/SSH access
   - name: AUTHORIZED_KEYS
     source: env
     fromFile: ~/.ssh/id_ed25519.pub
 
-  # API keys from environment variables
-  - name: ANTHROPIC_API_KEY
-    source: env
-
+  # ---------------------------------------------------------------------------
+  # Git & Source Control
+  # ---------------------------------------------------------------------------
   - name: GITHUB_TOKEN
     source: env
-
-  # Example: required secret (deployment fails if missing)
-  # - name: DATABASE_URL
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+  # - name: GITHUB_USER              # GitHub username for gh CLI
   #   source: env
-  #   required: true
+  # - name: GITLAB_TOKEN             # GitLab personal access token
+  #   source: env
+  # - name: BITBUCKET_TOKEN          # Bitbucket app password
+  #   source: env
 
-  # Example: mount a file into the container
+  # ---------------------------------------------------------------------------
+  # AI Services - Primary
+  # ---------------------------------------------------------------------------
+  - name: ANTHROPIC_API_KEY
+    source: env
+  # - name: OPENAI_API_KEY           # OpenAI API (GPT, Codex, DALL-E)
+  #   source: env
+  # - name: OPENROUTER_API_KEY       # OpenRouter multi-provider gateway (claudish)
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # AI Services - Additional Providers
+  # ---------------------------------------------------------------------------
+  # - name: GOOGLE_GEMINI_API_KEY    # Google Gemini API (ai-toolkit)
+  #   source: env
+  # - name: XAI_API_KEY              # xAI Grok SDK (ai-toolkit)
+  #   source: env
+  # - name: PERPLEXITY_API_KEY       # Perplexity AI research (ruvnet-research)
+  #   source: env
+  # - name: DEEPSEEK_API_KEY         # DeepSeek AI reasoning
+  #   source: env
+  # - name: COHERE_API_KEY           # Cohere NLP
+  #   source: env
+  # - name: MISTRAL_API_KEY          # Mistral AI
+  #   source: env
+  # - name: GROQ_API_KEY             # Groq inference
+  #   source: env
+  # - name: TOGETHER_API_KEY         # Together AI
+  #   source: env
+  # - name: FIREWORKS_API_KEY        # Fireworks AI
+  #   source: env
+  # - name: REPLICATE_API_TOKEN      # Replicate
+  #   source: env
+  # - name: HUGGINGFACE_TOKEN        # HuggingFace Hub
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Cloud Providers - AWS
+  # ---------------------------------------------------------------------------
+  # - name: AWS_ACCESS_KEY_ID        # AWS access key
+  #   source: env
+  # - name: AWS_SECRET_ACCESS_KEY    # AWS secret key
+  #   source: env
+  # - name: AWS_SESSION_TOKEN        # AWS temporary session token (STS)
+  #   source: env
+  # - name: AWS_DEFAULT_REGION       # AWS default region
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Cloud Providers - Azure
+  # ---------------------------------------------------------------------------
+  # - name: AZURE_CLIENT_ID          # Azure service principal app ID
+  #   source: env
+  # - name: AZURE_CLIENT_SECRET      # Azure service principal secret
+  #   source: env
+  # - name: AZURE_TENANT_ID          # Azure AD tenant ID
+  #   source: env
+  # - name: AZURE_SUBSCRIPTION_ID    # Azure subscription ID
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Cloud Providers - Google Cloud
+  # ---------------------------------------------------------------------------
+  # - name: GOOGLE_APPLICATION_CREDENTIALS  # Path to GCP service account JSON
+  #   source: env
+  # - name: GOOGLE_CLOUD_PROJECT     # GCP project ID
+  #   source: env
+  # - name: CLOUDSDK_CORE_PROJECT    # Alternative GCP project setting
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Cloud Providers - Other Clouds
+  # ---------------------------------------------------------------------------
+  # - name: FLY_API_TOKEN            # Fly.io API token
+  #   source: env
+
+  # DigitalOcean
+  # - name: DIGITALOCEAN_ACCESS_TOKEN  # DigitalOcean API token
+  #   source: env
+
+  # Oracle Cloud Infrastructure (OCI)
+  # - name: OCI_CLI_USER             # OCI user OCID
+  #   source: env
+  # - name: OCI_CLI_FINGERPRINT      # OCI API key fingerprint
+  #   source: env
+  # - name: OCI_CLI_TENANCY          # OCI tenancy OCID
+  #   source: env
+  # - name: OCI_CLI_REGION           # OCI region
+  #   source: env
+  # - name: OCI_CLI_KEY_FILE         # Path to OCI private key
+  #   source: env
+
+  # Alibaba Cloud
+  # - name: ALIBABA_CLOUD_ACCESS_KEY_ID      # Alibaba Cloud access key
+  #   source: env
+  # - name: ALIBABA_CLOUD_ACCESS_KEY_SECRET  # Alibaba Cloud secret key
+  #   source: env
+  # - name: ALIBABA_CLOUD_SECURITY_TOKEN     # Alibaba Cloud STS token
+  #   source: env
+
+  # IBM Cloud
+  # - name: IBMCLOUD_API_KEY         # IBM Cloud API key
+  #   source: env
+  # - name: IC_REGION                # IBM Cloud region
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Infrastructure as Code
+  # ---------------------------------------------------------------------------
+  # - name: PULUMI_ACCESS_TOKEN      # Pulumi Cloud authentication
+  #   source: env
+  # - name: PULUMI_CONFIG_PASSPHRASE # Pulumi secrets encryption passphrase
+  #   source: env
+  # - name: TERRAFORM_TOKEN          # HCP Terraform/Terraform Cloud token
+  #   source: env
+  # - name: TF_TOKEN_app_terraform_io  # HCP Terraform token (alternative)
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Package Registries
+  # ---------------------------------------------------------------------------
+  # - name: NPM_TOKEN                # npm registry auth (bypasses rate limits)
+  #   source: env
+  # - name: PYPI_TOKEN               # PyPI package publishing
+  #   source: env
+  # - name: NUGET_API_KEY            # NuGet package publishing
+  #   source: env
+  # - name: CARGO_REGISTRY_TOKEN    # crates.io publishing
+  #   source: env
+  # - name: MAVEN_USERNAME           # Maven Central username
+  #   source: env
+  # - name: MAVEN_PASSWORD           # Maven Central password/token
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Container Registries
+  # ---------------------------------------------------------------------------
+  # - name: DOCKER_USERNAME          # Docker Hub username
+  #   source: env
+  # - name: DOCKER_PASSWORD          # Docker Hub password/token
+  #   source: env
+  # - name: GHCR_TOKEN               # GitHub Container Registry (use GITHUB_TOKEN)
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Project Management & Collaboration
+  # ---------------------------------------------------------------------------
+  # - name: LINEAR_API_KEY           # Linear.app issue tracking
+  #   source: env
+  # - name: JIRA_URL                 # Atlassian Jira base URL
+  #   source: env                    # Example: https://mycompany.atlassian.net
+  # - name: JIRA_USERNAME            # Atlassian account email
+  #   source: env
+  # - name: JIRA_API_TOKEN           # Atlassian API token
+  #   source: env
+  # - name: SLACK_TOKEN              # Slack bot/user token
+  #   source: env
+  # - name: DISCORD_TOKEN            # Discord bot token
+  #   source: env
+  # - name: NOTION_API_KEY           # Notion integration token
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Backend Services & Databases
+  # ---------------------------------------------------------------------------
+  # - name: SUPABASE_ACCESS_TOKEN    # Supabase CLI authentication
+  #   source: env
+  # - name: SUPABASE_URL             # Supabase project URL
+  #   source: env
+  # - name: SUPABASE_ANON_KEY        # Supabase anonymous key
+  #   source: env
+  # - name: SUPABASE_SERVICE_ROLE_KEY  # Supabase service role key
+  #   source: env
+  # - name: DATABASE_URL             # Generic database connection string
+  #   source: env
+  # - name: REDIS_URL                # Redis connection URL
+  #   source: env
+  # - name: MONGODB_URI              # MongoDB connection string
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # Monitoring & Observability
+  # ---------------------------------------------------------------------------
+  # - name: DATADOG_API_KEY          # Datadog API key
+  #   source: env
+  # - name: SENTRY_DSN               # Sentry error tracking DSN
+  #   source: env
+  # - name: GRAFANA_API_KEY          # Grafana Cloud API key
+  #   source: env
+  # - name: NEW_RELIC_LICENSE_KEY    # New Relic license key
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # MCP Servers & Tools
+  # ---------------------------------------------------------------------------
+  # - name: CONTEXT7_API_KEY         # Context7 MCP (optional, higher rate limits)
+  #   source: env
+
+  # ---------------------------------------------------------------------------
+  # File Mount Examples
+  # ---------------------------------------------------------------------------
+  # Mount a file into the container:
   # - name: SSL_CERT
   #   source: file
   #   path: ./certs/server.crt
   #   mountPath: /etc/ssl/certs/server.crt
   #   permissions: "0644"
 
-  # Example: HashiCorp Vault integration
+  # Mount GCP service account JSON:
+  # - name: GCP_SERVICE_ACCOUNT
+  #   source: file
+  #   path: ~/.config/gcloud/service-account.json
+  #   mountPath: /home/developer/.config/gcloud/service-account.json
+  #   permissions: "0600"
+
+  # ---------------------------------------------------------------------------
+  # HashiCorp Vault Integration
+  # ---------------------------------------------------------------------------
   # - name: DB_PASSWORD
   #   source: vault
   #   vaultPath: secret/data/myapp/database
@@ -193,28 +410,21 @@ secrets:
 {% if provider == "fly" %}
 
 # ---------------------------------------------------------------------------
-# Fly.io Secrets Reference
+# Fly.io Secrets Deployment
 # ---------------------------------------------------------------------------
-# Set secrets via: flyctl secrets set KEY=value -a {{ name }}
+# After deploying, set secrets via Fly.io CLI:
 #
-# Core secrets:
-#   AUTHORIZED_KEYS      - SSH public key for key-based auth (recommended)
-#                          flyctl secrets set "AUTHORIZED_KEYS=$(cat ~/.ssh/id_ed25519.pub)" -a {{ name }}
-#   ANTHROPIC_API_KEY    - Claude API authentication
-#   GITHUB_TOKEN         - GitHub authentication for git operations
-#   GIT_USER_NAME        - Git config user.name
-#   GIT_USER_EMAIL       - Git config user.email
-#   GITHUB_USER          - GitHub username for gh CLI
+#   flyctl secrets set KEY=value -a {{ name }}
 #
-# AI tools (optional):
-#   OPENROUTER_API_KEY   - Multi-provider AI gateway (cost-optimized models)
-#   GOOGLE_GEMINI_API_KEY - Google Gemini API (free-tier access)
-#   PERPLEXITY_API_KEY   - Perplexity API (research assistant)
-#   XAI_API_KEY          - xAI Grok SDK authentication
+# Examples:
+#   flyctl secrets set "AUTHORIZED_KEYS=$(cat ~/.ssh/id_ed25519.pub)" -a {{ name }}
+#   flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a {{ name }}
+#   flyctl secrets set GITHUB_TOKEN=ghp_... -a {{ name }}
 #
-# Package registries (recommended):
-#   NPM_TOKEN            - npm auth (bypasses rate limits, required for reliable installs)
-#   PYPI_TOKEN           - PyPI package publishing
+# List all secrets:     flyctl secrets list -a {{ name }}
+# Remove a secret:      flyctl secrets unset KEY -a {{ name }}
+#
+# See the SECRETS section above for the full list of supported environment variables.
 {% endif %}
 
 # =============================================================================
@@ -255,10 +465,7 @@ providers:
   # Fly.io Development Workflow
   # ---------------------------------------------------------------------------
   # 1. Deploy: sindri deploy
-  # 2. Set secrets:
-  #    flyctl secrets set "AUTHORIZED_KEYS=$(cat ~/.ssh/id_ed25519.pub)" -a {{ name }}
-  #    flyctl secrets set ANTHROPIC_API_KEY=sk-ant-... -a {{ name }}
-  #    flyctl secrets set GITHUB_TOKEN=ghp_... -a {{ name }}
+  # 2. Set secrets (see "Fly.io Secrets Deployment" section above)
   # 3. Connect: ssh developer@{{ name }}.fly.dev -p 10022
   #    Alternative: flyctl ssh console -a {{ name }}
   # 4. Work: All files in $HOME (/alt/home/developer) are persistent

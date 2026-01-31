@@ -33,7 +33,7 @@ fn test_aws_template_generation() {
         build: BuildConfig {
             sindri_version: "3.0.0".to_string(),
             extensions: vec!["python".to_string(), "node".to_string()],
-            profile: Some("ai-dev".to_string()),
+            profile: Some("anthropic-dev".to_string()),
             ..Default::default()
         },
         aws: Some(AwsConfig {

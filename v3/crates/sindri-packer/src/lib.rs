@@ -31,7 +31,7 @@
 //!     extensions:
 //!       - python
 //!       - node
-//!     profile: ai-dev
+//!     profile: anthropic-dev
 //! ```
 
 pub mod alibaba;

@@ -3,6 +3,16 @@
 # Clean break from v2 - VisionFlow profiles excluded
 version: "3.0.0"
 
+# Order in which profiles appear in UI and templates
+display_order:
+  - minimal
+  - fullstack
+  - anthropic-dev
+  - systems
+  - enterprise
+  - devops
+  - mobile
+
 profiles:
   minimal:
     description: Minimal development setup
@@ -17,23 +27,6 @@ profiles:
       - python
       - docker
       - nodejs-devtools
-
-  ai-dev:
-    description: AI/ML development environment
-    extensions:
-      - claude-cli
-      - nodejs
-      - python
-      - golang
-      - spec-kit
-      - ollama
-      - ai-toolkit
-      - mdflow
-      - openskills
-      - pal-mcp-server
-      - supabase-cli
-      - linear-mcp
-      - monitoring
 
   anthropic-dev:
     description: AI development with Anthropic toolset bias (v3 default - 10x performance)

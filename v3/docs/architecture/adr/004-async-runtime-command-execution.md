@@ -162,7 +162,7 @@ let (docker_result, fly_result) = tokio::join!(
 ```rust
 // Start extension installation in background while connecting
 tokio::spawn(async move {
-    extension_manager.install_profile("ai-dev").await
+    extension_manager.install_profile("anthropic-dev").await
 });
 ```
 

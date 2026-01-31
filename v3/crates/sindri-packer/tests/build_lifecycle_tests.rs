@@ -38,12 +38,12 @@ mod build_lifecycle {
 
         // Set up expected build result
         provider.set_build_result(
-            "sindri-ai-dev",
+            "sindri-anthropic-dev",
             MockBuildResult::success("ami-newbuild", 300),
         );
 
         // Execute build
-        let result = provider.build("sindri-ai-dev");
+        let result = provider.build("sindri-anthropic-dev");
 
         assert_build_success(&result);
         assert_eq!(result.image_id, Some("ami-newbuild".to_string()));

@@ -684,16 +684,15 @@ Pre-configured extension profile.
 
 **Standard profiles:**
 
-| Profile         | Description            | Extensions                                             |
-| --------------- | ---------------------- | ------------------------------------------------------ |
-| `minimal`       | Basic development      | nodejs, python                                         |
-| `fullstack`     | Full-stack web         | nodejs, python, docker, nodejs-devtools                |
-| `ai-dev`        | AI/ML development      | nodejs, python, golang, ai-toolkit, mdflow, openskills |
-| `anthropic-dev` | Anthropic toolset      | claude-flow, agentic-flow, ai-toolkit                  |
-| `systems`       | Systems programming    | rust, golang, docker, infra-tools                      |
-| `enterprise`    | Enterprise development | All languages + jira-mcp, cloud-tools                  |
-| `devops`        | DevOps/SRE             | docker, infra-tools, monitoring, cloud-tools           |
-| `mobile`        | Mobile development     | nodejs, linear-mcp, supabase-cli                       |
+| Profile         | Description            | Extensions                                   |
+| --------------- | ---------------------- | -------------------------------------------- |
+| `minimal`       | Basic development      | nodejs, python                               |
+| `fullstack`     | Full-stack web         | nodejs, python, docker, nodejs-devtools      |
+| `anthropic-dev` | Anthropic toolset      | claude-flow, agentic-flow, ai-toolkit        |
+| `systems`       | Systems programming    | rust, golang, docker, infra-tools            |
+| `enterprise`    | Enterprise development | All languages + jira-mcp, cloud-tools        |
+| `devops`        | DevOps/SRE             | docker, infra-tools, monitoring, cloud-tools |
+| `mobile`        | Mobile development     | nodejs, linear-mcp, supabase-cli             |
 
 **VisionFlow profiles:**
 
@@ -1300,7 +1299,7 @@ deployment:
       memory: 40GB
 
 extensions:
-  profile: ai-dev
+  profile: anthropic-dev
   additional:
     - pytorch
     - jupyter
@@ -1327,7 +1326,7 @@ deployment:
     cpus: 2
 
 extensions:
-  profile: ai-dev
+  profile: anthropic-dev
 
 providers:
   e2b:
