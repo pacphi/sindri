@@ -383,6 +383,6 @@ You can manually trigger tests using GitHub Actions:
 
 ## See Also
 
-- [Schema Documentation](../v2/docs/SCHEMA.md) for all options
-- [CLI Reference](../v2/docs/CLI.md) for command details
-- [Extension Registry](../v2/docker/lib/registry.yaml) for available extensions
+- [Schema Documentation](../../v2/docs/SCHEMA.md) for all options
+- [CLI Reference](../../v2/docs/CLI.md) for command details
+- [Extension Registry](../../v2/docker/lib/registry.yaml) for available extensions
