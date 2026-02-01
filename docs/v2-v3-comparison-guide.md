@@ -13,19 +13,19 @@ Sindri V3 represents a complete architectural transformation from V2, delivering
 
 ### At a Glance
 
-| Metric                  | V2                       | V3                             | Improvement           |
-| ----------------------- | ------------------------ | ------------------------------ | --------------------- |
-| **Implementation**      | Bash (~52K lines)        | Rust (~11.2K lines)            | 78% code reduction    |
-| **Distribution**        | Git clone + Docker       | Binary + Docker + npm          | Native cross-platform |
-| **Docker Image Size**   | ~2.5GB                   | ~800MB                         | 68% smaller           |
-| **CLI Startup**         | 2-5 seconds              | <100ms                         | 20-50x faster         |
-| **Config Parsing**      | 100-500ms (yq/jq)        | 10-50ms (native)               | 10-20x faster         |
-| **Extension Count**     | 77 (44 core + 33 VF)     | 48                             | V2 has VisionFlow     |
-| **Extension Categories**| 11                       | 13                             | Different taxonomies  |
-| **Install Methods**     | 7                        | 7                              | Feature parity        |
-| **Total Features**      | ~81                      | ~409                           | +328 new features     |
-| **Agent Types**         | ~20                      | 60+                            | 3x more agents        |
-| **Platform Support**    | Linux/macOS (via Docker) | Linux, macOS, Windows (native) | Windows support       |
+| Metric                   | V2                       | V3                             | Improvement           |
+| ------------------------ | ------------------------ | ------------------------------ | --------------------- |
+| **Implementation**       | Bash (~52K lines)        | Rust (~11.2K lines)            | 78% code reduction    |
+| **Distribution**         | Git clone + Docker       | Binary + Docker + npm          | Native cross-platform |
+| **Docker Image Size**    | ~2.5GB                   | ~800MB                         | 68% smaller           |
+| **CLI Startup**          | 2-5 seconds              | <100ms                         | 20-50x faster         |
+| **Config Parsing**       | 100-500ms (yq/jq)        | 10-50ms (native)               | 10-20x faster         |
+| **Extension Count**      | 77 (44 core + 33 VF)     | 48                             | V2 has VisionFlow     |
+| **Extension Categories** | 11                       | 13                             | Different taxonomies  |
+| **Install Methods**      | 7                        | 7                              | Feature parity        |
+| **Total Features**       | ~81                      | ~409                           | +328 new features     |
+| **Agent Types**          | ~20                      | 60+                            | 3x more agents        |
+| **Platform Support**     | Linux/macOS (via Docker) | Linux, macOS, Windows (native) | Windows support       |
 
 ---
 
@@ -95,16 +95,16 @@ Sindri V3 represents a complete architectural transformation from V2, delivering
 
 ### Category 3: Extensions & Profiles
 
-| Feature               | V2  | V3  | Notes                       |
-| --------------------- | :-: | :-: | --------------------------- |
-| Extension count       | 77  | 48  | V2 includes 33 VisionFlow   |
-| Extension categories  | 11  | 13  | Different category names    |
-| Install methods       |  7  |  7  | Both support all methods    |
-| Profile presets       |  8  |  8  | Updated defaults            |
-| Extension upgrade     | ⚠️  | ✅  | With rollback               |
-| Version pinning       | ⚠️  | ✅  | `@version` syntax           |
-| Dependency resolution | ⚠️  | ✅  | Parallel DAG                |
-| Collision handling    | ✅  | ✅  | Both have full support      |
+| Feature               | V2  | V3  | Notes                     |
+| --------------------- | :-: | :-: | ------------------------- |
+| Extension count       | 77  | 48  | V2 includes 33 VisionFlow |
+| Extension categories  | 11  | 13  | Different category names  |
+| Install methods       |  7  |  7  | Both support all methods  |
+| Profile presets       |  8  |  8  | Updated defaults          |
+| Extension upgrade     | ⚠️  | ✅  | With rollback             |
+| Version pinning       | ⚠️  | ✅  | `@version` syntax         |
+| Dependency resolution | ⚠️  | ✅  | Parallel DAG              |
+| Collision handling    | ✅  | ✅  | Both have full support    |
 
 **Feature Count:** V2=12, V3=20
 
@@ -175,12 +175,12 @@ V3.1 introduces declarative template selection based on environment context, rep
 
 **Condition Types:**
 
-| Type        | Description                        | Example                           |
-| ----------- | ---------------------------------- | --------------------------------- |
-| Environment | Match environment variables        | `env: { CI: "true" }`             |
-| Platform    | Match OS and architecture          | `platform: { os: ["linux"] }`     |
-| Logical     | Combine conditions with any/all/not| `any: [{ CI: "true" }, ...]`      |
-| Regex       | Pattern matching                   | `{ matches: "^/home/.*$" }`       |
+| Type        | Description                         | Example                       |
+| ----------- | ----------------------------------- | ----------------------------- |
+| Environment | Match environment variables         | `env: { CI: "true" }`         |
+| Platform    | Match OS and architecture           | `platform: { os: ["linux"] }` |
+| Logical     | Combine conditions with any/all/not | `any: [{ CI: "true" }, ...]`  |
+| Regex       | Pattern matching                    | `{ matches: "^/home/.*$" }`   |
 
 **Example: CI vs Local Template Selection**
 
@@ -208,13 +208,13 @@ configure:
 
 **Logical Operators:**
 
-| Operator   | Description                          |
-| ---------- | ------------------------------------ |
-| `any`      | OR - true if any condition matches   |
-| `all`      | AND - true if all conditions match   |
-| `not`      | NOT - inverts the condition result   |
-| `not_any`  | NOR - true if no condition matches   |
-| `not_all`  | NAND - true if any condition fails   |
+| Operator  | Description                        |
+| --------- | ---------------------------------- |
+| `any`     | OR - true if any condition matches |
+| `all`     | AND - true if all conditions match |
+| `not`     | NOT - inverts the condition result |
+| `not_any` | NOR - true if no condition matches |
+| `not_all` | NAND - true if any condition fails |
 
 ### Enhanced Type Safety
 
@@ -231,15 +231,15 @@ V3 introduces 80+ compile-time typed Rust structs for:
 
 Both V2 and V3 have full capabilities support. The guide previously implied V3 had more advanced capabilities, which is incorrect.
 
-| Capability        | V2 | V3 | Notes                                    |
-| ----------------- | :-:| :-:| ---------------------------------------- |
-| project-init      | ✅ | ✅ | Same schema with priority ordering       |
-| auth              | ✅ | ✅ | Multi-method: api-key + cli-auth         |
-| hooks             | ✅ | ✅ | 4 types: pre/post-install, pre/post-init |
-| mcp               | ✅ | ✅ | Server registration + tool definitions   |
-| project-context   | ✅ | ✅ | CLAUDE.md merging with strategies        |
-| features          | ✅ | ✅ | core/swarm/llm/advanced/mcp              |
-| collision-handling| ✅ | ✅ | 11 conflict resolution actions           |
+| Capability         | V2  | V3  | Notes                                    |
+| ------------------ | :-: | :-: | ---------------------------------------- |
+| project-init       | ✅  | ✅  | Same schema with priority ordering       |
+| auth               | ✅  | ✅  | Multi-method: api-key + cli-auth         |
+| hooks              | ✅  | ✅  | 4 types: pre/post-install, pre/post-init |
+| mcp                | ✅  | ✅  | Server registration + tool definitions   |
+| project-context    | ✅  | ✅  | CLAUDE.md merging with strategies        |
+| features           | ✅  | ✅  | core/swarm/llm/advanced/mcp              |
+| collision-handling | ✅  | ✅  | 11 conflict resolution actions           |
 
 ### Authentication Methods (Both Versions)
 
@@ -249,27 +249,27 @@ capabilities:
     provider: anthropic
     required: true
     methods:
-      - api-key    # Environment variable
-      - cli-auth   # OAuth/CLI authentication
+      - api-key # Environment variable
+      - cli-auth # OAuth/CLI authentication
     envVars:
       - ANTHROPIC_API_KEY
 ```
 
 ### Collision Handling Actions (Both Versions)
 
-| Action           | Description                           |
-| ---------------- | ------------------------------------- |
-| overwrite        | Replace existing content              |
-| append           | Add to end of file                    |
-| prepend          | Add to beginning of file              |
-| merge-json       | Deep merge JSON structures            |
-| merge-yaml       | Deep merge YAML structures            |
-| backup           | Create backup before changes          |
-| backup-and-replace| Backup then overwrite                |
-| merge            | Directory merge                       |
-| prompt           | Ask user for action                   |
-| prompt-per-file  | Ask user for each file                |
-| skip             | Leave existing content unchanged      |
+| Action             | Description                      |
+| ------------------ | -------------------------------- |
+| overwrite          | Replace existing content         |
+| append             | Add to end of file               |
+| prepend            | Add to beginning of file         |
+| merge-json         | Deep merge JSON structures       |
+| merge-yaml         | Deep merge YAML structures       |
+| backup             | Create backup before changes     |
+| backup-and-replace | Backup then overwrite            |
+| merge              | Directory merge                  |
+| prompt             | Ask user for action              |
+| prompt-per-file    | Ask user for each file           |
+| skip               | Leave existing content unchanged |
 
 ---
 
@@ -277,11 +277,11 @@ capabilities:
 
 V3 uses a two-Dockerfile architecture for optimized builds:
 
-| Dockerfile      | Target      | Size    | Extensions          |
-| --------------- | ----------- | ------- | ------------------- |
-| Dockerfile      | Production  | ~800MB  | Runtime install     |
-| Dockerfile.dev  | Development | ~1.2GB  | Bundled extensions  |
-| Dockerfile.base | Base image  | ~600MB  | Build foundation    |
+| Dockerfile      | Target      | Size   | Extensions         |
+| --------------- | ----------- | ------ | ------------------ |
+| Dockerfile      | Production  | ~800MB | Runtime install    |
+| Dockerfile.dev  | Development | ~1.2GB | Bundled extensions |
+| Dockerfile.base | Base image  | ~600MB | Build foundation   |
 
 ### Production Mode (`Dockerfile`)
 
@@ -304,12 +304,12 @@ V3 uses a two-Dockerfile architecture for optimized builds:
 
 APT package installation requires sudo, which is blocked by `no-new-privileges` security constraint in socket DinD mode.
 
-| DinD Mode   | no-new-privileges | sudo Works | APT Extensions      |
-| ----------- | :---------------: | :--------: | ------------------- |
-| socket      | YES               | NO         | Sudo-free only      |
-| sysbox      | NO                | YES        | All work            |
-| privileged  | NO                | YES        | All work            |
-| none        | NO                | YES        | All work            |
+| DinD Mode  | no-new-privileges | sudo Works | APT Extensions |
+| ---------- | :---------------: | :--------: | -------------- |
+| socket     |        YES        |     NO     | Sudo-free only |
+| sysbox     |        NO         |    YES     | All work       |
+| privileged |        NO         |    YES     | All work       |
+| none       |        NO         |    YES     | All work       |
 
 **Recommendation:** For socket mode compatibility, use mise, pip, npm, or binary (tarball) installation methods instead of apt.
 
@@ -317,13 +317,13 @@ APT package installation requires sudo, which is blocked by `no-new-privileges` 
 
 ## Environment Variables
 
-| Variable                    | V2 | V3 | Purpose                              |
-| --------------------------- | :-:| :-:| ------------------------------------ |
-| SINDRI_VALIDATION_TIMEOUT   | ✅ | ✅ | Override validation timeout (secs)   |
-| EXTENSION_CONFLICT_STRATEGY | ✅ | ❌ | Override conflict resolution         |
-| EXTENSION_CONFLICT_PROMPT   | ✅ | ❌ | Disable interactive prompts          |
-| SINDRI_LOG_LEVEL            | ✅ | ✅ | Set logging verbosity                |
-| SINDRI_CACHE_DIR            | ✅ | ✅ | Override cache directory             |
+| Variable                    | V2  | V3  | Purpose                            |
+| --------------------------- | :-: | :-: | ---------------------------------- |
+| SINDRI_VALIDATION_TIMEOUT   | ✅  | ✅  | Override validation timeout (secs) |
+| EXTENSION_CONFLICT_STRATEGY | ✅  | ❌  | Override conflict resolution       |
+| EXTENSION_CONFLICT_PROMPT   | ✅  | ❌  | Disable interactive prompts        |
+| SINDRI_LOG_LEVEL            | ✅  | ✅  | Set logging verbosity              |
+| SINDRI_CACHE_DIR            | ✅  | ✅  | Override cache directory           |
 
 ---
 
@@ -333,15 +333,15 @@ V2 includes 33 VisionFlow extensions that are not available in V3. These provide
 
 ### Categories
 
-| Category          | Extensions                                                |
-| ----------------- | --------------------------------------------------------- |
-| Document          | vf-docx, vf-pdf, vf-pptx, vf-xlsx, vf-latex-documents     |
-| Visual/3D         | vf-blender, vf-pbr-rendering, vf-canvas-design            |
-| Media             | vf-ffmpeg-processing, vf-imagemagick                      |
-| AI/ML             | vf-comfyui, vf-pytorch-ml, vf-deepseek-reasoning          |
-| Desktop           | vf-vnc-desktop, vf-xfce-ubuntu                            |
-| MCP Integration   | vf-mcp-builder, vf-playwright-mcp                         |
-| Specialized       | vf-kicad, vf-ngspice, vf-qgis, vf-wardley-maps            |
+| Category        | Extensions                                            |
+| --------------- | ----------------------------------------------------- |
+| Document        | vf-docx, vf-pdf, vf-pptx, vf-xlsx, vf-latex-documents |
+| Visual/3D       | vf-blender, vf-pbr-rendering, vf-canvas-design        |
+| Media           | vf-ffmpeg-processing, vf-imagemagick                  |
+| AI/ML           | vf-comfyui, vf-pytorch-ml, vf-deepseek-reasoning      |
+| Desktop         | vf-vnc-desktop, vf-xfce-ubuntu                        |
+| MCP Integration | vf-mcp-builder, vf-playwright-mcp                     |
+| Specialized     | vf-kicad, vf-ngspice, vf-qgis, vf-wardley-maps        |
 
 ### Complete List
 
@@ -367,37 +367,37 @@ vf-webapp-testing     vf-xlsx              vf-zai-service
 
 ### V2 Categories (11)
 
-| Category       | Description                     |
-| -------------- | ------------------------------- |
-| base           | Core system extensions          |
-| agile          | Project management tools        |
-| language       | Programming language support    |
-| dev-tools      | Development utilities           |
-| infrastructure | Infrastructure tools            |
-| ai             | AI/ML extensions                |
-| utilities      | General utilities               |
-| desktop        | Desktop environment             |
-| monitoring     | System monitoring               |
-| database       | Database tools                  |
-| mobile         | Mobile development              |
+| Category       | Description                  |
+| -------------- | ---------------------------- |
+| base           | Core system extensions       |
+| agile          | Project management tools     |
+| language       | Programming language support |
+| dev-tools      | Development utilities        |
+| infrastructure | Infrastructure tools         |
+| ai             | AI/ML extensions             |
+| utilities      | General utilities            |
+| desktop        | Desktop environment          |
+| monitoring     | System monitoring            |
+| database       | Database tools               |
+| mobile         | Mobile development           |
 
 ### V3 Categories (13)
 
-| Category        | Description                    |
-| --------------- | ------------------------------ |
-| ai-agents       | Autonomous agent systems       |
-| ai-dev          | AI development tools           |
-| claude          | Claude-specific extensions     |
-| cloud           | Cloud platform integrations    |
-| desktop         | Desktop environment            |
-| devops          | DevOps tooling                 |
-| documentation   | Documentation generators       |
-| languages       | Programming language support   |
-| mcp             | MCP server integrations        |
-| package-manager | Package management             |
-| productivity    | Productivity tools             |
-| research        | Research and analysis          |
-| testing         | Testing frameworks             |
+| Category        | Description                  |
+| --------------- | ---------------------------- |
+| ai-agents       | Autonomous agent systems     |
+| ai-dev          | AI development tools         |
+| claude          | Claude-specific extensions   |
+| cloud           | Cloud platform integrations  |
+| desktop         | Desktop environment          |
+| devops          | DevOps tooling               |
+| documentation   | Documentation generators     |
+| languages       | Programming language support |
+| mcp             | MCP server integrations      |
+| package-manager | Package management           |
+| productivity    | Productivity tools           |
+| research        | Research and analysis        |
+| testing         | Testing frameworks           |
 
 ---
 

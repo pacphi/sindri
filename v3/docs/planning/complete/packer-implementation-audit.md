@@ -12,13 +12,13 @@ This audit examines the current state of Sindri V3's Packer support across CLI a
 
 ### Key Findings
 
-| Area | Status | Critical Issues |
-|------|--------|-----------------|
-| CLI Architecture | **Excellent** | None - well-designed provider abstraction |
-| `v3-packer-build.yml` | **Incomplete** | Only 3/5 clouds (missing OCI, Alibaba) |
-| `v3-provider-packer.yml` | **BROKEN** | Bypasses CLI, references non-existent templates |
-| Cloud Provider Impl | **Complete** | Minor inconsistencies only |
-| Documentation | **Severely Lacking** | No PACKER.md, no cloud guides |
+| Area                     | Status               | Critical Issues                                 |
+| ------------------------ | -------------------- | ----------------------------------------------- |
+| CLI Architecture         | **Excellent**        | None - well-designed provider abstraction       |
+| `v3-packer-build.yml`    | **Incomplete**       | Only 3/5 clouds (missing OCI, Alibaba)          |
+| `v3-provider-packer.yml` | **BROKEN**           | Bypasses CLI, references non-existent templates |
+| Cloud Provider Impl      | **Complete**         | Minor inconsistencies only                      |
+| Documentation            | **Severely Lacking** | No PACKER.md, no cloud guides                   |
 
 ---
 
@@ -44,15 +44,15 @@ v3/crates/
 
 The CLI provides 7 subcommands for Packer operations:
 
-| Command | Purpose | Status |
-|---------|---------|--------|
-| `sindri packer build` | Build VM image | Implemented |
-| `sindri packer validate` | Validate template | Implemented |
-| `sindri packer list` | List cloud images | Implemented |
-| `sindri packer delete` | Delete image by ID | Implemented |
-| `sindri packer doctor` | Check prerequisites | Implemented |
-| `sindri packer init` | Generate HCL template | Implemented |
-| `sindri packer deploy` | Deploy from image | Implemented |
+| Command                  | Purpose               | Status      |
+| ------------------------ | --------------------- | ----------- |
+| `sindri packer build`    | Build VM image        | Implemented |
+| `sindri packer validate` | Validate template     | Implemented |
+| `sindri packer list`     | List cloud images     | Implemented |
+| `sindri packer delete`   | Delete image by ID    | Implemented |
+| `sindri packer doctor`   | Check prerequisites   | Implemented |
+| `sindri packer init`     | Generate HCL template | Implemented |
+| `sindri packer deploy`   | Deploy from image     | Implemented |
 
 ### 1.3 Provider Abstraction Pattern
 
@@ -79,6 +79,7 @@ pub trait PackerProvider: Send + Sync {
 Templates are **embedded in the Rust binary** using Tera templating:
 
 **Location:** `/v3/crates/sindri-packer/src/templates/hcl/`
+
 - `aws.pkr.hcl.tera`
 - `azure.pkr.hcl.tera`
 - `gcp.pkr.hcl.tera`
@@ -90,6 +91,7 @@ The CLI dynamically generates HCL2 templates at runtime based on user configurat
 ### 1.5 CLI Architecture Assessment
 
 **Strengths:**
+
 - Clean provider abstraction enabling multi-cloud support
 - Unified interface across all 5 cloud providers
 - Template generation handles complexity internally
@@ -104,11 +106,11 @@ The CLI dynamically generates HCL2 templates at runtime based on user configurat
 
 ### 2.1 Workflow Inventory
 
-| Workflow | Purpose | Uses CLI? | Uses Custom Actions? | Cloud Coverage |
-|----------|---------|-----------|---------------------|----------------|
-| `v3-packer-build.yml` | Build VM images | **Yes** | No | 3/5 (missing OCI, Alibaba) |
-| `v3-packer-test.yml` | Test built images | **No** | **No** (duplicates them!) | 3/5 (missing OCI, Alibaba) |
-| `v3-provider-packer.yml` | Extension testing | **Partial** | **Yes** | 5/5 (but build broken) |
+| Workflow                 | Purpose           | Uses CLI?   | Uses Custom Actions?      | Cloud Coverage             |
+| ------------------------ | ----------------- | ----------- | ------------------------- | -------------------------- |
+| `v3-packer-build.yml`    | Build VM images   | **Yes**     | No                        | 3/5 (missing OCI, Alibaba) |
+| `v3-packer-test.yml`     | Test built images | **No**      | **No** (duplicates them!) | 3/5 (missing OCI, Alibaba) |
+| `v3-provider-packer.yml` | Extension testing | **Partial** | **Yes**                   | 5/5 (but build broken)     |
 
 ### 2.2 v3-packer-build.yml Analysis
 
@@ -129,6 +131,7 @@ This workflow properly leverages the CLI but only supports 3 of 5 clouds:
 ```
 
 **Flow:**
+
 1. Builds `sindri` binary from Rust source
 2. Uses `sindri packer validate` for template validation
 3. Uses `sindri packer build` for image building
@@ -139,13 +142,14 @@ This workflow properly leverages the CLI but only supports 3 of 5 clouds:
 **Missing Clouds:** OCI and Alibaba - despite CLI supporting all 5 providers
 
 **Gap Analysis:**
-| Cloud | CLI Support | Workflow Support | Status |
-|-------|-------------|------------------|--------|
-| AWS | Yes | Yes | Complete |
-| Azure | Yes | Yes | Complete |
-| GCP | Yes | Yes | Complete |
-| OCI | Yes | **No** | **Missing build job** |
-| Alibaba | Yes | **No** | **Missing build job** |
+
+| Cloud   | CLI Support | Workflow Support | Status                |
+| ------- | ----------- | ---------------- | --------------------- |
+| AWS     | Yes         | Yes              | Complete              |
+| Azure   | Yes         | Yes              | Complete              |
+| GCP     | Yes         | Yes              | Complete              |
+| OCI     | Yes         | **No**           | **Missing build job** |
+| Alibaba | Yes         | **No**           | **Missing build job** |
 
 The workflow needs `build-oci` and `build-alibaba` jobs added following the same pattern as the existing cloud jobs.
 
@@ -160,7 +164,7 @@ This workflow **bypasses the CLI** and makes false assumptions:
 - name: Build Packer Image
   id: build
   if: steps.check.outputs.image_exists != 'true'
-  working-directory: v3/packer  # <-- PROBLEM: This directory has NO templates
+  working-directory: v3/packer # <-- PROBLEM: This directory has NO templates
   run: |
     packer init .
     packer build \
@@ -173,11 +177,13 @@ This workflow **bypasses the CLI** and makes false assumptions:
 **Critical Issues:**
 
 1. **Non-existent Templates:** The `v3/packer/` directory contains only:
+
    ```
    v3/packer/
    └── scripts/
        └── openscap-scan.sh
    ```
+
    There are **NO Packer template files** (`.pkr.hcl`) in this directory.
 
 2. **Bypasses CLI Abstraction:** Calls raw `packer init` and `packer build` instead of `sindri packer build`
@@ -190,15 +196,15 @@ This workflow **bypasses the CLI** and makes false assumptions:
 
 **Location:** `.github/actions/packer/`
 
-| Action | Purpose | Status |
-|--------|---------|--------|
-| `launch-instance/` | Multi-cloud VM launcher | Working |
+| Action                | Purpose                   | Status  |
+| --------------------- | ------------------------- | ------- |
+| `launch-instance/`    | Multi-cloud VM launcher   | Working |
 | `terminate-instance/` | Multi-cloud VM terminator | Working |
-| `providers/aws/` | AWS EC2 management | Working |
-| `providers/azure/` | Azure VM management | Working |
-| `providers/gcp/` | GCP Compute management | Working |
-| `providers/oci/` | OCI Compute management | Working |
-| `providers/alibaba/` | Alibaba ECS management | Working |
+| `providers/aws/`      | AWS EC2 management        | Working |
+| `providers/azure/`    | Azure VM management       | Working |
+| `providers/gcp/`      | GCP Compute management    | Working |
+| `providers/oci/`      | OCI Compute management    | Working |
+| `providers/alibaba/`  | Alibaba ECS management    | Working |
 
 ### 2.5 Custom Actions Deep Dive
 
@@ -222,39 +228,45 @@ These actions were created for **testing VM images** - launching instances from 
 
 #### Implementation Status by Provider
 
-| Provider | Status | SSH Key Handling | CLI Install | Complexity |
-|----------|--------|------------------|-------------|------------|
-| AWS | **Basic** | Pre-existing key required | Assumed | Simple |
-| Azure | **Complete** | Auto-generates | Assumed | Medium |
-| GCP | **Partial** | OS Login + key path mismatch | Assumed | Simple |
-| OCI | **Complete** | Generates fresh key | On-demand | Complex |
-| Alibaba | **Complete** | Generates + imports key pair | On-demand | Most complex |
+| Provider | Status       | SSH Key Handling             | CLI Install | Complexity   |
+| -------- | ------------ | ---------------------------- | ----------- | ------------ |
+| AWS      | **Basic**    | Pre-existing key required    | Assumed     | Simple       |
+| Azure    | **Complete** | Auto-generates               | Assumed     | Medium       |
+| GCP      | **Complete** | Generates fresh key          | Assumed     | Simple       |
+| OCI      | **Complete** | Generates fresh key          | On-demand   | Complex      |
+| Alibaba  | **Complete** | Generates + imports key pair | On-demand   | Most complex |
 
 #### Per-Provider Analysis
 
 **AWS (`providers/aws/action.yml`):**
+
 - Relies on pre-existing SSH key pair (`sindri-test`)
 - Expects `AWS_SSH_PRIVATE_KEY` env var or falls back to `~/.ssh/id_rsa`
 - No key generation - will fail if key pair doesn't exist
 - Basic implementation compared to others
 
 **Azure (`providers/azure/action.yml`):**
+
 - Uses `--generate-ssh-keys` flag (auto-creates)
 - Creates resource group if not exists
 - Comprehensive cleanup: VM, NIC, disk, public IP
 
 **GCP (`providers/gcp/action.yml`):**
-- **INCONSISTENT:** Uses `enable-oslogin=true` (metadata) but references `$HOME/.ssh/google_compute_engine`
-- OS Login and direct SSH key auth are different patterns
-- SSH connection may fail in certain GCP configurations
+
+- **FIXED:** Now generates fresh SSH key pair per instance (like OCI/Alibaba)
+- Uses direct SSH key injection via metadata (not OS Login)
+- Compatible with external SSH tools like InSpec
+- Uses `sindri` as the SSH username
 
 **OCI (`providers/oci/action.yml`):**
+
 - Installs OCI CLI on-demand
 - Generates fresh SSH key per instance
 - Complex VNIC lookup for public IP
 - Proper cleanup of keys
 
 **Alibaba (`providers/alibaba/action.yml`):**
+
 - Installs Aliyun CLI on-demand
 - Generates SSH key and imports as cloud key pair
 - Allocates elastic IP and associates
@@ -262,11 +274,11 @@ These actions were created for **testing VM images** - launching instances from 
 
 #### Who Uses These Actions?
 
-| Workflow | Uses Actions? | Notes |
-|----------|---------------|-------|
-| `v3-provider-packer.yml` | **YES** | Lines 206, 271 |
-| `v3-packer-build.yml` | **NO** | Builds images only |
-| `v3-packer-test.yml` | **NO** | **DUPLICATES functionality inline!** |
+| Workflow                 | Uses Actions? | Notes                                |
+| ------------------------ | ------------- | ------------------------------------ |
+| `v3-provider-packer.yml` | **YES**       | Lines 206, 271                       |
+| `v3-packer-build.yml`    | **NO**        | Builds images only                   |
+| `v3-packer-test.yml`     | **NO**        | **DUPLICATES functionality inline!** |
 
 #### Critical Issue: Duplicated Functionality
 
@@ -280,6 +292,7 @@ These actions were created for **testing VM images** - launching instances from 
 ```
 
 This creates:
+
 1. **Code duplication** across two places
 2. **Maintenance burden** - fixes must be applied twice
 3. **Inconsistent behavior** - inline code differs from actions
@@ -292,21 +305,21 @@ This creates:
 
 #### Current State
 
-| Aspect | Status | Issue |
-|--------|--------|-------|
-| Cloud Coverage | 3/5 | Missing OCI, Alibaba test jobs |
-| Uses Custom Actions | NO | Duplicates functionality inline |
-| Uses CLI | NO | Raw cloud CLIs throughout |
-| Trigger | Manual + workflow_run | Only triggers from "Build Sindri VM Images" (wrong name?) |
+| Aspect              | Status                | Issue                                                     |
+| ------------------- | --------------------- | --------------------------------------------------------- |
+| Cloud Coverage      | 3/5                   | Missing OCI, Alibaba test jobs                            |
+| Uses Custom Actions | NO                    | Duplicates functionality inline                           |
+| Uses CLI            | NO                    | Raw cloud CLIs throughout                                 |
+| Trigger             | Manual + workflow_run | Only triggers from "Build Sindri VM Images" (wrong name?) |
 
 #### Structure
 
 ```yaml
 jobs:
-  test-aws:     # Inline AWS instance management - 93 lines
-  test-azure:   # Inline Azure instance management - 66 lines
-  test-gcp:     # Inline GCP instance management - 65 lines
-  summary:      # Aggregates results
+  test-aws: # Inline AWS instance management - 93 lines
+  test-azure: # Inline Azure instance management - 66 lines
+  test-gcp: # Inline GCP instance management - 65 lines
+  summary: # Aggregates results
 ```
 
 #### Issues Identified
@@ -319,10 +332,12 @@ jobs:
 2. **Doesn't Use Custom Actions:** Each test job has ~60-90 lines of inline instance management code that duplicates `.github/actions/packer/providers/*`
 
 3. **workflow_run Trigger Issue:**
+
    ```yaml
    workflow_run:
-     workflows: ["Build Sindri VM Images"]  # This name doesn't match v3-packer-build.yml
+     workflows: ["Build Sindri VM Images"] # This name doesn't match v3-packer-build.yml
    ```
+
    The actual workflow name is `"v3: Build Sindri VM Images"` - this may cause trigger failures.
 
 4. **Hardcoded Resource References:**
@@ -365,15 +380,15 @@ test-aws:
 
 ### 2.7 Architectural Inconsistencies Summary
 
-| Issue | Impact | Severity |
-|-------|--------|----------|
-| `v3-packer-test.yml` duplicates custom actions | Code duplication, maintenance burden | **High** |
-| Test workflow missing OCI, Alibaba | Incomplete test coverage | **High** |
-| CLI not used for instance deploy | Bypasses abstraction | **Medium** |
-| SSH auth varies wildly by provider | Confusing, inconsistent | **Medium** |
-| GCP OS Login mismatch | Potential SSH failures | **Medium** |
-| AWS requires pre-existing key pair | Setup friction | **Low** |
-| Workflow trigger name mismatch | Tests may not auto-run | **Medium** |
+| Issue                                          | Impact                               | Severity   |
+| ---------------------------------------------- | ------------------------------------ | ---------- |
+| `v3-packer-test.yml` duplicates custom actions | Code duplication, maintenance burden | **High**   |
+| Test workflow missing OCI, Alibaba             | Incomplete test coverage             | **High**   |
+| CLI not used for instance deploy               | Bypasses abstraction                 | **Medium** |
+| SSH auth varies wildly by provider             | Confusing, inconsistent              | **Medium** |
+| GCP OS Login mismatch                          | Potential SSH failures               | **Medium** |
+| AWS requires pre-existing key pair             | Setup friction                       | **Low**    |
+| Workflow trigger name mismatch                 | Tests may not auto-run               | **Medium** |
 
 ---
 
@@ -403,44 +418,44 @@ Replace the broken `v3-provider-packer.yml` build step with CLI invocation:
 
 ### 3.1 Implementation Matrix
 
-| Provider | Trait Impl | Templates | Tests | Deploy | Status |
-|----------|-----------|-----------|-------|--------|--------|
-| AWS | Complete | `aws.pkr.hcl.tera` | Yes | Yes | **Production Ready** |
-| Azure | Complete | `azure.pkr.hcl.tera` | Yes | Yes | **Production Ready** |
-| GCP | Complete | `gcp.pkr.hcl.tera` | Yes | Yes | **Production Ready** |
-| OCI | Complete | `oci.pkr.hcl.tera` | Yes | Yes | **Production Ready** |
-| Alibaba | Complete | `alibaba.pkr.hcl.tera` | Yes | Yes | **Production Ready** |
+| Provider | Trait Impl | Templates              | Tests | Deploy | Status               |
+| -------- | ---------- | ---------------------- | ----- | ------ | -------------------- |
+| AWS      | Complete   | `aws.pkr.hcl.tera`     | Yes   | Yes    | **Production Ready** |
+| Azure    | Complete   | `azure.pkr.hcl.tera`   | Yes   | Yes    | **Production Ready** |
+| GCP      | Complete   | `gcp.pkr.hcl.tera`     | Yes   | Yes    | **Production Ready** |
+| OCI      | Complete   | `oci.pkr.hcl.tera`     | Yes   | Yes    | **Production Ready** |
+| Alibaba  | Complete   | `alibaba.pkr.hcl.tera` | Yes   | Yes    | **Production Ready** |
 
 ### 3.2 Configuration Comparison
 
-| Config | Required Fields | Defaults |
-|--------|-----------------|----------|
-| **AWS** | None | region=us-west-2, instance_type=t3.large, volume_size=80GB |
-| **Azure** | subscription_id, resource_group | location=westus2, vm_size=Standard_D4s_v4 |
-| **GCP** | project_id | zone=us-west1-a, machine_type=e2-standard-4 |
-| **OCI** | compartment_ocid, availability_domain, subnet_ocid | shape=VM.Standard.E4.Flex |
-| **Alibaba** | None | region=cn-hangzhou, instance_type=ecs.g6.xlarge |
+| Config      | Required Fields                                    | Defaults                                                   |
+| ----------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| **AWS**     | None                                               | region=us-west-2, instance_type=t3.large, volume_size=80GB |
+| **Azure**   | subscription_id, resource_group                    | location=westus2, vm_size=Standard_D4s_v4                  |
+| **GCP**     | project_id                                         | zone=us-west1-a, machine_type=e2-standard-4                |
+| **OCI**     | compartment_ocid, availability_domain, subnet_ocid | shape=VM.Standard.E4.Flex                                  |
+| **Alibaba** | None                                               | region=cn-hangzhou, instance_type=ecs.g6.xlarge            |
 
 ### 3.3 Minor Inconsistencies
 
-| Aspect | AWS | Azure | GCP | OCI | Alibaba |
-|--------|-----|-------|-----|-----|---------|
-| SSH User | ubuntu | sindri | ubuntu | ubuntu | root |
-| IP Retrieval | Immediate | Immediate | Immediate | None | 10s delay |
-| Tags Format | Key/Value | Flat | labels | freeform-tags | TagKey/TagValue |
+| Aspect       | AWS       | Azure     | GCP       | OCI           | Alibaba         |
+| ------------ | --------- | --------- | --------- | ------------- | --------------- |
+| SSH User     | ubuntu    | sindri    | ubuntu    | ubuntu        | root            |
+| IP Retrieval | Immediate | Immediate | Immediate | None          | 10s delay       |
+| Tags Format  | Key/Value | Flat      | labels    | freeform-tags | TagKey/TagValue |
 
 These are minor implementation details and do not affect functionality.
 
 ### 3.4 Prerequisite CLI Tools
 
-| Provider | Required CLI | Installation |
-|----------|-------------|--------------|
-| AWS | `aws` | https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html |
-| Azure | `az` | https://learn.microsoft.com/en-us/cli/azure/install-azure-cli |
-| GCP | `gcloud` | https://cloud.google.com/sdk/docs/install |
-| OCI | `oci` | https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm |
-| Alibaba | `aliyun` | https://www.alibabacloud.com/help/en/cli/install-cli |
-| All | `packer` | https://developer.hashicorp.com/packer/install |
+| Provider | Required CLI | Installation                                                                  |
+| -------- | ------------ | ----------------------------------------------------------------------------- |
+| AWS      | `aws`        | https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html |
+| Azure    | `az`         | https://learn.microsoft.com/en-us/cli/azure/install-azure-cli                 |
+| GCP      | `gcloud`     | https://cloud.google.com/sdk/docs/install                                     |
+| OCI      | `oci`        | https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm         |
+| Alibaba  | `aliyun`     | https://www.alibabacloud.com/help/en/cli/install-cli                          |
+| All      | `packer`     | https://developer.hashicorp.com/packer/install                                |
 
 ---
 
@@ -455,6 +470,7 @@ For developers running `sindri packer` commands locally, the following credentia
 #### AWS
 
 **Required IAM Permissions:**
+
 ```json
 {
   "Version": "2012-10-17",
@@ -489,9 +505,7 @@ For developers running `sindri packer` commands locally, the following credentia
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "sts:GetCallerIdentity"
-      ],
+      "Action": ["sts:GetCallerIdentity"],
       "Resource": "*"
     }
   ]
@@ -499,6 +513,7 @@ For developers running `sindri packer` commands locally, the following credentia
 ```
 
 **Authentication Methods:**
+
 1. `aws configure` - Interactive setup with Access Key ID and Secret Access Key
 2. Environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`
 3. AWS SSO: `aws sso login --profile <profile-name>`
@@ -509,19 +524,22 @@ For developers running `sindri packer` commands locally, the following credentia
 #### Azure
 
 **Required Azure RBAC Roles:**
+
 - `Contributor` role on the target Resource Group (minimum)
 - For Shared Image Gallery: `Contributor` on the gallery resource
 
 **Required API Permissions:**
-- Microsoft.Compute/images/*
-- Microsoft.Compute/virtualMachines/*
-- Microsoft.Compute/galleries/* (for Shared Image Gallery)
+
+- Microsoft.Compute/images/\*
+- Microsoft.Compute/virtualMachines/\*
+- Microsoft.Compute/galleries/\* (for Shared Image Gallery)
 - Microsoft.Network/virtualNetworks/read
-- Microsoft.Network/publicIPAddresses/*
-- Microsoft.Network/networkInterfaces/*
-- Microsoft.Resources/subscriptions/resourceGroups/*
+- Microsoft.Network/publicIPAddresses/\*
+- Microsoft.Network/networkInterfaces/\*
+- Microsoft.Resources/subscriptions/resourceGroups/\*
 
 **Authentication Methods:**
+
 1. `az login` - Interactive browser login
 2. Service Principal: `az login --service-principal -u <client-id> -p <secret> --tenant <tenant-id>`
 3. Managed Identity (when running on Azure VMs)
@@ -532,11 +550,13 @@ For developers running `sindri packer` commands locally, the following credentia
 #### GCP
 
 **Required IAM Roles:**
+
 - `roles/compute.instanceAdmin.v1` - Create/manage instances
 - `roles/compute.imageUser` - Use images
 - `roles/iam.serviceAccountUser` - Act as service account
 
 **Custom Role Permissions (minimum):**
+
 ```
 compute.disks.create
 compute.disks.delete
@@ -560,6 +580,7 @@ compute.zones.get
 ```
 
 **Authentication Methods:**
+
 1. `gcloud auth login` - Interactive browser login
 2. `gcloud auth application-default login` - For applications
 3. Service Account key: `GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json`
@@ -570,6 +591,7 @@ compute.zones.get
 #### OCI (Oracle Cloud Infrastructure)
 
 **Required IAM Policies:**
+
 ```
 Allow group <group-name> to manage instances in compartment <compartment-name>
 Allow group <group-name> to manage instance-images in compartment <compartment-name>
@@ -578,12 +600,14 @@ Allow group <group-name> to manage volume-family in compartment <compartment-nam
 ```
 
 **Authentication Methods:**
+
 1. `oci setup config` - Interactive configuration
 2. Config file: `~/.oci/config` with API signing key
 3. Environment variables: `OCI_USER_OCID`, `OCI_TENANCY_OCID`, `OCI_FINGERPRINT`, `OCI_REGION`
 4. Instance Principal (when running on OCI)
 
 **Required Config Values:**
+
 - User OCID
 - Tenancy OCID
 - Compartment OCID
@@ -595,6 +619,7 @@ Allow group <group-name> to manage volume-family in compartment <compartment-nam
 #### Alibaba Cloud
 
 **Required RAM Permissions:**
+
 ```json
 {
   "Version": "1",
@@ -642,6 +667,7 @@ Allow group <group-name> to manage volume-family in compartment <compartment-nam
 ```
 
 **Authentication Methods:**
+
 1. `aliyun configure` - Interactive setup
 2. Environment variables: `ALICLOUD_ACCESS_KEY`, `ALICLOUD_SECRET_KEY` (or `ALIBABA_CLOUD_ACCESS_KEY_ID`, `ALIBABA_CLOUD_ACCESS_KEY_SECRET`)
 3. RAM role (when running on Alibaba Cloud ECS)
@@ -654,16 +680,17 @@ For CI/CD workflows, use **OIDC (OpenID Connect)** authentication instead of lon
 
 #### OIDC vs Static Credentials
 
-| Aspect | OIDC (Recommended) | Static Secrets |
-|--------|-------------------|----------------|
-| Security | Short-lived tokens, auto-expire | Long-lived, risk of exposure |
-| Rotation | Automatic | Manual rotation required |
-| Scope | Per-job, fine-grained | Broad, often over-permissioned |
-| Audit | Full traceability | Limited |
+| Aspect   | OIDC (Recommended)              | Static Secrets                 |
+| -------- | ------------------------------- | ------------------------------ |
+| Security | Short-lived tokens, auto-expire | Long-lived, risk of exposure   |
+| Rotation | Automatic                       | Manual rotation required       |
+| Scope    | Per-job, fine-grained           | Broad, often over-permissioned |
+| Audit    | Full traceability               | Limited                        |
 
 #### AWS OIDC Setup
 
 **1. Create Identity Provider in IAM:**
+
 ```bash
 aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
@@ -672,6 +699,7 @@ aws iam create-open-id-connect-provider \
 ```
 
 **2. Create IAM Role with Trust Policy:**
+
 ```json
 {
   "Version": "2012-10-17",
@@ -696,9 +724,11 @@ aws iam create-open-id-connect-provider \
 ```
 
 **3. GitHub Secrets Required:**
+
 - `AWS_ROLE_ARN` - ARN of the IAM role to assume
 
 **4. Workflow Usage:**
+
 ```yaml
 permissions:
   id-token: write
@@ -713,11 +743,13 @@ permissions:
 #### Azure OIDC Setup
 
 **1. Create App Registration:**
+
 ```bash
 az ad app create --display-name "github-actions-sindri"
 ```
 
 **2. Configure Federated Credentials:**
+
 ```bash
 az ad app federated-credential create \
   --id <APPLICATION_ID> \
@@ -730,6 +762,7 @@ az ad app federated-credential create \
 ```
 
 **3. Create Service Principal and Assign Roles:**
+
 ```bash
 az ad sp create --id <APPLICATION_ID>
 az role assignment create \
@@ -739,11 +772,13 @@ az role assignment create \
 ```
 
 **4. GitHub Secrets Required:**
+
 - `AZURE_CLIENT_ID` - Application (client) ID
 - `AZURE_TENANT_ID` - Directory (tenant) ID
 - `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
 
 **5. Workflow Usage:**
+
 ```yaml
 permissions:
   id-token: write
@@ -759,6 +794,7 @@ permissions:
 #### GCP OIDC Setup (Workload Identity Federation)
 
 **1. Create Workload Identity Pool:**
+
 ```bash
 gcloud iam workload-identity-pools create github-pool \
   --location=global \
@@ -766,6 +802,7 @@ gcloud iam workload-identity-pools create github-pool \
 ```
 
 **2. Create Provider:**
+
 ```bash
 gcloud iam workload-identity-pools providers create-oidc github-provider \
   --location=global \
@@ -776,6 +813,7 @@ gcloud iam workload-identity-pools providers create-oidc github-provider \
 ```
 
 **3. Grant Service Account Access:**
+
 ```bash
 gcloud iam service-accounts add-iam-policy-binding <SA_EMAIL> \
   --role=roles/iam.workloadIdentityUser \
@@ -783,11 +821,13 @@ gcloud iam service-accounts add-iam-policy-binding <SA_EMAIL> \
 ```
 
 **4. GitHub Secrets Required:**
+
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` - Full provider resource name
 - `GCP_SERVICE_ACCOUNT` - Service account email
 - `GCP_PROJECT_ID` - GCP project ID
 
 **5. Workflow Usage:**
+
 ```yaml
 permissions:
   id-token: write
@@ -804,6 +844,7 @@ permissions:
 OCI does not yet support OIDC federation with GitHub Actions. Use API key authentication:
 
 **GitHub Secrets Required:**
+
 - `OCI_USER_OCID` - User OCID
 - `OCI_TENANCY_OCID` - Tenancy OCID
 - `OCI_FINGERPRINT` - API key fingerprint
@@ -811,6 +852,7 @@ OCI does not yet support OIDC federation with GitHub Actions. Use API key authen
 - `OCI_REGION` - Default region
 
 **Workflow Setup:**
+
 ```yaml
 - name: Configure OCI CLI
   run: |
@@ -832,6 +874,7 @@ OCI does not yet support OIDC federation with GitHub Actions. Use API key authen
 Alibaba Cloud supports OIDC via RAM roles for OIDC:
 
 **1. Create OIDC Provider:**
+
 ```bash
 aliyun ram CreateOIDCProvider \
   --OIDCProviderName github-actions \
@@ -841,6 +884,7 @@ aliyun ram CreateOIDCProvider \
 ```
 
 **2. Create RAM Role for OIDC:**
+
 ```json
 {
   "Statement": [
@@ -848,9 +892,7 @@ aliyun ram CreateOIDCProvider \
       "Action": "sts:AssumeRoleWithOIDC",
       "Effect": "Allow",
       "Principal": {
-        "OIDC": [
-          "acs:ram::<ACCOUNT_ID>:oidc-provider/github-actions"
-        ]
+        "OIDC": ["acs:ram::<ACCOUNT_ID>:oidc-provider/github-actions"]
       },
       "Condition": {
         "StringEquals": {
@@ -864,6 +906,7 @@ aliyun ram CreateOIDCProvider \
 ```
 
 **GitHub Secrets Required (fallback to static):**
+
 - `ALIBABA_ACCESS_KEY` - AccessKey ID
 - `ALIBABA_SECRET_KEY` - AccessKey Secret
 
@@ -871,25 +914,26 @@ aliyun ram CreateOIDCProvider \
 
 Based on the current workflow implementations:
 
-| Workflow | Secret | Purpose | Required |
-|----------|--------|---------|----------|
-| v3-packer-build | `AWS_ROLE_ARN` | AWS OIDC role | Yes (AWS) |
-| v3-packer-build | `AZURE_CLIENT_ID` | Azure app ID | Yes (Azure) |
-| v3-packer-build | `AZURE_TENANT_ID` | Azure tenant | Yes (Azure) |
-| v3-packer-build | `AZURE_SUBSCRIPTION_ID` | Azure subscription | Yes (Azure) |
-| v3-packer-build | `GCP_WORKLOAD_IDENTITY_PROVIDER` | GCP WIF provider | Yes (GCP) |
-| v3-packer-build | `GCP_SERVICE_ACCOUNT` | GCP service account | Yes (GCP) |
-| v3-packer-build | `GCP_PROJECT_ID` | GCP project | Yes (GCP) |
-| v3-packer-test | `AWS_SSH_PRIVATE_KEY` | SSH key for testing | Yes (AWS) |
-| v3-packer-test | `AWS_SECURITY_GROUP_ID` | SG for test instances | Yes (AWS) |
-| v3-packer-test | `AWS_SUBNET_ID` | Subnet for test instances | Yes (AWS) |
-| v3-provider-packer | All cloud secrets | Per-cloud auth | Per cloud |
+| Workflow           | Secret                           | Purpose                   | Required    |
+| ------------------ | -------------------------------- | ------------------------- | ----------- |
+| v3-packer-build    | `AWS_ROLE_ARN`                   | AWS OIDC role             | Yes (AWS)   |
+| v3-packer-build    | `AZURE_CLIENT_ID`                | Azure app ID              | Yes (Azure) |
+| v3-packer-build    | `AZURE_TENANT_ID`                | Azure tenant              | Yes (Azure) |
+| v3-packer-build    | `AZURE_SUBSCRIPTION_ID`          | Azure subscription        | Yes (Azure) |
+| v3-packer-build    | `GCP_WORKLOAD_IDENTITY_PROVIDER` | GCP WIF provider          | Yes (GCP)   |
+| v3-packer-build    | `GCP_SERVICE_ACCOUNT`            | GCP service account       | Yes (GCP)   |
+| v3-packer-build    | `GCP_PROJECT_ID`                 | GCP project               | Yes (GCP)   |
+| v3-packer-test     | `AWS_SSH_PRIVATE_KEY`            | SSH key for testing       | Yes (AWS)   |
+| v3-packer-test     | `AWS_SECURITY_GROUP_ID`          | SG for test instances     | Yes (AWS)   |
+| v3-packer-test     | `AWS_SUBNET_ID`                  | Subnet for test instances | Yes (AWS)   |
+| v3-provider-packer | All cloud secrets                | Per-cloud auth            | Per cloud   |
 
 ### 4.4 Missing Secrets for OCI/Alibaba Workflows
 
 The following secrets need to be configured to enable OCI and Alibaba builds:
 
 **OCI:**
+
 - `OCI_USER_OCID`
 - `OCI_TENANCY_OCID`
 - `OCI_FINGERPRINT`
@@ -898,6 +942,7 @@ The following secrets need to be configured to enable OCI and Alibaba builds:
 - `OCI_SUBNET_OCID`
 
 **Alibaba:**
+
 - `ALIBABA_ACCESS_KEY`
 - `ALIBABA_SECRET_KEY`
 - `ALIBABA_VSWITCH_ID`
@@ -913,12 +958,12 @@ This section covers how to distribute Sindri VM images publicly according to 202
 
 **Options:**
 
-| Method | Audience | Best For |
-|--------|----------|----------|
-| Private AMI | Owner account only | Development |
-| Shared AMI | Specific AWS accounts | Partners, customers |
-| Public AMI | All AWS users | Open source, community |
-| AWS Marketplace | Commercial distribution | Monetization |
+| Method          | Audience                | Best For               |
+| --------------- | ----------------------- | ---------------------- |
+| Private AMI     | Owner account only      | Development            |
+| Shared AMI      | Specific AWS accounts   | Partners, customers    |
+| Public AMI      | All AWS users           | Open source, community |
+| AWS Marketplace | Commercial distribution | Monetization           |
 
 **Public AMI Best Practices ([AWS Documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/building-shared-amis.html)):**
 
@@ -935,6 +980,7 @@ This section covers how to distribute Sindri VM images publicly according to 202
    - Set explicit deprecation dates for version control
 
 3. **Making AMI Public:**
+
    ```bash
    aws ec2 modify-image-attribute \
      --image-id ami-xxxx \
@@ -946,6 +992,7 @@ This section covers how to distribute Sindri VM images publicly according to 202
    - Must explicitly enable public sharing at account level
 
 **AWS Marketplace Publishing:**
+
 - Requires [AWS Partner registration](https://aws.amazon.com/partners/)
 - Security review required
 - Supports paid, BYOL, and free models
@@ -955,18 +1002,19 @@ This section covers how to distribute Sindri VM images publicly according to 202
 
 **Options:**
 
-| Method | Audience | Best For |
-|--------|----------|----------|
-| Managed Image | Single subscription | Development |
-| Azure Compute Gallery (Direct) | Up to 30 subscriptions, 5 tenants | Enterprise |
-| Azure Compute Gallery (Community) | All Azure users | Open source |
-| Azure Marketplace | Commercial distribution | Monetization |
+| Method                            | Audience                          | Best For     |
+| --------------------------------- | --------------------------------- | ------------ |
+| Managed Image                     | Single subscription               | Development  |
+| Azure Compute Gallery (Direct)    | Up to 30 subscriptions, 5 tenants | Enterprise   |
+| Azure Compute Gallery (Community) | All Azure users                   | Open source  |
+| Azure Marketplace                 | Commercial distribution           | Monetization |
 
 **Community Gallery ([Microsoft Documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/share-gallery-community)):**
 
 Community galleries are the Azure equivalent of AWS public AMIs:
 
 1. **Creating a Community Gallery:**
+
    ```bash
    az sig create \
      --resource-group myResourceGroup \
@@ -988,6 +1036,7 @@ Community galleries are the Azure equivalent of AWS public AMIs:
    - Automatic security validation for Trusted Launch compatibility
 
 **Azure Marketplace Publishing:**
+
 - Requires [Partner Center registration](https://partner.microsoft.com/)
 - Security review and certification required
 - Supports transactable and BYOL models
@@ -996,16 +1045,17 @@ Community galleries are the Azure equivalent of AWS public AMIs:
 
 **Options:**
 
-| Method | Audience | Best For |
-|--------|----------|----------|
-| Project Image | Single project | Development |
-| Cross-Project Sharing | Specific projects | Organization |
-| Public Image | All GCP users | Open source |
-| Cloud Marketplace | Commercial distribution | Monetization |
+| Method                | Audience                | Best For     |
+| --------------------- | ----------------------- | ------------ |
+| Project Image         | Single project          | Development  |
+| Cross-Project Sharing | Specific projects       | Organization |
+| Public Image          | All GCP users           | Open source  |
+| Cloud Marketplace     | Commercial distribution | Monetization |
 
 **Cross-Project Sharing ([GCP Documentation](https://cloud.google.com/compute/docs/images/managing-access-custom-images)):**
 
 1. **Grant Access to Specific Users/Projects:**
+
    ```bash
    gcloud compute images add-iam-policy-binding my-image \
      --member='user:user@example.com' \
@@ -1013,6 +1063,7 @@ Community galleries are the Azure equivalent of AWS public AMIs:
    ```
 
 2. **Make Image Public:**
+
    ```bash
    gcloud compute images add-iam-policy-binding my-image \
      --member='allAuthenticatedUsers' \
@@ -1025,11 +1076,13 @@ Community galleries are the Azure equivalent of AWS public AMIs:
    - Consider using organization-level sharing instead
 
 **Image Families ([Best Practices](https://cloud.google.com/compute/docs/images/image-families-best-practices)):**
+
 - Use image families for semantic versioning
 - Latest image in family is auto-selected
 - Enables rolling updates without changing references
 
 **Cloud Marketplace (formerly Cloud Launcher):**
+
 - Contact Google to onboard images
 - Requires partner agreement
 - Supports paid and free models
@@ -1038,11 +1091,11 @@ Community galleries are the Azure equivalent of AWS public AMIs:
 
 **Options:**
 
-| Method | Audience | Best For |
-|--------|----------|----------|
-| Custom Image | Single tenancy | Development |
-| Cross-Tenancy Export/Import | Specific tenancies | Partners |
-| OCI Marketplace | All OCI users | Community/Commercial |
+| Method                      | Audience           | Best For             |
+| --------------------------- | ------------------ | -------------------- |
+| Custom Image                | Single tenancy     | Development          |
+| Cross-Tenancy Export/Import | Specific tenancies | Partners             |
+| OCI Marketplace             | All OCI users      | Community/Commercial |
 
 **OCI Marketplace Publishing ([Oracle Documentation](https://docs.oracle.com/en-us/iaas/Content/Marketplace/Concepts/marketoverview.htm)):**
 
@@ -1063,6 +1116,7 @@ Community galleries are the Azure equivalent of AWS public AMIs:
    - Similar to AWS public AMIs
 
 **Cross-Tenancy Sharing:**
+
 ```bash
 # Export image
 oci compute image export to-object \
@@ -1081,12 +1135,12 @@ oci compute image import from-object \
 
 **Options:**
 
-| Method | Audience | Best For |
-|--------|----------|----------|
-| Custom Image | Single account | Development |
-| Shared Image | Specific accounts (same region) | Partners |
-| Copy to Marketplace | All Alibaba Cloud users | Community |
-| Alibaba Cloud Marketplace | Commercial distribution | Monetization |
+| Method                    | Audience                        | Best For     |
+| ------------------------- | ------------------------------- | ------------ |
+| Custom Image              | Single account                  | Development  |
+| Shared Image              | Specific accounts (same region) | Partners     |
+| Copy to Marketplace       | All Alibaba Cloud users         | Community    |
+| Alibaba Cloud Marketplace | Commercial distribution         | Monetization |
 
 **Image Sharing ([Alibaba Documentation](https://www.alibabacloud.com/help/en/ecs/user-guide/share-a-custom-image)):**
 
@@ -1104,6 +1158,7 @@ oci compute image import from-object \
    ```
 
 **Alibaba Cloud Marketplace ([Publishing Guide](https://www.alibabacloud.com/help/en/marketplace/publish-image-products)):**
+
 - Security review required before publishing
 - Cannot republish purchased Marketplace images
 - Supports paid and free models
@@ -1112,27 +1167,28 @@ oci compute image import from-object \
 
 **Tier 1: Community/Open Source (Free)**
 
-| Cloud | Method | Status |
-|-------|--------|--------|
-| AWS | Public AMI with deprecation schedule | Recommended |
-| Azure | Community Gallery | Recommended |
-| GCP | Public Image or allAuthenticatedUsers | Recommended |
-| OCI | Marketplace (Community Application) | Recommended |
-| Alibaba | Marketplace (Free listing) | Recommended |
+| Cloud   | Method                                | Status      |
+| ------- | ------------------------------------- | ----------- |
+| AWS     | Public AMI with deprecation schedule  | Recommended |
+| Azure   | Community Gallery                     | Recommended |
+| GCP     | Public Image or allAuthenticatedUsers | Recommended |
+| OCI     | Marketplace (Community Application)   | Recommended |
+| Alibaba | Marketplace (Free listing)            | Recommended |
 
 **Tier 2: Enterprise/Partner**
 
-| Cloud | Method | Use Case |
-|-------|--------|----------|
-| AWS | Shared AMI to specific accounts | Enterprise customers |
-| Azure | Direct Share Gallery (30 subs, 5 tenants) | Enterprise customers |
-| GCP | Cross-project IAM binding | Organization sharing |
-| OCI | Cross-tenancy export/import | Partner distribution |
-| Alibaba | Account-level sharing | Partner distribution |
+| Cloud   | Method                                    | Use Case             |
+| ------- | ----------------------------------------- | -------------------- |
+| AWS     | Shared AMI to specific accounts           | Enterprise customers |
+| Azure   | Direct Share Gallery (30 subs, 5 tenants) | Enterprise customers |
+| GCP     | Cross-project IAM binding                 | Organization sharing |
+| OCI     | Cross-tenancy export/import               | Partner distribution |
+| Alibaba | Account-level sharing                     | Partner distribution |
 
 **Tier 3: Commercial (If Monetizing)**
 
 All clouds support marketplace publishing with paid models. Requires:
+
 - Partner registration with each cloud
 - Security review and certification
 - Legal agreements (EULA, support terms)
@@ -1177,27 +1233,27 @@ v3/docs/
 
 ### 6.2 Critical Missing Documentation
 
-| Document | Priority | Description |
-|----------|----------|-------------|
-| `providers/PACKER.md` | **P0** | Main Packer provider guide |
-| `providers/AWS-PACKER.md` | **P1** | AWS-specific setup and usage |
-| `providers/AZURE-PACKER.md` | **P1** | Azure-specific setup and usage |
-| `providers/GCP-PACKER.md` | **P1** | GCP-specific setup and usage |
-| `providers/OCI-PACKER.md` | **P1** | OCI-specific setup and usage |
-| `providers/ALIBABA-PACKER.md` | **P1** | Alibaba-specific setup and usage |
-| CLI.md updates | **P1** | Complete `packer` subcommand reference |
-| TROUBLESHOOTING.md updates | **P2** | Packer troubleshooting section |
+| Document                      | Priority | Description                            |
+| ----------------------------- | -------- | -------------------------------------- |
+| `providers/PACKER.md`         | **P0**   | Main Packer provider guide             |
+| `providers/AWS-PACKER.md`     | **P1**   | AWS-specific setup and usage           |
+| `providers/AZURE-PACKER.md`   | **P1**   | Azure-specific setup and usage         |
+| `providers/GCP-PACKER.md`     | **P1**   | GCP-specific setup and usage           |
+| `providers/OCI-PACKER.md`     | **P1**   | OCI-specific setup and usage           |
+| `providers/ALIBABA-PACKER.md` | **P1**   | Alibaba-specific setup and usage       |
+| CLI.md updates                | **P1**   | Complete `packer` subcommand reference |
+| TROUBLESHOOTING.md updates    | **P2**   | Packer troubleshooting section         |
 
 ### 6.3 Documentation Completeness Assessment
 
-| Category | Score | Notes |
-|----------|-------|-------|
-| Packer Provider Docs | 0% | No documentation exists |
-| Cloud Getting Started | 0% | No cloud-specific guides |
-| CLI Reference | 10% | Brief mentions only, no command reference |
-| Configuration Examples | 5% | Only one example in SECRETS_MANAGEMENT.md |
-| Prerequisites | 0% | CLI tools not documented |
-| Troubleshooting | 0% | No Packer section |
+| Category               | Score | Notes                                     |
+| ---------------------- | ----- | ----------------------------------------- |
+| Packer Provider Docs   | 0%    | No documentation exists                   |
+| Cloud Getting Started  | 0%    | No cloud-specific guides                  |
+| CLI Reference          | 10%   | Brief mentions only, no command reference |
+| Configuration Examples | 5%    | Only one example in SECRETS_MANAGEMENT.md |
+| Prerequisites          | 0%    | CLI tools not documented                  |
+| Troubleshooting        | 0%    | No Packer section                         |
 
 ### 6.4 Existing Resources
 
@@ -1294,11 +1350,11 @@ These provide excellent technical detail but need to be translated into user doc
 
 The current workflow split creates complexity:
 
-| Current | Recommended |
-|---------|-------------|
-| `v3-packer-build.yml` - 3/5 clouds via CLI | Add OCI and Alibaba build jobs |
-| `v3-provider-packer.yml` - broken hybrid | Fix to use CLI for builds |
-| Custom actions for instance mgmt | Keep, but document CLI alternatives |
+| Current                                    | Recommended                         |
+| ------------------------------------------ | ----------------------------------- |
+| `v3-packer-build.yml` - 3/5 clouds via CLI | Add OCI and Alibaba build jobs      |
+| `v3-provider-packer.yml` - broken hybrid   | Fix to use CLI for builds           |
+| Custom actions for instance mgmt           | Keep, but document CLI alternatives |
 
 Long-term consideration: Evaluate whether instance launch/terminate should also use CLI via `sindri packer deploy` to maintain consistency.
 
@@ -1331,28 +1387,29 @@ Long-term consideration: Evaluate whether instance launch/terminate should also 
 
 ### Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Cannot build OCI/Alibaba images via CI | Certain | High | Add missing build jobs to v3-packer-build.yml |
-| Cannot test OCI/Alibaba images via CI | Certain | High | Add test-oci, test-alibaba jobs to v3-packer-test.yml |
-| OCI/Alibaba workflows blocked by missing secrets | Certain | High | Configure GitHub secrets for OCI and Alibaba |
-| Users cannot build images via v3-provider-packer workflow | High | High | Fix workflow to use CLI |
-| Test workflow may not auto-trigger | High | Medium | Fix workflow_run trigger name |
-| GCP tests may fail due to SSH mismatch | Medium | Medium | Fix OS Login vs SSH key inconsistency |
-| AWS tests require manual key setup | Certain | Low | Document or add key generation |
-| Duplicate code maintenance burden | Certain | Medium | Refactor test workflow to use custom actions |
-| Users cannot learn to use Packer | High | Medium | Create documentation |
-| Users cannot configure cloud credentials | High | Medium | Document IAM/RAM requirements per cloud |
-| Inconsistent behavior between workflows | High | Medium | Standardize on CLI usage |
-| Cloud setup confusion | High | Medium | Create cloud-specific guides |
-| No public image distribution strategy | High | Medium | Define and document image sharing approach |
-| Images cannot be consumed by public | High | Medium | Implement public sharing workflows per cloud |
+| Risk                                                      | Likelihood | Impact | Mitigation                                            |
+| --------------------------------------------------------- | ---------- | ------ | ----------------------------------------------------- |
+| Cannot build OCI/Alibaba images via CI                    | Certain    | High   | Add missing build jobs to v3-packer-build.yml         |
+| Cannot test OCI/Alibaba images via CI                     | Certain    | High   | Add test-oci, test-alibaba jobs to v3-packer-test.yml |
+| OCI/Alibaba workflows blocked by missing secrets          | Certain    | High   | Configure GitHub secrets for OCI and Alibaba          |
+| Users cannot build images via v3-provider-packer workflow | High       | High   | Fix workflow to use CLI                               |
+| Test workflow may not auto-trigger                        | High       | Medium | Fix workflow_run trigger name                         |
+| GCP tests may fail due to SSH mismatch                    | Medium     | Medium | Fix OS Login vs SSH key inconsistency                 |
+| AWS tests require manual key setup                        | Certain    | Low    | Document or add key generation                        |
+| Duplicate code maintenance burden                         | Certain    | Medium | Refactor test workflow to use custom actions          |
+| Users cannot learn to use Packer                          | High       | Medium | Create documentation                                  |
+| Users cannot configure cloud credentials                  | High       | Medium | Document IAM/RAM requirements per cloud               |
+| Inconsistent behavior between workflows                   | High       | Medium | Standardize on CLI usage                              |
+| Cloud setup confusion                                     | High       | Medium | Create cloud-specific guides                          |
+| No public image distribution strategy                     | High       | Medium | Define and document image sharing approach            |
+| Images cannot be consumed by public                       | High       | Medium | Implement public sharing workflows per cloud          |
 
 ---
 
 ## Appendix A: File Reference
 
 ### CLI Implementation
+
 - `/v3/crates/sindri/src/commands/packer.rs` - Command handlers
 - `/v3/crates/sindri-packer/src/lib.rs` - Provider factory
 - `/v3/crates/sindri-packer/src/traits.rs` - PackerProvider trait
@@ -1363,14 +1420,17 @@ Long-term consideration: Evaluate whether instance launch/terminate should also 
 - `/v3/crates/sindri-packer/src/alibaba.rs` - Alibaba implementation
 
 ### Templates
+
 - `/v3/crates/sindri-packer/src/templates/hcl/*.tera` - Embedded HCL2 templates
 
 ### Workflows
+
 - `/.github/workflows/v3-packer-build.yml` - Build workflow (uses CLI, 3/5 clouds)
 - `/.github/workflows/v3-packer-test.yml` - Test workflow (duplicates actions, 3/5 clouds)
 - `/.github/workflows/v3-provider-packer.yml` - Extension test workflow (broken build step)
 
 ### Custom Actions
+
 - `/.github/actions/packer/launch-instance/action.yml` - Multi-cloud dispatcher
 - `/.github/actions/packer/terminate-instance/action.yml` - Multi-cloud cleanup
 - `/.github/actions/packer/providers/aws/action.yml` - AWS EC2 (basic, needs key pair)
@@ -1380,6 +1440,7 @@ Long-term consideration: Evaluate whether instance launch/terminate should also 
 - `/.github/actions/packer/providers/alibaba/action.yml` - Alibaba ECS (complete)
 
 ### Documentation
+
 - `/v3/docs/architecture/adr/031-packer-vm-provisioning-architecture.md` - ADR
 - `/v3/docs/planning/complete/packer-vm-provisioning-architecture.md` - Planning doc
 
@@ -1390,27 +1451,32 @@ Long-term consideration: Evaluate whether instance launch/terminate should also 
 ### Image Sharing & Distribution (2025-2026)
 
 **AWS:**
+
 - [Understand shared AMI usage](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sharing-amis.html)
 - [Recommendations for creating shared Linux AMIs](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/building-shared-amis.html)
 - [Make your AMI publicly available](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sharingamis-intro.html)
 - [Best practices for building AMIs for AWS Marketplace](https://docs.aws.amazon.com/marketplace/latest/userguide/best-practices-for-building-your-amis.html)
 
 **Azure:**
+
 - [Overview of Azure Compute Gallery](https://learn.microsoft.com/en-us/azure/virtual-machines/azure-compute-gallery)
 - [Share Azure Compute Gallery Resources with a Community Gallery](https://learn.microsoft.com/en-us/azure/virtual-machines/share-gallery-community)
 - [Share Resources in Azure Compute Gallery](https://learn.microsoft.com/en-us/azure/virtual-machines/share-gallery)
 
 **GCP:**
+
 - [Manage access to custom images](https://cloud.google.com/compute/docs/images/managing-access-custom-images)
 - [Image management best practices](https://cloud.google.com/compute/docs/images/image-management-best-practices)
 - [Image families best practices](https://docs.cloud.google.com/compute/docs/images/image-families-best-practices)
 
 **OCI:**
+
 - [Managing Custom Images](https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/managingcustomimages.htm)
 - [Overview of Marketplace](https://docs.oracle.com/en-us/iaas/Content/Marketplace/Concepts/marketoverview.htm)
 - [Guidelines for Images](https://docs.oracle.com/en-us/iaas/Content/Marketplace/app-publisher-guidelines-images.htm)
 
 **Alibaba Cloud:**
+
 - [Image Overview](https://www.alibabacloud.com/help/en/ecs/user-guide/image-overview)
 - [Share a custom image](https://www.alibabacloud.com/help/en/ecs/user-guide/share-a-custom-image)
 - [Publish Image Products](https://www.alibabacloud.com/help/en/marketplace/publish-image-products)

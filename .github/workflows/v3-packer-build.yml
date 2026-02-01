@@ -89,6 +89,18 @@ jobs:
           ./v3/target/release/sindri packer validate --cloud gcp \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
+      - name: Validate OCI template
+        if: contains(github.event.inputs.clouds, 'oci')
+        run: |
+          ./v3/target/release/sindri packer validate --cloud oci \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
+
+      - name: Validate Alibaba template
+        if: contains(github.event.inputs.clouds, 'alibaba')
+        run: |
+          ./v3/target/release/sindri packer validate --cloud alibaba \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
+
   build-aws:
     name: Build AWS AMI
     needs: validate
@@ -255,9 +267,122 @@ jobs:
             build-result.json
             manifest.json
 
+  build-oci:
+    name: Build OCI Image
+    needs: validate
+    if: |
+      contains(github.event.inputs.clouds, 'oci') &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure OCI Credentials
+        run: |
+          mkdir -p ~/.oci
+          cat > ~/.oci/config << EOF
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ vars.OCI_REGION || 'us-ashburn-1' }}
+          key_file=~/.oci/oci_api_key.pem
+          EOF
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/config
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri
+        working-directory: v3
+        run: cargo build -p sindri --release
+
+      - name: Build OCI Image
+        env:
+          OCI_COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_ID }}
+        run: |
+          ./v3/target/release/sindri packer build --cloud oci \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
+            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
+            --json > build-result.json
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: oci-build-manifest
+          path: |
+            build-result.json
+            manifest.json
+
+  build-alibaba:
+    name: Build Alibaba Cloud Image
+    needs: validate
+    if: |
+      contains(github.event.inputs.clouds, 'alibaba') &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Alibaba Cloud Credentials
+        run: |
+          echo "ALICLOUD_ACCESS_KEY=${{ secrets.ALICLOUD_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "ALICLOUD_SECRET_KEY=${{ secrets.ALICLOUD_SECRET_KEY }}" >> $GITHUB_ENV
+          echo "ALICLOUD_REGION=${{ vars.ALICLOUD_REGION || 'cn-hangzhou' }}" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri
+        working-directory: v3
+        run: cargo build -p sindri --release
+
+      - name: Build Alibaba Cloud Image
+        run: |
+          ./v3/target/release/sindri packer build --cloud alibaba \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
+            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
+            --json > build-result.json
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: alibaba-build-manifest
+          path: |
+            build-result.json
+            manifest.json
+
   summary:
     name: Build Summary
-    needs: [build-aws, build-azure, build-gcp]
+    needs: [build-aws, build-azure, build-gcp, build-oci, build-alibaba]
     if: always() && github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
     steps:

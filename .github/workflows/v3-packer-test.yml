@@ -13,6 +13,8 @@ on:
           - aws
           - azure
           - gcp
+          - oci
+          - alibaba
       image_id:
         description: "Image ID to test"
         required: true
@@ -24,7 +26,7 @@ on:
         type: string
 
   workflow_run:
-    workflows: ["Build Sindri VM Images"]
+    workflows: ["v3: Build Sindri VM Images"]
     types:
       - completed
 
@@ -78,54 +80,29 @@ jobs:
           fi
 
       - name: Launch Test Instance
-        id: instance
-        run: |
-          INSTANCE_ID=$(aws ec2 run-instances \
-            --image-id ${{ steps.image.outputs.image_id }} \
-            --instance-type t3.medium \
-            --key-name sindri-test \
-            --security-group-ids ${{ secrets.AWS_SECURITY_GROUP_ID }} \
-            --subnet-id ${{ secrets.AWS_SUBNET_ID }} \
-            --query 'Instances[0].InstanceId' \
-            --output text)
-
-          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
-
-          # Wait for instance to be running
-          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
-
-          # Get public IP
-          PUBLIC_IP=$(aws ec2 describe-instances \
-            --instance-ids $INSTANCE_ID \
-            --query 'Reservations[0].Instances[0].PublicIpAddress' \
-            --output text)
-
-          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
-
-          # Wait for SSH to be ready
-          sleep 60
+        id: launch
+        uses: ./.github/actions/packer/launch-instance
+        with:
+          cloud: aws
+          image-id: ${{ steps.image.outputs.image_id }}
+          region: ${{ github.event.inputs.region || 'us-west-2' }}
+          security-group-id: ${{ secrets.AWS_SECURITY_GROUP_ID }}
+          subnet-id: ${{ secrets.AWS_SUBNET_ID }}
 
       - name: Run InSpec Tests
-        env:
-          SSH_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
         run: |
-          # Write SSH key
-          echo "$SSH_KEY" > /tmp/ssh_key
-          chmod 600 /tmp/ssh_key
-
-          # Run InSpec profile
           inspec exec v3/test/integration/sindri/ \
-            -t ssh://ubuntu@${{ steps.instance.outputs.public_ip }} \
-            -i /tmp/ssh_key \
+            -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
+            -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json
 
-      - name: Cleanup Test Instance
+      - name: Terminate Test Instance
         if: always()
-        run: |
-          if [ -n "${{ steps.instance.outputs.instance_id }}" ]; then
-            aws ec2 terminate-instances \
-              --instance-ids ${{ steps.instance.outputs.instance_id }}
-          fi
+        uses: ./.github/actions/packer/terminate-instance
+        with:
+          cloud: aws
+          instance-id: ${{ steps.launch.outputs.instance-id }}
+          region: ${{ github.event.inputs.region || 'us-west-2' }}
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
@@ -161,38 +138,30 @@ jobs:
           gem install inspec-bin -v ${{ env.INSPEC_VERSION }}
           inspec --chef-license=accept-silent
 
-      - name: Create Test VM
-        id: vm
-        run: |
-          # Create test VM from image
-          az vm create \
-            --resource-group sindri-test \
-            --name sindri-test-vm \
-            --image ${{ github.event.inputs.image_id }} \
-            --admin-username ubuntu \
-            --generate-ssh-keys \
-            --public-ip-sku Standard \
-            --output json > vm-info.json
-
-          PUBLIC_IP=$(jq -r '.publicIpAddress' vm-info.json)
-          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
-
-          # Wait for SSH
-          sleep 60
+      - name: Launch Test Instance
+        id: launch
+        uses: ./.github/actions/packer/launch-instance
+        with:
+          cloud: azure
+          image-id: ${{ github.event.inputs.image_id }}
+          region: ${{ github.event.inputs.region || 'westus2' }}
+          resource-group: ${{ secrets.AZURE_RESOURCE_GROUP || 'sindri-test' }}
 
       - name: Run InSpec Tests
         run: |
           inspec exec v3/test/integration/sindri/ \
-            -t ssh://ubuntu@${{ steps.vm.outputs.public_ip }} \
+            -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
+            -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json
 
-      - name: Cleanup Test VM
+      - name: Terminate Test Instance
         if: always()
-        run: |
-          az vm delete \
-            --resource-group sindri-test \
-            --name sindri-test-vm \
-            --yes --no-wait
+        uses: ./.github/actions/packer/terminate-instance
+        with:
+          cloud: azure
+          instance-id: ${{ steps.launch.outputs.instance-id }}
+          region: ${{ github.event.inputs.region || 'westus2' }}
+          resource-group: ${{ secrets.AZURE_RESOURCE_GROUP || 'sindri-test' }}
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
@@ -230,35 +199,30 @@ jobs:
           gem install inspec-bin -v ${{ env.INSPEC_VERSION }}
           inspec --chef-license=accept-silent
 
-      - name: Create Test Instance
-        id: instance
-        run: |
-          gcloud compute instances create sindri-test-vm \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
-            --zone=${{ github.event.inputs.region || 'us-central1-a' }} \
-            --machine-type=e2-medium \
-            --image=${{ github.event.inputs.image_id }} \
-            --format=json > instance-info.json
-
-          EXTERNAL_IP=$(jq -r '.[0].networkInterfaces[0].accessConfigs[0].natIP' instance-info.json)
-          echo "external_ip=$EXTERNAL_IP" >> $GITHUB_OUTPUT
-
-          # Wait for SSH
-          sleep 60
+      - name: Launch Test Instance
+        id: launch
+        uses: ./.github/actions/packer/launch-instance
+        with:
+          cloud: gcp
+          image-id: ${{ github.event.inputs.image_id }}
+          region: ${{ github.event.inputs.region || 'us-central1-a' }}
+          project-id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Run InSpec Tests
         run: |
           inspec exec v3/test/integration/sindri/ \
-            -t ssh://ubuntu@${{ steps.instance.outputs.external_ip }} \
+            -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
+            -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json
 
-      - name: Cleanup Test Instance
+      - name: Terminate Test Instance
         if: always()
-        run: |
-          gcloud compute instances delete sindri-test-vm \
-            --project=${{ secrets.GCP_PROJECT_ID }} \
-            --zone=${{ github.event.inputs.region || 'us-central1-a' }} \
-            --quiet
+        uses: ./.github/actions/packer/terminate-instance
+        with:
+          cloud: gcp
+          instance-id: ${{ steps.launch.outputs.instance-id }}
+          region: ${{ github.event.inputs.region || 'us-central1-a' }}
+          project-id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
@@ -267,9 +231,127 @@ jobs:
           name: gcp-test-results
           path: test-results.json
 
+  test-oci:
+    name: Test OCI Image
+    if: github.event.inputs.cloud == 'oci'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+      OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+      OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+      OCI_API_KEY: ${{ secrets.OCI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure OCI Credentials
+        run: |
+          mkdir -p ~/.oci
+          echo "$OCI_API_KEY" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install InSpec
+        run: |
+          gem install inspec-bin -v ${{ env.INSPEC_VERSION }}
+          inspec --chef-license=accept-silent
+
+      - name: Launch Test Instance
+        id: launch
+        uses: ./.github/actions/packer/launch-instance
+        with:
+          cloud: oci
+          image-id: ${{ github.event.inputs.image_id }}
+          region: ${{ github.event.inputs.region || 'us-ashburn-1' }}
+          compartment-id: ${{ secrets.OCI_COMPARTMENT_ID }}
+          subnet-id: ${{ secrets.OCI_SUBNET_ID }}
+
+      - name: Run InSpec Tests
+        run: |
+          inspec exec v3/test/integration/sindri/ \
+            -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
+            -i ${{ steps.launch.outputs.ssh-key-path }} \
+            --reporter cli json:test-results.json
+
+      - name: Terminate Test Instance
+        if: always()
+        uses: ./.github/actions/packer/terminate-instance
+        with:
+          cloud: oci
+          instance-id: ${{ steps.launch.outputs.instance-id }}
+          region: ${{ github.event.inputs.region || 'us-ashburn-1' }}
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: oci-test-results
+          path: test-results.json
+
+  test-alibaba:
+    name: Test Alibaba Cloud Image
+    if: github.event.inputs.cloud == 'alibaba'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ALICLOUD_ACCESS_KEY: ${{ secrets.ALICLOUD_ACCESS_KEY }}
+      ALICLOUD_SECRET_KEY: ${{ secrets.ALICLOUD_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install InSpec
+        run: |
+          gem install inspec-bin -v ${{ env.INSPEC_VERSION }}
+          inspec --chef-license=accept-silent
+
+      - name: Launch Test Instance
+        id: launch
+        uses: ./.github/actions/packer/launch-instance
+        with:
+          cloud: alibaba
+          image-id: ${{ github.event.inputs.image_id }}
+          region: ${{ github.event.inputs.region || 'us-west-1' }}
+          vswitch-id: ${{ secrets.ALIBABA_VSWITCH_ID }}
+          security-group-id: ${{ secrets.ALIBABA_SECURITY_GROUP_ID }}
+
+      - name: Run InSpec Tests
+        run: |
+          inspec exec v3/test/integration/sindri/ \
+            -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
+            -i ${{ steps.launch.outputs.ssh-key-path }} \
+            --reporter cli json:test-results.json
+
+      - name: Terminate Test Instance
+        if: always()
+        uses: ./.github/actions/packer/terminate-instance
+        with:
+          cloud: alibaba
+          instance-id: ${{ steps.launch.outputs.instance-id }}
+          region: ${{ github.event.inputs.region || 'us-west-1' }}
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alibaba-test-results
+          path: test-results.json
+
   summary:
     name: Test Summary
-    needs: [test-aws, test-azure, test-gcp]
+    needs: [test-aws, test-azure, test-gcp, test-oci, test-alibaba]
     if: always()
     runs-on: ubuntu-latest
     steps:

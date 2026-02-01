@@ -20,9 +20,9 @@ inputs:
     required: false
     default: 't3.medium'
   ssh-key-name:
-    description: 'SSH key pair name'
+    description: 'SSH key pair name (optional - generates fresh key if not provided or key does not exist)'
     required: false
-    default: 'sindri-test'
+    default: ''
   security-group-id:
     description: 'Security group ID'
     required: false
@@ -43,6 +43,9 @@ outputs:
   ssh-user:
     description: 'SSH username'
     value: 'ubuntu'
+  generated-key-name:
+    description: 'Name of generated key pair (if any, for cleanup)'
+    value: ${{ steps.launch.outputs.generated_key_name }}
 
 runs:
   using: 'composite'
@@ -54,11 +57,66 @@ runs:
       run: |
         echo "Launching AWS EC2 instance from AMI: ${{ inputs.image-id }}"
 
+        REGION="${{ inputs.region }}"
+        SSH_KEY_PATH="/tmp/ssh_key_aws"
+        GENERATED_KEY_NAME=""
+        KEY_NAME="${{ inputs.ssh-key-name }}"
+
+        # Determine SSH key strategy:
+        # 1. If AWS_SSH_PRIVATE_KEY env var is set, use it with provided key name
+        # 2. If ssh-key-name is provided, check if it exists in AWS
+        # 3. Otherwise, generate a fresh key pair (like OCI/Alibaba)
+
+        if [[ -n "${AWS_SSH_PRIVATE_KEY:-}" ]]; then
+          echo "Using SSH key from AWS_SSH_PRIVATE_KEY environment variable"
+          echo "$AWS_SSH_PRIVATE_KEY" > "$SSH_KEY_PATH"
+          chmod 600 "$SSH_KEY_PATH"
+
+          # Use provided key name or default
+          if [[ -z "$KEY_NAME" ]]; then
+            KEY_NAME="sindri-test"
+          fi
+        elif [[ -n "$KEY_NAME" ]]; then
+          # Check if the specified key pair exists in AWS
+          echo "Checking if key pair '$KEY_NAME' exists..."
+          if aws ec2 describe-key-pairs --key-names "$KEY_NAME" --region "$REGION" &>/dev/null; then
+            echo "Key pair '$KEY_NAME' exists, but no private key provided."
+            echo "Either set AWS_SSH_PRIVATE_KEY env var or leave ssh-key-name empty to generate a fresh key."
+            exit 1
+          else
+            echo "Key pair '$KEY_NAME' does not exist, will generate fresh key pair"
+            KEY_NAME=""
+          fi
+        fi
+
+        # Generate fresh SSH key pair if needed (consistent with OCI/Alibaba pattern)
+        if [[ -z "$KEY_NAME" ]] || [[ ! -f "$SSH_KEY_PATH" ]]; then
+          echo "Generating fresh SSH key pair for this instance..."
+          GENERATED_KEY_NAME="sindri-test-key-$(date +%s)-$RANDOM"
+
+          # Generate SSH key locally
+          ssh-keygen -t rsa -b 4096 -f "$SSH_KEY_PATH" -N "" -q
+          chmod 600 "$SSH_KEY_PATH"
+
+          # Import public key to AWS
+          echo "Importing key pair '$GENERATED_KEY_NAME' to AWS..."
+          aws ec2 import-key-pair \
+            --key-name "$GENERATED_KEY_NAME" \
+            --public-key-material fileb://${SSH_KEY_PATH}.pub \
+            --region "$REGION"
+
+          KEY_NAME="$GENERATED_KEY_NAME"
+          echo "generated_key_name=$GENERATED_KEY_NAME" >> $GITHUB_OUTPUT
+        fi
+
+        echo "Using key pair: $KEY_NAME"
+        echo "ssh_key_path=$SSH_KEY_PATH" >> $GITHUB_OUTPUT
+
         # Build run-instances command
         RUN_ARGS="--image-id ${{ inputs.image-id }}"
         RUN_ARGS="$RUN_ARGS --instance-type ${{ inputs.instance-type }}"
-        RUN_ARGS="$RUN_ARGS --key-name ${{ inputs.ssh-key-name }}"
-        RUN_ARGS="$RUN_ARGS --region ${{ inputs.region }}"
+        RUN_ARGS="$RUN_ARGS --key-name $KEY_NAME"
+        RUN_ARGS="$RUN_ARGS --region $REGION"
 
         if [[ -n "${{ inputs.security-group-id }}" ]]; then
           RUN_ARGS="$RUN_ARGS --security-group-ids ${{ inputs.security-group-id }}"
@@ -68,9 +126,15 @@ runs:
           RUN_ARGS="$RUN_ARGS --subnet-id ${{ inputs.subnet-id }}"
         fi
 
-        RUN_ARGS="$RUN_ARGS --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=sindri-packer-test},{Key=Purpose,Value=packer-test},{Key=AutoTerminate,Value=true}]'"
+        # Add tags including generated key name for cleanup tracking
+        TAG_SPECS="ResourceType=instance,Tags=[{Key=Name,Value=sindri-packer-test},{Key=Purpose,Value=packer-test},{Key=AutoTerminate,Value=true}"
+        if [[ -n "$GENERATED_KEY_NAME" ]]; then
+          TAG_SPECS="$TAG_SPECS,{Key=SindriKeyPair,Value=$GENERATED_KEY_NAME}"
+        fi
+        TAG_SPECS="$TAG_SPECS]"
+        RUN_ARGS="$RUN_ARGS --tag-specifications '$TAG_SPECS'"
 
-        INSTANCE_ID=$(aws ec2 run-instances \
+        INSTANCE_ID=$(eval aws ec2 run-instances \
           $RUN_ARGS \
           --query 'Instances[0].InstanceId' \
           --output text)
@@ -82,31 +146,22 @@ runs:
         echo "Waiting for instance to be running..."
         aws ec2 wait instance-running \
           --instance-ids $INSTANCE_ID \
-          --region ${{ inputs.region }}
+          --region "$REGION"
 
         # Get public IP
         PUBLIC_IP=$(aws ec2 describe-instances \
           --instance-ids $INSTANCE_ID \
-          --region ${{ inputs.region }} \
+          --region "$REGION" \
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
 
         echo "Public IP: $PUBLIC_IP"
         echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
 
-        # Write SSH key from environment variable
-        if [[ -n "${AWS_SSH_PRIVATE_KEY:-}" ]]; then
-          echo "$AWS_SSH_PRIVATE_KEY" > /tmp/ssh_key_aws
-          chmod 600 /tmp/ssh_key_aws
-          echo "ssh_key_path=/tmp/ssh_key_aws" >> $GITHUB_OUTPUT
-        else
-          echo "ssh_key_path=$HOME/.ssh/id_rsa" >> $GITHUB_OUTPUT
-        fi
-
         # Wait for SSH to be ready
         echo "Waiting for SSH to be ready..."
         for i in {1..30}; do
-          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/ssh_key_aws ubuntu@$PUBLIC_IP "echo SSH ready" 2>/dev/null; then
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "$SSH_KEY_PATH" ubuntu@$PUBLIC_IP "echo SSH ready" 2>/dev/null; then
             echo "SSH is ready"
             break
           fi
@@ -119,26 +174,43 @@ runs:
       shell: bash
       run: |
         INSTANCE_ID="${{ inputs.instance-id }}"
+        REGION="${{ inputs.region }}"
 
         if [[ -n "$INSTANCE_ID" && "$INSTANCE_ID" != "null" ]]; then
           echo "Terminating AWS instance: $INSTANCE_ID"
 
+          # Check for generated key pair tag before terminating
+          GENERATED_KEY_NAME=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --region "$REGION" \
+            --query 'Reservations[0].Instances[0].Tags[?Key==`SindriKeyPair`].Value' \
+            --output text 2>/dev/null || echo "")
+
           aws ec2 terminate-instances \
             --instance-ids "$INSTANCE_ID" \
-            --region ${{ inputs.region }}
+            --region "$REGION"
 
           echo "Instance termination initiated"
 
           # Wait for termination
           aws ec2 wait instance-terminated \
             --instance-ids "$INSTANCE_ID" \
-            --region ${{ inputs.region }} \
+            --region "$REGION" \
             --timeout 300 || true
 
           echo "Instance terminated"
+
+          # Cleanup generated key pair if it was created for this instance
+          if [[ -n "$GENERATED_KEY_NAME" && "$GENERATED_KEY_NAME" != "None" && "$GENERATED_KEY_NAME" == sindri-test-key-* ]]; then
+            echo "Cleaning up generated key pair: $GENERATED_KEY_NAME"
+            aws ec2 delete-key-pair \
+              --key-name "$GENERATED_KEY_NAME" \
+              --region "$REGION" || true
+            echo "Key pair deleted"
+          fi
         else
           echo "No instance ID provided, skipping termination"
         fi
 
-        # Cleanup SSH key
-        rm -f /tmp/ssh_key_aws 2>/dev/null || true
+        # Cleanup SSH key files
+        rm -f /tmp/ssh_key_aws /tmp/ssh_key_aws.pub 2>/dev/null || true

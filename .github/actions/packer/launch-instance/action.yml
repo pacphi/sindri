@@ -17,9 +17,9 @@ inputs:
     required: false
     default: ''  # Will use provider-specific default
   ssh-key-name:
-    description: 'SSH key name (AWS only)'
+    description: 'SSH key pair name (AWS only - generates fresh key if not provided)'
     required: false
-    default: 'sindri-test'
+    default: ''
   # Provider-specific inputs
   compartment-id:
     description: 'OCI compartment OCID'
@@ -146,7 +146,7 @@ runs:
             echo "instance_id=${{ steps.launch-gcp.outputs.instance-id }}" >> $GITHUB_OUTPUT
             echo "public_ip=${{ steps.launch-gcp.outputs.public-ip }}" >> $GITHUB_OUTPUT
             echo "ssh_key_path=${{ steps.launch-gcp.outputs.ssh-key-path }}" >> $GITHUB_OUTPUT
-            echo "ssh_user=${{ steps.launch-gcp.outputs.ssh-user || 'ubuntu' }}" >> $GITHUB_OUTPUT
+            echo "ssh_user=${{ steps.launch-gcp.outputs.ssh-user || 'sindri' }}" >> $GITHUB_OUTPUT
             ;;
           oci)
             echo "instance_id=${{ steps.launch-oci.outputs.instance-id }}" >> $GITHUB_OUTPUT

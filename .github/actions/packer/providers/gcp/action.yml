@@ -35,7 +35,7 @@ outputs:
     value: ${{ steps.launch.outputs.ssh_key_path }}
   ssh-user:
     description: 'SSH username'
-    value: 'ubuntu'
+    value: ${{ steps.launch.outputs.ssh_user }}
 
 runs:
   using: 'composite'
@@ -50,34 +50,49 @@ runs:
         INSTANCE_NAME="sindri-test-$(date +%s)"
         ZONE="${{ inputs.region }}"
         PROJECT="${{ inputs.project-id }}"
+        SSH_USER="sindri"
+        SSH_KEY_PATH="/tmp/ssh_key_gcp"
 
         # Set project if provided
         if [[ -n "$PROJECT" ]]; then
           gcloud config set project "$PROJECT"
         fi
 
-        # Create instance
+        # Generate SSH key pair for this instance
+        ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -N "" -C "$SSH_USER"
+        chmod 600 "$SSH_KEY_PATH"
+
+        # Format SSH public key for GCP metadata
+        # Format: username:ssh-ed25519 AAAA... username
+        SSH_PUB_KEY=$(cat "${SSH_KEY_PATH}.pub")
+        GCP_SSH_KEY="${SSH_USER}:${SSH_PUB_KEY}"
+
+        # Create instance with SSH key in metadata (not OS Login)
+        # OS Login and direct SSH key auth are different patterns - we use direct key injection
+        # for compatibility with external SSH tools like InSpec
         gcloud compute instances create "$INSTANCE_NAME" \
           --zone="$ZONE" \
           --machine-type=${{ inputs.instance-type }} \
           --image=${{ inputs.image-id }} \
           --tags=packer-test,auto-terminate \
-          --metadata=enable-oslogin=true \
+          --metadata="ssh-keys=${GCP_SSH_KEY}" \
           --format=json > /tmp/gcp-instance-info.json
 
         EXTERNAL_IP=$(jq -r '.[0].networkInterfaces[0].accessConfigs[0].natIP' /tmp/gcp-instance-info.json)
 
         echo "Instance Name: $INSTANCE_NAME"
         echo "External IP: $EXTERNAL_IP"
+        echo "SSH User: $SSH_USER"
 
         echo "instance_id=$INSTANCE_NAME" >> $GITHUB_OUTPUT
         echo "public_ip=$EXTERNAL_IP" >> $GITHUB_OUTPUT
-        echo "ssh_key_path=$HOME/.ssh/google_compute_engine" >> $GITHUB_OUTPUT
+        echo "ssh_key_path=$SSH_KEY_PATH" >> $GITHUB_OUTPUT
+        echo "ssh_user=$SSH_USER" >> $GITHUB_OUTPUT
 
-        # Wait for SSH
+        # Wait for SSH using direct SSH connection (not gcloud compute ssh)
         echo "Waiting for SSH to be ready..."
         for i in {1..30}; do
-          if gcloud compute ssh "$INSTANCE_NAME" --zone="$ZONE" --command="echo SSH ready" 2>/dev/null; then
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "$SSH_KEY_PATH" "${SSH_USER}@${EXTERNAL_IP}" "echo SSH ready" 2>/dev/null; then
             echo "SSH is ready"
             break
           fi
@@ -108,3 +123,6 @@ runs:
         else
           echo "No instance name provided, skipping termination"
         fi
+
+        # Cleanup SSH key
+        rm -f /tmp/ssh_key_gcp /tmp/ssh_key_gcp.pub 2>/dev/null || true
