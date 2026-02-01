@@ -7,7 +7,7 @@ Building Sindri VM images for Alibaba Cloud ECS using HashiCorp Packer.
 
 ## Overview
 
-This guide covers Alibaba Cloud-specific configuration for building Sindri VM images. For general Packer usage, see [PACKER.md](PACKER.md).
+This guide covers Alibaba Cloud-specific configuration for building Sindri VM images. For general Packer usage, see [PACKER.md](../PACKER.md).
 
 **Best for:** Enterprise deployments in mainland China and Asia-Pacific regions, multi-cloud infrastructure extending to Alibaba Cloud, pre-baked development environments for Chinese markets.
 
