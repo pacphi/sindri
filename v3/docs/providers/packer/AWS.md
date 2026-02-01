@@ -874,10 +874,14 @@ jobs:
 
 ## Related Documentation
 
-- [Packer Provider Overview](PACKER.md)
-- [Provider Overview](README.md)
-- [Configuration Reference](../CONFIGURATION.md)
-- [Secrets Management](../SECRETS_MANAGEMENT.md)
-- [CLI Reference](../CLI.md)
+- [Packer Provider Overview](../PACKER.md)
+- [Azure Packer Guide](AZURE.md)
+- [GCP Packer Guide](GCP.md)
+- [OCI Packer Guide](OCI.md)
+- [Alibaba Packer Guide](ALIBABA.md)
+- [Provider Overview](../README.md)
+- [Configuration Reference](../../CONFIGURATION.md)
+- [Secrets Management](../../SECRETS_MANAGEMENT.md)
+- [CLI Reference](../../CLI.md)
 - [AWS EC2 User Guide](https://docs.aws.amazon.com/ec2/)
 - [HashiCorp Packer AWS Builder](https://developer.hashicorp.com/packer/plugins/builders/amazon)

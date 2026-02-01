@@ -1115,11 +1115,14 @@ az monitor activity-log list \
 
 ## Related Documentation
 
-- [Packer Provider Overview](PACKER.md)
-- [AWS Packer Guide](AWS-PACKER.md)
-- [GCP Packer Guide](GCP-PACKER.md)
-- [Configuration Reference](../CONFIGURATION.md)
-- [Secrets Management](../SECRETS_MANAGEMENT.md)
+- [Packer Provider Overview](../PACKER.md)
+- [AWS Packer Guide](AWS.md)
+- [GCP Packer Guide](GCP.md)
+- [OCI Packer Guide](OCI.md)
+- [Alibaba Packer Guide](ALIBABA.md)
+- [Provider Overview](../README.md)
+- [Configuration Reference](../../CONFIGURATION.md)
+- [Secrets Management](../../SECRETS_MANAGEMENT.md)
 - [Azure CLI Documentation](https://docs.microsoft.com/cli/azure/)
 - [HashiCorp Packer Azure Builder](https://developer.hashicorp.com/packer/plugins/builders/azure)
 - [Azure Compute Gallery](https://learn.microsoft.com/azure/virtual-machines/azure-compute-gallery)

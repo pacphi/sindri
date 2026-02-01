@@ -679,11 +679,11 @@ Track image usage:
 ## Related Documentation
 
 - [Packer Provider Guide](providers/PACKER.md) - Building VM images
-- [AWS Packer Guide](providers/AWS-PACKER.md) - AWS-specific configuration
-- [Azure Packer Guide](providers/AZURE-PACKER.md) - Azure-specific configuration
-- [GCP Packer Guide](providers/GCP-PACKER.md) - GCP-specific configuration
-- [OCI Packer Guide](providers/OCI-PACKER.md) - OCI-specific configuration
-- [Alibaba Packer Guide](providers/ALIBABA-PACKER.md) - Alibaba-specific configuration
+- [AWS Packer Guide](providers/packer/AWS.md) - AWS-specific configuration
+- [Azure Packer Guide](providers/packer/AZURE.md) - Azure-specific configuration
+- [GCP Packer Guide](providers/packer/GCP.md) - GCP-specific configuration
+- [OCI Packer Guide](providers/packer/OCI.md) - OCI-specific configuration
+- [Alibaba Packer Guide](providers/packer/ALIBABA.md) - Alibaba-specific configuration
 - [Secrets Management](SECRETS_MANAGEMENT.md) - Managing credentials securely
 
 ## External Resources

@@ -20,11 +20,11 @@ This directory contains documentation for Sindri V3 deployment providers.
 
 | Cloud Provider                      | Description                               | Builder Type  |
 | ----------------------------------- | ----------------------------------------- | ------------- |
-| [AWS Packer](AWS-PACKER.md)         | EC2 AMI images via amazon-ebs builder     | amazon-ebs    |
-| [Azure Packer](AZURE-PACKER.md)     | Managed images with Shared Image Gallery  | azure-arm     |
-| [GCP Packer](GCP-PACKER.md)         | Compute Engine images via googlecompute   | googlecompute |
-| [OCI Packer](OCI-PACKER.md)         | Oracle Cloud Infrastructure custom images | oracle-oci    |
-| [Alibaba Packer](ALIBABA-PACKER.md) | Alibaba Cloud ECS custom images           | alicloud-ecs  |
+| [AWS Packer](packer/AWS.md)         | EC2 AMI images via amazon-ebs builder     | amazon-ebs    |
+| [Azure Packer](packer/AZURE.md)     | Managed images with Shared Image Gallery  | azure-arm     |
+| [GCP Packer](packer/GCP.md)         | Compute Engine images via googlecompute   | googlecompute |
+| [OCI Packer](packer/OCI.md)         | Oracle Cloud Infrastructure custom images | oracle-oci    |
+| [Alibaba Packer](packer/ALIBABA.md) | Alibaba Cloud ECS custom images           | alicloud-ecs  |
 
 ## Quick Comparison
 
@@ -174,11 +174,11 @@ providers:
 
 See cloud-specific guides:
 
-- [AWS Packer](AWS-PACKER.md) - EC2 AMI images
-- [Azure Packer](AZURE-PACKER.md) - Azure Managed Images
-- [GCP Packer](GCP-PACKER.md) - Compute Engine images
-- [OCI Packer](OCI-PACKER.md) - Oracle Cloud images
-- [Alibaba Packer](ALIBABA-PACKER.md) - Alibaba Cloud ECS images
+- [AWS Packer](packer/AWS.md) - EC2 AMI images
+- [Azure Packer](packer/AZURE.md) - Azure Managed Images
+- [GCP Packer](packer/GCP.md) - Compute Engine images
+- [OCI Packer](packer/OCI.md) - Oracle Cloud images
+- [Alibaba Packer](packer/ALIBABA.md) - Alibaba Cloud ECS images
 
 ## Common Workflows
 

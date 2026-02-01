@@ -859,10 +859,15 @@ sindri packer deploy --cloud gcp projects/PROJECT/global/images/IMAGE_NAME
 
 ## Related Documentation
 
-- [Packer Provider Overview](PACKER.md)
-- [Configuration Reference](../CONFIGURATION.md)
-- [Secrets Management](../SECRETS_MANAGEMENT.md)
-- [CLI Reference](../CLI.md)
+- [Packer Provider Overview](../PACKER.md)
+- [AWS Packer Guide](AWS.md)
+- [Azure Packer Guide](AZURE.md)
+- [OCI Packer Guide](OCI.md)
+- [Alibaba Packer Guide](ALIBABA.md)
+- [Provider Overview](../README.md)
+- [Configuration Reference](../../CONFIGURATION.md)
+- [Secrets Management](../../SECRETS_MANAGEMENT.md)
+- [CLI Reference](../../CLI.md)
 - [GCP Compute Engine Images](https://cloud.google.com/compute/docs/images)
 - [GCP IAM Roles](https://cloud.google.com/compute/docs/access/iam)
 - [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation)

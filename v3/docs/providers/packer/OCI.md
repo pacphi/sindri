@@ -1056,10 +1056,14 @@ cat /tmp/packer-oci.log
 
 ## Related Documentation
 
-- [Packer Provider Overview](PACKER.md)
-- [Provider Overview](README.md)
-- [Configuration Reference](../CONFIGURATION.md)
-- [Secrets Management](../SECRETS_MANAGEMENT.md)
-- [CLI Reference](../CLI.md)
+- [Packer Provider Overview](../PACKER.md)
+- [AWS Packer Guide](AWS.md)
+- [Azure Packer Guide](AZURE.md)
+- [GCP Packer Guide](GCP.md)
+- [Alibaba Packer Guide](ALIBABA.md)
+- [Provider Overview](../README.md)
+- [Configuration Reference](../../CONFIGURATION.md)
+- [Secrets Management](../../SECRETS_MANAGEMENT.md)
+- [CLI Reference](../../CLI.md)
 - [OCI Documentation](https://docs.oracle.com/en-us/iaas/Content/home.htm)
 - [Packer OCI Builder](https://developer.hashicorp.com/packer/integrations/hashicorp/oracle/latest/components/builder/oci)

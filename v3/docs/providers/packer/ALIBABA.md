@@ -1078,12 +1078,15 @@ sindri packer build --cloud alibaba
 
 ## Related Documentation
 
-- [PACKER.md](PACKER.md) - Main Packer provider documentation
-- [AWS-PACKER.md](AWS-PACKER.md) - AWS-specific Packer guide
-- [AZURE-PACKER.md](AZURE-PACKER.md) - Azure-specific Packer guide
-- [GCP-PACKER.md](GCP-PACKER.md) - GCP-specific Packer guide
-- [OCI-PACKER.md](OCI-PACKER.md) - OCI-specific Packer guide
-- [Configuration Reference](../CONFIGURATION.md) - Full configuration options
+- [Packer Provider Overview](../PACKER.md)
+- [AWS Packer Guide](AWS.md)
+- [Azure Packer Guide](AZURE.md)
+- [GCP Packer Guide](GCP.md)
+- [OCI Packer Guide](OCI.md)
+- [Provider Overview](../README.md)
+- [Configuration Reference](../../CONFIGURATION.md)
+- [Secrets Management](../../SECRETS_MANAGEMENT.md)
+- [CLI Reference](../../CLI.md)
 - [Alibaba Cloud ECS Documentation](https://www.alibabacloud.com/help/en/ecs/)
 - [Alibaba Cloud RAM Documentation](https://www.alibabacloud.com/help/en/ram/)
 - [Alibaba Cloud VPC Documentation](https://www.alibabacloud.com/help/en/vpc/)

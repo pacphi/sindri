@@ -11,13 +11,15 @@ The Packer provider enables building golden VM images across multiple cloud plat
 
 **Supported Clouds:**
 
-- **AWS** - EC2 AMI images via `amazon-ebs` builder
-- **Azure** - Managed images with Shared Image Gallery support
-- **GCP** - Compute Engine images via `googlecompute` builder
-- **OCI** - Oracle Cloud Infrastructure custom images
-- **Alibaba** - Alibaba Cloud ECS custom images
+- **[AWS](packer/AWS.md)** - EC2 AMI images via `amazon-ebs` builder
+- **[Azure](packer/AZURE.md)** - Managed images with Shared Image Gallery support
+- **[GCP](packer/GCP.md)** - Compute Engine images via `googlecompute` builder
+- **[OCI](packer/OCI.md)** - Oracle Cloud Infrastructure custom images
+- **[Alibaba](packer/ALIBABA.md)** - Alibaba Cloud ECS custom images
 
 **Best for:** Enterprise deployments, golden image pipelines, multi-cloud infrastructure, pre-baked development environments
+
+> **Cloud-Specific Guides:** For detailed setup, authentication, IAM permissions, and troubleshooting for each cloud provider, see the linked guides above.
 
 ## Quick Start
 
@@ -45,58 +47,19 @@ sindri packer deploy --cloud aws ami-0123456789abcdef0
 | ---------------- | ------- | ------------------ | ---------------------------------------------- |
 | HashiCorp Packer | 1.9+    | `packer --version` | https://developer.hashicorp.com/packer/install |
 
-### Cloud-Specific CLIs
+### Cloud-Specific Requirements
 
-| Cloud   | CLI Tool | Check Command      | Install                                                         |
-| ------- | -------- | ------------------ | --------------------------------------------------------------- |
-| AWS     | aws      | `aws --version`    | https://aws.amazon.com/cli/                                     |
-| Azure   | az       | `az --version`     | https://docs.microsoft.com/cli/azure/install-azure-cli          |
-| GCP     | gcloud   | `gcloud --version` | https://cloud.google.com/sdk/docs/install                       |
-| OCI     | oci      | `oci --version`    | https://docs.oracle.com/iaas/Content/API/SDKDocs/cliinstall.htm |
-| Alibaba | aliyun   | `aliyun --version` | https://github.com/aliyun/aliyun-cli                            |
+Each cloud provider requires its CLI tool and proper authentication. See the cloud-specific guides for detailed setup instructions:
 
-### Authentication Setup
+| Cloud   | CLI Tool | Guide                                     |
+| ------- | -------- | ----------------------------------------- |
+| AWS     | aws      | [AWS Packer Guide](packer/AWS.md)         |
+| Azure   | az       | [Azure Packer Guide](packer/AZURE.md)     |
+| GCP     | gcloud   | [GCP Packer Guide](packer/GCP.md)         |
+| OCI     | oci      | [OCI Packer Guide](packer/OCI.md)         |
+| Alibaba | aliyun   | [Alibaba Packer Guide](packer/ALIBABA.md) |
 
-**AWS:**
-
-```bash
-aws configure
-# Or use environment variables:
-export AWS_ACCESS_KEY_ID=<key>
-export AWS_SECRET_ACCESS_KEY=<secret>
-export AWS_REGION=us-west-2
-```
-
-**Azure:**
-
-```bash
-az login
-export AZURE_SUBSCRIPTION_ID=<subscription-id>
-export AZURE_RESOURCE_GROUP=sindri-packer
-```
-
-**GCP:**
-
-```bash
-gcloud auth application-default login
-export GCP_PROJECT_ID=<project-id>
-```
-
-**OCI:**
-
-```bash
-oci setup config
-export OCI_COMPARTMENT_OCID=<compartment-ocid>
-export OCI_SUBNET_OCID=<subnet-ocid>
-```
-
-**Alibaba:**
-
-```bash
-aliyun configure
-export ALICLOUD_ACCESS_KEY=<key>
-export ALICLOUD_SECRET_KEY=<secret>
-```
+Use `sindri packer doctor --cloud <cloud>` to verify prerequisites for a specific cloud.
 
 ## Supported Clouds
 
@@ -484,99 +447,15 @@ providers:
       Team: platform
 ```
 
-### AWS Configuration
+### Cloud-Specific Configuration
 
-```yaml
-providers:
-  packer:
-    cloud: aws
-    aws:
-      region: us-west-2
-      instance_type: t3.large
-      volume_size: 80
-      volume_type: gp3 # gp2, gp3, io1, io2
-      encrypt_boot: true
-      vpc_id: vpc-0123456789 # Optional
-      subnet_id: subnet-0123456 # Optional
-      ami_regions: # Copy to additional regions
-        - us-east-1
-        - eu-west-1
-      ami_users: # Share with AWS accounts
-        - "123456789012"
-      ami_groups: # Share with groups
-        - "all" # Makes AMI public
-```
+For detailed configuration options including IAM permissions, networking, and advanced features, see the cloud-specific guides:
 
-### Azure Configuration
-
-```yaml
-providers:
-  packer:
-    cloud: azure
-    azure:
-      subscription_id: $AZURE_SUBSCRIPTION_ID
-      resource_group: sindri-packer
-      location: westus2
-      vm_size: Standard_D4s_v4
-      os_disk_size_gb: 80
-      storage_account_type: Premium_LRS
-      gallery: # Shared Image Gallery
-        gallery_name: sindri_gallery
-        image_name: sindri-dev
-        image_version: "1.0.0"
-        replication_regions:
-          - eastus
-          - westeurope
-```
-
-### GCP Configuration
-
-```yaml
-providers:
-  packer:
-    cloud: gcp
-    gcp:
-      project_id: $GCP_PROJECT_ID
-      zone: us-west1-a
-      machine_type: e2-standard-4
-      disk_size: 80
-      disk_type: pd-ssd
-      enable_secure_boot: true
-      image_family: sindri-dev # Enable versioning
-      network: default
-      subnetwork: default
-```
-
-### OCI Configuration
-
-```yaml
-providers:
-  packer:
-    cloud: oci
-    oci:
-      compartment_ocid: $OCI_COMPARTMENT_OCID
-      availability_domain: Uocm:PHX-AD-1
-      shape: VM.Standard.E4.Flex
-      shape_config:
-        ocpus: 4
-        memory_in_gbs: 32
-      subnet_ocid: $OCI_SUBNET_OCID
-      boot_volume_size_gb: 80
-```
-
-### Alibaba Configuration
-
-```yaml
-providers:
-  packer:
-    cloud: alibaba
-    alibaba:
-      region: cn-hangzhou
-      instance_type: ecs.g6.xlarge
-      system_disk_size_gb: 80
-      system_disk_category: cloud_essd
-      vswitch_id: vsw-0123456789 # Optional
-```
+- **[AWS Configuration](packer/AWS.md#configuration-examples)** - VPC/subnet, AMI regions, encryption, sharing
+- **[Azure Configuration](packer/AZURE.md#configuration-examples)** - Resource groups, Compute Gallery, replication
+- **[GCP Configuration](packer/GCP.md#configuration-examples)** - Image families, Shielded VMs, cross-project sharing
+- **[OCI Configuration](packer/OCI.md#configuration-examples)** - Flex shapes, compartments, ARM support
+- **[Alibaba Configuration](packer/ALIBABA.md#configuration-examples)** - VSwitch, regions, image distribution
 
 ### Build Configuration
 
@@ -1123,6 +1002,16 @@ providers:
 5. Schedule builds during off-peak hours
 
 ## Related Documentation
+
+### Cloud-Specific Guides
+
+- [AWS Packer Guide](packer/AWS.md) - AMIs, IAM policies, VPC configuration
+- [Azure Packer Guide](packer/AZURE.md) - RBAC, Compute Gallery, managed identities
+- [GCP Packer Guide](packer/GCP.md) - Image families, Workload Identity, Shielded VMs
+- [OCI Packer Guide](packer/OCI.md) - Compartments, flex shapes, ARM support
+- [Alibaba Packer Guide](packer/ALIBABA.md) - RAM policies, VSwitch, regions
+
+### General Documentation
 
 - [Provider Overview](README.md)
 - [Configuration Reference](../CONFIGURATION.md)
