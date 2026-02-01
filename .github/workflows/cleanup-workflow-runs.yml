@@ -47,7 +47,12 @@ jobs:
             --paginate \
             --jq ".workflow_runs[] | select(.status == \"completed\") | select(.updated_at < \"${{ steps.cutoff.outputs.date }}\") | .id")
 
-          RUN_COUNT=$(echo "$RUNS" | grep -c . || echo "0")
+          # Count non-empty lines (grep -c returns 1 on no match, so use wc -l with filtering)
+          if [[ -z "$RUNS" ]]; then
+            RUN_COUNT=0
+          else
+            RUN_COUNT=$(echo "$RUNS" | wc -l | tr -d ' ')
+          fi
           echo "Found $RUN_COUNT runs to delete"
           echo "count=$RUN_COUNT" >> $GITHUB_OUTPUT
 
