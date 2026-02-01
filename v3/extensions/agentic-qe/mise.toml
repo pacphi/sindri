@@ -5,12 +5,10 @@
 # to avoid npm registry timeouts that can poison subsequent mise operations.
 #
 # NOTE: The npm package is 'agentic-qe' (not scoped). Binary is 'aqe'.
-# DEPENDENCY FIX: v3.2.x requires lodash@^4.17.23 which doesn't exist (latest is 4.17.21).
-# The extension's pre-install hook (setup-pnpm-hooks.sh) configures pnpm to remap this.
 
 [tools]
 # Agentic QE CLI tool v3 - pinned to stable version
-"npm:agentic-qe" = "3.2.3"
+"npm:agentic-qe" = "3.4.0"
 
 [tasks.init]
 description = "Initialize AQE v3 in current project"
