@@ -58,13 +58,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo
-        uses: actions/cache@v4
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          workspaces: v3 -> target
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
@@ -72,24 +68,25 @@ jobs:
           version: ${{ env.PACKER_VERSION }}
 
       - name: Build sindri-packer
+        working-directory: v3
         run: cargo build -p sindri-packer --release
 
       - name: Validate AWS template
         if: contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push'
         run: |
-          ./target/release/sindri packer validate --cloud aws \
+          ./v3/target/release/sindri packer validate --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate Azure template
         if: contains(github.event.inputs.clouds, 'azure')
         run: |
-          ./target/release/sindri packer validate --cloud azure \
+          ./v3/target/release/sindri packer validate --cloud azure \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate GCP template
         if: contains(github.event.inputs.clouds, 'gcp')
         run: |
-          ./target/release/sindri packer validate --cloud gcp \
+          ./v3/target/release/sindri packer validate --cloud gcp \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
   build-aws:
@@ -114,17 +111,23 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: ${{ env.PACKER_VERSION }}
 
       - name: Build sindri
+        working-directory: v3
         run: cargo build -p sindri --release
 
       - name: Build AWS AMI
         run: |
-          ./target/release/sindri packer build --cloud aws \
+          ./v3/target/release/sindri packer build --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             --profile ${{ github.event.inputs.profile || 'base' }} \
             ${{ github.event.inputs.extensions && format('--extensions {0}', github.event.inputs.extensions) || '' }} \
@@ -162,12 +165,18 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: ${{ env.PACKER_VERSION }}
 
       - name: Build sindri
+        working-directory: v3
         run: cargo build -p sindri --release
 
       - name: Build Azure Image
@@ -175,7 +184,7 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'sindri-packer' }}
         run: |
-          ./target/release/sindri packer build --cloud azure \
+          ./v3/target/release/sindri packer build --cloud azure \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             --profile ${{ github.event.inputs.profile || 'base' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
@@ -214,19 +223,25 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: ${{ env.PACKER_VERSION }}
 
       - name: Build sindri
+        working-directory: v3
         run: cargo build -p sindri --release
 
       - name: Build GCP Image
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
-          ./target/release/sindri packer build --cloud gcp \
+          ./v3/target/release/sindri packer build --cloud gcp \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             --profile ${{ github.event.inputs.profile || 'base' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
