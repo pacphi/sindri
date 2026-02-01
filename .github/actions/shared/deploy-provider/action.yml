@@ -311,10 +311,25 @@ runs:
             echo "::endgroup::"
 
             echo "::group::Step 2.D4: Verify container ready"
+            echo "→ Waiting for entrypoint initialization..."
+            # Wait for entrypoint to complete home directory setup (creates .initialized marker)
+            # This prevents race condition where tests run before entrypoint finishes
+            for i in {1..30}; do
+              if docker exec --user developer "$TARGET_ID" test -f /alt/home/developer/.initialized 2>/dev/null; then
+                echo "→ Home directory initialized"
+                break
+              fi
+              if [[ $i -eq 30 ]]; then
+                echo "::error::Timeout waiting for container initialization"
+                exit 1
+              fi
+              echo "→ Waiting for initialization... (attempt $i/30)"
+              sleep 1
+            done
             echo "→ Fixing permissions on volume..."
             docker exec --user root "$TARGET_ID" chown -R developer:developer /alt/home/developer 2>/dev/null || true
             echo "→ Testing container..."
-            docker exec "$TARGET_ID" bash -c 'echo "Container ready"'
+            docker exec --user developer "$TARGET_ID" bash -c 'echo "Container ready"'
             echo "::endgroup::"
 
             echo ""
