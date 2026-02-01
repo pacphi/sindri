@@ -299,8 +299,9 @@ runs:
 
             echo "::group::Step 2.D2: Prepare image"
             if docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
-              echo "→ Tagging pre-built image as sindri:latest"
-              docker tag "${{ inputs.image }}" sindri:latest
+              # Tag as sindri:local to match docker-adapter.sh expectations
+              echo "→ Tagging pre-built image as sindri:local"
+              docker tag "${{ inputs.image }}" sindri:local
             fi
             echo "::endgroup::"
 
