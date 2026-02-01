@@ -16,9 +16,9 @@ on:
         default: "latest"
         type: string
       profile:
-        description: "Extension profile to install"
+        description: "Extension profile to install (optional - leave empty for base image only)"
         required: false
-        default: "base"
+        default: ""
         type: string
       extensions:
         description: "Additional extensions (comma-separated)"
@@ -36,13 +36,6 @@ on:
         default: false
         type: boolean
 
-  push:
-    branches:
-      - main
-    paths:
-      - "v3/crates/sindri-packer/**"
-      - ".github/workflows/v3-packer-build.yml"
-
 env:
   PACKER_VERSION: "1.10.0"
   CARGO_TERM_COLOR: always
@@ -58,45 +51,54 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Cargo
-        uses: actions/cache@v4
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          workspaces: v3 -> target
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: ${{ env.PACKER_VERSION }}
 
-      - name: Build sindri-packer
-        run: cargo build -p sindri-packer --release
+      - name: Build sindri CLI
+        working-directory: v3
+        run: cargo build -p sindri --release
 
       - name: Validate AWS template
-        if: contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push'
+        if: contains(github.event.inputs.clouds, 'aws')
         run: |
-          ./target/release/sindri packer validate --cloud aws \
+          ./v3/target/release/sindri packer validate --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate Azure template
         if: contains(github.event.inputs.clouds, 'azure')
         run: |
-          ./target/release/sindri packer validate --cloud azure \
+          ./v3/target/release/sindri packer validate --cloud azure \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate GCP template
         if: contains(github.event.inputs.clouds, 'gcp')
         run: |
-          ./target/release/sindri packer validate --cloud gcp \
+          ./v3/target/release/sindri packer validate --cloud gcp \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
+
+      - name: Validate OCI template
+        if: contains(github.event.inputs.clouds, 'oci')
+        run: |
+          ./v3/target/release/sindri packer validate --cloud oci \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
+
+      - name: Validate Alibaba template
+        if: contains(github.event.inputs.clouds, 'alibaba')
+        run: |
+          ./v3/target/release/sindri packer validate --cloud alibaba \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
   build-aws:
     name: Build AWS AMI
     needs: validate
     if: |
-      (contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push') &&
+      contains(github.event.inputs.clouds, 'aws') &&
       github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -114,19 +116,25 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: ${{ env.PACKER_VERSION }}
 
       - name: Build sindri
+        working-directory: v3
         run: cargo build -p sindri --release
 
       - name: Build AWS AMI
         run: |
-          ./target/release/sindri packer build --cloud aws \
+          ./v3/target/release/sindri packer build --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.extensions && format('--extensions {0}', github.event.inputs.extensions) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
@@ -162,12 +170,18 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: ${{ env.PACKER_VERSION }}
 
       - name: Build sindri
+        working-directory: v3
         run: cargo build -p sindri --release
 
       - name: Build Azure Image
@@ -175,9 +189,9 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'sindri-packer' }}
         run: |
-          ./target/release/sindri packer build --cloud azure \
+          ./v3/target/release/sindri packer build --cloud azure \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
 
@@ -214,21 +228,27 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: ${{ env.PACKER_VERSION }}
 
       - name: Build sindri
+        working-directory: v3
         run: cargo build -p sindri --release
 
       - name: Build GCP Image
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
-          ./target/release/sindri packer build --cloud gcp \
+          ./v3/target/release/sindri packer build --cloud gcp \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
 
@@ -240,9 +260,136 @@ jobs:
             build-result.json
             manifest.json
 
+  build-oci:
+    name: Build OCI Image
+    needs: validate
+    if: |
+      contains(github.event.inputs.clouds, 'oci') &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure OCI Credentials
+        run: |
+          mkdir -p ~/.oci
+          cat > ~/.oci/config << EOF
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ vars.OCI_REGION || 'us-ashburn-1' }}
+          key_file=~/.oci/oci_api_key.pem
+          EOF
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/config
+
+      - name: Verify OCI Credentials
+        run: |
+          if [ -z "${{ secrets.OCI_USER_OCID }}" ]; then
+            echo "::error::OCI_USER_OCID secret is not configured"
+            exit 1
+          fi
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri
+        working-directory: v3
+        run: cargo build -p sindri --release
+
+      - name: Build OCI Image
+        env:
+          OCI_COMPARTMENT_OCID: ${{ secrets.OCI_COMPARTMENT_OCID }}
+          OCI_SUBNET_OCID: ${{ secrets.OCI_SUBNET_OCID }}
+        run: |
+          ./v3/target/release/sindri packer build --cloud oci \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
+            ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
+            --json > build-result.json
+
+      - name: Cleanup OCI Credentials
+        if: always()
+        run: |
+          rm -rf ~/.oci
+          echo "OCI credentials cleaned up"
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: oci-build-manifest
+          path: |
+            build-result.json
+            manifest.json
+
+  build-alibaba:
+    name: Build Alibaba Cloud Image
+    needs: validate
+    if: |
+      contains(github.event.inputs.clouds, 'alibaba') &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Alibaba Cloud Credentials
+        run: |
+          echo "ALICLOUD_ACCESS_KEY=${{ secrets.ALICLOUD_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "ALICLOUD_SECRET_KEY=${{ secrets.ALICLOUD_SECRET_KEY }}" >> $GITHUB_ENV
+          echo "ALICLOUD_REGION=${{ vars.ALICLOUD_REGION || 'cn-hangzhou' }}" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Build sindri
+        working-directory: v3
+        run: cargo build -p sindri --release
+
+      - name: Build Alibaba Cloud Image
+        run: |
+          ./v3/target/release/sindri packer build --cloud alibaba \
+            --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
+            ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
+            --json > build-result.json
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: alibaba-build-manifest
+          path: |
+            build-result.json
+            manifest.json
+
   summary:
     name: Build Summary
-    needs: [build-aws, build-azure, build-gcp]
+    needs: [build-aws, build-azure, build-gcp, build-oci, build-alibaba]
     if: always() && github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
     steps:

@@ -52,6 +52,8 @@ on:
         required: false
       OCI_TENANCY_OCID:
         required: false
+      OCI_COMPARTMENT_OCID:
+        required: false
       OCI_FINGERPRINT:
         required: false
       OCI_PRIVATE_KEY:
@@ -67,15 +69,57 @@ jobs:
     name: Build Packer Image
     runs-on: ubuntu-latest
     outputs:
-      image_id: ${{ steps.build.outputs.image_id }}
-      image_ready: ${{ steps.build.outputs.ready }}
+      image_id: ${{ steps.build.outputs.image_id || steps.existing.outputs.image_id }}
+      image_ready: ${{ steps.build.outputs.ready || steps.existing.outputs.ready }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
+
+      - name: Build Sindri CLI
+        working-directory: v3
+        run: cargo build -p sindri --release
+
+      - name: Setup Cloud CLIs
+        run: |
+          CLOUD="${{ inputs.cloud }}"
+
+          case "$CLOUD" in
+            azure)
+              # Azure CLI is pre-installed on GitHub runners
+              az --version
+              ;;
+            gcp)
+              # gcloud is pre-installed on GitHub runners
+              gcloud --version
+              ;;
+            oci)
+              # Install OCI CLI if needed
+              if ! command -v oci &> /dev/null; then
+                bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
+                echo "$HOME/bin" >> $GITHUB_PATH
+              fi
+              ;;
+            alibaba)
+              # Install Alibaba Cloud CLI if needed
+              if ! command -v aliyun &> /dev/null; then
+                curl -Lo aliyun-cli.tgz https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz
+                tar -xzf aliyun-cli.tgz
+                sudo mv aliyun /usr/local/bin/
+              fi
+              ;;
+          esac
 
       - name: Configure Cloud Credentials
         run: |
@@ -92,22 +136,50 @@ jobs:
               echo "ARM_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}" >> $GITHUB_ENV
               echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
               echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+              # Login to Azure CLI for cache checking
+              az login --service-principal \
+                -u "${{ secrets.AZURE_CLIENT_ID }}" \
+                -p "${{ secrets.AZURE_CLIENT_SECRET }}" \
+                --tenant "${{ secrets.AZURE_TENANT_ID }}" 2>/dev/null || true
+              az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" 2>/dev/null || true
               ;;
             gcp)
               echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp-creds.json
               echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json" >> $GITHUB_ENV
+              # Activate service account for cache checking
+              gcloud auth activate-service-account --key-file=/tmp/gcp-creds.json 2>/dev/null || true
+              gcloud config set project "$(jq -r '.project_id' /tmp/gcp-creds.json)" 2>/dev/null || true
               ;;
             oci)
               echo "OCI_USER_OCID=${{ secrets.OCI_USER_OCID }}" >> $GITHUB_ENV
               echo "OCI_TENANCY_OCID=${{ secrets.OCI_TENANCY_OCID }}" >> $GITHUB_ENV
               echo "OCI_FINGERPRINT=${{ secrets.OCI_FINGERPRINT }}" >> $GITHUB_ENV
+              # Use dedicated compartment secret or fallback to tenancy
+              echo "OCI_COMPARTMENT_OCID=${{ secrets.OCI_COMPARTMENT_OCID || secrets.OCI_TENANCY_OCID }}" >> $GITHUB_ENV
               mkdir -p ~/.oci
+              cat > ~/.oci/config << OCIEOF
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ inputs.region }}
+          key_file=$HOME/.oci/oci_api_key.pem
+          OCIEOF
+              # Remove leading whitespace from config file
+              sed -i 's/^[[:space:]]*//' ~/.oci/config
               echo '${{ secrets.OCI_PRIVATE_KEY }}' > ~/.oci/oci_api_key.pem
               chmod 600 ~/.oci/oci_api_key.pem
+              chmod 600 ~/.oci/config
               ;;
             alibaba)
               echo "ALICLOUD_ACCESS_KEY=${{ secrets.ALIBABA_ACCESS_KEY }}" >> $GITHUB_ENV
               echo "ALICLOUD_SECRET_KEY=${{ secrets.ALIBABA_SECRET_KEY }}" >> $GITHUB_ENV
+              echo "ALICLOUD_REGION=${{ inputs.region }}" >> $GITHUB_ENV
+              # Configure aliyun CLI
+              aliyun configure set --profile default \
+                --access-key-id "${{ secrets.ALIBABA_ACCESS_KEY }}" \
+                --access-key-secret "${{ secrets.ALIBABA_SECRET_KEY }}" \
+                --region "${{ inputs.region }}" 2>/dev/null || true
               ;;
           esac
 
@@ -117,6 +189,7 @@ jobs:
           # Check if recent sindri image exists (skip rebuild if < 24h old)
           CLOUD="${{ inputs.cloud }}"
           IMAGE_EXISTS=false
+          IMAGE_ID=""
 
           case "$CLOUD" in
             aws)
@@ -125,7 +198,52 @@ jobs:
                 --filters "Name=name,Values=sindri-v3-*" "Name=state,Values=available" \
                 --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
                 --output text 2>/dev/null || echo "")
-
+              if [[ -n "$IMAGE_ID" && "$IMAGE_ID" != "None" ]]; then
+                IMAGE_EXISTS=true
+              fi
+              ;;
+            azure)
+              # Check Azure Shared Image Gallery or managed images
+              IMAGE_ID=$(az image list \
+                --query "[?contains(name, 'sindri-v3')].id | sort(@) | [-1]" \
+                --output tsv 2>/dev/null || echo "")
+              if [[ -n "$IMAGE_ID" ]]; then
+                IMAGE_EXISTS=true
+              fi
+              ;;
+            gcp)
+              # Check GCP Compute Images
+              IMAGE_ID=$(gcloud compute images list \
+                --filter="name~sindri-v3" \
+                --sort-by="~creationTimestamp" \
+                --limit=1 \
+                --format="value(name)" 2>/dev/null || echo "")
+              if [[ -n "$IMAGE_ID" ]]; then
+                IMAGE_EXISTS=true
+              fi
+              ;;
+            oci)
+              # Check OCI Custom Images
+              IMAGE_ID=$(oci compute image list \
+                --compartment-id "$OCI_COMPARTMENT_OCID" \
+                --display-name-contains "sindri-v3" \
+                --sort-by TIMECREATED \
+                --sort-order DESC \
+                --query "data[0].id" \
+                --raw-output 2>/dev/null || echo "")
+              if [[ -n "$IMAGE_ID" && "$IMAGE_ID" != "null" ]]; then
+                IMAGE_EXISTS=true
+              fi
+              ;;
+            alibaba)
+              # Check Alibaba Cloud ECS Images
+              IMAGE_ID=$(aliyun ecs DescribeImages \
+                --RegionId "${{ inputs.region }}" \
+                --ImageName "sindri-v3*" \
+                --ImageOwnerAlias self \
+                --PageSize 1 \
+                --query "Images.Image[0].ImageId" \
+                --output text 2>/dev/null || echo "")
               if [[ -n "$IMAGE_ID" && "$IMAGE_ID" != "None" ]]; then
                 IMAGE_EXISTS=true
               fi
@@ -138,19 +256,16 @@ jobs:
       - name: Build Packer Image
         id: build
         if: steps.check.outputs.image_exists != 'true'
-        working-directory: v3/packer
         run: |
-          CLOUD="${{ inputs.cloud }}"
+          # Use the Sindri CLI to build the Packer image
+          # Templates are embedded in the Rust binary, not in v3/packer/
+          ./v3/target/release/sindri packer build \
+            --cloud ${{ inputs.cloud }} \
+            --region ${{ inputs.region }} \
+            --json > build-result.json
 
-          packer init .
-          packer build \
-            -var "cloud=$CLOUD" \
-            -var "region=${{ inputs.region }}" \
-            -machine-readable \
-            . | tee packer-output.log
-
-          # Extract image ID from output
-          IMAGE_ID=$(grep 'artifact,0,id' packer-output.log | cut -d',' -f6 | cut -d':' -f2)
+          # Extract image ID from JSON output
+          IMAGE_ID=$(jq -r '.image_id' build-result.json)
 
           echo "image_id=$IMAGE_ID" >> $GITHUB_OUTPUT
           echo "ready=true" >> $GITHUB_OUTPUT
@@ -192,12 +307,35 @@ jobs:
             gcp)
               echo '${{ secrets.GCP_CREDENTIALS }}' > /tmp/gcp-creds.json
               gcloud auth activate-service-account --key-file=/tmp/gcp-creds.json
+              gcloud config set project "$(jq -r '.project_id' /tmp/gcp-creds.json)" 2>/dev/null || true
               ;;
             azure)
               az login --service-principal \
                 -u "${{ secrets.AZURE_CLIENT_ID }}" \
                 -p "${{ secrets.AZURE_CLIENT_SECRET }}" \
                 --tenant "${{ secrets.AZURE_TENANT_ID }}"
+              az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+              ;;
+            oci)
+              mkdir -p ~/.oci
+              cat > ~/.oci/config << OCIEOF
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ inputs.region }}
+          key_file=$HOME/.oci/oci_api_key.pem
+          OCIEOF
+              # Remove leading whitespace from config file
+              sed -i 's/^[[:space:]]*//' ~/.oci/config
+              echo '${{ secrets.OCI_PRIVATE_KEY }}' > ~/.oci/oci_api_key.pem
+              chmod 600 ~/.oci/oci_api_key.pem
+              chmod 600 ~/.oci/config
+              ;;
+            alibaba)
+              echo "ALICLOUD_ACCESS_KEY=${{ secrets.ALIBABA_ACCESS_KEY }}" >> $GITHUB_ENV
+              echo "ALICLOUD_SECRET_KEY=${{ secrets.ALIBABA_SECRET_KEY }}" >> $GITHUB_ENV
+              echo "ALICLOUD_REGION=${{ inputs.region }}" >> $GITHUB_ENV
               ;;
           esac
 

@@ -123,10 +123,6 @@ aqe init --auto
 | ------------- | --------- | ----------------------- |
 | `.agentic-qe` | directory | Configuration directory |
 
-### Pre-install Hook
-
-Configures pnpm hooks for dependency resolution (lodash version fix).
-
 ## Collision Handling
 
 Designed to coexist with other extensions:

@@ -14,6 +14,17 @@ This directory contains documentation for Sindri V3 deployment providers.
 | [DevPod](DEVPOD.md)         | Multi-cloud DevContainers           | IDE integration, multi-cloud flexibility   | Yes (via cloud providers) |
 | [E2B](E2B.md)               | Cloud sandboxes with pause/resume   | AI sandboxes, fast startup, pay-per-second | No                        |
 | [Kubernetes](KUBERNETES.md) | Container orchestration             | Enterprise, multi-tenant, CI/CD            | Yes (node selectors)      |
+| [Packer](PACKER.md)         | Multi-cloud VM image building       | Golden images, enterprise, pre-baked envs  | Yes (cloud-dependent)     |
+
+### Packer Cloud-Specific Guides
+
+| Cloud Provider                      | Description                               | Builder Type  |
+| ----------------------------------- | ----------------------------------------- | ------------- |
+| [AWS Packer](packer/AWS.md)         | EC2 AMI images via amazon-ebs builder     | amazon-ebs    |
+| [Azure Packer](packer/AZURE.md)     | Managed images with Shared Image Gallery  | azure-arm     |
+| [GCP Packer](packer/GCP.md)         | Compute Engine images via googlecompute   | googlecompute |
+| [OCI Packer](packer/OCI.md)         | Oracle Cloud Infrastructure custom images | oracle-oci    |
+| [Alibaba Packer](packer/ALIBABA.md) | Alibaba Cloud ECS custom images           | alicloud-ecs  |
 
 ## Quick Comparison
 
@@ -26,6 +37,7 @@ This directory contains documentation for Sindri V3 deployment providers.
 | DevPod     | Yes       | No        | VS Code, JetBrains     |
 | E2B        | No        | Yes (PTY) | Limited                |
 | Kubernetes | No (exec) | No        | VS Code Remote K8s     |
+| Packer     | Yes       | No        | VS Code Remote SSH     |
 
 ### Cost Model
 
@@ -36,6 +48,7 @@ This directory contains documentation for Sindri V3 deployment providers.
 | DevPod     | Depends on backend   | Depends on backend | Volumes      |
 | E2B        | Per-second           | Yes (pause)        | Pause/Resume |
 | Kubernetes | Depends on cluster   | Scale to zero      | PVC          |
+| Packer     | Build + cloud costs  | Cloud-dependent    | EBS/Disk     |
 
 ### Prerequisites
 
@@ -46,6 +59,7 @@ This directory contains documentation for Sindri V3 deployment providers.
 | DevPod     | devpod CLI, Docker         | kubectl, cloud CLIs    |
 | E2B        | e2b CLI, E2B_API_KEY       | -                      |
 | Kubernetes | kubectl                    | kind, k3d              |
+| Packer     | Packer 1.9+, cloud CLI     | Cloud-specific plugins |
 
 ## Choosing a Provider
 
@@ -138,6 +152,34 @@ providers:
     storageClass: fast-ssd
 ```
 
+### For Pre-built VM Images
+
+**Packer** enables golden image pipelines:
+
+- Multi-cloud support (AWS, Azure, GCP, OCI, Alibaba)
+- Pre-baked environments for fast instance launches
+- Consistent images across teams
+- CI/CD integration for automated builds
+
+```yaml
+deployment:
+  provider: packer
+
+providers:
+  packer:
+    cloud: aws
+    profile: fullstack
+    region: us-west-2
+```
+
+See cloud-specific guides:
+
+- [AWS Packer](packer/AWS.md) - EC2 AMI images
+- [Azure Packer](packer/AZURE.md) - Azure Managed Images
+- [GCP Packer](packer/GCP.md) - Compute Engine images
+- [OCI Packer](packer/OCI.md) - Oracle Cloud images
+- [Alibaba Packer](packer/ALIBABA.md) - Alibaba Cloud ECS images
+
 ## Common Workflows
 
 ### Deploy
@@ -208,6 +250,16 @@ e2b sandbox pause <id>
 kubectl get pods -n <namespace>
 kubectl logs <pod> -n <namespace>
 kubectl exec -it <pod> -n <namespace> -- /bin/bash
+```
+
+### Packer
+
+```bash
+sindri packer doctor --cloud aws      # Check prerequisites
+sindri packer build --cloud aws       # Build image
+sindri packer list --cloud aws        # List images
+sindri packer deploy --cloud aws <id> # Deploy from image
+sindri packer delete --cloud aws <id> # Delete image
 ```
 
 ## Migration from V2

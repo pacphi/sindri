@@ -125,7 +125,7 @@ build {
     script = "/tmp/sindri-scripts/install-sindri.sh"
     environment_vars = [
       "SINDRI_VERSION={{ sindri_version }}",
-      "INSTALL_PROFILE={{ profile | default(value="base") }}",
+      "INSTALL_PROFILE={{ profile | default(value="") }}",
       "EXTENSIONS={{ extensions | join(sep=",") }}"
     ]
   }

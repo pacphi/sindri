@@ -1712,6 +1712,330 @@ sindri image current --json
 
 ---
 
+### packer
+
+Build and manage VM images with HashiCorp Packer. Supports multiple cloud providers including AWS, Azure, GCP, OCI, and Alibaba Cloud.
+
+#### packer build
+
+Build a VM image for a specified cloud provider.
+
+**Synopsis:**
+
+```bash
+sindri packer build --cloud <PROVIDER> [OPTIONS]
+```
+
+**Options:**
+
+| Option                   | Short | Default  | Description                                  |
+| ------------------------ | ----- | -------- | -------------------------------------------- |
+| `--cloud <PROVIDER>`     | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--name <NAME>`          | `-n`  | -        | Image name prefix                            |
+| `--sindri-version <VER>` | -     | latest   | Sindri version to install in image           |
+| `--profile <PROFILE>`    | -     | -        | Extension profile to install                 |
+| `--extensions <LIST>`    | -     | -        | Additional extensions to install (comma-sep) |
+| `--region <REGION>`      | `-r`  | -        | Cloud region (defaults vary by provider)     |
+| `--instance-type <TYPE>` | -     | -        | Instance type / VM size for build            |
+| `--disk-size <GB>`       | -     | 60       | Disk size in GB                              |
+| `--cis-hardening`        | -     | -        | Enable CIS security hardening                |
+| `--force`                | `-f`  | -        | Force rebuild even if cached image exists    |
+| `--dry-run`              | -     | -        | Generate template without building           |
+| `--debug`                | -     | -        | Enable debug output                          |
+| `--var-file <PATH>`      | -     | -        | Path to variable file                        |
+| `--json`                 | -     | -        | Output as JSON                               |
+
+**Default Instance Types by Provider:**
+
+| Provider | Default Instance Type | Default Region |
+| -------- | --------------------- | -------------- |
+| AWS      | t3.large              | us-west-2      |
+| Azure    | Standard_D2s_v3       | eastus         |
+| GCP      | e2-standard-2         | us-central1-a  |
+| OCI      | VM.Standard.E4.Flex   | -              |
+| Alibaba  | ecs.g6.xlarge         | cn-hangzhou    |
+
+**Examples:**
+
+```bash
+# Build AWS AMI with defaults
+sindri packer build --cloud aws
+
+# Build AWS AMI with specific version and region
+sindri packer build --cloud aws --sindri-version v3.0.0 --region us-east-1
+
+# Build Azure image with custom name
+sindri packer build --cloud azure --name my-dev-env --instance-type Standard_D4s_v3
+
+# Build GCP image with profile
+sindri packer build --cloud gcp --profile python-data-science
+
+# Build with CIS hardening enabled
+sindri packer build --cloud aws --cis-hardening --disk-size 100
+
+# Dry run to preview template
+sindri packer build --cloud aws --dry-run
+
+# Force rebuild, output JSON
+sindri packer build --cloud aws --force --json
+
+# Build with custom variable file
+sindri packer build --cloud azure --var-file ./custom-vars.pkrvars.hcl
+```
+
+**Environment Variables (by provider):**
+
+| Provider | Required Environment Variables                                |
+| -------- | ------------------------------------------------------------- |
+| AWS      | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (or AWS profile) |
+| Azure    | `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`               |
+| GCP      | `GCP_PROJECT_ID`, `GOOGLE_APPLICATION_CREDENTIALS`            |
+| OCI      | `OCI_COMPARTMENT_OCID`, `OCI_SUBNET_OCID`                     |
+| Alibaba  | `ALICLOUD_ACCESS_KEY`, `ALICLOUD_SECRET_KEY`                  |
+
+---
+
+#### packer validate
+
+Validate a Packer template without building.
+
+**Synopsis:**
+
+```bash
+sindri packer validate --cloud <PROVIDER> [OPTIONS]
+```
+
+**Options:**
+
+| Option                   | Short | Default  | Description                                  |
+| ------------------------ | ----- | -------- | -------------------------------------------- |
+| `--cloud <PROVIDER>`     | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--name <NAME>`          | `-n`  | -        | Image name prefix                            |
+| `--sindri-version <VER>` | -     | latest   | Sindri version                               |
+| `--syntax-only`          | -     | -        | Syntax check only (no provider validation)   |
+| `--json`                 | -     | -        | Output as JSON                               |
+
+**Examples:**
+
+```bash
+# Validate AWS template
+sindri packer validate --cloud aws
+
+# Validate with syntax check only
+sindri packer validate --cloud azure --syntax-only
+
+# Validate and output JSON
+sindri packer validate --cloud gcp --json
+```
+
+---
+
+#### packer list
+
+List VM images in the cloud provider.
+
+**Synopsis:**
+
+```bash
+sindri packer list --cloud <PROVIDER> [OPTIONS]
+```
+
+**Options:**
+
+| Option               | Short | Default  | Description                                  |
+| -------------------- | ----- | -------- | -------------------------------------------- |
+| `--cloud <PROVIDER>` | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--name <NAME>`      | `-n`  | -        | Filter by name prefix                        |
+| `--region <REGION>`  | `-r`  | -        | Cloud region                                 |
+| `--json`             | -     | -        | Output as JSON                               |
+
+**Examples:**
+
+```bash
+# List all AWS images
+sindri packer list --cloud aws
+
+# List AWS images in specific region
+sindri packer list --cloud aws --region us-east-1
+
+# List Azure images with name filter
+sindri packer list --cloud azure --name sindri-dev
+
+# List GCP images as JSON
+sindri packer list --cloud gcp --json
+```
+
+---
+
+#### packer delete
+
+Delete a VM image from the cloud provider.
+
+**Synopsis:**
+
+```bash
+sindri packer delete --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
+```
+
+**Options:**
+
+| Option               | Short | Default  | Description                                  |
+| -------------------- | ----- | -------- | -------------------------------------------- |
+| `--cloud <PROVIDER>` | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `<IMAGE_ID>`         | -     | required | Image ID to delete                           |
+| `--region <REGION>`  | `-r`  | -        | Cloud region                                 |
+| `--force`            | `-f`  | -        | Skip confirmation prompt                     |
+
+**Examples:**
+
+```bash
+# Delete AWS AMI with confirmation
+sindri packer delete --cloud aws ami-0123456789abcdef0
+
+# Delete Azure image without confirmation
+sindri packer delete --cloud azure /subscriptions/.../my-image --force
+
+# Delete GCP image in specific region
+sindri packer delete --cloud gcp sindri-dev-20260101 --region us-central1 --force
+```
+
+---
+
+#### packer doctor
+
+Check Packer prerequisites and cloud provider authentication status.
+
+**Synopsis:**
+
+```bash
+sindri packer doctor [OPTIONS]
+```
+
+**Options:**
+
+| Option               | Short | Default | Description                                       |
+| -------------------- | ----- | ------- | ------------------------------------------------- |
+| `--cloud <PROVIDER>` | `-c`  | all     | Target cloud (aws, azure, gcp, oci, alibaba, all) |
+| `--json`             | -     | -       | Output as JSON                                    |
+
+**Output includes:**
+
+- Packer installation status and version
+- Cloud CLI installation status and version
+- Credentials/authentication configuration status
+- Hints for resolving missing prerequisites
+
+**Examples:**
+
+```bash
+# Check all prerequisites
+sindri packer doctor
+
+# Check AWS prerequisites only
+sindri packer doctor --cloud aws
+
+# Check Azure prerequisites with JSON output
+sindri packer doctor --cloud azure --json
+
+# Check all providers
+sindri packer doctor --cloud all
+```
+
+---
+
+#### packer init
+
+Generate a Packer HCL template file for customization.
+
+**Synopsis:**
+
+```bash
+sindri packer init --cloud <PROVIDER> [OPTIONS]
+```
+
+**Options:**
+
+| Option               | Short | Default  | Description                                  |
+| -------------------- | ----- | -------- | -------------------------------------------- |
+| `--cloud <PROVIDER>` | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--output <PATH>`    | `-o`  | .        | Output directory for generated files         |
+| `--force`            | `-f`  | -        | Force overwrite existing files               |
+
+**Generated Files:**
+
+- `<cloud>.pkr.hcl` - Main Packer template
+
+**Examples:**
+
+```bash
+# Generate AWS template in current directory
+sindri packer init --cloud aws
+
+# Generate Azure template in specific directory
+sindri packer init --cloud azure --output ./packer/
+
+# Overwrite existing template
+sindri packer init --cloud gcp --force
+
+# Generate OCI template
+sindri packer init --cloud oci --output ./infra/packer/
+```
+
+**Next steps after init:**
+
+1. Edit the generated `.pkr.hcl` file as needed
+2. Run `packer init <file>.pkr.hcl` to download plugins
+3. Run `packer build <file>.pkr.hcl` to build the image
+
+---
+
+#### packer deploy
+
+Deploy a VM instance from a previously built image.
+
+**Synopsis:**
+
+```bash
+sindri packer deploy --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
+```
+
+**Options:**
+
+| Option                   | Short | Default  | Description                                  |
+| ------------------------ | ----- | -------- | -------------------------------------------- |
+| `--cloud <PROVIDER>`     | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `<IMAGE_ID>`             | -     | required | Image ID to deploy                           |
+| `--region <REGION>`      | `-r`  | -        | Cloud region                                 |
+| `--instance-type <TYPE>` | -     | -        | Instance type / VM size                      |
+| `--json`                 | -     | -        | Output as JSON                               |
+
+**Output:**
+
+- Instance ID
+- Public IP address (if assigned)
+- Private IP address
+- SSH command to connect
+
+**Examples:**
+
+```bash
+# Deploy AWS instance from AMI
+sindri packer deploy --cloud aws ami-0123456789abcdef0
+
+# Deploy with specific region and instance type
+sindri packer deploy --cloud aws ami-0123456789abcdef0 \
+    --region us-east-1 --instance-type t3.xlarge
+
+# Deploy Azure VM
+sindri packer deploy --cloud azure /subscriptions/.../my-image \
+    --region eastus --instance-type Standard_D4s_v3
+
+# Deploy GCP instance with JSON output
+sindri packer deploy --cloud gcp sindri-dev-20260101 --json
+```
+
+---
+
 ## Environment Variables
 
 | Variable                | Description                                 |

@@ -79,9 +79,6 @@ capabilities:
       expectedExitCode: 0
   # Lifecycle hooks
   hooks:
-    pre-install:
-      command: "bash ${EXTENSION_DIR}/setup-pnpm-hooks.sh"
-      description: "Configure pnpm hooks for dependency resolution (lodash version fix)"
     post-install:
       command: "mise reshim && sleep 2"
       description: "Refresh shims after installation"
