@@ -5,12 +5,12 @@
 set -euo pipefail
 
 SINDRI_VERSION="${SINDRI_VERSION:-latest}"
-INSTALL_PROFILE="${INSTALL_PROFILE:-base}"
+INSTALL_PROFILE="${INSTALL_PROFILE:-}"
 EXTENSIONS="${EXTENSIONS:-}"
 GITHUB_REPO="{{ github_repo | default(value="pacphi/sindri") }}"
 
 echo "=== Installing Sindri v${SINDRI_VERSION} ==="
-echo "Profile: ${INSTALL_PROFILE}"
+echo "Profile: ${INSTALL_PROFILE:-none (base image only)}"
 echo "Extensions: ${EXTENSIONS:-none}"
 
 # Determine architecture

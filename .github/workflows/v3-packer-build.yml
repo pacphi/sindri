@@ -16,9 +16,9 @@ on:
         default: "latest"
         type: string
       profile:
-        description: "Extension profile to install"
+        description: "Extension profile to install (optional - leave empty for base image only)"
         required: false
-        default: "base"
+        default: ""
         type: string
       extensions:
         description: "Additional extensions (comma-separated)"
@@ -67,9 +67,9 @@ jobs:
         with:
           version: ${{ env.PACKER_VERSION }}
 
-      - name: Build sindri-packer
+      - name: Build sindri CLI
         working-directory: v3
-        run: cargo build -p sindri-packer --release
+        run: cargo build -p sindri --release
 
       - name: Validate AWS template
         if: contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push'
@@ -141,7 +141,7 @@ jobs:
         run: |
           ./v3/target/release/sindri packer build --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.extensions && format('--extensions {0}', github.event.inputs.extensions) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
@@ -198,7 +198,7 @@ jobs:
         run: |
           ./v3/target/release/sindri packer build --cloud azure \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
 
@@ -255,7 +255,7 @@ jobs:
         run: |
           ./v3/target/release/sindri packer build --cloud gcp \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
 
@@ -294,6 +294,13 @@ jobs:
           chmod 600 ~/.oci/oci_api_key.pem
           chmod 600 ~/.oci/config
 
+      - name: Verify OCI Credentials
+        run: |
+          if [ -z "${{ secrets.OCI_USER_OCID }}" ]; then
+            echo "::error::OCI_USER_OCID secret is not configured"
+            exit 1
+          fi
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -313,13 +320,20 @@ jobs:
 
       - name: Build OCI Image
         env:
-          OCI_COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_ID }}
+          OCI_COMPARTMENT_OCID: ${{ secrets.OCI_COMPARTMENT_OCID }}
+          OCI_SUBNET_OCID: ${{ secrets.OCI_SUBNET_OCID }}
         run: |
           ./v3/target/release/sindri packer build --cloud oci \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
+
+      - name: Cleanup OCI Credentials
+        if: always()
+        run: |
+          rm -rf ~/.oci
+          echo "OCI credentials cleaned up"
 
       - name: Upload Build Manifest
         uses: actions/upload-artifact@v4
@@ -368,7 +382,7 @@ jobs:
         run: |
           ./v3/target/release/sindri packer build --cloud alibaba \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
-            --profile ${{ github.event.inputs.profile || 'base' }} \
+            ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
             --json > build-result.json
 
