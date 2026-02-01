@@ -808,10 +808,12 @@ PACKER_LOG=1 sindri packer build --cloud aws
 name: Build AWS AMI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "sindri.yaml"
+  workflow_dispatch:
+    inputs:
+      sindri_version:
+        description: "Sindri version to install"
+        required: true
+        default: "latest"
 
 permissions:
   id-token: write

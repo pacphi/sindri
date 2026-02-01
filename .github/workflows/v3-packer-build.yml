@@ -36,13 +36,6 @@ on:
         default: false
         type: boolean
 
-  push:
-    branches:
-      - main
-    paths:
-      - "v3/crates/sindri-packer/**"
-      - ".github/workflows/v3-packer-build.yml"
-
 env:
   PACKER_VERSION: "1.10.0"
   CARGO_TERM_COLOR: always
@@ -72,7 +65,7 @@ jobs:
         run: cargo build -p sindri --release
 
       - name: Validate AWS template
-        if: contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push'
+        if: contains(github.event.inputs.clouds, 'aws')
         run: |
           ./v3/target/release/sindri packer validate --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
@@ -105,7 +98,7 @@ jobs:
     name: Build AWS AMI
     needs: validate
     if: |
-      (contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push') &&
+      contains(github.event.inputs.clouds, 'aws') &&
       github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
     permissions:

@@ -878,8 +878,12 @@ az role assignment create \
 name: Build Azure Image
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sindri_version:
+        description: "Sindri version to install"
+        required: true
+        default: "latest"
 
 permissions:
   id-token: write
