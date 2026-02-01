@@ -208,8 +208,8 @@ capabilities:
 
           If you really want V2:
             1. Backup .claude directory
-            2. Remove claude-flow-v3: extension-manager remove claude-flow-v3
-            3. Install claude-flow-v2: extension-manager install claude-flow-v2
+            2. Remove claude-flow-v3: sindri extension remove claude-flow-v3
+            3. Install claude-flow-v2: sindri extension install claude-flow-v2
             4. Run: claude-flow init --force
 
           Skipping automatic initialization to prevent conflicts.

@@ -16,7 +16,7 @@ print_status "Installing Supabase CLI..."
 if command_exists supabase; then
     current_version=$(supabase --version 2>/dev/null || echo "unknown")
     print_warning "Supabase CLI already installed: $current_version"
-    print_status "To upgrade, remove first with: extension-manager remove supabase-cli"
+    print_status "To upgrade, remove first with: sindri extension remove supabase-cli"
     exit 0
 fi
 

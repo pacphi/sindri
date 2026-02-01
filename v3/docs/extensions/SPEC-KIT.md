@@ -27,7 +27,7 @@ GitHub specification kit for AI-powered repository documentation and workflows. 
 ## Installation
 
 ```bash
-extension-manager install spec-kit
+sindri extension install spec-kit
 ```
 
 ## Configuration

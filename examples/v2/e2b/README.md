@@ -35,7 +35,7 @@ This directory contains example Sindri configurations for the E2B provider.
 export E2B_API_KEY=your-api-key
 
 # Deploy minimal example
-sindri deploy -f examples/e2b/minimal.sindri.yaml
+sindri deploy -f examples/v2/e2b/minimal.sindri.yaml
 
 # Connect to sandbox
 sindri connect
@@ -89,6 +89,6 @@ E2B bills per-second for compute:
 
 ## Documentation
 
-- [E2B Provider Guide](../../v2/docs/providers/E2B.md)
+- [E2B Provider Guide](../../../v2/docs/providers/E2B.md)
 - [E2B Official Docs](https://e2b.dev/docs)
-- [Sindri Configuration](../../v2/docs/CONFIGURATION.md)
+- [Sindri Configuration](../../../v2/docs/CONFIGURATION.md)

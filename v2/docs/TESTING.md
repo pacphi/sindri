@@ -67,13 +67,13 @@ examples/
 
 ```bash
 # Test a single configuration
-../cli/sindri test --config examples/fly/minimal.sindri.yaml --level quick
+../cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --level quick
 
 # Test all examples in a directory
-../cli/sindri test --config examples/fly/ --level quick
+../cli/sindri test --config examples/v2/fly/ --level quick
 
 # Validate configuration before testing
-../cli/sindri config validate --config examples/fly/minimal.sindri.yaml
+../cli/sindri config validate --config examples/v2/fly/minimal.sindri.yaml
 ```
 
 ### Test Levels
@@ -278,28 +278,28 @@ k8s-use-kind: "false"
 
 ### Example Configuration Used
 
-CI uses `examples/devpod/kubernetes/minimal.sindri.yaml` for `devpod-k8s` tests.
+CI uses `examples/v2/devpod/kubernetes/minimal.sindri.yaml` for `devpod-k8s` tests.
 
-**Why not `examples/k8s/`?**
+**Why not `examples/v2/k8s/`?**
 
-The `examples/k8s/` folder contains configs that CREATE local clusters (kind/k3d)
+The `examples/v2/k8s/` folder contains configs that CREATE local clusters (kind/k3d)
 then deploy via DevPod. CI handles cluster creation separately via the setup action,
-so it uses the simpler `examples/devpod/kubernetes/` configs that assume an existing cluster.
+so it uses the simpler `examples/v2/devpod/kubernetes/` configs that assume an existing cluster.
 
-| Directory                     | Purpose                              | When to Use           |
-| ----------------------------- | ------------------------------------ | --------------------- |
-| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster       | CI, external clusters |
-| `examples/k8s/`               | Create cluster + deploy (all-in-one) | Local development     |
+| Directory                        | Purpose                              | When to Use           |
+| -------------------------------- | ------------------------------------ | --------------------- |
+| `examples/v2/devpod/kubernetes/` | Deploy to existing K8s cluster       | CI, external clusters |
+| `examples/v2/k8s/`               | Create cluster + deploy (all-in-one) | Local development     |
 
 **Manual local K8s testing:**
 
 ```bash
-# Option 1: Use examples/k8s/ (creates cluster + deploys)
-../cli/sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
+# Option 1: Use examples/v2/k8s/ (creates cluster + deploys)
+../cli/sindri deploy --config examples/v2/k8s/kind-minimal.sindri.yaml
 
 # Option 2: Create cluster yourself, then use devpod/kubernetes
 kind create cluster --name my-cluster
-../cli/sindri deploy --config examples/devpod/kubernetes/minimal.sindri.yaml
+../cli/sindri deploy --config examples/v2/devpod/kubernetes/minimal.sindri.yaml
 ```
 
 ### Testing Profiles (Config-based)
@@ -308,7 +308,7 @@ The `v2-test-profiles.yml` workflow discovers and tests sindri.yaml configuratio
 
 ```yaml
 # Run via workflow_dispatch
-config-path: examples/fly/ # Test all Fly.io examples
+config-path: examples/v2/fly/ # Test all Fly.io examples
 test-level: quick # Test level (quick, profile, all)
 skip-cleanup: false # Cleanup after tests
 ```
@@ -358,36 +358,36 @@ docker run -it sindri:local extension-manager validate-all
 
 ```bash
 # Validate against schema
-../cli/sindri config validate --config examples/fly/minimal.sindri.yaml
+../cli/sindri config validate --config examples/v2/fly/minimal.sindri.yaml
 ```
 
 ### Run Tests
 
 ```bash
 # Quick test (CLI validation)
-../cli/sindri test --config examples/fly/minimal.sindri.yaml --level quick
+../cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --level quick
 
 # Extension lifecycle test (single extension)
-../cli/sindri test --config examples/fly/minimal.sindri.yaml --level extension
+../cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --level extension
 
 # Profile lifecycle test (full profile)
-../cli/sindri test --config examples/fly/minimal.sindri.yaml --level profile
+../cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --level profile
 
 # All tests
-../cli/sindri test --config examples/fly/minimal.sindri.yaml --level all
+../cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --level all
 ```
 
 ### Deploy for Manual Testing
 
 ```bash
 # Deploy
-../cli/sindri deploy --config examples/fly/minimal.sindri.yaml
+../cli/sindri deploy --config examples/v2/fly/minimal.sindri.yaml
 
 # Connect
-../cli/sindri connect --config examples/fly/minimal.sindri.yaml
+../cli/sindri connect --config examples/v2/fly/minimal.sindri.yaml
 
 # Teardown
-../cli/sindri destroy --config examples/fly/minimal.sindri.yaml --force
+../cli/sindri destroy --config examples/v2/fly/minimal.sindri.yaml --force
 ```
 
 ## Unit Tests
@@ -465,7 +465,7 @@ Tests run for each extension:
 
 ```bash
 export DEBUG=true
-../cli/sindri test --config examples/fly/minimal.sindri.yaml --level quick
+../cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --level quick
 ```
 
 ### Test in Docker

@@ -107,7 +107,6 @@
           "enum": [
             "minimal",
             "fullstack",
-            "ai-dev",
             "anthropic-dev",
             "systems",
             "enterprise",

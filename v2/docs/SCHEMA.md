@@ -484,7 +484,7 @@ Validate your configuration against the schema:
 ../cli/sindri config validate
 
 # Validate specific config file
-../cli/sindri config validate --config examples/fly/minimal.sindri.yaml
+../cli/sindri config validate --config examples/v2/fly/minimal.sindri.yaml
 
 # Validate extension
 ../cli/extension-manager validate nodejs

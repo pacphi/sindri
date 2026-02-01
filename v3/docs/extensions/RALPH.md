@@ -28,7 +28,7 @@ AI-driven autonomous development system. Build software projects with minimal in
 ## Installation
 
 ```bash
-extension-manager install ralph
+sindri extension install ralph
 ```
 
 ## Configuration
@@ -148,7 +148,7 @@ scripts/validate.sh
 ## Removal
 
 ```bash
-extension-manager remove ralph
+sindri extension remove ralph
 ```
 
 **Requires confirmation.** Removes:

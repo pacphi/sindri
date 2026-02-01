@@ -14,7 +14,7 @@
 - **Phase 2**: CLI Enhancements - sindri-image crate with 5 commands, ImageConfig schema ✅
 - **Phase 3**: Provider Integration - Kubernetes ImagePullSecrets, credential management ✅
 - **Phase 4**: Documentation - IMAGE_MANAGEMENT.md, migration guides ✅
-- **Phase 5**: Registry Cleanup - cleanup-registry.yml workflow with retention policies ✅
+- **Phase 5**: Registry Cleanup - cleanup-container-images.yml workflow with smart multi-arch-safe cleanup ✅
 
 ---
 
@@ -171,12 +171,14 @@ This document describes the comprehensive container image lifecycle management s
 
 ### ✅ Phase 5: Registry Cleanup (COMPLETE)
 
-- ✅ Automated cleanup workflow: `.github/workflows/cleanup-registry.yml`
-  - Daily schedule (2 AM UTC) + manual dispatch
-  - CI image retention: 7 days
-  - Release image retention: Last 10 versions
+- ✅ Smart cleanup workflow: `.github/workflows/cleanup-container-images.yml`
+  - Weekly schedule (Sunday 3 AM UTC) + manual dispatch
+  - **Multi-arch safe**: Preserves platform manifests (amd64, arm64) referenced by tags
+  - Preserves attestation manifests (provenance, SBOM)
+  - Only deletes truly orphaned untagged versions
+  - Configurable minimum age (default: 7 days)
   - Dry-run support for testing policies
-- ✅ Retention policies implemented with configurable parameters
+- ✅ Retention policies that understand OCI manifest lists
 
 ---
 

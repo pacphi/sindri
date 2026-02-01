@@ -31,7 +31,7 @@ Python 3.13 with uv package manager via mise. Provides a modern Python developme
 ## Installation
 
 ```bash
-extension-manager install python
+sindri extension install python
 ```
 
 ## Configuration
@@ -107,7 +107,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove python
+sindri extension remove python
 ```
 
 This removes the mise configuration and Python tools.

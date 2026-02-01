@@ -31,7 +31,7 @@ Context7 MCP server for up-to-date, version-specific library documentation. Prov
 ## Installation
 
 ```bash
-extension-manager install context7-mcp
+sindri extension install context7-mcp
 ```
 
 ## Configuration
@@ -85,7 +85,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove context7-mcp
+sindri extension remove context7-mcp
 ```
 
 Runs uninstall script and removes ~/extensions/context7-mcp.

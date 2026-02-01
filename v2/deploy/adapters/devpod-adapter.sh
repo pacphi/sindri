@@ -445,7 +445,7 @@ load_image_local() {
 # Prepare image for DevPod deployment
 # Returns the image tag to use in devcontainer.json
 prepare_image() {
-    local image_tag="sindri:latest"
+    local image_tag="sindri:local"
 
     # If explicit image is provided, use it directly
     if [[ -n "$IMAGE_OVERRIDE" ]]; then

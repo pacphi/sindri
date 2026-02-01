@@ -273,7 +273,7 @@ capabilities:
           To migrate to V3, please run these commands manually:
 
             1. Install claude-flow-v3:
-               extension-manager install claude-flow-v3
+               sindri extension install claude-flow-v3
 
             2. Migrate memory (AgentDB → HNSW):
                cf-memory-migrate --from v2 --to v3

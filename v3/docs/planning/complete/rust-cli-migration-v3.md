@@ -1349,9 +1349,6 @@ sindri extension install python@1.1.0
 # Upgrade single extension
 sindri extension upgrade python
 
-# Upgrade all extensions
-sindri extension upgrade --all
-
 # List available versions with compatibility
 sindri extension versions python
   1.2.0 (compatible, latest)

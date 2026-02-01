@@ -2088,7 +2088,7 @@ packer:
       - claude-code
 
     # Extension profile to install
-    profile: ai-dev
+    profile: anthropic-dev
 
     # Cache behavior: reuse existing image if config matches
     cache: true
@@ -2302,7 +2302,7 @@ packer:
 
     # Extension profile (predefined extension sets)
     # Options: base, web-dev, ai-dev, data-science, devops
-    profile: ai-dev
+    profile: anthropic-dev
 
     # Reuse existing image if configuration matches (recommended)
     # Set to false to always build fresh
@@ -2419,7 +2419,7 @@ packer:
     extensions:
       - python
       - node
-    profile: ai-dev
+    profile: anthropic-dev
     cache: true
     name_prefix: sindri-dev
     security:
@@ -2520,7 +2520,7 @@ packer:
     extensions:
       - python
       - node
-    profile: ai-dev
+    profile: anthropic-dev
     cache: true
     name_prefix: sindri-dev
 
@@ -2618,7 +2618,7 @@ packer:
     extensions:
       - python
       - node
-    profile: ai-dev
+    profile: anthropic-dev
     cache: true
     name_prefix: sindri-dev
     security:
@@ -2690,7 +2690,7 @@ packer:
     extensions:
       - python
       - node
-    profile: ai-dev
+    profile: anthropic-dev
     cache: true
     name_prefix: sindri-dev
     security:

@@ -253,6 +253,8 @@ install:
       - docker-ce-cli
 ```
 
+> **Runtime Installation Note:** Apt packages require sudo. This works in `none`, `sysbox`, and `privileged` DinD modes, but **not** in `socket` mode where `no-new-privileges` blocks sudo. For production compatibility, consider sudo-free alternatives (pip, tarball extraction, user-local binaries). See [ADR-041](architecture/adr/041-security-hardened-extension-installation.md) for patterns.
+
 **Method: binary** - For direct binary downloads
 
 ```yaml

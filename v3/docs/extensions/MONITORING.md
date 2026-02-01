@@ -29,7 +29,7 @@ Claude monitoring and usage tracking tools including UV, claude-monitor, and cla
 ## Installation
 
 ```bash
-extension-manager install monitoring
+sindri extension install monitoring
 ```
 
 ## Configuration
@@ -103,7 +103,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove monitoring
+sindri extension remove monitoring
 ```
 
 This removes:

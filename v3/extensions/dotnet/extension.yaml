@@ -1,7 +1,7 @@
 ---
 metadata:
   name: dotnet
-  version: 2.1.0
+  version: 2.2.0
   description: .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools
   category: languages
   author: Sindri Team
@@ -10,6 +10,8 @@ requirements:
   domains:
     - nuget.org
     - dist.nuget.org
+    - dot.net
+    - dotnetcli.azureedge.net
     - archive.ubuntu.com
     - ppa.launchpadcontent.net
   diskSpace: 1000

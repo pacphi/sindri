@@ -259,8 +259,10 @@ jobs:
     name: Docker Tests
     needs: [resolve-selection, generate-matrices]
     if: |
+      always() &&
+      needs.generate-matrices.result == 'success' &&
       contains(inputs.providers || 'docker', 'docker') &&
-      fromJson(needs.generate-matrices.outputs.docker-count) > 0
+      fromJson(needs.generate-matrices.outputs.docker-count || '0') > 0
     uses: ./.github/workflows/v3-provider-docker.yml
     with:
       extensions: ${{ needs.generate-matrices.outputs.docker-extensions }}
@@ -271,8 +273,10 @@ jobs:
     name: Fly.io Tests
     needs: [resolve-selection, generate-matrices]
     if: |
+      always() &&
+      needs.generate-matrices.result == 'success' &&
       contains(inputs.providers || '', 'fly') &&
-      fromJson(needs.generate-matrices.outputs.fly-count) > 0
+      fromJson(needs.generate-matrices.outputs.fly-count || '0') > 0
     uses: ./.github/workflows/v3-provider-fly.yml
     with:
       extensions: ${{ needs.generate-matrices.outputs.fly-extensions }}
@@ -285,8 +289,10 @@ jobs:
     name: k3d Tests
     needs: [resolve-selection, generate-matrices]
     if: |
+      always() &&
+      needs.generate-matrices.result == 'success' &&
       contains(inputs.providers || '', 'k3d') &&
-      fromJson(needs.generate-matrices.outputs.k3d-count) > 0
+      fromJson(needs.generate-matrices.outputs.k3d-count || '0') > 0
     uses: ./.github/workflows/v3-provider-k3d.yml
     with:
       extensions: ${{ needs.generate-matrices.outputs.k3d-extensions }}
@@ -297,8 +303,10 @@ jobs:
     name: DevPod Tests
     needs: [resolve-selection, generate-matrices]
     if: |
+      always() &&
+      needs.generate-matrices.result == 'success' &&
       contains(inputs.providers || '', 'devpod') &&
-      fromJson(needs.generate-matrices.outputs.devpod-count) > 0
+      fromJson(needs.generate-matrices.outputs.devpod-count || '0') > 0
     uses: ./.github/workflows/v3-provider-devpod.yml
     with:
       extensions: ${{ needs.generate-matrices.outputs.devpod-extensions }}
@@ -314,8 +322,10 @@ jobs:
     name: Packer Tests
     needs: [resolve-selection, generate-matrices]
     if: |
+      always() &&
+      needs.generate-matrices.result == 'success' &&
       contains(inputs.providers || '', 'packer') &&
-      fromJson(needs.generate-matrices.outputs.packer-count) > 0
+      fromJson(needs.generate-matrices.outputs.packer-count || '0') > 0
     uses: ./.github/workflows/v3-provider-packer.yml
     with:
       extensions: ${{ needs.generate-matrices.outputs.packer-extensions }}

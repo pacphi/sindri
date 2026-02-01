@@ -1,7 +1,8 @@
 # Sindri V2 vs V3 Comparison Guide
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Created:** 2026-01-24
+**Updated:** 2026-01-31
 **Audience:** Developers, DevOps, QA Engineers, Security/Compliance Teams
 
 ---
@@ -12,32 +13,42 @@ Sindri V3 represents a complete architectural transformation from V2, delivering
 
 ### At a Glance
 
-| Metric                | V2                       | V3                             | Improvement           |
-| --------------------- | ------------------------ | ------------------------------ | --------------------- |
-| **Implementation**    | Bash (~52K lines)        | Rust (~11.2K lines)            | 78% code reduction    |
-| **Distribution**      | Git clone + Docker       | Binary + Docker + npm          | Native cross-platform |
-| **Docker Image Size** | ~2.5GB                   | ~800MB                         | 68% smaller           |
-| **CLI Startup**       | 2-5 seconds              | <100ms                         | 20-50x faster         |
-| **Config Parsing**    | 100-500ms (yq/jq)        | 10-50ms (native)               | 10-20x faster         |
-| **Total Features**    | ~81                      | ~409                           | +328 new features     |
-| **Agent Types**       | ~20                      | 60+                            | 3x more agents        |
-| **Platform Support**  | Linux/macOS (via Docker) | Linux, macOS, Windows (native) | Windows support       |
+| Metric                  | V2                       | V3                             | Improvement           |
+| ----------------------- | ------------------------ | ------------------------------ | --------------------- |
+| **Implementation**      | Bash (~52K lines)        | Rust (~11.2K lines)            | 78% code reduction    |
+| **Distribution**        | Git clone + Docker       | Binary + Docker + npm          | Native cross-platform |
+| **Docker Image Size**   | ~2.5GB                   | ~800MB                         | 68% smaller           |
+| **CLI Startup**         | 2-5 seconds              | <100ms                         | 20-50x faster         |
+| **Config Parsing**      | 100-500ms (yq/jq)        | 10-50ms (native)               | 10-20x faster         |
+| **Extension Count**     | 77 (44 core + 33 VF)     | 48                             | V2 has VisionFlow     |
+| **Extension Categories**| 11                       | 13                             | Different taxonomies  |
+| **Install Methods**     | 7                        | 7                              | Feature parity        |
+| **Total Features**      | ~81                      | ~409                           | +328 new features     |
+| **Agent Types**         | ~20                      | 60+                            | 3x more agents        |
+| **Platform Support**    | Linux/macOS (via Docker) | Linux, macOS, Windows (native) | Windows support       |
 
 ---
 
 ## Table of Contents
 
 1. [Feature Matrix](#feature-matrix)
-2. [Installation & Distribution](#installation--distribution)
-3. [Architecture Comparison](#architecture-comparison)
-4. [Persona-Based Analysis](#persona-based-analysis)
-   - [Developers](#developers)
-   - [DevOps/Platform Engineers](#devopsplatform-engineers)
-   - [QA Engineers](#qa-engineers)
-   - [Security/Compliance](#securitycompliance)
-5. [Performance Benchmarks](#performance-benchmarks)
-6. [User Stories](#user-stories)
-7. [Migration Recommendations](#migration-recommendations)
+2. [V3.1 Features](#v31-features)
+3. [Capabilities Comparison](#capabilities-comparison)
+4. [Docker Architecture (V3)](#docker-architecture-v3)
+5. [Security Constraints (V3)](#security-constraints-v3)
+6. [Environment Variables](#environment-variables)
+7. [VisionFlow Extensions (V2 Only)](#visionflow-extensions-v2-only)
+8. [Extension Categories](#extension-categories)
+9. [Installation & Distribution](#installation--distribution)
+10. [Architecture Comparison](#architecture-comparison)
+11. [Persona-Based Analysis](#persona-based-analysis)
+    - [Developers](#developers)
+    - [DevOps/Platform Engineers](#devopsplatform-engineers)
+    - [QA Engineers](#qa-engineers)
+    - [Security/Compliance](#securitycompliance)
+12. [Performance Benchmarks](#performance-benchmarks)
+13. [User Stories](#user-stories)
+14. [Migration Recommendations](#migration-recommendations)
 
 ---
 
@@ -84,16 +95,16 @@ Sindri V3 represents a complete architectural transformation from V2, delivering
 
 ### Category 3: Extensions & Profiles
 
-| Feature               | V2  | V3  | Notes                  |
-| --------------------- | :-: | :-: | ---------------------- |
-| Extension count       | 50+ | 44  | V3 excludes VisionFlow |
-| Extension categories  |  8  | 12  | +4 categories          |
-| Install methods       |  4  |  7  | +mise, script, hybrid  |
-| Profile presets       |  8  |  8  | Updated defaults       |
-| Extension upgrade     | ⚠️  | ✅  | With rollback          |
-| Version pinning       | ⚠️  | ✅  | `@version` syntax      |
-| Dependency resolution | ⚠️  | ✅  | Parallel DAG           |
-| Collision handling    | ⚠️  | ✅  | Project-init aware     |
+| Feature               | V2  | V3  | Notes                       |
+| --------------------- | :-: | :-: | --------------------------- |
+| Extension count       | 77  | 48  | V2 includes 33 VisionFlow   |
+| Extension categories  | 11  | 13  | Different category names    |
+| Install methods       |  7  |  7  | Both support all methods    |
+| Profile presets       |  8  |  8  | Updated defaults            |
+| Extension upgrade     | ⚠️  | ✅  | With rollback               |
+| Version pinning       | ⚠️  | ✅  | `@version` syntax           |
+| Dependency resolution | ⚠️  | ✅  | Parallel DAG                |
+| Collision handling    | ✅  | ✅  | Both have full support      |
 
 **Feature Count:** V2=12, V3=20
 
@@ -153,6 +164,240 @@ Sindri V3 represents a complete architectural transformation from V2, delivering
 | Security                  |   5    |   12    |    +7     |
 | Claude Flow Integration   |   8    |   32    |    +24    |
 | **TOTAL**                 | **61** | **254** | **+193**  |
+
+---
+
+## V3.1 Features
+
+### Conditional Templates (ADR 033)
+
+V3.1 introduces declarative template selection based on environment context, replacing imperative bash scripts.
+
+**Condition Types:**
+
+| Type        | Description                        | Example                           |
+| ----------- | ---------------------------------- | --------------------------------- |
+| Environment | Match environment variables        | `env: { CI: "true" }`             |
+| Platform    | Match OS and architecture          | `platform: { os: ["linux"] }`     |
+| Logical     | Combine conditions with any/all/not| `any: [{ CI: "true" }, ...]`      |
+| Regex       | Pattern matching                   | `{ matches: "^/home/.*$" }`       |
+
+**Example: CI vs Local Template Selection**
+
+```yaml
+configure:
+  templates:
+    # Local environment gets full config
+    - source: config.yml.example
+      destination: ~/config/app.yml
+      condition:
+        env:
+          not_any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+
+    # CI environment gets minimal config
+    - source: config.ci.yml.example
+      destination: ~/config/app.yml
+      condition:
+        env:
+          any:
+            - CI: "true"
+            - GITHUB_ACTIONS: "true"
+```
+
+**Logical Operators:**
+
+| Operator   | Description                          |
+| ---------- | ------------------------------------ |
+| `any`      | OR - true if any condition matches   |
+| `all`      | AND - true if all conditions match   |
+| `not`      | NOT - inverts the condition result   |
+| `not_any`  | NOR - true if no condition matches   |
+| `not_all`  | NAND - true if any condition fails   |
+
+### Enhanced Type Safety
+
+V3 introduces 80+ compile-time typed Rust structs for:
+
+- Extension configuration validation
+- Condition evaluation with type-safe operators
+- Schema-based template processing
+- Error messages with precise location information
+
+---
+
+## Capabilities Comparison
+
+Both V2 and V3 have full capabilities support. The guide previously implied V3 had more advanced capabilities, which is incorrect.
+
+| Capability        | V2 | V3 | Notes                                    |
+| ----------------- | :-:| :-:| ---------------------------------------- |
+| project-init      | ✅ | ✅ | Same schema with priority ordering       |
+| auth              | ✅ | ✅ | Multi-method: api-key + cli-auth         |
+| hooks             | ✅ | ✅ | 4 types: pre/post-install, pre/post-init |
+| mcp               | ✅ | ✅ | Server registration + tool definitions   |
+| project-context   | ✅ | ✅ | CLAUDE.md merging with strategies        |
+| features          | ✅ | ✅ | core/swarm/llm/advanced/mcp              |
+| collision-handling| ✅ | ✅ | 11 conflict resolution actions           |
+
+### Authentication Methods (Both Versions)
+
+```yaml
+capabilities:
+  auth:
+    provider: anthropic
+    required: true
+    methods:
+      - api-key    # Environment variable
+      - cli-auth   # OAuth/CLI authentication
+    envVars:
+      - ANTHROPIC_API_KEY
+```
+
+### Collision Handling Actions (Both Versions)
+
+| Action           | Description                           |
+| ---------------- | ------------------------------------- |
+| overwrite        | Replace existing content              |
+| append           | Add to end of file                    |
+| prepend          | Add to beginning of file              |
+| merge-json       | Deep merge JSON structures            |
+| merge-yaml       | Deep merge YAML structures            |
+| backup           | Create backup before changes          |
+| backup-and-replace| Backup then overwrite                |
+| merge            | Directory merge                       |
+| prompt           | Ask user for action                   |
+| prompt-per-file  | Ask user for each file                |
+| skip             | Leave existing content unchanged      |
+
+---
+
+## Docker Architecture (V3)
+
+V3 uses a two-Dockerfile architecture for optimized builds:
+
+| Dockerfile      | Target      | Size    | Extensions          |
+| --------------- | ----------- | ------- | ------------------- |
+| Dockerfile      | Production  | ~800MB  | Runtime install     |
+| Dockerfile.dev  | Development | ~1.2GB  | Bundled extensions  |
+| Dockerfile.base | Base image  | ~600MB  | Build foundation    |
+
+### Production Mode (`Dockerfile`)
+
+- Minimal image with runtime extension installation
+- Extensions installed on first container start
+- Smaller image size for faster pulls
+
+### Development Mode (`Dockerfile.dev`)
+
+- All extensions pre-bundled
+- Faster container startup
+- Larger image size
+- Ideal for CI/CD and development workflows
+
+---
+
+## Security Constraints (V3)
+
+### APT/sudo Limitations
+
+APT package installation requires sudo, which is blocked by `no-new-privileges` security constraint in socket DinD mode.
+
+| DinD Mode   | no-new-privileges | sudo Works | APT Extensions      |
+| ----------- | :---------------: | :--------: | ------------------- |
+| socket      | YES               | NO         | Sudo-free only      |
+| sysbox      | NO                | YES        | All work            |
+| privileged  | NO                | YES        | All work            |
+| none        | NO                | YES        | All work            |
+
+**Recommendation:** For socket mode compatibility, use mise, pip, npm, or binary (tarball) installation methods instead of apt.
+
+---
+
+## Environment Variables
+
+| Variable                    | V2 | V3 | Purpose                              |
+| --------------------------- | :-:| :-:| ------------------------------------ |
+| SINDRI_VALIDATION_TIMEOUT   | ✅ | ✅ | Override validation timeout (secs)   |
+| EXTENSION_CONFLICT_STRATEGY | ✅ | ❌ | Override conflict resolution         |
+| EXTENSION_CONFLICT_PROMPT   | ✅ | ❌ | Disable interactive prompts          |
+| SINDRI_LOG_LEVEL            | ✅ | ✅ | Set logging verbosity                |
+| SINDRI_CACHE_DIR            | ✅ | ✅ | Override cache directory             |
+
+---
+
+## VisionFlow Extensions (V2 Only)
+
+V2 includes 33 VisionFlow extensions that are not available in V3. These provide specialized visual and media processing capabilities:
+
+### Categories
+
+| Category          | Extensions                                                |
+| ----------------- | --------------------------------------------------------- |
+| Document          | vf-docx, vf-pdf, vf-pptx, vf-xlsx, vf-latex-documents     |
+| Visual/3D         | vf-blender, vf-pbr-rendering, vf-canvas-design            |
+| Media             | vf-ffmpeg-processing, vf-imagemagick                      |
+| AI/ML             | vf-comfyui, vf-pytorch-ml, vf-deepseek-reasoning          |
+| Desktop           | vf-vnc-desktop, vf-xfce-ubuntu                            |
+| MCP Integration   | vf-mcp-builder, vf-playwright-mcp                         |
+| Specialized       | vf-kicad, vf-ngspice, vf-qgis, vf-wardley-maps            |
+
+### Complete List
+
+```
+vf-algorithmic-art    vf-blender           vf-canvas-design
+vf-chrome-devtools    vf-comfyui           vf-deepseek-reasoning
+vf-docker-manager     vf-docx              vf-ffmpeg-processing
+vf-gemini-flow        vf-imagemagick       vf-import-to-ontology
+vf-jupyter-notebooks  vf-kicad             vf-latex-documents
+vf-management-api     vf-mcp-builder       vf-ngspice
+vf-ontology-enrich    vf-pbr-rendering     vf-pdf
+vf-perplexity         vf-playwright-mcp    vf-pptx
+vf-pytorch-ml         vf-qgis              vf-slack-gif-creator
+vf-vnc-desktop        vf-wardley-maps      vf-web-summary
+vf-webapp-testing     vf-xlsx              vf-zai-service
+```
+
+**Note:** VisionFlow extensions are exclusive to V2 and are not planned for migration to V3.
+
+---
+
+## Extension Categories
+
+### V2 Categories (11)
+
+| Category       | Description                     |
+| -------------- | ------------------------------- |
+| base           | Core system extensions          |
+| agile          | Project management tools        |
+| language       | Programming language support    |
+| dev-tools      | Development utilities           |
+| infrastructure | Infrastructure tools            |
+| ai             | AI/ML extensions                |
+| utilities      | General utilities               |
+| desktop        | Desktop environment             |
+| monitoring     | System monitoring               |
+| database       | Database tools                  |
+| mobile         | Mobile development              |
+
+### V3 Categories (13)
+
+| Category        | Description                    |
+| --------------- | ------------------------------ |
+| ai-agents       | Autonomous agent systems       |
+| ai-dev          | AI development tools           |
+| claude          | Claude-specific extensions     |
+| cloud           | Cloud platform integrations    |
+| desktop         | Desktop environment            |
+| devops          | DevOps tooling                 |
+| documentation   | Documentation generators       |
+| languages       | Programming language support   |
+| mcp             | MCP server integrations        |
+| package-manager | Package management             |
+| productivity    | Productivity tools             |
+| research        | Research and analysis          |
+| testing         | Testing frameworks             |
 
 ---
 
@@ -253,7 +498,7 @@ v2/
 │   ├── fly-adapter.sh
 │   ├── devpod-adapter.sh
 │   └── e2b-adapter.sh
-└── docker/lib/             (utilities + 50+ extensions)
+└── docker/lib/             (utilities + 77 extensions)
 ```
 
 **Characteristics:**
@@ -602,3 +847,4 @@ For detailed migration steps, see the companion [V2 to V3 Migration Guide](v2-v3
 ---
 
 _Generated by Claude Code research swarm - 2026-01-24_
+_Updated to v2.0.0 - 2026-01-31_

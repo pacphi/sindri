@@ -282,7 +282,7 @@ jobs:
             type=semver,pattern={{version}},prefix=v
             type=semver,pattern={{major}}.{{minor}},prefix=v
             type=raw,value=v2,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
-            type=raw,value=latest,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+            type=raw,value=v2-latest,enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
           labels: |
             org.opencontainers.image.title=Sindri v2
             org.opencontainers.image.description=Multi-cloud development environment orchestrator
@@ -372,9 +372,9 @@ jobs:
             echo "→ Signing ghcr.io/${REPO}:v2"
             cosign sign --yes "ghcr.io/${REPO}:v2"
 
-            # Sign latest tag
-            echo "→ Signing ghcr.io/${REPO}:latest"
-            cosign sign --yes "ghcr.io/${REPO}:latest"
+            # Sign v2-latest tag
+            echo "→ Signing ghcr.io/${REPO}:v2-latest"
+            cosign sign --yes "ghcr.io/${REPO}:v2-latest"
           fi
 
           echo ""

@@ -1,9 +1,9 @@
 ---
 # Sindri with local kind cluster
 # Usage:
-#   1. Create cluster: sindri k8s create --config examples/k8s/kind-minimal.sindri.yaml
-#   2. Deploy Sindri:  sindri deploy --config examples/k8s/kind-minimal.sindri.yaml
-#   3. Destroy:        sindri k8s destroy --config examples/k8s/kind-minimal.sindri.yaml
+#   1. Create cluster: sindri k8s create --config examples/v2/k8s/kind-minimal.sindri.yaml
+#   2. Deploy Sindri:  sindri deploy --config examples/v2/k8s/kind-minimal.sindri.yaml
+#   3. Destroy:        sindri k8s destroy --config examples/v2/k8s/kind-minimal.sindri.yaml
 
 version: "1.0"
 name: sindri-kind-local

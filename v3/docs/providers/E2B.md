@@ -130,9 +130,14 @@ deployment:
 
 #### Option 2: Build from Source (For Sindri Developers)
 
+> **Important:** This clones from GitHub - your changes must be pushed first!
+> For local Docker testing of uncommitted changes, use `make v3-cycle-fast` with the Docker provider.
+> See [MAINTAINER_GUIDE.md](../MAINTAINER_GUIDE.md#two-development-paths) for the full guide.
+
 **Using CLI flag:**
 
 ```bash
+# First push your changes, then:
 sindri deploy --from-source
 ```
 
@@ -145,7 +150,7 @@ deployment:
     enabled: true
     gitRef: "main"  # Optional: branch, tag, or commit SHA
 
-# Test a specific feature branch
+# Test a specific pushed feature branch
 deployment:
   provider: e2b
   buildFromSource:
@@ -153,7 +158,7 @@ deployment:
     gitRef: "feature/my-feature"
 ```
 
-This builds the E2B template from your specified Sindri repository branch, allowing you to test code changes.
+This clones from GitHub and builds the E2B template from your specified branch, allowing you to test pushed code changes.
 
 ## Deployment Commands
 

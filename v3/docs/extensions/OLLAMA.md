@@ -27,7 +27,7 @@ Ollama - Run large language models locally. Provides the ollama CLI for managing
 ## Installation
 
 ```bash
-extension-manager install ollama
+sindri extension install ollama
 ```
 
 ## Configuration
@@ -141,7 +141,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove ollama
+sindri extension remove ollama
 ```
 
 This removes:

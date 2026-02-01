@@ -28,7 +28,7 @@ Atlassian MCP server using Claude Code's native SSE transport. No API key requir
 ## Installation
 
 ```bash
-extension-manager install jira-mcp
+sindri extension install jira-mcp
 ```
 
 ## Configuration
@@ -101,7 +101,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove jira-mcp
+sindri extension remove jira-mcp
 ```
 
 Runs uninstall script and removes ~/extensions/jira-mcp.

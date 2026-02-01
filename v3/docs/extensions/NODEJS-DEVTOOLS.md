@@ -30,7 +30,7 @@ TypeScript, ESLint, Prettier, and Node.js development tools via pnpm. Provides e
 ## Installation
 
 ```bash
-extension-manager install nodejs-devtools
+sindri extension install nodejs-devtools
 ```
 
 ## Configuration
@@ -183,7 +183,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove nodejs-devtools
+sindri extension remove nodejs-devtools
 ```
 
 This removes mise tools and template files.

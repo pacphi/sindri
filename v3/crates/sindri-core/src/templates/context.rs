@@ -5,7 +5,28 @@
 use crate::types::Provider;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tera::Context;
+
+/// Embedded profiles.yaml content (compile-time inclusion)
+/// This ensures profiles.yaml is the single source of truth
+const PROFILES_YAML: &str = include_str!("../../../../profiles.yaml");
+
+/// Root structure of profiles.yaml
+#[derive(Debug, Clone, Deserialize)]
+struct ProfilesFile {
+    #[allow(dead_code)]
+    version: String,
+    display_order: Vec<String>,
+    profiles: HashMap<String, ProfileDefinition>,
+}
+
+/// Profile definition as stored in profiles.yaml
+#[derive(Debug, Clone, Deserialize)]
+struct ProfileDefinition {
+    description: String,
+    extensions: Vec<String>,
+}
 
 /// Information about an extension profile
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,93 +84,26 @@ impl ConfigInitContext {
         }
     }
 
-    /// Load profile information from embedded data
+    /// Load profile information from embedded profiles.yaml
+    ///
+    /// Reads from the compile-time embedded profiles.yaml file,
+    /// ensuring profiles are always in sync with the source of truth.
+    /// Display order is controlled by `display_order` in profiles.yaml.
     fn load_profiles() -> Vec<ProfileInfo> {
-        vec![
-            ProfileInfo {
-                name: "minimal".to_string(),
-                description: "Minimal development setup".to_string(),
-                extensions: vec!["nodejs".to_string(), "python".to_string()],
-            },
-            ProfileInfo {
-                name: "fullstack".to_string(),
-                description: "Full-stack web development".to_string(),
-                extensions: vec![
-                    "nodejs".to_string(),
-                    "python".to_string(),
-                    "docker".to_string(),
-                    "nodejs-devtools".to_string(),
-                ],
-            },
-            ProfileInfo {
-                name: "ai-dev".to_string(),
-                description: "AI/ML development environment".to_string(),
-                extensions: vec![
-                    "nodejs".to_string(),
-                    "python".to_string(),
-                    "golang".to_string(),
-                    "spec-kit".to_string(),
-                    "ollama".to_string(),
-                    "ai-toolkit".to_string(),
-                ],
-            },
-            ProfileInfo {
-                name: "anthropic-dev".to_string(),
-                description: "AI development with Anthropic toolset (v3 default - 10x performance)"
-                    .to_string(),
-                extensions: vec![
-                    "agent-manager".to_string(),
-                    "claude-flow-v3".to_string(),
-                    "agentic-qe".to_string(),
-                    "golang".to_string(),
-                    "ollama".to_string(),
-                    "ai-toolkit".to_string(),
-                ],
-            },
-            ProfileInfo {
-                name: "systems".to_string(),
-                description: "Systems programming".to_string(),
-                extensions: vec![
-                    "rust".to_string(),
-                    "golang".to_string(),
-                    "docker".to_string(),
-                    "infra-tools".to_string(),
-                ],
-            },
-            ProfileInfo {
-                name: "enterprise".to_string(),
-                description: "Enterprise development (all languages)".to_string(),
-                extensions: vec![
-                    "nodejs".to_string(),
-                    "python".to_string(),
-                    "golang".to_string(),
-                    "rust".to_string(),
-                    "ruby".to_string(),
-                    "jvm".to_string(),
-                    "dotnet".to_string(),
-                    "docker".to_string(),
-                ],
-            },
-            ProfileInfo {
-                name: "devops".to_string(),
-                description: "DevOps and infrastructure".to_string(),
-                extensions: vec![
-                    "docker".to_string(),
-                    "infra-tools".to_string(),
-                    "monitoring".to_string(),
-                    "cloud-tools".to_string(),
-                ],
-            },
-            ProfileInfo {
-                name: "mobile".to_string(),
-                description: "Mobile development".to_string(),
-                extensions: vec![
-                    "nodejs".to_string(),
-                    "linear-mcp".to_string(),
-                    "supabase-cli".to_string(),
-                ],
-            },
-        ]
+        let profiles_file: ProfilesFile = serde_yaml::from_str(PROFILES_YAML)
+            .expect("Failed to parse embedded profiles.yaml - this is a build error");
+
+        profiles_file
+            .display_order
+            .iter()
+            .filter_map(|name| {
+                profiles_file.profiles.get(name).map(|def| ProfileInfo {
+                    name: name.clone(),
+                    description: def.description.clone(),
+                    extensions: def.extensions.clone(),
+                })
+            })
+            .collect()
     }
 
     /// Convert to Tera context for template rendering

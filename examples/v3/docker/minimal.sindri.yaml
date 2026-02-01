@@ -1,0 +1,21 @@
+---
+# Sindri v3 Configuration - Docker Minimal
+# Local development with Docker provider
+version: "3.0"
+name: sindri-v3-docker-minimal
+
+deployment:
+  provider: docker
+  # v3 requires explicit image - no silent defaults
+  image: ghcr.io/pacphi/sindri:v3-latest
+  resources:
+    memory: 2GB
+    cpus: 2
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 10GB
+
+extensions:
+  profile: minimal
+  autoInstall: true

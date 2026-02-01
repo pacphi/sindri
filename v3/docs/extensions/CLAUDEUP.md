@@ -27,7 +27,7 @@ TUI tool for managing Claude Code plugins, MCPs (Model Context Protocol), and co
 ## Installation
 
 ```bash
-extension-manager install claudeup
+sindri extension install claudeup
 ```
 
 ## Configuration
@@ -99,7 +99,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove claudeup
+sindri extension remove claudeup
 ```
 
 **Requires confirmation.** Removes:

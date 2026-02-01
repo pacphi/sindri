@@ -28,7 +28,7 @@ Block's open-source AI agent that automates engineering tasks - builds projects,
 ## Installation
 
 ```bash
-extension-manager install goose
+sindri extension install goose
 ```
 
 ## Configuration
@@ -121,7 +121,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove goose
+sindri extension remove goose
 ```
 
 This removes:

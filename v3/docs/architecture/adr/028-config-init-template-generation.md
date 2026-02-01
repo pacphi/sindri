@@ -106,7 +106,7 @@ All config generation now outputs `version: "3.0"` to align with:
 ### Positive
 
 1. **Self-Documenting Configs**: Generated files serve as reference documentation
-2. **Profile Selection Works**: `--profile ai-dev` actually outputs "ai-dev"
+2. **Profile Selection Works**: `--profile anthropic-dev` actually outputs "anthropic-dev"
 3. **Provider-Aware**: Fly users see Fly options, Docker users see Docker options
 4. **Consistent Pattern**: Same template approach as provider configs (ADR-003)
 5. **Embedded Templates**: No external files needed
@@ -157,7 +157,7 @@ extensions:
   # Available profiles:
   #   minimal - Minimal development setup
   #   fullstack - Full-stack web development
-  #   ai-dev - AI/ML development environment
+  #   anthropic-dev - AI development with Anthropic toolset
   ...
 
 providers:
@@ -207,8 +207,8 @@ providers:
 
 ```bash
 # Test profile argument now works
-sindri config init --provider fly --profile ai-dev
-grep "profile: ai-dev" sindri.yaml  # ✓ Found
+sindri config init --provider fly --profile anthropic-dev
+grep "profile: anthropic-dev" sindri.yaml  # ✓ Found
 
 # Test version
 grep 'version: "3.0"' sindri.yaml  # ✓ Found

@@ -27,7 +27,7 @@ AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable
 ## Installation
 
 ```bash
-extension-manager install claude-flow-v2
+sindri extension install claude-flow-v2
 ```
 
 ## Configuration
@@ -161,7 +161,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove claude-flow-v2
+sindri extension remove claude-flow-v2
 ```
 
 **Requires confirmation.** Removes:

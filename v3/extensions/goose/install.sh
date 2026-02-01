@@ -9,16 +9,48 @@ source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 
 print_status "Installing Goose AI agent CLI..."
 
+# Determine if we have root access (for installing dependencies)
+if [[ $(id -u) -eq 0 ]]; then
+  SUDO=""
+elif sudo -n true 2>/dev/null; then
+  SUDO="sudo"
+else
+  SUDO=""
+fi
+
+# Install required X11 dependencies (goose uses libxcb for clipboard/GUI features)
+print_status "Checking for required system libraries..."
+if ! ldconfig -p 2>/dev/null | grep -q "libxcb.so.1"; then
+  print_status "Installing X11 libraries required by Goose..."
+  if [[ -n "$SUDO" ]] || [[ $(id -u) -eq 0 ]]; then
+    $SUDO apt-get update -qq 2>/dev/null || true
+    $SUDO apt-get install -y -qq libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0 2>/dev/null || {
+      print_warning "Could not install X11 libraries - goose may not work properly"
+      print_warning "Run as root: apt-get install -y libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0"
+    }
+  else
+    print_warning "Cannot install X11 libraries without root access"
+    print_warning "Ask admin to run: apt-get install -y libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0"
+  fi
+fi
+
 # Ensure ~/.local/bin exists and is in PATH
 mkdir -p "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 
-# Check if already installed
+# Check if already installed AND working
 if command_exists goose; then
-    current_version=$(goose --version 2>/dev/null || echo "unknown")
-    print_warning "Goose already installed: $current_version"
-    print_status "To upgrade, run: goose update"
-    exit 0
+    # Verify it actually runs (check for missing libraries)
+    if goose --version >/dev/null 2>&1; then
+        current_version=$(goose --version 2>/dev/null)
+        print_warning "Goose already installed: $current_version"
+        print_status "To upgrade, run: goose update"
+        exit 0
+    else
+        print_warning "Goose binary exists but is broken (missing libraries?)"
+        print_status "Removing broken installation and reinstalling..."
+        rm -f "$HOME/.local/bin/goose" 2>/dev/null || true
+    fi
 fi
 
 # Install using official Block installer script

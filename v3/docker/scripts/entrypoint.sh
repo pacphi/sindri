@@ -18,7 +18,7 @@
 #   GIT_USER_EMAIL       - Git user.email configuration
 #   GITHUB_TOKEN         - GitHub token for git credential helper
 #   SSH_PORT             - SSH daemon port (default: 2222)
-#   INSTALL_PROFILE      - Profile to install (default: minimal)
+#   INSTALL_PROFILE      - Profile to install (no default)
 #   SKIP_AUTO_INSTALL    - Set to "true" to skip automatic extension installation
 # ==============================================================================
 
@@ -311,11 +311,8 @@ GITCRED
 # install_extensions_background - Run extension installation via sindri CLI
 # ------------------------------------------------------------------------------
 # Uses sindri CLI to install extensions based on:
-# 1. sindri.yaml config file in workspace (if present) - installs extensions.active, extensions.additional, or extensions.profile
-# 2. SINDRI_PROFILE environment variable (if set) - installs named profile
-# 3. "minimal" profile (default fallback)
-#
-# Now supports both --from-config and --profile flags!
+# 1. sindri.yaml config file in workspace (if present)
+# 2. INSTALL_PROFILE environment variable (if set)
 install_extensions_background() {
     local bootstrap_marker="${SINDRI_HOME}/bootstrap-complete"
     local install_log="${SINDRI_HOME}/logs/install.log"
@@ -389,7 +386,7 @@ install_extensions_background() {
         local env_vars="$preserve_list"
 
         if [[ -f "sindri.yaml" ]]; then
-            # Priority 1: Install from sindri.yaml if present
+            # Priority 1: Install from sindri.yaml if present in workspace
             print_status "Installing extensions from sindri.yaml..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
             sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         elif [[ -n "${INSTALL_PROFILE:-}" ]]; then
@@ -397,9 +394,12 @@ install_extensions_background() {
             print_status "Installing profile: ${INSTALL_PROFILE}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
             sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         else
-            # Priority 3: Default to minimal profile
-            print_status "Installing minimal profile (default)..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install minimal --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            # No profile specified - this is a valid state
+            print_status "No extensions profile configured." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "Run 'sindri profile list' to see available profiles." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            touch "$bootstrap_marker"
+            chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
+            return 0
         fi
 
         # Capture exit code before checking it

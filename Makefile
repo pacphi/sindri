@@ -46,6 +46,10 @@ YELLOW := $(shell tput setaf 3 2>/dev/null || echo '')
 BLUE := $(shell tput setaf 4 2>/dev/null || echo '')
 RESET := $(shell tput sgr0 2>/dev/null || echo '')
 
+# Version and Git information for Docker tags
+VERSION := $(shell grep '^version' v3/Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+
 # ============================================================================
 # Dependency Checking Functions
 # ============================================================================
@@ -913,7 +917,6 @@ v3-docker-build-fast:
 	@echo "Building with cargo cache (fast incremental)..."
 	docker build \
 		-f $(V3_DIR)/Dockerfile.dev \
-		--build-arg SINDRI_VERSION=$(GIT_COMMIT) \
 		-t sindri:$(VERSION)-$(GIT_COMMIT) \
 		-t sindri:latest \
 		.
@@ -927,7 +930,6 @@ v3-docker-build-fast-nocache:
 	docker build \
 		--no-cache \
 		-f $(V3_DIR)/Dockerfile.dev \
-		--build-arg SINDRI_VERSION=$(GIT_COMMIT) \
 		-t sindri:$(VERSION)-$(GIT_COMMIT) \
 		-t sindri:latest \
 		.
@@ -1036,7 +1038,7 @@ v3-cycle-fast:
 	@sindri destroy --config $(CONFIG) -f || true
 	@$(MAKE) v3-docker-build-fast
 	@$(MAKE) v3-install
-	@sindri deploy --config $(CONFIG) --from-source
+	@sindri deploy --config $(CONFIG)
 	@echo ""
 	@echo "$(GREEN)✓ Fast cycle complete!$(RESET)"
 	@echo "  Connect: sindri connect --config $(CONFIG)"
@@ -1063,7 +1065,7 @@ v3-cycle-clean:
 		grep -v 'sindri:base-' | awk '{print $$1}' | xargs docker rmi -f 2>/dev/null || true
 	@$(MAKE) v3-docker-build-fast-nocache
 	@$(MAKE) v3-install
-	@sindri deploy --config $(CONFIG) --from-source
+	@sindri deploy --config $(CONFIG)
 	@echo ""
 	@echo "$(GREEN)✓ Clean cycle complete!$(RESET)"
 

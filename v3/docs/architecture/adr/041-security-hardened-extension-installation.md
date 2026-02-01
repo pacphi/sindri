@@ -320,6 +320,19 @@ docker-compose:
 
 Both scenarios now pass successfully.
 
+### DinD Mode Interactions
+
+The `no-new-privileges` flag is applied by `docker-compose.yml.tera` based on the DinD mode:
+
+| Mode         | no-new-privileges | sudo Works | Impact on Extensions      |
+| ------------ | ----------------- | ---------- | ------------------------- |
+| `socket`     | YES               | NO         | Sudo-free extensions only |
+| `sysbox`     | NO                | YES        | All extensions work       |
+| `privileged` | NO                | YES        | All extensions work       |
+| `none`       | NO                | YES        | All extensions work       |
+
+**Recommendation**: Extensions requiring apt packages should use sudo-free installation methods (pip, tarball extraction, user-local binaries) to ensure compatibility with `socket` mode deployments. This ADR's cloud-tools patterns serve as a reference implementation.
+
 ### Future Enhancements
 
 - **Offline Installation**: Support air-gapped environments with pre-downloaded tarballs

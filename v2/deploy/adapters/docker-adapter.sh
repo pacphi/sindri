@@ -212,7 +212,7 @@ generate_compose() {
 
 services:
   sindri:
-    image: sindri:latest
+    image: sindri:local
     container_name: ${NAME}
 EODC
 
@@ -466,9 +466,9 @@ EOJSON
         print_status "Building Docker image..."
         if [[ "$FORCE_REBUILD" == "true" ]]; then
             print_status "Forcing rebuild (--no-cache)..."
-            docker build --no-cache -t sindri:latest -f "$BASE_DIR/v2/Dockerfile" "$BASE_DIR/v2"
+            docker build --no-cache -t sindri:local -f "$BASE_DIR/v2/Dockerfile" "$BASE_DIR/v2"
         else
-            docker build -t sindri:latest -f "$BASE_DIR/v2/Dockerfile" "$BASE_DIR/v2"
+            docker build -t sindri:local -f "$BASE_DIR/v2/Dockerfile" "$BASE_DIR/v2"
         fi
     fi
 
@@ -613,7 +613,7 @@ cmd_plan() {
     fi
     echo ""
     echo "Actions:"
-    echo "  1. Build sindri:latest image"
+    echo "  1. Build sindri:local image"
     echo "  2. Generate docker-compose.yml"
     echo "  3. Resolve and inject secrets"
     echo "  4. Create volume: dev_home"

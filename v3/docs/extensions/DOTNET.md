@@ -29,7 +29,7 @@
 ## Installation
 
 ```bash
-extension-manager install dotnet
+sindri extension install dotnet
 ```
 
 ## Configuration
@@ -150,7 +150,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove dotnet
+sindri extension remove dotnet
 ```
 
 This removes:

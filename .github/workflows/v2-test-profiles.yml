@@ -30,93 +30,93 @@ on:
         type: choice
         options:
           # Individual examples - Fly.io
-          - examples/fly/minimal.sindri.yaml
-          - examples/fly/fullstack.sindri.yaml
-          - examples/fly/production.sindri.yaml
-          - examples/fly/anthropic-dev.sindri.yaml
-          - examples/fly/systems.sindri.yaml
-          - examples/fly/mobile.sindri.yaml
-          - examples/fly/gpu-ml-training.sindri.yaml
-          - examples/fly/regions/ord.sindri.yaml
-          - examples/fly/regions/ams.sindri.yaml
-          - examples/fly/regions/iad.sindri.yaml
+          - examples/v2/fly/minimal.sindri.yaml
+          - examples/v2/fly/fullstack.sindri.yaml
+          - examples/v2/fly/production.sindri.yaml
+          - examples/v2/fly/anthropic-dev.sindri.yaml
+          - examples/v2/fly/systems.sindri.yaml
+          - examples/v2/fly/mobile.sindri.yaml
+          - examples/v2/fly/gpu-ml-training.sindri.yaml
+          - examples/v2/fly/regions/ord.sindri.yaml
+          - examples/v2/fly/regions/ams.sindri.yaml
+          - examples/v2/fly/regions/iad.sindri.yaml
           # Individual examples - Docker
-          - examples/docker/minimal.sindri.yaml
-          - examples/docker/fullstack.sindri.yaml
-          - examples/docker/ai-dev.sindri.yaml
-          - examples/docker/anthropic-dev.sindri.yaml
-          - examples/docker/systems.sindri.yaml
-          - examples/docker/devops.sindri.yaml
-          - examples/docker/enterprise.sindri.yaml
-          - examples/docker/mobile.sindri.yaml
-          - examples/docker/gpu-ai-dev.sindri.yaml
+          - examples/v2/docker/minimal.sindri.yaml
+          - examples/v2/docker/fullstack.sindri.yaml
+          - examples/v2/docker/ai-dev.sindri.yaml
+          - examples/v2/docker/anthropic-dev.sindri.yaml
+          - examples/v2/docker/systems.sindri.yaml
+          - examples/v2/docker/devops.sindri.yaml
+          - examples/v2/docker/enterprise.sindri.yaml
+          - examples/v2/docker/mobile.sindri.yaml
+          - examples/v2/docker/gpu-ai-dev.sindri.yaml
           # Individual examples - DevPod AWS
-          - examples/devpod/aws/minimal.sindri.yaml
-          - examples/devpod/aws/fullstack.sindri.yaml
-          - examples/devpod/aws/ai-dev-gpu.sindri.yaml
-          - examples/devpod/aws/regions/us-east-1.sindri.yaml
-          - examples/devpod/aws/regions/eu-west-1.sindri.yaml
+          - examples/v2/devpod/aws/minimal.sindri.yaml
+          - examples/v2/devpod/aws/fullstack.sindri.yaml
+          - examples/v2/devpod/aws/ai-dev-gpu.sindri.yaml
+          - examples/v2/devpod/aws/regions/us-east-1.sindri.yaml
+          - examples/v2/devpod/aws/regions/eu-west-1.sindri.yaml
           # Individual examples - DevPod GCP
-          - examples/devpod/gcp/minimal.sindri.yaml
-          - examples/devpod/gcp/fullstack.sindri.yaml
-          - examples/devpod/gcp/ai-dev.sindri.yaml
-          - examples/devpod/gcp/gpu-inference.sindri.yaml
-          - examples/devpod/gcp/regions/europe-west1.sindri.yaml
+          - examples/v2/devpod/gcp/minimal.sindri.yaml
+          - examples/v2/devpod/gcp/fullstack.sindri.yaml
+          - examples/v2/devpod/gcp/ai-dev.sindri.yaml
+          - examples/v2/devpod/gcp/gpu-inference.sindri.yaml
+          - examples/v2/devpod/gcp/regions/europe-west1.sindri.yaml
           # Individual examples - DevPod Azure
-          - examples/devpod/azure/minimal.sindri.yaml
-          - examples/devpod/azure/regions/westeurope.sindri.yaml
+          - examples/v2/devpod/azure/minimal.sindri.yaml
+          - examples/v2/devpod/azure/regions/westeurope.sindri.yaml
           # Individual examples - DevPod DigitalOcean
-          - examples/devpod/digitalocean/minimal.sindri.yaml
-          - examples/devpod/digitalocean/regions/sfo3.sindri.yaml
+          - examples/v2/devpod/digitalocean/minimal.sindri.yaml
+          - examples/v2/devpod/digitalocean/regions/sfo3.sindri.yaml
           # Individual examples - DevPod Kubernetes
-          - examples/devpod/kubernetes/minimal.sindri.yaml
-          - examples/devpod/kubernetes/devops.sindri.yaml
-          - examples/devpod/kubernetes/systems.sindri.yaml
-          - examples/devpod/kubernetes/gpu-workload.sindri.yaml
+          - examples/v2/devpod/kubernetes/minimal.sindri.yaml
+          - examples/v2/devpod/kubernetes/devops.sindri.yaml
+          - examples/v2/devpod/kubernetes/systems.sindri.yaml
+          - examples/v2/devpod/kubernetes/gpu-workload.sindri.yaml
           # Individual examples - Profiles
-          - examples/profiles/minimal.sindri.yaml
-          - examples/profiles/fullstack.sindri.yaml
-          - examples/profiles/ai-dev.sindri.yaml
-          - examples/profiles/devops.sindri.yaml
-          - examples/profiles/enterprise.sindri.yaml
+          - examples/v2/profiles/minimal.sindri.yaml
+          - examples/v2/profiles/fullstack.sindri.yaml
+          - examples/v2/profiles/ai-dev.sindri.yaml
+          - examples/v2/profiles/devops.sindri.yaml
+          - examples/v2/profiles/enterprise.sindri.yaml
           # Individual examples - VisionFlow Profiles
-          - examples/profiles/vision-flow/visionflow-core.sindri.yaml
-          - examples/profiles/vision-flow/visionflow-creative.sindri.yaml
-          - examples/profiles/vision-flow/visionflow-data-scientist.sindri.yaml
-          - examples/profiles/vision-flow/visionflow-full.sindri.yaml
+          - examples/v2/profiles/vision-flow/visionflow-core.sindri.yaml
+          - examples/v2/profiles/vision-flow/visionflow-creative.sindri.yaml
+          - examples/v2/profiles/vision-flow/visionflow-data-scientist.sindri.yaml
+          - examples/v2/profiles/vision-flow/visionflow-full.sindri.yaml
           # Individual examples - Custom Extensions
-          - examples/custom/python-ml.sindri.yaml
-          - examples/custom/rust-wasm.sindri.yaml
-          - examples/custom/cloud-native.sindri.yaml
-          - examples/custom/polyglot-backend.sindri.yaml
-          - examples/custom/frontend-only.sindri.yaml
-          - examples/custom/minimal-golang.sindri.yaml
-          - examples/custom/security-focused.sindri.yaml
+          - examples/v2/custom/python-ml.sindri.yaml
+          - examples/v2/custom/rust-wasm.sindri.yaml
+          - examples/v2/custom/cloud-native.sindri.yaml
+          - examples/v2/custom/polyglot-backend.sindri.yaml
+          - examples/v2/custom/frontend-only.sindri.yaml
+          - examples/v2/custom/minimal-golang.sindri.yaml
+          - examples/v2/custom/security-focused.sindri.yaml
           # Individual examples - E2B
-          - examples/e2b/minimal.sindri.yaml
-          - examples/e2b/ai-dev.sindri.yaml
-          - examples/e2b/fullstack.sindri.yaml
-          - examples/e2b/ephemeral.sindri.yaml
-          - examples/e2b/cost-optimized.sindri.yaml
-          - examples/e2b/secure.sindri.yaml
+          - examples/v2/e2b/minimal.sindri.yaml
+          - examples/v2/e2b/ai-dev.sindri.yaml
+          - examples/v2/e2b/fullstack.sindri.yaml
+          - examples/v2/e2b/ephemeral.sindri.yaml
+          - examples/v2/e2b/cost-optimized.sindri.yaml
+          - examples/v2/e2b/secure.sindri.yaml
           # Individual examples - Local Kubernetes (kind/k3d)
-          - examples/k8s/kind-minimal.sindri.yaml
-          - examples/k8s/k3d-with-registry.sindri.yaml
+          - examples/v2/k8s/kind-minimal.sindri.yaml
+          - examples/v2/k8s/k3d-with-registry.sindri.yaml
           # Directories (test all in directory)
-          - examples/fly/
-          - examples/docker/
-          - examples/devpod/aws/
-          - examples/devpod/gcp/
-          - examples/devpod/azure/
-          - examples/devpod/digitalocean/
-          - examples/devpod/kubernetes/
-          - examples/devpod/
-          - examples/e2b/
-          - examples/profiles/
-          - examples/profiles/vision-flow/
-          - examples/custom/
-          - examples/k8s/
-          - examples/ # All examples
+          - examples/v2/fly/
+          - examples/v2/docker/
+          - examples/v2/devpod/aws/
+          - examples/v2/devpod/gcp/
+          - examples/v2/devpod/azure/
+          - examples/v2/devpod/digitalocean/
+          - examples/v2/devpod/kubernetes/
+          - examples/v2/devpod/
+          - examples/v2/e2b/
+          - examples/v2/profiles/
+          - examples/v2/profiles/vision-flow/
+          - examples/v2/custom/
+          - examples/v2/k8s/
+          - examples/v2/ # All v2 examples
       test-level:
         description: Test level to run
         required: true

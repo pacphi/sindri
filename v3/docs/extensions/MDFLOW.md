@@ -29,7 +29,7 @@ Multi-backend CLI that transforms markdown files into executable AI agents - run
 ## Installation
 
 ```bash
-extension-manager install mdflow
+sindri extension install mdflow
 ```
 
 ## Configuration
@@ -149,7 +149,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove mdflow
+sindri extension remove mdflow
 ```
 
 Removes mise tools (bun, npm:mdflow).

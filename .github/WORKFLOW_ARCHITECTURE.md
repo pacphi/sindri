@@ -77,20 +77,30 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 └── dependabot.yml                # Dependency updates
 
 examples/                         # Test fixtures AND user examples
-├── fly/
-│   └── regions/                  # Region-specific examples
-├── v2/docker/
-├── devpod/
-│   ├── aws/
+├── README.md                     # Overview of v2/ vs v3/ structure
+├── v2/                           # v2 (Bash/Docker) examples
+│   ├── fly/
 │   │   └── regions/
-│   ├── gcp/
-│   │   └── regions/
-│   ├── azure/
-│   │   └── regions/
-│   ├── digitalocean/
-│   │   └── regions/
-│   └── kubernetes/               # K8s examples (uses kind in CI if no KUBECONFIG)
-└── profiles/
+│   ├── docker/
+│   ├── devpod/
+│   │   ├── aws/
+│   │   │   └── regions/
+│   │   ├── gcp/
+│   │   │   └── regions/
+│   │   ├── azure/
+│   │   │   └── regions/
+│   │   ├── digitalocean/
+│   │   │   └── regions/
+│   │   └── kubernetes/
+│   ├── e2b/
+│   ├── k8s/
+│   ├── custom/
+│   └── profiles/
+│       └── vision-flow/
+└── v3/                           # v3 (Rust CLI) examples
+    ├── docker/
+    ├── fly/
+    └── profiles/
 
 v2/test/                          # v2 Test suites
 ├── unit/
@@ -385,7 +395,7 @@ Config-driven testing for sindri.yaml files:
 # Example: Test all Fly.io examples
 - uses: ./.github/workflows/v2-test-profiles.yml
   with:
-    config-path: examples/fly/
+    config-path: examples/v2/fly/
     test-level: quick
 ```
 
@@ -556,7 +566,7 @@ Reusable deployment accepting only a config file:
 ```yaml
 - uses: ./.github/workflows/v2-deploy-sindri.yml
   with:
-    config-path: examples/fly/minimal.sindri.yaml
+    config-path: examples/v2/fly/minimal.sindri.yaml
 ```
 
 ### Teardown Workflow (`v2-teardown-sindri.yml`)
@@ -566,7 +576,7 @@ Reusable cleanup accepting only a config file:
 ```yaml
 - uses: ./.github/workflows/v2-teardown-sindri.yml
   with:
-    config-path: examples/fly/minimal.sindri.yaml
+    config-path: examples/v2/fly/minimal.sindri.yaml
     force: true
 ```
 
@@ -660,7 +670,7 @@ The `.github/scripts/` directory contains test utilities:
 
 ```text
 ┌───────────────────────────────────┐
-│  examples/fly/minimal.sindri.yaml │
+│  examples/v2/fly/minimal.sindri.yaml │
 └────────────────┬──────────────────┘
                  │
                  ▼
@@ -767,15 +777,15 @@ This enables fast CI feedback without requiring users to maintain external Kuber
 
 Two directories serve different Kubernetes use cases:
 
-| Directory                     | Purpose                                             | Used By CI         |
-| ----------------------------- | --------------------------------------------------- | ------------------ |
-| `examples/devpod/kubernetes/` | Deploy Sindri TO an existing K8s cluster via DevPod | Yes (`devpod-k8s`) |
-| `examples/k8s/`               | Create AND deploy to local clusters (kind, k3d)     | No (manual use)    |
+| Directory                        | Purpose                                             | Used By CI         |
+| -------------------------------- | --------------------------------------------------- | ------------------ |
+| `examples/v2/devpod/kubernetes/` | Deploy Sindri TO an existing K8s cluster via DevPod | Yes (`devpod-k8s`) |
+| `examples/v2/k8s/`               | Create AND deploy to local clusters (kind, k3d)     | No (manual use)    |
 
 **CI Config Path Selection:**
 
-- `devpod-k8s` provider → `examples/devpod/kubernetes/minimal.sindri.yaml`
-- The `examples/k8s/` configs are for users who want to create local clusters first
+- `devpod-k8s` provider → `examples/v2/devpod/kubernetes/minimal.sindri.yaml`
+- The `examples/v2/k8s/` configs are for users who want to create local clusters first
 
 **KUBECONFIG Decision Flow:**
 
@@ -1024,14 +1034,14 @@ test-level: quick
 ### Test Specific Provider Configs (v2-test-profiles.yml)
 
 ```yaml
-config-path: examples/fly/
+config-path: examples/v2/fly/
 test-level: profile
 ```
 
 ### Test Single Configuration (v2-test-profiles.yml)
 
 ```yaml
-config-path: examples/fly/minimal.sindri.yaml
+config-path: examples/v2/fly/minimal.sindri.yaml
 test-level: all
 ```
 
@@ -1055,11 +1065,11 @@ extensions: all
 ./test/unit/yaml/run-all-yaml-tests.sh
 
 # Test specific config
-./v2/cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+./v2/cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --suite smoke
 
 # Deploy and connect
-./v2/cli/sindri deploy --config examples/fly/minimal.sindri.yaml
-./v2/cli/sindri connect --config examples/fly/minimal.sindri.yaml
+./v2/cli/sindri deploy --config examples/v2/fly/minimal.sindri.yaml
+./v2/cli/sindri connect --config examples/v2/fly/minimal.sindri.yaml
 ```
 
 ## Adding New Test Scenarios
@@ -1126,7 +1136,7 @@ Extensions are automatically tested via `v2-test-extensions.yml`:
 ```bash
 # Local debugging
 export DEBUG=true
-./v2/cli/sindri test --config examples/fly/minimal.sindri.yaml --suite smoke
+./v2/cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --suite smoke
 ```
 
 ## Future Enhancements

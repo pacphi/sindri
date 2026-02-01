@@ -95,14 +95,14 @@ See [Architecture Decision Records](docs/architecture/adr/README.md) for detaile
 
 Pre-configured extension bundles for common use cases:
 
-| Profile      | Includes                          | Best For               |
-| ------------ | --------------------------------- | ---------------------- |
-| `minimal`    | Node.js, Python                   | Quick tasks, scripting |
-| `fullstack`  | Node.js, Python, Docker, devtools | Web development        |
-| `ai-dev`     | Python, AI toolkit, Jupyter       | ML/AI projects         |
-| `systems`    | Rust, Go, Docker                  | Systems programming    |
-| `devops`     | Docker, Terraform, cloud tools    | Infrastructure         |
-| `enterprise` | All languages + infrastructure    | Large projects         |
+| Profile         | Includes                          | Best For               |
+| --------------- | --------------------------------- | ---------------------- |
+| `minimal`       | Node.js, Python                   | Quick tasks, scripting |
+| `fullstack`     | Node.js, Python, Docker, devtools | Web development        |
+| `anthropic-dev` | Claude tools, AI agents, agentic  | AI/Anthropic projects  |
+| `systems`       | Rust, Go, Docker                  | Systems programming    |
+| `devops`        | Docker, Terraform, cloud tools    | Infrastructure         |
+| `enterprise`    | All languages + infrastructure    | Large projects         |
 
 ## System Requirements
 

@@ -152,7 +152,7 @@ capabilities:
         message: |
           ✓ Claude CodePro is already installed
 
-          To reinstall: extension-manager upgrade claude-codepro
+          To reinstall: sindri extension upgrade claude-codepro
 bom:
   tools:
     - name: claude-codepro

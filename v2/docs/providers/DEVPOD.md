@@ -142,15 +142,15 @@ DevContainer features add capabilities:
 
 DevPod is a **meta-provider** that can deploy to multiple backends:
 
-| Backend        | CLI Provider   | sindri.yaml `type` | Example Configs                 |
-| -------------- | -------------- | ------------------ | ------------------------------- |
-| Docker (local) | `docker`       | `docker`           | `examples/devpod/`              |
-| AWS EC2        | `aws`          | `aws`              | `examples/devpod/aws/`          |
-| GCP Compute    | `gcp`          | `gcp`              | `examples/devpod/gcp/`          |
-| Azure VMs      | `azure`        | `azure`            | `examples/devpod/azure/`        |
-| DigitalOcean   | `digitalocean` | `digitalocean`     | `examples/devpod/digitalocean/` |
-| Kubernetes     | `kubernetes`   | `kubernetes`       | `examples/devpod/kubernetes/`   |
-| SSH Host       | `ssh`          | `ssh`              | N/A                             |
+| Backend        | CLI Provider   | sindri.yaml `type` | Example Configs                    |
+| -------------- | -------------- | ------------------ | ---------------------------------- |
+| Docker (local) | `docker`       | `docker`           | `examples/v2/devpod/`              |
+| AWS EC2        | `aws`          | `aws`              | `examples/v2/devpod/aws/`          |
+| GCP Compute    | `gcp`          | `gcp`              | `examples/v2/devpod/gcp/`          |
+| Azure VMs      | `azure`        | `azure`            | `examples/v2/devpod/azure/`        |
+| DigitalOcean   | `digitalocean` | `digitalocean`     | `examples/v2/devpod/digitalocean/` |
+| Kubernetes     | `kubernetes`   | `kubernetes`       | `examples/v2/devpod/kubernetes/`   |
+| SSH Host       | `ssh`          | `ssh`              | N/A                                |
 
 ### Docker (Local)
 
@@ -198,10 +198,10 @@ providers: devpod-k8s # Kind cluster auto-created
 
 **Example directories:**
 
-| Directory                     | Purpose                        | Used By              |
-| ----------------------------- | ------------------------------ | -------------------- |
-| `examples/devpod/kubernetes/` | Deploy to existing K8s cluster | CI (`devpod-k8s`)    |
-| `examples/k8s/`               | Create local cluster + deploy  | Manual local testing |
+| Directory                        | Purpose                        | Used By              |
+| -------------------------------- | ------------------------------ | -------------------- |
+| `examples/v2/devpod/kubernetes/` | Deploy to existing K8s cluster | CI (`devpod-k8s`)    |
+| `examples/v2/k8s/`               | Create local cluster + deploy  | Manual local testing |
 
 ### AWS
 

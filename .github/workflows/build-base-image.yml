@@ -239,29 +239,3 @@ jobs:
           echo "1. Re-run this workflow" >> $GITHUB_STEP_SUMMARY
           echo "2. Build locally: \`make v3-docker-build-base\`" >> $GITHUB_STEP_SUMMARY
           echo "3. Build single arch: Remove one platform and retry" >> $GITHUB_STEP_SUMMARY
-
-  # Cleanup old base images
-  cleanup-old-images:
-    name: Cleanup Old Base Images
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: success() && github.event_name != 'pull_request'
-    permissions:
-      packages: write
-
-    steps:
-      - name: Delete old base image versions
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: ${{ github.event.repository.name }}
-          package-type: container
-          min-versions-to-keep: 5
-          ignore-versions: '^base-(latest|[0-9]+\.[0-9]+)$'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cleanup summary
-        run: |
-          echo "## Package Cleanup" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Removed old base image versions (keeping last 5)" >> $GITHUB_STEP_SUMMARY
-          echo "Preserved: base-latest, base-X.Y (major.minor versions)" >> $GITHUB_STEP_SUMMARY

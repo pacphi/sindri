@@ -27,7 +27,7 @@ Go 1.25 via mise. Provides a complete Go development environment with proper wor
 ## Installation
 
 ```bash
-extension-manager install golang
+sindri extension install golang
 ```
 
 ## Configuration
@@ -114,7 +114,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove golang
+sindri extension remove golang
 ```
 
 This removes the mise configuration and Go tools.

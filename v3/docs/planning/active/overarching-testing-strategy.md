@@ -474,7 +474,7 @@ gh workflow run v3-packer-test.yml -f clouds='["aws"]' -f profile=minimal
 # Build image with extensions, test it, validate extensions work
 gh workflow run v3-packer-build.yml \
   -f clouds='["aws"]' \
-  -f profile=ai-dev \
+  -f profile=anthropic-dev \
   -f extensions=python,nodejs,rust
 
 # Then run comprehensive tests

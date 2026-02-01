@@ -1,0 +1,226 @@
+---
+# .github/workflows/v3-test-profiles.yml
+# Test sindri.yaml configuration files from examples/v3 directory
+# Tests profile-based deployments across different providers (v3 Rust CLI)
+name: "v3: Test Profiles"
+
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: Path to sindri.yaml file (or directory to test all)
+        required: true
+        type: string
+      test-level:
+        description: Test level to run
+        required: false
+        type: string
+        default: quick
+      skip-cleanup:
+        description: Skip cleanup for debugging
+        required: false
+        type: boolean
+        default: false
+
+  workflow_dispatch:
+    inputs:
+      config-path:
+        description: Config file or directory
+        required: true
+        type: choice
+        options:
+          # Individual examples - Docker
+          - examples/v3/docker/minimal.sindri.yaml
+          - examples/v3/docker/fullstack.sindri.yaml
+          - examples/v3/docker/anthropic-dev.sindri.yaml
+          # Individual examples - Fly.io
+          - examples/v3/fly/minimal.sindri.yaml
+          - examples/v3/fly/production.sindri.yaml
+          # Individual examples - Profiles
+          - examples/v3/profiles/enterprise.sindri.yaml
+          # Directories (test all in directory)
+          - examples/v3/docker/
+          - examples/v3/fly/
+          - examples/v3/profiles/
+          - examples/v3/  # All v3 examples
+      test-level:
+        description: Test level to run
+        required: true
+        type: choice
+        default: quick
+        options:
+          - quick
+          - profile
+          - all
+      skip-cleanup:
+        description: Skip cleanup for debugging
+        required: false
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-cli:
+    name: Build Sindri v3 CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            v3/target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('v3/**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: |
+          cd v3
+          cargo build --release
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sindri-cli
+          path: v3/target/release/sindri
+          retention-days: 1
+
+  discover-configs:
+    name: Discover Test Configurations
+    runs-on: ubuntu-latest
+    outputs:
+      configs: ${{ steps.discover.outputs.configs }}
+      count: ${{ steps.discover.outputs.count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Discover sindri.yaml files
+        id: discover
+        run: |
+          CONFIG_PATH="${{ inputs.config-path }}"
+
+          if [[ -f "$CONFIG_PATH" ]]; then
+            # Single file
+            CONFIGS=$(echo "[\"$CONFIG_PATH\"]")
+          elif [[ -d "$CONFIG_PATH" ]]; then
+            # Directory - find all sindri.yaml files
+            CONFIGS=$(find "$CONFIG_PATH" -name "*.sindri.yaml" -type f | \
+              jq -R . | jq -sc .)
+          else
+            echo "Error: $CONFIG_PATH is not a file or directory"
+            exit 1
+          fi
+
+          COUNT=$(echo "$CONFIGS" | jq '. | length')
+
+          echo "configs=$CONFIGS" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Found $COUNT configuration(s) to test"
+
+  test-config:
+    name: Test ${{ matrix.config }}
+    needs: [build-cli, discover-configs]
+    if: needs.discover-configs.outputs.count > 0
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        config: ${{ fromJson(needs.discover-configs.outputs.configs) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download CLI artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sindri-cli
+          path: ./bin
+
+      - name: Make CLI executable
+        run: chmod +x ./bin/sindri
+
+      - name: Install yq
+        run: pip install yq
+
+      - name: Parse sindri.yaml
+        id: parse
+        run: |
+          CONFIG="${{ matrix.config }}"
+
+          # Extract key values
+          NAME=$(yq '.name' "$CONFIG")
+          PROVIDER=$(yq '.deployment.provider' "$CONFIG")
+          PROFILE=$(yq '.extensions.profile // "minimal"' "$CONFIG")
+          VERSION=$(yq '.version' "$CONFIG")
+
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "provider=$PROVIDER" >> $GITHUB_OUTPUT
+          echo "profile=$PROFILE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "config-path=$CONFIG" >> $GITHUB_OUTPUT
+
+          echo "Testing: $NAME (provider: $PROVIDER, profile: $PROFILE, version: $VERSION)"
+
+      - name: Validate v3 version
+        run: |
+          VERSION="${{ steps.parse.outputs.version }}"
+          if [[ "$VERSION" != "3.0" ]] && [[ "$VERSION" != '"3.0"' ]]; then
+            echo "Error: Expected version '3.0' but got '$VERSION'"
+            echo "v3 examples must use version: \"3.0\""
+            exit 1
+          fi
+
+      - name: Setup Fly.io CLI
+        if: steps.parse.outputs.provider == 'fly'
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Validate configuration
+        run: |
+          ./bin/sindri config validate --config "${{ matrix.config }}"
+
+      - name: Deploy (dry-run for CI)
+        id: deploy
+        run: |
+          # Dry-run deployment to validate configuration
+          ./bin/sindri deploy --config "${{ matrix.config }}" --dry-run
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Teardown
+        if: always() && inputs.skip-cleanup != true
+        run: |
+          # Cleanup if not dry-run
+          ./bin/sindri destroy --config "${{ matrix.config }}" --force || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  summary:
+    name: Test Summary
+    needs: [discover-configs, test-config]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## v3 Profile Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tested ${{ needs.discover-configs.outputs.count }} configuration(s)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Config | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          echo "See individual job results above for details." >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,59 @@
+---
+# Sindri v3 Configuration - Fly.io Production
+# Production-grade deployment with signature verification and monitoring
+version: "3.0"
+name: sindri-v3-fly-production
+
+deployment:
+  provider: fly
+  # Production: use image_config with full verification
+  image_config:
+    registry: ghcr.io/pacphi/sindri
+    version: "3.0.0"                 # Pin to specific version
+    resolution_strategy: explicit    # No automatic resolution
+    verify_signature: true           # Cosign keyless signature verification
+    verify_provenance: true          # SLSA provenance attestation
+    pull_policy: Always              # Always pull to ensure latest digest
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 50GB
+
+extensions:
+  profile: enterprise
+  autoInstall: true
+
+secrets:
+  # SSH key for secure access
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+    required: true
+
+  # Anthropic for claude-cli (enterprise profile includes claude-cli)
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  # GitHub for source control
+  - name: GITHUB_TOKEN
+    source: env
+    required: true
+
+  # Git user configuration
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+providers:
+  fly:
+    region: ord                  # Chicago for US operations
+    autoStopMachines: false      # Keep running for production
+    autoStartMachines: true
+    cpuKind: performance         # Dedicated CPU
+    sshPort: 10022
+    # organization: my-org       # Fly.io organization

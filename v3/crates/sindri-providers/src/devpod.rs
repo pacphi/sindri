@@ -392,7 +392,7 @@ impl DevPodProvider {
         if provider_type == "kubernetes" {
             if let Some(local_cluster) = self.detect_local_k8s_cluster(k8s_context).await {
                 // Build and load into local cluster
-                let image_tag = "sindri:latest";
+                let image_tag = "sindri:local";
                 self.build_image(image_tag, &dockerfile, repo_dir, &sindri_version)
                     .await?;
                 self.load_image_to_local_cluster(image_tag, &local_cluster)

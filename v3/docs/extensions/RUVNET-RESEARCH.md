@@ -32,7 +32,7 @@ AI research tools including Goalie goal management and Research-Swarm multi-agen
 ## Installation
 
 ```bash
-extension-manager install ruvnet-research
+sindri extension install ruvnet-research
 ```
 
 ## Configuration
@@ -122,7 +122,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove ruvnet-research
+sindri extension remove ruvnet-research
 ```
 
 Removes mise tools (npm:goalie, npm:research-swarm).

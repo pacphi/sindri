@@ -32,7 +32,7 @@ Claude Code CLI proxy for OpenRouter models - run Claude Code with any OpenRoute
 ## Installation
 
 ```bash
-extension-manager install claudish
+sindri extension install claudish
 ```
 
 ## Configuration
@@ -117,7 +117,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove claudish
+sindri extension remove claudish
 ```
 
 This removes:

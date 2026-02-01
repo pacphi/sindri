@@ -36,7 +36,7 @@ jobs:
           yamllint --strict \
             v2/docker/lib/*.yaml \
             v2/docker/lib/extensions/*/extension.yaml \
-            examples/**/*.yaml
+            examples/v2/**/*.yaml
 
   lint-v3:
     name: YAML Lint (v3)
@@ -61,6 +61,11 @@ jobs:
 
           if [[ -d v3/schemas ]]; then
             find v3/schemas -name "*.yaml" -o -name "*.yml" | xargs yamllint --strict || echo "No v3 schema YAML found"
+          fi
+
+          # Validate v3 examples
+          if [[ -d examples/v3 ]]; then
+            yamllint --strict examples/v3/**/*.yaml
           fi
 
   lint-github:

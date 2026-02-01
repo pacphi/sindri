@@ -77,7 +77,8 @@ apt-get update
 apt-get install -y --no-install-recommends \
     ca-certificates curl wget git openssh-server sudo \
     locales tzdata fontconfig unzip zip \
-    build-essential pkg-config libssl-dev
+    build-essential pkg-config libssl-dev \
+    nano vim
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 apt-get clean
@@ -120,11 +121,20 @@ RUN apt-get update && \
 # ==============================================================================
 FROM runtime-base
 
+# Copy Rust toolchain from builder stage
+COPY --from=rust-builder-base /usr/local/cargo /usr/local/cargo
+COPY --from=rust-builder-base /usr/local/rustup /usr/local/rustup
+
+# Set Rust environment variables
+ENV CARGO_HOME=/usr/local/cargo \
+    RUSTUP_HOME=/usr/local/rustup \
+    PATH="/usr/local/cargo/bin:${PATH}"
+
 # Copy GitHub CLI from parallel build
 COPY --from=gh-downloader /gh /usr/local/bin/gh
 
-# Verify GitHub CLI works
-RUN gh --version
+# Verify tools work
+RUN gh --version && rustc --version && cargo --version
 
 # Create docker directories (for scripts/config to be added by Dockerfile.dev)
 RUN mkdir -p /docker/scripts /docker/config && \

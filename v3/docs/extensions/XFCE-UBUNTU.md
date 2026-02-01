@@ -31,7 +31,7 @@ XFCE desktop with xRDP remote access for GUI development. Provides a lightweight
 ## Installation
 
 ```bash
-extension-manager install xfce-ubuntu
+sindri extension install xfce-ubuntu
 ```
 
 ## Configuration
@@ -151,7 +151,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove xfce-ubuntu
+sindri extension remove xfce-ubuntu
 ```
 
 **Requires confirmation.** Removes:

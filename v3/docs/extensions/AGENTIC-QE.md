@@ -28,7 +28,7 @@ Agentic Quality Engineering v3 with AI-powered test generation, coverage analysi
 ## Installation
 
 ```bash
-extension-manager install agentic-qe
+sindri extension install agentic-qe
 ```
 
 ## Configuration
@@ -144,7 +144,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove agentic-qe
+sindri extension remove agentic-qe
 ```
 
 **Requires confirmation.** Removes:

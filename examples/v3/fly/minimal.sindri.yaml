@@ -1,0 +1,35 @@
+---
+# Sindri v3 Configuration - Fly.io Minimal
+# Cloud development with Fly.io and explicit image
+version: "3.0"
+name: sindri-v3-fly-minimal
+
+deployment:
+  provider: fly
+  # v3 supports image override OR Dockerfile build (not silent default)
+  image: ghcr.io/pacphi/sindri:v3-latest
+  resources:
+    memory: 2GB
+    cpus: 2
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 10GB
+
+extensions:
+  profile: minimal
+  autoInstall: true
+
+secrets:
+  # SSH key for VS Code Remote-SSH access
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+
+providers:
+  fly:
+    region: sjc                # San Jose, US West
+    autoStopMachines: true     # Suspend when idle (cost savings)
+    autoStartMachines: true    # Resume on connection
+    cpuKind: shared            # shared | performance
+    sshPort: 10022

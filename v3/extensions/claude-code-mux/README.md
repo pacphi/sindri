@@ -19,7 +19,7 @@ Claude Code Mux (CCM) enables intelligent model routing across multiple AI servi
 ## Installation
 
 ```bash
-./cli/extension-manager install claude-code-mux
+./cli/sindri extension install claude-code-mux
 ```
 
 ## Quickstart (Recommended)
@@ -211,7 +211,7 @@ Configure OAuth in the Providers tab of the admin UI.
 ## Upgrading
 
 ```bash
-./cli/extension-manager upgrade claude-code-mux
+./cli/sindri extension upgrade claude-code-mux
 ```
 
 ## Troubleshooting

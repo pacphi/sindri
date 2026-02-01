@@ -1,8 +1,0 @@
-[tools]
-haskell = "9.8"
-hls = "2.12.0.0"
-
-[env]
-CABAL_DIR = "~/.cabal"
-STACK_ROOT = "~/.stack"
-_.path = ["~/.cabal/bin", "~/.local/bin"]

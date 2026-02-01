@@ -23,7 +23,7 @@ Tmux workspace management with helper scripts and auto-start functionality. Prov
 ## Installation
 
 ```bash
-extension-manager install tmux-workspace
+sindri extension install tmux-workspace
 ```
 
 ## Configuration
@@ -138,7 +138,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove tmux-workspace
+sindri extension remove tmux-workspace
 ```
 
 **Requires confirmation.** Removes:

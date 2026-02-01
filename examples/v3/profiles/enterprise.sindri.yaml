@@ -1,0 +1,101 @@
+---
+# Sindri v3 Configuration - Enterprise Profile
+# Full enterprise development with claude-cli and comprehensive tooling
+version: "3.0"
+name: sindri-v3-enterprise
+
+deployment:
+  provider: docker
+  image_config:
+    registry: ghcr.io/pacphi/sindri
+    version: "^3.0.0"
+    verify_signature: true
+    verify_provenance: true
+    pull_policy: IfNotPresent
+  resources:
+    memory: 16GB
+    cpus: 8
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 100GB
+
+extensions:
+  # enterprise profile in v3 includes claude-cli
+  profile: enterprise
+  autoInstall: true
+
+secrets:
+  # Core authentication
+  - name: AUTHORIZED_KEYS
+    source: env
+    fromFile: ~/.ssh/id_ed25519.pub
+
+  # Git configuration
+  - name: GITHUB_TOKEN
+    source: env
+    required: true
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+  # AI services - claude-cli (included in enterprise)
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  # Cloud providers
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+  - name: AWS_DEFAULT_REGION
+    source: env
+  - name: AZURE_CLIENT_ID
+    source: env
+  - name: AZURE_CLIENT_SECRET
+    source: env
+  - name: AZURE_TENANT_ID
+    source: env
+  - name: GOOGLE_APPLICATION_CREDENTIALS
+    source: env
+
+  # Infrastructure as code
+  - name: PULUMI_ACCESS_TOKEN
+    source: env
+  - name: TERRAFORM_TOKEN
+    source: env
+
+  # Container registries
+  - name: DOCKER_USERNAME
+    source: env
+  - name: DOCKER_PASSWORD
+    source: env
+
+  # Project management
+  - name: LINEAR_API_KEY
+    source: env
+  - name: JIRA_URL
+    source: env
+  - name: JIRA_USERNAME
+    source: env
+  - name: JIRA_API_TOKEN
+    source: env
+
+  # Backend services
+  - name: SUPABASE_ACCESS_TOKEN
+    source: env
+  - name: DATABASE_URL
+    source: env
+
+providers:
+  docker:
+    network: bridge
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # API server
+      - "3000:3000"   # Web UI
+      - "5173:5173"   # Vite dev server
+      - "5432:5432"   # PostgreSQL
+      - "6379:6379"   # Redis

@@ -32,7 +32,7 @@ Apache Guacamole web-based remote desktop gateway. Provides browser-based access
 ## Installation
 
 ```bash
-extension-manager install guacamole
+sindri extension install guacamole
 ```
 
 ## Configuration
@@ -142,7 +142,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove guacamole
+sindri extension remove guacamole
 ```
 
 **Requires confirmation.** Runs uninstall.sh script.

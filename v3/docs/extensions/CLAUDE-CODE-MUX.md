@@ -29,7 +29,7 @@ High-performance AI routing proxy with automatic failover across 18+ providers (
 ## Installation
 
 ```bash
-extension-manager install claude-code-mux
+sindri extension install claude-code-mux
 ```
 
 ## Configuration
@@ -148,7 +148,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove claude-code-mux
+sindri extension remove claude-code-mux
 ```
 
 **Requires confirmation.** Removes:

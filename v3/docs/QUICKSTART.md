@@ -77,7 +77,7 @@ sindri 3.0.0
 # Create a project directory
 mkdir my-dev-env && cd my-dev-env
 
-# Initialize with defaults (Docker provider, minimal profile)
+# Initialize with defaults (Docker provider)
 sindri config init
 
 # Or specify provider and profile
@@ -264,14 +264,14 @@ sindri destroy
 
 Choose a profile based on your development needs:
 
-| Profile      | Extensions                        | Best For               |
-| ------------ | --------------------------------- | ---------------------- |
-| `minimal`    | Node.js, Python                   | Quick tasks, scripting |
-| `fullstack`  | Node.js, Python, Docker, devtools | Web development        |
-| `ai-dev`     | Python, AI toolkit, Jupyter       | ML/AI projects         |
-| `systems`    | Rust, Go, Docker                  | Systems programming    |
-| `devops`     | Docker, Terraform, cloud tools    | Infrastructure         |
-| `enterprise` | All languages + infrastructure    | Large projects         |
+| Profile         | Extensions                        | Best For               |
+| --------------- | --------------------------------- | ---------------------- |
+| `minimal`       | Node.js, Python                   | Quick tasks, scripting |
+| `fullstack`     | Node.js, Python, Docker, devtools | Web development        |
+| `anthropic-dev` | Claude tools, AI agents, agentic  | AI/Anthropic projects  |
+| `systems`       | Rust, Go, Docker                  | Systems programming    |
+| `devops`        | Docker, Terraform, cloud tools    | Infrastructure         |
+| `enterprise`    | All languages + infrastructure    | Large projects         |
 
 Set your profile in `sindri.yaml`:
 
@@ -284,16 +284,16 @@ Or install extensions individually inside your environment:
 
 ```bash
 # Inside the container
-extension-manager install nodejs
-extension-manager install python
-extension-manager install docker
+sindri extension install nodejs
+sindri extension install python
+sindri extension install docker
 ```
 
 ## Next Steps
 
 - **[Getting Started Guide](GETTING_STARTED.md)** - Detailed setup instructions
 - **[Image Management](IMAGE_MANAGEMENT.md)** - Container versioning and security
-- **[Examples](../../examples/README.md)** - 60+ ready-to-use configurations
+- **[Examples](../../examples/v3/)** - Ready-to-use V3 configurations
 - **Architecture Decisions** - See `docs/architecture/adr/` for design rationale
 
 ## CLI Command Reference

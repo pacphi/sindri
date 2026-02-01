@@ -19,7 +19,7 @@ Grok CLI is installed automatically as part of the ai-toolkit extension via mise
 
 ```bash
 # Automatic installation (recommended)
-extension-manager install ai-toolkit
+sindri extension install ai-toolkit
 
 # Manual installation via mise
 mise use npm:@vibe-kit/grok-cli@latest

@@ -1,11 +1,10 @@
 ---
 metadata:
   name: haskell
-  version: 1.0.1
-  description: Haskell development environment with GHC, Cabal, Stack, and HLS
+  version: 2.0.0
+  description: Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup
   category: language
-  dependencies:
-    - mise-config
+  author: Sindri Team
 
 requirements:
   domains:
@@ -13,18 +12,22 @@ requirements:
     - hackage.haskell.org
     - stackage.org
     - downloads.haskell.org
+    - get-ghcup.haskell.org
   diskSpace: 6000
   memory: 4096
-  installTime: 180
+  installTime: 300
 
 install:
-  method: mise
-  mise:
-    configFile: mise.toml
-    reshimAfterInstall: true
+  method: script
+  script:
+    path: install.sh
+    timeout: 900
 
 configure:
   environment:
+    - key: GHCUP_INSTALL_BASE_PREFIX
+      value: "${HOME}"
+      scope: bashrc
     - key: CABAL_DIR
       value: "~/.cabal"
       scope: bashrc
@@ -44,36 +47,43 @@ validate:
       expectedPattern: "haskell-language-server"
 
 remove:
-  mise:
-    removeConfig: true
-    tools: [haskell, hls]
+  method: script
+  script:
+    path: remove.sh
 
 bom:
   tools:
+    - name: ghcup
+      version: dynamic
+      source: script
+      type: cli-tool
+      license: LGPL-3.0
+      homepage: https://www.haskell.org/ghcup
+      purl: pkg:generic/ghcup
     - name: ghc
       version: dynamic
-      source: mise
+      source: script
       type: compiler
       license: BSD-3-Clause
       homepage: https://www.haskell.org/ghc
       purl: pkg:generic/ghc
     - name: cabal
       version: dynamic
-      source: mise
+      source: script
       type: package-manager
       license: BSD-3-Clause
       homepage: https://www.haskell.org/cabal
       purl: pkg:generic/cabal
     - name: stack
       version: dynamic
-      source: mise
+      source: script
       type: cli-tool
       license: BSD-3-Clause
       homepage: https://docs.haskellstack.org
       purl: pkg:generic/stack
     - name: haskell-language-server
       version: dynamic
-      source: mise
+      source: script
       type: server
       license: Apache-2.0
       homepage: https://haskell-language-server.readthedocs.io

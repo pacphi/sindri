@@ -30,7 +30,7 @@ AI orchestration and multi-model collaboration MCP server with 18 specialized to
 ## Installation
 
 ```bash
-extension-manager install pal-mcp-server
+sindri extension install pal-mcp-server
 ```
 
 ## Configuration
@@ -97,7 +97,7 @@ scripts/validate.sh
 ## Removal
 
 ```bash
-extension-manager remove pal-mcp-server
+sindri extension remove pal-mcp-server
 ```
 
 **Requires confirmation.**

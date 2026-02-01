@@ -39,7 +39,7 @@ AI CLI tools and coding assistants including Fabric, Codex, Gemini, Droid, and G
 ## Installation
 
 ```bash
-extension-manager install ai-toolkit
+sindri extension install ai-toolkit
 ```
 
 ## Configuration
@@ -136,7 +136,7 @@ The extension validates the following commands:
 ## Removal
 
 ```bash
-extension-manager remove ai-toolkit
+sindri extension remove ai-toolkit
 ```
 
 This removes:
