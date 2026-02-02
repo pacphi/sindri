@@ -581,6 +581,26 @@ jobs:
 
           ls -lh release-assets/
 
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          echo "Generating SHA256 checksums..."
+
+          # Generate checksums for all binaries
+          sha256sum sindri-*.tar.gz sindri-*.zip 2>/dev/null > checksums.txt || true
+
+          # Also generate individual .sha256 files for each asset
+          for file in sindri-*.tar.gz sindri-*.zip; do
+            if [[ -f "$file" ]]; then
+              sha256sum "$file" > "${file}.sha256"
+              echo "  ✓ $file"
+            fi
+          done
+
+          echo ""
+          echo "Checksums:"
+          cat checksums.txt
+
       - name: Create install.sh script
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
@@ -693,13 +713,20 @@ jobs:
 
           ### Checksums
 
-          Download the release binaries and verify their integrity:
+          Download and verify release binaries using the checksums file:
 
           ```bash
-          # Calculate SHA256 checksum
-          sha256sum sindri-vVERSION_PLACEHOLDER-*.tar.gz
+          # Download checksums file
+          curl -LO https://github.com/REPO_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/checksums.txt
 
-          # Compare with checksums in release notes
+          # Download your platform binary
+          curl -LO https://github.com/REPO_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/sindri-vVERSION_PLACEHOLDER-linux-x86_64.tar.gz
+
+          # Verify checksum
+          sha256sum -c checksums.txt --ignore-missing
+
+          # Or verify individual file
+          sha256sum sindri-vVERSION_PLACEHOLDER-*.tar.gz
           ```
 
           ## Security Scanning
@@ -754,6 +781,7 @@ jobs:
           echo "🔐 Security Features:"
           echo "   ✅ Image signed with Cosign (keyless)"
           echo "   ✅ SBOM generated (SPDX format)"
+          echo "   ✅ SHA256 checksums for all binaries"
           echo "   ✅ Vulnerability scan completed"
           echo "   ✅ Promoted from tested CI build"
           echo "   ✅ Multi-arch support (amd64, arm64)"

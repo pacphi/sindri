@@ -38,7 +38,6 @@ The next-generation Sindri implementation built in Rust. This version offers imp
 - [CLI Reference](../v3/docs/CLI.md) - Command-line interface documentation
 - [Configuration](../v3/docs/CONFIGURATION.md) - V3 configuration reference
 - [Schema Reference](../v3/docs/SCHEMA.md) - Extension schema documentation
-- [Extension Migration Status](../v3/docs/planning/active/EXTENSION_MIGRATION_STATUS.md) - V2 to V3 extension compatibility
 
 ## Migration Resources
 

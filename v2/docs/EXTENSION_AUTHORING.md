@@ -1,6 +1,6 @@
 # Extension Authoring Guide
 
-> **Version Notice:** This documentation applies to **Sindri V2** only. For V3 extension authoring, see [V3 Schema Documentation](../../v3/docs/SCHEMA.md) and [V3 Extension Migration Status](../../v3/docs/planning/active/EXTENSION_MIGRATION_STATUS.md).
+> **Version Notice:** This documentation applies to **Sindri V2** only. For V3 extension authoring, see [V3 Schema Documentation](../../v3/docs/SCHEMA.md).
 
 This guide covers creating extensions for Sindri. For architectural background on the capability system, see [ADR-001: Extension Capabilities System](./architecture/adr/001-extension-capabilities-system.md).
 

@@ -186,7 +186,7 @@ Multiple TODO comments scattered across codebase without tracking or prioritizat
 
 ### Implementation
 
-**Created:** `v3/docs/TODO-TRACKER.md`
+**Created:** `v3/docs/planning/complete/todo-tracker.md`
 
 **Structure:**
 
@@ -618,7 +618,7 @@ docker exec test-arm64 sindri --version
 
 ### Files Created
 
-- ✅ `v3/docs/TODO-TRACKER.md` - Comprehensive TODO tracking
+- ✅ `v3/docs/planning/complete/todo-tracker.md` - Comprehensive TODO tracking
 - ✅ `v3/docs/implementation/v3-dockerfile-validation-checklist.md` - Validation guide
 - ✅ `v3/docs/implementation/v3-enhancements-implementation-summary.md` - This document
 

@@ -65,8 +65,7 @@ For detailed installation instructions and first deployment walkthrough, see the
 
 | Document                                                                                   | Description                           |
 | ------------------------------------------------------------------------------------------ | ------------------------------------- |
-| [Extension Migration Status](docs/planning/active/EXTENSION_MIGRATION_STATUS.md)           | V2 to V3 extension migration tracking |
-| [Conditional Templates](docs/planning/active/EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md) | Environment-based template selection  |
+| [Conditional Templates](docs/EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md) | Environment-based template selection |
 
 ## Architecture
 

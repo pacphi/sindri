@@ -77,9 +77,9 @@
     "build:faq": "node docs/faq/build.mjs"
   },
   "devDependencies": {
-    "@actions/core": "^2.0.2",
-    "@actions/exec": "^2.0.0",
-    "@actions/github": "^7.0.0",
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0",
+    "@actions/github": "^9.0.0",
     "js-yaml": "^4.1.1",
     "markdownlint-cli": "^0.47.0",
     "npm-check-updates": "^19.3.1",
