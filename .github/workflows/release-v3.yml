@@ -161,12 +161,12 @@ jobs:
       - name: Package binary (Windows)
         if: runner.os == 'Windows'
         run: |
-          version="${{ needs.validate-tag.outputs.version }}"
+          $version = "${{ needs.validate-tag.outputs.version }}"
           cd v3/target/${{ matrix.target }}/release
 
           if (Test-Path sindri.exe) {
-            Compress-Archive -Path sindri.exe -DestinationPath sindri-v$version-${{ matrix.platform }}.zip
-            Move-Item sindri-v$version-${{ matrix.platform }}.zip $env:GITHUB_WORKSPACE/
+            Compress-Archive -Path sindri.exe -DestinationPath "sindri-v$version-${{ matrix.platform }}.zip"
+            Move-Item "sindri-v$version-${{ matrix.platform }}.zip" $env:GITHUB_WORKSPACE/
           }
         shell: pwsh
 

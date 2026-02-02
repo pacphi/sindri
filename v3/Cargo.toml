@@ -47,7 +47,7 @@ tera = "1.20"
 
 # HTTP client & self-update
 reqwest = { version = "0.13", features = ["json", "rustls", "stream"], default-features = false }
-self_update = "0.42"
+self_update = { version = "0.42", default-features = false, features = ["rustls", "archive-tar", "compression-flate2"] }
 semver = "1.0"
 octocrab = "0.49"
 
