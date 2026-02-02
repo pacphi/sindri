@@ -188,7 +188,7 @@ jobs:
           echo "result=$(cat test-result.json | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: Upload Test Result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: fly-result-${{ matrix.extension }}

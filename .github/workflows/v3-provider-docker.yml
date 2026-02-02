@@ -55,7 +55,7 @@ jobs:
         run: cargo build --release
 
       - name: Upload CLI
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sindri-cli
           path: v3/target/release/sindri
@@ -183,7 +183,7 @@ jobs:
           echo "result=$(cat test-result.json | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: Upload Test Result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: docker-result-${{ matrix.extension }}
