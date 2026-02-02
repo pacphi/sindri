@@ -46,13 +46,13 @@ The CLI provides 7 subcommands for Packer operations:
 
 | Command                  | Purpose               | Status      |
 | ------------------------ | --------------------- | ----------- |
-| `sindri packer build`    | Build VM image        | Implemented |
-| `sindri packer validate` | Validate template     | Implemented |
-| `sindri packer list`     | List cloud images     | Implemented |
-| `sindri packer delete`   | Delete image by ID    | Implemented |
-| `sindri packer doctor`   | Check prerequisites   | Implemented |
-| `sindri packer init`     | Generate HCL template | Implemented |
-| `sindri packer deploy`   | Deploy from image     | Implemented |
+| `sindri vm build`    | Build VM image        | Implemented |
+| `sindri vm validate` | Validate template     | Implemented |
+| `sindri vm list`     | List cloud images     | Implemented |
+| `sindri vm delete`   | Delete image by ID    | Implemented |
+| `sindri vm doctor`   | Check prerequisites   | Implemented |
+| `sindri vm init`     | Generate HCL template | Implemented |
+| `sindri vm deploy`   | Deploy from image     | Implemented |
 
 ### 1.3 Provider Abstraction Pattern
 
@@ -120,11 +120,11 @@ This workflow properly leverages the CLI but only supports 3 of 5 clouds:
 
 ```yaml
 # Validation step
-./v3/target/release/sindri packer validate --cloud aws \
+./v3/target/release/sindri vm validate --cloud aws \
   --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
 # Build step
-./v3/target/release/sindri packer build --cloud aws \
+./v3/target/release/sindri vm build --cloud aws \
   --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
   --profile ${{ github.event.inputs.profile || 'base' }} \
   --json > build-result.json
@@ -133,8 +133,8 @@ This workflow properly leverages the CLI but only supports 3 of 5 clouds:
 **Flow:**
 
 1. Builds `sindri` binary from Rust source
-2. Uses `sindri packer validate` for template validation
-3. Uses `sindri packer build` for image building
+2. Uses `sindri vm validate` for template validation
+3. Uses `sindri vm build` for image building
 4. Properly outputs structured JSON for downstream processing
 
 **Supported Clouds:** AWS, Azure, GCP only
@@ -186,7 +186,7 @@ This workflow **bypasses the CLI** and makes false assumptions:
 
    There are **NO Packer template files** (`.pkr.hcl`) in this directory.
 
-2. **Bypasses CLI Abstraction:** Calls raw `packer init` and `packer build` instead of `sindri packer build`
+2. **Bypasses CLI Abstraction:** Calls raw `packer init` and `packer build` instead of `sindri vm build`
 
 3. **False Assumptions:** Assumes templates exist at `v3/packer/` when they are embedded in the Rust binary
 
@@ -353,7 +353,7 @@ jobs:
    - `security.rb` - Security hardening
    - `sindri_installed.rb` - Sindri CLI presence
 
-6. **No CLI Usage:** Uses raw cloud CLIs instead of `sindri packer deploy`
+6. **No CLI Usage:** Uses raw cloud CLIs instead of `sindri vm deploy`
 
 #### Recommended Refactor
 
@@ -405,7 +405,7 @@ Replace the broken `v3-provider-packer.yml` build step with CLI invocation:
 ```yaml
 - name: Build Packer Image
   run: |
-    ./v3/target/release/sindri packer build --cloud ${{ inputs.cloud }} \
+    ./v3/target/release/sindri vm build --cloud ${{ inputs.cloud }} \
       --region ${{ inputs.region }} \
       --json > build-result.json
     IMAGE_ID=$(jq -r '.image_id' build-result.json)
@@ -465,7 +465,7 @@ This section documents all authentication requirements for both local CLI operat
 
 ### 4.1 CLI Local Operations
 
-For developers running `sindri packer` commands locally, the following credentials are required:
+For developers running `sindri vm` commands locally, the following credentials are required:
 
 #### AWS
 
@@ -1303,7 +1303,7 @@ These provide excellent technical detail but need to be translated into user doc
    - ALIBABA-PACKER.md: RAM user, region selection, VPC setup
 
 4. **Update CLI.md**
-   - Add complete `sindri packer` command reference
+   - Add complete `sindri vm` command reference
    - Document all subcommands with examples
    - Include cloud-specific options
 
@@ -1356,7 +1356,7 @@ The current workflow split creates complexity:
 | `v3-provider-packer.yml` - broken hybrid   | Fix to use CLI for builds           |
 | Custom actions for instance mgmt           | Keep, but document CLI alternatives |
 
-Long-term consideration: Evaluate whether instance launch/terminate should also use CLI via `sindri packer deploy` to maintain consistency.
+Long-term consideration: Evaluate whether instance launch/terminate should also use CLI via `sindri vm deploy` to maintain consistency.
 
 ---
 
@@ -1382,7 +1382,7 @@ Long-term consideration: Evaluate whether instance launch/terminate should also 
 7. **High:** No cloud-specific getting started guides
 8. **High:** CLI reference incomplete for Packer commands
 9. **High:** No image distribution/public sharing strategy documented or implemented
-10. **Medium:** CLI `sindri packer deploy` command not used anywhere in workflows
+10. **Medium:** CLI `sindri vm deploy` command not used anywhere in workflows
 11. **Medium:** IAM/RAM permission requirements not documented for users
 
 ### Risk Assessment

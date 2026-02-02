@@ -290,7 +290,7 @@ export AZURE_RESOURCE_GROUP="sindri-packer"
 az account show
 
 # Sindri verification
-sindri packer doctor --cloud azure
+sindri vm doctor --cloud azure
 ```
 
 ## Resource Group Setup
@@ -787,7 +787,7 @@ source "azure-arm" "sindri" {
   with:
     timeout_minutes: 45
     max_attempts: 3
-    command: sindri packer build --cloud azure
+    command: sindri vm build --cloud azure
 ```
 
 ### Storage Optimization
@@ -909,7 +909,7 @@ jobs:
 
       - name: Build Sindri Image
         run: |
-          sindri packer build --cloud azure \
+          sindri vm build --cloud azure \
             --name "sindri-${{ github.sha }}" \
             --profile fullstack \
             --json > build-result.json
@@ -1098,14 +1098,14 @@ az network vnet subnet update \
 
 ```bash
 # Sindri debug
-sindri packer build --cloud azure --debug
+sindri vm build --cloud azure --debug
 
 # Or set Packer log level
 export PACKER_LOG=1
-sindri packer build --cloud azure
+sindri vm build --cloud azure
 
 # View generated template
-sindri packer build --cloud azure --dry-run
+sindri vm build --cloud azure --dry-run
 ```
 
 **Check Azure activity logs:**

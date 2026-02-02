@@ -24,7 +24,7 @@ The AWS Packer provider builds EC2 AMIs with Sindri pre-installed, enabling fast
 
 ```bash
 # Check all prerequisites
-sindri packer doctor --cloud aws
+sindri vm doctor --cloud aws
 ```
 
 **Expected output:**
@@ -375,16 +375,16 @@ providers:
 
 ```bash
 # 1. Verify prerequisites
-sindri packer doctor --cloud aws
+sindri vm doctor --cloud aws
 
 # 2. Build an AWS AMI
-sindri packer build --cloud aws --name my-sindri-image --profile fullstack
+sindri vm build --cloud aws --name my-sindri-image --profile fullstack
 
 # 3. List your images
-sindri packer list --cloud aws
+sindri vm list --cloud aws
 
 # 4. Deploy an instance from the image
-sindri packer deploy --cloud aws ami-0123456789abcdef0
+sindri vm deploy --cloud aws ami-0123456789abcdef0
 ```
 
 **Build time:** 10-20 minutes depending on profile and extensions
@@ -395,16 +395,16 @@ sindri packer deploy --cloud aws ami-0123456789abcdef0
 
 ```bash
 # List all Sindri AMIs
-sindri packer list --cloud aws
+sindri vm list --cloud aws
 
 # Filter by name prefix
-sindri packer list --cloud aws --name production-sindri
+sindri vm list --cloud aws --name production-sindri
 
 # List in specific region
-sindri packer list --cloud aws --region us-east-1
+sindri vm list --cloud aws --region us-east-1
 
 # JSON output for scripting
-sindri packer list --cloud aws --json
+sindri vm list --cloud aws --json
 ```
 
 **Using AWS CLI directly:**
@@ -522,10 +522,10 @@ aws ec2 disable-image-deprecation \
 
 ```bash
 # Delete with confirmation
-sindri packer delete --cloud aws ami-0123456789abcdef0
+sindri vm delete --cloud aws ami-0123456789abcdef0
 
 # Force delete (no confirmation)
-sindri packer delete --cloud aws ami-0123456789abcdef0 --force
+sindri vm delete --cloud aws ami-0123456789abcdef0 --force
 ```
 
 **Manual deletion (includes snapshots):**
@@ -729,7 +729,7 @@ aws sts get-caller-identity
 2. **Use larger instance:**
 
    ```bash
-   sindri packer build --cloud aws --instance-type t3.xlarge
+   sindri vm build --cloud aws --instance-type t3.xlarge
    ```
 
 3. **Check network connectivity:**
@@ -794,10 +794,10 @@ Enable debug output for troubleshooting:
 
 ```bash
 # Via CLI
-sindri packer build --cloud aws --debug
+sindri vm build --cloud aws --debug
 
 # Or set environment variable
-PACKER_LOG=1 sindri packer build --cloud aws
+PACKER_LOG=1 sindri vm build --cloud aws
 ```
 
 ## CI/CD Integration
@@ -838,7 +838,7 @@ jobs:
 
       - name: Build AMI
         run: |
-          sindri packer build --cloud aws \
+          sindri vm build --cloud aws \
             --name "sindri-${{ github.sha }}" \
             --json > build-result.json
 

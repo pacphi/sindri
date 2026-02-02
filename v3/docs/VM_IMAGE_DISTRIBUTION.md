@@ -7,7 +7,7 @@ This guide covers strategies for distributing Sindri VM images to users across a
 
 ## Overview
 
-After building VM images with `sindri packer build`, you may want to share them with:
+After building VM images with `sindri vm build`, you may want to share them with:
 
 - **Internal teams** - Development, QA, and operations teams within your organization
 - **Partners** - External organizations that need access to your images
@@ -498,7 +498,7 @@ The Sindri CLI's `cleanup.sh.tera` template handles most of these automatically 
 
 ```bash
 # Verify cleanup was performed
-sindri packer build --cloud aws --dry-run
+sindri vm build --cloud aws --dry-run
 ```
 
 ### Vulnerability Scanning
@@ -536,7 +536,7 @@ For open source projects or community editions:
 
 ```bash
 # Build image
-sindri packer build --cloud aws --region us-west-2
+sindri vm build --cloud aws --region us-west-2
 
 # Make public
 aws ec2 modify-image-attribute \
@@ -565,7 +565,7 @@ For controlled distribution to specific organizations:
 
 ```bash
 # Build image
-sindri packer build --cloud aws --region us-west-2
+sindri vm build --cloud aws --region us-west-2
 
 # Share with enterprise customers
 aws ec2 modify-image-attribute \
@@ -610,7 +610,7 @@ REGIONS_GCP="us-west1 us-east1 europe-west1"
 
 # Build for all clouds
 for cloud in aws azure gcp oci alibaba; do
-  sindri packer build --cloud $cloud --version $VERSION
+  sindri vm build --cloud $cloud --version $VERSION
 done
 
 # AWS: Copy to regions and make public

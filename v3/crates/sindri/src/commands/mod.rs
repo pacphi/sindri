@@ -9,7 +9,7 @@ pub mod doctor;
 pub mod extension;
 pub mod image;
 pub mod k8s;
-pub mod packer;
+pub mod vm;
 pub mod profile;
 pub mod project;
 pub mod restore;

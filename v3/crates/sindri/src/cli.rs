@@ -88,8 +88,8 @@ pub enum Commands {
     Image(ImageCommands),
 
     /// Build VM images with HashiCorp Packer
-    #[command(subcommand)]
-    Packer(PackerCommands),
+    #[command(subcommand, alias = "packer")]
+    Vm(VmCommands),
 }
 
 // Version command
@@ -831,33 +831,33 @@ pub struct ImageCurrentArgs {
     pub json: bool,
 }
 
-// Packer commands for VM image building
+// VM commands for image building with HashiCorp Packer
 #[derive(Subcommand, Debug)]
-pub enum PackerCommands {
+pub enum VmCommands {
     /// Build a VM image
-    Build(PackerBuildArgs),
+    Build(VmBuildArgs),
 
     /// Validate a Packer template
-    Validate(PackerValidateArgs),
+    Validate(VmValidateArgs),
 
     /// List built images
-    List(PackerListArgs),
+    List(VmListArgs),
 
     /// Delete a VM image
-    Delete(PackerDeleteArgs),
+    Delete(VmDeleteArgs),
 
     /// Check Packer prerequisites
-    Doctor(PackerDoctorArgs),
+    Doctor(VmDoctorArgs),
 
     /// Initialize Packer configuration
-    Init(PackerInitArgs),
+    Init(VmInitArgs),
 
     /// Deploy an instance from an image
-    Deploy(PackerDeployArgs),
+    Deploy(VmDeployArgs),
 }
 
 #[derive(Args, Debug)]
-pub struct PackerBuildArgs {
+pub struct VmBuildArgs {
     /// Target cloud provider (aws, azure, gcp, oci, alibaba)
     #[arg(short, long)]
     pub cloud: String,
@@ -916,7 +916,7 @@ pub struct PackerBuildArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct PackerValidateArgs {
+pub struct VmValidateArgs {
     /// Target cloud provider
     #[arg(short, long)]
     pub cloud: String,
@@ -939,7 +939,7 @@ pub struct PackerValidateArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct PackerListArgs {
+pub struct VmListArgs {
     /// Target cloud provider
     #[arg(short, long)]
     pub cloud: String,
@@ -958,7 +958,7 @@ pub struct PackerListArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct PackerDeleteArgs {
+pub struct VmDeleteArgs {
     /// Target cloud provider
     #[arg(short, long)]
     pub cloud: String,
@@ -976,7 +976,7 @@ pub struct PackerDeleteArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct PackerDoctorArgs {
+pub struct VmDoctorArgs {
     /// Target cloud provider (or all)
     #[arg(short, long)]
     pub cloud: Option<String>,
@@ -987,7 +987,7 @@ pub struct PackerDoctorArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct PackerInitArgs {
+pub struct VmInitArgs {
     /// Target cloud provider
     #[arg(short, long)]
     pub cloud: String,
@@ -1002,7 +1002,7 @@ pub struct PackerInitArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct PackerDeployArgs {
+pub struct VmDeployArgs {
     /// Target cloud provider
     #[arg(short, long)]
     pub cloud: String,

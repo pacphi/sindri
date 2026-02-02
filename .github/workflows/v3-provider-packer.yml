@@ -259,7 +259,7 @@ jobs:
         run: |
           # Use the Sindri CLI to build the Packer image
           # Templates are embedded in the Rust binary, not in v3/packer/
-          ./v3/target/release/sindri packer build \
+          ./v3/target/release/sindri vm build \
             --cloud ${{ inputs.cloud }} \
             --region ${{ inputs.region }} \
             --json > build-result.json
