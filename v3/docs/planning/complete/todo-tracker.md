@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-01-22 (Tool Dependency Management & Clippy Cleanup)
 **Status:** Active Development - Phase 5/5 Complete, All High + Medium Priority TODOs ✅
-**Document Location:** `/alt/home/developer/workspace/projects/sindri/v3/docs/planning/active/TODO-TRACKER.md`
+**Document Location:** `v3/docs/planning/complete/todo-tracker.md`
 
 This document tracks all TODO comments in the v3 codebase, categorized by priority and status.
 
@@ -129,7 +129,7 @@ Beyond the TODO items tracked in code comments, we completed several significant
 - **Created**:
   - `v3-enhancements-implementation-summary.md` (comprehensive guide)
   - `v3-dockerfile-validation-checklist.md` (testing guide)
-  - Updated TODO-TRACKER.md (this file)
+  - Updated todo-tracker.md (this file)
 - **Why**: Onboard contributors, document decisions, guide testing
 - **Impact**: Better maintainability, easier contributions, clearer architecture
 

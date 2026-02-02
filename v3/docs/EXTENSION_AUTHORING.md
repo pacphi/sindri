@@ -1104,5 +1104,4 @@ sindri extension list
 
 - [Schema Reference](SCHEMA.md) - Complete schema documentation
 - [Getting Started](GETTING_STARTED.md) - Initial setup guide
-- [Extension Migration Status](planning/active/EXTENSION_MIGRATION_STATUS.md) - V2 to V3 migration tracking
-- [Conditional Templates Migration](planning/active/EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md) - Template condition patterns
+- [Conditional Templates Migration](EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md) - Template condition patterns
