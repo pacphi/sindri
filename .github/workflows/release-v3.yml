@@ -99,11 +99,11 @@ jobs:
             platform: linux-aarch64
             cross: true
 
-          - os: macos-latest
+          - os: macos-13
             target: x86_64-apple-darwin
             platform: macos-x86_64
 
-          - os: macos-latest
+          - os: macos-14
             target: aarch64-apple-darwin
             platform: macos-aarch64
 
