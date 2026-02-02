@@ -303,6 +303,13 @@ jobs:
           echo "Retagging for release:"
           while IFS= read -r TAG; do
             [[ -z "$TAG" ]] && continue
+
+            # Skip malformed tags (empty username results in docker.io//...)
+            if [[ "$TAG" =~ .*//.*  ]]; then
+              echo "  ⏭️  Skipping $TAG (malformed - missing repository)"
+              continue
+            fi
+
             echo "  → $TAG"
             docker tag "$CI_IMAGE" "$TAG"
           done <<< "$TAGS"
@@ -311,6 +318,12 @@ jobs:
           echo "Pushing release tags:"
           while IFS= read -r TAG; do
             [[ -z "$TAG" ]] && continue
+
+            # Skip malformed tags (empty username results in docker.io//...)
+            if [[ "$TAG" =~ .*//.*  ]]; then
+              echo "  ⏭️  Skipping $TAG (malformed - missing repository)"
+              continue
+            fi
 
             # Check if pushing to Docker Hub and if credentials are available
             if [[ "$TAG" =~ ^docker\.io/ ]] && [[ -z "$DOCKERHUB_TOKEN" ]]; then
