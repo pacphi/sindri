@@ -140,7 +140,7 @@ jobs:
             --json > build-result.json
 
       - name: Upload Build Manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: aws-build-manifest
           path: |
@@ -196,7 +196,7 @@ jobs:
             --json > build-result.json
 
       - name: Upload Build Manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: azure-build-manifest
           path: |
@@ -253,7 +253,7 @@ jobs:
             --json > build-result.json
 
       - name: Upload Build Manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gcp-build-manifest
           path: |
@@ -329,7 +329,7 @@ jobs:
           echo "OCI credentials cleaned up"
 
       - name: Upload Build Manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: oci-build-manifest
           path: |
@@ -380,7 +380,7 @@ jobs:
             --json > build-result.json
 
       - name: Upload Build Manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: alibaba-build-manifest
           path: |
