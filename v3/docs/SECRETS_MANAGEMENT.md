@@ -900,7 +900,7 @@ export NPM_TOKEN="npm_abc123"
 export GITHUB_TOKEN="ghp_xyz789"
 
 # Build image (secrets used temporarily)
-sindri packer build --cloud aws --name my-image
+sindri vm build --cloud aws --name my-image
 
 # Secrets are:
 # 1. Used during build to install private packages

@@ -32,9 +32,6 @@ docker pull ghcr.io/pacphi/sindri:v2
 docker run -it -v sindri-home:/alt/home/developer ghcr.io/pacphi/sindri:v2.5.0
 ```
 
-
-
-
 ## [2.2.1] - 2026-01-21
 
 ### :bug: Bug Fixes

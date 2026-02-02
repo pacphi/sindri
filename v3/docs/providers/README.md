@@ -255,11 +255,11 @@ kubectl exec -it <pod> -n <namespace> -- /bin/bash
 ### Packer
 
 ```bash
-sindri packer doctor --cloud aws      # Check prerequisites
-sindri packer build --cloud aws       # Build image
-sindri packer list --cloud aws        # List images
-sindri packer deploy --cloud aws <id> # Deploy from image
-sindri packer delete --cloud aws <id> # Delete image
+sindri vm doctor --cloud aws      # Check prerequisites
+sindri vm build --cloud aws       # Build image
+sindri vm list --cloud aws        # List images
+sindri vm deploy --cloud aws <id> # Deploy from image
+sindri vm delete --cloud aws <id> # Delete image
 ```
 
 ## Migration from V2

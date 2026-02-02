@@ -25,16 +25,16 @@ The Packer provider enables building golden VM images across multiple cloud plat
 
 ```bash
 # 1. Check prerequisites
-sindri packer doctor --cloud aws
+sindri vm doctor --cloud aws
 
 # 2. Build an AWS AMI
-sindri packer build --cloud aws --name my-sindri-image --profile fullstack
+sindri vm build --cloud aws --name my-sindri-image --profile fullstack
 
 # 3. List your images
-sindri packer list --cloud aws
+sindri vm list --cloud aws
 
 # 4. Deploy an instance from the image
-sindri packer deploy --cloud aws ami-0123456789abcdef0
+sindri vm deploy --cloud aws ami-0123456789abcdef0
 ```
 
 **Build time:** 10-20 minutes depending on profile and extensions
@@ -59,7 +59,7 @@ Each cloud provider requires its CLI tool and proper authentication. See the clo
 | OCI     | oci      | [OCI Packer Guide](packer/OCI.md)         |
 | Alibaba | aliyun   | [Alibaba Packer Guide](packer/ALIBABA.md) |
 
-Use `sindri packer doctor --cloud <cloud>` to verify prerequisites for a specific cloud.
+Use `sindri vm doctor --cloud <cloud>` to verify prerequisites for a specific cloud.
 
 ## Supported Clouds
 
@@ -97,12 +97,12 @@ Use `sindri packer doctor --cloud <cloud>` to verify prerequisites for a specifi
 
 ## CLI Commands Reference
 
-### sindri packer build
+### sindri vm build
 
 Build a VM image for a specific cloud provider.
 
 ```bash
-sindri packer build --cloud <CLOUD> [OPTIONS]
+sindri vm build --cloud <CLOUD> [OPTIONS]
 ```
 
 **Arguments:**
@@ -128,10 +128,10 @@ sindri packer build --cloud <CLOUD> [OPTIONS]
 
 ```bash
 # Basic AWS build
-sindri packer build --cloud aws --name my-dev-image
+sindri vm build --cloud aws --name my-dev-image
 
 # Full-stack with specific extensions
-sindri packer build --cloud aws \
+sindri vm build --cloud aws \
   --name production-sindri \
   --profile fullstack \
   --extensions "docker,kubernetes" \
@@ -140,24 +140,24 @@ sindri packer build --cloud aws \
   --disk-size 100
 
 # GCP with CIS hardening
-sindri packer build --cloud gcp \
+sindri vm build --cloud gcp \
   --name hardened-sindri \
   --cis-hardening \
   --region us-central1-a
 
 # Dry run to preview template
-sindri packer build --cloud azure --dry-run
+sindri vm build --cloud azure --dry-run
 
 # Force rebuild
-sindri packer build --cloud aws --name my-image --force
+sindri vm build --cloud aws --name my-image --force
 ```
 
-### sindri packer validate
+### sindri vm validate
 
 Validate a Packer template without building.
 
 ```bash
-sindri packer validate --cloud <CLOUD> [OPTIONS]
+sindri vm validate --cloud <CLOUD> [OPTIONS]
 ```
 
 **Arguments:**
@@ -174,21 +174,21 @@ sindri packer validate --cloud <CLOUD> [OPTIONS]
 
 ```bash
 # Validate AWS template
-sindri packer validate --cloud aws
+sindri vm validate --cloud aws
 
 # Syntax check only
-sindri packer validate --cloud gcp --syntax-only
+sindri vm validate --cloud gcp --syntax-only
 
 # JSON output for CI/CD
-sindri packer validate --cloud azure --json
+sindri vm validate --cloud azure --json
 ```
 
-### sindri packer list
+### sindri vm list
 
 List built images for a cloud provider.
 
 ```bash
-sindri packer list --cloud <CLOUD> [OPTIONS]
+sindri vm list --cloud <CLOUD> [OPTIONS]
 ```
 
 **Arguments:**
@@ -204,13 +204,13 @@ sindri packer list --cloud <CLOUD> [OPTIONS]
 
 ```bash
 # List all AWS images
-sindri packer list --cloud aws
+sindri vm list --cloud aws
 
 # Filter by name
-sindri packer list --cloud aws --name production-sindri
+sindri vm list --cloud aws --name production-sindri
 
 # JSON output
-sindri packer list --cloud gcp --json
+sindri vm list --cloud gcp --json
 ```
 
 **Output:**
@@ -225,12 +225,12 @@ Sindri version: 3.0.0
 Created: 2026-01-31T20:00:00Z
 ```
 
-### sindri packer delete
+### sindri vm delete
 
 Delete a VM image by ID.
 
 ```bash
-sindri packer delete --cloud <CLOUD> <IMAGE_ID> [OPTIONS]
+sindri vm delete --cloud <CLOUD> <IMAGE_ID> [OPTIONS]
 ```
 
 **Arguments:**
@@ -245,21 +245,21 @@ sindri packer delete --cloud <CLOUD> <IMAGE_ID> [OPTIONS]
 
 ```bash
 # Delete with confirmation
-sindri packer delete --cloud aws ami-0123456789abcdef0
+sindri vm delete --cloud aws ami-0123456789abcdef0
 
 # Force delete
-sindri packer delete --cloud aws ami-0123456789abcdef0 --force
+sindri vm delete --cloud aws ami-0123456789abcdef0 --force
 
 # Specify region
-sindri packer delete --cloud aws ami-0123456789abcdef0 --region us-east-1
+sindri vm delete --cloud aws ami-0123456789abcdef0 --region us-east-1
 ```
 
-### sindri packer doctor
+### sindri vm doctor
 
 Check Packer prerequisites for all or specific clouds.
 
 ```bash
-sindri packer doctor [OPTIONS]
+sindri vm doctor [OPTIONS]
 ```
 
 **Arguments:**
@@ -273,13 +273,13 @@ sindri packer doctor [OPTIONS]
 
 ```bash
 # Check all clouds
-sindri packer doctor
+sindri vm doctor
 
 # Check specific cloud
-sindri packer doctor --cloud aws
+sindri vm doctor --cloud aws
 
 # JSON output for scripting
-sindri packer doctor --json
+sindri vm doctor --json
 ```
 
 **Output:**
@@ -303,12 +303,12 @@ GCP Prerequisites
   Install: https://cloud.google.com/sdk/docs/install
 ```
 
-### sindri packer init
+### sindri vm init
 
 Generate a Packer HCL template file.
 
 ```bash
-sindri packer init --cloud <CLOUD> [OPTIONS]
+sindri vm init --cloud <CLOUD> [OPTIONS]
 ```
 
 **Arguments:**
@@ -323,13 +323,13 @@ sindri packer init --cloud <CLOUD> [OPTIONS]
 
 ```bash
 # Generate AWS template in current directory
-sindri packer init --cloud aws
+sindri vm init --cloud aws
 
 # Generate to specific directory
-sindri packer init --cloud gcp --output ./packer-templates
+sindri vm init --cloud gcp --output ./packer-templates
 
 # Overwrite existing
-sindri packer init --cloud azure --force
+sindri vm init --cloud azure --force
 ```
 
 **Output:**
@@ -343,12 +343,12 @@ Next steps:
   3. Run: packer build ./aws.pkr.hcl
 ```
 
-### sindri packer deploy
+### sindri vm deploy
 
 Deploy an instance from a pre-built image.
 
 ```bash
-sindri packer deploy --cloud <CLOUD> <IMAGE_ID> [OPTIONS]
+sindri vm deploy --cloud <CLOUD> <IMAGE_ID> [OPTIONS]
 ```
 
 **Arguments:**
@@ -364,19 +364,19 @@ sindri packer deploy --cloud <CLOUD> <IMAGE_ID> [OPTIONS]
 
 ```bash
 # Deploy AWS instance
-sindri packer deploy --cloud aws ami-0123456789abcdef0
+sindri vm deploy --cloud aws ami-0123456789abcdef0
 
 # Deploy with custom instance type
-sindri packer deploy --cloud aws ami-0123456789abcdef0 \
+sindri vm deploy --cloud aws ami-0123456789abcdef0 \
   --instance-type t3.xlarge \
   --region us-east-1
 
 # GCP deployment
-sindri packer deploy --cloud gcp \
+sindri vm deploy --cloud gcp \
   projects/my-project/global/images/sindri-dev-1706745600
 
 # JSON output
-sindri packer deploy --cloud azure my-image-id --json
+sindri vm deploy --cloud azure my-image-id --json
 ```
 
 **Output:**
@@ -531,7 +531,7 @@ providers:
 
 ```bash
 # Build production AWS AMI with full security
-sindri packer build --cloud aws \
+sindri vm build --cloud aws \
   --name production-sindri \
   --profile fullstack \
   --extensions "docker,kubernetes,monitoring" \
@@ -548,7 +548,7 @@ sindri packer build --cloud aws \
 
 ```bash
 # Build Azure image with Shared Image Gallery
-sindri packer build --cloud azure \
+sindri vm build --cloud azure \
   --name enterprise-sindri \
   --profile enterprise \
   --region eastus
@@ -561,7 +561,7 @@ sindri packer build --cloud azure \
 
 ```bash
 # Build GCP image with family for easy versioning
-sindri packer build --cloud gcp \
+sindri vm build --cloud gcp \
   --name sindri-dev \
   --profile fullstack \
   --region us-central1-a
@@ -581,7 +581,7 @@ sindri packer build --cloud gcp \
 clouds=("aws" "azure" "gcp")
 
 for cloud in "${clouds[@]}"; do
-  sindri packer build \
+  sindri vm build \
     --cloud "$cloud" \
     --name "sindri-$(date +%Y%m%d)" \
     --profile fullstack \
@@ -626,7 +626,7 @@ jobs:
 
       - name: Build Image
         run: |
-          sindri packer build \
+          sindri vm build \
             --cloud ${{ matrix.cloud }} \
             --name "sindri-${{ github.sha }}" \
             --profile fullstack \
@@ -681,10 +681,10 @@ Templates receive these variables from configuration:
 
 ```bash
 # View generated HCL without building
-sindri packer build --cloud aws --dry-run
+sindri vm build --cloud aws --dry-run
 
 # Or initialize a template file
-sindri packer init --cloud aws
+sindri vm init --cloud aws
 cat aws.pkr.hcl
 ```
 
@@ -765,7 +765,7 @@ Or via CLI:
 
 ```bash
 # Use a larger instance for faster builds
-sindri packer build --cloud aws \
+sindri vm build --cloud aws \
   --instance-type t3.xlarge
 ```
 
@@ -814,10 +814,10 @@ sindri packer build --cloud aws \
 
 ```bash
 # Enable debug mode
-sindri packer build --cloud aws --debug
+sindri vm build --cloud aws --debug
 
 # Review generated template
-sindri packer build --cloud aws --dry-run
+sindri vm build --cloud aws --dry-run
 
 # Check Packer logs
 PACKER_LOG=1 packer build aws.pkr.hcl
@@ -833,10 +833,10 @@ PACKER_LOG=1 packer build aws.pkr.hcl
 
 ```bash
 # Force use specific image
-sindri packer deploy --cloud aws <image-id>
+sindri vm deploy --cloud aws <image-id>
 
 # Or rebuild
-sindri packer build --cloud aws --force
+sindri vm build --cloud aws --force
 ```
 
 ### VPC/Subnet Issues

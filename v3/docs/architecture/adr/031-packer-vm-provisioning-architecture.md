@@ -89,16 +89,16 @@ sindri-packer/src/templates/
 
 ### 4. CLI Command Structure
 
-Added `sindri packer` subcommands mirroring the trait:
+Added `sindri vm` subcommands mirroring the trait:
 
 ```
-sindri packer build     # Build VM image
-sindri packer validate  # Validate template
-sindri packer list      # List images
-sindri packer delete    # Delete image
-sindri packer deploy    # Deploy from pre-built image
-sindri packer doctor    # Check prerequisites
-sindri packer init      # Generate template files
+sindri vm build     # Build VM image
+sindri vm validate  # Validate template
+sindri vm list      # List images
+sindri vm delete    # Delete image
+sindri vm deploy    # Deploy from pre-built image
+sindri vm doctor    # Check prerequisites
+sindri vm init      # Generate template files
 ```
 
 ### 5. Security Integration

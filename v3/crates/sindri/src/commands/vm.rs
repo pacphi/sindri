@@ -1,4 +1,4 @@
-//! Packer command - Build VM images with HashiCorp Packer
+//! VM command - Build VM images with HashiCorp Packer
 //!
 //! This command provides multi-cloud VM image building using the sindri-packer crate.
 
@@ -12,20 +12,20 @@ use sindri_packer::{
 };
 
 use crate::cli::{
-    PackerBuildArgs, PackerCommands, PackerDeleteArgs, PackerDeployArgs, PackerDoctorArgs,
-    PackerInitArgs, PackerListArgs, PackerValidateArgs,
+    VmBuildArgs, VmCommands, VmDeleteArgs, VmDeployArgs, VmDoctorArgs, VmInitArgs, VmListArgs,
+    VmValidateArgs,
 };
 use crate::output;
 
-pub async fn run(command: PackerCommands) -> Result<()> {
+pub async fn run(command: VmCommands) -> Result<()> {
     match command {
-        PackerCommands::Build(args) => build(args).await,
-        PackerCommands::Validate(args) => validate(args).await,
-        PackerCommands::List(args) => list(args).await,
-        PackerCommands::Delete(args) => delete(args).await,
-        PackerCommands::Doctor(args) => doctor(args).await,
-        PackerCommands::Init(args) => init(args).await,
-        PackerCommands::Deploy(args) => deploy(args).await,
+        VmCommands::Build(args) => build(args).await,
+        VmCommands::Validate(args) => validate(args).await,
+        VmCommands::List(args) => list(args).await,
+        VmCommands::Delete(args) => delete(args).await,
+        VmCommands::Doctor(args) => doctor(args).await,
+        VmCommands::Init(args) => init(args).await,
+        VmCommands::Deploy(args) => deploy(args).await,
     }
 }
 
@@ -147,7 +147,7 @@ fn build_config(args: BuildConfigArgs) -> PackerConfig {
     config
 }
 
-async fn build(args: PackerBuildArgs) -> Result<()> {
+async fn build(args: VmBuildArgs) -> Result<()> {
     let cloud = parse_cloud(&args.cloud)?;
 
     output::header(&format!("Building {} VM image", args.cloud.to_uppercase()));
@@ -268,7 +268,7 @@ async fn build(args: PackerBuildArgs) -> Result<()> {
     Ok(())
 }
 
-async fn validate(args: PackerValidateArgs) -> Result<()> {
+async fn validate(args: VmValidateArgs) -> Result<()> {
     let cloud = parse_cloud(&args.cloud)?;
 
     output::header(&format!(
@@ -325,7 +325,7 @@ async fn validate(args: PackerValidateArgs) -> Result<()> {
     Ok(())
 }
 
-async fn list(args: PackerListArgs) -> Result<()> {
+async fn list(args: VmListArgs) -> Result<()> {
     let cloud = parse_cloud(&args.cloud)?;
 
     output::header(&format!("Listing {} images", args.cloud.to_uppercase()));
@@ -387,7 +387,7 @@ async fn list(args: PackerListArgs) -> Result<()> {
     Ok(())
 }
 
-async fn delete(args: PackerDeleteArgs) -> Result<()> {
+async fn delete(args: VmDeleteArgs) -> Result<()> {
     let cloud = parse_cloud(&args.cloud)?;
 
     output::header(&format!("Deleting {} image", args.cloud.to_uppercase()));
@@ -431,7 +431,7 @@ async fn delete(args: PackerDeleteArgs) -> Result<()> {
     Ok(())
 }
 
-async fn doctor(args: PackerDoctorArgs) -> Result<()> {
+async fn doctor(args: VmDoctorArgs) -> Result<()> {
     output::header("Packer Prerequisites Check");
 
     // Check Packer first
@@ -521,7 +521,7 @@ async fn doctor(args: PackerDoctorArgs) -> Result<()> {
     Ok(())
 }
 
-async fn init(args: PackerInitArgs) -> Result<()> {
+async fn init(args: VmInitArgs) -> Result<()> {
     let cloud = parse_cloud(&args.cloud)?;
 
     output::header(&format!(
@@ -581,7 +581,7 @@ async fn init(args: PackerInitArgs) -> Result<()> {
     Ok(())
 }
 
-async fn deploy(args: PackerDeployArgs) -> Result<()> {
+async fn deploy(args: VmDeployArgs) -> Result<()> {
     let cloud = parse_cloud(&args.cloud)?;
 
     output::header(&format!(

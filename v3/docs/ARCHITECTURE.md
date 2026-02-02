@@ -34,7 +34,7 @@ crates/sindri/
 │       ├── secrets.rs    # sindri secrets validate/test-vault
 │       ├── backup.rs     # sindri backup/restore
 │       ├── k8s.rs        # sindri k8s create/destroy/list
-│       └── packer.rs     # sindri packer build/validate
+│       └── packer.rs     # sindri vm build/validate
 ```
 
 ### 2. Provider Abstraction Layer (`sindri-providers`)

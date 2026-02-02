@@ -67,31 +67,31 @@ jobs:
       - name: Validate AWS template
         if: contains(github.event.inputs.clouds, 'aws')
         run: |
-          ./v3/target/release/sindri packer validate --cloud aws \
+          ./v3/target/release/sindri vm validate --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate Azure template
         if: contains(github.event.inputs.clouds, 'azure')
         run: |
-          ./v3/target/release/sindri packer validate --cloud azure \
+          ./v3/target/release/sindri vm validate --cloud azure \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate GCP template
         if: contains(github.event.inputs.clouds, 'gcp')
         run: |
-          ./v3/target/release/sindri packer validate --cloud gcp \
+          ./v3/target/release/sindri vm validate --cloud gcp \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate OCI template
         if: contains(github.event.inputs.clouds, 'oci')
         run: |
-          ./v3/target/release/sindri packer validate --cloud oci \
+          ./v3/target/release/sindri vm validate --cloud oci \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
       - name: Validate Alibaba template
         if: contains(github.event.inputs.clouds, 'alibaba')
         run: |
-          ./v3/target/release/sindri packer validate --cloud alibaba \
+          ./v3/target/release/sindri vm validate --cloud alibaba \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }}
 
   build-aws:
@@ -132,7 +132,7 @@ jobs:
 
       - name: Build AWS AMI
         run: |
-          ./v3/target/release/sindri packer build --cloud aws \
+          ./v3/target/release/sindri vm build --cloud aws \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.extensions && format('--extensions {0}', github.event.inputs.extensions) || '' }} \
@@ -189,7 +189,7 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'sindri-packer' }}
         run: |
-          ./v3/target/release/sindri packer build --cloud azure \
+          ./v3/target/release/sindri vm build --cloud azure \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
@@ -246,7 +246,7 @@ jobs:
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
-          ./v3/target/release/sindri packer build --cloud gcp \
+          ./v3/target/release/sindri vm build --cloud gcp \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
@@ -316,7 +316,7 @@ jobs:
           OCI_COMPARTMENT_OCID: ${{ secrets.OCI_COMPARTMENT_OCID }}
           OCI_SUBNET_OCID: ${{ secrets.OCI_SUBNET_OCID }}
         run: |
-          ./v3/target/release/sindri packer build --cloud oci \
+          ./v3/target/release/sindri vm build --cloud oci \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \
@@ -373,7 +373,7 @@ jobs:
 
       - name: Build Alibaba Cloud Image
         run: |
-          ./v3/target/release/sindri packer build --cloud alibaba \
+          ./v3/target/release/sindri vm build --cloud alibaba \
             --sindri-version ${{ github.event.inputs.sindri_version || 'latest' }} \
             ${{ github.event.inputs.profile && format('--profile {0}', github.event.inputs.profile) || '' }} \
             ${{ github.event.inputs.cis_hardening == 'true' && '--cis-hardening' || '' }} \

@@ -1723,7 +1723,7 @@ Build a VM image for a specified cloud provider.
 **Synopsis:**
 
 ```bash
-sindri packer build --cloud <PROVIDER> [OPTIONS]
+sindri vm build --cloud <PROVIDER> [OPTIONS]
 ```
 
 **Options:**
@@ -1759,28 +1759,28 @@ sindri packer build --cloud <PROVIDER> [OPTIONS]
 
 ```bash
 # Build AWS AMI with defaults
-sindri packer build --cloud aws
+sindri vm build --cloud aws
 
 # Build AWS AMI with specific version and region
-sindri packer build --cloud aws --sindri-version v3.0.0 --region us-east-1
+sindri vm build --cloud aws --sindri-version v3.0.0 --region us-east-1
 
 # Build Azure image with custom name
-sindri packer build --cloud azure --name my-dev-env --instance-type Standard_D4s_v3
+sindri vm build --cloud azure --name my-dev-env --instance-type Standard_D4s_v3
 
 # Build GCP image with profile
-sindri packer build --cloud gcp --profile python-data-science
+sindri vm build --cloud gcp --profile python-data-science
 
 # Build with CIS hardening enabled
-sindri packer build --cloud aws --cis-hardening --disk-size 100
+sindri vm build --cloud aws --cis-hardening --disk-size 100
 
 # Dry run to preview template
-sindri packer build --cloud aws --dry-run
+sindri vm build --cloud aws --dry-run
 
 # Force rebuild, output JSON
-sindri packer build --cloud aws --force --json
+sindri vm build --cloud aws --force --json
 
 # Build with custom variable file
-sindri packer build --cloud azure --var-file ./custom-vars.pkrvars.hcl
+sindri vm build --cloud azure --var-file ./custom-vars.pkrvars.hcl
 ```
 
 **Environment Variables (by provider):**
@@ -1802,7 +1802,7 @@ Validate a Packer template without building.
 **Synopsis:**
 
 ```bash
-sindri packer validate --cloud <PROVIDER> [OPTIONS]
+sindri vm validate --cloud <PROVIDER> [OPTIONS]
 ```
 
 **Options:**
@@ -1819,13 +1819,13 @@ sindri packer validate --cloud <PROVIDER> [OPTIONS]
 
 ```bash
 # Validate AWS template
-sindri packer validate --cloud aws
+sindri vm validate --cloud aws
 
 # Validate with syntax check only
-sindri packer validate --cloud azure --syntax-only
+sindri vm validate --cloud azure --syntax-only
 
 # Validate and output JSON
-sindri packer validate --cloud gcp --json
+sindri vm validate --cloud gcp --json
 ```
 
 ---
@@ -1837,7 +1837,7 @@ List VM images in the cloud provider.
 **Synopsis:**
 
 ```bash
-sindri packer list --cloud <PROVIDER> [OPTIONS]
+sindri vm list --cloud <PROVIDER> [OPTIONS]
 ```
 
 **Options:**
@@ -1853,16 +1853,16 @@ sindri packer list --cloud <PROVIDER> [OPTIONS]
 
 ```bash
 # List all AWS images
-sindri packer list --cloud aws
+sindri vm list --cloud aws
 
 # List AWS images in specific region
-sindri packer list --cloud aws --region us-east-1
+sindri vm list --cloud aws --region us-east-1
 
 # List Azure images with name filter
-sindri packer list --cloud azure --name sindri-dev
+sindri vm list --cloud azure --name sindri-dev
 
 # List GCP images as JSON
-sindri packer list --cloud gcp --json
+sindri vm list --cloud gcp --json
 ```
 
 ---
@@ -1874,7 +1874,7 @@ Delete a VM image from the cloud provider.
 **Synopsis:**
 
 ```bash
-sindri packer delete --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
+sindri vm delete --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
 ```
 
 **Options:**
@@ -1890,13 +1890,13 @@ sindri packer delete --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
 
 ```bash
 # Delete AWS AMI with confirmation
-sindri packer delete --cloud aws ami-0123456789abcdef0
+sindri vm delete --cloud aws ami-0123456789abcdef0
 
 # Delete Azure image without confirmation
-sindri packer delete --cloud azure /subscriptions/.../my-image --force
+sindri vm delete --cloud azure /subscriptions/.../my-image --force
 
 # Delete GCP image in specific region
-sindri packer delete --cloud gcp sindri-dev-20260101 --region us-central1 --force
+sindri vm delete --cloud gcp sindri-dev-20260101 --region us-central1 --force
 ```
 
 ---
@@ -1908,7 +1908,7 @@ Check Packer prerequisites and cloud provider authentication status.
 **Synopsis:**
 
 ```bash
-sindri packer doctor [OPTIONS]
+sindri vm doctor [OPTIONS]
 ```
 
 **Options:**
@@ -1929,16 +1929,16 @@ sindri packer doctor [OPTIONS]
 
 ```bash
 # Check all prerequisites
-sindri packer doctor
+sindri vm doctor
 
 # Check AWS prerequisites only
-sindri packer doctor --cloud aws
+sindri vm doctor --cloud aws
 
 # Check Azure prerequisites with JSON output
-sindri packer doctor --cloud azure --json
+sindri vm doctor --cloud azure --json
 
 # Check all providers
-sindri packer doctor --cloud all
+sindri vm doctor --cloud all
 ```
 
 ---
@@ -1950,7 +1950,7 @@ Generate a Packer HCL template file for customization.
 **Synopsis:**
 
 ```bash
-sindri packer init --cloud <PROVIDER> [OPTIONS]
+sindri vm init --cloud <PROVIDER> [OPTIONS]
 ```
 
 **Options:**
@@ -1969,16 +1969,16 @@ sindri packer init --cloud <PROVIDER> [OPTIONS]
 
 ```bash
 # Generate AWS template in current directory
-sindri packer init --cloud aws
+sindri vm init --cloud aws
 
 # Generate Azure template in specific directory
-sindri packer init --cloud azure --output ./packer/
+sindri vm init --cloud azure --output ./packer/
 
 # Overwrite existing template
-sindri packer init --cloud gcp --force
+sindri vm init --cloud gcp --force
 
 # Generate OCI template
-sindri packer init --cloud oci --output ./infra/packer/
+sindri vm init --cloud oci --output ./infra/packer/
 ```
 
 **Next steps after init:**
@@ -1996,7 +1996,7 @@ Deploy a VM instance from a previously built image.
 **Synopsis:**
 
 ```bash
-sindri packer deploy --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
+sindri vm deploy --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
 ```
 
 **Options:**
@@ -2020,18 +2020,18 @@ sindri packer deploy --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
 
 ```bash
 # Deploy AWS instance from AMI
-sindri packer deploy --cloud aws ami-0123456789abcdef0
+sindri vm deploy --cloud aws ami-0123456789abcdef0
 
 # Deploy with specific region and instance type
-sindri packer deploy --cloud aws ami-0123456789abcdef0 \
+sindri vm deploy --cloud aws ami-0123456789abcdef0 \
     --region us-east-1 --instance-type t3.xlarge
 
 # Deploy Azure VM
-sindri packer deploy --cloud azure /subscriptions/.../my-image \
+sindri vm deploy --cloud azure /subscriptions/.../my-image \
     --region eastus --instance-type Standard_D4s_v3
 
 # Deploy GCP instance with JSON output
-sindri packer deploy --cloud gcp sindri-dev-20260101 --json
+sindri vm deploy --cloud gcp sindri-dev-20260101 --json
 ```
 
 ---

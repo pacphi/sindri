@@ -254,7 +254,7 @@ bantime = 1h
 
 ```bash
 # CLI
-sindri packer build --cloud aws --cis-hardening
+sindri vm build --cloud aws --cis-hardening
 
 # Configuration
 providers:

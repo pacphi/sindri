@@ -511,7 +511,7 @@ aliyun vpc CreateVpc \
   --RegionId cn-hangzhou \
   --CidrBlock 192.168.0.0/16 \
   --VpcName sindri-packer-vpc \
-  --Description "VPC for Sindri Packer builds"
+  --Description "VPC for sindri vm builds"
 
 # Note the VpcId from output, then create VSwitch
 aliyun vpc CreateVSwitch \
@@ -583,7 +583,7 @@ aliyun ecs CreateSecurityGroup \
   --RegionId cn-hangzhou \
   --VpcId vpc-bp1xxxx \
   --SecurityGroupName sindri-packer-sg \
-  --Description "Security group for Sindri Packer builds"
+  --Description "Security group for sindri vm builds"
 
 # Note the SecurityGroupId, then add SSH rule
 aliyun ecs AuthorizeSecurityGroup \
@@ -643,7 +643,7 @@ Packer requires SSH access to the build instance. Options:
 
 ### Automatic EIP Allocation
 
-By default, Sindri Packer allocates a temporary EIP during builds:
+By default, sindri vm allocates a temporary EIP during builds:
 
 ```yaml
 providers:
@@ -816,10 +816,10 @@ aliyun ecs DeleteImage \
 
 ```bash
 # Basic build
-sindri packer build --cloud alibaba
+sindri vm build --cloud alibaba
 
 # Full options
-sindri packer build --cloud alibaba \
+sindri vm build --cloud alibaba \
   --name my-sindri-image \
   --region cn-hangzhou \
   --instance-type ecs.g6.xlarge \
@@ -834,10 +834,10 @@ sindri packer build --cloud alibaba \
 
 ```bash
 # List all Sindri images
-sindri packer list --cloud alibaba
+sindri vm list --cloud alibaba
 
 # Filter by name and region
-sindri packer list --cloud alibaba \
+sindri vm list --cloud alibaba \
   --name sindri-production \
   --region cn-hangzhou \
   --json
@@ -847,37 +847,37 @@ sindri packer list --cloud alibaba \
 
 ```bash
 # Delete with confirmation
-sindri packer delete --cloud alibaba m-bp1xxxx
+sindri vm delete --cloud alibaba m-bp1xxxx
 
 # Force delete
-sindri packer delete --cloud alibaba m-bp1xxxx --force
+sindri vm delete --cloud alibaba m-bp1xxxx --force
 ```
 
 ### Validate Template
 
 ```bash
 # Validate configuration
-sindri packer validate --cloud alibaba
+sindri vm validate --cloud alibaba
 
 # Syntax check only
-sindri packer validate --cloud alibaba --syntax-only
+sindri vm validate --cloud alibaba --syntax-only
 ```
 
 ### Check Prerequisites
 
 ```bash
 # Check Alibaba Cloud setup
-sindri packer doctor --cloud alibaba
+sindri vm doctor --cloud alibaba
 ```
 
 ### Deploy from Image
 
 ```bash
 # Deploy instance from built image
-sindri packer deploy --cloud alibaba m-bp1xxxx
+sindri vm deploy --cloud alibaba m-bp1xxxx
 
 # With custom instance type
-sindri packer deploy --cloud alibaba m-bp1xxxx \
+sindri vm deploy --cloud alibaba m-bp1xxxx \
   --instance-type ecs.g7.xlarge \
   --region cn-shanghai
 ```
@@ -1055,11 +1055,11 @@ For detailed troubleshooting:
 
 ```bash
 # Enable Packer debug output
-sindri packer build --cloud alibaba --debug
+sindri vm build --cloud alibaba --debug
 
 # Or set environment variable
 export PACKER_LOG=1
-sindri packer build --cloud alibaba
+sindri vm build --cloud alibaba
 ```
 
 ### Common Error Codes

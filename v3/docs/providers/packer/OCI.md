@@ -338,18 +338,18 @@ Allow group SindriPackerBuilders to {
 
 ```bash
 # 1. Verify prerequisites
-sindri packer doctor --cloud oci
+sindri vm doctor --cloud oci
 
 # 2. Build an OCI image
-sindri packer build --cloud oci \
+sindri vm build --cloud oci \
   --name sindri-dev \
   --profile fullstack
 
 # 3. List built images
-sindri packer list --cloud oci
+sindri vm list --cloud oci
 
 # 4. Deploy an instance from the image
-sindri packer deploy --cloud oci <image-ocid>
+sindri vm deploy --cloud oci <image-ocid>
 ```
 
 ## Configuration Examples
@@ -765,7 +765,7 @@ Allow group DevTeam to read instance-images in compartment sindri-images
 ### Build Image
 
 ```bash
-sindri packer build --cloud oci [OPTIONS]
+sindri vm build --cloud oci [OPTIONS]
 ```
 
 **Options:**
@@ -783,7 +783,7 @@ sindri packer build --cloud oci [OPTIONS]
 **Example:**
 
 ```bash
-sindri packer build --cloud oci \
+sindri vm build --cloud oci \
   --name production-sindri \
   --profile enterprise \
   --cis-hardening \
@@ -793,43 +793,43 @@ sindri packer build --cloud oci \
 ### List Images
 
 ```bash
-sindri packer list --cloud oci [OPTIONS]
+sindri vm list --cloud oci [OPTIONS]
 ```
 
 **Example:**
 
 ```bash
-sindri packer list --cloud oci --name sindri --json
+sindri vm list --cloud oci --name sindri --json
 ```
 
 ### Delete Image
 
 ```bash
-sindri packer delete --cloud oci <IMAGE_OCID>
+sindri vm delete --cloud oci <IMAGE_OCID>
 ```
 
 **Example:**
 
 ```bash
-sindri packer delete --cloud oci ocid1.image.oc1.phx.aaaaaaaaexample
+sindri vm delete --cloud oci ocid1.image.oc1.phx.aaaaaaaaexample
 ```
 
 ### Deploy Instance
 
 ```bash
-sindri packer deploy --cloud oci <IMAGE_OCID> [OPTIONS]
+sindri vm deploy --cloud oci <IMAGE_OCID> [OPTIONS]
 ```
 
 **Example:**
 
 ```bash
-sindri packer deploy --cloud oci ocid1.image.oc1.phx.aaaaaaaaexample
+sindri vm deploy --cloud oci ocid1.image.oc1.phx.aaaaaaaaexample
 ```
 
 ### Check Prerequisites
 
 ```bash
-sindri packer doctor --cloud oci
+sindri vm doctor --cloud oci
 ```
 
 ## Troubleshooting
@@ -996,7 +996,7 @@ Ensure these statements exist:
 
 3. **Retry with clean state:**
    ```bash
-   sindri packer build --cloud oci --force
+   sindri vm build --cloud oci --force
    ```
 
 ### Debug Mode
@@ -1009,7 +1009,7 @@ export PACKER_LOG=1
 export PACKER_LOG_PATH=/tmp/packer-oci.log
 
 # Run build with debug
-sindri packer build --cloud oci --debug
+sindri vm build --cloud oci --debug
 
 # Review logs
 cat /tmp/packer-oci.log

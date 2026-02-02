@@ -440,7 +440,7 @@ Image families provide semantic versioning for GCP images:
 
 ```bash
 # Build image with family
-sindri packer build --cloud gcp \
+sindri vm build --cloud gcp \
   --name sindri-dev \
   --profile fullstack
 
@@ -478,7 +478,7 @@ Example image names in the `sindri-production` family:
 
 ```bash
 # Build to staging family first
-sindri packer build --cloud gcp \
+sindri vm build --cloud gcp \
   --name sindri-staging \
   --profile fullstack
 
@@ -488,7 +488,7 @@ gcloud compute instances create test-vm \
   --image-project=YOUR_PROJECT_ID
 
 # After validation, rebuild with production family
-sindri packer build --cloud gcp \
+sindri vm build --cloud gcp \
   --name sindri-production \
   --profile fullstack
 ```
@@ -795,7 +795,7 @@ gcloud compute instances list --filter="name~packer"
 gcloud compute instances delete INSTANCE_NAME --zone=ZONE
 
 # Retry build
-sindri packer build --cloud gcp --force
+sindri vm build --cloud gcp --force
 ```
 
 ### Service Account Issues
@@ -817,11 +817,11 @@ For detailed debugging:
 
 ```bash
 # Enable Packer debug logging
-sindri packer build --cloud gcp --debug
+sindri vm build --cloud gcp --debug
 
 # Or set environment variable
 export PACKER_LOG=1
-sindri packer build --cloud gcp
+sindri vm build --cloud gcp
 ```
 
 ## Quick Reference
@@ -830,22 +830,22 @@ sindri packer build --cloud gcp
 
 ```bash
 # Check prerequisites
-sindri packer doctor --cloud gcp
+sindri vm doctor --cloud gcp
 
 # Validate template
-sindri packer validate --cloud gcp
+sindri vm validate --cloud gcp
 
 # Build image
-sindri packer build --cloud gcp --name my-image --profile fullstack
+sindri vm build --cloud gcp --name my-image --profile fullstack
 
 # List images
-sindri packer list --cloud gcp
+sindri vm list --cloud gcp
 
 # Delete image
-sindri packer delete --cloud gcp IMAGE_NAME
+sindri vm delete --cloud gcp IMAGE_NAME
 
 # Deploy from image
-sindri packer deploy --cloud gcp projects/PROJECT/global/images/IMAGE_NAME
+sindri vm deploy --cloud gcp projects/PROJECT/global/images/IMAGE_NAME
 ```
 
 ### Environment Variables
