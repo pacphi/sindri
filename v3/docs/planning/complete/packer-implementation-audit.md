@@ -44,8 +44,8 @@ v3/crates/
 
 The CLI provides 7 subcommands for Packer operations:
 
-| Command                  | Purpose               | Status      |
-| ------------------------ | --------------------- | ----------- |
+| Command              | Purpose               | Status      |
+| -------------------- | --------------------- | ----------- |
 | `sindri vm build`    | Build VM image        | Implemented |
 | `sindri vm validate` | Validate template     | Implemented |
 | `sindri vm list`     | List cloud images     | Implemented |
