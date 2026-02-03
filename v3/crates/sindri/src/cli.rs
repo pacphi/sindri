@@ -291,7 +291,7 @@ pub struct ExtensionInstallArgs {
 #[derive(Args, Debug)]
 pub struct ExtensionListArgs {
     /// Filter by category
-    #[arg(short, long)]
+    #[arg(short = 'C', long)]
     pub category: Option<String>,
 
     /// Show installed only
