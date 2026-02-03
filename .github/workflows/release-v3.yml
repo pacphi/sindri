@@ -506,14 +506,53 @@ jobs:
 
           mv v3/CHANGELOG.md.new v3/CHANGELOG.md
 
-      - name: Update v3/Cargo.toml version
+      - name: Bump v3/Cargo.toml to NEXT version for development
+        id: bump-version
         run: |
-          version="${{ needs.validate-tag.outputs.version }}"
+          released_version="${{ needs.validate-tag.outputs.version }}"
+
+          # Calculate the NEXT version by incrementing the last number in the prerelease
+          # Examples:
+          #   3.0.0-alpha.6 -> 3.0.0-alpha.7
+          #   3.0.0-beta.2  -> 3.0.0-beta.3
+          #   3.0.0         -> 3.0.1 (stable: bump patch)
+
+          if [[ "$released_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([a-zA-Z]+)\.([0-9]+)$ ]]; then
+            # Prerelease version: bump the prerelease number
+            base="${BASH_REMATCH[1]}"
+            prerelease_type="${BASH_REMATCH[2]}"
+            prerelease_num="${BASH_REMATCH[3]}"
+            next_num=$((prerelease_num + 1))
+            next_version="${base}-${prerelease_type}.${next_num}"
+          elif [[ "$released_version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            # Stable version: bump patch number
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            patch="${BASH_REMATCH[3]}"
+            next_patch=$((patch + 1))
+            next_version="${major}.${minor}.${next_patch}"
+          else
+            echo "::error::Cannot parse version format: $released_version"
+            exit 1
+          fi
+
+          echo "Released version: $released_version"
+          echo "Next dev version: $next_version"
+          echo "next_version=$next_version" >> "$GITHUB_OUTPUT"
 
           # Update workspace version in v3/Cargo.toml
-          sed -i 's/^version = ".*"$/version = "'"$version"'"/' v3/Cargo.toml
+          sed -i 's/^version = ".*"$/version = "'"$next_version"'"/' v3/Cargo.toml
 
-          echo "Updated v3/Cargo.toml to version $version"
+          echo "Updated v3/Cargo.toml to version $next_version for next development cycle"
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Regenerate Cargo.lock
+        run: |
+          cd v3
+          cargo generate-lockfile
+          echo "Regenerated v3/Cargo.lock"
 
       - name: Validate version consistency
         run: |
@@ -523,19 +562,23 @@ jobs:
 
       - name: Commit version updates
         run: |
-          version="${{ needs.validate-tag.outputs.version }}"
+          released_version="${{ needs.validate-tag.outputs.version }}"
+          next_version="${{ steps.bump-version.outputs.next_version }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Check if there are changes to commit
-          if git diff --quiet v3/CHANGELOG.md v3/Cargo.toml; then
+          if git diff --quiet v3/CHANGELOG.md v3/Cargo.toml v3/Cargo.lock; then
             echo "No changes to commit"
             exit 0
           fi
 
-          git add v3/CHANGELOG.md v3/Cargo.toml
-          git commit -m "chore(release): update v3 CHANGELOG and Cargo.toml for v$version
+          git add v3/CHANGELOG.md v3/Cargo.toml v3/Cargo.lock
+          git commit -m "chore(release): update v3 CHANGELOG and bump to v$next_version for development
+
+          Released: v$released_version
+          Next development version: v$next_version
 
           [skip ci]"
           git push origin main
