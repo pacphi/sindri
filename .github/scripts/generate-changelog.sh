@@ -26,7 +26,9 @@ VERSION_PREFIX="$2"
 PATH_FILTER="$3"
 OUTPUT_FILE="${4:-changelog.md}"
 
-CURRENT_TAG="${VERSION_PREFIX}${VERSION}"
+# Construct current tag - VERSION already contains the full semver (e.g., 3.0.0-alpha.8)
+# so we just need to prepend "v"
+CURRENT_TAG="v${VERSION}"
 REPO="${GITHUB_REPOSITORY:-unknown/repo}"
 
 echo "Generating changelog for $CURRENT_TAG (path filter: $PATH_FILTER)" >&2
@@ -50,7 +52,8 @@ done <<< "$ALL_TAGS"
 if [[ -z "$PREVIOUS_TAG" ]]; then
   echo "No previous ${VERSION_PREFIX} tag found, checking for first commit" >&2
   # Get the first commit that touches this path as the base
-  FIRST_COMMIT=$(git log --oneline --reverse -- "$PATH_FILTER" | head -1 | cut -d' ' -f1)
+  # Note: Use head in a way that avoids SIGPIPE errors with pipefail
+  FIRST_COMMIT=$(git rev-list --reverse HEAD -- "$PATH_FILTER" 2>/dev/null | head -1) || true
   if [[ -n "$FIRST_COMMIT" ]]; then
     COMMIT_RANGE="${FIRST_COMMIT}^..$CURRENT_TAG"
     echo "Using commits from first v3 commit to $CURRENT_TAG" >&2
