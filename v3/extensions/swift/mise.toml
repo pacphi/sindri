@@ -1,0 +1,5 @@
+[tools]
+swift = "6.2.3"
+
+[settings]
+swift.gpg_verify = true

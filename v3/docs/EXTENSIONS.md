@@ -37,7 +37,7 @@ V3 extensions are organized into the following categories:
 
 | Category            | Description                                      | Count |
 | ------------------- | ------------------------------------------------ | ----- |
-| **languages**       | Programming language runtimes and toolchains     | 10    |
+| **languages**       | Programming language runtimes and toolchains     | 11    |
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
 | **devops**          | Infrastructure, deployment, and operations tools | 4     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 4     |
@@ -68,6 +68,7 @@ V3 extensions are organized into the following categories:
 | **php**             | 2.1.0   | PHP 8.4 with Composer, Symfony CLI, and development tools                       | script         |
 | **ruby**            | 2.0.0   | Ruby 3.4.7 via mise with Rails and Bundler                                      | script         |
 | **haskell**         | 1.0.1   | Haskell development environment with GHC, Cabal, Stack, and HLS                 | mise           |
+| **swift**           | 1.0.0   | Swift 6.2.3 programming language via mise                                       | mise           |
 | **nodejs-devtools** | 2.2.0   | TypeScript, ESLint, Prettier, and Node.js development tools                     | mise           |
 
 ### DevOps
@@ -230,7 +231,7 @@ Profiles provide pre-configured extension sets for common use cases:
 | **systems**       | rust, golang, docker, infra-tools                               |
 | **enterprise**    | claude-cli, all languages, jira-mcp, cloud-tools                |
 | **devops**        | docker, infra-tools, monitoring, cloud-tools                    |
-| **mobile**        | nodejs, linear-mcp, supabase-cli                                |
+| **mobile**        | nodejs, swift, linear-mcp, supabase-cli                         |
 
 Configure profiles in `sindri.yaml`:
 
@@ -623,7 +624,7 @@ These variables are automatically set during deployment when using `buildFromSou
 
 ## Summary Statistics
 
-- **Total Extensions**: 48
+- **Total Extensions**: 49
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 11

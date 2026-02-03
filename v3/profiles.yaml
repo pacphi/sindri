@@ -92,5 +92,6 @@ profiles:
     description: Mobile development
     extensions:
       - nodejs
+      - swift
       - linear-mcp
       - supabase-cli
