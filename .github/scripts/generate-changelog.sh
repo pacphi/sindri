@@ -32,11 +32,31 @@ REPO="${GITHUB_REPOSITORY:-unknown/repo}"
 echo "Generating changelog for $CURRENT_TAG (path filter: $PATH_FILTER)" >&2
 
 # Get previous tag for this version prefix
-PREVIOUS_TAG=$(git tag -l "${VERSION_PREFIX}.*" --sort=-version:refname | grep -A 1 "^$CURRENT_TAG$" | tail -1 || echo "")
+# List all tags, find current tag's position, get the next one (previous release)
+ALL_TAGS=$(git tag -l "${VERSION_PREFIX}.*" --sort=-version:refname)
+PREVIOUS_TAG=""
 
-if [[ -z "$PREVIOUS_TAG" ]] || [[ "$PREVIOUS_TAG" == "$CURRENT_TAG" ]]; then
-  echo "No previous ${VERSION_PREFIX} tag found, using all ${VERSION_PREFIX} commits" >&2
-  COMMIT_RANGE="$CURRENT_TAG"
+found_current=false
+while IFS= read -r tag; do
+  if [[ "$found_current" == "true" ]]; then
+    PREVIOUS_TAG="$tag"
+    break
+  fi
+  if [[ "$tag" == "$CURRENT_TAG" ]]; then
+    found_current=true
+  fi
+done <<< "$ALL_TAGS"
+
+if [[ -z "$PREVIOUS_TAG" ]]; then
+  echo "No previous ${VERSION_PREFIX} tag found, checking for first commit" >&2
+  # Get the first commit that touches this path as the base
+  FIRST_COMMIT=$(git log --oneline --reverse -- "$PATH_FILTER" | head -1 | cut -d' ' -f1)
+  if [[ -n "$FIRST_COMMIT" ]]; then
+    COMMIT_RANGE="${FIRST_COMMIT}^..$CURRENT_TAG"
+    echo "Using commits from first v3 commit to $CURRENT_TAG" >&2
+  else
+    COMMIT_RANGE="$CURRENT_TAG"
+  fi
 else
   echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_TAG" >&2
   COMMIT_RANGE="$PREVIOUS_TAG..$CURRENT_TAG"
