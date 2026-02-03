@@ -328,11 +328,7 @@ impl ExtensionDistributor {
         let workspace_dir =
             std::env::current_dir().context("Could not determine current directory")?;
 
-        let executor = crate::executor::ExtensionExecutor::new(
-            ext_dir.parent().unwrap_or(&ext_dir),
-            workspace_dir,
-            home_dir,
-        );
+        let executor = crate::executor::ExtensionExecutor::new(&ext_dir, workspace_dir, home_dir);
 
         executor
             .install(&extension)

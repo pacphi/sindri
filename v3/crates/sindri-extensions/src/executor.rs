@@ -17,6 +17,7 @@ use tracing::{debug, info, warn};
 /// Extension executor for running install/remove/upgrade operations
 pub struct ExtensionExecutor {
     /// Extension base directory (v3/extensions in repo, ~/.sindri/extensions when deployed)
+    /// OR the direct path to a specific extension directory (for versioned downloads)
     extension_dir: PathBuf,
 
     /// Default timeout in seconds for installation operations
@@ -48,6 +49,59 @@ impl ExtensionExecutor {
     pub fn with_timeout(mut self, timeout: u64) -> Self {
         self.default_timeout = timeout;
         self
+    }
+
+    /// Resolve the actual extension directory for an extension
+    ///
+    /// Handles three cases:
+    /// 1. Direct path: extension_dir itself contains extension.yaml (already resolved)
+    /// 2. Flat structure: extension_dir/{name}/extension.yaml (bundled mode)
+    /// 3. Versioned structure: extension_dir/{name}/{version}/extension.yaml (downloaded mode)
+    fn resolve_extension_dir(&self, name: &str) -> PathBuf {
+        // Case 1: extension_dir itself contains the extension (already resolved)
+        if self.extension_dir.join("extension.yaml").exists() {
+            debug!(
+                "Extension {} found at direct path: {:?}",
+                name, self.extension_dir
+            );
+            return self.extension_dir.clone();
+        }
+
+        // Case 2: Flat structure (bundled) - extension_dir/{name}/
+        let flat_path = self.extension_dir.join(name);
+        if flat_path.join("extension.yaml").exists() {
+            debug!("Extension {} found at flat path: {:?}", name, flat_path);
+            return flat_path;
+        }
+
+        // Case 3: Versioned structure (downloaded) - extension_dir/{name}/{version}/
+        // Find the latest version directory
+        if flat_path.exists() {
+            if let Ok(entries) = std::fs::read_dir(&flat_path) {
+                let versions: Vec<_> = entries
+                    .filter_map(|e| e.ok())
+                    .filter(|e| e.path().is_dir())
+                    .filter(|e| e.path().join("extension.yaml").exists())
+                    .collect();
+
+                // Return newest version (last in directory order)
+                if let Some(version_entry) = versions.into_iter().last() {
+                    let version_path = version_entry.path();
+                    debug!(
+                        "Extension {} found at versioned path: {:?}",
+                        name, version_path
+                    );
+                    return version_path;
+                }
+            }
+        }
+
+        // Fallback: use flat path even if it doesn't exist (will error later)
+        debug!(
+            "Extension {} not found, using fallback path: {:?}",
+            name, flat_path
+        );
+        flat_path
     }
 
     /// Install an extension
@@ -122,7 +176,7 @@ impl ExtensionExecutor {
         // Step 2: Load and verify mise configuration
         debug!("[2/4] Loading mise configuration...");
         let config_file = mise_config.config_file.as_deref().unwrap_or("mise.toml");
-        let ext_dir = self.extension_dir.join(name);
+        let ext_dir = self.resolve_extension_dir(name);
         let config_path = ext_dir.join(config_file);
 
         if !config_path.exists() {
@@ -527,7 +581,7 @@ impl ExtensionExecutor {
 
         info!("Installing {} via script...", name);
 
-        let ext_dir = self.extension_dir.join(name);
+        let ext_dir = self.resolve_extension_dir(name);
         let script_path = ext_dir.join(&script_config.path);
 
         // Validate script path for directory traversal
@@ -871,7 +925,7 @@ impl ExtensionExecutor {
     ) -> Result<()> {
         info!("Executing configure phase for {}", ext_name);
 
-        let ext_dir = self.extension_dir.join(ext_name);
+        let ext_dir = self.resolve_extension_dir(ext_name);
         let processor =
             ConfigureProcessor::new(ext_dir, self.workspace_dir.clone(), self.home_dir.clone());
 
