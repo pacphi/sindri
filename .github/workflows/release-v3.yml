@@ -554,12 +554,6 @@ jobs:
           cargo generate-lockfile
           echo "Regenerated v3/Cargo.lock"
 
-      - name: Validate version consistency
-        run: |
-          ./.github/scripts/validate-versions.sh || {
-            echo "::warning::Version validation found issues, but proceeding with release"
-          }
-
       - name: Commit version updates
         run: |
           released_version="${{ needs.validate-tag.outputs.version }}"
