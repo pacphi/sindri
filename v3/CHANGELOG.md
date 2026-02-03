@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.6
@@ -55,6 +56,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -67,9 +69,6 @@ wget https://github.com/pacphi/sindri/releases/download/v3.0.0-alpha.6/sindri-v3
 tar -xzf sindri-v3.0.0-alpha.6-macos-aarch64.tar.gz
 sudo mv sindri /usr/local/bin/
 ```
-
-
-
 
 ## [3.0.0-alpha.5] - 2026-02-03
 
