@@ -77,6 +77,8 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+# Exception: v2 extension lockfiles needed for Dependabot security updates
+!v2/docker/lib/extensions/*/resources/package-lock.json
 
 # Python
 __pycache__/
