@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/extension-source.schema.json",
+  "title": "Extension Source Configuration",
+  "description": "Configuration for fetching extensions from GitHub repositories",
+  "type": "object",
+  "required": ["github"],
+  "additionalProperties": false,
+  "properties": {
+    "github": {
+      "type": "object",
+      "description": "GitHub repository configuration for extension source",
+      "required": ["owner", "repo", "base_path"],
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "GitHub repository owner (username or organization)",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$"
+        },
+        "repo": {
+          "type": "string",
+          "description": "GitHub repository name",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._-]+$"
+        },
+        "base_path": {
+          "type": "string",
+          "description": "Base path within the repository where extensions are located (e.g., 'v3/extensions')",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

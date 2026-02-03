@@ -486,3 +486,99 @@ Security consideration: Extensions fetched over HTTPS from GitHub are trusted. F
 - [ADR-009: Dependency Resolution](009-dependency-resolution-dag-topological-sort.md) - Uses registry for dependency graph
 - [ADR-012: Registry and Manifest Architecture](012-registry-manifest-dual-state-architecture.md) - Registry format
 - [ADR-013: Schema Validation](013-schema-validation-strategy.md) - Validates fetched extensions
+
+---
+
+## Amendment: Migration to raw.githubusercontent.com (2026-02)
+
+### Context for Amendment
+
+The original design proposed using GitHub Releases with per-extension version tags (e.g., `nodejs@1.1.0`). In practice, this approach had several issues:
+
+1. **Non-existent releases**: The system expected releases like `nodejs@1.1.0` that were never published
+2. **Maintenance burden**: Publishing new extension versions required creating GitHub releases manually
+3. **Version drift**: Extensions could evolve independently of CLI versions, causing compatibility issues
+4. **Octocrab dependency**: Required the heavy octocrab GitHub API client for release queries
+
+### Decision Amendment
+
+We migrate from GitHub Releases API to **raw.githubusercontent.com** with CLI version tags:
+
+**Key changes:**
+
+1. **CLI version tag = extension snapshot**: Instead of per-extension releases, each CLI release (e.g., `v3.0.0-alpha.5`) serves as a snapshot of all extensions at that point in time.
+
+2. **Version in extension.yaml only**: Extension versions are defined solely in their `extension.yaml` metadata. No separate release tags needed.
+
+3. **Direct file fetch**: Extensions are fetched directly from `raw.githubusercontent.com`:
+
+   ```
+   https://raw.githubusercontent.com/{owner}/{repo}/{cli-tag}/{base_path}/{name}/extension.yaml
+   ```
+
+4. **Externalized configuration**: Repository configuration moved to `extension-source.yaml`:
+
+   ```yaml
+   github:
+     owner: "pacphi"
+     repo: "sindri"
+     base_path: "v3/extensions"
+   ```
+
+5. **Removed octocrab dependency**: No longer need GitHub API client; simple HTTP requests to raw URLs.
+
+### URL Derivation
+
+For CLI version `v3.0.0-alpha.5` requesting extension `nodejs`:
+
+```
+https://raw.githubusercontent.com/pacphi/sindri/v3.0.0-alpha.5/v3/extensions/nodejs/extension.yaml
+```
+
+With fallback to `main` branch if tag doesn't exist (for development builds).
+
+### Benefits
+
+1. **Simpler publishing**: Tagging a CLI release automatically includes all extension changes
+2. **Guaranteed compatibility**: Extensions at a CLI tag are known to work with that CLI version
+3. **Reduced dependencies**: Removed octocrab (~5MB compile time savings)
+4. **Faster fetches**: Direct file download vs. API queries
+5. **No rate limits**: raw.githubusercontent.com doesn't have GitHub API rate limits
+6. **Single source of truth**: Extension version defined in one place only
+
+### Trade-offs
+
+1. **Less flexible versioning**: Cannot independently version extensions without CLI release
+2. **No version history browsing**: Can't easily list all historical extension versions
+3. **Requires CLI tag to exist**: Falls back to main branch during development
+
+### Configuration File
+
+New `extension-source.yaml` allows customization of the extension source:
+
+```yaml
+github:
+  owner: "pacphi"
+  repo: "sindri"
+  base_path: "v3/extensions"
+```
+
+Schema available at `v3/schemas/extension-source.schema.json`.
+
+### Migration Path
+
+1. Existing installations continue to work (bundled extensions unchanged)
+2. New downloads use raw.githubusercontent.com URLs
+3. octocrab dependency removed from sindri-extensions crate
+4. `extension-source.yaml` bundled in Docker images
+
+### Files Changed
+
+| File                                              | Change                         |
+| ------------------------------------------------- | ------------------------------ |
+| `v3/extension-source.yaml`                        | NEW - externalized repo config |
+| `v3/schemas/extension-source.schema.json`         | NEW - schema for config        |
+| `v3/crates/sindri-extensions/src/distribution.rs` | Major refactor                 |
+| `v3/Dockerfile`                                   | Copy extension-source.yaml     |
+| `v3/Dockerfile.dev`                               | Copy extension-source.yaml     |
+| `v3/crates/sindri-extensions/Cargo.toml`          | Remove octocrab                |

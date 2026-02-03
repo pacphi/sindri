@@ -1,0 +1,20 @@
+# Extension source configuration
+# Defines where to fetch extensions from GitHub
+#
+# This file externalizes the repository configuration that was previously
+# hardcoded in distribution.rs. Extensions are fetched from:
+#   https://raw.githubusercontent.com/{owner}/{repo}/{tag}/{base_path}/{name}/extension.yaml
+#
+# The CLI version tag (e.g., v3.0.0-alpha.5) is used to fetch extensions,
+# meaning each CLI release corresponds to a snapshot of all extensions.
+
+github:
+  # Repository owner (GitHub username or organization)
+  owner: "pacphi"
+
+  # Repository name
+  repo: "sindri"
+
+  # Base path within the repository where extensions are located
+  # Extensions are at: {base_path}/{extension_name}/extension.yaml
+  base_path: "v3/extensions"

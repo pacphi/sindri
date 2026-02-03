@@ -22,7 +22,6 @@ regex = { workspace = true }
 reqwest = { workspace = true }
 semver = { workspace = true }
 url = { workspace = true }
-octocrab = { workspace = true }
 directories = { workspace = true }
 camino = { workspace = true }
 uuid = { workspace = true }

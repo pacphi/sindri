@@ -199,6 +199,7 @@ COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/extensions/ /opt/sindri/exte
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/registry.yaml /opt/sindri/registry.yaml
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/profiles.yaml /opt/sindri/profiles.yaml
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/compatibility-matrix.yaml /opt/sindri/compatibility-matrix.yaml
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/extension-source.yaml /opt/sindri/extension-source.yaml
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/common.sh /opt/sindri/common.sh
 
 ENV SINDRI_EXT_HOME=/opt/sindri/extensions
