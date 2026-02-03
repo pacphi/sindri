@@ -129,6 +129,9 @@ extensions:
   rust:
     category: "languages"
     description: "Rust development environment"
+  swift:
+    category: "languages"
+    description: "Swift programming language"
 
   # AI/ML Tools
   goose:

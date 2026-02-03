@@ -1,0 +1,57 @@
+---
+metadata:
+  name: swift
+  version: 1.0.0
+  description: Swift 6.2.3 programming language via mise
+  category: languages
+  dependencies:
+    - mise-config
+
+requirements:
+  domains:
+    - swift.org
+    - download.swift.org
+  diskSpace: 1500
+  memory: 512
+  installTime: 120
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: SWIFT_DETERMINISTIC_HASHING
+      value: "1"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: swift
+      expectedPattern: "Swift version \\d+\\.\\d+\\.\\d+"
+    - name: swiftc
+      expectedPattern: "Swift version \\d+\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools: [swift]
+
+bom:
+  tools:
+    - name: swift
+      version: "6.2.3"
+      source: mise
+      type: compiler
+      license: Apache-2.0
+      homepage: https://www.swift.org
+      purl: pkg:generic/swift
+    - name: swiftc
+      version: "6.2.3"
+      source: mise
+      type: compiler
+      license: Apache-2.0
+      homepage: https://www.swift.org
+      purl: pkg:generic/swift
