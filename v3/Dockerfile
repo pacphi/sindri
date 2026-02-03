@@ -277,6 +277,7 @@ ENV SINDRI_EXT_HOME=/alt/home/developer/.sindri/extensions
 RUN mkdir -p /alt/home/developer/.sindri/extensions
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/compatibility-matrix.yaml /alt/home/developer/.sindri/compatibility-matrix.yaml
 COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/extension-source.yaml /alt/home/developer/.sindri/extension-source.yaml
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/common.sh /alt/home/developer/.sindri/extensions/common.sh
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------

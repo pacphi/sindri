@@ -581,14 +581,36 @@ impl ExtensionExecutor {
 
         info!("Installing {} via script...", name);
 
+        // Debug: log the executor's extension_dir before resolution
+        debug!(
+            "install_script for {}: executor.extension_dir={:?}",
+            name, self.extension_dir
+        );
+
         let ext_dir = self.resolve_extension_dir(name);
+
+        // Debug: log the resolved extension directory
+        debug!(
+            "install_script for {}: resolved ext_dir={:?}",
+            name, ext_dir
+        );
+
         let script_path = ext_dir.join(&script_config.path);
+
+        // Debug: log the final script path
+        debug!("install_script for {}: script_path={:?}", name, script_path);
 
         // Validate script path for directory traversal
         self.validate_script_path(&script_path, &ext_dir)?;
 
         if !script_path.exists() {
-            return Err(anyhow!("Install script not found: {:?}", script_path));
+            // Include more context in error message for debugging
+            return Err(anyhow!(
+                "Install script not found: {:?} (executor.extension_dir={:?}, resolved ext_dir={:?})",
+                script_path,
+                self.extension_dir,
+                ext_dir
+            ));
         }
 
         // Get timeout from script config or parameter

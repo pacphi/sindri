@@ -410,10 +410,10 @@ install_extensions_background() {
             touch "$bootstrap_marker"
             chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
             print_success "Extension installation complete" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            echo "✅ Extension installation complete. Check log at: ~/.sindri/logs/install.log" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "✅ Extension installation complete. Check log at: ~/.sindri/logs/install.log"
         else
             print_error "Extension installation failed (exit code: ${exit_code})" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            echo "❌ Extension installation failed. Check log at: ~/.sindri/logs/install.log" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "❌ Extension installation failed. Check log at: ~/.sindri/logs/install.log"
         fi
     ) &
 

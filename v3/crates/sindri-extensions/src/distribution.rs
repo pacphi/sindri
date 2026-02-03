@@ -431,10 +431,26 @@ impl ExtensionDistributor {
 
     /// Get bundled extension directory if available
     ///
-    /// Returns Some(PathBuf) if the extension exists in SINDRI_EXT_HOME, None otherwise.
+    /// Returns Some(PathBuf) if the extension exists in SINDRI_EXT_HOME AND
+    /// SINDRI_EXT_HOME points to a bundled location (/opt/sindri), None otherwise.
+    ///
+    /// This prevents treating user's download directory (~/.sindri/extensions)
+    /// as a bundled source, which would cause path resolution issues.
     async fn get_bundled_extension_dir(&self, name: &str) -> Result<Option<PathBuf>> {
         if let Ok(ext_home) = std::env::var("SINDRI_EXT_HOME") {
-            let bundled_ext_dir = std::path::PathBuf::from(&ext_home).join(name);
+            let ext_home_path = std::path::PathBuf::from(&ext_home);
+
+            // Only treat as bundled if it's under /opt/sindri (not user's home directory)
+            // This matches the check in BundledSource::from_env() in source.rs
+            if !ext_home_path.starts_with("/opt/sindri") {
+                debug!(
+                    "SINDRI_EXT_HOME={:?} is not a bundled path, skipping bundled check",
+                    ext_home
+                );
+                return Ok(None);
+            }
+
+            let bundled_ext_dir = ext_home_path.join(name);
 
             if bundled_ext_dir.exists() && bundled_ext_dir.join("extension.yaml").exists() {
                 debug!("Found bundled extension at {:?}", bundled_ext_dir);
