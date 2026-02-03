@@ -12,37 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :sparkles: Features
 
 - feat(v3): migrate extension downloads to raw.githubusercontent.com (3295c2d)
-- feat(v3): add unified extension source resolver and improve GHCR auth (3abcbe0)
-- feat: v3 distribution preparation (#58) (6ba9a2b)
-- feat: v3 vm command (#57) (cba8fe5)
-- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
-- feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
 
 ### :bug: Bug Fixes
 
 - fix(v3): resolve -c argument conflict in extension list command (4603305)
-- fix(v3): correct compatibility matrix URL and bundle in Docker image (a496d79)
-- fix(release): remove macOS x86_64 support from release pipeline (e27466c)
-- fix(release): resolve v3 build failures for ARM64 and Windows (fe25b4f)
-- fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
-
-### :package: Dependencies
-
-- deps(v3): upgrade which to 8.0 and dirs to 6.0 (573c35f)
 
 ### :wrench: Maintenance
 
 - chore(release): prepare v3.0.0-alpha.7 release (ae54829)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.6 (2be6e38)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.5 (222e8f4)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.4 (6e57da4)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.3 (60ab8dd)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.2 (2e0f9b8)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
-- chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)
-- chore(deps): upgrade Rust dependencies and GitHub Actions (43543fa)
 
 ### Installation
 
@@ -77,36 +54,13 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.6] - 2026-02-03
 
-### :sparkles: Features
-
-- feat(v3): add unified extension source resolver and improve GHCR auth (3abcbe0)
-- feat: v3 distribution preparation (#58) (6ba9a2b)
-- feat: v3 vm command (#57) (cba8fe5)
-- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
-- feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
-
 ### :bug: Bug Fixes
 
 - fix(v3): correct compatibility matrix URL and bundle in Docker image (a496d79)
-- fix(release): remove macOS x86_64 support from release pipeline (e27466c)
-- fix(release): resolve v3 build failures for ARM64 and Windows (fe25b4f)
-- fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
-
-### :package: Dependencies
-
-- deps(v3): upgrade which to 8.0 and dirs to 6.0 (573c35f)
 
 ### :wrench: Maintenance
 
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.5 (222e8f4)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.4 (6e57da4)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.3 (60ab8dd)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.2 (2e0f9b8)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
-- chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)
-- chore(deps): upgrade Rust dependencies and GitHub Actions (43543fa)
+- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.6 (2be6e38)
 
 ### Installation
 
@@ -143,31 +97,10 @@ sudo mv sindri /usr/local/bin/
 ### :sparkles: Features
 
 - feat(v3): add unified extension source resolver and improve GHCR auth (3abcbe0)
-- feat: v3 distribution preparation (#58) (6ba9a2b)
-- feat: v3 vm command (#57) (cba8fe5)
-- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
-- feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
-
-### :bug: Bug Fixes
-
-- fix(release): remove macOS x86_64 support from release pipeline (e27466c)
-- fix(release): resolve v3 build failures for ARM64 and Windows (fe25b4f)
-- fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
-
-### :package: Dependencies
-
-- deps(v3): upgrade which to 8.0 and dirs to 6.0 (573c35f)
 
 ### :wrench: Maintenance
 
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.4 (6e57da4)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.3 (60ab8dd)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.2 (2e0f9b8)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
-- chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)
-- chore(deps): upgrade Rust dependencies and GitHub Actions (43543fa)
+- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.5 (222e8f4)
 
 ### Installation
 
@@ -201,32 +134,13 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.4] - 2026-02-03
 
-### :sparkles: Features
-
-- feat: v3 distribution preparation (#58) (6ba9a2b)
-- feat: v3 vm command (#57) (cba8fe5)
-- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
-- feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
-
 ### :bug: Bug Fixes
 
 - fix(release): remove macOS x86_64 support from release pipeline (e27466c)
-- fix(release): resolve v3 build failures for ARM64 and Windows (fe25b4f)
-- fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
-
-### :package: Dependencies
-
-- deps(v3): upgrade which to 8.0 and dirs to 6.0 (573c35f)
 
 ### :wrench: Maintenance
 
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.3 (60ab8dd)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.2 (2e0f9b8)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
-- chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)
-- chore(deps): upgrade Rust dependencies and GitHub Actions (43543fa)
+- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.4 (6e57da4)
 
 ### Installation
 
@@ -260,30 +174,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.3] - 2026-02-03
 
-### :sparkles: Features
-
-- feat: v3 distribution preparation (#58) (6ba9a2b)
-- feat: v3 vm command (#57) (cba8fe5)
-- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
-- feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
-
-### :bug: Bug Fixes
-
-- fix(release): resolve v3 build failures for ARM64 and Windows (fe25b4f)
-- fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
-
-### :package: Dependencies
-
-- deps(v3): upgrade which to 8.0 and dirs to 6.0 (573c35f)
+_Only release prep commit - no user-facing changes_
 
 ### :wrench: Maintenance
 
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.2 (2e0f9b8)
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
-- chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)
-- chore(deps): upgrade Rust dependencies and GitHub Actions (43543fa)
+- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.3 (60ab8dd)
 
 ### Installation
 
@@ -317,29 +212,13 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.2] - 2026-02-02
 
-### :sparkles: Features
-
-- feat: v3 distribution preparation (#58) (6ba9a2b)
-- feat: v3 vm command (#57) (cba8fe5)
-- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
-- feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
-
 ### :bug: Bug Fixes
 
 - fix(release): resolve v3 build failures for ARM64 and Windows (fe25b4f)
-- fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
-
-### :package: Dependencies
-
-- deps(v3): upgrade which to 8.0 and dirs to 6.0 (573c35f)
 
 ### :wrench: Maintenance
 
-- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
-- chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)
-- chore(deps): upgrade Rust dependencies and GitHub Actions (43543fa)
+- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.2 (2e0f9b8)
 
 ### Installation
 
@@ -375,12 +254,12 @@ sudo mv sindri /usr/local/bin/
 
 ### :sparkles: Features
 
-- feat: v3 distribution preparation (#58) (6ba9a2b)
-- feat: v3 vm command (#57) (cba8fe5)
-- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
 - feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
+- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
+- feat: v3 pre-release stabilization efforts (#50) (10b284d)
+- feat: v3 stabilization efforts - part 2 (#51) (da3384d)
+- feat: v3 vm command (#57) (cba8fe5)
+- feat: v3 distribution preparation (#58) (6ba9a2b)
 
 ### :bug: Bug Fixes
 
@@ -392,6 +271,7 @@ sudo mv sindri /usr/local/bin/
 
 ### :wrench: Maintenance
 
+- chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
 - chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)
 - chore(deps): upgrade Rust dependencies and GitHub Actions (43543fa)
 

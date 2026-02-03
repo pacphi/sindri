@@ -9,12 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.5.0] - 2026-02-01
 
-### :sparkles: Features
-
-- feat: v3 pre-release stabilization efforts (#50) (10b284d)
-- feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
-- feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
-
 ### :bug: Bug Fixes
 
 - fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
