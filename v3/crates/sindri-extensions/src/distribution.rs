@@ -21,7 +21,7 @@ use tokio::fs;
 use tracing::{debug, info};
 
 /// GitHub repository for extensions
-const EXTENSIONS_REPO: &str = "sindri/sindri-extensions";
+const EXTENSIONS_REPO: &str = "pacphi/sindri";
 
 /// Cache TTL for compatibility matrix and registry
 const CACHE_TTL: Duration = Duration::from_secs(3600); // 1 hour
@@ -387,9 +387,9 @@ impl ExtensionDistributor {
 
         debug!("Fetching compatibility matrix from GitHub");
 
-        // Fetch from GitHub
+        // Fetch from GitHub (v3/compatibility-matrix.yaml in the main repo)
         let url = format!(
-            "https://raw.githubusercontent.com/{}/main/compatibility-matrix.yaml",
+            "https://raw.githubusercontent.com/{}/main/v3/compatibility-matrix.yaml",
             EXTENSIONS_REPO
         );
         let client = reqwest::Client::new();

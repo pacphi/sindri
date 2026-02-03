@@ -271,6 +271,11 @@ RUN sindri --version
 #
 # Set extension home to the volume-mounted path (absolute, not ${HOME} which varies)
 ENV SINDRI_EXT_HOME=/alt/home/developer/.sindri/extensions
+
+# Bundle compatibility matrix for extension version resolution
+# Located at SINDRI_EXT_HOME/.. so profile installer can find it
+RUN mkdir -p /alt/home/developer/.sindri/extensions
+COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/compatibility-matrix.yaml /alt/home/developer/.sindri/compatibility-matrix.yaml
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
