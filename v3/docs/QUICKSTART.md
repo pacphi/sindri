@@ -35,19 +35,11 @@ tar -xzf sindri-linux-x86_64.tar.gz
 sudo mv sindri /usr/local/bin/
 ```
 
-#### macOS (Apple Silicon)
+#### macOS
 
 ```bash
 wget https://github.com/pacphi/sindri/releases/latest/download/sindri-macos-aarch64.tar.gz
 tar -xzf sindri-macos-aarch64.tar.gz
-sudo mv sindri /usr/local/bin/
-```
-
-#### macOS (Intel)
-
-```bash
-wget https://github.com/pacphi/sindri/releases/latest/download/sindri-macos-x86_64.tar.gz
-tar -xzf sindri-macos-x86_64.tar.gz
 sudo mv sindri /usr/local/bin/
 ```
 

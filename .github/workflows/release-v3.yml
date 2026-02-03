@@ -99,11 +99,7 @@ jobs:
             platform: linux-aarch64
             cross: true
 
-          - os: macos-13
-            target: x86_64-apple-darwin
-            platform: macos-x86_64
-
-          - os: macos-14
+          - os: macos-latest
             target: aarch64-apple-darwin
             platform: macos-aarch64
 
@@ -629,11 +625,7 @@ jobs:
               EXT="tar.gz"
               ;;
             darwin)
-              case "$ARCH" in
-                x86_64) PLATFORM="macos-x86_64" ;;
-                arm64) PLATFORM="macos-aarch64" ;;
-                *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-              esac
+              PLATFORM="macos-aarch64"
               EXT="tar.gz"
               ;;
             mingw*|msys*|cygwin*)

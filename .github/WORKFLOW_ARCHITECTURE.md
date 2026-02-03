@@ -280,7 +280,7 @@ git push origin v2.3.0
 2. Generate changelog from `v3/` commits
 3. Build release binaries for multiple platforms:
    - Linux (x86_64, aarch64)
-   - macOS (x86_64, aarch64/Apple Silicon)
+   - macOS (Apple Silicon/aarch64)
    - Windows (x86_64)
 4. Create release archives:
    - `.tar.gz` for Unix platforms
