@@ -85,13 +85,16 @@ async fn fetch_and_cache_metadata(token: &str) -> Result<String, Box<dyn std::er
         .map_err(|e| format!("Failed to list tags: {}", e))?;
 
     // Sort by semver (newest first) and take first N
+    // Note: comparison must maintain total order - semver tags come first, then non-semver alphabetically
     tags.sort_by(|a, b| {
         let ver_a = a.strip_prefix('v').unwrap_or(a);
         let ver_b = b.strip_prefix('v').unwrap_or(b);
 
         match (semver::Version::parse(ver_a), semver::Version::parse(ver_b)) {
-            (Ok(va), Ok(vb)) => vb.cmp(&va),
-            _ => b.cmp(a),
+            (Ok(va), Ok(vb)) => vb.cmp(&va), // Both semver: sort descending
+            (Ok(_), Err(_)) => std::cmp::Ordering::Less, // Semver comes first
+            (Err(_), Ok(_)) => std::cmp::Ordering::Greater, // Non-semver comes after
+            (Err(_), Err(_)) => b.cmp(a),    // Both non-semver: sort descending alphabetically
         }
     });
 

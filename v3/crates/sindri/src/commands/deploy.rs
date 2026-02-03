@@ -55,11 +55,13 @@ pub async fn run(args: DeployArgs, config_path: Option<&Utf8Path>) -> Result<()>
 
                 Some(image)
             }
-            Err(_) => {
+            Err(e) => {
                 return Err(anyhow::anyhow!(
-                    "No image configured. Please specify:\n\
+                    "Failed to resolve image: {}\n\n\
+                    Please specify:\n\
                     1. deployment.image or deployment.image_config in sindri.yaml, OR\n\
-                    2. Use --from-source flag to build from Sindri repository"
+                    2. Use --from-source flag to build from Sindri repository",
+                    e
                 ));
             }
         }

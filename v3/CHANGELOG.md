@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.4
@@ -51,6 +52,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -63,9 +65,6 @@ wget https://github.com/pacphi/sindri/releases/download/v3.0.0-alpha.4/sindri-v3
 tar -xzf sindri-v3.0.0-alpha.4-macos-aarch64.tar.gz
 sudo mv sindri /usr/local/bin/
 ```
-
-
-
 
 ## [3.0.0-alpha.3] - 2026-02-03
 
@@ -97,6 +96,7 @@ sudo mv sindri /usr/local/bin/
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.3
@@ -109,6 +109,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -121,9 +122,6 @@ wget https://github.com/pacphi/sindri/releases/download/v3.0.0-alpha.3/sindri-v3
 tar -xzf sindri-v3.0.0-alpha.3-macos-aarch64.tar.gz
 sudo mv sindri /usr/local/bin/
 ```
-
-
-
 
 ## [3.0.0-alpha.2] - 2026-02-02
 
@@ -154,6 +152,7 @@ sudo mv sindri /usr/local/bin/
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.2
@@ -166,6 +165,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -178,9 +178,6 @@ wget https://github.com/pacphi/sindri/releases/download/v3.0.0-alpha.2/sindri-v3
 tar -xzf sindri-v3.0.0-alpha.2-macos-aarch64.tar.gz
 sudo mv sindri /usr/local/bin/
 ```
-
-
-
 
 ## [3.0.0-alpha.1] - 2026-02-02
 
@@ -209,6 +206,7 @@ sudo mv sindri /usr/local/bin/
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.1
@@ -221,6 +219,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -233,8 +232,6 @@ wget https://github.com/pacphi/sindri/releases/download/v3.0.0-alpha.1/sindri-v3
 tar -xzf sindri-v3.0.0-alpha.1-macos-aarch64.tar.gz
 sudo mv sindri /usr/local/bin/
 ```
-
-
 
 # Sindri V3 Changelog
 

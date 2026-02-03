@@ -196,7 +196,7 @@ impl SchemaValidator {
                         "profile": { "type": "string" },
                         "active": { "type": "array", "items": { "type": "string" } },
                         "additional": { "type": "array", "items": { "type": "string" } },
-                        "autoInstall": { "type": "boolean" }
+                        "auto_install": { "type": "boolean" }
                     }
                 },
                 "secrets": { "type": "array" },

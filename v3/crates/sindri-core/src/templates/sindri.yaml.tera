@@ -152,7 +152,7 @@ extensions:
   #   - ollama
   #   - monitoring
 
-  autoInstall: true    # Auto-install on startup (set false for CI/testing)
+  auto_install: true   # Auto-install on startup (set false for CI/testing)
 
 # =============================================================================
 # SECRETS

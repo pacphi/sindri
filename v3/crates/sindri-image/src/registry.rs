@@ -3,13 +3,17 @@ use anyhow::{anyhow, Context, Result};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION};
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::sync::RwLock;
 use tracing::{debug, trace};
 
 /// Client for interacting with OCI-compatible container registries
 pub struct RegistryClient {
     client: reqwest::Client,
     registry_url: String,
+    /// Raw token (e.g., GitHub PAT) for authentication
     auth_token: Option<String>,
+    /// Cached bearer token obtained from registry auth endpoint
+    bearer_token: RwLock<Option<String>>,
 }
 
 impl RegistryClient {
@@ -24,6 +28,7 @@ impl RegistryClient {
             client,
             registry_url: registry_url.into(),
             auth_token: None,
+            bearer_token: RwLock::new(None),
         }
     }
 
@@ -33,41 +38,153 @@ impl RegistryClient {
         self
     }
 
-    /// List all tags for a repository
-    pub async fn list_tags(&self, repository: &str) -> Result<Vec<String>> {
-        let url = format!("https://{}/v2/{}/tags/list", self.registry_url, repository);
-
-        debug!("Listing tags from: {}", url);
-
-        let mut headers = HeaderMap::new();
-        if let Some(token) = &self.auth_token {
-            headers.insert(
-                AUTHORIZATION,
-                HeaderValue::from_str(&format!("Bearer {}", token))?,
-            );
+    /// Get a bearer token for GHCR
+    /// For public packages, an anonymous token can be obtained.
+    /// For private packages, a GitHub PAT with read:packages scope is required.
+    async fn get_ghcr_token(&self, repository: &str) -> Result<String> {
+        // Check cache first
+        if let Some(token) = self.bearer_token.read().unwrap().as_ref() {
+            return Ok(token.clone());
         }
 
-        let response = self
-            .client
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await
-            .context("Failed to list tags")?;
+        // GHCR uses Docker Registry v2 token authentication
+        // Format: https://ghcr.io/token?service=ghcr.io&scope=repository:OWNER/REPO:pull
+        let token_url = format!(
+            "https://{}/token?service={}&scope=repository:{}:pull",
+            self.registry_url, self.registry_url, repository
+        );
+
+        debug!("Requesting GHCR token from: {}", token_url);
+
+        // Try with authentication first if we have a token
+        let response = if let Some(github_token) = &self.auth_token {
+            debug!("Using authenticated request for GHCR token");
+            self.client
+                .get(&token_url)
+                .basic_auth("token", Some(github_token))
+                .send()
+                .await
+                .with_context(|| format!("Failed to request token from {}", token_url))?
+        } else {
+            // Try anonymous access for public packages
+            debug!("Using anonymous request for GHCR token (public package)");
+            self.client
+                .get(&token_url)
+                .send()
+                .await
+                .with_context(|| format!("Failed to request token from {}", token_url))?
+        };
 
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(anyhow!("Registry API error ({}): {}", status, body));
+
+            // If we tried with auth and failed, provide helpful message
+            if self.auth_token.is_some() {
+                return Err(anyhow!(
+                    "GHCR token request failed ({}): {}.\n\
+                    Ensure GITHUB_TOKEN has 'read:packages' scope and the package exists at ghcr.io/{}",
+                    status,
+                    body,
+                    repository
+                ));
+            } else {
+                return Err(anyhow!(
+                    "GHCR token request failed ({}): {}.\n\
+                    This package may be private. Set GITHUB_TOKEN with 'read:packages' scope.",
+                    status,
+                    body
+                ));
+            }
         }
 
-        let tags_response: TagsResponse = response
+        let token_response: TokenResponse = response
             .json()
             .await
-            .context("Failed to parse tags response")?;
+            .context("Failed to parse token response")?;
 
-        trace!("Found {} tags", tags_response.tags.len());
-        Ok(tags_response.tags)
+        // Cache the token
+        *self.bearer_token.write().unwrap() = Some(token_response.token.clone());
+
+        Ok(token_response.token)
+    }
+
+    /// Get the appropriate authorization header for a request
+    async fn get_auth_header(&self, repository: &str) -> Result<Option<HeaderValue>> {
+        // For GHCR, we need to exchange the GitHub token for a bearer token
+        if self.registry_url.contains("ghcr.io") {
+            let bearer = self.get_ghcr_token(repository).await?;
+            Ok(Some(HeaderValue::from_str(&format!("Bearer {}", bearer))?))
+        } else if let Some(token) = &self.auth_token {
+            // For other registries, try using the token directly
+            Ok(Some(HeaderValue::from_str(&format!("Bearer {}", token))?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// List all tags for a repository (handles pagination)
+    pub async fn list_tags(&self, repository: &str) -> Result<Vec<String>> {
+        let mut all_tags = Vec::new();
+        let mut url = format!(
+            "https://{}/v2/{}/tags/list?n=1000",
+            self.registry_url, repository
+        );
+
+        loop {
+            debug!("Listing tags from: {}", url);
+
+            let mut headers = HeaderMap::new();
+            if let Some(auth_header) = self.get_auth_header(repository).await? {
+                headers.insert(AUTHORIZATION, auth_header);
+            }
+
+            let response = self
+                .client
+                .get(&url)
+                .headers(headers)
+                .send()
+                .await
+                .with_context(|| format!("Failed to connect to registry at {}", url))?;
+
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                return Err(anyhow!(
+                    "Registry returned {} for {}: {}",
+                    status,
+                    url,
+                    if body.is_empty() {
+                        "(no response body)".to_string()
+                    } else {
+                        body
+                    }
+                ));
+            }
+
+            // Check for Link header for pagination
+            let next_url = response
+                .headers()
+                .get("link")
+                .and_then(|h| h.to_str().ok())
+                .and_then(|link| parse_link_header(link, &self.registry_url));
+
+            let tags_response: TagsResponse = response
+                .json()
+                .await
+                .context("Failed to parse tags response")?;
+
+            all_tags.extend(tags_response.tags);
+
+            // Continue to next page if available
+            match next_url {
+                Some(next) => url = next,
+                None => break,
+            }
+        }
+
+        trace!("Found {} tags total", all_tags.len());
+        Ok(all_tags)
     }
 
     /// Get manifest for a specific image tag or digest
@@ -86,11 +203,8 @@ impl RegistryClient {
                 "application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json",
             ),
         );
-        if let Some(token) = &self.auth_token {
-            headers.insert(
-                AUTHORIZATION,
-                HeaderValue::from_str(&format!("Bearer {}", token))?,
-            );
+        if let Some(auth_header) = self.get_auth_header(repository).await? {
+            headers.insert(AUTHORIZATION, auth_header);
         }
 
         let response = self
@@ -130,11 +244,8 @@ impl RegistryClient {
         );
 
         let mut headers = HeaderMap::new();
-        if let Some(token) = &self.auth_token {
-            headers.insert(
-                AUTHORIZATION,
-                HeaderValue::from_str(&format!("Bearer {}", token))?,
-            );
+        if let Some(auth_header) = self.get_auth_header(&image.repository).await? {
+            headers.insert(AUTHORIZATION, auth_header);
         }
 
         let config_response = self
@@ -198,10 +309,37 @@ impl RegistryClient {
 
 // Internal types for registry API responses
 
+/// Parse Link header for pagination
+/// Format: <https://ghcr.io/v2/repo/tags/list?n=100&last=tag>; rel="next"
+fn parse_link_header(link: &str, registry_url: &str) -> Option<String> {
+    for part in link.split(',') {
+        let part = part.trim();
+        if part.contains("rel=\"next\"") {
+            // Extract URL from <...>
+            if let Some(start) = part.find('<') {
+                if let Some(end) = part.find('>') {
+                    let url = &part[start + 1..end];
+                    // URL might be relative, make it absolute
+                    if url.starts_with('/') {
+                        return Some(format!("https://{}{}", registry_url, url));
+                    }
+                    return Some(url.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 #[derive(Debug, Deserialize)]
 struct TagsResponse {
     #[serde(default)]
     tags: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TokenResponse {
+    token: String,
 }
 
 #[derive(Debug, Deserialize)]

@@ -4448,7 +4448,7 @@ dependencies = [
 
 [[package]]
 name = "sindri"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4494,7 +4494,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-backup"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4519,7 +4519,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-clusters"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4538,7 +4538,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-core"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "camino",
@@ -4562,7 +4562,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-doctor"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "dialoguer",
@@ -4582,7 +4582,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-extensions"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "camino",
@@ -4619,7 +4619,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-image"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4640,7 +4640,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-packer"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4667,7 +4667,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-projects"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "camino",
@@ -4690,7 +4690,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-providers"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4712,7 +4712,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-secrets"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "age",
  "anyhow",
@@ -4743,7 +4743,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-update"
-version = "3.0.0-alpha.3"
+version = "3.0.0-alpha.4"
 dependencies = [
  "anyhow",
  "bytes",

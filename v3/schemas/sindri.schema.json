@@ -133,7 +133,7 @@
           },
           "description": "Additional extensions to install on top of a profile"
         },
-        "autoInstall": {
+        "auto_install": {
           "type": "boolean",
           "default": true,
           "description": "Auto-install extensions on container startup (default: true). Set to false for manual control or CI testing."

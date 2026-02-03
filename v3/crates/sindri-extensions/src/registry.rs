@@ -267,6 +267,13 @@ impl ExtensionRegistry {
         Ok(())
     }
 
+    /// Register an already-loaded extension definition
+    ///
+    /// Used by ExtensionSourceResolver to register extensions loaded from various sources.
+    pub fn register_extension(&mut self, name: &str, extension: Extension) {
+        self.extensions.insert(name.to_string(), extension);
+    }
+
     /// Get extension entry by name
     pub fn get_entry(&self, name: &str) -> Option<&RegistryEntry> {
         self.entries.get(name)

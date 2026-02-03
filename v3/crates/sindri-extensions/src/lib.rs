@@ -9,6 +9,7 @@
 //! - GitHub-based extension distribution
 //! - Profile-based batch installation
 //! - Configure processing (templates and environment variables)
+//! - Trait-based extension sources (bundled, downloaded, local-dev)
 
 pub mod bom;
 pub mod configure;
@@ -18,6 +19,7 @@ pub mod executor;
 pub mod manifest;
 pub mod profile;
 pub mod registry;
+pub mod source;
 pub mod types;
 pub mod validation;
 pub mod validator;
@@ -32,5 +34,8 @@ pub use executor::ExtensionExecutor;
 pub use manifest::ManifestManager;
 pub use profile::{ProfileInstallResult, ProfileInstaller, ProfileStatus};
 pub use registry::ExtensionRegistry;
+pub use source::{
+    BundledSource, DownloadedSource, ExtensionSourceResolver, LocalDevSource, SourceType,
+};
 pub use validation::{ValidationConfig, DEFAULT_VALIDATION_PATHS, VALIDATION_EXTRA_PATHS_ENV};
 pub use validator::ExtensionValidator;

@@ -237,7 +237,7 @@ PROFILE_HEADER
 
     # Capture all SINDRI_* variables currently set
     local sindri_vars
-    sindri_vars=$(env | grep -E '^SINDRI_')
+    sindri_vars=$(env | grep -E '^SINDRI_' || true)
 
     if [[ -n "$sindri_vars" ]]; then
         while IFS= read -r line; do

@@ -5,13 +5,13 @@
 //! dependency resolution and progress tracking.
 
 use anyhow::{anyhow, Context, Result};
-use std::path::PathBuf;
 use tracing::{debug, info, warn};
 
 use crate::dependency::DependencyResolver;
 use crate::executor::ExtensionExecutor;
 use crate::manifest::ManifestManager;
 use crate::registry::ExtensionRegistry;
+use crate::source::ExtensionSourceResolver;
 
 /// Progress callback type for profile installations
 pub type ProgressCallback<'a> = Option<&'a dyn Fn(usize, usize, &str)>;
@@ -389,40 +389,29 @@ impl ProfileInstaller {
         }
     }
 
-    /// Load extension definitions from registry
+    /// Load extension definitions using ExtensionSourceResolver
     ///
-    /// Loads extension.yaml files for the given extensions. Tries in priority order:
-    /// 1. Already loaded in registry (skip)
-    /// 2. Source-based build path: /opt/sindri/extensions/<name>/extension.yaml (when BUILD_FROM_SOURCE=true)
-    /// 3. Local development path: v3/extensions/<name>/extension.yaml (for local development)
-    /// 4. Downloaded from GitHub releases: ~/.sindri/extensions/<name>/<version>/extension.yaml (future)
+    /// Uses the unified source resolver to load extensions from:
+    /// 1. Bundled source (/opt/sindri/extensions) - for Docker builds
+    /// 2. Local dev source (v3/extensions) - for development
+    /// 3. Downloaded source (~/.sindri/extensions) - with GitHub download fallback
     async fn load_extension_definitions(&mut self, extension_names: &[String]) -> Result<()> {
         debug!(
             "Loading definitions for {} extensions",
             extension_names.len()
         );
 
-        // Determine extensions directory from SINDRI_EXT_HOME or fallback to home directory
-        // IMPORTANT: Check HOME env var BEFORE dirs::home_dir() for Docker compatibility
-        // In containers, HOME may be set to ALT_HOME but dirs::home_dir() reads /etc/passwd
-        let ext_home = std::env::var("SINDRI_EXT_HOME")
-            .ok()
-            .or_else(|| {
-                // Fallback 1: HOME env var (respects ALT_HOME volume mount in Docker)
-                std::env::var("HOME")
-                    .ok()
-                    .map(|h| format!("{}/.sindri/extensions", h))
-            })
-            .or_else(|| {
-                // Fallback 2: dirs::home_dir() for non-container environments
-                dirs::home_dir().map(|h| h.join(".sindri/extensions").to_string_lossy().to_string())
-            })
-            .unwrap_or_else(|| {
-                // Fallback 3: Default path (should rarely be used)
-                "/alt/home/developer/.sindri/extensions".to_string()
-            });
+        // Create source resolver from environment
+        let resolver = ExtensionSourceResolver::from_env()
+            .context("Failed to create extension source resolver")?;
 
-        debug!("Using extensions directory: {}", ext_home);
+        if resolver.is_bundled_mode() {
+            debug!("Running in bundled mode");
+        } else if resolver.is_dev_mode() {
+            debug!("Running in development mode");
+        } else {
+            debug!("Running in production mode (download fallback enabled)");
+        }
 
         for name in extension_names {
             // Check that extension exists in registry metadata
@@ -440,105 +429,18 @@ impl ProfileInstaller {
                 continue;
             }
 
-            // Priority 1: SINDRI_EXT_HOME or fallback directory
-            // Check both flat structure (bundled) and versioned structure (downloaded)
-            let ext_base = PathBuf::from(&ext_home).join(name);
+            // Use the resolver to get extension (handles bundled/local/download automatically)
+            let extension = resolver
+                .get_extension(name)
+                .await
+                .context(format!("Failed to load extension '{}'", name))?;
 
-            // Try flat structure first (bundled extensions at /opt/sindri/extensions/<name>/extension.yaml)
-            let flat_path = ext_base.join("extension.yaml");
-            if flat_path.exists() {
-                debug!(
-                    "Loading extension '{}' from extensions directory: {:?}",
-                    name, flat_path
-                );
-                self.registry
-                    .load_extension(name, &flat_path)
-                    .context(format!(
-                        "Failed to load extension '{}' from {:?}",
-                        name, flat_path
-                    ))?;
-                continue;
+            // Register the extension in the registry
+            self.registry.register_extension(name, extension);
+
+            if let Some(source_type) = resolver.find_source(name) {
+                debug!("Loaded extension '{}' from {} source", name, source_type);
             }
-
-            // Try versioned structure (downloaded extensions at ~/.sindri/extensions/<name>/<version>/extension.yaml)
-            if ext_base.exists() {
-                if let Ok(versions) = std::fs::read_dir(&ext_base) {
-                    let mut found = false;
-                    let versions: Vec<_> = versions
-                        .filter_map(|entry| entry.ok())
-                        .filter(|entry| entry.path().is_dir())
-                        .collect();
-
-                    // Try each version directory (newest first)
-                    for entry in versions.iter().rev() {
-                        let ext_path = entry.path().join("extension.yaml");
-                        if ext_path.exists() {
-                            debug!(
-                                "Loading extension '{}' from versioned directory: {:?}",
-                                name, ext_path
-                            );
-                            self.registry
-                                .load_extension(name, &ext_path)
-                                .context(format!(
-                                    "Failed to load extension '{}' from {:?}",
-                                    name, ext_path
-                                ))?;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if found {
-                        continue;
-                    }
-                }
-            }
-
-            // Priority 2: Relative path for local development (cargo run only)
-            let dev_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .parent() // sindri-extensions -> crates
-                .and_then(|p| p.parent()) // crates -> v3
-                .map(|p| p.join("extensions").join(name).join("extension.yaml"));
-
-            if let Some(dev_path) = dev_path {
-                if dev_path.exists() {
-                    debug!(
-                        "Loading extension '{}' from development path: {:?}",
-                        name, dev_path
-                    );
-                    self.registry
-                        .load_extension(name, &dev_path)
-                        .context(format!(
-                            "Failed to load extension '{}' from {:?}",
-                            name, dev_path
-                        ))?;
-                    continue;
-                }
-            }
-
-            // All fallbacks exhausted - return error with helpful diagnostics
-            return Err(anyhow!(
-                "Extension '{}' definition not loaded. Tried:\n\
-                 - Extensions directory: {}/{}/extension.yaml [not found]\n\
-                 - Versioned directory: {}/{}/<version>/extension.yaml [not found]\n\
-                 - Dev path: v3/extensions/{}/extension.yaml [not found]\n\
-                 \n\
-                 Solutions:\n\
-                 1. For Docker builds: use Dockerfile.dev to bundle extensions at /opt/sindri/extensions\n\
-                 2. For production: install extension with 'sindri extension install {}'\n\
-                 3. For development: run from v3/ directory\n\
-                 4. Custom path: set SINDRI_EXT_HOME environment variable\n\
-                 \n\
-                 Debug info:\n\
-                 - SINDRI_EXT_HOME: {}",
-                name,
-                ext_home,
-                name,
-                ext_home,
-                name,
-                name,
-                name,
-                std::env::var("SINDRI_EXT_HOME").unwrap_or_else(|_| format!("<not set, using fallback: {}>", ext_home))
-            ));
         }
 
         Ok(())

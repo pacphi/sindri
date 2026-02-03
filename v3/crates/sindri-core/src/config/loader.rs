@@ -274,7 +274,7 @@ impl SindriConfig {
                     )
                     .await
                     .map_err(|e| {
-                        Error::invalid_config(format!("Failed to resolve image version: {}", e))
+                        Error::invalid_config(format!("Failed to resolve image version: {:#}", e))
                     })?;
 
                 info!("Resolved to: {}:{}", registry, tag);

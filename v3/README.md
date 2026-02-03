@@ -63,8 +63,8 @@ For detailed installation instructions and first deployment walkthrough, see the
 
 ### Extension System
 
-| Document                                                                                   | Description                           |
-| ------------------------------------------------------------------------------------------ | ------------------------------------- |
+| Document                                                                   | Description                          |
+| -------------------------------------------------------------------------- | ------------------------------------ |
 | [Conditional Templates](docs/EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md) | Environment-based template selection |
 
 ## Architecture

@@ -40,7 +40,7 @@ impl VersionResolver {
             .registry_client
             .list_tags(repository)
             .await
-            .context("Failed to list tags")?;
+            .with_context(|| format!("Failed to list tags for repository '{}'", repository))?;
 
         trace!("Found {} tags total", tags.len());
 

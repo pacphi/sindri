@@ -77,7 +77,7 @@ extensions: # Required
   profile: minimal # OR active list (mutually exclusive)
   active: [nodejs, python] # OR profile
   additional: [docker] # Only with profile
-  autoInstall: true
+  auto_install: true
 secrets: [] # Optional
 providers: {} # Optional provider-specific config
 ```
