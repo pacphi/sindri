@@ -889,6 +889,14 @@ impl ExtensionDistributor {
         dest: &Path,
         extension: &Extension,
     ) -> Result<()> {
+        // Check for mise config files
+        if let Some(ref mise) = extension.install.mise {
+            let config_file = mise.config_file.as_deref().unwrap_or("mise.toml");
+            let file_name = config_file.trim_start_matches("./");
+            self.download_optional_file(client, tag, name, dest, file_name)
+                .await?;
+        }
+
         // Check for install scripts
         if let Some(ref script) = extension.install.script {
             let file_name = script.path.trim_start_matches("./");
