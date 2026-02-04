@@ -98,6 +98,45 @@ sindri deploy
 sindri connect
 ```
 
+### With Multi-Node Local Cluster
+
+```bash
+# 1. Create multi-node k3d cluster with registry
+sindri k8s create --provider k3d --name sindri-local --nodes 3 --registry
+
+# 2. Create configuration with minimal profile
+cat > sindri.yaml << 'EOF'
+version: "1.0"
+name: sindri-minimal-devpod
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 30GB
+
+extensions:
+  profile: minimal  # Lightweight: nodejs, python only
+
+providers:
+  devpod:
+    type: kubernetes
+    kubernetes:
+      namespace: dev-environments
+      storageClass: standard
+      # DevPod auto-detects k3d-* contexts
+EOF
+
+# 3. Deploy
+sindri deploy
+
+# 4. Connect
+sindri connect
+```
+
 ## Configuration
 
 ### Basic Configuration

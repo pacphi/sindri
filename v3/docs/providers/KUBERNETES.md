@@ -68,6 +68,41 @@ sindri deploy
 sindri connect
 ```
 
+### With Multi-Node Local Cluster
+
+```bash
+# 1. Create 3-node kind cluster (1 control-plane + 2 workers)
+sindri k8s create --provider kind --name sindri-multinode --nodes 3
+
+# 2. Create configuration with minimal profile
+cat > sindri.yaml << 'EOF'
+version: "1.0"
+name: sindri-minimal
+
+deployment:
+  provider: kubernetes
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 10Gi
+
+extensions:
+  profile: minimal  # Lightweight: nodejs, python only
+
+providers:
+  kubernetes:
+    namespace: sindri-dev
+EOF
+
+# 3. Deploy
+sindri deploy
+
+# 4. Connect
+sindri connect
+```
+
 ### With Existing Cluster
 
 ```bash
@@ -316,11 +351,17 @@ sindri k8s install k3d
 ### Create Local Cluster
 
 ```bash
-# Create kind cluster
+# Create single-node kind cluster
 sindri k8s create --provider kind --name sindri-local
 
-# Create k3d cluster
+# Create multi-node kind cluster (1 control-plane + 2 workers)
+sindri k8s create --provider kind --name sindri-local --nodes 3
+
+# Create single-node k3d cluster
 sindri k8s create --provider k3d --name sindri-local
+
+# Create multi-node k3d cluster with registry
+sindri k8s create --provider k3d --name sindri-local --nodes 3 --registry
 
 # List clusters
 sindri k8s list
