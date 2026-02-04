@@ -125,6 +125,55 @@ impl FlyProvider {
         // Set CI mode
         context.ci_mode = ci_mode;
 
+        // Add Fly.io specific context variables (needed for both pre-built and build-from-source)
+        context
+            .env_vars
+            .insert("fly_region".to_string(), fly_config.region.to_string());
+        context
+            .env_vars
+            .insert("fly_cpu_kind".to_string(), fly_config.cpu_kind.clone());
+        context
+            .env_vars
+            .insert("fly_ssh_port".to_string(), fly_config.ssh_port.to_string());
+        context.env_vars.insert(
+            "fly_memory_mb".to_string(),
+            fly_config.memory_mb.to_string(),
+        );
+        context
+            .env_vars
+            .insert("fly_swap_mb".to_string(), fly_config.swap_mb.to_string());
+        context.env_vars.insert(
+            "fly_volume_size".to_string(),
+            fly_config.volume_size.to_string(),
+        );
+
+        let auto_stop_mode = if fly_config.auto_stop {
+            "suspend"
+        } else {
+            "off"
+        };
+        context
+            .env_vars
+            .insert("fly_auto_stop_mode".to_string(), auto_stop_mode.to_string());
+        context.env_vars.insert(
+            "fly_auto_start".to_string(),
+            fly_config.auto_start.to_string(),
+        );
+
+        // Add GPU-specific context if enabled
+        if fly_config.gpu_enabled {
+            let (guest_type, gpu_cpus, gpu_memory) = get_fly_gpu_config(&fly_config.gpu_tier);
+            context
+                .env_vars
+                .insert("fly_gpu_guest_type".to_string(), guest_type.to_string());
+            context
+                .env_vars
+                .insert("fly_gpu_cpus".to_string(), gpu_cpus.to_string());
+            context
+                .env_vars
+                .insert("fly_gpu_memory".to_string(), gpu_memory.to_string());
+        }
+
         // Check if build_from_source is explicitly enabled
         let should_build_from_source = config
             .inner()
@@ -218,55 +267,6 @@ impl FlyProvider {
         context
             .env_vars
             .insert("sindri_version".to_string(), sindri_version);
-
-        // Add Fly.io specific context variables
-        context
-            .env_vars
-            .insert("fly_region".to_string(), fly_config.region.to_string());
-        context
-            .env_vars
-            .insert("fly_cpu_kind".to_string(), fly_config.cpu_kind.clone());
-        context
-            .env_vars
-            .insert("fly_ssh_port".to_string(), fly_config.ssh_port.to_string());
-        context.env_vars.insert(
-            "fly_memory_mb".to_string(),
-            fly_config.memory_mb.to_string(),
-        );
-        context
-            .env_vars
-            .insert("fly_swap_mb".to_string(), fly_config.swap_mb.to_string());
-        context.env_vars.insert(
-            "fly_volume_size".to_string(),
-            fly_config.volume_size.to_string(),
-        );
-
-        let auto_stop_mode = if fly_config.auto_stop {
-            "suspend"
-        } else {
-            "off"
-        };
-        context
-            .env_vars
-            .insert("fly_auto_stop_mode".to_string(), auto_stop_mode.to_string());
-        context.env_vars.insert(
-            "fly_auto_start".to_string(),
-            fly_config.auto_start.to_string(),
-        );
-
-        // Add GPU-specific context if enabled
-        if fly_config.gpu_enabled {
-            let (guest_type, gpu_cpus, gpu_memory) = get_fly_gpu_config(&fly_config.gpu_tier);
-            context
-                .env_vars
-                .insert("fly_gpu_guest_type".to_string(), guest_type.to_string());
-            context
-                .env_vars
-                .insert("fly_gpu_cpus".to_string(), gpu_cpus.to_string());
-            context
-                .env_vars
-                .insert("fly_gpu_memory".to_string(), gpu_memory.to_string());
-        }
 
         // Render template
         let fly_toml_content = self.templates.render("fly.toml", &context)?;
