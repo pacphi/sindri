@@ -47,6 +47,12 @@ trusted_config_paths = ["${MISE_HOME}/.config/mise/conf.d"]
 # Requires pnpm to be installed first (handled by nodejs extension bootstrap)
 package_manager = "pnpm"
 
+[settings.python]
+# Force precompiled binaries only (no compilation)
+# Required for environments with /tmp mounted noexec (security hardening)
+# Falls back to closest precompiled version if exact version unavailable
+compile = false
+
 [env]
 MISE_USE_TOML = "1"
 # npm timeout configuration (in milliseconds)
