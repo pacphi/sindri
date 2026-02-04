@@ -288,7 +288,10 @@ impl SindriConfig {
             }
 
             // No version specified but image_config exists - use default tag
-            info!("No version specified in image_config, using default tag: {}", DEFAULT_IMAGE_TAG);
+            info!(
+                "No version specified in image_config, using default tag: {}",
+                DEFAULT_IMAGE_TAG
+            );
             return Ok(format!("{}:{}", registry, DEFAULT_IMAGE_TAG));
         }
 
@@ -354,7 +357,7 @@ name: {name}
 
 deployment:
   provider: {provider}
-  image: {image}
+  image: {registry}:{tag}
   resources:
     memory: 4GB
     cpus: 2
@@ -364,7 +367,8 @@ extensions:
 "#,
             name = name,
             provider = format!("{:?}", provider).to_lowercase(),
-            image = format!("{}:{}", DEFAULT_IMAGE_REGISTRY, DEFAULT_IMAGE_TAG)
+            registry = DEFAULT_IMAGE_REGISTRY,
+            tag = DEFAULT_IMAGE_TAG
         )
     })
 }
