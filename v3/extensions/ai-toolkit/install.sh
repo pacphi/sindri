@@ -71,8 +71,8 @@ if command_exists mise; then
   # Add npm-based tools if Node.js available
   if command_exists npm || command_exists node; then
     toml_content+="# npm-based tools - pinned versions for stability\n"
-    toml_content+='"npm:@openai/codex" = "0.80"\n'
-    toml_content+='"npm:@google/gemini-cli" = "0.22"\n'
+    toml_content+='"npm:@openai/codex" = "0.95"\n'
+    toml_content+='"npm:@google/gemini-cli" = "0.27"\n'
     toml_content+='"npm:@vibe-kit/grok-cli" = "0.0.34"\n'
     toml_content+="\n"
   fi

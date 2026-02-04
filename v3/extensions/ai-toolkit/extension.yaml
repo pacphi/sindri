@@ -1,7 +1,7 @@
 ---
 metadata:
   name: ai-toolkit
-  version: 2.1.0
+  version: 2.2.0
   description: >-
     AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
   category: ai-dev
