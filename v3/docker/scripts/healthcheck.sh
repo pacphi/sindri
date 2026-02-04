@@ -45,7 +45,7 @@ check_fail() {
 # ==============================================================================
 
 # Check 1: SSH daemon is running and listening
-if netstat -tln 2>/dev/null | grep -q ":${SSH_PORT}"; then
+if ss -tln 2>/dev/null | grep -q ":${SSH_PORT}"; then
     check_pass "SSH daemon is listening on port ${SSH_PORT}"
 else
     check_fail "SSH daemon is not listening on port ${SSH_PORT}"
