@@ -4,6 +4,7 @@
 app = "{{ name }}"
 primary_region = "{{ env_vars.fly_region }}"
 
+{% if env_vars.dockerfile_path %}
 # Build configuration
 # Context must be repo root because Dockerfile COPY commands use v3/docker/* paths
 # Note: dockerfile path is relative to working directory, not context
@@ -15,6 +16,11 @@ primary_region = "{{ env_vars.fly_region }}"
     BUILD_FROM_SOURCE = "true"
     SINDRI_VERSION = "{{ env_vars.sindri_version }}"
     SINDRI_SOURCE_REF = "{{ env_vars.sindri_version }}"
+{% endif %}
+{% else %}
+# Using pre-built image
+[build]
+  image = "{{ image }}"
 {% endif %}
 
 [env]

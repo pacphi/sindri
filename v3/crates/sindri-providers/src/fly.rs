@@ -125,6 +125,35 @@ impl FlyProvider {
         // Set CI mode
         context.ci_mode = ci_mode;
 
+        // Check if build_from_source is explicitly enabled
+        let should_build_from_source = config
+            .inner()
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false);
+
+        // If not building from source, try to resolve pre-built image
+        if !should_build_from_source {
+            // Try to resolve image from config (image_config or image field)
+            if let Ok(resolved_image) = config.resolve_image().await {
+                info!("Using pre-built image: {}", resolved_image);
+                context.image = resolved_image;
+
+                // Skip build setup and render template directly
+                let fly_toml_content = self.templates.render("fly.toml", &context)?;
+                let fly_toml_path = output_dir.join("fly.toml");
+                std::fs::create_dir_all(output_dir)?;
+                std::fs::write(&fly_toml_path, fly_toml_content)?;
+                info!("Generated fly.toml at {}", fly_toml_path.display());
+                return Ok(fly_toml_path);
+            }
+        }
+
+        // Building from source - fetch Sindri build context
+        info!("Building from source (no pre-built image specified)");
+
         // Determine which git ref to clone for getting the Dockerfile
         let version_to_fetch = config
             .inner()
