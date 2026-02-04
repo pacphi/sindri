@@ -3,13 +3,13 @@
 
 # Template identification
 [template]
-name = "{{ e2b_template_alias }}"
+name = "{{ env_vars.e2b_template_alias }}"
 dockerfile = "e2b.Dockerfile"
 
 # Resource configuration
 [resources]
 cpu_count = {{ cpus }}
-memory_mb = {{ e2b_memory_mb }}
+memory_mb = {{ env_vars.e2b_memory_mb }}
 
 # Build configuration
 [build]

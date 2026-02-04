@@ -13,6 +13,12 @@ use std::fs;
 /// Configuration file names to search for
 const CONFIG_FILE_NAMES: &[&str] = &["sindri.yaml", "sindri.yml"];
 
+/// Default image registry
+const DEFAULT_IMAGE_REGISTRY: &str = "ghcr.io/pacphi/sindri";
+
+/// Default image tag
+const DEFAULT_IMAGE_TAG: &str = "latest";
+
 /// Loaded and validated Sindri configuration
 #[derive(Debug, Clone)]
 pub struct SindriConfig {
@@ -125,7 +131,7 @@ impl SindriConfig {
             name: name.to_string(),
             deployment: DeploymentConfig {
                 provider,
-                image: Some("ghcr.io/pacphi/sindri:v3-latest".to_string()),
+                image: Some(format!("{}:{}", DEFAULT_IMAGE_REGISTRY, DEFAULT_IMAGE_TAG)),
                 image_config: None,
                 build_from_source: None,
                 resources: ResourcesConfig::default(),
@@ -189,7 +195,7 @@ impl SindriConfig {
     /// 2. image_config.tag_override (explicit tag)
     /// 3. image_config.version + resolution (semver constraint)
     /// 4. legacy image field
-    /// 5. default fallback (ghcr.io/pacphi/sindri:latest)
+    /// 5. default fallback (see DEFAULT_IMAGE_REGISTRY and DEFAULT_IMAGE_TAG constants)
     ///
     /// # Returns
     /// Fully resolved image reference (e.g., "ghcr.io/pacphi/sindri:v3.0.0")
@@ -281,9 +287,9 @@ impl SindriConfig {
                 return Ok(format!("{}:{}", registry, tag));
             }
 
-            // No version specified but image_config exists - use latest
-            info!("No version specified in image_config, using latest");
-            return Ok(format!("{}:latest", registry));
+            // No version specified but image_config exists - use default tag
+            info!("No version specified in image_config, using default tag: {}", DEFAULT_IMAGE_TAG);
+            return Ok(format!("{}:{}", registry, DEFAULT_IMAGE_TAG));
         }
 
         // Priority 4: Legacy image field
@@ -348,7 +354,7 @@ name: {name}
 
 deployment:
   provider: {provider}
-  image: ghcr.io/pacphi/sindri:v3-latest
+  image: {image}
   resources:
     memory: 4GB
     cpus: 2
@@ -357,7 +363,8 @@ extensions:
   profile: minimal
 "#,
             name = name,
-            provider = provider
+            provider = format!("{:?}", provider).to_lowercase(),
+            image = format!("{}:{}", DEFAULT_IMAGE_REGISTRY, DEFAULT_IMAGE_TAG)
         )
     })
 }

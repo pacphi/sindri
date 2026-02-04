@@ -294,12 +294,11 @@ RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
 WORKDIR ${WORKSPACE}
 EXPOSE ${SSH_PORT}
 
-# Comprehensive health check
-# - Checks SSH daemon
-# - Checks extension installation status
-# - Checks critical directories
-# - Checks Sindri CLI functionality
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# Health check - verifies SSH daemon is running
+# - Simplified approach using pgrep (v2 pattern)
+# - Increased start-period to 120s for first boot on Fly.io with volume initialization
+# - Increased retries to 5 for better tolerance during startup
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
     CMD /docker/scripts/healthcheck.sh > /dev/null 2>&1 || exit 1
 
 # Run entrypoint as root (it will start SSH daemon and manage permissions)
