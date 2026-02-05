@@ -411,9 +411,9 @@ impl FlyProvider {
             info!("Allocated dedicated IPv4");
         }
 
-        // Allocate v6
+        // Allocate v6 (no --yes flag available for this command)
         let v6_output = Command::new("flyctl")
-            .args(["ips", "allocate-v6", "-a", app_name, "--yes"])
+            .args(["ips", "allocate-v6", "-a", app_name])
             .output()
             .await?;
 
@@ -829,6 +829,8 @@ impl Provider for FlyProvider {
         }
 
         // Connect via flyctl ssh console
+        // Note: Don't cat /etc/motd here - the login shell displays it automatically.
+        // Explicitly displaying it causes a double banner.
         let status = Command::new("flyctl")
             .args([
                 "ssh",
@@ -837,7 +839,7 @@ impl Provider for FlyProvider {
                 name,
                 "--pty",
                 "-C",
-                "sh -c 'cat /etc/motd 2>/dev/null; exec su - developer'",
+                "sh -c 'exec su - developer'",
             ])
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())

@@ -196,7 +196,7 @@ EOF
 # Create Developer User (changes infrequently)
 # ------------------------------------------------------------------------------
 RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
-    useradd -m -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
+    useradd -m -d ${ALT_HOME} -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
     echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
     chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
 
