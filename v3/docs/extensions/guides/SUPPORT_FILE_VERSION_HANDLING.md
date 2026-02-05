@@ -172,14 +172,14 @@ source: github
 github_tag: "v3.0.0-alpha.18"
 ```
 
-### **After Upgrade**: `sindri` upgraded to `3.0.0-alpha.19`
+### **After Upgrade**: `sindri` upgraded to `3.0.0-beta.1`
 
 ```yaml
 # Automatically updated
-cli_version: "3.0.0-alpha.19"
+cli_version: "3.0.0-beta.1"
 fetched_at: "2026-02-05T15:00:00Z"
 source: github
-github_tag: "v3.0.0-alpha.19"
+github_tag: "v3.0.0-beta.1"
 ```
 
 ---
@@ -203,15 +203,15 @@ Current:  3.0.0-alpha.18 → Upgrade to: 3.0.0
 ### **Scenario 2: Pre-release Iteration**
 
 ```
-Current:  3.0.0-alpha.18 → Upgrade to: 3.0.0-alpha.19
+Current:  3.0.0-alpha.18 → Upgrade to: 3.0.0-beta.1
 ```
 
 **Flow:**
 
-1. Docker image updated with sindri v3.0.0-alpha.19
+1. Docker image updated with sindri v3.0.0-beta.1
 2. Container starts → version mismatch detected
-3. Fetches from: `https://raw.githubusercontent.com/.../v3.0.0-alpha.19/v3/*.yaml`
-4. Updates metadata to `3.0.0-alpha.19`
+3. Fetches from: `https://raw.githubusercontent.com/.../v3.0.0-beta.1/v3/*.yaml`
+4. Updates metadata to `3.0.0-beta.1`
 
 ### **Scenario 3: Hotfix with Build Metadata**
 
@@ -270,7 +270,7 @@ Err(NetworkError) => {
 ### **4. Version Downgrade**
 
 ```rust
-// Current: 3.0.0-alpha.19 → Downgrade to: 3.0.0-alpha.18
+// Current: 3.0.0-beta.1 → Downgrade to: 3.0.0-alpha.18
 let needs_update = stored_version != self.cli_version;
 // Result: true (any version mismatch triggers update)
 ```
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn test_version_comparison() {
         let v1 = Version::parse("3.0.0-alpha.18").unwrap();
-        let v2 = Version::parse("3.0.0-alpha.19").unwrap();
+        let v2 = Version::parse("3.0.0-beta.1").unwrap();
         assert_ne!(v1, v2);
         assert!(v1 < v2);
     }
@@ -360,7 +360,7 @@ Support Files Status:
 
 ```bash
 $ sindri extension support-files update --force
-Updating support files for CLI v3.0.0-alpha.19...
+Updating support files for CLI v3.0.0-beta.1...
 ✓ Fetched common.sh from GitHub
 ✓ Fetched compatibility-matrix.yaml from GitHub
 ✓ Fetched extension-source.yaml from GitHub

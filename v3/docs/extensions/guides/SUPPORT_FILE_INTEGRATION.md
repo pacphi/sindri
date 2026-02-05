@@ -145,7 +145,7 @@ sindri extension update-support-files [--force] [--bundled] [--quiet]
 ### **Scenario 1: Fresh Fly.io Deployment**
 
 ```
-1. fly deploy → Build image with v3.0.0-alpha.19
+1. fly deploy → Build image with v3.0.0-beta.1
    └─ Files stored in: /docker/config/sindri/
 
 2. Container starts → First boot detected
@@ -153,7 +153,7 @@ sindri extension update-support-files [--force] [--bundled] [--quiet]
 
 3. Fetch from GitHub:
    └─ GET https://raw.githubusercontent.com/pacphi/sindri/
-       v3.0.0-alpha.19/v3/common.sh
+       v3.0.0-beta.1/v3/common.sh
    └─ Status: ✅ Success
 
 4. Save to volume:
@@ -179,7 +179,7 @@ sindri extension update-support-files [--force] [--bundled] [--quiet]
 
 4. Fallback to bundled:
    └─ cp /docker/config/sindri/common.sh → ~/.sindri/extensions/
-   └─ Status: ✅ Success (using bundled v3.0.0-alpha.19)
+   └─ Status: ✅ Success (using bundled v3.0.0-beta.1)
 
 5. Extension install:
    └─ source ~/.sindri/extensions/common.sh
@@ -200,13 +200,13 @@ sindri extension update-support-files [--force] [--bundled] [--quiet]
        v3.0.0-alpha.18/v3/common.sh
    └─ Status: ✅ Already up-to-date
 
-4. Later: Image upgraded to v3.0.0-alpha.19
+4. Later: Image upgraded to v3.0.0-beta.1
 
 5. Container restarts → Detect version mismatch
    └─ Stored: alpha.18 ≠ Current: alpha.19
 
 6. Auto-fetch new files:
-   └─ GET .../v3.0.0-alpha.19/v3/common.sh
+   └─ GET .../v3.0.0-beta.1/v3/common.sh
    └─ Status: ✅ Updated to alpha.19
 ```
 
@@ -214,7 +214,7 @@ sindri extension update-support-files [--force] [--bundled] [--quiet]
 
 ```
 1. Existing volume contains: alpha.18 support files
-2. Deploy new image: v3.0.0-alpha.19
+2. Deploy new image: v3.0.0-beta.1
 3. Container starts → NOT first boot
    └─ Skip first-boot initialization
 
@@ -278,10 +278,10 @@ tail -f ~/.sindri/logs/support-files-init.log
 
 ```yaml
 # ~/.sindri/.support-files-metadata.yaml
-cli_version: "3.0.0-alpha.19"
+cli_version: "3.0.0-beta.1"
 fetched_at: "2026-02-05T14:30:00Z"
 source: github
-github_tag: "v3.0.0-alpha.19"
+github_tag: "v3.0.0-beta.1"
 ```
 
 ---

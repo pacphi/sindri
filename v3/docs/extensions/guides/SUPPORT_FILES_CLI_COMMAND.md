@@ -126,7 +126,7 @@ Updating Sindri support files...
 ✓ Fetched common.sh from GitHub
 ✓ Fetched compatibility-matrix.yaml from GitHub
 ✓ Fetched extension-source.yaml from GitHub
-Support files updated to version 3.0.0-alpha.19 from GitHub
+Support files updated to version 3.0.0-beta.1 from GitHub
 ```
 
 **When:**
@@ -146,7 +146,7 @@ Force updating from GitHub
 ✓ Fetched common.sh from GitHub
 ✓ Fetched compatibility-matrix.yaml from GitHub
 ✓ Fetched extension-source.yaml from GitHub
-Support files updated to version 3.0.0-alpha.19 from GitHub
+Support files updated to version 3.0.0-beta.1 from GitHub
 ```
 
 **When:**
@@ -351,10 +351,10 @@ cat ~/.sindri/.support-files-metadata.yaml
 
 ```bash
 $ cat ~/.sindri/.support-files-metadata.yaml
-cli_version: "3.0.0-alpha.19"
+cli_version: "3.0.0-beta.1"
 fetched_at: "2026-02-05T14:30:00Z"
 source: github
-github_tag: "v3.0.0-alpha.19"
+github_tag: "v3.0.0-beta.1"
 ```
 
 ---
