@@ -12,7 +12,7 @@
 
 // Configuration
 const CONFIG = {
-  dataUrl: 'v2-faq-data.json',
+  dataUrl: 'v3-faq-data.json',
   githubBaseUrl: 'https://github.com/pacphi/sindri/blob/main/',
   debounceMs: 150,
   animationDurationMs: 300,
@@ -23,6 +23,7 @@ const state = {
   faqData: null,
   filteredQuestions: [],
   activeCategory: 'all',
+  activeVersion: 'all',
   searchQuery: '',
   openAccordions: new Set(),
 };
@@ -39,6 +40,7 @@ const elements = {
   loading: null,
   themeToggle: null,
   resetSearch: null,
+  versionFilters: null,
 };
 
 // ============================================================================
@@ -71,8 +73,15 @@ async function loadFaqData() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     state.faqData = await response.json();
+
+    // Ensure backward compatibility with new schema fields
+    if (!state.faqData.personas) state.faqData.personas = [];
+    if (!state.faqData.useCases) state.faqData.useCases = [];
+    if (!state.faqData.meta) state.faqData.meta = {};
+
     state.filteredQuestions = [...state.faqData.questions];
 
+    initVersionFilter();
     renderCategoryFilters();
     renderFaqItems();
     hideLoading();
@@ -122,7 +131,7 @@ function renderCategoryFilters() {
   // Keep "All Categories" button, add category buttons
   const allButton = elements.categoryFilters.querySelector('[data-category="all"]');
   if (allButton) {
-    allButton.innerHTML = `All <span class="ml-1 text-xs opacity-75">(${state.faqData.questions.length})</span>`;
+    allButton.innerHTML = `All <span class="ml-1 text-xs opacity-75">(${getTotalCount()})</span>`;
   }
   elements.categoryFilters.insertAdjacentHTML('beforeend', categoryButtons);
 
@@ -133,7 +142,20 @@ function renderCategoryFilters() {
 }
 
 function getCategoryCount(categoryId) {
-  return state.faqData.questions.filter(q => q.category === categoryId).length;
+  let questions = state.faqData.questions.filter(q => q.category === categoryId);
+  if (state.activeVersion !== 'all') {
+    questions = questions.filter(q =>
+      q.versionsApplicable && q.versionsApplicable.includes(state.activeVersion)
+    );
+  }
+  return questions.length;
+}
+
+function getTotalCount() {
+  if (state.activeVersion === 'all') return state.faqData.questions.length;
+  return state.faqData.questions.filter(q =>
+    q.versionsApplicable && q.versionsApplicable.includes(state.activeVersion)
+  ).length;
 }
 
 function setActiveCategory(categoryId) {
@@ -187,6 +209,7 @@ function initSearch() {
   if (elements.resetSearch) {
     elements.resetSearch.addEventListener('click', () => {
       clearSearch();
+      setActiveVersion('all');
       setActiveCategory('all');
     });
   }
@@ -212,6 +235,13 @@ function filterAndRender() {
 
   let filtered = state.faqData.questions;
 
+  // Filter by version
+  if (state.activeVersion !== 'all') {
+    filtered = filtered.filter(q =>
+      q.versionsApplicable && q.versionsApplicable.includes(state.activeVersion)
+    );
+  }
+
   // Filter by category
   if (state.activeCategory !== 'all') {
     filtered = filtered.filter(q => q.category === state.activeCategory);
@@ -225,6 +255,7 @@ function filterAndRender() {
         q.question,
         q.answer,
         ...q.tags,
+        ...(q.keywords || []),
         getCategoryName(q.category)
       ].join(' ').toLowerCase();
 
@@ -335,9 +366,12 @@ function createFaqItemHtml(question) {
           </svg>
         </span>
         <div class="flex-grow min-w-0">
-          <h4 class="text-base font-semibold text-slate-900 dark:text-white leading-snug">
-            ${highlightedQuestion}
-          </h4>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h4 class="text-base font-semibold text-slate-900 dark:text-white leading-snug">
+              ${highlightedQuestion}
+            </h4>
+            ${renderVersionBadges(question.versionsApplicable)}
+          </div>
         </div>
       </button>
       <div id="content-${question.id}"
@@ -443,6 +477,74 @@ function toggleAccordion(id, item) {
 }
 
 // ============================================================================
+// Version Filtering
+// ============================================================================
+
+function initVersionFilter() {
+  elements.versionFilters = document.getElementById('version-filters');
+  if (!elements.versionFilters) return;
+
+  elements.versionFilters.querySelectorAll('.version-toggle').forEach(btn => {
+    btn.addEventListener('click', () => setActiveVersion(btn.dataset.version));
+  });
+}
+
+function setActiveVersion(version) {
+  state.activeVersion = version;
+
+  // Update version toggle UI
+  if (elements.versionFilters) {
+    elements.versionFilters.querySelectorAll('.version-toggle').forEach(btn => {
+      const isActive = btn.dataset.version === version;
+      btn.classList.toggle('bg-sindri-500', isActive);
+      btn.classList.toggle('text-white', isActive);
+      btn.classList.toggle('shadow-lg', isActive);
+      btn.classList.toggle('shadow-sindri-500/25', isActive);
+      btn.classList.toggle('bg-slate-100', !isActive);
+      btn.classList.toggle('dark:bg-slate-800', !isActive);
+      btn.classList.toggle('text-slate-600', !isActive);
+      btn.classList.toggle('dark:text-slate-300', !isActive);
+    });
+  }
+
+  // Re-render category counts with version filter applied
+  updateCategoryCounts();
+  filterAndRender();
+}
+
+function updateCategoryCounts() {
+  if (!elements.categoryFilters || !state.faqData) return;
+
+  // Update "All" button count
+  const allButton = elements.categoryFilters.querySelector('[data-category="all"]');
+  if (allButton) {
+    allButton.innerHTML = `All <span class="ml-1 text-xs opacity-75">(${getTotalCount()})</span>`;
+  }
+
+  // Update each category count
+  state.faqData.categories.forEach(cat => {
+    const btn = elements.categoryFilters.querySelector(`[data-category="${cat.id}"]`);
+    if (btn) {
+      const count = getCategoryCount(cat.id);
+      const countSpan = btn.querySelector('span');
+      if (countSpan) {
+        countSpan.textContent = `(${count})`;
+      }
+    }
+  });
+}
+
+function renderVersionBadges(versionsApplicable) {
+  if (!versionsApplicable || versionsApplicable.length === 0) return '';
+  return versionsApplicable.map(v => {
+    const colors = v === 'v2'
+      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
+      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+    return `<span class="px-1.5 py-0.5 rounded text-xs font-medium ${colors} whitespace-nowrap">${v.toUpperCase()}</span>`;
+  }).join(' ');
+}
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 
@@ -479,6 +581,27 @@ function getCategoryIcon(iconName) {
     refresh: `<svg class="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>`,
+    'cloud-upload': `<svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>`,
+    lock: `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>`,
+    server: `<svg class="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+            </svg>`,
+    shield: `<svg class="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>`,
+    kubernetes: `<svg class="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>`,
+    stethoscope: `<svg class="w-5 h-5 text-lime-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>`,
+    'arrow-right': `<svg class="w-5 h-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>`,
   };
 
   return icons[iconName] || icons.cog;
@@ -511,6 +634,7 @@ function initElements() {
   elements.loading = document.getElementById('loading');
   elements.themeToggle = document.getElementById('theme-toggle');
   elements.resetSearch = document.getElementById('reset-search');
+  elements.versionFilters = document.getElementById('version-filters');
 }
 
 function init() {

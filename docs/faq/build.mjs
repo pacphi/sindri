@@ -21,7 +21,7 @@ const OUTPUT_FILE = join(__dirname, 'index.html');
 
 const HTML_TEMPLATE = join(SRC_DIR, 'index.html');
 const JS_FILE = join(SRC_DIR, 'faq.js');
-const DATA_FILE = join(SRC_DIR, 'v2-faq-data.json');
+const DATA_FILE = join(SRC_DIR, 'v3-faq-data.json');
 
 console.log('Building FAQ page...');
 console.log(`  Source: ${SRC_DIR}`);
@@ -45,7 +45,11 @@ try {
   // Use embedded data (no fetch needed - injected by build.mjs)
   if (window.FAQ_DATA) {
     state.faqData = window.FAQ_DATA;
+    if (!state.faqData.personas) state.faqData.personas = [];
+    if (!state.faqData.useCases) state.faqData.useCases = [];
+    if (!state.faqData.meta) state.faqData.meta = {};
     state.filteredQuestions = [...state.faqData.questions];
+    initVersionFilter();
     renderCategoryFilters();
     renderFaqItems();
     hideLoading();
@@ -53,10 +57,14 @@ try {
   }
   // Fallback to fetch for development
   try {
-    const response = await fetch('faq-data.json');
+    const response = await fetch('v3-faq-data.json');
     if (!response.ok) throw new Error('HTTP ' + response.status);
     state.faqData = await response.json();
+    if (!state.faqData.personas) state.faqData.personas = [];
+    if (!state.faqData.useCases) state.faqData.useCases = [];
+    if (!state.faqData.meta) state.faqData.meta = {};
     state.filteredQuestions = [...state.faqData.questions];
+    initVersionFilter();
     renderCategoryFilters();
     renderFaqItems();
     hideLoading();
