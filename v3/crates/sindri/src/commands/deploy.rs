@@ -117,9 +117,8 @@ pub async fn run(args: DeployArgs, config_path: Option<&Utf8Path>) -> Result<()>
     }
 
     // Deploy
-    let spinner = output::spinner("Deploying...");
+    // No spinner - let provider output flow through for transparency (like v2)
     let result = provider.deploy(&config, opts).await?;
-    spinner.finish_and_clear();
 
     if result.success {
         output::success("Deployment complete");

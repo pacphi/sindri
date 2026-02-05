@@ -292,7 +292,11 @@ RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
 # ------------------------------------------------------------------------------
 # Runtime Configuration
 # ------------------------------------------------------------------------------
-WORKDIR ${WORKSPACE}
+# Use /tmp as WORKDIR (like v2) instead of ${WORKSPACE} which is on the volume.
+# On first boot, the volume isn't formatted yet, so /alt/home/developer/workspace
+# doesn't exist and causes container crashes. The entrypoint.sh will cd to
+# $WORKSPACE after the volume is mounted and ready.
+WORKDIR /tmp
 EXPOSE ${SSH_PORT}
 
 # Health check - verifies SSH daemon is running

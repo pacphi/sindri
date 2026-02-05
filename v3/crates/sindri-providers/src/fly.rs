@@ -379,6 +379,54 @@ impl FlyProvider {
         Ok(())
     }
 
+    /// Allocate dedicated IPs (v4 and v6) for an app
+    /// This prevents flyctl deploy from prompting interactively for IP allocation
+    async fn allocate_ips(&self, app_name: &str) -> Result<()> {
+        info!("Allocating dedicated IPv4 and IPv6 addresses...");
+
+        // Check if IPs already exist
+        let output = Command::new("flyctl")
+            .args(["ips", "list", "-a", app_name, "--json"])
+            .output()
+            .await?;
+
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("\"Type\":\"v4\"") && stdout.contains("\"Type\":\"v6\"") {
+                info!("Dedicated IPs already allocated");
+                return Ok(());
+            }
+        }
+
+        // Allocate v4
+        let v4_output = Command::new("flyctl")
+            .args(["ips", "allocate-v4", "-a", app_name, "--yes"])
+            .output()
+            .await?;
+
+        if !v4_output.status.success() {
+            let stderr = String::from_utf8_lossy(&v4_output.stderr);
+            warn!("Failed to allocate IPv4: {}", stderr);
+        } else {
+            info!("Allocated dedicated IPv4");
+        }
+
+        // Allocate v6
+        let v6_output = Command::new("flyctl")
+            .args(["ips", "allocate-v6", "-a", app_name, "--yes"])
+            .output()
+            .await?;
+
+        if !v6_output.status.success() {
+            let stderr = String::from_utf8_lossy(&v6_output.stderr);
+            warn!("Failed to allocate IPv6: {}", stderr);
+        } else {
+            info!("Allocated dedicated IPv6");
+        }
+
+        Ok(())
+    }
+
     /// Get machine state
     async fn get_machine_state(&self, app_name: &str) -> Result<(Option<String>, DeploymentState)> {
         let output = Command::new("flyctl")
@@ -441,8 +489,13 @@ impl FlyProvider {
     }
 
     /// Run flyctl deploy
+    /// Matches v2 behavior: flyctl deploy --ha=false --wait-timeout 600
+    /// The fly.toml [build] section specifies the image or dockerfile.
     async fn flyctl_deploy(&self, fly_toml_path: &Path, rebuild: bool) -> Result<()> {
-        let mut args = vec!["deploy", "--ha=false", "--wait-timeout", "600"];
+        // --yes auto-confirms interactive prompts (e.g., "allocate dedicated ipv4
+        // and ipv6 addresses?"). Without this, flyctl hangs waiting for input that
+        // the user can't see because the CLI spinner overwrites the prompt.
+        let mut args = vec!["deploy", "--ha=false", "--yes", "--wait-timeout", "600"];
 
         if rebuild {
             args.push("--no-cache");
@@ -474,14 +527,10 @@ impl FlyProvider {
     ) -> Result<()> {
         info!("Deploying pre-built image to Fly.io: {}", image);
 
-        let mut args = vec![
-            "deploy",
-            "--image",
-            image,
-            "--ha=false",
-            "--wait-timeout",
-            "600",
-        ];
+        // Match v2 behavior: no --image or --depot flags.
+        // The fly.toml [build] image = "..." already specifies the image.
+        // --yes auto-confirms interactive prompts (IP allocation on first deploy).
+        let mut args = vec!["deploy", "--ha=false", "--yes", "--wait-timeout", "600"];
 
         // Add organization if specified (and not "personal")
         let org_string: String;
@@ -564,11 +613,15 @@ impl FlyProvider {
         // Use flyctl secrets import to set all secrets at once
         let secrets_input = secret_pairs.join("\n");
 
+        // Use --stage to store secrets without triggering a deployment.
+        // Without --stage, flyctl tries to restart/redeploy machines after setting
+        // secrets, which hangs on apps with no machines or stale machine configs.
+        // The actual deployment happens in the subsequent flyctl deploy step.
         let mut child = Command::new("flyctl")
-            .args(["secrets", "import", "-a", app_name])
+            .args(["secrets", "import", "--stage", "-a", app_name])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stderr(Stdio::inherit())
             .spawn()?;
 
         // Write secrets to stdin
@@ -657,10 +710,15 @@ impl Provider for FlyProvider {
             ));
         }
 
-        // Generate fly.toml
-        let fly_toml_path = self
-            .generate_fly_toml(config, &self.output_dir, false)
-            .await?;
+        // Generate fly.toml colocated with the sindri config file.
+        // This ensures flyctl deploy runs from the config directory (e.g., /tmp/)
+        // rather than CWD, which may be a large git repo that interferes with flyctl.
+        let output_dir = config
+            .config_path
+            .parent()
+            .map(|p| PathBuf::from(p.as_std_path()))
+            .unwrap_or_else(|| self.output_dir.clone());
+        let fly_toml_path = self.generate_fly_toml(config, &output_dir, false).await?;
 
         if opts.dry_run {
             return Ok(DeployResult {
@@ -680,13 +738,14 @@ impl Provider for FlyProvider {
 
         // Create app if it doesn't exist
         if !self.app_exists(&name).await {
+            info!("Creating app: {}", name);
             self.create_app(&name, fly_config.organization).await?;
+        } else {
+            info!("App {} already exists", name);
         }
 
-        // Resolve and set secrets
-        self.resolve_and_set_secrets(config, &name, None).await?;
-
-        // Create volume if it doesn't exist
+        // Create volume BEFORE secrets (critical for machine creation)
+        // Fly.io restarts machines when secrets change, so volume must exist first
         if !self.volume_exists(&name, "home_data").await {
             self.create_volume(
                 &name,
@@ -695,7 +754,17 @@ impl Provider for FlyProvider {
                 fly_config.region,
             )
             .await?;
+        } else {
+            info!("Volume 'home_data' already exists");
         }
+
+        // Resolve and set secrets AFTER volume exists
+        info!("Resolving and setting secrets...");
+        self.resolve_and_set_secrets(config, &name, None).await?;
+        info!("Secrets configured successfully");
+
+        // Allocate dedicated IPs before deploy to avoid interactive prompts
+        self.allocate_ips(&name).await?;
 
         // Check if we should use a pre-built image
         if self.should_use_prebuilt_image(config) {
@@ -824,10 +893,16 @@ impl Provider for FlyProvider {
             return Err(anyhow!("Failed to destroy app: {}", stderr));
         }
 
-        // Remove fly.toml
-        let fly_toml_path = self.output_dir.join("fly.toml");
+        // Remove fly.toml (colocated with config file, same logic as deploy)
+        let output_dir = config
+            .config_path
+            .parent()
+            .map(|p| PathBuf::from(p.as_std_path()))
+            .unwrap_or_else(|| self.output_dir.clone());
+        let fly_toml_path = output_dir.join("fly.toml");
         if fly_toml_path.exists() {
-            std::fs::remove_file(fly_toml_path)?;
+            std::fs::remove_file(&fly_toml_path)?;
+            info!("Removed fly.toml at {}", fly_toml_path.display());
         }
 
         info!("App '{}' destroyed", name);
