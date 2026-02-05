@@ -251,8 +251,10 @@ pub async fn clone_project(args: CloneProjectArgs) -> Result<()> {
     }
 
     // Checkout branch if specified (for fork mode)
-    if args.fork && args.branch.is_some() {
-        checkout_branch(args.branch.as_ref().unwrap())?;
+    if let Some(branch) = &args.branch {
+        if args.fork {
+            checkout_branch(branch)?;
+        }
     }
 
     // Apply git config overrides

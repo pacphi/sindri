@@ -58,7 +58,7 @@ Separate Docker build into two distinct images:
 ┌─────────────────────────────────────────────────────────┐
 │ sindri:base-X.Y.Z (Build once per Rust version)        │
 ├─────────────────────────────────────────────────────────┤
-│ • Rust 1.92 toolchain (246MB)                           │
+│ • Rust 1.93 toolchain (246MB)                           │
 │ • cargo-chef installation                               │
 │ • System packages (apt-get update - SLOW!)              │
 │ • GitHub CLI                                            │
@@ -95,7 +95,7 @@ Separate Docker build into two distinct images:
 **Features:**
 
 - Multi-arch support (linux/amd64, linux/arm64)
-- Rust 1.92 toolchain
+- Rust 1.93 toolchain
 - cargo-chef installation
 - System packages (Ubuntu 24.04)
 - GitHub CLI v2.86.0
@@ -145,7 +145,7 @@ docker buildx build \
 
 - Builds for linux/amd64 and linux/arm64 in parallel
 - Pushes to GHCR as `ghcr.io/pacphi/sindri:base-X.Y.Z`
-- Tags: `base-latest`, `base-rust1.92`, `base-YYYY.MM.DD`
+- Tags: `base-latest`, `base-rust1.93`, `base-YYYY.MM.DD`
 - Tests both architectures
 - Cleans up old versions (keeps last 5)
 - Generates build summary

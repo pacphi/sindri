@@ -70,7 +70,7 @@ This document provides a validation checklist for the v3 Dockerfile implementati
   - [ ] `BUILD_FROM_SOURCE` (default: false)
   - [ ] `SINDRI_VERSION` (default: 3.0.0)
   - [ ] `SINDRI_REPO` (default: https://github.com/pacphi/sindri)
-  - [ ] `RUST_VERSION` (default: 1.92)
+  - [ ] `RUST_VERSION` (default: 1.93)
 - [ ] System packages audit
   - [ ] ✅ Removed: jq, yq, python3-jsonschema (replaced by Rust CLI)
   - [ ] ✅ Kept: git, curl, wget, build-essential, libssl-dev, gh, mise, openssh-server

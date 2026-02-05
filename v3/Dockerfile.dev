@@ -33,7 +33,7 @@
 # Base Image:
 # ------------------------------------------------------------------------------
 # Uses pre-built base image (ghcr.io/pacphi/sindri:base-latest) containing:
-# - Rust 1.92 toolchain
+# - Rust 1.93 toolchain
 # - cargo-chef for dependency caching
 # - System packages (Ubuntu 24.04)
 # - GitHub CLI
@@ -62,7 +62,7 @@ ARG BASE_IMAGE=ghcr.io/pacphi/sindri:base-latest
 # ==============================================================================
 # Stage 1: Prepare Recipe (cargo-chef)
 # ==============================================================================
-FROM rust:1.92-slim-bookworm AS chef
+FROM rust:1.93-slim-bookworm AS chef
 
 RUN cargo install cargo-chef --locked
 
@@ -77,7 +77,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 # ==============================================================================
 # Stage 2: Build Dependencies (cached - only rebuilds when Cargo.toml changes)
 # ==============================================================================
-FROM rust:1.92-slim-bookworm AS builder-deps
+FROM rust:1.93-slim-bookworm AS builder-deps
 
 RUN cargo install cargo-chef --locked
 
@@ -101,7 +101,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # ==============================================================================
 # Stage 3: Build Application (FAST - only rebuilds when source changes)
 # ==============================================================================
-FROM rust:1.92-slim-bookworm AS builder
+FROM rust:1.93-slim-bookworm AS builder
 
 ARG TARGETARCH
 

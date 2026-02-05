@@ -17,7 +17,7 @@ The Sindri CLI was originally implemented as ~52,000 lines of bash scripts acros
 6. **Testing**: Limited unit testing capabilities for bash
 7. **Binary Distribution**: No single portable executable
 
-The goal was to migrate to Rust 1.92.0 while maintaining 100% feature parity with the bash implementation.
+The goal was to migrate to Rust 1.93.0 while maintaining 100% feature parity with the bash implementation.
 
 ## Decision
 
@@ -81,7 +81,7 @@ sindri-rs/
 
 ### Version and Metadata
 
-- **Rust Version**: 1.92.0 (standardized via rust-toolchain.toml)
+- **Rust Version**: 1.93.0 (standardized via rust-toolchain.toml)
 - **Edition**: 2021
 - **Target Version**: 3.0.0 (semver major bump from bash 2.2.1)
 - **Repository**: https://github.com/pacphi/sindri
@@ -123,7 +123,7 @@ sindri-rs/
 
 ## Compliance
 
-- ✅ Rust 1.92.0 standardization
+- ✅ Rust 1.93.0 standardization
 - ✅ Edition 2021
 - ✅ Semver versioning
 - ✅ MIT license inheritance

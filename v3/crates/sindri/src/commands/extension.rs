@@ -775,11 +775,8 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
     };
 
     if entries.is_empty() {
-        if args.name.is_some() {
-            output::warning(&format!(
-                "Extension '{}' is not installed",
-                args.name.as_ref().unwrap()
-            ));
+        if let Some(name) = &args.name {
+            output::warning(&format!("Extension '{name}' is not installed"));
         } else {
             output::info("No extensions installed yet");
             output::info("Install extensions with: sindri extension install <name>");

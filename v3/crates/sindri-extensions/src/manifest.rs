@@ -444,8 +444,8 @@ mod tests {
             .mark_installed("rust", "1.70.0", "github:pacphi/sindri")
             .unwrap();
 
-        manager.update_version("rust", "1.92.0").unwrap();
-        assert_eq!(manager.get_version("rust"), Some("1.92.0"));
+        manager.update_version("rust", "1.93.0").unwrap();
+        assert_eq!(manager.get_version("rust"), Some("1.93.0"));
     }
 
     #[test]
