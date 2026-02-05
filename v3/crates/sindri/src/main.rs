@@ -54,9 +54,10 @@ fn init_tracing(verbose: u8, quiet: bool) {
         EnvFilter::new("error")
     } else {
         match verbose {
-            0 => EnvFilter::new("warn"),
-            1 => EnvFilter::new("info"),
-            2 => EnvFilter::new("debug"),
+            // Default to info level to show deployment progress (like v2)
+            // Use --quiet to suppress, or -v/-vv for more detail
+            0 => EnvFilter::new("info"),
+            1 => EnvFilter::new("debug"),
             _ => EnvFilter::new("trace"),
         }
     };
