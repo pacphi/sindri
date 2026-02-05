@@ -20,12 +20,15 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use sindri_extensions::SupportFileManager;
 //!
+//! # async fn example() -> anyhow::Result<()> {
 //! let manager = SupportFileManager::new()?;
 //! manager.update_all(false).await?; // Update if needed
 //! manager.update_all(true).await?;  // Force update
+//! # Ok(())
+//! # }
 //! ```
 
 use anyhow::{anyhow, Context, Result};
@@ -171,8 +174,17 @@ impl SupportFileManager {
     /// - `3.0.0-dev` → `v3.0.0-dev`
     /// - `3.0.0+20240115` → `v3.0.0` (build metadata stripped)
     pub fn build_tag(&self) -> String {
-        // semver::Version automatically strips build metadata
-        format!("v{}", self.cli_version)
+        // Build metadata must be explicitly stripped (Display includes it)
+        format!("v{}.{}.{}{}",
+            self.cli_version.major,
+            self.cli_version.minor,
+            self.cli_version.patch,
+            if self.cli_version.pre.is_empty() {
+                String::new()
+            } else {
+                format!("-{}", self.cli_version.pre)
+            }
+        )
     }
 
     /// Build GitHub raw URL for a file
