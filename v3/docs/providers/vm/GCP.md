@@ -859,7 +859,7 @@ sindri vm deploy --cloud gcp projects/PROJECT/global/images/IMAGE_NAME
 
 ## Related Documentation
 
-- [Packer Provider Overview](../PACKER.md)
+- [Packer Provider Overview](../VM.md)
 - [AWS Packer Guide](AWS.md)
 - [Azure Packer Guide](AZURE.md)
 - [OCI Packer Guide](OCI.md)

@@ -876,7 +876,7 @@ jobs:
 
 ## Related Documentation
 
-- [Packer Provider Overview](../PACKER.md)
+- [Packer Provider Overview](../VM.md)
 - [Azure Packer Guide](AZURE.md)
 - [GCP Packer Guide](GCP.md)
 - [OCI Packer Guide](OCI.md)

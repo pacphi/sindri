@@ -1235,7 +1235,7 @@ v3/docs/
 
 | Document                      | Priority | Description                            |
 | ----------------------------- | -------- | -------------------------------------- |
-| `providers/VM.md`         | **P0**   | Main Packer provider guide             |
+| `providers/VM.md`             | **P0**   | Main Packer provider guide             |
 | `providers/AWS-PACKER.md`     | **P1**   | AWS-specific setup and usage           |
 | `providers/AZURE-PACKER.md`   | **P1**   | Azure-specific setup and usage         |
 | `providers/GCP-PACKER.md`     | **P1**   | GCP-specific setup and usage           |

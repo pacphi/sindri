@@ -14,17 +14,19 @@ This directory contains documentation for Sindri V3 deployment providers.
 | [DevPod](DEVPOD.md)         | Multi-cloud DevContainers           | IDE integration, multi-cloud flexibility   | Yes (via cloud providers) |
 | [E2B](E2B.md)               | Cloud sandboxes with pause/resume   | AI sandboxes, fast startup, pay-per-second | No                        |
 | [Kubernetes](KUBERNETES.md) | Container orchestration             | Enterprise, multi-tenant, CI/CD            | Yes (node selectors)      |
-| [VM Images](VM.md)         | Multi-cloud VM image building       | Golden images, enterprise, pre-baked envs  | Yes (cloud-dependent)     |
+| [VM Images](VM.md)          | Multi-cloud VM image building       | Golden images, enterprise, pre-baked envs  | Yes (cloud-dependent)     |
 
 ### VM Image Cloud-Specific Guides
 
-| Cloud Provider                  | Description                               | Builder Type  |
-| ------------------------------- | ----------------------------------------- | ------------- |
-| [AWS VM](vm/AWS.md)         | EC2 AMI images via amazon-ebs builder     | amazon-ebs    |
-| [Azure VM](vm/AZURE.md)     | Managed images with Shared Image Gallery  | azure-arm     |
-| [GCP VM](vm/GCP.md)         | Compute Engine images via googlecompute   | googlecompute |
-| [OCI VM](vm/OCI.md)         | Oracle Cloud Infrastructure custom images | oracle-oci    |
-| [Alibaba VM](vm/ALIBABA.md) | Alibaba Cloud ECS custom images           | alicloud-ecs  |
+| Cloud Provider                     | Description                               | Builder Type  |
+| ---------------------------------- | ----------------------------------------- | ------------- |
+| [AWS VM](vm/AWS.md)                | EC2 AMI images via amazon-ebs builder     | amazon-ebs    |
+| [Azure VM](vm/AZURE.md)            | Managed images with Shared Image Gallery  | azure-arm     |
+| [GCP VM](vm/GCP.md)                | Compute Engine images via googlecompute   | googlecompute |
+| [OCI VM](vm/OCI.md)                | Oracle Cloud Infrastructure custom images | oracle-oci    |
+| [Alibaba VM](vm/ALIBABA.md)        | Alibaba Cloud ECS custom images           | alicloud-ecs  |
+| [Security Guide](vm/SECURITY.md)   | CIS hardening, OpenSCAP, encryption       | -             |
+| [Distribution](vm/DISTRIBUTION.md) | Multi-cloud image sharing and publication | -             |
 
 ## Quick Comparison
 

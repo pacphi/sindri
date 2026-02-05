@@ -678,13 +678,13 @@ Track image usage:
 
 ## Related Documentation
 
-- [VM Provider Guide](providers/VM.md) - Building VM images
-- [AWS VM Guide](providers/vm/AWS.md) - AWS-specific configuration
-- [Azure VM Guide](providers/vm/AZURE.md) - Azure-specific configuration
-- [GCP VM Guide](providers/vm/GCP.md) - GCP-specific configuration
-- [OCI VM Guide](providers/vm/OCI.md) - OCI-specific configuration
-- [Alibaba VM Guide](providers/vm/ALIBABA.md) - Alibaba-specific configuration
-- [Secrets Management](SECRETS_MANAGEMENT.md) - Managing credentials securely
+- [VM Provider Guide](../VM.md) - Building VM images
+- [AWS VM Guide](AWS.md) - AWS-specific configuration
+- [Azure VM Guide](AZURE.md) - Azure-specific configuration
+- [GCP VM Guide](GCP.md) - GCP-specific configuration
+- [OCI VM Guide](OCI.md) - OCI-specific configuration
+- [Alibaba VM Guide](ALIBABA.md) - Alibaba-specific configuration
+- [Secrets Management](../../SECRETS_MANAGEMENT.md) - Managing credentials securely
 
 ## External Resources
 

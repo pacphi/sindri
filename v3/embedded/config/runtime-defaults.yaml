@@ -15,6 +15,9 @@ network:
   # Download chunk size in bytes
   download-chunk-size: 1048576  # 1 MB
 
+  # Mise tool installation timeout in seconds
+  mise-timeout-secs: 300  # 5 minutes
+
   # User agent string for HTTP requests
   user-agent: "sindri/{version} ({os}; {arch})"
 

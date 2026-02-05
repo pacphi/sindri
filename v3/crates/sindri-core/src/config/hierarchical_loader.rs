@@ -183,6 +183,12 @@ impl HierarchicalConfigLoader {
             })?;
         }
 
+        if let Ok(val) = env::var("SINDRI_MISE_TIMEOUT_SECS") {
+            config.network.mise_timeout_secs = val.parse().map_err(|_| {
+                Error::invalid_config("SINDRI_MISE_TIMEOUT_SECS must be a valid number")
+            })?;
+        }
+
         // GitHub configuration
         if let Ok(val) = env::var("SINDRI_GITHUB_REPO_OWNER") {
             config.github.repo_owner = val;
@@ -308,16 +314,19 @@ default-platform: "custom-platform"
 
         // Set environment variables
         env::set_var("SINDRI_HTTP_TIMEOUT_SECS", "1200");
+        env::set_var("SINDRI_MISE_TIMEOUT_SECS", "600");
         env::set_var("SINDRI_GITHUB_REPO_OWNER", "env-owner");
         env::set_var("SINDRI_MAX_BACKUPS", "5");
 
         let config = loader.load_runtime_config().unwrap();
         assert_eq!(config.network.http_timeout_secs, 1200);
+        assert_eq!(config.network.mise_timeout_secs, 600);
         assert_eq!(config.github.repo_owner, "env-owner");
         assert_eq!(config.backup.max_backups, 5);
 
         // Clean up
         env::remove_var("SINDRI_HTTP_TIMEOUT_SECS");
+        env::remove_var("SINDRI_MISE_TIMEOUT_SECS");
         env::remove_var("SINDRI_GITHUB_REPO_OWNER");
         env::remove_var("SINDRI_MAX_BACKUPS");
     }

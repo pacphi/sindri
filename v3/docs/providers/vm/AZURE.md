@@ -1119,7 +1119,7 @@ az monitor activity-log list \
 
 ## Related Documentation
 
-- [Packer Provider Overview](../PACKER.md)
+- [Packer Provider Overview](../VM.md)
 - [AWS Packer Guide](AWS.md)
 - [GCP Packer Guide](GCP.md)
 - [OCI Packer Guide](OCI.md)

@@ -23,6 +23,7 @@ use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
+use sindri_core::config::HierarchicalConfigLoader;
 use sindri_core::schema::SchemaValidator;
 use sindri_core::types::Extension;
 use std::collections::HashMap;
@@ -328,7 +329,15 @@ impl ExtensionDistributor {
         let workspace_dir =
             std::env::current_dir().context("Could not determine current directory")?;
 
-        let executor = crate::executor::ExtensionExecutor::new(&ext_dir, workspace_dir, home_dir);
+        // Load runtime config for mise timeout
+        let config_loader =
+            HierarchicalConfigLoader::new().context("Failed to create config loader")?;
+        let runtime_config = config_loader
+            .load_runtime_config()
+            .context("Failed to load runtime config")?;
+
+        let executor = crate::executor::ExtensionExecutor::new(&ext_dir, workspace_dir, home_dir)
+            .with_timeout(runtime_config.network.mise_timeout_secs);
 
         executor
             .install(&extension)

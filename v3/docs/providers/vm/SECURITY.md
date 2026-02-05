@@ -1089,8 +1089,8 @@ systemctl is-active auditd
 
 ## Related Documentation
 
-- [VM Provider Guide](providers/VM.md) - Full VM image management documentation
-- [Secrets Management](SECRETS_MANAGEMENT.md) - Build-time secrets handling
-- [ADR-031: Packer Architecture](architecture/adr/031-packer-vm-provisioning-architecture.md)
+- [VM Provider Guide](../VM.md) - Full VM image management documentation
+- [Secrets Management](../../SECRETS_MANAGEMENT.md) - Build-time secrets handling
+- [ADR-031: Packer Architecture](../../architecture/adr/031-packer-vm-provisioning-architecture.md)
 - [CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks) - Official CIS documentation
 - [OpenSCAP](https://www.open-scap.org/) - SCAP framework documentation

@@ -39,6 +39,15 @@ sindri vm deploy --cloud aws ami-0123456789abcdef0
 
 **Build time:** 10-20 minutes depending on profile and extensions
 
+## Additional Guides
+
+For comprehensive information on securing and distributing VM images:
+
+- **[Security Guide](vm/SECURITY.md)** - CIS hardening, OpenSCAP scanning, encryption, pre-capture cleanup, and compliance verification
+- **[Distribution Guide](vm/DISTRIBUTION.md)** - Sharing images across teams and organizations (AWS, Azure, GCP, OCI, Alibaba)
+
+For cloud-specific configuration details, see the provider guides in the Supported Clouds section below.
+
 ## Prerequisites
 
 ### Required
@@ -51,8 +60,8 @@ sindri vm deploy --cloud aws ami-0123456789abcdef0
 
 Each cloud provider requires its CLI tool and proper authentication. See the cloud-specific guides for detailed setup instructions:
 
-| Cloud   | CLI Tool | Guide                                     |
-| ------- | -------- | ----------------------------------------- |
+| Cloud   | CLI Tool | Guide                             |
+| ------- | -------- | --------------------------------- |
 | AWS     | aws      | [AWS VM Guide](vm/AWS.md)         |
 | Azure   | az       | [Azure VM Guide](vm/AZURE.md)     |
 | GCP     | gcloud   | [GCP VM Guide](vm/GCP.md)         |

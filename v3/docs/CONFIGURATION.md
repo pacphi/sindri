@@ -1,6 +1,11 @@
-# V3 Configuration Reference
+# Deployment Configuration Reference
 
-Complete reference for `sindri.yaml` configuration file in Sindri v3.
+Complete reference for `sindri.yaml` deployment configuration in Sindri v3.
+
+> **📋 Configuration Types:**
+>
+> - **This document:** Deployment configuration (`sindri.yaml`) - defines what you deploy
+> - **[Runtime configuration](RUNTIME_CONFIGURATION.md):** Sindri CLI settings (`~/.sindri/`) - defines how Sindri operates
 
 ## Table of Contents
 
@@ -24,7 +29,7 @@ Complete reference for `sindri.yaml` configuration file in Sindri v3.
 
 ## Overview
 
-The `sindri.yaml` configuration file defines your Sindri development environment. It specifies:
+The `sindri.yaml` **deployment configuration** file defines your Sindri development environment. It specifies:
 
 - Deployment provider and target infrastructure
 - Container image configuration and version management
@@ -1455,6 +1460,7 @@ sindri migrate rollback
 
 ## Related Documentation
 
+- **[Runtime Configuration](RUNTIME_CONFIGURATION.md)** - Configure Sindri CLI behavior (timeouts, retries, etc.)
 - [Getting Started](GETTING_STARTED.md)
 - [Image Management](IMAGE_MANAGEMENT.md)
 - [Architecture Decision Records](architecture/adr/README.md)

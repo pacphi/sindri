@@ -1056,7 +1056,7 @@ cat /tmp/packer-oci.log
 
 ## Related Documentation
 
-- [Packer Provider Overview](../PACKER.md)
+- [Packer Provider Overview](../VM.md)
 - [AWS Packer Guide](AWS.md)
 - [Azure Packer Guide](AZURE.md)
 - [GCP Packer Guide](GCP.md)

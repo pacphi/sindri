@@ -175,7 +175,8 @@ impl SupportFileManager {
     /// - `3.0.0+20240115` → `v3.0.0` (build metadata stripped)
     pub fn build_tag(&self) -> String {
         // Build metadata must be explicitly stripped (Display includes it)
-        format!("v{}.{}.{}{}",
+        format!(
+            "v{}.{}.{}{}",
             self.cli_version.major,
             self.cli_version.minor,
             self.cli_version.patch,

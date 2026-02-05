@@ -55,6 +55,10 @@ pub struct NetworkConfig {
     #[serde(default = "default_chunk_size")]
     pub download_chunk_size: usize,
 
+    /// Mise tool installation timeout in seconds
+    #[serde(default = "default_mise_timeout")]
+    pub mise_timeout_secs: u64,
+
     /// User agent string for HTTP requests
     #[serde(default = "default_user_agent")]
     pub user_agent: String,
@@ -67,6 +71,7 @@ impl Default for NetworkConfig {
             download_timeout_secs: default_download_timeout(),
             deploy_timeout_secs: default_deploy_timeout(),
             download_chunk_size: default_chunk_size(),
+            mise_timeout_secs: default_mise_timeout(),
             user_agent: default_user_agent(),
         }
     }
@@ -83,6 +88,9 @@ fn default_deploy_timeout() -> u64 {
 }
 fn default_chunk_size() -> usize {
     1024 * 1024 // 1 MB
+}
+fn default_mise_timeout() -> u64 {
+    300 // 5 minutes
 }
 fn default_user_agent() -> String {
     format!(
@@ -402,6 +410,7 @@ mod tests {
         let config = RuntimeConfig::default();
         assert_eq!(config.network.http_timeout_secs, 300);
         assert_eq!(config.network.download_chunk_size, 1024 * 1024);
+        assert_eq!(config.network.mise_timeout_secs, 300);
         assert_eq!(config.github.repo_owner, "pacphi");
         assert_eq!(config.github.repo_name, "sindri");
         assert_eq!(config.backup.max_backups, 2);
