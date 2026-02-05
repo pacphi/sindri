@@ -344,5 +344,5 @@ sindri extension update-support-files --bundled
 ## Related Documentation
 
 - [SUPPORT_FILE_VERSION_HANDLING.md](SUPPORT_FILE_VERSION_HANDLING.md) - Version handling details
-- [EXTENSION_SOURCING_MODES.md](EXTENSION_SOURCING_MODES.md) - Extension loading modes
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - General troubleshooting guide
+- [SOURCING_MODES.md](SOURCING_MODES.md) - Extension loading modes
+- [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md) - General troubleshooting guide

@@ -229,4 +229,4 @@ To add a new extension:
 3. Add documentation in `/v3/docs/extensions/<NAME>.md`
 4. Update this README
 
-See [Extension Authoring Guide](../EXTENSION_AUTHORING.md) for details.
+See [Extension Authoring Guide](guides/AUTHORING.md) for details.

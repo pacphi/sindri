@@ -419,4 +419,4 @@ $ cargo check --package sindri --bin sindri
 
 - [SUPPORT_FILE_VERSION_HANDLING.md](SUPPORT_FILE_VERSION_HANDLING.md) - Version handling details
 - [SUPPORT_FILE_INTEGRATION.md](SUPPORT_FILE_INTEGRATION.md) - Complete integration guide
-- [EXTENSION_SOURCING_MODES.md](EXTENSION_SOURCING_MODES.md) - Extension modes
+- [SOURCING_MODES.md](SOURCING_MODES.md) - Extension modes

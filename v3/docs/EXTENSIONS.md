@@ -613,7 +613,7 @@ These variables are automatically set during deployment when using `buildFromSou
 
 ## See Also
 
-- [EXTENSION_AUTHORING.md](EXTENSION_AUTHORING.md) - Guide to creating new extensions
+- [Extension Authoring Guide](extensions/guides/AUTHORING.md) - Guide to creating new extensions
 - [CONFIGURATION.md](CONFIGURATION.md) - Sindri configuration reference
 - [Architecture Decision Records](architecture/adr/README.md):
   - [ADR-008: Extension Type System](architecture/adr/008-extension-type-system-yaml-deserialization.md)

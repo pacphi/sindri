@@ -394,7 +394,7 @@ Support files updated successfully (3 files from bundled)
 
 ## Related Documentation
 
-- [`support_files.rs`](../crates/sindri-extensions/src/support_files.rs) - Implementation
+- [`support_files.rs`](../../../crates/sindri-extensions/src/support_files.rs) - Implementation
 - [Semantic Versioning 2.0.0](https://semver.org/) - Specification
 - [semver crate](https://docs.rs/semver/) - Rust semver library
-- [EXTENSION_SOURCING_MODES.md](EXTENSION_SOURCING_MODES.md) - Extension loading modes
+- [SOURCING_MODES.md](SOURCING_MODES.md) - Extension loading modes

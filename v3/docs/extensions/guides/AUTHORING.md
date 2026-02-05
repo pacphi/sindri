@@ -1,6 +1,6 @@
 # V3 Extension Authoring Guide
 
-> **Version Notice:** This documentation applies to **Sindri V3** (Rust CLI). For V2 extension authoring, see [V2 Extension Authoring Guide](../../v2/docs/EXTENSION_AUTHORING.md).
+> **Version Notice:** This documentation applies to **Sindri V3** (Rust CLI). For V2 extension authoring, see [V2 Extension Authoring Guide](../../../../v2/docs/EXTENSION_AUTHORING.md).
 
 This guide covers creating extensions for Sindri V3. Extensions are the primary way to add tools, languages, and capabilities to your development environment.
 
@@ -253,7 +253,7 @@ install:
       - docker-ce-cli
 ```
 
-> **Runtime Installation Note:** Apt packages require sudo. This works in `none`, `sysbox`, and `privileged` DinD modes, but **not** in `socket` mode where `no-new-privileges` blocks sudo. For production compatibility, consider sudo-free alternatives (pip, tarball extraction, user-local binaries). See [ADR-041](architecture/adr/041-security-hardened-extension-installation.md) for patterns.
+> **Runtime Installation Note:** Apt packages require sudo. This works in `none`, `sysbox`, and `privileged` DinD modes, but **not** in `socket` mode where `no-new-privileges` blocks sudo. For production compatibility, consider sudo-free alternatives (pip, tarball extraction, user-local binaries). See [ADR-041](../../architecture/adr/041-security-hardened-extension-installation.md) for patterns.
 
 **Method: binary** - For direct binary downloads
 
@@ -1094,7 +1094,7 @@ sindri extension list
 
 ### Getting Help
 
-- **Schema Reference**: See [SCHEMA.md](SCHEMA.md) for complete schema documentation
+- **Schema Reference**: See [SCHEMA.md](../../SCHEMA.md) for complete schema documentation
 - **Examples**: Browse `v3/extensions/` for working examples
 - **Issues**: Open an issue on GitHub for bugs or questions
 
@@ -1102,6 +1102,6 @@ sindri extension list
 
 ## See Also
 
-- [Schema Reference](SCHEMA.md) - Complete schema documentation
-- [Getting Started](GETTING_STARTED.md) - Initial setup guide
-- [Conditional Templates Migration](EXTENSION_CONDITIONAL_TEMPLATES_MIGRATION.md) - Template condition patterns
+- [Schema Reference](../../SCHEMA.md) - Complete schema documentation
+- [Getting Started](../../GETTING_STARTED.md) - Initial setup guide
+- [Conditional Templates Migration](CONDITIONAL_TEMPLATES_MIGRATION.md) - Template condition patterns
