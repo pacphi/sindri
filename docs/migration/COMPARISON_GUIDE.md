@@ -1,8 +1,10 @@
-# Sindri V2 vs V3 Comparison Guide
+# Sindri Version Comparison Guide
 
-**Version:** 2.0.0
+> 📖 **Ready to migrate?** See the [Migration Guide](MIGRATION_GUIDE.md) for step-by-step instructions.
+
+**Version:** 2.1.0
 **Created:** 2026-01-24
-**Updated:** 2026-01-31
+**Updated:** 2026-02-05
 **Audience:** Developers, DevOps, QA Engineers, Security/Compliance Teams
 
 ---
@@ -37,7 +39,13 @@ Sindri V3 represents a complete architectural transformation from V2, delivering
 4. [Docker Architecture (V3)](#docker-architecture-v3)
 5. [Security Constraints (V3)](#security-constraints-v3)
 6. [Environment Variables](#environment-variables)
-7. [VisionFlow Extensions (V2 Only)](#visionflow-extensions-v2-only)
+7. [Extension Comparison](#extension-comparison)
+   - [Summary](#extension-summary)
+   - [Language Extensions](#language-extensions)
+   - [AI and Agent Extensions](#ai-and-agent-extensions)
+   - [MCP Server Extensions](#mcp-server-extensions)
+   - [Development Tools](#development-tools)
+   - [VisionFlow Extensions (V2 Only)](#visionflow-extensions-v2-only)
 8. [Extension Categories](#extension-categories)
 9. [Installation & Distribution](#installation--distribution)
 10. [Architecture Comparison](#architecture-comparison)
@@ -327,39 +335,149 @@ APT package installation requires sudo, which is blocked by `no-new-privileges` 
 
 ---
 
-## VisionFlow Extensions (V2 Only)
+## Extension Comparison
 
-V2 includes 33 VisionFlow extensions that are not available in V3. These provide specialized visual and media processing capabilities:
+This section provides a comprehensive comparison of extensions available in Sindri V2 and V3, including feature parity status and key architectural differences.
 
-### Categories
+### Extension Summary
 
-| Category        | Extensions                                            |
-| --------------- | ----------------------------------------------------- |
-| Document        | vf-docx, vf-pdf, vf-pptx, vf-xlsx, vf-latex-documents |
-| Visual/3D       | vf-blender, vf-pbr-rendering, vf-canvas-design        |
-| Media           | vf-ffmpeg-processing, vf-imagemagick                  |
-| AI/ML           | vf-comfyui, vf-pytorch-ml, vf-deepseek-reasoning      |
-| Desktop         | vf-vnc-desktop, vf-xfce-ubuntu                        |
-| MCP Integration | vf-mcp-builder, vf-playwright-mcp                     |
-| Specialized     | vf-kicad, vf-ngspice, vf-qgis, vf-wardley-maps        |
+| Metric                            | V2  | V3  |
+| --------------------------------- | --- | --- |
+| **Total Extensions**              | 77  | 44  |
+| **Language Extensions**           | 11  | 11  |
+| **AI/Agent Extensions**           | 10  | 9   |
+| **MCP Extensions**                | 8   | 8   |
+| **Desktop/VisionFlow Extensions** | 33  | 0   |
+| **Dev Tools Extensions**          | 15  | 16  |
 
-### Complete List
+### Language Extensions
 
-```
-vf-algorithmic-art    vf-blender           vf-canvas-design
-vf-chrome-devtools    vf-comfyui           vf-deepseek-reasoning
-vf-docker-manager     vf-docx              vf-ffmpeg-processing
-vf-gemini-flow        vf-imagemagick       vf-import-to-ontology
-vf-jupyter-notebooks  vf-kicad             vf-latex-documents
-vf-management-api     vf-mcp-builder       vf-ngspice
-vf-ontology-enrich    vf-pbr-rendering     vf-pdf
-vf-perplexity         vf-playwright-mcp    vf-pptx
-vf-pytorch-ml         vf-qgis              vf-slack-gif-creator
-vf-vnc-desktop        vf-wardley-maps      vf-web-summary
-vf-webapp-testing     vf-xlsx              vf-zai-service
-```
+| Extension | V2  | V3  | Description                                | Notes                   |
+| --------- | :-: | :-: | ------------------------------------------ | ----------------------- |
+| nodejs    | YES | YES | Node.js LTS via mise with pnpm             | Identical configuration |
+| python    | YES | YES | Python 3.13 with uv package manager        | Identical configuration |
+| rust      | YES | YES | Rust stable via rustup                     | Identical configuration |
+| golang    | YES | YES | Go 1.25 via mise                           | Identical configuration |
+| ruby      | YES | YES | Ruby via mise                              | Identical configuration |
+| php       | YES | YES | PHP via mise                               | Identical configuration |
+| haskell   | YES | YES | Haskell via ghcup (GHC, Cabal, Stack, HLS) | Identical configuration |
+| dotnet    | YES | YES | .NET SDK                                   | Identical configuration |
+| jvm       | YES | YES | Java/JVM languages                         | Identical configuration |
 
-**Note:** VisionFlow extensions are exclusive to V2 and are not planned for migration to V3.
+### AI and Agent Extensions
+
+| Extension             | V2  | V3  | Description                        | Notes                        |
+| --------------------- | :-: | :-: | ---------------------------------- | ---------------------------- |
+| ai-toolkit            | YES | YES | AI development toolkit             | Identical configuration      |
+| agentic-flow          | YES | YES | Multi-model AI agent framework     | Identical configuration      |
+| agentic-qe            | YES | YES | Quality engineering agents         | Identical configuration      |
+| claude-flow-v2        | YES | YES | Claude Flow v2 orchestration       | Legacy support               |
+| claude-flow-v3        | YES | YES | Next-gen multi-agent orchestration | 10x performance, HNSW search |
+| claude-codepro        | YES | YES | Claude Code professional tools     | Identical configuration      |
+| ollama                | YES | YES | Local LLM inference                | Identical configuration      |
+| goose                 | YES | YES | AI coding assistant                | Identical configuration      |
+| ruvnet-research       | YES | YES | Research tools                     | Identical configuration      |
+| vf-deepseek-reasoning | YES | NO  | DeepSeek reasoning model           | V2 only (VisionFlow)         |
+
+### MCP Server Extensions
+
+| Extension         | V2  | V3  | Description                   | Notes                   |
+| ----------------- | :-: | :-: | ----------------------------- | ----------------------- |
+| context7-mcp      | YES | YES | Context management MCP server | Identical configuration |
+| jira-mcp          | YES | YES | Jira integration MCP server   | Identical configuration |
+| linear-mcp        | YES | YES | Linear integration MCP server | Identical configuration |
+| pal-mcp-server    | YES | YES | PAL MCP server                | Identical configuration |
+| spec-kit          | YES | YES | Specification toolkit         | Identical configuration |
+| ralph             | YES | YES | Ralph MCP server              | Identical configuration |
+| vf-playwright-mcp | YES | NO  | Playwright MCP server         | V2 only (VisionFlow)    |
+| vf-mcp-builder    | YES | NO  | MCP builder tools             | V2 only (VisionFlow)    |
+
+### Development Tools
+
+| Extension       | V2  | V3  | Description                   | Notes                   |
+| --------------- | :-: | :-: | ----------------------------- | ----------------------- |
+| docker          | YES | YES | Docker container tools        | Identical configuration |
+| github-cli      | YES | YES | GitHub CLI (gh)               | Identical configuration |
+| playwright      | YES | YES | Browser automation framework  | Identical configuration |
+| nodejs-devtools | YES | YES | Node.js development utilities | Identical configuration |
+| infra-tools     | YES | YES | Infrastructure tooling        | Identical configuration |
+| monitoring      | YES | YES | System monitoring tools       | Identical configuration |
+| cloud-tools     | YES | YES | Cloud provider CLIs           | Identical configuration |
+| supabase-cli    | YES | YES | Supabase CLI tools            | Identical configuration |
+| mdflow          | YES | YES | Markdown workflow tools       | Identical configuration |
+| openskills      | YES | YES | OpenSkills framework          | Identical configuration |
+| mise-config     | YES | YES | Mise configuration base       | Required dependency     |
+| tmux-workspace  | YES | YES | Tmux workspace manager        | Identical configuration |
+
+### Claude Extensions
+
+| Extension          | V2  | V3  | Description              | Notes                   |
+| ------------------ | :-: | :-: | ------------------------ | ----------------------- |
+| claude-code-mux    | YES | YES | Claude Code multiplexer  | Identical configuration |
+| claude-marketplace | YES | YES | Extension marketplace    | Identical configuration |
+| claudeup           | YES | YES | Claude upgrade utilities | Identical configuration |
+| claudish           | YES | YES | Claude shell integration | Identical configuration |
+
+### Desktop and GUI Extensions
+
+| Extension     | V2  | V3  | Description              | Notes                   |
+| ------------- | :-: | :-: | ------------------------ | ----------------------- |
+| xfce-ubuntu   | YES | YES | XFCE desktop environment | Required for GUI apps   |
+| guacamole     | YES | YES | Remote desktop gateway   | Identical configuration |
+| agent-browser | YES | YES | Browser agent interface  | Identical configuration |
+| agent-manager | YES | YES | Agent management UI      | Identical configuration |
+
+### VisionFlow Extensions (V2 Only)
+
+These extensions are from the VisionFlow project and are currently only available in V2. They typically require GPU support and desktop environment.
+
+| Extension             | V2  | V3  | Description                  | Category       |
+| --------------------- | :-: | :-: | ---------------------------- | -------------- |
+| vf-algorithmic-art    | YES | NO  | Algorithmic art generation   | Creative       |
+| vf-blender            | YES | NO  | Blender 3D modeling with MCP | 3D/Design      |
+| vf-canvas-design      | YES | NO  | Canvas-based design tools    | Design         |
+| vf-chrome-devtools    | YES | NO  | Chrome DevTools integration  | Development    |
+| vf-comfyui            | YES | NO  | ComfyUI image generation     | AI/Creative    |
+| vf-docker-manager     | YES | NO  | Docker management GUI        | Infrastructure |
+| vf-docx               | YES | NO  | Word document processing     | Documents      |
+| vf-ffmpeg-processing  | YES | NO  | FFmpeg video processing      | Media          |
+| vf-gemini-flow        | YES | NO  | Google Gemini integration    | AI             |
+| vf-imagemagick        | YES | NO  | ImageMagick processing       | Media          |
+| vf-import-to-ontology | YES | NO  | Ontology import tools        | Data           |
+| vf-jupyter-notebooks  | YES | NO  | Jupyter notebook execution   | Development    |
+| vf-kicad              | YES | NO  | KiCad PCB design             | Engineering    |
+| vf-latex-documents    | YES | NO  | LaTeX document generation    | Documents      |
+| vf-management-api     | YES | NO  | Management API tools         | Infrastructure |
+| vf-ngspice            | YES | NO  | NGSpice circuit simulation   | Engineering    |
+| vf-ontology-enrich    | YES | NO  | Ontology enrichment tools    | Data           |
+| vf-pbr-rendering      | YES | NO  | PBR rendering pipeline       | 3D/Design      |
+| vf-pdf                | YES | NO  | PDF processing tools         | Documents      |
+| vf-perplexity         | YES | NO  | Perplexity AI integration    | AI             |
+| vf-pptx               | YES | NO  | PowerPoint processing        | Documents      |
+| vf-pytorch-ml         | YES | NO  | PyTorch ML framework         | AI/ML          |
+| vf-qgis               | YES | NO  | QGIS geographic tools        | GIS            |
+| vf-slack-gif-creator  | YES | NO  | Slack GIF creation           | Media          |
+| vf-vnc-desktop        | YES | NO  | VNC desktop server           | Desktop        |
+| vf-wardley-maps       | YES | NO  | Wardley mapping tools        | Strategy       |
+| vf-web-summary        | YES | NO  | Web page summarization       | AI             |
+| vf-webapp-testing     | YES | NO  | Web application testing      | Testing        |
+| vf-xlsx               | YES | NO  | Excel processing             | Documents      |
+| vf-zai-service        | YES | NO  | ZAI service integration      | AI             |
+
+**Note:** VisionFlow extensions are exclusive to V2 and are not planned for migration to V3 due to GPU dependencies, desktop requirements, and Docker integration complexity.
+
+### Extension Compatibility Matrix
+
+| Use Case                                        | Recommended Platform |
+| ----------------------------------------------- | -------------------- |
+| Language development (Node, Python, Rust, etc.) | V3                   |
+| AI agent workflows                              | V3                   |
+| MCP server development                          | V3                   |
+| 3D modeling (Blender)                           | V2                   |
+| Image generation (ComfyUI)                      | V2                   |
+| Video processing (FFmpeg)                       | V2                   |
+| ML training (PyTorch)                           | V2                   |
+| Document processing (PDF, DOCX, XLSX)           | V2                   |
 
 ---
 
@@ -842,7 +960,7 @@ Sindri V3 represents a fundamental modernization delivering:
 - **328 new features** across all categories
 - **Enhanced security** with CVE remediation and SLSA L3
 
-For detailed migration steps, see the companion [V2 to V3 Migration Guide](v2-v3-migration-guide.md).
+For detailed migration steps, see the companion [Migration Guide](MIGRATION_GUIDE.md).
 
 ---
 

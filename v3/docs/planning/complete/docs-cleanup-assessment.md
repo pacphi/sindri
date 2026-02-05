@@ -43,7 +43,7 @@ All critical issues have been resolved through a coordinated swarm of 13 paralle
 3. ✅ Moved `docs/EXTENSIONS.md` to `v2/docs/EXTENSIONS.md`
 4. ✅ Created `v3/docs/EXTENSIONS.md` documenting 44 extensions across 12 categories
 5. ✅ Created `v3/docs/EXTENSION_AUTHORING.md` (1,087 lines)
-6. ✅ Created `docs/shared/extensions-comparison.md` comparing V2 (77) vs V3 (44) extensions
+6. ✅ Created extension comparison content in `docs/migration/COMPARISON_GUIDE.md` comparing V2 (77) vs V3 (44) extensions
 
 ---
 
@@ -153,15 +153,15 @@ v3/docs/
 
 ```
 docs/
-├── README.md                  ← NEW: Version selector landing page
-├── CONTRIBUTING.md            ← UPDATED: Naming standards added
-├── shared/
-│   └── extensions-comparison.md  ← NEW: V2 vs V3 comparison
+├── README.md                  ← Version selector landing page
+├── CONTRIBUTING.md            ← Naming standards added
+├── migration/                 ← NEW: Migration hub directory
+│   ├── README.md              ← Router/landing page
+│   ├── COMPARISON_GUIDE.md    ← Version comparison (merged extensions)
+│   └── MIGRATION_GUIDE.md     ← Migration instructions
 ├── faq/
 │   └── src/v2-faq-data.json   ← RENAMED + FIXED
-├── ides/                      ← Version-agnostic (unchanged)
-├── v2-v3-comparison-guide.md  ← Existing (OK)
-└── v2-v3-migration-guide.md   ← Existing (OK)
+└── ides/                      ← Version-agnostic (unchanged)
 ```
 
 V2-specific docs properly moved to `v2/docs/`:
@@ -256,7 +256,7 @@ V2-specific docs properly moved to `v2/docs/`:
 | File                                            | Description                         |
 | ----------------------------------------------- | ----------------------------------- |
 | `docs/README.md`                                | Version selector landing page       |
-| `docs/shared/extensions-comparison.md`          | V2 vs V3 extension comparison       |
+| `docs/migration/COMPARISON_GUIDE.md`            | V2 vs V3 comparison with extensions |
 | `docs/faq/src/v2-faq-data.json`                 | Renamed + fixed FAQ data            |
 | `v2/docs/slides/v2-getting-started.html`        | Renamed slide with version header   |
 | `v2/docs/slides/v2-extensions.html`             | Renamed slide with version header   |

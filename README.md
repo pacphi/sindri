@@ -124,7 +124,7 @@ Example prompts:
 - "Add capabilities to my extension for project initialization"
 ```
 
-See [V2 vs V3 Comparison](docs/v2-v3-comparison-guide.md) for detailed differences.
+See [Version Comparison](docs/migration/COMPARISON_GUIDE.md) for detailed differences.
 
 ## License
 

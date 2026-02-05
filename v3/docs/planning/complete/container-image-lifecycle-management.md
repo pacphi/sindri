@@ -166,7 +166,7 @@ This document describes the comprehensive container image lifecycle management s
 ### ✅ Phase 4: Documentation (COMPLETE)
 
 - ✅ User documentation: `v3/docs/IMAGE_MANAGEMENT.md`
-- ✅ Migration guides: `docs/v2-v3-migration-guide.md`
+- ✅ Migration guides: `docs/migration/MIGRATION_GUIDE.md`
 - ✅ Configuration examples in documentation
 
 ### ✅ Phase 5: Registry Cleanup (COMPLETE)

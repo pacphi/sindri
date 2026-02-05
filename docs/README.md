@@ -41,10 +41,16 @@ The next-generation Sindri implementation built in Rust. This version offers imp
 
 ## Migration Resources
 
-If you are transitioning between versions, these guides will help:
+If you are transitioning between versions or evaluating which version to use, these guides will help:
 
-- [V2 to V3 Migration Guide](v2-v3-migration-guide.md) - Step-by-step migration instructions
-- [V2 vs V3 Comparison Guide](v2-v3-comparison-guide.md) - Feature comparison between versions
+### → [Migration Hub](migration/)
+
+Comprehensive resources for comparing versions and migrating between them:
+
+- **[Comparison Guide](migration/COMPARISON_GUIDE.md)** - Feature and architectural comparison between versions
+- **[Migration Guide](migration/MIGRATION_GUIDE.md)** - Step-by-step migration instructions
+
+The migration hub includes detailed extension comparison (77 V2 vs 44 V3 extensions), persona-based analysis, performance benchmarks, and practical migration workflows.
 
 ## Additional Resources
 

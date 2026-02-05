@@ -1,7 +1,10 @@
-# Sindri V2 to V3 Migration Guide
+# Sindri Version Migration Guide
 
-**Version:** 1.0.0
+> 📊 **Evaluating versions?** See the [Comparison Guide](COMPARISON_GUIDE.md) for feature comparison and architectural differences.
+
+**Version:** 1.1.0
 **Created:** 2026-01-24
+**Updated:** 2026-02-05
 **Current V2 Version:** 2.2.1
 **Target V3 Version:** 3.0.0
 
@@ -627,14 +630,14 @@ These are auto-migrated on first V3 run:
 
 ### Documentation
 
-| Document         | Path                             |
-| ---------------- | -------------------------------- |
-| V3 CLI Reference | `v3/docs/CLI.md`                 |
-| V3 Quickstart    | `v3/docs/QUICKSTART.md`          |
-| V3 Configuration | `v3/docs/CONFIGURATION.md`       |
-| V3 Secrets       | `v3/docs/SECRETS_MANAGEMENT.md`  |
-| V3 Doctor        | `v3/docs/DOCTOR.md`              |
-| Comparison Guide | `docs/v2-v3-comparison-guide.md` |
+| Document         | Path                                 |
+| ---------------- | ------------------------------------ |
+| V3 CLI Reference | `v3/docs/CLI.md`                     |
+| V3 Quickstart    | `v3/docs/QUICKSTART.md`              |
+| V3 Configuration | `v3/docs/CONFIGURATION.md`           |
+| V3 Secrets       | `v3/docs/SECRETS_MANAGEMENT.md`      |
+| V3 Doctor        | `v3/docs/DOCTOR.md`                  |
+| Comparison Guide | `docs/migration/COMPARISON_GUIDE.md` |
 
 ### Architecture Decisions
 
@@ -672,4 +675,4 @@ cli_versions:
 ---
 
 _Last updated: 2026-01-24_
-_See also: [V2 vs V3 Comparison Guide](v2-v3-comparison-guide.md)_
+_See also: [Version Comparison Guide](COMPARISON_GUIDE.md)_
