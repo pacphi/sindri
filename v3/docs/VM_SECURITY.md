@@ -1,4 +1,4 @@
-# Packer Image Security
+# VM Image Security
 
 > **Version:** 3.x
 > **Last Updated:** 2026-02
@@ -476,7 +476,7 @@ cat /home/*/.bash_history 2>/dev/null | wc -l
 
 ### Overview
 
-[OpenSCAP](https://www.open-scap.org/) is an open-source security compliance framework. Sindri includes an OpenSCAP scanning script at `v3/packer/scripts/openscap-scan.sh`.
+[OpenSCAP](https://www.open-scap.org/) is an open-source security compliance framework. Sindri includes an OpenSCAP scanning script at `v3/scripts/vm/openscap-scan.sh`.
 
 ### SCAP Profiles
 
@@ -495,7 +495,7 @@ Security Content Automation Protocol (SCAP) profiles define compliance standards
 
 ```bash
 # Run scan with default CIS Level 1 profile
-./v3/packer/scripts/openscap-scan.sh
+./v3/scripts/vm/openscap-scan.sh
 
 # Output directory
 ls /tmp/openscap-results/
@@ -1089,7 +1089,7 @@ systemctl is-active auditd
 
 ## Related Documentation
 
-- [Packer Provider Guide](providers/PACKER.md) - Full Packer usage documentation
+- [VM Provider Guide](providers/VM.md) - Full VM image management documentation
 - [Secrets Management](SECRETS_MANAGEMENT.md) - Build-time secrets handling
 - [ADR-031: Packer Architecture](architecture/adr/031-packer-vm-provisioning-architecture.md)
 - [CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks) - Official CIS documentation

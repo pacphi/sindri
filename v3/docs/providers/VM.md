@@ -1,4 +1,4 @@
-# Packer Provider
+# VM Image Provider
 
 > **Version:** 3.x
 > **Last Updated:** 2026-01
@@ -11,11 +11,11 @@ The Packer provider enables building golden VM images across multiple cloud plat
 
 **Supported Clouds:**
 
-- **[AWS](packer/AWS.md)** - EC2 AMI images via `amazon-ebs` builder
-- **[Azure](packer/AZURE.md)** - Managed images with Shared Image Gallery support
-- **[GCP](packer/GCP.md)** - Compute Engine images via `googlecompute` builder
-- **[OCI](packer/OCI.md)** - Oracle Cloud Infrastructure custom images
-- **[Alibaba](packer/ALIBABA.md)** - Alibaba Cloud ECS custom images
+- **[AWS](vm/AWS.md)** - EC2 AMI images via `amazon-ebs` builder
+- **[Azure](vm/AZURE.md)** - Managed images with Shared Image Gallery support
+- **[GCP](vm/GCP.md)** - Compute Engine images via `googlecompute` builder
+- **[OCI](vm/OCI.md)** - Oracle Cloud Infrastructure custom images
+- **[Alibaba](vm/ALIBABA.md)** - Alibaba Cloud ECS custom images
 
 **Best for:** Enterprise deployments, golden image pipelines, multi-cloud infrastructure, pre-baked development environments
 
@@ -53,11 +53,11 @@ Each cloud provider requires its CLI tool and proper authentication. See the clo
 
 | Cloud   | CLI Tool | Guide                                     |
 | ------- | -------- | ----------------------------------------- |
-| AWS     | aws      | [AWS Packer Guide](packer/AWS.md)         |
-| Azure   | az       | [Azure Packer Guide](packer/AZURE.md)     |
-| GCP     | gcloud   | [GCP Packer Guide](packer/GCP.md)         |
-| OCI     | oci      | [OCI Packer Guide](packer/OCI.md)         |
-| Alibaba | aliyun   | [Alibaba Packer Guide](packer/ALIBABA.md) |
+| AWS     | aws      | [AWS VM Guide](vm/AWS.md)         |
+| Azure   | az       | [Azure VM Guide](vm/AZURE.md)     |
+| GCP     | gcloud   | [GCP VM Guide](vm/GCP.md)         |
+| OCI     | oci      | [OCI VM Guide](vm/OCI.md)         |
+| Alibaba | aliyun   | [Alibaba VM Guide](vm/ALIBABA.md) |
 
 Use `sindri vm doctor --cloud <cloud>` to verify prerequisites for a specific cloud.
 
@@ -451,11 +451,11 @@ providers:
 
 For detailed configuration options including IAM permissions, networking, and advanced features, see the cloud-specific guides:
 
-- **[AWS Configuration](packer/AWS.md#configuration-examples)** - VPC/subnet, AMI regions, encryption, sharing
-- **[Azure Configuration](packer/AZURE.md#configuration-examples)** - Resource groups, Compute Gallery, replication
-- **[GCP Configuration](packer/GCP.md#configuration-examples)** - Image families, Shielded VMs, cross-project sharing
-- **[OCI Configuration](packer/OCI.md#configuration-examples)** - Flex shapes, compartments, ARM support
-- **[Alibaba Configuration](packer/ALIBABA.md#configuration-examples)** - VSwitch, regions, image distribution
+- **[AWS Configuration](vm/AWS.md#configuration-examples)** - VPC/subnet, AMI regions, encryption, sharing
+- **[Azure Configuration](vm/AZURE.md#configuration-examples)** - Resource groups, Compute Gallery, replication
+- **[GCP Configuration](vm/GCP.md#configuration-examples)** - Image families, Shielded VMs, cross-project sharing
+- **[OCI Configuration](vm/OCI.md#configuration-examples)** - Flex shapes, compartments, ARM support
+- **[Alibaba Configuration](vm/ALIBABA.md#configuration-examples)** - VSwitch, regions, image distribution
 
 ### Build Configuration
 
@@ -1005,11 +1005,11 @@ providers:
 
 ### Cloud-Specific Guides
 
-- [AWS Packer Guide](packer/AWS.md) - AMIs, IAM policies, VPC configuration
-- [Azure Packer Guide](packer/AZURE.md) - RBAC, Compute Gallery, managed identities
-- [GCP Packer Guide](packer/GCP.md) - Image families, Workload Identity, Shielded VMs
-- [OCI Packer Guide](packer/OCI.md) - Compartments, flex shapes, ARM support
-- [Alibaba Packer Guide](packer/ALIBABA.md) - RAM policies, VSwitch, regions
+- [AWS VM Guide](vm/AWS.md) - AMIs, IAM policies, VPC configuration
+- [Azure VM Guide](vm/AZURE.md) - RBAC, Compute Gallery, managed identities
+- [GCP VM Guide](vm/GCP.md) - Image families, Workload Identity, Shielded VMs
+- [OCI VM Guide](vm/OCI.md) - Compartments, flex shapes, ARM support
+- [Alibaba VM Guide](vm/ALIBABA.md) - RAM policies, VSwitch, regions
 
 ### General Documentation
 

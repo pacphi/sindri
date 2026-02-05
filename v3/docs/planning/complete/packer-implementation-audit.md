@@ -1235,7 +1235,7 @@ v3/docs/
 
 | Document                      | Priority | Description                            |
 | ----------------------------- | -------- | -------------------------------------- |
-| `providers/PACKER.md`         | **P0**   | Main Packer provider guide             |
+| `providers/VM.md`         | **P0**   | Main Packer provider guide             |
 | `providers/AWS-PACKER.md`     | **P1**   | AWS-specific setup and usage           |
 | `providers/AZURE-PACKER.md`   | **P1**   | Azure-specific setup and usage         |
 | `providers/GCP-PACKER.md`     | **P1**   | GCP-specific setup and usage           |
@@ -1288,7 +1288,7 @@ These provide excellent technical detail but need to be translated into user doc
    - Fix workflow_run trigger name: `"Build Sindri VM Images"` → `"v3: Build Sindri VM Images"`
    - Verify InSpec profile path exists: `v3/test/integration/sindri/`
 
-4. **Create providers/PACKER.md**
+4. **Create providers/VM.md**
    - Follow pattern of DOCKER.md, FLY.md
    - Include quick start, prerequisites, configuration, examples
    - Estimated: 400-500 lines
@@ -1324,7 +1324,7 @@ These provide excellent technical detail but need to be translated into user doc
    - Credential configuration issues
    - Cloud-specific debugging
 
-8. **Create PACKER_SECURITY.md**
+8. **Create VM_SECURITY.md**
    - CIS hardening process
    - OpenSCAP scanning workflow
    - Image security best practices
