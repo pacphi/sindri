@@ -254,6 +254,9 @@ pub enum ExtensionCommands {
 
     /// Rollback to previous version
     Rollback(ExtensionRollbackArgs),
+
+    /// Update support files (common.sh, compatibility-matrix.yaml, extension-source.yaml)
+    UpdateSupportFiles(UpdateSupportFilesArgs),
 }
 
 #[derive(Args, Debug)]
@@ -389,6 +392,21 @@ pub struct ExtensionRollbackArgs {
     /// Skip confirmation prompt
     #[arg(short = 'y', long)]
     pub yes: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct UpdateSupportFilesArgs {
+    /// Force update even if version matches
+    #[arg(short, long)]
+    pub force: bool,
+
+    /// Use bundled files instead of fetching from GitHub
+    #[arg(short, long)]
+    pub bundled: bool,
+
+    /// Suppress output (for scripts/automation)
+    #[arg(short, long)]
+    pub quiet: bool,
 }
 
 // Upgrade command

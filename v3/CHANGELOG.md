@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.18
@@ -33,6 +34,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -48,8 +50,6 @@ sudo mv sindri /usr/local/bin/
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v3.0.0-alpha.17...v3.0.0-alpha.18
 
-
-
 ## [3.0.0-alpha.17] - 2026-02-05
 
 ### :bug: Bug Fixes
@@ -64,6 +64,7 @@ sudo mv sindri /usr/local/bin/
 ### Installation
 
 #### Docker Image
+
 ```bash
 # Pull the Docker image
 docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.17
@@ -76,6 +77,7 @@ docker run -d --name sindri \
 ```
 
 #### CLI Binary
+
 ```bash
 # Download and install from release assets
 # Linux (x86_64)
@@ -90,8 +92,6 @@ sudo mv sindri /usr/local/bin/
 ```
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v3.0.0-alpha.16...v3.0.0-alpha.17
-
-
 
 ## [3.0.0-alpha.16] - 2026-02-04
 

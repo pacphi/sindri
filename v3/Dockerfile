@@ -236,8 +236,6 @@ bash /tmp/scripts/install-nerd-fonts.sh
 bash /tmp/scripts/install-starship.sh
 bash /tmp/scripts/setup-motd.sh
 mkdir -p /etc/profile.d
-cp /tmp/scripts/show-motd.sh /etc/profile.d/00-show-motd.sh
-chmod +x /etc/profile.d/00-show-motd.sh
 cp /tmp/scripts/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh
 chmod +x /etc/profile.d/sindri-extension-status.sh
 rm -rf /tmp/scripts
@@ -273,12 +271,19 @@ RUN sindri --version
 # Set extension home to the volume-mounted path (absolute, not ${HOME} which varies)
 ENV SINDRI_EXT_HOME=/alt/home/developer/.sindri/extensions
 
-# Bundle compatibility matrix and extension source config for extension version resolution
-# Located at SINDRI_EXT_HOME/.. so profile installer can find it
-RUN mkdir -p /alt/home/developer/.sindri/extensions
-COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/compatibility-matrix.yaml /alt/home/developer/.sindri/compatibility-matrix.yaml
-COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/extension-source.yaml /alt/home/developer/.sindri/extension-source.yaml
-COPY --chown=${DEVELOPER_USER}:${DEVELOPER_USER} v3/common.sh /alt/home/developer/.sindri/extensions/common.sh
+# Store Sindri support files outside volume mount (/docker/config/sindri)
+# When /alt/home/developer is volume-mounted (Fly.io, K8s, Docker volumes),
+# files copied here during build are hidden by the mount. Store in /docker/config/sindri
+# for entrypoint.sh to copy to the volume on first boot, or for CLI to fetch from GitHub.
+#
+# This enables:
+# 1. First-boot initialization from bundled files (offline fallback)
+# 2. Runtime updates from GitHub (zero-downtime upgrades)
+# 3. Version-matched support files (automatically updated when CLI version changes)
+RUN mkdir -p /docker/config/sindri
+COPY v3/compatibility-matrix.yaml /docker/config/sindri/compatibility-matrix.yaml
+COPY v3/extension-source.yaml /docker/config/sindri/extension-source.yaml
+COPY v3/common.sh /docker/config/sindri/common.sh
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
