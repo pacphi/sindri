@@ -30,7 +30,7 @@ configure:
 validate:
   commands:
     - name: compahook
-      args: ["status"]
+      versionFlag: status
       expectedPattern: "compahook: installed"
       description: "Verify compahook installation"
 
