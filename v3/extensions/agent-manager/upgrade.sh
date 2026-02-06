@@ -29,11 +29,6 @@ if ! command -v curl >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v jq >/dev/null 2>&1; then
-    print_error "jq is required but not installed"
-    exit 1
-fi
-
 # Get latest release using standardized GitHub release version detection
 # Uses gh CLI with curl fallback for reliability
 # Note: agent-manager uses prereleases, so we pass true for include_prereleases

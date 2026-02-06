@@ -25,12 +25,6 @@ if ! command -v curl >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v jq >/dev/null 2>&1; then
-    print_error "jq is required but not installed"
-    print_status "Install with: sudo apt-get install jq"
-    exit 1
-fi
-
 # Get latest release using standardized GitHub release version detection
 # Uses gh CLI with curl fallback for reliability
 # Note: agent-manager uses prereleases, so we pass true for include_prereleases
@@ -38,8 +32,8 @@ print_status "Fetching latest release (including prereleases)..."
 tag_name=$(get_github_release_version "${GITHUB_REPO}" true true)
 
 if [[ -z "$tag_name" ]]; then
-    print_warning "Could not fetch latest release, using fallback v0.1.0"
-    tag_name="v0.1.0"
+    print_warning "Could not fetch latest release, using fallback v1.0.0"
+    tag_name="v1.0.0"
 fi
 
 print_status "Latest release: $tag_name"

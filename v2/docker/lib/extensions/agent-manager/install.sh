@@ -38,8 +38,8 @@ print_status "Fetching latest release (including prereleases)..."
 tag_name=$(get_github_release_version "${GITHUB_REPO}" true true)
 
 if [[ -z "$tag_name" ]]; then
-    print_warning "Could not fetch latest release, using fallback v0.1.0"
-    tag_name="v0.1.0"
+    print_warning "Could not fetch latest release, using fallback v1.0.0"
+    tag_name="v1.0.0"
 fi
 
 print_status "Latest release: $tag_name"

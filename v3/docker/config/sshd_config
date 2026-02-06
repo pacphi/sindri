@@ -22,6 +22,9 @@ ChallengeResponseAuthentication no
 # Port configuration - use 2222 internally
 Port 2222
 
+# MOTD is displayed by /etc/profile.d/00-show-motd.sh on login shell startup
+PrintMotd no
+
 # ============================================================================
 # Connection Management
 # ============================================================================

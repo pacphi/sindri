@@ -98,16 +98,23 @@ retry_command() {
 }
 
 # Get latest GitHub release version
-# Usage: get_github_release_version <owner/repo> [include_v_prefix]
+# Usage: get_github_release_version <owner/repo> [include_v_prefix] [include_prereleases]
 # Returns: version string (e.g., "1.2.3" or "v1.2.3" if include_v_prefix=true)
+# When include_prereleases=true, returns the most recent release including prereleases
 get_github_release_version() {
     local repo="$1"
     local include_v="${2:-false}"
+    local include_prereleases="${3:-false}"
     local version=""
 
     # Method 1: gh CLI (preferred)
     if command_exists gh; then
-        version=$(gh release view --repo "$repo" --json tagName --jq '.tagName' 2>/dev/null || echo "")
+        if [[ "$include_prereleases" == "true" ]]; then
+            # List all releases (including prereleases) and take the first (most recent)
+            version=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+        else
+            version=$(gh release view --repo "$repo" --json tagName --jq '.tagName' 2>/dev/null || echo "")
+        fi
     fi
 
     # Method 2: curl with GitHub API (fallback)
@@ -116,8 +123,14 @@ get_github_release_version() {
         if [[ -n "${GITHUB_TOKEN:-}" ]]; then
             curl_args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
         fi
-        version=$(curl "${curl_args[@]}" "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
-            grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 || echo "")
+        if [[ "$include_prereleases" == "true" ]]; then
+            # Use /releases endpoint (includes prereleases), take the first result
+            version=$(curl "${curl_args[@]}" "https://api.github.com/repos/${repo}/releases?per_page=1" 2>/dev/null | \
+                grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 || echo "")
+        else
+            version=$(curl "${curl_args[@]}" "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+                grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4 || echo "")
+        fi
     fi
 
     # Strip 'v' prefix if not wanted

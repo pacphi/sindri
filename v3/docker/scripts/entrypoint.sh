@@ -77,36 +77,27 @@ setup_home_directory() {
 
         # Copy Sindri support files from image to volume-mounted home
         # These files are needed by extension install scripts and the CLI
-        # Priority: Try GitHub fetch first (get latest), fall back to bundled files
-        if command -v sindri >/dev/null 2>&1; then
-            print_status "Initializing Sindri support files..."
-
-            # Try updating from GitHub (gets version-matched files)
-            # This runs async in background to not block container startup
-            # Falls back to bundled files if GitHub is unavailable
-            (
-                su - "${DEVELOPER_USER}" -c "sindri extension update-support-files --quiet" 2>&1 | \
-                    tee -a "${SINDRI_HOME}/logs/support-files-init.log" || \
-                    {
-                        # Fallback: Copy bundled files if sindri command fails
-                        print_warning "GitHub fetch failed, using bundled support files"
-                        if [[ -d "/docker/config/sindri" ]]; then
-                            cp -f /docker/config/sindri/compatibility-matrix.yaml "${SINDRI_HOME}/" 2>/dev/null || true
-                            cp -f /docker/config/sindri/extension-source.yaml "${SINDRI_HOME}/" 2>/dev/null || true
-                            cp -f /docker/config/sindri/common.sh "${SINDRI_HOME}/extensions/" 2>/dev/null || true
-                            chown -R "${DEVELOPER_USER}:${DEVELOPER_USER}" "${SINDRI_HOME}"
-                            print_success "Sindri support files initialized from bundled sources"
-                        fi
-                    }
-            ) &
-        elif [[ -d "/docker/config/sindri" ]]; then
-            # CLI not available (shouldn't happen), use bundled files directly
+        #
+        # CRITICAL: Copy bundled files synchronously first to prevent race condition.
+        # Extension install scripts source common.sh at startup - if it's missing,
+        # they fail silently with exit code 1 (set -euo pipefail).
+        # The async GitHub fetch below may upgrade to newer versions afterward.
+        if [[ -d "/docker/config/sindri" ]]; then
             print_status "Copying bundled Sindri support files..."
             cp -f /docker/config/sindri/compatibility-matrix.yaml "${SINDRI_HOME}/" 2>/dev/null || true
             cp -f /docker/config/sindri/extension-source.yaml "${SINDRI_HOME}/" 2>/dev/null || true
             cp -f /docker/config/sindri/common.sh "${SINDRI_HOME}/extensions/" 2>/dev/null || true
             chown -R "${DEVELOPER_USER}:${DEVELOPER_USER}" "${SINDRI_HOME}"
-            print_success "Sindri support files initialized"
+            print_success "Sindri support files initialized from bundled sources"
+        fi
+
+        # Optionally upgrade support files from GitHub in background (non-blocking)
+        # This fetches version-matched files that may be newer than the bundled ones
+        if command -v sindri >/dev/null 2>&1; then
+            (
+                su - "${DEVELOPER_USER}" -c "sindri extension update-support-files --quiet" 2>&1 | \
+                    tee -a "${SINDRI_HOME}/logs/support-files-init.log" || true
+            ) &
         fi
 
         # Create temp directory on persistent volume (Claude Code plugin compatibility)

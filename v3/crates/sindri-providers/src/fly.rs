@@ -828,9 +828,7 @@ impl Provider for FlyProvider {
             }
         }
 
-        // Connect via flyctl ssh console
-        // Note: Don't cat /etc/motd here - the login shell displays it automatically.
-        // Explicitly displaying it causes a double banner.
+        // Connect via flyctl ssh console (login shell displays MOTD via profile.d)
         let status = Command::new("flyctl")
             .args([
                 "ssh",

@@ -236,6 +236,8 @@ bash /tmp/scripts/install-nerd-fonts.sh
 bash /tmp/scripts/install-starship.sh
 bash /tmp/scripts/setup-motd.sh
 mkdir -p /etc/profile.d
+cp /tmp/scripts/show-motd.sh /etc/profile.d/00-show-motd.sh
+chmod +x /etc/profile.d/00-show-motd.sh
 cp /tmp/scripts/check-extension-status.sh /etc/profile.d/sindri-extension-status.sh
 chmod +x /etc/profile.d/sindri-extension-status.sh
 rm -rf /tmp/scripts
