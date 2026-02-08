@@ -15,9 +15,10 @@ metadata:
     - anthropic-dev
 
 install:
-  method: npm-global
-  npm:
-    package: "compahook@1.1.2"
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
 
 configure:
   environment:
