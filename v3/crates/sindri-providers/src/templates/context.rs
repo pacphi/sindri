@@ -160,7 +160,7 @@ impl TemplateContext {
         // SINDRI_EXT_HOME: Both Dockerfiles set this correctly via ENV directive
         // - Dockerfile.dev: /opt/sindri/extensions (bundled extensions)
         // - Dockerfile: /alt/home/developer/.sindri/extensions (runtime install)
-  
+
         if let Some(git_ref) = file
             .deployment
             .build_from_source
