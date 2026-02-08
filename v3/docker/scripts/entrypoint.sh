@@ -19,6 +19,8 @@
 #   GITHUB_TOKEN         - GitHub token for git credential helper
 #   SSH_PORT             - SSH daemon port (default: 2222)
 #   INSTALL_PROFILE      - Profile to install (no default)
+#   ADDITIONAL_EXTENSIONS - Comma-separated list of extensions to install on top of profile
+#   CUSTOM_EXTENSIONS    - Comma-separated list of extensions to install (without profile)
 #   SKIP_AUTO_INSTALL    - Set to "true" to skip automatic extension installation
 # ==============================================================================
 
@@ -335,9 +337,13 @@ GITCRED
 # ------------------------------------------------------------------------------
 # install_extensions_background - Run extension installation via sindri CLI
 # ------------------------------------------------------------------------------
-# Uses sindri CLI to install extensions based on:
-# 1. sindri.yaml config file in workspace (if present)
-# 2. INSTALL_PROFILE environment variable (if set)
+# Uses sindri CLI to install extensions based on priority:
+# 1. sindri.yaml config file in workspace (if present) - handles profile + additional
+# 2. INSTALL_PROFILE + ADDITIONAL_EXTENSIONS environment variables (profile-based)
+# 3. CUSTOM_EXTENSIONS environment variable (explicit list, no profile)
+#
+# Note: ADDITIONAL_EXTENSIONS only applies when using INSTALL_PROFILE, not sindri.yaml
+# (sindri.yaml already contains its own additional extensions list)
 install_extensions_background() {
     local bootstrap_marker="${SINDRI_HOME}/bootstrap-complete"
     local install_log="${SINDRI_HOME}/logs/install.log"
@@ -418,6 +424,34 @@ install_extensions_background() {
             # Priority 2: Install from INSTALL_PROFILE environment variable
             print_status "Installing profile: ${INSTALL_PROFILE}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
             sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+
+            # Install additional extensions on top of profile if specified
+            if [[ -n "${ADDITIONAL_EXTENSIONS:-}" ]]; then
+                print_status "Installing additional extensions: ${ADDITIONAL_EXTENSIONS}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                # Split comma-separated list and install each extension
+                IFS=',' read -ra EXTENSIONS <<< "$ADDITIONAL_EXTENSIONS"
+                for ext in "${EXTENSIONS[@]}"; do
+                    # Trim whitespace
+                    ext=$(echo "$ext" | xargs)
+                    if [[ -n "$ext" ]]; then
+                        print_status "Installing additional extension: ${ext}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                        sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri extension install "$ext" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                    fi
+                done
+            fi
+        elif [[ -n "${CUSTOM_EXTENSIONS:-}" ]]; then
+            # Priority 3: Install from CUSTOM_EXTENSIONS environment variable (explicit list, no profile)
+            print_status "Installing custom extensions: ${CUSTOM_EXTENSIONS}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            # Split comma-separated list and install each extension
+            IFS=',' read -ra EXTENSIONS <<< "$CUSTOM_EXTENSIONS"
+            for ext in "${EXTENSIONS[@]}"; do
+                # Trim whitespace
+                ext=$(echo "$ext" | xargs)
+                if [[ -n "$ext" ]]; then
+                    print_status "Installing extension: ${ext}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                    sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri extension install "$ext" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                fi
+            done
         else
             # No profile specified - this is a valid state
             print_status "No extensions profile configured." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null

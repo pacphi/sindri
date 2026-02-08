@@ -15,10 +15,9 @@ metadata:
     - anthropic-dev
 
 install:
-  method: mise
-  mise:
-    configFile: mise.toml
-    reshimAfterInstall: true
+  method: npm-global
+  npm:
+    package: "compahook@1.1.2"
 
 configure:
   environment:
@@ -30,8 +29,8 @@ configure:
 validate:
   commands:
     - name: compahook
-      versionFlag: status
-      expectedPattern: "compahook: installed"
+      versionFlag: stats
+      expectedPattern: "compahook"
       description: "Verify compahook installation"
 
 capabilities:

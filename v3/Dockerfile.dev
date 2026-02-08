@@ -124,6 +124,7 @@ COPY v3/Cargo.toml v3/Cargo.lock ./
 COPY v3/crates/ ./crates/
 COPY v3/embedded/ ./embedded/
 COPY v3/schemas/ ./schemas/
+COPY v3/profiles.yaml ./profiles.yaml
 
 # Build application (only source code recompiled)
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

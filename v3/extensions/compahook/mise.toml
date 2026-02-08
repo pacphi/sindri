@@ -2,7 +2,7 @@
 # Requires nodejs extension to be installed first
 
 [tools]
-"npm:compahook" = "latest"
+"npm:compahook" = "1.0.5"
 
 [settings]
 experimental = true

@@ -27,6 +27,7 @@ camino = { workspace = true }
 uuid = { workspace = true }
 tar = { workspace = true }
 flate2 = { workspace = true }
+console = { workspace = true }
 dirs = "6.0"
 sha2 = "0.10"
 shellexpand = "3.1"

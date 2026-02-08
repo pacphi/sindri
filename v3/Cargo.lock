@@ -4565,6 +4565,7 @@ dependencies = [
  "anyhow",
  "camino",
  "chrono",
+ "console 0.16.2",
  "directories",
  "dirs",
  "duct",

@@ -157,33 +157,10 @@ impl TemplateContext {
         // Build environment variables map
         let mut env_vars = HashMap::new();
 
-        // SINDRI_EXT_HOME paths:
-        // - buildFromSource: /opt/sindri/extensions (Dockerfile.dev bundles them)
-        // - Production: /alt/home/developer/.sindri/extensions (runtime install)
-        //
-        // NOTE: Both Dockerfiles now set ENV SINDRI_EXT_HOME, but we still set it
-        // here for backward compatibility with older published images.
-        let is_build_from_source = file
-            .deployment
-            .build_from_source
-            .as_ref()
-            .map(|b| b.enabled)
-            .unwrap_or(false);
-
-        if is_build_from_source {
-            env_vars.insert(
-                "SINDRI_EXT_HOME".to_string(),
-                "/opt/sindri/extensions".to_string(),
-            );
-        } else {
-            // Absolute container path (not ${HOME} which expands from HOST)
-            env_vars.insert(
-                "SINDRI_EXT_HOME".to_string(),
-                "/alt/home/developer/.sindri/extensions".to_string(),
-            );
-        }
-
-        // Keep SINDRI_SOURCE_REF for debugging purposes if building from source
+        // SINDRI_EXT_HOME: Both Dockerfiles set this correctly via ENV directive
+        // - Dockerfile.dev: /opt/sindri/extensions (bundled extensions)
+        // - Dockerfile: /alt/home/developer/.sindri/extensions (runtime install)
+  
         if let Some(git_ref) = file
             .deployment
             .build_from_source

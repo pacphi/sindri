@@ -306,7 +306,8 @@ impl ExtensionExecutor {
                             '\n' => {
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    debug!("mise: {}", line);
+                                    let clean_line = console::strip_ansi_codes(line);
+                                    debug!("mise: {}", clean_line);
                                 }
                                 line_buffer.clear();
                             }
@@ -341,7 +342,8 @@ impl ExtensionExecutor {
                             '\n' => {
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    debug!("mise: {}", line);
+                                    let clean_line = console::strip_ansi_codes(line);
+                                    debug!("mise: {}", clean_line);
                                 }
                                 line_buffer.clear();
                             }
@@ -662,10 +664,11 @@ impl ExtensionExecutor {
                     for ch in chunk.chars() {
                         match ch {
                             '\n' => {
-                                // Complete line - log it
+                                // Complete line - log it with ANSI codes stripped
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    info!("script: {}", line);
+                                    let clean_line = console::strip_ansi_codes(line);
+                                    info!("script: {}", clean_line);
                                 }
                                 line_buffer.clear();
                             }
@@ -680,10 +683,11 @@ impl ExtensionExecutor {
                     }
                 }
 
-                // Flush any remaining output
+                // Flush any remaining output with ANSI codes stripped
                 let line = line_buffer.trim();
                 if !line.is_empty() {
-                    info!("script: {}", line);
+                    let clean_line = console::strip_ansi_codes(line);
+                    info!("script: {}", clean_line);
                 }
             });
         }
@@ -706,10 +710,11 @@ impl ExtensionExecutor {
                     for ch in chunk.chars() {
                         match ch {
                             '\n' => {
-                                // Complete line - log it
+                                // Complete line - log it with ANSI codes stripped
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    debug!("script: {}", line);
+                                    let clean_line = console::strip_ansi_codes(line);
+                                    debug!("script: {}", clean_line);
                                 }
                                 line_buffer.clear();
                             }
@@ -724,10 +729,11 @@ impl ExtensionExecutor {
                     }
                 }
 
-                // Flush any remaining output
+                // Flush any remaining output with ANSI codes stripped
                 let line = line_buffer.trim();
                 if !line.is_empty() {
-                    debug!("script: {}", line);
+                    let clean_line = console::strip_ansi_codes(line);
+                    debug!("script: {}", clean_line);
                 }
             });
         }
@@ -884,7 +890,15 @@ impl ExtensionExecutor {
             };
 
             if !output.status.success() {
-                warn!("Validation failed: {} not found or not working", cmd.name);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                warn!(
+                    "Validation failed: {} exited with status {:?}, stdout='{}', stderr='{}'",
+                    cmd.name,
+                    output.status.code(),
+                    stdout.trim(),
+                    stderr.trim()
+                );
                 return Ok(false);
             }
 
