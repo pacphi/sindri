@@ -1225,7 +1225,7 @@ jobs:
     name: Validate Packer Templates
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
@@ -1244,7 +1244,7 @@ jobs:
     if: contains(github.event.inputs.clouds, 'aws') || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -1281,7 +1281,7 @@ jobs:
     if: contains(github.event.inputs.clouds, 'azure')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Azure Login
         uses: azure/login@v2
@@ -1320,7 +1320,7 @@ jobs:
     if: contains(github.event.inputs.clouds, 'gcp')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
@@ -1355,7 +1355,7 @@ jobs:
     if: contains(github.event.inputs.clouds, 'oci')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup OCI CLI
         uses: oracle-actions/configure-oci-cli@v1
@@ -1394,7 +1394,7 @@ jobs:
     if: contains(github.event.inputs.clouds, 'alibaba')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure Alibaba Cloud
         uses: aliyun/configure-aliyun-credentials-action@v1

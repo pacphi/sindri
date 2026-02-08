@@ -17,6 +17,10 @@ on:
         description: 'Number of k3d agent nodes'
         type: number
         default: 0
+      sindri-image:
+        description: 'Sindri container image to test'
+        type: string
+        default: 'ghcr.io/pacphi/sindri:latest'
 
     outputs:
       results:
@@ -33,7 +37,6 @@ env:
   CLUSTER_NAME: sindri-test
   REGISTRY_NAME: sindri-registry
   REGISTRY_PORT: 5050
-  SINDRI_IMAGE: ghcr.io/sindri-dev/sindri:latest
 
 jobs:
   # Setup k3d cluster with local registry
@@ -46,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install k3d
         run: |
@@ -76,8 +79,8 @@ jobs:
 
       - name: Push Sindri Image to Registry
         run: |
-          docker pull ${{ env.SINDRI_IMAGE }}
-          docker tag ${{ env.SINDRI_IMAGE }} localhost:${{ env.REGISTRY_PORT }}/sindri:latest
+          docker pull ${{ inputs.sindri-image }}
+          docker tag ${{ inputs.sindri-image }} localhost:${{ env.REGISTRY_PORT }}/sindri:latest
           docker push localhost:${{ env.REGISTRY_PORT }}/sindri:latest
 
       - name: Export Kubeconfig
@@ -105,7 +108,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install k3d
         run: |

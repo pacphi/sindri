@@ -858,7 +858,7 @@ impl ExtensionExecutor {
         );
 
         for cmd in &extension.validate.commands {
-            let args = vec![cmd.version_flag.as_str()];
+            let args: Vec<&str> = cmd.version_flag.split_whitespace().collect();
 
             debug!("Validating command: {} {}", cmd.name, cmd.version_flag);
 

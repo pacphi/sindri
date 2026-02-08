@@ -75,6 +75,12 @@ on:
         type: boolean
         default: true
 
+      sindri-image:
+        description: 'Sindri base image to use for testing (overrides provider defaults)'
+        required: false
+        type: string
+        default: ''
+
   # Allow calling from other workflows
   workflow_call:
     inputs:
@@ -99,6 +105,9 @@ on:
       filter-heavy:
         type: boolean
         default: true
+      sindri-image:
+        type: string
+        default: ''
 
   # Run on PRs that touch extensions
   pull_request:
@@ -123,7 +132,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -267,6 +276,7 @@ jobs:
     with:
       extensions: ${{ needs.generate-matrices.outputs.docker-extensions }}
       max-parallel: ${{ inputs.max-parallel || 4 }}
+      sindri-image: ${{ inputs.sindri-image }}
 
   # Fly.io provider tests
   test-fly:
@@ -281,6 +291,7 @@ jobs:
     with:
       extensions: ${{ needs.generate-matrices.outputs.fly-extensions }}
       max-parallel: ${{ inputs.max-parallel || 2 }}
+      sindri-image: ${{ inputs.sindri-image }}
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
@@ -297,6 +308,7 @@ jobs:
     with:
       extensions: ${{ needs.generate-matrices.outputs.k3d-extensions }}
       max-parallel: ${{ inputs.max-parallel || 4 }}
+      sindri-image: ${{ inputs.sindri-image }}
 
   # DevPod provider tests
   test-devpod:
@@ -311,6 +323,7 @@ jobs:
     with:
       extensions: ${{ needs.generate-matrices.outputs.devpod-extensions }}
       max-parallel: ${{ inputs.max-parallel || 2 }}
+      sindri-image: ${{ inputs.sindri-image }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

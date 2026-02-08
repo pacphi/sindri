@@ -1,0 +1,214 @@
+# V3 Pre-Release Extension Testing
+# Comprehensive extension validation using CI release candidate images before tagging
+name: "v3: Pre-Release Tests"
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit-sha:
+        description: 'Commit SHA to test (leave empty for latest main)'
+        required: false
+        type: string
+        default: ''
+
+      providers:
+        description: 'Providers to test (comma-separated)'
+        required: false
+        type: string
+        default: 'docker,k3d,fly'
+
+      filter-heavy:
+        description: 'Exclude heavy extensions (>4GB memory, >10min install)'
+        required: false
+        type: boolean
+        default: false  # Pre-release: test everything by default
+
+      max-parallel:
+        description: 'Maximum parallel jobs per provider'
+        required: false
+        type: number
+        default: 2  # Conservative for pre-release
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Resolve commit SHA and find corresponding CI release candidate image
+  resolve-ci-image:
+    name: Resolve CI Release Candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      ci_image: ${{ steps.find.outputs.ci_image }}
+      image_source: ${{ steps.find.outputs.image_source }}
+      commit_sha: ${{ steps.resolve-sha.outputs.sha }}
+      short_sha: ${{ steps.resolve-sha.outputs.short_sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve commit SHA
+        id: resolve-sha
+        run: |
+          if [[ -n "${{ inputs.commit-sha }}" ]]; then
+            SHA="${{ inputs.commit-sha }}"
+            echo "Using provided SHA: $SHA"
+          else
+            SHA=$(git rev-parse origin/main)
+            echo "Using latest main SHA: $SHA"
+          fi
+
+          SHORT_SHA=$(echo "$SHA" | cut -c1-7)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find CI image
+        id: find
+        run: |
+          SHA="${{ steps.resolve-sha.outputs.sha }}"
+          CI_PASSED="ghcr.io/${{ github.repository }}:ci-passed-${SHA}"
+          CI_TAG="ghcr.io/${{ github.repository }}:ci-${SHA}"
+
+          echo "Looking for CI images for commit: $SHA"
+          echo "  Preferred: $CI_PASSED (tested)"
+          echo "  Fallback:  $CI_TAG (untested)"
+          echo ""
+
+          if docker pull "$CI_PASSED" 2>/dev/null; then
+            echo "ci_image=$CI_PASSED" >> $GITHUB_OUTPUT
+            echo "image_source=ci-passed" >> $GITHUB_OUTPUT
+            echo "✅ Found CI release candidate: $CI_PASSED (passed tests)"
+            echo "::notice title=Release Candidate::Using tested CI image as release candidate: $CI_PASSED"
+          elif docker pull "$CI_TAG" 2>/dev/null; then
+            echo "ci_image=$CI_TAG" >> $GITHUB_OUTPUT
+            echo "image_source=ci-tag" >> $GITHUB_OUTPUT
+            echo "⚠️  Using untested CI image: $CI_TAG (didn't pass all tests)"
+            echo "::warning title=Untested Candidate::Using CI image that didn't pass full test suite"
+          else
+            echo "::error title=No CI Image::No CI release candidate found for commit $SHA"
+            echo ""
+            echo "Possible causes:"
+            echo "  1. CI workflow hasn't run on this commit yet"
+            echo "  2. CI workflow is still running"
+            echo "  3. CI workflow failed to build image"
+            echo "  4. Image was deleted (retention policy)"
+            echo ""
+            echo "Solutions:"
+            echo "  1. Wait for CI to complete"
+            echo "  2. Run CI workflow manually on this commit"
+            echo "  3. Provide a different commit SHA"
+            exit 1
+          fi
+
+  # Test individual extensions using the CI image
+  test-extensions:
+    name: Test Individual Extensions
+    needs: resolve-ci-image
+    uses: ./.github/workflows/v3-extension-test.yml
+    with:
+      # CRITICAL: Test ALL extensions individually (not profiles)
+      selection-mode: all
+
+      # Use CI image as base for all provider tests
+      # This will be passed to provider workflows to override the default image
+      sindri-image: ${{ needs.resolve-ci-image.outputs.ci_image }}
+
+      providers: ${{ inputs.providers }}
+      max-parallel: ${{ inputs.max-parallel }}
+      filter-heavy: ${{ inputs.filter-heavy }}
+    secrets: inherit
+
+  # Generate comprehensive test report
+  summary:
+    name: Pre-Release Summary
+    needs: [resolve-ci-image, test-extensions]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# V3 Pre-Release Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Test Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit SHA** | \`${{ needs.resolve-ci-image.outputs.commit_sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Short SHA** | \`${{ needs.resolve-ci-image.outputs.short_sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Release Candidate** | \`${{ needs.resolve-ci-image.outputs.ci_image }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Candidate Status** | ${{ needs.resolve-ci-image.outputs.image_source == 'ci-passed' && '✅ Passed CI Tests' || '⚠️ Untested' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Providers** | ${{ inputs.providers }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Filter Heavy** | ${{ inputs.filter-heavy }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Max Parallel** | ${{ inputs.max-parallel }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.test-extensions.result }}" == "success" ]]; then
+            echo "### ✅ All Extension Tests Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All individual extensions passed testing across selected providers." >> $GITHUB_STEP_SUMMARY
+            echo "This commit is ready for release tagging." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Extension Tests Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Some extensions failed testing. Review provider-specific results." >> $GITHUB_STEP_SUMMARY
+            echo "**Do NOT proceed with release until failures are resolved.**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.test-extensions.result }}" == "success" ]]; then
+            echo "### Ready to Release" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "To create a release:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "# For stable release:" >> $GITHUB_STEP_SUMMARY
+            echo "git tag v3.0.0" >> $GITHUB_STEP_SUMMARY
+            echo "git push origin v3.0.0" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# For prerelease:" >> $GITHUB_STEP_SUMMARY
+            echo "git tag v3.1.0-beta.1" >> $GITHUB_STEP_SUMMARY
+            echo "git push origin v3.1.0-beta.1" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The release workflow will **promote** this release candidate:" >> $GITHUB_STEP_SUMMARY
+            echo "1. Pull candidate: \`${{ needs.resolve-ci-image.outputs.ci_image }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "2. Retag with version tags (e.g., v3.0.0, v3-latest)" >> $GITHUB_STEP_SUMMARY
+            echo "3. Sign with Cosign (keyless)" >> $GITHUB_STEP_SUMMARY
+            echo "4. Generate and attach SBOM" >> $GITHUB_STEP_SUMMARY
+            echo "5. Create GitHub release with binaries" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Fix Failures First" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "1. Review test logs for failed extensions" >> $GITHUB_STEP_SUMMARY
+            echo "2. Fix issues in codebase" >> $GITHUB_STEP_SUMMARY
+            echo "3. Commit and push fixes" >> $GITHUB_STEP_SUMMARY
+            echo "4. Wait for CI to build new image" >> $GITHUB_STEP_SUMMARY
+            echo "5. Re-run pre-release tests" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_Pre-release testing validates CI release candidates before promotion._" >> $GITHUB_STEP_SUMMARY
+          echo "_The release workflow promotes the candidate by retagging (no rebuild)._" >> $GITHUB_STEP_SUMMARY

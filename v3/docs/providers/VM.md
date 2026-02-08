@@ -622,7 +622,7 @@ jobs:
         cloud: [aws, azure, gcp]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main

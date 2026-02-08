@@ -21,6 +21,10 @@ on:
         description: 'Default VM size'
         type: string
         default: 'shared-cpu-2x'
+      sindri-image:
+        description: 'Sindri container image to test'
+        type: string
+        default: 'ghcr.io/pacphi/sindri:latest'
 
     outputs:
       results:
@@ -54,7 +58,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
@@ -94,7 +98,7 @@ jobs:
           primary_region = "${{ inputs.fly-region }}"
 
           [build]
-            image = "ghcr.io/sindri-dev/sindri:latest"
+            image = "${{ inputs.sindri-image }}"
 
           [[vm]]
             cpu_kind = "shared"

@@ -951,7 +951,7 @@ jobs:
       E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install E2B CLI
         run: npm install -g @e2b/cli

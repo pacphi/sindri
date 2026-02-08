@@ -17,6 +17,10 @@ on:
         description: 'DevPod cloud provider (docker, aws, gcp, azure)'
         type: string
         default: 'docker'
+      sindri-image:
+        description: 'Sindri container image to test'
+        type: string
+        default: 'ghcr.io/pacphi/sindri:latest'
 
     outputs:
       results:
@@ -59,7 +63,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install DevPod
         run: |
@@ -124,7 +128,7 @@ jobs:
           cat > .devcontainer/devcontainer.json << 'EOF'
           {
             "name": "Sindri Test",
-            "image": "ghcr.io/sindri-dev/sindri:latest",
+            "image": "${{ inputs.sindri-image }}",
             "features": {},
             "postCreateCommand": "sindri --version",
             "remoteUser": "developer"
