@@ -181,7 +181,7 @@ validate:
   "extensions": {
     "test-minimal": {
       "version": "1.0.0",
-      "installed_at": "2026-01-26T00:00:00Z",
+      "status_datetime": "2026-01-26T00:00:00Z",
       "method": "script"
     }
   }

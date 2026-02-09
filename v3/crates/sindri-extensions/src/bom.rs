@@ -65,8 +65,9 @@ pub struct ExtensionBom {
     /// Installation method
     pub install_method: String,
 
-    /// Installed at timestamp
-    pub installed_at: Option<DateTime<Utc>>,
+    /// Status datetime - when extension entered current state
+    #[serde(alias = "installed_at")] // For backward compatibility
+    pub status_datetime: Option<DateTime<Utc>>,
 
     /// Components provided by this extension
     pub components: Vec<Component>,
@@ -188,7 +189,7 @@ impl BomGenerator {
                 version: installed.version.clone(),
                 category: format!("{:?}", ext.metadata.category).to_lowercase(),
                 install_method: format!("{:?}", ext.install.method).to_lowercase(),
-                installed_at: Some(installed.installed_at),
+                status_datetime: Some(installed.status_datetime),
                 components,
                 dependencies: entry.dependencies.clone(),
             });
@@ -590,7 +591,7 @@ mod tests {
             version: "1.0.0".to_string(),
             category: "language".to_string(),
             install_method: "mise".to_string(),
-            installed_at: None,
+            status_datetime: None,
             components: vec![Component {
                 name: "python".to_string(),
                 version: "3.13.0".to_string(),

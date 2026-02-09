@@ -392,7 +392,7 @@ sindri extension install --from-config sindri.yaml
 
 #### extension list
 
-List available extensions.
+List extensions. By default, shows available (not installed) extensions. Use `--installed` to show installed extensions.
 
 **Synopsis:**
 
@@ -402,23 +402,44 @@ sindri extension list [OPTIONS]
 
 **Options:**
 
-| Option                  | Short | Description                    |
-| ----------------------- | ----- | ------------------------------ |
-| `--category <CATEGORY>` | `-c`  | Filter by category             |
-| `--installed`           | -     | Show only installed extensions |
-| `--json`                | -     | Output as JSON                 |
+| Option                  | Short | Description                                 |
+| ----------------------- | ----- | ------------------------------------------- |
+| `--category <CATEGORY>` | `-c`  | Filter by category                          |
+| `--installed`           | -     | Show only installed extensions              |
+| `--all`                 | -     | Show all extensions (installed + available) |
+| `--json`                | -     | Output as JSON                              |
+
+**Behavior:**
+
+- **Default** (no flags): Shows only **available** extensions that are NOT already installed
+  - Columns: name, category, available version, software packaged, description
+  - "available version" shows the latest compatible version for your CLI (e.g., "1.1.1"), not just "latest"
+  - "software packaged" shows what the extension will install (e.g., "python (3.13), pip (26.0.1), uv (0.9)")
+
+- **With `--installed`**: Shows only **installed** extensions
+  - Columns: name, category, installed version, software installed, description, install date
+  - "software installed" shows the actual software components that were installed
+
+- **With `--all`**: Shows **all extensions** (both installed and available)
+  - Columns: name, category, version, software, status, install date, description
+  - "status" shows "installed" or "available"
+  - Installed extensions shown first, then available
+  - Helpful for seeing your complete extension landscape at a glance
 
 **Examples:**
 
 ```bash
-# List all extensions
+# List available (not installed) extensions
 sindri extension list
 
-# List installed only
+# List installed extensions with install dates
 sindri extension list --installed
 
-# List by category
+# List available extensions by category
 sindri extension list --category languages
+
+# List installed extensions by category
+sindri extension list --installed --category languages
 ```
 
 #### extension validate

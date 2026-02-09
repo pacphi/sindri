@@ -1269,7 +1269,7 @@ impl ExtensionDistributor {
             name.to_string(),
             ManifestEntry {
                 version: version.to_string(),
-                installed_at: Utc::now(),
+                status_datetime: Utc::now(),
                 source: format!("github:{}", self.source_config.repo_identifier()),
                 previous_versions: previous,
                 protected: false,
@@ -1340,8 +1340,9 @@ pub struct ManifestEntry {
     /// Installed version
     pub version: String,
 
-    /// Installation timestamp
-    pub installed_at: DateTime<Utc>,
+    /// Status datetime - timestamp when extension entered current state
+    #[serde(alias = "installed_at")] // For backward compatibility
+    pub status_datetime: DateTime<Utc>,
 
     /// Source (e.g., "github:pacphi/sindri")
     pub source: String,
@@ -1443,7 +1444,7 @@ mod tests {
 
         let entry = ManifestEntry {
             version: "1.0.0".to_string(),
-            installed_at: Utc::now(),
+            status_datetime: Utc::now(),
             source: "github:pacphi/sindri".to_string(),
             previous_versions: vec![],
             protected: false,
@@ -1458,7 +1459,7 @@ mod tests {
         // Verify that state defaults to Installed when not specified (backward compatibility)
         let yaml = r#"
 version: "1.0.0"
-installed_at: "2024-01-01T00:00:00Z"
+status_datetime: "2024-01-01T00:00:00Z"
 source: "github:pacphi/sindri"
 "#;
 
@@ -1482,7 +1483,7 @@ source: "github:pacphi/sindri"
         for state in states {
             let entry = ManifestEntry {
                 version: "1.0.0".to_string(),
-                installed_at: Utc::now(),
+                status_datetime: Utc::now(),
                 source: "github:pacphi/sindri".to_string(),
                 previous_versions: vec![],
                 protected: false,

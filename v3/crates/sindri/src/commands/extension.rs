@@ -16,7 +16,10 @@ use anyhow::{anyhow, Context, Result};
 use camino::Utf8PathBuf;
 use semver::Version;
 use serde_json;
-use tabled::{settings::Style, Table, Tabled};
+use tabled::{
+    settings::{object::Columns, Modify, Style, Width},
+    Table, Tabled,
+};
 
 use crate::cli::{
     ExtensionCheckArgs, ExtensionCommands, ExtensionDocsArgs, ExtensionInfoArgs,
@@ -300,34 +303,92 @@ async fn install_from_profile(profile_name: String, yes: bool) -> Result<()> {
 // List Command
 // ============================================================================
 
+/// Extract software components from extension BOM
+fn extract_software_list(extension: &sindri_core::types::Extension) -> String {
+    if let Some(bom) = &extension.bom {
+        let software_items: Vec<String> = bom
+            .tools
+            .iter()
+            .map(|tool| {
+                if let Some(version) = &tool.version {
+                    format!("{} ({})", tool.name, version)
+                } else {
+                    tool.name.clone()
+                }
+            })
+            .collect();
+
+        if software_items.is_empty() {
+            "-".to_string()
+        } else {
+            software_items.join(", ")
+        }
+    } else {
+        "-".to_string()
+    }
+}
+
+/// Row for available (not installed) extensions
 #[derive(Tabled, serde::Serialize, serde::Deserialize)]
-struct ExtensionRow {
+struct AvailableExtensionRow {
+    name: String,
+    category: String,
+    #[tabled(rename = "available version")]
+    available_version: String,
+    #[tabled(rename = "software packaged")]
+    software_packaged: String,
+    description: String,
+}
+
+/// Row for installed extensions
+#[derive(Tabled, serde::Serialize, serde::Deserialize)]
+struct InstalledExtensionRow {
+    name: String,
+    category: String,
+    #[tabled(rename = "installed version")]
+    installed_version: String,
+    #[tabled(rename = "installed software")]
+    installed_software: String,
+    description: String,
+    #[tabled(rename = "install date")]
+    install_date: String,
+}
+
+/// Row for all extensions (unified view with status)
+#[derive(Tabled, serde::Serialize, serde::Deserialize)]
+struct AllExtensionsRow {
     name: String,
     category: String,
     version: String,
-    installed: String,
+    software: String,
+    status: String,
+    #[tabled(rename = "install date")]
+    install_date: String,
     description: String,
 }
 
 /// List available extensions with optional filtering
 ///
 /// Supports:
-/// - List all: `sindri extension list`
+/// - List available (not installed): `sindri extension list`
 /// - Filter by category: `sindri extension list --category language`
 /// - Show installed only: `sindri extension list --installed`
+/// - Show all extensions: `sindri extension list --all`
 /// - JSON output: `sindri extension list --json`
 async fn list(args: ExtensionListArgs) -> Result<()> {
     output::info(&format!(
-        "Listing extensions{}{}",
+        "Listing {}extensions{}",
+        if args.all {
+            "all "
+        } else if args.installed {
+            "installed "
+        } else {
+            "available "
+        },
         args.category
             .as_ref()
             .map(|c| format!(" (category: {})", c))
-            .unwrap_or_default(),
-        if args.installed {
-            " (installed only)"
-        } else {
-            ""
-        }
+            .unwrap_or_default()
     ));
 
     // Get home directory for cache and manifest
@@ -336,58 +397,260 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
     let manifest_path = home.join(".sindri").join("manifest.yaml");
 
     // Load registry from GitHub with caching
-    let registry = sindri_extensions::ExtensionRegistry::load_from_github(cache_dir, "main")
-        .await
-        .context("Failed to load extension registry")?;
+    let registry =
+        sindri_extensions::ExtensionRegistry::load_from_github(cache_dir.clone(), "main")
+            .await
+            .context("Failed to load extension registry")?;
 
     // Load manifest to get installed versions
     let manifest = sindri_extensions::ManifestManager::new(manifest_path)
         .context("Failed to load manifest")?;
 
-    // Build extension rows
-    let mut extensions: Vec<ExtensionRow> = Vec::new();
+    // Initialize source resolver for loading extension definitions
+    let source_resolver = sindri_extensions::ExtensionSourceResolver::from_env()
+        .context("Failed to initialize extension source resolver")?;
 
-    for (name, entry) in registry.entries.iter() {
-        // Filter by category if specified
-        if let Some(category) = &args.category {
-            if &entry.category != category {
-                continue;
+    if args.all {
+        // Show all extensions (both installed and available)
+        let mut all_extensions: Vec<AllExtensionsRow> = Vec::new();
+
+        // Initialize distributor for version resolution
+        let extensions_dir = get_extensions_dir()?;
+        let cli_version = get_cli_version()?;
+        let distributor = sindri_extensions::ExtensionDistributor::new(
+            cache_dir.clone(),
+            extensions_dir,
+            cli_version,
+        )
+        .context("Failed to initialize extension distributor")?;
+
+        // Fetch compatibility matrix
+        let matrix = distributor
+            .get_compatibility_matrix()
+            .await
+            .context("Failed to fetch compatibility matrix")?;
+
+        for (name, entry) in registry.entries.iter() {
+            // Filter by category if specified
+            if let Some(category) = &args.category {
+                if &entry.category != category {
+                    continue;
+                }
+            }
+
+            // Try to load extension definition from local sources
+            let (software_list, local_version) = match source_resolver.get_extension_local(name) {
+                Ok(extension) => (
+                    extract_software_list(&extension),
+                    Some(extension.metadata.version.clone()),
+                ),
+                Err(_) => ("-".to_string(), None),
+            };
+
+            // Check if installed
+            if let Some(installed_ext) = manifest.get_installed(name) {
+                // Extension is installed
+                all_extensions.push(AllExtensionsRow {
+                    name: name.clone(),
+                    category: entry.category.clone(),
+                    version: installed_ext.version.clone(),
+                    software: software_list,
+                    status: "installed".to_string(),
+                    install_date: installed_ext.status_datetime.format("%Y-%m-%d").to_string(),
+                    description: entry.description.clone(),
+                });
+            } else {
+                // Extension is available (not installed)
+                // Get the available version
+                let version = if let Some(v) = local_version {
+                    v
+                } else {
+                    match distributor.get_compatible_range(&matrix, name) {
+                        Ok(version_req) => {
+                            match distributor.find_latest_compatible(name, &version_req).await {
+                                Ok(ver) => ver.to_string(),
+                                Err(_) => "latest".to_string(),
+                            }
+                        }
+                        Err(_) => "latest".to_string(),
+                    }
+                };
+
+                all_extensions.push(AllExtensionsRow {
+                    name: name.clone(),
+                    category: entry.category.clone(),
+                    version,
+                    software: software_list,
+                    status: "available".to_string(),
+                    install_date: "-".to_string(),
+                    description: entry.description.clone(),
+                });
             }
         }
 
-        // Get installed version if available
-        let installed_version = manifest
-            .get_version(name)
-            .map(|v| v.to_string())
-            .unwrap_or_else(|| "-".to_string());
+        // Sort by status (installed first) then category then name
+        all_extensions.sort_by(|a, b| {
+            b.status
+                .cmp(&a.status)
+                .then(a.category.cmp(&b.category))
+                .then(a.name.cmp(&b.name))
+        });
 
-        // Filter by installed if requested
-        if args.installed && installed_version == "-" {
-            continue;
+        if args.json {
+            let json = serde_json::to_string_pretty(&all_extensions)
+                .context("Failed to serialize extensions to JSON")?;
+            println!("{}", json);
+        } else if all_extensions.is_empty() {
+            output::warn("No extensions found matching criteria");
+        } else {
+            let mut table = Table::new(all_extensions);
+            table.with(Style::sharp());
+
+            // Set column-specific widths with wrapping
+            table
+                .with(Modify::new(Columns::new(3..4)).with(Width::wrap(50).keep_words(true))) // software
+                .with(Modify::new(Columns::new(6..7)).with(Width::wrap(50).keep_words(true))); // description
+
+            println!("{}", table);
+        }
+    } else if args.installed {
+        // Show installed extensions only
+        let mut installed_extensions: Vec<InstalledExtensionRow> = Vec::new();
+
+        for (name, entry) in registry.entries.iter() {
+            // Filter by category if specified
+            if let Some(category) = &args.category {
+                if &entry.category != category {
+                    continue;
+                }
+            }
+
+            // Get installed info if available
+            if let Some(installed_ext) = manifest.get_installed(name) {
+                // Try to load extension definition from local sources for BOM info
+                let software_list = match source_resolver.get_extension_local(name) {
+                    Ok(extension) => extract_software_list(&extension),
+                    Err(_) => "-".to_string(),
+                };
+
+                installed_extensions.push(InstalledExtensionRow {
+                    name: name.clone(),
+                    category: entry.category.clone(),
+                    installed_version: installed_ext.version.clone(),
+                    installed_software: software_list,
+                    description: entry.description.clone(),
+                    install_date: installed_ext.status_datetime.format("%Y-%m-%d").to_string(),
+                });
+            }
         }
 
-        extensions.push(ExtensionRow {
-            name: name.clone(),
-            category: entry.category.clone(),
-            version: "latest".to_string(),
-            installed: installed_version,
-            description: entry.description.clone(),
-        });
-    }
+        // Sort by category then name
+        installed_extensions.sort_by(|a, b| a.category.cmp(&b.category).then(a.name.cmp(&b.name)));
 
-    // Sort by category then name
-    extensions.sort_by(|a, b| a.category.cmp(&b.category).then(a.name.cmp(&b.name)));
+        if args.json {
+            let json = serde_json::to_string_pretty(&installed_extensions)
+                .context("Failed to serialize extensions to JSON")?;
+            println!("{}", json);
+        } else if installed_extensions.is_empty() {
+            output::warn("No installed extensions found matching criteria");
+        } else {
+            let mut table = Table::new(installed_extensions);
+            table.with(Style::sharp());
 
-    if args.json {
-        let json = serde_json::to_string_pretty(&extensions)
-            .context("Failed to serialize extensions to JSON")?;
-        println!("{}", json);
-    } else if extensions.is_empty() {
-        output::warn("No extensions found matching criteria");
+            // Set column-specific widths with wrapping
+            table
+                .with(Modify::new(Columns::new(3..4)).with(Width::wrap(50).keep_words(true))) // installed software
+                .with(Modify::new(Columns::new(4..5)).with(Width::wrap(50).keep_words(true))); // description
+
+            println!("{}", table);
+        }
     } else {
-        let mut table = Table::new(extensions);
-        table.with(Style::sharp());
-        println!("{}", table);
+        // Show available (not installed) extensions only
+        let mut available_extensions: Vec<AvailableExtensionRow> = Vec::new();
+
+        // Initialize distributor to get compatibility info
+        let extensions_dir = get_extensions_dir()?;
+        let cli_version = get_cli_version()?;
+        let distributor = sindri_extensions::ExtensionDistributor::new(
+            cache_dir.clone(),
+            extensions_dir,
+            cli_version,
+        )
+        .context("Failed to initialize extension distributor")?;
+
+        // Fetch compatibility matrix
+        let matrix = distributor
+            .get_compatibility_matrix()
+            .await
+            .context("Failed to fetch compatibility matrix")?;
+
+        for (name, entry) in registry.entries.iter() {
+            // Filter by category if specified
+            if let Some(category) = &args.category {
+                if &entry.category != category {
+                    continue;
+                }
+            }
+
+            // Only include if NOT installed
+            if !manifest.is_installed(name) {
+                // Try to load extension definition from local sources for BOM info and version
+                let (software_list, local_version) = match source_resolver.get_extension_local(name)
+                {
+                    Ok(extension) => (
+                        extract_software_list(&extension),
+                        Some(extension.metadata.version.clone()),
+                    ),
+                    Err(_) => ("-".to_string(), None),
+                };
+
+                // Get the available version:
+                // 1. If loaded locally, use the extension's metadata.version
+                // 2. Otherwise, try to resolve from GitHub via compatibility matrix
+                let available_version = if let Some(version) = local_version {
+                    version
+                } else {
+                    match distributor.get_compatible_range(&matrix, name) {
+                        Ok(version_req) => {
+                            match distributor.find_latest_compatible(name, &version_req).await {
+                                Ok(version) => version.to_string(),
+                                Err(_) => "latest".to_string(),
+                            }
+                        }
+                        Err(_) => "latest".to_string(),
+                    }
+                };
+
+                available_extensions.push(AvailableExtensionRow {
+                    name: name.clone(),
+                    category: entry.category.clone(),
+                    available_version,
+                    software_packaged: software_list,
+                    description: entry.description.clone(),
+                });
+            }
+        }
+
+        // Sort by category then name
+        available_extensions.sort_by(|a, b| a.category.cmp(&b.category).then(a.name.cmp(&b.name)));
+
+        if args.json {
+            let json = serde_json::to_string_pretty(&available_extensions)
+                .context("Failed to serialize extensions to JSON")?;
+            println!("{}", json);
+        } else if available_extensions.is_empty() {
+            output::warn("No available extensions found matching criteria");
+        } else {
+            let mut table = Table::new(available_extensions);
+            table.with(Style::sharp());
+
+            // Set column-specific widths with wrapping
+            table
+                .with(Modify::new(Columns::new(3..4)).with(Width::wrap(50).keep_words(true))) // software packaged
+                .with(Modify::new(Columns::new(4..5)).with(Width::wrap(50).keep_words(true))); // description
+
+            println!("{}", table);
+        }
     }
 
     Ok(())
@@ -744,7 +1007,8 @@ struct StatusRow {
     name: String,
     version: String,
     status: String,
-    installed_at: String,
+    #[tabled(rename = "status date/time")]
+    status_datetime: String,
 }
 
 /// Show installation status for extensions
@@ -839,11 +1103,19 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
             }
         };
 
+        // Only show timestamp for statuses that represent actual states
+        // "not installed" means the entry exists in manifest but files are missing
+        let status_datetime_str = if status_str == "not installed" {
+            String::new()
+        } else {
+            ext.status_datetime.format("%Y-%m-%d %H:%M").to_string()
+        };
+
         statuses.push(StatusRow {
             name: name.to_string(),
             version: ext.version.clone(),
             status: status_str,
-            installed_at: ext.installed_at.format("%Y-%m-%d %H:%M").to_string(),
+            status_datetime: status_datetime_str,
         });
     }
 
@@ -934,7 +1206,7 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
             "protected": entry.protected,
             "installed": installed.map(|ext| serde_json::json!({
                 "version": ext.version,
-                "installed_at": ext.installed_at.to_rfc3339(),
+                "status_datetime": ext.status_datetime.to_rfc3339(),
                 "source": ext.source,
                 "state": format!("{:?}", ext.state),
             }))
@@ -968,8 +1240,10 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
             output::kv("Status", &format!("{:?}", ext.state));
             output::kv("Installed Version", &ext.version);
             output::kv(
-                "Installed At",
-                &ext.installed_at.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+                "Status Date/Time",
+                &ext.status_datetime
+                    .format("%Y-%m-%d %H:%M:%S UTC")
+                    .to_string(),
             );
             output::kv("Source", &ext.source);
 

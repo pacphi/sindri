@@ -132,7 +132,7 @@ fn build_manifest(extensions: Vec<(&str, &str)>) -> sindri_core::types::InstallM
             name.to_string(),
             InstalledExtension {
                 version: version.to_string(),
-                installed_at: chrono::Utc::now(),
+                status_datetime: chrono::Utc::now(),
                 source: "test".to_string(),
                 state: sindri_core::types::ExtensionState::Installed,
             },

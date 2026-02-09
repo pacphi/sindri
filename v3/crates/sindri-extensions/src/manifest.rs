@@ -156,7 +156,7 @@ impl ManifestManager {
 
         let extension = InstalledExtension {
             version: version.to_string(),
-            installed_at: Utc::now(),
+            status_datetime: Utc::now(),
             source: source.to_string(),
             state: ExtensionState::Installed,
         };
@@ -171,7 +171,7 @@ impl ManifestManager {
 
         let extension = InstalledExtension {
             version: version.to_string(),
-            installed_at: Utc::now(),
+            status_datetime: Utc::now(),
             source: source.to_string(),
             state: ExtensionState::Installing,
         };
@@ -186,6 +186,7 @@ impl ManifestManager {
 
         if let Some(ext) = self.manifest.extensions.get_mut(name) {
             ext.state = ExtensionState::Failed;
+            ext.status_datetime = Utc::now(); // Update timestamp on state transition
             self.save()
         } else {
             Err(anyhow!("Extension {} not found in manifest", name))
@@ -198,6 +199,7 @@ impl ManifestManager {
 
         if let Some(ext) = self.manifest.extensions.get_mut(name) {
             ext.state = ExtensionState::Outdated;
+            ext.status_datetime = Utc::now(); // Update timestamp on state transition
             self.save()
         } else {
             Err(anyhow!("Extension {} not found in manifest", name))
@@ -210,6 +212,7 @@ impl ManifestManager {
 
         if let Some(ext) = self.manifest.extensions.get_mut(name) {
             ext.state = ExtensionState::Removing;
+            ext.status_datetime = Utc::now(); // Update timestamp on state transition
             self.save()
         } else {
             Err(anyhow!("Extension {} not found in manifest", name))
@@ -240,7 +243,7 @@ impl ManifestManager {
 
         if let Some(ext) = self.manifest.extensions.get_mut(name) {
             ext.version = new_version.to_string();
-            ext.installed_at = Utc::now();
+            ext.status_datetime = Utc::now();
             ext.state = ExtensionState::Installed;
             self.save()
         } else {

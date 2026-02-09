@@ -112,8 +112,9 @@ pub struct InstalledExtension {
     /// Installed version
     pub version: String,
 
-    /// Installation timestamp
-    pub installed_at: chrono::DateTime<chrono::Utc>,
+    /// Status datetime - timestamp when extension entered current state
+    #[serde(alias = "installed_at")] // For backward compatibility with old manifests
+    pub status_datetime: chrono::DateTime<chrono::Utc>,
 
     /// Installation source
     pub source: String,

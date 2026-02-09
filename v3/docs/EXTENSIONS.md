@@ -193,15 +193,36 @@ sindri extension install --force nodejs
 ### Listing Extensions
 
 ```bash
-# List all available extensions
+# List available extensions (not installed)
 sindri extension list
 
-# List installed extensions
+# List installed extensions with install dates
 sindri extension list --installed
+
+# List ALL extensions (both installed and available) - BEST for overview
+sindri extension list --all
 
 # Filter by category
 sindri extension list --category languages
+sindri extension list --installed --category languages
+sindri extension list --all --category languages
 ```
+
+**Output columns:**
+
+- **Default** (available extensions): name, category, available version, software packaged, description
+- **With --installed**: name, category, installed version, software installed, description, install date
+- **With --all**: name, category, version, software, status, install date, description
+
+**Column Meanings:**
+
+- **software packaged**: Shows what the extension will install if you choose it (e.g., "python (3.13), pip (26.0.1), uv (0.9)")
+- **software installed**: Shows what's actually installed on your system
+- **software** (in --all mode): Shows software components regardless of installation status
+- **status**: Shows "installed" or "available"
+- **version**: Shows the actual latest compatible version for your CLI (e.g., "1.1.1"), not just "latest"
+
+**Pro Tip:** Use `--all` to see your complete extension landscape - installed extensions appear first with their install dates, followed by available extensions.
 
 ### Removing Extensions
 

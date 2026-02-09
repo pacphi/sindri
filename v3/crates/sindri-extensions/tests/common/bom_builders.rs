@@ -315,7 +315,7 @@ pub struct ExtensionBomBuilder {
     version: String,
     category: String,
     install_method: String,
-    installed_at: Option<DateTime<Utc>>,
+    status_datetime: Option<DateTime<Utc>>,
     components: Vec<Component>,
     dependencies: Vec<String>,
 }
@@ -327,7 +327,7 @@ impl ExtensionBomBuilder {
             version: "1.0.0".to_string(),
             category: "languages".to_string(),
             install_method: "mise".to_string(),
-            installed_at: Some(Utc::now()),
+            status_datetime: Some(Utc::now()),
             components: Vec::new(),
             dependencies: Vec::new(),
         }
@@ -371,13 +371,13 @@ impl ExtensionBomBuilder {
         self
     }
 
-    pub fn with_installed_at(mut self, ts: DateTime<Utc>) -> Self {
-        self.installed_at = Some(ts);
+    pub fn with_status_datetime(mut self, ts: DateTime<Utc>) -> Self {
+        self.status_datetime = Some(ts);
         self
     }
 
-    pub fn without_installed_at(mut self) -> Self {
-        self.installed_at = None;
+    pub fn without_status_datetime(mut self) -> Self {
+        self.status_datetime = None;
         self
     }
 
@@ -402,7 +402,7 @@ impl ExtensionBomBuilder {
             version: self.version,
             category: self.category,
             install_method: self.install_method,
-            installed_at: self.installed_at,
+            status_datetime: self.status_datetime,
             components: self.components,
             dependencies: self.dependencies,
         }
@@ -621,7 +621,7 @@ mod tests {
         let ext = ExtensionBomBuilder::new("test-ext").build();
         assert_eq!(ext.name, "test-ext");
         assert_eq!(ext.category, "languages");
-        assert!(ext.installed_at.is_some());
+        assert!(ext.status_datetime.is_some());
     }
 
     #[test]

@@ -314,6 +314,10 @@ pub struct ExtensionListArgs {
     #[arg(long)]
     pub installed: bool,
 
+    /// Show all extensions (both installed and available)
+    #[arg(long)]
+    pub all: bool,
+
     /// Output as JSON
     #[arg(long)]
     pub json: bool,
