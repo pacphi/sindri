@@ -8,6 +8,7 @@
 //! - status: Check which extensions in a profile are installed
 
 use anyhow::{anyhow, Context, Result};
+use console::style;
 use dialoguer::Confirm;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
@@ -15,7 +16,7 @@ use sindri_extensions::{
     DependencyResolver, ExtensionExecutor, ExtensionRegistry, ManifestManager, ProfileInstaller,
 };
 use std::path::PathBuf;
-use tabled::{Table, Tabled};
+use tabled::{settings::Style, Table, Tabled};
 
 use crate::cli::{
     ProfileCommands, ProfileInfoArgs, ProfileInstallArgs, ProfileListArgs, ProfileReinstallArgs,
@@ -126,7 +127,8 @@ async fn list(args: ProfileListArgs) -> Result<()> {
             }
         }
 
-        let table = Table::new(profiles);
+        let mut table = Table::new(profiles);
+        table.with(Style::sharp());
         println!("{}", table);
     }
 
@@ -214,16 +216,50 @@ pub async fn install(args: ProfileInstallArgs) -> Result<()> {
         ));
 
         if !result.failed_extensions.is_empty() {
-            output::info("Failed extensions:");
-            for ext in &result.failed_extensions {
-                println!("  - {}", ext);
+            println!();
+            output::error(&format!(
+                "{} extension(s) failed to install:",
+                result.failed_count
+            ));
+            println!();
+
+            for failed in &result.failed_extensions {
+                println!("  {} {}", style("✗").red(), style(&failed.name).bold());
+                println!("    Phase:  {}", failed.phase);
+                if let Some(ref source) = failed.source {
+                    println!("    Source: {}", source);
+                }
+                // Trim error message if too long
+                let error_msg = if failed.error.len() > 100 {
+                    format!("{}...", &failed.error[..97])
+                } else {
+                    failed.error.clone()
+                };
+                println!("    Error:  {}", error_msg);
+                println!();
             }
+
+            output::info("Tip: Run with RUST_LOG=debug for detailed logs");
         }
     } else {
         output::error(&format!(
             "Profile '{}' installation failed: all {} extensions failed",
             args.profile, result.failed_count
         ));
+
+        if !result.failed_extensions.is_empty() {
+            println!();
+            for failed in &result.failed_extensions {
+                println!(
+                    "  {} {} ({})",
+                    style("✗").red(),
+                    style(&failed.name).bold(),
+                    failed.phase
+                );
+                println!("    {}", failed.error);
+                println!();
+            }
+        }
     }
 
     Ok(())
@@ -470,7 +506,8 @@ async fn status(args: ProfileStatusArgs) -> Result<()> {
             });
         }
 
-        let table = Table::new(rows);
+        let mut table = Table::new(rows);
+        table.with(Style::sharp());
         println!("{}", table);
         println!();
 

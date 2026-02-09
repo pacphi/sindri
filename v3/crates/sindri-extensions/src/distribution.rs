@@ -1146,12 +1146,50 @@ impl ExtensionDistributor {
 
     /// Check if a specific version of an extension is installed
     fn is_installed(&self, name: &str, version: &Version) -> Result<bool> {
+        // Check both manifest state and filesystem
+        // This ensures consistency between ManifestManager and ExtensionDistributor
+
+        // 1. Check manifest state (authoritative source)
+        let manifest_path = self
+            .extensions_dir
+            .parent()
+            .ok_or_else(|| anyhow!("Invalid extensions directory"))?
+            .join("manifest.yaml");
+
+        if manifest_path.exists() {
+            let manifest = crate::manifest::ManifestManager::new(manifest_path)?;
+
+            // Extension must be in "Installed" state AND match the requested version
+            if let Some(installed_version) = manifest.get_version(name) {
+                if installed_version == version.to_string() {
+                    // Verify the extension is in "Installed" state, not "Removing", "Failed", etc.
+                    return Ok(manifest.is_installed(name));
+                }
+            }
+            return Ok(false);
+        }
+
+        // 2. Fallback to filesystem check if no manifest exists (backward compatibility)
         let ext_dir = self.extensions_dir.join(name).join(version.to_string());
         Ok(ext_dir.exists())
     }
 
     /// Check if any version of an extension is installed
     fn is_any_version_installed(&self, name: &str) -> Result<bool> {
+        // Check manifest state first (authoritative source)
+        let manifest_path = self
+            .extensions_dir
+            .parent()
+            .ok_or_else(|| anyhow!("Invalid extensions directory"))?
+            .join("manifest.yaml");
+
+        if manifest_path.exists() {
+            let manifest = crate::manifest::ManifestManager::new(manifest_path)?;
+            // Check if extension is in "Installed" state
+            return Ok(manifest.is_installed(name));
+        }
+
+        // Fallback to filesystem check if no manifest exists (backward compatibility)
         let ext_dir = self.extensions_dir.join(name);
         if !ext_dir.exists() {
             return Ok(false);
@@ -1226,7 +1264,7 @@ impl ExtensionDistributor {
             vec![]
         };
 
-        // Update entry
+        // Update entry with state field set to Installed
         manifest.extensions.insert(
             name.to_string(),
             ManifestEntry {
@@ -1235,6 +1273,7 @@ impl ExtensionDistributor {
                 source: format!("github:{}", self.source_config.repo_identifier()),
                 previous_versions: previous,
                 protected: false,
+                state: sindri_core::types::ExtensionState::Installed,
             },
         );
 
@@ -1314,6 +1353,10 @@ pub struct ManifestEntry {
     /// Protected (cannot be removed)
     #[serde(default)]
     pub protected: bool,
+
+    /// Extension state (installed, removing, failed, etc.)
+    #[serde(default)]
+    pub state: sindri_core::types::ExtensionState,
 }
 
 #[cfg(test)]
@@ -1391,5 +1434,65 @@ mod tests {
         let version = Version::parse("3.0.0").unwrap();
         let tag = format!("v{}", version);
         assert_eq!(tag, "v3.0.0");
+    }
+
+    #[test]
+    fn test_manifest_entry_has_state_field() {
+        // Verify that ManifestEntry includes the state field (bug fix for state inconsistency)
+        use sindri_core::types::ExtensionState;
+
+        let entry = ManifestEntry {
+            version: "1.0.0".to_string(),
+            installed_at: Utc::now(),
+            source: "github:pacphi/sindri".to_string(),
+            previous_versions: vec![],
+            protected: false,
+            state: ExtensionState::Installed,
+        };
+
+        assert_eq!(entry.state, ExtensionState::Installed);
+    }
+
+    #[test]
+    fn test_manifest_entry_default_state() {
+        // Verify that state defaults to Installed when not specified (backward compatibility)
+        let yaml = r#"
+version: "1.0.0"
+installed_at: "2024-01-01T00:00:00Z"
+source: "github:pacphi/sindri"
+"#;
+
+        let entry: ManifestEntry = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(entry.state, sindri_core::types::ExtensionState::Installed);
+    }
+
+    #[test]
+    fn test_manifest_entry_preserves_state() {
+        // Verify that different states can be serialized and deserialized correctly
+        use sindri_core::types::ExtensionState;
+
+        let states = vec![
+            ExtensionState::Installed,
+            ExtensionState::Installing,
+            ExtensionState::Removing,
+            ExtensionState::Failed,
+            ExtensionState::Outdated,
+        ];
+
+        for state in states {
+            let entry = ManifestEntry {
+                version: "1.0.0".to_string(),
+                installed_at: Utc::now(),
+                source: "github:pacphi/sindri".to_string(),
+                previous_versions: vec![],
+                protected: false,
+                state,
+            };
+
+            let yaml = serde_yaml::to_string(&entry).unwrap();
+            let deserialized: ManifestEntry = serde_yaml::from_str(&yaml).unwrap();
+
+            assert_eq!(deserialized.state, state, "State {:?} not preserved", state);
+        }
     }
 }

@@ -16,17 +16,68 @@ use crate::source::ExtensionSourceResolver;
 /// Progress callback type for profile installations
 pub type ProgressCallback<'a> = Option<&'a dyn Fn(usize, usize, &str)>;
 
+/// Installation phase where an error occurred
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InstallPhase {
+    /// Error during source resolution (finding extension)
+    SourceResolution,
+    /// Error during download from GitHub
+    Download,
+    /// Error during installation execution
+    Install,
+    /// Error during validation
+    Validate,
+}
+
+impl std::fmt::Display for InstallPhase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InstallPhase::SourceResolution => write!(f, "Source Resolution"),
+            InstallPhase::Download => write!(f, "Download"),
+            InstallPhase::Install => write!(f, "Install"),
+            InstallPhase::Validate => write!(f, "Validate"),
+        }
+    }
+}
+
+/// Information about a failed extension installation
+#[derive(Debug, Clone)]
+pub struct FailedExtension {
+    /// Extension name
+    pub name: String,
+    /// Error message
+    pub error: String,
+    /// Phase where the error occurred
+    pub phase: InstallPhase,
+    /// Source type (bundled, downloaded, local-dev) if known
+    pub source: Option<String>,
+}
+
+/// Successfully installed extension information
+#[derive(Debug, Clone)]
+pub struct InstalledExtension {
+    /// Extension name
+    pub name: String,
+    /// Version installed
+    pub version: String,
+    /// Source type (bundled, downloaded, local-dev)
+    pub source: String,
+}
+
 /// Result of a profile installation
 #[derive(Debug)]
 pub struct ProfileInstallResult {
+    /// Successfully installed extensions with details
+    pub installed_extensions: Vec<InstalledExtension>,
+
     /// Number of successfully installed extensions
     pub installed_count: usize,
 
     /// Number of failed extensions
     pub failed_count: usize,
 
-    /// Names of failed extensions
-    pub failed_extensions: Vec<String>,
+    /// Failed extensions with error details
+    pub failed_extensions: Vec<FailedExtension>,
 
     /// Total number of extensions attempted
     pub total_count: usize,
@@ -145,9 +196,14 @@ impl ProfileInstaller {
         let mut installed_count = 0;
         let mut failed_count = 0;
         let mut failed_extensions = Vec::new();
+        let mut installed_extensions = Vec::new();
 
         let total_count = protected_exts.len() + regular_exts.len();
         let mut current = 0;
+
+        // Create source resolver to track where extensions come from
+        let resolver = ExtensionSourceResolver::from_env()
+            .context("Failed to create extension source resolver")?;
 
         // Step 5: Install protected base extensions first
         for ext_name in &protected_exts {
@@ -157,6 +213,21 @@ impl ProfileInstaller {
             if self.manifest.is_installed(ext_name) {
                 debug!("Base extension {} already installed, skipping", ext_name);
                 installed_count += 1;
+
+                // Track as installed with version info
+                if let Some(version) = self.manifest.get_version(ext_name) {
+                    let source = resolver
+                        .find_source(ext_name)
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| "unknown".to_string());
+
+                    installed_extensions.push(InstalledExtension {
+                        name: ext_name.clone(),
+                        version: version.to_string(),
+                        source,
+                    });
+                }
+
                 if let Some(callback) = progress_callback {
                     callback(current, total_count, ext_name);
                 }
@@ -171,14 +242,34 @@ impl ProfileInstaller {
                 callback(current, total_count, ext_name);
             }
 
-            match self.install_single_extension(ext_name, true).await {
-                Ok(_) => {
+            match self
+                .install_single_extension(ext_name, true, &resolver)
+                .await
+            {
+                Ok((version, source)) => {
                     installed_count += 1;
                     info!("Base extension {} installed successfully", ext_name);
+
+                    installed_extensions.push(InstalledExtension {
+                        name: ext_name.clone(),
+                        version,
+                        source,
+                    });
                 }
                 Err(e) => {
                     failed_count += 1;
-                    failed_extensions.push(ext_name.clone());
+
+                    // Determine phase and source from error
+                    let (phase, error_msg) = classify_error(&e);
+                    let source = resolver.find_source(ext_name).map(|s| s.to_string());
+
+                    failed_extensions.push(FailedExtension {
+                        name: ext_name.clone(),
+                        error: error_msg,
+                        phase,
+                        source,
+                    });
+
                     warn!("Base extension {} failed: {} (continuing...)", ext_name, e);
                 }
             }
@@ -192,6 +283,21 @@ impl ProfileInstaller {
             if self.manifest.is_installed(ext_name) {
                 debug!("Extension {} already installed, skipping", ext_name);
                 installed_count += 1;
+
+                // Track as installed with version info
+                if let Some(version) = self.manifest.get_version(ext_name) {
+                    let source = resolver
+                        .find_source(ext_name)
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| "unknown".to_string());
+
+                    installed_extensions.push(InstalledExtension {
+                        name: ext_name.clone(),
+                        version: version.to_string(),
+                        source,
+                    });
+                }
+
                 if let Some(callback) = progress_callback {
                     callback(current, total_count, ext_name);
                 }
@@ -206,14 +312,34 @@ impl ProfileInstaller {
                 callback(current, total_count, ext_name);
             }
 
-            match self.install_single_extension(ext_name, false).await {
-                Ok(_) => {
+            match self
+                .install_single_extension(ext_name, false, &resolver)
+                .await
+            {
+                Ok((version, source)) => {
                     installed_count += 1;
                     info!("Extension {} installed successfully", ext_name);
+
+                    installed_extensions.push(InstalledExtension {
+                        name: ext_name.clone(),
+                        version,
+                        source,
+                    });
                 }
                 Err(e) => {
                     failed_count += 1;
-                    failed_extensions.push(ext_name.clone());
+
+                    // Determine phase and source from error
+                    let (phase, error_msg) = classify_error(&e);
+                    let source = resolver.find_source(ext_name).map(|s| s.to_string());
+
+                    failed_extensions.push(FailedExtension {
+                        name: ext_name.clone(),
+                        error: error_msg,
+                        phase,
+                        source,
+                    });
+
                     warn!("Extension {} failed: {} (continuing...)", ext_name, e);
                 }
             }
@@ -221,6 +347,7 @@ impl ProfileInstaller {
 
         // Step 7: Return result
         let result = ProfileInstallResult {
+            installed_extensions,
             installed_count,
             failed_count,
             failed_extensions,
@@ -340,10 +467,23 @@ impl ProfileInstaller {
     }
 
     /// Install a single extension with proper manifest tracking
-    async fn install_single_extension(&mut self, name: &str, _is_protected: bool) -> Result<()> {
+    ///
+    /// Returns (version, source) on success
+    async fn install_single_extension(
+        &mut self,
+        name: &str,
+        _is_protected: bool,
+        resolver: &ExtensionSourceResolver,
+    ) -> Result<(String, String)> {
+        // Determine source before installation
+        let source_type = resolver
+            .find_source(name)
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "github".to_string());
+
         // Mark as installing in manifest
         self.manifest
-            .mark_installing(name, "installing", "github:pacphi/sindri")
+            .mark_installing(name, "installing", &source_type)
             .context("Failed to update manifest")?;
 
         // Load extension definition if not already loaded
@@ -355,6 +495,8 @@ impl ProfileInstaller {
             .registry
             .get_extension(name)
             .ok_or_else(|| anyhow!("Extension {} not found in registry", name))?;
+
+        let version = extension.metadata.version.clone();
 
         // Execute installation
         let result = self.executor.install(extension).await;
@@ -373,10 +515,10 @@ impl ProfileInstaller {
                         .unwrap_or("unknown");
 
                     self.manifest
-                        .mark_installed(name, &extension.metadata.version, "github:pacphi/sindri")
+                        .mark_installed(name, &version, &source_type)
                         .context("Failed to update manifest")?;
 
-                    Ok(())
+                    Ok((version, source_type))
                 } else {
                     self.manifest.mark_failed(name)?;
                     Err(anyhow!("Extension {} failed validation", name))
@@ -522,6 +664,26 @@ impl ProfileStatus {
     }
 }
 
+/// Classify an error to determine the installation phase where it occurred
+fn classify_error(error: &anyhow::Error) -> (InstallPhase, String) {
+    let error_str = error.to_string().to_lowercase();
+
+    let phase = if error_str.contains("not found") || error_str.contains("definition not loaded") {
+        InstallPhase::SourceResolution
+    } else if error_str.contains("download")
+        || error_str.contains("fetch")
+        || error_str.contains("github")
+    {
+        InstallPhase::Download
+    } else if error_str.contains("validation") || error_str.contains("validate") {
+        InstallPhase::Validate
+    } else {
+        InstallPhase::Install
+    };
+
+    (phase, error.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -529,6 +691,18 @@ mod tests {
     #[test]
     fn test_profile_install_result() {
         let result = ProfileInstallResult {
+            installed_extensions: vec![
+                InstalledExtension {
+                    name: "ext1".to_string(),
+                    version: "1.0.0".to_string(),
+                    source: "bundled".to_string(),
+                },
+                InstalledExtension {
+                    name: "ext2".to_string(),
+                    version: "2.0.0".to_string(),
+                    source: "downloaded".to_string(),
+                },
+            ],
             installed_count: 5,
             failed_count: 0,
             failed_extensions: vec![],
@@ -539,9 +713,27 @@ mod tests {
         assert!(!result.is_partial());
 
         let partial = ProfileInstallResult {
+            installed_extensions: vec![InstalledExtension {
+                name: "ext1".to_string(),
+                version: "1.0.0".to_string(),
+                source: "bundled".to_string(),
+            }],
             installed_count: 3,
             failed_count: 2,
-            failed_extensions: vec!["ext1".to_string(), "ext2".to_string()],
+            failed_extensions: vec![
+                FailedExtension {
+                    name: "ext2".to_string(),
+                    error: "Installation failed".to_string(),
+                    phase: InstallPhase::Install,
+                    source: Some("downloaded".to_string()),
+                },
+                FailedExtension {
+                    name: "ext3".to_string(),
+                    error: "Validation failed".to_string(),
+                    phase: InstallPhase::Validate,
+                    source: Some("downloaded".to_string()),
+                },
+            ],
             total_count: 5,
         };
 

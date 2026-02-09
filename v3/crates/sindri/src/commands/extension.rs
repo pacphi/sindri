@@ -16,7 +16,7 @@ use anyhow::{anyhow, Context, Result};
 use camino::Utf8PathBuf;
 use semver::Version;
 use serde_json;
-use tabled::{Table, Tabled};
+use tabled::{settings::Style, Table, Tabled};
 
 use crate::cli::{
     ExtensionCheckArgs, ExtensionCommands, ExtensionInfoArgs, ExtensionInstallArgs,
@@ -383,7 +383,8 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
     } else if extensions.is_empty() {
         output::warn("No extensions found matching criteria");
     } else {
-        let table = Table::new(extensions);
+        let mut table = Table::new(extensions);
+        table.with(Style::sharp());
         println!("{}", table);
     }
 
@@ -800,7 +801,8 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
             .context("Failed to serialize status to JSON")?;
         println!("{}", json);
     } else {
-        let table = Table::new(statuses);
+        let mut table = Table::new(statuses);
+        table.with(Style::sharp());
         println!("{}", table);
     }
 
@@ -1408,7 +1410,8 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
         output::header(&format!("Available Versions: {}", args.name));
         println!();
 
-        let table = Table::new(&version_rows);
+        let mut table = Table::new(&version_rows);
+        table.with(Style::sharp());
         println!("{}", table);
 
         println!();
@@ -1579,7 +1582,8 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
             serde_json::to_string_pretty(&updates).context("Failed to serialize to JSON")?;
         println!("{}", json_output);
     } else {
-        let table = Table::new(&updates).to_string();
+        let mut table = Table::new(&updates);
+        table.with(Style::sharp());
         println!("\n{}", table);
 
         let available_count = updates

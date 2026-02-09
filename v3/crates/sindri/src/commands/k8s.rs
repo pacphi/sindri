@@ -17,7 +17,7 @@ use sindri_clusters::{
     K3dConfig, K3dProvider, K3dRegistryConfig, KindProvider,
 };
 use std::time::Duration;
-use tabled::{Table, Tabled};
+use tabled::{settings::Style, Table, Tabled};
 use tracing::info;
 
 /// Run a k8s subcommand
@@ -414,7 +414,8 @@ fn print_cluster_table(clusters: &[ClusterInfo]) {
         })
         .collect();
 
-    let table = Table::new(rows).to_string();
+    let mut table = Table::new(rows);
+    table.with(Style::sharp());
     println!("{}", table);
 }
 
