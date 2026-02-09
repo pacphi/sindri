@@ -1,7 +1,7 @@
 ---
 metadata:
   name: sdkman
-  version: 1.0.0
+  version: 1.0.1
   description: SDKMAN - The Software Development Kit Manager for JVM tools
   category: package-manager
   author: SDKMAN Team

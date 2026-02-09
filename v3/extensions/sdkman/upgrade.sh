@@ -17,10 +17,14 @@ if [[ ! -f "$SDKMAN_DIR/bin/sdkman-init.sh" ]]; then
 fi
 
 # shellcheck source=/dev/null
-source "$SDKMAN_DIR/bin/sdkman-init.sh" || {
-    print_error "Failed to source SDKMAN init script"
+# Note: In some environments (e.g., Fly.io), sdkman-init.sh may return non-zero
+# even when successful. We check if sdk command is available after sourcing.
+source "$SDKMAN_DIR/bin/sdkman-init.sh" 2>/dev/null || true
+
+if ! command -v sdk &>/dev/null; then
+    print_error "Failed to source SDKMAN - sdk command not available"
     exit 1
-}
+fi
 
 # Force update
 if sdk selfupdate force; then

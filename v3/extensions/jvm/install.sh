@@ -23,10 +23,9 @@ fi
 
 # Source SDKMAN
 # shellcheck source=/dev/null
-source "$SDKMAN_DIR/bin/sdkman-init.sh" || {
-    print_error "Failed to source SDKMAN init script"
-    exit 1
-}
+# Note: In some environments (e.g., Fly.io), sdkman-init.sh may return non-zero
+# even when successful. We rely on the subsequent sdk command check instead.
+source "$SDKMAN_DIR/bin/sdkman-init.sh" 2>/dev/null || true
 
 # Verify SDKMAN is working
 if ! command -v sdk &>/dev/null; then

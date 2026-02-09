@@ -1,7 +1,7 @@
 ---
 metadata:
   name: jvm
-  version: 2.1.0
+  version: 2.1.1
   description: >-
     JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise
   category: languages
