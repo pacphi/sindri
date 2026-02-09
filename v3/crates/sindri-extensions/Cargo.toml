@@ -58,3 +58,7 @@ path = "tests/validate_lifecycle_tests.rs"
 [[test]]
 name = "dependency_tests"
 path = "tests/dependency_tests.rs"
+
+[[test]]
+name = "bom_generation_tests"
+path = "tests/bom_generation_tests.rs"

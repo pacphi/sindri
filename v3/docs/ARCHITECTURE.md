@@ -376,7 +376,7 @@ sindri-providers (implementations)
 - [Configuration Guide](CONFIGURATION.md) - sindri.yaml schema reference
 - [Secrets Management](SECRETS_MANAGEMENT.md) - Multi-source secret resolution
 - [Backup/Restore](BACKUP_RESTORE.md) - Workspace backup operations
-- [Extension Development](./extensions/README.md) - Creating custom extensions
+- [Extension Development](./extensions/guides/AUTHORING.md) - Creating custom extensions
 
 ---
 

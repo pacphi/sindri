@@ -60,3 +60,45 @@ bom:
       license: Apache-2.0
       homepage: https://github.com/vercel-labs/agent-browser
       purl: pkg:npm/agent-browser@0.6.0
+docs:
+  title: "Agent Browser"
+  overview: |
+    Headless browser automation CLI for AI agents with snapshot-based element selection. Built by Vercel Labs for reliable browser automation.
+  last-updated: "2026-01-26"
+  features:
+    - "Snapshot-based Selection - Reliable element targeting"
+    - "Headless Operation - Run without visible browser"
+    - "AI Integration - Designed for AI agent workflows"
+    - "Action Recording - Capture and replay interactions"
+  usage:
+    - section: "Basic Usage"
+      examples:
+        - description: "Check version"
+          code: "agent-browser --version"
+        - description: "Navigate to URL"
+          code: "agent-browser navigate https://example.com"
+        - description: "Take screenshot"
+          code: "agent-browser screenshot --output page.png"
+    - section: "Element Interaction"
+      examples:
+        - description: "Click element"
+          code: "agent-browser click --selector \"button.submit\""
+        - description: "Type text"
+          code: "agent-browser type --selector \"input.email\" --text \"user@example.com\""
+        - description: "Select from dropdown"
+          code: "agent-browser select --selector \"select.country\" --value \"US\""
+    - section: "Snapshot Mode"
+      examples:
+        - description: "Take snapshot for AI analysis"
+          code: "agent-browser snapshot --output snapshot.json"
+        - description: "Analyze page structure"
+          code: "agent-browser analyze --url https://example.com"
+    - section: "Scripted Automation"
+      examples:
+        - description: "Run script"
+          code: "agent-browser run script.json"
+  related:
+    - name: nodejs
+      description: "Required dependency"
+    - name: playwright
+      description: "Required dependency (provides browser binaries)"

@@ -24,6 +24,7 @@ pub mod support_files;
 pub mod types;
 pub mod validation;
 pub mod validator;
+pub mod verifier;
 
 pub use bom::BomGenerator;
 pub use configure::ConfigureProcessor;
@@ -41,3 +42,4 @@ pub use source::{
 pub use support_files::{SupportFileManager, SupportFileMetadata, SupportFileSource};
 pub use validation::{ValidationConfig, DEFAULT_VALIDATION_PATHS, VALIDATION_EXTRA_PATHS_ENV};
 pub use validator::ExtensionValidator;
+pub use verifier::verify_extension_installed;

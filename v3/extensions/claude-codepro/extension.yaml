@@ -162,3 +162,55 @@ bom:
       license: Proprietary
       homepage: https://github.com/maxritter/claude-codepro
       purl: pkg:github/maxritter/claude-codepro@v4.5.29
+docs:
+  title: "Claude CodePro"
+  overview: |
+    Production-grade TDD-enforced development environment for Claude Code with automated quality checks. Provides strict development workflows with test-driven development enforcement.
+
+    Note: This extension takes FULL CONTROL of the .claude/ directory and is INCOMPATIBLE with claude-flow extensions.
+  last-updated: "2026-01-26"
+  features:
+    - "TDD Enforcement - Pre-edit hooks require tests before code"
+    - "Quality Checks - Automated Python/TypeScript linting"
+    - "Semantic Search - Vexor local or OpenAI-powered search"
+    - "Rule Management - Custom development rules"
+  usage:
+    - section: "Setup"
+      examples:
+        - description: "Initialize in project"
+          code: "ccp setup"
+        - description: "Register license (optional for free tier)"
+          code: "ccp register"
+        - description: "Check status"
+          code: "ccp status"
+    - section: "TDD Workflow"
+      examples:
+        - description: "Validates TDD compliance"
+          code: "ccp check"
+    - section: "Quality Commands"
+      examples:
+        - description: "Run all checks"
+          code: "ccp quality"
+        - description: "Lint code"
+          code: "ccp lint"
+        - description: "Format code"
+          code: "ccp format"
+    - section: "Rule Management"
+      examples:
+        - description: "List rules"
+          code: "ccp rules list"
+        - description: "Add custom rule"
+          code: "ccp rules add --name \"no-any\" --type typescript"
+        - description: "Enable/disable rules"
+          code: |
+            ccp rules enable no-any
+            ccp rules disable no-any
+  related:
+    - name: python
+      description: "Required dependency"
+    - name: nodejs
+      description: "Required dependency"
+    - name: github-cli
+      description: "Required dependency"
+    - name: mise-config
+      description: "Required dependency"

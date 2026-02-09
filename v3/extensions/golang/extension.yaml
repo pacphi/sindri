@@ -44,9 +44,70 @@ remove:
 bom:
   tools:
     - name: go
-      version: dynamic
+      version: 1.25
       source: mise
       type: compiler
       license: BSD-3-Clause
       homepage: https://golang.org
       purl: pkg:golang/go
+docs:
+  title: "Go (Golang)"
+  overview: |
+    Go 1.25 via mise. Provides a complete Go development environment with proper workspace configuration.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic Go Commands"
+      examples:
+        - code: |
+            # Check version
+            go version
+
+            # Initialize a new module
+            go mod init github.com/user/project
+
+            # Build a project
+            go build
+
+            # Run a Go file
+            go run main.go
+
+            # Run tests
+            go test ./...
+    - section: "Module Management"
+      examples:
+        - code: |
+            # Add a dependency
+            go get github.com/gin-gonic/gin
+
+            # Update dependencies
+            go mod tidy
+
+            # Verify dependencies
+            go mod verify
+
+            # Download dependencies
+            go mod download
+    - section: "Installing Go Tools"
+      examples:
+        - code: |
+            # Install a tool
+            go install golang.org/x/tools/gopls@latest
+
+            # Install commonly used tools
+            go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    - section: "Building for Different Platforms"
+      examples:
+        - code: |
+            # Build for Linux
+            GOOS=linux GOARCH=amd64 go build -o app-linux
+
+            # Build for macOS
+            GOOS=darwin GOARCH=arm64 go build -o app-mac
+
+            # Build for Windows
+            GOOS=windows GOARCH=amd64 go build -o app.exe
+  related:
+    - name: mise-config
+      description: "Required mise configuration"
+    - name: ai-toolkit
+      description: "Uses Go for some AI tools"

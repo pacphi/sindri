@@ -64,39 +64,113 @@ upgrade:
   mise:
     upgradeAll: true
 bom:
+  # Pinned versions in mise.toml (installed via mise npm: backend)
   tools:
     - name: typescript
-      version: dynamic
+      version: "5.9"  # Pinned in mise.toml
       source: npm
       type: compiler
       license: Apache-2.0
       homepage: https://www.typescriptlang.org
-      purl: pkg:npm/typescript
+      purl: pkg:npm/typescript@5.9
     - name: ts-node
-      version: dynamic
+      version: "10.9"  # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://typestrong.org/ts-node
-      purl: pkg:npm/ts-node
+      purl: pkg:npm/ts-node@10.9
     - name: prettier
-      version: dynamic
+      version: "3.6"  # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://prettier.io
-      purl: pkg:npm/prettier
+      purl: pkg:npm/prettier@3.6
     - name: eslint
-      version: dynamic
+      version: "9"  # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://eslint.org
-      purl: pkg:npm/eslint
+      purl: pkg:npm/eslint@9
     - name: nodemon
-      version: dynamic
+      version: "3.1"  # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://nodemon.io
-      purl: pkg:npm/nodemon
+      purl: pkg:npm/nodemon@3.1
+docs:
+  title: "Node.js DevTools"
+  overview: |
+    TypeScript, ESLint, Prettier, and Node.js development tools via pnpm. Provides essential tooling for modern JavaScript/TypeScript development.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "TypeScript"
+      examples:
+        - description: "Check version"
+          code: |
+            tsc --version
+        - description: "Initialize TypeScript project"
+          code: |
+            tsc --init
+        - description: "Compile TypeScript"
+          code: |
+            tsc
+        - description: "Compile specific file"
+          code: |
+            tsc app.ts
+        - description: "Watch mode"
+          code: |
+            tsc --watch
+    - section: "ts-node"
+      examples:
+        - description: "Run TypeScript directly"
+          code: |
+            ts-node app.ts
+        - description: "REPL mode"
+          code: |
+            ts-node
+        - description: "With specific config"
+          code: |
+            ts-node --project tsconfig.json app.ts
+    - section: "ESLint"
+      examples:
+        - description: "Initialize ESLint"
+          code: |
+            eslint --init
+        - description: "Lint files"
+          code: |
+            eslint src/
+        - description: "Lint and fix"
+          code: |
+            eslint src/ --fix
+        - description: "Specific file types"
+          code: |
+            eslint "**/*.{js,ts,tsx}"
+    - section: "Prettier"
+      examples:
+        - description: "Format files"
+          code: |
+            prettier --write src/
+        - description: "Check formatting"
+          code: |
+            prettier --check src/
+        - description: "Format specific files"
+          code: |
+            prettier --write "**/*.{js,ts,json,md}"
+    - section: "Nodemon"
+      examples:
+        - description: "Watch and restart"
+          code: |
+            nodemon app.js
+        - description: "With TypeScript"
+          code: |
+            nodemon --exec ts-node app.ts
+        - description: "Custom watch paths"
+          code: |
+            nodemon --watch src --exec ts-node src/index.ts
+  related:
+    - name: nodejs
+      description: "Required dependency"

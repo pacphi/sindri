@@ -126,9 +126,45 @@ capabilities:
 bom:
   tools:
     - name: ralph-inferno
-      version: dynamic
+      version: dynamic  # Script installer (gets latest)
       source: npm
       type: framework
       license: MIT
       homepage: https://github.com/sandstream/ralph-inferno
       purl: pkg:npm/ralph-inferno
+docs:
+  title: "Ralph"
+  overview: |
+    AI-driven autonomous development system. Build software projects with minimal intervention using Claude. Supports discovery, planning, deployment, and review phases.
+  last-updated: "2026-01-26"
+  features:
+    - "Autonomous Development - Minimal human intervention"
+    - "Discovery Phase - Understand requirements"
+    - "Planning Phase - Architecture and task breakdown"
+    - "Deployment Phase - Build and deploy"
+    - "Review Phase - Quality assurance"
+  usage:
+    - section: "Installation"
+      examples:
+        - description: "Initialize Ralph"
+          code: |
+            npx ralph-inferno install
+
+            # This sets up:
+            # - .ralph directory
+            # - Configuration files
+            # - Claude Code commands
+    - section: "Project Commands"
+      examples:
+        - description: "Ralph provides Claude Code commands in ~/.claude/commands/"
+          code: |
+            # Ralph provides Claude Code commands in ~/.claude/commands/
+            # These enable autonomous workflows:
+
+            # /ralph:discover - Analyze requirements
+            # /ralph:plan - Create implementation plan
+            # /ralph:build - Execute development
+            # /ralph:review - Quality review
+  related:
+    - name: nodejs
+      description: "Required dependency"

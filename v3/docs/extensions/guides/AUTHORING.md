@@ -456,27 +456,119 @@ upgrade:
 
 #### bom (Recommended)
 
-Bill of Materials for tracking installed components.
+Bill of Materials for tracking installed components. **Critical for security auditing and compliance.**
+
+**Best Practice**: Use explicit versions wherever possible for accurate security scanning and compliance reporting.
 
 ```yaml
 bom:
   tools:
+    # PREFERRED: Explicit versions (mise-based tools)
+    - name: go
+      version: "1.25" # Pinned in mise.toml
+      source: mise
+      type: compiler
+      license: BSD-3-Clause
+      homepage: https://golang.org
+      purl: pkg:golang/go@1.25
+
+    # Script-based with pinned version
+    - name: kubectl
+      version: 1.35.0 # Pinned in install script
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://kubernetes.io
+      purl: pkg:generic/kubectl@1.35.0
+
+    # Bundled tools (version matches parent)
+    - name: npm
+      version: 10.9.4 # Bundled with Node.js 22 LTS
+      source: mise
+      type: package-manager
+      license: Artistic-2.0
+      homepage: https://www.npmjs.com
+      purl: pkg:npm/npm@10.9.4
+
+    # EXCEPTIONAL: Semantic versioning (valid)
     - name: node
-      version: "20.0.0" # Or "dynamic" for version-managed
-      source: mise # mise | apt | script | binary
-      type: runtime # runtime | compiler | cli-tool | server | package-manager | utility
+      version: lts # Node.js LTS channel
+      source: mise
+      type: runtime
       license: MIT
       homepage: https://nodejs.org
-      purl: pkg:npm/node@20.0.0
-      cpe: cpe:2.3:a:nodejs:node.js:20.0.0
+      purl: pkg:generic/nodejs
 
-  files:
-    - path: /usr/local/bin/node
-      type: binary
-      checksum:
-        algorithm: sha256
-        value: abc123...
+    # EXCEPTIONAL: apt-managed (cannot pin)
+    - name: docker
+      version: dynamic # apt-managed (target: 29.2.1)
+      source: apt
+      type: tool
+      license: Apache-2.0
+      homepage: https://www.docker.com
+      purl: pkg:deb/ubuntu/docker
+
+    # EXCEPTIONAL: Remote tracking (MCP servers)
+    - name: context7-mcp
+      version: remote # Tracks npm registry
+      source: script
+      type: server
+      license: MIT
+      homepage: https://github.com/upstash/context7
 ```
+
+**Version Strategy Guidelines:**
+
+1. **Use Explicit Versions** (Preferred):
+   - mise.toml tools: Sync with `bom-audit-fixer.sh`
+   - Script installations: Pin in install script
+   - npm packages: Pin in mise.toml or package.json
+   - SDKMAN tools: Pin in install script
+
+2. **Use Semantic Versions** (When Appropriate):
+   - `"stable"` - Rust release channel
+   - `"lts"` - Node.js LTS tracking
+   - `"remote"` - MCP servers tracking npm registry
+
+3. **Use "dynamic"** (Only When Necessary):
+   - apt-managed packages (Ubuntu repo-dependent)
+   - Official installers that only support latest
+   - **Always document**: Add comment explaining why and target version
+
+**Verifying BOM Accuracy:**
+
+```bash
+# View extension BOM
+sindri bom show golang  # Should show explicit versions
+
+# List all components
+sindri bom list
+
+# Filter by component type
+sindri bom list --component-type runtime
+
+# Export for vulnerability scanning (CycloneDX)
+sindri bom export --format cyclonedx --output sbom.cdx.json
+
+# Export for compliance (SPDX)
+sindri bom export --format spdx --output sbom.spdx.json
+```
+
+**Integration with Vulnerability Scanners:**
+
+The BOM export formats integrate directly with industry-standard vulnerability scanners:
+
+```bash
+# Grype (CycloneDX input)
+sindri bom export --format cyclonedx --output sbom.cdx.json
+grype sbom:sbom.cdx.json
+
+# Trivy (SPDX input)
+sindri bom export --format spdx --output sbom.spdx.json
+trivy sbom sbom.spdx.json
+```
+
+> **Architecture**: See [ADR-042: BOM Capability Architecture](../../architecture/adr/042-bom-capability-architecture.md) for design decisions and compliance standards alignment (CycloneDX 1.4, SPDX 2.3, NTIA SBOM).
 
 #### capabilities (Optional)
 

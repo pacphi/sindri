@@ -48,37 +48,143 @@ remove:
 bom:
   tools:
     - name: ghcup
-      version: dynamic
+      version: 0.1.30.0  # Haskell toolchain installer
       source: script
       type: cli-tool
       license: LGPL-3.0
       homepage: https://www.haskell.org/ghcup
       purl: pkg:generic/ghcup
     - name: ghc
-      version: dynamic
+      version: 9.12.2  # Pinned in install script
       source: script
       type: compiler
       license: BSD-3-Clause
       homepage: https://www.haskell.org/ghc
       purl: pkg:generic/ghc
     - name: cabal
-      version: dynamic
+      version: 3.14.1.1  # Pinned in install script
       source: script
       type: package-manager
       license: BSD-3-Clause
       homepage: https://www.haskell.org/cabal
       purl: pkg:generic/cabal
     - name: stack
-      version: dynamic
+      version: 3.3.1  # Pinned in install script
       source: script
       type: cli-tool
       license: BSD-3-Clause
       homepage: https://docs.haskellstack.org
       purl: pkg:generic/stack
     - name: haskell-language-server
-      version: dynamic
+      version: 2.13.0.0  # Pinned in install script
       source: script
       type: server
       license: Apache-2.0
       homepage: https://haskell-language-server.readthedocs.io
       purl: pkg:generic/haskell-language-server
+docs:
+  title: "Haskell"
+  overview: |
+    Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup. Provides a complete functional programming environment with IDE support.
+  last-updated: "2026-01-30"
+  usage:
+    - section: "GHC (Compiler)"
+      examples:
+        - code: |
+            # Check version
+            ghc --version
+
+            # Compile a file
+            ghc Main.hs -o main
+
+            # Interactive REPL
+            ghci
+
+            # Load a file in GHCi
+            ghci Main.hs
+    - section: "Cabal"
+      examples:
+        - code: |
+            # Initialize a project
+            cabal init
+
+            # Build
+            cabal build
+
+            # Run
+            cabal run
+
+            # Install dependencies
+            cabal install --only-dependencies
+
+            # Run tests
+            cabal test
+
+            # Generate documentation
+            cabal haddock
+    - section: "Stack"
+      examples:
+        - code: |
+            # Create a new project
+            stack new my-project
+
+            # Build
+            stack build
+
+            # Run
+            stack exec my-project-exe
+
+            # Run tests
+            stack test
+
+            # Install globally
+            stack install
+
+            # Enter GHCi with project
+            stack ghci
+    - section: "Package Management"
+      examples:
+        - code: |
+            # Cabal: Add dependency
+            # Edit .cabal file, then:
+            cabal update
+            cabal build
+
+            # Stack: Add dependency
+            # Edit package.yaml, then:
+            stack build
+    - section: "Haskell Language Server"
+      examples:
+        - code: |
+            # HLS starts automatically with compatible editors
+            # Verify installation:
+            haskell-language-server-wrapper --version
+
+            # Generate HIE files (for better IDE support)
+            gen-hie > hie.yaml
+    - section: "Common Patterns"
+      examples:
+        - code: |
+            -- Main.hs
+            module Main where
+
+            main :: IO ()
+            main = putStrLn "Hello, Haskell!"
+
+            -- With imports
+            import Data.List (sort)
+            import qualified Data.Map as M
+
+            -- Example function
+            fibonacci :: Int -> Int
+            fibonacci n
+              | n <= 1    = n
+              | otherwise = fibonacci (n-1) + fibonacci (n-2)
+  notes: |
+    What's New in 2.0.0:
+    - Switched from mise to ghcup: Uses the official Haskell toolchain installer for reliable installation
+    - Full toolchain support: GHC, Cabal, Stack, and HLS all managed by ghcup
+    - Better version management: Use ghcup tui or ghcup list to manage installed versions
+  related:
+    - name: jvm
+      description: "JVM languages (alternative FP with Scala/Clojure)"

@@ -232,9 +232,50 @@ capabilities:
 bom:
   tools:
     - name: claude-flow
-      version: dynamic
+      version: 2.7.47
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/claude-flow
       purl: pkg:npm/claude-flow
+docs:
+  title: "Claude Flow V2"
+  overview: |
+    AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable). The proven, stable version of Claude Flow for production use.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Initialization"
+      examples:
+        - description: "Initialize Claude Flow"
+          code: "claude-flow init --force"
+        - description: "Check version"
+          code: "claude-flow --version"
+    - section: "Agent Operations"
+      examples:
+        - description: "Spawn an agent"
+          code: "claude-flow agent spawn --type researcher"
+        - description: "List active agents"
+          code: "claude-flow agent list"
+        - description: "Terminate an agent"
+          code: "claude-flow agent terminate --id agent-123"
+    - section: "Memory Management"
+      examples:
+        - description: "Store in memory"
+          code: "claude-flow memory store --key \"context\" --value \"project info\""
+        - description: "Retrieve from memory"
+          code: "claude-flow memory get --key \"context\""
+        - description: "Search memory"
+          code: "claude-flow memory search --query \"implementation\""
+    - section: "Swarm Coordination"
+      examples:
+        - description: "Start swarm"
+          code: "claude-flow swarm start"
+        - description: "Coordinate task"
+          code: "claude-flow swarm coordinate --task \"analyze codebase\""
+        - description: "Status"
+          code: "claude-flow swarm status"
+  related:
+    - name: claude-flow-v3
+      description: "Next-gen V3 version"
+    - name: nodejs
+      description: "Required dependency"

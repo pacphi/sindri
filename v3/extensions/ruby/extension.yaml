@@ -49,23 +49,115 @@ upgrade:
 bom:
   tools:
     - name: ruby
-      version: dynamic
+      version: 3.4.7
       source: mise
       type: runtime
       license: Ruby OR BSD-2-Clause
       homepage: https://www.ruby-lang.org
       purl: pkg:generic/ruby
     - name: gem
-      version: dynamic
+      version: 3.6.9  # Bundled with Ruby 3.4.7
       source: mise
       type: package-manager
       license: Ruby OR MIT
       homepage: https://rubygems.org
-      purl: pkg:gem/rubygems
+      purl: pkg:gem/rubygems@3.6.9
     - name: bundle
-      version: dynamic
+      version: 2.6.3  # Bundled with Ruby 3.4.7
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://bundler.io
-      purl: pkg:gem/bundler
+      purl: pkg:gem/bundler@2.6.3
+docs:
+  title: "Ruby"
+  overview: |
+    Ruby 3.4.7 via mise with Rails and Bundler. Provides a complete Ruby development environment with modern tooling.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic Ruby"
+      examples:
+        - code: |
+            # Check version
+            ruby --version
+
+            # Run a script
+            ruby script.rb
+
+            # Interactive console
+            irb
+
+            # Evaluate code
+            ruby -e 'puts "Hello, Ruby!"'
+    - section: "RubyGems"
+      examples:
+        - code: |
+            # Install a gem
+            gem install rails
+
+            # List installed gems
+            gem list
+
+            # Update gems
+            gem update
+
+            # Uninstall a gem
+            gem uninstall rails
+    - section: "Bundler"
+      examples:
+        - code: |
+            # Initialize Bundler in a project
+            bundle init
+
+            # Install dependencies
+            bundle install
+
+            # Add a gem to Gemfile
+            bundle add rails
+
+            # Update dependencies
+            bundle update
+
+            # Execute command with bundle context
+            bundle exec rake test
+    - section: "Rails (if installed)"
+      examples:
+        - code: |
+            # Create a new Rails app
+            rails new myapp
+
+            # Generate scaffold
+            rails generate scaffold Post title:string body:text
+
+            # Run migrations
+            rails db:migrate
+
+            # Start server
+            rails server
+
+            # Rails console
+            rails console
+    - section: "RuboCop"
+      examples:
+        - code: |
+            # Check code style
+            rubocop
+
+            # Auto-correct issues
+            rubocop -a
+
+            # Auto-correct with unsafe corrections
+            rubocop -A
+    - section: "Testing with RSpec"
+      examples:
+        - code: |
+            # Initialize RSpec
+            rspec --init
+
+            # Run tests
+            rspec
+
+            # Run specific test
+            rspec spec/models/user_spec.rb
+  notes: |
+    Ruby is a standalone language extension with no related extensions.

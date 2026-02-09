@@ -1,0 +1,150 @@
+# {{ title }} Extension
+
+> Version: {{ version }} | Category: {{ category }}{% if last_updated %} | Last Updated: {{ last_updated }}{% endif %}
+
+## Overview
+
+{{ overview }}
+{% if features | length > 0 %}
+
+## Key Features
+{% for feature in features %}
+- {{ feature }}
+{%- endfor %}
+{% endif %}
+{% if bom_tools | length > 0 %}
+
+## What It Provides
+
+| Tool | Version | Type | License | Description |
+| ---- | ------- | ---- | ------- | ----------- |
+{% for tool in bom_tools -%}
+| {{ tool.name }} | {{ tool.version }} | {{ tool.type }} | {{ tool.license }} | {{ tool.description }} |
+{% endfor %}
+{%- endif %}
+
+## Requirements
+{% if disk_space or memory or install_time or dependencies | length > 0 %}
+{% if disk_space %}- **Disk Space**: {{ disk_space }} MB
+{% endif -%}
+{% if memory %}- **Memory**: {{ memory }} MB
+{% endif -%}
+{% if install_time %}- **Install Time**: ~{{ install_time }} seconds
+{% endif -%}
+{% if dependencies | length > 0 %}- **Dependencies**: {{ dependencies | join(sep=", ") }}
+{% endif -%}
+{% else %}
+No special requirements.
+{% endif %}
+{% if domains | length > 0 %}
+### Network Domains
+{% for domain in domains %}
+- {{ domain }}
+{%- endfor %}
+{% endif %}
+{% if secrets | length > 0 %}
+### Required Secrets
+{% for secret in secrets %}
+- `{{ secret }}`
+{%- endfor %}
+{% endif %}
+
+## Installation
+
+```bash
+sindri extension install {{ name }}
+```
+{% if env_vars | length > 0 or templates | length > 0 or install_method %}
+
+## Configuration
+{% if env_vars | length > 0 %}
+
+### Environment Variables
+
+| Variable | Value | Scope |
+| -------- | ----- | ----- |
+{% for var in env_vars -%}
+| `{{ var.key }}` | {{ var.value }} | {{ var.scope }} |
+{% endfor %}
+{%- endif %}
+{% if templates | length > 0 %}
+
+### Templates
+
+{% for tpl in templates -%}
+- `{{ tpl.source }}` → `{{ tpl.destination }}` ({{ tpl.mode }})
+{% endfor %}
+{%- endif %}
+{% if install_method %}
+
+### Install Method
+
+{{ install_method_description }}
+{% endif %}
+{% endif %}
+{% if usage_sections | length > 0 %}
+
+## Usage Examples
+{% for section in usage_sections %}
+
+### {{ section.section }}
+{% for example in section.examples %}
+{% if example.description %}
+{{ example.description }}:
+{% endif %}
+```{{ example.language }}
+{{ example.code }}
+```
+{%- endfor %}
+{%- endfor %}
+{% endif %}
+{% if upgrade_strategy %}
+
+## Upgrade Strategy
+
+{{ upgrade_strategy }}
+{% endif %}
+
+## Validation
+
+The extension validates the following commands:
+{% for cmd in validation_commands %}
+- `{{ cmd.name }} {{ cmd.version_flag }}`{% if cmd.expected_pattern %} - Must match pattern `{{ cmd.expected_pattern }}`{% endif %}
+
+{%- endfor %}
+
+## Removal
+
+```bash
+sindri extension remove {{ name }}
+```
+{% if remove_paths | length > 0 %}
+
+Removes the following paths:
+{% for path in remove_paths %}
+- `{{ path }}`
+{%- endfor %}
+{% endif %}
+{% if remove_mise %}
+This removes the mise configuration and associated tools.
+{% endif %}
+{% if capabilities_summary | length > 0 %}
+
+## Capabilities
+{% for cap in capabilities_summary %}
+- **{{ cap.name }}**: {{ cap.description }}
+{%- endfor %}
+{% endif %}
+{% if related | length > 0 %}
+
+## Related Extensions
+{% for rel in related %}
+- **{{ rel.name }}** - {{ rel.description }}
+{%- endfor %}
+{% endif %}
+{% if notes %}
+
+## Notes
+
+{{ notes }}
+{% endif %}

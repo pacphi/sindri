@@ -45,29 +45,70 @@ remove:
 bom:
   tools:
     - name: node
-      version: dynamic
+      version: lts
       source: mise
       type: runtime
       license: MIT
       homepage: https://nodejs.org
       purl: pkg:generic/nodejs
     - name: npm
-      version: dynamic
+      version: 10.9.4  # Bundled with Node.js 22 LTS
       source: mise
       type: package-manager
       license: Artistic-2.0
       homepage: https://www.npmjs.com
-      purl: pkg:npm/npm
+      purl: pkg:npm/npm@10.9.4
     - name: npx
-      version: dynamic
+      version: 10.9.4  # Part of npm package
       source: mise
       type: cli-tool
       license: Artistic-2.0
       homepage: https://www.npmjs.com
+      purl: pkg:npm/npx@10.9.4
     - name: pnpm
-      version: dynamic
+      version: 10.29.2  # Pinned in bootstrap-pnpm.sh
       source: npm
       type: package-manager
       license: MIT
       homepage: https://pnpm.io
-      purl: pkg:npm/pnpm
+      purl: pkg:npm/pnpm@10.29.2
+docs:
+  title: "Node.js"
+  overview: |
+    Node.js LTS via mise with pnpm package manager. Provides a complete Node.js development environment with modern package management.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Running Node.js"
+      examples:
+        - description: "Check version"
+          code: |
+            node --version
+        - description: "Run a JavaScript file"
+          code: |
+            node app.js
+        - description: "Start a REPL"
+          code: |
+            node
+    - section: "Package Management with pnpm"
+      examples:
+        - description: "Install dependencies"
+          code: |
+            pnpm install
+        - description: "Add a package"
+          code: |
+            pnpm add express
+        - description: "Run scripts"
+          code: |
+            pnpm run build
+            pnpm run test
+    - section: "Using npx"
+      examples:
+        - description: "Run a package without installing"
+          code: |
+            npx create-react-app my-app
+            npx eslint .
+  related:
+    - name: nodejs-devtools
+      description: "TypeScript, ESLint, Prettier for Node.js"
+    - name: mise-config
+      description: "Required mise configuration"

@@ -43,9 +43,54 @@ upgrade:
 bom:
   tools:
     - name: claudeup
-      version: dynamic
+      version: 1.8
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/MadAppGang/claude-code/tree/main/tools/claudeup
       purl: pkg:npm/claudeup
+docs:
+  title: "ClaudeUp"
+  overview: |
+    TUI tool for managing Claude Code plugins, MCPs (Model Context Protocol), and configuration settings. Provides an interactive terminal interface for Claude Code management.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Launch TUI"
+      examples:
+        - code: |
+            # Start the TUI
+            claudeup
+
+            # The TUI provides:
+            # - Plugin management
+            # - MCP server configuration
+            # - Settings editor
+    - section: "Plugin Management"
+      examples:
+        - code: |
+            # Through TUI:
+            # 1. Navigate to Plugins section
+            # 2. Browse available plugins
+            # 3. Install/uninstall plugins
+            # 4. Configure plugin settings
+    - section: "MCP Configuration"
+      examples:
+        - code: |
+            # Through TUI:
+            # 1. Navigate to MCPs section
+            # 2. View registered MCP servers
+            # 3. Add/remove MCP servers
+            # 4. Test MCP connections
+    - section: "Settings Management"
+      examples:
+        - code: |
+            # Through TUI:
+            # 1. Navigate to Settings section
+            # 2. Edit Claude Code configuration
+            # 3. Manage environment variables
+            # 4. Configure preferences
+  related:
+    - name: nodejs
+      description: "Required dependency"
+    - name: claude-marketplace
+      description: "Plugin sources"

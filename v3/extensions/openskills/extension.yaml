@@ -41,9 +41,83 @@ upgrade:
 bom:
   tools:
     - name: openskills
-      version: dynamic
+      version: 1.5.0 # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/anthropics/openskills
       purl: pkg:npm/openskills
+docs:
+  title: "OpenSkills"
+  overview: |
+    OpenSkills CLI for managing Claude Code skills from Anthropic's marketplace. Browse, install, and manage skills to extend Claude Code capabilities.
+  last-updated: "2026-01-26"
+  features:
+    - "Skill Discovery - Browse available skills"
+    - "Installation - Install skills from marketplace"
+    - "Management - Enable/disable skills"
+    - "Updates - Keep skills current"
+  usage:
+    - section: "Browse Skills"
+      examples:
+        - description: "List available skills"
+          code: |
+            openskills list
+        - description: "Search for skills"
+          code: |
+            openskills search "testing"
+        - description: "Get skill details"
+          code: |
+            openskills info skill-name
+    - section: "Install Skills"
+      examples:
+        - description: "Install a skill"
+          code: |
+            openskills install testing-helper
+        - description: "Install specific version"
+          code: |
+            openskills install testing-helper@1.2.0
+        - description: "Install from URL"
+          code: |
+            openskills install https://github.com/user/skill
+    - section: "Manage Skills"
+      examples:
+        - description: "List installed skills"
+          code: |
+            openskills installed
+        - description: "Enable a skill"
+          code: |
+            openskills enable skill-name
+        - description: "Disable a skill"
+          code: |
+            openskills disable skill-name
+        - description: "Uninstall a skill"
+          code: |
+            openskills uninstall skill-name
+    - section: "Update Skills"
+      examples:
+        - description: "Update all skills"
+          code: |
+            openskills update
+        - description: "Update specific skill"
+          code: |
+            openskills update skill-name
+        - description: "Check for updates"
+          code: |
+            openskills outdated
+    - section: "Create Skills"
+      examples:
+        - description: "Initialize a new skill"
+          code: |
+            openskills init my-skill
+        - description: "Validate skill"
+          code: |
+            openskills validate
+        - description: "Publish skill"
+          code: |
+            openskills publish
+  related:
+    - name: nodejs
+      description: "Required dependency"
+    - name: claudeup
+      description: "Alternative skill management via TUI"

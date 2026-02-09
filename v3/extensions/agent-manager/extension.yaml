@@ -48,9 +48,55 @@ upgrade:
 bom:
   tools:
     - name: agent-manager
-      version: dynamic
+      version: dynamic  # Script installer (gets latest)
       source: github-release
       type: cli-tool
       license: MIT
       homepage: https://github.com/pacphi/claude-code-agent-manager
       purl: pkg:github/pacphi/claude-code-agent-manager
+docs:
+  title: "Agent Manager"
+  overview: |
+    Claude Code agent manager for managing AI agents. Provides centralized management and discovery of AI agents.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic Commands"
+      examples:
+        - description: "Check version"
+          code: "agent-manager version"
+        - description: "List agents"
+          code: "agent-manager list"
+        - description: "Get agent status"
+          code: "agent-manager status agent-id"
+    - section: "Agent Discovery"
+      examples:
+        - description: "Discover available agents"
+          code: "agent-manager discover"
+        - description: "Register an agent"
+          code: "agent-manager register --name \"my-agent\" --type coder"
+        - description: "Unregister an agent"
+          code: "agent-manager unregister agent-id"
+    - section: "Configuration"
+      examples:
+        - description: "Example agents-config.yaml"
+          code: |
+            # ~/config/agents-config.yaml
+            agents:
+              - name: coder
+                type: development
+                capabilities:
+                  - code-generation
+                  - refactoring
+              - name: researcher
+                type: analysis
+                capabilities:
+                  - documentation
+                  - research
+    - section: "Agent Operations"
+      examples:
+        - description: "Start an agent"
+          code: "agent-manager start agent-id"
+        - description: "Stop an agent"
+          code: "agent-manager stop agent-id"
+        - description: "Restart an agent"
+          code: "agent-manager restart agent-id"

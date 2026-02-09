@@ -21,15 +21,20 @@ install_pulumi() {
         return 0
     fi
 
-    curl -fsSL https://get.pulumi.com | sh || {
-        print_warning "Failed to install Pulumi"
+    # Pinned version for consistency (updated 2026-02-09)
+    local PULUMI_VERSION="v3.219.0"
+    print_status "Installing Pulumi ${PULUMI_VERSION}..."
+
+    # Install specific version
+    curl -fsSL https://get.pulumi.com | sh -s -- --version "${PULUMI_VERSION}" || {
+        print_warning "Failed to install Pulumi ${PULUMI_VERSION}"
         return 1
     }
 
     # Add to PATH if not already there
     if [[ -d "$HOME/.pulumi/bin" ]]; then
         export PATH="$HOME/.pulumi/bin:$PATH"
-        print_success "Pulumi installed"
+        print_success "Pulumi ${PULUMI_VERSION} installed"
     fi
 }
 
@@ -41,15 +46,27 @@ install_crossplane() {
         return 0
     fi
 
-    curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh || {
-        print_warning "Failed to install Crossplane CLI"
-        return 1
-    }
+    # Pinned version for consistency (updated 2026-02-09)
+    local CROSSPLANE_VERSION="v2.2.0"
+    local OS="linux"
+    local ARCH="amd64"
 
-    if [[ -f "./kubectl-crossplane" ]]; then
-        chmod +x ./kubectl-crossplane
-        mv ./kubectl-crossplane "$INSTALL_DIR/crossplane"
-        print_success "Crossplane CLI installed"
+    # Detect ARM64
+    if [[ "$(uname -m)" == "aarch64" ]] || [[ "$(uname -m)" == "arm64" ]]; then
+        ARCH="arm64"
+    fi
+
+    print_status "Installing Crossplane ${CROSSPLANE_VERSION}..."
+
+    # Download specific version from GitHub releases
+    local DOWNLOAD_URL="https://releases.crossplane.io/stable/${CROSSPLANE_VERSION}/bin/${OS}_${ARCH}/crank"
+
+    if curl -sL "$DOWNLOAD_URL" -o "$INSTALL_DIR/crossplane"; then
+        chmod +x "$INSTALL_DIR/crossplane"
+        print_success "Crossplane CLI ${CROSSPLANE_VERSION} installed"
+    else
+        print_warning "Failed to install Crossplane CLI ${CROSSPLANE_VERSION}"
+        return 1
     fi
 }
 
@@ -57,14 +74,8 @@ install_crossplane() {
 install_kubectx() {
     print_status "Installing kubectx and kubens..."
 
-    # Get latest version using standardized GitHub release version detection
-    # Uses gh CLI with curl fallback for reliability
-    local KUBECTX_VERSION
-    KUBECTX_VERSION=$(get_github_release_version "ahmetb/kubectx" true)
-    if [[ -z "$KUBECTX_VERSION" ]]; then
-        print_warning "Could not fetch kubectx version, using fallback v0.9.5"
-        KUBECTX_VERSION="v0.9.5"
-    fi
+    # Pinned version for consistency (updated 2026-02-09)
+    local KUBECTX_VERSION="v0.9.5"
     print_status "Using kubectx version: $KUBECTX_VERSION"
 
     local BASE_URL="https://raw.githubusercontent.com/ahmetb/kubectx/${KUBECTX_VERSION}/bin"
@@ -85,7 +96,24 @@ install_kubectx() {
 install_carvel() {
     print_status "Installing Carvel suite tools..."
 
+    # Pinned versions for consistency (updated 2026-02-09)
+    # Source: https://github.com/carvel-dev/
+    declare -A CARVEL_VERSIONS=(
+        ["kapp"]="v0.65.0"
+        ["ytt"]="v0.52.2"
+        ["kbld"]="v0.45.2"
+        ["vendir"]="v0.43.0"
+        ["imgpkg"]="v0.46.0"
+    )
+
     local CARVEL_TOOLS=(kapp ytt kbld vendir imgpkg)
+    local OS="linux"
+    local ARCH="amd64"
+
+    # Detect ARM64
+    if [[ "$(uname -m)" == "aarch64" ]] || [[ "$(uname -m)" == "arm64" ]]; then
+        ARCH="arm64"
+    fi
 
     for tool in "${CARVEL_TOOLS[@]}"; do
         if command -v "$tool" > /dev/null 2>&1; then
@@ -93,32 +121,15 @@ install_carvel() {
             continue
         fi
 
-        print_status "Installing $tool..."
+        local VERSION="${CARVEL_VERSIONS[$tool]}"
+        print_status "Installing $tool $VERSION..."
 
-        case "$tool" in
-            kapp)
-                curl -sL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR="$INSTALL_DIR" bash -s -- kapp
-                ;;
-            ytt)
-                curl -sL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR="$INSTALL_DIR" bash -s -- ytt
-                ;;
-            kbld)
-                curl -sL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR="$INSTALL_DIR" bash -s -- kbld
-                ;;
-            vendir)
-                curl -sL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR="$INSTALL_DIR" bash -s -- vendir
-                ;;
-            imgpkg)
-                curl -sL https://carvel.dev/install.sh | K14SIO_INSTALL_BIN_DIR="$INSTALL_DIR" bash -s -- imgpkg
-                ;;
-        esac
+        local DOWNLOAD_URL="https://github.com/carvel-dev/${tool}/releases/download/${VERSION}/${tool}-${OS}-${ARCH}"
 
-        if [[ -f "$INSTALL_DIR/$tool" ]]; then
-            chmod +x "$INSTALL_DIR/$tool"
-            print_success "$tool installed"
-        else
+        curl -sL "$DOWNLOAD_URL" -o "$INSTALL_DIR/$tool" && \
+            chmod +x "$INSTALL_DIR/$tool" && \
+            print_success "$tool $VERSION installed" || \
             print_warning "Failed to install $tool"
-        fi
     done
 }
 

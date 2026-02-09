@@ -49,3 +49,26 @@ bom:
       license: MIT
       homepage: https://github.com/upstash/context7
       purl: pkg:generic/context7-mcp-server
+docs:
+  title: "Context7 MCP"
+  overview: |
+    Context7 MCP server for up-to-date, version-specific library documentation. Provides real-time access to documentation for programming libraries and frameworks.
+  last-updated: "2026-01-26"
+  features:
+    - "Real-time Docs - Always up-to-date documentation"
+    - "Version-specific - Documentation for specific library versions"
+    - "Remote Server - No local installation required"
+    - "Claude Code Integration - Native MCP support"
+  usage:
+    - section: "With Claude Code"
+      examples:
+        - description: "Context7 registers as an MCP server in Claude Code settings. Once registered, Claude Code can automatically fetch documentation for libraries you're working with."
+          code: |
+            # Claude Code will use context7 for queries like:
+            # "How do I use React hooks?"
+            # "What's the syntax for Express middleware?"
+            # "Show me the Next.js API routes documentation"
+    - section: "API Key Benefits"
+      examples:
+        - description: "With an API key: higher rate limits, access to private repository documentation, priority support"
+          code: "# Set CONTEXT7_API_KEY in your environment for enhanced access"

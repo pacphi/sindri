@@ -162,9 +162,37 @@ capabilities:
 bom:
   tools:
     - name: agentic-flow
-      version: dynamic
+      version: alpha
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/agentic-flow
       purl: pkg:npm/agentic-flow
+docs:
+  title: "Agentic Flow"
+  overview: |
+    Multi-model AI agent framework for Claude Code with cost optimization (alpha). Provides intelligent agent orchestration with support for multiple AI providers.
+  last-updated: "2026-01-26"
+  features:
+    - "Multi-model support - Use different AI models for different tasks"
+    - "Cost optimization - Route tasks to cost-effective models"
+    - "Hooks system - Extensible automation hooks"
+    - "Intelligence bootstrap - Pretrain from codebase"
+  usage:
+    - section: "Initialization"
+      examples:
+        - description: "Initialize agentic flow"
+          code: "npx agentic-flow init"
+        - description: "Bootstrap intelligence from codebase"
+          code: "npx agentic-flow hooks pretrain"
+    - section: "Agent Management"
+      examples:
+        - description: "Run with agentic flow"
+          code: "npx agentic-flow run --task \"analyze code\""
+        - description: "Check status"
+          code: "npx agentic-flow status"
+  related:
+    - name: nodejs
+      description: "Required dependency"
+    - name: claude-flow-v3
+      description: "Primary orchestration (higher priority)"

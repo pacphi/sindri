@@ -119,6 +119,11 @@ impl<'a> ExtensionValidator<'a> {
             );
         }
 
+        // Validate docs if present
+        if let Some(docs) = &extension.docs {
+            self.validate_docs(docs)?;
+        }
+
         // Validate BOM if present
         if let Some(bom) = &extension.bom {
             self.validate_bom(bom)?;
@@ -232,6 +237,40 @@ impl<'a> ExtensionValidator<'a> {
         }
 
         Ok(())
+    }
+
+    /// Validate documentation metadata
+    fn validate_docs(&self, docs: &sindri_core::types::DocsConfig) -> Result<()> {
+        // Validate last-updated date format if present
+        if let Some(date) = &docs.last_updated {
+            if !Self::is_valid_date(date) {
+                anyhow::bail!(
+                    "Invalid docs.last-updated date format: {}. Expected YYYY-MM-DD",
+                    date
+                );
+            }
+        }
+
+        // Validate usage sections have at least one example
+        for section in &docs.usage {
+            if section.examples.is_empty() {
+                anyhow::bail!("Usage section '{}' has no examples", section.section);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Check if string is a valid ISO date (YYYY-MM-DD)
+    fn is_valid_date(date: &str) -> bool {
+        let parts: Vec<&str> = date.split('-').collect();
+        if parts.len() != 3 {
+            return false;
+        }
+        let year = parts[0].parse::<u32>().ok();
+        let month = parts[1].parse::<u32>().ok();
+        let day = parts[2].parse::<u32>().ok();
+        matches!((year, month, day), (Some(y), Some(m), Some(d)) if y >= 2020 && (1..=12).contains(&m) && (1..=31).contains(&d))
     }
 
     /// Check if string is valid semver (basic check: X.Y.Z)

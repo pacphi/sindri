@@ -69,18 +69,89 @@ remove:
 upgrade:
   strategy: manual
 bom:
+  # EXCEPTIONAL CASE: apt-managed packages (cannot pin reliably)
+  # Versions depend on Ubuntu release
   tools:
     - name: tmux
-      version: dynamic
+      version: dynamic  # apt-managed
       source: apt
       type: cli-tool
       license: ISC
       homepage: https://github.com/tmux/tmux
       purl: pkg:deb/ubuntu/tmux
     - name: htop
-      version: dynamic
+      version: dynamic  # apt-managed
       source: apt
       type: cli-tool
       license: GPL-2.0
       homepage: https://htop.dev
       purl: pkg:deb/ubuntu/htop
+docs:
+  title: "Tmux Workspace"
+  overview: |
+    Tmux workspace management with helper scripts and auto-start functionality. Provides terminal multiplexing for efficient development workflows.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic Tmux"
+      examples:
+        - code: |
+            # Start tmux
+            tmux
+
+            # Create named session
+            tmux new -s dev
+
+            # Attach to session
+            tmux attach -t dev
+
+            # List sessions
+            tmux ls
+
+            # Kill session
+            tmux kill-session -t dev
+    - section: "Window Management"
+      examples:
+        - code: |
+            # Inside tmux:
+            # Create new window: Ctrl-b c
+            # Next window: Ctrl-b n
+            # Previous window: Ctrl-b p
+            # Select window: Ctrl-b [0-9]
+            # Rename window: Ctrl-b ,
+    - section: "Pane Management"
+      examples:
+        - code: |
+            # Split horizontally: Ctrl-b "
+            # Split vertically: Ctrl-b %
+            # Switch panes: Ctrl-b arrow-keys
+            # Close pane: Ctrl-b x
+            # Resize: Ctrl-b Ctrl-arrow
+    - section: "Helper Scripts"
+      examples:
+        - code: |
+            # Start workspace
+            tmux-workspace.sh
+
+            # Auto-start on login
+            source ~/scripts/tmux-auto-start.sh
+    - section: "Htop"
+      examples:
+        - code: |
+            # View processes
+            htop
+
+            # Inside htop:
+            # F5 - Tree view
+            # F6 - Sort by
+            # F9 - Kill process
+            # F10 - Quit
+    - section: "Custom Configuration"
+      examples:
+        - code: |
+            # Edit tmux config
+            vim ~/config/tmux.conf
+
+            # Reload config
+            tmux source-file ~/.tmux.conf
+  notes: |
+    Tmux Workspace is a standalone productivity tool with no related extensions.

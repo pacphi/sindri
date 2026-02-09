@@ -115,7 +115,7 @@ upgrade:
 bom:
   tools:
     - name: terraform
-      version: dynamic
+      version: 1.14
       source: mise
       type: cli-tool
       license: BUSL-1.1
@@ -123,93 +123,210 @@ bom:
       purl: pkg:generic/terraform
       cpe: cpe:2.3:a:hashicorp:terraform:*:*:*:*:*:*:*:*
     - name: kubectl
-      version: dynamic
+      version: 1.35.0
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://kubernetes.io
       purl: pkg:generic/kubectl
     - name: helm
-      version: dynamic
+      version: 4.1.0
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://helm.sh
       purl: pkg:generic/helm
     - name: k9s
-      version: dynamic
+      version: 0.50.18
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://k9scli.io
       purl: pkg:github/derailed/k9s
     - name: ansible
-      version: dynamic
+      version: 13.3.0
       source: apt
       type: cli-tool
       license: GPL-3.0
       homepage: https://www.ansible.com
       purl: pkg:deb/ubuntu/ansible
+      cpe: cpe:2.3:a:ansible:ansible:*:*:*:*:*:*:*:*
     - name: pulumi
-      version: dynamic
+      version: 3.219.0
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.pulumi.com
       purl: pkg:generic/pulumi
     - name: crossplane
-      version: dynamic
+      version: 2.2
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.crossplane.io
       purl: pkg:generic/crossplane
     - name: kubectx
-      version: dynamic
+      version: 0.9.5
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
-      purl: pkg:github/ahmetb/kubectx
+      purl: pkg:github/ahmetb/kubectx@0.9.5
     - name: kubens
-      version: dynamic
+      version: 0.9.5
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
-      purl: pkg:github/ahmetb/kubectx
+      purl: pkg:github/ahmetb/kubectx@0.9.5
     - name: kapp
-      version: dynamic
+      version: 0.65.0
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/kapp
-      purl: pkg:generic/kapp
+      purl: pkg:github/carvel-dev/kapp@0.65.0
     - name: ytt
-      version: dynamic
+      version: 0.52.2
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/ytt
-      purl: pkg:generic/ytt
+      purl: pkg:github/carvel-dev/ytt@0.52.2
     - name: kbld
-      version: dynamic
+      version: 0.45.2
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/kbld
-      purl: pkg:generic/kbld
+      purl: pkg:github/carvel-dev/kbld@0.45.2
     - name: vendir
-      version: dynamic
+      version: 0.43.0
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/vendir
-      purl: pkg:generic/vendir
+      purl: pkg:github/carvel-dev/vendir@0.43.0
     - name: imgpkg
-      version: dynamic
+      version: 0.46.0
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/imgpkg
-      purl: pkg:generic/imgpkg
+      purl: pkg:github/carvel-dev/imgpkg@0.46.0
+docs:
+  title: "Infrastructure Tools"
+  overview: |
+    Infrastructure and DevOps tooling including Terraform, Kubernetes tools, and Configuration Management. Comprehensive IaC toolkit.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Terraform"
+      examples:
+        - code: |
+            # Initialize
+            terraform init
+
+            # Plan changes
+            terraform plan
+
+            # Apply changes
+            terraform apply
+
+            # Destroy infrastructure
+            terraform destroy
+
+            # Format code
+            terraform fmt
+    - section: "Kubernetes (kubectl)"
+      examples:
+        - code: |
+            # Get resources
+            kubectl get pods
+            kubectl get services
+            kubectl get deployments
+
+            # Apply manifests
+            kubectl apply -f deployment.yaml
+
+            # Logs and exec
+            kubectl logs pod-name
+            kubectl exec -it pod-name -- bash
+
+            # Context management
+            kubectx my-cluster
+            kubens my-namespace
+    - section: "Helm"
+      examples:
+        - code: |
+            # Add repository
+            helm repo add bitnami https://charts.bitnami.com/bitnami
+
+            # Search charts
+            helm search repo nginx
+
+            # Install a chart
+            helm install my-release bitnami/nginx
+
+            # Upgrade
+            helm upgrade my-release bitnami/nginx
+
+            # List releases
+            helm list
+    - section: "K9s"
+      examples:
+        - code: |
+            # Launch TUI
+            k9s
+
+            # With specific context
+            k9s --context my-cluster
+
+            # With namespace filter
+            k9s -n my-namespace
+    - section: "Ansible"
+      examples:
+        - code: |
+            # Run playbook
+            ansible-playbook playbook.yml
+
+            # Inventory check
+            ansible-inventory --list
+
+            # Ad-hoc commands
+            ansible all -m ping
+
+            # Lint playbook
+            ansible-lint playbook.yml
+    - section: "Pulumi"
+      examples:
+        - code: |
+            # Create project
+            pulumi new aws-python
+
+            # Preview changes
+            pulumi preview
+
+            # Deploy
+            pulumi up
+
+            # Destroy
+            pulumi destroy
+    - section: "Carvel Tools"
+      examples:
+        - code: |
+            # ytt - Template YAML
+            ytt -f config/ -f values.yaml
+
+            # kapp - Deploy application
+            kapp deploy -a my-app -f config/
+
+            # kbld - Build images
+            kbld -f config/
+
+            # vendir - Sync dependencies
+            vendir sync
+  related:
+    - name: cloud-tools
+      description: "Cloud provider CLIs"
+    - name: docker
+      description: "Container runtime"

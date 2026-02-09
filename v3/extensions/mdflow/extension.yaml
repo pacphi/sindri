@@ -46,16 +46,104 @@ upgrade:
 bom:
   tools:
     - name: bun
-      version: dynamic
+      version: 1
       source: mise
       type: runtime
       license: MIT
       homepage: https://bun.sh
       purl: pkg:generic/bun
     - name: mdflow
-      version: dynamic
+      version: "2.33"  # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/johnlindquist/mdflow
       purl: pkg:npm/mdflow
+docs:
+  title: "MDFlow"
+  overview: |
+    Multi-backend CLI that transforms markdown files into executable AI agents - run prompts against Claude, Codex, Gemini, or Copilot via markdown.
+  last-updated: "2026-01-26"
+  features:
+    - "Markdown-driven - Define AI workflows in markdown"
+    - "Multi-backend - Support for multiple AI providers"
+    - "Composable - Chain prompts together"
+    - "Executable - Run markdown as programs"
+  usage:
+    - section: "Basic Usage"
+      examples:
+        - code: |
+            # Check versions
+            bun --version
+            mdflow help
+    - section: "Creating Prompts"
+      examples:
+        - code: |
+            <!-- prompt.md -->
+
+            # Summarize Code
+
+            Please summarize the following code:
+
+            ```javascript
+            {code}
+            ```
+
+            Provide:
+
+            1. A brief description
+            2. Main functionality
+            3. Potential improvements
+    - section: "Running Prompts"
+      examples:
+        - code: |
+            # Run a prompt file
+            mdflow run prompt.md
+
+            # With variables
+            mdflow run prompt.md --code "$(cat src/index.js)"
+
+            # Specify backend
+            mdflow run prompt.md --backend claude
+            mdflow run prompt.md --backend openai
+    - section: "Chaining Prompts"
+      examples:
+        - code: |
+            <!-- chain.md -->
+
+            # Step 1: Analyze
+
+            Analyze this code for issues.
+
+            ---
+
+            # Step 2: Fix
+
+            Based on the analysis, suggest fixes.
+
+            ---
+
+            # Step 3: Test
+
+            Write tests for the fixed code.
+        - code: |
+            # Run chained prompts
+            mdflow run chain.md --code "$(cat buggy.js)"
+    - section: "Backend Configuration"
+      examples:
+        - code: |
+            # Configure backends
+            mdflow config set claude.api_key $ANTHROPIC_API_KEY
+            mdflow config set openai.api_key $OPENAI_API_KEY
+
+            # Set default backend
+            mdflow config set default_backend claude
+    - section: "Templates"
+      examples:
+        - code: |
+            # Use templates
+            mdflow template list
+            mdflow template use code-review --file src/app.ts
+  related:
+    - name: nodejs
+      description: "Required dependency"

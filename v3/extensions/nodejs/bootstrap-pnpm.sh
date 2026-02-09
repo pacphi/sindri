@@ -34,8 +34,9 @@ NPM_GLOBAL_PREFIX="${HOME}/.npm-global"
 mkdir -p "$NPM_GLOBAL_PREFIX"
 
 # Install pnpm globally with explicit prefix
-print_status "Installing pnpm@10 to ${NPM_GLOBAL_PREFIX}..."
-"$NODE_BIN" "$NPM_CLI" install -g --prefix "$NPM_GLOBAL_PREFIX" pnpm@10 || {
+# Pinned version for consistency (researched 2026-02-09)
+print_status "Installing pnpm@10.29.2 to ${NPM_GLOBAL_PREFIX}..."
+"$NODE_BIN" "$NPM_CLI" install -g --prefix "$NPM_GLOBAL_PREFIX" pnpm@10.29.2 || {
     print_error "Failed to install pnpm"
     exit 1
 }

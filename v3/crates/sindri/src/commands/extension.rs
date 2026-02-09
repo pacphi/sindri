@@ -19,9 +19,10 @@ use serde_json;
 use tabled::{settings::Style, Table, Tabled};
 
 use crate::cli::{
-    ExtensionCheckArgs, ExtensionCommands, ExtensionInfoArgs, ExtensionInstallArgs,
-    ExtensionListArgs, ExtensionRemoveArgs, ExtensionRollbackArgs, ExtensionStatusArgs,
-    ExtensionUpgradeArgs, ExtensionValidateArgs, ExtensionVersionsArgs, UpdateSupportFilesArgs,
+    ExtensionCheckArgs, ExtensionCommands, ExtensionDocsArgs, ExtensionInfoArgs,
+    ExtensionInstallArgs, ExtensionListArgs, ExtensionRemoveArgs, ExtensionRollbackArgs,
+    ExtensionStatusArgs, ExtensionUpgradeArgs, ExtensionValidateArgs, ExtensionVersionsArgs,
+    UpdateSupportFilesArgs,
 };
 use crate::output;
 
@@ -47,6 +48,7 @@ pub async fn run(cmd: ExtensionCommands) -> Result<()> {
         ExtensionCommands::Check(args) => check(args).await,
         ExtensionCommands::Rollback(args) => rollback(args).await,
         ExtensionCommands::UpdateSupportFiles(args) => update_support_files(args).await,
+        ExtensionCommands::Docs(args) => docs(args).await,
     }
 }
 
@@ -581,6 +583,7 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
                 remove: None,
                 upgrade: None,
                 capabilities: None,
+                docs: None,
                 bom: None,
             };
             temp_registry.extensions.insert(dep_name.clone(), dep_ext);
@@ -751,7 +754,8 @@ struct StatusRow {
 /// - Show specific: `sindri extension status python`
 /// - JSON output: `sindri extension status --json`
 async fn status(args: ExtensionStatusArgs) -> Result<()> {
-    use sindri_extensions::ManifestManager;
+    use sindri_core::types::ExtensionState;
+    use sindri_extensions::{verify_extension_installed, ManifestManager};
 
     if let Some(name) = &args.name {
         output::info(&format!("Checking status of extension: {}", name));
@@ -785,16 +789,63 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
         return Ok(());
     }
 
-    // Convert to status rows
-    let statuses: Vec<StatusRow> = entries
-        .into_iter()
-        .map(|(name, ext)| StatusRow {
+    // Convert to status rows, verifying installed state
+    let extensions_dir = get_extensions_dir()?;
+    let mut statuses: Vec<StatusRow> = Vec::new();
+
+    for (name, ext) in entries {
+        // Determine actual status based on state and verification
+        let status_str = match ext.state {
+            // Non-installed states: show as-is
+            ExtensionState::Failed => "failed".to_string(),
+            ExtensionState::Installing => "installing".to_string(),
+            ExtensionState::Outdated => "outdated".to_string(),
+            ExtensionState::Removing => "removing".to_string(),
+
+            // Installed state: verify it's actually installed
+            ExtensionState::Installed => {
+                let version_dir = extensions_dir.join(name).join(&ext.version);
+                let yaml_path = version_dir.join("extension.yaml");
+
+                if !yaml_path.exists() {
+                    // No extension.yaml = no trace of installation
+                    "not installed".to_string()
+                } else {
+                    // extension.yaml exists, check if software is present
+                    match std::fs::read_to_string(&yaml_path) {
+                        Ok(content) => {
+                            match serde_yaml::from_str::<sindri_core::types::Extension>(&content) {
+                                Ok(extension) => {
+                                    let is_verified = verify_extension_installed(&extension).await;
+                                    if is_verified {
+                                        "installed".to_string()
+                                    } else {
+                                        // Installation attempted but software missing/broken
+                                        "failed".to_string()
+                                    }
+                                }
+                                Err(_) => {
+                                    // Can't parse extension.yaml - corrupted
+                                    "failed".to_string()
+                                }
+                            }
+                        }
+                        Err(_) => {
+                            // Can't read extension.yaml
+                            "failed".to_string()
+                        }
+                    }
+                }
+            }
+        };
+
+        statuses.push(StatusRow {
             name: name.to_string(),
             version: ext.version.clone(),
-            status: format!("{:?}", ext.state).to_lowercase(),
+            status: status_str,
             installed_at: ext.installed_at.format("%Y-%m-%d %H:%M").to_string(),
-        })
-        .collect();
+        });
+    }
 
     if args.json {
         let json = serde_json::to_string_pretty(&statuses)
@@ -823,7 +874,8 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
 /// - Source repository
 /// - Installed version and timestamp
 async fn info(args: ExtensionInfoArgs) -> Result<()> {
-    use sindri_extensions::{ExtensionRegistry, ManifestManager};
+    use sindri_core::types::ExtensionState;
+    use sindri_extensions::{verify_extension_installed, ExtensionRegistry, ManifestManager};
 
     // Load registry and manifest
     let cache_dir = get_cache_dir()?;
@@ -838,8 +890,38 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
         .get_entry(&args.name)
         .ok_or_else(|| anyhow!("Extension '{}' not found in registry", args.name))?;
 
-    // Get installed info if available
-    let installed = manifest.get_installed(&args.name);
+    // Get installed info from manifest
+    let mut installed = manifest.get_installed(&args.name);
+
+    // If manifest says installed, verify it's actually installed
+    if let Some(ext) = &installed {
+        if ext.state == ExtensionState::Installed {
+            // Load extension definition to verify
+            let extensions_dir = get_extensions_dir()?;
+            let version_dir = extensions_dir.join(&args.name).join(&ext.version);
+            let yaml_path = version_dir.join("extension.yaml");
+
+            if yaml_path.exists() {
+                let content =
+                    std::fs::read_to_string(&yaml_path).context("Failed to read extension.yaml")?;
+                if let Ok(extension) =
+                    serde_yaml::from_str::<sindri_core::types::Extension>(&content)
+                {
+                    let is_verified = verify_extension_installed(&extension).await;
+                    if !is_verified {
+                        // Extension not actually installed, treat as not installed
+                        installed = None;
+                    }
+                } else {
+                    // Can't parse extension.yaml, treat as not installed
+                    installed = None;
+                }
+            } else {
+                // Extension definition missing, treat as not installed
+                installed = None;
+            }
+        }
+    }
 
     if args.json {
         // JSON output
@@ -1869,6 +1951,91 @@ async fn update_support_files(args: UpdateSupportFilesArgs) -> Result<()> {
             Err(e)
         }
     }
+}
+
+// ============================================================================
+// Docs Command
+// ============================================================================
+
+/// Generate documentation for an extension
+///
+/// Loads the extension.yaml and renders documentation to stdout using the
+/// embedded Tera template.
+///
+/// Usage: `sindri extension docs golang`
+async fn docs(args: ExtensionDocsArgs) -> Result<()> {
+    // Try to find the extension.yaml file
+    let extensions_dir = get_extensions_dir()?;
+
+    // Try multiple locations: installed (versioned), installed (flat), source tree
+    let extension_yaml_path = {
+        let mut found = None;
+
+        // 1. Flat structure (development/bundled mode)
+        let flat_path = extensions_dir.join(&args.name).join("extension.yaml");
+        if flat_path.exists() {
+            found = Some(flat_path);
+        }
+
+        // 2. Try source tree locations (development mode)
+        if found.is_none() {
+            let source_paths = vec![
+                std::path::PathBuf::from("extensions")
+                    .join(&args.name)
+                    .join("extension.yaml"),
+                std::path::PathBuf::from("v3/extensions")
+                    .join(&args.name)
+                    .join("extension.yaml"),
+                std::path::PathBuf::from("../extensions")
+                    .join(&args.name)
+                    .join("extension.yaml"),
+            ];
+
+            for path in source_paths {
+                if path.exists() {
+                    found = Some(path);
+                    break;
+                }
+            }
+        }
+
+        // 3. Versioned structure (downloaded mode) - check manifest
+        if found.is_none() {
+            if let Ok(manifest) = sindri_extensions::ManifestManager::load_default() {
+                if let Some(version) = manifest.get_version(&args.name) {
+                    let versioned_path = extensions_dir
+                        .join(&args.name)
+                        .join(version)
+                        .join("extension.yaml");
+                    if versioned_path.exists() {
+                        found = Some(versioned_path);
+                    }
+                }
+            }
+        }
+
+        found.ok_or_else(|| {
+            anyhow!(
+                "Extension '{}' not found. Checked installed and source tree locations.",
+                args.name
+            )
+        })?
+    };
+
+    // Load and parse the extension
+    let content = std::fs::read_to_string(&extension_yaml_path)
+        .with_context(|| format!("Failed to read {}", extension_yaml_path.display()))?;
+
+    let extension: sindri_core::types::Extension = serde_yaml::from_str(&content)
+        .with_context(|| format!("Failed to parse {}", extension_yaml_path.display()))?;
+
+    // Render documentation
+    let doc = sindri_core::templates::render_extension_doc(&extension)
+        .context("Failed to render extension documentation")?;
+
+    print!("{}", doc);
+
+    Ok(())
 }
 
 // ============================================================================

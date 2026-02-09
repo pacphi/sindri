@@ -41,30 +41,80 @@ remove:
 bom:
   tools:
     - name: python
-      version: dynamic
+      version: 3.13
       source: mise
       type: runtime
       license: PSF-2.0
       homepage: https://www.python.org
       purl: pkg:generic/python
     - name: pip
-      version: dynamic
+      version: 26.0.1  # Bundled with Python 3.13
       source: mise
       type: package-manager
       license: MIT
       homepage: https://pip.pypa.io
-      purl: pkg:pypi/pip
+      purl: pkg:pypi/pip@26.0.1
     - name: uv
-      version: dynamic
+      version: 0.9
       source: mise
       type: package-manager
       license: Apache-2.0 OR MIT
       homepage: https://docs.astral.sh/uv
       purl: pkg:cargo/uv
     - name: uvx
-      version: dynamic
+      version: 0.9  # Built-in command (same as uv)
       source: mise
       type: cli-tool
       license: Apache-2.0 OR MIT
       homepage: https://docs.astral.sh/uv
-      purl: pkg:cargo/uv
+      purl: pkg:cargo/uv@0.9
+docs:
+  title: "Python"
+  overview: |
+    Python 3.13 with uv package manager via mise. Provides a modern Python development environment with the fastest Python package manager available.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Running Python"
+      examples:
+        - description: "Check version"
+          code: |
+            python --version
+        - description: "Run a Python script"
+          code: |
+            python script.py
+        - description: "Start interactive REPL"
+          code: |
+            python
+    - section: "Package Management with uv"
+      examples:
+        - description: "Create a virtual environment"
+          code: |
+            uv venv
+        - description: "Install packages (10-100x faster than pip)"
+          code: |
+            uv pip install requests flask
+        - description: "Install from requirements.txt"
+          code: |
+            uv pip install -r requirements.txt
+        - description: "Sync dependencies"
+          code: |
+            uv pip sync requirements.txt
+    - section: "Using uvx"
+      examples:
+        - description: "Run tools without installing"
+          code: |
+            uvx black .
+            uvx ruff check .
+            uvx pytest
+    - section: "Traditional pip"
+      examples:
+        - description: "pip is still available"
+          code: |
+            pip install package-name
+            pip list
+            pip freeze > requirements.txt
+  related:
+    - name: mise-config
+      description: "Required mise configuration"
+    - name: spec-kit
+      description: "Uses uvx for GitHub spec-kit workflows"

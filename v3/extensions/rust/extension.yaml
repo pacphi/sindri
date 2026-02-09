@@ -27,16 +27,98 @@ remove:
 bom:
   tools:
     - name: rustc
-      version: dynamic
+      version: stable
       source: script
       type: compiler
       license: MIT OR Apache-2.0
       homepage: https://www.rust-lang.org
       purl: pkg:generic/rust
     - name: cargo
-      version: dynamic
+      version: stable  # Bundled with rustc, tracks stable channel
       source: script
       type: package-manager
       license: MIT OR Apache-2.0
       homepage: https://doc.rust-lang.org/cargo
       purl: pkg:cargo/cargo
+docs:
+  title: "Rust"
+  overview: |
+    Rust stable via rustup. Provides the Rust programming language toolchain including the compiler and Cargo package manager.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic Rust Commands"
+      examples:
+        - code: |
+            # Check version
+            rustc --version
+            cargo --version
+
+            # Create a new project
+            cargo new my-project
+            cargo new my-lib --lib
+
+            # Build a project
+            cargo build
+            cargo build --release
+    - section: "Running and Testing"
+      examples:
+        - code: |
+            # Run a project
+            cargo run
+
+            # Run tests
+            cargo test
+
+            # Run benchmarks
+            cargo bench
+
+            # Check code without building
+            cargo check
+    - section: "Dependency Management"
+      examples:
+        - code: |
+            # Add a dependency
+            cargo add serde
+            cargo add tokio --features full
+
+            # Update dependencies
+            cargo update
+
+            # Show dependency tree
+            cargo tree
+    - section: "Code Quality"
+      examples:
+        - code: |
+            # Format code
+            cargo fmt
+
+            # Run linter
+            cargo clippy
+
+            # Generate documentation
+            cargo doc --open
+    - section: "Building for Release"
+      examples:
+        - code: |
+            # Optimized release build
+            cargo build --release
+
+            # Cross-compilation (with targets installed)
+            rustup target add x86_64-unknown-linux-musl
+            cargo build --target x86_64-unknown-linux-musl --release
+    - section: "Using Rustup"
+      examples:
+        - code: |
+            # Update Rust
+            rustup update
+
+            # Install a component
+            rustup component add rustfmt clippy
+
+            # Install a specific toolchain
+            rustup install nightly
+
+            # Switch default toolchain
+            rustup default stable
+  notes: |
+    Rust is a standalone language extension with no related extensions.

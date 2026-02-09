@@ -51,9 +51,52 @@ upgrade:
 bom:
   tools:
     - name: claudish
-      version: dynamic
+      version: 3.2
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/MadAppGang/claudish
       purl: pkg:npm/claudish
+docs:
+  title: "Claudish"
+  overview: |
+    Claude Code CLI proxy for OpenRouter models - run Claude Code with any OpenRouter model via local Anthropic API proxy. Enables using alternative models with Claude Code.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Start Proxy"
+      examples:
+        - code: |
+            # Start claudish proxy
+            claudish
+
+            # The proxy listens on localhost and forwards to OpenRouter
+            # Claude Code connects to the local proxy instead of Anthropic
+    - section: "Configuration"
+      examples:
+        - code: |
+            # Set OpenRouter API key
+            export OPENROUTER_API_KEY="your-key"
+
+            # Configure model preference
+            claudish --model gpt-4-turbo
+
+            # Use specific endpoint
+            claudish --endpoint https://openrouter.ai/api/v1
+    - section: "With Claude Code"
+      examples:
+        - description: "Once claudish is running, set environment and use Claude Code normally"
+          code: |
+            # Example setup
+            export ANTHROPIC_BASE_URL="http://localhost:8080"
+            export ANTHROPIC_API_KEY="placeholder"
+            claude code
+  related:
+    - name: nodejs
+      description: "Required dependency"
+    - name: claude-code-mux
+      description: "Alternative multi-provider proxy"
+  notes: |
+    Claudish acts as a local proxy server that receives requests intended for Anthropic API,
+    translates them to OpenRouter format, forwards to your chosen OpenRouter model, and returns
+    responses in Anthropic-compatible format. This allows using Claude Code with models like
+    GPT-4, Gemini, Llama, Mistral, and any other OpenRouter-supported model.

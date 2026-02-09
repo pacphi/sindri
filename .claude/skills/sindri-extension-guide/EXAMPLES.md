@@ -812,3 +812,136 @@ capabilities:
 - Max/Pro users can use extensions without setting API keys
 - Feature-level auth requirements (some features work without API key)
 - Graceful degradation when API key unavailable
+
+---
+
+## 7. Extension with Docs Section
+
+**Pattern:** All extensions must include a `docs` section for documentation rendering
+**Use case:** Every extension - provides user-facing documentation via `sindri extension docs <name>`
+
+```yaml
+# v2/docker/lib/extensions/python/extension.yaml
+---
+metadata:
+  name: python
+  version: 1.1.0
+  description: Python runtime with uv and pip
+  category: language
+  dependencies: []
+
+requirements:
+  domains:
+    - pypi.org
+    - files.pythonhosted.org
+  diskSpace: 500
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+configure:
+  environment:
+    - key: PYTHONUNBUFFERED
+      value: "1"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: python
+      expectedPattern: "Python \\d+\\.\\d+\\.\\d+"
+    - name: pip
+    - name: uv
+
+bom:
+  tools:
+    - name: python
+      version: "3.13"
+      source: mise
+      type: runtime
+      license: PSF-2.0
+      homepage: https://www.python.org
+      purl: pkg:generic/python@3.13
+    - name: pip
+      version: "26.0.1"
+      source: mise
+      type: package-manager
+      license: MIT
+      homepage: https://pip.pypa.io
+      purl: pkg:pypi/pip@26.0.1
+    - name: uv
+      version: "0.9"
+      source: mise
+      type: package-manager
+      license: Apache-2.0
+      homepage: https://github.com/astral-sh/uv
+      purl: pkg:generic/uv@0.9
+
+# DOCS SECTION - REQUIRED FOR ALL EXTENSIONS
+docs:
+  title: "Python"
+  overview: |
+    Python 3.13 runtime via mise with modern package managers (uv and pip).
+    Provides a complete Python development environment with best-in-class
+    dependency management and virtual environment support.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Running Python"
+      examples:
+        - description: "Check Python version"
+          code: |
+            python --version
+        - description: "Run a Python script"
+          code: |
+            python script.py
+        - description: "Start interactive REPL"
+          code: |
+            python
+    - section: "Package Management with uv"
+      examples:
+        - description: "Create a new project"
+          code: |
+            uv init my-project
+            cd my-project
+        - description: "Install dependencies"
+          code: |
+            uv pip install requests numpy pandas
+        - description: "Run a command with uv"
+          code: |
+            uv run python app.py
+    - section: "Traditional pip Usage"
+      examples:
+        - description: "Install a package"
+          code: |
+            pip install package-name
+        - description: "Install from requirements.txt"
+          code: |
+            pip install -r requirements.txt
+        - description: "List installed packages"
+          code: |
+            pip list
+  related:
+    - name: ai-toolkit
+      description: "AI/ML development tools"
+    - name: playwright
+      description: "Browser automation with Python support"
+```
+
+**Key points:**
+
+- **Required for all extensions** - The `docs` section must be present in every extension
+- **title** - Short display name (usually matches tool name)
+- **overview** - Multi-line description explaining what the extension provides
+- **last-updated** - ISO date format (YYYY-MM-DD) for tracking documentation freshness
+- **usage** - Organized by sections (e.g., "Running Python", "Package Management")
+- **examples** - Each has a description and literal shell code
+- **related** - Links to complementary extensions (optional)
+- **Rendered via CLI** - Use `sindri extension docs python` to view formatted documentation
+
+This section enables:
+- Consistent documentation format across all extensions
+- Self-documenting extension system
+- Quick reference via `sindri extension docs <name>`
+- Integration with extension marketplace/search

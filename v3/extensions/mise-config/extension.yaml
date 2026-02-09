@@ -27,8 +27,108 @@ upgrade:
 bom:
   tools:
     - name: mise
-      version: dynamic
+      version: dynamic  # Official installer (target: 2026.2.7)
       source: binary
       type: package-manager
       license: MIT
       homepage: https://mise.jd.io
+docs:
+  title: "Mise Config"
+  overview: |
+    Global mise configuration and settings. Provides the foundation for tool version management used by many other extensions.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic Commands"
+      examples:
+        - code: |
+            # Check version
+            mise --version
+
+            # List installed tools
+            mise list
+
+            # List available plugins
+            mise plugins list-all
+
+            # Install a tool
+            mise install node@20
+
+            # Use a version globally
+            mise use -g node@20
+    - section: "Configuration Files"
+      examples:
+        - code: |
+            # Create local config
+            mise use node@20
+
+            # This creates .mise.toml:
+            # [tools]
+            # node = "20"
+
+            # View current config
+            mise config
+    - section: "Managing Multiple Versions"
+      examples:
+        - code: |
+            # Install multiple versions
+            mise install node@18 node@20 node@22
+
+            # Switch versions
+            mise use node@18
+            mise use node@20
+
+            # Set global default
+            mise use -g node@20
+    - section: "Environment Variables"
+      examples:
+        - code: |
+            # Set environment variables in .mise.toml
+            # [env]
+            # NODE_ENV = "development"
+
+            # View current environment
+            mise env
+    - section: "Tool-Specific Examples"
+      examples:
+        - code: |
+            # Node.js
+            mise install node@20
+            mise use node@20
+
+            # Python
+            mise install python@3.12
+            mise use python@3.12
+
+            # Go
+            mise install go@1.22
+            mise use go@1.22
+
+            # Rust (via rust-analyzer)
+            mise install rust-analyzer
+    - section: "Shims"
+      examples:
+        - code: |
+            # Refresh shims after installation
+            mise reshim
+
+            # Show where a tool is located
+            mise where node
+
+            # Show which version is active
+            mise which node
+    - section: "Integration with Projects"
+      examples:
+        - code: |
+            # .mise.toml example
+            [tools]
+            node = "20"
+            python = "3.12"
+            go = "1.22"
+
+            [env]
+            NODE_ENV = "development"
+            DEBUG = "true"
+  notes: |
+    About Mise: Mise (formerly rtx) is a polyglot tool version manager that replaces asdf, nvm, pyenv, rbenv, and others. It manages multiple runtime versions for various languages and tools.
+
+    Many extensions depend on mise-config for tool management: nodejs, python, golang, jvm (for Clojure and Leiningen), haskell, infra-tools, and nodejs-devtools.

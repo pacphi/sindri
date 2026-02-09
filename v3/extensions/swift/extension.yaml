@@ -55,3 +55,56 @@ bom:
       license: Apache-2.0
       homepage: https://www.swift.org
       purl: pkg:generic/swift
+docs:
+  title: "Swift"
+  overview: |
+    Swift 6.2.3 via mise. Provides the Swift programming language for iOS, macOS, Linux, and server-side development.
+  last-updated: "2026-02-03"
+  usage:
+    - section: "Basic Swift Commands"
+      examples:
+        - code: |
+            # Check version
+            swift --version
+
+            # Start REPL
+            swift
+
+            # Run a Swift file
+            swift run.swift
+
+            # Build a project
+            swift build
+
+            # Run tests
+            swift test
+    - section: "Swift Package Manager"
+      examples:
+        - code: |
+            # Initialize a new package
+            swift package init --type executable
+
+            # Add a dependency (edit Package.swift then run)
+            swift package update
+
+            # Generate Xcode project
+            swift package generate-xcodeproj
+
+            # Build release version
+            swift build -c release
+    - section: "Building for Different Configurations"
+      examples:
+        - code: |
+            # Debug build
+            swift build
+
+            # Release build
+            swift build -c release
+
+            # Build with verbose output
+            swift build -v
+  related:
+    - name: mise-config
+      description: "Required mise configuration"
+    - name: nodejs
+      description: "Often used together for React Native development"

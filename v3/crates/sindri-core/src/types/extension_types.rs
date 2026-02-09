@@ -35,6 +35,10 @@ pub struct Extension {
     #[serde(default)]
     pub capabilities: Option<CapabilitiesConfig>,
 
+    /// Documentation metadata
+    #[serde(default)]
+    pub docs: Option<DocsConfig>,
+
     /// Bill of Materials
     #[serde(default)]
     pub bom: Option<BomConfig>,
@@ -1390,4 +1394,75 @@ pub enum BomFileType {
     Library,
     Script,
     Data,
+}
+
+/// Documentation metadata configuration
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DocsConfig {
+    /// Display name (e.g., "Go (Golang)")
+    #[serde(default)]
+    pub title: Option<String>,
+
+    /// Extended description for documentation
+    #[serde(default)]
+    pub overview: Option<String>,
+
+    /// ISO date for staleness tracking (YYYY-MM-DD)
+    #[serde(default, rename = "last-updated")]
+    pub last_updated: Option<String>,
+
+    /// Key features bullet list
+    #[serde(default)]
+    pub features: Vec<String>,
+
+    /// Structured usage examples
+    #[serde(default)]
+    pub usage: Vec<UsageSection>,
+
+    /// Related extensions
+    #[serde(default)]
+    pub related: Vec<RelatedExtension>,
+
+    /// Freeform notes or caveats
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
+/// A section of usage examples
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageSection {
+    /// Section heading
+    pub section: String,
+
+    /// Examples in this section
+    pub examples: Vec<UsageExample>,
+}
+
+/// A single usage example
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageExample {
+    /// Optional description
+    #[serde(default)]
+    pub description: Option<String>,
+
+    /// Code snippet
+    pub code: String,
+
+    /// Language for syntax highlighting
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "bash".to_string()
+}
+
+/// Related extension reference
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RelatedExtension {
+    /// Extension name
+    pub name: String,
+
+    /// How this extension relates
+    pub description: String,
 }

@@ -49,3 +49,49 @@ bom:
       license: MIT
       homepage: https://linear.app/docs/mcp
       purl: pkg:generic/linear-mcp-server
+docs:
+  title: "Linear MCP"
+  overview: |
+    Linear MCP server using Claude Code's native HTTP transport. No API key required - uses OAuth flow via Claude Code. Modern issue tracking integration.
+  last-updated: "2026-01-26"
+  features:
+    - "No API Key Required - Uses OAuth flow via Claude Code"
+    - "Native HTTP Transport - Direct integration"
+    - "Issue Management - Full Linear issue lifecycle"
+    - "Project Tracking - Access to projects and cycles"
+    - "No Dependencies - Lightweight installation"
+  usage:
+    - section: "With Claude Code"
+      examples:
+        - description: "Once registered, Claude Code can interact with Linear"
+          code: |
+            # Example queries:
+            # "Create a Linear issue for the performance bug"
+            # "What are my Linear tasks this cycle?"
+            # "Update LIN-123 to Done"
+            # "Show me the current sprint backlog"
+    - section: "Issue Management"
+      examples:
+        - description: "Through Claude Code"
+          code: |
+            # Through Claude Code:
+            # - Create issues
+            # - Update status
+            # - Add comments
+            # - Assign issues
+            # - Link issues
+            # - Set priorities
+    - section: "Project Operations"
+      examples:
+        - description: "Through Claude Code"
+          code: |
+            # Through Claude Code:
+            # - View projects
+            # - Track cycles
+            # - Manage milestones
+            # - View roadmaps
+  notes: |
+    OAuth Authentication: When first using Linear features, Claude Code will prompt for OAuth authentication. This is a one-time setup.
+  related:
+    - name: jira-mcp
+      description: "Alternative issue tracking (Atlassian)"

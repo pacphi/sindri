@@ -56,7 +56,7 @@ Uses **script** installation method:
 
 ## Documentation
 
-- Extension docs: `v3/docs/extensions/SHANNON.md`
+- Extension docs: `sindri extension docs shannon`
 - Main catalog: `v3/docs/EXTENSIONS.md`
 - GitHub: https://github.com/KeygraphHQ/shannon
 

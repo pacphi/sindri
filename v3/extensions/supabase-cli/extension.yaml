@@ -52,9 +52,109 @@ upgrade:
 bom:
   tools:
     - name: supabase
-      version: dynamic
+      version: 2.76.4
       source: binary
       type: cli-tool
       license: MIT
       homepage: https://supabase.com/docs/guides/local-development/cli/getting-started
       purl: pkg:github/supabase/cli
+docs:
+  title: "Supabase CLI"
+  overview: |
+    Supabase CLI for local development, migrations, and edge functions. Full-featured tooling for Supabase backend development.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Project Setup"
+      examples:
+        - code: |
+            # Initialize a new Supabase project
+            supabase init
+
+            # Link to cloud project
+            supabase link --project-ref your-project-ref
+
+            # Start local development stack
+            supabase start
+
+            # Stop local stack
+            supabase stop
+    - section: "Database Management"
+      examples:
+        - code: |
+            # Create a new migration
+            supabase migration new create_users_table
+
+            # Apply migrations locally
+            supabase db reset
+
+            # Push migrations to cloud
+            supabase db push
+
+            # Pull schema from cloud
+            supabase db pull
+
+            # Diff local vs remote
+            supabase db diff
+    - section: "Edge Functions"
+      examples:
+        - code: |
+            # Create a new function
+            supabase functions new hello-world
+
+            # Serve functions locally
+            supabase functions serve
+
+            # Deploy a function
+            supabase functions deploy hello-world
+
+            # Deploy all functions
+            supabase functions deploy
+    - section: "Type Generation"
+      examples:
+        - code: |
+            # Generate TypeScript types
+            supabase gen types typescript --local > types/supabase.ts
+
+            # From linked project
+            supabase gen types typescript --linked > types/supabase.ts
+    - section: "Secrets Management"
+      examples:
+        - code: |
+            # Set a secret
+            supabase secrets set MY_SECRET=value
+
+            # List secrets
+            supabase secrets list
+
+            # Unset a secret
+            supabase secrets unset MY_SECRET
+    - section: "Storage"
+      examples:
+        - code: |
+            # List buckets
+            supabase storage ls
+
+            # Create bucket
+            supabase storage create-bucket my-bucket
+
+            # Upload file
+            supabase storage cp ./file.txt gs://my-bucket/file.txt
+    - section: "Auth"
+      examples:
+        - code: |
+            # List auth providers
+            supabase auth list
+
+            # Enable provider
+            supabase auth enable google
+    - section: "Status and Logs"
+      examples:
+        - code: |
+            # Check status
+            supabase status
+
+            # View logs
+            supabase logs
+  related:
+    - name: docker
+      description: "Required for local development"

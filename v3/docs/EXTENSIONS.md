@@ -319,15 +319,15 @@ capabilities: # Optional: Advanced features
       command: "npx"
       args: ["@app/mcp-server"]
 
-bom: # Optional: Software Bill of Materials
+bom: # Recommended: Software Bill of Materials
   tools:
     - name: app
-      version: dynamic
+      version: "2.1.0" # Pin to explicit version for accurate SBOM
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://example.com
-      purl: pkg:npm/app
+      purl: pkg:npm/app@2.1.0
 ```
 
 ### Installation Methods
@@ -609,6 +609,20 @@ Similar to extensions, the registry (list of available extensions and profiles) 
 | `SINDRI_EXTENSIONS_SOURCE` | Path to source-based extensions | `/opt/sindri/extensions` | Docker ENV             |
 
 These variables are automatically set during deployment when using `buildFromSource.enabled: true` in `sindri.yaml`.
+
+---
+
+## Generating Extension Documentation
+
+Extension documentation is generated on-demand from `extension.yaml` files using the `sindri extension docs` command:
+
+```bash
+# Generate docs for a specific extension
+sindri extension docs golang
+sindri extension docs python
+```
+
+This generates comprehensive markdown documentation by combining auto-derived data (BOM, requirements, env vars, validation) with human-written content from the `docs` section in each extension's `extension.yaml`.
 
 ---
 

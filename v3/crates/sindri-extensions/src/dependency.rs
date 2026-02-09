@@ -116,6 +116,7 @@ mod tests {
                 remove: None,
                 upgrade: None,
                 capabilities: None,
+                docs: None,
                 bom: None,
             };
             // Add extension to the internal HashMap

@@ -38,23 +38,74 @@ upgrade:
 bom:
   tools:
     - name: uv
-      version: dynamic
+      version: dynamic  # Official installer (gets latest)
       source: script
       type: cli-tool
       license: MIT OR Apache-2.0
       homepage: https://docs.astral.sh/uv
       purl: pkg:cargo/uv
     - name: claude-monitor
-      version: dynamic
+      version: dynamic  # uv tool install (gets latest)
       source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/anthropics/claude-monitor
       purl: pkg:pypi/claude-monitor
     - name: claude-usage
-      version: dynamic
+      version: dynamic  # uv tool install (gets latest)
       source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/anthropics/claude-usage-cli
       purl: pkg:pypi/claude-usage-cli
+docs:
+  title: "Monitoring"
+  overview: |
+    Claude monitoring and usage tracking tools including UV, claude-monitor, and claude-usage-cli. Track and manage your Claude API usage.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Claude Monitor"
+      examples:
+        - description: "Start monitoring"
+          code: |
+            claude-monitor
+        - description: "Monitor with specific interval"
+          code: |
+            claude-monitor --interval 60
+        - description: "Export metrics"
+          code: |
+            claude-monitor export --format json
+        - description: "View dashboard"
+          code: |
+            claude-monitor dashboard
+    - section: "Claude Usage CLI"
+      examples:
+        - description: "Check usage"
+          code: |
+            claude-usage
+        - description: "View detailed stats"
+          code: |
+            claude-usage --detailed
+        - description: "Usage by date range"
+          code: |
+            claude-usage --from 2024-01-01 --to 2024-01-31
+        - description: "Export usage data"
+          code: |
+            claude-usage export --format csv
+    - section: "UV Package Manager"
+      examples:
+        - description: "Install packages"
+          code: |
+            uv pip install package-name
+        - description: "Create virtual environment"
+          code: |
+            uv venv
+        - description: "Sync requirements"
+          code: |
+            uv pip sync requirements.txt
+        - description: "Install from requirements"
+          code: |
+            uv pip install -r requirements.txt
+  related:
+    - name: python
+      description: "Required dependency"

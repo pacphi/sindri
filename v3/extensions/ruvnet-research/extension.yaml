@@ -45,16 +45,64 @@ upgrade:
 bom:
   tools:
     - name: goalie
-      version: dynamic
+      version: 1.3 # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/cmurczek/goalie
       purl: pkg:npm/goalie
     - name: research-swarm
-      version: dynamic
+      version: 1.2 # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/research-swarm
       purl: pkg:npm/research-swarm
+docs:
+  title: "RuVNet Research"
+  overview: |
+    AI research tools including Goalie goal management and Research-Swarm multi-agent research framework. Tools for AI-assisted research and goal tracking.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Goalie"
+      examples:
+        - code: |
+            # Initialize goals
+            goalie init
+
+            # Add a goal
+            goalie add "Learn Rust programming"
+
+            # List goals
+            goalie list
+
+            # Update progress
+            goalie update goal-id --progress 50
+
+            # AI assistance
+            goalie analyze  # Get AI suggestions
+    - section: "Research Swarm"
+      examples:
+        - code: |
+            # Start research
+            research-swarm "What are the latest advances in AI?"
+
+            # With specific sources
+            research-swarm "Climate change impacts" --sources academic
+
+            # Save results
+            research-swarm "Quantum computing" --output report.md
+
+            # Configure agents
+            research-swarm config set agents 5
+    - section: "Configuration"
+      examples:
+        - code: |
+            # Set Perplexity API key
+            export PERPLEXITY_API_KEY="your-key"
+
+            # Configure research swarm
+            research-swarm config set model pplx-70b-online
+  related:
+    - name: nodejs
+      description: "Required dependency"

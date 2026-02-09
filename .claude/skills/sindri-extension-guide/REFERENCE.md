@@ -572,3 +572,64 @@ These variables are available in scripts and templates:
 | `$MISE_CONFIG_DIR` | `$HOME/.config/mise`            | mise config directory  |
 | `$MISE_CACHE_DIR`  | `$HOME/.cache/mise`             | mise cache directory   |
 | `$MISE_STATE_DIR`  | `$HOME/.local/state/mise`       | mise state directory   |
+
+## Docs Section
+
+The `docs` section provides structured documentation for the extension that can be rendered in markdown format via `sindri extension docs <name>`. This section is **required** for all extensions.
+
+```yaml
+docs:
+  title: "Node.js"
+  overview: |
+    Node.js LTS via mise with pnpm package manager. Provides a complete
+    Node.js development environment with modern package management.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Running Node.js"
+      examples:
+        - description: "Check version"
+          code: |
+            node --version
+        - description: "Run a JavaScript file"
+          code: |
+            node app.js
+    - section: "Package Management"
+      examples:
+        - description: "Install dependencies"
+          code: |
+            pnpm install
+  related:
+    - name: nodejs-devtools
+      description: "TypeScript, ESLint, and Prettier"
+    - name: playwright
+      description: "Browser automation"
+```
+
+| Field          | Type   | Required | Description                                     |
+| -------------- | ------ | -------- | ----------------------------------------------- |
+| `title`        | string | Yes      | Display title for the extension                 |
+| `overview`     | string | Yes      | Multi-line description of the extension         |
+| `last-updated` | string | Yes      | ISO date (YYYY-MM-DD) of last documentation update |
+| `usage`        | array  | No       | Usage examples grouped by section               |
+| `related`      | array  | No       | Related extensions                              |
+
+### Usage Sub-fields
+
+| Field      | Type   | Required | Description                    |
+| ---------- | ------ | -------- | ------------------------------ |
+| `section`  | string | Yes      | Section name for grouping      |
+| `examples` | array  | Yes      | Code examples for this section |
+
+**Example Fields:**
+
+| Field         | Type   | Required | Description              |
+| ------------- | ------ | -------- | ------------------------ |
+| `description` | string | Yes      | What the example does    |
+| `code`        | string | Yes      | Shell commands (literal) |
+
+### Related Sub-fields
+
+| Field         | Type   | Required | Description                    |
+| ------------- | ------ | -------- | ------------------------------ |
+| `name`        | string | Yes      | Extension name                 |
+| `description` | string | Yes      | Brief description of extension |

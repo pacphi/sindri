@@ -59,12 +59,96 @@ upgrade:
       - dotnet-sdk-8.0
     updateFirst: true
 bom:
+  # EXCEPTIONAL CASE: apt-managed (ppa:dotnet/backports)
+  # Cannot pin reliably - depends on Ubuntu release
+  # Target version (as of 2026-02-09): 10.0.2 LTS
   tools:
     - name: dotnet
-      version: dynamic
+      version: dynamic  # apt-managed
       source: script
       type: runtime
       license: MIT
       homepage: https://dotnet.microsoft.com
       purl: pkg:deb/ubuntu/dotnet-sdk-10.0
       cpe: cpe:2.3:a:microsoft:.net:*:*:*:*:*:*:*:*
+docs:
+  title: ".NET"
+  overview: |
+    .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools. Provides a complete .NET development environment with templates and configuration.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Creating Projects"
+      examples:
+        - code: |
+            # Create a console app
+            dotnet new console -n MyApp
+
+            # Create a web API
+            dotnet new webapi -n MyApi
+
+            # Create a Blazor app
+            dotnet new blazor -n MyBlazorApp
+
+            # Create a class library
+            dotnet new classlib -n MyLibrary
+    - section: "Building and Running"
+      examples:
+        - code: |
+            # Build a project
+            dotnet build
+
+            # Run a project
+            dotnet run
+
+            # Run with watch mode
+            dotnet watch run
+
+            # Publish for deployment
+            dotnet publish -c Release
+    - section: "Package Management"
+      examples:
+        - code: |
+            # Add a package
+            dotnet add package Newtonsoft.Json
+
+            # Remove a package
+            dotnet remove package Newtonsoft.Json
+
+            # Restore packages
+            dotnet restore
+
+            # List packages
+            dotnet list package
+    - section: "Testing"
+      examples:
+        - code: |
+            # Create a test project
+            dotnet new xunit -n MyTests
+
+            # Run tests
+            dotnet test
+
+            # Run with coverage
+            dotnet test --collect:"XPlat Code Coverage"
+    - section: "Entity Framework Core"
+      examples:
+        - code: |
+            # Add EF tools
+            dotnet tool install --global dotnet-ef
+
+            # Create a migration
+            dotnet ef migrations add InitialCreate
+
+            # Update database
+            dotnet ef database update
+    - section: "SDK Management"
+      examples:
+        - code: |
+            # List installed SDKs
+            dotnet --list-sdks
+
+            # List installed runtimes
+            dotnet --list-runtimes
+
+            # Check version
+            dotnet --version

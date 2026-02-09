@@ -70,37 +70,88 @@ upgrade:
 bom:
   tools:
     - name: fabric
-      version: dynamic
+      version: dynamic  # go install @latest (cannot pin easily)
       source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/danielmiessler/fabric
       purl: pkg:pypi/fabric
     - name: codex
-      version: dynamic
+      version: 0.95  # Pinned in install script (line 74)
       source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/openai/openai-codex
       purl: pkg:pypi/openai-codex
     - name: gemini
-      version: dynamic
+      version: 0.27  # Pinned in install script (line 75)
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://ai.google.dev
       purl: pkg:pypi/google-generativeai
     - name: droid
-      version: dynamic
+      version: dynamic  # Factory.ai installer (gets latest)
       source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/droid-ai/droid
       purl: pkg:npm/droid
     - name: grok
-      version: dynamic
+      version: 0.0.34  # Pinned in install script (line 76)
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://x.ai
       purl: pkg:generic/grok-cli
+docs:
+  title: "AI Toolkit"
+  overview: |
+    AI CLI tools and coding assistants including Fabric, Codex, Gemini, Droid, and Grok. For local LLM hosting, install the separate ollama extension.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Fabric"
+      examples:
+        - description: "List available patterns"
+          code: "fabric --list"
+        - description: "Run a pattern"
+          code: "fabric --pattern explain \"complex code here\""
+        - description: "Summarize content"
+          code: "fabric --pattern summarize < document.txt"
+        - description: "Extract wisdom from text"
+          code: "fabric --pattern extract_wisdom < article.txt"
+    - section: "Codex"
+      examples:
+        - description: "Generate code"
+          code: "codex \"Write a Python function to calculate fibonacci\""
+        - description: "Interactive mode"
+          code: "codex --interactive"
+    - section: "Gemini"
+      examples:
+        - description: "Chat with Gemini"
+          code: "gemini \"Explain machine learning\""
+        - description: "Code generation"
+          code: "gemini --code \"Create a REST API in Python\""
+    - section: "Grok"
+      examples:
+        - description: "Query Grok"
+          code: "grok \"What are the latest developments in AI?\""
+        - description: "Code assistance"
+          code: "grok --code \"Debug this function\""
+    - section: "Droid"
+      examples:
+        - description: "Code review"
+          code: "droid review main.py"
+        - description: "Suggestions"
+          code: "droid suggest \"How can I optimize this?\""
+  related:
+    - name: ollama
+      description: "Local LLM hosting (separate extension)"
+    - name: nodejs
+      description: "Required dependency"
+    - name: python
+      description: "Required dependency"
+    - name: golang
+      description: "Required dependency"
+    - name: github-cli
+      description: "Required dependency"

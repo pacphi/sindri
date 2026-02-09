@@ -1026,6 +1026,90 @@
         }
       }
     },
+    "docs": {
+      "type": ["object", "null"],
+      "description": "Documentation metadata for auto-generated extension docs",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Display name for the extension (e.g., 'Go (Golang)')"
+        },
+        "overview": {
+          "type": "string",
+          "description": "Extended description for documentation"
+        },
+        "last-updated": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO date for staleness tracking (YYYY-MM-DD)"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Key features bullet list"
+        },
+        "usage": {
+          "type": "array",
+          "description": "Structured usage examples",
+          "items": {
+            "type": "object",
+            "required": ["section", "examples"],
+            "properties": {
+              "section": {
+                "type": "string",
+                "description": "Section heading for this group of examples"
+              },
+              "examples": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["code"],
+                  "properties": {
+                    "description": {
+                      "type": "string",
+                      "description": "Optional description of the example"
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Code snippet"
+                    },
+                    "language": {
+                      "type": "string",
+                      "default": "bash",
+                      "description": "Language for syntax highlighting"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "related": {
+          "type": "array",
+          "description": "Related extensions",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Extension name"
+              },
+              "description": {
+                "type": "string",
+                "description": "How this extension relates"
+              }
+            }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Freeform notes or caveats"
+        }
+      }
+    },
     "bom": {
       "type": ["object", "null"],
       "description": "Bill of Materials - declarative listing of software installed by this extension",

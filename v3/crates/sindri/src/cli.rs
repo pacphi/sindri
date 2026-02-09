@@ -90,6 +90,10 @@ pub enum Commands {
     /// Build VM images with HashiCorp Packer
     #[command(subcommand, alias = "packer")]
     Vm(VmCommands),
+
+    /// Bill of Materials management
+    #[command(subcommand)]
+    Bom(BomCommands),
 }
 
 // Version command
@@ -257,6 +261,15 @@ pub enum ExtensionCommands {
 
     /// Update support files (common.sh, compatibility-matrix.yaml, extension-source.yaml)
     UpdateSupportFiles(UpdateSupportFilesArgs),
+
+    /// Generate documentation for an extension
+    Docs(ExtensionDocsArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ExtensionDocsArgs {
+    /// Extension name
+    pub name: String,
 }
 
 #[derive(Args, Debug)]
@@ -1039,4 +1052,78 @@ pub struct VmDeployArgs {
     /// Output as JSON
     #[arg(long)]
     pub json: bool,
+}
+
+// BOM commands
+#[derive(Subcommand, Debug)]
+pub enum BomCommands {
+    /// Generate BOM from installed extensions
+    Generate(BomGenerateArgs),
+
+    /// Show BOM for specific extension
+    Show(BomShowArgs),
+
+    /// List all components
+    List(BomListArgs),
+
+    /// Export BOM to file
+    Export(BomExportArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct BomGenerateArgs {
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+
+    /// Detect versions by running validation commands
+    #[arg(long)]
+    pub detect_versions: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct BomShowArgs {
+    /// Extension name
+    pub extension: String,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+
+    /// Detect versions
+    #[arg(long)]
+    pub detect_versions: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct BomListArgs {
+    /// Extension name (optional)
+    pub extension: Option<String>,
+
+    /// Filter by type (tool, runtime, library)
+    #[arg(short = 't', long)]
+    pub component_type: Option<String>,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct BomExportArgs {
+    /// Format (json, yaml, cyclonedx, spdx)
+    #[arg(short, long, default_value = "json")]
+    pub format: String,
+
+    /// Output file
+    #[arg(short, long, default_value = "bom.json")]
+    pub output: Utf8PathBuf,
+
+    /// Detect versions
+    #[arg(long)]
+    pub detect_versions: bool,
+
+    /// Force overwrite
+    #[arg(long)]
+    pub force: bool,
 }
