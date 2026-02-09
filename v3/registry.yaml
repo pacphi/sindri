@@ -153,6 +153,9 @@ extensions:
   playwright:
     category: "testing"
     description: "Playwright browser automation"
+  shannon:
+    category: "testing"
+    description: "Autonomous AI pentester for finding exploits in web applications"
 
   # Documentation & Content
   mdflow:

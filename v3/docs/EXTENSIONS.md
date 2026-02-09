@@ -45,7 +45,7 @@ V3 extensions are organized into the following categories:
 | **mcp**             | Model Context Protocol servers                   | 6     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
-| **testing**         | Testing frameworks and automation                | 1     |
+| **testing**         | Testing frameworks and security testing          | 2     |
 | **documentation**   | Documentation generation and management          | 2     |
 | **cloud**           | Cloud service integrations                       | 1     |
 | **desktop**         | Desktop environments and remote access           | 2     |
@@ -139,9 +139,10 @@ V3 extensions are organized into the following categories:
 
 ### Testing
 
-| Extension      | Version | Description                                           | Install Method |
-| -------------- | ------- | ----------------------------------------------------- | -------------- |
-| **playwright** | 2.0.0   | Playwright browser automation framework with Chromium | script         |
+| Extension      | Version | Description                                                      | Install Method |
+| -------------- | ------- | ---------------------------------------------------------------- | -------------- |
+| **playwright** | 2.0.0   | Playwright browser automation framework with Chromium            | script         |
+| **shannon**    | 1.0.0   | Autonomous AI pentester for finding exploits in web applications | script         |
 
 ### Documentation
 
@@ -624,7 +625,7 @@ These variables are automatically set during deployment when using `buildFromSou
 
 ## Summary Statistics
 
-- **Total Extensions**: 49
+- **Total Extensions**: 50
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 11

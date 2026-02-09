@@ -1,0 +1,123 @@
+metadata:
+  name: shannon
+  version: 1.0.0
+  description: Autonomous AI pentester for finding exploits in web applications
+  category: testing
+  dependencies: []
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    args: []
+    timeout: 300
+
+configure:
+  environment:
+    - key: SHANNON_HOME
+      value: "${HOME}/.shannon"
+      scope: bashrc
+    - key: PATH
+      value: "${SHANNON_HOME}:${PATH}"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: shannon
+      versionFlag: --version
+      expectedPattern: "shannon"
+
+requirements:
+  domains:
+    - github.com
+    - raw.githubusercontent.com
+  diskSpace: 100
+  memory: 512
+  installTime: 180
+  installTimeout: 300
+  validationTimeout: 30
+  secrets:
+    - ANTHROPIC_API_KEY
+
+capabilities:
+  auth:
+    provider: anthropic
+    required: true
+    methods: [api-key]
+    envVars: [ANTHROPIC_API_KEY, CLAUDE_CODE_MAX_OUTPUT_TOKENS]
+    validator:
+      command: "test -n \"$ANTHROPIC_API_KEY\""
+      expectedExitCode: 0
+    features:
+      - name: autonomous-pentesting
+        requiresApiKey: true
+        description: "Run autonomous AI-powered penetration tests"
+
+  hooks:
+    post-install:
+      command: "shannon --version"
+      description: "Verify Shannon installation"
+
+  project-context:
+    enabled: true
+    mergeFile:
+      source: templates/SKILL.md
+      target: CLAUDE.md
+      strategy: append-if-missing
+
+bom:
+  tools:
+    - name: shannon
+      version: dynamic
+      source: github-clone
+      type: security-testing
+      license: Unknown
+      url: https://github.com/KeygraphHQ/shannon
+
+docs:
+  readme: |
+    # Shannon - Autonomous AI Pentester
+
+    Shannon is a fully autonomous AI pentester that finds actual exploits in web applications
+    by combining white-box source code analysis with black-box dynamic exploitation.
+
+    ## Key Features
+    - Autonomous vulnerability discovery (Injection, XSS, SSRF, Auth/AuthZ)
+    - 96.15% success rate on XBOW Benchmark
+    - Combined white-box + black-box testing
+    - Comprehensive security assessment reports
+
+    ## Quick Start
+
+    ```bash
+    # Set API key (required)
+    export ANTHROPIC_API_KEY="your-api-key"
+    export CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000
+
+    # Run a pentest
+    shannon start URL=https://your-app.com REPO=/path/to/your/repo
+
+    # View logs
+    shannon logs
+
+    # Check progress
+    shannon query ID=workflow-id
+
+    # Stop (preserves data)
+    shannon stop
+
+    # Full cleanup
+    shannon stop CLEAN=true
+    ```
+
+    ## Requirements
+    - Docker must be installed and running
+    - Anthropic API key (required)
+    - Source code access for target application
+
+    ## Output Location
+    Results are saved to: `./audit-logs/{hostname}_{sessionId}/`
+
+    ## Documentation
+    - GitHub: https://github.com/KeygraphHQ/shannon
+    - XBOW Benchmark: 96.15% success rate
