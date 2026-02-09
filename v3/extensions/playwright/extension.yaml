@@ -50,7 +50,7 @@ upgrade:
 bom:
   tools:
     - name: playwright
-      version: 1.58.2
+      version: "1.58.2"
       source: npm
       type: framework
       license: Apache-2.0

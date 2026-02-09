@@ -57,7 +57,7 @@ bom:
       type: runtime
       license: MIT
     - name: compahook
-      version: 1.1.2
+      version: "1.1.2"
       source: npm
       type: cli-tool
       license: MIT

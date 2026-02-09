@@ -314,7 +314,7 @@ capabilities:
 bom:
   tools:
     - name: claude-flow
-      version: 3.1.0-alpha.24  # Tracks v3alpha tag in mise.toml (latest as of 2026-02-09)
+      version: "3.1.0-alpha.24"  # Tracks v3alpha tag in mise.toml (latest as of 2026-02-09)
       source: npm
       type: cli-tool
       license: MIT

@@ -156,7 +156,7 @@ capabilities:
 bom:
   tools:
     - name: claude-codepro
-      version: 4.5.29
+      version: "4.5.29"
       source: github-release
       type: utility
       license: Proprietary

@@ -41,28 +41,28 @@ remove:
 bom:
   tools:
     - name: python
-      version: 3.13
+      version: "3.13"
       source: mise
       type: runtime
       license: PSF-2.0
       homepage: https://www.python.org
       purl: pkg:generic/python
     - name: pip
-      version: 26.0.1  # Bundled with Python 3.13
+      version: "26.0.1"  # Bundled with Python 3.13
       source: mise
       type: package-manager
       license: MIT
       homepage: https://pip.pypa.io
       purl: pkg:pypi/pip@26.0.1
     - name: uv
-      version: 0.9
+      version: "0.9"
       source: mise
       type: package-manager
       license: Apache-2.0 OR MIT
       homepage: https://docs.astral.sh/uv
       purl: pkg:cargo/uv
     - name: uvx
-      version: 0.9  # Built-in command (same as uv)
+      version: "0.9"  # Built-in command (same as uv)
       source: mise
       type: cli-tool
       license: Apache-2.0 OR MIT

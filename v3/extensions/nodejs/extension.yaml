@@ -52,21 +52,21 @@ bom:
       homepage: https://nodejs.org
       purl: pkg:generic/nodejs
     - name: npm
-      version: 10.9.4  # Bundled with Node.js 22 LTS
+      version: "10.9.4"  # Bundled with Node.js 22 LTS
       source: mise
       type: package-manager
       license: Artistic-2.0
       homepage: https://www.npmjs.com
       purl: pkg:npm/npm@10.9.4
     - name: npx
-      version: 10.9.4  # Part of npm package
+      version: "10.9.4"  # Part of npm package
       source: mise
       type: cli-tool
       license: Artistic-2.0
       homepage: https://www.npmjs.com
       purl: pkg:npm/npx@10.9.4
     - name: pnpm
-      version: 10.29.2  # Pinned in bootstrap-pnpm.sh
+      version: "10.29.2"  # Pinned in bootstrap-pnpm.sh
       source: npm
       type: package-manager
       license: MIT

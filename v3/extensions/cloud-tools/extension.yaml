@@ -89,7 +89,7 @@ bom:
   # Install script uses upstream installers - versions reflect latest available
   tools:
     - name: aws
-      version: 2.27.41
+      version: "2.27.41"
       source: script
       type: cli-tool
       license: Apache-2.0
@@ -97,7 +97,7 @@ bom:
       purl: pkg:generic/awscli@2.27.41
       cpe: cpe:2.3:a:amazon:aws_cli:2.27.41:*:*:*:*:*:*:*
     - name: az
-      version: 2.83.0
+      version: "2.83.0"
       source: script
       type: cli-tool
       license: MIT
@@ -105,35 +105,35 @@ bom:
       purl: pkg:pypi/azure-cli@2.83.0
       cpe: cpe:2.3:a:microsoft:azure_cli:2.83.0:*:*:*:*:*:*:*
     - name: gcloud
-      version: 555.0.0
+      version: "555.0.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://cloud.google.com/sdk/gcloud
       purl: pkg:generic/google-cloud-sdk@555.0.0
     - name: aliyun
-      version: 3.2.9
+      version: "3.2.9"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.alibabacloud.com/help/cli
       purl: pkg:github/aliyun/aliyun-cli@3.2.9
     - name: doctl
-      version: 1.148.0
+      version: "1.148.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://docs.digitalocean.com/reference/doctl
       purl: pkg:github/digitalocean/doctl@1.148.0
     - name: flyctl
-      version: 0.4.7
+      version: "0.4.7"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://fly.io/docs/flyctl
       purl: pkg:github/superfly/flyctl@0.4.7
     - name: ibmcloud
-      version: 2.41.0
+      version: "2.41.0"
       source: script
       type: cli-tool
       license: Apache-2.0

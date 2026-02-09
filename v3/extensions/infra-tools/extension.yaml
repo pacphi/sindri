@@ -115,7 +115,7 @@ upgrade:
 bom:
   tools:
     - name: terraform
-      version: 1.14
+      version: "1.14"
       source: mise
       type: cli-tool
       license: BUSL-1.1
@@ -123,28 +123,28 @@ bom:
       purl: pkg:generic/terraform
       cpe: cpe:2.3:a:hashicorp:terraform:*:*:*:*:*:*:*:*
     - name: kubectl
-      version: 1.35.0
+      version: "1.35.0"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://kubernetes.io
       purl: pkg:generic/kubectl
     - name: helm
-      version: 4.1.0
+      version: "4.1.0"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://helm.sh
       purl: pkg:generic/helm
     - name: k9s
-      version: 0.50.18
+      version: "0.50.18"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://k9scli.io
       purl: pkg:github/derailed/k9s
     - name: ansible
-      version: 13.3.0
+      version: "13.3.0"
       source: apt
       type: cli-tool
       license: GPL-3.0
@@ -152,63 +152,63 @@ bom:
       purl: pkg:deb/ubuntu/ansible
       cpe: cpe:2.3:a:ansible:ansible:*:*:*:*:*:*:*:*
     - name: pulumi
-      version: 3.219.0
+      version: "3.219.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.pulumi.com
       purl: pkg:generic/pulumi
     - name: crossplane
-      version: 2.2
+      version: "2.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.crossplane.io
       purl: pkg:generic/crossplane
     - name: kubectx
-      version: 0.9.5
+      version: "0.9.5"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
       purl: pkg:github/ahmetb/kubectx@0.9.5
     - name: kubens
-      version: 0.9.5
+      version: "0.9.5"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
       purl: pkg:github/ahmetb/kubectx@0.9.5
     - name: kapp
-      version: 0.65.0
+      version: "0.65.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/kapp
       purl: pkg:github/carvel-dev/kapp@0.65.0
     - name: ytt
-      version: 0.52.2
+      version: "0.52.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/ytt
       purl: pkg:github/carvel-dev/ytt@0.52.2
     - name: kbld
-      version: 0.45.2
+      version: "0.45.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/kbld
       purl: pkg:github/carvel-dev/kbld@0.45.2
     - name: vendir
-      version: 0.43.0
+      version: "0.43.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/vendir
       purl: pkg:github/carvel-dev/vendir@0.43.0
     - name: imgpkg
-      version: 0.46.0
+      version: "0.46.0"
       source: script
       type: cli-tool
       license: Apache-2.0

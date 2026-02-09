@@ -45,14 +45,14 @@ upgrade:
 bom:
   tools:
     - name: goalie
-      version: 1.3 # Pinned in mise.toml
+      version: "1.3" # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/cmurczek/goalie
       purl: pkg:npm/goalie
     - name: research-swarm
-      version: 1.2 # Pinned in mise.toml
+      version: "1.2" # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT

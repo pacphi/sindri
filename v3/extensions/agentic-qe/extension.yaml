@@ -133,7 +133,7 @@ capabilities:
 bom:
   tools:
     - name: agentic-qe
-      version: 3.6.0
+      version: "3.6.0"
       source: npm
       type: framework
       license: MIT

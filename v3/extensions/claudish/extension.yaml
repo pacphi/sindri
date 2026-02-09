@@ -51,7 +51,7 @@ upgrade:
 bom:
   tools:
     - name: claudish
-      version: 3.2
+      version: "3.2"
       source: npm
       type: cli-tool
       license: MIT

@@ -44,7 +44,7 @@ remove:
 bom:
   tools:
     - name: go
-      version: 1.25
+      version: "1.25"
       source: mise
       type: compiler
       license: BSD-3-Clause

@@ -49,21 +49,21 @@ upgrade:
 bom:
   tools:
     - name: ruby
-      version: 3.4.7
+      version: "3.4.7"
       source: mise
       type: runtime
       license: Ruby OR BSD-2-Clause
       homepage: https://www.ruby-lang.org
       purl: pkg:generic/ruby
     - name: gem
-      version: 3.6.9  # Bundled with Ruby 3.4.7
+      version: "3.6.9"  # Bundled with Ruby 3.4.7
       source: mise
       type: package-manager
       license: Ruby OR MIT
       homepage: https://rubygems.org
       purl: pkg:gem/rubygems@3.6.9
     - name: bundle
-      version: 2.6.3  # Bundled with Ruby 3.4.7
+      version: "2.6.3"  # Bundled with Ruby 3.4.7
       source: mise
       type: cli-tool
       license: MIT

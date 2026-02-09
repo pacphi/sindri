@@ -48,35 +48,35 @@ remove:
 bom:
   tools:
     - name: ghcup
-      version: 0.1.30.0  # Haskell toolchain installer
+      version: "0.1.30.0"  # Haskell toolchain installer
       source: script
       type: cli-tool
       license: LGPL-3.0
       homepage: https://www.haskell.org/ghcup
       purl: pkg:generic/ghcup
     - name: ghc
-      version: 9.12.2  # Pinned in install script
+      version: "9.12.2"  # Pinned in install script
       source: script
       type: compiler
       license: BSD-3-Clause
       homepage: https://www.haskell.org/ghc
       purl: pkg:generic/ghc
     - name: cabal
-      version: 3.14.1.1  # Pinned in install script
+      version: "3.14.1.1"  # Pinned in install script
       source: script
       type: package-manager
       license: BSD-3-Clause
       homepage: https://www.haskell.org/cabal
       purl: pkg:generic/cabal
     - name: stack
-      version: 3.3.1  # Pinned in install script
+      version: "3.3.1"  # Pinned in install script
       source: script
       type: cli-tool
       license: BSD-3-Clause
       homepage: https://docs.haskellstack.org
       purl: pkg:generic/stack
     - name: haskell-language-server
-      version: 2.13.0.0  # Pinned in install script
+      version: "2.13.0.0"  # Pinned in install script
       source: script
       type: server
       license: Apache-2.0

@@ -52,7 +52,7 @@ upgrade:
 bom:
   tools:
     - name: supabase
-      version: 2.76.4
+      version: "2.76.4"
       source: binary
       type: cli-tool
       license: MIT

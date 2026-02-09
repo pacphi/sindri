@@ -232,7 +232,7 @@ capabilities:
 bom:
   tools:
     - name: claude-flow
-      version: 2.7.47
+      version: "2.7.47"
       source: npm
       type: cli-tool
       license: MIT

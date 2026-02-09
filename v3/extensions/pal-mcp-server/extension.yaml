@@ -47,7 +47,7 @@ upgrade:
 bom:
   tools:
     - name: pal-mcp-server
-      version: 9.8.2
+      version: "9.8.2"
       source: github-release
       type: server
       license: MIT

@@ -46,7 +46,7 @@ upgrade:
 bom:
   tools:
     - name: bun
-      version: 1
+      version: "1"
       source: mise
       type: runtime
       license: MIT

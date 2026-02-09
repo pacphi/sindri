@@ -54,7 +54,7 @@ upgrade:
 bom:
   tools:
     - name: agent-browser
-      version: 0.6.0
+      version: "0.6.0"
       source: npm
       type: cli-tool
       license: Apache-2.0

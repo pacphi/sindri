@@ -41,7 +41,7 @@ upgrade:
 bom:
   tools:
     - name: openskills
-      version: 1.5.0 # Pinned in mise.toml
+      version: "1.5.0" # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
