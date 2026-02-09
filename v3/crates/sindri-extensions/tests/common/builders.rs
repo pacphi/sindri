@@ -226,6 +226,7 @@ impl ExtensionBuilder {
             remove: None,
             upgrade: None,
             capabilities,
+            docs: None,
             bom: None,
         }
     }

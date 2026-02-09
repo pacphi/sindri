@@ -112,28 +112,40 @@ fi
 install_sdk_tool() {
     local tool="$1"
     local check_cmd="${2:-$tool}"
+    local version="${3:-}"  # Optional version parameter
 
     if command_exists "$check_cmd"; then
         print_status "$tool already installed"
         return 0
     fi
 
-    print_status "Installing $tool..."
-    if sdk install "$tool"; then
-        print_success "$tool installed"
+    if [[ -n "$version" ]]; then
+        print_status "Installing $tool $version..."
+        if sdk install "$tool" "$version"; then
+            print_success "$tool $version installed"
+        else
+            print_warning "Failed to install $tool $version (may not be available for this platform)"
+        fi
     else
-        print_warning "Failed to install $tool (may not be available for this platform)"
+        print_status "Installing $tool (latest)..."
+        if sdk install "$tool"; then
+            print_success "$tool installed"
+        else
+            print_warning "Failed to install $tool (may not be available for this platform)"
+        fi
     fi
 }
 
 print_status "Installing build tools..."
-install_sdk_tool maven mvn
-install_sdk_tool gradle
+# Pinned versions for consistency (researched 2026-02-09)
+install_sdk_tool maven mvn 3.9.12
+install_sdk_tool gradle "" 9.3.1
 
 # Install languages
 print_status "Installing JVM languages..."
-install_sdk_tool kotlin
-install_sdk_tool scala
+# Pinned versions for consistency (researched 2026-02-09)
+install_sdk_tool kotlin "" 2.3.10
+install_sdk_tool scala "" 3.8.1
 install_sdk_tool sbt
 
 # Clojure via mise (more reliable than SDKMAN for Clojure)

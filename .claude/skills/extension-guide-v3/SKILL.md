@@ -15,7 +15,7 @@ V3 extensions are YAML-driven, declarative configurations for the modern Rust-ba
 | **Registry** | `v3/registry.yaml` |
 | **Schema** | `v3/schemas/extension.schema.json` |
 | **Compatibility Matrix** | `v3/compatibility-matrix.yaml` |
-| **Extension Docs** | `v3/docs/extensions/{NAME}.md` |
+| **Extension Docs** | Generated on-demand via `sindri extension docs <name>` |
 | **Catalog** | `v3/docs/EXTENSIONS.md` |
 
 ## V3 Categories
@@ -42,7 +42,7 @@ V3 extensions are YAML-driven, declarative configurations for the modern Rust-ba
 2. [ ] Create `extension.yaml` with required sections
 3. [ ] Validate: `sindri extension validate {name}`
 4. [ ] Test: `sindri extension install {name}`
-5. [ ] Create docs: `v3/docs/extensions/{NAME}.md`
+5. [ ] Add `docs` section to `extension.yaml` (optional, for human-written content)
 6. [ ] Update catalog: `v3/docs/EXTENSIONS.md`
 7. [ ] Add to registry: `v3/registry.yaml` (alphabetically by category)
 
@@ -368,7 +368,56 @@ sindri extension list
 
 # Check extension status
 sindri extension status my-extension
+
+# Preview generated documentation
+sindri extension docs my-extension
 ```
+
+## Docs Section (Optional - Human-Written Content)
+
+The `docs` section provides human-written content that is combined with auto-derived content
+(BOM, requirements, env vars, validation) when generating documentation via `sindri extension docs <name>`.
+Documentation is generated on-demand and does not require manually creating markdown files.
+
+```yaml
+docs:
+  title: string           # Display name (fallback: title-case of metadata.name)
+  overview: string         # Extended description (fallback: metadata.description)
+  last-updated: string     # ISO date (YYYY-MM-DD)
+  features:                # Key features bullet list
+    - "Feature one"
+    - "Feature two"
+  usage:                   # Usage examples grouped by section
+    - section: "Getting Started"
+      examples:
+        - description: "Check version"
+          code: "mytool --version"
+          language: "bash"
+        - code: |
+            mytool init
+            mytool run
+  related:                 # Related extensions
+    - name: other-extension
+      description: "Provides complementary tooling"
+  notes: string            # Freeform notes (markdown supported)
+```
+
+| Field          | Type            | Required | Description                                     |
+|----------------|-----------------|----------|-------------------------------------------------|
+| `title`        | string          | No       | Display name (fallback: title-case of metadata.name) |
+| `overview`     | string          | No       | Extended description (fallback: metadata.description) |
+| `last-updated` | string          | No       | ISO date (YYYY-MM-DD) of last content update    |
+| `features`     | array[string]   | No       | Key features as bullet points                   |
+| `usage`        | array[object]   | No       | Usage examples grouped by section               |
+| `usage[].section`           | string | Yes   | Section heading for the example group           |
+| `usage[].examples`          | array  | Yes   | List of code examples                           |
+| `usage[].examples[].description` | string | No | Description of what the example shows       |
+| `usage[].examples[].code`   | string | Yes   | Code snippet                                    |
+| `usage[].examples[].language` | string | No  | Language hint for syntax highlighting (default: bash) |
+| `related`      | array[object]   | No       | Related extensions                              |
+| `related[].name`        | string | Yes    | Extension name                                  |
+| `related[].description` | string | No     | Why the extension is related                    |
+| `notes`        | string          | No       | Freeform notes (markdown supported)             |
 
 ## Common V3 Patterns
 
@@ -510,12 +559,13 @@ capabilities:
 4. **GPU Requirements**: First-class GPU specification for AI workloads
 5. **Collision Handling**: Smart conflict resolution for cloned projects
 6. **Project Context**: Automatic CLAUDE.md file management
+7. **Generated Docs**: Extension documentation is generated on-demand via `sindri extension docs <name>` combining human-written `docs` section content with auto-derived data from the extension YAML
 
-## Post-Extension Documentation
+## Post-Extension Checklist
 
 After creating an extension:
 
-1. **Extension Doc**: `v3/docs/extensions/{NAME}.md`
+1. **Preview docs**: Run `sindri extension docs <name>` to preview generated documentation
 2. **Catalog**: `v3/docs/EXTENSIONS.md` (add to category table + extension list)
 3. **Registry**: `v3/registry.yaml` (add alphabetically under correct category)
 4. **Test locally**: `sindri extension install {name} && sindri extension status {name}`

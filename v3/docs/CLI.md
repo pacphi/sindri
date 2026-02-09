@@ -2036,6 +2036,157 @@ sindri vm deploy --cloud gcp sindri-dev-20260101 --json
 
 ---
 
+### bom
+
+Bill of Materials (BOM) management for security auditing, compliance reporting, and software inventory tracking.
+
+#### bom generate
+
+Generate a BOM from all installed extensions.
+
+**Synopsis:**
+
+```bash
+sindri bom generate [OPTIONS]
+```
+
+**Options:**
+
+| Option              | Description                                          |
+| ------------------- | ---------------------------------------------------- |
+| `--json`            | Output as JSON                                       |
+| `--detect-versions` | Detect versions by parsing mise.toml where available |
+
+**Examples:**
+
+```bash
+# Generate human-readable BOM summary
+sindri bom generate
+
+# Generate as JSON for piping
+sindri bom generate --json
+
+# With version detection from mise.toml
+sindri bom generate --detect-versions
+```
+
+#### bom show
+
+Show the BOM for a specific installed extension.
+
+**Synopsis:**
+
+```bash
+sindri bom show <EXTENSION> [OPTIONS]
+```
+
+**Options:**
+
+| Option              | Description                        |
+| ------------------- | ---------------------------------- |
+| `<EXTENSION>`       | Extension name (must be installed) |
+| `--json`            | Output as JSON                     |
+| `--detect-versions` | Detect versions from mise.toml     |
+
+**Examples:**
+
+```bash
+# Show infra-tools BOM (table format)
+sindri bom show infra-tools
+
+# Show as JSON
+sindri bom show cloud-tools --json
+
+# Show with version detection
+sindri bom show python --detect-versions
+```
+
+#### bom list
+
+List all components across installed extensions with optional filtering.
+
+**Synopsis:**
+
+```bash
+sindri bom list [EXTENSION] [OPTIONS]
+```
+
+**Options:**
+
+| Option                    | Short | Description                             |
+| ------------------------- | ----- | --------------------------------------- |
+| `[EXTENSION]`             | -     | Filter by extension name                |
+| `--component-type <TYPE>` | `-t`  | Filter by type (tool, runtime, library) |
+| `--json`                  | -     | Output as JSON                          |
+
+**Examples:**
+
+```bash
+# List all components across all extensions
+sindri bom list
+
+# List components for a specific extension
+sindri bom list infra-tools
+
+# List only runtime components
+sindri bom list --component-type runtime
+
+# List tools as JSON
+sindri bom list --component-type tool --json
+```
+
+#### bom export
+
+Export the BOM to a file in a specified format. Supports JSON, YAML, CycloneDX 1.4, and SPDX 2.3.
+
+**Synopsis:**
+
+```bash
+sindri bom export [OPTIONS]
+```
+
+**Options:**
+
+| Option              | Short | Default  | Description                                |
+| ------------------- | ----- | -------- | ------------------------------------------ |
+| `--format <FORMAT>` | `-f`  | json     | Export format: json, yaml, cyclonedx, spdx |
+| `--output <PATH>`   | `-o`  | bom.json | Output file path                           |
+| `--detect-versions` | -     | -        | Detect versions from mise.toml             |
+| `--force`           | -     | -        | Overwrite existing output file             |
+
+**Examples:**
+
+```bash
+# Export as JSON (default)
+sindri bom export --output bom.json
+
+# Export as CycloneDX for vulnerability scanning
+sindri bom export --format cyclonedx --output sbom.cdx.json
+
+# Export as SPDX for compliance
+sindri bom export --format spdx --output sbom.spdx.json
+
+# Export as YAML
+sindri bom export --format yaml --output bom.yaml
+
+# Force overwrite existing file
+sindri bom export --format cyclonedx --output sbom.json --force
+```
+
+**Integration with Vulnerability Scanners:**
+
+```bash
+# Export CycloneDX and scan with Grype
+sindri bom export --format cyclonedx --output sbom.cdx.json
+grype sbom:sbom.cdx.json
+
+# Export SPDX and scan with Trivy
+sindri bom export --format spdx --output sbom.spdx.json
+trivy sbom sbom.spdx.json
+```
+
+---
+
 ## Environment Variables
 
 | Variable                | Description                                 |
@@ -2166,3 +2317,6 @@ sindri k8s install k3d
 - [Projects](./PROJECTS.md) - Project creation and templates
 - [Doctor](./DOCTOR.md) - System diagnostics guide
 - [Image Management](./IMAGE_MANAGEMENT.md) - Container image security
+- [Extensions](./EXTENSIONS.md) - Extension catalog and BOM patterns
+- [Extension Authoring](./extensions/guides/AUTHORING.md) - BOM best practices for extension authors
+- [ADR-042: BOM Architecture](./architecture/adr/042-bom-capability-architecture.md) - BOM design decisions

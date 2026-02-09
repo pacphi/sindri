@@ -74,51 +74,161 @@ upgrade:
 bom:
   tools:
     - name: java
-      version: dynamic
+      version: "25"  # LTS (also installs 21, 17, 11 via SDKMAN)
       source: script
       type: runtime
       license: GPL-2.0-with-classpath-exception
       homepage: https://openjdk.org
-      purl: pkg:generic/openjdk
+      purl: pkg:generic/openjdk@25
     - name: mvn
-      version: dynamic
+      version: "3.9.12"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://maven.apache.org
-      purl: pkg:maven/maven
+      purl: pkg:maven/maven@3.9.12
     - name: gradle
-      version: dynamic
+      version: "9.3.1"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://gradle.org
-      purl: pkg:generic/gradle
+      purl: pkg:generic/gradle@9.3.1
     - name: kotlin
-      version: dynamic
+      version: "2.3.10"
       source: script
       type: compiler
       license: Apache-2.0
       homepage: https://kotlinlang.org
-      purl: pkg:maven/org.jetbrains.kotlin/kotlin-compiler
+      purl: pkg:maven/org.jetbrains.kotlin/kotlin-compiler@2.3.10
     - name: scala
-      version: dynamic
+      version: "3.8.1"
       source: script
       type: compiler
       license: Apache-2.0
       homepage: https://www.scala-lang.org
-      purl: pkg:maven/org.scala-lang/scala-compiler
+      purl: pkg:maven/org.scala-lang/scala-compiler@3.8.1
     - name: clojure
-      version: dynamic
+      version: "1.12"  # Installed via mise (already pinned in mise.toml)
       source: mise
       type: runtime
       license: EPL-1.0
       homepage: https://clojure.org
-      purl: pkg:maven/org.clojure/clojure
+      purl: pkg:maven/org.clojure/clojure@1.12
     - name: lein
-      version: dynamic
+      version: "2.12"  # Installed via mise (already pinned in mise.toml)
       source: mise
       type: cli-tool
       license: EPL-1.0
       homepage: https://leiningen.org
-      purl: pkg:generic/leiningen
+      purl: pkg:generic/leiningen@2.12
+docs:
+  title: "JVM"
+  overview: |
+    JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise. Provides a complete JVM development environment with multiple language support.
+  last-updated: "2026-01-29"
+  usage:
+    - section: "Java"
+      examples:
+        - code: |
+            # Check Java version
+            java -version
+
+            # Compile and run
+            javac Main.java
+            java Main
+
+            # Run a JAR
+            java -jar app.jar
+    - section: "Maven"
+      examples:
+        - code: |
+            # Create a project
+            mvn archetype:generate -DgroupId=com.example -DartifactId=my-app
+
+            # Build
+            mvn clean install
+
+            # Run tests
+            mvn test
+
+            # Package
+            mvn package
+    - section: "Gradle"
+      examples:
+        - code: |
+            # Initialize a project
+            gradle init
+
+            # Build
+            gradle build
+
+            # Run
+            gradle run
+
+            # Run tests
+            gradle test
+    - section: "Kotlin"
+      examples:
+        - code: |
+            # Check version
+            kotlin -version
+
+            # Run a script
+            kotlin script.kts
+
+            # Compile
+            kotlinc main.kt -include-runtime -d app.jar
+    - section: "Scala"
+      examples:
+        - code: |
+            # Check version
+            scala -version
+
+            # Interactive REPL
+            scala
+
+            # Run a file
+            scala app.scala
+
+            # Compile
+            scalac app.scala
+    - section: "Clojure"
+      examples:
+        - code: |
+            # Check version
+            clojure --version
+
+            # Start REPL
+            clj
+
+            # Run a file
+            clojure -M app.clj
+    - section: "Leiningen"
+      examples:
+        - code: |
+            # Create a project
+            lein new app my-app
+
+            # Run REPL
+            lein repl
+
+            # Run tests
+            lein test
+
+            # Build uberjar
+            lein uberjar
+    - section: "SDKMAN"
+      examples:
+        - code: |
+            # List available JDKs
+            sdk list java
+
+            # Install a specific JDK
+            sdk install java 21.0.1-tem
+
+            # Switch JDK version
+            sdk use java 17.0.9-tem
+
+            # Set default version
+            sdk default java 21.0.1-tem

@@ -69,3 +69,93 @@ bom:
       license: Apache-2.0
       homepage: https://sdkman.io
       purl: pkg:generic/sdkman
+docs:
+  title: "SDKMAN"
+  overview: |
+    SDKMAN - The Software Development Kit Manager for JVM tools. Provides a comprehensive CLI for managing parallel versions of multiple JVM-related SDKs on Unix-based systems.
+  last-updated: "2026-01-29"
+  features:
+    - "Manage parallel versions of multiple JVM-related SDKs"
+    - "Supports Java (OpenJDK, Temurin, Liberica, GraalVM, Corretto, Zulu), build tools (Maven, Gradle, Ant, SBT), languages (Kotlin, Scala, Groovy), and frameworks (Spring Boot, Micronaut, Quarkus)"
+    - "Offline mode for cached SDK usage"
+    - "Per-shell version switching"
+  usage:
+    - section: "Basic Commands"
+      examples:
+        - code: |
+            # List available SDKs
+            sdk list
+
+            # List available Java versions
+            sdk list java
+
+            # Show current versions
+            sdk current
+
+            # Get SDKMAN version
+            sdk version
+    - section: "Installing SDKs"
+      examples:
+        - code: |
+            # Install a specific Java version
+            sdk install java 21.0.2-tem
+
+            # Install Liberica JDK (ARM-optimized)
+            sdk install java 21.0.2-librca
+
+            # Install Gradle
+            sdk install gradle 8.5
+
+            # Install Maven
+            sdk install maven 3.9.6
+
+            # Install Kotlin
+            sdk install kotlin 1.9.22
+    - section: "Version Management"
+      examples:
+        - code: |
+            # Set default Java version (persists across shells)
+            sdk default java 21.0.2-tem
+
+            # Use a specific version in current shell only
+            sdk use java 17.0.10-tem
+
+            # Uninstall a version
+            sdk uninstall java 11.0.21-tem
+    - section: "Multiple Versions"
+      examples:
+        - code: |
+            # Install multiple Java versions
+            sdk install java 21.0.2-tem
+            sdk install java 17.0.10-tem
+            sdk install java 11.0.21-tem
+
+            # Switch between versions
+            sdk use java 21  # Use Java 21 in current shell
+            sdk use java 17  # Use Java 17 in current shell
+
+            # Set global default
+            sdk default java 21.0.2-tem
+    - section: "Offline Mode"
+      examples:
+        - code: |
+            # Enable offline mode (uses cached SDKs)
+            sdk offline enable
+
+            # Disable offline mode
+            sdk offline disable
+    - section: "Updates"
+      examples:
+        - code: |
+            # Update SDKMAN itself
+            sdk selfupdate force
+
+            # Update SDK lists
+            sdk update
+  related:
+    - name: mise-config
+      description: "Alternative polyglot tool version manager"
+    - name: jvm
+      description: "Uses SDKMAN for Java, Kotlin, and Scala"
+  notes: |
+    Removing SDKMAN will also remove all SDKs installed via SDKMAN. The jvm extension depends on SDKMAN.

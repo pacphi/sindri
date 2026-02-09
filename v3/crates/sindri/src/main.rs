@@ -45,6 +45,7 @@ async fn main() -> Result<()> {
         Commands::K8s(args) => commands::k8s::run(args).await,
         Commands::Image(args) => commands::image::execute(args).await,
         Commands::Vm(args) => commands::vm::run(args).await,
+        Commands::Bom(args) => commands::bom::run(args).await,
     }
 }
 

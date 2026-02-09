@@ -45,7 +45,7 @@ This directory contains comprehensive guides for working with the Sindri V3 exte
 
 - [Extension Registry](../../EXTENSIONS.md) - List of all available extensions
 - [Extension Schema](../../SCHEMA.md) - YAML schema reference
-- [Individual Extension Docs](../) - Extension-specific documentation
+- [Individual Extension Docs](../../EXTENSIONS.md) - Use `sindri extension docs <name>` to generate docs on-demand
 
 ## Related Documentation
 

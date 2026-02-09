@@ -35,18 +35,9 @@ case "$ARCH" in
         ;;
 esac
 
-# Get latest version using centralized GitHub release version detection
-# Uses gh CLI with curl fallback for reliability (defined in common.sh)
-print_status "Fetching latest Supabase CLI version..."
-LATEST_VERSION=$(get_github_release_version "supabase/cli" false)
-
-if [[ -z "$LATEST_VERSION" ]]; then
-    print_error "Failed to fetch latest version from GitHub"
-    print_status "Check network connectivity and GitHub access"
-    exit 1
-fi
-
-print_status "Latest version: v$LATEST_VERSION"
+# Pinned version for consistency (researched 2026-02-09)
+LATEST_VERSION="2.76.4"
+print_status "Installing Supabase CLI version: v$LATEST_VERSION"
 
 # Download .deb package
 DEB_URL="https://github.com/supabase/cli/releases/download/v${LATEST_VERSION}/supabase_${LATEST_VERSION}_linux_${DEB_ARCH}.deb"

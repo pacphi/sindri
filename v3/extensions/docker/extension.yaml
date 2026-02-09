@@ -49,9 +49,12 @@ remove:
       - docker-compose-plugin
       - fuse-overlayfs
 bom:
+  # EXCEPTIONAL CASE: Versions managed by Ubuntu apt repository
+  # Cannot pin to specific versions - depends on Ubuntu release
+  # Target versions (as of 2026-02-09): docker 29.2.1, compose 5.0.2
   tools:
     - name: docker
-      version: dynamic
+      version: dynamic  # apt-managed
       source: apt
       type: server
       license: Apache-2.0
@@ -79,3 +82,92 @@ bom:
       license: GPL-2.0
       homepage: https://github.com/containers/fuse-overlayfs
       purl: pkg:deb/ubuntu/fuse-overlayfs
+docs:
+  title: "Docker"
+  overview: |
+    Docker Engine and Compose with Docker-in-Docker support. Provides containerization capabilities for development and deployment workflows.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic Docker Commands"
+      examples:
+        - code: |
+            # Check version
+            docker --version
+
+            # List running containers
+            docker ps
+
+            # List all containers
+            docker ps -a
+
+            # List images
+            docker images
+    - section: "Running Containers"
+      examples:
+        - code: |
+            # Run a container
+            docker run -it ubuntu:22.04 bash
+
+            # Run in background
+            docker run -d -p 8080:80 nginx
+
+            # Run with volume mount
+            docker run -v $(pwd):/app -w /app node:20 npm install
+    - section: "Building Images"
+      examples:
+        - code: |
+            # Build an image
+            docker build -t myapp:latest .
+
+            # Build with BuildKit (enabled by default)
+            docker build --progress=plain -t myapp:latest .
+
+            # Multi-platform build
+            docker buildx build --platform linux/amd64,linux/arm64 -t myapp:latest .
+    - section: "Docker Compose"
+      examples:
+        - code: |
+            # Start services
+            docker compose up
+
+            # Start in background
+            docker compose up -d
+
+            # Stop services
+            docker compose down
+
+            # View logs
+            docker compose logs -f
+    - section: "Container Management"
+      examples:
+        - code: |
+            # Stop a container
+            docker stop container_id
+
+            # Remove a container
+            docker rm container_id
+
+            # Execute command in container
+            docker exec -it container_id bash
+
+            # View container logs
+            docker logs -f container_id
+    - section: "Image Management"
+      examples:
+        - code: |
+            # Pull an image
+            docker pull node:20
+
+            # Push an image
+            docker push myregistry/myapp:latest
+
+            # Remove an image
+            docker rmi image_id
+
+            # Prune unused images
+            docker image prune -a
+  related:
+    - name: supabase-cli
+      description: "Requires Docker for local development"
+    - name: infra-tools
+      description: "Uses Docker for container orchestration"

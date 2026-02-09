@@ -130,7 +130,7 @@ configure:
 bom:
   tools:
     - name: mcp-excalidraw-server
-      version: dynamic
+      version: remote  # Tracks npm registry (@latest)
       source: npm
       type: server
       license: MIT
@@ -140,3 +140,84 @@ bom:
       version: latest
       purpose: "Canvas server for Excalidraw diagrams"
       license: MIT
+docs:
+  title: "Excalidraw MCP"
+  overview: |
+    The Excalidraw MCP extension enables AI agents to create, manipulate, and control diagrams on a live Excalidraw canvas in real-time. It combines an MCP server with a Docker-based canvas server to provide comprehensive diagramming capabilities through the Model Context Protocol.
+  last-updated: "2026-02-09"
+  features:
+    - "13 MCP Tools - Complete CRUD operations, layout management, and diagram conversion"
+    - "Docker-based Canvas - Containerized Excalidraw UI on port 3000"
+    - "Real-time Sync - Live updates between MCP server and canvas"
+    - "Mermaid Conversion - Import Mermaid diagrams as Excalidraw elements"
+    - "Batch Operations - Efficient multi-element creation and manipulation"
+    - "Auto-initialization - Automatic Docker container startup on project init"
+  usage:
+    - section: "Project Initialization"
+      examples:
+        - description: "Initialize a project with Excalidraw MCP"
+          code: |
+            sindri project init --extensions excalidraw-mcp
+    - section: "Custom Port Configuration"
+      examples:
+        - description: "If port 3000 is unavailable"
+          code: |
+            # Start canvas on alternate port
+            docker run -d -p 3001:3000 --name mcp-excalidraw-canvas \
+              ghcr.io/yctimlin/mcp_excalidraw-canvas:latest
+
+            # Update environment variable
+            export EXPRESS_SERVER_URL=http://localhost:3001
+    - section: "Docker Container Management"
+      examples:
+        - code: |
+            # Check status
+            docker ps --filter name=mcp-excalidraw-canvas
+
+            # Start (if stopped)
+            docker start mcp-excalidraw-canvas
+
+            # Stop
+            docker stop mcp-excalidraw-canvas
+
+            # Restart
+            docker restart mcp-excalidraw-canvas
+
+            # View logs
+            docker logs mcp-excalidraw-canvas
+    - section: "Architecture Diagram Creation"
+      examples:
+        - description: "Common workflow for creating architecture diagrams"
+          code: |
+            # 1. Agent uses create_from_mermaid for initial structure
+            # 2. Agent uses create_element for additional components
+            # 3. Agent uses align_elements for clean layout
+            # 4. Agent uses group_elements for logical grouping
+            # 5. Agent uses lock_elements for finalized sections
+    - section: "Troubleshooting"
+      examples:
+        - description: "Canvas not responding"
+          code: |
+            # Check container status
+            docker ps --filter name=mcp-excalidraw-canvas
+
+            # View logs for errors
+            docker logs mcp-excalidraw-canvas
+
+            # Restart container
+            docker restart mcp-excalidraw-canvas
+  related:
+    - name: nodejs
+      description: "Required for npm package installation"
+    - name: claude-marketplace
+      description: "For discovering additional MCP servers"
+    - name: docker
+      description: "Docker daemon management"
+  notes: |
+    After initialization, open your browser to http://localhost:3000 for a live view of all
+    diagram operations. The container is configured with --restart unless-stopped, ensuring
+    it survives Docker daemon restarts.
+
+    MCP tools available: create_element, update_element, delete_element, query_elements,
+    get_resource, batch_create_elements, align_elements, distribute_elements, group_elements,
+    ungroup_elements, lock_elements, unlock_elements, create_from_mermaid.

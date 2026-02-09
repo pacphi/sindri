@@ -9,7 +9,9 @@ This document describes the improvements made to profile installation error repo
 ### 1. Enhanced Error Reporting
 
 #### Problem
+
 When profile installations failed, users only saw extension names without context about:
+
 - What phase the failure occurred in (source resolution, download, install, validate)
 - The actual error message
 - Which source the extension came from (bundled, downloaded, local-dev)
@@ -46,6 +48,7 @@ pub struct InstalledExtension {
 **Enhanced Display** (`v3/crates/sindri/src/commands/profile.rs`):
 
 Before:
+
 ```
 Failed extensions:
   - python
@@ -53,6 +56,7 @@ Failed extensions:
 ```
 
 After:
+
 ```
 2 extension(s) failed to install:
 
@@ -92,6 +96,7 @@ self.manifest.mark_installed(name, &version, &source_type)?;
 ### 2. Modern Table Styles
 
 #### Problem
+
 Tables used ASCII box-drawing characters that were visually heavy:
 
 ```
@@ -116,12 +121,14 @@ Applied `Style::sharp()` from the `tabled` crate for cleaner, more compact outpu
 ```
 
 **Why `sharp()` over `modern()`:**
+
 - No dividers between data rows (only below header)
 - More compact vertical spacing
 - Easier to scan large lists
 - Less visual clutter while maintaining clarity
 
 **Files Modified:**
+
 - `v3/crates/sindri/src/commands/extension.rs` - 4 tables updated
 - `v3/crates/sindri/src/commands/profile.rs` - 2 tables updated
 - `v3/crates/sindri/src/commands/k8s.rs` - 1 table updated
@@ -144,12 +151,14 @@ println!("{}", table);
 ## Benefits
 
 ### Error Reporting
+
 1. **Clear Phase Identification**: Users immediately know where installation failed
 2. **Source Awareness**: Users can distinguish between bundled (offline) and downloaded (online) failures
 3. **Actionable Errors**: Full error messages help debug issues
 4. **Better Support**: Users can provide detailed error reports
 
 ### Table Styles
+
 1. **Reduced Visual Clutter**: Sharp style removes row dividers for cleaner output
 2. **Better Readability**: No lines between rows makes scanning faster and easier
 3. **Consistent Presentation**: All tables use the same sharp style
@@ -203,6 +212,7 @@ else if local_dev.is_available("python") {
 ## Testing
 
 Compilation verified for:
+
 - `sindri-extensions` package
 - `sindri` CLI package
 
@@ -222,19 +232,20 @@ Style::ascii()    // Pure ASCII with + and |
 
 **Comparison:**
 
-| Style | Row Dividers | Compactness | Best For |
-|-------|--------------|-------------|----------|
-| `sharp()` ✅ | Header only | High | Large lists, quick scanning |
-| `modern()` | Every row | Medium | Structured data with row emphasis |
-| `rounded()` | Every row | Medium | Softer aesthetic |
-| `blank()` | None | Very high | Minimal output |
-| `ascii()` | Every row | Low | Terminal compatibility |
+| Style        | Row Dividers | Compactness | Best For                          |
+| ------------ | ------------ | ----------- | --------------------------------- |
+| `sharp()` ✅ | Header only  | High        | Large lists, quick scanning       |
+| `modern()`   | Every row    | Medium      | Structured data with row emphasis |
+| `rounded()`  | Every row    | Medium      | Softer aesthetic                  |
+| `blank()`    | None         | Very high   | Minimal output                    |
+| `ascii()`    | Every row    | Low         | Terminal compatibility            |
 
 To change the style, modify the `.with(Style::sharp())` calls to use a different style.
 
 ## Future Enhancements
 
 Potential improvements:
+
 1. Add retry logic for download failures
 2. Show progress indicators for each phase
 3. Export detailed error logs to file

@@ -63,7 +63,7 @@ upgrade:
 bom:
   tools:
     - name: claude-code-mux
-      version: dynamic
+      version: dynamic  # GitHub release (gets latest)
       source: binary
       type: cli-tool
       license: MIT
@@ -79,3 +79,74 @@ bom:
       type: script
     - path: ~/config/ccm-config.toml
       type: config
+docs:
+  title: "Claude Code Mux"
+  overview: |
+    High-performance AI routing proxy with automatic failover across 18+ providers (Anthropic, OpenAI, Gemini, etc.). Provides intelligent model routing and redundancy.
+  last-updated: "2026-01-26"
+  features:
+    - "18+ Provider Support - Route to any major AI provider"
+    - "Automatic Failover - Seamless switching on errors"
+    - "Load Balancing - Distribute requests across providers"
+    - "Cost Optimization - Route based on pricing"
+    - "Latency Optimization - Route to fastest provider"
+  usage:
+    - section: "Starting the Proxy"
+      examples:
+        - description: "Quick start"
+          code: "ccm-quickstart"
+        - description: "Manual start"
+          code: "ccm start"
+        - description: "With specific config"
+          code: "ccm start --config ~/config/ccm-config.toml"
+    - section: "Control Commands"
+      examples:
+        - description: "Check status"
+          code: "ccmctl status"
+        - description: "View active providers"
+          code: "ccmctl providers"
+        - description: "Switch primary provider"
+          code: "ccmctl switch openai"
+        - description: "View metrics"
+          code: "ccmctl metrics"
+    - section: "Configuration"
+      examples:
+        - description: "Example ccm-config.toml"
+          code: |
+            [proxy]
+            listen = "127.0.0.1:13456"
+
+            [providers.anthropic]
+            enabled = true
+            api_key_env = "ANTHROPIC_API_KEY"
+            priority = 1
+
+            [providers.openai]
+            enabled = true
+            api_key_env = "OPENAI_API_KEY"
+            priority = 2
+
+            [providers.google]
+            enabled = true
+            api_key_env = "GOOGLE_API_KEY"
+            priority = 3
+
+            [failover]
+            enabled = true
+            max_retries = 3
+            backoff_ms = 1000
+
+            [load_balancing]
+            strategy = "round-robin"
+    - section: "Using with Claude Code"
+      examples:
+        - description: "Start the proxy and Claude Code automatically uses it"
+          code: |
+            ccm start
+
+            # Claude Code automatically uses the proxy via env vars
+            # ANTHROPIC_BASE_URL=http://127.0.0.1:13456
+            # ANTHROPIC_API_KEY=ccm-proxy
+  related:
+    - name: claudish
+      description: "Alternative OpenRouter proxy"

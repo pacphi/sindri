@@ -49,3 +49,48 @@ bom:
       license: MIT
       homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/
       purl: pkg:generic/atlassian-mcp-server
+docs:
+  title: "Jira MCP"
+  overview: |
+    Atlassian MCP server using Claude Code's native SSE transport. No API key required - uses OAuth flow via Claude Code. Provides access to Jira and Confluence.
+  last-updated: "2026-01-26"
+  features:
+    - "No API Key Required - Uses OAuth flow via Claude Code"
+    - "Native SSE Transport - Direct integration with Claude Code"
+    - "Jira Access - Create, update, and manage issues"
+    - "Confluence Access - Read and create documentation"
+    - "No Docker - Lightweight installation"
+  usage:
+    - section: "With Claude Code"
+      examples:
+        - description: "Once registered, Claude Code can interact with your Atlassian workspace"
+          code: |
+            # Example queries:
+            # "Create a Jira issue for the authentication bug"
+            # "What are my assigned Jira tickets?"
+            # "Update PROJ-123 status to In Progress"
+            # "Find Confluence pages about deployment"
+    - section: "Issue Management"
+      examples:
+        - description: "Through Claude Code"
+          code: |
+            # Through Claude Code:
+            # - Create issues
+            # - Update status
+            # - Add comments
+            # - Assign tickets
+            # - Search issues
+    - section: "Confluence Integration"
+      examples:
+        - description: "Through Claude Code"
+          code: |
+            # Through Claude Code:
+            # - Search documentation
+            # - Create pages
+            # - Update content
+            # - Read spaces
+  notes: |
+    OAuth Authentication: When first using Jira features, Claude Code will prompt for OAuth authentication with Atlassian. This is a one-time setup per workspace.
+  related:
+    - name: linear-mcp
+      description: "Alternative issue tracking (Linear)"

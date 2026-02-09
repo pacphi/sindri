@@ -85,55 +85,155 @@ upgrade:
     path: upgrade.sh
     timeout: 900
 bom:
+  # NOTE: Versions researched 2026-02-09
+  # Install script uses upstream installers - versions reflect latest available
   tools:
     - name: aws
-      version: dynamic
+      version: "2.27.41"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://aws.amazon.com/cli
-      purl: pkg:generic/awscli
-      cpe: cpe:2.3:a:amazon:aws_cli:*:*:*:*:*:*:*:*
+      purl: pkg:generic/awscli@2.27.41
+      cpe: cpe:2.3:a:amazon:aws_cli:2.27.41:*:*:*:*:*:*:*
     - name: az
-      version: dynamic
+      version: "2.83.0"
       source: script
       type: cli-tool
       license: MIT
       homepage: https://docs.microsoft.com/en-us/cli/azure
-      purl: pkg:pypi/azure-cli
-      cpe: cpe:2.3:a:microsoft:azure_cli:*:*:*:*:*:*:*:*
+      purl: pkg:pypi/azure-cli@2.83.0
+      cpe: cpe:2.3:a:microsoft:azure_cli:2.83.0:*:*:*:*:*:*:*
     - name: gcloud
-      version: dynamic
+      version: "555.0.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://cloud.google.com/sdk/gcloud
-      purl: pkg:generic/google-cloud-sdk
+      purl: pkg:generic/google-cloud-sdk@555.0.0
     - name: aliyun
-      version: dynamic
+      version: "3.2.9"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.alibabacloud.com/help/cli
-      purl: pkg:generic/aliyun-cli
+      purl: pkg:github/aliyun/aliyun-cli@3.2.9
     - name: doctl
-      version: dynamic
+      version: "1.148.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://docs.digitalocean.com/reference/doctl
-      purl: pkg:github/digitalocean/doctl
+      purl: pkg:github/digitalocean/doctl@1.148.0
     - name: flyctl
-      version: dynamic
+      version: "0.4.7"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://fly.io/docs/flyctl
-      purl: pkg:github/superfly/flyctl
+      purl: pkg:github/superfly/flyctl@0.4.7
     - name: ibmcloud
-      version: dynamic
+      version: "2.41.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://cloud.ibm.com/docs/cli
-      purl: pkg:generic/ibm-cloud-cli
+      purl: pkg:generic/ibm-cloud-cli@2.41.0
+docs:
+  title: "Cloud Tools"
+  overview: |
+    Cloud provider CLI tools for AWS, Azure, GCP, Fly.io, OCI, Alibaba Cloud, DigitalOcean, and IBM Cloud. Provides unified access to major cloud platforms.
+  last-updated: "2026-01-29"
+  usage:
+    - section: "AWS CLI"
+      examples:
+        - code: |
+            # Configure credentials
+            aws configure
+
+            # List S3 buckets
+            aws s3 ls
+
+            # Deploy with CloudFormation
+            aws cloudformation deploy --template-file template.yaml --stack-name my-stack
+
+            # ECS task operations
+            aws ecs list-tasks --cluster my-cluster
+    - section: "Azure CLI"
+      examples:
+        - code: |
+            # Login
+            az login
+
+            # List resource groups
+            az group list
+
+            # Create a web app
+            az webapp create --name myapp --resource-group mygroup --plan myplan
+
+            # AKS cluster operations
+            az aks get-credentials --resource-group mygroup --name mycluster
+    - section: "Google Cloud"
+      examples:
+        - code: |
+            # Authenticate
+            gcloud auth login
+
+            # Set project
+            gcloud config set project my-project
+
+            # List compute instances
+            gcloud compute instances list
+
+            # Deploy to App Engine
+            gcloud app deploy
+    - section: "Fly.io"
+      examples:
+        - code: |
+            # Login
+            flyctl auth login
+
+            # Launch an app
+            flyctl launch
+
+            # Deploy
+            flyctl deploy
+
+            # Check status
+            flyctl status
+    - section: "DigitalOcean"
+      examples:
+        - code: |
+            # Authenticate
+            doctl auth init
+
+            # List droplets
+            doctl compute droplet list
+
+            # Create a droplet
+            doctl compute droplet create myserver --region nyc1 --image ubuntu-22-04-x64 --size s-1vcpu-1gb
+    - section: "Alibaba Cloud"
+      examples:
+        - code: |
+            # Configure
+            aliyun configure
+
+            # List ECS instances
+            aliyun ecs DescribeInstances
+
+            # List OSS buckets
+            aliyun oss ls
+    - section: "IBM Cloud"
+      examples:
+        - code: |
+            # Login
+            ibmcloud login
+
+            # List resources
+            ibmcloud resource service-instances
+
+            # Kubernetes operations
+            ibmcloud ks cluster ls
+  related:
+    - name: infra-tools
+      description: "Infrastructure tools (Terraform, K8s)"

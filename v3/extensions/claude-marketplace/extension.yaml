@@ -58,8 +58,69 @@ upgrade:
 bom:
   tools:
     - name: claude-code
-      version: dynamic
+      version: dynamic  # Script installer (gets latest)
       source: binary
       type: cli-tool
       license: Proprietary
       homepage: https://claude.ai/code
+docs:
+  title: "Claude Marketplace"
+  overview: |
+    Claude Code plugin marketplace integration via JSON configuration. Provides automated configuration of plugin marketplaces that merge directly into `~/.claude/settings.json`.
+  last-updated: "2026-01-27"
+  features:
+    - "Multiple Marketplaces - Access 8 different plugin sources (local) or 3 (CI)"
+    - "JSON Configuration - Native Claude Code settings format"
+    - "Environment-aware - Automatic CI/local detection"
+    - "Settings Merging - Deep merge preserves existing Claude settings"
+    - "No External Dependencies - Uses V3's native merge capabilities"
+  usage:
+    - section: "Configuration Structure"
+      examples:
+        - description: "The extension merges JSON into ~/.claude/settings.json"
+          code: |
+            {
+              "$schema": "https://json.schemastore.org/claude-code-settings.json",
+              "extraKnownMarketplaces": {
+                "beads-marketplace": {
+                  "source": {
+                    "source": "github",
+                    "repo": "steveyegge/beads"
+                  }
+                },
+                "cc-blueprint-toolkit": {
+                  "source": {
+                    "source": "github",
+                    "repo": "croffasia/cc-blueprint-toolkit"
+                  }
+                }
+              },
+              "enabledPlugins": {
+                "beads@beads-marketplace": true,
+                "bp@cc-blueprint-toolkit": true
+              }
+            }
+    - section: "Managing Marketplaces"
+      examples:
+        - code: |
+            # View current configuration
+            cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
+
+            # Reinstall to update (idempotent)
+            sindri extension install claude-marketplace
+
+            # Claude Code automatically registers marketplaces
+            claude /plugin marketplace list
+  related:
+    - name: openskills
+      description: "Skill management CLI"
+    - name: nodejs
+      description: "Node.js runtime (recommended for many plugins)"
+  notes: |
+    Marketplace Sources (Local): beads-marketplace, cc-blueprint-toolkit, claude-equity-research-marketplace,
+    n8n-mcp-skills, life-sciences, awesome-claude-skills, claude-code-marketplace, spring-m11n-marketplace,
+    everything-claude-code.
+    CI Configuration (Minimal): beads-marketplace, cc-blueprint-toolkit, claude-equity-research-marketplace.
+
+    Migration from YAML Version: YAML templates removed, JSON templates now merge directly into settings.json,
+    no external tools required (yq/jq not needed), configuration automatically preserved during upgrade.

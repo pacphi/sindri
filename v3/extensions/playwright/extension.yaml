@@ -50,9 +50,68 @@ upgrade:
 bom:
   tools:
     - name: playwright
-      version: dynamic
+      version: "1.58.2"
       source: npm
       type: framework
       license: Apache-2.0
       homepage: https://playwright.dev
       purl: pkg:npm/@playwright/test
+docs:
+  title: "Playwright"
+  overview: |
+    Playwright browser automation framework with Chromium. Provides end-to-end testing capabilities for web applications.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Running Tests"
+      examples:
+        - description: "Run all tests"
+          code: |
+            npx playwright test
+        - description: "Run specific test file"
+          code: |
+            npx playwright test tests/login.spec.ts
+        - description: "Run tests in headed mode"
+          code: |
+            npx playwright test --headed
+        - description: "Run in UI mode"
+          code: |
+            npx playwright test --ui
+    - section: "Browser Selection"
+      examples:
+        - description: "Run in specific browser"
+          code: |
+            npx playwright test --project=chromium
+            npx playwright test --project=firefox
+            npx playwright test --project=webkit
+    - section: "Debugging"
+      examples:
+        - description: "Debug mode"
+          code: |
+            npx playwright test --debug
+        - description: "Generate trace"
+          code: |
+            npx playwright test --trace on
+        - description: "View trace"
+          code: |
+            npx playwright show-trace trace.zip
+    - section: "Code Generation"
+      examples:
+        - description: "Record actions and generate code"
+          code: |
+            npx playwright codegen https://example.com
+        - description: "Generate code with specific browser"
+          code: |
+            npx playwright codegen --browser webkit https://example.com
+    - section: "Reporting"
+      examples:
+        - description: "Generate HTML report"
+          code: |
+            npx playwright test --reporter=html
+        - description: "Show report"
+          code: |
+            npx playwright show-report
+  related:
+    - name: nodejs
+      description: "Required dependency"
+    - name: agent-browser
+      description: "Uses Playwright for browser automation"

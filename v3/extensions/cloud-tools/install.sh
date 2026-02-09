@@ -34,14 +34,17 @@ print_status "Installing AWS CLI..."
 if command_exists aws; then
   print_warning "AWS CLI already installed: $(aws --version)"
 else
+  # Pinned version for consistency (updated 2026-02-09)
+  local AWS_VERSION="2.27.41"
+  print_status "Installing AWS CLI v${AWS_VERSION}..."
   # Ensure user-local bin directory exists and is in PATH
   mkdir -p "$HOME/.local/bin" "$HOME/.local/aws-cli"
-  if curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "/tmp/awscliv2.zip"; then
+  if curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}-${AWS_VERSION}.zip" -o "/tmp/awscliv2.zip"; then
     (cd /tmp && unzip -o -q awscliv2.zip && bash aws/install --install-dir "$HOME/.local/aws-cli" --bin-dir "$HOME/.local/bin" --update 2>/dev/null)
     rm -rf /tmp/aws /tmp/awscliv2.zip
-    print_success "AWS CLI installed to ~/.local/bin"
+    print_success "AWS CLI v${AWS_VERSION} installed to ~/.local/bin"
   else
-    print_warning "Failed to download AWS CLI installer"
+    print_warning "Failed to download AWS CLI v${AWS_VERSION} installer"
     rm -f /tmp/awscliv2.zip
   fi
 fi
@@ -52,11 +55,13 @@ if command_exists az; then
   print_warning "Azure CLI already installed"
 else
   # Azure CLI requires Python 3.10+ (pip install azure-cli)
+  # Pinned to version 2.83.0 (2026-02-09)
+  local AZURE_CLI_VERSION="2.83.0"
   if [[ "$PYTHON_AVAILABLE" == "true" ]]; then
-    if python3 -m pip install --user azure-cli 2>/dev/null; then
+    if python3 -m pip install --user "azure-cli==${AZURE_CLI_VERSION}" 2>/dev/null; then
       # Ensure ~/.local/bin is in PATH
       export PATH="$HOME/.local/bin:$PATH"
-      print_success "Azure CLI installed to ~/.local/bin"
+      print_success "Azure CLI ${AZURE_CLI_VERSION} installed to ~/.local/bin"
     else
       print_warning "Failed to install Azure CLI via pip"
     fi
@@ -70,6 +75,9 @@ print_status "Installing Google Cloud CLI..."
 if command_exists gcloud; then
   print_warning "Google Cloud CLI already installed"
 else
+  # Pinned version for consistency (updated 2026-02-09)
+  local GCLOUD_VERSION="555.0.0"
+  print_status "Installing Google Cloud CLI v${GCLOUD_VERSION}..."
   # Download and extract Google Cloud SDK to user directory
   # Google uses "x86_64" and "arm" (not "aarch64")
   case "$ARCH" in
@@ -78,14 +86,14 @@ else
     *) print_warning "Unsupported architecture for Google Cloud SDK: $ARCH"; GCLOUD_ARCH="x86_64" ;;
   esac
 
-  if curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-${GCLOUD_ARCH}.tar.gz" -o "/tmp/google-cloud-sdk.tar.gz"; then
+  if curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-${GCLOUD_ARCH}.tar.gz" -o "/tmp/google-cloud-sdk.tar.gz"; then
     tar -xzf /tmp/google-cloud-sdk.tar.gz -C "$HOME"
     "$HOME/google-cloud-sdk/install.sh" --quiet --usage-reporting=false --path-update=false --command-completion=false 2>/dev/null
     export PATH="$HOME/google-cloud-sdk/bin:$PATH"
     rm -f /tmp/google-cloud-sdk.tar.gz
-    print_success "Google Cloud SDK installed to ~/google-cloud-sdk"
+    print_success "Google Cloud CLI v${GCLOUD_VERSION} installed to ~/google-cloud-sdk"
   else
-    print_warning "Failed to download Google Cloud SDK"
+    print_warning "Failed to download Google Cloud CLI v${GCLOUD_VERSION}"
     rm -f /tmp/google-cloud-sdk.tar.gz
   fi
 fi
@@ -95,13 +103,31 @@ print_status "Installing Fly.io CLI (flyctl)..."
 if command_exists flyctl; then
   print_warning "Fly.io CLI already installed: $(flyctl version 2>/dev/null | head -1)"
 else
-  if curl -L https://fly.io/install.sh | sh 2>/dev/null; then
-    # Add to PATH for current session
-    export FLYCTL_INSTALL="${FLYCTL_INSTALL:-$HOME/.fly}"
+  # Pinned version for consistency (updated 2026-02-09)
+  local FLYCTL_VERSION="0.4.7"
+  print_status "Installing flyctl version: v${FLYCTL_VERSION}..."
+
+  # Detect architecture
+  local FLY_ARCH
+  case "$(uname -m)" in
+    x86_64|amd64) FLY_ARCH="x86_64" ;;
+    aarch64|arm64) FLY_ARCH="arm64" ;;
+    *) print_warning "Unsupported architecture"; FLY_ARCH="x86_64" ;;
+  esac
+
+  # Download specific version from GitHub releases
+  mkdir -p "$HOME/.fly/bin"
+  if curl -fsSL "https://github.com/superfly/flyctl/releases/download/v${FLYCTL_VERSION}/flyctl_${FLYCTL_VERSION}_Linux_${FLY_ARCH}.tar.gz" -o "/tmp/flyctl.tar.gz"; then
+    tar -xzf /tmp/flyctl.tar.gz -C /tmp
+    mv /tmp/flyctl "$HOME/.fly/bin/"
+    chmod +x "$HOME/.fly/bin/flyctl"
+    rm -f /tmp/flyctl.tar.gz
+    export FLYCTL_INSTALL="$HOME/.fly"
     export PATH="$FLYCTL_INSTALL/bin:$PATH"
-    print_success "Fly.io CLI installed"
+    print_success "Fly.io CLI v${FLYCTL_VERSION} installed"
   else
-    print_warning "Failed to install Fly.io CLI"
+    print_warning "Failed to download Fly.io CLI v${FLYCTL_VERSION}"
+    rm -f /tmp/flyctl.tar.gz
   fi
 fi
 
@@ -129,16 +155,19 @@ print_status "Installing Alibaba Cloud CLI..."
 if command_exists aliyun; then
   print_warning "Alibaba Cloud CLI already installed"
 else
+  # Pinned version for consistency (updated 2026-02-09)
+  local ALIYUN_VERSION="3.2.9"
+  print_status "Installing Alibaba Cloud CLI version: v${ALIYUN_VERSION}"
   # Note: Alibaba CLI uses 'amd64' for x86_64 and 'arm64' for aarch64
   mkdir -p "$HOME/.local/bin"
-  if wget -q -O "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz" "https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-${ALI_ARCH}.tgz"; then
-    tar xzf "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz" -C /tmp
+  if wget -q -O "/tmp/aliyun-cli-linux-${ALIYUN_VERSION}-${ALI_ARCH}.tgz" "https://github.com/aliyun/aliyun-cli/releases/download/v${ALIYUN_VERSION}/aliyun-cli-linux-${ALIYUN_VERSION}-${ALI_ARCH}.tgz"; then
+    tar xzf "/tmp/aliyun-cli-linux-${ALIYUN_VERSION}-${ALI_ARCH}.tgz" -C /tmp
     mv /tmp/aliyun "$HOME/.local/bin/"
-    rm -f "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz"
-    print_success "Alibaba Cloud CLI installed to ~/.local/bin"
+    rm -f "/tmp/aliyun-cli-linux-${ALIYUN_VERSION}-${ALI_ARCH}.tgz"
+    print_success "Alibaba Cloud CLI v${ALIYUN_VERSION} installed to ~/.local/bin"
   else
     print_warning "Failed to download Alibaba Cloud CLI"
-    rm -f "/tmp/aliyun-cli-linux-latest-${ALI_ARCH}.tgz"
+    rm -f "/tmp/aliyun-cli-linux-${ALIYUN_VERSION}-${ALI_ARCH}.tgz"
   fi
 fi
 
@@ -147,10 +176,9 @@ print_status "Installing DigitalOcean CLI (doctl)..."
 if command_exists doctl; then
   print_warning "DigitalOcean CLI already installed"
 else
-  # Use standardized GitHub release version detection (gh CLI with curl fallback)
-  DOCTL_VERSION=$(get_github_release_version "digitalocean/doctl" false)
-  if [[ -n "$DOCTL_VERSION" ]]; then
-    print_status "Latest doctl version: v${DOCTL_VERSION}"
+  # Pinned version for consistency (updated 2026-02-09)
+  DOCTL_VERSION="1.148.0"
+  print_status "Installing doctl version: v${DOCTL_VERSION}"
     mkdir -p "$HOME/.local/bin"
     if wget -q -O "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz"; then
       tar xzf "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" -C /tmp
@@ -178,10 +206,9 @@ else
     *) print_warning "Unsupported architecture for IBM Cloud CLI: $ARCH"; IBM_ARCH="amd64" ;;
   esac
 
-  # Get latest version from GitHub releases
-  IBM_VERSION=$(get_github_release_version "IBM-Cloud/ibm-cloud-cli-release" false)
-
-  if [[ -n "$IBM_VERSION" ]]; then
+  # Pinned version for consistency (updated 2026-02-09)
+  IBM_VERSION="2.41.0"
+  print_status "Installing IBM Cloud CLI version: v${IBM_VERSION}"
     mkdir -p "$HOME/.local/ibmcloud" "$HOME/.local/bin"
     if curl -fsSL "https://download.clis.cloud.ibm.com/ibm-cloud-cli/${IBM_VERSION}/binaries/IBM_Cloud_CLI_${IBM_VERSION}_linux_${IBM_ARCH}.tgz" -o "/tmp/ibmcloud.tgz"; then
       tar -xzf /tmp/ibmcloud.tgz -C "$HOME/.local/ibmcloud" --strip-components=1

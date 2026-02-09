@@ -95,9 +95,11 @@ upgrade:
     updateFirst: true
 
 bom:
+  # EXCEPTIONAL CASE: Desktop environment via apt (cannot pin reliably)
+  # Versions depend on Ubuntu release
   tools:
     - name: xfce4
-      version: dynamic
+      version: dynamic  # apt-managed
       source: apt
       type: framework
       license: GPL-2.0
@@ -136,3 +138,71 @@ bom:
       type: config
     - path: ~/.config/xfce4
       type: config
+docs:
+  title: "XFCE Ubuntu"
+  overview: |
+    XFCE desktop with xRDP remote access for GUI development. Provides a lightweight desktop environment accessible via RDP.
+  last-updated: "2026-01-26"
+  features:
+    - "Lightweight - Low resource usage"
+    - "RDP Access - Connect from Windows/Mac/Linux"
+    - "Full Desktop - Complete GUI environment"
+    - "Development Ready - GUI development and testing"
+  usage:
+    - section: "Connecting via RDP"
+      examples:
+        - code: |
+            # Default RDP port: 3389
+            # From Windows: mstsc.exe
+            # From Mac: Microsoft Remote Desktop
+            # From Linux: rdesktop, freerdp, or Remmina
+
+            # Connect to:
+            # hostname:3389
+    - section: "Starting XFCE"
+      examples:
+        - code: |
+            # Start manually
+            startxfce4
+
+            # Via xRDP (automatic on RDP connection)
+            # Configure in ~/.xsession
+    - section: "Service Management"
+      examples:
+        - code: |
+            # Start xRDP
+            sudo systemctl start xrdp
+
+            # Check status
+            sudo systemctl status xrdp
+
+            # Enable on boot
+            sudo systemctl enable xrdp
+    - section: "Desktop Applications"
+      examples:
+        - code: |
+            # File manager
+            thunar
+
+            # Text editor
+            mousepad file.txt
+
+            # Web browser
+            firefox
+
+            # Terminal
+            xfce4-terminal
+    - section: "Customization"
+      examples:
+        - code: |
+            # XFCE settings
+            xfce4-settings-manager
+
+            # Display settings
+            xfce4-display-settings
+
+            # Panel preferences
+            xfce4-panel --preferences
+  related:
+    - name: guacamole
+      description: "Web-based remote access"

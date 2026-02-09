@@ -58,7 +58,7 @@ upgrade:
 bom:
   tools:
     - name: php
-      version: dynamic
+      version: "8.4"  # Pinned in install script (ppa:ondrej/php)
       source: script
       type: runtime
       license: PHP-3.01
@@ -79,3 +79,101 @@ bom:
       license: MIT
       homepage: https://symfony.com
       purl: pkg:composer/symfony/cli
+docs:
+  title: "PHP"
+  overview: |
+    PHP 8.4 with Composer, Symfony CLI, and development tools. Provides a complete PHP development environment for modern web applications.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Basic PHP"
+      examples:
+        - description: "Check version"
+          code: |
+            php --version
+        - description: "Run a script"
+          code: |
+            php script.php
+        - description: "Built-in development server"
+          code: |
+            php -S localhost:8000
+        - description: "Interactive shell"
+          code: |
+            php -a
+        - description: "Check configuration"
+          code: |
+            php --ini
+    - section: "Composer"
+      examples:
+        - description: "Create a new project"
+          code: |
+            composer create-project symfony/skeleton my-project
+        - description: "Install dependencies"
+          code: |
+            composer install
+        - description: "Add a package"
+          code: |
+            composer require monolog/monolog
+        - description: "Add a dev dependency"
+          code: |
+            composer require --dev phpunit/phpunit
+        - description: "Update dependencies"
+          code: |
+            composer update
+        - description: "Autoload dump"
+          code: |
+            composer dump-autoload
+    - section: "Symfony CLI"
+      examples:
+        - description: "Create a Symfony project"
+          code: |
+            symfony new my_project --webapp
+        - description: "Start local server"
+          code: |
+            symfony serve
+        - description: "Check requirements"
+          code: |
+            symfony check:requirements
+        - description: "Run console commands"
+          code: |
+            symfony console make:controller
+        - description: "Deploy"
+          code: |
+            symfony cloud:deploy
+    - section: "Laravel (via Composer)"
+      examples:
+        - description: "Create Laravel project"
+          code: |
+            composer create-project laravel/laravel my-project
+        - description: "Serve application"
+          code: |
+            php artisan serve
+        - description: "Run migrations"
+          code: |
+            php artisan migrate
+        - description: "Generate code"
+          code: |
+            php artisan make:model Post -mcf
+    - section: "PHPUnit Testing"
+      examples:
+        - description: "Run tests"
+          code: |
+            ./vendor/bin/phpunit
+        - description: "Run with coverage"
+          code: |
+            ./vendor/bin/phpunit --coverage-html coverage
+    - section: "PHP CS Fixer"
+      examples:
+        - description: "Check code style"
+          code: |
+            ./vendor/bin/php-cs-fixer fix --dry-run --diff
+        - description: "Fix code style"
+          code: |
+            ./vendor/bin/php-cs-fixer fix
+    - section: "Static Analysis"
+      examples:
+        - description: "PHPStan"
+          code: |
+            ./vendor/bin/phpstan analyse src
+        - description: "Psalm"
+          code: |
+            ./vendor/bin/psalm

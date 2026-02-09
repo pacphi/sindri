@@ -57,38 +57,59 @@ bom:
       type: runtime
       license: MIT
     - name: compahook
-      version: latest
+      version: "1.1.2"
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://www.npmjs.com/package/compahook
 
 docs:
-  description: |
-    compahook provides persistent memory across Claude Code's conversation compaction cycles.
+  title: "compahook"
+  overview: |
+    Persistent memory layer for Claude Code's /compact command. Improves post-compact context quality by extracting, scoring, and re-injecting high-signal information that would otherwise be lost during conversation compaction.
+  last-updated: "2026-02-09"
+  features:
+    - "Collector (PostToolUse) - Logs file edits and commands to working-state.jsonl"
+    - "Extractor (PreCompact) - Reads transcript, scores items, writes compact-context.json"
+    - "Restorer (SessionStart) - Reads compact-context.json, injects structured markdown via additionalContext"
+    - "Zero Dependencies - Uses only Node.js built-in modules"
+    - "Security hardened - Path traversal protection, symlink attack prevention, stdin DoS protection"
+  usage:
+    - section: "View Project Metrics"
+      examples:
+        - code: |
+            # Current project metrics
+            compahook stats
 
-    When Claude Code compacts a conversation, important details like architectural decisions,
-    error resolutions, and file edit purposes can be lost. compahook solves this by:
+            # Live monitoring (refreshes every 2s)
+            compahook watch
 
-    - Collecting file edits and commands during normal work (PostToolUse hook)
-    - Extracting and scoring high-signal information before compaction (PreCompact hook)
-    - Re-injecting structured context when the session resumes (SessionStart hook)
+            # Custom refresh interval (5 seconds)
+            compahook watch 5000
+    - section: "Global Metrics"
+      examples:
+        - description: "Monitor compahook performance across all projects"
+          code: |
+            # Global metrics
+            compahook stats --global
 
-    The post-install hook automatically registers the hooks in ~/.claude/settings.json.
+            # Live global monitoring
+            compahook watch --global
+    - section: "Reset Metrics"
+      examples:
+        - code: |
+            # Clear metrics for current project
+            compahook reset-metrics
+    - section: "Debug Mode"
+      examples:
+        - code: |
+            export COMPAHOOK_DEBUG=1
+  notes: |
+    The post-install hook automatically runs `compahook install` to register three hooks
+    in ~/.claude/settings.json: compahook-collect (PostToolUse), compahook-extract (PreCompact),
+    and compahook-restore (SessionStart). No manual configuration is required.
 
-  quickstart: |
-    # Verify installation (hooks are auto-registered during install)
-    compahook status
+    Per-project memory is stored in <project>/.claude/memory/. Add .claude/memory/ to your .gitignore.
 
-    # View metrics for current project
-    compahook stats
-
-    # Live monitoring
-    compahook watch
-
-    # Global metrics across all projects
-    compahook stats --global
-
-  references:
-    - title: "npm Package"
-      url: "https://www.npmjs.com/package/compahook"
+    Configuration can be customized via <project>/.claude/memory/config.json for settings like
+    maxContextSize, maxItems, scoring weights, and decay parameters.

@@ -10,6 +10,7 @@
 #![allow(unused_imports)]
 
 pub mod assertions;
+pub mod bom_builders;
 pub mod builders;
 pub mod constants;
 pub mod fixtures;
@@ -17,6 +18,7 @@ pub mod mocks;
 pub mod test_extensions;
 
 pub use assertions::*;
+pub use bom_builders::*;
 pub use builders::*;
 pub use constants::*;
 pub use fixtures::*;

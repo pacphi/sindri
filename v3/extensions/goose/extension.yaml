@@ -44,9 +44,71 @@ upgrade:
 bom:
   tools:
     - name: goose
-      version: dynamic
+      version: stable  # Downloads "stable" tag from GitHub
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://block.github.io/goose/
       purl: pkg:generic/block-goose
+docs:
+  title: "Goose"
+  overview: |
+    Block's open-source AI agent that automates engineering tasks - builds projects, executes code, debugs, and orchestrates workflows with any LLM.
+  last-updated: "2026-01-26"
+  features:
+    - "Multi-LLM Support - Works with Anthropic, OpenAI, OpenRouter"
+    - "Code Execution - Run and test code autonomously"
+    - "Debugging - Intelligent error analysis and fixes"
+    - "Project Building - Create complete projects from descriptions"
+    - "Workflow Orchestration - Multi-step automation"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - code: |
+            # Check version
+            goose --version
+
+            # Start interactive session
+            goose
+
+            # Run with specific task
+            goose "Create a Python web scraper"
+    - section: "Configuration"
+      examples:
+        - code: |
+            # Configure LLM provider
+            goose config set provider anthropic
+            goose config set api_key $ANTHROPIC_API_KEY
+
+            # Or use OpenAI
+            goose config set provider openai
+            goose config set api_key $OPENAI_API_KEY
+    - section: "Project Building"
+      examples:
+        - code: |
+            # Create a new project
+            goose "Create a REST API with Express and TypeScript"
+
+            # Build from specification
+            goose "Build a CLI tool that converts CSV to JSON"
+    - section: "Code Execution"
+      examples:
+        - code: |
+            # Run code with Goose
+            goose "Write and run a Python script that fetches weather data"
+
+            # Debug code
+            goose "Find and fix the bug in src/auth.py"
+    - section: "Workflow Automation"
+      examples:
+        - code: |
+            # Multi-step tasks
+            goose "Set up a new React project with TypeScript, ESLint, and Prettier"
+
+            # Complex orchestration
+            goose "Create tests for the authentication module and run them"
+  related:
+    - name: ollama
+      description: "Local LLM hosting for Goose"
+    - name: ai-toolkit
+      description: "Additional AI tools"

@@ -96,3 +96,73 @@ bom:
       type: config
     - path: /var/lib/tomcat9/webapps/guacamole.war
       type: binary
+docs:
+  title: "Guacamole"
+  overview: |
+    Apache Guacamole web-based remote desktop gateway. Provides browser-based access to SSH, RDP, and VNC connections.
+  last-updated: "2026-01-26"
+  features:
+    - "Web-based - Access from any browser"
+    - "Multi-protocol - SSH, RDP, VNC support"
+    - "No client needed - HTML5 based"
+    - "Session recording - Optional recording"
+    - "Authentication - Multiple auth methods"
+  usage:
+    - section: "Accessing Guacamole"
+      examples:
+        - code: |
+            # Default URL after installation
+            # http://localhost:8080/guacamole
+
+            # Default credentials (change immediately!)
+            # Username: admin
+            # Password: admin
+    - section: "Connection Configuration"
+      examples:
+        - code: |
+            <!-- /etc/guacamole/user-mapping.xml -->
+            <user-mapping>
+                <authorize username="admin" password="admin">
+                    <connection name="SSH Server">
+                        <protocol>ssh</protocol>
+                        <param name="hostname">192.168.1.100</param>
+                        <param name="port">22</param>
+                        <param name="username">user</param>
+                    </connection>
+                    <connection name="Windows RDP">
+                        <protocol>rdp</protocol>
+                        <param name="hostname">192.168.1.101</param>
+                        <param name="port">3389</param>
+                    </connection>
+                </authorize>
+            </user-mapping>
+    - section: "Service Management"
+      examples:
+        - code: |
+            # Start guacd daemon
+            sudo systemctl start guacd
+
+            # Start Tomcat
+            sudo systemctl start tomcat9
+
+            # Check status
+            sudo systemctl status guacd
+            sudo systemctl status tomcat9
+
+            # View logs
+            sudo journalctl -u guacd
+            sudo tail -f /var/log/tomcat9/catalina.out
+    - section: "Configuration Files"
+      examples:
+        - code: |
+            # Main configuration
+            sudo vim /etc/guacamole/guacamole.properties
+
+            # User authentication
+            sudo vim /etc/guacamole/user-mapping.xml
+
+            # Guacd configuration
+            sudo vim /etc/guacamole/guacd.conf
+  related:
+    - name: xfce-ubuntu
+      description: "XFCE desktop for Guacamole RDP access"

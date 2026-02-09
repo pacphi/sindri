@@ -51,9 +51,77 @@ upgrade:
 bom:
   tools:
     - name: ollama
-      version: dynamic
+      version: dynamic  # Official installer gets latest
       source: script
       type: server
       license: MIT
       homepage: https://ollama.com
       purl: pkg:generic/ollama
+docs:
+  title: "Ollama"
+  overview: |
+    Ollama - Run large language models locally. Provides the ollama CLI for managing and running LLMs like Llama, Mistral, CodeLlama, and more.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Starting the Server"
+      examples:
+        - description: "Start ollama server (runs in background)"
+          code: |
+            ollama serve
+    - section: "Managing Models"
+      examples:
+        - description: "Pull a model"
+          code: |
+            ollama pull llama3.2
+            ollama pull codellama
+            ollama pull mistral
+        - description: "List installed models"
+          code: |
+            ollama list
+        - description: "Show model info"
+          code: |
+            ollama show llama3.2
+        - description: "Remove a model"
+          code: |
+            ollama rm llama3.2
+    - section: "Running Models"
+      examples:
+        - description: "Interactive chat"
+          code: |
+            ollama run llama3.2
+        - description: "Run with a prompt"
+          code: |
+            ollama run llama3.2 "Explain quantum computing"
+        - description: "Run code model"
+          code: |
+            ollama run codellama "Write a Python function to sort a list"
+    - section: "API Usage"
+      examples:
+        - description: "Generate completion"
+          code: |
+            curl http://localhost:11434/api/generate -d '{
+              "model": "llama3.2",
+              "prompt": "Why is the sky blue?"
+            }'
+        - description: "Chat API"
+          code: |
+            curl http://localhost:11434/api/chat -d '{
+              "model": "llama3.2",
+              "messages": [
+                { "role": "user", "content": "Hello!" }
+              ]
+            }'
+    - section: "Creating Custom Models"
+      examples:
+        - description: "Create a Modelfile and build custom model"
+          code: |
+            cat > Modelfile <<EOF
+            FROM llama3.2
+            PARAMETER temperature 0.7
+            SYSTEM You are a helpful coding assistant.
+            EOF
+
+            ollama create my-assistant -f Modelfile
+  related:
+    - name: ai-toolkit
+      description: "Complementary AI tools (Fabric, Codex, etc.)"

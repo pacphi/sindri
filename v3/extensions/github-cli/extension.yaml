@@ -32,12 +32,121 @@ remove:
 upgrade:
   strategy: none # Pre-installed in Docker image via apt
 bom:
+  # EXCEPTIONAL CASE: Pre-installed in Docker image via apt
+  # Cannot pin to specific version - depends on Ubuntu release
+  # Target version (as of 2026-02-09): 2.86.0
   tools:
     - name: gh
-      version: dynamic
+      version: dynamic  # apt-managed
       source: apt
       type: cli-tool
       license: MIT
       homepage: https://cli.github.com
       purl: pkg:github/cli/cli
       cpe: cpe:2.3:a:github:cli:*:*:*:*:*:*:*:*
+docs:
+  title: "GitHub CLI"
+  overview: |
+    GitHub CLI authentication and workflow configuration. Provides the `gh` command for interacting with GitHub from the command line.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Authentication"
+      examples:
+        - code: |
+            # Login with browser
+            gh auth login
+
+            # Login with token
+            gh auth login --with-token < token.txt
+
+            # Check auth status
+            gh auth status
+
+            # Logout
+            gh auth logout
+    - section: "Repository Operations"
+      examples:
+        - code: |
+            # Clone a repository
+            gh repo clone owner/repo
+
+            # Create a new repository
+            gh repo create my-repo --public
+
+            # Fork a repository
+            gh repo fork owner/repo
+
+            # View repository
+            gh repo view
+    - section: "Pull Requests"
+      examples:
+        - code: |
+            # Create a PR
+            gh pr create --title "My PR" --body "Description"
+
+            # List PRs
+            gh pr list
+
+            # View a PR
+            gh pr view 123
+
+            # Checkout a PR
+            gh pr checkout 123
+
+            # Merge a PR
+            gh pr merge 123
+    - section: "Issues"
+      examples:
+        - code: |
+            # Create an issue
+            gh issue create --title "Bug report"
+
+            # List issues
+            gh issue list
+
+            # View an issue
+            gh issue view 123
+
+            # Close an issue
+            gh issue close 123
+    - section: "GitHub Actions"
+      examples:
+        - code: |
+            # List workflow runs
+            gh run list
+
+            # View a run
+            gh run view 12345
+
+            # Watch a run
+            gh run watch 12345
+
+            # Download artifacts
+            gh run download 12345
+    - section: "Gists"
+      examples:
+        - code: |
+            # Create a gist
+            gh gist create file.txt
+
+            # List gists
+            gh gist list
+
+            # View a gist
+            gh gist view abc123
+    - section: "API Access"
+      examples:
+        - code: |
+            # Make API requests
+            gh api repos/owner/repo
+
+            # POST to API
+            gh api repos/owner/repo/issues -f title="Issue" -f body="Body"
+
+            # GraphQL queries
+            gh api graphql -f query='{ viewer { login } }'
+  related:
+    - name: ai-toolkit
+      description: "Depends on github-cli"
+    - name: claude-codepro
+      description: "Depends on github-cli"

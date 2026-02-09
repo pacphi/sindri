@@ -314,9 +314,53 @@ capabilities:
 bom:
   tools:
     - name: claude-flow
-      version: "3.0.0-alpha"
+      version: "3.1.0-alpha.24"  # Tracks v3alpha tag in mise.toml (latest as of 2026-02-09)
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/claude-flow
-      purl: pkg:npm/claude-flow@v3alpha
+      purl: pkg:npm/claude-flow@3.1.0-alpha.16
+docs:
+  title: "Claude Flow V3"
+  overview: |
+    Next-gen multi-agent orchestration with modular packages, 10x performance, and 150x faster search (v3 alpha). The latest evolution of Claude Flow for advanced AI workflows.
+  last-updated: "2026-01-26"
+  features:
+    - "15-agent hierarchy - Specialized agent roles"
+    - "HNSW search - 150x-12,500x faster pattern retrieval"
+    - "Flash Attention - 2.49x-7.47x memory efficiency"
+    - "SONA learning - Self-optimizing neural architecture"
+    - "31 hooks + 12 workers - Comprehensive automation"
+    - "UnifiedSwarmCoordinator - Advanced swarm management"
+  usage:
+    - section: "Initialization"
+      examples:
+        - description: "Full initialization with all services"
+          code: "claude-flow init --start-all --topology hierarchical-mesh"
+        - description: "Run health check"
+          code: "claude-flow doctor --fix"
+        - description: "Check version"
+          code: "claude-flow --version"
+    - section: "Agent Management"
+      examples:
+        - description: "Spawn an agent"
+          code: "claude-flow agent spawn --type coder"
+        - description: "List agents"
+          code: "claude-flow agent list"
+        - description: "Coordinate swarm"
+          code: "claude-flow swarm coordinate --task \"implement feature\""
+    - section: "Memory Operations"
+      examples:
+        - description: "Store pattern"
+          code: "claude-flow memory store --key \"pattern:auth\" --value \"JWT implementation\""
+        - description: "Search patterns (HNSW-powered)"
+          code: "claude-flow memory search --query \"authentication\""
+    - section: "MCP Server"
+      examples:
+        - description: "Start MCP server"
+          code: "npx -y @claude-flow/cli@alpha mcp start --transport stdio"
+  related:
+    - name: claude-flow-v2
+      description: "Stable V2 version"
+    - name: nodejs
+      description: "Required dependency"

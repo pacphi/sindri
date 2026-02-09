@@ -47,9 +47,33 @@ upgrade:
 bom:
   tools:
     - name: pal-mcp-server
-      version: 9.8.2
+      version: "9.8.2"
       source: github-release
       type: server
       license: MIT
       homepage: https://github.com/BeehiveInnovations/pal-mcp-server
       purl: pkg:github/BeehiveInnovations/pal-mcp-server@v9.8.2
+docs:
+  title: "PAL MCP Server"
+  overview: |
+    AI orchestration and multi-model collaboration MCP server with 18 specialized tools. Provides advanced AI coordination capabilities.
+  last-updated: "2026-01-26"
+  features:
+    - "18 Specialized Tools - Comprehensive AI orchestration"
+    - "Multi-model Collaboration - Coordinate multiple AI models"
+    - "Python-based - Easy to extend"
+    - "MCP Standard - Native Claude Code integration"
+  usage:
+    - section: "With Claude Code"
+      examples:
+        - description: "PAL MCP server tools are available through Claude Code MCP integration"
+          code: |
+            # Claude Code can use PAL tools like:
+            # - Orchestrate multi-agent workflows
+            # - Manage persistent memory
+            # - Plan complex tasks
+  related:
+    - name: python
+      description: "Required dependency"
+    - name: mise-config
+      description: "Required dependency"

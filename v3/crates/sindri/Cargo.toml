@@ -80,3 +80,7 @@ semver = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3.8"
+
+[[test]]
+name = "bom_cli_tests"
+path = "tests/bom_cli_tests.rs"

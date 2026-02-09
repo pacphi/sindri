@@ -64,3 +64,46 @@ bom:
       license: Proprietary
       homepage: https://claude.ai/code
       purl: pkg:generic/anthropic/claude-code
+docs:
+  title: "Claude CLI"
+  overview: |
+    Claude Code CLI - Official Anthropic AI coding assistant. This extension installs the official Claude Code CLI from Anthropic, providing intelligent code assistance, generation, and analysis directly in your terminal.
+
+    Many other extensions in the Claude ecosystem depend on this extension being installed first.
+  last-updated: "2026-01-30"
+  usage:
+    - section: "Basic Usage"
+      examples:
+        - description: "Check version"
+          code: "claude --version"
+        - description: "Start interactive session"
+          code: "claude"
+        - description: "Run with a prompt"
+          code: "claude \"explain this code\""
+    - section: "Authentication"
+      examples:
+        - description: "Login via browser"
+          code: "claude login"
+        - description: "Or set API key directly"
+          code: "export ANTHROPIC_API_KEY=\"your-api-key\""
+    - section: "Project Context"
+      examples:
+        - description: "Create project context file"
+          code: |
+            echo "# Project Overview" > CLAUDE.md
+
+            # Claude will automatically read CLAUDE.md for context
+            claude "what does this project do?"
+  related:
+    - name: claude-flow-v3
+      description: "Multi-agent orchestration"
+    - name: claude-flow-v2
+      description: "Multi-agent orchestration (stable)"
+    - name: claude-codepro
+      description: "TDD-enforced development"
+    - name: claude-code-mux
+      description: "AI routing proxy"
+    - name: claudeup
+      description: "TUI manager for Claude Code"
+    - name: claude-marketplace
+      description: "Plugin marketplace"

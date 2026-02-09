@@ -69,55 +69,64 @@ bom:
   tools:
     - name: shannon
       version: dynamic
-      source: github-clone
-      type: security-testing
+      source: script
+      type: application
       license: Unknown
-      url: https://github.com/KeygraphHQ/shannon
+      homepage: https://github.com/KeygraphHQ/shannon
 
 docs:
-  readme: |
-    # Shannon - Autonomous AI Pentester
+  title: "Shannon"
+  overview: |
+    Shannon is a fully autonomous AI pentester that finds actual exploits in web applications by combining white-box source code analysis with black-box dynamic exploitation.
+  last-updated: "2026-02-08"
+  features:
+    - "Autonomous Vulnerability Discovery: Finds Injection, XSS, SSRF, and Broken Authentication/Authorization vulnerabilities"
+    - "High Success Rate: 96.15% success rate on the hint-free, source-aware XBOW Benchmark"
+    - "Hybrid Approach: Combines white-box source code analysis with black-box dynamic testing"
+    - "Comprehensive Reports: Generates detailed security assessment reports with exploitation details"
+    - "Docker-based: Containerized execution environment for safety and reproducibility"
+  usage:
+    - section: "Basic Pentest"
+      examples:
+        - code: |
+            # Set up credentials
+            export ANTHROPIC_API_KEY="sk-ant-..."
+            export CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000
 
-    Shannon is a fully autonomous AI pentester that finds actual exploits in web applications
-    by combining white-box source code analysis with black-box dynamic exploitation.
+            # Run a pentest
+            shannon start \
+              URL=https://your-app.com \
+              REPO=/path/to/your/app/source
 
-    ## Key Features
-    - Autonomous vulnerability discovery (Injection, XSS, SSRF, Auth/AuthZ)
-    - 96.15% success rate on XBOW Benchmark
-    - Combined white-box + black-box testing
-    - Comprehensive security assessment reports
+            # Monitor progress
+            shannon logs
 
-    ## Quick Start
+            # Check specific workflow
+            shannon query ID=workflow-id
+    - section: "Local Application Testing"
+      examples:
+        - description: "For applications running on localhost, use Docker's host gateway"
+          code: |
+            shannon start \
+              URL=http://host.docker.internal:3000 \
+              REPO=/path/to/your/app
+    - section: "Container Management"
+      examples:
+        - code: |
+            # Stop containers (preserve data)
+            shannon stop
 
-    ```bash
-    # Set API key (required)
-    export ANTHROPIC_API_KEY="your-api-key"
-    export CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000
-
-    # Run a pentest
-    shannon start URL=https://your-app.com REPO=/path/to/your/repo
-
-    # View logs
-    shannon logs
-
-    # Check progress
-    shannon query ID=workflow-id
-
-    # Stop (preserves data)
-    shannon stop
-
-    # Full cleanup
-    shannon stop CLEAN=true
-    ```
-
-    ## Requirements
-    - Docker must be installed and running
-    - Anthropic API key (required)
-    - Source code access for target application
-
-    ## Output Location
-    Results are saved to: `./audit-logs/{hostname}_{sessionId}/`
-
-    ## Documentation
-    - GitHub: https://github.com/KeygraphHQ/shannon
-    - XBOW Benchmark: 96.15% success rate
+            # Full cleanup
+            shannon stop CLEAN=true
+    - section: "Custom Configuration"
+      examples:
+        - code: |
+            shannon start \
+              URL=https://app.com \
+              REPO=/path/to/repo \
+              CONFIG=/path/to/config.yaml
+  related:
+    - name: docker
+      description: "Docker runtime (required dependency)"
+  notes: |
+    Shannon is for authorized security testing only. Always obtain written authorization before testing any application. Results are saved to ./audit-logs/{hostname}_{sessionId}/.

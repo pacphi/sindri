@@ -133,9 +133,52 @@ capabilities:
 bom:
   tools:
     - name: agentic-qe
-      version: dynamic
+      version: "3.6.0"
       source: npm
       type: framework
       license: MIT
       homepage: https://github.com/proffesor-for-testing/agentic-qe
       purl: pkg:npm/agentic-qe
+docs:
+  title: "Agentic QE"
+  overview: |
+    Agentic Quality Engineering v3 with AI-powered test generation, coverage analysis, and multi-agent workflows. Comprehensive testing automation framework.
+  last-updated: "2026-01-26"
+  features:
+    - "AI Test Generation - Automatically generate tests from code"
+    - "Coverage Analysis - Intelligent coverage gap detection"
+    - "Multi-agent Workflows - Parallel quality analysis"
+    - "Pattern Learning - Learns from codebase patterns"
+  usage:
+    - section: "Initialization"
+      examples:
+        - description: "Initialize in project"
+          code: "aqe init --auto"
+        - description: "Check version"
+          code: "aqe --version"
+    - section: "Test Generation"
+      examples:
+        - description: "Generate tests for a file"
+          code: "aqe generate tests src/module.ts"
+        - description: "Generate tests for entire project"
+          code: "aqe generate tests --all"
+        - description: "Generate with specific framework"
+          code: "aqe generate tests --framework jest src/"
+    - section: "Coverage Analysis"
+      examples:
+        - description: "Analyze coverage gaps"
+          code: "aqe analyze coverage"
+        - description: "Generate coverage report"
+          code: "aqe report coverage --format html"
+    - section: "Quality Workflows"
+      examples:
+        - description: "Run full quality check"
+          code: "aqe run quality"
+        - description: "Run specific checks"
+          code: |
+            aqe run lint
+            aqe run security
+            aqe run complexity
+  related:
+    - name: nodejs
+      description: "Required dependency"

@@ -47,9 +47,33 @@ capabilities:
 bom:
   tools:
     - name: spec-kit
-      version: dynamic
+      version: dynamic  # Script installer (gets latest)
       source: github-release
       type: cli-tool
       license: MIT
       homepage: https://github.com/github/spec-kit
       purl: pkg:github/github/spec-kit
+docs:
+  title: "Spec-Kit"
+  overview: |
+    GitHub specification kit for AI-powered repository documentation and workflows. Provides tools to initialize and manage GitHub spec-kit configurations for enhanced AI-driven development.
+  last-updated: "2026-01-26"
+  usage:
+    - section: "Initialize Spec-Kit"
+      examples:
+        - description: "Initialize in current directory via uvx"
+          code: |
+            # Initialize in current directory (via uvx)
+            uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude --script sh
+
+            # This creates .github/spec.json
+    - section: "Validation"
+      examples:
+        - code: |
+            # Verify spec-kit is initialized
+            test -f .github/spec.json && echo "spec-kit configured"
+  related:
+    - name: python
+      description: "Required for uvx command"
+  notes: |
+    The .github/spec.json file contains AI model preferences (Claude), script configurations, and repository metadata for AI context.
