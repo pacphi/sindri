@@ -41,6 +41,9 @@ print_status "Install location: $LOCAL_BIN/claude"
 mkdir -p "$LOCAL_BIN"
 mkdir -p "$CLAUDE_DIR"
 
+# Ensure ~/.local/bin is in PATH (to detect existing installation)
+export PATH="$LOCAL_BIN:${PATH}"
+
 # Check if already installed and working
 if command -v claude &>/dev/null; then
     CURRENT_VERSION=$(claude --version 2>/dev/null || echo "unknown")

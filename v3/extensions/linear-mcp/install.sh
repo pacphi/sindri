@@ -5,10 +5,14 @@ set -euo pipefail
 # Linear MCP server using Claude Code's native HTTP transport
 # See: https://linear.app/docs/mcp
 
-source "${DOCKER_LIB:-/docker/lib}/common.sh"
+# Find common.sh and resources relative to this script's location
+# Script is at: /opt/sindri/extensions/linear-mcp/install.sh
+# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
 EXTENSION_DIR="${HOME}/extensions/linear-mcp"
-RESOURCE_DIR="${DOCKER_LIB:-/docker/lib}/extensions/linear-mcp/resources"
+RESOURCE_DIR="$SCRIPT_DIR/resources"
 MCP_SERVER_NAME="linear"
 LINEAR_MCP_URL="https://mcp.linear.app/mcp"
 
@@ -21,6 +25,9 @@ mkdir -p "${EXTENSION_DIR}"
 if [[ -d "${RESOURCE_DIR}" ]]; then
     cp -r "${RESOURCE_DIR}"/* "${EXTENSION_DIR}/"
 fi
+
+# Ensure ~/.local/bin is in PATH (where claude CLI is installed)
+export PATH="${HOME}/.local/bin:${PATH}"
 
 # Check if claude CLI is available
 if ! command -v claude &>/dev/null; then

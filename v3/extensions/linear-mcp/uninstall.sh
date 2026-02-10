@@ -4,11 +4,18 @@ set -euo pipefail
 # Uninstall script for linear-mcp
 # Removes Linear MCP from Claude Code user scope
 
-source "${DOCKER_LIB:-/docker/lib}/common.sh"
+# Find common.sh relative to this script's location
+# Script is at: /opt/sindri/extensions/linear-mcp/uninstall.sh
+# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
 MCP_SERVER_NAME="linear"
 
 print_status "Removing Linear MCP server..."
+
+# Ensure ~/.local/bin is in PATH (where claude CLI is installed)
+export PATH="${HOME}/.local/bin:${PATH}"
 
 # Remove from Claude Code MCP configuration
 if command -v claude &>/dev/null; then

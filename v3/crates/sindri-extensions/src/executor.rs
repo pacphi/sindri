@@ -1042,15 +1042,17 @@ impl ExtensionExecutor {
 
     /// Write file with sudo if needed
     async fn write_file_with_sudo(&self, path: &str, data: &[u8], use_sudo: bool) -> Result<()> {
-        // Create temporary file
-        let temp_path = format!("{}.tmp", path);
+        // Write to temp file in /tmp (world-writable, avoids permission issues)
+        // Use a unique filename based on the target path
+        let path_hash = path.replace('/', "_");
+        let temp_path = format!("/tmp/sindri_{}.tmp", path_hash);
 
-        // Write to temp file
+        // Write to temp file (no sudo needed in /tmp)
         tokio::fs::write(&temp_path, data)
             .await
             .context("Failed to write temporary file")?;
 
-        // Move with sudo if needed
+        // Move with sudo if needed (mv handles cross-filesystem moves automatically)
         let mut cmd = if use_sudo {
             let mut c = Command::new("sudo");
             c.arg("mv");

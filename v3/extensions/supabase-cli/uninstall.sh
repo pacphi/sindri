@@ -4,7 +4,11 @@ set -euo pipefail
 # Uninstall script for supabase-cli
 # Removes the Supabase CLI .deb package
 
-source "${DOCKER_LIB:-/docker/lib}/common.sh"
+# Find common.sh relative to this script's location
+# Script is at: /opt/sindri/extensions/supabase-cli/uninstall.sh
+# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
 print_status "Uninstalling Supabase CLI..."
 

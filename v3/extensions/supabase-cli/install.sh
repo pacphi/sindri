@@ -5,10 +5,14 @@ set -euo pipefail
 # Installs Supabase CLI via .deb package from GitHub releases
 # Note: npm global install is NOT supported by Supabase as of 2025
 
-source "${DOCKER_LIB:-/docker/lib}/common.sh"
+# Find common.sh and resources relative to this script's location
+# Script is at: /opt/sindri/extensions/supabase-cli/install.sh
+# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
 EXTENSION_DIR="${HOME}/extensions/supabase-cli"
-RESOURCE_DIR="${DOCKER_LIB:-/docker/lib}/extensions/supabase-cli/resources"
+RESOURCE_DIR="$SCRIPT_DIR/resources"
 
 print_status "Installing Supabase CLI..."
 

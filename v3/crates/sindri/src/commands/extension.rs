@@ -165,6 +165,15 @@ async fn install_by_name(
     let distributor =
         sindri_extensions::ExtensionDistributor::new(cache_dir, extensions_dir, cli_version)?;
 
+    // Load manifest manager to track installation state
+    let mut manifest = sindri_extensions::ManifestManager::load_default()
+        .context("Failed to load installation manifest")?;
+
+    // Mark as installing in manifest (tracks state even if installation fails)
+    manifest
+        .mark_installing(&name, version.as_deref().unwrap_or("installing"), "local")
+        .context("Failed to update manifest")?;
+
     // Create spinner
     let spinner = output::spinner("Installing extension...");
 
@@ -184,6 +193,12 @@ async fn install_by_name(
         }
         Err(e) => {
             spinner.finish_and_clear();
+
+            // Mark as failed in manifest so it shows in status
+            if let Err(manifest_err) = manifest.mark_failed(&name) {
+                output::warning(&format!("Failed to update manifest: {}", manifest_err));
+            }
+
             output::error(&format!("Failed to install {}: {}", name, e));
             Err(e)
         }

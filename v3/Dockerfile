@@ -183,6 +183,7 @@ apt-get install -y --no-install-recommends \
     ca-certificates curl wget git openssh-server sudo \
     locales tzdata fontconfig unzip zip \
     build-essential pkg-config libssl-dev \
+    gnupg \
     iproute2 \
     nano vim
 locale-gen en_US.UTF-8

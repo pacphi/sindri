@@ -4,11 +4,15 @@ set -euo pipefail
 # pal-mcp-server Installer for Sindri
 # Installs the Provider Abstraction Layer MCP Server
 
-source "${DOCKER_LIB:-/docker/lib}/common.sh"
+# Find common.sh relative to this script's location
+# Script is at: /opt/sindri/extensions/pal-mcp-server/scripts/install.sh
+# common.sh is at: /opt/sindri/common.sh (go up 3 levels)
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/common.sh"
 
 EXTENSION_NAME="pal-mcp-server"
 EXTENSION_DIR="${HOME}/extensions/${EXTENSION_NAME}"
-RESOURCE_DIR="${DOCKER_LIB:-/docker/lib}/extensions/${EXTENSION_NAME}/resources"
+RESOURCE_DIR="$SCRIPT_DIR/resources"
 REPO_URL="https://github.com/BeehiveInnovations/pal-mcp-server.git"
 VERSION="v9.8.2"
 

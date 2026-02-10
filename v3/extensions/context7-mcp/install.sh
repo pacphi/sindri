@@ -5,10 +5,14 @@ set -euo pipefail
 # Context7 MCP server using Claude Code's native HTTP transport
 # See: https://github.com/upstash/context7
 
-source "${DOCKER_LIB:-/docker/lib}/common.sh"
+# Find common.sh and resources relative to this script's location
+# Script is at: /opt/sindri/extensions/context7-mcp/install.sh
+# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
 EXTENSION_DIR="${HOME}/extensions/context7-mcp"
-RESOURCE_DIR="${DOCKER_LIB:-/docker/lib}/extensions/context7-mcp/resources"
+RESOURCE_DIR="$SCRIPT_DIR/resources"
 MCP_SERVER_NAME="context7"
 CONTEXT7_MCP_URL="https://mcp.context7.com/mcp"
 
@@ -21,6 +25,9 @@ mkdir -p "${EXTENSION_DIR}"
 if [[ -d "${RESOURCE_DIR}" ]]; then
     cp -r "${RESOURCE_DIR}"/* "${EXTENSION_DIR}/"
 fi
+
+# Ensure ~/.local/bin is in PATH (where claude CLI is installed)
+export PATH="${HOME}/.local/bin:${PATH}"
 
 # Check if claude CLI is available
 if ! command -v claude &>/dev/null; then
