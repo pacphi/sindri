@@ -214,7 +214,10 @@ impl DownloadedSource {
         distributor
             .download_metadata(name, None)
             .await
-            .context(format!("Failed to download extension metadata for '{}'", name))
+            .context(format!(
+                "Failed to download extension metadata for '{}'",
+                name
+            ))
     }
 }
 
