@@ -285,7 +285,7 @@ impl<'a> ExtensionValidator<'a> {
     /// Check if version is valid semver or pattern like ">=1.0.0"
     fn is_valid_version_or_pattern(version: &str) -> bool {
         // Allow special version keywords
-        if matches!(version, "latest" | "dynamic" | "remote") {
+        if matches!(version, "latest" | "dynamic" | "remote" | "lts" | "stable") {
             return true;
         }
 
@@ -353,6 +353,9 @@ mod tests {
         assert!(ExtensionValidator::is_valid_version_or_pattern("~2.0.0"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("latest"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("dynamic"));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("lts"));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("stable"));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("remote"));
         assert!(!ExtensionValidator::is_valid_version_or_pattern("invalid"));
     }
 
