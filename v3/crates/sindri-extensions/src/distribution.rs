@@ -366,6 +366,101 @@ impl ExtensionDistributor {
         Ok(())
     }
 
+    /// Download extension metadata without executing installation
+    ///
+    /// This is used by listing operations that need extension metadata
+    /// but should not execute installation scripts or modify system state.
+    ///
+    /// # Arguments
+    /// * `name` - Extension name
+    /// * `version` - Optional specific version (defaults to latest compatible)
+    ///
+    /// # Returns
+    /// The downloaded extension definition
+    pub async fn download_metadata(&self, name: &str, version: Option<&str>) -> Result<Extension> {
+        debug!("Downloading metadata for extension: {}", name);
+
+        // 1. Fetch compatibility matrix
+        let matrix = self
+            .get_compatibility_matrix()
+            .await
+            .context("Failed to fetch compatibility matrix")?;
+
+        // 2. Get compatible version range for this CLI
+        let version_req = self
+            .get_compatible_range(&matrix, name)
+            .context("Failed to determine compatible version range")?;
+
+        // 3. Determine target version
+        let target_version = match version {
+            Some(v) => {
+                let ver = Version::parse(v).context(format!("Invalid version string: {}", v))?;
+                if !version_req.matches(&ver) {
+                    return Err(anyhow!(
+                        "Version {} is not compatible with CLI {}. Compatible range: {}",
+                        v,
+                        self.cli_version,
+                        version_req
+                    ));
+                }
+                ver
+            }
+            None => {
+                // In bundled mode, determine version from bundled extension
+                if let Some(bundled_version) = self.get_bundled_extension_version(name).await? {
+                    if version_req.matches(&bundled_version) {
+                        debug!(
+                            "Using bundled extension {} version {}",
+                            name, bundled_version
+                        );
+                        bundled_version
+                    } else {
+                        return Err(anyhow!(
+                            "Bundled extension {} version {} is not compatible with CLI {}. Compatible range: {}",
+                            name,
+                            bundled_version,
+                            self.cli_version,
+                            version_req
+                        ));
+                    }
+                } else {
+                    // Not bundled, find compatible version from GitHub
+                    self.find_compatible_extension(name, &version_req)
+                        .await
+                        .context("Failed to find compatible extension version")?
+                }
+            }
+        };
+
+        debug!(
+            "Fetching {} version {} metadata (compatible with CLI {})",
+            name, target_version, self.cli_version
+        );
+
+        // 4. Get extension directory (bundled or downloaded)
+        let ext_dir = if let Some(bundled_dir) = self.get_bundled_extension_dir(name).await? {
+            debug!("Using bundled extension from {:?}", bundled_dir);
+            bundled_dir
+        } else {
+            // Download extension files from raw.githubusercontent.com
+            self.download_extension_files(name, &target_version)
+                .await
+                .context("Failed to download extension metadata")?
+        };
+
+        // 5. Load extension definition (no validation, no execution)
+        let extension = self
+            .load_extension(&ext_dir)
+            .context("Failed to load extension definition")?;
+
+        info!(
+            "Downloaded extension {} v{} to {:?}",
+            name, target_version, ext_dir
+        );
+
+        Ok(extension)
+    }
+
     /// Upgrade an extension to the latest compatible version
     ///
     /// # Arguments

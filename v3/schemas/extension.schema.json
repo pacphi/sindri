@@ -1068,7 +1068,7 @@
                   "required": ["code"],
                   "properties": {
                     "description": {
-                      "type": "string",
+                      "type": ["string", "null"],
                       "description": "Optional description of the example"
                     },
                     "code": {

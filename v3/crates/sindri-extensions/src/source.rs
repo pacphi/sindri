@@ -194,6 +194,10 @@ impl DownloadedSource {
     }
 
     /// Download extension from GitHub and then load it
+    ///
+    /// This downloads extension metadata without executing installation.
+    /// Used by listing and info commands that need extension data without
+    /// modifying system state.
     pub async fn download_and_get(&self, name: &str) -> Result<Extension> {
         info!(
             "Extension '{}' not found locally, downloading from GitHub...",
@@ -206,13 +210,11 @@ impl DownloadedSource {
             self.cli_version.clone(),
         )?;
 
+        // Download metadata only - no installation execution
         distributor
-            .install(name, None)
+            .download_metadata(name, None)
             .await
-            .context(format!("Failed to download extension '{}'", name))?;
-
-        // Now load the downloaded extension
-        self.get_extension(name)
+            .context(format!("Failed to download extension metadata for '{}'", name))
     }
 }
 
