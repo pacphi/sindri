@@ -1,10 +1,10 @@
 {
   "schemaVersion": "3.0.0",
-  "lastUpdated": "2026-02-05",
+  "lastUpdated": "2026-02-10",
   "meta": {
-    "totalQuestions": 152,
+    "totalQuestions": 180,
     "versionsSupported": ["v2", "v3"],
-    "categories": 11,
+    "categories": 13,
     "personas": 6
   },
   "categories": [
@@ -73,6 +73,18 @@
       "name": "Migration",
       "icon": "arrow-right",
       "description": "V2 to V3 migration, breaking changes, command mapping"
+    },
+    {
+      "id": "bom",
+      "name": "Bill of Materials (BOM)",
+      "icon": "list",
+      "description": "SBOM generation, version tracking, compliance and security workflows (v3-only)"
+    },
+    {
+      "id": "testing-security",
+      "name": "Testing & Security",
+      "icon": "shield-check",
+      "description": "Security testing tools, pentesting, vulnerability scanning"
     }
   ],
   "personas": [
@@ -4173,6 +4185,426 @@
       "keywords": ["performance", "optimization", "async", "parallel", "caching", "rust", "tokio"],
       "dateAdded": "2026-02-05",
       "dateUpdated": "2026-02-05",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "bom-what-is-sbom",
+      "category": "bom",
+      "question": "What is Software Bill of Materials (SBOM)?",
+      "answer": "A Software Bill of Materials (SBOM) is a complete inventory of all software components, dependencies, and metadata for a project. Sindri can generate SBOMs showing all installed extensions and their software versions. This supports security auditing, compliance workflows, and dependency tracking. 88% of Sindri extensions (44/50) include pinned software versions for comprehensive BOM generation.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri bom generate",
+          "notes": "BOM capability with 120 tests ensuring reliability"
+        }
+      },
+      "tags": ["bom", "security", "compliance", "sbom"],
+      "docs": ["v3/docs/architecture/adr/042-bom-capability-architecture.md", "v3/docs/extensions/guides/AUTHORING.md"],
+      "personas": ["enterprise", "platform-engineer"],
+      "useCases": ["security-compliance"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["bom-generate", "bom-verify"],
+      "keywords": ["sbom", "bill of materials", "security", "compliance"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "bom-generate",
+      "category": "bom",
+      "question": "How do I generate a BOM?",
+      "answer": "Use 'sindri bom generate' to create a bill of materials for your installed extensions. The BOM includes tool names, versions, and metadata. You can specify output format (--format json/yaml), output file (--output), or generate for a specific profile (--profile). 88% of extensions (44/50) include pinned software versions. Example: sindri bom generate --format json --output bom.json",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri bom generate [--format json|yaml] [--output FILE] [--profile PROFILE]",
+          "notes": "Supports JSON and YAML output formats"
+        }
+      },
+      "tags": ["bom", "cli", "generation"],
+      "docs": ["v3/docs/CLI.md", "v3/docs/architecture/adr/042-bom-capability-architecture.md"],
+      "personas": ["individual-developer", "small-team", "enterprise"],
+      "useCases": ["security-compliance"],
+      "difficulty": "beginner",
+      "relatedQuestions": ["bom-what-is-sbom", "bom-verify"],
+      "keywords": ["generate", "bom", "sbom", "cli"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "bom-verify",
+      "category": "bom",
+      "question": "How do I verify a BOM?",
+      "answer": "Use 'sindri bom verify' to validate that a previously generated BOM matches your current installation state. This command compares the BOM file against currently installed extensions and their versions, reporting any mismatches. Example: sindri bom verify --file bom.json",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri bom verify --file FILE",
+          "notes": "Returns non-zero exit code if verification fails"
+        }
+      },
+      "tags": ["bom", "validation", "verification"],
+      "docs": ["v3/docs/CLI.md"],
+      "personas": ["enterprise", "platform-engineer"],
+      "useCases": ["security-compliance"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["bom-generate", "bom-what-is-sbom"],
+      "keywords": ["verify", "validation", "bom"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "bom-format",
+      "category": "bom",
+      "question": "What format does the BOM use?",
+      "answer": "Sindri uses a structured YAML or JSON format showing components, versions, and categories. Each BOM includes: version (1.0.0), generated_at timestamp, and a components array listing each extension with name, version, software versions, and category. The BOM is designed for security compliance and dependency tracking.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "notes": "Supports both YAML and JSON output formats"
+        }
+      },
+      "tags": ["bom", "format", "structure"],
+      "docs": ["v3/docs/architecture/adr/042-bom-capability-architecture.md"],
+      "personas": ["enterprise", "platform-engineer"],
+      "useCases": ["security-compliance"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["bom-generate"],
+      "keywords": ["format", "structure", "bom"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "extensions-list-modes",
+      "category": "extensions",
+      "question": "What's the difference between extension list modes?",
+      "answer": "'sindri extension list' shows available extensions from the registry. Use --installed to see only installed extensions with their versions and status, or --all for a unified view showing both available and installed extensions with installation status indicators. The --all flag is useful for seeing what's available while tracking what you have installed.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri extension list [--installed] [--all]",
+          "notes": "Parallel metadata fetching for fast list operations"
+        }
+      },
+      "tags": ["extensions", "cli", "list"],
+      "docs": ["v3/docs/CLI.md"],
+      "personas": ["individual-developer", "small-team"],
+      "useCases": ["local-development"],
+      "difficulty": "beginner",
+      "relatedQuestions": ["extensions-version-coverage"],
+      "keywords": ["list", "installed", "available"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "extensions-debug-failures",
+      "category": "extensions",
+      "question": "How do I debug failed extension installations?",
+      "answer": "Use 'sindri extension status' to see installation states including 'failed' status. Error messages now include detailed phase tracking (source resolution → download → install → validate) to pinpoint failures. Check logs with 'sindri extension logs <name>' for detailed error output. Run 'sindri doctor' to check for system-level issues that might affect installation.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri extension status [NAME]",
+          "notes": "Phase-based error tracking shows exact failure point"
+        }
+      },
+      "tags": ["extensions", "troubleshooting", "debugging"],
+      "docs": ["v3/docs/TROUBLESHOOTING.md"],
+      "personas": ["individual-developer", "small-team", "platform-engineer"],
+      "useCases": ["local-development"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["troubleshooting-install-phases", "troubleshooting-profile-failures"],
+      "keywords": ["debug", "failed", "troubleshooting"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "extensions-installing-status",
+      "category": "extensions",
+      "question": "What does 'installing' status mean?",
+      "answer": "The 'installing' status indicates an extension installation is currently in progress. If this state persists after a reasonable time, the installation may have been interrupted or hung. You can check detailed progress with 'sindri extension logs <name>' or kill and retry the installation.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri extension status",
+          "notes": "Installation states: pending → installing → installed/failed"
+        }
+      },
+      "tags": ["extensions", "status", "installation"],
+      "docs": ["v3/docs/EXTENSIONS.md"],
+      "personas": ["individual-developer", "small-team"],
+      "useCases": ["local-development"],
+      "difficulty": "beginner",
+      "relatedQuestions": ["extensions-debug-failures"],
+      "keywords": ["installing", "status", "progress"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "extensions-metadata-cache",
+      "category": "extensions",
+      "question": "How is extension metadata cached?",
+      "answer": "Extension metadata (versions, descriptions, categories) is cached in ~/.sindri/cache/extensions/. First run takes 3-5 seconds with parallel fetching from the registry; subsequent runs are instant using cached data. The cache automatically refreshes periodically to stay current with registry updates. You can clear the cache with 'rm -rf ~/.sindri/cache/extensions' if needed.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "notes": "Parallel async fetching via Tokio runtime"
+        }
+      },
+      "tags": ["extensions", "performance", "cache"],
+      "docs": ["v3/docs/ARCHITECTURE.md"],
+      "personas": ["individual-developer", "small-team", "platform-engineer"],
+      "useCases": ["local-development"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["extensions-list-modes"],
+      "keywords": ["cache", "metadata", "performance"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "extensions-pnpm-versioning",
+      "category": "extensions",
+      "question": "How does pnpm versioning work with Node.js?",
+      "answer": "Node.js extensions use corepack to manage pnpm automatically. In the BOM, you'll see 'pnpm 10.x (corepack-managed)' for flexible updates, or 'pnpm 10.29.2 (pinned)' where specific versions are needed. Corepack ships with Node.js and handles pnpm installation and version management without requiring separate installation scripts.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri extension install nodejs",
+          "notes": "Node.js migrated from hybrid to mise-only with corepack"
+        }
+      },
+      "tags": ["extensions", "nodejs", "pnpm", "versioning"],
+      "docs": ["v3/docs/EXTENSIONS.md"],
+      "personas": ["individual-developer", "small-team"],
+      "useCases": ["local-development"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["nodejs-package-management"],
+      "keywords": ["pnpm", "nodejs", "corepack", "versioning"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "troubleshooting-profile-failures",
+      "category": "troubleshooting",
+      "question": "How do I debug profile installation failures?",
+      "answer": "Look for detailed phase tracking in error messages: source resolution, download, install, validate. Check 'sindri extension status' for failed states and specific error details. Review logs with 'sindri extension logs <name>' for each failed extension. Common issues include network timeouts, missing system dependencies, or permission problems. Run 'sindri doctor' to validate system prerequisites.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri extension status && sindri doctor",
+          "notes": "Phase-based error tracking with precise failure location"
+        }
+      },
+      "tags": ["troubleshooting", "profiles", "installation"],
+      "docs": ["v3/docs/TROUBLESHOOTING.md"],
+      "personas": ["individual-developer", "small-team", "platform-engineer"],
+      "useCases": ["local-development"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["troubleshooting-install-phases", "extensions-debug-failures"],
+      "keywords": ["profile", "installation", "debug", "failure"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "troubleshooting-sdkman-init",
+      "category": "troubleshooting",
+      "question": "Why does SDKMAN initialization fail on some platforms?",
+      "answer": "SDKMAN init may return non-zero exit codes even on success in some environments (e.g., Fly.io). Sindri v3 now relies on subsequent 'sdk' command verification rather than init exit codes, making it more robust across platforms. If SDKMAN-based extensions fail, run 'sindri doctor --check-sdkman' to diagnose issues.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri doctor --check-sdkman",
+          "notes": "Improved SDKMAN validation via command verification"
+        }
+      },
+      "tags": ["troubleshooting", "sdkman", "installation"],
+      "docs": ["v3/docs/TROUBLESHOOTING.md"],
+      "personas": ["platform-engineer"],
+      "useCases": ["cloud-deployment", "multi-cloud"],
+      "difficulty": "advanced",
+      "relatedQuestions": ["troubleshooting-sdkman-verify"],
+      "keywords": ["sdkman", "initialization", "platform"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "troubleshooting-install-phases",
+      "category": "troubleshooting",
+      "question": "What do installation phases mean?",
+      "answer": "Installation phases track extension installation progress: 1) Source resolution (locate extension definition), 2) Download (fetch extension files and dependencies), 3) Install (execute installation commands), 4) Validate (verify installation success). Error messages show which phase failed, helping pinpoint the root cause. For example, 'Phase: download' failures often indicate network issues or invalid URLs.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "notes": "Phase-based installation tracking for precise error diagnosis"
+        }
+      },
+      "tags": ["troubleshooting", "installation", "phases"],
+      "docs": ["v3/docs/TROUBLESHOOTING.md", "v3/docs/EXTENSIONS.md"],
+      "personas": ["individual-developer", "small-team", "platform-engineer"],
+      "useCases": ["local-development"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["troubleshooting-profile-failures", "extensions-debug-failures"],
+      "keywords": ["phases", "installation", "tracking", "error"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "troubleshooting-validation-errors",
+      "category": "troubleshooting",
+      "question": "I'm getting validation errors for custom extensions - what's wrong?",
+      "answer": "Common issues: 1) The 'docs.notes' field can be null or omitted entirely, 2) Use 'command' (not 'args') for validation commands, 3) Ensure schema version matches (v3 extensions use schema 1.0). Check against the extension schema documentation and validate with 'sindri extension validate <name> --file extension.yaml'. Recent fixes (beta.11+) improved null handling for optional fields.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri extension validate <name> --file extension.yaml",
+          "notes": "Improved schema validation with null field handling"
+        }
+      },
+      "tags": ["troubleshooting", "extensions", "validation", "schema"],
+      "docs": ["v3/docs/extensions/guides/AUTHORING.md", "v3/docs/SCHEMA.md"],
+      "personas": ["platform-engineer"],
+      "useCases": ["local-development"],
+      "difficulty": "advanced",
+      "relatedQuestions": ["extension-authoring"],
+      "keywords": ["validation", "schema", "custom", "extension"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "troubleshooting-sdkman-verify",
+      "category": "troubleshooting",
+      "question": "How do I verify SDKMAN is working correctly?",
+      "answer": "After installation, source your bashrc ('source ~/.bashrc') and run 'sdk version' to verify SDKMAN is functional. Sindri validates SDKMAN by checking subsequent 'sdk' commands rather than initialization exit codes, which can be unreliable. Use 'sindri doctor --check-sdkman' for automated validation.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "source ~/.bashrc && sdk version",
+          "notes": "SDKMAN verification improved via command validation"
+        }
+      },
+      "tags": ["troubleshooting", "sdkman", "verification"],
+      "docs": ["v3/docs/DOCTOR.md"],
+      "personas": ["individual-developer", "small-team"],
+      "useCases": ["local-development"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["troubleshooting-sdkman-init"],
+      "keywords": ["sdkman", "verification", "validation"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "troubleshooting-logging-ansi",
+      "category": "troubleshooting",
+      "question": "Why do I see escape codes in my logs?",
+      "answer": "Older versions (before beta.11) may show ANSI escape codes in logs from mise and script installations. Version beta.11+ strips ANSI codes automatically to prevent log pollution, especially important in CI/CD environments. Upgrade to the latest beta for clean log output.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "notes": "ANSI code stripping for clean logs"
+        }
+      },
+      "tags": ["troubleshooting", "logging", "ci"],
+      "docs": ["v3/CHANGELOG.md"],
+      "personas": ["platform-engineer"],
+      "useCases": ["cloud-deployment"],
+      "difficulty": "beginner",
+      "relatedQuestions": [],
+      "keywords": ["ansi", "logs", "escape codes"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "nodejs-package-management",
+      "category": "configuration",
+      "question": "How does Node.js package management work in Sindri v3?",
+      "answer": "Node.js uses mise-only installation with corepack managing pnpm automatically. This simplifies setup and removes the need for bootstrap scripts. Python is included as a dependency for native module compilation (node-gyp). The migration from hybrid (mise+script) to mise-only installation happened in beta.11.",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "command": "sindri extension install nodejs",
+          "notes": "Corepack manages pnpm, Python included for node-gyp"
+        }
+      },
+      "tags": ["nodejs", "runtime", "package-management"],
+      "docs": ["v3/docs/EXTENSIONS.md"],
+      "personas": ["individual-developer", "small-team"],
+      "useCases": ["local-development"],
+      "difficulty": "intermediate",
+      "relatedQuestions": ["extensions-pnpm-versioning"],
+      "keywords": ["nodejs", "pnpm", "corepack", "package management"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
+      "popularity": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "python-dependencies",
+      "category": "configuration",
+      "question": "What Python dependencies are required?",
+      "answer": "Python is required by extensions that build native Node.js modules (node-gyp). It's automatically included as a dependency where needed. Sindri uses mise with pre-built Python binaries to avoid compilation issues in restricted environments (e.g., containers with noexec /tmp).",
+      "versionsApplicable": ["v3"],
+      "versionSpecifics": {
+        "v3": {
+          "minVersion": "3.0.0-beta.11",
+          "notes": "Pre-built binaries used, compilation disabled"
+        }
+      },
+      "tags": ["python", "dependencies", "runtime"],
+      "docs": ["v3/docs/EXTENSIONS.md"],
+      "personas": ["individual-developer", "small-team"],
+      "useCases": ["local-development"],
+      "difficulty": "beginner",
+      "relatedQuestions": ["nodejs-package-management"],
+      "keywords": ["python", "dependencies", "node-gyp"],
+      "dateAdded": "2026-02-10",
+      "dateUpdated": "2026-02-10",
       "popularity": 0,
       "upvotes": 0
     }

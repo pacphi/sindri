@@ -464,7 +464,216 @@ make v3-docker-build-from-source   # Development
 
 ## ✨ New Features
 
-### 1. Native Binary Distribution
+### 1. Bill of Materials (BOM) Generation
+
+**Benefit:** Comprehensive Software Bill of Materials (SBOM) for security and compliance
+
+Sindri v3 now includes built-in Software Bill of Materials (SBOM) generation and verification capabilities for tracking all installed extensions and their software versions.
+
+**Key Features:**
+
+- **CLI Commands**: `sindri bom generate` and `sindri bom verify` for creating and validating BOMs
+- **Software Version Tracking**: 88% of extensions (44/50) now include pinned software versions
+- **Automated Documentation**: BOM sections automatically generate in extension documentation
+- **Compliance Ready**: Supports security auditing and compliance workflows
+- **Comprehensive Testing**: 120 tests (105 unit + 15 integration) ensure reliability
+
+**Usage:**
+
+```bash
+# Generate BOM for installed extensions
+sindri bom generate
+
+# Generate BOM with specific output format
+sindri bom generate --format json --output bom.json
+
+# Verify BOM against current installation
+sindri bom verify --file bom.json
+
+# Generate BOM for specific profile
+sindri bom generate --profile fullstack
+```
+
+**BOM Output Example:**
+
+```yaml
+version: 1.0.0
+generated_at: 2026-02-10T12:00:00Z
+components:
+  - name: nodejs
+    version: 1.0.0
+    software:
+      - name: node
+        version: 22.13.1
+      - name: pnpm
+        version: 10.0.0 (corepack-managed)
+    category: languages
+```
+
+**References:**
+
+- [ADR-042: BOM Capability Architecture](v3/docs/architecture/adr/042-bom-capability-architecture.md)
+- [Extension Authoring Guide: BOM Section](v3/docs/extensions/guides/AUTHORING.md#bom-section)
+
+---
+
+### 2. Enhanced Extension Management
+
+**Benefit:** Improved visibility and control over extension installation state
+
+V3 introduces significant enhancements to extension management with unified views, software version display, and installation state tracking.
+
+**Extension List Improvements:**
+
+- **Unified Extension View**: New `--all` flag shows both available and installed extensions in one view
+- **Software Version Display**: See exact versions of tools (e.g., "python (3.13), pip (26.0.1)")
+- **Installation State Tracking**: Failed installations now visible via `sindri extension status`
+- **Parallel Metadata Fetching**: Extension list loads in 3-5 seconds (first run), instant thereafter
+- **Smart Caching**: Extension metadata cached in `~/.sindri/cache/extensions/`
+- **Status Datetime Field**: Renamed from `installed_at` for better clarity (backward compatible)
+
+**Usage:**
+
+```bash
+# List all extensions (available + installed)
+sindri extension list --all
+
+# Show only installed extensions with versions
+sindri extension list --installed
+
+# Check installation status for specific extension
+sindri extension status nodejs
+
+# View detailed extension information
+sindri extension info nodejs
+```
+
+**Installation State Visibility:**
+
+```bash
+$ sindri extension status
+mise        ✓ installed    2026-02-10 10:30:00
+nodejs      ✓ installed    2026-02-10 10:32:15
+python      ⏳ installing   -
+docker      ✗ failed       2026-02-10 10:35:42
+```
+
+**References:**
+
+- [CLI Reference: Extension Commands](v3/docs/CLI.md#extension-commands)
+- [Extensions Overview](v3/docs/EXTENSIONS.md)
+
+---
+
+### 3. Installation Reliability & Error Reporting
+
+**Benefit:** Precise failure diagnostics with phase-by-phase tracking
+
+V3 dramatically improves installation reliability and error reporting with detailed phase tracking and enhanced state management.
+
+**Enhanced Error Reporting:**
+
+- **Phase Tracking**: Shows exactly where installations fail
+  - Phases: source resolution → download → install → validate
+- **Installation States**: New `installing` and `failed` states visible in status output
+- **Script Portability**: Removed `DOCKER_LIB` dependency for better cross-environment support
+- **Temp File Handling**: Improved to prevent cross-filesystem move issues
+- **SDKMAN Integration**: More robust initialization handling for edge cases
+
+**Usage:**
+
+```bash
+# Check for failed installations
+sindri extension status | grep failed
+
+# Retry failed installation with verbose output
+sindri extension install docker --verbose
+
+# Tail installation logs
+tail -f ~/.sindri/logs/install.log
+```
+
+**Error Message Example:**
+
+```
+Error: Extension installation failed
+  Extension: docker
+  Phase: install
+  Reason: SDKMAN initialization returned non-zero exit code
+  Suggestion: Run 'sindri doctor --check-sdkman' to diagnose SDKMAN setup
+```
+
+**References:**
+
+- [Troubleshooting Guide](v3/docs/TROUBLESHOOTING.md#extension-installation-failures)
+
+---
+
+### 4. Language Runtime Improvements
+
+**Benefit:** Simplified installation and enhanced compatibility
+
+V3 improves language runtime management with simplified installation methods and better dependency handling.
+
+**Node.js Migration:**
+
+- **Simplified Installation**: Migrated from hybrid (mise+script) to mise-only
+- **Removed Dependencies**: No more `bootstrap-pnpm.sh` script
+- **Corepack Integration**: Corepack manages pnpm automatically
+- **Enhanced PATH Support**: Better handling for bundled/downloaded/flat layouts
+
+**Python Enhancements:**
+
+- **Dependency Management**: Added Python where needed for native module compilation (node-gyp)
+- **Mise Backend**: Pre-built binaries used to avoid compilation in restricted environments
+
+**SDKMAN Improvements:**
+
+- **Validation Robustness**: Improved across deployment platforms
+- **Initialization Handling**: Better error handling for non-zero exit codes
+
+**Pulumi Fixes:**
+
+- **Version Handling**: Fixed version prefix handling issues
+
+**Usage:**
+
+```bash
+# Install Node.js with automatic pnpm setup
+sindri extension install nodejs
+
+# Python automatically included for Node.js native modules
+sindri extension info nodejs  # Shows python as dependency
+
+# Verify SDKMAN installation
+sindri doctor --check-sdkman
+```
+
+**References:**
+
+- [Extension Authoring Guide: Install Methods](v3/docs/extensions/guides/AUTHORING.md#install-methods)
+
+---
+
+### 5. New Extensions
+
+**Shannon v1.0.0** - Autonomous AI Pentester
+
+- **Category**: Testing
+- **Features**: White-box source analysis + black-box exploitation
+- **Success Rate**: 96.15% on XBOW Benchmark
+- **Use Case**: Enterprise security testing
+- **Installation**: `sindri extension install shannon`
+
+Shannon is an autonomous AI penetration tester that combines white-box source code analysis with black-box exploitation techniques for comprehensive security testing.
+
+**References:**
+
+- [Extension Registry: Shannon](v3/extensions/shannon/extension.yaml)
+
+---
+
+### 6. Native Binary Distribution
 
 **Benefit:** Zero-dependency installation on 5 platforms
 
@@ -477,7 +686,6 @@ Sindri V3 is distributed as a single statically-linked binary (~12MB) that requi
 | Linux x86_64   | `sindri-linux-x86_64.tar.gz`  | ✅ Stable       |
 | Linux aarch64  | `sindri-linux-aarch64.tar.gz` | ✅ Stable       |
 | macOS aarch64  | `sindri-macos-aarch64.tar.gz` | ✅ Stable       |
-| macOS x86_64   | `sindri-macos-x86_64.tar.gz`  | ⚠️ Legacy       |
 | Windows x86_64 | `sindri-windows-x86_64.zip`   | 🧪 Experimental |
 
 **Installation:**
@@ -1212,6 +1420,31 @@ Covering Rust workspace architecture, provider abstraction, extension type syste
 ---
 
 ## 🐛 Bug Fixes
+
+### Recent Fixes (v3.0.0-beta.11 → beta.12)
+
+1. **Extension Schema Validation** (commits: 8b6434b, 2bcc072)
+   - Fixed null handling for `docs.notes` field (affected 36/50 extensions)
+   - Extension schema now properly validates nullable fields
+   - Impact: All extensions now validate correctly against V3 schema
+
+2. **Extension Python Validation** (commit: 8b6434b)
+   - Removed validation for pnpm and SDKMAN executables (now managed by corepack and bashrc)
+   - Simplified extension validation logic
+   - Impact: Reduced false-positive validation failures
+
+3. **Logging ANSI Code Pollution** (commit: 2bcc072)
+   - Strip ANSI codes from mise and script installation output
+   - Prevents log pollution with terminal escape sequences
+   - Impact: Cleaner logs in CI/CD environments
+
+4. **Docker Package Dependencies** (commit: 2bcc072)
+   - Added gnupg and iproute2 packages for better compatibility
+   - Impact: Improved compatibility across different deployment environments
+
+5. **Extension Version Handling** (commit: 2bcc072)
+   - Improved version parsing and validation for extensions
+   - Impact: More robust version compatibility checks
 
 ### Critical Fixes
 
