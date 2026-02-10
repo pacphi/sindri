@@ -1,8 +1,14 @@
 # Sindri FAQ - Static Site Deployment
-# Host: sindri-faq.fly.dev
 #
-# Deploy: flyctl deploy --config docs/faq/fly.toml
-# Costs: ~$0-2/month with auto-suspend (free tier eligible)
+# Host:
+#   sindri-faq.fly.dev
+#
+# Deploy:
+#   cd docs/faq
+#   flyctl deploy
+#
+# Costs:
+#   ~$0-2/month with auto-suspend (free tier eligible)
 
 app = 'sindri-faq'
 primary_region = 'sjc'
