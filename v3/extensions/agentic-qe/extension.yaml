@@ -10,6 +10,7 @@ metadata:
   dependencies:
     - claude-cli
     - nodejs
+    - python
 requirements:
   domains:
     - registry.npmjs.org

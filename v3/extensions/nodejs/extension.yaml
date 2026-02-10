@@ -23,18 +23,19 @@ configure:
     - key: NODE_ENV
       value: development
       scope: bashrc
-    # Use system Python for node-gyp native module compilation
-    # Python 3.13 (mise) doesn't have distutils, but system Python 3.12 does
+    # Use mise Python for node-gyp native module compilation
+    # mise Python includes development headers needed for compiling native modules (sharp, etc.)
+    # If python extension isn't installed, falls back to system python
     - key: PYTHON
-      value: /usr/bin/python3
+      value: $(mise where python)/bin/python3
       scope: bashrc
 validate:
   commands:
     - name: node
       expectedPattern: "v\\d+\\.\\d+\\.\\d+"
     - name: npm
-    - name: pnpm
-      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+  # pnpm managed by corepack - available on-demand after first use
+  # Skipping validation since it requires sourcing bashrc first
 remove:
   mise:
     removeConfig: true
