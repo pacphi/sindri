@@ -513,7 +513,7 @@ components:
 **References:**
 
 - [ADR-042: BOM Capability Architecture](v3/docs/architecture/adr/042-bom-capability-architecture.md)
-- [Extension Authoring Guide: BOM Section](v3/docs/extensions/guides/AUTHORING.md#bom-section)
+- [Extension Authoring Guide: BOM Section](v3/docs/extensions/guides/AUTHORING.md#bom-recommended)
 
 ---
 
@@ -560,7 +560,7 @@ docker      ✗ failed       2026-02-10 10:35:42
 
 **References:**
 
-- [CLI Reference: Extension Commands](v3/docs/CLI.md#extension-commands)
+- [CLI Reference: Extension Commands](v3/docs/CLI.md#extension)
 - [Extensions Overview](v3/docs/EXTENSIONS.md)
 
 ---
@@ -605,7 +605,7 @@ Error: Extension installation failed
 
 **References:**
 
-- [Troubleshooting Guide](v3/docs/TROUBLESHOOTING.md#extension-installation-failures)
+- [Troubleshooting Guide](v3/docs/TROUBLESHOOTING.md#extension-install-fails)
 
 ---
 
@@ -651,7 +651,7 @@ sindri doctor --check-sdkman
 
 **References:**
 
-- [Extension Authoring Guide: Install Methods](v3/docs/extensions/guides/AUTHORING.md#install-methods)
+- [Extension Authoring Guide: Install Methods](v3/docs/extensions/guides/AUTHORING.md#install-required)
 
 ---
 
