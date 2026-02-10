@@ -41,6 +41,10 @@ install:
     path: install.sh
     timeout: 900
 configure:
+  environment:
+    - key: PATH
+      value: "$HOME/google-cloud-sdk/bin:$PATH"
+      scope: bashrc
   templates:
     - source: ssh-environment.template
       destination: ~/.profile
@@ -64,7 +68,7 @@ validate:
   # fully functional when installed, but validation would break CI builds.
 capabilities:
   hooks:
-    post_install:
+    post-install:
       command: "ln -sf $HOME/google-cloud-sdk/bin/gcloud $HOME/.local/bin/gcloud 2>/dev/null || true"
       description: "Symlink gcloud to .local/bin for validation"
 remove:

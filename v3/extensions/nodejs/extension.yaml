@@ -2,7 +2,7 @@
 metadata:
   name: nodejs
   version: 1.1.0
-  description: Node.js LTS via mise with pnpm package manager
+  description: Node.js LTS via mise with pnpm package manager (corepack)
   category: languages
   dependencies:
     - mise-config
@@ -14,13 +14,10 @@ requirements:
   memory: 256
   installTime: 30
 install:
-  method: hybrid
+  method: mise
   mise:
     configFile: mise.toml
     reshimAfterInstall: true
-  script:
-    path: bootstrap-pnpm.sh
-    timeout: 60
 configure:
   environment:
     - key: NODE_ENV
@@ -52,30 +49,30 @@ bom:
       homepage: https://nodejs.org
       purl: pkg:generic/nodejs
     - name: npm
-      version: "10.9.4"  # Bundled with Node.js 22 LTS
+      version: "11.x"
       source: mise
       type: package-manager
       license: Artistic-2.0
       homepage: https://www.npmjs.com
-      purl: pkg:npm/npm@10.9.4
+      purl: pkg:npm/npm
     - name: npx
-      version: "10.9.4"  # Part of npm package
+      version: "11.x"  # Part of npm package
       source: mise
       type: cli-tool
       license: Artistic-2.0
       homepage: https://www.npmjs.com
-      purl: pkg:npm/npx@10.9.4
+      purl: pkg:npm/npx
     - name: pnpm
-      version: "10.29.2"  # Pinned in bootstrap-pnpm.sh
-      source: npm
+      version: "10.x"  # Managed by corepack (bundled with Node.js)
+      source: mise
       type: package-manager
       license: MIT
       homepage: https://pnpm.io
-      purl: pkg:npm/pnpm@10.29.2
+      purl: pkg:npm/pnpm
 docs:
   title: "Node.js"
   overview: |
-    Node.js LTS via mise with pnpm package manager. Provides a complete Node.js development environment with modern package management.
+    Node.js LTS via mise with pnpm package manager (via corepack). Provides a complete Node.js development environment with modern package management.
   last-updated: "2026-01-26"
   usage:
     - section: "Running Node.js"

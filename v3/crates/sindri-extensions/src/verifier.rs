@@ -3,10 +3,63 @@
 //! Verifies that extension software is actually installed on the system
 //! by checking if tools, packages, and binaries exist.
 
+use crate::validation::ValidationConfig;
 use sindri_core::types::{Extension, InstallMethod};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, warn};
+
+/// Build a comprehensive verification PATH matching the executor's validation PATH.
+///
+/// This ensures commands installed via mise, npm global, go, cargo, etc.
+/// are discoverable during verification (same as during post-install validation).
+fn build_verification_path() -> String {
+    let home_dir = std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/alt/home/developer"));
+    let workspace_dir = std::env::var("WORKSPACE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| home_dir.join("workspace"));
+
+    let config = ValidationConfig::new(&home_dir, &workspace_dir);
+    config.build_validation_path()
+}
+
+/// Find extension.yaml file in multiple candidate locations
+///
+/// Checks locations in priority order to handle different deployment modes:
+/// 1. ~/.sindri/extensions/{name}/{version}/extension.yaml (downloaded, versioned)
+/// 2. ~/.sindri/extensions/{name}/extension.yaml (downloaded, flat)
+/// 3. /opt/sindri/extensions/{name}/extension.yaml (bundled in Docker)
+/// 4. SINDRI_EXT_HOME/{name}/{version}/extension.yaml (custom)
+/// 5. SINDRI_EXT_HOME/{name}/extension.yaml (custom, flat)
+pub fn find_extension_yaml(name: &str, version: &str) -> Option<PathBuf> {
+    let home = std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/alt/home/developer"));
+
+    let sindri_ext_home = std::env::var("SINDRI_EXT_HOME")
+        .unwrap_or_else(|_| format!("{}/.sindri/extensions", home.display()));
+
+    let candidates: Vec<PathBuf> = vec![
+        // 1. Downloaded extensions (versioned)
+        Path::new(&sindri_ext_home)
+            .join(name)
+            .join(version)
+            .join("extension.yaml"),
+        // 2. Downloaded extensions (flat)
+        Path::new(&sindri_ext_home)
+            .join(name)
+            .join("extension.yaml"),
+        // 3. Bundled extensions (Docker image)
+        Path::new("/opt/sindri/extensions")
+            .join(name)
+            .join("extension.yaml"),
+    ];
+
+    // Find first path that exists
+    candidates.into_iter().find(|p| p.exists())
+}
 
 /// Verify that an extension's software is actually installed
 ///
@@ -65,6 +118,10 @@ pub async fn verify_extension_installed(extension: &Extension) -> bool {
 
     // 2. Run validation commands if defined
     if !extension.validate.commands.is_empty() {
+        // Build comprehensive PATH to find tools installed via mise, npm global, etc.
+        // This matches the executor's validate_extension() behavior
+        let validation_path = build_verification_path();
+
         for cmd_validation in &extension.validate.commands {
             debug!(
                 "Running validation command: {} {}",
@@ -73,6 +130,7 @@ pub async fn verify_extension_installed(extension: &Extension) -> bool {
 
             let output = Command::new(&cmd_validation.name)
                 .arg(&cmd_validation.version_flag)
+                .env("PATH", &validation_path)
                 .output();
 
             match output {
@@ -120,44 +178,63 @@ async fn verify_mise_tools(extension: &Extension) -> bool {
     };
 
     // Check if mise config file exists
+    // The config may be in several locations depending on deployment mode:
+    //   1. ~/.config/mise/conf.d/{name}.toml  (copied by executor during install)
+    //   2. ~/.sindri/extensions/{name}/{version}/{file}  (downloaded extensions)
+    //   3. ~/.sindri/extensions/{name}/{file}  (flat structure)
+    //   4. /opt/sindri/extensions/{name}/{file}  (bundled in image for local dev)
+    //   5. SINDRI_EXT_HOME/{name}/{file}  (custom extension home)
     if let Some(config_file) = &mise_config.config_file {
         let Ok(home) = std::env::var("HOME") else {
             debug!("HOME environment variable not set");
             return false;
         };
 
-        let extensions_dir = Path::new(&home)
-            .join(".sindri")
-            .join("extensions")
-            .join(&extension.metadata.name);
+        let name = &extension.metadata.name;
 
-        // Try both versioned and flat structure
-        let config_path = extensions_dir
-            .join(&extension.metadata.version)
-            .join(config_file);
-        let config_path_flat = extensions_dir.join(config_file);
+        // Build candidate paths in priority order
+        let mut candidates: Vec<PathBuf> = Vec::new();
 
-        if !config_path.exists() && !config_path_flat.exists() {
-            debug!("mise config file not found: {}", config_file);
+        // 1. conf.d (where executor copies configs — most reliable)
+        candidates.push(
+            Path::new(&home)
+                .join(".config/mise/conf.d")
+                .join(format!("{}.toml", name)),
+        );
+
+        // 2. Downloaded extensions (versioned)
+        let sindri_ext_home = std::env::var("SINDRI_EXT_HOME")
+            .unwrap_or_else(|_| format!("{}/.sindri/extensions", home));
+        candidates.push(
+            Path::new(&sindri_ext_home)
+                .join(name)
+                .join(&extension.metadata.version)
+                .join(config_file),
+        );
+
+        // 3. Downloaded extensions (flat)
+        candidates.push(Path::new(&sindri_ext_home).join(name).join(config_file));
+
+        // 4. Bundled extensions (local dev / Docker image)
+        candidates.push(
+            Path::new("/opt/sindri/extensions")
+                .join(name)
+                .join(config_file),
+        );
+
+        let config_path = candidates.iter().find(|p| p.exists());
+
+        if config_path.is_none() {
+            debug!("mise config file not found for {} in any location", name);
             return false;
         }
 
         // Parse the mise.toml to get tool names
-        let config_content = if config_path.exists() {
-            match tokio::fs::read_to_string(&config_path).await {
-                Ok(content) => content,
-                Err(e) => {
-                    debug!("Failed to read mise config: {}", e);
-                    return false;
-                }
-            }
-        } else {
-            match tokio::fs::read_to_string(&config_path_flat).await {
-                Ok(content) => content,
-                Err(e) => {
-                    debug!("Failed to read mise config: {}", e);
-                    return false;
-                }
+        let config_content = match tokio::fs::read_to_string(config_path.unwrap()).await {
+            Ok(content) => content,
+            Err(e) => {
+                debug!("Failed to read mise config: {}", e);
+                return false;
             }
         };
 
@@ -205,10 +282,16 @@ fn parse_mise_tools(content: &str) -> Vec<String> {
 
 /// Verify a list of mise tools are installed
 async fn verify_mise_tools_list(tools: &[String]) -> bool {
+    let validation_path = build_verification_path();
+
     for tool in tools {
         debug!("Checking if mise tool {} is installed", tool);
 
-        let output = Command::new("mise").arg("list").arg(tool).output();
+        let output = Command::new("mise")
+            .arg("list")
+            .arg(tool)
+            .env("PATH", &validation_path)
+            .output();
 
         match output {
             Ok(output) if output.status.success() => {
@@ -300,8 +383,13 @@ async fn verify_binaries(extension: &Extension) -> bool {
                 return false;
             }
         } else {
-            // Check PATH
-            let Ok(output) = Command::new("which").arg(&download.name).output() else {
+            // Check PATH (use comprehensive validation PATH)
+            let validation_path = build_verification_path();
+            let Ok(output) = Command::new("which")
+                .arg(&download.name)
+                .env("PATH", &validation_path)
+                .output()
+            else {
                 debug!("which command failed for {}", download.name);
                 return false;
             };
@@ -334,9 +422,11 @@ async fn verify_npm_packages(extension: &Extension) -> bool {
         .next()
         .unwrap_or(&npm_config.package);
 
-    // Check global npm packages
+    // Check global npm packages (use comprehensive validation PATH for npm discovery)
+    let validation_path = build_verification_path();
     let Ok(output) = Command::new("npm")
         .args(["list", "-g", "--depth=0", package_name])
+        .env("PATH", &validation_path)
         .output()
     else {
         debug!("npm command failed");

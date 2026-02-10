@@ -44,7 +44,7 @@ trusted_config_paths = ["${MISE_HOME}/.config/mise/conf.d"]
 [settings.npm]
 # Use pnpm for all npm: backend package installations
 # pnpm is faster, more disk-efficient, and more secure than npm
-# Requires pnpm to be installed first (handled by nodejs extension bootstrap)
+# Requires pnpm to be available (provided by corepack via MISE_NODE_COREPACK below)
 package_manager = "pnpm"
 
 [settings.python]
@@ -55,6 +55,10 @@ compile = false
 
 [env]
 MISE_USE_TOML = "1"
+# Enable corepack after Node.js installation — creates pnpm/yarn shims
+# alongside node so they are available via mise shims (always in PATH)
+# See: https://mise.jdx.dev/lang/node.html
+MISE_NODE_COREPACK = "1"
 # npm timeout configuration (in milliseconds)
 # These apply globally to all npm-based tool installations
 npm_config_fetch_timeout = "300000"

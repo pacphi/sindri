@@ -42,4 +42,4 @@ pub use source::{
 pub use support_files::{SupportFileManager, SupportFileMetadata, SupportFileSource};
 pub use validation::{ValidationConfig, DEFAULT_VALIDATION_PATHS, VALIDATION_EXTRA_PATHS_ENV};
 pub use validator::ExtensionValidator;
-pub use verifier::verify_extension_installed;
+pub use verifier::{find_extension_yaml, verify_extension_installed};

@@ -1116,7 +1116,7 @@ struct StatusRow {
 /// - JSON output: `sindri extension status --json`
 async fn status(args: ExtensionStatusArgs) -> Result<()> {
     use sindri_core::types::ExtensionState;
-    use sindri_extensions::{verify_extension_installed, ManifestManager};
+    use sindri_extensions::{find_extension_yaml, verify_extension_installed, ManifestManager};
 
     if let Some(name) = &args.name {
         output::info(&format!("Checking status of extension: {}", name));
@@ -1151,7 +1151,6 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
     }
 
     // Convert to status rows, verifying installed state
-    let extensions_dir = get_extensions_dir()?;
     let mut statuses: Vec<StatusRow> = Vec::new();
 
     for (name, ext) in entries {
@@ -1165,13 +1164,9 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
 
             // Installed state: verify it's actually installed
             ExtensionState::Installed => {
-                let version_dir = extensions_dir.join(name).join(&ext.version);
-                let yaml_path = version_dir.join("extension.yaml");
-
-                if !yaml_path.exists() {
-                    // No extension.yaml = no trace of installation
-                    "not installed".to_string()
-                } else {
+                // Try multiple candidate paths for extension.yaml
+                // (handles bundled, downloaded, and flat directory structures)
+                if let Some(yaml_path) = find_extension_yaml(name, &ext.version) {
                     // extension.yaml exists, check if software is present
                     match std::fs::read_to_string(&yaml_path) {
                         Ok(content) => {
@@ -1196,6 +1191,9 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
                             "failed".to_string()
                         }
                     }
+                } else {
+                    // No extension.yaml = no trace of installation
+                    "not installed".to_string()
                 }
             }
         };

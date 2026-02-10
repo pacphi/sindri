@@ -35,7 +35,7 @@ if command_exists aws; then
   print_warning "AWS CLI already installed: $(aws --version)"
 else
   # Pinned version for consistency (updated 2026-02-09)
-  local AWS_VERSION="2.27.41"
+  AWS_VERSION="2.27.41"
   print_status "Installing AWS CLI v${AWS_VERSION}..."
   # Ensure user-local bin directory exists and is in PATH
   mkdir -p "$HOME/.local/bin" "$HOME/.local/aws-cli"
@@ -56,7 +56,7 @@ if command_exists az; then
 else
   # Azure CLI requires Python 3.10+ (pip install azure-cli)
   # Pinned to version 2.83.0 (2026-02-09)
-  local AZURE_CLI_VERSION="2.83.0"
+  AZURE_CLI_VERSION="2.83.0"
   if [[ "$PYTHON_AVAILABLE" == "true" ]]; then
     if python3 -m pip install --user "azure-cli==${AZURE_CLI_VERSION}" 2>/dev/null; then
       # Ensure ~/.local/bin is in PATH
@@ -76,7 +76,7 @@ if command_exists gcloud; then
   print_warning "Google Cloud CLI already installed"
 else
   # Pinned version for consistency (updated 2026-02-09)
-  local GCLOUD_VERSION="555.0.0"
+  GCLOUD_VERSION="555.0.0"
   print_status "Installing Google Cloud CLI v${GCLOUD_VERSION}..."
   # Download and extract Google Cloud SDK to user directory
   # Google uses "x86_64" and "arm" (not "aarch64")
@@ -104,11 +104,11 @@ if command_exists flyctl; then
   print_warning "Fly.io CLI already installed: $(flyctl version 2>/dev/null | head -1)"
 else
   # Pinned version for consistency (updated 2026-02-09)
-  local FLYCTL_VERSION="0.4.7"
+  FLYCTL_VERSION="0.4.7"
   print_status "Installing flyctl version: v${FLYCTL_VERSION}..."
 
   # Detect architecture
-  local FLY_ARCH
+  FLY_ARCH=""
   case "$(uname -m)" in
     x86_64|amd64) FLY_ARCH="x86_64" ;;
     aarch64|arm64) FLY_ARCH="arm64" ;;
@@ -156,7 +156,7 @@ if command_exists aliyun; then
   print_warning "Alibaba Cloud CLI already installed"
 else
   # Pinned version for consistency (updated 2026-02-09)
-  local ALIYUN_VERSION="3.2.9"
+  ALIYUN_VERSION="3.2.9"
   print_status "Installing Alibaba Cloud CLI version: v${ALIYUN_VERSION}"
   # Note: Alibaba CLI uses 'amd64' for x86_64 and 'arm64' for aarch64
   mkdir -p "$HOME/.local/bin"
@@ -189,9 +189,6 @@ else
       print_warning "Failed to download DigitalOcean CLI"
       rm -f "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" /tmp/doctl
     fi
-  else
-    print_warning "Failed to fetch DigitalOcean CLI version from GitHub"
-  fi
 fi
 
 # IBM Cloud CLI - tarball install to user directory (no sudo required)
@@ -219,9 +216,6 @@ else
       print_warning "Failed to download IBM Cloud CLI"
       rm -f /tmp/ibmcloud.tgz
     fi
-  else
-    print_warning "Failed to fetch IBM Cloud CLI version from GitHub"
-  fi
 fi
 
 # Clean up APT caches and temporary files (critical for disk-constrained environments)
