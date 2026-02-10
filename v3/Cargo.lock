@@ -4463,7 +4463,7 @@ dependencies = [
 
 [[package]]
 name = "sindri"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4510,7 +4510,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-backup"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4535,7 +4535,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-clusters"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4554,7 +4554,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-core"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "camino",
@@ -4578,7 +4578,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-doctor"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "dialoguer",
@@ -4598,7 +4598,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-extensions"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "camino",
@@ -4635,7 +4635,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-image"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4656,7 +4656,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-packer"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4683,7 +4683,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-projects"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "camino",
@@ -4706,7 +4706,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-providers"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4728,7 +4728,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-secrets"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "age",
  "anyhow",
@@ -4759,7 +4759,7 @@ dependencies = [
 
 [[package]]
 name = "sindri-update"
-version = "3.0.0-beta.12"
+version = "3.0.0-rc.1"
 dependencies = [
  "anyhow",
  "bytes",

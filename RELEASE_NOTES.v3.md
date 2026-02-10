@@ -1421,7 +1421,7 @@ Covering Rust workspace architecture, provider abstraction, extension type syste
 
 ## 🐛 Bug Fixes
 
-### Recent Fixes (v3.0.0-beta.11 → beta.12)
+### Recent Fixes
 
 1. **Extension Schema Validation** (commits: 8b6434b, 2bcc072)
    - Fixed null handling for `docs.notes` field (affected 36/50 extensions)
