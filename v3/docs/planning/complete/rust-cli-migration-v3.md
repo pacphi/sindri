@@ -10,6 +10,8 @@ This document provides comprehensive technical design for migrating the Sindri C
 **Completed**: 2026-01-22
 **Implementation**: All 12 crates implemented, 19 command modules, 5 providers operational
 
+> **Historical Note**: This planning document was created during the v2→v3 transition and contains references to v2 paths (e.g., `docker/lib/extensions/`, `docker/lib/registry.yaml`). These references describe the legacy v2 architecture that was being migrated. In v3, the equivalent paths are `v3/extensions/`, `v3/registry.yaml`, and `v3/schemas/`.
+
 ---
 
 ## Table of Contents

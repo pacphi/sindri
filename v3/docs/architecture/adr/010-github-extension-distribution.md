@@ -42,7 +42,7 @@ We adopt a **GitHub-based monorepo distribution model** with extension-specific 
 
 ```
 github.com/pacphi/sindri/
-├── docker/lib/extensions/
+├── v3/extensions/
 │   ├── nodejs/
 │   │   ├── extension.yaml           # Current version
 │   │   └── README.md
@@ -53,7 +53,7 @@ github.com/pacphi/sindri/
 │       ├── extension.yaml
 │       ├── scripts/
 │       └── README.md
-└── docker/lib/registry.yaml          # Master registry
+└── v3/registry.yaml          # Master registry
 ```
 
 **Version Tagging Convention**:
@@ -65,7 +65,7 @@ git tag claude-flow-v2@1.5.0
 git tag v2.2.1              # CLI version (existing pattern)
 ```
 
-**Registry File** (`docker/lib/registry.yaml`):
+**Registry File** (`v3/registry.yaml`):
 
 ```yaml
 version: 1.0.0
@@ -234,7 +234,7 @@ impl ExtensionCache {
 
     async fn fetch_registry_from_github(&self) -> Result<Registry> {
         let url = format!(
-            "https://raw.githubusercontent.com/pacphi/sindri/main/docker/lib/registry.yaml"
+            "https://raw.githubusercontent.com/pacphi/sindri/main/v3/registry.yaml"
         );
 
         let response = reqwest::get(&url).await?;
@@ -260,7 +260,7 @@ impl ExtensionCache {
 
         // Fetch from tagged release
         let url = format!(
-            "https://raw.githubusercontent.com/pacphi/sindri/{}/docker/lib/extensions/{}/extension.yaml",
+            "https://raw.githubusercontent.com/pacphi/sindri/{}/v3/extensions/{}/extension.yaml",
             version_info.tag,
             name
         );

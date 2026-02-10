@@ -60,8 +60,9 @@ impl ExtensionRegistry {
 
     /// Load registry from local files
     ///
-    /// Used when running inside a deployed Sindri instance where
-    /// registry files are baked into the image at /docker/lib/
+    /// Load registry from local files bundled in the Docker image.
+    /// In v3, these are located at v3/registry.yaml and v3/profiles.yaml
+    /// in the repository, then copied to the image during build.
     pub fn load_local(registry_path: &Path, profiles_path: &Path) -> Result<Self> {
         debug!(
             "Loading registry from local files: {:?}, {:?}",

@@ -589,13 +589,9 @@ fn setup_git_hooks(project_dir: &Utf8PathBuf) -> Result<()> {
     let pre_commit_hook = r#"#!/bin/bash
 # Pre-commit hook for code quality checks
 
-# Source common utilities if available
-if [ -f "/docker/lib/common.sh" ]; then
-    source "/docker/lib/common.sh"
-else
-    print_status() { echo "[INFO] $1"; }
-    print_error() { echo "[ERROR] $1"; }
-fi
+# Utility functions for output
+print_status() { echo "[INFO] $1"; }
+print_error() { echo "[ERROR] $1"; }
 
 # Check for debugging code
 if git diff --cached --name-only | xargs grep -E "console\.(log|debug|info|warn|error)" 2>/dev/null; then

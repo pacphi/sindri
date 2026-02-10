@@ -8,6 +8,8 @@ This document outlines strategies for mitigating GitHub API rate limiting issues
 
 **Impact:** Extension installation failures during CI, particularly affecting the `python` extension which uses `aqua:astral-sh/uv`.
 
+> **Historical Note**: This planning document contains references to v2 extension paths (e.g., `docker/lib/extensions/python/mise.toml`). In the v3 architecture, extension files are located at `v3/extensions/{name}/` instead of `docker/lib/extensions/{name}/`.
+
 ---
 
 ## Table of Contents

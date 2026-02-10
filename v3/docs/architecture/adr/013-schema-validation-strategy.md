@@ -344,7 +344,7 @@ impl SchemaLoader {
 
     async fn fetch_schema_from_github(&self, name: &str) -> Result<Schema> {
         let url = format!(
-            "https://raw.githubusercontent.com/pacphi/sindri/main/docker/lib/schemas/{}",
+            "https://raw.githubusercontent.com/pacphi/sindri/main/v3/schemas/{}",
             name
         );
 
@@ -358,10 +358,10 @@ impl SchemaLoader {
 
 ### Decoupled Schema Repository
 
-Schemas are maintained in **separate repository** (`docker/lib/schemas/`) but embedded at build time:
+Schemas are maintained in **separate directory** (`v3/schemas/`) but embedded at build time:
 
 ```
-docker/lib/schemas/
+v3/schemas/
 ├── extension.schema.json       # Main extension schema
 ├── metadata.schema.json        # Metadata subschema
 ├── install.schema.json         # Install methods subschema

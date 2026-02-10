@@ -18,7 +18,7 @@ This crate provides async Git operations for project scaffolding, repository man
 
 This crate is part of the Sindri v3 Rust migration, implementing functionality previously handled by bash scripts:
 
-- `/v2/docker/lib/git.sh` - Git utility functions
+- `/v2/docker/lib/git.sh` - Git utility functions (v2 bash implementation, replaced by Rust)
 - `/v2/cli/clone-project` - Repository cloning
 - `/v2/cli/new-project` - Project scaffolding
 

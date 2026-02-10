@@ -89,7 +89,7 @@ extensions:
     description: "Node.js runtime with npm/pnpm/yarn"
     category: runtimes
     homepage: "https://nodejs.org"
-    repository: "https://github.com/pacphi/sindri/tree/main/docker/lib/extensions/nodejs"
+    repository: "https://github.com/pacphi/sindri/tree/main/v3/extensions/nodejs"
 
     versions:
       - version: "1.2.0"

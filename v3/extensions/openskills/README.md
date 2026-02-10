@@ -34,10 +34,8 @@ sindri extension install openskills
 # Or use interactive mode
 extension-manager --interactive
 
-# Or manually activate then install
-# Edit: docker/lib/extensions.d/active-extensions.conf
-# Add line: openskills
-sindri extension install-all
+# v3 uses extension registry (v3/registry.yaml) instead of active-extensions.conf
+# Extensions are managed via: sindri extension install/remove
 ```
 
 ### Verification

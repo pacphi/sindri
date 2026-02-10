@@ -227,7 +227,16 @@ EOF
 
     4)
         print_status "Copying template for custom configuration..."
-        TEMPLATE_FILE="/docker/lib/extensions/claude-code-mux/config-template.toml"
+        # Use extension installation directory from environment or default
+        EXTENSION_DIR="${EXTENSION_DIR:-/opt/sindri/extensions/claude-code-mux}"
+        TEMPLATE_FILE="${EXTENSION_DIR}/config-template.toml"
+
+        if [[ ! -f "$TEMPLATE_FILE" ]]; then
+            print_error "Template file not found: $TEMPLATE_FILE"
+            print_status "Please ensure claude-code-mux extension is properly installed"
+            exit 1
+        fi
+
         cp "$TEMPLATE_FILE" "$CONFIG_FILE"
         print_success "Template copied to: $CONFIG_FILE"
         echo ""
