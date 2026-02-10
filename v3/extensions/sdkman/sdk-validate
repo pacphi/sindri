@@ -2,5 +2,13 @@
 # Wrapper for SDKMAN sdk command validation
 SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"
 # shellcheck source=/dev/null
-source "$SDKMAN_DIR/bin/sdkman-init.sh" 2>/dev/null || exit 1
+# Note: sdkman-init.sh may return non-zero even when successful (Fly.io, etc)
+source "$SDKMAN_DIR/bin/sdkman-init.sh" 2>/dev/null || true
+
+# Verify sdk command is available
+if ! command -v sdk &>/dev/null; then
+    echo "ERROR: SDKMAN sdk command not available" >&2
+    exit 1
+fi
+
 sdk version

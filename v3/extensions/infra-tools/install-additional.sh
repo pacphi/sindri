@@ -22,19 +22,20 @@ install_pulumi() {
     fi
 
     # Pinned version for consistency (updated 2026-02-09)
-    local PULUMI_VERSION="v3.219.0"
-    print_status "Installing Pulumi ${PULUMI_VERSION}..."
+    # Note: Pulumi installer adds 'v' prefix automatically, so don't include it here
+    local PULUMI_VERSION="3.219.0"
+    print_status "Installing Pulumi v${PULUMI_VERSION}..."
 
     # Install specific version
     curl -fsSL https://get.pulumi.com | sh -s -- --version "${PULUMI_VERSION}" || {
-        print_warning "Failed to install Pulumi ${PULUMI_VERSION}"
+        print_warning "Failed to install Pulumi v${PULUMI_VERSION}"
         return 1
     }
 
     # Add to PATH if not already there
     if [[ -d "$HOME/.pulumi/bin" ]]; then
         export PATH="$HOME/.pulumi/bin:$PATH"
-        print_success "Pulumi ${PULUMI_VERSION} installed"
+        print_success "Pulumi v${PULUMI_VERSION} installed"
     fi
 }
 

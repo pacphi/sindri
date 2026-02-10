@@ -5,7 +5,8 @@ node = "lts"
 # Enable corepack after node install — creates pnpm/yarn shims alongside node
 # so they are available via mise shims (always in PATH after reshim)
 # See: https://mise.jdx.dev/mise-cookbook/nodejs.html
-postinstall = "corepack enable pnpm"
+# Run pnpm --version to force corepack to download pnpm binary (needed for validation)
+postinstall = "corepack enable pnpm && pnpm --version > /dev/null 2>&1"
 
 [env]
 NODE_ENV = "development"
