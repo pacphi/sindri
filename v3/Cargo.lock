@@ -4475,6 +4475,7 @@ dependencies = [
  "directories",
  "dirs",
  "flate2",
+ "futures",
  "glob",
  "globset",
  "indicatif 0.18.3",

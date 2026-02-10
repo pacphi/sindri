@@ -26,6 +26,7 @@ sindri-packer = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
+futures = { workspace = true }
 
 # Terminal UI
 indicatif = { workspace = true }

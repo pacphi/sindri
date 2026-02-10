@@ -328,6 +328,58 @@ fn extract_software_list(extension: &sindri_core::types::Extension) -> String {
     }
 }
 
+/// Fetch extensions in parallel with rate limiting
+/// Returns a map of extension name -> (software_list, version)
+async fn fetch_extensions_parallel(
+    source_resolver: sindri_extensions::ExtensionSourceResolver,
+    extension_names: Vec<String>,
+    max_concurrent: usize,
+) -> std::collections::HashMap<String, (String, Option<String>)> {
+    use futures::stream::{FuturesUnordered, StreamExt};
+    use std::sync::Arc;
+    use tokio::sync::Semaphore;
+
+    let mut results = std::collections::HashMap::new();
+    let semaphore = Arc::new(Semaphore::new(max_concurrent));
+    let source_resolver = Arc::new(source_resolver);
+
+    // Create futures for all extensions
+    let mut futures = FuturesUnordered::new();
+
+    for name in extension_names {
+        let sem = semaphore.clone();
+        let resolver = source_resolver.clone();
+        let name_clone = name.clone();
+
+        futures.push(async move {
+            // Acquire semaphore permit for rate limiting
+            let _permit = sem.acquire().await.ok();
+
+            // Try to get extension (downloads if not available locally)
+            let result = match resolver.get_extension(&name_clone).await {
+                Ok(extension) => {
+                    let software = extract_software_list(&extension);
+                    let version = Some(extension.metadata.version.clone());
+                    (software, version)
+                }
+                Err(_) => {
+                    // If fetch fails, return dash for software
+                    ("-".to_string(), None)
+                }
+            };
+
+            (name_clone, result)
+        });
+    }
+
+    // Collect all results
+    while let Some((name, data)) = futures.next().await {
+        results.insert(name, data);
+    }
+
+    results
+}
+
 /// Row for available (not installed) extensions
 #[derive(Tabled, serde::Serialize, serde::Deserialize)]
 struct AvailableExtensionRow {
@@ -430,6 +482,22 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
             .await
             .context("Failed to fetch compatibility matrix")?;
 
+        // Collect extension names (applying category filter)
+        let extension_names: Vec<String> = registry
+            .entries
+            .iter()
+            .filter(|(_, entry)| {
+                args.category
+                    .as_ref()
+                    .map(|c| &entry.category == c)
+                    .unwrap_or(true)
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        // Fetch all extensions in parallel (max 10 concurrent downloads)
+        let extension_data = fetch_extensions_parallel(source_resolver, extension_names, 10).await;
+
         for (name, entry) in registry.entries.iter() {
             // Filter by category if specified
             if let Some(category) = &args.category {
@@ -438,14 +506,11 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
                 }
             }
 
-            // Try to load extension definition from local sources
-            let (software_list, local_version) = match source_resolver.get_extension_local(name) {
-                Ok(extension) => (
-                    extract_software_list(&extension),
-                    Some(extension.metadata.version.clone()),
-                ),
-                Err(_) => ("-".to_string(), None),
-            };
+            // Get software list and version from parallel fetch
+            let (software_list, local_version) = extension_data
+                .get(name)
+                .cloned()
+                .unwrap_or_else(|| ("-".to_string(), None));
 
             // Check if installed
             if let Some(installed_ext) = manifest.get_installed(name) {
@@ -517,6 +582,24 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
         // Show installed extensions only
         let mut installed_extensions: Vec<InstalledExtensionRow> = Vec::new();
 
+        // Collect installed extension names (applying category filter)
+        let installed_names: Vec<String> = registry
+            .entries
+            .iter()
+            .filter(|(name, entry)| {
+                manifest.is_installed(name)
+                    && args
+                        .category
+                        .as_ref()
+                        .map(|c| &entry.category == c)
+                        .unwrap_or(true)
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        // Fetch all installed extensions in parallel (max 10 concurrent)
+        let extension_data = fetch_extensions_parallel(source_resolver, installed_names, 10).await;
+
         for (name, entry) in registry.entries.iter() {
             // Filter by category if specified
             if let Some(category) = &args.category {
@@ -527,11 +610,11 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
 
             // Get installed info if available
             if let Some(installed_ext) = manifest.get_installed(name) {
-                // Try to load extension definition from local sources for BOM info
-                let software_list = match source_resolver.get_extension_local(name) {
-                    Ok(extension) => extract_software_list(&extension),
-                    Err(_) => "-".to_string(),
-                };
+                // Get software list from parallel fetch
+                let software_list = extension_data
+                    .get(name)
+                    .map(|(software, _)| software.clone())
+                    .unwrap_or_else(|| "-".to_string());
 
                 installed_extensions.push(InstalledExtensionRow {
                     name: name.clone(),
@@ -584,6 +667,24 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
             .await
             .context("Failed to fetch compatibility matrix")?;
 
+        // Collect available (not installed) extension names (applying category filter)
+        let available_names: Vec<String> = registry
+            .entries
+            .iter()
+            .filter(|(name, entry)| {
+                !manifest.is_installed(name)
+                    && args
+                        .category
+                        .as_ref()
+                        .map(|c| &entry.category == c)
+                        .unwrap_or(true)
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        // Fetch all available extensions in parallel (max 10 concurrent)
+        let extension_data = fetch_extensions_parallel(source_resolver, available_names, 10).await;
+
         for (name, entry) in registry.entries.iter() {
             // Filter by category if specified
             if let Some(category) = &args.category {
@@ -594,15 +695,11 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
 
             // Only include if NOT installed
             if !manifest.is_installed(name) {
-                // Try to load extension definition from local sources for BOM info and version
-                let (software_list, local_version) = match source_resolver.get_extension_local(name)
-                {
-                    Ok(extension) => (
-                        extract_software_list(&extension),
-                        Some(extension.metadata.version.clone()),
-                    ),
-                    Err(_) => ("-".to_string(), None),
-                };
+                // Get software list and version from parallel fetch
+                let (software_list, local_version) = extension_data
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| ("-".to_string(), None));
 
                 // Get the available version:
                 // 1. If loaded locally, use the extension's metadata.version
