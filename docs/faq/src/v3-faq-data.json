@@ -1,8 +1,8 @@
 {
   "schemaVersion": "3.0.0",
-  "lastUpdated": "2026-02-10",
+  "lastUpdated": "2026-02-11",
   "meta": {
-    "totalQuestions": 180,
+    "totalQuestions": 169,
     "versionsSupported": ["v2", "v3"],
     "categories": 13,
     "personas": 6
