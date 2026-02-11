@@ -314,12 +314,12 @@ capabilities:
 bom:
   tools:
     - name: claude-flow
-      version: "3.1.0-alpha.24"  # Tracks v3alpha tag in mise.toml (latest as of 2026-02-09)
+      version: "v3alpha"  # Tracks v3alpha tag in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/claude-flow
-      purl: pkg:npm/claude-flow@3.1.0-alpha.16
+      purl: pkg:npm/claude-flow@v3alpha
 docs:
   title: "Claude Flow V3"
   overview: |

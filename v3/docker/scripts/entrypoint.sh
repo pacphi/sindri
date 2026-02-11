@@ -424,15 +424,15 @@ install_extensions_background() {
             touch "$bootstrap_marker"
             chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
             print_success "Extension installation complete" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            echo "✅ Extension installation complete. Check log at: ~/.sindri/logs/install.log"
+            echo "✅ Extension installation complete. View log: sindri extension log"
         else
             print_error "Extension installation failed (exit code: ${exit_code})" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            echo "❌ Extension installation failed. Check log at: ~/.sindri/logs/install.log"
+            echo "❌ Extension installation failed. View errors: sindri extension log -l error"
         fi
     ) &
 
     print_status "Extension installation running in background (PID: $!)"
-    print_status "Monitor progress: tail -f ~/.sindri/logs/install.log"
+    print_status "Monitor progress: sindri extension log -f"
 }
 
 # ------------------------------------------------------------------------------

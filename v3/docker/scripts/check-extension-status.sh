@@ -51,7 +51,7 @@ if [[ -f "$BOOTSTRAP_MARKER" ]]; then
             if pgrep -f "sindri.*install" > /dev/null 2>&1; then
                 echo ""
                 echo "⏳ Extension installation in progress..."
-                echo "   Monitor: tail -f ~/.sindri/logs/install.log"
+                echo "   Monitor: sindri extension log -f"
                 echo ""
             else
                 # No installation running and no extensions installed
@@ -74,7 +74,7 @@ elif [[ -f "$INSTALL_LOG" ]]; then
     if pgrep -f "sindri.*install" > /dev/null 2>&1; then
         echo ""
         echo "⏳ Extension installation in progress..."
-        echo "   Monitor: tail -f ~/.sindri/logs/install.log"
+        echo "   Monitor: sindri extension log -f"
         echo "   Status:  sindri extension status"
         echo ""
     else
@@ -83,7 +83,7 @@ elif [[ -f "$INSTALL_LOG" ]]; then
         if tail -20 "$INSTALL_LOG" 2>/dev/null | grep -qi "error\|failed"; then
             echo ""
             echo "❌ Extension installation failed!"
-            echo "   Check log: tail ~/.sindri/logs/install.log"
+            echo "   Check log: sindri extension log -l error"
             echo "   Retry:     sindri extension install --from-config sindri.yaml --yes"
             echo ""
         else
@@ -98,6 +98,6 @@ else
     # No log file - installation hasn't started yet
     echo ""
     echo "⏳ Extension installation starting..."
-    echo "   Monitor: tail -f ~/.sindri/logs/install.log"
+    echo "   Monitor: sindri extension log -f"
     echo ""
 fi

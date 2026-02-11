@@ -19,6 +19,29 @@ pub struct ExtensionStatus {
     pub version: Option<String>,
 }
 
+/// Filter criteria for querying events from the ledger
+#[derive(Debug, Default)]
+pub struct EventFilter {
+    /// Filter by extension name
+    pub extension_name: Option<String>,
+    /// Filter by event type names (e.g., "install_started", "install_completed")
+    pub event_types: Option<Vec<String>>,
+    /// Only events after this timestamp
+    pub since: Option<DateTime<Utc>>,
+    /// Only events before this timestamp
+    pub until: Option<DateTime<Utc>>,
+    /// Maximum number of events to return
+    pub limit: Option<usize>,
+    /// If true, return the most recent N events (tail mode)
+    pub reverse: bool,
+}
+
+/// Default number of events shown in tail mode
+pub const DEFAULT_LOG_TAIL_LINES: usize = 25;
+
+/// Default poll interval for follow mode (seconds)
+pub const DEFAULT_FOLLOW_POLL_SECS: u64 = 1;
+
 /// Default auto-compaction interval (every N operations)
 const AUTO_COMPACT_INTERVAL: usize = 100;
 
@@ -349,6 +372,72 @@ impl StatusLedger {
         })
     }
 
+    /// Query events from the ledger with filtering
+    pub fn query_events(&self, filter: EventFilter) -> Result<Vec<EventEnvelope>> {
+        if !self.ledger_path.exists() {
+            return Ok(Vec::new());
+        }
+
+        let file = fs::File::open(&self.ledger_path).context("Failed to open ledger file")?;
+        let reader = BufReader::new(file);
+
+        let mut events = Vec::new();
+
+        for line in reader.lines() {
+            let line = line.context("Failed to read line from ledger")?;
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            let envelope: EventEnvelope =
+                serde_json::from_str(&line).context("Failed to deserialize event from ledger")?;
+
+            // Apply extension name filter
+            if let Some(ref name) = filter.extension_name {
+                if envelope.extension_name != *name {
+                    continue;
+                }
+            }
+
+            // Apply event type filter
+            if let Some(ref types) = filter.event_types {
+                let event_type = Self::get_event_type_name(&envelope.event);
+                if !types.contains(&event_type) {
+                    continue;
+                }
+            }
+
+            // Apply since filter
+            if let Some(since) = filter.since {
+                if envelope.timestamp < since {
+                    continue;
+                }
+            }
+
+            // Apply until filter
+            if let Some(until) = filter.until {
+                if envelope.timestamp > until {
+                    continue;
+                }
+            }
+
+            events.push(envelope);
+        }
+
+        // Handle tail mode: reverse + limit gives last N events in chronological order
+        if filter.reverse {
+            if let Some(limit) = filter.limit {
+                if events.len() > limit {
+                    events = events.split_off(events.len() - limit);
+                }
+            }
+        } else if let Some(limit) = filter.limit {
+            events.truncate(limit);
+        }
+
+        Ok(events)
+    }
+
     /// Extract version from event payload
     fn extract_version_from_event(event: &ExtensionEvent) -> Option<String> {
         match event {
@@ -367,8 +456,8 @@ impl StatusLedger {
         }
     }
 
-    /// Get event type name for statistics
-    fn get_event_type_name(event: &ExtensionEvent) -> String {
+    /// Get event type name for statistics and display
+    pub fn get_event_type_name(event: &ExtensionEvent) -> String {
         match event {
             ExtensionEvent::InstallStarted { .. } => "install_started",
             ExtensionEvent::InstallCompleted { .. } => "install_completed",
@@ -810,5 +899,281 @@ mod tests {
 
         // count_events on a nonexistent file should return 0
         assert_eq!(ledger.count_events().unwrap(), 0);
+    }
+
+    // ========================================================================
+    // query_events() tests
+    // ========================================================================
+
+    fn append_test_event(
+        ledger: &StatusLedger,
+        name: &str,
+        event: ExtensionEvent,
+        state: ExtensionState,
+    ) -> EventEnvelope {
+        let envelope = EventEnvelope::new(name.to_string(), None, state, event);
+        ledger.append(envelope.clone()).unwrap();
+        envelope
+    }
+
+    #[test]
+    fn test_query_events_no_filter() {
+        let (ledger, _temp_dir) = create_test_ledger();
+
+        for i in 0..5 {
+            append_test_event(
+                &ledger,
+                &format!("ext{}", i),
+                ExtensionEvent::InstallStarted {
+                    extension_name: format!("ext{}", i),
+                    version: "1.0.0".to_string(),
+                    source: "github:pacphi/sindri".to_string(),
+                    install_method: "Mise".to_string(),
+                },
+                ExtensionState::Installing,
+            );
+        }
+
+        let events = ledger.query_events(EventFilter::default()).unwrap();
+        assert_eq!(events.len(), 5);
+    }
+
+    #[test]
+    fn test_query_events_filter_by_extension() {
+        let (ledger, _temp_dir) = create_test_ledger();
+
+        append_test_event(
+            &ledger,
+            "python",
+            ExtensionEvent::InstallStarted {
+                extension_name: "python".to_string(),
+                version: "3.13.0".to_string(),
+                source: "github:pacphi/sindri".to_string(),
+                install_method: "Mise".to_string(),
+            },
+            ExtensionState::Installing,
+        );
+        append_test_event(
+            &ledger,
+            "nodejs",
+            ExtensionEvent::InstallStarted {
+                extension_name: "nodejs".to_string(),
+                version: "22.0.0".to_string(),
+                source: "github:pacphi/sindri".to_string(),
+                install_method: "Mise".to_string(),
+            },
+            ExtensionState::Installing,
+        );
+        append_test_event(
+            &ledger,
+            "python",
+            ExtensionEvent::InstallCompleted {
+                extension_name: "python".to_string(),
+                version: "3.13.0".to_string(),
+                duration_secs: 60,
+                components_installed: vec!["python".to_string()],
+            },
+            ExtensionState::Installed,
+        );
+
+        let events = ledger
+            .query_events(EventFilter {
+                extension_name: Some("python".to_string()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(events.len(), 2);
+        assert!(events.iter().all(|e| e.extension_name == "python"));
+    }
+
+    #[test]
+    fn test_query_events_filter_by_event_types() {
+        let (ledger, _temp_dir) = create_test_ledger();
+
+        append_test_event(
+            &ledger,
+            "python",
+            ExtensionEvent::InstallStarted {
+                extension_name: "python".to_string(),
+                version: "3.13.0".to_string(),
+                source: "github:pacphi/sindri".to_string(),
+                install_method: "Mise".to_string(),
+            },
+            ExtensionState::Installing,
+        );
+        append_test_event(
+            &ledger,
+            "python",
+            ExtensionEvent::InstallCompleted {
+                extension_name: "python".to_string(),
+                version: "3.13.0".to_string(),
+                duration_secs: 60,
+                components_installed: vec![],
+            },
+            ExtensionState::Installed,
+        );
+        append_test_event(
+            &ledger,
+            "nodejs",
+            ExtensionEvent::InstallFailed {
+                extension_name: "nodejs".to_string(),
+                version: "22.0.0".to_string(),
+                error_message: "Network error".to_string(),
+                retry_count: 0,
+                duration_secs: 10,
+            },
+            ExtensionState::Failed,
+        );
+
+        let events = ledger
+            .query_events(EventFilter {
+                event_types: Some(vec![
+                    "install_completed".to_string(),
+                    "install_failed".to_string(),
+                ]),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(events.len(), 2);
+    }
+
+    #[test]
+    fn test_query_events_filter_by_time_range() {
+        let (ledger, _temp_dir) = create_test_ledger();
+
+        // Add event in the past
+        let mut old_event = EventEnvelope::new(
+            "python".to_string(),
+            None,
+            ExtensionState::Installing,
+            ExtensionEvent::InstallStarted {
+                extension_name: "python".to_string(),
+                version: "3.12.0".to_string(),
+                source: "github:pacphi/sindri".to_string(),
+                install_method: "Mise".to_string(),
+            },
+        );
+        old_event.timestamp = Utc::now() - Duration::days(10);
+        ledger.append(old_event).unwrap();
+
+        // Add recent event
+        append_test_event(
+            &ledger,
+            "python",
+            ExtensionEvent::InstallStarted {
+                extension_name: "python".to_string(),
+                version: "3.13.0".to_string(),
+                source: "github:pacphi/sindri".to_string(),
+                install_method: "Mise".to_string(),
+            },
+            ExtensionState::Installing,
+        );
+
+        let events = ledger
+            .query_events(EventFilter {
+                since: Some(Utc::now() - Duration::days(1)),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(events.len(), 1);
+
+        let events_until = ledger
+            .query_events(EventFilter {
+                until: Some(Utc::now() - Duration::days(5)),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(events_until.len(), 1);
+    }
+
+    #[test]
+    fn test_query_events_tail_mode() {
+        let (ledger, _temp_dir) = create_test_ledger();
+
+        for i in 0..10 {
+            append_test_event(
+                &ledger,
+                &format!("ext{}", i),
+                ExtensionEvent::InstallStarted {
+                    extension_name: format!("ext{}", i),
+                    version: "1.0.0".to_string(),
+                    source: "github:pacphi/sindri".to_string(),
+                    install_method: "Mise".to_string(),
+                },
+                ExtensionState::Installing,
+            );
+        }
+
+        // Tail mode: reverse=true, limit=3 should return last 3 in chronological order
+        let events = ledger
+            .query_events(EventFilter {
+                limit: Some(3),
+                reverse: true,
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(events.len(), 3);
+        // Should be ext7, ext8, ext9 (last 3)
+        assert_eq!(events[0].extension_name, "ext7");
+        assert_eq!(events[1].extension_name, "ext8");
+        assert_eq!(events[2].extension_name, "ext9");
+    }
+
+    #[test]
+    fn test_query_events_combined_filters() {
+        let (ledger, _temp_dir) = create_test_ledger();
+
+        append_test_event(
+            &ledger,
+            "python",
+            ExtensionEvent::InstallStarted {
+                extension_name: "python".to_string(),
+                version: "3.13.0".to_string(),
+                source: "github:pacphi/sindri".to_string(),
+                install_method: "Mise".to_string(),
+            },
+            ExtensionState::Installing,
+        );
+        append_test_event(
+            &ledger,
+            "python",
+            ExtensionEvent::InstallCompleted {
+                extension_name: "python".to_string(),
+                version: "3.13.0".to_string(),
+                duration_secs: 60,
+                components_installed: vec![],
+            },
+            ExtensionState::Installed,
+        );
+        append_test_event(
+            &ledger,
+            "nodejs",
+            ExtensionEvent::InstallCompleted {
+                extension_name: "nodejs".to_string(),
+                version: "22.0.0".to_string(),
+                duration_secs: 30,
+                components_installed: vec![],
+            },
+            ExtensionState::Installed,
+        );
+
+        // Filter by extension AND event type
+        let events = ledger
+            .query_events(EventFilter {
+                extension_name: Some("python".to_string()),
+                event_types: Some(vec!["install_completed".to_string()]),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].extension_name, "python");
+    }
+
+    #[test]
+    fn test_query_events_empty_ledger() {
+        let (ledger, _temp_dir) = create_test_ledger();
+
+        let events = ledger.query_events(EventFilter::default()).unwrap();
+        assert!(events.is_empty());
     }
 }

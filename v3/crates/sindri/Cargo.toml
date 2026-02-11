@@ -86,3 +86,7 @@ tempfile = "3.8"
 [[test]]
 name = "bom_cli_tests"
 path = "tests/bom_cli_tests.rs"
+
+[[test]]
+name = "cli_extension_log_tests"
+path = "tests/cli_extension_log_tests.rs"

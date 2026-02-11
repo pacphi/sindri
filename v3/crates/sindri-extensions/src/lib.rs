@@ -33,7 +33,10 @@ pub use dependency::DependencyResolver;
 pub use distribution::{CompatibilityMatrix, ExtensionDistributor};
 pub use events::{EventEnvelope, ExtensionEvent};
 pub use executor::ExtensionExecutor;
-pub use ledger::{ExtensionStatus, LedgerStats, StatusLedger};
+pub use ledger::{
+    EventFilter, ExtensionStatus, LedgerStats, StatusLedger, DEFAULT_FOLLOW_POLL_SECS,
+    DEFAULT_LOG_TAIL_LINES,
+};
 pub use profile::{ProfileInstallResult, ProfileInstaller, ProfileStatus};
 pub use registry::ExtensionRegistry;
 pub use source::{

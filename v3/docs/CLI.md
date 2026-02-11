@@ -698,6 +698,79 @@ sindri extension verify
 sindri extension verify python
 ```
 
+#### extension log
+
+View the extension event log with filtering, tail, and follow modes. Events are read from the structured status ledger (`~/.sindri/status_ledger.jsonl`).
+
+**Synopsis:**
+
+```bash
+sindri extension log [OPTIONS]
+```
+
+**Options:**
+
+| Option               | Short | Default | Description                                                |
+| -------------------- | ----- | ------- | ---------------------------------------------------------- |
+| `--no-tail`          | -     | false   | Show ALL events (not just last N)                          |
+| `--follow`           | `-f`  | false   | Watch for new events in real-time (Ctrl+C to stop)         |
+| `--extension <NAME>` | `-e`  | -       | Filter by extension name                                   |
+| `--type <TYPE>`      | `-t`  | -       | Event type: install, upgrade, remove, validation, outdated |
+| `--level <LEVEL>`    | `-l`  | -       | Severity: info, warn, error                                |
+| `--since <DATE>`     | -     | -       | Events after ISO 8601 timestamp (e.g. 2026-02-10)          |
+| `--until <DATE>`     | -     | -       | Events before ISO 8601 timestamp                           |
+| `--lines <N>`        | `-n`  | 25      | Number of recent events to show                            |
+| `--json`             | -     | false   | Machine-readable JSON output                               |
+
+**Event types:**
+
+| Type       | Expands to                                         |
+| ---------- | -------------------------------------------------- |
+| install    | install_started, install_completed, install_failed |
+| upgrade    | upgrade_started, upgrade_completed, upgrade_failed |
+| remove     | remove_started, remove_completed, remove_failed    |
+| validation | validation_succeeded, validation_failed            |
+| outdated   | outdated_detected                                  |
+
+**Severity levels:**
+
+| Level | Events                                             |
+| ----- | -------------------------------------------------- |
+| info  | `*_started`, `*_completed`, `validation_succeeded` |
+| warn  | `outdated_detected`                                |
+| error | `*_failed`, `validation_failed`                    |
+
+**Examples:**
+
+```bash
+# Show last 25 events (default)
+sindri extension log
+
+# Show all events
+sindri extension log --no-tail
+
+# Follow new events in real-time
+sindri extension log -f
+
+# Filter by extension
+sindri extension log -e python
+
+# Show only failed events
+sindri extension log -l error
+
+# Show failed installs
+sindri extension log -t install -l error
+
+# Events from a specific date
+sindri extension log --since 2026-02-10
+
+# JSON output for scripting
+sindri extension log --json | jq '.extension_name'
+
+# Show last 50 events
+sindri extension log -n 50
+```
+
 ---
 
 ### ledger

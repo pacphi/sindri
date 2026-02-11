@@ -51,11 +51,6 @@ requirements:
 
 bom:
   tools:
-    - name: node
-      version: dynamic
-      source: mise
-      type: runtime
-      license: MIT
     - name: compahook
       version: "1.1.2"
       source: npm

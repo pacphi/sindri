@@ -274,6 +274,9 @@ pub enum ExtensionCommands {
 
     /// Verify installed extensions are working correctly
     Verify(ExtensionVerifyArgs),
+
+    /// View extension event log
+    Log(ExtensionLogArgs),
 }
 
 #[derive(Args, Debug)]
@@ -286,6 +289,45 @@ pub struct ExtensionDocsArgs {
 pub struct ExtensionVerifyArgs {
     /// Extension name (optional, verifies all installed if not specified)
     pub name: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct ExtensionLogArgs {
+    /// Show ALL events (not just last N)
+    #[arg(long)]
+    pub no_tail: bool,
+
+    /// Watch for new events in real-time
+    #[arg(short, long, conflicts_with = "no_tail")]
+    pub follow: bool,
+
+    /// Filter by extension name
+    #[arg(short, long)]
+    pub extension: Option<String>,
+
+    /// Event type: install, upgrade, remove, validation, outdated
+    #[arg(short = 't', long = "type")]
+    pub event_type: Option<String>,
+
+    /// Severity: info, warn, error
+    #[arg(short, long)]
+    pub level: Option<String>,
+
+    /// Events after ISO 8601 timestamp
+    #[arg(long)]
+    pub since: Option<String>,
+
+    /// Events before ISO 8601 timestamp
+    #[arg(long)]
+    pub until: Option<String>,
+
+    /// Number of recent events to show (tail mode)
+    #[arg(short = 'n', long, default_value_t = sindri_extensions::DEFAULT_LOG_TAIL_LINES)]
+    pub lines: usize,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Args, Debug)]

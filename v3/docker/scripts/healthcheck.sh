@@ -90,7 +90,7 @@ else
             # Installation started but not marked complete and process not running
             # Check the log for errors
             if tail -20 "$INSTALL_LOG" 2>/dev/null | grep -qi "error\|failed"; then
-                check_fail "Extension installation failed (see ~/.sindri/logs/install.log)"
+                check_fail "Extension installation failed (see sindri extension log -l error)"
             else
                 check_pass "Extension installation completed (marker pending)"
             fi
