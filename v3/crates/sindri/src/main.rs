@@ -46,6 +46,7 @@ async fn main() -> Result<()> {
         Commands::Image(args) => commands::image::execute(args).await,
         Commands::Vm(args) => commands::vm::run(args).await,
         Commands::Bom(args) => commands::bom::run(args).await,
+        Commands::Completions(args) => commands::completions::run(args),
     }
 }
 

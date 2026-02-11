@@ -1,0 +1,63 @@
+# Minimal, fast Starship config for container environments
+# Optimized to reduce shell startup time from ~15s to ~1-2s
+
+# Only show essential prompt elements
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$character"""
+
+# Disable expensive git status checks (3-5s improvement)
+[git_status]
+disabled = true
+
+# Disable git state detection (rebase, merge, etc.)
+[git_state]
+disabled = true
+
+# Disable language version detection (mise already provides this)
+[nodejs]
+disabled = true
+
+[python]
+disabled = true
+
+[rust]
+disabled = true
+
+[golang]
+disabled = true
+
+[java]
+disabled = true
+
+[ruby]
+disabled = true
+
+[php]
+disabled = true
+
+# Only show command duration for long-running commands
+[cmd_duration]
+min_time = 500  # 500ms minimum
+
+# Simple, clear prompt character
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+# Show username and hostname for SSH context
+[username]
+show_always = true
+format = "[$user]($style) "
+
+[hostname]
+ssh_only = false
+format = "on [$hostname]($style) "
+
+# Show current directory with reasonable truncation
+[directory]
+truncation_length = 3
+truncate_to_repo = true

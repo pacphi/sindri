@@ -181,7 +181,7 @@ async fn do_upgrade(manager: &ReleaseManager, args: &UpgradeArgs) -> Result<()> 
     // Determine target version
     let current = Version::parse(VERSION)?;
 
-    let (target_version, release) = if let Some(ver) = &args.version {
+    let (target_version, release) = if let Some(ver) = &args.target_version {
         let normalized = ver.trim_start_matches('v');
         let target = Version::parse(normalized)?;
         let tag = format!("v{}", normalized);

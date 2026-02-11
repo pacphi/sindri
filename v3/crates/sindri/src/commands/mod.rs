@@ -2,6 +2,7 @@
 
 pub mod backup;
 pub mod bom;
+pub mod completions;
 pub mod config;
 pub mod connect;
 pub mod deploy;

@@ -294,6 +294,7 @@ COPY v3/common.sh /docker/config/sindri/common.sh
 # ------------------------------------------------------------------------------
 COPY v3/docker/scripts/entrypoint.sh /docker/scripts/
 COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
+COPY v3/docker/templates/ /docker/templates/
 
 RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
 

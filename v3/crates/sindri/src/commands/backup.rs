@@ -39,12 +39,12 @@ pub struct BackupArgs {
     pub dry_run: bool,
 
     /// Compression level (0-9, 0=none, 9=max)
-    #[arg(short, long, default_value = "6")]
+    #[arg(long, default_value = "6")]
     pub compression: u8,
 
     /// Verbose output (show all files)
-    #[arg(short, long)]
-    pub verbose: bool,
+    #[arg(long)]
+    pub verbose_output: bool,
 
     /// Skip confirmation for large backups
     #[arg(short, long)]
@@ -170,7 +170,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         excludes.insert("**/secrets/**".to_string());
     }
 
-    if args.verbose {
+    if args.verbose_output {
         output::info(&format!("Exclude patterns ({}):", excludes.len()));
         for pattern in &excludes {
             println!("  {}", console::style(pattern).dim());
@@ -255,7 +255,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     for i in 0..file_count {
         tokio::time::sleep(tokio::time::Duration::from_micros(100)).await;
         pb.inc(1);
-        if args.verbose && i % 100 == 0 {
+        if args.verbose_output && i % 100 == 0 {
             // Would show current file being processed
         }
     }

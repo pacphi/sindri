@@ -12,7 +12,6 @@ pub use crate::commands::secrets::SecretsCommands;
 #[derive(Parser, Debug)]
 #[command(name = "sindri")]
 #[command(author, version, about, long_about = None)]
-#[command(propagate_version = true)]
 pub struct Cli {
     /// Increase verbosity (-v, -vv, -vvv)
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
@@ -60,6 +59,7 @@ pub enum Commands {
     Profile(ProfileCommands),
 
     /// Upgrade the CLI
+    #[command(disable_version_flag = true)]
     Upgrade(UpgradeArgs),
 
     /// Secrets management
@@ -94,6 +94,9 @@ pub enum Commands {
     /// Bill of Materials management
     #[command(subcommand)]
     Bom(BomCommands),
+
+    /// Generate shell completions
+    Completions(CompletionsArgs),
 }
 
 // Version command
@@ -198,7 +201,7 @@ pub struct DeployArgs {
 #[derive(Args, Debug)]
 pub struct ConnectArgs {
     /// Command to run instead of shell
-    #[arg(short = 'c', long)]
+    #[arg(long)]
     pub command: Option<String>,
 }
 
@@ -359,7 +362,7 @@ pub struct ExtensionUpgradeArgs {
     pub name: String,
 
     /// Upgrade to specific version
-    #[arg(short, long)]
+    #[arg(short = 'V', long)]
     pub version: Option<String>,
 
     /// Skip confirmation prompt
@@ -428,6 +431,7 @@ pub struct UpdateSupportFilesArgs {
 
 // Upgrade command
 #[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
 pub struct UpgradeArgs {
     /// Check for updates only
     #[arg(long)]
@@ -439,7 +443,7 @@ pub struct UpgradeArgs {
 
     /// Install specific version
     #[arg(long)]
-    pub version: Option<String>,
+    pub target_version: Option<String>,
 
     /// Check extension compatibility
     #[arg(long)]
@@ -894,7 +898,7 @@ pub enum VmCommands {
 #[derive(Args, Debug)]
 pub struct VmBuildArgs {
     /// Target cloud provider (aws, azure, gcp, oci, alibaba)
-    #[arg(short, long)]
+    #[arg(long)]
     pub cloud: String,
 
     /// Image name prefix
@@ -953,7 +957,7 @@ pub struct VmBuildArgs {
 #[derive(Args, Debug)]
 pub struct VmValidateArgs {
     /// Target cloud provider
-    #[arg(short, long)]
+    #[arg(long)]
     pub cloud: String,
 
     /// Image name prefix
@@ -976,7 +980,7 @@ pub struct VmValidateArgs {
 #[derive(Args, Debug)]
 pub struct VmListArgs {
     /// Target cloud provider
-    #[arg(short, long)]
+    #[arg(long)]
     pub cloud: String,
 
     /// Filter by name prefix
@@ -995,7 +999,7 @@ pub struct VmListArgs {
 #[derive(Args, Debug)]
 pub struct VmDeleteArgs {
     /// Target cloud provider
-    #[arg(short, long)]
+    #[arg(long)]
     pub cloud: String,
 
     /// Image ID to delete
@@ -1013,7 +1017,7 @@ pub struct VmDeleteArgs {
 #[derive(Args, Debug)]
 pub struct VmDoctorArgs {
     /// Target cloud provider (or all)
-    #[arg(short, long)]
+    #[arg(long)]
     pub cloud: Option<String>,
 
     /// Output as JSON
@@ -1024,7 +1028,7 @@ pub struct VmDoctorArgs {
 #[derive(Args, Debug)]
 pub struct VmInitArgs {
     /// Target cloud provider
-    #[arg(short, long)]
+    #[arg(long)]
     pub cloud: String,
 
     /// Output directory for generated files
@@ -1039,7 +1043,7 @@ pub struct VmInitArgs {
 #[derive(Args, Debug)]
 pub struct VmDeployArgs {
     /// Target cloud provider
-    #[arg(short, long)]
+    #[arg(long)]
     pub cloud: String,
 
     /// Image ID to deploy
@@ -1130,4 +1134,12 @@ pub struct BomExportArgs {
     /// Force overwrite
     #[arg(long)]
     pub force: bool,
+}
+
+// Completions command
+#[derive(Args, Debug)]
+pub struct CompletionsArgs {
+    /// Shell to generate completions for
+    #[arg(value_enum)]
+    pub shell: clap_complete::Shell,
 }

@@ -1,0 +1,65 @@
+# ~/.bashrc: executed by bash for non-login shells
+
+# Sindri extension directory - set at runtime to respect volume-mounted HOME
+# Only set if not already defined (preserves bundled path from Dockerfile.dev)
+export SINDRI_EXT_HOME="${SINDRI_EXT_HOME:-${HOME}/.sindri/extensions}"
+
+# Claude Code plugin compatibility - set TMPDIR before interactive check
+# Required to prevent EXDEV cross-device link error during plugin installation
+# fs.rename() cannot cross filesystem boundaries (/tmp is tmpfs, ~/.claude is on volume)
+# See: https://github.com/anthropics/claude-code/issues/14799
+export TMPDIR="${HOME}/.cache/tmp"
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# History settings
+HISTCONTROL=ignoreboth
+HISTSIZE=1000
+HISTFILESIZE=2000
+shopt -s histappend
+
+# Check window size
+shopt -s checkwinsize
+
+# Enable color support
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    alias grep='grep --color=auto'
+fi
+
+# Aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Starship prompt (if installed)
+if command -v starship &> /dev/null; then
+    eval "$(starship init bash)"
+fi
+
+# mise (if installed) - optimized for fast startup
+if command -v mise &> /dev/null; then
+    export MISE_DATA_DIR="${HOME}/.local/share/mise"
+    export MISE_EXPERIMENTAL=1
+    eval "$(mise activate bash --shims)"
+fi
+
+# Sindri CLI completions (cached for performance)
+if command -v sindri &> /dev/null; then
+    COMPLETIONS_CACHE="${HOME}/.sindri/cache/completions.bash"
+    SINDRI_BIN="$(command -v sindri)"
+
+    # Regenerate cache if missing or sindri binary is newer than cache
+    if [ ! -f "$COMPLETIONS_CACHE" ] || [ "$SINDRI_BIN" -nt "$COMPLETIONS_CACHE" ]; then
+        mkdir -p "$(dirname "$COMPLETIONS_CACHE")"
+        sindri completions bash > "$COMPLETIONS_CACHE" 2>/dev/null || true
+    fi
+
+    # Source cached completions (fast: <100ms vs 1-2s generation time)
+    [ -f "$COMPLETIONS_CACHE" ] && source "$COMPLETIONS_CACHE"
+fi

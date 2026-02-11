@@ -116,62 +116,17 @@ setup_home_directory() {
 
         # Create .bashrc if it doesn't exist
         if [[ ! -f "${ALT_HOME}/.bashrc" ]]; then
-            cat > "${ALT_HOME}/.bashrc" << 'EOF'
-# ~/.bashrc: executed by bash for non-login shells
+            cp /docker/templates/bashrc "${ALT_HOME}/.bashrc"
+            print_status "Created .bashrc from template"
+        fi
 
-# Sindri extension directory - set at runtime to respect volume-mounted HOME
-# Only set if not already defined (preserves bundled path from Dockerfile.dev)
-export SINDRI_EXT_HOME="${SINDRI_EXT_HOME:-${HOME}/.sindri/extensions}"
-
-# Claude Code plugin compatibility - set TMPDIR before interactive check
-# Required to prevent EXDEV cross-device link error during plugin installation
-# fs.rename() cannot cross filesystem boundaries (/tmp is tmpfs, ~/.claude is on volume)
-# See: https://github.com/anthropics/claude-code/issues/14799
-export TMPDIR="${HOME}/.cache/tmp"
-
-# If not running interactively, don't do anything
-case $- in
-    *i*) ;;
-      *) return;;
-esac
-
-# History settings
-HISTCONTROL=ignoreboth
-HISTSIZE=1000
-HISTFILESIZE=2000
-shopt -s histappend
-
-# Check window size
-shopt -s checkwinsize
-
-# Enable color support
-if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto'
-    alias grep='grep --color=auto'
-fi
-
-# Aliases
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
-
-# Starship prompt (if installed)
-if command -v starship &> /dev/null; then
-    eval "$(starship init bash)"
-fi
-
-# mise (if installed)
-if command -v mise &> /dev/null; then
-    eval "$(mise activate bash)"
-fi
-
-# Sindri CLI completions (if available)
-if command -v sindri &> /dev/null; then
-    eval "$(sindri completions bash 2>/dev/null || true)"
-fi
-EOF
-            print_status "Created .bashrc"
+        # Install optimized Starship config for fast shell startup
+        if command -v starship &> /dev/null; then
+            mkdir -p "${ALT_HOME}/.config"
+            if [[ ! -f "${ALT_HOME}/.config/starship.toml" ]]; then
+                cp /docker/templates/starship.toml "${ALT_HOME}/.config/starship.toml"
+                print_status "Installed optimized Starship config"
+            fi
         fi
 
         # Mark home as initialized

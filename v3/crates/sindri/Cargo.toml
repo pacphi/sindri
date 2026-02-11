@@ -24,6 +24,7 @@ sindri-packer = { workspace = true }
 
 # CLI
 clap = { workspace = true }
+clap_complete = "4.5.65"
 tokio = { workspace = true }
 anyhow = { workspace = true }
 futures = { workspace = true }
