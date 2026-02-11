@@ -273,10 +273,10 @@ impl<'a> ExtensionValidator<'a> {
         matches!((year, month, day), (Some(y), Some(m), Some(d)) if y >= 2020 && (1..=12).contains(&m) && (1..=31).contains(&d))
     }
 
-    /// Check if string is valid semver (basic check: X.Y.Z)
+    /// Check if string is valid semver or partial semver (X, X.Y, or X.Y.Z)
     fn is_valid_semver(version: &str) -> bool {
         let parts: Vec<&str> = version.split('.').collect();
-        if parts.len() != 3 {
+        if parts.is_empty() || parts.len() > 3 {
             return false;
         }
         parts.iter().all(|p| p.parse::<u32>().is_ok())
@@ -337,26 +337,52 @@ mod tests {
 
     #[test]
     fn test_valid_semver() {
+        // Full semver (X.Y.Z)
         assert!(ExtensionValidator::is_valid_semver("1.0.0"));
         assert!(ExtensionValidator::is_valid_semver("0.1.0"));
         assert!(ExtensionValidator::is_valid_semver("10.20.30"));
-        assert!(!ExtensionValidator::is_valid_semver("1.0"));
+        // Partial semver (X.Y and X)
+        assert!(ExtensionValidator::is_valid_semver("1.0"));
+        assert!(ExtensionValidator::is_valid_semver("1.14"));
+        assert!(ExtensionValidator::is_valid_semver("3.13"));
+        assert!(ExtensionValidator::is_valid_semver("1"));
+        // Invalid
         assert!(!ExtensionValidator::is_valid_semver("1.0.0-alpha"));
         assert!(!ExtensionValidator::is_valid_semver("v1.0.0"));
+        assert!(!ExtensionValidator::is_valid_semver("1.0.0.0"));
+        assert!(!ExtensionValidator::is_valid_semver(""));
+        assert!(!ExtensionValidator::is_valid_semver("abc"));
     }
 
     #[test]
     fn test_valid_version_or_pattern() {
+        // Full semver
         assert!(ExtensionValidator::is_valid_version_or_pattern("1.0.0"));
         assert!(ExtensionValidator::is_valid_version_or_pattern(">=1.0.0"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("^1.2.3"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("~2.0.0"));
+        // Partial semver
+        assert!(ExtensionValidator::is_valid_version_or_pattern("1.14"));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("3.13"));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("2.2"));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("1"));
+        // Pre-release with partial base
+        assert!(ExtensionValidator::is_valid_version_or_pattern(
+            "3.0.0-alpha"
+        ));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("3.0-beta"));
+        // Keywords
         assert!(ExtensionValidator::is_valid_version_or_pattern("latest"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("dynamic"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("lts"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("stable"));
         assert!(ExtensionValidator::is_valid_version_or_pattern("remote"));
+        // Wildcards
+        assert!(ExtensionValidator::is_valid_version_or_pattern("1.2.x"));
+        assert!(ExtensionValidator::is_valid_version_or_pattern("9.x"));
+        // Invalid
         assert!(!ExtensionValidator::is_valid_version_or_pattern("invalid"));
+        assert!(!ExtensionValidator::is_valid_version_or_pattern("v1.0.0"));
     }
 
     #[test]
