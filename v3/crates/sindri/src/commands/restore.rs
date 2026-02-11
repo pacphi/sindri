@@ -39,9 +39,9 @@ pub struct RestoreArgs {
     #[arg(long, requires = "decrypt")]
     pub key_file: Option<Utf8PathBuf>,
 
-    /// Verbose output (show all files)
-    #[arg(short, long)]
-    pub verbose: bool,
+    /// Show all files being restored
+    #[arg(long)]
+    pub show_files: bool,
 
     /// Skip validation of restored files
     #[arg(long)]
@@ -170,7 +170,7 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
             "  Extensions:      {} available upgrades",
             console::style(analysis.extension_upgrades.len()).cyan()
         );
-        if args.verbose {
+        if args.show_files {
             for (name, versions) in &analysis.extension_upgrades {
                 println!("    {} {} → {}", name, versions.0, versions.1);
             }
@@ -199,7 +199,7 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
 
     // Show preview in dry-run mode
     if args.dry_run {
-        if args.verbose {
+        if args.show_files {
             output::info("Files to restore:");
             // TODO: Show file list
         }
@@ -250,7 +250,7 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     for i in 0..manifest.file_count {
         tokio::time::sleep(tokio::time::Duration::from_micros(100)).await;
         pb.inc(1);
-        if args.verbose && i % 100 == 0 {
+        if args.show_files && i % 100 == 0 {
             // Would show current file being restored
         }
     }

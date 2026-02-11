@@ -1379,7 +1379,7 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
 ///
 /// Supports:
 /// - Upgrade to latest: `sindri extension upgrade python`
-/// - Upgrade to specific: `sindri extension upgrade python --version 1.2.0`
+/// - Upgrade to specific: `sindri extension upgrade python --target-version 1.2.0`
 /// - Skip confirmation: `sindri extension upgrade python -y`
 async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
     use dialoguer::Confirm;
@@ -1407,7 +1407,7 @@ async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
         .context(format!("Invalid current version: {}", current_version))?;
 
     // 3. Determine target version
-    let target = if let Some(version_spec) = &args.version {
+    let target = if let Some(version_spec) = &args.target_version {
         // Use specified version
         output::info(&format!("Target version: {}", version_spec));
         Version::parse(version_spec).context(format!("Invalid version: {}", version_spec))?
@@ -1466,7 +1466,7 @@ async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
     // 7. Call distributor.upgrade()
     let spinner = output::spinner(&format!("Upgrading {} to {}", args.name, target));
 
-    let result = if args.version.is_some() {
+    let result = if args.target_version.is_some() {
         // Install specific version
         distributor
             .install(&args.name, Some(&target.to_string()))

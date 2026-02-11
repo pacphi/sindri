@@ -362,8 +362,8 @@ pub struct ExtensionUpgradeArgs {
     pub name: String,
 
     /// Upgrade to specific version
-    #[arg(short = 'V', long)]
-    pub version: Option<String>,
+    #[arg(short = 'V', long = "target-version")]
+    pub target_version: Option<String>,
 
     /// Skip confirmation prompt
     #[arg(short = 'y', long)]

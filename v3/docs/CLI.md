@@ -265,9 +265,9 @@ sindri connect [OPTIONS]
 
 **Options:**
 
-| Option            | Short | Description                                 |
-| ----------------- | ----- | ------------------------------------------- |
-| `--command <CMD>` | `-c`  | Command to run instead of interactive shell |
+| Option            | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `--command <CMD>` | Command to run instead of interactive shell |
 
 **Examples:**
 
@@ -276,7 +276,7 @@ sindri connect [OPTIONS]
 sindri connect
 
 # Run a specific command
-sindri connect -c "ls -la"
+sindri connect --command "ls -la"
 
 # Execute a script
 sindri connect --command "python3 /app/script.py"
@@ -535,11 +535,11 @@ sindri extension upgrade <NAME> [OPTIONS]
 
 **Options:**
 
-| Option                | Short | Description              |
-| --------------------- | ----- | ------------------------ |
-| `<NAME>`              | -     | Extension name           |
-| `--version <VERSION>` | `-v`  | Target version           |
-| `--yes`               | `-y`  | Skip confirmation prompt |
+| Option                       | Short | Description              |
+| ---------------------------- | ----- | ------------------------ |
+| `<NAME>`                     | -     | Extension name           |
+| `--target-version <VERSION>` | `-V`  | Target version           |
+| `--yes`                      | `-y`  | Skip confirmation prompt |
 
 **Examples:**
 
@@ -548,7 +548,7 @@ sindri extension upgrade <NAME> [OPTIONS]
 sindri extension upgrade mise
 
 # Upgrade to specific version
-sindri extension upgrade mise --version 2024.2.0 -y
+sindri extension upgrade mise -V 2024.2.0 -y
 ```
 
 #### extension remove
@@ -1129,7 +1129,7 @@ sindri backup [OPTIONS]
 | `--key-file <PATH>`     | `-k`  | -        | Encryption key file (age identity)                    |
 | `--dry-run`             | `-d`  | -        | Show what would be backed up                          |
 | `--compression <LEVEL>` | -     | 6        | Compression level (0-9)                               |
-| `--verbose`             | `-v`  | -        | Show all files being backed up                        |
+| `--show-files`          | -     | -        | Show all files being backed up                        |
 | `--yes`                 | `-y`  | -        | Skip confirmation prompt                              |
 
 **Backup Profiles:**
@@ -1180,7 +1180,7 @@ sindri restore <SOURCE> [OPTIONS]
 | `--auto-upgrade-extensions` | -     | -       | Auto-upgrade extensions to latest compatible versions |
 | `--decrypt`                 | -     | -       | Decrypt with age key                                  |
 | `--key-file <PATH>`         | -     | -       | Decryption key file (age identity)                    |
-| `--verbose`                 | `-v`  | -       | Show all files being restored                         |
+| `--show-files`              | -     | -       | Show all files being restored                         |
 | `--skip-validation`         | -     | -       | Skip validation of restored files                     |
 
 **Restore Modes:**
@@ -1204,7 +1204,7 @@ sindri restore ./backup.tar.gz --mode merge
 sindri restore s3://my-bucket/backups/latest.tar.gz --decrypt
 
 # Dry run to preview
-sindri restore ./backup.tar.gz --dry-run --verbose
+sindri restore ./backup.tar.gz --dry-run --show-files
 ```
 
 ---
@@ -1372,16 +1372,16 @@ sindri upgrade [OPTIONS]
 
 **Options:**
 
-| Option                | Short | Description                                       |
-| --------------------- | ----- | ------------------------------------------------- |
-| `--check`             | -     | Check for updates only                            |
-| `--list`              | -     | List available versions                           |
-| `--version <VERSION>` | -     | Install specific version                          |
-| `--compat <VERSION>`  | -     | Check extension compatibility for a version       |
-| `--prerelease`        | -     | Include prereleases                               |
-| `--allow-downgrade`   | -     | Allow downgrade to older version                  |
-| `--yes`               | `-y`  | Skip confirmation prompts                         |
-| `--force`             | `-f`  | Force upgrade even if extensions are incompatible |
+| Option                       | Short | Description                                       |
+| ---------------------------- | ----- | ------------------------------------------------- |
+| `--check`                    | -     | Check for updates only                            |
+| `--list`                     | -     | List available versions                           |
+| `--target-version <VERSION>` | -     | Install specific version                          |
+| `--compat <VERSION>`         | -     | Check extension compatibility for a version       |
+| `--prerelease`               | -     | Include prereleases                               |
+| `--allow-downgrade`          | -     | Allow downgrade to older version                  |
+| `--yes`                      | `-y`  | Skip confirmation prompts                         |
+| `--force`                    | `-f`  | Force upgrade even if extensions are incompatible |
 
 **Examples:**
 
@@ -1399,10 +1399,10 @@ sindri upgrade --compat 3.1.0
 sindri upgrade
 
 # Upgrade to specific version
-sindri upgrade --version 3.1.0 -y
+sindri upgrade --target-version 3.1.0 -y
 
 # Downgrade
-sindri upgrade --version 3.0.0 --allow-downgrade
+sindri upgrade --target-version 3.0.0 --allow-downgrade
 ```
 
 ---
@@ -1751,7 +1751,7 @@ sindri vm build --cloud <PROVIDER> [OPTIONS]
 
 | Option                   | Short | Default  | Description                                  |
 | ------------------------ | ----- | -------- | -------------------------------------------- |
-| `--cloud <PROVIDER>`     | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--cloud <PROVIDER>`     | -     | required | Target cloud (aws, azure, gcp, oci, alibaba) |
 | `--name <NAME>`          | `-n`  | -        | Image name prefix                            |
 | `--sindri-version <VER>` | -     | latest   | Sindri version to install in image           |
 | `--profile <PROFILE>`    | -     | -        | Extension profile to install                 |
@@ -1830,7 +1830,7 @@ sindri vm validate --cloud <PROVIDER> [OPTIONS]
 
 | Option                   | Short | Default  | Description                                  |
 | ------------------------ | ----- | -------- | -------------------------------------------- |
-| `--cloud <PROVIDER>`     | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--cloud <PROVIDER>`     | -     | required | Target cloud (aws, azure, gcp, oci, alibaba) |
 | `--name <NAME>`          | `-n`  | -        | Image name prefix                            |
 | `--sindri-version <VER>` | -     | latest   | Sindri version                               |
 | `--syntax-only`          | -     | -        | Syntax check only (no provider validation)   |
@@ -1865,7 +1865,7 @@ sindri vm list --cloud <PROVIDER> [OPTIONS]
 
 | Option               | Short | Default  | Description                                  |
 | -------------------- | ----- | -------- | -------------------------------------------- |
-| `--cloud <PROVIDER>` | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--cloud <PROVIDER>` | -     | required | Target cloud (aws, azure, gcp, oci, alibaba) |
 | `--name <NAME>`      | `-n`  | -        | Filter by name prefix                        |
 | `--region <REGION>`  | `-r`  | -        | Cloud region                                 |
 | `--json`             | -     | -        | Output as JSON                               |
@@ -1902,7 +1902,7 @@ sindri vm delete --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
 
 | Option               | Short | Default  | Description                                  |
 | -------------------- | ----- | -------- | -------------------------------------------- |
-| `--cloud <PROVIDER>` | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--cloud <PROVIDER>` | -     | required | Target cloud (aws, azure, gcp, oci, alibaba) |
 | `<IMAGE_ID>`         | -     | required | Image ID to delete                           |
 | `--region <REGION>`  | `-r`  | -        | Cloud region                                 |
 | `--force`            | `-f`  | -        | Skip confirmation prompt                     |
@@ -1936,7 +1936,7 @@ sindri vm doctor [OPTIONS]
 
 | Option               | Short | Default | Description                                       |
 | -------------------- | ----- | ------- | ------------------------------------------------- |
-| `--cloud <PROVIDER>` | `-c`  | all     | Target cloud (aws, azure, gcp, oci, alibaba, all) |
+| `--cloud <PROVIDER>` | -     | all     | Target cloud (aws, azure, gcp, oci, alibaba, all) |
 | `--json`             | -     | -       | Output as JSON                                    |
 
 **Output includes:**
@@ -1978,7 +1978,7 @@ sindri vm init --cloud <PROVIDER> [OPTIONS]
 
 | Option               | Short | Default  | Description                                  |
 | -------------------- | ----- | -------- | -------------------------------------------- |
-| `--cloud <PROVIDER>` | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--cloud <PROVIDER>` | -     | required | Target cloud (aws, azure, gcp, oci, alibaba) |
 | `--output <PATH>`    | `-o`  | .        | Output directory for generated files         |
 | `--force`            | `-f`  | -        | Force overwrite existing files               |
 
@@ -2024,7 +2024,7 @@ sindri vm deploy --cloud <PROVIDER> <IMAGE_ID> [OPTIONS]
 
 | Option                   | Short | Default  | Description                                  |
 | ------------------------ | ----- | -------- | -------------------------------------------- |
-| `--cloud <PROVIDER>`     | `-c`  | required | Target cloud (aws, azure, gcp, oci, alibaba) |
+| `--cloud <PROVIDER>`     | -     | required | Target cloud (aws, azure, gcp, oci, alibaba) |
 | `<IMAGE_ID>`             | -     | required | Image ID to deploy                           |
 | `--region <REGION>`      | `-r`  | -        | Cloud region                                 |
 | `--instance-type <TYPE>` | -     | -        | Instance type / VM size                      |
@@ -2205,6 +2205,44 @@ grype sbom:sbom.cdx.json
 sindri bom export --format spdx --output sbom.spdx.json
 trivy sbom sbom.spdx.json
 ```
+
+---
+
+### completions
+
+Generate shell completion scripts for various shells.
+
+**Synopsis:**
+
+```bash
+sindri completions <SHELL>
+```
+
+**Arguments:**
+
+| Argument  | Description                                     |
+| --------- | ----------------------------------------------- |
+| `<SHELL>` | Shell type: bash, zsh, fish, powershell, elvish |
+
+**Examples:**
+
+```bash
+# Generate bash completions
+sindri completions bash > ~/.local/share/bash-completion/completions/sindri
+
+# Generate zsh completions
+sindri completions zsh > ~/.zsh/completions/_sindri
+
+# Generate fish completions
+sindri completions fish > ~/.config/fish/completions/sindri.fish
+
+# Generate PowerShell completions
+sindri completions powershell > sindri.ps1
+```
+
+**Installation:**
+
+After generating the completion script, you may need to restart your shell or source your shell configuration file for the completions to take effect.
 
 ---
 
