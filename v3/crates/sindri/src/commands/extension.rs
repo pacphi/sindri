@@ -16,6 +16,9 @@ use anyhow::{anyhow, Context, Result};
 use camino::Utf8PathBuf;
 use semver::Version;
 use serde_json;
+use sindri_core::types::ExtensionState;
+use sindri_extensions::{EventEnvelope, ExtensionEvent, StatusLedger};
+use std::time::Instant;
 use tabled::{
     settings::{object::Columns, Modify, Style, Width},
     Table, Tabled,
@@ -24,8 +27,8 @@ use tabled::{
 use crate::cli::{
     ExtensionCheckArgs, ExtensionCommands, ExtensionDocsArgs, ExtensionInfoArgs,
     ExtensionInstallArgs, ExtensionListArgs, ExtensionRemoveArgs, ExtensionRollbackArgs,
-    ExtensionStatusArgs, ExtensionUpgradeArgs, ExtensionValidateArgs, ExtensionVersionsArgs,
-    UpdateSupportFilesArgs,
+    ExtensionStatusArgs, ExtensionUpgradeArgs, ExtensionValidateArgs, ExtensionVerifyArgs,
+    ExtensionVersionsArgs, UpdateSupportFilesArgs,
 };
 use crate::output;
 
@@ -52,6 +55,7 @@ pub async fn run(cmd: ExtensionCommands) -> Result<()> {
         ExtensionCommands::Rollback(args) => rollback(args).await,
         ExtensionCommands::UpdateSupportFiles(args) => update_support_files(args).await,
         ExtensionCommands::Docs(args) => docs(args).await,
+        ExtensionCommands::Verify(args) => verify(args).await,
     }
 }
 
@@ -165,22 +169,58 @@ async fn install_by_name(
     let distributor =
         sindri_extensions::ExtensionDistributor::new(cache_dir, extensions_dir, cli_version)?;
 
-    // Load manifest manager to track installation state
-    let mut manifest = sindri_extensions::ManifestManager::load_default()
-        .context("Failed to load installation manifest")?;
+    // Initialize ledger for event tracking
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
 
-    // Mark as installing in manifest (tracks state even if installation fails)
-    manifest
-        .mark_installing(&name, version.as_deref().unwrap_or("installing"), "local")
-        .context("Failed to update manifest")?;
+    // Track start time
+    let start_time = Instant::now();
+
+    // Publish InstallStarted event
+    let version_str = version.as_deref().unwrap_or("latest").to_string();
+    let install_started_event = EventEnvelope::new(
+        name.clone(),
+        None,
+        ExtensionState::Installing,
+        ExtensionEvent::InstallStarted {
+            extension_name: name.clone(),
+            version: version_str.clone(),
+            source: "github:pacphi/sindri".to_string(),
+            install_method: "Distributor".to_string(),
+        },
+    );
+
+    if let Err(e) = ledger.append(install_started_event) {
+        output::warning(&format!("Failed to publish install started event: {}", e));
+    }
 
     // Create spinner
     let spinner = output::spinner("Installing extension...");
 
     // Install extension
-    match distributor.install(&name, version.as_deref()).await {
+    let result = distributor.install(&name, version.as_deref()).await;
+    let duration_secs = start_time.elapsed().as_secs();
+
+    match result {
         Ok(()) => {
             spinner.finish_and_clear();
+
+            // Publish InstallCompleted event
+            let install_completed_event = EventEnvelope::new(
+                name.clone(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Installed,
+                ExtensionEvent::InstallCompleted {
+                    extension_name: name.clone(),
+                    version: version_str.clone(),
+                    duration_secs,
+                    components_installed: vec![], // TODO: collect from executor
+                },
+            );
+
+            if let Err(e) = ledger.append(install_completed_event) {
+                output::warning(&format!("Failed to publish install completed event: {}", e));
+            }
+
             output::success(&format!(
                 "Successfully installed {}{}",
                 name,
@@ -194,9 +234,25 @@ async fn install_by_name(
         Err(e) => {
             spinner.finish_and_clear();
 
-            // Mark as failed in manifest so it shows in status
-            if let Err(manifest_err) = manifest.mark_failed(&name) {
-                output::warning(&format!("Failed to update manifest: {}", manifest_err));
+            // Publish InstallFailed event
+            let install_failed_event = EventEnvelope::new(
+                name.clone(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Failed,
+                ExtensionEvent::InstallFailed {
+                    extension_name: name.clone(),
+                    version: version_str.clone(),
+                    error_message: e.to_string(),
+                    retry_count: 0,
+                    duration_secs,
+                },
+            );
+
+            if let Err(ledger_err) = ledger.append(install_failed_event) {
+                output::warning(&format!(
+                    "Failed to publish install failed event: {}",
+                    ledger_err
+                ));
             }
 
             output::error(&format!("Failed to install {}: {}", name, e));
@@ -461,7 +517,6 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
     // Get home directory for cache and manifest
     let home = get_home_dir()?;
     let cache_dir = home.join(".sindri").join("cache");
-    let manifest_path = home.join(".sindri").join("manifest.yaml");
 
     // Load registry from GitHub with caching
     let registry =
@@ -469,9 +524,11 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
             .await
             .context("Failed to load extension registry")?;
 
-    // Load manifest to get installed versions
-    let manifest = sindri_extensions::ManifestManager::new(manifest_path)
-        .context("Failed to load manifest")?;
+    // Load ledger to get installed extension status
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
 
     // Initialize source resolver for loading extension definitions
     let source_resolver = sindri_extensions::ExtensionSourceResolver::from_env()
@@ -528,15 +585,21 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
                 .unwrap_or_else(|| ("-".to_string(), None));
 
             // Check if installed
-            if let Some(installed_ext) = manifest.get_installed(name) {
+            if let Some(installed_ext) = status_map
+                .get(name)
+                .filter(|s| s.current_state == ExtensionState::Installed)
+            {
                 // Extension is installed
                 all_extensions.push(AllExtensionsRow {
                     name: name.clone(),
                     category: entry.category.clone(),
-                    version: installed_ext.version.clone(),
+                    version: installed_ext
+                        .version
+                        .clone()
+                        .unwrap_or_else(|| "unknown".to_string()),
                     software: software_list,
                     status: "installed".to_string(),
-                    install_date: installed_ext.status_datetime.format("%Y-%m-%d").to_string(),
+                    install_date: installed_ext.last_event_time.format("%Y-%m-%d").to_string(),
                     description: entry.description.clone(),
                 });
             } else {
@@ -602,7 +665,10 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
             .entries
             .iter()
             .filter(|(name, entry)| {
-                manifest.is_installed(name)
+                status_map
+                    .get(*name)
+                    .map(|s| s.current_state == ExtensionState::Installed)
+                    .unwrap_or(false)
                     && args
                         .category
                         .as_ref()
@@ -624,7 +690,10 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
             }
 
             // Get installed info if available
-            if let Some(installed_ext) = manifest.get_installed(name) {
+            if let Some(installed_ext) = status_map
+                .get(name)
+                .filter(|s| s.current_state == ExtensionState::Installed)
+            {
                 // Get software list from parallel fetch
                 let software_list = extension_data
                     .get(name)
@@ -634,10 +703,13 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
                 installed_extensions.push(InstalledExtensionRow {
                     name: name.clone(),
                     category: entry.category.clone(),
-                    installed_version: installed_ext.version.clone(),
+                    installed_version: installed_ext
+                        .version
+                        .clone()
+                        .unwrap_or_else(|| "unknown".to_string()),
                     installed_software: software_list,
                     description: entry.description.clone(),
-                    install_date: installed_ext.status_datetime.format("%Y-%m-%d").to_string(),
+                    install_date: installed_ext.last_event_time.format("%Y-%m-%d").to_string(),
                 });
             }
         }
@@ -687,7 +759,10 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
             .entries
             .iter()
             .filter(|(name, entry)| {
-                !manifest.is_installed(name)
+                !status_map
+                    .get(*name)
+                    .map(|s| s.current_state == ExtensionState::Installed)
+                    .unwrap_or(false)
                     && args
                         .category
                         .as_ref()
@@ -709,7 +784,11 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
             }
 
             // Only include if NOT installed
-            if !manifest.is_installed(name) {
+            if !status_map
+                .get(name)
+                .map(|s| s.current_state == ExtensionState::Installed)
+                .unwrap_or(false)
+            {
                 // Get software list and version from parallel fetch
                 let (software_list, local_version) = extension_data
                     .get(name)
@@ -785,9 +864,7 @@ async fn list(args: ExtensionListArgs) -> Result<()> {
 /// 4. Validate dependency references
 /// 5. Check for conflicts with installed extensions
 async fn validate(args: ExtensionValidateArgs) -> Result<()> {
-    use sindri_extensions::{
-        DependencyResolver, ExtensionRegistry, ExtensionValidator, ManifestManager,
-    };
+    use sindri_extensions::{DependencyResolver, ExtensionRegistry, ExtensionValidator};
     use std::collections::HashSet;
     use tracing::debug;
 
@@ -847,12 +924,23 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
         }
 
         // Try to load from installed location first
-        let extension_yaml = if let Ok(manifest) = ManifestManager::load_default() {
-            if let Some(installed) = manifest.get_installed(&args.name) {
-                let version_dir = ext_dir.join(&installed.version);
-                let yaml_path = version_dir.join("extension.yaml");
-                if yaml_path.exists() {
-                    Some(yaml_path)
+        let extension_yaml = if let Ok(ledger) = StatusLedger::load_default() {
+            if let Ok(status_map) = ledger.get_all_latest_status() {
+                if let Some(status) = status_map
+                    .get(&args.name)
+                    .filter(|s| s.current_state == ExtensionState::Installed)
+                {
+                    if let Some(version) = &status.version {
+                        let version_dir = ext_dir.join(version);
+                        let yaml_path = version_dir.join("extension.yaml");
+                        if yaml_path.exists() {
+                            Some(yaml_path)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -979,10 +1067,13 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
 
     // Check for conflicts with installed extensions
     output::info("Checking for conflicts with installed extensions...");
-    let manifest = ManifestManager::load_default().context("Failed to load manifest")?;
-    let installed: HashSet<String> = manifest
-        .list_installed()
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
+    let installed: HashSet<String> = status_map
         .iter()
+        .filter(|(_, s)| s.current_state == ExtensionState::Installed)
         .map(|(name, _)| name.to_string())
         .collect();
 
@@ -997,10 +1088,10 @@ async fn validate(args: ExtensionValidateArgs) -> Result<()> {
     }
 
     // Also check if any installed extension conflicts with this one
-    for (installed_name, _) in manifest.list_installed() {
+    for installed_name in &installed {
         let installed_conflicts = registry.get_conflicts(installed_name);
         if installed_conflicts.contains(&extension.metadata.name)
-            && !active_conflicts.contains(&installed_name.to_string())
+            && !active_conflicts.contains(installed_name)
         {
             active_conflicts.push(installed_name.to_string());
         }
@@ -1067,7 +1158,6 @@ fn validate_dependencies_from_registry(
 /// Helper to validate conflicts with installed extensions
 fn validate_conflicts_from_registry(name: &str, conflicts: &[String]) -> Result<()> {
     use crate::output;
-    use sindri_extensions::ManifestManager;
     use std::collections::HashSet;
 
     if conflicts.is_empty() {
@@ -1077,18 +1167,26 @@ fn validate_conflicts_from_registry(name: &str, conflicts: &[String]) -> Result<
 
     output::info("Checking for conflicts with installed extensions...");
 
-    let manifest = match ManifestManager::load_default() {
-        Ok(m) => m,
+    let ledger = match StatusLedger::load_default() {
+        Ok(l) => l,
         Err(_) => {
-            output::info("No manifest found, skipping conflict check");
+            output::info("No ledger found, skipping conflict check");
             return Ok(());
         }
     };
 
-    let installed: HashSet<String> = manifest
-        .list_installed()
+    let status_map = match ledger.get_all_latest_status() {
+        Ok(m) => m,
+        Err(_) => {
+            output::info("Failed to get extension status, skipping conflict check");
+            return Ok(());
+        }
+    };
+
+    let installed: HashSet<String> = status_map
         .iter()
-        .map(|(n, _)| n.to_string())
+        .filter(|(_, status)| status.current_state == ExtensionState::Installed)
+        .map(|(n, _)| n.clone())
         .collect();
 
     let active_conflicts: Vec<_> = conflicts
@@ -1123,36 +1221,115 @@ struct StatusRow {
     status_datetime: String,
 }
 
+/// Format an extension event into a human-readable summary string
+fn format_event_summary(event: &ExtensionEvent) -> String {
+    match event {
+        ExtensionEvent::InstallStarted {
+            version,
+            install_method,
+            ..
+        } => format!("Install started (v{version}, method: {install_method})"),
+
+        ExtensionEvent::InstallCompleted {
+            version,
+            duration_secs,
+            ..
+        } => format!("Install completed (v{version}, {duration_secs}s)"),
+
+        ExtensionEvent::InstallFailed {
+            version,
+            error_message,
+            duration_secs,
+            ..
+        } => format!("Install failed (v{version}, {duration_secs}s): {error_message}"),
+
+        ExtensionEvent::UpgradeStarted {
+            from_version,
+            to_version,
+            ..
+        } => format!("Upgrade started ({from_version} \u{2192} {to_version})"),
+
+        ExtensionEvent::UpgradeCompleted {
+            from_version,
+            to_version,
+            duration_secs,
+            ..
+        } => format!("Upgrade completed ({from_version} \u{2192} {to_version}, {duration_secs}s)"),
+
+        ExtensionEvent::UpgradeFailed {
+            from_version,
+            to_version,
+            error_message,
+            ..
+        } => format!("Upgrade failed ({from_version} \u{2192} {to_version}): {error_message}"),
+
+        ExtensionEvent::RemoveStarted { version, .. } => {
+            format!("Remove started (v{version})")
+        }
+
+        ExtensionEvent::RemoveCompleted {
+            version,
+            duration_secs,
+            ..
+        } => format!("Remove completed (v{version}, {duration_secs}s)"),
+
+        ExtensionEvent::RemoveFailed {
+            version,
+            error_message,
+            ..
+        } => format!("Remove failed (v{version}): {error_message}"),
+
+        ExtensionEvent::OutdatedDetected {
+            current_version,
+            latest_version,
+            ..
+        } => format!("Outdated detected ({current_version} \u{2192} {latest_version})"),
+
+        ExtensionEvent::ValidationSucceeded {
+            version,
+            validation_type,
+            ..
+        } => format!("Validation succeeded (v{version}, {validation_type})"),
+
+        ExtensionEvent::ValidationFailed {
+            version,
+            validation_type,
+            error_message,
+            ..
+        } => format!("Validation failed (v{version}, {validation_type}): {error_message}"),
+    }
+}
+
 /// Show installation status for extensions
 ///
 /// Supports:
 /// - Show all: `sindri extension status`
 /// - Show specific: `sindri extension status python`
 /// - JSON output: `sindri extension status --json`
+/// - Event history: `sindri extension status python --limit 10`
+/// - Date filtering: `sindri extension status python --since 2026-02-10T00:00:00Z`
+/// - Verification: `sindri extension status --verify` (slower, checks actual installation)
 async fn status(args: ExtensionStatusArgs) -> Result<()> {
-    use sindri_core::types::ExtensionState;
-    use sindri_extensions::{find_extension_yaml, verify_extension_installed, ManifestManager};
-
     if let Some(name) = &args.name {
         output::info(&format!("Checking status of extension: {}", name));
     } else {
         output::info("Checking status of all installed extensions");
     }
 
-    // Load manifest from ~/.sindri/state/manifest.yaml
-    let manifest =
-        ManifestManager::load_default().context("Failed to load installation manifest")?;
-
-    let entries = manifest.list_all();
+    // Load status from ledger
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
 
     // Filter by name if specified
     let entries: Vec<_> = if let Some(filter_name) = &args.name {
-        entries
-            .into_iter()
-            .filter(|(name, _)| name == filter_name)
+        status_map
+            .iter()
+            .filter(|(name, _)| *name == filter_name)
             .collect()
     } else {
-        entries
+        status_map.iter().collect()
     };
 
     if entries.is_empty() {
@@ -1165,65 +1342,55 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
         return Ok(());
     }
 
-    // Convert to status rows, verifying installed state
+    // Convert to status rows
     let mut statuses: Vec<StatusRow> = Vec::new();
 
-    for (name, ext) in entries {
-        // Determine actual status based on state and verification
-        let status_str = match ext.state {
-            // Non-installed states: show as-is
-            ExtensionState::Failed => "failed".to_string(),
-            ExtensionState::Installing => "installing".to_string(),
-            ExtensionState::Outdated => "outdated".to_string(),
-            ExtensionState::Removing => "removing".to_string(),
+    for (name, ext_status) in &entries {
+        let version_str = ext_status.version.clone().unwrap_or_default();
 
-            // Installed state: verify it's actually installed
-            ExtensionState::Installed => {
-                // Try multiple candidate paths for extension.yaml
-                // (handles bundled, downloaded, and flat directory structures)
-                if let Some(yaml_path) = find_extension_yaml(name, &ext.version) {
-                    // extension.yaml exists, check if software is present
-                    match std::fs::read_to_string(&yaml_path) {
-                        Ok(content) => {
-                            match serde_yaml::from_str::<sindri_core::types::Extension>(&content) {
-                                Ok(extension) => {
-                                    let is_verified = verify_extension_installed(&extension).await;
-                                    if is_verified {
-                                        "installed".to_string()
-                                    } else {
-                                        // Installation attempted but software missing/broken
-                                        "failed".to_string()
-                                    }
-                                }
-                                Err(_) => {
-                                    // Can't parse extension.yaml - corrupted
-                                    "failed".to_string()
+        // Determine status string from ledger state
+        let status_str = if args.verify && ext_status.current_state == ExtensionState::Installed {
+            // --verify flag: run actual verification checks (slower)
+            use sindri_extensions::{find_extension_yaml, verify_extension_installed};
+
+            if let Some(yaml_path) = find_extension_yaml(name, &version_str) {
+                match std::fs::read_to_string(&yaml_path) {
+                    Ok(content) => {
+                        match serde_yaml::from_str::<sindri_core::types::Extension>(&content) {
+                            Ok(extension) => {
+                                if verify_extension_installed(&extension).await {
+                                    "installed (verified)".to_string()
+                                } else {
+                                    "failed (verification)".to_string()
                                 }
                             }
-                        }
-                        Err(_) => {
-                            // Can't read extension.yaml
-                            "failed".to_string()
+                            Err(_) => "failed (parse error)".to_string(),
                         }
                     }
-                } else {
-                    // No extension.yaml = no trace of installation
-                    "not installed".to_string()
+                    Err(_) => "failed (unreadable)".to_string(),
                 }
+            } else {
+                "not installed".to_string()
+            }
+        } else {
+            // Default: trust the ledger state (fast path, no I/O verification)
+            match ext_status.current_state {
+                ExtensionState::Installed => "installed".to_string(),
+                ExtensionState::Failed => "failed".to_string(),
+                ExtensionState::Installing => "installing".to_string(),
+                ExtensionState::Outdated => "outdated".to_string(),
+                ExtensionState::Removing => "removing".to_string(),
             }
         };
 
-        // Only show timestamp for statuses that represent actual states
-        // "not installed" means the entry exists in manifest but files are missing
-        let status_datetime_str = if status_str == "not installed" {
-            String::new()
-        } else {
-            ext.status_datetime.format("%Y-%m-%d %H:%M").to_string()
-        };
+        let status_datetime_str = ext_status
+            .last_event_time
+            .format("%Y-%m-%d %H:%M")
+            .to_string();
 
         statuses.push(StatusRow {
             name: name.to_string(),
-            version: ext.version.clone(),
+            version: version_str,
             status: status_str,
             status_datetime: status_datetime_str,
         });
@@ -1234,9 +1401,54 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
             .context("Failed to serialize status to JSON")?;
         println!("{}", json);
     } else {
-        let mut table = Table::new(statuses);
+        let mut table = Table::new(&statuses);
         table.with(Style::sharp());
         println!("{}", table);
+    }
+
+    // Show event history for a single extension
+    if let Some(name) = &args.name {
+        // Parse --since filter if provided
+        let since_filter = if let Some(since_str) = &args.since {
+            let parsed = chrono::DateTime::parse_from_rfc3339(since_str).context(format!(
+                "Invalid --since date '{}'. Use ISO 8601 format: 2026-02-10T00:00:00Z",
+                since_str
+            ))?;
+            Some(parsed.with_timezone(&chrono::Utc))
+        } else {
+            None
+        };
+
+        let limit = args.limit.or(Some(20));
+        let history = ledger
+            .get_extension_history(name, limit)
+            .context("Failed to get extension history")?;
+
+        // Apply --since filter
+        let history: Vec<_> = if let Some(since) = since_filter {
+            history
+                .into_iter()
+                .filter(|e| e.timestamp >= since)
+                .collect()
+        } else {
+            history
+        };
+
+        if history.is_empty() {
+            output::info("No event history found");
+        } else {
+            println!();
+            output::header(&format!("Event history for '{name}'"));
+
+            for envelope in &history {
+                let ts = envelope.timestamp.format("%Y-%m-%d %H:%M:%S UTC");
+                let summary = format_event_summary(&envelope.event);
+                println!("  [{ts}] {summary}");
+            }
+
+            println!();
+            output::info(&format!("{} event(s) shown", history.len()));
+        }
     }
 
     Ok(())
@@ -1256,31 +1468,36 @@ async fn status(args: ExtensionStatusArgs) -> Result<()> {
 /// - Source repository
 /// - Installed version and timestamp
 async fn info(args: ExtensionInfoArgs) -> Result<()> {
-    use sindri_core::types::ExtensionState;
-    use sindri_extensions::{verify_extension_installed, ExtensionRegistry, ManifestManager};
+    use sindri_extensions::{verify_extension_installed, ExtensionRegistry};
 
-    // Load registry and manifest
+    // Load registry and ledger
     let cache_dir = get_cache_dir()?;
     let registry = ExtensionRegistry::load_from_github(cache_dir, "main")
         .await
         .context("Failed to load extension registry")?;
 
-    let manifest = ManifestManager::load_default().context("Failed to load manifest")?;
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
 
     // Look up extension in registry
     let entry = registry
         .get_entry(&args.name)
         .ok_or_else(|| anyhow!("Extension '{}' not found in registry", args.name))?;
 
-    // Get installed info from manifest
-    let mut installed = manifest.get_installed(&args.name);
+    // Get installed info from ledger
+    let mut installed = status_map
+        .get(&args.name)
+        .filter(|s| s.current_state == ExtensionState::Installed)
+        .cloned();
 
-    // If manifest says installed, verify it's actually installed
-    if let Some(ext) = &installed {
-        if ext.state == ExtensionState::Installed {
+    // If ledger says installed, verify it's actually installed
+    if let Some(ext_status) = &installed {
+        if let Some(version) = &ext_status.version {
             // Load extension definition to verify
             let extensions_dir = get_extensions_dir()?;
-            let version_dir = extensions_dir.join(&args.name).join(&ext.version);
+            let version_dir = extensions_dir.join(&args.name).join(version);
             let yaml_path = version_dir.join("extension.yaml");
 
             if yaml_path.exists() {
@@ -1302,6 +1519,9 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
                 // Extension definition missing, treat as not installed
                 installed = None;
             }
+        } else {
+            // No version info, treat as not installed
+            installed = None;
         }
     }
 
@@ -1314,11 +1534,10 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
             "dependencies": entry.dependencies,
             "conflicts": entry.conflicts,
             "protected": entry.protected,
-            "installed": installed.map(|ext| serde_json::json!({
-                "version": ext.version,
-                "status_datetime": ext.status_datetime.to_rfc3339(),
-                "source": ext.source,
-                "state": format!("{:?}", ext.state),
+            "installed": installed.as_ref().map(|ext_status| serde_json::json!({
+                "version": ext_status.version.clone().unwrap_or_default(),
+                "status_datetime": ext_status.last_event_time.to_rfc3339(),
+                "state": format!("{:?}", ext_status.current_state),
             }))
         });
         println!("{}", serde_json::to_string_pretty(&json_output)?);
@@ -1344,18 +1563,18 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
 
         println!();
 
-        if let Some(ext) = installed {
+        if let Some(ext_status) = installed {
             output::header("Installation Status");
             println!();
-            output::kv("Status", &format!("{:?}", ext.state));
-            output::kv("Installed Version", &ext.version);
+            output::kv("Status", &format!("{:?}", ext_status.current_state));
+            output::kv("Installed Version", &ext_status.version.unwrap_or_default());
             output::kv(
                 "Status Date/Time",
-                &ext.status_datetime
+                &ext_status
+                    .last_event_time
                     .format("%Y-%m-%d %H:%M:%S UTC")
                     .to_string(),
             );
-            output::kv("Source", &ext.source);
 
             // Note: Version comparison would require loading the full Extension definition
             // which includes the version field. Registry entries only contain metadata.
@@ -1384,7 +1603,7 @@ async fn info(args: ExtensionInfoArgs) -> Result<()> {
 async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
     use dialoguer::Confirm;
     use semver::Version;
-    use sindri_extensions::{ExtensionDistributor, ManifestManager};
+    use sindri_extensions::ExtensionDistributor;
 
     output::info(&format!("Upgrading extension: {}", args.name));
 
@@ -1396,12 +1615,21 @@ async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
     let distributor = ExtensionDistributor::new(cache_dir, extensions_dir, cli_version)
         .context("Failed to initialize extension distributor")?;
 
-    // 2. Check current installed version from manifest
-    let manifest = ManifestManager::load_default().context("Failed to load manifest")?;
+    // 2. Check current installed version from ledger
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
 
-    let current_version = manifest
-        .get_version(&args.name)
+    let ext_status = status_map
+        .get(&args.name)
+        .filter(|s| s.current_state == ExtensionState::Installed)
         .ok_or_else(|| anyhow!("Extension '{}' is not installed", args.name))?;
+
+    let current_version = ext_status
+        .version
+        .as_ref()
+        .ok_or_else(|| anyhow!("Extension '{}' has no version information", args.name))?;
 
     let current = Version::parse(current_version)
         .context(format!("Invalid current version: {}", current_version))?;
@@ -1463,7 +1691,29 @@ async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
         }
     }
 
-    // 7. Call distributor.upgrade()
+    // 7. Initialize ledger for event tracking
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+
+    // Track start time
+    let start_time = Instant::now();
+
+    // Publish UpgradeStarted event
+    let upgrade_started_event = EventEnvelope::new(
+        args.name.clone(),
+        Some(ExtensionState::Installed),
+        ExtensionState::Installing,
+        ExtensionEvent::UpgradeStarted {
+            extension_name: args.name.clone(),
+            from_version: current.to_string(),
+            to_version: target.to_string(),
+        },
+    );
+
+    if let Err(e) = ledger.append(upgrade_started_event) {
+        output::warning(&format!("Failed to publish upgrade started event: {}", e));
+    }
+
+    // 8. Call distributor.upgrade()
     let spinner = output::spinner(&format!("Upgrading {} to {}", args.name, target));
 
     let result = if args.target_version.is_some() {
@@ -1478,14 +1728,54 @@ async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
 
     spinner.finish_and_clear();
 
+    let duration_secs = start_time.elapsed().as_secs();
+
     match result {
         Ok(_) => {
+            // Publish UpgradeCompleted event
+            let upgrade_completed_event = EventEnvelope::new(
+                args.name.clone(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Installed,
+                ExtensionEvent::UpgradeCompleted {
+                    extension_name: args.name.clone(),
+                    from_version: current.to_string(),
+                    to_version: target.to_string(),
+                    duration_secs,
+                },
+            );
+
+            if let Err(e) = ledger.append(upgrade_completed_event) {
+                output::warning(&format!("Failed to publish upgrade completed event: {}", e));
+            }
+
             output::success(&format!(
                 "Successfully upgraded {} from {} to {}",
                 args.name, current, target
             ));
         }
         Err(e) => {
+            // Publish UpgradeFailed event
+            let upgrade_failed_event = EventEnvelope::new(
+                args.name.clone(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Failed,
+                ExtensionEvent::UpgradeFailed {
+                    extension_name: args.name.clone(),
+                    from_version: current.to_string(),
+                    to_version: target.to_string(),
+                    error_message: e.to_string(),
+                    duration_secs,
+                },
+            );
+
+            if let Err(ledger_err) = ledger.append(upgrade_failed_event) {
+                output::warning(&format!(
+                    "Failed to publish upgrade failed event: {}",
+                    ledger_err
+                ));
+            }
+
             output::error(&format!("Upgrade failed: {}", e));
             return Err(e);
         }
@@ -1506,25 +1796,30 @@ async fn upgrade(args: ExtensionUpgradeArgs) -> Result<()> {
 /// - Force even with dependents: `sindri extension remove python --force`
 async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
     use dialoguer::Confirm;
-    use sindri_extensions::ManifestManager;
     use std::collections::HashSet;
 
     output::info(&format!("Removing extension: {}", args.name));
 
-    // 1. Load ManifestManager
-    let mut manifest = ManifestManager::load_default().context("Failed to load manifest")?;
+    // 1. Load ledger to check installation status
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
 
     // 2. Check if extension is installed
-    if !manifest.is_installed(&args.name) {
-        return Err(anyhow!("Extension '{}' is not installed", args.name));
-    }
+    let ext_status = status_map
+        .get(&args.name)
+        .filter(|s| s.current_state == ExtensionState::Installed)
+        .ok_or_else(|| anyhow!("Extension '{}' is not installed", args.name))?;
 
-    let installed_ext = manifest
-        .get_installed(&args.name)
-        .ok_or_else(|| anyhow!("Extension '{}' not found in manifest", args.name))?;
+    // Get version from ledger status
+    let ext_version = ext_status
+        .version
+        .clone()
+        .ok_or_else(|| anyhow!("Extension '{}' has no version information", args.name))?;
 
     let extensions_dir = get_extensions_dir()?;
-    let ext_version_dir = extensions_dir.join(&args.name).join(&installed_ext.version);
+    let ext_version_dir = extensions_dir.join(&args.name).join(&ext_version);
 
     let extension = if ext_version_dir.exists() {
         let ext_yaml = ext_version_dir.join("extension.yaml");
@@ -1544,17 +1839,18 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
 
     // 3. Check if other extensions depend on it (unless --force)
     if !args.force {
-        let installed: HashSet<String> = manifest
-            .list_installed()
+        let installed: HashSet<String> = status_map
             .iter()
-            .map(|(name, _)| name.to_string())
+            .filter(|(_, status)| status.current_state == ExtensionState::Installed)
+            .map(|(name, _)| name.clone())
             .collect();
 
         let dependents: Vec<String> = installed
             .iter()
             .filter(|&name| name != &args.name)
             .filter_map(|name| {
-                let version = manifest.get_version(name)?;
+                let status = status_map.get(name)?;
+                let version = status.version.as_ref()?;
                 let ext_yaml = extensions_dir
                     .join(name)
                     .join(version)
@@ -1590,7 +1886,7 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
     // 4. Show what will be removed and prompt for confirmation (unless -y)
     output::info(&format!(
         "This will remove {} version {}",
-        args.name, installed_ext.version
+        args.name, ext_version
     ));
 
     if !args.yes {
@@ -1605,10 +1901,23 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
         }
     }
 
-    // 5. Mark as "removing" in manifest
-    manifest
-        .mark_removing(&args.name)
-        .context("Failed to mark extension as removing")?;
+    // 5. Track start time
+    let start_time = Instant::now();
+
+    // Publish RemoveStarted event
+    let remove_started_event = EventEnvelope::new(
+        args.name.clone(),
+        Some(ExtensionState::Installed),
+        ExtensionState::Removing,
+        ExtensionEvent::RemoveStarted {
+            extension_name: args.name.clone(),
+            version: ext_version.clone(),
+        },
+    );
+
+    if let Err(e) = ledger.append(remove_started_event) {
+        output::warning(&format!("Failed to publish remove started event: {}", e));
+    }
 
     // 6. Execute removal operations
     if let Some(ext) = &extension {
@@ -1719,16 +2028,54 @@ async fn remove(args: ExtensionRemoveArgs) -> Result<()> {
         }
     }
 
-    // 7. Remove from manifest
-    manifest
-        .remove(&args.name)
-        .context("Failed to remove extension from manifest")?;
-
-    // 8. Remove extension directory
+    // 7. Remove extension directory
     if ext_version_dir.exists() {
-        tokio::fs::remove_dir_all(&ext_version_dir)
+        if let Err(e) = tokio::fs::remove_dir_all(&ext_version_dir)
             .await
-            .context("Failed to remove extension directory")?;
+            .context("Failed to remove extension directory")
+        {
+            let duration_secs = start_time.elapsed().as_secs();
+
+            // Publish RemoveFailed event
+            let remove_failed_event = EventEnvelope::new(
+                args.name.clone(),
+                Some(ExtensionState::Removing),
+                ExtensionState::Failed,
+                ExtensionEvent::RemoveFailed {
+                    extension_name: args.name.clone(),
+                    version: ext_version.clone(),
+                    error_message: e.to_string(),
+                    duration_secs,
+                },
+            );
+
+            if let Err(ledger_err) = ledger.append(remove_failed_event) {
+                output::warning(&format!(
+                    "Failed to publish remove failed event: {}",
+                    ledger_err
+                ));
+            }
+
+            return Err(e);
+        }
+    }
+
+    let duration_secs = start_time.elapsed().as_secs();
+
+    // Publish RemoveCompleted event
+    let remove_completed_event = EventEnvelope::new(
+        args.name.clone(),
+        Some(ExtensionState::Removing),
+        ExtensionState::Installed, // Note: Actually removed, but no "Removed" state exists
+        ExtensionEvent::RemoveCompleted {
+            extension_name: args.name.clone(),
+            version: ext_version.clone(),
+            duration_secs,
+        },
+    );
+
+    if let Err(e) = ledger.append(remove_completed_event) {
+        output::warning(&format!("Failed to publish remove completed event: {}", e));
     }
 
     output::success(&format!("Successfully removed extension: {}", args.name));
@@ -1760,7 +2107,7 @@ struct VersionRow {
 /// - Release date
 async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
     use semver::VersionReq;
-    use sindri_extensions::{ExtensionDistributor, ExtensionRegistry, ManifestManager};
+    use sindri_extensions::{ExtensionDistributor, ExtensionRegistry};
 
     output::info(&format!("Fetching versions for extension: {}", args.name));
 
@@ -1801,9 +2148,12 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
             .and_then(|range_str| VersionReq::parse(range_str).ok())
     };
 
-    // 4. Get installed version from manifest
-    let manifest = ManifestManager::load_default().context("Failed to load manifest")?;
-    let installed_version = manifest.get_version(&args.name);
+    // 4. Get installed version from ledger
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
+    let installed_version = status_map.get(&args.name).and_then(|s| s.version.clone());
 
     // 5. Fetch all available versions from GitHub releases
     let spinner = output::spinner("Fetching available versions from GitHub...");
@@ -1828,7 +2178,10 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
 
     for (version, released_at, is_compatible) in &available_versions {
         let version_str = version.to_string();
-        let is_installed = installed_version.map(|v| v == version_str).unwrap_or(false);
+        let is_installed = installed_version
+            .as_deref()
+            .map(|v| v == version_str)
+            .unwrap_or(false);
         let is_latest = latest_version
             .as_ref()
             .map(|l| l == &version_str)
@@ -1889,7 +2242,7 @@ async fn versions(args: ExtensionVersionsArgs) -> Result<()> {
         output::info(&format!("Current CLI version: {}", cli_version));
 
         // Show upgrade hint if installed version is not the latest
-        if let (Some(installed), Some(latest)) = (installed_version, &latest_version) {
+        if let (Some(installed), Some(latest)) = (&installed_version, &latest_version) {
             if installed != latest {
                 let compatible_with_latest = version_rows
                     .iter()
@@ -1931,7 +2284,7 @@ struct UpdateRow {
 /// - Check specific: `sindri extension check python nodejs`
 /// - JSON output: `sindri extension check --json`
 async fn check(args: ExtensionCheckArgs) -> Result<()> {
-    use sindri_extensions::{ExtensionDistributor, ExtensionRegistry, ManifestManager};
+    use sindri_extensions::{ExtensionDistributor, ExtensionRegistry};
 
     if args.extensions.is_empty() {
         output::info("Checking for updates to all installed extensions");
@@ -1942,16 +2295,22 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
         ));
     }
 
-    // 1. Load manifest to get installed extensions
-    let manifest = ManifestManager::load_default().context("Failed to load manifest")?;
+    // 1. Load ledger to get installed extensions
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
 
     // 2. Get installed extensions (filter by specified names if provided)
     let installed: Vec<_> = if args.extensions.is_empty() {
-        manifest.list_installed()
+        status_map
+            .iter()
+            .filter(|(_, s)| s.current_state == ExtensionState::Installed)
+            .collect()
     } else {
-        manifest
-            .list_installed()
-            .into_iter()
+        status_map
+            .iter()
+            .filter(|(_, s)| s.current_state == ExtensionState::Installed)
             .filter(|(name, _)| args.extensions.contains(&name.to_string()))
             .collect()
     };
@@ -1986,10 +2345,11 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
         .await
         .context("Failed to fetch compatibility matrix")?;
 
-    for (name, ext) in installed {
-        let current_version = Version::parse(&ext.version).context(format!(
-            "Invalid version in manifest for {}: {}",
-            name, ext.version
+    for (name, ext_status) in installed {
+        let version_str = ext_status.version.clone().unwrap_or_default();
+        let current_version = Version::parse(&version_str).context(format!(
+            "Invalid version in ledger for {}: {}",
+            name, version_str
         ))?;
 
         // Check if extension exists in registry
@@ -2008,6 +2368,23 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
             Ok(version_req) => match distributor.find_latest_compatible(name, &version_req).await {
                 Ok(latest_version) => {
                     let status = if latest_version > current_version {
+                        // Publish OutdatedDetected event to ledger
+                        let event = EventEnvelope::new(
+                            name.to_string(),
+                            Some(ExtensionState::Installed),
+                            ExtensionState::Outdated,
+                            ExtensionEvent::OutdatedDetected {
+                                extension_name: name.to_string(),
+                                current_version: current_version.to_string(),
+                                latest_version: latest_version.to_string(),
+                            },
+                        );
+                        if let Err(e) = ledger.append(event) {
+                            output::warning(&format!(
+                                "Failed to publish OutdatedDetected event: {}",
+                                e
+                            ));
+                        }
                         "update available"
                     } else {
                         "up to date"
@@ -2073,22 +2450,22 @@ async fn check(args: ExtensionCheckArgs) -> Result<()> {
 /// Rollback an extension to a previous version
 ///
 /// Restores the extension to its previous installed version
-/// from the manifest history.
+/// from the ledger history.
 ///
 /// The rollback process:
-/// 1. Checks if a previous version exists in the manifest history
+/// 1. Checks if a previous version exists in the ledger history
 /// 2. Confirms the rollback with the user (unless --yes is provided)
 /// 3. Installs the previous version
-/// 4. Updates the manifest to track the rollback
+/// 4. Updates the ledger to track the rollback
 ///
 /// This follows the pattern from ADR-010 (GitHub Distribution) which specifies:
-/// - Get current installed version from manifest
+/// - Get current installed version from ledger
 /// - Get previous version from version history
 /// - Uninstall current, install previous
 async fn rollback(args: ExtensionRollbackArgs) -> Result<()> {
     use dialoguer::Confirm;
     use semver::Version;
-    use sindri_extensions::{ExtensionDistributor, ExtensionManifest};
+    use sindri_extensions::ExtensionDistributor;
 
     output::info(&format!("Rolling back extension: {}", args.name));
 
@@ -2104,35 +2481,63 @@ async fn rollback(args: ExtensionRollbackArgs) -> Result<()> {
     )
     .context("Failed to initialize extension distributor")?;
 
-    // 2. Load manifest to get current version and version history
-    let manifest_path = extensions_dir.parent().unwrap().join("manifest.yaml");
+    // 2. Load ledger to get current version and version history
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
 
-    if !manifest_path.exists() {
-        return Err(anyhow!(
-            "No manifest found. Extension '{}' may not be installed.",
-            args.name
-        ));
-    }
-
-    let manifest_content = tokio::fs::read_to_string(&manifest_path)
-        .await
-        .context("Failed to read manifest")?;
-
-    let manifest: ExtensionManifest =
-        serde_yaml::from_str(&manifest_content).context("Failed to parse manifest")?;
-
-    let ext_entry = manifest.extensions.get(&args.name).ok_or_else(|| {
+    let ext_status = status_map.get(&args.name).ok_or_else(|| {
         anyhow!(
             "Extension '{}' is not installed. Cannot rollback.",
             args.name
         )
     })?;
 
-    let current = Version::parse(&ext_entry.version)
-        .context(format!("Invalid current version: {}", ext_entry.version))?;
+    let current_version_str = ext_status.version.clone().ok_or_else(|| {
+        anyhow!(
+            "No version information available for '{}'. Cannot rollback.",
+            args.name
+        )
+    })?;
 
-    // 3. Check for previous version in history
-    let previous_version_str = ext_entry.previous_versions.first().ok_or_else(|| {
+    let current = Version::parse(&current_version_str)
+        .context(format!("Invalid current version: {}", current_version_str))?;
+
+    // 3. Check for previous version in history from ledger events
+    // Extract version from event payload
+    let extract_version = |event: &ExtensionEvent| -> Option<String> {
+        match event {
+            ExtensionEvent::InstallStarted { version, .. }
+            | ExtensionEvent::InstallCompleted { version, .. }
+            | ExtensionEvent::InstallFailed { version, .. }
+            | ExtensionEvent::RemoveStarted { version, .. }
+            | ExtensionEvent::RemoveCompleted { version, .. }
+            | ExtensionEvent::RemoveFailed { version, .. }
+            | ExtensionEvent::ValidationSucceeded { version, .. }
+            | ExtensionEvent::ValidationFailed { version, .. } => Some(version.clone()),
+            ExtensionEvent::UpgradeCompleted { to_version, .. }
+            | ExtensionEvent::UpgradeFailed { to_version, .. }
+            | ExtensionEvent::UpgradeStarted { to_version, .. } => Some(to_version.clone()),
+            ExtensionEvent::OutdatedDetected { latest_version, .. } => Some(latest_version.clone()),
+        }
+    };
+
+    let history = ledger
+        .get_extension_history(&args.name, None)
+        .context("Failed to get extension history")?;
+
+    // Collect unique versions from history (most recent first), excluding current
+    let mut previous_versions: Vec<String> = Vec::new();
+    for envelope in history.iter().rev() {
+        if let Some(v) = extract_version(&envelope.event) {
+            if v != current_version_str && !previous_versions.contains(&v) {
+                previous_versions.push(v);
+            }
+        }
+    }
+
+    let previous_version_str = previous_versions.first().ok_or_else(|| {
         anyhow!(
             "No previous version available for '{}'. Rollback requires version history.",
             args.name
@@ -2153,10 +2558,10 @@ async fn rollback(args: ExtensionRollbackArgs) -> Result<()> {
     output::kv("Rollback To", &previous.to_string());
 
     // Show version history if available
-    if ext_entry.previous_versions.len() > 1 {
+    if previous_versions.len() > 1 {
         println!();
         output::info("Version history:");
-        for (i, v) in ext_entry.previous_versions.iter().enumerate() {
+        for (i, v) in previous_versions.iter().enumerate() {
             if i == 0 {
                 println!("  {} (rollback target)", v);
             } else {
@@ -2191,7 +2596,7 @@ async fn rollback(args: ExtensionRollbackArgs) -> Result<()> {
 
     // The distributor.rollback method handles:
     // - Finding the previous version in the extensions directory
-    // - Updating the manifest to point to the previous version
+    // - Performing the rollback installation
     match distributor.rollback(&args.name).await {
         Ok(()) => {
             spinner.finish_and_clear();
@@ -2383,16 +2788,20 @@ async fn docs(args: ExtensionDocsArgs) -> Result<()> {
             }
         }
 
-        // 3. Versioned structure (downloaded mode) - check manifest
+        // 3. Versioned structure (downloaded mode) - check status ledger
         if found.is_none() {
-            if let Ok(manifest) = sindri_extensions::ManifestManager::load_default() {
-                if let Some(version) = manifest.get_version(&args.name) {
-                    let versioned_path = extensions_dir
-                        .join(&args.name)
-                        .join(version)
-                        .join("extension.yaml");
-                    if versioned_path.exists() {
-                        found = Some(versioned_path);
+            if let Ok(ledger) = StatusLedger::load_default() {
+                if let Ok(status_map) = ledger.get_all_latest_status() {
+                    if let Some(version) =
+                        status_map.get(&args.name).and_then(|s| s.version.clone())
+                    {
+                        let versioned_path = extensions_dir
+                            .join(&args.name)
+                            .join(version)
+                            .join("extension.yaml");
+                        if versioned_path.exists() {
+                            found = Some(versioned_path);
+                        }
                     }
                 }
             }
@@ -2420,6 +2829,137 @@ async fn docs(args: ExtensionDocsArgs) -> Result<()> {
     print!("{}", doc);
 
     Ok(())
+}
+
+// ============================================================================
+// Verify Command
+// ============================================================================
+
+/// Verify installed extensions are working correctly
+///
+/// Checks that installed extensions have valid extension.yaml files and
+/// that their required tools/binaries are available on the system.
+///
+/// Usage:
+/// - `sindri extension verify` - verify all installed extensions
+/// - `sindri extension verify python` - verify a specific extension
+async fn verify(args: ExtensionVerifyArgs) -> Result<()> {
+    use sindri_extensions::{find_extension_yaml, verify_extension_installed};
+
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger
+        .get_all_latest_status()
+        .context("Failed to get extension status")?;
+
+    // Get extensions to verify
+    let to_verify: Vec<_> = if let Some(name) = &args.name {
+        let status = status_map
+            .get(name)
+            .filter(|s| s.current_state == ExtensionState::Installed)
+            .ok_or_else(|| anyhow!("Extension '{}' is not installed", name))?;
+        vec![(name.clone(), status.clone())]
+    } else {
+        status_map
+            .iter()
+            .filter(|(_, s)| s.current_state == ExtensionState::Installed)
+            .map(|(n, s)| (n.clone(), s.clone()))
+            .collect()
+    };
+
+    if to_verify.is_empty() {
+        output::info("No installed extensions to verify");
+        return Ok(());
+    }
+
+    output::info(&format!("Verifying {} extension(s)...", to_verify.len()));
+
+    let mut verified = 0;
+    let mut failed = 0;
+
+    for (name, status) in &to_verify {
+        let version = status.version.clone().unwrap_or_default();
+
+        if let Some(yaml_path) = find_extension_yaml(name, &version) {
+            match std::fs::read_to_string(&yaml_path) {
+                Ok(content) => {
+                    match serde_yaml::from_str::<sindri_core::types::Extension>(&content) {
+                        Ok(extension) => {
+                            let is_verified = verify_extension_installed(&extension).await;
+                            if is_verified {
+                                output::success(&format!("{} {} verified", name, version));
+
+                                // Publish ValidationSucceeded event
+                                let event = EventEnvelope::new(
+                                    name.clone(),
+                                    Some(ExtensionState::Installed),
+                                    ExtensionState::Installed,
+                                    ExtensionEvent::ValidationSucceeded {
+                                        extension_name: name.clone(),
+                                        version: version.clone(),
+                                        validation_type: "manual".to_string(),
+                                    },
+                                );
+                                if let Err(e) = ledger.append(event) {
+                                    output::warning(&format!(
+                                        "Failed to publish validation event: {}",
+                                        e
+                                    ));
+                                }
+
+                                verified += 1;
+                            } else {
+                                output::error(&format!("{} {} verification failed", name, version));
+
+                                // Publish ValidationFailed event
+                                let event = EventEnvelope::new(
+                                    name.clone(),
+                                    Some(ExtensionState::Installed),
+                                    ExtensionState::Failed,
+                                    ExtensionEvent::ValidationFailed {
+                                        extension_name: name.clone(),
+                                        version: version.clone(),
+                                        validation_type: "manual".to_string(),
+                                        error_message: "Verification checks failed".to_string(),
+                                    },
+                                );
+                                if let Err(e) = ledger.append(event) {
+                                    output::warning(&format!(
+                                        "Failed to publish validation event: {}",
+                                        e
+                                    ));
+                                }
+
+                                failed += 1;
+                            }
+                        }
+                        Err(e) => {
+                            output::error(&format!("{}: invalid extension.yaml: {}", name, e));
+                            failed += 1;
+                        }
+                    }
+                }
+                Err(e) => {
+                    output::error(&format!("{}: cannot read extension.yaml: {}", name, e));
+                    failed += 1;
+                }
+            }
+        } else {
+            output::error(&format!("{}: extension.yaml not found", name));
+            failed += 1;
+        }
+    }
+
+    println!();
+    output::info(&format!(
+        "Verification complete: {} verified, {} failed",
+        verified, failed
+    ));
+
+    if failed > 0 {
+        Err(anyhow!("{} extension(s) failed verification", failed))
+    } else {
+        Ok(())
+    }
 }
 
 // ============================================================================

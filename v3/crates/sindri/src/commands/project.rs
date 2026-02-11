@@ -14,7 +14,7 @@ use std::process::Command;
 
 use crate::cli::{CloneProjectArgs, NewProjectArgs, ProjectCommands};
 use crate::output;
-use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir, get_manifest_path};
+use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir};
 
 // Import template system from sindri-projects
 use sindri_projects::templates::{
@@ -22,7 +22,8 @@ use sindri_projects::templates::{
 };
 
 // Import extension management from sindri-extensions
-use sindri_extensions::{ExtensionDistributor, ManifestManager};
+use sindri_core::types::ExtensionState;
+use sindri_extensions::{ExtensionDistributor, StatusLedger};
 
 //====================================
 // EXTENSION ACTIVATION HELPER
@@ -31,24 +32,25 @@ use sindri_extensions::{ExtensionDistributor, ManifestManager};
 /// Activate an extension by installing it via the extension manager
 ///
 /// This function:
-/// 1. Checks if the extension is already installed
+/// 1. Checks if the extension is already installed via the status ledger
 /// 2. If not, downloads and installs it via ExtensionDistributor
-/// 3. Updates the manifest to track installation
 async fn activate_extension(extension_name: &str) -> Result<()> {
     // Get home directory for paths
     let cache_dir = get_cache_dir()?;
     let extensions_dir = get_extensions_dir()?;
 
     // Check if already installed
-    let manifest = ManifestManager::load_default().unwrap_or_else(|_| {
-        // Create new manifest if it doesn't exist
-        let manifest_path = get_manifest_path().expect("Failed to get manifest path");
-        ManifestManager::new(manifest_path).expect("Failed to create manifest")
-    });
-
-    if manifest.is_installed(extension_name) {
-        tracing::debug!("Extension {} is already installed", extension_name);
-        return Ok(());
+    if let Ok(ledger) = StatusLedger::load_default() {
+        if let Ok(status_map) = ledger.get_all_latest_status() {
+            let is_installed = status_map
+                .get(extension_name)
+                .map(|s| s.current_state == ExtensionState::Installed)
+                .unwrap_or(false);
+            if is_installed {
+                tracing::debug!("Extension {} is already installed", extension_name);
+                return Ok(());
+            }
+        }
     }
 
     // Parse CLI version for compatibility checking
@@ -1806,11 +1808,22 @@ fn install_dependencies_basic(project_dir: &Utf8PathBuf) -> Result<()> {
 /// Discovers installed extensions with project-init capabilities and runs
 /// their initialization commands in the project directory.
 fn initialize_project_tools() -> Result<()> {
-    // Load manifest to get installed extensions
-    let manifest = match ManifestManager::load_default() {
+    // Load ledger to get installed extensions
+    let ledger = match StatusLedger::load_default() {
+        Ok(l) => l,
+        Err(e) => {
+            tracing::debug!(
+                "Failed to load status ledger for tool initialization: {}",
+                e
+            );
+            return Ok(());
+        }
+    };
+
+    let status_map = match ledger.get_all_latest_status() {
         Ok(m) => m,
         Err(e) => {
-            tracing::debug!("Failed to load manifest for tool initialization: {}", e);
+            tracing::debug!("Failed to get extension status: {}", e);
             return Ok(());
         }
     };
@@ -1826,10 +1839,17 @@ fn initialize_project_tools() -> Result<()> {
 
     // Iterate through installed extensions looking for project-init capabilities
     let mut initialized_count = 0;
-    for (name, ext_info) in manifest.list_installed() {
+    for (name, status) in status_map
+        .iter()
+        .filter(|(_, s)| s.current_state == ExtensionState::Installed)
+    {
+        let version = match &status.version {
+            Some(v) => v,
+            None => continue,
+        };
         let ext_yaml_path = extensions_dir
             .join(name)
-            .join(&ext_info.version)
+            .join(version)
             .join("extension.yaml");
 
         if !ext_yaml_path.exists() {
@@ -2010,7 +2030,7 @@ fn show_new_project_tools(project_dir: &Utf8PathBuf) -> Result<()> {
 
 /// Get initialized extensions with project-relevant capabilities
 ///
-/// Queries the manifest and extension definitions to find extensions that:
+/// Queries the status ledger and extension definitions to find extensions that:
 /// 1. Are installed and active
 /// 2. Have project-init, project-context, or MCP capabilities
 fn get_initialized_extensions_for_project(
@@ -2018,8 +2038,13 @@ fn get_initialized_extensions_for_project(
 ) -> Result<Vec<(String, String)>> {
     let mut results = Vec::new();
 
-    // Load manifest
-    let manifest = match ManifestManager::load_default() {
+    // Load ledger
+    let ledger = match StatusLedger::load_default() {
+        Ok(l) => l,
+        Err(_) => return Ok(results),
+    };
+
+    let status_map = match ledger.get_all_latest_status() {
         Ok(m) => m,
         Err(_) => return Ok(results),
     };
@@ -2031,10 +2056,17 @@ fn get_initialized_extensions_for_project(
     };
 
     // Check each installed extension for relevant capabilities
-    for (name, ext_info) in manifest.list_installed() {
+    for (name, status) in status_map
+        .iter()
+        .filter(|(_, s)| s.current_state == ExtensionState::Installed)
+    {
+        let version = match &status.version {
+            Some(v) => v,
+            None => continue,
+        };
         let ext_yaml_path = extensions_dir
             .join(name)
-            .join(&ext_info.version)
+            .join(version)
             .join("extension.yaml");
 
         if !ext_yaml_path.exists() {

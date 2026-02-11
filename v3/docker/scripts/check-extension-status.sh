@@ -18,7 +18,7 @@ esac
 SINDRI_HOME="${ALT_HOME:-${HOME}}/.sindri"
 BOOTSTRAP_MARKER="${SINDRI_HOME}/bootstrap-complete"
 INSTALL_LOG="${SINDRI_HOME}/logs/install.log"
-MANIFEST="${SINDRI_HOME}/manifest.yaml"
+LEDGER="${SINDRI_HOME}/status_ledger.jsonl"
 
 # Skip if extensions are disabled
 if [[ "${SKIP_AUTO_INSTALL:-false}" == "true" ]]; then
@@ -34,62 +34,38 @@ export SINDRI_STATUS_SHOWN=1
 # Check extension installation status
 if [[ -f "$BOOTSTRAP_MARKER" ]]; then
     # Bootstrap marker exists - verify extensions are actually installed
-    # V3 manifest format: extensions is a HashMap (can be empty {} or have entries)
-    if [[ -f "$MANIFEST" ]]; then
-        # Check if manifest is valid YAML and has schema_version
-        if grep -q "^schema_version:" "$MANIFEST" 2>/dev/null; then
-            # V3 manifest format detected
-            # Check if extensions HashMap has any entries (not just "{}")
-            # shellcheck disable=SC2312
-            if grep -qE "^extensions:.*[a-z]" "$MANIFEST" 2>/dev/null || \
-               { grep -A1 "^extensions:" "$MANIFEST" 2>/dev/null | grep -q "  [a-z]"; }; then
-                # Extensions are installed (non-empty HashMap)
-                if [[ ! -f "${SINDRI_HOME}/.login-notified" ]]; then
-                    echo ""
-                    echo "✅ Extensions ready! Run 'sindri extension list --installed' to see all installed tools."
-                    echo ""
-                    touch "${SINDRI_HOME}/.login-notified"
-                fi
-            else
-                # Manifest exists but extensions HashMap is empty
-                # Check if installation is in progress
-                if pgrep -f "sindri.*install" > /dev/null 2>&1; then
-                    echo ""
-                    echo "⏳ Extension installation in progress..."
-                    echo "   Monitor: tail -f ~/.sindri/logs/install.log"
-                    echo ""
-                else
-                    # No installation running and no extensions installed
-                    echo ""
-                    echo "ℹ️  No extensions installed yet"
-                    echo "   Install a profile: sindri profile install <profile> --yes"
-                    echo "   Or install individual: sindri extension install <name>"
-                    echo ""
-                fi
+    if [[ -f "$LEDGER" ]]; then
+        # Check if ledger has any install_completed events
+        # shellcheck disable=SC2312
+        if grep -q '"install_completed"' "$LEDGER" 2>/dev/null; then
+            # Extensions are installed (at least one install_completed event)
+            if [[ ! -f "${SINDRI_HOME}/.login-notified" ]]; then
+                echo ""
+                echo "✅ Extensions ready! Run 'sindri extension list --installed' to see all installed tools."
+                echo ""
+                touch "${SINDRI_HOME}/.login-notified"
             fi
         else
-            # V2 manifest format or corrupted file
-            if grep -q "state: installed" "$MANIFEST" 2>/dev/null; then
-                # V2 format with installed extensions
-                if [[ ! -f "${SINDRI_HOME}/.login-notified" ]]; then
-                    echo ""
-                    echo "✅ Extensions ready! Run 'sindri extension list --installed' to see all installed tools."
-                    echo ""
-                    touch "${SINDRI_HOME}/.login-notified"
-                fi
-            else
-                # Invalid manifest
+            # Ledger exists but no completed installations
+            # Check if installation is in progress
+            if pgrep -f "sindri.*install" > /dev/null 2>&1; then
                 echo ""
-                echo "⚠️  Extension marker found but manifest is invalid"
-                echo "   This may indicate a stale volume from a previous deployment"
-                echo "   Retry installation: sindri profile install <profile> --yes"
+                echo "⏳ Extension installation in progress..."
+                echo "   Monitor: tail -f ~/.sindri/logs/install.log"
+                echo ""
+            else
+                # No installation running and no extensions installed
+                echo ""
+                echo "ℹ️  No extensions installed yet"
+                echo "   Install a profile: sindri profile install <profile> --yes"
+                echo "   Or install individual: sindri extension install <name>"
                 echo ""
             fi
         fi
     else
-        # Marker exists but no manifest
+        # Marker exists but no ledger
         echo ""
-        echo "⚠️  Extension marker found but manifest is missing"
+        echo "⚠️  Extension marker found but status ledger is missing"
         echo "   Retry installation: sindri profile install <profile> --yes"
         echo ""
     fi

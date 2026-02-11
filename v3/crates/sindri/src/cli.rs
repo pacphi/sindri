@@ -95,6 +95,10 @@ pub enum Commands {
     #[command(subcommand)]
     Bom(BomCommands),
 
+    /// Manage event ledger
+    #[command(subcommand)]
+    Ledger(LedgerCommands),
+
     /// Generate shell completions
     Completions(CompletionsArgs),
 }
@@ -267,12 +271,21 @@ pub enum ExtensionCommands {
 
     /// Generate documentation for an extension
     Docs(ExtensionDocsArgs),
+
+    /// Verify installed extensions are working correctly
+    Verify(ExtensionVerifyArgs),
 }
 
 #[derive(Args, Debug)]
 pub struct ExtensionDocsArgs {
     /// Extension name
     pub name: String,
+}
+
+#[derive(Args, Debug)]
+pub struct ExtensionVerifyArgs {
+    /// Extension name (optional, verifies all installed if not specified)
+    pub name: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -344,6 +357,18 @@ pub struct ExtensionStatusArgs {
     /// Output as JSON
     #[arg(long)]
     pub json: bool,
+
+    /// Limit number of history entries (default: 20)
+    #[arg(long)]
+    pub limit: Option<usize>,
+
+    /// Show events since date (ISO 8601: 2026-02-10T00:00:00Z)
+    #[arg(long)]
+    pub since: Option<String>,
+
+    /// Run verification checks (slower, verifies actual installation)
+    #[arg(long)]
+    pub verify: bool,
 }
 
 #[derive(Args, Debug)]
@@ -1142,4 +1167,28 @@ pub struct CompletionsArgs {
     /// Shell to generate completions for
     #[arg(value_enum)]
     pub shell: clap_complete::Shell,
+}
+
+// Ledger commands
+#[derive(Subcommand, Debug)]
+pub enum LedgerCommands {
+    /// Compact ledger by removing old events
+    Compact(LedgerCompactArgs),
+    /// Export ledger to JSON file
+    Export(LedgerExportArgs),
+    /// Show ledger statistics
+    Stats,
+}
+
+#[derive(Args, Debug)]
+pub struct LedgerCompactArgs {
+    /// Retention period in days (default: 90)
+    #[arg(long, default_value = "90")]
+    pub retention_days: i64,
+}
+
+#[derive(Args, Debug)]
+pub struct LedgerExportArgs {
+    /// Output file path
+    pub path: String,
 }

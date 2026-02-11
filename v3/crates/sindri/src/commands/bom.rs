@@ -6,12 +6,12 @@ use std::collections::HashMap;
 use tabled::{settings::Style as TableStyle, Table, Tabled};
 
 use crate::cli::{BomCommands, BomExportArgs, BomGenerateArgs, BomListArgs, BomShowArgs};
-use crate::utils::{get_cache_dir, get_extensions_dir, get_manifest_path};
+use crate::utils::{get_cache_dir, get_extensions_dir};
 
-use sindri_core::types::{Extension, InstallManifest};
+use sindri_core::types::{Extension, ExtensionState, InstallManifest, InstalledExtension};
 use sindri_extensions::bom::{BillOfMaterials, BomFormat, BomGenerator, ComponentType};
-use sindri_extensions::manifest::ManifestManager;
 use sindri_extensions::registry::ExtensionRegistry;
+use sindri_extensions::StatusLedger;
 
 /// Main entry point for BOM commands
 pub async fn run(cmd: BomCommands) -> Result<()> {
@@ -25,11 +25,12 @@ pub async fn run(cmd: BomCommands) -> Result<()> {
 
 /// Generate BOM from installed extensions
 async fn generate(args: BomGenerateArgs) -> Result<()> {
-    // Load manifest
-    let manifest_mgr =
-        ManifestManager::new(get_manifest_path()?).context("Failed to load manifest")?;
+    // Load status ledger
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger.get_all_latest_status()?;
+    let installed = build_installed_map(&status_map);
 
-    if manifest_mgr.extensions().is_empty() {
+    if installed.is_empty() {
         println!("No extensions installed");
         return Ok(());
     }
@@ -38,16 +39,17 @@ async fn generate(args: BomGenerateArgs) -> Result<()> {
     let mut registry = load_registry().await?;
 
     // Load extension definitions for installed extensions
-    let _loaded_count = load_extension_definitions(&mut registry, manifest_mgr.extensions())?;
+    let _loaded_count = load_extension_definitions(&mut registry, &installed)?;
 
     // Generate BOM
     let cli_version = env!("CARGO_PKG_VERSION").to_string();
     let generator = BomGenerator::new(cli_version, "default".to_string());
-    let mut bom = generator.generate_from_manifest(manifest_mgr.manifest(), &registry)?;
+    let manifest = build_manifest(&installed);
+    let mut bom = generator.generate_from_manifest(&manifest, &registry)?;
 
     // Optionally detect versions
     if args.detect_versions {
-        detect_and_update_versions(&mut bom, &registry, manifest_mgr.manifest()).await?;
+        detect_and_update_versions(&mut bom, &registry, &manifest).await?;
     }
 
     if args.json {
@@ -64,12 +66,13 @@ async fn generate(args: BomGenerateArgs) -> Result<()> {
 
 /// Show BOM for specific extension
 async fn show(args: BomShowArgs) -> Result<()> {
-    // Load manifest
-    let manifest_mgr =
-        ManifestManager::new(get_manifest_path()?).context("Failed to load manifest")?;
+    // Load status ledger
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger.get_all_latest_status()?;
+    let installed = build_installed_map(&status_map);
 
     // Check if extension is installed
-    if !manifest_mgr.extensions().contains_key(&args.extension) {
+    if !installed.contains_key(&args.extension) {
         return Err(anyhow!(
             "Extension '{}' is not installed. Run 'sindri extension install {}' first.",
             args.extension,
@@ -81,7 +84,7 @@ async fn show(args: BomShowArgs) -> Result<()> {
     let mut registry = load_registry().await?;
 
     // Load extension definitions
-    let _loaded_count = load_extension_definitions(&mut registry, manifest_mgr.extensions())?;
+    let _loaded_count = load_extension_definitions(&mut registry, &installed)?;
 
     // Get extension definition
     let ext = registry
@@ -100,9 +103,13 @@ async fn show(args: BomShowArgs) -> Result<()> {
 
     if args.json {
         // Output as JSON
+        let version = installed
+            .get(&args.extension)
+            .map(|e| e.version.as_str())
+            .unwrap_or("unknown");
         let json = serde_json::json!({
             "name": args.extension,
-            "version": manifest_mgr.extensions().get(&args.extension).unwrap().version,
+            "version": version,
             "category": format!("{:?}", ext.metadata.category),
             "components": components,
             "dependencies": entry.dependencies,
@@ -118,11 +125,12 @@ async fn show(args: BomShowArgs) -> Result<()> {
 
 /// List all components
 async fn list(args: BomListArgs) -> Result<()> {
-    // Load manifest
-    let manifest_mgr =
-        ManifestManager::new(get_manifest_path()?).context("Failed to load manifest")?;
+    // Load status ledger
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger.get_all_latest_status()?;
+    let installed = build_installed_map(&status_map);
 
-    if manifest_mgr.extensions().is_empty() {
+    if installed.is_empty() {
         println!("No extensions installed");
         return Ok(());
     }
@@ -131,14 +139,14 @@ async fn list(args: BomListArgs) -> Result<()> {
     let mut registry = load_registry().await?;
 
     // Load extension definitions
-    let _loaded_count = load_extension_definitions(&mut registry, manifest_mgr.extensions())?;
+    let _loaded_count = load_extension_definitions(&mut registry, &installed)?;
 
     // Collect all components
     let mut all_components = Vec::new();
     let cli_version = env!("CARGO_PKG_VERSION").to_string();
     let generator = BomGenerator::new(cli_version, "default".to_string());
 
-    for name in manifest_mgr.extensions().keys() {
+    for name in installed.keys() {
         // Filter by extension name if specified
         if let Some(ref filter_ext) = args.extension {
             if name != filter_ext {
@@ -207,11 +215,12 @@ async fn export(args: BomExportArgs) -> Result<()> {
         ));
     }
 
-    // Load manifest
-    let manifest_mgr =
-        ManifestManager::new(get_manifest_path()?).context("Failed to load manifest")?;
+    // Load status ledger
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+    let status_map = ledger.get_all_latest_status()?;
+    let installed = build_installed_map(&status_map);
 
-    if manifest_mgr.extensions().is_empty() {
+    if installed.is_empty() {
         return Err(anyhow!("No extensions installed. Nothing to export."));
     }
 
@@ -219,16 +228,17 @@ async fn export(args: BomExportArgs) -> Result<()> {
     let mut registry = load_registry().await?;
 
     // Load extension definitions for installed extensions
-    let _loaded_count = load_extension_definitions(&mut registry, manifest_mgr.extensions())?;
+    let _loaded_count = load_extension_definitions(&mut registry, &installed)?;
 
     // Generate BOM
     let cli_version = env!("CARGO_PKG_VERSION").to_string();
     let generator = BomGenerator::new(cli_version, "default".to_string());
-    let mut bom = generator.generate_from_manifest(manifest_mgr.manifest(), &registry)?;
+    let manifest = build_manifest(&installed);
+    let mut bom = generator.generate_from_manifest(&manifest, &registry)?;
 
     // Optionally detect versions
     if args.detect_versions {
-        detect_and_update_versions(&mut bom, &registry, manifest_mgr.manifest()).await?;
+        detect_and_update_versions(&mut bom, &registry, &manifest).await?;
     }
 
     // Parse format
@@ -264,6 +274,41 @@ async fn export(args: BomExportArgs) -> Result<()> {
 }
 
 // Helper functions
+
+/// Build a map of installed extensions from the status ledger data.
+///
+/// Filters the status map to only include extensions whose current state is `Installed`,
+/// then converts each `ExtensionStatus` into an `InstalledExtension`.
+fn build_installed_map(
+    status_map: &HashMap<String, sindri_extensions::ExtensionStatus>,
+) -> HashMap<String, InstalledExtension> {
+    status_map
+        .iter()
+        .filter(|(_, s)| s.current_state == ExtensionState::Installed)
+        .map(|(name, s)| {
+            let installed = InstalledExtension {
+                version: s.version.clone().unwrap_or_else(|| "unknown".to_string()),
+                status_datetime: s.last_event_time,
+                source: String::new(),
+                state: s.current_state,
+            };
+            (name.clone(), installed)
+        })
+        .collect()
+}
+
+/// Build an `InstallManifest` from the installed extensions map.
+///
+/// This is used to pass data into `BomGenerator::generate_from_manifest`, which
+/// expects an `InstallManifest`.
+fn build_manifest(installed: &HashMap<String, InstalledExtension>) -> InstallManifest {
+    InstallManifest {
+        schema_version: "1.0".to_string(),
+        cli_version: env!("CARGO_PKG_VERSION").to_string(),
+        last_updated: chrono::Utc::now(),
+        extensions: installed.clone(),
+    }
+}
 
 /// Load extension registry
 async fn load_registry() -> Result<ExtensionRegistry> {

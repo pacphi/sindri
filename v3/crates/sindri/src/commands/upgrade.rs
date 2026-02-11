@@ -4,7 +4,8 @@ use anyhow::{anyhow, Result};
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
 use semver::Version;
-use sindri_extensions::manifest::ManifestManager;
+use sindri_core::types::ExtensionState;
+use sindri_extensions::StatusLedger;
 use sindri_update::{CompatibilityChecker, ReleaseManager, VERSION};
 use std::collections::HashMap;
 use std::env;
@@ -129,12 +130,13 @@ async fn show_compatibility(manager: &ReleaseManager, target_version: &str) -> R
         Ok(_) => {
             spinner.finish_and_clear();
 
-            // Load installed extensions
-            let manifest = ManifestManager::load_default()?;
-            let installed: HashMap<String, String> = manifest
-                .extensions()
+            // Load installed extensions from status ledger
+            let ledger = StatusLedger::load_default()?;
+            let status_map = ledger.get_all_latest_status()?;
+            let installed: HashMap<String, String> = status_map
                 .iter()
-                .map(|(name, ext)| (name.clone(), ext.version.clone()))
+                .filter(|(_, s)| s.current_state == ExtensionState::Installed)
+                .filter_map(|(name, s)| s.version.as_ref().map(|v| (name.clone(), v.clone())))
                 .collect();
 
             if installed.is_empty() {
@@ -220,12 +222,13 @@ async fn do_upgrade(manager: &ReleaseManager, args: &UpgradeArgs) -> Result<()> 
         ));
     }
 
-    // Load installed extensions
-    let manifest = ManifestManager::load_default()?;
-    let installed: HashMap<String, String> = manifest
-        .extensions()
+    // Load installed extensions from status ledger
+    let ledger = StatusLedger::load_default()?;
+    let status_map = ledger.get_all_latest_status()?;
+    let installed: HashMap<String, String> = status_map
         .iter()
-        .map(|(name, ext)| (name.clone(), ext.version.clone()))
+        .filter(|(_, s)| s.current_state == ExtensionState::Installed)
+        .filter_map(|(name, s)| s.version.as_ref().map(|v| (name.clone(), v.clone())))
         .collect();
 
     // Check extension compatibility
@@ -400,10 +403,6 @@ async fn do_upgrade(manager: &ReleaseManager, args: &UpgradeArgs) -> Result<()> 
         fs::rename(&backup_path, &current_exe)?;
         return Err(anyhow!("Failed to install new binary: {}", e));
     }
-
-    // Update CLI version in manifest
-    let mut manifest = ManifestManager::load_default()?;
-    manifest.update_cli_version(&target_version.to_string())?;
 
     output::success(&format!(
         "Successfully upgraded to sindri {}",

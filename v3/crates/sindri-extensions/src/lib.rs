@@ -15,8 +15,9 @@ pub mod bom;
 pub mod configure;
 pub mod dependency;
 pub mod distribution;
+pub mod events;
 pub mod executor;
-pub mod manifest;
+pub mod ledger;
 pub mod profile;
 pub mod registry;
 pub mod source;
@@ -29,11 +30,10 @@ pub mod verifier;
 pub use bom::BomGenerator;
 pub use configure::ConfigureProcessor;
 pub use dependency::DependencyResolver;
-pub use distribution::{
-    CompatibilityMatrix, ExtensionDistributor, ExtensionManifest, ManifestEntry,
-};
+pub use distribution::{CompatibilityMatrix, ExtensionDistributor};
+pub use events::{EventEnvelope, ExtensionEvent};
 pub use executor::ExtensionExecutor;
-pub use manifest::ManifestManager;
+pub use ledger::{ExtensionStatus, LedgerStats, StatusLedger};
 pub use profile::{ProfileInstallResult, ProfileInstaller, ProfileStatus};
 pub use registry::ExtensionRegistry;
 pub use source::{

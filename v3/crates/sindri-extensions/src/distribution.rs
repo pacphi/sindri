@@ -4,8 +4,8 @@
 //! - Extension distribution from raw.githubusercontent.com using CLI version tags
 //! - Version compatibility checking against CLI version
 //! - Downloading extension files (not archives) directly
-//! - Local manifest management
 //! - Extension installation, upgrade, and rollback
+//! - Version tracking via StatusLedger (event-driven ledger)
 //!
 //! ## URL Derivation
 //!
@@ -357,11 +357,7 @@ impl ExtensionDistributor {
             ));
         }
 
-        // 10. Update manifest
-        self.update_manifest(name, &target_version)
-            .await
-            .context("Failed to update manifest")?;
-
+        // 10. Event publishing is handled by the CLI layer
         info!("Successfully installed {} {}", name, target_version);
         Ok(())
     }
@@ -524,11 +520,7 @@ impl ExtensionDistributor {
 
         info!("Rolling back {} {} -> {}", name, current, previous);
 
-        // Update manifest to point to previous version
-        self.update_manifest(name, previous)
-            .await
-            .context("Failed to update manifest")?;
-
+        // Event publishing is handled by the CLI layer
         info!("Successfully rolled back {} to {}", name, previous);
         Ok(())
     }
@@ -858,21 +850,43 @@ impl ExtensionDistributor {
         Ok(vec![(version, Utc::now(), is_compatible)])
     }
 
-    /// Get the previous version of an extension from the manifest
+    /// Get the previous version of an extension from the ledger history
     ///
-    /// Returns the most recent previous version if available
+    /// Scans ledger events for the most recent version that differs from the current version.
     ///
     /// # Arguments
     /// * `name` - Extension name
     pub fn get_previous_version(&self, name: &str) -> Result<Option<Version>> {
-        let manifest = self.load_manifest_sync()?;
+        let ledger = crate::ledger::StatusLedger::load_default()?;
 
-        if let Some(ext_entry) = manifest.extensions.get(name) {
-            if let Some(prev_version_str) = ext_entry.previous_versions.first() {
-                let version = Version::parse(prev_version_str).context(format!(
-                    "Invalid previous version in manifest: {}",
-                    prev_version_str
-                ))?;
+        // Get the current version from ledger
+        let current_version = ledger
+            .get_all_latest_status()?
+            .get(name)
+            .and_then(|s| s.version.clone());
+
+        // Scan event history for previous versions
+        let history = ledger.get_extension_history(name, None)?;
+
+        // Walk events in reverse (most recent first) to find a version different from current
+        for envelope in history.iter().rev() {
+            let event_version = match &envelope.event {
+                crate::events::ExtensionEvent::InstallCompleted { version, .. } => {
+                    Some(version.clone())
+                }
+                crate::events::ExtensionEvent::UpgradeCompleted { to_version, .. } => {
+                    Some(to_version.clone())
+                }
+                _ => None,
+            };
+
+            if let Some(v) = event_version {
+                // Skip if this matches the current version
+                if current_version.as_deref() == Some(v.as_str()) {
+                    continue;
+                }
+                let version = Version::parse(&v)
+                    .context(format!("Invalid previous version in ledger: {}", v))?;
                 return Ok(Some(version));
             }
         }
@@ -1241,50 +1255,39 @@ impl ExtensionDistributor {
 
     /// Check if a specific version of an extension is installed
     fn is_installed(&self, name: &str, version: &Version) -> Result<bool> {
-        // Check both manifest state and filesystem
-        // This ensures consistency between ManifestManager and ExtensionDistributor
-
-        // 1. Check manifest state (authoritative source)
-        let manifest_path = self
-            .extensions_dir
-            .parent()
-            .ok_or_else(|| anyhow!("Invalid extensions directory"))?
-            .join("manifest.yaml");
-
-        if manifest_path.exists() {
-            let manifest = crate::manifest::ManifestManager::new(manifest_path)?;
-
-            // Extension must be in "Installed" state AND match the requested version
-            if let Some(installed_version) = manifest.get_version(name) {
-                if installed_version == version.to_string() {
-                    // Verify the extension is in "Installed" state, not "Removing", "Failed", etc.
-                    return Ok(manifest.is_installed(name));
+        // Check ledger state first (authoritative source)
+        if let Ok(ledger) = crate::ledger::StatusLedger::load_default() {
+            if let Ok(status_map) = ledger.get_all_latest_status() {
+                if let Some(status) = status_map.get(name) {
+                    if status.current_state == sindri_core::types::ExtensionState::Installed {
+                        if let Some(v) = &status.version {
+                            return Ok(v == &version.to_string());
+                        }
+                    }
+                    return Ok(false);
                 }
             }
-            return Ok(false);
         }
 
-        // 2. Fallback to filesystem check if no manifest exists (backward compatibility)
+        // Fallback to filesystem check
         let ext_dir = self.extensions_dir.join(name).join(version.to_string());
         Ok(ext_dir.exists())
     }
 
     /// Check if any version of an extension is installed
     fn is_any_version_installed(&self, name: &str) -> Result<bool> {
-        // Check manifest state first (authoritative source)
-        let manifest_path = self
-            .extensions_dir
-            .parent()
-            .ok_or_else(|| anyhow!("Invalid extensions directory"))?
-            .join("manifest.yaml");
-
-        if manifest_path.exists() {
-            let manifest = crate::manifest::ManifestManager::new(manifest_path)?;
-            // Check if extension is in "Installed" state
-            return Ok(manifest.is_installed(name));
+        // Check ledger state first (authoritative source)
+        if let Ok(ledger) = crate::ledger::StatusLedger::load_default() {
+            if let Ok(status_map) = ledger.get_all_latest_status() {
+                if let Some(status) = status_map.get(name) {
+                    return Ok(
+                        status.current_state == sindri_core::types::ExtensionState::Installed
+                    );
+                }
+            }
         }
 
-        // Fallback to filesystem check if no manifest exists (backward compatibility)
+        // Fallback to filesystem check
         let ext_dir = self.extensions_dir.join(name);
         if !ext_dir.exists() {
             return Ok(false);
@@ -1297,18 +1300,21 @@ impl ExtensionDistributor {
         Ok(entries.count() > 0)
     }
 
-    /// Get the currently installed version of an extension
+    /// Get the currently installed version of an extension from the ledger
     fn get_installed_version(&self, name: &str) -> Result<Option<Version>> {
-        let manifest = self.load_manifest_sync()?;
+        let ledger = crate::ledger::StatusLedger::load_default()?;
+        let version_str = ledger
+            .get_all_latest_status()?
+            .get(name)
+            .and_then(|s| s.version.clone());
 
-        if let Some(ext_entry) = manifest.extensions.get(name) {
-            let version = Version::parse(&ext_entry.version).context(format!(
-                "Invalid version in manifest: {}",
-                ext_entry.version
-            ))?;
-            Ok(Some(version))
-        } else {
-            Ok(None)
+        match version_str {
+            Some(v) => {
+                let version =
+                    Version::parse(&v).context(format!("Invalid version in ledger: {}", v))?;
+                Ok(Some(version))
+            }
+            None => Ok(None),
         }
     }
 
@@ -1337,135 +1343,15 @@ impl ExtensionDistributor {
         Ok(versions)
     }
 
-    /// Update the manifest with the installed extension version
-    async fn update_manifest(&self, name: &str, version: &Version) -> Result<()> {
-        let manifest_path = self.extensions_dir.parent().unwrap().join("manifest.yaml");
-
-        let mut manifest = if manifest_path.exists() {
-            let content = fs::read_to_string(&manifest_path)
-                .await
-                .context("Failed to read manifest")?;
-            serde_yaml::from_str(&content).context("Failed to parse manifest")?
-        } else {
-            ExtensionManifest::new(self.cli_version.to_string())
-        };
-
-        // Get previous versions
-        let previous = if let Some(existing) = manifest.extensions.get(name) {
-            let mut prev = existing.previous_versions.clone();
-            prev.insert(0, existing.version.clone());
-            prev
-        } else {
-            vec![]
-        };
-
-        // Update entry with state field set to Installed
-        manifest.extensions.insert(
-            name.to_string(),
-            ManifestEntry {
-                version: version.to_string(),
-                status_datetime: Utc::now(),
-                source: format!("github:{}", self.source_config.repo_identifier()),
-                previous_versions: previous,
-                protected: false,
-                state: sindri_core::types::ExtensionState::Installed,
-            },
-        );
-
-        manifest.last_updated = Utc::now();
-
-        // Write manifest
-        let content = serde_yaml::to_string(&manifest).context("Failed to serialize manifest")?;
-        fs::write(&manifest_path, content)
-            .await
-            .context("Failed to write manifest")?;
-
-        Ok(())
-    }
-
-    /// Load manifest synchronously
-    fn load_manifest_sync(&self) -> Result<ExtensionManifest> {
-        let manifest_path = self.extensions_dir.parent().unwrap().join("manifest.yaml");
-
-        if !manifest_path.exists() {
-            return Ok(ExtensionManifest::new(self.cli_version.to_string()));
-        }
-
-        let content = std::fs::read_to_string(&manifest_path).context("Failed to read manifest")?;
-        serde_yaml::from_str(&content).context("Failed to parse manifest")
-    }
-
     /// Get the source configuration
     pub fn source_config(&self) -> &ExtensionSourceConfig {
         &self.source_config
     }
 }
 
-/// Extension manifest tracking installed extensions
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtensionManifest {
-    /// Schema version
-    pub schema_version: String,
-
-    /// CLI version
-    pub cli_version: String,
-
-    /// Last updated timestamp
-    pub last_updated: DateTime<Utc>,
-
-    /// Installed extensions
-    pub extensions: HashMap<String, ManifestEntry>,
-}
-
-impl ExtensionManifest {
-    /// Create a new manifest
-    pub fn new(cli_version: String) -> Self {
-        Self {
-            schema_version: "1.0".to_string(),
-            cli_version,
-            last_updated: Utc::now(),
-            extensions: HashMap::new(),
-        }
-    }
-}
-
-/// Manifest entry for an installed extension
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ManifestEntry {
-    /// Installed version
-    pub version: String,
-
-    /// Status datetime - timestamp when extension entered current state
-    #[serde(alias = "installed_at")] // For backward compatibility
-    pub status_datetime: DateTime<Utc>,
-
-    /// Source (e.g., "github:pacphi/sindri")
-    pub source: String,
-
-    /// Previous versions (for rollback)
-    #[serde(default)]
-    pub previous_versions: Vec<String>,
-
-    /// Protected (cannot be removed)
-    #[serde(default)]
-    pub protected: bool,
-
-    /// Extension state (installed, removing, failed, etc.)
-    #[serde(default)]
-    pub state: sindri_core::types::ExtensionState,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_manifest_creation() {
-        let manifest = ExtensionManifest::new("3.0.0".to_string());
-        assert_eq!(manifest.schema_version, "1.0");
-        assert_eq!(manifest.cli_version, "3.0.0");
-        assert!(manifest.extensions.is_empty());
-    }
 
     #[test]
     fn test_version_parsing() {
@@ -1530,65 +1416,5 @@ mod tests {
         let version = Version::parse("3.0.0").unwrap();
         let tag = format!("v{}", version);
         assert_eq!(tag, "v3.0.0");
-    }
-
-    #[test]
-    fn test_manifest_entry_has_state_field() {
-        // Verify that ManifestEntry includes the state field (bug fix for state inconsistency)
-        use sindri_core::types::ExtensionState;
-
-        let entry = ManifestEntry {
-            version: "1.0.0".to_string(),
-            status_datetime: Utc::now(),
-            source: "github:pacphi/sindri".to_string(),
-            previous_versions: vec![],
-            protected: false,
-            state: ExtensionState::Installed,
-        };
-
-        assert_eq!(entry.state, ExtensionState::Installed);
-    }
-
-    #[test]
-    fn test_manifest_entry_default_state() {
-        // Verify that state defaults to Installed when not specified (backward compatibility)
-        let yaml = r#"
-version: "1.0.0"
-status_datetime: "2024-01-01T00:00:00Z"
-source: "github:pacphi/sindri"
-"#;
-
-        let entry: ManifestEntry = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(entry.state, sindri_core::types::ExtensionState::Installed);
-    }
-
-    #[test]
-    fn test_manifest_entry_preserves_state() {
-        // Verify that different states can be serialized and deserialized correctly
-        use sindri_core::types::ExtensionState;
-
-        let states = vec![
-            ExtensionState::Installed,
-            ExtensionState::Installing,
-            ExtensionState::Removing,
-            ExtensionState::Failed,
-            ExtensionState::Outdated,
-        ];
-
-        for state in states {
-            let entry = ManifestEntry {
-                version: "1.0.0".to_string(),
-                status_datetime: Utc::now(),
-                source: "github:pacphi/sindri".to_string(),
-                previous_versions: vec![],
-                protected: false,
-                state,
-            };
-
-            let yaml = serde_yaml::to_string(&entry).unwrap();
-            let deserialized: ManifestEntry = serde_yaml::from_str(&yaml).unwrap();
-
-            assert_eq!(deserialized.state, state, "State {:?} not preserved", state);
-        }
     }
 }

@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 sindri-core = { workspace = true }
+sindri-extensions = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }

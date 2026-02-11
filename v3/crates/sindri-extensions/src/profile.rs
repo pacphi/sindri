@@ -5,11 +5,13 @@
 //! dependency resolution and progress tracking.
 
 use anyhow::{anyhow, Context, Result};
+use sindri_core::types::ExtensionState;
 use tracing::{debug, info, warn};
 
 use crate::dependency::DependencyResolver;
+use crate::events::{EventEnvelope, ExtensionEvent};
 use crate::executor::ExtensionExecutor;
-use crate::manifest::ManifestManager;
+use crate::ledger::StatusLedger;
 use crate::registry::ExtensionRegistry;
 use crate::source::ExtensionSourceResolver;
 
@@ -99,7 +101,7 @@ impl ProfileInstallResult {
 pub struct ProfileInstaller {
     registry: ExtensionRegistry,
     executor: ExtensionExecutor,
-    manifest: ManifestManager,
+    ledger: StatusLedger,
 }
 
 impl ProfileInstaller {
@@ -107,12 +109,39 @@ impl ProfileInstaller {
     pub fn new(
         registry: ExtensionRegistry,
         executor: ExtensionExecutor,
-        manifest: ManifestManager,
+        ledger: StatusLedger,
     ) -> Self {
         Self {
             registry,
             executor,
-            manifest,
+            ledger,
+        }
+    }
+
+    /// Check if an extension is installed via ledger
+    fn is_installed(&self, name: &str) -> bool {
+        self.ledger
+            .get_all_latest_status()
+            .ok()
+            .and_then(|map| {
+                map.get(name)
+                    .map(|s| s.current_state == ExtensionState::Installed)
+            })
+            .unwrap_or(false)
+    }
+
+    /// Get version of an installed extension from ledger
+    fn get_version(&self, name: &str) -> Option<String> {
+        self.ledger
+            .get_all_latest_status()
+            .ok()
+            .and_then(|map| map.get(name).and_then(|s| s.version.clone()))
+    }
+
+    /// Publish an event to the ledger (non-failing)
+    fn publish_event(&self, envelope: EventEnvelope) {
+        if let Err(e) = self.ledger.append(envelope) {
+            warn!("Failed to publish event to ledger: {}", e);
         }
     }
 
@@ -210,12 +239,12 @@ impl ProfileInstaller {
             current += 1;
 
             // Skip if already installed (unless force)
-            if self.manifest.is_installed(ext_name) {
+            if self.is_installed(ext_name) {
                 debug!("Base extension {} already installed, skipping", ext_name);
                 installed_count += 1;
 
                 // Track as installed with version info
-                if let Some(version) = self.manifest.get_version(ext_name) {
+                if let Some(version) = self.get_version(ext_name) {
                     let source = resolver
                         .find_source(ext_name)
                         .map(|s| s.to_string())
@@ -280,12 +309,12 @@ impl ProfileInstaller {
             current += 1;
 
             // Skip if already installed
-            if self.manifest.is_installed(ext_name) {
+            if self.is_installed(ext_name) {
                 debug!("Extension {} already installed, skipping", ext_name);
                 installed_count += 1;
 
                 // Track as installed with version info
-                if let Some(version) = self.manifest.get_version(ext_name) {
+                if let Some(version) = self.get_version(ext_name) {
                     let source = resolver
                         .find_source(ext_name)
                         .map(|s| s.to_string())
@@ -431,7 +460,7 @@ impl ProfileInstaller {
         // Step 4: Remove all extensions first (in reverse order to handle dependencies)
         info!("Removing existing extensions...");
         for ext_name in all_extensions.iter().rev() {
-            if self.manifest.is_installed(ext_name) {
+            if self.is_installed(ext_name) {
                 debug!("Removing extension: {}", ext_name);
 
                 // Execute removal process if extension defines removal configuration
@@ -446,10 +475,17 @@ impl ProfileInstaller {
                     }
                 }
 
-                // Mark as uninstalled in manifest
-                if let Err(e) = self.manifest.mark_uninstalled(ext_name) {
-                    warn!("Failed to mark {} as uninstalled: {}", ext_name, e);
-                }
+                // Publish removal event to ledger
+                self.publish_event(EventEnvelope::new(
+                    ext_name.clone(),
+                    Some(ExtensionState::Installed),
+                    ExtensionState::Removing,
+                    ExtensionEvent::RemoveCompleted {
+                        extension_name: ext_name.clone(),
+                        version: self.get_version(ext_name).unwrap_or_default(),
+                        duration_secs: 0,
+                    },
+                ));
 
                 // Note: Pre-remove/post-remove hooks are not currently part of the
                 // extension schema. The schema only defines: pre-install, post-install,
@@ -481,10 +517,20 @@ impl ProfileInstaller {
             .map(|s| s.to_string())
             .unwrap_or_else(|| "github".to_string());
 
-        // Mark as installing in manifest
-        self.manifest
-            .mark_installing(name, "installing", &source_type)
-            .context("Failed to update manifest")?;
+        // Publish InstallStarted event
+        self.publish_event(EventEnvelope::new(
+            name.to_string(),
+            None,
+            ExtensionState::Installing,
+            ExtensionEvent::InstallStarted {
+                extension_name: name.to_string(),
+                version: "installing".to_string(),
+                source: source_type.clone(),
+                install_method: "Profile".to_string(),
+            },
+        ));
+
+        let start_time = std::time::Instant::now();
 
         // Load extension definition if not already loaded
         if self.registry.get_extension(name).is_none() {
@@ -500,6 +546,7 @@ impl ProfileInstaller {
 
         // Execute installation
         let result = self.executor.install(extension).await;
+        let duration_secs = start_time.elapsed().as_secs();
 
         match result {
             Ok(_) => {
@@ -507,25 +554,51 @@ impl ProfileInstaller {
                 let validation_result = self.executor.validate_extension(extension).await?;
 
                 if validation_result {
-                    // Mark as installed in manifest
-                    let _category = self
-                        .registry
-                        .get_entry(name)
-                        .map(|e| e.category.as_str())
-                        .unwrap_or("unknown");
-
-                    self.manifest
-                        .mark_installed(name, &version, &source_type)
-                        .context("Failed to update manifest")?;
+                    // Publish InstallCompleted event
+                    self.publish_event(EventEnvelope::new(
+                        name.to_string(),
+                        Some(ExtensionState::Installing),
+                        ExtensionState::Installed,
+                        ExtensionEvent::InstallCompleted {
+                            extension_name: name.to_string(),
+                            version: version.clone(),
+                            duration_secs,
+                            components_installed: vec![],
+                        },
+                    ));
 
                     Ok((version, source_type))
                 } else {
-                    self.manifest.mark_failed(name)?;
+                    // Publish InstallFailed event (validation failure)
+                    self.publish_event(EventEnvelope::new(
+                        name.to_string(),
+                        Some(ExtensionState::Installing),
+                        ExtensionState::Failed,
+                        ExtensionEvent::InstallFailed {
+                            extension_name: name.to_string(),
+                            version: version.clone(),
+                            error_message: "Validation failed".to_string(),
+                            retry_count: 0,
+                            duration_secs,
+                        },
+                    ));
                     Err(anyhow!("Extension {} failed validation", name))
                 }
             }
             Err(e) => {
-                self.manifest.mark_failed(name)?;
+                // Publish InstallFailed event
+                self.publish_event(EventEnvelope::new(
+                    name.to_string(),
+                    Some(ExtensionState::Installing),
+                    ExtensionState::Failed,
+                    ExtensionEvent::InstallFailed {
+                        extension_name: name.to_string(),
+                        version: version.clone(),
+                        error_message: e.to_string(),
+                        retry_count: 0,
+                        duration_secs,
+                    },
+                ));
                 Err(e)
             }
         }
@@ -608,13 +681,13 @@ impl ProfileInstaller {
 
         let installed: Vec<_> = extensions
             .iter()
-            .filter(|name| self.manifest.is_installed(name))
+            .filter(|name| self.is_installed(name))
             .cloned()
             .collect();
 
         let not_installed: Vec<_> = extensions
             .iter()
-            .filter(|name| !self.manifest.is_installed(name))
+            .filter(|name| !self.is_installed(name))
             .cloned()
             .collect();
 

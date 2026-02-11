@@ -79,7 +79,7 @@ pub struct CliVersionCompat {
     pub breaking_changes: Vec<String>,
 }
 
-/// Local installation manifest (~/.sindri/manifest.yaml)
+/// Local installation manifest (derived from StatusLedger state)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstallManifest {
     /// Schema version

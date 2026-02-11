@@ -481,10 +481,13 @@ sindri extension status [NAME] [OPTIONS]
 
 **Options:**
 
-| Option   | Description                                 |
-| -------- | ------------------------------------------- |
-| `[NAME]` | Extension name (shows all if not specified) |
-| `--json` | Output as JSON                              |
+| Option           | Description                                                    |
+| ---------------- | -------------------------------------------------------------- |
+| `[NAME]`         | Extension name (shows all if not specified)                    |
+| `--json`         | Output as JSON                                                 |
+| `--limit <N>`    | Limit number of history entries                                |
+| `--since <DATE>` | Show events since date (ISO 8601 format)                       |
+| `--verify`       | Run verification checks (slower, verifies actual installation) |
 
 **Examples:**
 
@@ -494,6 +497,15 @@ sindri extension status
 
 # Show specific extension
 sindri extension status mise --json
+
+# Show last 5 events
+sindri extension status --limit 5
+
+# Show events since a date
+sindri extension status --since 2026-02-01
+
+# Verify actual installation (slower)
+sindri extension status --verify
 ```
 
 #### extension info
@@ -658,6 +670,104 @@ sindri extension rollback mise
 
 # Rollback without prompting
 sindri extension rollback mise -y
+```
+
+#### extension verify
+
+Verify that installed extensions are working correctly by checking that their components are actually present on the system.
+
+**Synopsis:**
+
+```bash
+sindri extension verify [NAME]
+```
+
+**Options:**
+
+| Option | Description                                                        |
+| ------ | ------------------------------------------------------------------ |
+| `NAME` | Extension name (optional, verifies all installed if not specified) |
+
+**Examples:**
+
+```bash
+# Verify all installed extensions
+sindri extension verify
+
+# Verify a specific extension
+sindri extension verify python
+```
+
+---
+
+### ledger
+
+Manage the event ledger that tracks extension lifecycle operations.
+
+#### ledger compact
+
+Compact the ledger by removing old events while retaining the most recent event for each extension.
+
+**Synopsis:**
+
+```bash
+sindri ledger compact [--retention-days DAYS]
+```
+
+**Options:**
+
+| Option                    | Description                                       |
+| ------------------------- | ------------------------------------------------- |
+| `--retention-days <DAYS>` | Number of days of history to retain (default: 90) |
+
+**Examples:**
+
+```bash
+# Compact with default retention (90 days)
+sindri ledger compact
+
+# Compact keeping only last 30 days
+sindri ledger compact --retention-days 30
+```
+
+#### ledger export
+
+Export all ledger events to a JSON file for auditing or analysis.
+
+**Synopsis:**
+
+```bash
+sindri ledger export <PATH>
+```
+
+**Options:**
+
+| Option | Description      |
+| ------ | ---------------- |
+| `PATH` | Output file path |
+
+**Examples:**
+
+```bash
+# Export ledger to file
+sindri ledger export ./ledger-export.json
+```
+
+#### ledger stats
+
+Show statistics about the event ledger including total events, file size, and event type counts.
+
+**Synopsis:**
+
+```bash
+sindri ledger stats
+```
+
+**Examples:**
+
+```bash
+# Show ledger statistics
+sindri ledger stats
 ```
 
 ---
@@ -2379,3 +2489,4 @@ sindri k8s install k3d
 - [Extensions](./EXTENSIONS.md) - Extension catalog and BOM patterns
 - [Extension Authoring](./extensions/guides/AUTHORING.md) - BOM best practices for extension authors
 - [ADR-042: BOM Architecture](./architecture/adr/042-bom-capability-architecture.md) - BOM design decisions
+- [ADR-043: Event-Driven Status](./architecture/adr/043-event-driven-status.md) - Event ledger design decisions

@@ -30,6 +30,7 @@ The FAQ data follows a standardized JSON schema with the following top-level str
 ### 1. Metadata Validation
 
 **Required Fields**:
+
 - `schemaVersion`: Must be semantic version string (e.g., "3.0.0")
 - `lastUpdated`: Must be ISO date format (YYYY-MM-DD)
 - `meta.totalQuestions`: Must match actual `questions` array length
@@ -38,6 +39,7 @@ The FAQ data follows a standardized JSON schema with the following top-level str
 - `meta.personas`: Must match number of persona objects
 
 **Validation**:
+
 ```bash
 # Verify question count matches
 jq '.meta.totalQuestions' v3-faq-data.json
@@ -48,12 +50,14 @@ jq '.questions | length' v3-faq-data.json
 ### 2. Category Validation
 
 **Required Fields**:
+
 - `id`: Kebab-case unique identifier
 - `name`: Human-readable name
 - `icon`: Icon identifier
 - `description`: Brief description of category
 
 **Current Categories** (13):
+
 - getting-started
 - configuration
 - deployment
@@ -69,6 +73,7 @@ jq '.questions | length' v3-faq-data.json
 - testing-security
 
 **Validation**:
+
 ```bash
 # List all category IDs
 jq '.categories | map(.id)' v3-faq-data.json
@@ -80,6 +85,7 @@ jq -r '.questions[] | .category' v3-faq-data.json | sort -u
 ### 3. Persona Validation
 
 **Required Fields**:
+
 - `id`: Kebab-case unique identifier
 - `name`: Human-readable name
 - `icon`: Icon identifier
@@ -87,6 +93,7 @@ jq -r '.questions[] | .category' v3-faq-data.json | sort -u
 - `keywords`: Array of search terms
 
 **Current Personas** (6):
+
 - individual-developer
 - small-team
 - enterprise
@@ -95,6 +102,7 @@ jq -r '.questions[] | .category' v3-faq-data.json | sort -u
 - windows-user
 
 **Validation**:
+
 ```bash
 # Verify all questions reference valid persona IDs
 jq -r '.questions[].personas[]' v3-faq-data.json | sort -u
@@ -104,6 +112,7 @@ jq -r '.personas[].id' v3-faq-data.json | sort
 ### 4. Use Case Validation
 
 **Required Fields**:
+
 - `id`: Kebab-case unique identifier
 - `name`: Human-readable name
 - `description`: Use case description
@@ -111,6 +120,7 @@ jq -r '.personas[].id' v3-faq-data.json | sort
 - `relatedCategories`: Array of category IDs
 
 **Current Use Cases** (8):
+
 - local-development
 - cloud-deployment
 - multi-cloud
@@ -121,6 +131,7 @@ jq -r '.personas[].id' v3-faq-data.json | sort
 - security-compliance
 
 **Validation**:
+
 ```bash
 # Verify all questions reference valid use case IDs
 jq -r '.questions[].useCases[]' v3-faq-data.json | sort -u
@@ -130,6 +141,7 @@ jq -r '.useCases[].id' v3-faq-data.json | sort
 ### 5. Question Validation
 
 **Required Core Fields**:
+
 - `id`: Unique kebab-case identifier
 - `category`: Must reference valid category ID
 - `question`: Clear, specific question text
@@ -138,10 +150,12 @@ jq -r '.useCases[].id' v3-faq-data.json | sort
 - `docs`: Array of at least 1 documentation path
 
 **Required Version Fields**:
+
 - `versionsApplicable`: Array of ["v2"], ["v3"], or ["v2", "v3"]
 - `versionSpecifics`: Object with version-specific details
 
 **Required Discovery Fields**:
+
 - `personas`: Array of persona IDs (at least 1)
 - `useCases`: Array of use case IDs (at least 1)
 - `difficulty`: "beginner" | "intermediate" | "advanced"
@@ -149,12 +163,14 @@ jq -r '.useCases[].id' v3-faq-data.json | sort
 - `keywords`: Array of search keywords
 
 **Required Metadata Fields**:
+
 - `dateAdded`: ISO date string
 - `dateUpdated`: ISO date string
 - `popularity`: Number (default: 0)
 - `upvotes`: Number (default: 0)
 
 **Validation**:
+
 ```bash
 # Verify all question IDs are unique
 jq -r '.questions[].id' v3-faq-data.json | sort | uniq -d
@@ -172,12 +188,14 @@ jq '.questions[] | select(.versionsApplicable | contains(["v3"])) | select(.vers
 ### 6. Tag Validation
 
 **Tag Rules**:
+
 - Lowercase with hyphens (kebab-case)
 - Maximum 8 tags per question
 - Always include version tag (v2, v3, v2-v3-compatible, migration)
 - Use descriptive, searchable terms
 
 **Common Tags**:
+
 - **Version**: `v3`, `v3-only`, `v2-v3-compatible`, `migration`
 - **Features**: `rust-cli`, `binary`, `doctor`, `image-verification`, `cosign`, `sbom`
 - **Providers**: `docker`, `fly`, `flyio`, `devpod`, `kubernetes`, `k8s`
@@ -185,6 +203,7 @@ jq '.questions[] | select(.versionsApplicable | contains(["v3"])) | select(.vers
 - **Topics**: `install`, `config`, `deploy`, `extensions`, `secrets`, `troubleshooting`
 
 **Validation**:
+
 ```bash
 # Find questions with more than 8 tags
 jq '.questions[] | select(.tags | length > 8) | {id, tagCount: (.tags | length)}' v3-faq-data.json
@@ -196,11 +215,13 @@ jq '.questions[] | select(.tags | any(test("v2|v3|migration")) | not) | .id' v3-
 ### 7. Documentation Path Validation
 
 **Requirements**:
+
 - Each question must have at least 1 doc reference
 - Paths should be relative to repository root
 - Paths should exist in the repository
 
 **Validation**:
+
 ```bash
 # Extract all unique doc paths
 jq -r '.questions[].docs[]' v3-faq-data.json | sort -u > doc_paths.txt
@@ -416,6 +437,7 @@ echo "  Shared: $(jq '[.questions[] | select(.versionsApplicable == ["v2", "v3"]
 ```
 
 Make executable:
+
 ```bash
 chmod +x validate-faq.sh
 ```

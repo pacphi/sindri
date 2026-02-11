@@ -13,7 +13,7 @@ use dialoguer::Confirm;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 use sindri_extensions::{
-    DependencyResolver, ExtensionExecutor, ExtensionRegistry, ManifestManager, ProfileInstaller,
+    DependencyResolver, ExtensionExecutor, ExtensionRegistry, ProfileInstaller, StatusLedger,
 };
 use std::path::PathBuf;
 use tabled::{settings::Style, Table, Tabled};
@@ -61,13 +61,12 @@ async fn load_registry() -> Result<ExtensionRegistry> {
 /// Create profile installer with all dependencies
 async fn create_profile_installer() -> Result<ProfileInstaller> {
     let registry = load_registry().await?;
-    let manifest =
-        ManifestManager::load_default().context("Failed to load installation manifest")?;
+    let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
 
     let executor =
         ExtensionExecutor::new(get_extensions_dir()?, get_workspace_dir()?, get_home_dir()?);
 
-    Ok(ProfileInstaller::new(registry, executor, manifest))
+    Ok(ProfileInstaller::new(registry, executor, ledger))
 }
 
 // ============================================================================
@@ -447,13 +446,15 @@ async fn status(args: ProfileStatusArgs) -> Result<()> {
         .check_profile_status(&args.profile)
         .context("Failed to check profile status")?;
 
+    let ledger = StatusLedger::load_default()?;
+    let status_map = ledger.get_all_latest_status()?;
+
     if args.json {
         // Build extension details
-        let manifest = ManifestManager::load_default()?;
         let mut extensions = Vec::new();
 
         for ext_name in &status.installed_extensions {
-            let version = manifest.get_version(ext_name).map(|v| v.to_string());
+            let version = status_map.get(ext_name).and_then(|s| s.version.clone());
 
             extensions.push(ExtensionStatusDetail {
                 name: ext_name.clone(),
@@ -482,13 +483,12 @@ async fn status(args: ProfileStatusArgs) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&json_status)?);
     } else {
         // Build table rows
-        let manifest = ManifestManager::load_default()?;
         let mut rows = Vec::new();
 
         for ext_name in &status.installed_extensions {
-            let version = manifest
-                .get_version(ext_name)
-                .map(|v| v.to_string())
+            let version = status_map
+                .get(ext_name)
+                .and_then(|s| s.version.clone())
                 .unwrap_or_else(|| "-".to_string());
 
             rows.push(ExtensionStatusRow {

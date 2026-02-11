@@ -3,7 +3,8 @@
 use anyhow::{anyhow, Result};
 use semver::{Version, VersionReq};
 use sindri_core::config::HierarchicalConfigLoader;
-use sindri_core::types::{CompatibilityMatrix, GitHubConfig, InstallManifest, RuntimeConfig};
+use sindri_core::types::{CompatibilityMatrix, ExtensionState, GitHubConfig, RuntimeConfig};
+use sindri_extensions::StatusLedger;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -44,8 +45,8 @@ pub struct CompatibilityChecker {
     /// Compatibility matrix
     matrix: Option<CompatibilityMatrix>,
 
-    /// Path to manifest file
-    manifest_path: PathBuf,
+    /// Path to status ledger file
+    ledger_path: PathBuf,
 
     /// GitHub configuration
     github_config: GitHubConfig,
@@ -61,7 +62,7 @@ impl CompatibilityChecker {
             .map(|base| base.home_dir().to_path_buf())
             .unwrap_or_else(|| PathBuf::from("."));
 
-        let manifest_path = home.join(".sindri").join("manifest.yaml");
+        let ledger_path = home.join(".sindri").join("status_ledger.jsonl");
 
         // Load configuration
         let config_loader =
@@ -72,14 +73,14 @@ impl CompatibilityChecker {
 
         Self {
             matrix: None,
-            manifest_path,
+            ledger_path,
             github_config: runtime_config.github.clone(),
             runtime_config,
         }
     }
 
-    /// Create a new checker with custom manifest path
-    pub fn with_manifest_path(manifest_path: PathBuf) -> Self {
+    /// Create a new checker with custom ledger path
+    pub fn with_ledger_path(ledger_path: PathBuf) -> Self {
         // Load configuration
         let config_loader =
             HierarchicalConfigLoader::new().expect("Failed to create config loader");
@@ -89,7 +90,7 @@ impl CompatibilityChecker {
 
         Self {
             matrix: None,
-            manifest_path,
+            ledger_path,
             github_config: runtime_config.github.clone(),
             runtime_config,
         }
@@ -143,34 +144,16 @@ impl CompatibilityChecker {
         Ok(())
     }
 
-    /// Load installed extensions from manifest file
+    /// Load installed extensions from the status ledger
     pub fn load_installed_extensions(&self) -> Result<HashMap<String, String>> {
-        if !self.manifest_path.exists() {
-            // No manifest file means no extensions installed
-            return Ok(HashMap::new());
-        }
+        let ledger = StatusLedger::new(self.ledger_path.clone());
+        let status_map = ledger.get_all_latest_status()?;
 
-        let content = std::fs::read_to_string(&self.manifest_path).map_err(|e| {
-            anyhow!(
-                "Failed to read manifest file at {}: {}",
-                self.manifest_path.display(),
-                e
-            )
-        })?;
-
-        let manifest: InstallManifest = serde_yaml::from_str(&content).map_err(|e| {
-            anyhow!(
-                "Failed to parse manifest file at {}: {}",
-                self.manifest_path.display(),
-                e
-            )
-        })?;
-
-        // Convert InstallManifest to HashMap<String, String>
-        let extensions: HashMap<String, String> = manifest
-            .extensions
+        // Filter to only installed extensions and extract name -> version
+        let extensions: HashMap<String, String> = status_map
             .into_iter()
-            .map(|(name, ext)| (name, ext.version))
+            .filter(|(_, status)| status.current_state == ExtensionState::Installed)
+            .filter_map(|(name, status)| status.version.map(|v| (name, v)))
             .collect();
 
         Ok(extensions)

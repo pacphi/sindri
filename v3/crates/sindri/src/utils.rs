@@ -43,8 +43,3 @@ pub fn get_extensions_dir() -> Result<PathBuf> {
     // Fallback to home directory for downloaded extensions
     Ok(get_sindri_dir()?.join("extensions"))
 }
-
-/// Get the manifest path (~/.sindri/manifest.yaml)
-pub fn get_manifest_path() -> Result<PathBuf> {
-    Ok(get_sindri_dir()?.join("manifest.yaml"))
-}
