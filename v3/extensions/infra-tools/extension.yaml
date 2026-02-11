@@ -115,7 +115,7 @@ upgrade:
 bom:
   tools:
     - name: terraform
-      version: "1.14"
+      version: "1.14.0"
       source: mise
       type: cli-tool
       license: BUSL-1.1

@@ -463,6 +463,9 @@ impl ExtensionExecutor {
                     .replace("deb ", &format!("deb [signed-by={}] ", keyring_file))
             };
 
+            // Ensure correct architecture in apt sources
+            let sources = Self::fix_apt_sources_arch(&sources);
+
             // Write sources file
             self.write_file_with_sudo(&sources_file, sources.as_bytes(), use_sudo)
                 .await?;
@@ -1208,6 +1211,49 @@ impl ExtensionExecutor {
         Ok(())
     }
 
+    /// Detect system architecture in Debian package naming convention
+    fn detect_dpkg_arch() -> &'static str {
+        match std::env::consts::ARCH {
+            "x86_64" => "amd64",
+            "aarch64" => "arm64",
+            "arm" => "armhf",
+            other => {
+                warn!("Unknown architecture '{}', defaulting to amd64", other);
+                "amd64"
+            }
+        }
+    }
+
+    /// Fix hardcoded architecture in apt sources line
+    fn fix_apt_sources_arch(sources: &str) -> String {
+        let system_arch = Self::detect_dpkg_arch();
+
+        // Case 1: Replace existing hardcoded arch= value
+        if let Some(start) = sources.find("arch=") {
+            let after_arch = &sources[start + 5..];
+            let end = after_arch.find([' ', ',', ']']).unwrap_or(after_arch.len());
+            let old_arch = &after_arch[..end];
+            if old_arch != system_arch {
+                info!(
+                    "Fixing apt source architecture: {} -> {}",
+                    old_arch, system_arch
+                );
+            }
+            return sources.replace(
+                &format!("arch={}", old_arch),
+                &format!("arch={}", system_arch),
+            );
+        }
+
+        // Case 2: Has bracket section but no arch= — inject arch
+        if sources.contains("deb [") {
+            return sources.replace("deb [", &format!("deb [arch={} ", system_arch));
+        }
+
+        // Case 3: No bracket at all — add one with arch
+        sources.replace("deb ", &format!("deb [arch={}] ", system_arch))
+    }
+
     /// Validate script path to prevent directory traversal
     fn validate_script_path(&self, script_path: &Path, ext_dir: &Path) -> Result<()> {
         // Check for .. as a path component (not just substring)
@@ -1350,6 +1396,82 @@ mod tests {
         assert!(
             executor.validate_script_path(&absolute, &ext_dir).is_err(),
             "Absolute path should fail"
+        );
+    }
+
+    #[test]
+    fn test_detect_dpkg_arch() {
+        let arch = ExtensionExecutor::detect_dpkg_arch();
+        // Should return a valid Debian architecture name
+        assert!(
+            ["amd64", "arm64", "armhf"].contains(&arch),
+            "detect_dpkg_arch should return a known Debian architecture, got: {}",
+            arch
+        );
+    }
+
+    #[test]
+    fn test_fix_apt_sources_arch_replaces_hardcoded() {
+        let sources = "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable";
+        let result = ExtensionExecutor::fix_apt_sources_arch(sources);
+        let system_arch = ExtensionExecutor::detect_dpkg_arch();
+        assert!(
+            result.contains(&format!("arch={}", system_arch)),
+            "Should contain system arch '{}', got: {}",
+            system_arch,
+            result
+        );
+        // Should not contain the old arch if different
+        if system_arch != "amd64" {
+            assert!(
+                !result.contains("arch=amd64"),
+                "Should have replaced amd64, got: {}",
+                result
+            );
+        }
+    }
+
+    #[test]
+    fn test_fix_apt_sources_arch_injects_into_bracket() {
+        let sources =
+            "deb [signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable";
+        let result = ExtensionExecutor::fix_apt_sources_arch(sources);
+        let system_arch = ExtensionExecutor::detect_dpkg_arch();
+        assert!(
+            result.contains(&format!("arch={}", system_arch)),
+            "Should inject arch into bracket, got: {}",
+            result
+        );
+        assert!(
+            result.contains("signed-by="),
+            "Should preserve signed-by, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fix_apt_sources_arch_adds_bracket() {
+        let sources = "deb https://download.docker.com/linux/ubuntu jammy stable";
+        let result = ExtensionExecutor::fix_apt_sources_arch(sources);
+        let system_arch = ExtensionExecutor::detect_dpkg_arch();
+        assert!(
+            result.contains(&format!("[arch={}]", system_arch)),
+            "Should add bracket with arch, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_fix_apt_sources_arch_preserves_correct_arch() {
+        let system_arch = ExtensionExecutor::detect_dpkg_arch();
+        let sources = format!(
+            "deb [arch={} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable",
+            system_arch
+        );
+        let result = ExtensionExecutor::fix_apt_sources_arch(&sources);
+        assert_eq!(
+            result, sources,
+            "Should not modify sources when arch already matches"
         );
     }
 }

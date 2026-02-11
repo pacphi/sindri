@@ -18,7 +18,7 @@ install:
     repositories:
       - gpgKey: https://download.docker.com/linux/ubuntu/gpg
         sources: >-
-          deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable
+          deb https://download.docker.com/linux/ubuntu jammy stable
     packages:
       - docker-ce
       - docker-ce-cli
