@@ -14,7 +14,7 @@ use std::process::Command;
 
 use crate::cli::{CloneProjectArgs, NewProjectArgs, ProjectCommands};
 use crate::output;
-use crate::utils::{get_cache_dir, get_extensions_dir, get_home_dir};
+use crate::utils::{get_cache_dir, get_extensions_dir};
 
 // Import template system from sindri-projects
 use sindri_projects::templates::{
@@ -23,7 +23,7 @@ use sindri_projects::templates::{
 
 // Import extension management from sindri-extensions
 use sindri_core::types::ExtensionState;
-use sindri_extensions::{ExtensionDistributor, StatusLedger};
+use sindri_extensions::{ExtensionDistributor, ExtensionSourceResolver, StatusLedger};
 
 //====================================
 // EXTENSION ACTIVATION HELPER
@@ -1826,33 +1826,32 @@ fn initialize_project_tools() -> Result<()> {
         }
     };
 
-    // Get home directory for extension paths
-    let home = get_home_dir()?;
-    let extensions_dir = get_extensions_dir()?;
+    if status_map.is_empty() {
+        tracing::debug!("No installed extensions found in status ledger");
+        return Ok(());
+    }
+
     let workspace_dir = std::env::current_dir().context("Failed to get current directory")?;
 
-    // Create executor for running project-init capabilities (reserved for future use)
-    let _executor =
-        sindri_extensions::ExtensionExecutor::new(&extensions_dir, &workspace_dir, &home);
+    // Use canonical resolver — handles bundled (flat), downloaded (versioned), local-dev
+    let resolver = match ExtensionSourceResolver::from_env() {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::debug!("Failed to create extension source resolver: {}", e);
+            return Ok(());
+        }
+    };
 
     // Iterate through installed extensions looking for project-init capabilities
     let mut initialized_count = 0;
-    for (name, status) in status_map
+    for (name, _status) in status_map
         .iter()
         .filter(|(_, s)| s.current_state == ExtensionState::Installed)
     {
-        let version = match &status.version {
-            Some(v) => v,
+        let ext_yaml_path = match resolver.extension_path(name) {
+            Some(p) => p,
             None => continue,
         };
-        let ext_yaml_path = extensions_dir
-            .join(name)
-            .join(version)
-            .join("extension.yaml");
-
-        if !ext_yaml_path.exists() {
-            continue;
-        }
 
         // Load extension definition
         let content = match std::fs::read_to_string(&ext_yaml_path) {
@@ -1927,6 +1926,8 @@ fn initialize_project_tools() -> Result<()> {
 
     if initialized_count > 0 {
         output::success(&format!("  Initialized {} tool(s)", initialized_count));
+    } else {
+        tracing::debug!("No extensions with project-init capabilities found");
     }
 
     Ok(())
@@ -2047,29 +2048,21 @@ fn get_initialized_extensions_for_project(
         Err(_) => return Ok(results),
     };
 
-    // Get home directory for extension paths
-    let extensions_dir = match get_extensions_dir() {
-        Ok(dir) => dir,
+    // Use canonical resolver — handles bundled (flat), downloaded (versioned), local-dev
+    let resolver = match ExtensionSourceResolver::from_env() {
+        Ok(r) => r,
         Err(_) => return Ok(results),
     };
 
     // Check each installed extension for relevant capabilities
-    for (name, status) in status_map
+    for (name, _status) in status_map
         .iter()
         .filter(|(_, s)| s.current_state == ExtensionState::Installed)
     {
-        let version = match &status.version {
-            Some(v) => v,
+        let ext_yaml_path = match resolver.extension_path(name) {
+            Some(p) => p,
             None => continue,
         };
-        let ext_yaml_path = extensions_dir
-            .join(name)
-            .join(version)
-            .join("extension.yaml");
-
-        if !ext_yaml_path.exists() {
-            continue;
-        }
 
         // Load extension definition
         let content = match std::fs::read_to_string(&ext_yaml_path) {
