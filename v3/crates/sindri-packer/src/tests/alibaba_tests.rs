@@ -7,13 +7,13 @@ use sindri_core::types::packer_config::{AlibabaConfig, BuildConfig, CloudProvide
 
 #[test]
 fn test_alibaba_provider_creation() {
-    let provider = AlibabaPackerProvider::new();
+    let provider = AlibabaPackerProvider::new().unwrap();
     assert_eq!(provider.cloud_name(), "alibaba");
 }
 
 #[test]
 fn test_alibaba_prerequisite_check() {
-    let provider = AlibabaPackerProvider::new();
+    let provider = AlibabaPackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
     assert!(result.is_ok());
 
@@ -23,7 +23,7 @@ fn test_alibaba_prerequisite_check() {
 
 #[test]
 fn test_alibaba_template_generation() {
-    let provider = AlibabaPackerProvider::new();
+    let provider = AlibabaPackerProvider::new().unwrap();
 
     let config = PackerConfig {
         cloud: CloudProvider::Alibaba,

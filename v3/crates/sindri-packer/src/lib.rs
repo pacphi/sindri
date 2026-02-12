@@ -60,11 +60,11 @@ use sindri_core::types::packer_config::{CloudProvider, PackerConfig};
 /// Create a Packer provider instance for the specified cloud
 pub fn create_packer_provider(cloud: CloudProvider) -> Result<Box<dyn PackerProvider>> {
     match cloud {
-        CloudProvider::Aws => Ok(Box::new(aws::AwsPackerProvider::new())),
-        CloudProvider::Azure => Ok(Box::new(azure::AzurePackerProvider::new())),
-        CloudProvider::Gcp => Ok(Box::new(gcp::GcpPackerProvider::new())),
-        CloudProvider::Oci => Ok(Box::new(oci::OciPackerProvider::new())),
-        CloudProvider::Alibaba => Ok(Box::new(alibaba::AlibabaPackerProvider::new())),
+        CloudProvider::Aws => Ok(Box::new(aws::AwsPackerProvider::new()?)),
+        CloudProvider::Azure => Ok(Box::new(azure::AzurePackerProvider::new()?)),
+        CloudProvider::Gcp => Ok(Box::new(gcp::GcpPackerProvider::new()?)),
+        CloudProvider::Oci => Ok(Box::new(oci::OciPackerProvider::new()?)),
+        CloudProvider::Alibaba => Ok(Box::new(alibaba::AlibabaPackerProvider::new()?)),
     }
 }
 

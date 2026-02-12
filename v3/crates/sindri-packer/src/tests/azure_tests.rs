@@ -7,13 +7,13 @@ use sindri_core::types::packer_config::{AzureConfig, BuildConfig, CloudProvider,
 
 #[test]
 fn test_azure_provider_creation() {
-    let provider = AzurePackerProvider::new();
+    let provider = AzurePackerProvider::new().unwrap();
     assert_eq!(provider.cloud_name(), "azure");
 }
 
 #[test]
 fn test_azure_prerequisite_check() {
-    let provider = AzurePackerProvider::new();
+    let provider = AzurePackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
     assert!(result.is_ok());
 
@@ -23,7 +23,7 @@ fn test_azure_prerequisite_check() {
 
 #[test]
 fn test_azure_template_generation() {
-    let provider = AzurePackerProvider::new();
+    let provider = AzurePackerProvider::new().unwrap();
 
     let config = PackerConfig {
         cloud: CloudProvider::Azure,

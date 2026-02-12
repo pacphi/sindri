@@ -349,7 +349,9 @@ fn get_projects_dir() -> Utf8PathBuf {
                 .map(|w| Utf8PathBuf::from(w).join("projects"))
         })
         .unwrap_or_else(|| {
-            let home = std::env::var("HOME").unwrap_or_else(|_| "/alt/home/developer".to_string());
+            let home = sindri_core::utils::get_home_dir()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "/home/user".to_string());
             Utf8PathBuf::from(home).join("projects")
         })
 }

@@ -17,7 +17,7 @@
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
 //!     // Get latest release
-//!     let release_manager = ReleaseManager::new();
+//!     let release_manager = ReleaseManager::new()?;
 //!     let release = release_manager.get_latest().await?;
 //!
 //!     // Download binary for current platform

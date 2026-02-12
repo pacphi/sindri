@@ -14,7 +14,7 @@
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
 //!     // Create a registry client
-//!     let client = RegistryClient::new("ghcr.io")
+//!     let client = RegistryClient::new("ghcr.io")?
 //!         .with_token(std::env::var("GITHUB_TOKEN")?);
 //!
 //!     // Resolve version

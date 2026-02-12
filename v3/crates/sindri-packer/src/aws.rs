@@ -26,11 +26,11 @@ pub struct AwsPackerProvider {
 
 impl AwsPackerProvider {
     /// Create a new AWS Packer provider
-    pub fn new() -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to load templates"),
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to load templates")?,
             output_dir: utils::default_output_dir().join("aws"),
-        }
+        })
     }
 
     /// Check if AWS CLI is installed and configured
@@ -193,7 +193,7 @@ impl AwsPackerProvider {
 
 impl Default for AwsPackerProvider {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default AwsPackerProvider")
     }
 }
 

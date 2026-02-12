@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION};
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::sync::RwLock;
+use tokio::sync::RwLock;
 use tracing::{debug, trace};
 
 /// Client for interacting with OCI-compatible container registries
@@ -18,18 +18,18 @@ pub struct RegistryClient {
 
 impl RegistryClient {
     /// Create a new registry client
-    pub fn new(registry_url: impl Into<String>) -> Self {
+    pub fn new(registry_url: impl Into<String>) -> Result<Self> {
         let client = reqwest::Client::builder()
-            .user_agent("sindri-cli/3.0.0")
+            .user_agent(format!("sindri-cli/{}", env!("CARGO_PKG_VERSION")))
             .build()
-            .expect("Failed to build HTTP client");
+            .context("Failed to build HTTP client")?;
 
-        Self {
+        Ok(Self {
             client,
             registry_url: registry_url.into(),
             auth_token: None,
             bearer_token: RwLock::new(None),
-        }
+        })
     }
 
     /// Set authentication token (e.g., GitHub token for GHCR)
@@ -43,7 +43,7 @@ impl RegistryClient {
     /// For private packages, a GitHub PAT with read:packages scope is required.
     async fn get_ghcr_token(&self, repository: &str) -> Result<String> {
         // Check cache first
-        if let Some(token) = self.bearer_token.read().unwrap().as_ref() {
+        if let Some(token) = self.bearer_token.read().await.as_ref() {
             return Ok(token.clone());
         }
 
@@ -104,7 +104,7 @@ impl RegistryClient {
             .context("Failed to parse token response")?;
 
         // Cache the token
-        *self.bearer_token.write().unwrap() = Some(token_response.token.clone());
+        *self.bearer_token.write().await = Some(token_response.token.clone());
 
         Ok(token_response.token)
     }
@@ -367,7 +367,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_registry_client_creation() {
-        let client = RegistryClient::new("ghcr.io");
+        let client = RegistryClient::new("ghcr.io").unwrap();
         assert_eq!(client.registry_url, "ghcr.io");
         assert!(client.auth_token.is_none());
 

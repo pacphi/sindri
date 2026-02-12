@@ -3,7 +3,7 @@
 use crate::templates::{TemplateContext, TemplateRegistry};
 use crate::traits::Provider;
 use crate::utils::{command_exists, get_command_version};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use sindri_core::config::SindriConfig;
 use sindri_core::types::{
@@ -28,19 +28,19 @@ pub struct DockerProvider {
 
 impl DockerProvider {
     /// Create a new Docker provider
-    pub fn new() -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to initialize templates"),
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to initialize templates")?,
             output_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-        }
+        })
     }
 
     /// Create with a specific output directory
-    pub fn with_output_dir(output_dir: PathBuf) -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to initialize templates"),
+    pub fn with_output_dir(output_dir: PathBuf) -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to initialize templates")?,
             output_dir,
-        }
+        })
     }
 
     /// Check if Docker Compose v2 is available
@@ -474,7 +474,7 @@ impl DockerProvider {
 
 impl Default for DockerProvider {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default DockerProvider")
     }
 }
 
@@ -1202,7 +1202,7 @@ mod tests {
 
     #[test]
     fn test_docker_provider_creation() {
-        let provider = DockerProvider::new();
+        let provider = DockerProvider::new().unwrap();
         assert_eq!(provider.name(), "docker");
     }
 }

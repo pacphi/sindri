@@ -61,7 +61,7 @@ fn create_mock_binary(path: &PathBuf, version: &str) -> std::io::Result<()> {
 
 #[tokio::test]
 async fn test_check_for_updates_no_update() {
-    let manager = ReleaseManager::new();
+    let manager = ReleaseManager::new().unwrap();
 
     // This will check against real GitHub API
     // In a real test, we'd mock this
@@ -77,7 +77,7 @@ async fn test_check_for_updates_no_update() {
 
 #[tokio::test]
 async fn test_list_releases() {
-    let manager = ReleaseManager::new();
+    let manager = ReleaseManager::new().unwrap();
 
     // Test listing releases (may fail if network unavailable)
     let result = manager.list_releases(5).await;
@@ -96,7 +96,7 @@ async fn test_list_releases() {
 
 #[tokio::test]
 async fn test_get_platform_asset() {
-    let manager = ReleaseManager::new();
+    let manager = ReleaseManager::new().unwrap();
 
     let mock_release = Release {
         tag_name: "v3.0.0".to_string(),
@@ -174,7 +174,7 @@ cli_versions:
       - "Updated extension API to v2"
 "#;
 
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(matrix_yaml).unwrap();
 
     // Simulate installed extensions with old versions
@@ -203,7 +203,7 @@ cli_versions:
     breaking_changes: []
 "#;
 
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(matrix_yaml).unwrap();
 
     // Simulate installed extensions with compatible versions
@@ -309,7 +309,7 @@ async fn test_backup_and_rollback_flow() {
 
 #[test]
 fn test_release_manager_with_prerelease() {
-    let manager = ReleaseManager::new().with_prerelease();
+    let manager = ReleaseManager::new().unwrap().with_prerelease();
 
     // This is just to verify the builder pattern works
     // We can't easily test the actual filtering without real API calls
@@ -330,7 +330,7 @@ cli_versions:
       - "Major breaking change"
 "#;
 
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(matrix_yaml).unwrap();
 
     let mut installed = HashMap::new();
@@ -411,7 +411,7 @@ cli_versions:
       - "Updated extension schema to v2"
 "#;
 
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(matrix_yaml).unwrap();
 
     let installed = HashMap::new();
@@ -452,7 +452,7 @@ cli_versions:
         let version = version.to_string();
 
         join_set.spawn(async move {
-            let mut checker = CompatibilityChecker::new();
+            let mut checker = CompatibilityChecker::new().unwrap();
             checker.load_matrix_from_str(&matrix).unwrap();
 
             let mut installed = HashMap::new();
@@ -501,7 +501,7 @@ fn test_binary_permissions_after_download() {
 
 #[tokio::test]
 async fn test_upgrade_check_with_prerelease() {
-    let manager = ReleaseManager::new().with_prerelease();
+    let manager = ReleaseManager::new().unwrap().with_prerelease();
 
     // Would check for prereleases as well
     // This is just to verify the option exists

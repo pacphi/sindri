@@ -247,7 +247,10 @@ async fn get_latest_github_release_version(api_url: &str) -> Result<String> {
     let client = reqwest::Client::new();
     let response = client
         .get(api_url)
-        .header("User-Agent", "sindri-clusters")
+        .header(
+            "User-Agent",
+            format!("sindri-clusters/{}", env!("CARGO_PKG_VERSION")),
+        )
         .send()
         .await?;
 

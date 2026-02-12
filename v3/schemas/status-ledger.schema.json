@@ -28,10 +28,7 @@
     },
     "state_before": {
       "description": "Extension state before this event (null for first event)",
-      "oneOf": [
-        { "$ref": "#/$defs/extension_state" },
-        { "type": "null" }
-      ]
+      "oneOf": [{ "$ref": "#/$defs/extension_state" }, { "type": "null" }]
     },
     "state_after": {
       "$ref": "#/$defs/extension_state",

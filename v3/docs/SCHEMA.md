@@ -896,30 +896,30 @@ Each JSONL line is an `EventEnvelope`:
 
 ### Extension States
 
-| State        | Description                   |
-| ------------ | ----------------------------- |
-| `installed`  | Installed and working         |
-| `failed`     | Installation failed           |
-| `outdated`   | Needs upgrade                 |
-| `installing` | Installation in progress      |
-| `removing`   | Removal in progress           |
+| State        | Description              |
+| ------------ | ------------------------ |
+| `installed`  | Installed and working    |
+| `failed`     | Installation failed      |
+| `outdated`   | Needs upgrade            |
+| `installing` | Installation in progress |
+| `removing`   | Removal in progress      |
 
 ### Event Types
 
-| Event Type              | Trigger                          |
-| ----------------------- | -------------------------------- |
-| `install_started`       | Extension install begins         |
-| `install_completed`     | Extension install succeeds       |
-| `install_failed`        | Extension install fails          |
-| `upgrade_started`       | Extension upgrade begins         |
-| `upgrade_completed`     | Extension upgrade succeeds       |
-| `upgrade_failed`        | Extension upgrade fails          |
-| `remove_started`        | Extension removal begins         |
-| `remove_completed`      | Extension removal succeeds       |
-| `remove_failed`         | Extension removal fails          |
-| `outdated_detected`     | Newer version available          |
-| `validation_succeeded`  | Post-install validation passes   |
-| `validation_failed`     | Post-install validation fails    |
+| Event Type             | Trigger                        |
+| ---------------------- | ------------------------------ |
+| `install_started`      | Extension install begins       |
+| `install_completed`    | Extension install succeeds     |
+| `install_failed`       | Extension install fails        |
+| `upgrade_started`      | Extension upgrade begins       |
+| `upgrade_completed`    | Extension upgrade succeeds     |
+| `upgrade_failed`       | Extension upgrade fails        |
+| `remove_started`       | Extension removal begins       |
+| `remove_completed`     | Extension removal succeeds     |
+| `remove_failed`        | Extension removal fails        |
+| `outdated_detected`    | Newer version available        |
+| `validation_succeeded` | Post-install validation passes |
+| `validation_failed`    | Post-install validation fails  |
 
 ---
 

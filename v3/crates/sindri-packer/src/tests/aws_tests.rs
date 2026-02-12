@@ -7,13 +7,13 @@ use sindri_core::types::packer_config::{AwsConfig, BuildConfig, CloudProvider, P
 
 #[test]
 fn test_aws_provider_creation() {
-    let provider = AwsPackerProvider::new();
+    let provider = AwsPackerProvider::new().unwrap();
     assert_eq!(provider.cloud_name(), "aws");
 }
 
 #[test]
 fn test_aws_prerequisite_check() {
-    let provider = AwsPackerProvider::new();
+    let provider = AwsPackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
     assert!(result.is_ok());
 
@@ -24,7 +24,7 @@ fn test_aws_prerequisite_check() {
 
 #[test]
 fn test_aws_template_generation() {
-    let provider = AwsPackerProvider::new();
+    let provider = AwsPackerProvider::new().unwrap();
 
     let config = PackerConfig {
         cloud: CloudProvider::Aws,
@@ -77,7 +77,7 @@ fn test_parse_ami_id_no_match() {
 #[tokio::test]
 #[ignore] // Requires AWS credentials
 async fn test_aws_list_images() {
-    let provider = AwsPackerProvider::new();
+    let provider = AwsPackerProvider::new().unwrap();
 
     let config = PackerConfig {
         cloud: CloudProvider::Aws,

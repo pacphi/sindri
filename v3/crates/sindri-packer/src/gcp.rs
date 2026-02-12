@@ -26,11 +26,11 @@ pub struct GcpPackerProvider {
 
 impl GcpPackerProvider {
     /// Create a new GCP Packer provider
-    pub fn new() -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to load templates"),
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to load templates")?,
             output_dir: utils::default_output_dir().join("gcp"),
-        }
+        })
     }
 
     /// Check if gcloud CLI is installed
@@ -53,7 +53,7 @@ impl GcpPackerProvider {
 
 impl Default for GcpPackerProvider {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default GcpPackerProvider")
     }
 }
 

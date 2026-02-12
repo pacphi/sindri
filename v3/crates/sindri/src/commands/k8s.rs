@@ -289,7 +289,7 @@ async fn install(args: K8sInstallArgs) -> Result<()> {
     let result = match tool.as_str() {
         "kind" => installer::install_kind().await,
         "k3d" => installer::install_k3d().await,
-        _ => unreachable!(),
+        other => return Err(anyhow::anyhow!("Unknown tool: {}", other)),
     };
 
     pb.finish_and_clear();

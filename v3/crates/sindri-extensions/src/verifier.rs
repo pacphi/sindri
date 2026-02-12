@@ -14,9 +14,8 @@ use tracing::{debug, warn};
 /// This ensures commands installed via mise, npm global, go, cargo, etc.
 /// are discoverable during verification (same as during post-install validation).
 fn build_verification_path() -> String {
-    let home_dir = std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/alt/home/developer"));
+    let home_dir =
+        sindri_core::utils::get_home_dir().unwrap_or_else(|_| PathBuf::from("/home/user"));
     let workspace_dir = std::env::var("WORKSPACE")
         .map(PathBuf::from)
         .unwrap_or_else(|_| home_dir.join("workspace"));
@@ -34,9 +33,7 @@ fn build_verification_path() -> String {
 /// 4. SINDRI_EXT_HOME/{name}/{version}/extension.yaml (custom)
 /// 5. SINDRI_EXT_HOME/{name}/extension.yaml (custom, flat)
 pub fn find_extension_yaml(name: &str, version: &str) -> Option<PathBuf> {
-    let home = std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/alt/home/developer"));
+    let home = sindri_core::utils::get_home_dir().unwrap_or_else(|_| PathBuf::from("/home/user"));
 
     let sindri_ext_home = std::env::var("SINDRI_EXT_HOME")
         .unwrap_or_else(|_| format!("{}/.sindri/extensions", home.display()));

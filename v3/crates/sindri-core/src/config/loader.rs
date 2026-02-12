@@ -241,12 +241,15 @@ impl SindriConfig {
                 // Create registry client
                 let mut registry_client = if registry.contains("ghcr.io") {
                     RegistryClient::new("ghcr.io")
+                        .map_err(|e| Error::invalid_config(e.to_string()))?
                 } else if registry.contains("docker.io") {
                     RegistryClient::new("docker.io")
+                        .map_err(|e| Error::invalid_config(e.to_string()))?
                 } else {
                     // Extract registry host from full path
                     let registry_host = registry.split('/').next().unwrap_or("ghcr.io");
                     RegistryClient::new(registry_host)
+                        .map_err(|e| Error::invalid_config(e.to_string()))?
                 };
 
                 if let Some(token) = github_token {

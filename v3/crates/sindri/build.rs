@@ -76,7 +76,7 @@ async fn fetch_and_cache_metadata(token: &str) -> Result<String, Box<dyn std::er
     const MAX_VERSIONS: usize = 5;
 
     // Create registry client with authentication
-    let registry_client = RegistryClient::new(REGISTRY).with_token(token);
+    let registry_client = RegistryClient::new(REGISTRY)?.with_token(token);
 
     // Fetch all tags
     let mut tags = registry_client

@@ -6,13 +6,13 @@ use sindri_core::types::packer_config::{BuildConfig, CloudProvider, GcpConfig, P
 
 #[test]
 fn test_gcp_provider_creation() {
-    let provider = GcpPackerProvider::new();
+    let provider = GcpPackerProvider::new().unwrap();
     assert_eq!(provider.cloud_name(), "gcp");
 }
 
 #[test]
 fn test_gcp_prerequisite_check() {
-    let provider = GcpPackerProvider::new();
+    let provider = GcpPackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
     assert!(result.is_ok());
 
@@ -22,7 +22,7 @@ fn test_gcp_prerequisite_check() {
 
 #[test]
 fn test_gcp_template_generation() {
-    let provider = GcpPackerProvider::new();
+    let provider = GcpPackerProvider::new().unwrap();
 
     let config = PackerConfig {
         cloud: CloudProvider::Gcp,

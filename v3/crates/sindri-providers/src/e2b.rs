@@ -30,21 +30,21 @@ pub struct E2bProvider {
 
 impl E2bProvider {
     /// Create a new E2B provider
-    pub fn new() -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to initialize templates"),
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to initialize templates")?,
             output_dir: std::env::current_dir()
                 .unwrap_or_else(|_| PathBuf::from("."))
                 .join(".e2b"),
-        }
+        })
     }
 
     /// Create with a specific output directory
-    pub fn with_output_dir(output_dir: PathBuf) -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to initialize templates"),
+    pub fn with_output_dir(output_dir: PathBuf) -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to initialize templates")?,
             output_dir,
-        }
+        })
     }
 
     /// Check if E2B API key is set
@@ -585,7 +585,7 @@ impl E2bProvider {
 
 impl Default for E2bProvider {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default E2bProvider")
     }
 }
 
@@ -1144,19 +1144,19 @@ mod tests {
 
     #[test]
     fn test_e2b_provider_creation() {
-        let provider = E2bProvider::new();
+        let provider = E2bProvider::new().unwrap();
         assert_eq!(provider.name(), "e2b");
     }
 
     #[test]
     fn test_supports_gpu() {
-        let provider = E2bProvider::new();
+        let provider = E2bProvider::new().unwrap();
         assert!(!provider.supports_gpu());
     }
 
     #[test]
     fn test_supports_auto_suspend() {
-        let provider = E2bProvider::new();
+        let provider = E2bProvider::new().unwrap();
         assert!(provider.supports_auto_suspend());
     }
 }

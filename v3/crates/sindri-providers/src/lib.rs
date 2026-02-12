@@ -27,11 +27,11 @@ use sindri_core::types::Provider as ProviderType;
 pub fn create_provider(provider: ProviderType) -> Result<Box<dyn Provider>> {
     match provider {
         ProviderType::Docker | ProviderType::DockerCompose => {
-            Ok(Box::new(docker::DockerProvider::new()))
+            Ok(Box::new(docker::DockerProvider::new()?))
         }
-        ProviderType::Fly => Ok(Box::new(fly::FlyProvider::new())),
-        ProviderType::Devpod => Ok(Box::new(devpod::DevPodProvider::new())),
-        ProviderType::E2b => Ok(Box::new(e2b::E2bProvider::new())),
-        ProviderType::Kubernetes => Ok(Box::new(kubernetes::KubernetesProvider::new())),
+        ProviderType::Fly => Ok(Box::new(fly::FlyProvider::new()?)),
+        ProviderType::Devpod => Ok(Box::new(devpod::DevPodProvider::new()?)),
+        ProviderType::E2b => Ok(Box::new(e2b::E2bProvider::new()?)),
+        ProviderType::Kubernetes => Ok(Box::new(kubernetes::KubernetesProvider::new()?)),
     }
 }

@@ -26,11 +26,11 @@ pub struct AlibabaPackerProvider {
 
 impl AlibabaPackerProvider {
     /// Create a new Alibaba Cloud Packer provider
-    pub fn new() -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to load templates"),
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to load templates")?,
             output_dir: utils::default_output_dir().join("alibaba"),
-        }
+        })
     }
 
     /// Check if Alibaba Cloud CLI (aliyun) is installed
@@ -57,7 +57,7 @@ impl AlibabaPackerProvider {
 
 impl Default for AlibabaPackerProvider {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default AlibabaPackerProvider")
     }
 }
 

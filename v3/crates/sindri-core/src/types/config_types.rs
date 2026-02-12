@@ -282,7 +282,9 @@ pub struct WorkspaceVolume {
 }
 
 fn default_workspace_path() -> String {
-    "/alt/home/developer/workspace".to_string()
+    crate::utils::get_home_dir()
+        .map(|p| format!("{}/workspace", p.display()))
+        .unwrap_or_else(|_| "/home/user/workspace".to_string())
 }
 
 fn default_workspace_size() -> String {

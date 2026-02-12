@@ -39,7 +39,9 @@ impl RestoreTransaction {
         let id = Uuid::new_v4().to_string();
         let snapshot_dir = Utf8PathBuf::from(format!(
             "{}/.sindri/restore-snapshots",
-            std::env::var("HOME").unwrap_or_else(|_| "/alt/home/developer".to_string())
+            sindri_core::utils::get_home_dir()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "/home/user".to_string())
         ));
 
         async_fs::create_dir_all(&snapshot_dir).await?;

@@ -35,13 +35,14 @@ impl EnhancementManager {
     /// # Returns
     /// A new `EnhancementManager` instance with loaded templates.
     ///
-    /// # Panics
-    /// Panics if the embedded templates cannot be loaded (indicates build issue).
-    pub fn new() -> Self {
-        let template_manager = TemplateManager::new()
-            .expect("Failed to initialize template manager - embedded templates may be corrupted");
+    /// # Errors
+    /// Returns an error if the embedded templates cannot be loaded.
+    pub fn new() -> Result<Self> {
+        let template_manager = TemplateManager::new().map_err(|e| Error::EnhancementError {
+            message: format!("Failed to initialize template manager: {}", e),
+        })?;
 
-        Self { template_manager }
+        Ok(Self { template_manager })
     }
 
     /// Create an enhancement manager with a custom template manager
@@ -536,7 +537,7 @@ impl EnhancementManager {
 
 impl Default for EnhancementManager {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default EnhancementManager")
     }
 }
 
@@ -547,14 +548,14 @@ mod tests {
 
     #[test]
     fn test_enhancement_manager_new() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         // Should have templates loaded
         assert!(!manager.available_templates().is_empty());
     }
 
     #[test]
     fn test_command_exists() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
 
         // 'sh' should always exist on Unix
         #[cfg(unix)]
@@ -566,7 +567,7 @@ mod tests {
 
     #[test]
     fn test_is_known_extension() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
 
         assert!(manager.is_known_extension("nodejs"));
         assert!(manager.is_known_extension("python"));
@@ -576,7 +577,7 @@ mod tests {
 
     #[test]
     fn test_activate_extensions() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let path = Utf8PathBuf::try_from(temp_dir.path().to_path_buf()).unwrap();
 
@@ -593,7 +594,7 @@ mod tests {
 
     #[test]
     fn test_activate_extensions_empty() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let path = Utf8PathBuf::try_from(temp_dir.path().to_path_buf()).unwrap();
 
@@ -605,7 +606,7 @@ mod tests {
 
     #[test]
     fn test_create_claude_md() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let path = Utf8PathBuf::try_from(temp_dir.path().to_path_buf()).unwrap();
 
@@ -622,7 +623,7 @@ mod tests {
 
     #[test]
     fn test_create_claude_md_default() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let path = Utf8PathBuf::try_from(temp_dir.path().to_path_buf()).unwrap();
 
@@ -641,7 +642,7 @@ mod tests {
 
     #[test]
     fn test_create_claude_md_no_overwrite() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let path = Utf8PathBuf::try_from(temp_dir.path().to_path_buf()).unwrap();
 
@@ -661,7 +662,7 @@ mod tests {
 
     #[test]
     fn test_setup_enhancements() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         let temp_dir = TempDir::new().unwrap();
         let path = Utf8PathBuf::try_from(temp_dir.path().to_path_buf()).unwrap();
 
@@ -681,7 +682,7 @@ mod tests {
 
     #[test]
     fn test_get_template() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
 
         // Should be able to get node template
         let node_template = manager.get_template("node");
@@ -694,7 +695,7 @@ mod tests {
 
     #[test]
     fn test_available_templates() {
-        let manager = EnhancementManager::new();
+        let manager = EnhancementManager::new().unwrap();
         let templates = manager.available_templates();
 
         // Should have multiple templates

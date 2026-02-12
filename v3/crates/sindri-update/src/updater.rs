@@ -59,9 +59,9 @@ impl SindriUpdater {
         Ok(Self {
             current_version,
             binary_path,
-            release_manager: ReleaseManager::new(),
+            release_manager: ReleaseManager::new()?,
             downloader: BinaryDownloader::new()?,
-            compatibility_checker: CompatibilityChecker::new(),
+            compatibility_checker: CompatibilityChecker::new()?,
         })
     }
 

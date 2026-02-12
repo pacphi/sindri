@@ -1,6 +1,6 @@
 //! Compatibility matrix checking
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use semver::{Version, VersionReq};
 use sindri_core::config::HierarchicalConfigLoader;
 use sindri_core::types::{CompatibilityMatrix, ExtensionState, GitHubConfig, RuntimeConfig};
@@ -57,7 +57,7 @@ pub struct CompatibilityChecker {
 
 impl CompatibilityChecker {
     /// Create a new checker
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         let home = directories::BaseDirs::new()
             .map(|base| base.home_dir().to_path_buf())
             .unwrap_or_else(|| PathBuf::from("."));
@@ -66,34 +66,34 @@ impl CompatibilityChecker {
 
         // Load configuration
         let config_loader =
-            HierarchicalConfigLoader::new().expect("Failed to create config loader");
+            HierarchicalConfigLoader::new().context("Failed to create config loader")?;
         let runtime_config = config_loader
             .load_runtime_config()
-            .expect("Failed to load runtime config");
+            .context("Failed to load runtime config")?;
 
-        Self {
+        Ok(Self {
             matrix: None,
             ledger_path,
             github_config: runtime_config.github.clone(),
             runtime_config,
-        }
+        })
     }
 
     /// Create a new checker with custom ledger path
-    pub fn with_ledger_path(ledger_path: PathBuf) -> Self {
+    pub fn with_ledger_path(ledger_path: PathBuf) -> Result<Self> {
         // Load configuration
         let config_loader =
-            HierarchicalConfigLoader::new().expect("Failed to create config loader");
+            HierarchicalConfigLoader::new().context("Failed to create config loader")?;
         let runtime_config = config_loader
             .load_runtime_config()
-            .expect("Failed to load runtime config");
+            .context("Failed to load runtime config")?;
 
-        Self {
+        Ok(Self {
             matrix: None,
             ledger_path,
             github_config: runtime_config.github.clone(),
             runtime_config,
-        }
+        })
     }
 
     /// Load compatibility matrix from URL
@@ -250,7 +250,7 @@ impl CompatibilityChecker {
 
 impl Default for CompatibilityChecker {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default CompatibilityChecker")
     }
 }
 

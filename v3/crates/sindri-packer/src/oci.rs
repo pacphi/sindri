@@ -26,11 +26,11 @@ pub struct OciPackerProvider {
 
 impl OciPackerProvider {
     /// Create a new OCI Packer provider
-    pub fn new() -> Self {
-        Self {
-            templates: TemplateRegistry::new().expect("Failed to load templates"),
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            templates: TemplateRegistry::new().context("Failed to load templates")?,
             output_dir: utils::default_output_dir().join("oci"),
-        }
+        })
     }
 
     /// Check if OCI CLI is installed
@@ -53,7 +53,7 @@ impl OciPackerProvider {
 
 impl Default for OciPackerProvider {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default OciPackerProvider")
     }
 }
 

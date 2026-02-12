@@ -96,9 +96,10 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     }
 
     // Get workspace root
-    let workspace_root = std::env::var("HOME")
-        .map(Utf8PathBuf::from)
-        .unwrap_or_else(|_| Utf8PathBuf::from("/alt/home/developer"));
+    let home = sindri_core::utils::get_home_dir()
+        .map_err(|e| anyhow::anyhow!("Cannot determine home directory: {}", e))?;
+    let workspace_root = Utf8PathBuf::from_path_buf(home)
+        .unwrap_or_else(|p| Utf8PathBuf::from(p.to_string_lossy().to_string()));
 
     // Load config if available (used for instance/provider info)
     let config = SindriConfig::load(None).ok();

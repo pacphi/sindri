@@ -21,7 +21,7 @@ const COMPAT_MATRIX_URL: &str =
     "https://raw.githubusercontent.com/pacphi/sindri/main/compatibility-matrix.yaml";
 
 pub async fn run(args: UpgradeArgs) -> Result<()> {
-    let mut manager = ReleaseManager::new();
+    let mut manager = ReleaseManager::new()?;
     if args.prerelease {
         manager = manager.with_prerelease();
     }
@@ -124,7 +124,7 @@ async fn show_compatibility(manager: &ReleaseManager, target_version: &str) -> R
 
     // Load compatibility matrix
     let spinner = output::spinner("Checking extension compatibility...");
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new()?;
 
     match checker.load_matrix(COMPAT_MATRIX_URL).await {
         Ok(_) => {
@@ -234,7 +234,7 @@ async fn do_upgrade(manager: &ReleaseManager, args: &UpgradeArgs) -> Result<()> 
     // Check extension compatibility
     if !installed.is_empty() && !args.force {
         let spinner = output::spinner("Checking extension compatibility...");
-        let mut checker = CompatibilityChecker::new();
+        let mut checker = CompatibilityChecker::new()?;
 
         let compat_result = match checker.load_matrix(COMPAT_MATRIX_URL).await {
             Ok(_) => {

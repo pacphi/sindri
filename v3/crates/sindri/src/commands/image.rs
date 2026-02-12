@@ -85,7 +85,7 @@ async fn list(args: ImageListArgs) -> Result<()> {
 
 /// Fetch tags from registry (live)
 async fn fetch_live_tags(registry: &str, repository: &str, token: &str) -> Result<Vec<String>> {
-    let registry_client = RegistryClient::new(registry).with_token(token);
+    let registry_client = RegistryClient::new(registry)?.with_token(token);
 
     let tags = registry_client
         .list_tags(repository)
@@ -191,7 +191,7 @@ async fn inspect(args: ImageInspectArgs) -> Result<()> {
     let github_token = std::env::var("GITHUB_TOKEN").ok();
 
     // Create registry client
-    let mut registry_client = RegistryClient::new(&img_ref.registry);
+    let mut registry_client = RegistryClient::new(&img_ref.registry)?;
     if let Some(token) = github_token {
         registry_client = registry_client.with_token(token);
     }
@@ -357,7 +357,7 @@ async fn versions(args: ImageVersionsArgs) -> Result<()> {
     let repository = "pacphi/sindri";
     let github_token = std::env::var("GITHUB_TOKEN").ok();
 
-    let mut registry_client = RegistryClient::new("ghcr.io");
+    let mut registry_client = RegistryClient::new("ghcr.io")?;
     if let Some(token) = github_token {
         registry_client = registry_client.with_token(token);
     }

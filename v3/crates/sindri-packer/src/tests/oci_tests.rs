@@ -7,13 +7,13 @@ use sindri_core::types::packer_config::{BuildConfig, CloudProvider, OciConfig, P
 
 #[test]
 fn test_oci_provider_creation() {
-    let provider = OciPackerProvider::new();
+    let provider = OciPackerProvider::new().unwrap();
     assert_eq!(provider.cloud_name(), "oci");
 }
 
 #[test]
 fn test_oci_prerequisite_check() {
-    let provider = OciPackerProvider::new();
+    let provider = OciPackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
     assert!(result.is_ok());
 
@@ -23,7 +23,7 @@ fn test_oci_prerequisite_check() {
 
 #[test]
 fn test_oci_template_generation() {
-    let provider = OciPackerProvider::new();
+    let provider = OciPackerProvider::new().unwrap();
 
     let config = PackerConfig {
         cloud: CloudProvider::Oci,

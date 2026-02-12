@@ -1,6 +1,6 @@
 //! GitHub releases management
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use semver::Version;
 use serde::Deserialize;
 use sindri_core::config::HierarchicalConfigLoader;
@@ -62,26 +62,26 @@ pub struct ReleaseManager {
 
 impl ReleaseManager {
     /// Create a new release manager
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         // Load configuration
         let config_loader =
-            HierarchicalConfigLoader::new().expect("Failed to create config loader");
+            HierarchicalConfigLoader::new().context("Failed to create config loader")?;
         let runtime_config = config_loader
             .load_runtime_config()
-            .expect("Failed to load runtime config");
+            .context("Failed to load runtime config")?;
         let platform_matrix = config_loader
             .load_platform_matrix()
-            .expect("Failed to load platform matrix");
+            .context("Failed to load platform matrix")?;
 
-        Self {
+        Ok(Self {
             client: reqwest::Client::builder()
                 .user_agent(&runtime_config.network.user_agent)
                 .build()
-                .expect("Failed to create HTTP client"),
+                .context("Failed to create HTTP client")?,
             include_prerelease: false,
             github_config: runtime_config.github,
             platform_matrix,
-        }
+        })
     }
 
     /// Include prerelease versions
@@ -196,6 +196,6 @@ impl ReleaseManager {
 
 impl Default for ReleaseManager {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default ReleaseManager")
     }
 }

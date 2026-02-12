@@ -14,14 +14,14 @@ use sindri_update::compatibility::{CompatResult, CompatibilityChecker, Incompati
 
 #[test]
 fn test_compatibility_checker_creation() {
-    let checker = CompatibilityChecker::new();
+    let checker = CompatibilityChecker::new().unwrap();
     // Should create successfully without a loaded matrix
     assert!(!std::ptr::addr_of!(checker).is_null());
 }
 
 #[test]
 fn test_load_matrix_from_string() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     let result = checker.load_matrix_from_str(&load_matrix_v1());
 
     assert!(result.is_ok());
@@ -29,7 +29,7 @@ fn test_load_matrix_from_string() {
 
 #[test]
 fn test_load_invalid_yaml() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     let invalid_yaml = "invalid: yaml: structure:\n  - broken";
 
     let result = checker.load_matrix_from_str(invalid_yaml);
@@ -38,7 +38,7 @@ fn test_load_invalid_yaml() {
 
 #[test]
 fn test_exact_version_match() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     let result = checker
@@ -51,7 +51,7 @@ fn test_exact_version_match() {
 
 #[test]
 fn test_wildcard_version_match() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     // Should match "3.0.x" pattern
@@ -64,7 +64,7 @@ fn test_wildcard_version_match() {
 
 #[test]
 fn test_incompatible_extension_version() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     let result = checker
@@ -78,7 +78,7 @@ fn test_incompatible_extension_version() {
 
 #[test]
 fn test_multiple_incompatible_extensions() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     let result = checker
@@ -91,7 +91,7 @@ fn test_multiple_incompatible_extensions() {
 
 #[test]
 fn test_extension_not_in_matrix() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     // Extensions not in the matrix should not cause incompatibility
@@ -104,7 +104,7 @@ fn test_extension_not_in_matrix() {
 
 #[test]
 fn test_empty_installed_extensions() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     let result = checker
@@ -117,7 +117,7 @@ fn test_empty_installed_extensions() {
 
 #[test]
 fn test_breaking_changes_reported() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     let result = checker
@@ -130,7 +130,7 @@ fn test_breaking_changes_reported() {
 
 #[test]
 fn test_no_breaking_changes_for_patch_version() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     // 3.0.x has no breaking changes
@@ -174,7 +174,7 @@ fn test_caret_requirement() {
 
 #[test]
 fn test_check_without_loaded_matrix() {
-    let checker = CompatibilityChecker::new();
+    let checker = CompatibilityChecker::new().unwrap();
 
     let result = checker.check_compatibility(VERSION_3_0_0, &empty_extensions());
 
@@ -184,7 +184,7 @@ fn test_check_without_loaded_matrix() {
 
 #[test]
 fn test_version_not_in_matrix() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     let result = checker.check_compatibility(VERSION_99_0_0, &empty_extensions());
@@ -195,7 +195,7 @@ fn test_version_not_in_matrix() {
 
 #[test]
 fn test_invalid_extension_version() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     let result = checker
@@ -208,7 +208,7 @@ fn test_invalid_extension_version() {
 
 #[test]
 fn test_wildcard_pattern_matching() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     // All these should match the "3.0.x" pattern
@@ -221,7 +221,7 @@ fn test_wildcard_pattern_matching() {
 
 #[test]
 fn test_wildcard_does_not_match_different_minor() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_v1()).unwrap();
 
     // 3.1.0 should not match "3.0.x" pattern
@@ -233,7 +233,7 @@ fn test_wildcard_does_not_match_different_minor() {
 
 #[test]
 fn test_major_version_upgrade_breaking_changes() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker
         .load_matrix_from_str(&load_matrix_conflicts())
         .unwrap();
@@ -283,7 +283,7 @@ fn test_compat_result_structure() {
 
 #[test]
 fn test_multiple_cli_versions_in_matrix() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker
         .load_matrix_from_str(&load_matrix_multi_version())
         .unwrap();
@@ -339,7 +339,7 @@ fn test_compatibility_checker_default() {
 
 #[test]
 fn test_empty_compatibility_matrix() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker.load_matrix_from_str(&load_matrix_empty()).unwrap();
 
     let result = checker.check_compatibility(VERSION_3_0_0, &empty_extensions());
@@ -349,7 +349,7 @@ fn test_empty_compatibility_matrix() {
 
 #[test]
 fn test_schema_version_field() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     let result = checker.load_matrix_from_str(&load_matrix_schema_v2());
 
     assert!(result.is_ok());
@@ -357,7 +357,7 @@ fn test_schema_version_field() {
 
 #[test]
 fn test_complex_version_requirements() {
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     checker
         .load_matrix_from_str(&load_matrix_complex())
         .unwrap();
@@ -372,7 +372,7 @@ fn test_complex_version_requirements() {
 async fn test_load_matrix_from_url_mock() {
     // This would require a mock HTTP server
     // For now, we test that the function exists and has the right signature
-    let mut checker = CompatibilityChecker::new();
+    let mut checker = CompatibilityChecker::new().unwrap();
     let result = checker
         .load_matrix("https://invalid.example.com/matrix.yaml")
         .await;
