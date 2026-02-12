@@ -158,9 +158,9 @@ local-*
 personal-*
 private-*
 custom-*
-!examples/*.sindri.yaml
 sindri.yaml
 sindri.*.yaml
+!examples/**/*.sindri.yaml
 
 # Test Files and Coverage
 test-results/

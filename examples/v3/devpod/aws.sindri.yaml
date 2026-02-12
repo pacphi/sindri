@@ -1,0 +1,41 @@
+# DevPod with AWS EC2 backend
+# Provision a remote dev environment on AWS via DevPod
+version: '3.0'
+name: aws-devpod
+
+deployment:
+  provider: devpod
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      size: 40GB
+
+extensions:
+  profile: systems
+  additional:
+    - cloud-tools
+
+secrets:
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+    required: true
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+    required: true
+  - name: SSH_PRIVATE_KEY
+    source: file
+    path: ~/.ssh/id_ed25519
+    mountPath: /home/developer/.ssh/id_ed25519
+    permissions: "0600"
+
+providers:
+  devpod:
+    type: aws
+    buildRepository: ghcr.io/myorg/sindri
+    aws:
+      region: us-west-2
+      instanceType: c5.xlarge
+      diskSize: 50
+      useSpot: true

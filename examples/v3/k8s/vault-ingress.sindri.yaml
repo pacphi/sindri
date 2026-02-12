@@ -1,0 +1,34 @@
+# Kubernetes deployment
+# Deploy Sindri as a pod in an existing Kubernetes cluster
+version: '3.0'
+name: k8s-dev
+
+deployment:
+  provider: kubernetes
+  image: ghcr.io/sindri-dev/sindri:3
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: devops
+
+secrets:
+  - name: KUBECONFIG_DATA
+    source: vault
+    vaultPath: secret/data/dev/kubeconfig
+    vaultKey: config
+    required: true
+  - name: REGISTRY_PASSWORD
+    source: env
+
+providers:
+  kubernetes:
+    namespace: sindri-dev
+    storageClass: gp3
+    ingress:
+      enabled: true
+      hostname: dev.internal.example.com

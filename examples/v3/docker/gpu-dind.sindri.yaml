@@ -1,0 +1,61 @@
+# Custom extension configuration
+# Project with a curated set of extensions instead of a preset profile
+version: '3.0'
+name: custom-stack
+
+deployment:
+  provider: docker
+  resources:
+    memory: 8GB
+    cpus: 4
+    gpu:
+      enabled: true
+      type: nvidia
+      count: 1
+      memory: 16GB
+  volumes:
+    workspace:
+      size: 50GB
+
+extensions:
+  active:
+    - nodejs
+    - python
+    - rust
+    - golang
+    - docker
+    - claude-cli
+    - ai-toolkit
+    - ollama
+    - playwright
+    - supabase-cli
+    - infra-tools
+    - tmux-workspace
+
+secrets:
+  - name: GITHUB_TOKEN
+    source: env
+  - name: NPM_TOKEN
+    source: env
+  - name: TLS_CERT
+    source: file
+    path: ./certs/server.crt
+    mountPath: /etc/ssl/certs/server.crt
+    permissions: "0644"
+  - name: TLS_KEY
+    source: file
+    path: ./certs/server.key
+    mountPath: /etc/ssl/private/server.key
+    permissions: "0600"
+
+providers:
+  docker:
+    network: bridge
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "5432:5432"
+      - "8080:8080"
+    dind:
+      enabled: true
+      mode: auto

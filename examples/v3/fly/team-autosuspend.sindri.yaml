@@ -1,0 +1,35 @@
+# Fly.io cloud deployment
+# Deploy a remote Sindri dev environment on Fly.io with auto-suspend
+version: '3.0'
+name: team-dev-fly
+
+deployment:
+  provider: fly
+  image: ghcr.io/sindri-dev/sindri:3
+  resources:
+    memory: 2GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 20GB
+
+extensions:
+  profile: fullstack
+  additional:
+    - docker
+    - cloud-tools
+
+secrets:
+  - name: GITHUB_TOKEN
+    source: env
+    required: true
+  - name: FLY_API_TOKEN
+    source: env
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: shared
+    autoStopMachines: true
+    autoStartMachines: true
+    sshPort: 10022

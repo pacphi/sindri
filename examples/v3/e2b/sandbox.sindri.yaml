@@ -1,0 +1,33 @@
+# E2B ephemeral sandbox
+# Spin up a short-lived cloud sandbox for AI agent coding tasks
+version: '3.0'
+name: ai-sandbox
+
+deployment:
+  provider: e2b
+  resources:
+    memory: 2GB
+    cpus: 2
+
+extensions:
+  profile: anthropic-dev
+
+secrets:
+  - name: E2B_API_KEY
+    source: env
+    required: true
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+providers:
+  e2b:
+    timeout: 600
+    autoPause: true
+    autoResume: true
+    internetAccess: true
+    blockedDomains:
+      - "*.torrent.com"
+    metadata:
+      team: ai-research
+      purpose: agent-sandbox

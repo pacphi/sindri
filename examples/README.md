@@ -17,8 +17,11 @@ examples/
 │       └── vision-flow/    # VisionFlow AI vision examples
 │
 └── v3/                     # Examples for Sindri v3 (Rust CLI)
-    ├── docker/             # Docker provider examples
+    ├── docker/             # Docker Compose provider examples
     ├── fly/                # Fly.io provider examples
+    ├── devpod/             # DevPod examples (sub-dir per cloud)
+    ├── e2b/                # E2B ephemeral sandbox examples
+    ├── k8s/                # Kubernetes provider examples
     └── profiles/           # Extension profile examples
 ```
 

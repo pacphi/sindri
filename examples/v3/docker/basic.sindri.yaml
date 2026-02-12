@@ -1,0 +1,24 @@
+# Minimal Docker Compose deployment
+# Deploy a local Sindri dev environment using Docker Compose
+version: '3.0'
+name: my-dev-env
+
+deployment:
+  provider: docker
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      size: 10GB
+
+extensions:
+  profile: minimal
+
+providers:
+  docker:
+    network: bridge
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "8080:8080"
