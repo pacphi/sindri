@@ -1204,8 +1204,57 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_docker_memory_mb_base10() {
+        assert_eq!(parse_docker_memory("500MB"), Some(500_000_000));
+    }
+
+    #[test]
+    fn test_parse_docker_memory_invalid() {
+        assert_eq!(parse_docker_memory("invalid"), None);
+        assert_eq!(parse_docker_memory(""), None);
+        assert_eq!(parse_docker_memory("123TB"), None);
+    }
+
+    #[test]
+    fn test_parse_docker_memory_whitespace() {
+        // Input is trimmed in the function
+        assert_eq!(parse_docker_memory("  2GiB  "), Some(2_147_483_648));
+        assert_eq!(parse_docker_memory("  512KiB  "), Some(524_288));
+    }
+
+    #[test]
     fn test_docker_provider_creation() {
         let provider = DockerProvider::new().unwrap();
         assert_eq!(provider.name(), "docker");
+    }
+
+    #[test]
+    fn test_docker_provider_with_output_dir() {
+        let dir = std::path::PathBuf::from("/tmp/test-docker");
+        let provider = DockerProvider::with_output_dir(dir.clone()).unwrap();
+        assert_eq!(provider.output_dir, dir);
+        assert_eq!(provider.name(), "docker");
+    }
+
+    #[test]
+    fn test_docker_provider_check_prerequisites() {
+        let provider = DockerProvider::new().unwrap();
+        let result = provider.check_prerequisites();
+        assert!(result.is_ok(), "check_prerequisites should not error");
+        let status = result.unwrap();
+        // In CI, docker may or may not exist, but the function should not panic
+        assert!(
+            !status.available.is_empty() || !status.missing.is_empty(),
+            "should have at least one available or missing prerequisite"
+        );
+    }
+
+    #[test]
+    fn test_docker_provider_does_not_support_auto_suspend() {
+        let provider = DockerProvider::new().unwrap();
+        assert!(
+            !provider.supports_auto_suspend(),
+            "Docker provider should not support auto-suspend"
+        );
     }
 }

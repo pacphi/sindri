@@ -28,17 +28,14 @@ pub struct ConfigureResult {
 /// Main orchestrator for configure processing
 pub struct ConfigureProcessor {
     extension_dir: PathBuf,
-    #[allow(dead_code)] // Reserved for future use in rollback transactions
-    workspace_dir: PathBuf,
     home_dir: PathBuf,
 }
 
 impl ConfigureProcessor {
     /// Create a new ConfigureProcessor
-    pub fn new(extension_dir: PathBuf, workspace_dir: PathBuf, home_dir: PathBuf) -> Self {
+    pub fn new(extension_dir: PathBuf, home_dir: PathBuf) -> Self {
         Self {
             extension_dir,
-            workspace_dir,
             home_dir,
         }
     }
@@ -159,11 +156,9 @@ mod tests {
         let processor = ConfigureProcessor::new(
             temp.path().to_path_buf(),
             temp.path().to_path_buf(),
-            temp.path().to_path_buf(),
         );
 
         assert_eq!(processor.extension_dir, temp.path());
-        assert_eq!(processor.workspace_dir, temp.path());
         assert_eq!(processor.home_dir, temp.path());
     }
 }

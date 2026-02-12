@@ -4780,6 +4780,7 @@ dependencies = [
  "serde_yaml_ng",
  "sindri-core",
  "sindri-secrets",
+ "tempfile",
  "tera",
  "thiserror 2.0.18",
  "tokio",

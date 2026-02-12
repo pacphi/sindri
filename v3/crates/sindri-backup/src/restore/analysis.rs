@@ -224,4 +224,58 @@ mod tests {
         let result = analyzer.analyze(path).await;
         assert!(result.is_err(), "Should fail for missing file");
     }
+
+    #[test]
+    fn test_validate_archive_succeeds_with_valid_tar_gz() {
+        let temp_dir = TempDir::new().unwrap();
+        let archive_path = temp_dir.path().join("valid.tar.gz");
+
+        let source_dir = temp_dir.path().join("source");
+        std::fs::create_dir_all(&source_dir).unwrap();
+        std::fs::write(source_dir.join("file1.txt"), b"content1").unwrap();
+        std::fs::write(source_dir.join("file2.txt"), b"content2").unwrap();
+
+        create_tar_gz_from_dir(&source_dir, &archive_path);
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(archive_path).expect("path should be valid UTF-8");
+        let analyzer = BackupAnalyzer;
+        let result = analyzer.validate_archive(&utf8_path);
+        assert!(
+            result.is_ok(),
+            "Valid tar.gz should pass validation, got: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_count_files_returns_correct_count() {
+        let temp_dir = TempDir::new().unwrap();
+        let archive_path = temp_dir.path().join("counted.tar.gz");
+
+        let source_dir = temp_dir.path().join("source");
+        std::fs::create_dir_all(&source_dir).unwrap();
+        std::fs::write(source_dir.join("a.txt"), b"aaa").unwrap();
+        std::fs::write(source_dir.join("b.txt"), b"bbbbb").unwrap();
+        std::fs::write(source_dir.join("c.txt"), b"c").unwrap();
+
+        create_tar_gz_from_dir(&source_dir, &archive_path);
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(archive_path).expect("path should be valid UTF-8");
+        let analyzer = BackupAnalyzer;
+        let (count, total_size) = analyzer.count_files(&utf8_path).unwrap();
+
+        // tar includes the directory entry "." plus 3 files = at least 4 entries
+        assert!(
+            count >= 3,
+            "Expected at least 3 entries (3 files), got {}",
+            count
+        );
+        assert!(
+            total_size >= 9,
+            "Expected total size >= 9 bytes (3+5+1), got {}",
+            total_size
+        );
+    }
 }

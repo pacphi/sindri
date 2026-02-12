@@ -28,20 +28,11 @@ use tracing::{debug, info};
 /// Default kind version to install (fallback)
 const DEFAULT_KIND_VERSION: &str = "v0.25.0";
 
-/// Default k3d version to install (fallback)
-const DEFAULT_K3D_VERSION: &str = "v5.8.0";
-
 /// GitHub API URL for kind releases
 const KIND_RELEASES_URL: &str = "https://api.github.com/repos/kubernetes-sigs/kind/releases/latest";
 
 /// Kind binary download base URL
 const KIND_DOWNLOAD_BASE: &str = "https://kind.sigs.k8s.io/dl";
-
-/// GitHub API URL for k3d releases
-const K3D_RELEASES_URL: &str = "https://api.github.com/repos/k3d-io/k3d/releases/latest";
-
-/// K3d binary download base URL
-const K3D_DOWNLOAD_BASE: &str = "https://github.com/k3d-io/k3d/releases/download";
 
 /// K3d official install script URL
 const K3D_INSTALL_SCRIPT: &str = "https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh";
@@ -163,25 +154,6 @@ async fn install_k3d_script() -> Result<()> {
     }
 }
 
-/// Install k3d via direct binary download
-#[allow(dead_code)]
-async fn install_k3d_binary(platform: &Platform) -> Result<()> {
-    let version = get_latest_k3d_version().await.unwrap_or_else(|_| {
-        info!(
-            "Could not determine latest k3d version, using {}",
-            DEFAULT_K3D_VERSION
-        );
-        DEFAULT_K3D_VERSION.to_string()
-    });
-
-    let os = platform.os.download_name();
-    let arch = platform.arch.download_name();
-    let url = format!("{}/{}/k3d-{}-{}", K3D_DOWNLOAD_BASE, version, os, arch);
-
-    info!("Downloading k3d {} for {}/{}...", version, os, arch);
-    download_and_install_binary(&url, "k3d", platform).await
-}
-
 /// Download a binary and install it to the system
 async fn download_and_install_binary(url: &str, name: &str, platform: &Platform) -> Result<()> {
     let temp_path = std::env::temp_dir().join(name);
@@ -235,11 +207,6 @@ async fn download_and_install_binary(url: &str, name: &str, platform: &Platform)
 /// Get the latest kind version from GitHub API
 async fn get_latest_kind_version() -> Result<String> {
     get_latest_github_release_version(KIND_RELEASES_URL).await
-}
-
-/// Get the latest k3d version from GitHub API
-async fn get_latest_k3d_version() -> Result<String> {
-    get_latest_github_release_version(K3D_RELEASES_URL).await
 }
 
 /// Get the latest release version from a GitHub API URL

@@ -164,13 +164,6 @@ impl KubernetesProvider {
             storage_class,
             volume_size,
             gpu_enabled,
-            // Note: image is set to a placeholder here since get_k8s_config is sync
-            // The actual resolved image should be obtained via config.resolve_image(None).await
-            image: file
-                .deployment
-                .image
-                .as_deref()
-                .unwrap_or("ghcr.io/pacphi/sindri:latest"),
         }
     }
 
@@ -1151,9 +1144,6 @@ struct K8sDeployConfig<'a> {
     storage_class: Option<&'a str>,
     volume_size: String,
     gpu_enabled: bool,
-    // Note: image is resolved async via config.resolve_image() rather than stored here
-    #[allow(dead_code)]
-    image: &'a str,
 }
 
 /// k3d cluster info from JSON
@@ -1170,17 +1160,9 @@ struct K8sPodList {
 
 /// Kubernetes pod
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct K8sPod {
-    metadata: K8sPodMetadata,
     spec: K8sPodSpec,
     status: K8sPodStatus,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct K8sPodMetadata {
-    name: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1205,8 +1187,126 @@ mod tests {
     }
 
     #[test]
+    fn test_kubernetes_provider_with_output_dir() {
+        let dir = std::path::PathBuf::from("/tmp/test-k8s");
+        let provider = KubernetesProvider::with_output_dir(dir.clone()).unwrap();
+        assert_eq!(provider.output_dir, dir);
+        assert_eq!(provider.name(), "kubernetes");
+    }
+
+    #[test]
     fn test_kubernetes_supports_gpu() {
         let provider = KubernetesProvider::new().unwrap();
         assert!(provider.supports_gpu());
+    }
+
+    #[test]
+    fn test_kubernetes_does_not_support_auto_suspend() {
+        let provider = KubernetesProvider::new().unwrap();
+        assert!(
+            !provider.supports_auto_suspend(),
+            "Kubernetes should not support auto-suspend (default false)"
+        );
+    }
+
+    #[test]
+    fn test_k8s_pod_deserialization() {
+        let json = r#"{
+            "spec": {"nodeName": "node-1"},
+            "status": {"phase": "Running"}
+        }"#;
+        let pod: K8sPod = serde_json::from_str(json).unwrap();
+        assert_eq!(pod.spec.node_name.as_deref(), Some("node-1"));
+        assert_eq!(pod.status.phase, "Running");
+    }
+
+    #[test]
+    fn test_k8s_pod_deserialization_no_node_name() {
+        let json = r#"{
+            "spec": {},
+            "status": {"phase": "Pending"}
+        }"#;
+        let pod: K8sPod = serde_json::from_str(json).unwrap();
+        assert!(pod.spec.node_name.is_none());
+        assert_eq!(pod.status.phase, "Pending");
+    }
+
+    #[test]
+    fn test_k8s_pod_deserialization_ignores_extra_fields() {
+        // K8sPod should tolerate extra fields like metadata
+        let json = r#"{
+            "metadata": {"name": "test-pod"},
+            "spec": {"nodeName": "node-1"},
+            "status": {"phase": "Running"}
+        }"#;
+        let pod: K8sPod = serde_json::from_str(json).unwrap();
+        assert_eq!(pod.spec.node_name.as_deref(), Some("node-1"));
+    }
+
+    #[test]
+    fn test_k8s_pod_status_deserialization() {
+        for phase in &["Running", "Pending", "Succeeded", "Failed", "Unknown"] {
+            let json = format!(r#"{{"phase": "{}"}}"#, phase);
+            let status: K8sPodStatus = serde_json::from_str(&json).unwrap();
+            assert_eq!(status.phase, *phase);
+        }
+    }
+
+    #[test]
+    fn test_k8s_pod_list_deserialization() {
+        let json = r#"{
+            "items": [
+                {
+                    "spec": {"nodeName": "node-a"},
+                    "status": {"phase": "Running"}
+                },
+                {
+                    "spec": {},
+                    "status": {"phase": "Pending"}
+                }
+            ]
+        }"#;
+        let pod_list: K8sPodList = serde_json::from_str(json).unwrap();
+        assert_eq!(pod_list.items.len(), 2);
+        assert_eq!(pod_list.items[0].spec.node_name.as_deref(), Some("node-a"));
+        assert_eq!(pod_list.items[1].status.phase, "Pending");
+    }
+
+    #[test]
+    fn test_k8s_pod_list_empty() {
+        let json = r#"{"items": []}"#;
+        let pod_list: K8sPodList = serde_json::from_str(json).unwrap();
+        assert!(pod_list.items.is_empty());
+    }
+
+    #[test]
+    fn test_k3d_cluster_deserialization() {
+        let json = r#"{"name": "my-cluster"}"#;
+        let cluster: K3dCluster = serde_json::from_str(json).unwrap();
+        assert_eq!(cluster.name, "my-cluster");
+    }
+
+    #[test]
+    fn test_k3d_cluster_list_deserialization() {
+        let json = r#"[{"name": "dev"}, {"name": "staging"}]"#;
+        let clusters: Vec<K3dCluster> = serde_json::from_str(json).unwrap();
+        assert_eq!(clusters.len(), 2);
+        assert_eq!(clusters[0].name, "dev");
+        assert_eq!(clusters[1].name, "staging");
+    }
+
+    #[test]
+    fn test_cluster_type_enum() {
+        assert_eq!(ClusterType::Kind, ClusterType::Kind);
+        assert_eq!(ClusterType::K3d, ClusterType::K3d);
+        assert_eq!(ClusterType::Remote, ClusterType::Remote);
+        assert_ne!(ClusterType::Kind, ClusterType::K3d);
+    }
+
+    #[test]
+    fn test_kubernetes_check_prerequisites() {
+        let provider = KubernetesProvider::new().unwrap();
+        let result = provider.check_prerequisites();
+        assert!(result.is_ok(), "check_prerequisites should not error");
     }
 }

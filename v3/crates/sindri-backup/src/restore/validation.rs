@@ -131,4 +131,50 @@ mod tests {
         let result = validate_workspace_writable(&utf8_path);
         result.expect("validate_workspace_writable should succeed for temp dir");
     }
+
+    #[test]
+    fn test_restore_options_default_values() {
+        let opts = RestoreOptions::default();
+        assert_eq!(opts.mode, RestoreMode::Safe, "Default mode should be Safe");
+        assert!(!opts.dry_run, "Default dry_run should be false");
+        assert!(opts.interactive, "Default interactive should be true");
+        assert!(!opts.force, "Default force should be false");
+        assert!(
+            opts.validate_extensions,
+            "Default validate_extensions should be true"
+        );
+        assert!(
+            !opts.auto_upgrade_extensions,
+            "Default auto_upgrade_extensions should be false"
+        );
+    }
+
+    #[test]
+    fn test_validate_restore_preconditions_valid_archive() {
+        let temp_dir = TempDir::new().unwrap();
+        let archive_path = temp_dir.path().join("valid.tar.gz");
+
+        // Create a valid tar.gz with content
+        let source_dir = temp_dir.path().join("source");
+        std::fs::create_dir_all(&source_dir).unwrap();
+        std::fs::write(source_dir.join("data.txt"), b"some data").unwrap();
+
+        let file = std::fs::File::create(&archive_path).unwrap();
+        let encoder =
+            flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        let mut builder = tar::Builder::new(encoder);
+        builder.append_dir_all(".", &source_dir).unwrap();
+        let encoder = builder.into_inner().unwrap();
+        encoder.finish().unwrap();
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(archive_path).expect("path should be valid UTF-8");
+        let options = RestoreOptions::default();
+        let result = validate_restore_preconditions(&utf8_path, &options);
+        assert!(
+            result.is_ok(),
+            "Valid archive should pass preconditions, got: {:?}",
+            result.err()
+        );
+    }
 }

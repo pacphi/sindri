@@ -1143,20 +1143,113 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_memory_to_mb_invalid() {
+        assert_eq!(parse_memory_to_mb("4TB"), None, "TB not supported");
+        assert_eq!(parse_memory_to_mb("abc"), None, "non-numeric should fail");
+        assert_eq!(parse_memory_to_mb(""), None, "empty string should fail");
+    }
+
+    #[test]
     fn test_e2b_provider_creation() {
         let provider = E2bProvider::new().unwrap();
         assert_eq!(provider.name(), "e2b");
     }
 
     #[test]
+    fn test_e2b_provider_with_output_dir() {
+        let dir = std::path::PathBuf::from("/tmp/test-e2b");
+        let provider = E2bProvider::with_output_dir(dir.clone()).unwrap();
+        assert_eq!(provider.output_dir, dir);
+        assert_eq!(provider.name(), "e2b");
+    }
+
+    #[test]
     fn test_supports_gpu() {
         let provider = E2bProvider::new().unwrap();
-        assert!(!provider.supports_gpu());
+        assert!(!provider.supports_gpu(), "E2B should not support GPU");
     }
 
     #[test]
     fn test_supports_auto_suspend() {
         let provider = E2bProvider::new().unwrap();
-        assert!(provider.supports_auto_suspend());
+        assert!(provider.supports_auto_suspend(), "E2B should support auto-suspend (pause/resume)");
+    }
+
+    #[test]
+    fn test_e2b_sandbox_deserialization() {
+        let json = r#"{
+            "sandboxId": "sb-123",
+            "status": "running",
+            "templateId": "tmpl-456",
+            "startedAt": "2026-01-01T00:00:00Z",
+            "metadata": {"sindri_name": "my-env"}
+        }"#;
+        let sandbox: E2bSandbox = serde_json::from_str(json).unwrap();
+        assert_eq!(sandbox.sandbox_id, "sb-123");
+        assert_eq!(sandbox.status, "running");
+        assert_eq!(sandbox.template_id.as_deref(), Some("tmpl-456"));
+        assert_eq!(sandbox.started_at.as_deref(), Some("2026-01-01T00:00:00Z"));
+        assert!(sandbox.metadata.is_some());
+        let metadata = sandbox.metadata.unwrap();
+        assert_eq!(metadata.get("sindri_name").unwrap(), "my-env");
+    }
+
+    #[test]
+    fn test_e2b_sandbox_deserialization_minimal() {
+        let json = r#"{"sandboxId": "sb-789", "status": "paused"}"#;
+        let sandbox: E2bSandbox = serde_json::from_str(json).unwrap();
+        assert_eq!(sandbox.sandbox_id, "sb-789");
+        assert_eq!(sandbox.status, "paused");
+        assert!(sandbox.template_id.is_none());
+        assert!(sandbox.started_at.is_none());
+        assert!(sandbox.metadata.is_none());
+    }
+
+    #[test]
+    fn test_e2b_sandbox_list_deserialization() {
+        let json = r#"[
+            {"sandboxId": "sb-1", "status": "running"},
+            {"sandboxId": "sb-2", "status": "paused"}
+        ]"#;
+        let sandboxes: Vec<E2bSandbox> = serde_json::from_str(json).unwrap();
+        assert_eq!(sandboxes.len(), 2);
+        assert_eq!(sandboxes[0].sandbox_id, "sb-1");
+        assert_eq!(sandboxes[1].status, "paused");
+    }
+
+    #[test]
+    fn test_e2b_template_deserialization() {
+        let json = r#"{"templateId": "tmpl-abc", "alias": "my-template"}"#;
+        let template: E2bTemplate = serde_json::from_str(json).unwrap();
+        assert_eq!(template.template_id, "tmpl-abc");
+        assert_eq!(template.alias.as_deref(), Some("my-template"));
+    }
+
+    #[test]
+    fn test_e2b_template_deserialization_no_alias() {
+        let json = r#"{"templateId": "tmpl-xyz"}"#;
+        let template: E2bTemplate = serde_json::from_str(json).unwrap();
+        assert_eq!(template.template_id, "tmpl-xyz");
+        assert!(template.alias.is_none());
+    }
+
+    #[test]
+    fn test_e2b_create_response_deserialization() {
+        let json = r#"{"sandboxId": "sb-new-123"}"#;
+        let response: E2bCreateResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.sandbox_id, "sb-new-123");
+    }
+
+    #[test]
+    fn test_e2b_check_prerequisites() {
+        let provider = E2bProvider::new().unwrap();
+        let result = provider.check_prerequisites();
+        assert!(result.is_ok(), "check_prerequisites should not error");
+        let status = result.unwrap();
+        // E2B CLI and API key may or may not be present
+        assert!(
+            !status.available.is_empty() || !status.missing.is_empty(),
+            "should report at least one prerequisite"
+        );
     }
 }

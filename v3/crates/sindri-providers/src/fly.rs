@@ -107,7 +107,6 @@ impl FlyProvider {
             volume_size,
             gpu_enabled,
             gpu_tier: gpu_tier_str,
-            image: file.deployment.image.as_deref().unwrap_or("sindri:latest"),
         }
     }
 
@@ -1050,8 +1049,6 @@ struct FlyDeployConfig<'a> {
     volume_size: u32,
     gpu_enabled: bool,
     gpu_tier: String,
-    #[allow(dead_code)] // Used in plan() for resource details
-    image: &'a str,
 }
 
 /// Fly.io machine status from JSON API
@@ -1111,9 +1108,35 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_memory_to_mb_invalid() {
+        assert_eq!(parse_memory_to_mb("4TB"), None, "TB not supported");
+        assert_eq!(parse_memory_to_mb("abc"), None, "non-numeric should fail");
+        assert_eq!(parse_memory_to_mb(""), None, "empty string should fail");
+    }
+
+    #[test]
+    fn test_parse_memory_to_mb_whitespace() {
+        assert_eq!(parse_memory_to_mb("  2GB  "), Some(2048));
+        assert_eq!(parse_memory_to_mb("  512MB  "), Some(512));
+    }
+
+    #[test]
     fn test_parse_size_to_gb() {
         assert_eq!(parse_size_to_gb("10GB"), Some(10));
         assert_eq!(parse_size_to_gb("1TB"), Some(1024));
+    }
+
+    #[test]
+    fn test_parse_size_to_gb_invalid() {
+        assert_eq!(parse_size_to_gb("100MB"), None, "MB not supported");
+        assert_eq!(parse_size_to_gb("abc"), None, "non-numeric should fail");
+        assert_eq!(parse_size_to_gb(""), None, "empty string should fail");
+    }
+
+    #[test]
+    fn test_parse_size_to_gb_case_insensitive() {
+        assert_eq!(parse_size_to_gb("10gb"), Some(10));
+        assert_eq!(parse_size_to_gb("1tb"), Some(1024));
     }
 
     #[test]
@@ -1122,5 +1145,86 @@ mod tests {
         assert_eq!(guest, "a100-40gb");
         assert_eq!(cpus, 8);
         assert_eq!(mem, 32768);
+    }
+
+    #[test]
+    fn test_get_fly_gpu_config_all_tiers() {
+        let (guest, cpus, mem) = get_fly_gpu_config("gpu-medium");
+        assert_eq!(guest, "a100-40gb");
+        assert_eq!(cpus, 16);
+        assert_eq!(mem, 65536);
+
+        let (guest, cpus, mem) = get_fly_gpu_config("gpu-large");
+        assert_eq!(guest, "l40s");
+        assert_eq!(cpus, 16);
+        assert_eq!(mem, 65536);
+
+        let (guest, cpus, mem) = get_fly_gpu_config("gpu-xlarge");
+        assert_eq!(guest, "a100-80gb");
+        assert_eq!(cpus, 32);
+        assert_eq!(mem, 131072);
+    }
+
+    #[test]
+    fn test_get_fly_gpu_config_unknown_tier_defaults() {
+        let (guest, cpus, mem) = get_fly_gpu_config("unknown-tier");
+        assert_eq!(guest, "a100-40gb", "unknown tier should default to gpu-small");
+        assert_eq!(cpus, 8);
+        assert_eq!(mem, 32768);
+    }
+
+    #[test]
+    fn test_fly_provider_creation() {
+        let provider = FlyProvider::new().unwrap();
+        assert_eq!(provider.name(), "fly");
+    }
+
+    #[test]
+    fn test_fly_provider_with_output_dir() {
+        let dir = std::path::PathBuf::from("/tmp/test-fly");
+        let provider = FlyProvider::with_output_dir(dir.clone()).unwrap();
+        assert_eq!(provider.output_dir, dir);
+        assert_eq!(provider.name(), "fly");
+    }
+
+    #[test]
+    fn test_fly_supports_gpu() {
+        let provider = FlyProvider::new().unwrap();
+        assert!(provider.supports_gpu(), "Fly.io should support GPU");
+    }
+
+    #[test]
+    fn test_fly_supports_auto_suspend() {
+        let provider = FlyProvider::new().unwrap();
+        assert!(
+            provider.supports_auto_suspend(),
+            "Fly.io should support auto-suspend"
+        );
+    }
+
+    #[test]
+    fn test_fly_machine_deserialization() {
+        let json = r#"{"id": "abc123", "state": "started"}"#;
+        let machine: FlyMachine = serde_json::from_str(json).unwrap();
+        assert_eq!(machine.id, "abc123");
+        assert_eq!(machine.state, "started");
+    }
+
+    #[test]
+    fn test_fly_machine_deserialization_various_states() {
+        for state in &["started", "running", "stopped", "suspended", "destroying"] {
+            let json = format!(r#"{{"id": "m1", "state": "{}"}}"#, state);
+            let machine: FlyMachine = serde_json::from_str(&json).unwrap();
+            assert_eq!(machine.state, *state);
+        }
+    }
+
+    #[test]
+    fn test_fly_machine_list_deserialization() {
+        let json = r#"[{"id": "m1", "state": "started"}, {"id": "m2", "state": "stopped"}]"#;
+        let machines: Vec<FlyMachine> = serde_json::from_str(json).unwrap();
+        assert_eq!(machines.len(), 2);
+        assert_eq!(machines[0].id, "m1");
+        assert_eq!(machines[1].state, "stopped");
     }
 }

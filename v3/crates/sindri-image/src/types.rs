@@ -259,6 +259,99 @@ impl CachedImageMetadata {
 mod tests {
     use super::*;
 
+    // ── CachedImageMetadata ─────────────────────────────────────────
+
+    #[test]
+    fn test_cached_metadata_recent_is_not_stale() {
+        let meta = CachedImageMetadata {
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            registry: "ghcr.io".to_string(),
+            repository: "example/repo".to_string(),
+            tags: vec![],
+        };
+        assert!(
+            !meta.is_stale(),
+            "Metadata generated just now should not be stale"
+        );
+    }
+
+    #[test]
+    fn test_cached_metadata_old_is_stale() {
+        use chrono::{Duration, Utc};
+        let old_time = Utc::now() - Duration::days(CachedImageMetadata::TTL_DAYS + 1);
+        let meta = CachedImageMetadata {
+            generated_at: old_time.to_rfc3339(),
+            registry: "ghcr.io".to_string(),
+            repository: "example/repo".to_string(),
+            tags: vec![],
+        };
+        assert!(
+            meta.is_stale(),
+            "Metadata older than TTL_DAYS should be stale"
+        );
+    }
+
+    #[test]
+    fn test_cached_metadata_invalid_timestamp_is_stale() {
+        let meta = CachedImageMetadata {
+            generated_at: "not-a-timestamp".to_string(),
+            registry: "ghcr.io".to_string(),
+            repository: "example/repo".to_string(),
+            tags: vec![],
+        };
+        assert!(
+            meta.is_stale(),
+            "Invalid timestamp should be treated as stale"
+        );
+    }
+
+    #[test]
+    fn test_cached_metadata_age_days_recent() {
+        let meta = CachedImageMetadata {
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            registry: "ghcr.io".to_string(),
+            repository: "example/repo".to_string(),
+            tags: vec![],
+        };
+        assert_eq!(meta.age_days(), 0, "Metadata generated now should be 0 days old");
+    }
+
+    #[test]
+    fn test_cached_metadata_age_days_known() {
+        use chrono::{Duration, Utc};
+        let thirty_days_ago = Utc::now() - Duration::days(30);
+        let meta = CachedImageMetadata {
+            generated_at: thirty_days_ago.to_rfc3339(),
+            registry: "ghcr.io".to_string(),
+            repository: "example/repo".to_string(),
+            tags: vec![],
+        };
+        // Allow ±1 day for clock drift / rounding
+        let age = meta.age_days();
+        assert!(
+            (29..=31).contains(&age),
+            "Expected ~30 days, got {}",
+            age
+        );
+    }
+
+    #[test]
+    fn test_cached_metadata_age_days_invalid_timestamp() {
+        let meta = CachedImageMetadata {
+            generated_at: "garbage".to_string(),
+            registry: "ghcr.io".to_string(),
+            repository: "example/repo".to_string(),
+            tags: vec![],
+        };
+        assert_eq!(
+            meta.age_days(),
+            i64::MAX,
+            "Invalid timestamp should return i64::MAX"
+        );
+    }
+
+    // ── Existing tests ──────────────────────────────────────────────
+
     #[test]
     fn test_parse_image_reference() {
         let cases = vec![

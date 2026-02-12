@@ -224,58 +224,6 @@ impl<E: Error> RetryPredicate<E> for MessagePredicate {
     }
 }
 
-/// Combine multiple predicates with AND logic
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct AndPredicate<P1, P2> {
-    first: P1,
-    second: P2,
-}
-
-#[allow(dead_code)]
-impl<P1, P2> AndPredicate<P1, P2> {
-    /// Create a new AND predicate
-    pub fn new(first: P1, second: P2) -> Self {
-        Self { first, second }
-    }
-}
-
-impl<E, P1, P2> RetryPredicate<E> for AndPredicate<P1, P2>
-where
-    P1: RetryPredicate<E>,
-    P2: RetryPredicate<E>,
-{
-    fn should_retry(&self, error: &E) -> bool {
-        self.first.should_retry(error) && self.second.should_retry(error)
-    }
-}
-
-/// Combine multiple predicates with OR logic
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct OrPredicate<P1, P2> {
-    first: P1,
-    second: P2,
-}
-
-#[allow(dead_code)]
-impl<P1, P2> OrPredicate<P1, P2> {
-    /// Create a new OR predicate
-    pub fn new(first: P1, second: P2) -> Self {
-        Self { first, second }
-    }
-}
-
-impl<E, P1, P2> RetryPredicate<E> for OrPredicate<P1, P2>
-where
-    P1: RetryPredicate<E>,
-    P2: RetryPredicate<E>,
-{
-    fn should_retry(&self, error: &E) -> bool {
-        self.first.should_retry(error) || self.second.should_retry(error)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -496,23 +444,4 @@ mod tests {
         assert!(predicate.should_retry(&reset_err));
     }
 
-    #[test]
-    fn test_and_predicate() {
-        let always = AlwaysRetry;
-        let never = NeverRetry;
-        let combined = AndPredicate::new(always, never);
-
-        let error = io::Error::other("test");
-        assert!(!combined.should_retry(&error)); // true && false = false
-    }
-
-    #[test]
-    fn test_or_predicate() {
-        let always = AlwaysRetry;
-        let never = NeverRetry;
-        let combined = OrPredicate::new(always, never);
-
-        let error = io::Error::other("test");
-        assert!(combined.should_retry(&error)); // true || false = true
-    }
 }

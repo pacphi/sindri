@@ -1020,3 +1020,141 @@ struct DevPodStatus {
     #[serde(default)]
     state: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_devpod_provider_creation() {
+        let provider = DevPodProvider::new().unwrap();
+        assert_eq!(provider.name(), "devpod");
+    }
+
+    #[test]
+    fn test_devpod_provider_with_output_dir() {
+        let dir = std::path::PathBuf::from("/tmp/test-devpod");
+        let provider = DevPodProvider::with_output_dir(dir.clone()).unwrap();
+        assert_eq!(provider.output_dir, dir);
+        assert_eq!(provider.name(), "devpod");
+    }
+
+    #[test]
+    fn test_devpod_supports_gpu() {
+        let provider = DevPodProvider::new().unwrap();
+        assert!(
+            provider.supports_gpu(),
+            "DevPod should support GPU (AWS/GCP/Azure)"
+        );
+    }
+
+    #[test]
+    fn test_devpod_does_not_support_auto_suspend() {
+        let provider = DevPodProvider::new().unwrap();
+        assert!(
+            !provider.supports_auto_suspend(),
+            "DevPod should not support auto-suspend (default false)"
+        );
+    }
+
+    #[test]
+    fn test_parse_env_file_valid_credentials() {
+        let content = r#"DOCKER_USERNAME="myuser"
+DOCKER_PASSWORD="mypass"
+DOCKER_REGISTRY="ghcr.io""#;
+
+        let creds = DevPodProvider::parse_env_file(content);
+        assert!(creds.is_some(), "valid credentials should parse");
+        let creds = creds.unwrap();
+        assert_eq!(creds.username, "myuser");
+        assert_eq!(creds.password, "mypass");
+        assert_eq!(creds.registry.as_deref(), Some("ghcr.io"));
+    }
+
+    #[test]
+    fn test_parse_env_file_without_registry() {
+        let content = "DOCKER_USERNAME=user\nDOCKER_PASSWORD=pass\n";
+
+        let creds = DevPodProvider::parse_env_file(content);
+        assert!(creds.is_some(), "credentials without registry should parse");
+        let creds = creds.unwrap();
+        assert_eq!(creds.username, "user");
+        assert_eq!(creds.password, "pass");
+        assert!(creds.registry.is_none());
+    }
+
+    #[test]
+    fn test_parse_env_file_missing_password() {
+        let content = "DOCKER_USERNAME=user\n";
+
+        let creds = DevPodProvider::parse_env_file(content);
+        assert!(creds.is_none(), "missing password should return None");
+    }
+
+    #[test]
+    fn test_parse_env_file_missing_username() {
+        let content = "DOCKER_PASSWORD=pass\n";
+
+        let creds = DevPodProvider::parse_env_file(content);
+        assert!(creds.is_none(), "missing username should return None");
+    }
+
+    #[test]
+    fn test_parse_env_file_empty_string() {
+        let creds = DevPodProvider::parse_env_file("");
+        assert!(creds.is_none(), "empty string should return None");
+    }
+
+    #[test]
+    fn test_parse_env_file_with_comments_and_blanks() {
+        let content = "# Docker credentials\n\nDOCKER_USERNAME=user\n\nDOCKER_PASSWORD=pass\n# End\n";
+
+        let creds = DevPodProvider::parse_env_file(content);
+        assert!(creds.is_some(), "should parse with comments and blank lines");
+        let creds = creds.unwrap();
+        assert_eq!(creds.username, "user");
+        assert_eq!(creds.password, "pass");
+    }
+
+    #[test]
+    fn test_devpod_status_deserialization_running() {
+        let json = r#"{"state": "Running"}"#;
+        let status: DevPodStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status.state, "Running");
+    }
+
+    #[test]
+    fn test_devpod_status_deserialization_stopped() {
+        let json = r#"{"state": "Stopped"}"#;
+        let status: DevPodStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status.state, "Stopped");
+    }
+
+    #[test]
+    fn test_devpod_status_deserialization_empty() {
+        let json = r#"{}"#;
+        let status: DevPodStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status.state, "", "default state should be empty string");
+    }
+
+    #[test]
+    fn test_devpod_status_deserialization_notfound() {
+        let json = r#"{"state": "NotFound"}"#;
+        let status: DevPodStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status.state, "NotFound");
+    }
+
+    #[test]
+    fn test_devpod_status_deserialization_extra_fields() {
+        // DevPodStatus should ignore unknown fields
+        let json = r#"{"state": "Running", "id": "abc123", "extra": true}"#;
+        let status: DevPodStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status.state, "Running");
+    }
+
+    #[test]
+    fn test_local_cluster_type_display() {
+        assert_eq!(format!("{}", LocalClusterType::Kind), "kind");
+        assert_eq!(format!("{}", LocalClusterType::K3d), "k3d");
+    }
+}

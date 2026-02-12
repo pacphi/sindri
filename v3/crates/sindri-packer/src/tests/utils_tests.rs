@@ -12,13 +12,6 @@ fn test_sanitize_name() {
 }
 
 #[test]
-fn test_generate_image_name() {
-    let name = generate_image_name("sindri-dev");
-    assert!(name.starts_with("sindri-dev-"));
-    assert!(name.len() > 15); // prefix + dash + timestamp (14 chars)
-}
-
-#[test]
 fn test_generate_build_id() {
     let id1 = generate_build_id();
     let id2 = generate_build_id();

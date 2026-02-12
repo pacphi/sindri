@@ -23,3 +23,6 @@ which = "8.0"
 chrono = { workspace = true }
 dirs = { workspace = true }
 base64 = "0.22"
+
+[dev-dependencies]
+tempfile = { workspace = true }

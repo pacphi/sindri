@@ -415,7 +415,7 @@ jobs:
       - name: Run cargo audit
         run: |
           cd v3
-          cargo audit --deny warnings || echo "::warning::Security vulnerabilities found"
+          cargo audit --deny warnings
 
   # ============================================
   # Documentation Build

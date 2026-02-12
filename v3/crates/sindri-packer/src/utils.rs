@@ -98,23 +98,6 @@ pub async fn packer_validate(template_path: &Path, syntax_only: bool) -> Result<
     Ok(output)
 }
 
-/// Format a Packer template
-#[allow(dead_code)]
-pub async fn packer_fmt(template_path: &Path, check_only: bool) -> Result<Output> {
-    let mut cmd = Command::new("packer");
-    cmd.arg("fmt");
-
-    if check_only {
-        cmd.arg("-check");
-    }
-
-    cmd.arg(template_path.to_str().unwrap());
-
-    let output = cmd.output().await.context("Failed to run packer fmt")?;
-
-    Ok(output)
-}
-
 /// Ensure directory exists
 pub fn ensure_dir(path: &Path) -> Result<()> {
     if !path.exists() {
@@ -132,12 +115,6 @@ pub fn write_file(path: &Path, content: &str) -> Result<()> {
     std::fs::write(path, content).context(format!("Failed to write file: {}", path.display()))
 }
 
-/// Read file content
-#[allow(dead_code)]
-pub fn read_file(path: &Path) -> Result<String> {
-    std::fs::read_to_string(path).context(format!("Failed to read file: {}", path.display()))
-}
-
 /// Get the default output directory for Packer artifacts
 pub fn default_output_dir() -> PathBuf {
     dirs::data_local_dir()
@@ -149,13 +126,6 @@ pub fn default_output_dir() -> PathBuf {
 /// Generate a unique build ID
 pub fn generate_build_id() -> String {
     uuid::Uuid::new_v4().to_string()[..8].to_string()
-}
-
-/// Generate a timestamped image name
-#[allow(dead_code)]
-pub fn generate_image_name(prefix: &str) -> String {
-    let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S");
-    format!("{}-{}", prefix, timestamp)
 }
 
 /// Parse AMI ID from Packer output
@@ -296,10 +266,4 @@ mod tests {
         assert_eq!(sanitize_name("---test---"), "test");
     }
 
-    #[test]
-    fn test_generate_image_name() {
-        let name = generate_image_name("sindri-dev");
-        assert!(name.starts_with("sindri-dev-"));
-        assert!(name.len() > 15); // prefix + dash + timestamp
-    }
 }

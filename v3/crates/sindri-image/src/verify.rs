@@ -7,6 +7,7 @@ use std::process::Command;
 use tracing::{debug, trace, warn};
 
 /// Verifies container image signatures and provenance using Cosign
+#[derive(Debug)]
 pub struct ImageVerifier {
     cosign_path: PathBuf,
 }
@@ -355,25 +356,289 @@ impl ImageVerifier {
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 
 #[cfg(test)]
+impl ImageVerifier {
+    /// Test helper: parse signature output without needing cosign
+    fn test_parse_signature_output(output: &str) -> anyhow::Result<Vec<SignatureInfo>> {
+        let verifier = Self {
+            cosign_path: std::path::PathBuf::from("cosign"),
+        };
+        verifier.parse_signature_output(output)
+    }
+
+    /// Test helper: parse provenance output without needing cosign
+    fn test_parse_provenance_output(
+        output: &str,
+    ) -> anyhow::Result<(String, String, Option<String>)> {
+        let verifier = Self {
+            cosign_path: std::path::PathBuf::from("cosign"),
+        };
+        verifier.parse_provenance_output(output)
+    }
+
+    /// Test helper: parse SBOM without needing cosign
+    fn test_parse_sbom(raw_data: &str) -> anyhow::Result<Sbom> {
+        let verifier = Self {
+            cosign_path: std::path::PathBuf::from("cosign"),
+        };
+        verifier.parse_sbom(raw_data)
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
+    // ── is_available / new ──────────────────────────────────────────
+
     #[test]
-    fn test_cosign_availability() {
-        // This test will pass if cosign is installed, fail otherwise
-        let available = ImageVerifier::is_available();
-        if available {
-            println!("cosign is available");
-        } else {
-            println!("cosign is not available - install from https://docs.sigstore.dev/cosign/installation/");
-        }
+    fn test_cosign_availability_returns_bool() {
+        // is_available() should return a bool without panicking
+        let _available = ImageVerifier::is_available();
     }
 
     #[test]
-    fn test_verifier_creation() {
-        match ImageVerifier::new() {
-            Ok(_) => println!("ImageVerifier created successfully"),
-            Err(e) => println!("ImageVerifier creation failed: {}", e),
+    fn test_verifier_creation_depends_on_cosign() {
+        let result = ImageVerifier::new();
+        if ImageVerifier::is_available() {
+            assert!(result.is_ok(), "Should succeed when cosign is installed");
+        } else {
+            assert!(result.is_err(), "Should fail when cosign is not installed");
+            let err = result.unwrap_err().to_string();
+            assert!(
+                err.contains("cosign not found"),
+                "Error should mention cosign, got: {}",
+                err
+            );
         }
+    }
+
+    // ── parse_signature_output ──────────────────────────────────────
+
+    #[test]
+    fn test_parse_signature_empty_returns_fallback() {
+        let sigs = ImageVerifier::test_parse_signature_output("").unwrap();
+        assert_eq!(sigs.len(), 1, "Empty input should produce a fallback signature");
+        assert_eq!(sigs[0].issuer, "Verified");
+        assert_eq!(sigs[0].subject, "Sigstore");
+    }
+
+    #[test]
+    fn test_parse_signature_valid_cosign_json() {
+        let json_line = r#"{"critical":{},"optional":{"Issuer":"https://accounts.google.com","Subject":"user@example.com"}}"#;
+        let sigs = ImageVerifier::test_parse_signature_output(json_line).unwrap();
+        assert_eq!(sigs.len(), 1);
+        assert_eq!(sigs[0].issuer, "https://accounts.google.com");
+        assert_eq!(sigs[0].subject, "user@example.com");
+    }
+
+    #[test]
+    fn test_parse_signature_multiple_lines() {
+        let input = format!(
+            "{}\n{}\n",
+            r#"{"critical":{},"optional":{"Issuer":"issuer-a","Subject":"sub-a"}}"#,
+            r#"{"critical":{},"optional":{"Issuer":"issuer-b","Subject":"sub-b"}}"#,
+        );
+        let sigs = ImageVerifier::test_parse_signature_output(&input).unwrap();
+        assert_eq!(sigs.len(), 2, "Should parse two signatures from two JSON lines");
+        assert_eq!(sigs[0].issuer, "issuer-a");
+        assert_eq!(sigs[1].issuer, "issuer-b");
+    }
+
+    #[test]
+    fn test_parse_signature_malformed_json_returns_fallback() {
+        let input = "this is not json\nalso not json\n";
+        let sigs = ImageVerifier::test_parse_signature_output(input).unwrap();
+        assert_eq!(sigs.len(), 1, "Malformed JSON should produce fallback");
+        assert_eq!(sigs[0].issuer, "Verified");
+    }
+
+    #[test]
+    fn test_parse_signature_json_without_optional_returns_fallback() {
+        // Valid JSON but no "optional" key → no signatures extracted → fallback
+        let input = r#"{"critical":{"something":"value"}}"#;
+        let sigs = ImageVerifier::test_parse_signature_output(input).unwrap();
+        assert_eq!(sigs.len(), 1);
+        assert_eq!(sigs[0].issuer, "Verified");
+    }
+
+    // ── parse_provenance_output ─────────────────────────────────────
+
+    #[test]
+    fn test_parse_provenance_empty_returns_fallback() {
+        let (level, builder, repo) = ImageVerifier::test_parse_provenance_output("").unwrap();
+        assert_eq!(level, "SLSA Level 3");
+        assert_eq!(builder, "GitHub Actions");
+        assert!(repo.is_none());
+    }
+
+    #[test]
+    fn test_parse_provenance_valid_payload() {
+        // Build a mock SLSA provenance JSON and base64-encode it
+        let predicate = serde_json::json!({
+            "predicate": {
+                "buildType": "https://slsa.dev/provenance/v0.2",
+                "builder": {
+                    "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v1.5.0"
+                },
+                "materials": [
+                    { "uri": "git+https://github.com/example/repo" }
+                ]
+            }
+        });
+        let payload_b64 = BASE64.encode(predicate.to_string().as_bytes());
+        let line = serde_json::json!({ "payload": payload_b64 }).to_string();
+
+        let (level, builder, repo) =
+            ImageVerifier::test_parse_provenance_output(&line).unwrap();
+        assert_eq!(level, "SLSA Level 3", "buildType containing slsa.dev/provenance should map to SLSA Level 3");
+        assert!(
+            builder.contains("slsa-github-generator"),
+            "builder_id should contain generator name, got: {}",
+            builder
+        );
+        assert_eq!(
+            repo,
+            Some("git+https://github.com/example/repo".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_provenance_non_slsa_build_type() {
+        let predicate = serde_json::json!({
+            "predicate": {
+                "buildType": "https://example.com/custom-build",
+                "builder": { "id": "custom-builder" }
+            }
+        });
+        let payload_b64 = BASE64.encode(predicate.to_string().as_bytes());
+        let line = serde_json::json!({ "payload": payload_b64 }).to_string();
+
+        let (level, builder, repo) =
+            ImageVerifier::test_parse_provenance_output(&line).unwrap();
+        assert_eq!(level, "SLSA", "Non-slsa.dev buildType should map to generic SLSA");
+        assert_eq!(builder, "custom-builder");
+        assert!(repo.is_none());
+    }
+
+    #[test]
+    fn test_parse_provenance_malformed_payload_returns_fallback() {
+        // payload that is not valid base64
+        let line = r#"{"payload":"!!!not-base64!!!"}"#;
+        let (level, builder, repo) =
+            ImageVerifier::test_parse_provenance_output(line).unwrap();
+        assert_eq!(level, "SLSA Level 3");
+        assert_eq!(builder, "GitHub Actions");
+        assert!(repo.is_none());
+    }
+
+    // ── parse_sbom ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_sbom_spdx_json() {
+        let spdx = serde_json::json!({
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "name": "openssl",
+                    "versionInfo": "3.0.12",
+                    "supplier": "Organization: OpenSSL",
+                    "licenseConcluded": "Apache-2.0"
+                },
+                {
+                    "name": "zlib",
+                    "versionInfo": "1.3"
+                }
+            ]
+        });
+
+        let sbom = ImageVerifier::test_parse_sbom(&spdx.to_string()).unwrap();
+        assert_eq!(sbom.format, "spdx-json");
+        assert_eq!(sbom.version, "SPDX-2.3");
+        assert_eq!(sbom.packages.len(), 2);
+        assert_eq!(sbom.packages[0].name, "openssl");
+        assert_eq!(sbom.packages[0].version.as_deref(), Some("3.0.12"));
+        assert_eq!(
+            sbom.packages[0].supplier.as_deref(),
+            Some("Organization: OpenSSL")
+        );
+        assert_eq!(sbom.packages[0].license.as_deref(), Some("Apache-2.0"));
+        assert_eq!(sbom.packages[1].name, "zlib");
+        assert!(sbom.packages[1].supplier.is_none());
+    }
+
+    #[test]
+    fn test_parse_sbom_cyclonedx_json() {
+        let cdx = serde_json::json!({
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "packages": []
+        });
+
+        let sbom = ImageVerifier::test_parse_sbom(&cdx.to_string()).unwrap();
+        assert_eq!(sbom.format, "cyclonedx-json");
+        assert_eq!(sbom.version, "1.4");
+        assert!(sbom.packages.is_empty());
+    }
+
+    #[test]
+    fn test_parse_sbom_unknown_format() {
+        let unknown = serde_json::json!({
+            "something": "else"
+        });
+
+        let sbom = ImageVerifier::test_parse_sbom(&unknown.to_string()).unwrap();
+        assert_eq!(sbom.format, "unknown");
+        assert_eq!(sbom.version, "unknown");
+        assert!(sbom.packages.is_empty());
+    }
+
+    #[test]
+    fn test_parse_sbom_invalid_json_returns_err() {
+        let result = ImageVerifier::test_parse_sbom("not json at all");
+        assert!(result.is_err(), "Invalid JSON should return an error");
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Failed to parse SBOM"),
+            "Error should mention SBOM parsing, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_parse_sbom_empty_packages() {
+        let spdx = serde_json::json!({
+            "spdxVersion": "SPDX-2.3",
+            "packages": []
+        });
+
+        let sbom = ImageVerifier::test_parse_sbom(&spdx.to_string()).unwrap();
+        assert!(sbom.packages.is_empty());
+    }
+
+    #[test]
+    fn test_parse_sbom_preserves_raw_data() {
+        let input = r#"{"spdxVersion":"SPDX-2.3","packages":[]}"#;
+        let sbom = ImageVerifier::test_parse_sbom(input).unwrap();
+        assert_eq!(sbom.raw_data, input);
+    }
+
+    #[test]
+    fn test_parse_sbom_license_falls_back_to_declared() {
+        let spdx = serde_json::json!({
+            "spdxVersion": "SPDX-2.3",
+            "packages": [
+                {
+                    "name": "pkg",
+                    "licenseDeclared": "MIT"
+                }
+            ]
+        });
+
+        let sbom = ImageVerifier::test_parse_sbom(&spdx.to_string()).unwrap();
+        assert_eq!(
+            sbom.packages[0].license.as_deref(),
+            Some("MIT"),
+            "Should fall back to licenseDeclared when licenseConcluded is absent"
+        );
     }
 }

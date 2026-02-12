@@ -1054,7 +1054,7 @@ impl ExtensionExecutor {
 
         let ext_dir = self.resolve_extension_dir(ext_name);
         let processor =
-            ConfigureProcessor::new(ext_dir, self.workspace_dir.clone(), self.home_dir.clone());
+            ConfigureProcessor::new(ext_dir, self.home_dir.clone());
 
         let result = processor
             .execute(ext_name, configure)
