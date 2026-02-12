@@ -48,9 +48,11 @@ fn test_aws_template_generation() {
     };
 
     let result = provider.generate_template(&config);
-    // Will fail until templates are created in Phase 2
-    // For now, just verify it doesn't panic
-    assert!(result.is_err() || result.is_ok());
+    // Templates are not yet created (Phase 2), so this should error
+    assert!(
+        result.is_err(),
+        "Expected template generation to fail until templates are implemented"
+    );
 }
 
 #[test]
@@ -85,6 +87,9 @@ async fn test_aws_list_images() {
     };
 
     let result = provider.list_images(&config).await;
-    // May fail without credentials, which is expected
-    assert!(result.is_ok() || result.is_err());
+    // Requires AWS credentials which are not available in test environment
+    assert!(
+        result.is_err(),
+        "Expected list_images to fail without AWS credentials"
+    );
 }

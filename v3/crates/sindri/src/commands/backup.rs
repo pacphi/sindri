@@ -419,3 +419,96 @@ fn format_number(n: u64) -> String {
         .collect::<Vec<_>>()
         .join(",")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---- format_bytes ----
+
+    #[test]
+    fn test_format_bytes_zero() {
+        assert_eq!(format_bytes(0), "0 B");
+    }
+
+    #[test]
+    fn test_format_bytes_small() {
+        assert_eq!(format_bytes(512), "512 B");
+    }
+
+    #[test]
+    fn test_format_bytes_kilobytes() {
+        let result = format_bytes(1024);
+        assert_eq!(result, "1.00 KB");
+    }
+
+    #[test]
+    fn test_format_bytes_megabytes() {
+        let result = format_bytes(1024 * 1024);
+        assert_eq!(result, "1.00 MB");
+    }
+
+    #[test]
+    fn test_format_bytes_gigabytes() {
+        let result = format_bytes(1024 * 1024 * 1024);
+        assert_eq!(result, "1.00 GB");
+    }
+
+    #[test]
+    fn test_format_bytes_mixed() {
+        // 1.5 MB
+        let result = format_bytes(1024 * 1024 + 512 * 1024);
+        assert_eq!(result, "1.50 MB");
+    }
+
+    // ---- format_number ----
+
+    #[test]
+    fn test_format_number_small() {
+        assert_eq!(format_number(0), "0");
+        assert_eq!(format_number(42), "42");
+        assert_eq!(format_number(999), "999");
+    }
+
+    #[test]
+    fn test_format_number_thousands() {
+        assert_eq!(format_number(1000), "1,000");
+        assert_eq!(format_number(12345), "12,345");
+    }
+
+    #[test]
+    fn test_format_number_millions() {
+        assert_eq!(format_number(1_000_000), "1,000,000");
+        assert_eq!(format_number(1_234_567), "1,234,567");
+    }
+
+    // ---- BackupProfile::description ----
+
+    #[test]
+    fn test_backup_profile_user_data_description() {
+        let desc = BackupProfile::UserData.description();
+        assert!(desc.contains("migration"), "user-data desc: {}", desc);
+    }
+
+    #[test]
+    fn test_backup_profile_standard_description() {
+        let desc = BackupProfile::Standard.description();
+        assert!(desc.contains("balanced"), "standard desc: {}", desc);
+    }
+
+    #[test]
+    fn test_backup_profile_full_description() {
+        let desc = BackupProfile::Full.description();
+        assert!(desc.contains("complete"), "full desc: {}", desc);
+    }
+
+    // ---- BackupProfile::to_lib_profile ----
+
+    #[test]
+    fn test_backup_profile_to_lib_profile_roundtrip() {
+        // Verify that all CLI profile variants map to a library profile without panicking
+        let _ = BackupProfile::UserData.to_lib_profile();
+        let _ = BackupProfile::Standard.to_lib_profile();
+        let _ = BackupProfile::Full.to_lib_profile();
+    }
+}

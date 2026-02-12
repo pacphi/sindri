@@ -105,3 +105,157 @@ fn show(args: ConfigShowArgs) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use tempfile::TempDir;
+
+    fn make_init_args(
+        output: Utf8PathBuf,
+        provider: &str,
+        force: bool,
+        name: Option<String>,
+    ) -> ConfigInitArgs {
+        ConfigInitArgs {
+            name,
+            provider: provider.to_string(),
+            profile: "minimal".to_string(),
+            output,
+            force,
+        }
+    }
+
+    #[test]
+    fn test_init_errors_when_file_exists_without_force() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+        std::fs::write(&file_path, "existing content").unwrap();
+
+        let args = make_init_args(file_path.clone(), "docker", false, Some("test".to_string()));
+        let result = init(args);
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("already exists"),
+            "error should mention file already exists, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn test_init_succeeds_with_force_when_file_exists() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+        std::fs::write(&file_path, "existing content").unwrap();
+
+        let args = make_init_args(
+            file_path.clone(),
+            "docker",
+            true,
+            Some("test-force".to_string()),
+        );
+        let result = init(args);
+
+        assert!(
+            result.is_ok(),
+            "init with --force should succeed: {:?}",
+            result.err()
+        );
+        let content = std::fs::read_to_string(&file_path).unwrap();
+        assert!(
+            content.contains("test-force"),
+            "file should contain the project name"
+        );
+    }
+
+    #[test]
+    fn test_init_valid_provider_docker() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+
+        let args = make_init_args(
+            file_path.clone(),
+            "docker",
+            false,
+            Some("my-proj".to_string()),
+        );
+        let result = init(args);
+        assert!(
+            result.is_ok(),
+            "docker provider should be valid: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_init_valid_provider_fly() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+
+        let args = make_init_args(file_path, "fly", false, Some("fly-proj".to_string()));
+        let result = init(args);
+        assert!(
+            result.is_ok(),
+            "fly provider should be valid: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_init_valid_provider_kubernetes_alias() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+
+        let args = make_init_args(file_path, "k8s", false, Some("k8s-proj".to_string()));
+        let result = init(args);
+        assert!(
+            result.is_ok(),
+            "k8s alias should be valid: {:?}",
+            result.err()
+        );
+    }
+
+    #[test]
+    fn test_init_invalid_provider() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+
+        let args = make_init_args(
+            file_path,
+            "invalid-provider",
+            false,
+            Some("test".to_string()),
+        );
+        let result = init(args);
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Unknown provider"),
+            "error should mention unknown provider, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn test_init_creates_valid_yaml_file() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+
+        let args = make_init_args(
+            file_path.clone(),
+            "docker",
+            false,
+            Some("yaml-test".to_string()),
+        );
+        init(args).unwrap();
+
+        let content = std::fs::read_to_string(&file_path).unwrap();
+        // The generated config should be valid YAML
+        let parsed: Result<serde_yaml_ng::Value, _> = serde_yaml_ng::from_str(&content);
+        assert!(parsed.is_ok(), "generated config should be valid YAML");
+    }
+}

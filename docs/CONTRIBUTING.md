@@ -9,6 +9,19 @@ Thank you for your interest in contributing to Sindri! This guide will help you 
 - Focus on the technical merit of contributions
 - Help others learn and grow
 
+## Development Versions
+
+Sindri has two active development versions:
+
+- **V2** (Bash/Docker): The original implementation using shell scripts, Docker containers, and pnpm tooling. See [V2 Development](#v2-development) below.
+- **V3** (Rust CLI): The next-generation CLI rewritten in Rust as a cargo workspace. See [V3 Development](#v3-development) below.
+
+Choose the section below that matches your work.
+
+---
+
+## V2 Development
+
 ## Development Setup
 
 ### Prerequisites
@@ -306,6 +319,137 @@ find docs -name "*.md" | xargs -n1 markdown-link-check -q
 - Internal links checked on every PR
 - External URLs checked weekly (scheduled)
 - Anchor links validated for correctness
+
+---
+
+## V3 Development
+
+### Prerequisites
+
+- Rust 1.93+ (install via [rustup](https://rustup.rs/))
+- cargo (comes with Rust)
+- Optional: [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) for code coverage (`rustup component add llvm-tools-preview && cargo install cargo-llvm-cov`)
+
+### Setup
+
+```bash
+cd v3
+cargo build
+cargo test --workspace
+```
+
+### Workspace Structure
+
+V3 is organized as a Cargo workspace with 12 crates:
+
+| Crate               | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `sindri`            | CLI binary entry point (clap-based)              |
+| `sindri-core`       | Shared types, configuration, and utilities       |
+| `sindri-providers`  | Cloud provider adapters (Docker, Fly.io, DevPod) |
+| `sindri-extensions` | Extension registry, resolution, and lifecycle    |
+| `sindri-secrets`    | Secrets management (encryption, vaults)          |
+| `sindri-backup`     | Backup and restore operations                    |
+| `sindri-projects`   | Project scaffolding and management               |
+| `sindri-doctor`     | Environment diagnostics and health checks        |
+| `sindri-clusters`   | Kubernetes cluster management                    |
+| `sindri-image`      | Container image management                       |
+| `sindri-packer`     | Image packing and distribution                   |
+| `sindri-update`     | Self-update mechanism                            |
+
+### Development Workflow
+
+```bash
+# Build all crates
+cargo build
+
+# Run all tests
+cargo test --workspace
+
+# Test a specific crate
+cargo test -p sindri-core
+
+# Lint all crates
+cargo clippy --workspace
+
+# Format all code
+cargo fmt --all
+
+# Check formatting without writing
+cargo fmt --all -- --check
+
+# Build in release mode
+cargo build --release
+
+# Code coverage (requires cargo-llvm-cov)
+cargo llvm-cov --workspace --html --output-dir coverage/
+```
+
+### V3 Testing Guidelines
+
+- Unit tests go in `#[cfg(test)] mod tests` blocks within each source file
+- Use `tempfile::TempDir` for tests that touch the filesystem
+- Use `#[tokio::test]` for async tests
+- Use `serial_test::serial` when tests share global state (e.g., environment variables)
+- Run a single test by name: `cargo test -p sindri-core test_name`
+
+Example test structure:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_config_loads_defaults() {
+        let tmp = TempDir::new().unwrap();
+        // ...
+    }
+
+    #[tokio::test]
+    async fn test_provider_connect() {
+        // ...
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_env_var_handling() {
+        // ...
+    }
+}
+```
+
+### V3 Code Style
+
+- **Error handling:** `anyhow::Result` for application-level errors, `thiserror` for library crate error types
+- **Async runtime:** tokio; use `#[async_trait]` for async trait methods
+- **CLI parsing:** clap derive macros (`#[derive(Parser)]`, `#[derive(Subcommand)]`)
+- **Serialization:** serde with `serde_yaml_ng` (not the deprecated `serde_yaml`)
+- **Path handling:** `camino::Utf8PathBuf` for UTF-8 guaranteed paths
+- **Formatting:** Standard `rustfmt` defaults; run `cargo fmt --all` before committing
+- **Linting:** All code must pass `cargo clippy --workspace` with no warnings
+
+### V3 Extension Development
+
+V3 uses a different extension system from V2. Extensions are defined as YAML manifests with JSON Schema validation. For full details, see the [V3 Extension Guide](../v3/docs/EXTENSIONS.md).
+
+### V3 Documentation
+
+V3-specific documentation lives in `v3/docs/`. Key guides:
+
+- [CLI Reference](../v3/docs/CLI.md)
+- [Architecture](../v3/docs/ARCHITECTURE.md)
+- [Getting Started](../v3/docs/GETTING_STARTED.md)
+- [Extensions](../v3/docs/EXTENSIONS.md)
+- [Configuration](../v3/docs/CONFIGURATION.md)
+- [Schema Reference](../v3/docs/SCHEMA.md)
+
+---
+
+## Shared Guidelines
+
+The following sections apply to both V2 and V3 development.
 
 ## Documentation
 

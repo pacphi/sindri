@@ -186,15 +186,16 @@ endef
 	v2-profiles-list v2-connect \
 	v2-deploy v2-deploy-docker v2-deploy-fly v2-deploy-devpod \
 	v3-build v3-build-debug v3-check \
-	v3-test v3-test-verbose \
+	v3-test v3-test-verbose v3-test-crate \
 	v3-validate v3-validate-yaml v3-validate-rust \
 	v3-clippy v3-fmt v3-fmt-check \
 	v3-audit v3-audit-fix \
+	v3-coverage v3-coverage-html v3-coverage-lcov \
 	v3-doc v3-run v3-run-debug v3-install \
 	v3-docker-build v3-docker-build-latest v3-docker-build-nocache \
 	v3-docker-build-from-source v3-docker-build-from-binary \
 	v3-cycle \
-	ci v2-ci v3-ci \
+	ci v2-ci v3-ci v3-quality \
 	clean v2-clean v3-clean
 
 # ============================================================================
@@ -267,6 +268,7 @@ help:
 	@echo "  v3-check               - Fast compile check"
 	@echo "  v3-test                - Run Rust tests"
 	@echo "  v3-test-verbose        - Run Rust tests (verbose output)"
+	@echo "  v3-test-crate          - Test one crate (use: make v3-test-crate CRATE=sindri-core)"
 	@echo "  v3-validate            - Validate Rust code (fmt + clippy + YAML)"
 	@echo "  v3-validate-yaml       - Validate v3 YAML files"
 	@echo "  v3-validate-rust       - Validate Rust code only"
@@ -275,6 +277,9 @@ help:
 	@echo "  v3-fmt-check           - Check Rust formatting"
 	@echo "  v3-audit               - Security audit"
 	@echo "  v3-audit-fix           - Fix security vulnerabilities"
+	@echo "  v3-coverage            - Run tests with coverage summary"
+	@echo "  v3-coverage-html       - Coverage report (HTML in coverage/)"
+	@echo "  v3-coverage-lcov       - Coverage report (LCOV for CI)"
 	@echo "  v3-doc                 - Generate and open documentation"
 	@echo "  v3-run                 - Run v3 binary (use: make v3-run ARGS=\"version\")"
 	@echo "  v3-run-debug           - Run v3 debug binary"
@@ -299,7 +304,8 @@ help:
 	@echo "$(BOLD)$(BLUE)═══ CI/CD Targets ═══════════════════════════════════════════════════$(RESET)"
 	@echo "  ci                     - Run full CI (v2 + v3)"
 	@echo "  v2-ci                  - Run v2 CI pipeline"
-	@echo "  v3-ci                  - Run v3 CI pipeline"
+	@echo "  v3-ci                  - Run v3 CI pipeline (validate + test + build)"
+	@echo "  v3-quality             - Full quality gate (fmt + clippy + test + audit + coverage)"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ Utility ═════════════════════════════════════════════════════════$(RESET)"
 	@echo "  clean                  - Clean all build artifacts"
@@ -737,6 +743,20 @@ v3-test-verbose:
 	cd $(V3_DIR) && cargo test --workspace -- --nocapture
 	@echo "$(GREEN)✓ v3 verbose tests passed$(RESET)"
 
+.PHONY: v3-test-crate
+v3-test-crate:
+	@if [ -z "$(CRATE)" ]; then \
+		echo "$(YELLOW)Usage: make v3-test-crate CRATE=sindri-core$(RESET)"; \
+		echo "Available crates:"; \
+		echo "  sindri sindri-core sindri-providers sindri-extensions"; \
+		echo "  sindri-secrets sindri-backup sindri-projects sindri-doctor"; \
+		echo "  sindri-clusters sindri-image sindri-packer sindri-update"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Running tests for $(CRATE)...$(RESET)"
+	cd $(V3_DIR) && cargo test -p $(CRATE)
+	@echo "$(GREEN)✓ $(CRATE) tests passed$(RESET)"
+
 # ============================================================================
 # V3 Validation Targets
 # ============================================================================
@@ -792,6 +812,43 @@ v3-audit-fix:
 	@echo "$(BLUE)Fixing v3 security vulnerabilities...$(RESET)"
 	cd $(V3_DIR) && cargo audit fix
 	@echo "$(GREEN)✓ Security fixes applied$(RESET)"
+
+# ============================================================================
+# V3 Code Coverage (cargo-llvm-cov)
+# ============================================================================
+
+.PHONY: v3-coverage
+v3-coverage:
+	@echo "$(BLUE)Running v3 code coverage (summary)...$(RESET)"
+	@if ! command -v cargo-llvm-cov >/dev/null 2>&1; then \
+		echo "$(YELLOW)cargo-llvm-cov not installed.$(RESET)"; \
+		echo "  Install: rustup component add llvm-tools-preview && cargo install cargo-llvm-cov"; \
+		exit 1; \
+	fi
+	cd $(V3_DIR) && cargo llvm-cov --workspace
+	@echo "$(GREEN)✓ Coverage report complete$(RESET)"
+
+.PHONY: v3-coverage-html
+v3-coverage-html:
+	@echo "$(BLUE)Generating v3 HTML coverage report...$(RESET)"
+	@if ! command -v cargo-llvm-cov >/dev/null 2>&1; then \
+		echo "$(YELLOW)cargo-llvm-cov not installed.$(RESET)"; \
+		echo "  Install: rustup component add llvm-tools-preview && cargo install cargo-llvm-cov"; \
+		exit 1; \
+	fi
+	cd $(V3_DIR) && cargo llvm-cov --workspace --html --output-dir coverage/
+	@echo "$(GREEN)✓ HTML report: $(V3_DIR)/coverage/html/index.html$(RESET)"
+
+.PHONY: v3-coverage-lcov
+v3-coverage-lcov:
+	@echo "$(BLUE)Generating v3 LCOV coverage report...$(RESET)"
+	@if ! command -v cargo-llvm-cov >/dev/null 2>&1; then \
+		echo "$(YELLOW)cargo-llvm-cov not installed.$(RESET)"; \
+		echo "  Install: rustup component add llvm-tools-preview && cargo install cargo-llvm-cov"; \
+		exit 1; \
+	fi
+	cd $(V3_DIR) && cargo llvm-cov --workspace --lcov --output-path coverage/lcov.info
+	@echo "$(GREEN)✓ LCOV report: $(V3_DIR)/coverage/lcov.info$(RESET)"
 
 # ============================================================================
 # V3 Documentation
@@ -1270,8 +1327,12 @@ v2-ci: v2-validate v2-build
 	@echo "$(GREEN)$(BOLD)✓ v2 CI pipeline passed$(RESET)"
 
 .PHONY: v3-ci
-v3-ci: v3-validate v3-build
+v3-ci: v3-validate v3-test v3-build
 	@echo "$(GREEN)$(BOLD)✓ v3 CI pipeline passed$(RESET)"
+
+.PHONY: v3-quality
+v3-quality: v3-fmt-check v3-clippy v3-test v3-audit v3-coverage
+	@echo "$(GREEN)$(BOLD)✓ v3 quality gate passed (fmt + clippy + test + audit + coverage)$(RESET)"
 
 # ============================================================================
 # Clean Targets

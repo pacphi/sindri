@@ -44,5 +44,9 @@ fn test_gcp_template_generation() {
     };
 
     let result = provider.generate_template(&config);
-    assert!(result.is_err() || result.is_ok());
+    // Templates are not yet created (Phase 2), so this should error
+    assert!(
+        result.is_err(),
+        "Expected template generation to fail until templates are implemented"
+    );
 }

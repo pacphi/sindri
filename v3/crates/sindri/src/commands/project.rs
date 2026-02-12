@@ -2137,3 +2137,219 @@ fn show_new_project_git_config() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---- is_valid_repo_url ----
+
+    #[test]
+    fn test_valid_https_url() {
+        assert!(is_valid_repo_url("https://github.com/user/repo.git"));
+    }
+
+    #[test]
+    fn test_valid_http_url() {
+        assert!(is_valid_repo_url("http://github.com/user/repo"));
+    }
+
+    #[test]
+    fn test_valid_git_ssh_url() {
+        assert!(is_valid_repo_url("git@github.com:user/repo.git"));
+    }
+
+    #[test]
+    fn test_invalid_url_ftp() {
+        assert!(!is_valid_repo_url("ftp://example.com/repo"));
+    }
+
+    #[test]
+    fn test_invalid_url_plain_path() {
+        assert!(!is_valid_repo_url("/home/user/repo"));
+    }
+
+    #[test]
+    fn test_invalid_url_empty() {
+        assert!(!is_valid_repo_url(""));
+    }
+
+    // ---- extract_project_name ----
+
+    #[test]
+    fn test_extract_name_from_https_url() {
+        let name = extract_project_name("https://github.com/user/my-project.git").unwrap();
+        assert_eq!(name, "my-project");
+    }
+
+    #[test]
+    fn test_extract_name_from_url_without_git_suffix() {
+        let name = extract_project_name("https://github.com/user/my-project").unwrap();
+        assert_eq!(name, "my-project");
+    }
+
+    #[test]
+    fn test_extract_name_from_url_with_trailing_slash() {
+        let name = extract_project_name("https://github.com/user/my-project/").unwrap();
+        assert_eq!(name, "my-project");
+    }
+
+    #[test]
+    fn test_extract_name_from_ssh_url() {
+        let name = extract_project_name("git@github.com:user/repo-name.git").unwrap();
+        assert_eq!(name, "repo-name");
+    }
+
+    // ---- resolve_template_alias (fallback paths) ----
+
+    #[test]
+    fn test_resolve_alias_nodejs() {
+        let result = resolve_template_alias("nodejs");
+        assert_eq!(result, "node");
+    }
+
+    #[test]
+    fn test_resolve_alias_js() {
+        let result = resolve_template_alias("js");
+        assert_eq!(result, "node");
+    }
+
+    #[test]
+    fn test_resolve_alias_py() {
+        let result = resolve_template_alias("py");
+        assert_eq!(result, "python");
+    }
+
+    #[test]
+    fn test_resolve_alias_golang() {
+        let result = resolve_template_alias("golang");
+        assert_eq!(result, "go");
+    }
+
+    #[test]
+    fn test_resolve_alias_rs() {
+        let result = resolve_template_alias("rs");
+        assert_eq!(result, "rust");
+    }
+
+    #[test]
+    fn test_resolve_alias_identity_for_canonical() {
+        // Canonical names should pass through unchanged
+        assert_eq!(resolve_template_alias("node"), "node");
+        assert_eq!(resolve_template_alias("python"), "python");
+        assert_eq!(resolve_template_alias("rust"), "rust");
+        assert_eq!(resolve_template_alias("go"), "go");
+    }
+
+    #[test]
+    fn test_resolve_alias_case_insensitive() {
+        let result = resolve_template_alias("NodeJS");
+        assert_eq!(result, "node");
+    }
+
+    // ---- detect_type_from_name_fallback ----
+
+    #[test]
+    fn test_detect_rails_from_name() {
+        let result = detect_type_from_name_fallback("my-rails-app");
+        assert!(matches!(result, Some(DetectionResult::Unambiguous(ref t)) if t == "rails"));
+    }
+
+    #[test]
+    fn test_detect_django_from_name() {
+        let result = detect_type_from_name_fallback("django-blog");
+        assert!(matches!(result, Some(DetectionResult::Unambiguous(ref t)) if t == "django"));
+    }
+
+    #[test]
+    fn test_detect_node_from_name() {
+        let result = detect_type_from_name_fallback("node-backend");
+        assert!(matches!(result, Some(DetectionResult::Unambiguous(ref t)) if t == "node"));
+    }
+
+    #[test]
+    fn test_detect_python_from_name() {
+        let result = detect_type_from_name_fallback("python-scraper");
+        assert!(matches!(result, Some(DetectionResult::Unambiguous(ref t)) if t == "python"));
+    }
+
+    #[test]
+    fn test_detect_rust_from_name() {
+        let result = detect_type_from_name_fallback("rust-cli-tool");
+        assert!(matches!(result, Some(DetectionResult::Unambiguous(ref t)) if t == "rust"));
+    }
+
+    #[test]
+    fn test_detect_go_from_name() {
+        let result = detect_type_from_name_fallback("golang-service");
+        assert!(matches!(result, Some(DetectionResult::Unambiguous(ref t)) if t == "go"));
+    }
+
+    #[test]
+    fn test_detect_ambiguous_api_name() {
+        let result = detect_type_from_name_fallback("my-api");
+        assert!(matches!(result, Some(DetectionResult::Ambiguous(ref types)) if types.len() > 1));
+    }
+
+    #[test]
+    fn test_detect_ambiguous_web_name() {
+        let result = detect_type_from_name_fallback("web-dashboard");
+        assert!(matches!(result, Some(DetectionResult::Ambiguous(ref types)) if types.len() > 1));
+    }
+
+    #[test]
+    fn test_detect_none_for_generic_name() {
+        let result = detect_type_from_name_fallback("my-cool-thing");
+        assert!(result.is_none());
+    }
+
+    // ---- generate_gitignore ----
+
+    #[test]
+    fn test_generate_gitignore_node() {
+        let content = generate_gitignore("node");
+        assert!(content.contains("node_modules/"));
+        assert!(content.contains(".env"));
+    }
+
+    #[test]
+    fn test_generate_gitignore_python() {
+        let content = generate_gitignore("python");
+        assert!(content.contains("__pycache__/"));
+        assert!(content.contains("venv/"));
+    }
+
+    #[test]
+    fn test_generate_gitignore_rust() {
+        let content = generate_gitignore("rust");
+        assert!(content.contains("/target/"));
+    }
+
+    #[test]
+    fn test_generate_gitignore_go() {
+        let content = generate_gitignore("go");
+        assert!(content.contains("*.exe"));
+        assert!(content.contains("go.work"));
+    }
+
+    #[test]
+    fn test_generate_gitignore_generic_fallback() {
+        let content = generate_gitignore("unknown");
+        assert!(content.contains(".env"));
+        assert!(content.contains(".DS_Store"));
+    }
+
+    // ---- substitute_variables ----
+
+    #[test]
+    fn test_substitute_variables() {
+        let vars = TemplateVariables {
+            project_name: "my-app".to_string(),
+            author: "Dev".to_string(),
+            date: "2026-01-15".to_string(),
+            year: "2026".to_string(),
+        };
+        let result = substitute_variables("Name: {project_name}, by {author} ({year})", &vars);
+        assert_eq!(result, "Name: my-app, by Dev (2026)");
+    }
+}
