@@ -160,8 +160,7 @@ mod tests {
         std::fs::write(source_dir.join("data.txt"), b"some data").unwrap();
 
         let file = std::fs::File::create(&archive_path).unwrap();
-        let encoder =
-            flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        let encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
         let mut builder = tar::Builder::new(encoder);
         builder.append_dir_all(".", &source_dir).unwrap();
         let encoder = builder.into_inner().unwrap();

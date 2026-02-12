@@ -443,5 +443,4 @@ mod tests {
         assert!(!predicate.should_retry(&not_found_err));
         assert!(predicate.should_retry(&reset_err));
     }
-
 }

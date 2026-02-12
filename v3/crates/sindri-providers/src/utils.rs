@@ -26,121 +26,6 @@ pub fn get_command_version(cmd: &str, version_flag: &str) -> Result<String> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_command_exists_with_known_command() {
-        // "ls" should be available on any Unix system
-        assert!(command_exists("ls"), "ls should exist in PATH");
-    }
-
-    #[test]
-    fn test_command_exists_with_unknown_command() {
-        assert!(
-            !command_exists("this_command_definitely_does_not_exist_abc123"),
-            "non-existent command should return false"
-        );
-    }
-
-    #[test]
-    fn test_get_command_version_success() {
-        // "ls --version" should work on Linux (GNU coreutils)
-        let result = get_command_version("ls", "--version");
-        assert!(result.is_ok(), "ls --version should succeed");
-        let version = result.unwrap();
-        assert!(!version.is_empty(), "version string should not be empty");
-    }
-
-    #[test]
-    fn test_get_command_version_nonexistent_command() {
-        let result = get_command_version("nonexistent_cmd_xyz", "--version");
-        assert!(result.is_err(), "non-existent command should return Err");
-    }
-
-    #[test]
-    fn test_get_command_version_stderr_fallback() {
-        // Test with a command that outputs to stderr (like some --version calls)
-        // Using "true" which succeeds but has no output - should return empty string
-        let result = get_command_version("true", "--help");
-        // "true" ignores its arguments, so it succeeds with empty output
-        // The function should return Ok with empty or non-empty string
-        assert!(result.is_ok() || result.is_err());
-    }
-
-    #[test]
-    fn test_copy_dir_recursive_basic() {
-        let tmp = tempfile::tempdir().unwrap();
-        let src = tmp.path().join("src");
-        let dst = tmp.path().join("dst");
-
-        // Create source structure: src/a.txt, src/sub/b.txt
-        std::fs::create_dir_all(src.join("sub")).unwrap();
-        std::fs::write(src.join("a.txt"), "hello").unwrap();
-        std::fs::write(src.join("sub").join("b.txt"), "world").unwrap();
-
-        copy_dir_recursive(&src, &dst).unwrap();
-
-        assert!(dst.join("a.txt").exists(), "a.txt should be copied");
-        assert!(
-            dst.join("sub").join("b.txt").exists(),
-            "sub/b.txt should be copied"
-        );
-        assert_eq!(std::fs::read_to_string(dst.join("a.txt")).unwrap(), "hello");
-        assert_eq!(
-            std::fs::read_to_string(dst.join("sub").join("b.txt")).unwrap(),
-            "world"
-        );
-    }
-
-    #[test]
-    fn test_copy_dir_recursive_empty_dir() {
-        let tmp = tempfile::tempdir().unwrap();
-        let src = tmp.path().join("empty_src");
-        let dst = tmp.path().join("empty_dst");
-
-        std::fs::create_dir_all(&src).unwrap();
-        copy_dir_recursive(&src, &dst).unwrap();
-
-        assert!(dst.exists(), "destination should be created");
-        assert!(dst.is_dir(), "destination should be a directory");
-    }
-
-    #[test]
-    fn test_copy_dir_recursive_nonexistent_source() {
-        let tmp = tempfile::tempdir().unwrap();
-        let src = tmp.path().join("does_not_exist");
-        let dst = tmp.path().join("dst");
-
-        let result = copy_dir_recursive(&src, &dst);
-        assert!(result.is_err(), "non-existent source should fail");
-    }
-
-    #[test]
-    fn test_copy_dir_recursive_nested() {
-        let tmp = tempfile::tempdir().unwrap();
-        let src = tmp.path().join("deep");
-        let dst = tmp.path().join("deep_copy");
-
-        // Create deeply nested structure
-        std::fs::create_dir_all(src.join("a").join("b").join("c")).unwrap();
-        std::fs::write(src.join("a").join("b").join("c").join("deep.txt"), "deep").unwrap();
-        std::fs::write(src.join("a").join("top.txt"), "top").unwrap();
-
-        copy_dir_recursive(&src, &dst).unwrap();
-
-        assert_eq!(
-            std::fs::read_to_string(dst.join("a").join("b").join("c").join("deep.txt")).unwrap(),
-            "deep"
-        );
-        assert_eq!(
-            std::fs::read_to_string(dst.join("a").join("top.txt")).unwrap(),
-            "top"
-        );
-    }
-}
-
 /// Clone Sindri repository for Docker build context
 ///
 /// Performs a shallow clone of the Sindri repository to get the v3 directory
@@ -322,4 +207,119 @@ pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> Resul
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_command_exists_with_known_command() {
+        // "ls" should be available on any Unix system
+        assert!(command_exists("ls"), "ls should exist in PATH");
+    }
+
+    #[test]
+    fn test_command_exists_with_unknown_command() {
+        assert!(
+            !command_exists("this_command_definitely_does_not_exist_abc123"),
+            "non-existent command should return false"
+        );
+    }
+
+    #[test]
+    fn test_get_command_version_success() {
+        // "ls --version" should work on Linux (GNU coreutils)
+        let result = get_command_version("ls", "--version");
+        assert!(result.is_ok(), "ls --version should succeed");
+        let version = result.unwrap();
+        assert!(!version.is_empty(), "version string should not be empty");
+    }
+
+    #[test]
+    fn test_get_command_version_nonexistent_command() {
+        let result = get_command_version("nonexistent_cmd_xyz", "--version");
+        assert!(result.is_err(), "non-existent command should return Err");
+    }
+
+    #[test]
+    fn test_get_command_version_stderr_fallback() {
+        // Test with a command that outputs to stderr (like some --version calls)
+        // Using "true" which succeeds but has no output - should return empty string
+        let result = get_command_version("true", "--help");
+        // "true" ignores its arguments, so it succeeds with empty output
+        // The function should return Ok with empty or non-empty string
+        assert!(result.is_ok() || result.is_err());
+    }
+
+    #[test]
+    fn test_copy_dir_recursive_basic() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("src");
+        let dst = tmp.path().join("dst");
+
+        // Create source structure: src/a.txt, src/sub/b.txt
+        std::fs::create_dir_all(src.join("sub")).unwrap();
+        std::fs::write(src.join("a.txt"), "hello").unwrap();
+        std::fs::write(src.join("sub").join("b.txt"), "world").unwrap();
+
+        copy_dir_recursive(&src, &dst).unwrap();
+
+        assert!(dst.join("a.txt").exists(), "a.txt should be copied");
+        assert!(
+            dst.join("sub").join("b.txt").exists(),
+            "sub/b.txt should be copied"
+        );
+        assert_eq!(std::fs::read_to_string(dst.join("a.txt")).unwrap(), "hello");
+        assert_eq!(
+            std::fs::read_to_string(dst.join("sub").join("b.txt")).unwrap(),
+            "world"
+        );
+    }
+
+    #[test]
+    fn test_copy_dir_recursive_empty_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("empty_src");
+        let dst = tmp.path().join("empty_dst");
+
+        std::fs::create_dir_all(&src).unwrap();
+        copy_dir_recursive(&src, &dst).unwrap();
+
+        assert!(dst.exists(), "destination should be created");
+        assert!(dst.is_dir(), "destination should be a directory");
+    }
+
+    #[test]
+    fn test_copy_dir_recursive_nonexistent_source() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("does_not_exist");
+        let dst = tmp.path().join("dst");
+
+        let result = copy_dir_recursive(&src, &dst);
+        assert!(result.is_err(), "non-existent source should fail");
+    }
+
+    #[test]
+    fn test_copy_dir_recursive_nested() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("deep");
+        let dst = tmp.path().join("deep_copy");
+
+        // Create deeply nested structure
+        std::fs::create_dir_all(src.join("a").join("b").join("c")).unwrap();
+        std::fs::write(src.join("a").join("b").join("c").join("deep.txt"), "deep").unwrap();
+        std::fs::write(src.join("a").join("top.txt"), "top").unwrap();
+
+        copy_dir_recursive(&src, &dst).unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(dst.join("a").join("b").join("c").join("deep.txt")).unwrap(),
+            "deep"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dst.join("a").join("top.txt")).unwrap(),
+            "top"
+        );
+    }
 }

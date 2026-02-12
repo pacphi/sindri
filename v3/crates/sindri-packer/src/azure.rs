@@ -51,12 +51,6 @@ impl AzurePackerProvider {
     }
 }
 
-impl Default for AzurePackerProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default AzurePackerProvider")
-    }
-}
-
 #[async_trait]
 impl PackerProvider for AzurePackerProvider {
     fn cloud_name(&self) -> &'static str {

@@ -642,12 +642,6 @@ impl FlyProvider {
     }
 }
 
-impl Default for FlyProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default FlyProvider")
-    }
-}
-
 #[async_trait]
 impl Provider for FlyProvider {
     fn name(&self) -> &'static str {
@@ -1168,7 +1162,10 @@ mod tests {
     #[test]
     fn test_get_fly_gpu_config_unknown_tier_defaults() {
         let (guest, cpus, mem) = get_fly_gpu_config("unknown-tier");
-        assert_eq!(guest, "a100-40gb", "unknown tier should default to gpu-small");
+        assert_eq!(
+            guest, "a100-40gb",
+            "unknown tier should default to gpu-small"
+        );
         assert_eq!(cpus, 8);
         assert_eq!(mem, 32768);
     }

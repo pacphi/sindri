@@ -248,12 +248,6 @@ impl CompatibilityChecker {
     }
 }
 
-impl Default for CompatibilityChecker {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default CompatibilityChecker")
-    }
-}
-
 /// Display methods for compatibility results
 impl CompatResult {
     /// Print compatibility warnings with colored output

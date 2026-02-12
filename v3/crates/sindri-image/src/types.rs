@@ -313,7 +313,11 @@ mod tests {
             repository: "example/repo".to_string(),
             tags: vec![],
         };
-        assert_eq!(meta.age_days(), 0, "Metadata generated now should be 0 days old");
+        assert_eq!(
+            meta.age_days(),
+            0,
+            "Metadata generated now should be 0 days old"
+        );
     }
 
     #[test]
@@ -328,11 +332,7 @@ mod tests {
         };
         // Allow ±1 day for clock drift / rounding
         let age = meta.age_days();
-        assert!(
-            (29..=31).contains(&age),
-            "Expected ~30 days, got {}",
-            age
-        );
+        assert!((29..=31).contains(&age), "Expected ~30 days, got {}", age);
     }
 
     #[test]

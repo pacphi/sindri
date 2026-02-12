@@ -103,15 +103,15 @@ done < <(git log --oneline "$COMMIT_RANGE" -- "$PATH_FILTER" 2>/dev/null || git 
 # Build changelog content
 changelog="## [${VERSION}] - $(date +%Y-%m-%d)"$'\n\n'
 
-[[ -n "$features" ]] && changelog+="### :sparkles: Features"$'\n\n'"$features"$'\n'
-[[ -n "$fixes" ]] && changelog+="### :bug: Bug Fixes"$'\n\n'"$fixes"$'\n'
-[[ -n "$docs" ]] && changelog+="### :books: Documentation"$'\n\n'"$docs"$'\n'
-[[ -n "$deps" ]] && changelog+="### :package: Dependencies"$'\n\n'"$deps"$'\n'
-[[ -n "$perf" ]] && changelog+="### :zap: Performance"$'\n\n'"$perf"$'\n'
-[[ -n "$refactor" ]] && changelog+="### :recycle: Refactoring"$'\n\n'"$refactor"$'\n'
-[[ -n "$tests" ]] && changelog+="### :white_check_mark: Tests"$'\n\n'"$tests"$'\n'
-[[ -n "$chore" ]] && changelog+="### :wrench: Maintenance"$'\n\n'"$chore"$'\n'
-[[ -n "$other" ]] && changelog+="### :gear: Other Changes"$'\n\n'"$other"$'\n'
+[[ -n "$features" ]] && changelog+="### Added"$'\n\n'"$features"$'\n'
+[[ -n "$fixes" ]] && changelog+="### Fixed"$'\n\n'"$fixes"$'\n'
+[[ -n "$docs" ]] && changelog+="### Documentation"$'\n\n'"$docs"$'\n'
+[[ -n "$deps" ]] && changelog+="### Dependencies"$'\n\n'"$deps"$'\n'
+[[ -n "$perf" ]] && changelog+="### Performance"$'\n\n'"$perf"$'\n'
+[[ -n "$refactor" ]] && changelog+="### Changed"$'\n\n'"$refactor"$'\n'
+[[ -n "$tests" ]] && changelog+="### Tests"$'\n\n'"$tests"$'\n'
+[[ -n "$chore" ]] && changelog+="### Maintenance"$'\n\n'"$chore"$'\n'
+[[ -n "$other" ]] && changelog+="### Other"$'\n\n'"$other"$'\n'
 
 # Add version-specific installation instructions
 changelog+="### Installation"$'\n\n'

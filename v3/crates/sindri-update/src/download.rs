@@ -340,7 +340,7 @@ impl BinaryDownloader {
             pb.set_style(
                 ProgressStyle::default_bar()
                     .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
-                    .expect("Invalid progress bar template")
+                    .unwrap()
                     .progress_chars("#>-"),
             );
             pb.set_message(format!("Downloading {} (attempt {})", asset.name, attempt));
@@ -472,12 +472,6 @@ impl BinaryDownloader {
         }
 
         platforms
-    }
-}
-
-impl Default for BinaryDownloader {
-    fn default() -> Self {
-        Self::new().expect("Failed to create binary downloader")
     }
 }
 

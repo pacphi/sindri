@@ -53,16 +53,16 @@ _GA release placeholder. See [3.0.0-rc.3] and earlier pre-releases for cumulativ
 
 ## [3.0.0-rc.1] - 2026-02-10
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): improve extension Python and validation handling (8b6434b)
 
-### :books: Documentation
+### Documentation
 
 - docs(v3): update release notes and FAQ with recent features (3bf1bfd)
 - docs(v3): align paths and references with v3 architecture (61121f8)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): bump to v3.0.0-rc.1 for release candidate (df977b2)
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.12 for development (372b1e5)
@@ -101,11 +101,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.11] - 2026-02-10
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): improve extension validation and version handling (2bcc072)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.11 for development (6175b6c)
 
@@ -143,15 +143,15 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.10] - 2026-02-10
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): improve script portability and installation reliability (8ab24f2)
 
-### :recycle: Refactoring
+### Changed
 
 - refactor(v3): migrate nodejs from hybrid to mise-only with corepack (1822a5f)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.10 for development (f98779f)
 
@@ -189,11 +189,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.9] - 2026-02-10
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): prevent extension list --all from hanging on script installations (64e72bb)
 
-### :wrench: Maintenance
+### Maintenance
 
 - style(v3): improve formatting consistency in CHANGELOG and source code (8cc3488)
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.9 for development (4af13e8)
@@ -232,11 +232,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.8] - 2026-02-10
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): allow "lts" and "stable" as BOM version keywords (8ae3398)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.8 for development (d15a2e5)
 
@@ -274,15 +274,15 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.7] - 2026-02-10
 
-### :sparkles: Features
+### Added
 
 - feat(v3): parallelize extension BOM fetching with rate limiting (042edaa)
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): allow null for docs.notes field in extension schema (2be33bb)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.7 for development (068a3a9)
 
@@ -320,18 +320,18 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.6] - 2026-02-10
 
-### :sparkles: Features
+### Added
 
 - feat(v3): enhance extension list with software versions and status tracking (4d50da3)
 - feat: add bom support (#64) (c9f63d3)
 - feat(v3): add Shannon autonomous AI pentester extension (a7c8c27)
 - feat(v3): enhance profile error reporting and modernize table styles (8a817c3)
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): handle SDKMAN init non-zero exit in certain environments (658c07c)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(v3): upgrade agentic-qe extension to v3.6.0 (03c7c91)
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.6 for development (9f85dd7)
@@ -370,7 +370,7 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.5] - 2026-02-08
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore: upgrade GitHub Actions checkout to v6 and improve version validation (db8f7d7)
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.5 for development (94f3ab6)
@@ -409,12 +409,12 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.4] - 2026-02-08
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): migrate compahook extension to mise install method (5c6c73c)
 - fix(v3): improve logging and extension installation handling (c154fa7)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(v3): fix CHANGELOG formatting and whitespace (a2ae248)
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.4 for development (811795b)
@@ -453,11 +453,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.3] - 2026-02-06
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): use correct validation field for compahook (969bac2)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.3 for development (9406398)
 
@@ -495,11 +495,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.2] - 2026-02-06
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): resolve startup race condition and improve MOTD display (ed1e305)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-beta.2 for development (9492531)
 
@@ -537,19 +537,19 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-beta.1] - 2026-02-05
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(tests): fix failing unit test and doctest in support_files module (8a421ee)
 - fix(extensions): add version-aware support file management for volume-mounted deployments (b9af0d1)
 
-### :books: Documentation
+### Documentation
 
 - docs: reorganize version guides into future-proof migration directory (926b195)
 - docs(v3): enhance README and add runtime configuration for mise timeout (407c687)
 - docs(vm): align VM image documentation with CLI naming conventions (5c63cf1)
 - docs(extensions): reorganize extension system documentation into guides/ (3ddca42)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): bump version to v3.0.0-beta.1 (1211226)
 - chore(v3): upgrade Rust toolchain to 1.93 and update dependencies (1fc886a)
@@ -589,12 +589,12 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.18] - 2026-02-05
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(cli): show deployment progress by default (c1b40d8)
 - fix(docker): set developer user home to /alt/home/developer (df80737)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.18 for development (e2bed4c)
 
@@ -632,12 +632,12 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.17] - 2026-02-05
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(providers): fix fly.io deployment hangs and improve visibility (c396487)
 - fix(providers): add fly context variables before early return for pre-built images (e23803e)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.17 for development (7eb54f2)
 
@@ -675,11 +675,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.16] - 2026-02-04
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(providers): fly provider now properly uses pre-built images (24f93d3)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.16 for development (aac39d3)
 
@@ -717,11 +717,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.15] - 2026-02-04
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): replace netstat with ss in health check to fix fly.io deployments (7d7e6d6)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.15 for development (cb0a0ee)
 
@@ -759,16 +759,16 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.14] - 2026-02-04
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(core): resolve clippy format-in-format-args warning (ca9349c)
 - fix(v3): improve docker health check and standardize image defaults (4e5aaf5)
 
-### :books: Documentation
+### Documentation
 
 - docs(providers): add multi-node cluster examples (505ca02)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore: upgrade ai-toolkit extension versions for grok and gemini clis (7180ddb)
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.14 for development (e85fc72)
@@ -807,11 +807,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.13] - 2026-02-04
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(extensions): disable Python compilation in mise for noexec /tmp (96211bb)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.13 for development (679e627)
 
@@ -849,11 +849,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.12] - 2026-02-04
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(extensions): download mise config files for downloaded mode (73a7972)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.12 for development (0839d21)
 
@@ -891,11 +891,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.11] - 2026-02-03
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(docker): add common.sh for downloaded mode extensions (ababb26)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.11 for development (c6fd44a)
 
@@ -933,11 +933,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.10] - 2026-02-03
 
-### :sparkles: Features
+### Added
 
 - feat(extensions): add Swift 6.2.3 language extension (9b5a052)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.10 for development (8b5eb7b)
 
@@ -975,19 +975,19 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.9] - 2026-02-03
 
-### :sparkles: Features
+### Added
 
 - feat(extensions): add Swift 6.2.3 language extension (347eeca)
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(extensions): resolve doubled path in extension directory lookup (b6bfa24)
 
-### :books: Documentation
+### Documentation
 
 - docs: clean up CHANGELOG duplicate entries from tag detection bug (6215d28)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.9 for development (b69e6d1)
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.8 for development (9e23e73)
@@ -1026,15 +1026,15 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.8] - 2026-02-03
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(extensions): resolve doubled path in extension directory lookup (b6bfa24)
 
-### :books: Documentation
+### Documentation
 
 - docs: clean up CHANGELOG duplicate entries from tag detection bug (6215d28)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and bump to v3.0.0-alpha.8 for development (9e23e73)
 
@@ -1072,15 +1072,15 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.7] - 2026-02-03
 
-### :sparkles: Features
+### Added
 
 - feat(v3): migrate extension downloads to raw.githubusercontent.com (3295c2d)
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): resolve -c argument conflict in extension list command (4603305)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): prepare v3.0.0-alpha.7 release (ae54829)
 
@@ -1116,11 +1116,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.6] - 2026-02-03
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(v3): correct compatibility matrix URL and bundle in Docker image (a496d79)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.6 (2be6e38)
 
@@ -1156,11 +1156,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.5] - 2026-02-03
 
-### :sparkles: Features
+### Added
 
 - feat(v3): add unified extension source resolver and improve GHCR auth (3abcbe0)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.5 (222e8f4)
 
@@ -1196,11 +1196,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.4] - 2026-02-03
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(release): remove macOS x86_64 support from release pipeline (e27466c)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.4 (6e57da4)
 
@@ -1238,7 +1238,7 @@ sudo mv sindri /usr/local/bin/
 
 _Only release prep commit - no user-facing changes_
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.3 (60ab8dd)
 
@@ -1274,11 +1274,11 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.2] - 2026-02-02
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(release): resolve v3 build failures for ARM64 and Windows (fe25b4f)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.2 (2e0f9b8)
 
@@ -1314,7 +1314,7 @@ sudo mv sindri /usr/local/bin/
 
 ## [3.0.0-alpha.1] - 2026-02-02
 
-### :sparkles: Features
+### Added
 
 - feat(v3): Implement Sindri v3 architecture with dual-version support (0abee17)
 - feat(v3): production-ready v3 architecture with 90% faster builds (592686c)
@@ -1323,15 +1323,15 @@ sudo mv sindri /usr/local/bin/
 - feat: v3 vm command (#57) (cba8fe5)
 - feat: v3 distribution preparation (#58) (6ba9a2b)
 
-### :bug: Bug Fixes
+### Fixed
 
 - fix(security): resolve SSH private keys and GitHub CLI CVE vulnerabilities (439cfbc)
 
-### :package: Dependencies
+### Dependencies
 
 - deps(v3): upgrade which to 8.0 and dirs to 6.0 (573c35f)
 
-### :wrench: Maintenance
+### Maintenance
 
 - chore(release): update v3 CHANGELOG and Cargo.toml for v3.0.0-alpha.1 (0dbacf9)
 - chore(deps): upgrade CLI dependencies and fix test flakiness (09e6192)

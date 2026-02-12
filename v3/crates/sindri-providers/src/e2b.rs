@@ -583,12 +583,6 @@ impl E2bProvider {
     }
 }
 
-impl Default for E2bProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default E2bProvider")
-    }
-}
-
 #[async_trait]
 impl Provider for E2bProvider {
     fn name(&self) -> &'static str {
@@ -1172,7 +1166,10 @@ mod tests {
     #[test]
     fn test_supports_auto_suspend() {
         let provider = E2bProvider::new().unwrap();
-        assert!(provider.supports_auto_suspend(), "E2B should support auto-suspend (pause/resume)");
+        assert!(
+            provider.supports_auto_suspend(),
+            "E2B should support auto-suspend (pause/resume)"
+        );
     }
 
     #[test]

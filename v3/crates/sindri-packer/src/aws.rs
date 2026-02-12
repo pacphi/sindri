@@ -191,12 +191,6 @@ impl AwsPackerProvider {
     }
 }
 
-impl Default for AwsPackerProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default AwsPackerProvider")
-    }
-}
-
 #[async_trait]
 impl PackerProvider for AwsPackerProvider {
     fn cloud_name(&self) -> &'static str {

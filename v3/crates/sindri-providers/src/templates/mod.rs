@@ -77,12 +77,6 @@ impl TemplateRegistry {
     }
 }
 
-impl Default for TemplateRegistry {
-    fn default() -> Self {
-        Self::new().expect("Failed to initialize template registry")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

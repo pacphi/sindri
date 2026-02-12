@@ -684,12 +684,6 @@ impl DevPodProvider {
     }
 }
 
-impl Default for DevPodProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default DevPodProvider")
-    }
-}
-
 #[async_trait]
 impl Provider for DevPodProvider {
     fn name(&self) -> &'static str {
@@ -1107,10 +1101,14 @@ DOCKER_REGISTRY="ghcr.io""#;
 
     #[test]
     fn test_parse_env_file_with_comments_and_blanks() {
-        let content = "# Docker credentials\n\nDOCKER_USERNAME=user\n\nDOCKER_PASSWORD=pass\n# End\n";
+        let content =
+            "# Docker credentials\n\nDOCKER_USERNAME=user\n\nDOCKER_PASSWORD=pass\n# End\n";
 
         let creds = DevPodProvider::parse_env_file(content);
-        assert!(creds.is_some(), "should parse with comments and blank lines");
+        assert!(
+            creds.is_some(),
+            "should parse with comments and blank lines"
+        );
         let creds = creds.unwrap();
         assert_eq!(creds.username, "user");
         assert_eq!(creds.password, "pass");

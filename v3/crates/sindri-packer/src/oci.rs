@@ -51,12 +51,6 @@ impl OciPackerProvider {
     }
 }
 
-impl Default for OciPackerProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default OciPackerProvider")
-    }
-}
-
 #[async_trait]
 impl PackerProvider for OciPackerProvider {
     fn cloud_name(&self) -> &'static str {

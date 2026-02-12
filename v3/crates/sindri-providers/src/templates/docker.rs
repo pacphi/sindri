@@ -65,12 +65,6 @@ impl DockerTemplates {
     }
 }
 
-impl Default for DockerTemplates {
-    fn default() -> Self {
-        Self::new().expect("Failed to create Docker templates")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

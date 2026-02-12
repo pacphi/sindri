@@ -55,12 +55,6 @@ impl AlibabaPackerProvider {
     }
 }
 
-impl Default for AlibabaPackerProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default AlibabaPackerProvider")
-    }
-}
-
 #[async_trait]
 impl PackerProvider for AlibabaPackerProvider {
     fn cloud_name(&self) -> &'static str {

@@ -51,12 +51,6 @@ impl GcpPackerProvider {
     }
 }
 
-impl Default for GcpPackerProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default GcpPackerProvider")
-    }
-}
-
 #[async_trait]
 impl PackerProvider for GcpPackerProvider {
     fn cloud_name(&self) -> &'static str {

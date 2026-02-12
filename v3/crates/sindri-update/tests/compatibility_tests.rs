@@ -332,7 +332,7 @@ fn test_extension_version_comparison_semantics() {
 
 #[test]
 fn test_compatibility_checker_default() {
-    let checker = CompatibilityChecker::default();
+    let checker = CompatibilityChecker::new().unwrap();
     // Should create successfully
     assert!(!std::ptr::addr_of!(checker).is_null());
 }

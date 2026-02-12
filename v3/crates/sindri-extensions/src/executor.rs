@@ -1053,8 +1053,7 @@ impl ExtensionExecutor {
         info!("Executing configure phase for {}", ext_name);
 
         let ext_dir = self.resolve_extension_dir(ext_name);
-        let processor =
-            ConfigureProcessor::new(ext_dir, self.home_dir.clone());
+        let processor = ConfigureProcessor::new(ext_dir, self.home_dir.clone());
 
         let result = processor
             .execute(ext_name, configure)

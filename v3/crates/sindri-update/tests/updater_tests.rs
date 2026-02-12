@@ -26,7 +26,7 @@ fn test_updater_creation() {
 
 #[test]
 fn test_updater_default() {
-    let updater = SindriUpdater::default();
+    let updater = SindriUpdater::new().unwrap();
     assert!(updater.current_version().major >= 3);
 }
 

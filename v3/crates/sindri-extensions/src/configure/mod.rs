@@ -153,10 +153,8 @@ mod tests {
     #[tokio::test]
     async fn test_configure_processor_creation() {
         let temp = TempDir::new().unwrap();
-        let processor = ConfigureProcessor::new(
-            temp.path().to_path_buf(),
-            temp.path().to_path_buf(),
-        );
+        let processor =
+            ConfigureProcessor::new(temp.path().to_path_buf(), temp.path().to_path_buf());
 
         assert_eq!(processor.extension_dir, temp.path());
         assert_eq!(processor.home_dir, temp.path());

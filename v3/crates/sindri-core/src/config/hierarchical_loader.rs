@@ -223,12 +223,6 @@ impl HierarchicalConfigLoader {
     }
 }
 
-impl Default for HierarchicalConfigLoader {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default config loader")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

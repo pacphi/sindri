@@ -193,9 +193,3 @@ impl ReleaseManager {
             .find(|a| a.name.contains(&platform.target))
     }
 }
-
-impl Default for ReleaseManager {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default ReleaseManager")
-    }
-}

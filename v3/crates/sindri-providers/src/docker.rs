@@ -472,12 +472,6 @@ impl DockerProvider {
     }
 }
 
-impl Default for DockerProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default DockerProvider")
-    }
-}
-
 #[async_trait]
 impl Provider for DockerProvider {
     fn name(&self) -> &'static str {

@@ -64,4 +64,3 @@ pub fn progress_bar(len: u64, msg: &str) -> ProgressBar {
     pb.set_message(msg.to_string());
     pb
 }
-

@@ -257,12 +257,6 @@ impl SchemaValidator {
     }
 }
 
-impl Default for SchemaValidator {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default schema validator")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

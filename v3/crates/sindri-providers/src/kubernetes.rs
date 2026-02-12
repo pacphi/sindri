@@ -641,12 +641,6 @@ data:
     }
 }
 
-impl Default for KubernetesProvider {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default KubernetesProvider")
-    }
-}
-
 #[async_trait]
 impl Provider for KubernetesProvider {
     fn name(&self) -> &'static str {

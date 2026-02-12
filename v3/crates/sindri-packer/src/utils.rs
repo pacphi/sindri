@@ -265,5 +265,4 @@ mod tests {
         assert_eq!(sanitize_name("test_name-123"), "test_name-123");
         assert_eq!(sanitize_name("---test---"), "test");
     }
-
 }

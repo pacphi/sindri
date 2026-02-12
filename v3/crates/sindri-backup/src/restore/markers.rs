@@ -58,16 +58,16 @@ mod tests {
     fn test_non_marker_paths_not_detected() {
         assert!(!is_system_marker(Utf8Path::new("config.yaml")));
         assert!(!is_system_marker(Utf8Path::new("src/main.rs")));
-        assert!(!is_system_marker(Utf8Path::new("workspace/project/data.json")));
+        assert!(!is_system_marker(Utf8Path::new(
+            "workspace/project/data.json"
+        )));
         assert!(!is_system_marker(Utf8Path::new(".gitignore")));
         assert!(!is_system_marker(Utf8Path::new("README.md")));
     }
 
     #[test]
     fn test_paths_ending_with_marker_names_detected() {
-        assert!(is_system_marker(Utf8Path::new(
-            "some/prefix/.initialized"
-        )));
+        assert!(is_system_marker(Utf8Path::new("some/prefix/.initialized")));
         assert!(is_system_marker(Utf8Path::new(
             "deep/nested/path/.welcome_shown"
         )));

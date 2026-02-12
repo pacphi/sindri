@@ -275,8 +275,8 @@ mod tests {
     #[tokio::test]
     async fn test_rollback_file_created_removes_file() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-        let file_path = Utf8PathBuf::from_path_buf(temp_dir.path().join("created.txt"))
-            .expect("valid UTF-8");
+        let file_path =
+            Utf8PathBuf::from_path_buf(temp_dir.path().join("created.txt")).expect("valid UTF-8");
 
         // Create the file that was "restored"
         tokio::fs::write(&file_path, b"restored content")
@@ -368,18 +368,9 @@ mod tests {
         tx.record_directory_created(Utf8PathBuf::from("/tmp/d"));
 
         assert_eq!(tx.change_count(), 4);
-        assert!(matches!(
-            tx.changes[0],
-            RestoreChange::FileCreated { .. }
-        ));
-        assert!(matches!(
-            tx.changes[1],
-            RestoreChange::FileModified { .. }
-        ));
-        assert!(matches!(
-            tx.changes[2],
-            RestoreChange::FileDeleted { .. }
-        ));
+        assert!(matches!(tx.changes[0], RestoreChange::FileCreated { .. }));
+        assert!(matches!(tx.changes[1], RestoreChange::FileModified { .. }));
+        assert!(matches!(tx.changes[2], RestoreChange::FileDeleted { .. }));
         assert!(matches!(
             tx.changes[3],
             RestoreChange::DirectoryCreated { .. }

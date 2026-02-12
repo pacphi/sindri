@@ -507,12 +507,6 @@ impl SindriUpdater {
     }
 }
 
-impl Default for SindriUpdater {
-    fn default() -> Self {
-        Self::new().expect("Failed to create SindriUpdater")
-    }
-}
-
 /// Result of an update operation
 #[derive(Debug)]
 pub enum UpdateResult {

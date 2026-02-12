@@ -199,12 +199,6 @@ impl TemplateManager {
     }
 }
 
-impl Default for TemplateManager {
-    fn default() -> Self {
-        Self::new().expect("Failed to initialize template manager")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

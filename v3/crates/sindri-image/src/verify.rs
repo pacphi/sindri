@@ -417,7 +417,11 @@ mod tests {
     #[test]
     fn test_parse_signature_empty_returns_fallback() {
         let sigs = ImageVerifier::test_parse_signature_output("").unwrap();
-        assert_eq!(sigs.len(), 1, "Empty input should produce a fallback signature");
+        assert_eq!(
+            sigs.len(),
+            1,
+            "Empty input should produce a fallback signature"
+        );
         assert_eq!(sigs[0].issuer, "Verified");
         assert_eq!(sigs[0].subject, "Sigstore");
     }
@@ -439,7 +443,11 @@ mod tests {
             r#"{"critical":{},"optional":{"Issuer":"issuer-b","Subject":"sub-b"}}"#,
         );
         let sigs = ImageVerifier::test_parse_signature_output(&input).unwrap();
-        assert_eq!(sigs.len(), 2, "Should parse two signatures from two JSON lines");
+        assert_eq!(
+            sigs.len(),
+            2,
+            "Should parse two signatures from two JSON lines"
+        );
         assert_eq!(sigs[0].issuer, "issuer-a");
         assert_eq!(sigs[1].issuer, "issuer-b");
     }
@@ -488,9 +496,11 @@ mod tests {
         let payload_b64 = BASE64.encode(predicate.to_string().as_bytes());
         let line = serde_json::json!({ "payload": payload_b64 }).to_string();
 
-        let (level, builder, repo) =
-            ImageVerifier::test_parse_provenance_output(&line).unwrap();
-        assert_eq!(level, "SLSA Level 3", "buildType containing slsa.dev/provenance should map to SLSA Level 3");
+        let (level, builder, repo) = ImageVerifier::test_parse_provenance_output(&line).unwrap();
+        assert_eq!(
+            level, "SLSA Level 3",
+            "buildType containing slsa.dev/provenance should map to SLSA Level 3"
+        );
         assert!(
             builder.contains("slsa-github-generator"),
             "builder_id should contain generator name, got: {}",
@@ -513,9 +523,11 @@ mod tests {
         let payload_b64 = BASE64.encode(predicate.to_string().as_bytes());
         let line = serde_json::json!({ "payload": payload_b64 }).to_string();
 
-        let (level, builder, repo) =
-            ImageVerifier::test_parse_provenance_output(&line).unwrap();
-        assert_eq!(level, "SLSA", "Non-slsa.dev buildType should map to generic SLSA");
+        let (level, builder, repo) = ImageVerifier::test_parse_provenance_output(&line).unwrap();
+        assert_eq!(
+            level, "SLSA",
+            "Non-slsa.dev buildType should map to generic SLSA"
+        );
         assert_eq!(builder, "custom-builder");
         assert!(repo.is_none());
     }
@@ -524,8 +536,7 @@ mod tests {
     fn test_parse_provenance_malformed_payload_returns_fallback() {
         // payload that is not valid base64
         let line = r#"{"payload":"!!!not-base64!!!"}"#;
-        let (level, builder, repo) =
-            ImageVerifier::test_parse_provenance_output(line).unwrap();
+        let (level, builder, repo) = ImageVerifier::test_parse_provenance_output(line).unwrap();
         assert_eq!(level, "SLSA Level 3");
         assert_eq!(builder, "GitHub Actions");
         assert!(repo.is_none());

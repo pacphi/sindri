@@ -92,12 +92,6 @@ impl TemplateLoader {
     }
 }
 
-impl Default for TemplateLoader {
-    fn default() -> Self {
-        Self::from_embedded().expect("Failed to load embedded templates")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

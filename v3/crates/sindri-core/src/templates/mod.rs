@@ -42,12 +42,6 @@ impl ConfigTemplateRegistry {
     }
 }
 
-impl Default for ConfigTemplateRegistry {
-    fn default() -> Self {
-        Self::new().expect("Failed to initialize config template registry")
-    }
-}
-
 // =============================================================================
 // Extension Documentation Rendering
 // =============================================================================

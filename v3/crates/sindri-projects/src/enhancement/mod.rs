@@ -535,12 +535,6 @@ impl EnhancementManager {
     }
 }
 
-impl Default for EnhancementManager {
-    fn default() -> Self {
-        Self::new().expect("Failed to create default EnhancementManager")
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -58,14 +58,14 @@ All changelogs follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ### Changelog Sections
 
-- 🎉 **Features** - New functionality and capabilities
-- 🐛 **Bug Fixes** - Resolved issues and error corrections
-- 📚 **Documentation** - Documentation improvements
-- 📦 **Dependencies** - Dependency updates and changes
-- ⚡ **Performance** - Performance optimizations
-- ♻️ **Refactoring** - Code restructuring without behavior changes
-- ✅ **Tests** - Test additions and improvements
-- 🔧 **Maintenance** - Chores, CI/CD, and infrastructure updates
+- **Added** - New functionality and capabilities
+- **Fixed** - Resolved issues and error corrections
+- **Documentation** - Documentation improvements
+- **Dependencies** - Dependency updates and changes
+- **Performance** - Performance optimizations
+- **Changed** - Code restructuring and behavior changes
+- **Tests** - Test additions and improvements
+- **Maintenance** - Chores, CI/CD, and infrastructure updates
 
 ---
 
