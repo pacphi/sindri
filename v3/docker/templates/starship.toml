@@ -7,6 +7,8 @@ $username\
 $hostname\
 $directory\
 $git_branch\
+$cmd_duration\
+$status\
 $character"""
 
 # Disable expensive git status checks (3-5s improvement)
@@ -39,9 +41,15 @@ disabled = true
 [php]
 disabled = true
 
-# Only show command duration for long-running commands
+# Show command duration for any command taking 500ms+
 [cmd_duration]
-min_time = 500  # 500ms minimum
+min_time = 500
+format = "[$duration]($style) "
+
+# Show exit code on failure
+[status]
+disabled = false
+format = "[$symbol$status]($style) "
 
 # Simple, clear prompt character
 [character]

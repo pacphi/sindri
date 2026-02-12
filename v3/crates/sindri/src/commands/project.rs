@@ -279,9 +279,10 @@ pub async fn clone_project(args: CloneProjectArgs) -> Result<()> {
             install_dependencies(&project_dir)?;
         }
 
-        // Initialize tools
+        // Initialize tools (run project-init capabilities from installed extensions)
         if !args.skip_tools {
-            init_tools(&project_dir)?;
+            output::info("Initializing agentic tools...");
+            initialize_project_tools()?;
         }
     }
 
@@ -336,10 +337,17 @@ fn extract_project_name(url: &str) -> Result<String> {
 }
 
 fn get_projects_dir() -> Utf8PathBuf {
-    // Use WORKSPACE_PROJECTS if available, otherwise use ~/projects
+    // Use WORKSPACE_PROJECTS if set, then $WORKSPACE/projects, then ~/projects
     std::env::var("WORKSPACE_PROJECTS")
         .ok()
+        .filter(|v| !v.is_empty())
         .map(Utf8PathBuf::from)
+        .or_else(|| {
+            std::env::var("WORKSPACE")
+                .ok()
+                .filter(|v| !v.is_empty())
+                .map(|w| Utf8PathBuf::from(w).join("projects"))
+        })
         .unwrap_or_else(|| {
             let home = std::env::var("HOME").unwrap_or_else(|_| "/alt/home/developer".to_string());
             Utf8PathBuf::from(home).join("projects")
@@ -819,22 +827,6 @@ fn install_dependencies(project_dir: &Utf8PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn init_tools(_project_dir: &Utf8PathBuf) -> Result<()> {
-    output::info("Initializing agentic tools...");
-
-    // Check if Claude Code is available
-    if is_command_available("claude") {
-        output::success("Claude Code available");
-    } else {
-        output::warning("Claude Code not available");
-    }
-
-    // Note: Extension-based tools would be initialized via capability-manager
-    // This is a simplified version for v3
-
-    Ok(())
-}
-
 fn create_feature_branch(branch_name: &str) -> Result<()> {
     let output = Command::new("git")
         .arg("checkout")
@@ -861,6 +853,12 @@ fn show_initialized_tools(project_dir: &Utf8PathBuf) -> Result<()> {
 
     if project_dir.join(".github/spec.json").exists() && is_command_available("uvx") {
         println!("  ✓ GitHub spec-kit");
+    }
+
+    // Query extension system for project-relevant capabilities
+    let initialized_extensions = get_initialized_extensions_for_project(project_dir)?;
+    for (name, description) in initialized_extensions {
+        println!("  ✓ {} - {}", name, description);
     }
 
     Ok(())
