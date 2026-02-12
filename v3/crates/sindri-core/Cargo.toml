@@ -21,7 +21,7 @@ chrono = { workspace = true }
 tracing = { workspace = true }
 tera = { workspace = true }
 dirs = { workspace = true }
-rand = "0.9"
+rand = "0.10"
 tokio = { workspace = true }
 sindri-image = { workspace = true }
 
