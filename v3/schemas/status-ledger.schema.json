@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/status-ledger.schema.json",
+  "title": "Sindri Status Ledger Entry",
+  "description": "Schema for a single line in the status ledger JSONL file (~/.sindri/status_ledger.jsonl). Each line is an independently valid JSON object conforming to this schema.",
+  "type": "object",
+  "required": ["event_id", "timestamp", "extension_name", "cli_version", "state_after", "event"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event identifier (UUID v4)",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp in UTC (RFC 3339)"
+    },
+    "extension_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Name of the extension this event relates to"
+    },
+    "cli_version": {
+      "type": "string",
+      "description": "Sindri CLI version that produced this event"
+    },
+    "state_before": {
+      "description": "Extension state before this event (null for first event)",
+      "oneOf": [
+        { "$ref": "#/$defs/extension_state" },
+        { "type": "null" }
+      ]
+    },
+    "state_after": {
+      "$ref": "#/$defs/extension_state",
+      "description": "Extension state after this event"
+    },
+    "event": {
+      "$ref": "#/$defs/extension_event",
+      "description": "Event payload with type-specific fields"
+    }
+  },
+  "$defs": {
+    "extension_state": {
+      "type": "string",
+      "enum": ["installed", "failed", "outdated", "installing", "removing"],
+      "description": "Possible extension lifecycle states"
+    },
+    "extension_event": {
+      "type": "object",
+      "required": ["type"],
+      "description": "Tagged union of extension lifecycle events",
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "install_started" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" },
+            "source": { "type": "string" },
+            "install_method": { "type": "string" }
+          },
+          "required": ["type", "extension_name", "version", "source", "install_method"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "install_completed" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" },
+            "duration_secs": { "type": "integer", "minimum": 0 },
+            "components_installed": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["type", "extension_name", "version", "duration_secs", "components_installed"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "install_failed" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" },
+            "error_message": { "type": "string" },
+            "retry_count": { "type": "integer", "minimum": 0 },
+            "duration_secs": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "extension_name", "version", "error_message", "retry_count", "duration_secs"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "upgrade_started" },
+            "extension_name": { "type": "string" },
+            "from_version": { "type": "string" },
+            "to_version": { "type": "string" }
+          },
+          "required": ["type", "extension_name", "from_version", "to_version"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "upgrade_completed" },
+            "extension_name": { "type": "string" },
+            "from_version": { "type": "string" },
+            "to_version": { "type": "string" },
+            "duration_secs": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "extension_name", "from_version", "to_version", "duration_secs"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "upgrade_failed" },
+            "extension_name": { "type": "string" },
+            "from_version": { "type": "string" },
+            "to_version": { "type": "string" },
+            "error_message": { "type": "string" },
+            "duration_secs": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "extension_name", "from_version", "to_version", "error_message", "duration_secs"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "remove_started" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" }
+          },
+          "required": ["type", "extension_name", "version"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "remove_completed" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" },
+            "duration_secs": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "extension_name", "version", "duration_secs"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "remove_failed" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" },
+            "error_message": { "type": "string" },
+            "duration_secs": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "extension_name", "version", "error_message", "duration_secs"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "outdated_detected" },
+            "extension_name": { "type": "string" },
+            "current_version": { "type": "string" },
+            "latest_version": { "type": "string" }
+          },
+          "required": ["type", "extension_name", "current_version", "latest_version"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "validation_succeeded" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" },
+            "validation_type": { "type": "string" }
+          },
+          "required": ["type", "extension_name", "version", "validation_type"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "validation_failed" },
+            "extension_name": { "type": "string" },
+            "version": { "type": "string" },
+            "validation_type": { "type": "string" },
+            "error_message": { "type": "string" }
+          },
+          "required": ["type", "extension_name", "version", "validation_type", "error_message"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

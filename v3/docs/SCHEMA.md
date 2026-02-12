@@ -19,7 +19,7 @@ All V3 schemas are located in `v3/schemas/`:
 v3/schemas/
 ├── sindri.schema.json           # Main deployment configuration
 ├── extension.schema.json        # Extension definitions
-├── manifest.schema.json         # Installed extension tracking
+├── status-ledger.schema.json    # Status ledger event entries (JSONL)
 ├── registry.schema.json         # Extension registry
 ├── profiles.schema.json         # Extension profiles
 ├── categories.schema.json       # Extension categories
@@ -864,48 +864,62 @@ capabilities:
 
 ---
 
-## manifest.schema.json
+## status-ledger.schema.json
 
-**Location:** `v3/schemas/manifest.schema.json`
+**Location:** `v3/schemas/status-ledger.schema.json`
 
-Schema for tracking installed extensions. Manifests are stored as YAML/JSON files.
+Schema for a single entry (line) in the status ledger. The ledger is stored as a JSONL file at `~/.sindri/status_ledger.jsonl` — each line is an independently valid JSON object conforming to this schema.
+
+The ledger replaced the earlier `manifest.yaml` format in rc.2 and provides an append-only event log of extension lifecycle changes with automatic compaction.
 
 ### Structure
 
-```yaml
-version: "1.0"
-extensions:
-  - name: python
-    active: true
-    protected: false
-    category: language
-    dependencies: []
-config:
-  execution:
-    parallel: false
-    failFast: true
-    timeout: 600
-  validation:
-    schemaValidation: true
-    dnsCheck: true
-    dependencyCheck: true
+Each JSONL line is an `EventEnvelope`:
+
+```json
+{
+  "event_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  "timestamp": "2026-02-12T10:30:00Z",
+  "extension_name": "python",
+  "cli_version": "3.0.0",
+  "state_before": "installing",
+  "state_after": "installed",
+  "event": {
+    "type": "install_completed",
+    "extension_name": "python",
+    "version": "3.13.0",
+    "duration_secs": 150,
+    "components_installed": ["python", "pip"]
+  }
+}
 ```
 
-### Manifest Categories
+### Extension States
 
-| Category         | Description             |
-| ---------------- | ----------------------- |
-| `base`           | Core system components  |
-| `agile`          | Agile development tools |
-| `language`       | Programming languages   |
-| `dev-tools`      | Development utilities   |
-| `infrastructure` | Cloud/container tools   |
-| `ai`             | AI/ML tools             |
-| `database`       | Database tools          |
-| `monitoring`     | Observability tools     |
-| `mobile`         | Mobile development      |
-| `desktop`        | Desktop environments    |
-| `utilities`      | General utilities       |
+| State        | Description                   |
+| ------------ | ----------------------------- |
+| `installed`  | Installed and working         |
+| `failed`     | Installation failed           |
+| `outdated`   | Needs upgrade                 |
+| `installing` | Installation in progress      |
+| `removing`   | Removal in progress           |
+
+### Event Types
+
+| Event Type              | Trigger                          |
+| ----------------------- | -------------------------------- |
+| `install_started`       | Extension install begins         |
+| `install_completed`     | Extension install succeeds       |
+| `install_failed`        | Extension install fails          |
+| `upgrade_started`       | Extension upgrade begins         |
+| `upgrade_completed`     | Extension upgrade succeeds       |
+| `upgrade_failed`        | Extension upgrade fails          |
+| `remove_started`        | Extension removal begins         |
+| `remove_completed`      | Extension removal succeeds       |
+| `remove_failed`         | Extension removal fails          |
+| `outdated_detected`     | Newer version available          |
+| `validation_succeeded`  | Post-install validation passes   |
+| `validation_failed`     | Post-install validation fails    |
 
 ---
 
