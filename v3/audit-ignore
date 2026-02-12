@@ -1,0 +1,15 @@
+# Cargo audit advisory exceptions
+# One RUSTSEC ID per line. Lines starting with # are comments.
+# Remove entries once upstream fixes are available.
+
+# rsa 0.9.10: Marvin Attack timing sidechannel (medium, 5.9)
+# Path: rsa → jsonwebtoken → octocrab → sindri-update
+# No fixed version available upstream
+# https://rustsec.org/advisories/RUSTSEC-2023-0071
+RUSTSEC-2023-0071
+
+# number_prefix 0.4.0: unmaintained
+# Path: number_prefix → indicatif → self_update → sindri-update
+# No maintained replacement yet
+# https://rustsec.org/advisories/RUSTSEC-2025-0119
+RUSTSEC-2025-0119

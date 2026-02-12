@@ -196,6 +196,7 @@ jobs:
       - name: Generate LCOV coverage report
         run: |
           cd v3
+          mkdir -p coverage
           cargo llvm-cov --workspace --lcov --output-path coverage/lcov.info
 
       - name: Generate coverage summary
@@ -413,9 +414,7 @@ jobs:
         run: cargo binstall cargo-audit --no-confirm
 
       - name: Run cargo audit
-        run: |
-          cd v3
-          cargo audit --deny warnings
+        run: .github/scripts/v3/cargo-audit.sh
 
   # ============================================
   # Documentation Build
