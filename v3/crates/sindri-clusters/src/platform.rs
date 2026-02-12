@@ -212,20 +212,25 @@ mod tests {
 
     #[test]
     fn test_os_detect() {
-        let os = Os::detect();
-        assert!(os.is_ok());
+        let os = Os::detect().expect("Os::detect should succeed on supported platforms");
+        // Verify a known variant was detected
+        let name = os.download_name();
+        assert!(!name.is_empty(), "OS download name should not be empty");
     }
 
     #[test]
     fn test_arch_detect() {
-        let arch = Arch::detect();
-        assert!(arch.is_ok());
+        let arch = Arch::detect().expect("Arch::detect should succeed on supported platforms");
+        let name = arch.download_name();
+        assert!(!name.is_empty(), "Arch download name should not be empty");
     }
 
     #[test]
     fn test_platform_detect() {
-        let platform = Platform::detect();
-        assert!(platform.is_ok());
+        let platform = Platform::detect().expect("Platform::detect should succeed");
+        // Platform should have valid OS and arch
+        assert!(!platform.os.download_name().is_empty());
+        assert!(!platform.arch.download_name().is_empty());
     }
 
     #[test]

@@ -561,7 +561,7 @@ impl Provider for DockerProvider {
 
         let image = if has_image_specified && !should_build_from_source {
             // Use resolve_image() for full image_config support
-            config.resolve_image().await?
+            config.resolve_image(None).await?
         } else if should_build_from_source || !has_image_specified {
             // Determine which git ref to clone for getting the Dockerfile
             // Use the gitRef from config if specified, otherwise use CLI version
@@ -909,7 +909,7 @@ impl Provider for DockerProvider {
         };
 
         // Resolve image for status display using the image_config priority chain
-        let image = config.resolve_image().await.ok();
+        let image = config.resolve_image(None).await.ok();
 
         Ok(DeploymentStatus {
             name,
@@ -1005,7 +1005,10 @@ impl Provider for DockerProvider {
 
         let image = if has_image_specified {
             // Use resolve_image() for full image_config support
-            config.resolve_image().await.map_err(|e| anyhow!("{}", e))?
+            config
+                .resolve_image(None)
+                .await
+                .map_err(|e| anyhow!("{}", e))?
         } else {
             // Will build from Sindri repository fetched from GitHub
             // Tag format: sindri:{cli_version}-{gitsha} (e.g., sindri:3.0.0-a1b2c3d)

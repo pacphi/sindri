@@ -296,8 +296,9 @@ mod tests {
         init_repository(path, &options, &git_config).await.unwrap();
 
         // Add a remote
-        let result = add_remote(path, "origin", "https://github.com/user/repo.git").await;
-        assert!(result.is_ok());
+        add_remote(path, "origin", "https://github.com/user/repo.git")
+            .await
+            .expect("add_remote should succeed");
 
         // Verify remote exists
         let exists = remote_exists(path, "origin").await.unwrap();
@@ -312,8 +313,9 @@ mod tests {
         assert_eq!(url, Some("https://github.com/user/repo.git".to_string()));
 
         // Remove remote
-        let result = remove_remote(path, "origin").await;
-        assert!(result.is_ok());
+        remove_remote(path, "origin")
+            .await
+            .expect("remove_remote should succeed");
 
         // Verify remote is gone
         let exists = remote_exists(path, "origin").await.unwrap();
@@ -363,7 +365,7 @@ mod tests {
         )
         .await;
 
-        assert!(result.is_ok());
+        result.expect("setup_fork_remotes should succeed");
 
         // Verify both remotes exist
         let origin_url = get_remote_url(path, "origin").await.unwrap();
@@ -405,7 +407,7 @@ mod tests {
         )
         .await;
 
-        assert!(result.is_ok());
+        result.expect("setup_fork_remotes_with_config should succeed");
 
         // Verify custom-named remotes exist
         let fork_url = get_remote_url(path, "fork").await.unwrap();

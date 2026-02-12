@@ -15,9 +15,7 @@ fn test_oci_provider_creation() {
 fn test_oci_prerequisite_check() {
     let provider = OciPackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
-    assert!(result.is_ok());
-
-    let status = result.unwrap();
+    let status = result.expect("check_cloud_prerequisites should succeed");
     assert!(!status.hints.is_empty() || status.satisfied);
 }
 

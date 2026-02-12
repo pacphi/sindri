@@ -186,7 +186,7 @@ impl FlyProvider {
         // If not building from source, try to resolve pre-built image
         if !should_build_from_source {
             // Try to resolve image from config (image_config or image field)
-            if let Ok(resolved_image) = config.resolve_image().await {
+            if let Ok(resolved_image) = config.resolve_image(None).await {
                 info!("Using pre-built image: {}", resolved_image);
                 context.image = resolved_image;
 
@@ -770,7 +770,7 @@ impl Provider for FlyProvider {
         if self.should_use_prebuilt_image(config) {
             // Resolve and deploy using pre-built image
             let image = config
-                .resolve_image()
+                .resolve_image(None)
                 .await
                 .map_err(|e| anyhow!("Failed to resolve image: {}", e))?;
             info!("Using pre-built image: {}", image);
@@ -859,7 +859,7 @@ impl Provider for FlyProvider {
         let (machine_id, state) = self.get_machine_state(&name).await?;
 
         // Resolve image using the image_config priority chain
-        let image = config.resolve_image().await.ok();
+        let image = config.resolve_image(None).await.ok();
 
         Ok(DeploymentStatus {
             name,
@@ -915,7 +915,10 @@ impl Provider for FlyProvider {
         info!("Planning Fly.io deployment for {}", name);
 
         // Resolve image using the image_config priority chain
-        let image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+        let image = config
+            .resolve_image(None)
+            .await
+            .map_err(|e| anyhow!("{}", e))?;
 
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,

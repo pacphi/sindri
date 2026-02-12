@@ -14,9 +14,7 @@ fn test_gcp_provider_creation() {
 fn test_gcp_prerequisite_check() {
     let provider = GcpPackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
-    assert!(result.is_ok());
-
-    let status = result.unwrap();
+    let status = result.expect("check_cloud_prerequisites should succeed");
     assert!(!status.hints.is_empty() || status.satisfied);
 }
 

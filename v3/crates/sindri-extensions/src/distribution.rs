@@ -1467,7 +1467,7 @@ mod tests {
         // SHA-256 of "hello world"
         let expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
         let result = verify_content_integrity(content, "test-ext", Some(expected));
-        assert!(result.is_ok());
+        result.expect("integrity check with matching hash should succeed");
     }
 
     #[test]
@@ -1486,7 +1486,7 @@ mod tests {
         // When no hash is provided, verification should succeed (with a warning)
         let content = b"any content";
         let result = verify_content_integrity(content, "test-ext", None);
-        assert!(result.is_ok());
+        result.expect("integrity check with no expected hash should succeed");
     }
 
     #[test]
@@ -1495,6 +1495,6 @@ mod tests {
         // Use uppercase hex
         let expected = "B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9";
         let result = verify_content_integrity(content, "test-ext", Some(expected));
-        assert!(result.is_ok());
+        result.expect("integrity check with uppercase hex hash should succeed");
     }
 }

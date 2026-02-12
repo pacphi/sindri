@@ -338,7 +338,7 @@ mod tests {
         )
         .await;
 
-        assert!(result.is_ok());
+        result.expect("configure_user should succeed");
 
         // Verify configuration
         let name = get_config_value(Some(path), "user.name", Some(ConfigScope::Local))
@@ -364,7 +364,7 @@ mod tests {
 
         // Setup aliases
         let result = setup_fork_aliases(path).await;
-        assert!(result.is_ok());
+        result.expect("setup_fork_aliases should succeed");
 
         // Verify one of the aliases exists
         let alias = get_config_value(Some(path), "alias.sync-upstream", Some(ConfigScope::Local))
@@ -395,7 +395,7 @@ mod tests {
 
         // Setup aliases with custom config
         let result = setup_fork_aliases_with_config(path, &custom_config).await;
-        assert!(result.is_ok());
+        result.expect("setup_fork_aliases_with_config should succeed");
 
         // Verify alias uses custom branch name
         let alias = get_config_value(Some(path), "alias.sync-upstream", Some(ConfigScope::Local))

@@ -19,9 +19,7 @@ use tempfile::TempDir;
 #[test]
 fn test_updater_creation() {
     let updater = SindriUpdater::new();
-    assert!(updater.is_ok());
-
-    let updater = updater.unwrap();
+    let updater = updater.expect("SindriUpdater::new should succeed");
     assert!(updater.current_version().major >= 3);
     assert!(updater.binary_path().exists());
 }
@@ -53,8 +51,7 @@ fn test_binary_verification_success() {
 
     let updater = SindriUpdater::new().unwrap();
     let result = updater.verify_binary(&binary_path);
-
-    assert!(result.is_ok());
+    result.expect("verify_binary should succeed for a valid binary");
 }
 
 #[cfg(unix)]
@@ -385,9 +382,7 @@ fn test_version_parsing_in_updater() {
     use semver::Version;
 
     let version = Version::parse(VERSION_3_0_0);
-    assert!(version.is_ok());
-
-    let v = version.unwrap();
+    let v = version.expect("VERSION_3_0_0 should be a valid semver");
     assert_eq!(v.major, 3);
     assert_eq!(v.minor, 0);
     assert_eq!(v.patch, 0);

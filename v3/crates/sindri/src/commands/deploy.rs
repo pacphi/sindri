@@ -4,7 +4,7 @@ use anyhow::Result;
 use camino::Utf8Path;
 use sindri_core::config::SindriConfig;
 use sindri_core::types::DeployOptions;
-use sindri_image::ImageVerifier;
+use sindri_image::{ImageVerifier, RegistryImageResolver};
 use sindri_providers::create_provider;
 
 use crate::cli::DeployArgs;
@@ -41,8 +41,24 @@ pub async fn run(args: DeployArgs, config_path: Option<&Utf8Path>) -> Result<()>
         output::info("");
         None
     } else {
-        // Use pre-built image
-        match config.resolve_image().await {
+        // Use pre-built image — build a resolver for registry-based version resolution
+        let resolver = config
+            .inner()
+            .deployment
+            .image_config
+            .as_ref()
+            .and_then(|ic| {
+                let token = std::env::var("GITHUB_TOKEN").ok();
+                RegistryImageResolver::for_registry(&ic.registry, token).ok()
+            });
+        match config
+            .resolve_image(
+                resolver
+                    .as_ref()
+                    .map(|r| r as &dyn sindri_core::config::ImageVersionResolver),
+            )
+            .await
+        {
             Ok(image) => {
                 output::info(&format!("Using image: {}", image));
                 output::info("");
@@ -324,8 +340,7 @@ mod tests {
         let config = SindriConfig::load(Some(&config_path)).unwrap();
 
         // Should not error
-        let result = check_env_files(&config, None);
-        assert!(result.is_ok());
+        check_env_files(&config, None).expect("check_env_files with .env files should succeed");
     }
 
     #[test]
@@ -340,8 +355,7 @@ mod tests {
         let config = SindriConfig::load(Some(&config_path)).unwrap();
 
         // Should not error (just informational)
-        let result = check_env_files(&config, None);
-        assert!(result.is_ok());
+        check_env_files(&config, None).expect("check_env_files with no .env files should succeed");
     }
 
     #[test]
@@ -360,8 +374,8 @@ mod tests {
         let config = SindriConfig::load(Some(&config_path)).unwrap();
 
         // Should detect custom file
-        let result = check_env_files(&config, Some(&Utf8PathBuf::from("custom.env")));
-        assert!(result.is_ok());
+        check_env_files(&config, Some(&Utf8PathBuf::from("custom.env")))
+            .expect("check_env_files with custom .env path should succeed");
     }
 
     #[test]
@@ -376,7 +390,7 @@ mod tests {
         let config = SindriConfig::load(Some(&config_path)).unwrap();
 
         // Should warn but not error
-        let result = check_env_files(&config, Some(&Utf8PathBuf::from("missing.env")));
-        assert!(result.is_ok());
+        check_env_files(&config, Some(&Utf8PathBuf::from("missing.env")))
+            .expect("check_env_files with missing custom .env should still succeed");
     }
 }

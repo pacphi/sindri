@@ -15,6 +15,7 @@ use tracing::debug;
 struct EmbeddedSchemas;
 
 /// Schema validator with pre-compiled schemas
+#[derive(Debug)]
 pub struct SchemaValidator {
     /// Compiled schemas by name
     schemas: HashMap<String, Validator>,
@@ -325,5 +326,93 @@ extensions:
 
         let result = validator.validate_yaml(yaml, "sindri");
         assert!(result.is_ok(), "YAML validation failed: {:?}", result);
+    }
+
+    // --- Error path tests ---
+
+    #[test]
+    fn test_validate_nonexistent_schema() {
+        let validator = SchemaValidator::new().unwrap();
+        let value = serde_json::json!({"key": "value"});
+        let result = validator.validate(&value, "nonexistent-schema");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, Error::SchemaNotFound { .. }),
+            "Expected SchemaNotFound, got: {:?}",
+            err
+        );
+        assert!(err.to_string().contains("nonexistent-schema"));
+    }
+
+    #[test]
+    fn test_validate_missing_required_fields() {
+        let validator = SchemaValidator::new().unwrap();
+
+        // Missing required fields: name, deployment, extensions
+        let config = serde_json::json!({
+            "version": "3.0"
+        });
+
+        let result = validator.validate(&config, "sindri");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, Error::SchemaValidation { .. }),
+            "Expected SchemaValidation, got: {:?}",
+            err
+        );
+        let err_msg = err.to_string();
+        assert!(
+            err_msg.contains("required"),
+            "Expected 'required' in error, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn test_validate_yaml_invalid_syntax() {
+        let validator = SchemaValidator::new().unwrap();
+        let bad_yaml = ":::\n  invalid: [[[yaml";
+        let result = validator.validate_yaml(bad_yaml, "sindri");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_wrong_type_for_field() {
+        let validator = SchemaValidator::new().unwrap();
+
+        // version should be string, not number
+        let config = serde_json::json!({
+            "version": 3.0,
+            "name": "test-project",
+            "deployment": {
+                "provider": "docker"
+            },
+            "extensions": {
+                "profile": "minimal"
+            }
+        });
+
+        let result = validator.validate(&config, "sindri");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, Error::SchemaValidation { .. }),
+            "Expected SchemaValidation, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_from_directory_empty_dir() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let result = SchemaValidator::from_directory(temp_dir.path());
+        assert!(result.is_err());
+        match result {
+            Err(Error::SchemaNotFound { .. }) => {} // expected
+            Err(other) => panic!("Expected SchemaNotFound, got: {:?}", other),
+            Ok(_) => panic!("Expected error, got Ok"),
+        }
     }
 }

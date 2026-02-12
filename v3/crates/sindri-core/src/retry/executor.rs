@@ -383,8 +383,8 @@ mod tests {
             .execute(|| async { Ok("success") })
             .await;
 
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "success");
+        let value = result.expect("immediate success should return Ok");
+        assert_eq!(value, "success");
         assert_eq!(observer.attempt_starts(), 1);
         assert_eq!(observer.successes(), 1);
         assert_eq!(observer.failures(), 0);
@@ -415,8 +415,8 @@ mod tests {
             })
             .await;
 
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "success");
+        let value = result.expect("should succeed after retry");
+        assert_eq!(value, "success");
         assert_eq!(observer.attempt_starts(), 2);
         assert_eq!(observer.failures(), 1);
         assert_eq!(observer.successes(), 1);
@@ -486,8 +486,8 @@ mod tests {
         })
         .await;
 
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "success");
+        let value = result.expect("retry_with_policy convenience should succeed");
+        assert_eq!(value, "success");
         assert_eq!(attempts.load(Ordering::SeqCst), 2);
     }
 

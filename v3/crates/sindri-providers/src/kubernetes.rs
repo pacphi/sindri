@@ -165,7 +165,7 @@ impl KubernetesProvider {
             volume_size,
             gpu_enabled,
             // Note: image is set to a placeholder here since get_k8s_config is sync
-            // The actual resolved image should be obtained via config.resolve_image().await
+            // The actual resolved image should be obtained via config.resolve_image(None).await
             image: file
                 .deployment
                 .image
@@ -737,7 +737,10 @@ impl Provider for KubernetesProvider {
         info!("Deploying {} to Kubernetes", name);
 
         // Resolve image using the image_config priority chain
-        let resolved_image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+        let resolved_image = config
+            .resolve_image(None)
+            .await
+            .map_err(|e| anyhow!("{}", e))?;
         info!("Using resolved image: {}", resolved_image);
 
         // Check prerequisites
@@ -969,7 +972,7 @@ impl Provider for KubernetesProvider {
         details.insert("namespace".to_string(), k8s_config.namespace.to_string());
 
         // Resolve image using the image_config priority chain
-        let image = config.resolve_image().await.ok();
+        let image = config.resolve_image(None).await.ok();
 
         Ok(DeploymentStatus {
             name,
@@ -1015,7 +1018,10 @@ impl Provider for KubernetesProvider {
         info!("Planning Kubernetes deployment for {}", name);
 
         // Resolve image using the image_config priority chain
-        let resolved_image = config.resolve_image().await.map_err(|e| anyhow!("{}", e))?;
+        let resolved_image = config
+            .resolve_image(None)
+            .await
+            .map_err(|e| anyhow!("{}", e))?;
 
         let mut actions = vec![PlannedAction {
             action: ActionType::Create,

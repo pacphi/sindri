@@ -508,7 +508,7 @@ mod tests {
     #[test]
     fn test_template_registry_creation() {
         let registry = TemplateRegistry::new();
-        assert!(registry.is_ok());
+        registry.expect("TemplateRegistry::new should succeed");
     }
 
     #[test]

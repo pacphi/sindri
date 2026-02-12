@@ -508,4 +508,145 @@ validate:
         // Should fail because mise method requires mise config block
         assert!(result.is_err());
     }
+
+    // --- Error path tests ---
+
+    #[test]
+    fn test_validate_yaml_invalid_syntax() {
+        let schema_validator = SchemaValidator::new().unwrap();
+        let validator = ExtensionValidator::new(&schema_validator);
+
+        let bad_yaml = ":::\n  invalid: [[[yaml";
+        let result = validator.validate_yaml(bad_yaml);
+        assert!(result.is_err(), "Should fail on invalid YAML syntax");
+    }
+
+    #[test]
+    fn test_validate_self_dependency() {
+        let schema_validator = SchemaValidator::new().unwrap();
+        let validator = ExtensionValidator::new(&schema_validator);
+
+        let yaml = r#"
+metadata:
+  name: circular-ext
+  version: 1.0.0
+  description: Extension that depends on itself
+  category: devops
+  dependencies:
+    - circular-ext
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+
+validate:
+  commands:
+    - name: test-cmd
+      versionFlag: "--version"
+"#;
+
+        let result = validator.validate_yaml(yaml);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("cannot depend on itself"),
+            "Expected self-dependency error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_validate_missing_apt_config_block() {
+        let schema_validator = SchemaValidator::new().unwrap();
+        let validator = ExtensionValidator::new(&schema_validator);
+
+        let yaml = r#"
+metadata:
+  name: test-apt-ext
+  version: 1.0.0
+  description: Extension missing apt config
+  category: devops
+
+install:
+  method: apt
+
+validate:
+  commands:
+    - name: test-cmd
+"#;
+
+        let result = validator.validate_yaml(yaml);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("apt") && err.contains("requires"),
+            "Expected apt config requirement error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_validate_missing_binary_config_block() {
+        let schema_validator = SchemaValidator::new().unwrap();
+        let validator = ExtensionValidator::new(&schema_validator);
+
+        let yaml = r#"
+metadata:
+  name: test-binary-ext
+  version: 1.0.0
+  description: Extension missing binary config
+  category: devops
+
+install:
+  method: binary
+
+validate:
+  commands:
+    - name: test-cmd
+"#;
+
+        let result = validator.validate_yaml(yaml);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("binary") && err.contains("requires"),
+            "Expected binary config requirement error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_validate_file_nonexistent() {
+        let schema_validator = SchemaValidator::new().unwrap();
+        let validator = ExtensionValidator::new(&schema_validator);
+
+        let result = validator.validate_file(Path::new("/tmp/nonexistent-extension-12345.yaml"));
+        assert!(result.is_err(), "Should fail for nonexistent file");
+    }
+
+    #[test]
+    fn test_is_valid_name_rejects_uppercase() {
+        assert!(!ExtensionValidator::is_valid_name("MyExtension"));
+    }
+
+    #[test]
+    fn test_is_valid_name_rejects_starting_with_number() {
+        assert!(!ExtensionValidator::is_valid_name("1extension"));
+    }
+
+    #[test]
+    fn test_is_valid_name_rejects_underscores() {
+        assert!(!ExtensionValidator::is_valid_name("my_extension"));
+    }
+
+    #[test]
+    fn test_is_valid_date_rejects_invalid_formats() {
+        assert!(!ExtensionValidator::is_valid_date("2025/01/15"));
+        assert!(!ExtensionValidator::is_valid_date("01-15-2025"));
+        assert!(!ExtensionValidator::is_valid_date("not-a-date"));
+        assert!(!ExtensionValidator::is_valid_date("2025-13-01")); // month 13
+        assert!(!ExtensionValidator::is_valid_date("2025-01-32")); // day 32
+        assert!(!ExtensionValidator::is_valid_date("2019-01-01")); // year < 2020
+    }
 }

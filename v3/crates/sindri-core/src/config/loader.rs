@@ -4,11 +4,37 @@ use crate::error::{Error, Result};
 use crate::schema::SchemaValidator;
 use crate::templates::{ConfigInitContext, ConfigTemplateRegistry};
 use crate::types::{
-    DeploymentConfig, ExtensionsConfig, Provider, ProvidersConfig, ResourcesConfig, SecretConfig,
-    SindriConfigFile, VolumesConfig,
+    DeploymentConfig, ExtensionsConfig, Provider, ProvidersConfig, ResolutionStrategy,
+    ResourcesConfig, SecretConfig, SindriConfigFile, VolumesConfig,
 };
 use camino::{Utf8Path, Utf8PathBuf};
 use std::fs;
+use std::future::Future;
+use std::pin::Pin;
+
+/// Trait for resolving image versions from a container registry.
+///
+/// This abstracts the registry interaction so that sindri-core does not
+/// depend on the concrete sindri-image crate.  Implementors live in
+/// sindri-image (or tests can provide a mock).
+pub trait ImageVersionResolver: Send + Sync {
+    /// Resolve a version constraint to a concrete image tag.
+    ///
+    /// # Arguments
+    /// * `repository` - Repository path (e.g., "pacphi/sindri")
+    /// * `strategy`   - Resolution strategy from the config
+    /// * `constraint`  - Optional semver constraint (e.g., "^3.0.0")
+    /// * `cli_version` - Optional CLI version for PinToCli strategy
+    /// * `allow_prerelease` - Whether to include prerelease versions
+    fn resolve<'a>(
+        &'a self,
+        repository: &'a str,
+        strategy: ResolutionStrategy,
+        constraint: Option<&'a str>,
+        cli_version: Option<&'a str>,
+        allow_prerelease: bool,
+    ) -> Pin<Box<dyn Future<Output = anyhow::Result<String>> + Send + 'a>>;
+}
 
 /// Configuration file names to search for
 const CONFIG_FILE_NAMES: &[&str] = &["sindri.yaml", "sindri.yml"];
@@ -197,11 +223,16 @@ impl SindriConfig {
     /// 4. legacy image field
     /// 5. default fallback (see DEFAULT_IMAGE_REGISTRY and DEFAULT_IMAGE_TAG constants)
     ///
+    /// # Arguments
+    /// * `resolver` - An optional image version resolver for registry-based version
+    ///   resolution (Priority 3). Required only when `image_config.version` is set.
+    ///
     /// # Returns
     /// Fully resolved image reference (e.g., "ghcr.io/pacphi/sindri:v3.0.0")
-    pub async fn resolve_image(&self) -> Result<String> {
-        use crate::types::ResolutionStrategy;
-        use sindri_image::{RegistryClient, VersionResolver};
+    pub async fn resolve_image(
+        &self,
+        resolver: Option<&dyn ImageVersionResolver>,
+    ) -> Result<String> {
         use tracing::{debug, info};
 
         // Check if image_config is provided
@@ -235,48 +266,21 @@ impl SindriConfig {
                     version_constraint, image_config.resolution_strategy
                 );
 
-                // Get GitHub token from environment (optional)
-                let github_token = std::env::var("GITHUB_TOKEN").ok();
-
-                // Create registry client
-                let mut registry_client = if registry.contains("ghcr.io") {
-                    RegistryClient::new("ghcr.io")
-                        .map_err(|e| Error::invalid_config(e.to_string()))?
-                } else if registry.contains("docker.io") {
-                    RegistryClient::new("docker.io")
-                        .map_err(|e| Error::invalid_config(e.to_string()))?
-                } else {
-                    // Extract registry host from full path
-                    let registry_host = registry.split('/').next().unwrap_or("ghcr.io");
-                    RegistryClient::new(registry_host)
-                        .map_err(|e| Error::invalid_config(e.to_string()))?
-                };
-
-                if let Some(token) = github_token {
-                    registry_client = registry_client.with_token(token);
-                }
-
-                // Create version resolver
-                let resolver = VersionResolver::new(registry_client);
+                let resolver = resolver.ok_or_else(|| {
+                    Error::invalid_config(
+                        "image_config.version requires an image version resolver, \
+                         but none was provided",
+                    )
+                })?;
 
                 // Get CLI version for PinToCli strategy
                 let cli_version = env!("CARGO_PKG_VERSION");
 
-                // Convert ResolutionStrategy from config type to sindri-image type
-                let strategy = match image_config.resolution_strategy {
-                    ResolutionStrategy::Semver => sindri_image::ResolutionStrategy::Semver,
-                    ResolutionStrategy::LatestStable => {
-                        sindri_image::ResolutionStrategy::LatestStable
-                    }
-                    ResolutionStrategy::PinToCli => sindri_image::ResolutionStrategy::PinToCli,
-                    ResolutionStrategy::Explicit => sindri_image::ResolutionStrategy::Explicit,
-                };
-
                 // Resolve version based on strategy
                 let tag = resolver
-                    .resolve_with_strategy(
+                    .resolve(
                         repository,
-                        strategy,
+                        image_config.resolution_strategy,
                         Some(version_constraint),
                         Some(cli_version),
                         image_config.allow_prerelease,
@@ -436,5 +440,116 @@ providers:
         assert_eq!(config.deployment.provider, Provider::Fly);
         assert!(config.deployment.resources.gpu.is_some());
         assert_eq!(config.secrets.len(), 1);
+    }
+
+    // --- Error path tests ---
+
+    #[test]
+    fn test_load_nonexistent_file() {
+        let path = Utf8Path::new("/tmp/nonexistent-sindri-config-12345.yaml");
+        let result = SindriConfig::load(Some(path));
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, Error::ConfigNotFound { .. }),
+            "Expected ConfigNotFound, got: {:?}",
+            err
+        );
+        assert!(err.to_string().contains("not found"));
+    }
+
+    #[test]
+    fn test_load_invalid_yaml_syntax() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("sindri.yaml");
+        std::fs::write(
+            &config_path,
+            "version: \"3.0\"\nname: test\n  bad_indent: [[[",
+        )
+        .unwrap();
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(config_path).expect("path should be valid UTF-8");
+        let result = SindriConfig::load(Some(utf8_path.as_path()));
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, Error::YamlParse(_)),
+            "Expected YamlParse, got: {:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_load_yaml_missing_required_fields() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("sindri.yaml");
+        // Missing deployment and extensions - should fail deserialization
+        std::fs::write(&config_path, "version: \"3.0\"\nname: test\n").unwrap();
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(config_path).expect("path should be valid UTF-8");
+        let result = SindriConfig::load(Some(utf8_path.as_path()));
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("missing field"),
+            "Expected 'missing field' in error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_load_yaml_wrong_provider_type() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("sindri.yaml");
+        let yaml = r#"
+version: "3.0"
+name: test
+deployment:
+  provider: nonexistent-provider
+extensions:
+  profile: minimal
+"#;
+        std::fs::write(&config_path, yaml).unwrap();
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(config_path).expect("path should be valid UTF-8");
+        let result = SindriConfig::load(Some(utf8_path.as_path()));
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("unknown variant"),
+            "Expected 'unknown variant' in error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_load_and_validate_schema_failure() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("sindri.yaml");
+        // Valid YAML but invalid schema: name uses uppercase (violates pattern)
+        let yaml = r#"
+version: "3.0"
+name: INVALID-UPPERCASE
+deployment:
+  provider: docker
+extensions:
+  profile: minimal
+"#;
+        std::fs::write(&config_path, yaml).unwrap();
+
+        let validator = crate::schema::SchemaValidator::new().unwrap();
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(config_path).expect("path should be valid UTF-8");
+        let result = SindriConfig::load_and_validate(Some(utf8_path.as_path()), &validator);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, Error::SchemaValidation { .. }),
+            "Expected SchemaValidation, got: {:?}",
+            err
+        );
     }
 }

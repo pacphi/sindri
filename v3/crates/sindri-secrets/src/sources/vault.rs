@@ -308,4 +308,237 @@ mod tests {
         let source = VaultSource::with_config(config);
         assert!(source.is_configured());
     }
+
+    // --- Error path tests ---
+
+    #[test]
+    fn test_vault_config_from_env_missing_addr() {
+        std::env::remove_var("VAULT_ADDR");
+        std::env::set_var("VAULT_TOKEN", "test-token");
+
+        let result = VaultConfig::from_env();
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("VAULT_ADDR"),
+            "Expected VAULT_ADDR error, got: {}",
+            err
+        );
+
+        std::env::remove_var("VAULT_TOKEN");
+    }
+
+    #[test]
+    fn test_vault_config_from_env_missing_token() {
+        std::env::set_var("VAULT_ADDR", "https://vault.example.com");
+        std::env::remove_var("VAULT_TOKEN");
+
+        let result = VaultConfig::from_env();
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("VAULT_TOKEN"),
+            "Expected VAULT_TOKEN error, got: {}",
+            err
+        );
+
+        std::env::remove_var("VAULT_ADDR");
+    }
+
+    #[test]
+    fn test_is_not_configured_empty_address() {
+        let config = VaultConfig {
+            address: String::new(),
+            token: "test-token".to_string(),
+            namespace: None,
+            timeout: Duration::from_secs(30),
+            retry: RetryConfig::default(),
+            insecure_skip_verify: false,
+        };
+
+        let source = VaultSource::with_config(config);
+        assert!(!source.is_configured());
+    }
+
+    #[test]
+    fn test_is_not_configured_empty_token() {
+        let config = VaultConfig {
+            address: "https://vault.example.com".to_string(),
+            token: String::new(),
+            namespace: None,
+            timeout: Duration::from_secs(30),
+            retry: RetryConfig::default(),
+            insecure_skip_verify: false,
+        };
+
+        let source = VaultSource::with_config(config);
+        assert!(!source.is_configured());
+    }
+
+    #[test]
+    fn test_validate_unconfigured_vault() {
+        let config = VaultConfig {
+            address: String::new(),
+            token: String::new(),
+            namespace: None,
+            timeout: Duration::from_secs(30),
+            retry: RetryConfig::default(),
+            insecure_skip_verify: false,
+        };
+
+        let source = VaultSource::with_config(config);
+        let result = source.validate();
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Vault not configured"),
+            "Expected 'Vault not configured', got: {}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_required_secret_unconfigured_vault() {
+        let config = VaultConfig {
+            address: String::new(),
+            token: String::new(),
+            namespace: None,
+            timeout: Duration::from_secs(30),
+            retry: RetryConfig::default(),
+            insecure_skip_verify: false,
+        };
+
+        let source = VaultSource::with_config(config);
+        let secret_config = sindri_core::types::SecretConfig {
+            name: "DB_PASSWORD".to_string(),
+            source: ConfigSecretSource::Vault,
+            from_file: None,
+            required: true,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: Some("secret/data/db".to_string()),
+            vault_key: Some("password".to_string()),
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let ctx = crate::types::ResolutionContext::new(std::path::PathBuf::from("/tmp"));
+        let result = source.resolve(&secret_config, &ctx).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Vault not configured"),
+            "Expected 'Vault not configured', got: {}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_optional_secret_unconfigured_returns_none() {
+        let config = VaultConfig {
+            address: String::new(),
+            token: String::new(),
+            namespace: None,
+            timeout: Duration::from_secs(30),
+            retry: RetryConfig::default(),
+            insecure_skip_verify: false,
+        };
+
+        let source = VaultSource::with_config(config);
+        let secret_config = sindri_core::types::SecretConfig {
+            name: "OPTIONAL_SECRET".to_string(),
+            source: ConfigSecretSource::Vault,
+            from_file: None,
+            required: false,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: Some("secret/data/test".to_string()),
+            vault_key: Some("key".to_string()),
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let ctx = crate::types::ResolutionContext::new(std::path::PathBuf::from("/tmp"));
+        let result = source.resolve(&secret_config, &ctx).await.unwrap();
+        assert!(
+            result.is_none(),
+            "Optional secret on unconfigured vault should return None"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_missing_vault_path() {
+        let config = VaultConfig {
+            address: "https://vault.example.com".to_string(),
+            token: "test-token".to_string(),
+            namespace: None,
+            timeout: Duration::from_secs(30),
+            retry: RetryConfig::default(),
+            insecure_skip_verify: false,
+        };
+
+        let source = VaultSource::with_config(config);
+        let secret_config = sindri_core::types::SecretConfig {
+            name: "MISSING_PATH".to_string(),
+            source: ConfigSecretSource::Vault,
+            from_file: None,
+            required: true,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: None, // Missing
+            vault_key: Some("key".to_string()),
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let ctx = crate::types::ResolutionContext::new(std::path::PathBuf::from("/tmp"));
+        let result = source.resolve(&secret_config, &ctx).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Vault path not specified"),
+            "Expected 'Vault path not specified', got: {}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_missing_vault_key() {
+        let config = VaultConfig {
+            address: "https://vault.example.com".to_string(),
+            token: "test-token".to_string(),
+            namespace: None,
+            timeout: Duration::from_secs(30),
+            retry: RetryConfig::default(),
+            insecure_skip_verify: false,
+        };
+
+        let source = VaultSource::with_config(config);
+        let secret_config = sindri_core::types::SecretConfig {
+            name: "MISSING_KEY".to_string(),
+            source: ConfigSecretSource::Vault,
+            from_file: None,
+            required: true,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: Some("secret/data/test".to_string()),
+            vault_key: None, // Missing
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let ctx = crate::types::ResolutionContext::new(std::path::PathBuf::from("/tmp"));
+        let result = source.resolve(&secret_config, &ctx).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Vault key not specified"),
+            "Expected 'Vault key not specified', got: {}",
+            err
+        );
+    }
 }

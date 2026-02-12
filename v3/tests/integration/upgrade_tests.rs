@@ -272,9 +272,7 @@ async fn test_download_and_verify_flow() {
     };
 
     let result = downloader.download_release(&release, Some("test")).await;
-    assert!(result.is_ok());
-
-    let download_result = result.unwrap();
+    let download_result = result.expect("download_release should succeed");
     assert!(download_result.file_path.exists());
     assert_eq!(download_result.file_size, binary_content.len() as u64);
 }
@@ -373,9 +371,7 @@ fn test_allow_downgrade_flag_simulation() {
 async fn test_updater_initialization() {
     let updater = SindriUpdater::new();
 
-    assert!(updater.is_ok());
-
-    let updater = updater.unwrap();
+    let updater = updater.expect("SindriUpdater::new should succeed");
     assert!(updater.binary_path().exists());
     assert!(updater.current_version().major >= 3);
 }

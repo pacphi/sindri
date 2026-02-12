@@ -552,9 +552,7 @@ mod tests {
     #[test]
     fn test_updater_creation() {
         let updater = SindriUpdater::new();
-        assert!(updater.is_ok());
-
-        let updater = updater.unwrap();
+        let updater = updater.expect("SindriUpdater::new should succeed");
         assert!(updater.current_version().major >= 3);
     }
 

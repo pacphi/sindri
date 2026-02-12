@@ -14,7 +14,7 @@ pub mod templates;
 pub mod types;
 pub mod utils;
 
-pub use config::SindriConfig;
+pub use config::{ImageVersionResolver, SindriConfig};
 pub use error::{Error, Result};
 pub use schema::SchemaValidator;
 pub use utils::get_home_dir;

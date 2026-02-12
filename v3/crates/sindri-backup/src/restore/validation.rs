@@ -75,3 +75,60 @@ pub fn validate_workspace_writable(workspace_dir: &Utf8Path) -> Result<()> {
     debug!("✓ Workspace directory is writable");
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_validate_restore_preconditions_missing_file() {
+        let path = Utf8Path::new("/tmp/nonexistent-backup-file-12345.tar.gz");
+        let options = RestoreOptions::default();
+        let result = validate_restore_preconditions(path, &options);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Backup file not found"),
+            "Expected 'Backup file not found' in error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_validate_restore_preconditions_invalid_archive() {
+        let temp_dir = TempDir::new().unwrap();
+        let bad_archive = temp_dir.path().join("bad.tar.gz");
+        // Write non-gzip content
+        std::fs::write(&bad_archive, b"this is not a valid gzip archive").unwrap();
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(bad_archive).expect("path should be valid UTF-8");
+        let options = RestoreOptions::default();
+        let result = validate_restore_preconditions(&utf8_path, &options);
+        assert!(result.is_err(), "Should fail on invalid archive format");
+    }
+
+    #[test]
+    fn test_validate_workspace_writable_nonexistent_dir() {
+        let path = Utf8Path::new("/tmp/nonexistent-workspace-dir-12345");
+        let result = validate_workspace_writable(path);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("does not exist"),
+            "Expected 'does not exist' in error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_validate_workspace_writable_success() {
+        let temp_dir = TempDir::new().unwrap();
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(temp_dir.path().to_path_buf()).expect("valid UTF-8");
+        let result = validate_workspace_writable(&utf8_path);
+        result.expect("validate_workspace_writable should succeed for temp dir");
+    }
+}

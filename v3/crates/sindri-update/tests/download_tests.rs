@@ -154,9 +154,7 @@ async fn test_download_with_mock_server() {
 
     // Download using current platform
     let result = downloader.download_release(&release, None).await;
-
-    assert!(result.is_ok());
-    let download_result = result.unwrap();
+    let download_result = result.expect("download_release should succeed");
     assert_eq!(download_result.file_size, FAKE_BINARY_CONTENT.len() as u64);
     assert!(download_result.file_path.exists());
 
@@ -183,7 +181,7 @@ async fn test_download_retry_on_failure() {
     let result = downloader.download_release(&release, None).await;
 
     // Should succeed after retries
-    assert!(result.is_ok());
+    result.expect("download_release should succeed after retries");
 }
 
 #[tokio::test]
@@ -324,7 +322,7 @@ async fn test_download_with_progress_disabled() {
     let release = release_for_mock_server(&mock_server.uri(), platform, TEST_BINARY_CONTENT);
 
     let result = downloader.download_release(&release, None).await;
-    assert!(result.is_ok());
+    result.expect("download_release with progress disabled should succeed");
 }
 
 #[tokio::test]

@@ -11,7 +11,7 @@ use chacha20poly1305::{
     aead::{Aead, KeyInit},
     ChaCha20Poly1305, Key, Nonce,
 };
-use rand::RngCore;
+use rand::Rng;
 use std::io::{Read, Write};
 use std::path::Path;
 use zeroize::Zeroizing;
@@ -389,8 +389,8 @@ mod tests {
         assert!(result.is_err());
 
         // Should succeed with overwrite
-        let result = generate_key_file(&key_path, true);
-        assert!(result.is_ok());
+        generate_key_file(&key_path, true)
+            .expect("generate_key_file with overwrite=true should succeed");
     }
 
     #[test]

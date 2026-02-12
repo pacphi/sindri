@@ -444,8 +444,7 @@ mod tests {
         let context = ConfigInitContext::new("my-app", Provider::Fly, "fullstack");
 
         let result = registry.render_config(&context);
-        assert!(result.is_ok());
-        let content = result.unwrap();
+        let content = result.expect("render_config for Fly provider should succeed");
         assert!(content.contains("name: my-app"));
         assert!(content.contains("provider: fly"));
         assert!(content.contains("profile: fullstack"));
@@ -459,8 +458,7 @@ mod tests {
         let context = ConfigInitContext::new("sandbox", Provider::E2b, "minimal");
 
         let result = registry.render_config(&context);
-        assert!(result.is_ok());
-        let content = result.unwrap();
+        let content = result.expect("render_config for E2B provider should succeed");
         // E2B doesn't support GPU, so GPU section should not appear
         assert!(!content.contains("gpu:") || content.contains("# Note: E2B"));
     }

@@ -166,6 +166,57 @@ jobs:
   # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
 
   # ============================================
+  # Code Coverage (cargo-llvm-cov)
+  # ============================================
+  # Aspirational target: >=70% line coverage for GA (currently estimated ~45-55%)
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: [rust-test]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install cargo-llvm-cov
+        run: cargo binstall cargo-llvm-cov --no-confirm
+
+      - name: Generate LCOV coverage report
+        run: |
+          cd v3
+          cargo llvm-cov --workspace --lcov --output-path coverage/lcov.info
+
+      - name: Generate coverage summary
+        run: |
+          cd v3
+          echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo llvm-cov --workspace >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **Target**: >=70% line coverage for GA" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-lcov-${{ github.sha }}
+          path: v3/coverage/lcov.info
+          retention-days: 30
+
+  # ============================================
   # Docker Image Build
   # ============================================
 
@@ -665,6 +716,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - ci-required
+      - coverage
       - security-audit
       - docs-build
       - test-extensions
@@ -708,6 +760,7 @@ jobs:
           echo "- Linting (clippy)" >> $GITHUB_STEP_SUMMARY
           echo "- Unit tests (cargo test)" >> $GITHUB_STEP_SUMMARY
           echo "- Release build (cargo build --release)" >> $GITHUB_STEP_SUMMARY
+          echo "- Code coverage (cargo-llvm-cov)" >> $GITHUB_STEP_SUMMARY
           echo "- YAML validation (extensions, schemas)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Job Results" >> $GITHUB_STEP_SUMMARY
@@ -719,6 +772,7 @@ jobs:
           echo "| Extension Tests | ${{ needs.test-extensions.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| K8s Integration (Kind) | ${{ needs.k8s-integration-kind.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| K8s Integration (K3d) | ${{ needs.k8s-integration-k3d.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Coverage | ${{ needs.coverage.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| K8s Cluster Lifecycle | ${{ needs.k8s-cluster-lifecycle.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Metadata" >> $GITHUB_STEP_SUMMARY

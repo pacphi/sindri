@@ -227,9 +227,8 @@ mod tests {
 
         let resolver = PathResolver::new(ext_dir.clone(), temp.path().to_path_buf());
         let result = resolver.resolve_source("test", "template.txt").await;
-
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), test_file);
+        let resolved = result.expect("resolve_source should succeed for existing file");
+        assert_eq!(resolved, test_file);
     }
 
     #[tokio::test]
@@ -252,9 +251,8 @@ mod tests {
 
         let resolver = PathResolver::new(temp.path().to_path_buf(), home_dir.to_path_buf());
         let result = resolver.resolve_destination("~/.bashrc").await;
-
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), home_dir.join(".bashrc"));
+        let resolved = result.expect("resolve_destination with tilde should succeed");
+        assert_eq!(resolved, home_dir.join(".bashrc"));
     }
 
     #[tokio::test]
@@ -277,8 +275,8 @@ mod tests {
         let resolver = PathResolver::new(temp.path().to_path_buf(), temp.path().to_path_buf());
 
         let result = resolver.expand_path("config-${EXTENSION_NAME}.yaml", "myext");
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "config-myext.yaml");
+        let expanded = result.expect("expand_path with EXTENSION_NAME should succeed");
+        assert_eq!(expanded, "config-myext.yaml");
     }
 
     #[test]

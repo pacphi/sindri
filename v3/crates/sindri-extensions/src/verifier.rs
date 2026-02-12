@@ -471,4 +471,105 @@ FOO = "bar"
         let tools = parse_mise_tools(content);
         assert!(tools.is_empty());
     }
+
+    // --- Error path tests ---
+
+    #[test]
+    fn test_parse_mise_tools_no_tools_section() {
+        let content = "";
+        let tools = parse_mise_tools(content);
+        assert!(tools.is_empty(), "Empty content should yield no tools");
+    }
+
+    #[test]
+    fn test_parse_mise_tools_comments_only_in_tools() {
+        let content = r#"
+[tools]
+# node = "20"
+# python = "3.11"
+
+[env]
+FOO = "bar"
+"#;
+        let tools = parse_mise_tools(content);
+        assert!(tools.is_empty(), "Commented-out tools should not be parsed");
+    }
+
+    #[test]
+    fn test_parse_mise_tools_tools_section_at_end() {
+        let content = r#"
+[env]
+FOO = "bar"
+
+[tools]
+rust = "1.75"
+"#;
+        let tools = parse_mise_tools(content);
+        assert_eq!(tools.len(), 1);
+        assert!(tools.contains(&"rust".to_string()));
+    }
+
+    #[test]
+    fn test_find_extension_yaml_nonexistent() {
+        // Use a name that should never exist
+        let result = find_extension_yaml("nonexistent-ext-12345", "99.99.99");
+        assert!(
+            result.is_none(),
+            "Should return None for nonexistent extension"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_verify_extension_installed_missing_binary() {
+        use sindri_core::types::*;
+
+        let extension = Extension {
+            metadata: ExtensionMetadata {
+                name: "test-missing-binary".to_string(),
+                version: "1.0.0".to_string(),
+                description: "Test extension".to_string(),
+                category: ExtensionCategory::Devops,
+                dependencies: vec![],
+                author: None,
+                homepage: None,
+            },
+            requirements: None,
+            install: InstallConfig {
+                method: InstallMethod::Binary,
+                mise: None,
+                apt: None,
+                binary: Some(BinaryInstallConfig {
+                    downloads: vec![BinaryDownload {
+                        name: "nonexistent-binary-tool-12345".to_string(),
+                        source: DownloadSource {
+                            r#type: DownloadSourceType::DirectUrl,
+                            url: "https://example.com/fake".to_string(),
+                            asset: None,
+                            version: "latest".to_string(),
+                        },
+                        destination: Some("~/nonexistent-dir-12345/bin".to_string()),
+                        extract: false,
+                    }],
+                }),
+                script: None,
+                npm: None,
+            },
+            configure: None,
+            validate: ValidateConfig {
+                commands: vec![],
+                mise: None,
+            },
+            remove: None,
+            upgrade: None,
+            capabilities: None,
+            docs: None,
+            bom: None,
+        };
+
+        let result = verify_extension_installed(&extension).await;
+        assert!(
+            !result,
+            "Verification should fail for missing binary destination"
+        );
+    }
 }

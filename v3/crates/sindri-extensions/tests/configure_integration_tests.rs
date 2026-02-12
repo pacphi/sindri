@@ -43,9 +43,7 @@ async fn test_configure_processor_template_overwrite() {
         ConfigureProcessor::new(ext_dir.clone(), temp.path().to_path_buf(), home_dir.clone());
 
     let result = processor.execute("test-ext", &config).await;
-    assert!(result.is_ok());
-
-    let result = result.unwrap();
+    let result = result.expect("ConfigureProcessor::execute should succeed");
     assert_eq!(result.templates_processed, 1);
 
     // Verify file was created

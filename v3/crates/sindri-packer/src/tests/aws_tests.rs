@@ -15,9 +15,7 @@ fn test_aws_provider_creation() {
 fn test_aws_prerequisite_check() {
     let provider = AwsPackerProvider::new().unwrap();
     let result = provider.check_cloud_prerequisites();
-    assert!(result.is_ok());
-
-    let status = result.unwrap();
+    let status = result.expect("check_cloud_prerequisites should succeed");
     // Packer and AWS CLI may or may not be installed
     assert!(!status.hints.is_empty() || status.satisfied);
 }

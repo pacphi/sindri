@@ -23,8 +23,7 @@ fn test_compatibility_checker_creation() {
 fn test_load_matrix_from_string() {
     let mut checker = CompatibilityChecker::new().unwrap();
     let result = checker.load_matrix_from_str(&load_matrix_v1());
-
-    assert!(result.is_ok());
+    result.expect("load_matrix_from_str with valid YAML should succeed");
 }
 
 #[test]
@@ -228,7 +227,8 @@ fn test_wildcard_does_not_match_different_minor() {
     let result = checker.check_compatibility(VERSION_3_1_0, &empty_extensions());
 
     // Should find exact match for 3.1.0 instead
-    assert!(result.is_ok());
+    let compat = result.expect("check_compatibility for 3.1.0 should succeed");
+    assert!(compat.compatible, "3.1.0 should have a compatible entry");
 }
 
 #[test]
@@ -351,8 +351,7 @@ fn test_empty_compatibility_matrix() {
 fn test_schema_version_field() {
     let mut checker = CompatibilityChecker::new().unwrap();
     let result = checker.load_matrix_from_str(&load_matrix_schema_v2());
-
-    assert!(result.is_ok());
+    result.expect("load_matrix_from_str with schema v2 should succeed");
 }
 
 #[test]

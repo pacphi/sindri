@@ -401,4 +401,102 @@ mod tests {
         // Will actually error on path validation, not on missing file
         assert!(result.is_err());
     }
+
+    // --- Error path tests ---
+
+    #[tokio::test]
+    async fn test_resolve_missing_path_field() {
+        let temp_dir = TempDir::new().unwrap();
+        let source = FileSource::new();
+
+        // File source with no path specified
+        let config = SecretConfig {
+            name: "NO_PATH".to_string(),
+            source: ConfigSecretSource::File,
+            from_file: None,
+            required: true,
+            path: None, // Missing required path
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: None,
+            vault_key: None,
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let ctx = create_test_context(temp_dir.path());
+        let result = source.resolve(&config, &ctx).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("File path not specified"),
+            "Expected 'File path not specified', got: {}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_wrong_source_type_returns_none() {
+        let temp_dir = TempDir::new().unwrap();
+        let source = FileSource::new();
+
+        let config = SecretConfig {
+            name: "WRONG_TYPE".to_string(),
+            source: ConfigSecretSource::Env, // Not File
+            from_file: None,
+            required: true,
+            path: Some("/etc/secrets/test.txt".to_string()),
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: None,
+            vault_key: None,
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let ctx = create_test_context(temp_dir.path());
+        let result = source.resolve(&config, &ctx).await.unwrap();
+        assert!(
+            result.is_none(),
+            "FileSource should return None for non-File source type"
+        );
+    }
+
+    #[test]
+    fn test_parse_permissions_invalid_octal() {
+        // 8 and 9 are not valid octal digits
+        let result = FileSource::parse_permissions("0899");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Invalid permission format"),
+            "Expected permission format error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_parse_permissions_empty_string() {
+        let result = FileSource::parse_permissions("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_is_path_allowed_rejects_outside_dirs() {
+        let source = FileSource::with_allowed_dirs(vec![PathBuf::from("/opt/secrets")]);
+        let ctx = ResolutionContext::new(PathBuf::from("/home/user/project"));
+
+        // Path outside both config dir and allowed dirs
+        assert!(!source.is_path_allowed(Path::new("/etc/passwd"), &ctx));
+        assert!(!source.is_path_allowed(Path::new("/root/.ssh/id_rsa"), &ctx));
+    }
+
+    #[test]
+    fn test_is_path_allowed_accepts_config_dir() {
+        let source = FileSource::with_allowed_dirs(vec![]);
+        let ctx = ResolutionContext::new(PathBuf::from("/home/user/project"));
+
+        // Path under config dir should be allowed
+        assert!(source.is_path_allowed(Path::new("/home/user/project/secrets/key.pem"), &ctx));
+    }
 }

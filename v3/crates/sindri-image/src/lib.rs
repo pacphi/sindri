@@ -42,6 +42,10 @@ pub use types::{
 };
 pub use verify::ImageVerifier;
 
+mod bridge;
+
+pub use bridge::RegistryImageResolver;
+
 /// Version of the sindri-image crate
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

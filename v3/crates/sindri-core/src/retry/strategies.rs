@@ -4,7 +4,7 @@
 //! a trait for determining whether an error should be retried.
 
 use crate::types::{RetryPolicy, RetryStrategy};
-use rand::Rng;
+use rand::RngExt;
 use std::error::Error;
 use std::time::Duration;
 

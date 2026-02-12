@@ -7,7 +7,8 @@ use crate::cli::{
 use anyhow::{anyhow, Context, Result};
 use sindri_core::SindriConfig;
 use sindri_image::{
-    CachedImageMetadata, ImageReference, ImageVerifier, RegistryClient, VersionResolver,
+    CachedImageMetadata, ImageReference, ImageVerifier, RegistryClient, RegistryImageResolver,
+    VersionResolver,
 };
 use tracing::{debug, info, warn};
 
@@ -401,8 +402,25 @@ async fn current(args: ImageCurrentArgs) -> Result<()> {
     // Load config
     let config = SindriConfig::load(None)?;
 
+    // Build a resolver for registry-based version resolution
+    let resolver = config
+        .inner()
+        .deployment
+        .image_config
+        .as_ref()
+        .and_then(|ic| {
+            let token = std::env::var("GITHUB_TOKEN").ok();
+            RegistryImageResolver::for_registry(&ic.registry, token).ok()
+        });
+
     // Resolve image
-    let image = config.resolve_image().await?;
+    let image = config
+        .resolve_image(
+            resolver
+                .as_ref()
+                .map(|r| r as &dyn sindri_core::config::ImageVersionResolver),
+        )
+        .await?;
 
     if args.json {
         let output = serde_json::json!({

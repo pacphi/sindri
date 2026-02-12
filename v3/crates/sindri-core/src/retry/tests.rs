@@ -372,8 +372,8 @@ async fn test_executor_immediate_success() {
         .execute(|| async { Ok("success") })
         .await;
 
-    assert!(result.is_ok());
-    assert_eq!(result.unwrap(), "success");
+    let value = result.expect("immediate success should return Ok");
+    assert_eq!(value, "success");
     assert_eq!(observer.attempt_starts(), 1);
     assert_eq!(observer.successes(), 1);
     assert_eq!(observer.failures(), 0);
@@ -405,8 +405,8 @@ async fn test_executor_success_on_second_attempt() {
         })
         .await;
 
-    assert!(result.is_ok());
-    assert_eq!(result.unwrap(), "success on retry");
+    let value = result.expect("should succeed on second attempt");
+    assert_eq!(value, "success on retry");
     assert_eq!(observer.attempt_starts(), 2);
     assert_eq!(observer.failures(), 1);
     assert_eq!(observer.successes(), 1);
@@ -437,8 +437,8 @@ async fn test_executor_success_on_last_attempt() {
         })
         .await;
 
-    assert!(result.is_ok());
-    assert_eq!(result.unwrap(), "finally!");
+    let value = result.expect("should succeed on last attempt");
+    assert_eq!(value, "finally!");
     assert_eq!(observer.attempt_starts(), 3);
     assert_eq!(observer.failures(), 2);
     assert_eq!(observer.successes(), 1);
@@ -528,8 +528,8 @@ async fn test_retry_with_policy_convenience_function() {
     })
     .await;
 
-    assert!(result.is_ok());
-    assert_eq!(result.unwrap(), "done");
+    let value = result.expect("retry_with_policy should succeed after one failure");
+    assert_eq!(value, "done");
     assert_eq!(attempts.load(Ordering::SeqCst), 2);
 }
 

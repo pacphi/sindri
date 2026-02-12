@@ -104,8 +104,7 @@ mod tests {
             .build();
 
         let result = registry.render("docker-compose.yml", &context);
-        assert!(result.is_ok());
-        let content = result.unwrap();
+        let content = result.expect("render docker-compose.yml should succeed");
         assert!(content.contains("test-env"));
         assert!(content.contains("4GB"));
     }

@@ -7,6 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+# Core types and traits
+sindri-core = { workspace = true }
+
 # HTTP client for registry API
 reqwest = { workspace = true }
 

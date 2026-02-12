@@ -338,8 +338,7 @@ mod tests {
         let options = InitOptions::default();
         let git_config = GitWorkflowConfig::default();
         let result = init_repository(path, &options, &git_config).await;
-
-        assert!(result.is_ok());
+        result.expect("init_repository should succeed");
         assert!(path.join(".git").exists());
         assert!(path.join(".gitignore").exists());
     }
@@ -355,8 +354,7 @@ mod tests {
         };
         let git_config = GitWorkflowConfig::default();
         let result = init_repository(path, &options, &git_config).await;
-
-        assert!(result.is_ok());
+        result.expect("init_repository with custom branch should succeed");
         assert!(path.join(".git").exists());
     }
 
@@ -373,8 +371,7 @@ mod tests {
         };
 
         let result = init_repository(path, &options, &git_config).await;
-
-        assert!(result.is_ok());
+        result.expect("init_repository with config defaults should succeed");
         assert!(path.join(".git").exists());
     }
 
@@ -390,7 +387,7 @@ mod tests {
 
         // Create a feature branch
         let result = create_branch(path, "feature/test", false).await;
-        assert!(result.is_ok());
+        result.expect("create_branch should succeed");
 
         // Try to create the same branch again should fail
         let result = create_branch(path, "feature/test", false).await;

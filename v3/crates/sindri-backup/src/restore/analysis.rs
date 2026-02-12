@@ -130,3 +130,98 @@ impl BackupAnalyzer {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+    use tar::Builder;
+    use tempfile::TempDir;
+
+    /// Helper: create a valid tar.gz archive from a temp directory with files
+    fn create_tar_gz_from_dir(source_dir: &std::path::Path, archive_path: &std::path::Path) {
+        let file = File::create(archive_path).unwrap();
+        let encoder = GzEncoder::new(file, Compression::default());
+        let mut builder = Builder::new(encoder);
+        builder.append_dir_all(".", source_dir).unwrap();
+        builder.finish().unwrap();
+    }
+
+    #[test]
+    fn test_validate_archive_not_gzip() {
+        let temp_dir = TempDir::new().unwrap();
+        let bad_file = temp_dir.path().join("not-gzip.tar.gz");
+        std::fs::write(&bad_file, b"this is plain text, not gzip").unwrap();
+
+        let utf8_path = Utf8PathBuf::from_path_buf(bad_file).expect("path should be valid UTF-8");
+        let analyzer = BackupAnalyzer;
+        let result = analyzer.validate_archive(&utf8_path);
+        assert!(result.is_err(), "Should fail for non-gzip content");
+    }
+
+    #[test]
+    fn test_validate_archive_nonexistent_file() {
+        let path = Utf8Path::new("/tmp/nonexistent-archive-12345.tar.gz");
+        let analyzer = BackupAnalyzer;
+        let result = analyzer.validate_archive(path);
+        assert!(result.is_err(), "Should fail for missing file");
+    }
+
+    #[test]
+    fn test_extract_manifest_missing_from_archive() {
+        let temp_dir = TempDir::new().unwrap();
+        let archive_path = temp_dir.path().join("no-manifest.tar.gz");
+
+        // Create a source directory with a dummy file (no manifest)
+        let source_dir = temp_dir.path().join("source");
+        std::fs::create_dir_all(&source_dir).unwrap();
+        std::fs::write(source_dir.join("dummy.txt"), b"hello").unwrap();
+
+        create_tar_gz_from_dir(&source_dir, &archive_path);
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(archive_path).expect("path should be valid UTF-8");
+        let analyzer = BackupAnalyzer;
+        let result = analyzer.extract_manifest(&utf8_path);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("manifest not found"),
+            "Expected 'manifest not found' in error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_extract_manifest_corrupt_json() {
+        let temp_dir = TempDir::new().unwrap();
+        let archive_path = temp_dir.path().join("corrupt-manifest.tar.gz");
+
+        // Create a source directory with a manifest file containing invalid JSON
+        let source_dir = temp_dir.path().join("source");
+        std::fs::create_dir_all(&source_dir).unwrap();
+        std::fs::write(
+            source_dir.join(".backup-manifest.json"),
+            b"{ this is not valid json }",
+        )
+        .unwrap();
+
+        create_tar_gz_from_dir(&source_dir, &archive_path);
+
+        let utf8_path =
+            Utf8PathBuf::from_path_buf(archive_path).expect("path should be valid UTF-8");
+        let analyzer = BackupAnalyzer;
+        let result = analyzer.extract_manifest(&utf8_path);
+        assert!(result.is_err(), "Should fail on corrupt manifest JSON");
+    }
+
+    #[tokio::test]
+    async fn test_analyze_nonexistent_file() {
+        let path = Utf8Path::new("/tmp/nonexistent-backup-12345.tar.gz");
+        let analyzer = BackupAnalyzer;
+        let result = analyzer.analyze(path).await;
+        assert!(result.is_err(), "Should fail for missing file");
+    }
+}

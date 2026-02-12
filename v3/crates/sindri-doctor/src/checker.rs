@@ -3,11 +3,16 @@
 //! Provides async parallel checking of tool availability, versions,
 //! and authentication status. Uses tokio for concurrent execution.
 
+use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
 use futures::future::join_all;
 use regex::Regex;
 use tokio::process::Command;
+
+/// Pre-compiled regex for extracting version numbers from command output
+static VERSION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"v?(\d+\.\d+(?:\.\d+)?)").expect("version regex is valid"));
 
 use crate::tool::{AuthCheck, AuthSuccessIndicator, ToolDefinition};
 
@@ -132,9 +137,8 @@ impl ToolChecker {
         // - "npm 10.2.5"
 
         // Try to find version pattern
-        let re = Regex::new(r"v?(\d+\.\d+(?:\.\d+)?)").unwrap();
-
-        re.captures(text)
+        VERSION_RE
+            .captures(text)
             .and_then(|c| c.get(1))
             .map(|m| m.as_str().to_string())
             .unwrap_or_else(|| {

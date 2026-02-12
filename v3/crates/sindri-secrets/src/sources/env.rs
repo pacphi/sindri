@@ -450,4 +450,136 @@ KEY4=value with spaces
         assert_eq!(vars.get("KEY4"), Some(&"value with spaces".to_string()));
         assert_eq!(vars.get("EMPTY_LINE_ABOVE"), Some(&"".to_string()));
     }
+
+    // --- Error path tests ---
+
+    #[tokio::test]
+    async fn test_resolve_missing_env_var_returns_none() {
+        // Remove the variable to ensure it is not set
+        env::remove_var("TOTALLY_MISSING_SECRET_VAR_12345");
+
+        let source = EnvSource::new();
+        let config = SecretConfig {
+            name: "TOTALLY_MISSING_SECRET_VAR_12345".to_string(),
+            source: ConfigSecretSource::Env,
+            from_file: None,
+            required: false,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: None,
+            vault_key: None,
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let temp_dir = TempDir::new().unwrap();
+        let ctx = create_test_context(temp_dir.path());
+        let result = source.resolve(&config, &ctx).await.unwrap();
+        assert!(
+            result.is_none(),
+            "Missing optional env var should return None"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_from_file_nonexistent_path() {
+        let source = EnvSource::new();
+        let config = SecretConfig {
+            name: "FILE_MISSING".to_string(),
+            source: ConfigSecretSource::Env,
+            from_file: Some("/tmp/nonexistent-secret-file-12345.txt".to_string()),
+            required: true,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: None,
+            vault_key: None,
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        // Ensure the env var is not set so it falls through to fromFile
+        env::remove_var("FILE_MISSING");
+
+        let temp_dir = TempDir::new().unwrap();
+        let ctx = create_test_context(temp_dir.path());
+        let result = source.resolve(&config, &ctx).await;
+        assert!(
+            result.is_err(),
+            "Required fromFile with bad path should fail"
+        );
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Failed to resolve required secret"),
+            "Expected resolution error, got: {}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_from_file_nonexistent_optional_returns_none() {
+        let source = EnvSource::new();
+        let config = SecretConfig {
+            name: "FILE_MISSING_OPT".to_string(),
+            source: ConfigSecretSource::Env,
+            from_file: Some("/tmp/nonexistent-secret-file-opt-12345.txt".to_string()),
+            required: false,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: None,
+            vault_key: None,
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        env::remove_var("FILE_MISSING_OPT");
+
+        let temp_dir = TempDir::new().unwrap();
+        let ctx = create_test_context(temp_dir.path());
+        let result = source.resolve(&config, &ctx).await.unwrap();
+        assert!(
+            result.is_none(),
+            "Optional fromFile with bad path should return None"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resolve_wrong_source_type_returns_none() {
+        let source = EnvSource::new();
+        let config = SecretConfig {
+            name: "WRONG_SOURCE".to_string(),
+            source: ConfigSecretSource::File, // Not Env
+            from_file: None,
+            required: true,
+            path: None,
+            mount_path: None,
+            permissions: "0644".to_string(),
+            vault_path: None,
+            vault_key: None,
+            vault_mount: "secret".to_string(),
+            s3_path: None,
+        };
+
+        let temp_dir = TempDir::new().unwrap();
+        let ctx = create_test_context(temp_dir.path());
+        let result = source.resolve(&config, &ctx).await.unwrap();
+        assert!(
+            result.is_none(),
+            "EnvSource should return None for non-Env source type"
+        );
+    }
+
+    #[test]
+    fn test_parse_env_file_nonexistent() {
+        let result = EnvSource::parse_env_file(Path::new("/tmp/nonexistent-env-12345"));
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("Failed to read env file"),
+            "Expected file read error, got: {}",
+            err
+        );
+    }
 }
