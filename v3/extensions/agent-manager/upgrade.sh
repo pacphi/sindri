@@ -1,6 +1,5 @@
 #!/bin/bash
 set -euo pipefail
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
 
 print_status "Upgrading agent-manager..."
 

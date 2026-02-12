@@ -4,12 +4,6 @@ set -euo pipefail
 # Uninstall script for jira-mcp
 # Removes Atlassian MCP from Claude Code user scope
 
-# Find common.sh relative to this script's location
-# Script is at: /opt/sindri/extensions/jira-mcp/uninstall.sh
-# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
-
 MCP_SERVER_NAME="atlassian"
 
 print_status "Removing Atlassian MCP server..."

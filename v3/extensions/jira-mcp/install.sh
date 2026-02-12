@@ -5,11 +5,7 @@ set -euo pipefail
 # Atlassian MCP server using Claude Code's native SSE transport
 # See: https://support.atlassian.com/atlassian-rovo-mcp-server/
 
-# Find common.sh and resources relative to this script's location
-# Script is at: /opt/sindri/extensions/jira-mcp/install.sh
-# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
 EXTENSION_DIR="${HOME}/extensions/jira-mcp"
 RESOURCE_DIR="$SCRIPT_DIR/resources"

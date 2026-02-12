@@ -4,10 +4,6 @@
 
 set -euo pipefail
 
-# Source common utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
-
 # Configure xRDP
 configure_xrdp() {
     print_status "Configuring xRDP for XFCE..."

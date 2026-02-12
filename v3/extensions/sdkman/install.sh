@@ -5,9 +5,6 @@ set -eo pipefail
 # SDKMAN install script
 # Installs SDKMAN and verifies the installation
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing SDKMAN..."
 
 # Set SDKMAN directory

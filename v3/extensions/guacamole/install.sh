@@ -7,14 +7,6 @@
 
 set -euo pipefail
 
-# Source common functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=/dev/null
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh" 2>/dev/null || {
-    echo "Error: Cannot source common.sh"
-    exit 1
-}
-
 # ============================================================================
 # CONFIGURATION
 # ============================================================================

@@ -4,9 +4,6 @@ set -euo pipefail
 # claude-marketplace install script
 # Template selection is now handled declaratively via extension.yaml conditions
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing Claude marketplace configuration..."
 
 # Ensure Claude config directory exists (configure system will merge JSON templates)

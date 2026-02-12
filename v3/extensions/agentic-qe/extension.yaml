@@ -81,8 +81,22 @@ capabilities:
   # Lifecycle hooks
   hooks:
     post-install:
-      command: "mise reshim && sleep 2"
-      description: "Refresh shims after installation"
+      command: >-
+        mise reshim && sleep 2 &&
+        INSTALL_DIR=$(mise where npm:agentic-qe 2>/dev/null) &&
+        if [ -n "$INSTALL_DIR" ] && [ -d "$INSTALL_DIR" ]; then
+          SHARP_DIR=$(find "$INSTALL_DIR" -path "*/node_modules/sharp/package.json" -maxdepth 8 2>/dev/null | head -1 | xargs dirname 2>/dev/null) &&
+          if [ -n "$SHARP_DIR" ] && [ -d "$SHARP_DIR" ]; then
+            echo "Rebuilding sharp native module in $SHARP_DIR..." &&
+            cd "$SHARP_DIR" &&
+            npx --yes prebuild-install --runtime napi --target 9 2>&1 ||
+            npm run install 2>&1 ||
+            echo "WARN: sharp native module rebuild failed - aqe may not work correctly";
+          else
+            echo "WARN: sharp module not found under $INSTALL_DIR";
+          fi
+        fi
+      description: "Refresh shims and rebuild native modules (sharp)"
     pre-project-init:
       command: "echo 'Initializing agentic-qe project...'"
       description: "Pre-initialization setup"

@@ -5,11 +5,8 @@ set -euo pipefail
 # Linear MCP server using Claude Code's native HTTP transport
 # See: https://linear.app/docs/mcp
 
-# Find common.sh and resources relative to this script's location
-# Script is at: /opt/sindri/extensions/linear-mcp/install.sh
-# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
+# Resources are relative to this script's location
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
 
 EXTENSION_DIR="${HOME}/extensions/linear-mcp"
 RESOURCE_DIR="$SCRIPT_DIR/resources"

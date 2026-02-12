@@ -4,9 +4,6 @@ set -euo pipefail
 # monitoring install script - Simplified for YAML-driven architecture
 # Installs Claude monitoring tools: UV, claude-monitor, claude-usage-cli
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing monitoring tools..."
 
 # Install UV package manager

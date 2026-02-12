@@ -2,10 +2,6 @@
 # Install additional infrastructure tools not available via mise or apt
 set -euo pipefail
 
-# Source common utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
-
 # Use WORKSPACE from environment or derive from HOME
 WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
 

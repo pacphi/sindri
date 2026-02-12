@@ -280,6 +280,34 @@ impl ExtensionExecutor {
             cmd.env("MISE_GITHUB_TOKEN", github_token);
         }
 
+        // Pass NPM_TOKEN if available (authenticates with npm registry, avoids rate limits)
+        if let Ok(npm_token) = std::env::var("NPM_TOKEN") {
+            cmd.env("NPM_TOKEN", &npm_token);
+            cmd.env("NPM_CONFIG_TOKEN", &npm_token);
+        }
+
+        // Ensure npm packages with native addons (e.g., sharp) install correctly.
+        // pnpm (used by mise for npm packages) may not run install scripts by default,
+        // and native addons need the correct platform/arch to download prebuilt binaries.
+        cmd.env("npm_config_foreground_scripts", "true");
+        cmd.env("SHARP_IGNORE_GLOBAL_LIBVIPS", "1");
+
+        // Set platform and arch so npm/pnpm downloads correct prebuilt native binaries.
+        // Without this, packages like sharp fail on ARM (aarch64) containers because
+        // the install script can't determine the target architecture in mise's environment.
+        let npm_arch = match std::env::consts::ARCH {
+            "x86_64" => "x64",
+            "aarch64" => "arm64",
+            "arm" => "arm",
+            other => other,
+        };
+        let npm_platform = match std::env::consts::OS {
+            "macos" => "darwin",
+            other => other,
+        };
+        cmd.env("npm_config_arch", npm_arch);
+        cmd.env("npm_config_platform", npm_platform);
+
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
@@ -575,6 +603,58 @@ impl ExtensionExecutor {
         Ok(())
     }
 
+    /// Find common.sh by searching multiple locations in priority order.
+    ///
+    /// The executor's `extension_dir` may point to a specific extension directory
+    /// (e.g., `/opt/sindri/extensions/docker` for bundled, or
+    /// `~/.sindri/extensions/jira-mcp/1.0.0` for versioned downloads),
+    /// so we walk up ancestors to find common.sh at any level.
+    ///
+    /// Search order:
+    /// 1. Walk up from extension_dir checking each ancestor (up to 4 levels)
+    /// 2. /docker/config/sindri/common.sh (Docker image fallback)
+    fn find_common_sh(&self) -> Option<PathBuf> {
+        // 1. Walk up from extension_dir checking each directory
+        // Handles: ext_dir itself, parent (extensions root), grandparent (/opt/sindri), etc.
+        let mut dir = Some(self.extension_dir.as_path());
+        for _ in 0..5 {
+            if let Some(d) = dir {
+                let candidate = d.join("common.sh");
+                if candidate.exists() {
+                    debug!("Found common.sh at {:?}", candidate);
+                    return Some(candidate);
+                }
+                dir = d.parent();
+            } else {
+                break;
+            }
+        }
+
+        // 2. Docker image fallback
+        let docker_path = PathBuf::from("/docker/config/sindri/common.sh");
+        if docker_path.exists() {
+            debug!("Found common.sh at {:?}", docker_path);
+            return Some(docker_path);
+        }
+
+        debug!("common.sh not found in any search path");
+        None
+    }
+
+    /// Create a bash Command with BASH_ENV set to common.sh if found.
+    ///
+    /// When bash runs a non-interactive script, it automatically sources
+    /// the file specified by BASH_ENV before executing the script body.
+    /// This eliminates the need for boilerplate sourcing in every extension script.
+    fn create_bash_command(&self) -> Command {
+        let mut cmd = Command::new("bash");
+        if let Some(common_sh) = self.find_common_sh() {
+            debug!("Setting BASH_ENV={:?}", common_sh);
+            cmd.env("BASH_ENV", common_sh);
+        }
+        cmd
+    }
+
     /// Install via script
     async fn install_script(&self, extension: &Extension, _timeout: u64) -> Result<()> {
         let name = &extension.metadata.name;
@@ -625,9 +705,8 @@ impl ExtensionExecutor {
         debug!("Running install script: {:?}", script_path);
 
         // CRITICAL: Pass absolute path to bash so BASH_SOURCE contains full path
-        // This allows scripts to use dirname resolution to find common.sh
-        // If we pass relative path, BASH_SOURCE is just filename and dirname fails
-        let mut cmd = Command::new("bash");
+        // BASH_ENV is set by create_bash_command() to auto-source common.sh
+        let mut cmd = self.create_bash_command();
         let resolved_script = script_path.canonicalize().unwrap_or_else(|e| {
             warn!(
                 "Failed to canonicalize {:?}: {}, using original path",
@@ -939,7 +1018,8 @@ impl ExtensionExecutor {
             info!("Executing {} hook for {}", phase, ext_name);
         }
 
-        let output = Command::new("bash")
+        let output = self
+            .create_bash_command()
             .arg("-c")
             .arg(&hook.command)
             .current_dir(&self.workspace_dir)

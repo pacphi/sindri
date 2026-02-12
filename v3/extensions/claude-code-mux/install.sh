@@ -4,9 +4,6 @@ set -euo pipefail
 # claude-code-mux install script
 # Installs CCM binary from GitHub releases
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing Claude Code Mux (CCM)..."
 
 # Detect architecture

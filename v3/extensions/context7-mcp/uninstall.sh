@@ -4,12 +4,6 @@ set -euo pipefail
 # Uninstall script for context7-mcp
 # Removes Context7 MCP from Claude Code user scope
 
-# Find common.sh relative to this script's location
-# Script is at: /opt/sindri/extensions/context7-mcp/uninstall.sh
-# common.sh is at: /opt/sindri/common.sh (go up 2 levels)
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-source "$(dirname "$(dirname "$SCRIPT_DIR")")/common.sh"
-
 MCP_SERVER_NAME="context7"
 
 print_status "Removing Context7 MCP server..."

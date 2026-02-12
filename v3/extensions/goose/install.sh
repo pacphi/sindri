@@ -4,9 +4,6 @@ set -euo pipefail
 # goose install script - Block's open-source AI agent
 # Installs the Goose CLI from official release
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing Goose AI agent CLI..."
 
 # Determine if we have root access (for installing dependencies)

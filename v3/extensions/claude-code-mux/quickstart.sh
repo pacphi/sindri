@@ -4,9 +4,6 @@ set -euo pipefail
 # CCM Quickstart Setup Script
 # Interactive configuration for multi-model routing
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
 CONFIG_FILE="$WORKSPACE/config/ccm-config.toml"
 

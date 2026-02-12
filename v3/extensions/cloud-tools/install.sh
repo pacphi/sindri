@@ -5,9 +5,6 @@ set -euo pipefail
 # This script focuses on installation logic only. All metadata, validation,
 # and configuration is handled by extension.yaml
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing cloud provider CLI tools..."
 
 # Detect architecture for binary downloads

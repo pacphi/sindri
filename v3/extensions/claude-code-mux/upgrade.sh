@@ -4,9 +4,6 @@ set -euo pipefail
 # claude-code-mux upgrade script
 # Upgrades CCM to the latest version
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Upgrading Claude Code Mux (CCM)..."
 
 # Get current version

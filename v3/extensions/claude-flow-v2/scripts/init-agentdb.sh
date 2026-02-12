@@ -19,13 +19,6 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Find common.sh relative to this script's location
-# Script is at: /opt/sindri/extensions/claude-flow-v2/scripts/init-agentdb.sh
-# common.sh is at: /opt/sindri/common.sh (go up 3 levels)
-source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/common.sh"
-
 # Check if claude-flow is available
 if ! command_exists claude-flow; then
     print_error "claude-flow is not installed or not in PATH"

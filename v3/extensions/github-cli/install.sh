@@ -5,9 +5,6 @@ set -euo pipefail
 # GitHub CLI is pre-installed in the Docker image
 # This script handles authentication configuration, aliases, and workflow helpers
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Configuring GitHub CLI..."
 
 # Verify gh is installed (should be from Dockerfile)

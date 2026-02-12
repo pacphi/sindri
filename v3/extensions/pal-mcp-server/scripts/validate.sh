@@ -3,11 +3,7 @@ set -euo pipefail
 
 # pal-mcp-server Validation Script
 
-# Find common.sh relative to this script's location
-# Script is at: /opt/sindri/extensions/pal-mcp-server/scripts/validate.sh
-# common.sh is at: /opt/sindri/common.sh (go up 3 levels)
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-source "$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/common.sh"
 
 EXTENSION_DIR="${HOME}/extensions/pal-mcp-server"
 

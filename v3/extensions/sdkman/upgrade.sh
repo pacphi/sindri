@@ -4,9 +4,6 @@ set -eo pipefail
 # SDKMAN upgrade script
 # Updates SDKMAN to the latest version
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Upgrading SDKMAN..."
 
 export SDKMAN_DIR="${SDKMAN_DIR:-$HOME/.sdkman}"

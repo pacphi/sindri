@@ -4,9 +4,6 @@ set -euo pipefail
 # dotnet install script - Simplified for YAML-driven architecture
 # Installs .NET SDK 10.0 and 8.0 with ASP.NET Core and dev tools
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 # Determine if we need sudo (handle no-new-privileges containers)
 if [[ $(id -u) -eq 0 ]]; then
   # Already root, no sudo needed

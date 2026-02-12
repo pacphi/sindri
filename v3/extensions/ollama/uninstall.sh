@@ -3,9 +3,6 @@ set -euo pipefail
 
 # ollama uninstall script
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Uninstalling Ollama..."
 
 # Stop ollama service if running

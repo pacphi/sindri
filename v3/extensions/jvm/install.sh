@@ -6,9 +6,6 @@ set -eo pipefail
 # Uses SDKMAN for most JVM tools + mise for Clojure/Leiningen
 # REQUIRES: sdkman extension to be installed first
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing JVM development environment..."
 
 # Set SDKMAN directory

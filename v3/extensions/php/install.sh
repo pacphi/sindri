@@ -4,9 +4,6 @@ set -euo pipefail
 # php install script - Simplified for YAML-driven architecture
 # Installs PHP 8.4 + Composer + Symfony CLI + dev tools
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing PHP and Symfony development environment..."
 
 # Add PHP repository

@@ -4,9 +4,6 @@ set -euo pipefail
 # ollama install script - Installs Ollama LLM runtime
 # Uses official installer with extended timeout for large binary download
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing Ollama..."
 
 # Check if running in CI mode - skip large downloads

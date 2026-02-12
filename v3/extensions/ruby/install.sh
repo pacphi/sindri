@@ -4,9 +4,6 @@ set -euo pipefail
 # ruby install script - Simplified for YAML-driven architecture
 # Uses mise for Ruby version management with gem installation
 
-# Source common utilities
-source "$(dirname "$(dirname "$(dirname "${BASH_SOURCE[0]}")")")/common.sh"
-
 print_status "Installing Ruby development environment via mise..."
 
 # Install Ruby via mise
