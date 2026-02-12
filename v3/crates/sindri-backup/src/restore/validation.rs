@@ -1,6 +1,6 @@
 //! Pre-flight validation for restore operations
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use camino::Utf8Path;
 use std::fs;
 use tracing::{debug, info};
@@ -33,7 +33,7 @@ impl Default for RestoreOptions {
 
 pub fn validate_restore_preconditions(
     backup_path: &Utf8Path,
-    options: &RestoreOptions,
+    _options: &RestoreOptions,
 ) -> Result<()> {
     info!("Validating restore preconditions for: {}", backup_path);
 

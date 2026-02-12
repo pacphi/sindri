@@ -2,9 +2,8 @@
 
 use anyhow::{Context, Result};
 use semver::Version;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct VersionCompatibility {
     pub backup_version: Version,
     pub current_version: Version,
@@ -12,8 +11,7 @@ pub struct VersionCompatibility {
     pub issues: Vec<CompatibilityIssue>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[derive(Debug, Clone)]
 pub enum CompatibilityIssue {
     MajorVersionMismatch { backup: u64, current: u64 },
     ExtensionFormatChanged { old_format: String, new_format: String },

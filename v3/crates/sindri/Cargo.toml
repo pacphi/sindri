@@ -21,6 +21,7 @@ sindri-doctor = { workspace = true }
 sindri-clusters = { workspace = true }
 sindri-image = { workspace = true }
 sindri-packer = { workspace = true }
+sindri-backup = { workspace = true }
 
 # CLI
 clap = { workspace = true }
@@ -43,7 +44,6 @@ tracing-subscriber = { workspace = true }
 # Filesystem
 camino = { workspace = true }
 directories = { workspace = true }
-dirs = "6.0"
 
 # Version management
 semver = { workspace = true }
@@ -62,6 +62,9 @@ walkdir = "2.5"
 rand = "0.9"
 vaultrs = "0.7"
 regex = { workspace = true }
+
+# Tool detection
+which = { workspace = true }
 
 # Archive extraction for upgrades
 flate2 = "1.1"

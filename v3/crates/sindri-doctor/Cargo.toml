@@ -9,6 +9,9 @@ authors.workspace = true
 description = "Tool dependency management and diagnostic system for Sindri CLI"
 
 [dependencies]
+# Core library
+sindri-core = { workspace = true }
+
 # Async runtime
 tokio = { workspace = true }
 futures = { workspace = true }
@@ -33,9 +36,6 @@ regex = { workspace = true }
 
 # Tool detection
 which = { workspace = true }
-
-# Directory paths
-dirs = { workspace = true }
 
 # User interaction
 dialoguer = { workspace = true }

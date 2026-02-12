@@ -20,6 +20,7 @@ regex = { workspace = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
 tera = { workspace = true }
+dirs = { workspace = true }
 rand = "0.9"
 tokio = { workspace = true }
 sindri-image = { workspace = true }

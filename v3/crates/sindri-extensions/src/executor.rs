@@ -208,28 +208,28 @@ impl ExtensionExecutor {
         // Step 3: Install tools
         debug!("[3/5] Installing tools with mise (timeout: 5min, 3 retries if needed)...");
 
-        // Change to workspace directory for installation
-        let original_dir = std::env::current_dir()?;
-        std::env::set_current_dir(&self.workspace_dir)?;
-
-        // Ensure mise shims are in PATH
-        let mise_shims = self.home_dir.join(".local/share/mise/shims");
-        if mise_shims.exists() {
+        // Build PATH with mise shims prepended (passed to child processes, not set globally)
+        let mise_path = {
+            let mise_shims = self.home_dir.join(".local/share/mise/shims");
             let path_var = std::env::var("PATH").unwrap_or_default();
-            if !path_var.contains(&mise_shims.to_string_lossy().to_string()) {
-                let new_path = format!("{}:{}", mise_shims.display(), path_var);
-                std::env::set_var("PATH", new_path);
+            if mise_shims.exists()
+                && !path_var.contains(&mise_shims.to_string_lossy().to_string())
+            {
+                Some(format!("{}:{}", mise_shims.display(), path_var))
+            } else {
+                None
             }
-        }
+        };
 
         // Run mise install with timeout and retry logic
+        // workspace_dir and mise_path are passed to run_mise_install via Command::current_dir/env
         let mut retry_count = 0;
         let max_retries = 3;
         let mut install_successful = false;
 
         while retry_count < max_retries && !install_successful {
             let result = self
-                .run_mise_install(&config_path, Duration::from_secs(300))
+                .run_mise_install(&config_path, Duration::from_secs(300), mise_path.as_deref())
                 .await;
 
             match result {
@@ -245,7 +245,6 @@ impl ExtensionExecutor {
                         );
                         tokio::time::sleep(Duration::from_secs(2u64.pow(retry_count))).await;
                     } else {
-                        std::env::set_current_dir(original_dir)?;
                         return Err(anyhow!(
                             "mise install failed after {} attempts: {}",
                             max_retries,
@@ -255,9 +254,6 @@ impl ExtensionExecutor {
                 }
             }
         }
-
-        // Restore original directory
-        std::env::set_current_dir(original_dir)?;
 
         // Step 4: Reshim to update shims
         debug!("[4/5] Running mise reshim to update shims...");
@@ -270,9 +266,22 @@ impl ExtensionExecutor {
     }
 
     /// Run mise install with configuration and timeout
-    async fn run_mise_install(&self, config_path: &Path, timeout: Duration) -> Result<()> {
+    ///
+    /// Uses `Command::current_dir` and `Command::env` to set the working directory
+    /// and PATH for the child process, avoiding process-global mutations that are
+    /// unsound in async contexts.
+    async fn run_mise_install(
+        &self,
+        config_path: &Path,
+        timeout: Duration,
+        mise_path: Option<&str>,
+    ) -> Result<()> {
         let mut cmd = Command::new("mise");
         cmd.arg("install");
+        cmd.current_dir(&self.workspace_dir);
+        if let Some(path) = mise_path {
+            cmd.env("PATH", path);
+        }
         cmd.env("MISE_CONFIG_FILE", config_path);
 
         // Pass GITHUB_TOKEN as MISE_GITHUB_TOKEN if available
@@ -1124,16 +1133,34 @@ impl ExtensionExecutor {
     }
 
     /// Write file with sudo if needed
+    ///
+    /// Uses `tempfile::NamedTempFile` for secure temporary file creation,
+    /// avoiding predictable filenames that could be exploited via symlink attacks.
     async fn write_file_with_sudo(&self, path: &str, data: &[u8], use_sudo: bool) -> Result<()> {
-        // Write to temp file in /tmp (world-writable, avoids permission issues)
-        // Use a unique filename based on the target path
-        let path_hash = path.replace('/', "_");
-        let temp_path = format!("/tmp/sindri_{}.tmp", path_hash);
+        use std::io::Write;
 
-        // Write to temp file (no sudo needed in /tmp)
-        tokio::fs::write(&temp_path, data)
-            .await
-            .context("Failed to write temporary file")?;
+        // Create a secure temporary file with an unpredictable name.
+        // NamedTempFile creates files with restricted permissions (0600) in the
+        // system temp directory, preventing symlink and race-condition attacks.
+        let data_owned = data.to_vec();
+        let temp_path = tokio::task::spawn_blocking(move || -> Result<PathBuf> {
+            let mut temp_file =
+                tempfile::NamedTempFile::new().context("Failed to create secure temp file")?;
+            temp_file
+                .write_all(&data_owned)
+                .context("Failed to write to temp file")?;
+            // Persist to a concrete path so it survives the NamedTempFile drop.
+            // into_temp_path() keeps the file on disk but releases the handle.
+            let temp_path = temp_file.into_temp_path();
+            let path = temp_path.to_path_buf();
+            // Prevent auto-delete; we will move it with sudo/mv below.
+            temp_path.keep().context("Failed to persist temp file")?;
+            Ok(path)
+        })
+        .await
+        .context("Temp file task failed")??;
+
+        let temp_path_str = temp_path.to_string_lossy().to_string();
 
         // Move with sudo if needed (mv handles cross-filesystem moves automatically)
         let mut cmd = if use_sudo {
@@ -1144,7 +1171,7 @@ impl ExtensionExecutor {
             Command::new("mv")
         };
 
-        cmd.arg(&temp_path).arg(path);
+        cmd.arg(&temp_path_str).arg(path);
 
         let output = cmd
             .output()
@@ -1269,6 +1296,10 @@ impl ExtensionExecutor {
     }
 
     /// Extract tarball to destination
+    ///
+    /// Iterates entries individually and validates each path to prevent
+    /// Zip Slip attacks (absolute paths or `..` components that could write
+    /// outside the destination directory).
     async fn extract_tarball(&self, data: &[u8], destination: &Path) -> Result<()> {
         use flate2::read::GzDecoder;
         use std::io::Cursor;
@@ -1283,7 +1314,39 @@ impl ExtensionExecutor {
             let decoder = GzDecoder::new(cursor);
             let mut archive = Archive::new(decoder);
 
-            archive.unpack(&dest).context("Failed to extract tarball")
+            for entry_result in archive.entries().context("Failed to read tarball entries")? {
+                let mut entry = entry_result.context("Failed to read tarball entry")?;
+                let entry_path = entry
+                    .path()
+                    .context("Failed to read entry path")?
+                    .into_owned();
+
+                // Reject absolute paths
+                if entry_path.is_absolute() {
+                    return Err(anyhow!(
+                        "Tarball contains absolute path (Zip Slip): {}",
+                        entry_path.display()
+                    ));
+                }
+
+                // Reject paths containing parent directory components (..)
+                for component in entry_path.components() {
+                    if component == std::path::Component::ParentDir {
+                        return Err(anyhow!(
+                            "Tarball contains path traversal (Zip Slip): {}",
+                            entry_path.display()
+                        ));
+                    }
+                }
+
+                // Safe to extract: unpack_in resolves relative to dest and
+                // performs its own safety checks as an additional layer
+                entry
+                    .unpack_in(&dest)
+                    .context(format!("Failed to extract entry: {}", entry_path.display()))?;
+            }
+
+            Ok(())
         })
         .await
         .context("Extraction task failed")??;
@@ -1552,6 +1615,145 @@ mod tests {
         assert_eq!(
             result, sources,
             "Should not modify sources when arch already matches"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_extract_tarball_safe_entries() {
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+        use tar::Builder;
+
+        let temp_dir = TempDir::new().unwrap();
+        let dest_dir = temp_dir.path().join("output");
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Build a tarball with a safe relative path
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        {
+            let mut builder = Builder::new(&mut encoder);
+            let data = b"hello world";
+            let mut header = tar::Header::new_gnu();
+            header.set_path("safe/file.txt").unwrap();
+            header.set_size(data.len() as u64);
+            header.set_mode(0o644);
+            header.set_cksum();
+            builder.append(&header, &data[..]).unwrap();
+            builder.finish().unwrap();
+        }
+        let tarball_data = encoder.finish().unwrap();
+
+        let executor = ExtensionExecutor::new(
+            temp_dir.path().to_str().unwrap(),
+            "/tmp/workspace",
+            "/tmp/home",
+        );
+
+        // Safe extraction should succeed
+        let result = executor.extract_tarball(&tarball_data, &dest_dir).await;
+        assert!(result.is_ok(), "Safe tarball extraction should succeed");
+        assert!(
+            dest_dir.join("safe/file.txt").exists(),
+            "Extracted file should exist"
+        );
+    }
+
+    /// Helper: build a gzipped tarball with a raw path (bypassing tar crate's safety checks)
+    fn build_tarball_with_raw_path(path: &str, data: &[u8]) -> Vec<u8> {
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+        use std::io::Write;
+
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        {
+            // Manually construct a tar entry to bypass the tar crate's set_path validation.
+            // A tar header is 512 bytes; the name field is bytes 0..100.
+            let mut header_bytes = [0u8; 512];
+            let path_bytes = path.as_bytes();
+            let copy_len = path_bytes.len().min(100);
+            header_bytes[..copy_len].copy_from_slice(&path_bytes[..copy_len]);
+
+            // typeflag (byte 156): '0' = regular file
+            header_bytes[156] = b'0';
+
+            // size field (bytes 124..136): octal ASCII representation
+            let size_str = format!("{:011o}", data.len());
+            header_bytes[124..135].copy_from_slice(size_str.as_bytes());
+
+            // mode field (bytes 100..108): "0000644\0"
+            header_bytes[100..107].copy_from_slice(b"0000644");
+
+            // Compute checksum (bytes 148..156): sum of all header bytes
+            // with the checksum field itself treated as spaces
+            header_bytes[148..156].copy_from_slice(b"        ");
+            let cksum: u32 = header_bytes.iter().map(|&b| b as u32).sum();
+            let cksum_str = format!("{:06o}\0 ", cksum);
+            header_bytes[148..156].copy_from_slice(&cksum_str.as_bytes()[..8]);
+
+            encoder.write_all(&header_bytes).unwrap();
+
+            // Write file data padded to 512-byte blocks
+            encoder.write_all(data).unwrap();
+            let padding = (512 - (data.len() % 512)) % 512;
+            if padding > 0 {
+                encoder.write_all(&vec![0u8; padding]).unwrap();
+            }
+
+            // Two zero blocks mark end of archive
+            encoder.write_all(&[0u8; 1024]).unwrap();
+        }
+        encoder.finish().unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_extract_tarball_rejects_path_traversal() {
+        let temp_dir = TempDir::new().unwrap();
+        let dest_dir = temp_dir.path().join("output");
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Build a tarball with a path traversal entry (../../etc/malicious)
+        let tarball_data = build_tarball_with_raw_path("../../etc/malicious", b"malicious content");
+
+        let executor = ExtensionExecutor::new(
+            temp_dir.path().to_str().unwrap(),
+            "/tmp/workspace",
+            "/tmp/home",
+        );
+
+        // Extraction should fail with Zip Slip error
+        let result = executor.extract_tarball(&tarball_data, &dest_dir).await;
+        assert!(result.is_err(), "Path traversal tarball should be rejected");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Zip Slip"),
+            "Error should mention Zip Slip, got: {}",
+            err_msg
+        );
+    }
+
+    #[tokio::test]
+    async fn test_extract_tarball_rejects_absolute_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let dest_dir = temp_dir.path().join("output");
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Build a tarball with an absolute path entry
+        let tarball_data = build_tarball_with_raw_path("/etc/malicious", b"malicious content");
+
+        let executor = ExtensionExecutor::new(
+            temp_dir.path().to_str().unwrap(),
+            "/tmp/workspace",
+            "/tmp/home",
+        );
+
+        // Extraction should fail with Zip Slip error
+        let result = executor.extract_tarball(&tarball_data, &dest_dir).await;
+        assert!(result.is_err(), "Absolute path tarball should be rejected");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Zip Slip"),
+            "Error should mention Zip Slip, got: {}",
+            err_msg
         );
     }
 }

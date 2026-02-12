@@ -513,8 +513,7 @@ impl KubernetesProvider {
         }
 
         // Check if docker config exists
-        let docker_config_path = dirs::home_dir()
-            .ok_or_else(|| anyhow!("Home directory not found"))?
+        let docker_config_path = sindri_core::get_home_dir()?
             .join(".docker")
             .join("config.json");
 

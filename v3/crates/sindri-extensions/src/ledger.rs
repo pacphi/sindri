@@ -56,7 +56,7 @@ pub struct StatusLedger {
 impl StatusLedger {
     /// Create/load ledger from default location (~/.sindri/status_ledger.jsonl)
     pub fn load_default() -> Result<Self> {
-        let home_dir = dirs::home_dir().context("Failed to get home directory")?;
+        let home_dir = sindri_core::get_home_dir().context("Failed to get home directory")?;
         let sindri_dir = home_dir.join(".sindri");
         fs::create_dir_all(&sindri_dir).context("Failed to create .sindri directory")?;
 

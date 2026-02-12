@@ -1,6 +1,6 @@
 //! Restore transaction with atomic rollback
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
 use flate2::write::GzEncoder;
 use flate2::Compression;

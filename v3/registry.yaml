@@ -88,6 +88,7 @@ extensions:
   docker:
     category: "devops"
     description: "Docker and container tools"
+    sha256: "29dd0f9b5d648a0c3d0278593ecf99e57d0fb6e30a1333b3a206af49492565e8"
   github-cli:
     category: "devops"
     description: "GitHub CLI tools"
@@ -114,6 +115,7 @@ extensions:
   nodejs:
     category: "languages"
     description: "Node.js development environment"
+    sha256: "07359aeb0f6e839b8604a3524f5910dad3a65ed64a3db55246cc68ea2222a523"
   nodejs-devtools:
     category: "languages"
     description: "Node.js developer tools"
@@ -123,6 +125,7 @@ extensions:
   python:
     category: "languages"
     description: "Python development environment"
+    sha256: "63c6bbfef7d6f8309158ccbd4a93a1073fe909d17c2bfb4b14ffb750e2e5f9ed"
   ruby:
     category: "languages"
     description: "Ruby development environment"

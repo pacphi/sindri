@@ -137,11 +137,7 @@ impl SupportFileManager {
     pub fn new() -> Result<Self> {
         let cli_version = Self::get_cli_version()?;
 
-        let home = std::env::var("HOME")
-            .ok()
-            .map(PathBuf::from)
-            .or_else(dirs::home_dir)
-            .ok_or_else(|| anyhow!("Could not determine home directory"))?;
+        let home = sindri_core::get_home_dir()?;
 
         let sindri_home = std::env::var("SINDRI_HOME")
             .ok()

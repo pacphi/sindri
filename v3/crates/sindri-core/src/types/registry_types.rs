@@ -33,6 +33,13 @@ pub struct RegistryEntry {
     /// Conflicts with these extensions
     #[serde(default)]
     pub conflicts: Vec<String>,
+
+    /// SHA-256 checksum of the extension.yaml file (hex-encoded)
+    ///
+    /// When present, downloaded extension YAML content is verified against
+    /// this checksum. If absent, a warning is logged but installation proceeds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
 }
 
 /// Profiles file (profiles.yaml)

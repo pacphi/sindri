@@ -117,6 +117,7 @@ fn build_registry_with_extensions(extensions: Vec<(&str, Extension)>) -> Extensi
                 protected: false,
                 dependencies: ext.metadata.dependencies.clone(),
                 conflicts: vec![],
+                sha256: None,
             },
         );
         registry.extensions.insert(name.to_string(), ext);

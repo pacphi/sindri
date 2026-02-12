@@ -3,8 +3,8 @@
 use anyhow::Result;
 use camino::Utf8PathBuf;
 use clap::{Args, ValueEnum};
+use sindri_backup::{ArchiveBuilder, ArchiveConfig, SourceInfo};
 use sindri_core::config::SindriConfig;
-use std::collections::HashSet;
 
 use crate::output;
 
@@ -38,7 +38,7 @@ pub struct BackupArgs {
     #[arg(long)]
     pub dry_run: bool,
 
-    /// Compression level (0-9, 0=none, 9=max)
+    /// Compression level (1-9)
     #[arg(long, default_value = "6")]
     pub compression: u8,
 
@@ -64,55 +64,22 @@ pub enum BackupProfile {
 }
 
 impl BackupProfile {
-    fn default_excludes(&self) -> Vec<&'static str> {
+    /// Convert CLI profile enum to the library profile type.
+    fn to_lib_profile(&self) -> sindri_backup::BackupProfile {
         match self {
-            BackupProfile::UserData => vec![
-                "**/.git/**",
-                "**/node_modules/**",
-                "**/target/**",
-                "**/.cache/**",
-                "**/.tmp/**",
-                "**/.log",
-                "**/logs/**",
-                "**/.env*",
-                "**/*.key",
-                "**/.bash_history",
-                "**/.zsh_history",
-                "**/.python_history",
-                "**/workspace/**", // Large project files
-            ],
-            BackupProfile::Standard => vec![
-                "**/.git/**",
-                "**/node_modules/**",
-                "**/target/**",
-                "**/.cache/**",
-                "**/.tmp/**",
-                "**/.log",
-                "**/logs/**",
-                "**/.env.local",
-                "**/*.key",
-                "**/.bash_history",
-                "**/.zsh_history",
-                "**/.python_history",
-            ],
-            BackupProfile::Full => vec![
-                "**/.git/**", // Still exclude git objects
-                "**/.bash_history",
-                "**/.zsh_history",
-                "**/.python_history",
-            ],
+            BackupProfile::UserData => sindri_backup::BackupProfile::UserData,
+            BackupProfile::Standard => sindri_backup::BackupProfile::Standard,
+            BackupProfile::Full => sindri_backup::BackupProfile::Full,
         }
     }
 
     fn description(&self) -> &'static str {
         match self {
             BackupProfile::UserData => {
-                "Minimal backup: User data only, no cache/logs/secrets/workspace"
+                "Projects, Claude data, git config (smallest, migration-focused)"
             }
-            BackupProfile::Standard => {
-                "Standard backup: Config and data, excludes cache/logs/local secrets"
-            }
-            BackupProfile::Full => "Full backup: Everything (including secrets - use encryption!)",
+            BackupProfile::Standard => "User data + shell/app configs (default, balanced)",
+            BackupProfile::Full => "Everything except caches (largest, complete recovery)",
         }
     }
 }
@@ -121,9 +88,9 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     output::header("Backup Workspace");
 
     // Validate compression level
-    if args.compression > 9 {
+    if args.compression == 0 || args.compression > 9 {
         return Err(anyhow::anyhow!(
-            "Compression level must be 0-9, got {}",
+            "Compression level must be 1-9, got {}",
             args.compression
         ));
     }
@@ -133,11 +100,17 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         .map(Utf8PathBuf::from)
         .unwrap_or_else(|_| Utf8PathBuf::from("/alt/home/developer"));
 
-    // Load config if available
-    let _config = SindriConfig::load(None).ok();
+    // Load config if available (used for instance/provider info)
+    let config = SindriConfig::load(None).ok();
+
+    // Build source info from config or defaults
+    let source_info = build_source_info(&config);
+
+    // Convert CLI profile to library profile
+    let lib_profile = args.profile.to_lib_profile();
 
     // Display backup configuration
-    output::kv("Profile", &format!("{:?}", args.profile));
+    output::kv("Profile", &format!("{}", lib_profile));
     output::kv("Description", args.profile.description());
     output::kv("Source", workspace_root.as_str());
     output::kv("Output", &args.output);
@@ -149,40 +122,44 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     }
     println!();
 
-    // Build exclude list
-    let mut excludes: HashSet<String> = args
-        .profile
-        .default_excludes()
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+    // Build additional exclusion patterns
+    let mut additional_excludes: Vec<String> = args.exclude.clone();
 
-    // Add user excludes
-    for pattern in &args.exclude {
-        excludes.insert(pattern.clone());
-    }
+    // Add profile-specific exclusions
+    additional_excludes.extend(
+        lib_profile
+            .excludes()
+            .into_iter()
+            .map(|s| s.to_string()),
+    );
 
     // Add secret excludes if requested
     if args.exclude_secrets {
-        excludes.insert("**/.env*".to_string());
-        excludes.insert("**/*.key".to_string());
-        excludes.insert("**/*.pem".to_string());
-        excludes.insert("**/secrets/**".to_string());
+        additional_excludes.push("**/.env*".to_string());
+        additional_excludes.push("**/*.key".to_string());
+        additional_excludes.push("**/*.pem".to_string());
+        additional_excludes.push("**/secrets/**".to_string());
     }
 
     if args.show_files {
-        output::info(&format!("Exclude patterns ({}):", excludes.len()));
-        for pattern in &excludes {
+        output::info(&format!(
+            "Additional exclude patterns ({}):",
+            additional_excludes.len()
+        ));
+        for pattern in &additional_excludes {
             println!("  {}", console::style(pattern).dim());
         }
         println!();
     }
 
-    // Estimate backup size
+    // Estimate backup size using library's exclusion config
     let spinner = output::spinner("Analyzing workspace...");
-    let (file_count, total_size, estimated_compressed) =
-        estimate_backup_size(&workspace_root, &excludes)?;
+    let (file_count, total_size) =
+        estimate_backup_size(&workspace_root, lib_profile, &additional_excludes)?;
     spinner.finish_and_clear();
+
+    // Estimate compressed size (~60% of original for mixed content)
+    let estimated_compressed = (total_size as f64 * 0.6) as u64;
 
     // Display estimate
     output::info("Backup Estimate:");
@@ -243,34 +220,26 @@ pub async fn run(args: BackupArgs) -> Result<()> {
         Utf8PathBuf::from(&args.output)
     };
 
-    // Create backup
+    // Create backup using sindri-backup library
     output::info(&format!("Creating backup: {}", output_path));
     println!();
 
-    let pb = output::progress_bar(file_count, "Backing up");
-    let start = std::time::Instant::now();
+    let archive_config = ArchiveConfig::new(lib_profile, source_info)?
+        .with_exclusions(additional_excludes)?
+        .with_compression_level(args.compression as u32)
+        .with_progress(!args.show_files); // Use library progress unless user wants file-level output
 
-    // TODO: Implement actual backup creation using tar + compression
-    // For now, simulate progress
-    for i in 0..file_count {
-        tokio::time::sleep(tokio::time::Duration::from_micros(100)).await;
-        pb.inc(1);
-        if args.show_files && i % 100 == 0 {
-            // Would show current file being processed
-        }
-    }
-
-    pb.finish_and_clear();
-
-    let duration = start.elapsed();
+    let builder = ArchiveBuilder::new(archive_config);
+    let result = builder
+        .create(
+            workspace_root.as_std_path(),
+            output_path.as_std_path(),
+        )
+        .await?;
 
     // Encrypt if requested
     let final_path = if args.encrypt {
-        let encrypted_path = format!("{}.age", output_path);
-        let spinner = output::spinner("Encrypting backup...");
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        spinner.finish_and_clear();
-        Utf8PathBuf::from(encrypted_path)
+        encrypt_backup(&output_path, args.key_file.as_ref())?
     } else {
         output_path
     };
@@ -280,13 +249,18 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     output::success("Backup created successfully");
     println!();
     output::kv("Location", final_path.as_str());
-    output::kv("Files", &format_number(file_count));
-    output::kv("Size", &format_bytes(estimated_compressed));
+    output::kv("Files", &format_number(result.file_count as u64));
+    output::kv("Size", &format_bytes(result.size_bytes));
+    if result.manifest.statistics.total_size_bytes > 0 {
+        output::kv(
+            "Compression",
+            &format!("{}%", result.manifest.statistics.compression_percentage()),
+        );
+    }
     output::kv(
-        "Compression",
-        &format!("{}%", (estimated_compressed * 100 / total_size.max(1))),
+        "Duration",
+        &format!("{:.1}s", result.duration_seconds),
     );
-    output::kv("Duration", &format!("{:.1}s", duration.as_secs_f64()));
     println!();
 
     // Show next steps
@@ -296,39 +270,143 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     Ok(())
 }
 
-fn estimate_backup_size(root: &Utf8PathBuf, excludes: &HashSet<String>) -> Result<(u64, u64, u64)> {
-    use globset::{Glob, GlobSetBuilder};
+/// Build SourceInfo from loaded config or sensible defaults.
+fn build_source_info(config: &Option<SindriConfig>) -> SourceInfo {
+    let instance_name = config
+        .as_ref()
+        .map(|c| c.config.name.clone())
+        .unwrap_or_else(|| "sindri".to_string());
+
+    let provider = config
+        .as_ref()
+        .map(|c| c.config.deployment.provider.to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let hostname = std::env::var("HOSTNAME")
+        .or_else(|_| {
+            std::fs::read_to_string("/etc/hostname")
+                .map(|s| s.trim().to_string())
+        })
+        .unwrap_or_else(|_| "unknown".to_string());
+
+    SourceInfo {
+        instance_name,
+        provider,
+        hostname,
+    }
+}
+
+/// Estimate backup size by scanning the workspace with the library's exclusion config.
+fn estimate_backup_size(
+    root: &Utf8PathBuf,
+    profile: sindri_backup::BackupProfile,
+    additional_excludes: &[String],
+) -> Result<(u64, u64)> {
+    use sindri_backup::ExclusionConfig;
     use walkdir::WalkDir;
 
-    // Build exclude globset
-    let mut builder = GlobSetBuilder::new();
-    for pattern in excludes {
-        builder.add(Glob::new(pattern)?);
-    }
-    let exclude_set = builder.build()?;
+    let exclusions = ExclusionConfig::new(additional_excludes.to_vec())?;
+
+    // Get include paths for the profile
+    let include_paths = match profile.includes() {
+        Some(paths) => paths,
+        None => vec![std::path::PathBuf::from(".")],
+    };
 
     let mut file_count = 0u64;
     let mut total_size = 0u64;
 
-    for entry in WalkDir::new(root.as_std_path())
-        .follow_links(false)
-        .into_iter()
-        .filter_entry(|e| {
-            let path = e.path();
-            !exclude_set.is_match(path)
-        })
-    {
-        let entry = entry?;
-        if entry.file_type().is_file() {
-            file_count += 1;
-            total_size += entry.metadata()?.len();
+    for include_path in include_paths {
+        let full_path = root.as_std_path().join(&include_path);
+        if !full_path.exists() {
+            continue;
+        }
+
+        for entry in WalkDir::new(&full_path)
+            .follow_links(false)
+            .into_iter()
+            .filter_entry(|e| {
+                let rel_path = e
+                    .path()
+                    .strip_prefix(root.as_std_path())
+                    .unwrap_or(e.path());
+                !exclusions.should_exclude(rel_path)
+            })
+        {
+            let entry = entry?;
+            if entry.file_type().is_file() {
+                let rel_path = entry
+                    .path()
+                    .strip_prefix(root.as_std_path())
+                    .unwrap_or(entry.path());
+                if !exclusions.should_exclude(rel_path) {
+                    file_count += 1;
+                    total_size += entry.metadata().map(|m| m.len()).unwrap_or(0);
+                }
+            }
         }
     }
 
-    // Estimate compressed size (assume ~60% compression for mixed content)
-    let estimated_compressed = (total_size as f64 * 0.6) as u64;
+    Ok((file_count, total_size))
+}
 
-    Ok((file_count, total_size, estimated_compressed))
+/// Encrypt a backup archive using the `age` CLI tool.
+fn encrypt_backup(
+    archive_path: &Utf8PathBuf,
+    key_file: Option<&Utf8PathBuf>,
+) -> Result<Utf8PathBuf> {
+    let encrypted_path = Utf8PathBuf::from(format!("{}.age", archive_path));
+
+    // Check if age CLI is available
+    let age_cmd = which::which("age").or_else(|_| which::which("rage"));
+
+    match age_cmd {
+        Ok(age_bin) => {
+            let spinner = output::spinner("Encrypting backup...");
+
+            let mut cmd = std::process::Command::new(&age_bin);
+            cmd.arg("-o").arg(encrypted_path.as_str());
+
+            if let Some(key) = key_file {
+                cmd.arg("-i").arg(key.as_str());
+            } else {
+                // Use passphrase-based encryption
+                cmd.arg("-p");
+            }
+
+            cmd.arg(archive_path.as_str());
+
+            let status = cmd.status().map_err(|e| {
+                anyhow::anyhow!("Failed to run age encryption: {}", e)
+            })?;
+
+            spinner.finish_and_clear();
+
+            if !status.success() {
+                // Clean up the unencrypted file is left to user
+                return Err(anyhow::anyhow!(
+                    "Encryption failed with exit code: {}",
+                    status.code().unwrap_or(-1)
+                ));
+            }
+
+            // Remove the unencrypted archive
+            std::fs::remove_file(archive_path.as_std_path()).ok();
+
+            Ok(encrypted_path)
+        }
+        Err(_) => {
+            Err(anyhow::anyhow!(
+                "Encryption requires the 'age' CLI tool.\n\
+                 Install with one of:\n  \
+                 cargo install rage\n  \
+                 brew install age\n  \
+                 apt install age\n\n\
+                 The unencrypted backup has been saved to: {}",
+                archive_path
+            ))
+        }
+    }
 }
 
 fn format_bytes(bytes: u64) -> String {

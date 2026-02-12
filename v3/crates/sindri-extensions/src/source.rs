@@ -124,11 +124,7 @@ impl DownloadedSource {
 
     /// Create from environment/defaults
     pub fn from_env() -> Result<Self> {
-        let home = std::env::var("HOME")
-            .ok()
-            .map(PathBuf::from)
-            .or_else(dirs::home_dir)
-            .ok_or_else(|| anyhow!("Could not determine home directory"))?;
+        let home = sindri_core::get_home_dir()?;
 
         let extensions_dir = std::env::var("SINDRI_EXT_HOME")
             .ok()

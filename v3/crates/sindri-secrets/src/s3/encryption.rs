@@ -66,25 +66,17 @@ impl SecretEncryptor {
         Ok(Self::new(identity))
     }
 
-    /// Create from raw key bytes (32 bytes for X25519)
+    /// Create from raw key bytes - NOT SUPPORTED
     ///
-    /// This generates an age identity from the raw key material.
-    pub fn from_raw_key(key_bytes: &[u8]) -> Result<Self> {
-        if key_bytes.len() != 32 {
-            return Err(anyhow!(
-                "Key must be 32 bytes, got {} bytes",
-                key_bytes.len()
-            ));
-        }
-
-        // Use the raw bytes to seed a deterministic identity generation
-        // We'll convert the raw bytes to an age identity by formatting as bech32
-        // Note: For production, consider using the raw bytes as the secret key directly
-        let identity = age::x25519::Identity::generate();
-        // In practice, we'd want to derive from the key bytes, but age doesn't expose this directly
-        // For now, we use the generated identity and document that key_file/env are preferred
-
-        Ok(Self::new(identity))
+    /// The age crate does not support constructing identities from raw key bytes.
+    /// Use [`from_key_file`] or [`from_env`] instead.
+    #[deprecated(note = "Use from_key_file() or from_env() instead. Raw key derivation not supported by age crate.")]
+    pub fn from_raw_key(_key_bytes: &[u8]) -> Result<Self> {
+        Err(anyhow!(
+            "from_raw_key is not supported. The age crate does not expose identity construction \
+             from raw bytes. Use SecretEncryptor::from_key_file() to load from a key file or \
+             SecretEncryptor::from_env() to load from AGE_SECRET_KEY environment variable."
+        ))
     }
 
     /// Get the public key (recipient) for this identity
@@ -445,5 +437,21 @@ mod tests {
         let decrypted = encryptor.decrypt_secret(&metadata).unwrap();
 
         assert_eq!(decrypted, secret_value);
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_from_raw_key_returns_error() {
+        let key_bytes = [0u8; 32];
+        let result = SecretEncryptor::from_raw_key(&key_bytes);
+        assert!(result.is_err());
+        match result {
+            Err(e) => {
+                let err_msg = e.to_string();
+                assert!(err_msg.contains("not supported"));
+                assert!(err_msg.contains("from_key_file"));
+            }
+            Ok(_) => panic!("Expected from_raw_key to return an error"),
+        }
     }
 }

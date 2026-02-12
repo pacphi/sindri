@@ -47,6 +47,7 @@ pub mod filters;
 pub mod manifest;
 pub mod profile;
 pub mod progress;
+pub mod restore;
 
 // Re-export commonly used types
 pub use archive::{ArchiveBuilder, ArchiveConfig, BackupResult};

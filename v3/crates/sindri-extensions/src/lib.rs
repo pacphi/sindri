@@ -30,7 +30,7 @@ pub mod verifier;
 pub use bom::BomGenerator;
 pub use configure::ConfigureProcessor;
 pub use dependency::DependencyResolver;
-pub use distribution::{CompatibilityMatrix, ExtensionDistributor};
+pub use distribution::{verify_content_integrity, CompatibilityMatrix, ExtensionDistributor};
 pub use events::{EventEnvelope, ExtensionEvent};
 pub use executor::ExtensionExecutor;
 pub use ledger::{

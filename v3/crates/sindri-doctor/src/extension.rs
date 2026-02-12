@@ -67,7 +67,7 @@ pub struct ExtensionChecker {
 impl ExtensionChecker {
     /// Create a new extension checker
     pub fn new() -> Self {
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        let home = sindri_core::get_home_dir().unwrap_or_else(|_| PathBuf::from("."));
         Self {
             extensions_dir: home.join(".sindri").join("extensions"),
             timeout: Duration::from_secs(5),

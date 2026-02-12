@@ -117,10 +117,24 @@ impl EnvironmentProcessor {
     }
 
     /// Set variable in current session only
+    ///
+    /// NOTE: This modifies the process-global environment, which is inherently
+    /// unsound in multi-threaded/async contexts (see rust-lang/rust#27970).
+    /// Session-scoped variables are primarily useful for influencing child
+    /// processes spawned later in the same installation pipeline. Callers
+    /// should prefer passing env vars via `Command::env()` where possible.
     fn set_session(&self, key: &str, value: &str) -> Result<()> {
+        // SAFETY: This is called during single-threaded extension configure phases.
+        // While not truly safe in concurrent contexts, session-scoped env vars are
+        // an inherently process-global concept. The bashrc/profile scopes should
+        // be preferred for persistent variables.
+        #[allow(deprecated)]
         std::env::set_var(key, value);
 
-        tracing::info!("Set {} in current session", key);
+        tracing::warn!(
+            "Set {} in current process session (process-global, prefer bashrc/profile scope)",
+            key
+        );
 
         Ok(())
     }

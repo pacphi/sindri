@@ -1,6 +1,6 @@
 //! Backup analysis
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use camino::Utf8Path;
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};

@@ -1,14 +1,19 @@
 //! Restore command
+//!
+//! Connects the CLI restore UI to the sindri-backup restore library.
 
-use anyhow::Result;
-use camino::Utf8PathBuf;
+use anyhow::{Context, Result};
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::{Args, ValueEnum};
+use sindri_backup::restore::{
+    BackupAnalysis, BackupAnalyzer, RestoreManager, RestoreMode as LibRestoreMode, RestoreOptions,
+};
 
 use crate::output;
 
 #[derive(Args, Debug)]
 pub struct RestoreArgs {
-    /// Backup source (file path, s3://, or https://)
+    /// Backup source (file path or https:// URL)
     pub source: String,
 
     /// Restore mode
@@ -26,6 +31,10 @@ pub struct RestoreArgs {
     /// Skip confirmation prompts
     #[arg(long)]
     pub no_interactive: bool,
+
+    /// Force restore even if version is incompatible
+    #[arg(long)]
+    pub force: bool,
 
     /// Auto-upgrade extensions to latest compatible versions
     #[arg(long)]
@@ -68,16 +77,30 @@ impl RestoreMode {
             RestoreMode::Full => "Full: Overwrite everything (DANGEROUS - may break system)",
         }
     }
+
+    fn to_lib_mode(&self) -> LibRestoreMode {
+        match self {
+            RestoreMode::Safe => LibRestoreMode::Safe,
+            RestoreMode::Merge => LibRestoreMode::Merge,
+            RestoreMode::Full => LibRestoreMode::Full,
+        }
+    }
 }
 
 pub async fn run(args: RestoreArgs) -> Result<()> {
     output::header("Restore Workspace");
 
-    // Determine target directory
+    // Determine target directory using canonical home resolution
     let target = args.target.clone().unwrap_or_else(|| {
-        std::env::var("HOME")
-            .map(Utf8PathBuf::from)
-            .unwrap_or_else(|_| Utf8PathBuf::from("/alt/home/developer"))
+        crate::utils::get_home_dir()
+            .map(|p| Utf8PathBuf::from_path_buf(p).unwrap_or_else(|p| {
+                Utf8PathBuf::from(p.to_string_lossy().as_ref())
+            }))
+            .unwrap_or_else(|_| {
+                Utf8PathBuf::from(
+                    std::env::var("HOME").unwrap_or_else(|_| "/home".to_string()),
+                )
+            })
     });
 
     // Display restore configuration
@@ -95,15 +118,8 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     }
     println!();
 
-    // Download backup if remote
-    let local_source = if args.source.starts_with("s3://") || args.source.starts_with("https://") {
-        output::info("Downloading remote backup...");
-        let temp_file = download_backup(&args.source).await?;
-        output::success("Download complete");
-        temp_file
-    } else {
-        Utf8PathBuf::from(&args.source)
-    };
+    // Resolve backup source to a local file path
+    let local_source = resolve_source(&args.source).await?;
 
     // Verify backup exists
     if !local_source.exists() {
@@ -112,97 +128,114 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
 
     // Decrypt if needed
     let archive_path = if args.decrypt || local_source.as_str().ends_with(".age") {
-        let spinner = output::spinner("Decrypting backup...");
-        let decrypted = decrypt_backup(&local_source, args.key_file.as_ref()).await?;
-        spinner.finish_and_clear();
-        output::success("Decryption complete");
-        decrypted
+        decrypt_backup(&local_source, args.key_file.as_ref()).await?
     } else {
-        local_source
+        local_source.clone()
     };
 
-    // Verify backup integrity
+    // Verify backup integrity using the library
     let spinner = output::spinner("Verifying backup integrity...");
-    verify_backup(&archive_path)?;
+    let analyzer = BackupAnalyzer;
+    analyzer
+        .validate_archive(&archive_path)
+        .context("Backup archive is corrupt or unreadable")?;
     spinner.finish_and_clear();
     output::success("Backup verified");
 
-    // Read backup manifest
-    let spinner = output::spinner("Reading backup manifest...");
-    let manifest = read_manifest(&archive_path)?;
+    // Analyze backup using the library
+    let spinner = output::spinner("Analyzing backup...");
+    let analysis = analyzer
+        .analyze(&archive_path)
+        .await
+        .context("Failed to analyze backup")?;
     spinner.finish_and_clear();
 
-    // Display manifest info
+    // Display manifest information
     println!();
     output::info("Backup Information:");
-    if let Some(created) = manifest.created_at {
-        output::kv("Created", &created);
-    }
-    if let Some(version) = manifest.sindri_version {
-        output::kv("Sindri Version", &version);
-    }
-    output::kv("Files", &format!("{}", manifest.file_count));
-    output::kv("Size", &format_bytes(manifest.total_size));
+    output::kv("Created", &analysis.manifest.created_at);
+    output::kv("Sindri Version", &analysis.manifest.version);
+    output::kv("Source", &analysis.manifest.source.instance_name);
+    output::kv("Provider", &analysis.manifest.source.provider);
+    output::kv("Profile", &analysis.manifest.backup_type);
+    output::kv("Files", &format!("{}", analysis.file_count));
+    output::kv("Size", &format_bytes(analysis.total_size));
     println!();
 
-    // Analyze restore
-    let spinner = output::spinner("Analyzing restore...");
-    let analysis = analyze_restore(&archive_path, &target, &args.mode)?;
-    spinner.finish_and_clear();
+    // Display compatibility info
+    output::info("Version Compatibility:");
+    output::kv(
+        "Backup version",
+        &analysis.compatibility.backup_version.to_string(),
+    );
+    output::kv(
+        "Current version",
+        &analysis.compatibility.current_version.to_string(),
+    );
+    if analysis.compatibility.compatible {
+        output::success("Versions are compatible");
+    } else {
+        output::warning(&analysis.compatibility.message());
+        if !args.force {
+            return Err(anyhow::anyhow!(
+                "Backup version {} is incompatible with current version {}. Use --force to override.",
+                analysis.compatibility.backup_version,
+                analysis.compatibility.current_version
+            ));
+        }
+        output::warning("--force specified, proceeding despite incompatibility");
+    }
 
-    // Display analysis
+    // Display restore analysis
+    let restore_analysis = compute_restore_analysis(&analysis, &target, &args.mode);
+    println!();
     output::info("Restore Analysis:");
     println!(
-        "  New files:       {}",
-        console::style(analysis.new_files).green()
-    );
-    println!(
-        "  Conflicts:       {}",
-        console::style(analysis.conflicts).yellow()
+        "  Total files:     {}",
+        console::style(analysis.file_count).cyan()
     );
     println!(
         "  System markers:  {}",
-        console::style(analysis.system_markers).blue()
+        console::style(restore_analysis.system_markers).blue()
     );
 
-    if !analysis.extension_upgrades.is_empty() {
+    if !analysis.manifest.extensions.installed.is_empty() {
         println!(
-            "  Extensions:      {} available upgrades",
-            console::style(analysis.extension_upgrades.len()).cyan()
+            "  Extensions:      {}",
+            console::style(analysis.manifest.extensions.installed.len()).cyan()
         );
         if args.show_files {
-            for (name, versions) in &analysis.extension_upgrades {
-                println!("    {} {} → {}", name, versions.0, versions.1);
+            for name in &analysis.manifest.extensions.installed {
+                let version = analysis
+                    .manifest
+                    .extensions
+                    .versions
+                    .get(name)
+                    .map(|v| v.as_str())
+                    .unwrap_or("?");
+                println!("    {} v{}", name, version);
             }
         }
     }
     println!();
 
-    // Check for blocking issues
-    if matches!(args.mode, RestoreMode::Safe) && analysis.conflicts > 0 {
-        output::error("Conflicts detected in safe mode");
-        output::info("Use --mode merge or --mode full to proceed");
-        return Err(anyhow::anyhow!(
-            "{} conflicts prevent safe restore",
-            analysis.conflicts
-        ));
+    // Check for blocking issues in safe mode
+    // In safe mode, the library handler will skip conflicts, so we just warn
+    if matches!(args.mode, RestoreMode::Safe) {
+        output::info("Safe mode: existing files will NOT be overwritten");
     }
 
     // System marker warning
-    if analysis.system_markers > 0 {
+    if restore_analysis.system_markers > 0 {
         output::warning(&format!(
             "{} system markers detected - these will NOT be restored",
-            analysis.system_markers
+            restore_analysis.system_markers
         ));
         output::info("System markers indicate provider-managed resources");
     }
 
     // Show preview in dry-run mode
     if args.dry_run {
-        if args.show_files {
-            output::info("Files to restore:");
-            // TODO: Show file list
-        }
         println!();
         output::success("Dry run complete");
         output::info("Remove --dry-run to perform actual restore");
@@ -228,79 +261,45 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
         }
     }
 
-    // Create backup of existing files (in merge/full mode)
-    if !matches!(args.mode, RestoreMode::Safe) && analysis.conflicts > 0 {
-        output::info("Creating backup of existing files...");
-        let backup_dir = target.join(format!(
-            ".sindri-backup-{}",
-            chrono::Local::now().format("%Y%m%d-%H%M%S")
-        ));
-        std::fs::create_dir_all(&backup_dir)?;
-        output::kv("Backup location", backup_dir.as_str());
-    }
-
-    // Perform restore
+    // Perform restore using the library RestoreManager
     println!();
     output::info("Restoring files...");
-    let pb = output::progress_bar(manifest.file_count, "Restoring");
-    let start = std::time::Instant::now();
 
-    // TODO: Implement actual restore using tar extraction
-    // For now, simulate progress
-    for i in 0..manifest.file_count {
-        tokio::time::sleep(tokio::time::Duration::from_micros(100)).await;
-        pb.inc(1);
-        if args.show_files && i % 100 == 0 {
-            // Would show current file being restored
-        }
-    }
+    let options = RestoreOptions {
+        mode: args.mode.to_lib_mode(),
+        dry_run: args.dry_run,
+        interactive: !args.no_interactive,
+        force: args.force,
+        validate_extensions: !args.skip_validation,
+        auto_upgrade_extensions: args.auto_upgrade_extensions,
+    };
 
-    pb.finish_and_clear();
-
-    let duration = start.elapsed();
-
-    // Post-restore validation
-    if !args.skip_validation {
-        let spinner = output::spinner("Validating restored files...");
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-        spinner.finish_and_clear();
-        output::success("Validation complete");
-    }
-
-    // Extension upgrades
-    if args.auto_upgrade_extensions && !analysis.extension_upgrades.is_empty() {
-        println!();
-        output::info("Upgrading extensions...");
-        for (name, (old, new)) in &analysis.extension_upgrades {
-            let spinner = output::spinner(&format!("Upgrading {} {} → {}", name, old, new));
-            tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
-            spinner.finish_and_clear();
-        }
-        output::success(&format!(
-            "Upgraded {} extensions",
-            analysis.extension_upgrades.len()
-        ));
-    }
+    let manager = RestoreManager::new(args.mode.to_lib_mode());
+    let result = manager
+        .restore(&archive_path, &target, options)
+        .await
+        .context("Restore operation failed")?;
 
     // Display summary
     println!();
     output::success("Restore completed successfully");
     println!();
-    output::kv("Files restored", &format!("{}", manifest.file_count));
-    output::kv("Duration", &format!("{:.1}s", duration.as_secs_f64()));
-
-    if analysis.conflicts > 0 {
-        output::kv(
-            "Conflicts handled",
-            &format!("{} (mode: {:?})", analysis.conflicts, args.mode),
-        );
+    output::kv("Files restored", &format!("{}", result.restored));
+    output::kv("Files skipped", &format!("{}", result.skipped));
+    if result.backed_up > 0 {
+        output::kv("Files backed up", &format!("{}", result.backed_up));
     }
+    output::kv("Duration", &format!("{:.1}s", result.duration.as_secs_f64()));
 
-    if analysis.system_markers > 0 {
-        output::kv(
-            "System markers preserved",
-            &format!("{}", analysis.system_markers),
-        );
+    // Clean up temporary download if we fetched from a URL
+    if args.source.starts_with("https://") || args.source.starts_with("http://") {
+        if local_source != archive_path {
+            // Both temp files
+            tokio::fs::remove_file(&local_source).await.ok();
+            tokio::fs::remove_file(&archive_path).await.ok();
+        } else {
+            tokio::fs::remove_file(&local_source).await.ok();
+        }
     }
 
     println!();
@@ -312,89 +311,136 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     Ok(())
 }
 
-async fn download_backup(_source: &str) -> Result<Utf8PathBuf> {
-    // TODO: Implement S3 and HTTPS download
-    let temp_file = std::env::temp_dir().join("sindri-restore.tar.gz");
-
-    let pb = output::progress_bar(100, "Downloading");
-    for _ in 0..100 {
-        tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
-        pb.inc(1);
+/// Resolve a source string to a local file path.
+///
+/// For local paths, just returns as-is.
+/// For HTTPS URLs, downloads to a temp file.
+/// For S3 URLs, returns an error with a clear message.
+async fn resolve_source(source: &str) -> Result<Utf8PathBuf> {
+    if source.starts_with("s3://") {
+        anyhow::bail!(
+            "S3 sources are not yet supported. Download the backup file first, then restore from the local path.\n\
+             Example: aws s3 cp {} ./backup.tar.gz && sindri restore ./backup.tar.gz",
+            source
+        );
     }
-    pb.finish_and_clear();
 
-    Utf8PathBuf::from_path_buf(temp_file).map_err(|_| anyhow::anyhow!("Invalid temp path"))
+    if source.starts_with("https://") || source.starts_with("http://") {
+        output::info("Downloading remote backup...");
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("sindri-restore-download.tar.gz");
+        let temp_path = Utf8PathBuf::from_path_buf(temp_file)
+            .map_err(|_| anyhow::anyhow!("Temporary directory path is not valid UTF-8"))?;
+
+        let response = reqwest::get(source)
+            .await
+            .with_context(|| format!("Failed to download backup from {}", source))?;
+
+        if !response.status().is_success() {
+            anyhow::bail!(
+                "Download failed: HTTP {} from {}",
+                response.status(),
+                source
+            );
+        }
+
+        let bytes = response
+            .bytes()
+            .await
+            .context("Failed to read download response body")?;
+
+        tokio::fs::write(&temp_path, &bytes)
+            .await
+            .context("Failed to write downloaded backup to temp file")?;
+
+        output::success(&format!("Downloaded {} bytes", bytes.len()));
+        Ok(temp_path)
+    } else {
+        // Local file path
+        Ok(Utf8PathBuf::from(source))
+    }
 }
 
+/// Decrypt an age-encrypted backup.
+///
+/// Currently requires the `age` CLI to be installed.
 async fn decrypt_backup(
-    _source: &Utf8PathBuf,
-    _key_file: Option<&Utf8PathBuf>,
+    source: &Utf8Path,
+    key_file: Option<&Utf8PathBuf>,
 ) -> Result<Utf8PathBuf> {
-    // TODO: Implement age decryption
-    let decrypted = std::env::temp_dir().join("sindri-restore-decrypted.tar.gz");
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-    Utf8PathBuf::from_path_buf(decrypted).map_err(|_| anyhow::anyhow!("Invalid temp path"))
+    // Check that the age CLI is available
+    let age_check = tokio::process::Command::new("age")
+        .arg("--version")
+        .output()
+        .await;
+
+    match age_check {
+        Ok(output) if output.status.success() => {}
+        _ => {
+            anyhow::bail!(
+                "Decryption requires the 'age' CLI tool.\n\
+                 Install it with: brew install age (macOS) or apt install age (Debian/Ubuntu)\n\
+                 See: https://github.com/FiloSottile/age"
+            );
+        }
+    }
+
+    let decrypted_name = source
+        .as_str()
+        .strip_suffix(".age")
+        .unwrap_or(source.as_str());
+    let temp_dir = std::env::temp_dir();
+    let decrypted_path = temp_dir.join(
+        Utf8Path::new(decrypted_name)
+            .file_name()
+            .unwrap_or("sindri-restore-decrypted.tar.gz"),
+    );
+    let decrypted_utf8 = Utf8PathBuf::from_path_buf(decrypted_path)
+        .map_err(|_| anyhow::anyhow!("Temporary directory path is not valid UTF-8"))?;
+
+    let spinner = output::spinner("Decrypting backup...");
+
+    let mut cmd = tokio::process::Command::new("age");
+    cmd.arg("--decrypt");
+
+    if let Some(key) = key_file {
+        cmd.arg("--identity").arg(key.as_str());
+    }
+
+    cmd.arg("--output").arg(decrypted_utf8.as_str());
+    cmd.arg(source.as_str());
+
+    let output = cmd
+        .output()
+        .await
+        .context("Failed to run age decryption")?;
+
+    spinner.finish_and_clear();
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("Decryption failed: {}", stderr.trim());
+    }
+
+    output::success("Decryption complete");
+    Ok(decrypted_utf8)
 }
 
-fn verify_backup(_archive: &Utf8PathBuf) -> Result<()> {
-    // TODO: Implement checksum verification
-    std::thread::sleep(std::time::Duration::from_millis(300));
-    Ok(())
-}
-
-#[derive(Debug)]
-struct BackupManifest {
-    created_at: Option<String>,
-    sindri_version: Option<String>,
-    file_count: u64,
-    total_size: u64,
-}
-
-fn read_manifest(_archive: &Utf8PathBuf) -> Result<BackupManifest> {
-    // TODO: Implement manifest reading from tar
-    Ok(BackupManifest {
-        created_at: Some("2026-01-21 15:30:00".to_string()),
-        sindri_version: Some("3.0.0".to_string()),
-        file_count: 1234,
-        total_size: 2_500_000_000,
-    })
-}
-
-#[derive(Debug)]
-struct RestoreAnalysis {
-    new_files: usize,
-    conflicts: usize,
+/// Lightweight pre-restore analysis for UI display purposes.
+struct PreRestoreAnalysis {
     system_markers: usize,
-    extension_upgrades: Vec<(String, (String, String))>,
 }
 
-fn analyze_restore(
-    _archive: &Utf8PathBuf,
+fn compute_restore_analysis(
+    _analysis: &BackupAnalysis,
     _target: &Utf8PathBuf,
-    mode: &RestoreMode,
-) -> Result<RestoreAnalysis> {
-    // TODO: Implement actual analysis
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    _mode: &RestoreMode,
+) -> PreRestoreAnalysis {
+    // Count system markers from the manifest statistics
+    // The actual conflict detection happens inside RestoreManager at restore time
+    let system_markers = sindri_backup::restore::NEVER_RESTORE.len();
 
-    Ok(RestoreAnalysis {
-        new_files: 1000,
-        conflicts: if matches!(mode, RestoreMode::Safe) {
-            0
-        } else {
-            234
-        },
-        system_markers: 3,
-        extension_upgrades: vec![
-            (
-                "claude-code".to_string(),
-                ("1.0.0".to_string(), "1.1.0".to_string()),
-            ),
-            (
-                "mise".to_string(),
-                ("2024.1.0".to_string(), "2024.2.0".to_string()),
-            ),
-        ],
-    })
+    PreRestoreAnalysis { system_markers }
 }
 
 fn format_bytes(bytes: u64) -> String {

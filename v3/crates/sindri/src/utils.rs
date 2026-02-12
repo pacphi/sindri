@@ -1,23 +1,10 @@
 //! Utility functions shared across CLI commands
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use std::path::PathBuf;
 
-/// Get the user's home directory
-///
-/// Prefers the HOME environment variable over dirs::home_dir() because:
-/// - In Docker containers with volume mounts, HOME may be set to ALT_HOME
-/// - dirs::home_dir() reads from /etc/passwd which doesn't respect env overrides
-/// - Shell scripts use $HOME, so we need consistency with bootstrap/entrypoint
-pub fn get_home_dir() -> Result<PathBuf> {
-    // First check HOME environment variable (respects Docker ALT_HOME setup)
-    if let Ok(home) = std::env::var("HOME") {
-        return Ok(PathBuf::from(home));
-    }
-
-    // Fallback to dirs::home_dir() for non-container environments
-    dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
-}
+// Re-export the canonical home directory function from sindri-core
+pub use sindri_core::get_home_dir;
 
 /// Get the sindri configuration directory (~/.sindri)
 pub fn get_sindri_dir() -> Result<PathBuf> {

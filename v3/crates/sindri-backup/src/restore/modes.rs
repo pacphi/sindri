@@ -47,7 +47,7 @@ pub trait RestoreModeHandler: Send + Sync {
     ) -> Result<RestoreAction>;
 
     /// Determine what action to take for a new file
-    async fn handle_new_file(&self, target: &Utf8Path) -> Result<RestoreAction> {
+    async fn handle_new_file(&self, _target: &Utf8Path) -> Result<RestoreAction> {
         // All modes restore new files
         Ok(RestoreAction::Overwrite {
             backed_up_to: None,

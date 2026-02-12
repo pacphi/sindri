@@ -23,6 +23,7 @@ use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use sindri_core::config::HierarchicalConfigLoader;
 use sindri_core::schema::SchemaValidator;
 use sindri_core::types::Extension;
@@ -85,7 +86,7 @@ impl ExtensionSourceConfig {
         }
 
         // Priority 2: Check user home directory
-        if let Some(home) = dirs::home_dir() {
+        if let Ok(home) = sindri_core::get_home_dir() {
             let user_path = home.join(".sindri/extension-source.yaml");
             if user_path.exists() {
                 debug!(
@@ -171,6 +172,52 @@ pub struct CliVersionCompat {
     /// Breaking changes in this CLI version
     #[serde(default)]
     pub breaking_changes: Vec<String>,
+}
+
+/// Verify the integrity of downloaded content against an expected SHA-256 hash.
+///
+/// If `expected_hash` is `Some`, the content is hashed and compared. A mismatch
+/// causes an error. If `expected_hash` is `None`, a warning is logged but the
+/// operation succeeds (graceful degradation for extensions without checksums yet).
+///
+/// # Arguments
+/// * `content` - The downloaded content bytes
+/// * `extension_name` - Name of the extension (for log messages)
+/// * `expected_hash` - Optional expected SHA-256 hex digest
+pub fn verify_content_integrity(
+    content: &[u8],
+    extension_name: &str,
+    expected_hash: Option<&str>,
+) -> Result<()> {
+    let mut hasher = Sha256::new();
+    hasher.update(content);
+    let actual_hash = format!("{:x}", hasher.finalize());
+
+    match expected_hash {
+        Some(expected) => {
+            if actual_hash != expected.to_lowercase() {
+                return Err(anyhow!(
+                    "Integrity check failed for extension '{}': expected SHA-256 {}, got {}",
+                    extension_name,
+                    expected,
+                    actual_hash
+                ));
+            }
+            debug!(
+                "Extension '{}' passed integrity check (SHA-256: {})",
+                extension_name, actual_hash
+            );
+        }
+        None => {
+            warn!(
+                "No checksum available for extension '{}'. \
+                 Add a sha256 field to registry.yaml for supply-chain security.",
+                extension_name
+            );
+        }
+    }
+
+    Ok(())
 }
 
 /// Extension distributor for managing GitHub-based extension distribution
@@ -293,7 +340,9 @@ impl ExtensionDistributor {
             bundled_dir
         } else {
             // Download extension files from raw.githubusercontent.com
-            self.download_extension_files(name, &target_version)
+            // Pass None for checksum - callers with registry access should use
+            // install_with_registry() for checksum verification
+            self.download_extension_files(name, &target_version, None)
                 .await
                 .context("Failed to download extension")?
         };
@@ -321,11 +370,7 @@ impl ExtensionDistributor {
         // 8. Execute installation using ExtensionExecutor
         info!("Executing installation for {} {}", name, target_version);
         // Prefer HOME env var for Docker compatibility (ALT_HOME volume mount)
-        let home_dir = std::env::var("HOME")
-            .map(std::path::PathBuf::from)
-            .or_else(|_| {
-                dirs::home_dir().ok_or_else(|| anyhow!("Could not determine home directory"))
-            })?;
+        let home_dir = sindri_core::get_home_dir()?;
         let workspace_dir =
             std::env::current_dir().context("Could not determine current directory")?;
 
@@ -439,7 +484,7 @@ impl ExtensionDistributor {
             bundled_dir
         } else {
             // Download extension files from raw.githubusercontent.com
-            self.download_extension_files(name, &target_version)
+            self.download_extension_files(name, &target_version, None)
                 .await
                 .context("Failed to download extension metadata")?
         };
@@ -899,10 +944,20 @@ impl ExtensionDistributor {
     /// Downloads the extension.yaml and any additional files referenced in it.
     /// Files are saved to ~/.sindri/extensions/{name}/{version}/
     ///
+    /// When `expected_sha256` is provided, the downloaded extension.yaml content
+    /// is verified against the checksum before saving. If absent, a warning is
+    /// logged but the download proceeds.
+    ///
     /// # Arguments
     /// * `name` - Extension name
     /// * `version` - Extension version to download
-    async fn download_extension_files(&self, name: &str, version: &Version) -> Result<PathBuf> {
+    /// * `expected_sha256` - Optional SHA-256 checksum from the registry
+    async fn download_extension_files(
+        &self,
+        name: &str,
+        version: &Version,
+        expected_sha256: Option<&str>,
+    ) -> Result<PathBuf> {
         debug!(
             "Downloading extension {} version {} using CLI tag {}",
             name,
@@ -930,6 +985,9 @@ impl ExtensionDistributor {
         let content = self
             .fetch_file_with_fallback(&client, &ext_yaml_url, &tag, name, "extension.yaml")
             .await?;
+
+        // Verify content integrity against registry checksum
+        verify_content_integrity(content.as_bytes(), name, expected_sha256)?;
 
         // Parse to discover additional files
         let extension: Extension =
@@ -1225,30 +1283,15 @@ impl ExtensionDistributor {
         yaml_content: &str,
         expected_checksum: &str,
     ) -> Result<()> {
-        use sha2::{Digest, Sha256};
-
         // First perform basic validation
         self.validate_extension(extension)?;
 
-        // Compute SHA256 checksum of the YAML content
-        let mut hasher = Sha256::new();
-        hasher.update(yaml_content.as_bytes());
-        let computed = hasher.finalize();
-        let computed_hex = format!("{:x}", computed);
-
-        if computed_hex != expected_checksum.to_lowercase() {
-            return Err(anyhow!(
-                "Checksum mismatch for extension {}: expected {}, got {}",
-                extension.metadata.name,
-                expected_checksum,
-                computed_hex
-            ));
-        }
-
-        debug!(
-            "Extension {} passed checksum verification",
-            extension.metadata.name
-        );
+        // Verify content integrity using the shared helper
+        verify_content_integrity(
+            yaml_content.as_bytes(),
+            &extension.metadata.name,
+            Some(expected_checksum),
+        )?;
 
         Ok(())
     }
@@ -1416,5 +1459,42 @@ mod tests {
         let version = Version::parse("3.0.0").unwrap();
         let tag = format!("v{}", version);
         assert_eq!(tag, "v3.0.0");
+    }
+
+    #[test]
+    fn test_verify_content_integrity_matching_hash() {
+        let content = b"hello world";
+        // SHA-256 of "hello world"
+        let expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
+        let result = verify_content_integrity(content, "test-ext", Some(expected));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_verify_content_integrity_mismatched_hash() {
+        let content = b"hello world";
+        let wrong_hash = "0000000000000000000000000000000000000000000000000000000000000000";
+        let result = verify_content_integrity(content, "test-ext", Some(wrong_hash));
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Integrity check failed"));
+        assert!(err_msg.contains("test-ext"));
+    }
+
+    #[test]
+    fn test_verify_content_integrity_no_hash_succeeds() {
+        // When no hash is provided, verification should succeed (with a warning)
+        let content = b"any content";
+        let result = verify_content_integrity(content, "test-ext", None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_verify_content_integrity_case_insensitive() {
+        let content = b"hello world";
+        // Use uppercase hex
+        let expected = "B94D27B9934D3E08A52E52D7DA7DABFAC484EFE37A5380EE9088F7ACE2EFCDE9";
+        let result = verify_content_integrity(content, "test-ext", Some(expected));
+        assert!(result.is_ok());
     }
 }
