@@ -139,7 +139,7 @@ impl SchemaValidator {
 
     /// Validate YAML string against a schema
     pub fn validate_yaml(&self, yaml: &str, schema_name: &str) -> Result<()> {
-        let value: Value = serde_yaml::from_str(yaml)?;
+        let value: Value = serde_yaml_ng::from_str(yaml)?;
         self.validate(&value, schema_name)
     }
 
@@ -151,7 +151,7 @@ impl SchemaValidator {
         let value: Value = if path.extension().is_some_and(|e| e == "json") {
             serde_json::from_str(&content)?
         } else {
-            serde_yaml::from_str(&content)?
+            serde_yaml_ng::from_str(&content)?
         };
 
         self.validate(&value, schema_name)

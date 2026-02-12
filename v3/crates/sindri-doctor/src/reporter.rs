@@ -261,7 +261,7 @@ impl DiagnosticReporter {
     /// Format as YAML
     fn format_yaml(&self, result: &DiagnosticResult) -> String {
         let json_result = JsonDiagnosticResult::from(result);
-        serde_yaml::to_string(&json_result)
+        serde_yaml_ng::to_string(&json_result)
             .unwrap_or_else(|e| format!("error: \"Failed to serialize: {}\"", e))
     }
 }

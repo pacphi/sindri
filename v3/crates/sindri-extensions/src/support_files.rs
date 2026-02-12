@@ -226,12 +226,12 @@ impl SupportFileManager {
             .await
             .context("Failed to read metadata file")?;
 
-        serde_yaml::from_str(&content).context("Failed to parse metadata file")
+        serde_yaml_ng::from_str(&content).context("Failed to parse metadata file")
     }
 
     /// Save metadata file
     async fn save_metadata(&self, metadata: &SupportFileMetadata) -> Result<()> {
-        let content = serde_yaml::to_string(metadata).context("Failed to serialize metadata")?;
+        let content = serde_yaml_ng::to_string(metadata).context("Failed to serialize metadata")?;
 
         fs::write(&self.metadata_path, content)
             .await

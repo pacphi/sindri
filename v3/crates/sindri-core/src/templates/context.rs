@@ -90,7 +90,7 @@ impl ConfigInitContext {
     /// ensuring profiles are always in sync with the source of truth.
     /// Display order is controlled by `display_order` in profiles.yaml.
     fn load_profiles() -> Vec<ProfileInfo> {
-        let profiles_file: ProfilesFile = serde_yaml::from_str(PROFILES_YAML)
+        let profiles_file: ProfilesFile = serde_yaml_ng::from_str(PROFILES_YAML)
             .expect("Failed to parse embedded profiles.yaml - this is a build error");
 
         profiles_file

@@ -124,7 +124,7 @@ validate:
       - node@lts
 "#;
 
-        let ext: sindri_core::types::Extension = serde_yaml::from_str(yaml).unwrap();
+        let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(yaml).unwrap();
 
         assert!(ext.validate.mise.is_some());
         let mise_validate = ext.validate.mise.unwrap();

@@ -48,7 +48,7 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
             let content =
                 std::fs::read_to_string(&ext_yaml).context("Failed to read extension.yaml")?;
             Some(
-                serde_yaml::from_str::<sindri_core::types::Extension>(&content)
+                serde_yaml_ng::from_str::<sindri_core::types::Extension>(&content)
                     .context("Failed to parse extension.yaml")?,
             )
         } else {
@@ -80,7 +80,7 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
                     return None;
                 }
                 let content = std::fs::read_to_string(&ext_yaml).ok()?;
-                let ext: sindri_core::types::Extension = serde_yaml::from_str(&content).ok()?;
+                let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(&content).ok()?;
                 if ext.metadata.dependencies.contains(&args.name) {
                     Some(name.clone())
                 } else {

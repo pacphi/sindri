@@ -53,7 +53,7 @@ pub async fn get_compatibility_matrix(&self) -> Result<CompatibilityMatrix> {
         if bundled_path.exists() {
             debug!("Using bundled compatibility matrix from {:?}", bundled_path);
             let content = fs::read_to_string(&bundled_path).await?;
-            return serde_yaml::from_str(&content)?;
+            return serde_yaml_ng::from_str(&content)?;
         }
     }
 

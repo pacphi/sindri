@@ -48,7 +48,11 @@ impl RestoreManager {
     ) -> Result<RestoreResult> {
         let start = Instant::now();
 
-        info!("Starting restore: archive={}, mode={}", archive_path, self.mode.as_str());
+        info!(
+            "Starting restore: archive={}, mode={}",
+            archive_path,
+            self.mode.as_str()
+        );
 
         // Stage 1: Validation
         info!("Stage 1/5: Validating preconditions");
@@ -60,7 +64,10 @@ impl RestoreManager {
         let analyzer = BackupAnalyzer;
         let analysis = analyzer.analyze(archive_path).await?;
 
-        info!("Backup: {} files, version {}", analysis.file_count, analysis.manifest.version);
+        info!(
+            "Backup: {} files, version {}",
+            analysis.file_count, analysis.manifest.version
+        );
 
         if !analysis.compatibility.compatible && !options.force {
             anyhow::bail!("Backup incompatible: {}", analysis.compatibility.message());
@@ -72,7 +79,10 @@ impl RestoreManager {
 
         // Stage 4: Restore
         info!("Stage 4/5: Extracting and restoring files");
-        let result = match self.restore_files(archive_path, destination, &options, &mut transaction).await {
+        let result = match self
+            .restore_files(archive_path, destination, &options, &mut transaction)
+            .await
+        {
             Ok(result) => result,
             Err(e) => {
                 warn!("Restore failed: {}", e);
@@ -87,8 +97,10 @@ impl RestoreManager {
 
         let duration = start.elapsed();
 
-        info!("Restore complete: restored={}, skipped={}, duration={:?}",
-              result.restored, result.skipped, duration);
+        info!(
+            "Restore complete: restored={}, skipped={}, duration={:?}",
+            result.restored, result.skipped, duration
+        );
 
         Ok(RestoreResult {
             restored: result.restored,

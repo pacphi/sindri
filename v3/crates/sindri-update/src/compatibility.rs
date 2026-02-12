@@ -106,14 +106,14 @@ impl CompatibilityChecker {
         }
 
         let content = response.text().await?;
-        self.matrix = Some(serde_yaml::from_str(&content)?);
+        self.matrix = Some(serde_yaml_ng::from_str(&content)?);
 
         Ok(())
     }
 
     /// Load compatibility matrix from string
     pub fn load_matrix_from_str(&mut self, content: &str) -> Result<()> {
-        self.matrix = Some(serde_yaml::from_str(content)?);
+        self.matrix = Some(serde_yaml_ng::from_str(content)?);
         Ok(())
     }
 

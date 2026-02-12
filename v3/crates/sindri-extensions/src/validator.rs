@@ -42,13 +42,13 @@ impl<'a> ExtensionValidator<'a> {
     /// Validates YAML content against JSON Schema and performs semantic validation
     pub fn validate_yaml(&self, yaml: &str) -> Result<Extension> {
         // Parse YAML to JSON Value for schema validation
-        let value: Value = serde_yaml::from_str(yaml)?;
+        let value: Value = serde_yaml_ng::from_str(yaml)?;
 
         // Validate against JSON Schema
         self.schema_validator.validate(&value, "extension")?;
 
         // Parse into Extension struct
-        let extension: Extension = serde_yaml::from_str(yaml)?;
+        let extension: Extension = serde_yaml_ng::from_str(yaml)?;
 
         // Additional semantic validation
         self.validate_extension(&extension)?;

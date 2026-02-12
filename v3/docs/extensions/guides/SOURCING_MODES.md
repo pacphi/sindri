@@ -322,7 +322,7 @@ async fn download_extension_files(&self, name: &str, version: &Version) -> Resul
     ).await?;
 
     // Parse to discover additional files
-    let extension: Extension = serde_yaml::from_str(&content)?;
+    let extension: Extension = serde_yaml_ng::from_str(&content)?;
 
     // Save extension.yaml
     fs::write(dest.join("extension.yaml"), &content).await?;

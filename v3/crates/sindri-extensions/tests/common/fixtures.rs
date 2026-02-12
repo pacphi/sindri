@@ -129,7 +129,7 @@ exit 0
 
     /// Parse an extension from YAML string
     pub fn parse_extension(&self, yaml: &str) -> Result<Extension> {
-        serde_yaml::from_str(yaml).context("Failed to parse extension YAML")
+        serde_yaml_ng::from_str(yaml).context("Failed to parse extension YAML")
     }
 
     /// Load and parse a fixture extension

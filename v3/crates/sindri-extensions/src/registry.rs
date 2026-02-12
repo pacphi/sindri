@@ -70,10 +70,10 @@ impl ExtensionRegistry {
         );
 
         let registry_content = std::fs::read_to_string(registry_path)?;
-        let registry: RegistryFile = serde_yaml::from_str(&registry_content)?;
+        let registry: RegistryFile = serde_yaml_ng::from_str(&registry_content)?;
 
         let profiles_content = std::fs::read_to_string(profiles_path)?;
-        let profiles: ProfilesFile = serde_yaml::from_str(&profiles_content)?;
+        let profiles: ProfilesFile = serde_yaml_ng::from_str(&profiles_content)?;
 
         info!(
             "Loaded {} extensions and {} profiles from local files",
@@ -165,8 +165,8 @@ impl ExtensionRegistry {
             }
         };
 
-        let registry: RegistryFile = serde_yaml::from_str(&registry_content)?;
-        let profiles: ProfilesFile = serde_yaml::from_str(&profiles_content)?;
+        let registry: RegistryFile = serde_yaml_ng::from_str(&registry_content)?;
+        let profiles: ProfilesFile = serde_yaml_ng::from_str(&profiles_content)?;
 
         info!(
             "Loaded {} extensions and {} profiles from GitHub",
@@ -254,7 +254,7 @@ impl ExtensionRegistry {
     /// Load an extension definition from file
     pub fn load_extension(&mut self, name: &str, extension_path: &Path) -> Result<()> {
         let content = std::fs::read_to_string(extension_path)?;
-        let extension: Extension = serde_yaml::from_str(&content)?;
+        let extension: Extension = serde_yaml_ng::from_str(&content)?;
 
         if extension.metadata.name != name {
             return Err(anyhow!(

@@ -169,7 +169,7 @@ impl ExtensionChecker {
     /// Parse tool requirements from an extension.yaml file
     fn parse_extension_tools(&self, path: &Path, ext_name: &str) -> Result<Vec<ExtensionTool>> {
         let content = std::fs::read_to_string(path)?;
-        let ext: PartialExtension = serde_yaml::from_str(&content)?;
+        let ext: PartialExtension = serde_yaml_ng::from_str(&content)?;
 
         let mut tools = Vec::new();
 

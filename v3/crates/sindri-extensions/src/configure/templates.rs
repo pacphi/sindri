@@ -239,15 +239,15 @@ impl TemplateProcessor {
         let source_content = async_fs::read_to_string(source)
             .await
             .context("Failed to read source YAML")?;
-        let source_yaml: serde_yaml::Value =
-            serde_yaml::from_str(&source_content).context("Failed to parse source YAML")?;
+        let source_yaml: serde_yaml_ng::Value =
+            serde_yaml_ng::from_str(&source_content).context("Failed to parse source YAML")?;
 
         let merged = if dest.exists() {
             let dest_content = async_fs::read_to_string(dest)
                 .await
                 .context("Failed to read destination YAML")?;
-            let mut dest_yaml: serde_yaml::Value =
-                serde_yaml::from_str(&dest_content).context("Failed to parse destination YAML")?;
+            let mut dest_yaml: serde_yaml_ng::Value = serde_yaml_ng::from_str(&dest_content)
+                .context("Failed to parse destination YAML")?;
 
             // Deep merge: source values take precedence
             merge_yaml_values(&mut dest_yaml, source_yaml);
@@ -257,7 +257,7 @@ impl TemplateProcessor {
         };
 
         let merged_content =
-            serde_yaml::to_string(&merged).context("Failed to serialize merged YAML")?;
+            serde_yaml_ng::to_string(&merged).context("Failed to serialize merged YAML")?;
 
         async_fs::write(dest, merged_content)
             .await
@@ -377,8 +377,8 @@ impl TemplateProcessor {
 }
 
 /// Deep merge YAML values (source takes precedence)
-fn merge_yaml_values(dest: &mut serde_yaml::Value, source: serde_yaml::Value) {
-    use serde_yaml::Value;
+fn merge_yaml_values(dest: &mut serde_yaml_ng::Value, source: serde_yaml_ng::Value) {
+    use serde_yaml_ng::Value;
 
     match (dest, source) {
         (Value::Mapping(dest_map), Value::Mapping(source_map)) => {
@@ -487,7 +487,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_merge_yaml_values() {
-        let mut dest: serde_yaml::Value = serde_yaml::from_str(
+        let mut dest: serde_yaml_ng::Value = serde_yaml_ng::from_str(
             r#"
             key1: value1
             nested:
@@ -497,7 +497,7 @@ mod tests {
         )
         .unwrap();
 
-        let source: serde_yaml::Value = serde_yaml::from_str(
+        let source: serde_yaml_ng::Value = serde_yaml_ng::from_str(
             r#"
             key2: value2
             nested:
@@ -509,7 +509,7 @@ mod tests {
 
         merge_yaml_values(&mut dest, source);
 
-        let result = serde_yaml::to_string(&dest).unwrap();
+        let result = serde_yaml_ng::to_string(&dest).unwrap();
         assert!(result.contains("key1"));
         assert!(result.contains("key2"));
         assert!(result.contains("c: 4"));

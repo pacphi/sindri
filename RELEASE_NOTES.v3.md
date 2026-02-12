@@ -1128,7 +1128,7 @@ The Rust rewrite delivers dramatic performance improvements across all CLI opera
 
 **Why It's Faster:**
 
-- **Native YAML/JSON:** serde_yaml and serde_json replace yq/jq subprocess calls
+- **Native YAML/JSON:** serde_yaml_ng and serde_json replace yq/jq subprocess calls
 - **Compiled binary:** No interpreter startup overhead
 - **Async runtime:** Tokio enables parallel I/O operations
 - **Native schema validation:** jsonschema crate replaces python3-jsonschema

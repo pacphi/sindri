@@ -320,7 +320,7 @@ pub struct TypeDetector {
 impl TypeDetector {
     pub fn new() -> Result<Self, ProjectError> {
         let templates_yaml = include_str!("../templates/project-templates.yaml");
-        let config: TemplateConfig = serde_yaml::from_str(templates_yaml)?;
+        let config: TemplateConfig = serde_yaml_ng::from_str(templates_yaml)?;
 
         let mut templates = HashMap::new();
         let mut aliases = HashMap::new();
@@ -804,7 +804,7 @@ pub struct TemplateLoader {
 impl TemplateLoader {
     pub fn new() -> Result<Self, ProjectError> {
         // Load embedded templates
-        let config: TemplateConfig = serde_yaml::from_str(TEMPLATES_YAML)?;
+        let config: TemplateConfig = serde_yaml_ng::from_str(TEMPLATES_YAML)?;
 
         // Check for user templates directory
         let user_templates_dir = dirs::config_dir()
@@ -840,7 +840,7 @@ impl TemplateLoader {
     ) -> Result<ProjectTemplate, ProjectError> {
         let template_file = dir.join(format!("{}.yaml", name));
         let content = std::fs::read_to_string(&template_file)?;
-        let template: ProjectTemplate = serde_yaml::from_str(&content)?;
+        let template: ProjectTemplate = serde_yaml_ng::from_str(&content)?;
         Ok(template)
     }
 

@@ -54,7 +54,7 @@ impl SindriConfig {
             .unwrap_or_else(|| Utf8PathBuf::from("."));
 
         // Parse YAML
-        let config: SindriConfigFile = serde_yaml::from_str(&content)?;
+        let config: SindriConfigFile = serde_yaml_ng::from_str(&content)?;
 
         Ok(Self {
             config,
@@ -87,7 +87,7 @@ impl SindriConfig {
         validator.validate_yaml(&content, "sindri")?;
 
         // Parse YAML
-        let config: SindriConfigFile = serde_yaml::from_str(&content)?;
+        let config: SindriConfigFile = serde_yaml_ng::from_str(&content)?;
 
         Ok(Self {
             config,
@@ -307,7 +307,7 @@ impl SindriConfig {
 
     /// Serialize configuration to YAML
     pub fn to_yaml(&self) -> Result<String> {
-        serde_yaml::to_string(&self.config).map_err(Error::from)
+        serde_yaml_ng::to_string(&self.config).map_err(Error::from)
     }
 
     /// Save configuration to file
@@ -394,7 +394,7 @@ deployment:
 extensions:
   profile: minimal
 "#;
-        let config: SindriConfigFile = serde_yaml::from_str(yaml).unwrap();
+        let config: SindriConfigFile = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(config.name, "test-project");
         assert_eq!(config.deployment.provider, Provider::Docker);
         assert_eq!(config.extensions.profile, Some("minimal".to_string()));
@@ -428,7 +428,7 @@ providers:
     region: ord
     autoStopMachines: true
 "#;
-        let config: SindriConfigFile = serde_yaml::from_str(yaml).unwrap();
+        let config: SindriConfigFile = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(config.name, "full-project");
         assert_eq!(config.deployment.provider, Provider::Fly);
         assert!(config.deployment.resources.gpu.is_some());

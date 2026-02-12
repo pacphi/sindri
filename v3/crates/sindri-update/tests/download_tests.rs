@@ -68,10 +68,11 @@ fn test_list_available_platforms() {
     let platforms = downloader.list_available_platforms(&release);
 
     assert!(platforms.contains(&PLATFORM_LINUX_X86_64.to_string()));
+    assert!(platforms.contains(&PLATFORM_LINUX_AARCH64.to_string()));
     assert!(platforms.contains(&PLATFORM_MACOS_X86_64.to_string()));
     assert!(platforms.contains(&PLATFORM_MACOS_ARM64.to_string()));
     assert!(platforms.contains(&PLATFORM_WINDOWS_X86_64.to_string()));
-    assert_eq!(platforms.len(), 4);
+    assert_eq!(platforms.len(), 5);
 }
 
 #[tokio::test]

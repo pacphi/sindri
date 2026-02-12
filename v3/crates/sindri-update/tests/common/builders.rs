@@ -96,6 +96,11 @@ impl ReleaseBuilder {
                 .size(1024)
                 .build(),
             ReleaseAssetBuilder::new()
+                .platform(PLATFORM_LINUX_AARCH64)
+                .url("https://example.com/sindri-linux-arm")
+                .size(1024)
+                .build(),
+            ReleaseAssetBuilder::new()
                 .platform(PLATFORM_MACOS_X86_64)
                 .url("https://example.com/sindri-macos")
                 .size(1024)

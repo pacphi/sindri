@@ -127,7 +127,7 @@ validate:
       versionFlag: "--version"
 "#;
 
-        let extension: Extension = serde_yaml::from_str(yaml).unwrap();
+        let extension: Extension = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(extension.metadata.name, "test-extension");
         assert_eq!(extension.metadata.version, "1.0.0");
         assert_eq!(extension.metadata.category, ExtensionCategory::Devops);
@@ -171,7 +171,7 @@ validate:
                 yaml_value
             );
 
-            let extension: Extension = serde_yaml::from_str(&yaml).unwrap();
+            let extension: Extension = serde_yaml_ng::from_str(&yaml).unwrap();
             assert_eq!(extension.metadata.category, expected_category);
         }
     }
@@ -206,7 +206,7 @@ validate:
                 yaml_value
             );
 
-            let extension: Extension = serde_yaml::from_str(&yaml).unwrap();
+            let extension: Extension = serde_yaml_ng::from_str(&yaml).unwrap();
             assert_eq!(extension.install.method, expected_method);
         }
     }
@@ -256,7 +256,7 @@ capabilities:
         - server.js
 "#;
 
-        let extension: Extension = serde_yaml::from_str(yaml).unwrap();
+        let extension: Extension = serde_yaml_ng::from_str(yaml).unwrap();
         assert!(extension.capabilities.is_some());
 
         let caps = extension.capabilities.as_ref().unwrap();
@@ -317,7 +317,7 @@ bom:
       type: binary
 "#;
 
-        let extension: Extension = serde_yaml::from_str(yaml).unwrap();
+        let extension: Extension = serde_yaml_ng::from_str(yaml).unwrap();
         assert!(extension.bom.is_some());
 
         let bom = extension.bom.as_ref().unwrap();

@@ -541,6 +541,11 @@ mod tests {
                     size: 1000,
                 },
                 ReleaseAsset {
+                    name: "sindri-aarch64-unknown-linux-musl".to_string(),
+                    browser_download_url: "https://example.com/linux-arm".to_string(),
+                    size: 1000,
+                },
+                ReleaseAsset {
                     name: "sindri-aarch64-apple-darwin".to_string(),
                     browser_download_url: "https://example.com/macos-arm".to_string(),
                     size: 1000,
@@ -551,8 +556,9 @@ mod tests {
 
         let platforms = downloader.list_available_platforms(&release);
         assert!(platforms.contains(&"x86_64-unknown-linux-musl".to_string()));
+        assert!(platforms.contains(&"aarch64-unknown-linux-musl".to_string()));
         assert!(platforms.contains(&"aarch64-apple-darwin".to_string()));
-        assert_eq!(platforms.len(), 2);
+        assert_eq!(platforms.len(), 3);
     }
 
     #[tokio::test]

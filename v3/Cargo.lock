@@ -4305,10 +4305,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_yaml"
-version = "0.9.34+deprecated"
+name = "serde_yaml_ng"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+checksum = "7b4db627b98b36d4203a7b458cf3573730f2bb591b28871d916dfa9efabfd41f"
 dependencies = [
  "indexmap",
  "itoa",
@@ -4507,7 +4507,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "sindri-backup",
  "sindri-clusters",
  "sindri-core",
@@ -4565,7 +4565,7 @@ dependencies = [
  "reqwest 0.13.2",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "sindri-core",
  "tempfile",
  "thiserror 2.0.18",
@@ -4589,7 +4589,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "serial_test",
  "sindri-image",
  "tempfile",
@@ -4611,7 +4611,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "sindri-core",
  "tempfile",
  "thiserror 2.0.18",
@@ -4640,7 +4640,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "serial_test",
  "sha2",
  "shellexpand",
@@ -4691,7 +4691,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "serial_test",
  "sindri-core",
  "tempfile",
@@ -4717,7 +4717,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "sindri-core",
  "tempfile",
  "tera",
@@ -4739,7 +4739,7 @@ dependencies = [
  "duct",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "sindri-core",
  "sindri-secrets",
  "tera",
@@ -4768,7 +4768,7 @@ dependencies = [
  "reqwest 0.13.2",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "shellexpand",
  "sindri-core",
  "tempfile",
@@ -4800,7 +4800,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_yaml",
+ "serde_yaml_ng",
  "sha2",
  "sindri-core",
  "sindri-extensions",

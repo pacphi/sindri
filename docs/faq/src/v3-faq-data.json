@@ -369,7 +369,7 @@
         },
         "v3": {
           "command": "sindri config init",
-          "notes": "Native serde_yaml parsing, 10-20x faster"
+          "notes": "Native serde_yaml_ng parsing, 10-20x faster"
         }
       },
       "tags": ["config", "yaml", "setup"],

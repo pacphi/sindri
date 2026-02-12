@@ -13,10 +13,21 @@ pub struct VersionCompatibility {
 
 #[derive(Debug, Clone)]
 pub enum CompatibilityIssue {
-    MajorVersionMismatch { backup: u64, current: u64 },
-    ExtensionFormatChanged { old_format: String, new_format: String },
-    MissingExtension { name: String, required_version: String },
-    IncompatibleProvider { backup_provider: String },
+    MajorVersionMismatch {
+        backup: u64,
+        current: u64,
+    },
+    ExtensionFormatChanged {
+        old_format: String,
+        new_format: String,
+    },
+    MissingExtension {
+        name: String,
+        required_version: String,
+    },
+    IncompatibleProvider {
+        backup_provider: String,
+    },
 }
 
 impl VersionCompatibility {

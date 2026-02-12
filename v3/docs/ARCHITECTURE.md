@@ -356,18 +356,18 @@ sindri-providers (implementations)
 
 ## Key Dependencies
 
-| Crate            | Purpose                           |
-| ---------------- | --------------------------------- |
-| tokio            | Async runtime                     |
-| clap             | CLI argument parsing              |
-| serde/serde_yaml | Configuration (de)serialization   |
-| tera             | Template rendering                |
-| git2             | Git operations (libgit2 bindings) |
-| reqwest          | HTTP client for APIs              |
-| vaultrs          | HashiCorp Vault client            |
-| tar/flate2       | Backup compression                |
-| zeroize          | Secure memory handling            |
-| semver           | Version parsing and comparison    |
+| Crate               | Purpose                           |
+| ------------------- | --------------------------------- |
+| tokio               | Async runtime                     |
+| clap                | CLI argument parsing              |
+| serde/serde_yaml_ng | Configuration (de)serialization   |
+| tera                | Template rendering                |
+| git2                | Git operations (libgit2 bindings) |
+| reqwest             | HTTP client for APIs              |
+| vaultrs             | HashiCorp Vault client            |
+| tar/flate2          | Backup compression                |
+| zeroize             | Secure memory handling            |
+| semver              | Version parsing and comparison    |
 
 ## See Also
 

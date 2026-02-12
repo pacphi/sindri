@@ -94,7 +94,7 @@ impl BundledSource {
         let content = std::fs::read_to_string(&ext_path)
             .context(format!("Failed to read extension file: {:?}", ext_path))?;
 
-        let extension: Extension = serde_yaml::from_str(&content)
+        let extension: Extension = serde_yaml_ng::from_str(&content)
             .context(format!("Failed to parse extension.yaml for '{}'", name))?;
 
         Ok(extension)
@@ -183,7 +183,7 @@ impl DownloadedSource {
         let content = std::fs::read_to_string(&ext_path)
             .context(format!("Failed to read extension file: {:?}", ext_path))?;
 
-        let extension: Extension = serde_yaml::from_str(&content)
+        let extension: Extension = serde_yaml_ng::from_str(&content)
             .context(format!("Failed to parse extension.yaml for '{}'", name))?;
 
         Ok(extension)
@@ -280,7 +280,7 @@ impl LocalDevSource {
         let content = std::fs::read_to_string(&ext_path)
             .context(format!("Failed to read extension file: {:?}", ext_path))?;
 
-        let extension: Extension = serde_yaml::from_str(&content)
+        let extension: Extension = serde_yaml_ng::from_str(&content)
             .context(format!("Failed to parse extension.yaml for '{}'", name))?;
 
         Ok(extension)

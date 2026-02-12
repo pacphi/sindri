@@ -9,20 +9,15 @@ use tokio::fs;
 use tracing::{debug, info, warn};
 
 /// Restore mode determines how to handle existing files
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RestoreMode {
     /// Never overwrite existing files
+    #[default]
     Safe,
     /// Backup existing files to .bak, then overwrite
     Merge,
     /// Overwrite all files (except system markers)
     Full,
-}
-
-impl Default for RestoreMode {
-    fn default() -> Self {
-        Self::Safe
-    }
 }
 
 /// Action to take for a file during restore
@@ -49,9 +44,7 @@ pub trait RestoreModeHandler: Send + Sync {
     /// Determine what action to take for a new file
     async fn handle_new_file(&self, _target: &Utf8Path) -> Result<RestoreAction> {
         // All modes restore new files
-        Ok(RestoreAction::Overwrite {
-            backed_up_to: None,
-        })
+        Ok(RestoreAction::Overwrite { backed_up_to: None })
     }
 }
 
@@ -109,9 +102,23 @@ impl RestoreModeHandler for FullModeHandler {
         _backup_content: &[u8],
     ) -> Result<RestoreAction> {
         warn!("Full mode: overwriting existing file: {}", target);
-        Ok(RestoreAction::Overwrite {
-            backed_up_to: None,
-        })
+        Ok(RestoreAction::Overwrite { backed_up_to: None })
+    }
+}
+
+impl std::str::FromStr for RestoreMode {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "safe" => Ok(Self::Safe),
+            "merge" => Ok(Self::Merge),
+            "full" => Ok(Self::Full),
+            _ => Err(anyhow::anyhow!(
+                "Invalid restore mode: {}. Valid modes: safe, merge, full",
+                s
+            )),
+        }
     }
 }
 
@@ -122,19 +129,6 @@ impl RestoreMode {
             Self::Safe => Box::new(SafeModeHandler),
             Self::Merge => Box::new(MergeModeHandler),
             Self::Full => Box::new(FullModeHandler),
-        }
-    }
-
-    /// Parse mode from string
-    pub fn from_str(s: &str) -> Result<Self> {
-        match s.to_lowercase().as_str() {
-            "safe" => Ok(Self::Safe),
-            "merge" => Ok(Self::Merge),
-            "full" => Ok(Self::Full),
-            _ => Err(anyhow::anyhow!(
-                "Invalid restore mode: {}. Valid modes: safe, merge, full",
-                s
-            )),
         }
     }
 
@@ -151,13 +145,13 @@ impl RestoreMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
     use tempfile::TempDir;
 
     #[tokio::test]
     async fn test_safe_mode_skips_existing() {
         let temp_dir = TempDir::new().unwrap();
-        let test_file = Utf8PathBuf::from_path_buf(temp_dir.path().join("test.txt"))
-            .unwrap();
+        let test_file = Utf8PathBuf::from_path_buf(temp_dir.path().join("test.txt")).unwrap();
 
         // Create existing file
         fs::write(&test_file, b"existing content").await.unwrap();
@@ -178,8 +172,7 @@ mod tests {
     #[tokio::test]
     async fn test_merge_mode_creates_backup() {
         let temp_dir = TempDir::new().unwrap();
-        let test_file = Utf8PathBuf::from_path_buf(temp_dir.path().join("test.txt"))
-            .unwrap();
+        let test_file = Utf8PathBuf::from_path_buf(temp_dir.path().join("test.txt")).unwrap();
 
         // Create existing file
         fs::write(&test_file, b"existing content").await.unwrap();
@@ -207,8 +200,7 @@ mod tests {
     #[tokio::test]
     async fn test_full_mode_overwrites() {
         let temp_dir = TempDir::new().unwrap();
-        let test_file = Utf8PathBuf::from_path_buf(temp_dir.path().join("test.txt"))
-            .unwrap();
+        let test_file = Utf8PathBuf::from_path_buf(temp_dir.path().join("test.txt")).unwrap();
 
         // Create existing file
         fs::write(&test_file, b"existing content").await.unwrap();

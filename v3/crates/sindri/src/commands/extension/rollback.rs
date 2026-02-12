@@ -80,9 +80,7 @@ pub(super) async fn run(args: ExtensionRollbackArgs) -> Result<()> {
             ExtensionEvent::UpgradeCompleted { to_version, .. }
             | ExtensionEvent::UpgradeFailed { to_version, .. }
             | ExtensionEvent::UpgradeStarted { to_version, .. } => Some(to_version.clone()),
-            ExtensionEvent::OutdatedDetected { latest_version, .. } => {
-                Some(latest_version.clone())
-            }
+            ExtensionEvent::OutdatedDetected { latest_version, .. } => Some(latest_version.clone()),
         }
     };
 

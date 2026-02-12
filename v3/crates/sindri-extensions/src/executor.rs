@@ -212,8 +212,7 @@ impl ExtensionExecutor {
         let mise_path = {
             let mise_shims = self.home_dir.join(".local/share/mise/shims");
             let path_var = std::env::var("PATH").unwrap_or_default();
-            if mise_shims.exists()
-                && !path_var.contains(&mise_shims.to_string_lossy().to_string())
+            if mise_shims.exists() && !path_var.contains(&mise_shims.to_string_lossy().to_string())
             {
                 Some(format!("{}:{}", mise_shims.display(), path_var))
             } else {
@@ -1314,7 +1313,10 @@ impl ExtensionExecutor {
             let decoder = GzDecoder::new(cursor);
             let mut archive = Archive::new(decoder);
 
-            for entry_result in archive.entries().context("Failed to read tarball entries")? {
+            for entry_result in archive
+                .entries()
+                .context("Failed to read tarball entries")?
+            {
                 let mut entry = entry_result.context("Failed to read tarball entry")?;
                 let entry_path = entry
                     .path()

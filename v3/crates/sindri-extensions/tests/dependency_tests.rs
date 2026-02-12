@@ -79,7 +79,7 @@ mod dependency_tests {
     #[test]
     fn test_deps_extension_yaml_parsing() {
         let yaml = mock_data::DEPS_EXTENSION_YAML;
-        let ext: sindri_core::types::Extension = serde_yaml::from_str(yaml).unwrap();
+        let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(yaml).unwrap();
 
         assert_eq!(ext.metadata.name, "test-deps");
         assert!(!ext.metadata.dependencies.is_empty());
@@ -149,7 +149,7 @@ mod dependency_tests {
 
         // The fixture may not exist yet, which is fine for this test
         if let Ok(yaml) = result {
-            let ext: sindri_core::types::Extension = serde_yaml::from_str(&yaml).unwrap();
+            let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(&yaml).unwrap();
             assert!(!ext.metadata.dependencies.is_empty());
         }
     }

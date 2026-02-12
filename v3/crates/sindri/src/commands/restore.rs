@@ -93,13 +93,12 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     // Determine target directory using canonical home resolution
     let target = args.target.clone().unwrap_or_else(|| {
         crate::utils::get_home_dir()
-            .map(|p| Utf8PathBuf::from_path_buf(p).unwrap_or_else(|p| {
-                Utf8PathBuf::from(p.to_string_lossy().as_ref())
-            }))
+            .map(|p| {
+                Utf8PathBuf::from_path_buf(p)
+                    .unwrap_or_else(|p| Utf8PathBuf::from(p.to_string_lossy().as_ref()))
+            })
             .unwrap_or_else(|_| {
-                Utf8PathBuf::from(
-                    std::env::var("HOME").unwrap_or_else(|_| "/home".to_string()),
-                )
+                Utf8PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| "/home".to_string()))
             })
     });
 
@@ -289,7 +288,10 @@ pub async fn run(args: RestoreArgs) -> Result<()> {
     if result.backed_up > 0 {
         output::kv("Files backed up", &format!("{}", result.backed_up));
     }
-    output::kv("Duration", &format!("{:.1}s", result.duration.as_secs_f64()));
+    output::kv(
+        "Duration",
+        &format!("{:.1}s", result.duration.as_secs_f64()),
+    );
 
     // Clean up temporary download if we fetched from a URL
     if args.source.starts_with("https://") || args.source.starts_with("http://") {
@@ -364,10 +366,7 @@ async fn resolve_source(source: &str) -> Result<Utf8PathBuf> {
 /// Decrypt an age-encrypted backup.
 ///
 /// Currently requires the `age` CLI to be installed.
-async fn decrypt_backup(
-    source: &Utf8Path,
-    key_file: Option<&Utf8PathBuf>,
-) -> Result<Utf8PathBuf> {
+async fn decrypt_backup(source: &Utf8Path, key_file: Option<&Utf8PathBuf>) -> Result<Utf8PathBuf> {
     // Check that the age CLI is available
     let age_check = tokio::process::Command::new("age")
         .arg("--version")
@@ -410,10 +409,7 @@ async fn decrypt_backup(
     cmd.arg("--output").arg(decrypted_utf8.as_str());
     cmd.arg(source.as_str());
 
-    let output = cmd
-        .output()
-        .await
-        .context("Failed to run age decryption")?;
+    let output = cmd.output().await.context("Failed to run age decryption")?;
 
     spinner.finish_and_clear();
 

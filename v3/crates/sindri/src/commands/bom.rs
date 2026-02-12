@@ -416,7 +416,7 @@ fn load_extension_definitions(
         let content = std::fs::read_to_string(&ext_path)
             .with_context(|| format!("Failed to read extension.yaml for {}", name))?;
 
-        let extension: Extension = serde_yaml::from_str(&content)
+        let extension: Extension = serde_yaml_ng::from_str(&content)
             .with_context(|| format!("Failed to parse extension.yaml for {}", name))?;
 
         // Add to registry

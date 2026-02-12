@@ -98,7 +98,7 @@ impl HierarchicalConfigLoader {
             Error::invalid_config(format!("Invalid UTF-8 in embedded config: {}", filename))
         })?;
 
-        let config: T = serde_yaml::from_str(content).map_err(|e| {
+        let config: T = serde_yaml_ng::from_str(content).map_err(|e| {
             Error::invalid_config(format!(
                 "Failed to parse embedded config {}: {}",
                 filename, e
@@ -111,7 +111,7 @@ impl HierarchicalConfigLoader {
     /// Load a YAML file and parse it
     fn load_yaml_file<T: DeserializeOwned>(&self, path: &Utf8Path) -> Result<T> {
         let content = fs::read_to_string(path)?;
-        let config: T = serde_yaml::from_str(&content)
+        let config: T = serde_yaml_ng::from_str(&content)
             .map_err(|e| Error::invalid_config(format!("Failed to parse {}: {}", path, e)))?;
         Ok(config)
     }

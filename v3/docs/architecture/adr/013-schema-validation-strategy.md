@@ -68,7 +68,7 @@ dependencies:
 
 We implement a **three-level validation strategy**:
 
-1. **YAML Parsing** (serde_yaml) - Deserialize YAML to Rust types
+1. **YAML Parsing** (serde_yaml_ng) - Deserialize YAML to Rust types
 2. **JSON Schema Validation** (jsonschema) - Validate against schema
 3. **Semantic Validation** (custom) - Business rule checks
 
@@ -82,7 +82,7 @@ impl ExtensionValidator {
     /// Full validation pipeline
     pub fn validate(&self, yaml_content: &str) -> Result<Extension> {
         // Level 1: YAML parsing
-        let extension: Extension = serde_yaml::from_str(yaml_content)
+        let extension: Extension = serde_yaml_ng::from_str(yaml_content)
             .context("Failed to parse extension YAML")?;
 
         // Level 2: JSON Schema validation

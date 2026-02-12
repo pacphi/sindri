@@ -12,10 +12,19 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub enum RestoreChange {
-    FileCreated { path: Utf8PathBuf },
-    FileModified { path: Utf8PathBuf, backup: Utf8PathBuf },
-    FileDeleted { path: Utf8PathBuf },
-    DirectoryCreated { path: Utf8PathBuf },
+    FileCreated {
+        path: Utf8PathBuf,
+    },
+    FileModified {
+        path: Utf8PathBuf,
+        backup: Utf8PathBuf,
+    },
+    FileDeleted {
+        path: Utf8PathBuf,
+    },
+    DirectoryCreated {
+        path: Utf8PathBuf,
+    },
 }
 
 pub struct RestoreTransaction {
@@ -63,7 +72,8 @@ impl RestoreTransaction {
     }
 
     pub fn record_file_modified(&mut self, path: Utf8PathBuf, backup: Utf8PathBuf) {
-        self.changes.push(RestoreChange::FileModified { path, backup });
+        self.changes
+            .push(RestoreChange::FileModified { path, backup });
     }
 
     pub fn record_file_deleted(&mut self, path: Utf8PathBuf) {

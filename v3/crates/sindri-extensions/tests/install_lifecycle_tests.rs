@@ -19,7 +19,7 @@ mod install_lifecycle {
     #[test]
     fn test_minimal_extension_yaml_parsing() {
         let yaml = mock_data::MINIMAL_EXTENSION_YAML;
-        let ext: sindri_core::types::Extension = serde_yaml::from_str(yaml).unwrap();
+        let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(yaml).unwrap();
 
         assert_eq!(ext.metadata.name, "test-minimal");
         assert_eq!(ext.metadata.version, "1.0.0");
@@ -32,7 +32,7 @@ mod install_lifecycle {
     #[test]
     fn test_mise_extension_yaml_parsing() {
         let yaml = mock_data::MISE_EXTENSION_YAML;
-        let ext: sindri_core::types::Extension = serde_yaml::from_str(yaml).unwrap();
+        let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(yaml).unwrap();
 
         assert_eq!(ext.metadata.name, "test-mise");
         assert_eq!(ext.install.method, sindri_core::types::InstallMethod::Mise);
@@ -81,7 +81,7 @@ validate:
                 method_str
             );
 
-            let ext: sindri_core::types::Extension = serde_yaml::from_str(&yaml).unwrap();
+            let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(&yaml).unwrap();
             assert_eq!(ext.install.method, expected_method);
         }
     }

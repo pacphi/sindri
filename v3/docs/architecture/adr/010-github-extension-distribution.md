@@ -239,7 +239,7 @@ impl ExtensionCache {
 
         let response = reqwest::get(&url).await?;
         let content = response.text().await?;
-        let registry: Registry = serde_yaml::from_str(&content)?;
+        let registry: Registry = serde_yaml_ng::from_str(&content)?;
 
         Ok(registry)
     }
@@ -267,7 +267,7 @@ impl ExtensionCache {
 
         let response = reqwest::get(&url).await?;
         let content = response.text().await?;
-        let extension: Extension = serde_yaml::from_str(&content)?;
+        let extension: Extension = serde_yaml_ng::from_str(&content)?;
 
         Ok(extension)
     }

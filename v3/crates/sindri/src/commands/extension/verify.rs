@@ -54,7 +54,7 @@ pub(super) async fn run(args: ExtensionVerifyArgs) -> Result<()> {
         if let Some(yaml_path) = find_extension_yaml(name, &version) {
             match std::fs::read_to_string(&yaml_path) {
                 Ok(content) => {
-                    match serde_yaml::from_str::<sindri_core::types::Extension>(&content) {
+                    match serde_yaml_ng::from_str::<sindri_core::types::Extension>(&content) {
                         Ok(extension) => {
                             let is_verified = verify_extension_installed(&extension).await;
                             if is_verified {

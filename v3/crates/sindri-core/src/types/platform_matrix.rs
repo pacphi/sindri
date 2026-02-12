@@ -289,8 +289,8 @@ mod tests {
     #[test]
     fn test_platform_serialization() {
         let matrix = PlatformMatrix::default();
-        let yaml = serde_yaml::to_string(&matrix).unwrap();
-        let deserialized: PlatformMatrix = serde_yaml::from_str(&yaml).unwrap();
+        let yaml = serde_yaml_ng::to_string(&matrix).unwrap();
+        let deserialized: PlatformMatrix = serde_yaml_ng::from_str(&yaml).unwrap();
         assert_eq!(matrix.platforms.len(), deserialized.platforms.len());
     }
 

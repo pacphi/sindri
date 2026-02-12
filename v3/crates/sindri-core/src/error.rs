@@ -18,7 +18,7 @@ pub enum Error {
 
     /// YAML parsing error
     #[error("YAML parsing error: {0}")]
-    YamlParse(#[from] serde_yaml::Error),
+    YamlParse(#[from] serde_yaml_ng::Error),
 
     /// JSON parsing error
     #[error("JSON parsing error: {0}")]

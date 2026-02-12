@@ -17,7 +17,7 @@ mod hooks_lifecycle {
     #[test]
     fn test_hooks_extension_yaml_parsing() {
         let yaml = mock_data::HOOKS_EXTENSION_YAML;
-        let ext: sindri_core::types::Extension = serde_yaml::from_str(yaml).unwrap();
+        let ext: sindri_core::types::Extension = serde_yaml_ng::from_str(yaml).unwrap();
 
         assert_eq!(ext.metadata.name, "test-hooks");
         assert!(ext.capabilities.is_some());

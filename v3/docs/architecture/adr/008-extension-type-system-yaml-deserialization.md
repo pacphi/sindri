@@ -63,7 +63,7 @@ install:
 
 ### Serde-Based Type System
 
-We adopt **serde** with `serde_yaml` for YAML deserialization, with a comprehensive type hierarchy in `sindri-extensions`:
+We adopt **serde** with `serde_yaml_ng` for YAML deserialization, with a comprehensive type hierarchy in `sindri-extensions`:
 
 ```rust
 // Top-level extension type
@@ -262,7 +262,7 @@ pub fn load_extension(path: &Path) -> Result<Extension> {
     let content = fs::read_to_string(path)
         .context("Failed to read extension file")?;
 
-    let extension: Extension = serde_yaml::from_str(&content)
+    let extension: Extension = serde_yaml_ng::from_str(&content)
         .context("Failed to parse extension YAML")?;
 
     validate_extension(&extension)
@@ -304,9 +304,9 @@ pub fn load_extension(path: &Path) -> Result<Extension> {
 
 ## Alternatives Considered
 
-### 1. Dynamic YAML Parsing with serde_yaml::Value
+### 1. Dynamic YAML Parsing with serde_yaml_ng::Value
 
-**Description**: Use untyped `serde_yaml::Value` like JSON parsing with `serde_json::Value`.
+**Description**: Use untyped `serde_yaml_ng::Value` like JSON parsing with `serde_json::Value`.
 
 **Pros**:
 

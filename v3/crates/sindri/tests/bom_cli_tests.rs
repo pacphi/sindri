@@ -98,7 +98,7 @@ fn setup_extension_on_disk(tmp: &TempDir, name: &str, ext: &Extension) -> std::p
     let ext_dir = tmp.path().join(name);
     std::fs::create_dir_all(&ext_dir).unwrap();
 
-    let yaml = serde_yaml::to_string(ext).expect("serialize extension");
+    let yaml = serde_yaml_ng::to_string(ext).expect("serialize extension");
     let path = ext_dir.join("extension.yaml");
     std::fs::write(&path, yaml).unwrap();
     path
@@ -401,7 +401,7 @@ fn test_export_yaml_integration() {
     gen.write_bom(&bom, &output, BomFormat::Yaml).unwrap();
 
     let content = std::fs::read_to_string(&output).unwrap();
-    let parsed: BillOfMaterials = serde_yaml::from_str(&content).unwrap();
+    let parsed: BillOfMaterials = serde_yaml_ng::from_str(&content).unwrap();
 
     assert_eq!(parsed.extensions[0].name, "rust");
 }

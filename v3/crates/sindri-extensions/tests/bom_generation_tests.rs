@@ -401,8 +401,8 @@ fn test_json_serialization_roundtrip() {
 fn test_yaml_serialization_roundtrip() {
     let bom = BillOfMaterialsBuilder::realistic().build();
 
-    let yaml = serde_yaml::to_string(&bom).expect("YAML serialize");
-    let deserialized: BillOfMaterials = serde_yaml::from_str(&yaml).expect("YAML deserialize");
+    let yaml = serde_yaml_ng::to_string(&bom).expect("YAML serialize");
+    let deserialized: BillOfMaterials = serde_yaml_ng::from_str(&yaml).expect("YAML deserialize");
 
     assert_eq!(deserialized.cli_version, bom.cli_version);
     assert_eq!(deserialized.extensions.len(), bom.extensions.len());

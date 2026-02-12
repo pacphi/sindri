@@ -73,20 +73,20 @@ Target:  3.0.0 (Rust rewrite)
 
 ### 1.3 External Tool Dependencies
 
-| Tool        | Current Usage           | Rust Migration Strategy                  |
-| ----------- | ----------------------- | ---------------------------------------- |
-| `yq`        | YAML query/manipulation | **Replace**: `serde_yaml` native parsing |
-| `jq`        | JSON parsing            | **Replace**: `serde_json` native parsing |
-| `docker`    | Container lifecycle     | **Keep**: Complex daemon interaction     |
-| `flyctl`    | Fly.io deployment       | **Keep**: Proprietary CLI                |
-| `devpod`    | Workspace management    | **Keep**: Plugin architecture            |
-| `gh`        | GitHub operations       | **Keep**: OAuth/auth flows               |
-| `git`       | Version control         | **Keep**: Ubiquitous, complex            |
-| `vault`     | Secret management       | **Keep**: Security requirements          |
-| `mise`      | Tool versions           | **Keep**: Inside container only          |
-| `python3`   | Schema validation       | **Replace**: `jsonschema` crate          |
-| `curl/wget` | Downloads               | **Replace**: `reqwest`                   |
-| `tar`       | Archive operations      | **Replace**: `tar`/`flate2` crates       |
+| Tool        | Current Usage           | Rust Migration Strategy                     |
+| ----------- | ----------------------- | ------------------------------------------- |
+| `yq`        | YAML query/manipulation | **Replace**: `serde_yaml_ng` native parsing |
+| `jq`        | JSON parsing            | **Replace**: `serde_json` native parsing    |
+| `docker`    | Container lifecycle     | **Keep**: Complex daemon interaction        |
+| `flyctl`    | Fly.io deployment       | **Keep**: Proprietary CLI                   |
+| `devpod`    | Workspace management    | **Keep**: Plugin architecture               |
+| `gh`        | GitHub operations       | **Keep**: OAuth/auth flows                  |
+| `git`       | Version control         | **Keep**: Ubiquitous, complex               |
+| `vault`     | Secret management       | **Keep**: Security requirements             |
+| `mise`      | Tool versions           | **Keep**: Inside container only             |
+| `python3`   | Schema validation       | **Replace**: `jsonschema` crate             |
+| `curl/wget` | Downloads               | **Replace**: `reqwest`                      |
+| `tar`       | Archive operations      | **Replace**: `tar`/`flate2` crates          |
 
 ### 1.4 Command Structure
 
@@ -199,7 +199,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_yaml = "0.9"
+serde_yaml_ng = "0.9"
 
 # Schema Validation
 jsonschema = "0.17"
@@ -234,17 +234,17 @@ globset = "0.4"
 
 ### 3.2 Crate Selection Rationale
 
-| Category  | Crate         | Why                                           |
-| --------- | ------------- | --------------------------------------------- |
-| CLI       | `clap`        | Industry standard, derive macros, subcommands |
-| Async     | `tokio`       | Required by reqwest, mature ecosystem         |
-| YAML      | `serde_yaml`  | Serde integration, battle-tested              |
-| Schema    | `jsonschema`  | Draft-07 support, actively maintained         |
-| HTTP      | `reqwest`     | Async, TLS, widely used                       |
-| Update    | `self_update` | GitHub releases integration                   |
-| Templates | `tera`        | Jinja2-like, filters, familiar syntax         |
-| Terminal  | `indicatif`   | Multi-progress bars, spinners                 |
-| Embed     | `rust-embed`  | Compile-time asset embedding                  |
+| Category  | Crate           | Why                                           |
+| --------- | --------------- | --------------------------------------------- |
+| CLI       | `clap`          | Industry standard, derive macros, subcommands |
+| Async     | `tokio`         | Required by reqwest, mature ecosystem         |
+| YAML      | `serde_yaml_ng` | Serde integration, battle-tested              |
+| Schema    | `jsonschema`    | Draft-07 support, actively maintained         |
+| HTTP      | `reqwest`       | Async, TLS, widely used                       |
+| Update    | `self_update`   | GitHub releases integration                   |
+| Templates | `tera`          | Jinja2-like, filters, familiar syntax         |
+| Terminal  | `indicatif`     | Multi-progress bars, spinners                 |
+| Embed     | `rust-embed`    | Compile-time asset embedding                  |
 
 ---
 
@@ -1184,7 +1184,7 @@ impl ExtensionDistributor {
             if let Ok(modified) = metadata.modified() {
                 if modified.elapsed().unwrap_or(Duration::MAX) < CACHE_TTL {
                     let content = tokio::fs::read_to_string(&cache_path).await?;
-                    return Ok(serde_yaml::from_str(&content)?);
+                    return Ok(serde_yaml_ng::from_str(&content)?);
                 }
             }
         }
@@ -1200,7 +1200,7 @@ impl ExtensionDistributor {
         tokio::fs::create_dir_all(&self.cache_dir).await?;
         tokio::fs::write(&cache_path, &content).await?;
 
-        Ok(serde_yaml::from_str(&content)?)
+        Ok(serde_yaml_ng::from_str(&content)?)
     }
 
     fn get_compatible_range(&self, matrix: &CompatibilityMatrix, name: &str) -> Result<VersionReq> {
@@ -1901,7 +1901,7 @@ impl SindriUpdater {
 
         let response = reqwest::get(&url).await?;
         let content = response.text().await?;
-        let matrix: CompatibilityMatrix = serde_yaml::from_str(&content)?;
+        let matrix: CompatibilityMatrix = serde_yaml_ng::from_str(&content)?;
 
         Ok(matrix)
     }
@@ -2279,7 +2279,7 @@ end
 | Area           | v2 Behavior   | v3 Behavior                       |
 | -------------- | ------------- | --------------------------------- |
 | Distribution   | Bash scripts  | Single binary                     |
-| YAML parsing   | External `yq` | Native `serde_yaml`               |
+| YAML parsing   | External `yq` | Native `serde_yaml_ng`            |
 | JSON parsing   | External `jq` | Native `serde_json`               |
 | Versioning     | Manual update | `sindri upgrade`                  |
 | Extension exec | Direct bash   | Rust orchestration + bash scripts |

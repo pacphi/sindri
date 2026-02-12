@@ -497,7 +497,7 @@ sindri extension install <extension> --force
 
 **Existing dependencies:**
 
-- `serde`, `serde_yaml` - Condition deserialization
+- `serde`, `serde_yaml_ng` - Condition deserialization
 - `anyhow` - Error handling
 - `tracing` - Logging
 

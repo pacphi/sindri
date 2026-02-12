@@ -1859,7 +1859,7 @@ fn initialize_project_tools() -> Result<()> {
             Err(_) => continue,
         };
 
-        let extension: sindri_core::types::Extension = match serde_yaml::from_str(&content) {
+        let extension: sindri_core::types::Extension = match serde_yaml_ng::from_str(&content) {
             Ok(e) => e,
             Err(_) => continue,
         };
@@ -2070,7 +2070,7 @@ fn get_initialized_extensions_for_project(
             Err(_) => continue,
         };
 
-        let extension: sindri_core::types::Extension = match serde_yaml::from_str(&content) {
+        let extension: sindri_core::types::Extension = match serde_yaml_ng::from_str(&content) {
             Ok(e) => e,
             Err(_) => continue,
         };

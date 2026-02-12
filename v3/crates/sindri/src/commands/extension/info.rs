@@ -54,7 +54,7 @@ pub(super) async fn run(args: ExtensionInfoArgs) -> Result<()> {
                 let content =
                     std::fs::read_to_string(&yaml_path).context("Failed to read extension.yaml")?;
                 if let Ok(extension) =
-                    serde_yaml::from_str::<sindri_core::types::Extension>(&content)
+                    serde_yaml_ng::from_str::<sindri_core::types::Extension>(&content)
                 {
                     let is_verified = verify_extension_installed(&extension).await;
                     if !is_verified {

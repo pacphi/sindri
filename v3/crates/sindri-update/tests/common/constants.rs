@@ -21,6 +21,7 @@ pub const TAG_V3_1_0: &str = "v3.1.0";
 
 // Platform target triples
 pub const PLATFORM_LINUX_X86_64: &str = "x86_64-unknown-linux-musl";
+pub const PLATFORM_LINUX_AARCH64: &str = "aarch64-unknown-linux-musl";
 pub const PLATFORM_MACOS_X86_64: &str = "x86_64-apple-darwin";
 pub const PLATFORM_MACOS_ARM64: &str = "aarch64-apple-darwin";
 pub const PLATFORM_WINDOWS_X86_64: &str = "x86_64-pc-windows-msvc";
@@ -50,6 +51,8 @@ pub const WRONG_CHECKSUM: &str = "0000000000000000000000000000000000000000000000
 pub fn default_test_platform() -> &'static str {
     if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
         PLATFORM_LINUX_X86_64
+    } else if cfg!(target_os = "linux") && cfg!(target_arch = "aarch64") {
+        PLATFORM_LINUX_AARCH64
     } else if cfg!(target_os = "macos") && cfg!(target_arch = "x86_64") {
         PLATFORM_MACOS_X86_64
     } else if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {

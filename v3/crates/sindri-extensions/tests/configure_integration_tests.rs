@@ -180,7 +180,7 @@ nested:
 
     // Verify merge occurred
     let final_content = fs::read_to_string(&output_file).unwrap();
-    let merged: serde_yaml::Value = serde_yaml::from_str(&final_content).unwrap();
+    let merged: serde_yaml_ng::Value = serde_yaml_ng::from_str(&final_content).unwrap();
 
     // Check that both existing and new keys are present
     assert!(merged.get("existing_key").is_some());

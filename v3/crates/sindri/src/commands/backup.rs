@@ -126,12 +126,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
     let mut additional_excludes: Vec<String> = args.exclude.clone();
 
     // Add profile-specific exclusions
-    additional_excludes.extend(
-        lib_profile
-            .excludes()
-            .into_iter()
-            .map(|s| s.to_string()),
-    );
+    additional_excludes.extend(lib_profile.excludes().into_iter().map(|s| s.to_string()));
 
     // Add secret excludes if requested
     if args.exclude_secrets {
@@ -231,10 +226,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
 
     let builder = ArchiveBuilder::new(archive_config);
     let result = builder
-        .create(
-            workspace_root.as_std_path(),
-            output_path.as_std_path(),
-        )
+        .create(workspace_root.as_std_path(), output_path.as_std_path())
         .await?;
 
     // Encrypt if requested
@@ -257,10 +249,7 @@ pub async fn run(args: BackupArgs) -> Result<()> {
             &format!("{}%", result.manifest.statistics.compression_percentage()),
         );
     }
-    output::kv(
-        "Duration",
-        &format!("{:.1}s", result.duration_seconds),
-    );
+    output::kv("Duration", &format!("{:.1}s", result.duration_seconds));
     println!();
 
     // Show next steps
@@ -283,10 +272,7 @@ fn build_source_info(config: &Option<SindriConfig>) -> SourceInfo {
         .unwrap_or_else(|| "unknown".to_string());
 
     let hostname = std::env::var("HOSTNAME")
-        .or_else(|_| {
-            std::fs::read_to_string("/etc/hostname")
-                .map(|s| s.trim().to_string())
-        })
+        .or_else(|_| std::fs::read_to_string("/etc/hostname").map(|s| s.trim().to_string()))
         .unwrap_or_else(|_| "unknown".to_string());
 
     SourceInfo {
@@ -376,9 +362,9 @@ fn encrypt_backup(
 
             cmd.arg(archive_path.as_str());
 
-            let status = cmd.status().map_err(|e| {
-                anyhow::anyhow!("Failed to run age encryption: {}", e)
-            })?;
+            let status = cmd
+                .status()
+                .map_err(|e| anyhow::anyhow!("Failed to run age encryption: {}", e))?;
 
             spinner.finish_and_clear();
 
@@ -395,17 +381,15 @@ fn encrypt_backup(
 
             Ok(encrypted_path)
         }
-        Err(_) => {
-            Err(anyhow::anyhow!(
-                "Encryption requires the 'age' CLI tool.\n\
+        Err(_) => Err(anyhow::anyhow!(
+            "Encryption requires the 'age' CLI tool.\n\
                  Install with one of:\n  \
                  cargo install rage\n  \
                  brew install age\n  \
                  apt install age\n\n\
                  The unencrypted backup has been saved to: {}",
-                archive_path
-            ))
-        }
+            archive_path
+        )),
     }
 }
 

@@ -366,7 +366,7 @@ impl SindriUpdater {
         }
 
         let content = response.text().await?;
-        let matrix: CompatibilityMatrix = serde_yaml::from_str(&content)
+        let matrix: CompatibilityMatrix = serde_yaml_ng::from_str(&content)
             .context("Failed to parse compatibility matrix")?;
 
         Ok(matrix)
@@ -941,7 +941,7 @@ impl SindriUpdater {
         }
 
         let content = response.text().await?;
-        let matrix: CompatibilityMatrix = serde_yaml::from_str(&content)
+        let matrix: CompatibilityMatrix = serde_yaml_ng::from_str(&content)
             .context("Failed to parse compatibility matrix")?;
 
         Ok(matrix)

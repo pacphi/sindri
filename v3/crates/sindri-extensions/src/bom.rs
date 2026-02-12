@@ -289,7 +289,7 @@ impl BomGenerator {
     pub fn write_bom(&self, bom: &BillOfMaterials, path: &Path, format: BomFormat) -> Result<()> {
         let content = match format {
             BomFormat::Json => serde_json::to_string_pretty(bom)?,
-            BomFormat::Yaml => serde_yaml::to_string(bom)?,
+            BomFormat::Yaml => serde_yaml_ng::to_string(bom)?,
             BomFormat::CycloneDx => self.export_cyclonedx(bom)?,
             BomFormat::Spdx => self.export_spdx(bom)?,
         };
@@ -515,7 +515,7 @@ impl BomGenerator {
 
         let bom = match format {
             BomFormat::Json => serde_json::from_str(&content)?,
-            BomFormat::Yaml => serde_yaml::from_str(&content)?,
+            BomFormat::Yaml => serde_yaml_ng::from_str(&content)?,
             BomFormat::CycloneDx | BomFormat::Spdx => {
                 return Err(anyhow!("Format {:?} not yet supported for loading", format));
             }

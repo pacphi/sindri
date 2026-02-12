@@ -212,7 +212,7 @@ Example path resolutions:
 
 **Existing dependencies used:**
 
-- `serde_yaml` - YAML deep merge
+- `serde_yaml_ng` - YAML deep merge
 - `serde_json` - JSON deep merge
 - `chrono` - Backup timestamps
 - `tokio::fs` - Async file operations

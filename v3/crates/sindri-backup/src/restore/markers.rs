@@ -29,5 +29,8 @@ pub fn is_system_marker(path: &Utf8Path) -> bool {
 
 /// Filter system markers from a list of paths
 pub fn filter_system_markers(paths: Vec<Utf8PathBuf>) -> Vec<Utf8PathBuf> {
-    paths.into_iter().filter(|path| !is_system_marker(path)).collect()
+    paths
+        .into_iter()
+        .filter(|path| !is_system_marker(path))
+        .collect()
 }

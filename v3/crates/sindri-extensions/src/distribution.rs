@@ -80,7 +80,7 @@ impl ExtensionSourceConfig {
                     "Failed to read extension source config from {}",
                     bundled_path.display()
                 ))?;
-                return serde_yaml::from_str(&content)
+                return serde_yaml_ng::from_str(&content)
                     .context("Failed to parse extension source config");
             }
         }
@@ -97,7 +97,7 @@ impl ExtensionSourceConfig {
                     "Failed to read extension source config from {}",
                     user_path.display()
                 ))?;
-                return serde_yaml::from_str(&content)
+                return serde_yaml_ng::from_str(&content)
                     .context("Failed to parse extension source config");
             }
         }
@@ -636,7 +636,7 @@ impl ExtensionDistributor {
                     "Failed to read bundled compatibility matrix at {}",
                     bundled_path.display()
                 ))?;
-                return serde_yaml::from_str(&content)
+                return serde_yaml_ng::from_str(&content)
                     .context("Failed to parse bundled compatibility matrix");
             } else {
                 debug!(
@@ -656,7 +656,7 @@ impl ExtensionDistributor {
                     let content = fs::read_to_string(&cache_path)
                         .await
                         .context("Failed to read cached compatibility matrix")?;
-                    return serde_yaml::from_str(&content)
+                    return serde_yaml_ng::from_str(&content)
                         .context("Failed to parse cached compatibility matrix");
                 }
             }
@@ -713,7 +713,7 @@ impl ExtensionDistributor {
             .await
             .context("Failed to write compatibility matrix to cache")?;
 
-        serde_yaml::from_str(&content).context("Failed to parse compatibility matrix")
+        serde_yaml_ng::from_str(&content).context("Failed to parse compatibility matrix")
     }
 
     /// Get the compatible version range for an extension
@@ -825,7 +825,7 @@ impl ExtensionDistributor {
 
         // Parse the extension.yaml to get the version
         let extension: Extension =
-            serde_yaml::from_str(&content).context("Failed to parse extension.yaml")?;
+            serde_yaml_ng::from_str(&content).context("Failed to parse extension.yaml")?;
 
         let version = Version::parse(&extension.metadata.version).context(format!(
             "Invalid version in extension: {}",
@@ -884,7 +884,7 @@ impl ExtensionDistributor {
             }
         };
 
-        let extension: Extension = serde_yaml::from_str(&content)?;
+        let extension: Extension = serde_yaml_ng::from_str(&content)?;
         let version = Version::parse(&extension.metadata.version)?;
 
         let is_compatible = compatible_range
@@ -991,7 +991,7 @@ impl ExtensionDistributor {
 
         // Parse to discover additional files
         let extension: Extension =
-            serde_yaml::from_str(&content).context("Failed to parse extension.yaml")?;
+            serde_yaml_ng::from_str(&content).context("Failed to parse extension.yaml")?;
 
         // Save extension.yaml
         fs::write(dest.join("extension.yaml"), &content)
@@ -1168,7 +1168,7 @@ impl ExtensionDistributor {
         let content = std::fs::read_to_string(&extension_yaml)
             .context(format!("Failed to read {}", extension_yaml.display()))?;
 
-        serde_yaml::from_str(&content).context("Failed to parse extension.yaml")
+        serde_yaml_ng::from_str(&content).context("Failed to parse extension.yaml")
     }
 
     /// Validate an extension definition

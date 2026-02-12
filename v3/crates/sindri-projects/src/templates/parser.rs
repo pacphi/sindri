@@ -126,7 +126,7 @@ pub enum DetectionResult {
 impl TemplateConfig {
     /// Parse template configuration from YAML string
     pub fn from_yaml(yaml: &str) -> Result<Self> {
-        serde_yaml::from_str(yaml).context("Failed to parse template YAML")
+        serde_yaml_ng::from_str(yaml).context("Failed to parse template YAML")
     }
 
     /// Get a template by name

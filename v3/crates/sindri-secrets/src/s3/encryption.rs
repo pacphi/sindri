@@ -70,7 +70,9 @@ impl SecretEncryptor {
     ///
     /// The age crate does not support constructing identities from raw key bytes.
     /// Use [`from_key_file`] or [`from_env`] instead.
-    #[deprecated(note = "Use from_key_file() or from_env() instead. Raw key derivation not supported by age crate.")]
+    #[deprecated(
+        note = "Use from_key_file() or from_env() instead. Raw key derivation not supported by age crate."
+    )]
     pub fn from_raw_key(_key_bytes: &[u8]) -> Result<Self> {
         Err(anyhow!(
             "from_raw_key is not supported. The age crate does not expose identity construction \

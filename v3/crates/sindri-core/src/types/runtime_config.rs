@@ -420,8 +420,8 @@ mod tests {
     #[test]
     fn test_network_config_serialization() {
         let config = NetworkConfig::default();
-        let yaml = serde_yaml::to_string(&config).unwrap();
-        let deserialized: NetworkConfig = serde_yaml::from_str(&yaml).unwrap();
+        let yaml = serde_yaml_ng::to_string(&config).unwrap();
+        let deserialized: NetworkConfig = serde_yaml_ng::from_str(&yaml).unwrap();
         assert_eq!(config.http_timeout_secs, deserialized.http_timeout_secs);
     }
 
@@ -449,7 +449,7 @@ mod tests {
             include_timestamp: false,
             timestamp_format: "%Y%m%d".to_string(),
         };
-        let yaml = serde_yaml::to_string(&config).unwrap();
+        let yaml = serde_yaml_ng::to_string(&config).unwrap();
         assert!(yaml.contains("max-backups: 5"));
         assert!(yaml.contains("backup-extension: .backup"));
     }
