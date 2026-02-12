@@ -26,7 +26,7 @@ tempfile = "3.24"
 regex = "1.12"
 
 # S3 backend
-aws-sdk-s3 = "1.121"
+aws-sdk-s3 = "1.123"
 aws-config = "1.8"
 
 # Encryption
