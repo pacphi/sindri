@@ -76,6 +76,31 @@ impl ExtensionLogWriter {
         Ok(log_path)
     }
 
+    /// Find the most recent log file for an extension
+    ///
+    /// Scans `~/.sindri/logs/<name>/` and returns the path to the lexicographically
+    /// greatest filename (timestamps sort correctly as `YYYYMMDDTHHMMSSz.log`).
+    /// Returns `None` if no log files exist for the extension.
+    pub fn find_latest_log(&self, extension_name: &str) -> Option<PathBuf> {
+        let ext_log_dir = self.log_dir.join(extension_name);
+        if !ext_log_dir.is_dir() {
+            return None;
+        }
+
+        let entries = std::fs::read_dir(&ext_log_dir).ok()?;
+        entries
+            .flatten()
+            .filter(|e| e.path().is_file())
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "log")
+                    .unwrap_or(false)
+            })
+            .max_by_key(|e| e.file_name())
+            .map(|e| e.path())
+    }
+
     /// Read a log file's contents
     pub fn read_log(path: &Path) -> Result<String> {
         std::fs::read_to_string(path)
@@ -217,6 +242,28 @@ mod tests {
     fn test_parse_log_timestamp_invalid() {
         let path = PathBuf::from("/tmp/logs/python/garbage.log");
         assert!(parse_log_timestamp(&path).is_none());
+    }
+
+    #[test]
+    fn test_find_latest_log() {
+        let temp_dir = TempDir::new().unwrap();
+        let writer = ExtensionLogWriter::new(temp_dir.path().to_path_buf());
+
+        // No logs yet
+        assert!(writer.find_latest_log("python").is_none());
+
+        // Create some log files
+        let ext_dir = temp_dir.path().join("python");
+        std::fs::create_dir_all(&ext_dir).unwrap();
+        std::fs::write(ext_dir.join("20260101T100000Z.log"), "old").unwrap();
+        std::fs::write(ext_dir.join("20260213T143022Z.log"), "newest").unwrap();
+        std::fs::write(ext_dir.join("20260201T120000Z.log"), "middle").unwrap();
+
+        let latest = writer.find_latest_log("python").unwrap();
+        assert!(latest.ends_with("20260213T143022Z.log"));
+
+        // Different extension has no logs
+        assert!(writer.find_latest_log("ruby").is_none());
     }
 
     #[test]

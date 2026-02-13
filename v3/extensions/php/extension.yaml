@@ -17,6 +17,7 @@ requirements:
   diskSpace: 300
   memory: 256
   installTime: 60
+  validationTimeout: 60
 install:
   method: script
   script:
@@ -39,6 +40,7 @@ validate:
       expectedPattern: "PHP 8\\.4"
     - name: composer
     - name: symfony
+      versionFlag: "version"
 remove:
   paths:
     - /usr/bin/composer

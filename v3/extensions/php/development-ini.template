@@ -9,8 +9,11 @@ post_max_size = 100M
 upload_max_filesize = 100M
 
 ; Xdebug settings
-xdebug.mode = develop,debug,coverage
-xdebug.start_with_request = yes
+; Use trigger mode so xdebug only activates when explicitly requested
+; (via XDEBUG_SESSION cookie, query param, or XDEBUG_TRIGGER env var).
+; Set XDEBUG_MODE=debug to enable step debugging for a specific command.
+xdebug.mode = develop,coverage
+xdebug.start_with_request = trigger
 xdebug.client_host = localhost
 xdebug.client_port = 9003
 xdebug.idekey = VSCODE
@@ -18,5 +21,6 @@ xdebug.idekey = VSCODE
 ; OPcache settings for development
 opcache.enable = 1
 opcache.enable_cli = 1
+opcache.jit = off
 opcache.validate_timestamps = 1
 opcache.revalidate_freq = 0

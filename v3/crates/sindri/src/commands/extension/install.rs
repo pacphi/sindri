@@ -147,7 +147,7 @@ async fn install_by_name(
     let duration_secs = start_time.elapsed().as_secs();
 
     match result {
-        Ok(resolved_version) => {
+        Ok((resolved_version, log_file_path)) => {
             spinner.finish_and_clear();
 
             // Use the resolved version from the distributor (actual metadata.version)
@@ -163,8 +163,8 @@ async fn install_by_name(
                     extension_name: name.clone(),
                     version: final_version.clone(),
                     duration_secs,
-                    components_installed: vec![], // TODO: collect from executor
-                    log_file: None,
+                    components_installed: vec![],
+                    log_file: log_file_path,
                 },
             );
 
@@ -181,6 +181,12 @@ async fn install_by_name(
         Err(e) => {
             spinner.finish_and_clear();
 
+            // Try to recover the log file path from the most recent log
+            let log_file = sindri_extensions::ExtensionLogWriter::new_default()
+                .ok()
+                .and_then(|w| w.find_latest_log(&name))
+                .map(|p| p.to_string_lossy().to_string());
+
             // Publish InstallFailed event
             let install_failed_event = EventEnvelope::new(
                 name.clone(),
@@ -192,7 +198,7 @@ async fn install_by_name(
                     error_message: e.to_string(),
                     retry_count: 0,
                     duration_secs,
-                    log_file: None,
+                    log_file,
                 },
             );
 

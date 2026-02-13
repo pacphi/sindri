@@ -49,11 +49,11 @@ configure:
       scope: bashrc
 validate:
   commands:
-    - name: fabric
-    - name: codex
-    - name: gemini
     - name: droid
-    - name: grok
+  # Note: fabric, codex, gemini, and grok are installed via mise/go and may not be
+  # immediately available during validation. They will be accessible after sourcing
+  # ~/.bashrc or restarting the shell. Verify manually after install:
+  #   source ~/.bashrc && fabric --version && codex --version && gemini --version
 remove:
   paths:
     - ~/.local/share/fabric

@@ -4,6 +4,11 @@ set -euo pipefail
 # ruby install script - Simplified for YAML-driven architecture
 # Uses mise for Ruby version management with gem installation
 
+# Auto-accept mise trust prompts. The script runs with cwd set to the extension
+# directory where mise.toml lives; mise discovers it and refuses to parse
+# untrusted configs. MISE_YES=1 follows the same convention as mise-config.
+export MISE_YES=1
+
 print_status "Installing Ruby development environment via mise..."
 
 # Install Ruby via mise
@@ -26,8 +31,17 @@ else
   exit 1
 fi
 
-# Install Ruby
-MISE_CONFIG_FILE="$TOML_FILE" mise install
+# Install Ruby - use the trusted config in conf.d, not the untrusted source
+# Global configs (~/.config/mise/conf.d/*) are implicitly trusted by mise
+# CRITICAL: Change to home directory to avoid mise discovering the untrusted
+# mise.toml in the extension directory (current working directory)
+cd "$HOME" || exit 1
+if mise install 2>&1; then
+  print_success "Ruby installed via mise"
+else
+  print_error "mise install failed"
+  exit 1
+fi
 
 # Activate mise for current session
 eval "$(mise activate bash)"

@@ -43,12 +43,7 @@ fi
 
 [[ ${#failed_packages[@]} -gt 0 ]] && print_warning "Some optional extensions failed: ${failed_packages[*]}"
 
-# Install development PHP ini (requires root — done here instead of configure phase)
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
-if [[ -f "$SCRIPT_DIR/development-ini.template" ]] && [[ -d /etc/php/8.4/cli/conf.d ]]; then
-  sudo cp "$SCRIPT_DIR/development-ini.template" /etc/php/8.4/cli/conf.d/99-development.ini
-  print_success "PHP development ini installed"
-fi
 
 # Install Composer
 if command_exists composer; then
@@ -81,8 +76,17 @@ if command_exists symfony; then
 else
   print_status "Installing Symfony CLI..."
   if timeout 120 bash -c 'wget https://get.symfony.com/cli/installer -O - | bash' 2>/dev/null; then
-    sudo mv "$HOME"/.symfony*/bin/symfony /usr/local/bin/symfony 2>/dev/null
-    print_success "Symfony CLI installed"
+    # The installer saves to ~/.symfony5/bin/symfony (or similar)
+    if ls "$HOME"/.symfony*/bin/symfony 1>/dev/null 2>&1; then
+      sudo mv "$HOME"/.symfony*/bin/symfony /usr/local/bin/symfony
+      if command_exists symfony; then
+        print_success "Symfony CLI installed: $(symfony version 2>&1 | head -n1 || echo 'version check failed')"
+      else
+        print_warning "Symfony CLI binary moved but not in PATH"
+      fi
+    else
+      print_warning "Symfony CLI binary not found after install"
+    fi
   else
     print_warning "Symfony CLI installation failed"
   fi
@@ -109,5 +113,12 @@ for tool in "${php_tools[@]}"; do
   fi
   timeout 300 composer global require "$tool" 2>/dev/null || print_warning "Failed to install $tool"
 done
+
+# Install development PHP ini AFTER all tools to avoid xdebug/JIT interference
+# during Composer and tool installations (requires root — done here instead of configure phase)
+if [[ -f "$SCRIPT_DIR/development-ini.template" ]] && [[ -d /etc/php/8.4/cli/conf.d ]]; then
+  sudo cp "$SCRIPT_DIR/development-ini.template" /etc/php/8.4/cli/conf.d/99-development.ini
+  print_success "PHP development ini installed"
+fi
 
 print_success "PHP development environment installation complete"

@@ -80,18 +80,25 @@ pub(super) async fn run(args: ExtensionLogArgs) -> Result<()> {
         reverse: !args.no_tail,
     };
 
+    // Auto-show inline logs when filtering by extension name with -e
+    let show_inline_logs = args.extension.is_some();
+
     if args.follow {
-        follow_logs(&ledger, filter, args.json).await
+        follow_logs(&ledger, filter, args.json, show_inline_logs).await
     } else {
-        show_logs(&ledger, filter, args.json)
+        show_logs(&ledger, filter, args.json, show_inline_logs)
     }
 }
 
 /// One-shot log display
+///
+/// When `show_inline_logs` is true (e.g. when filtering by a single extension with `-e`),
+/// log file content is printed inline after each event that has one.
 fn show_logs(
     ledger: &StatusLedger,
     filter: sindri_extensions::EventFilter,
     json: bool,
+    show_inline_logs: bool,
 ) -> Result<()> {
     let events = ledger.query_events(filter)?;
 
@@ -105,10 +112,36 @@ fn show_logs(
             print_log_json(event)?;
         } else {
             print_log_line(event);
+            if show_inline_logs {
+                print_inline_log(event);
+            }
         }
     }
 
     Ok(())
+}
+
+/// Print log file content inline (dimmed) after an event line
+fn print_inline_log(envelope: &EventEnvelope) {
+    use console::style;
+    use std::path::Path;
+
+    if let Some(log_path) = extract_log_file(&envelope.event) {
+        let path = Path::new(log_path);
+        if path.exists() {
+            if let Ok(content) = ExtensionLogWriter::read_log(path) {
+                for line in content.lines() {
+                    // Skip header lines (lines starting with "# ")
+                    if line.starts_with("# ") {
+                        continue;
+                    }
+                    if !line.is_empty() {
+                        println!("    {}", style(line).dim());
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Follow mode: poll for new events
@@ -116,6 +149,7 @@ async fn follow_logs(
     ledger: &StatusLedger,
     initial_filter: sindri_extensions::EventFilter,
     json: bool,
+    show_inline_logs: bool,
 ) -> Result<()> {
     use chrono::Utc;
 
@@ -128,6 +162,9 @@ async fn follow_logs(
             print_log_json(event)?;
         } else {
             print_log_line(event);
+            if show_inline_logs {
+                print_inline_log(event);
+            }
         }
         last_timestamp = Some(event.timestamp);
     }
@@ -161,6 +198,9 @@ async fn follow_logs(
                 print_log_json(event)?;
             } else {
                 print_log_line(event);
+                if show_inline_logs {
+                    print_inline_log(event);
+                }
             }
             last_timestamp = Some(event.timestamp);
         }
@@ -309,35 +349,37 @@ fn format_event_details(event: &ExtensionEvent) -> String {
     }
 }
 
-/// Show detailed log output for a specific event by event_id
-fn show_event_detail(ledger: &StatusLedger, event_id: &str) -> Result<()> {
+/// Show detailed log output for a specific event by event_id or extension name
+///
+/// When `detail_value` matches an event ID, shows that specific event.
+/// When it doesn't match any event ID, treats it as an extension name and
+/// shows the most recent event for that extension.
+fn show_event_detail(ledger: &StatusLedger, detail_value: &str) -> Result<()> {
     use std::path::Path;
 
     // Find the event in the ledger
     let all_events = ledger.query_events(sindri_extensions::EventFilter::default())?;
-    let envelope = all_events
-        .iter()
-        .find(|e| e.event_id == event_id)
-        .ok_or_else(|| anyhow!("Event not found: {}", event_id))?;
+
+    // First try exact event_id match
+    let envelope = if let Some(found) = all_events.iter().find(|e| e.event_id == detail_value) {
+        found.clone()
+    } else {
+        // Treat as extension name — find the most recent event for this extension
+        all_events
+            .iter()
+            .rev()
+            .find(|e| e.extension_name == detail_value)
+            .cloned()
+            .ok_or_else(|| {
+                anyhow!(
+                    "No event found for '{}' (not an event ID or extension name)",
+                    detail_value
+                )
+            })?
+    };
 
     // Print event summary
-    output::header("Event Detail");
-    println!();
-    output::kv("Event ID", &envelope.event_id);
-    output::kv(
-        "Timestamp",
-        &envelope
-            .timestamp
-            .format("%Y-%m-%d %H:%M:%S UTC")
-            .to_string(),
-    );
-    output::kv("Extension", &envelope.extension_name);
-    output::kv(
-        "Event Type",
-        &StatusLedger::get_event_type_name(&envelope.event),
-    );
-    output::kv("Details", &format_event_details(&envelope.event));
-    println!();
+    print_event_detail_block(&envelope)?;
 
     // Extract log_file from the event
     match extract_log_file(&envelope.event) {
@@ -361,6 +403,28 @@ fn show_event_detail(ledger: &StatusLedger, event_id: &str) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+/// Print the event detail header block (shared between --detail and -e inline display)
+fn print_event_detail_block(envelope: &EventEnvelope) -> Result<()> {
+    output::header("Event Detail");
+    println!();
+    output::kv("Event ID", &envelope.event_id);
+    output::kv(
+        "Timestamp",
+        &envelope
+            .timestamp
+            .format("%Y-%m-%d %H:%M:%S UTC")
+            .to_string(),
+    );
+    output::kv("Extension", &envelope.extension_name);
+    output::kv(
+        "Event Type",
+        &StatusLedger::get_event_type_name(&envelope.event),
+    );
+    output::kv("Details", &format_event_details(&envelope.event));
+    println!();
     Ok(())
 }
 

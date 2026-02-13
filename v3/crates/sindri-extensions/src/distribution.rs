@@ -268,7 +268,7 @@ impl ExtensionDistributor {
     ///
     /// In bundled mode (SINDRI_EXT_HOME set), installs from bundled extensions.
     /// Otherwise, downloads from raw.githubusercontent.com using CLI version tag.
-    pub async fn install(&self, name: &str, version: Option<&str>) -> Result<String> {
+    pub async fn install(&self, name: &str, version: Option<&str>) -> Result<(String, Option<String>)> {
         info!("Installing extension: {}", name);
 
         // 1. Fetch compatibility matrix
@@ -331,7 +331,7 @@ impl ExtensionDistributor {
         // 4. Check if already installed
         if self.is_installed(name, &target_version)? {
             info!("{} {} is already installed", name, target_version);
-            return Ok(target_version.to_string());
+            return Ok((target_version.to_string(), None));
         }
 
         // 5. Get extension directory (bundled or downloaded)
@@ -363,7 +363,7 @@ impl ExtensionDistributor {
         {
             if !self.is_any_version_installed(dep)? {
                 info!("Installing dependency: {}", dep);
-                Box::pin(self.install(dep, None)).await?;
+                Box::pin(self.install(dep, None)).await.map(|_| ())?;
             }
         }
 
@@ -384,7 +384,11 @@ impl ExtensionDistributor {
         let executor = crate::executor::ExtensionExecutor::new(&ext_dir, workspace_dir, home_dir)
             .with_timeout(runtime_config.network.mise_timeout_secs);
 
-        let (_install_output, install_result) = executor.install(&extension).await;
+        let (install_output, install_result) = executor.install(&extension).await;
+
+        // Write log file before checking result (ensures logs exist even on failure)
+        let log_file = self.write_install_log(name, &install_output);
+
         install_result.context(format!("Failed to execute installation for {}", name))?;
 
         // 9. Validate installation
@@ -402,7 +406,7 @@ impl ExtensionDistributor {
 
         // 10. Event publishing is handled by the CLI layer
         info!("Successfully installed {} {}", name, target_version);
-        Ok(target_version.to_string())
+        Ok((target_version.to_string(), log_file))
     }
 
     /// Download extension metadata without executing installation
@@ -500,6 +504,29 @@ impl ExtensionDistributor {
         Ok(extension)
     }
 
+    /// Write installation output to a per-extension log file
+    ///
+    /// Returns the log file path as a String, or None if writing failed.
+    fn write_install_log(
+        &self,
+        name: &str,
+        output: &crate::executor::InstallOutput,
+    ) -> Option<String> {
+        match crate::log_files::ExtensionLogWriter::new_default() {
+            Ok(writer) => match writer.write_log(name, chrono::Utc::now(), output) {
+                Ok(path) => Some(path.to_string_lossy().to_string()),
+                Err(e) => {
+                    warn!("Failed to write install log for {}: {}", name, e);
+                    None
+                }
+            },
+            Err(e) => {
+                warn!("Failed to create log writer: {}", e);
+                None
+            }
+        }
+    }
+
     /// Upgrade an extension to the latest compatible version
     ///
     /// # Arguments
@@ -540,7 +567,9 @@ impl ExtensionDistributor {
         info!("Upgrading {} {} -> {}", name, current, latest);
 
         // 5. Install new version (keeps old version for rollback)
-        self.install(name, Some(&latest.to_string())).await?;
+        self.install(name, Some(&latest.to_string()))
+            .await
+            .map(|_| ())?;
 
         info!("Successfully upgraded {} to {}", name, latest);
         Ok(())

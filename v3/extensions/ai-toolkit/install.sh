@@ -4,6 +4,11 @@ set -euo pipefail
 # ai-toolkit install script - Simplified for YAML-driven architecture
 # Installs AI CLI tools using hybrid approach: Native + mise + platform-specific
 
+# Auto-accept mise trust prompts. The script runs with cwd set to the extension
+# directory where mise.toml lives; mise shell hooks discover it and refuse to
+# parse untrusted configs. MISE_YES=1 follows the same convention as mise-config.
+export MISE_YES=1
+
 print_status "Installing AI CLI tools using hybrid approach..."
 
 # ===========================================================================
@@ -68,7 +73,12 @@ if command_exists mise; then
     print_error "mise.toml not found in extension directory"
   fi
 
-  if MISE_CONFIG_FILE="$TOML_FILE" mise install 2>&1 | tee /tmp/mise-install.log; then
+  # Install tools - use the trusted config in conf.d, not the untrusted source
+  # Global configs (~/.config/mise/conf.d/*) are implicitly trusted by mise
+  # CRITICAL: Change to home directory to avoid mise discovering the untrusted
+  # mise.toml in the extension directory (current working directory)
+  cd "$HOME" || exit 1
+  if mise install 2>&1 | tee /tmp/mise-install.log; then
     print_success "mise install completed"
   else
     print_warning "mise install encountered issues"

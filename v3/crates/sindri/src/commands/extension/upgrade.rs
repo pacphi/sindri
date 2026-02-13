@@ -147,6 +147,12 @@ pub(super) async fn run(args: ExtensionUpgradeArgs) -> Result<()> {
 
     let duration_secs = start_time.elapsed().as_secs();
 
+    // Recover log file path from the most recent log for this extension
+    let log_file = sindri_extensions::ExtensionLogWriter::new_default()
+        .ok()
+        .and_then(|w| w.find_latest_log(&args.name))
+        .map(|p| p.to_string_lossy().to_string());
+
     match result {
         Ok(_) => {
             // Publish UpgradeCompleted event
@@ -159,7 +165,7 @@ pub(super) async fn run(args: ExtensionUpgradeArgs) -> Result<()> {
                     from_version: current.to_string(),
                     to_version: target.to_string(),
                     duration_secs,
-                    log_file: None,
+                    log_file,
                 },
             );
 
@@ -184,7 +190,7 @@ pub(super) async fn run(args: ExtensionUpgradeArgs) -> Result<()> {
                     to_version: target.to_string(),
                     error_message: e.to_string(),
                     duration_secs,
-                    log_file: None,
+                    log_file,
                 },
             );
 

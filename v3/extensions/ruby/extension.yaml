@@ -35,6 +35,8 @@ validate:
       expectedPattern: "ruby \\d+\\.\\d+\\.\\d+"
     - name: gem
     - name: bundle
+    - name: gem
+    - name: bundle
 remove:
   mise:
     removeConfig: true
