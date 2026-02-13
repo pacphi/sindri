@@ -268,7 +268,11 @@ impl ExtensionDistributor {
     ///
     /// In bundled mode (SINDRI_EXT_HOME set), installs from bundled extensions.
     /// Otherwise, downloads from raw.githubusercontent.com using CLI version tag.
-    pub async fn install(&self, name: &str, version: Option<&str>) -> Result<(String, Option<String>)> {
+    pub async fn install(
+        &self,
+        name: &str,
+        version: Option<&str>,
+    ) -> Result<(String, Option<String>)> {
         info!("Installing extension: {}", name);
 
         // 1. Fetch compatibility matrix

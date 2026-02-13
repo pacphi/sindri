@@ -710,18 +710,18 @@ sindri extension log [OPTIONS]
 
 **Options:**
 
-| Option                | Short | Default | Description                                                |
-| --------------------- | ----- | ------- | ---------------------------------------------------------- |
-| `--no-tail`           | -     | false   | Show ALL events (not just last N)                          |
-| `--follow`            | `-f`  | false   | Watch for new events in real-time (Ctrl+C to stop)         |
-| `--extension <NAME>`  | `-e`  | -       | Filter by extension name (auto-shows log content inline)   |
-| `--type <TYPE>`       | `-t`  | -       | Event type: install, upgrade, remove, validation, outdated |
-| `--level <LEVEL>`     | `-l`  | -       | Severity: info, warn, error                                |
-| `--since <DATE>`      | -     | -       | Events after ISO 8601 timestamp (e.g. 2026-02-10)          |
-| `--until <DATE>`      | -     | -       | Events before ISO 8601 timestamp                           |
-| `--lines <N>`         | `-n`  | 25      | Number of recent events to show                            |
-| `--detail <ID\|NAME>` | -     | -       | Show detail for an event ID or extension name (most recent)|
-| `--json`              | -     | false   | Machine-readable JSON output                               |
+| Option                | Short | Default | Description                                                 |
+| --------------------- | ----- | ------- | ----------------------------------------------------------- |
+| `--no-tail`           | -     | false   | Show ALL events (not just last N)                           |
+| `--follow`            | `-f`  | false   | Watch for new events in real-time (Ctrl+C to stop)          |
+| `--extension <NAME>`  | `-e`  | -       | Filter by extension name (auto-shows log content inline)    |
+| `--type <TYPE>`       | `-t`  | -       | Event type: install, upgrade, remove, validation, outdated  |
+| `--level <LEVEL>`     | `-l`  | -       | Severity: info, warn, error                                 |
+| `--since <DATE>`      | -     | -       | Events after ISO 8601 timestamp (e.g. 2026-02-10)           |
+| `--until <DATE>`      | -     | -       | Events before ISO 8601 timestamp                            |
+| `--lines <N>`         | `-n`  | 25      | Number of recent events to show                             |
+| `--detail <ID\|NAME>` | -     | -       | Show detail for an event ID or extension name (most recent) |
+| `--json`              | -     | false   | Machine-readable JSON output                                |
 
 **Event types:**
 
