@@ -191,7 +191,7 @@ jobs:
         uses: cargo-bins/cargo-binstall@main
 
       - name: Install cargo-llvm-cov
-        run: cargo binstall cargo-llvm-cov --no-confirm
+        run: cargo binstall cargo-llvm-cov --no-confirm --force
 
       - name: Generate LCOV coverage report
         run: |
