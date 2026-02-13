@@ -20,6 +20,8 @@ pub enum ExtensionEvent {
         version: String,
         duration_secs: u64,
         components_installed: Vec<String>,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        log_file: Option<String>,
     },
 
     /// Extension installation failed
@@ -29,6 +31,8 @@ pub enum ExtensionEvent {
         error_message: String,
         retry_count: u32,
         duration_secs: u64,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        log_file: Option<String>,
     },
 
     /// Extension upgrade started
@@ -44,6 +48,8 @@ pub enum ExtensionEvent {
         from_version: String,
         to_version: String,
         duration_secs: u64,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        log_file: Option<String>,
     },
 
     /// Extension upgrade failed
@@ -53,6 +59,8 @@ pub enum ExtensionEvent {
         to_version: String,
         error_message: String,
         duration_secs: u64,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        log_file: Option<String>,
     },
 
     /// Extension removal started
@@ -66,6 +74,8 @@ pub enum ExtensionEvent {
         extension_name: String,
         version: String,
         duration_secs: u64,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        log_file: Option<String>,
     },
 
     /// Extension removal failed
@@ -74,6 +84,8 @@ pub enum ExtensionEvent {
         version: String,
         error_message: String,
         duration_secs: u64,
+        #[serde(skip_serializing_if = "Option::is_none", default)]
+        log_file: Option<String>,
     },
 
     /// Extension marked as outdated
@@ -171,10 +183,30 @@ mod tests {
             version: "3.13.0".to_string(),
             duration_secs: 150,
             components_installed: vec!["python".to_string(), "pip".to_string()],
+            log_file: None,
         };
 
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains(r#""type":"install_completed"#));
+        // log_file: None should be omitted
+        assert!(!json.contains("log_file"));
+
+        let deserialized: ExtensionEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_install_completed_with_log_file() {
+        let event = ExtensionEvent::InstallCompleted {
+            extension_name: "python".to_string(),
+            version: "3.13.0".to_string(),
+            duration_secs: 150,
+            components_installed: vec!["python".to_string()],
+            log_file: Some("/home/user/.sindri/logs/python/20260213T143022Z.log".to_string()),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains(r#""log_file":"#));
 
         let deserialized: ExtensionEvent = serde_json::from_str(&json).unwrap();
         assert_eq!(event, deserialized);
@@ -188,6 +220,7 @@ mod tests {
             error_message: "Network timeout".to_string(),
             retry_count: 0,
             duration_secs: 120,
+            log_file: None,
         };
 
         let json = serde_json::to_string(&event).unwrap();
@@ -196,6 +229,18 @@ mod tests {
 
         let deserialized: ExtensionEvent = serde_json::from_str(&json).unwrap();
         assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_backward_compat_no_log_file() {
+        // Old ledger entries without log_file should deserialize correctly
+        let json = r#"{"type":"install_completed","extension_name":"python","version":"3.13.0","duration_secs":150,"components_installed":["python"]}"#;
+        let event: ExtensionEvent = serde_json::from_str(json).unwrap();
+        if let ExtensionEvent::InstallCompleted { log_file, .. } = event {
+            assert!(log_file.is_none());
+        } else {
+            panic!("Expected InstallCompleted");
+        }
     }
 
     #[test]
@@ -227,6 +272,7 @@ mod tests {
             version: "3.13.0".to_string(),
             duration_secs: 150,
             components_installed: vec!["python".to_string()],
+            log_file: None,
         };
 
         let envelope = EventEnvelope::new(

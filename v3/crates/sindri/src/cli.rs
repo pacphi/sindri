@@ -325,6 +325,10 @@ pub struct ExtensionLogArgs {
     #[arg(short = 'n', long, default_value_t = sindri_extensions::DEFAULT_LOG_TAIL_LINES)]
     pub lines: usize,
 
+    /// Show detailed log output for a specific event
+    #[arg(long, value_name = "EVENT_ID", conflicts_with_all = ["follow", "no_tail"])]
+    pub detail: Option<String>,
+
     /// Output as JSON
     #[arg(long)]
     pub json: bool,

@@ -39,10 +39,10 @@ V3 extensions are organized into the following categories:
 | ------------------- | ------------------------------------------------ | ----- |
 | **languages**       | Programming language runtimes and toolchains     | 11    |
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
-| **devops**          | Infrastructure, deployment, and operations tools | 4     |
+| **devops**          | Infrastructure, deployment, and operations tools | 5     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 4     |
 | **ai-dev**          | AI development tools and LLM interfaces          | 3     |
-| **mcp**             | Model Context Protocol servers                   | 6     |
+| **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
 | **testing**         | Testing frameworks and security testing          | 2     |
@@ -59,39 +59,40 @@ V3 extensions are organized into the following categories:
 
 | Extension           | Version | Description                                                                     | Install Method |
 | ------------------- | ------- | ------------------------------------------------------------------------------- | -------------- |
-| **nodejs**          | 1.1.0   | Node.js LTS via mise with pnpm package manager                                  | hybrid         |
+| **nodejs**          | 1.1.0   | Node.js LTS via mise with pnpm package manager (corepack)                       | mise           |
 | **python**          | 1.1.1   | Python 3.13 with uv package manager via mise                                    | mise           |
 | **rust**            | 1.0.2   | Rust stable via rustup                                                          | script         |
-| **golang**          | 1.0.1   | Go 1.25 via mise                                                                | mise           |
-| **dotnet**          | 2.1.0   | .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools                   | script         |
-| **jvm**             | 2.1.0   | JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise | script         |
+| **golang**          | 1.1.0   | Go 1.26 via mise                                                                | mise           |
+| **dotnet**          | 2.2.0   | .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools                   | script         |
+| **jvm**             | 2.1.1   | JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise | script         |
 | **php**             | 2.1.0   | PHP 8.4 with Composer, Symfony CLI, and development tools                       | script         |
-| **ruby**            | 2.0.0   | Ruby 3.4.7 via mise with Rails and Bundler                                      | script         |
-| **haskell**         | 1.0.1   | Haskell development environment with GHC, Cabal, Stack, and HLS                 | mise           |
+| **ruby**            | 2.1.0   | Ruby 4.0.x via mise with Rails and Bundler                                      | script         |
+| **haskell**         | 2.0.0   | Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup       | script         |
 | **swift**           | 1.0.0   | Swift 6.2.3 programming language via mise                                       | mise           |
 | **nodejs-devtools** | 2.2.0   | TypeScript, ESLint, Prettier, and Node.js development tools                     | mise           |
 
 ### DevOps
 
-| Extension       | Version | Description                                                                                        | Install Method |
-| --------------- | ------- | -------------------------------------------------------------------------------------------------- | -------------- |
-| **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                                            | hybrid         |
-| **infra-tools** | 2.0.0   | Infrastructure and DevOps tooling (Terraform, K8s, Ansible, Helm)                                  | hybrid         |
-| **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                                               | script         |
-| **cloud-tools** | 2.0.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM) - sudo-free installation | script         |
+| Extension       | Version | Description                                                                       | Install Method |
+| --------------- | ------- | --------------------------------------------------------------------------------- | -------------- |
+| **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                           | hybrid         |
+| **infra-tools** | 2.1.0   | Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)                   | hybrid         |
+| **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                              | script         |
+| **cloud-tools** | 2.1.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)         | script         |
+| **monitoring**  | 2.0.0   | Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli) | script         |
 
 ### Claude Code Integrations
 
 | Extension              | Version | Description                                                                         | Install Method |
 | ---------------------- | ------- | ----------------------------------------------------------------------------------- | -------------- |
-| **claude-cli**         | latest  | Claude Code CLI - Official Anthropic AI coding assistant                            | script         |
+| **claude-cli**         | 1.0.0   | Claude Code CLI - Official Anthropic AI coding assistant                            | script         |
 | **claude-flow-v3**     | 3.0.0   | Next-gen multi-agent orchestration with 10x performance, 150x faster search (alpha) | mise           |
 | **claude-flow-v2**     | 2.7.47  | AI-powered multi-agent orchestration system for Claude Code workflows (stable)      | mise           |
 | **claude-codepro**     | 4.5.29  | Production-grade TDD-enforced development environment with automated quality checks | script         |
 | **claude-code-mux**    | 1.0.0   | High-performance AI routing proxy with automatic failover across 18+ providers      | script         |
-| **claudish**           | 1.0.0   | Claude Code CLI proxy for OpenRouter models via local Anthropic API proxy           | mise           |
-| **claudeup**           | 1.0.0   | TUI tool for managing Claude Code plugins, MCPs, and configuration settings         | mise           |
-| **claude-marketplace** | 2.0.0   | Claude Code plugin marketplace integration via YAML configuration                   | script         |
+| **claudish**           | 1.1.0   | Claude Code CLI proxy for OpenRouter models via local Anthropic API proxy           | mise           |
+| **claudeup**           | 1.1.0   | TUI tool for managing Claude Code plugins, MCPs, and configuration settings         | mise           |
+| **claude-marketplace** | 2.0.0   | Claude Code plugin marketplace integration via JSON configuration                   | script         |
 | **compahook**          | 1.0.0   | Persistent memory layer for Claude Code's /compact command                          | mise           |
 
 ### AI Agents
@@ -99,35 +100,34 @@ V3 extensions are organized into the following categories:
 | Extension         | Version | Description                                                                          | Install Method |
 | ----------------- | ------- | ------------------------------------------------------------------------------------ | -------------- |
 | **agentic-flow**  | 1.0.0   | Multi-model AI agent framework for Claude Code with cost optimization (alpha)        | mise           |
-| **agentic-qe**    | 1.1.0   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
+| **agentic-qe**    | 1.1.1   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
 | **agent-manager** | 2.0.0   | Claude Code agent manager for managing AI agents                                     | script         |
-| **agent-browser** | 0.6.0   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
+| **agent-browser** | 1.0.0   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
 
 ### AI Development
 
 | Extension      | Version | Description                                                                      | Install Method |
 | -------------- | ------- | -------------------------------------------------------------------------------- | -------------- |
-| **ai-toolkit** | 2.1.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot) | script         |
+| **ai-toolkit** | 2.2.1   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot) | script         |
 | **ollama**     | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)           | script         |
 | **goose**      | 1.0.0   | Block's open-source AI agent that automates engineering tasks                    | script         |
 
 ### MCP Servers
 
-| Extension          | Version | Description                                                                   | Install Method |
-| ------------------ | ------- | ----------------------------------------------------------------------------- | -------------- |
-| **linear-mcp**     | 2.1.0   | Linear MCP server using Claude Code's native HTTP transport                   | script         |
-| **jira-mcp**       | 2.0.0   | Atlassian MCP server using Claude Code's native SSE transport                 | script         |
-| **context7-mcp**   | 1.0.0   | Context7 MCP server for version-specific library documentation                | script         |
-| **excalidraw-mcp** | 1.0.0   | Real-time Excalidraw diagram creation and manipulation via MCP server         | hybrid         |
-| **pal-mcp-server** | 9.8.2   | AI orchestration and multi-model collaboration MCP server with 18 tools       | script         |
-| **monitoring**     | 2.0.0   | Claude monitoring and usage tracking tools (claude-monitor, claude-usage-cli) | script         |
+| Extension          | Version | Description                                                             | Install Method |
+| ------------------ | ------- | ----------------------------------------------------------------------- | -------------- |
+| **linear-mcp**     | 2.1.0   | Linear MCP server using Claude Code's native HTTP transport             | script         |
+| **jira-mcp**       | 2.0.0   | Atlassian MCP server using Claude Code's native SSE transport           | script         |
+| **context7-mcp**   | 1.0.0   | Context7 MCP server for version-specific library documentation          | script         |
+| **excalidraw-mcp** | 1.0.0   | Real-time Excalidraw diagram creation and manipulation via MCP server   | hybrid         |
+| **pal-mcp-server** | 9.8.2   | AI orchestration and multi-model collaboration MCP server with 18 tools | script         |
 
 ### Package Managers
 
 | Extension       | Version | Description                                                 | Install Method |
 | --------------- | ------- | ----------------------------------------------------------- | -------------- |
 | **mise-config** | 2.0.0   | Global mise configuration and settings                      | script         |
-| **sdkman**      | 1.0.0   | SDKMAN - The Software Development Kit Manager for JVM tools | script         |
+| **sdkman**      | 1.0.1   | SDKMAN - The Software Development Kit Manager for JVM tools | script         |
 
 ### Productivity
 
@@ -161,7 +161,7 @@ V3 extensions are organized into the following categories:
 
 | Extension       | Version | Description                                                     | Install Method |
 | --------------- | ------- | --------------------------------------------------------------- | -------------- |
-| **guacamole**   | 2.0.0   | Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC) | script         |
+| **guacamole**   | 2.1.0   | Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC) | script         |
 | **xfce-ubuntu** | 2.0.0   | XFCE desktop with xRDP remote access for GUI development        | hybrid         |
 
 ### Research

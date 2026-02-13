@@ -42,6 +42,7 @@ fn create_populated_ledger() -> (StatusLedger, TempDir) {
                 version: format!("1.{}.0", i),
                 duration_secs: 60 + i as u64 * 30,
                 components_installed: vec![ext_name.to_string()],
+                log_file: None,
             },
         );
         completed.timestamp =
@@ -60,6 +61,7 @@ fn create_populated_ledger() -> (StatusLedger, TempDir) {
             error_message: "Network timeout".to_string(),
             retry_count: 0,
             duration_secs: 30,
+            log_file: None,
         },
     );
     ledger.append(failed).unwrap();

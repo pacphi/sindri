@@ -384,10 +384,8 @@ impl ExtensionDistributor {
         let executor = crate::executor::ExtensionExecutor::new(&ext_dir, workspace_dir, home_dir)
             .with_timeout(runtime_config.network.mise_timeout_secs);
 
-        executor
-            .install(&extension)
-            .await
-            .context(format!("Failed to execute installation for {}", name))?;
+        let (_install_output, install_result) = executor.install(&extension).await;
+        install_result.context(format!("Failed to execute installation for {}", name))?;
 
         // 9. Validate installation
         let validation_result = executor

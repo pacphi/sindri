@@ -164,6 +164,7 @@ async fn install_by_name(
                     version: final_version.clone(),
                     duration_secs,
                     components_installed: vec![], // TODO: collect from executor
+                    log_file: None,
                 },
             );
 
@@ -191,6 +192,7 @@ async fn install_by_name(
                     error_message: e.to_string(),
                     retry_count: 0,
                     duration_secs,
+                    log_file: None,
                 },
             );
 

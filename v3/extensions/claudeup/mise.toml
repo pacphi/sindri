@@ -5,4 +5,4 @@
 # query timeouts that can poison subsequent mise operations.
 
 [tools]
-"npm:claudeup" = "1.8"
+"npm:claudeup" = "3.3.1"

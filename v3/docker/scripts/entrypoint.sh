@@ -373,6 +373,7 @@ install_extensions_background() {
         export MISE_CONFIG_DIR="${ALT_HOME}/.config/mise"
         export MISE_CACHE_DIR="${ALT_HOME}/.cache/mise"
         export MISE_STATE_DIR="${ALT_HOME}/.local/state/mise"
+        export MISE_TRUSTED_CONFIG_PATHS="${ALT_HOME}/.config/mise:${ALT_HOME}/.config/mise/conf.d"
 
         # Build preserve list from the profile.d file written by propagate_environment()
         # This avoids duplicating the pattern-matching logic

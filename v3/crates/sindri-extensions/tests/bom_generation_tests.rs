@@ -485,7 +485,7 @@ fn test_write_and_load_yaml_bom() {
     let path = tmp.path().join("bom.yaml");
 
     let gen = test_bom_generator();
-    let bom = BillOfMaterialsBuilder::single_language("golang", "go", "1.25.0").build();
+    let bom = BillOfMaterialsBuilder::single_language("golang", "go", "1.26.0").build();
 
     gen.write_bom(&bom, &path, BomFormat::Yaml)
         .expect("write YAML");

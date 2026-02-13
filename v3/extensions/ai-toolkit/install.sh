@@ -59,25 +59,16 @@ if command_exists mise; then
   MISE_CONF_DIR="$HOME/.config/mise/conf.d"
   mkdir -p "$MISE_CONF_DIR"
   TOML_FILE="$MISE_CONF_DIR/ai-toolkit.toml"
+  SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
-  # Build toml content dynamically
-  # IMPORTANT: Use pinned versions instead of "latest" to avoid npm registry
-  # query timeouts that can poison subsequent mise operations.
-  toml_content="# AI Toolkit - mise configuration\n\n[tools]\n"
-
-  # Add npm-based tools if Node.js available
-  if command_exists npm || command_exists node; then
-    toml_content+="# npm-based tools - pinned versions for stability\n"
-    toml_content+='"npm:@openai/codex" = "0.95"\n'
-    toml_content+='"npm:@google/gemini-cli" = "0.27"\n'
-    toml_content+='"npm:@vibe-kit/grok-cli" = "0.0.34"\n'
-    toml_content+="\n"
+  if [[ -f "$SCRIPT_DIR/mise.toml" ]]; then
+    cp "$SCRIPT_DIR/mise.toml" "$TOML_FILE"
+    print_success "Created mise config: $TOML_FILE"
+  else
+    print_error "mise.toml not found in extension directory"
   fi
 
-  echo -e "$toml_content" > "$TOML_FILE"
-  print_success "Created mise config: $TOML_FILE"
-
-  if mise install 2>&1 | tee /tmp/mise-install.log; then
+  if MISE_CONFIG_FILE="$TOML_FILE" mise install 2>&1 | tee /tmp/mise-install.log; then
     print_success "mise install completed"
   else
     print_warning "mise install encountered issues"

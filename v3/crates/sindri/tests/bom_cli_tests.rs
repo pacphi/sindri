@@ -355,7 +355,7 @@ fn test_export_json_integration() {
         ExtensionCategory::Languages,
         InstallMethod::Mise,
         vec![
-            runtime_tool("go", "1.25.0", BomSource::Mise),
+            runtime_tool("go", "1.26.0", BomSource::Mise),
             tool("golangci-lint", "1.64.0", BomSource::GithubRelease),
         ],
         vec![],

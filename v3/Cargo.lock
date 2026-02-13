@@ -4808,6 +4808,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml_ng",
+ "serial_test",
  "shellexpand",
  "sindri-core",
  "tempfile",

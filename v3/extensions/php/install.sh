@@ -6,11 +6,15 @@ set -euo pipefail
 
 print_status "Installing PHP and Symfony development environment..."
 
-# Add PHP repository
-if ! grep -q "ondrej/php" /etc/apt/sources.list.d/*.list 2>/dev/null; then
+# Add ondrej/php PPA manually (avoids software-properties-common which pulls in python3)
+if ! grep -q "ondrej/php" /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null; then
   print_status "Adding PHP repository..."
-  sudo DEBIAN_FRONTEND=noninteractive add-apt-repository -y ppa:ondrej/php 2>/dev/null || exit 1
-  sleep 3
+  UBUNTU_CODENAME=$(grep UBUNTU_CODENAME /etc/os-release | cut -d= -f2)
+  sudo mkdir -p /etc/apt/keyrings
+  curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x14AA40EC0831756756D7F66C4F4EA0AAE5267A6C" \
+    | sudo gpg --dearmor -o /etc/apt/keyrings/ondrej-php.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/ondrej-php.gpg] https://ppa.launchpadcontent.net/ondrej/php/ubuntu ${UBUNTU_CODENAME} main" \
+    | sudo tee /etc/apt/sources.list.d/ondrej-php.list > /dev/null
 fi
 
 # Update package lists
@@ -38,6 +42,13 @@ if [[ " ${failed_packages[*]} " =~ php8.4 ]] || [[ " ${failed_packages[*]} " =~ 
 fi
 
 [[ ${#failed_packages[@]} -gt 0 ]] && print_warning "Some optional extensions failed: ${failed_packages[*]}"
+
+# Install development PHP ini (requires root — done here instead of configure phase)
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+if [[ -f "$SCRIPT_DIR/development-ini.template" ]] && [[ -d /etc/php/8.4/cli/conf.d ]]; then
+  sudo cp "$SCRIPT_DIR/development-ini.template" /etc/php/8.4/cli/conf.d/99-development.ini
+  print_success "PHP development ini installed"
+fi
 
 # Install Composer
 if command_exists composer; then

@@ -1,9 +1,9 @@
-# ruby.toml - Ruby 3.4.7 development environment via mise
+# ruby.toml - Ruby 4.0.x development environment via mise
 # Full development environment with Ruby, Rails, and gems
 
 [tools]
-# Ruby 3.4.7 (latest stable in 3.4.x series)
-ruby = "3.4.7"
+# Ruby (latest stable in 4.0.x series)
+ruby = "4.0"
 
 [env]
 # Gem configuration

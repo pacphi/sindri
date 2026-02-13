@@ -465,12 +465,12 @@ bom:
   tools:
     # PREFERRED: Explicit versions (mise-based tools)
     - name: go
-      version: "1.25" # Pinned in mise.toml
+      version: "1.26" # Pinned in mise.toml
       source: mise
       type: compiler
       license: BSD-3-Clause
       homepage: https://golang.org
-      purl: pkg:golang/go@1.25
+      purl: pkg:golang/go@1.26
 
     # Script-based with pinned version
     - name: kubectl
@@ -483,12 +483,12 @@ bom:
 
     # Bundled tools (version matches parent)
     - name: npm
-      version: 10.9.4 # Bundled with Node.js 22 LTS
+      version: 11.x # Bundled with Node.js 24 LTS
       source: mise
       type: package-manager
       license: Artistic-2.0
       homepage: https://www.npmjs.com
-      purl: pkg:npm/npm@10.9.4
+      purl: pkg:npm/npm
 
     # EXCEPTIONAL: Semantic versioning (valid)
     - name: node

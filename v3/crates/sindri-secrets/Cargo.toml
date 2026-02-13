@@ -39,5 +39,6 @@ chrono = { workspace = true }
 
 [dev-dependencies]
 mockall = "0.14"
+serial_test = { workspace = true }
 tempfile = "3.24"
 tokio-test = "0.4"

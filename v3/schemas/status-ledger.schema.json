@@ -70,7 +70,8 @@
             "components_installed": {
               "type": "array",
               "items": { "type": "string" }
-            }
+            },
+            "log_file": { "type": "string", "description": "Path to detailed installation log file" }
           },
           "required": ["type", "extension_name", "version", "duration_secs", "components_installed"],
           "additionalProperties": false
@@ -82,7 +83,8 @@
             "version": { "type": "string" },
             "error_message": { "type": "string" },
             "retry_count": { "type": "integer", "minimum": 0 },
-            "duration_secs": { "type": "integer", "minimum": 0 }
+            "duration_secs": { "type": "integer", "minimum": 0 },
+            "log_file": { "type": "string", "description": "Path to detailed installation log file" }
           },
           "required": ["type", "extension_name", "version", "error_message", "retry_count", "duration_secs"],
           "additionalProperties": false
@@ -103,7 +105,8 @@
             "extension_name": { "type": "string" },
             "from_version": { "type": "string" },
             "to_version": { "type": "string" },
-            "duration_secs": { "type": "integer", "minimum": 0 }
+            "duration_secs": { "type": "integer", "minimum": 0 },
+            "log_file": { "type": "string", "description": "Path to detailed installation log file" }
           },
           "required": ["type", "extension_name", "from_version", "to_version", "duration_secs"],
           "additionalProperties": false
@@ -115,7 +118,8 @@
             "from_version": { "type": "string" },
             "to_version": { "type": "string" },
             "error_message": { "type": "string" },
-            "duration_secs": { "type": "integer", "minimum": 0 }
+            "duration_secs": { "type": "integer", "minimum": 0 },
+            "log_file": { "type": "string", "description": "Path to detailed installation log file" }
           },
           "required": ["type", "extension_name", "from_version", "to_version", "error_message", "duration_secs"],
           "additionalProperties": false
@@ -134,7 +138,8 @@
             "type": { "const": "remove_completed" },
             "extension_name": { "type": "string" },
             "version": { "type": "string" },
-            "duration_secs": { "type": "integer", "minimum": 0 }
+            "duration_secs": { "type": "integer", "minimum": 0 },
+            "log_file": { "type": "string", "description": "Path to detailed installation log file" }
           },
           "required": ["type", "extension_name", "version", "duration_secs"],
           "additionalProperties": false
@@ -145,7 +150,8 @@
             "extension_name": { "type": "string" },
             "version": { "type": "string" },
             "error_message": { "type": "string" },
-            "duration_secs": { "type": "integer", "minimum": 0 }
+            "duration_secs": { "type": "integer", "minimum": 0 },
+            "log_file": { "type": "string", "description": "Path to detailed installation log file" }
           },
           "required": ["type", "extension_name", "version", "error_message", "duration_secs"],
           "additionalProperties": false

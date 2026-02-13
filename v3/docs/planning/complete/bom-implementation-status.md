@@ -73,7 +73,7 @@ Comprehensive Bill of Materials (BOM) implementation for Sindri v3, enabling sec
 
 **Extensions Synced**:
 
-- golang (go 1.25), python (3.13, uv 0.9), ruby (3.4.7)
+- golang (go 1.26), python (3.13, uv 0.9), ruby (3.4.7)
 - nodejs (node lts), swift, rust (stable)
 - 14 npm-based tools via mise (agentic-qe 3.6.0, claudeup 1.8, etc.)
 

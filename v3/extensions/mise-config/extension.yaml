@@ -15,6 +15,11 @@ install:
   script:
     path: install.sh
     timeout: 30
+configure:
+  environment:
+    - key: MISE_TRUSTED_CONFIG_PATHS
+      value: "$HOME/.config/mise:$HOME/.config/mise/conf.d"
+      scope: bashrc
 validate:
   commands:
     - name: mise

@@ -69,6 +69,10 @@ This is a breaking change for v3.0.0:
 - **Ledger growth**: File grows over time (mitigated by compaction with 90-day retention)
 - **Sequential scan**: Status queries scan the full ledger file (acceptable for <10K events)
 
+### Extensions
+
+- **Per-extension log files (ADR-045)**: Six completion/failure event variants (`InstallCompleted`, `InstallFailed`, `UpgradeCompleted`, `UpgradeFailed`, `RemoveCompleted`, `RemoveFailed`) gained an optional `log_file: Option<String>` field that links to detailed per-extension installation logs at `~/.sindri/logs/<name>/<timestamp>.log`. The field is backward compatible via serde defaults.
+
 ### Risks Mitigated
 
 - **File corruption**: Advisory file locking via `fs4` crate, `fsync()` for durability

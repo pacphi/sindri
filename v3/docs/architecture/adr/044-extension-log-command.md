@@ -53,6 +53,10 @@ Add `sindri extension log` as a new CLI subcommand that provides user-friendly l
 - **Script-friendly**: `--json` output enables integration with `jq`, monitoring tools, etc.
 - **No new dependencies**: Built entirely on existing `StatusLedger`, `console`, `chrono`, and `tokio`
 
+### Extensions
+
+- **`--detail <EVENT_ID>` (ADR-045)**: Shows the event summary and displays the content of the linked per-extension log file. This bridges the gap between structured event metadata and detailed tool output (stdout/stderr captured during installation). See ADR-045 for the per-extension log file architecture.
+
 ### Negative
 
 - **Sequential scan**: `query_events()` performs a full sequential scan of the JSONL ledger. This is acceptable given the expected ledger size (hundreds to low thousands of events) and the existing compaction mechanism

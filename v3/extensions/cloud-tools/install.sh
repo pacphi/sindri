@@ -7,6 +7,11 @@ set -euo pipefail
 
 print_status "Installing cloud provider CLI tools..."
 
+# Load pinned versions from co-located config
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# shellcheck source=versions.env
+source "$SCRIPT_DIR/versions.env"
+
 # Detect architecture for binary downloads
 ARCH=$(uname -m)
 case "$ARCH" in
@@ -31,8 +36,6 @@ print_status "Installing AWS CLI..."
 if command_exists aws; then
   print_warning "AWS CLI already installed: $(aws --version)"
 else
-  # Pinned version for consistency (updated 2026-02-09)
-  AWS_VERSION="2.27.41"
   print_status "Installing AWS CLI v${AWS_VERSION}..."
   # Ensure user-local bin directory exists and is in PATH
   mkdir -p "$HOME/.local/bin" "$HOME/.local/aws-cli"
@@ -52,8 +55,6 @@ if command_exists az; then
   print_warning "Azure CLI already installed"
 else
   # Azure CLI requires Python 3.10+ (pip install azure-cli)
-  # Pinned to version 2.83.0 (2026-02-09)
-  AZURE_CLI_VERSION="2.83.0"
   if [[ "$PYTHON_AVAILABLE" == "true" ]]; then
     if python3 -m pip install --user "azure-cli==${AZURE_CLI_VERSION}" 2>/dev/null; then
       # Ensure ~/.local/bin is in PATH
@@ -72,8 +73,6 @@ print_status "Installing Google Cloud CLI..."
 if command_exists gcloud; then
   print_warning "Google Cloud CLI already installed"
 else
-  # Pinned version for consistency (updated 2026-02-09)
-  GCLOUD_VERSION="555.0.0"
   print_status "Installing Google Cloud CLI v${GCLOUD_VERSION}..."
   # Download and extract Google Cloud SDK to user directory
   # Google uses "x86_64" and "arm" (not "aarch64")
@@ -100,8 +99,6 @@ print_status "Installing Fly.io CLI (flyctl)..."
 if command_exists flyctl; then
   print_warning "Fly.io CLI already installed: $(flyctl version 2>/dev/null | head -1)"
 else
-  # Pinned version for consistency (updated 2026-02-09)
-  FLYCTL_VERSION="0.4.7"
   print_status "Installing flyctl version: v${FLYCTL_VERSION}..."
 
   # Detect architecture
@@ -152,8 +149,6 @@ print_status "Installing Alibaba Cloud CLI..."
 if command_exists aliyun; then
   print_warning "Alibaba Cloud CLI already installed"
 else
-  # Pinned version for consistency (updated 2026-02-09)
-  ALIYUN_VERSION="3.2.9"
   print_status "Installing Alibaba Cloud CLI version: v${ALIYUN_VERSION}"
   # Note: Alibaba CLI uses 'amd64' for x86_64 and 'arm64' for aarch64
   mkdir -p "$HOME/.local/bin"
@@ -173,8 +168,6 @@ print_status "Installing DigitalOcean CLI (doctl)..."
 if command_exists doctl; then
   print_warning "DigitalOcean CLI already installed"
 else
-  # Pinned version for consistency (updated 2026-02-09)
-  DOCTL_VERSION="1.148.0"
   print_status "Installing doctl version: v${DOCTL_VERSION}"
     mkdir -p "$HOME/.local/bin"
     if wget -q -O "/tmp/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz" "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${DO_ARCH}.tar.gz"; then
@@ -200,8 +193,6 @@ else
     *) print_warning "Unsupported architecture for IBM Cloud CLI: $ARCH"; IBM_ARCH="amd64" ;;
   esac
 
-  # Pinned version for consistency (updated 2026-02-09)
-  IBM_VERSION="2.41.0"
   print_status "Installing IBM Cloud CLI version: v${IBM_VERSION}"
     mkdir -p "$HOME/.local/ibmcloud" "$HOME/.local/bin"
     if curl -fsSL "https://download.clis.cloud.ibm.com/ibm-cloud-cli/${IBM_VERSION}/binaries/IBM_Cloud_CLI_${IBM_VERSION}_linux_${IBM_ARCH}.tgz" -o "/tmp/ibmcloud.tgz"; then

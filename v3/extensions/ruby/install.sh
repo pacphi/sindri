@@ -12,15 +12,22 @@ if ! command_exists mise; then
   exit 1
 fi
 
-# Use mise.toml for configuration
-MISE_CONFIG="$(dirname "${BASH_SOURCE[0]}")/mise.toml"
-if [[ ! -f "$MISE_CONFIG" ]]; then
-  print_error "mise.toml not found"
+# Copy mise.toml to conf.d (trusted path) and install from there
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+MISE_CONF_DIR="$HOME/.config/mise/conf.d"
+mkdir -p "$MISE_CONF_DIR"
+TOML_FILE="$MISE_CONF_DIR/ruby.toml"
+
+if [[ -f "$SCRIPT_DIR/mise.toml" ]]; then
+  cp "$SCRIPT_DIR/mise.toml" "$TOML_FILE"
+  print_success "Created mise config: $TOML_FILE"
+else
+  print_error "mise.toml not found in extension directory"
   exit 1
 fi
 
 # Install Ruby
-mise install -C "$(dirname "${BASH_SOURCE[0]}")"
+MISE_CONFIG_FILE="$TOML_FILE" mise install
 
 # Activate mise for current session
 eval "$(mise activate bash)"

@@ -6,4 +6,4 @@
 
 [tools]
 # Claudish CLI - run Claude Code with OpenRouter models
-"npm:claudish" = "3.2"
+"npm:claudish" = "4.6.6"

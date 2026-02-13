@@ -1,5 +1,5 @@
 [tools]
-go = "1.25"
+go = "1.26"
 
 # Use mise template syntax for proper variable expansion
 # See: https://mise.jdx.dev/environments/

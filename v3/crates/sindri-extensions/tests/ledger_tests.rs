@@ -40,6 +40,7 @@ fn test_install_lifecycle_events() {
             version: "3.13.0".to_string(),
             duration_secs: 150,
             components_installed: vec!["python".to_string(), "pip".to_string()],
+            log_file: None,
         },
     );
     ledger.append(completed).unwrap();
@@ -84,6 +85,7 @@ fn test_failed_install_events() {
             error_message: "Network timeout".to_string(),
             retry_count: 0,
             duration_secs: 120,
+            log_file: None,
         },
     );
     ledger.append(failed).unwrap();
@@ -113,6 +115,7 @@ fn test_upgrade_lifecycle_events() {
                 version: "3.12.0".to_string(),
                 duration_secs: 100,
                 components_installed: vec![],
+                log_file: None,
             },
         ))
         .unwrap();
@@ -142,6 +145,7 @@ fn test_upgrade_lifecycle_events() {
                 from_version: "3.12.0".to_string(),
                 to_version: "3.13.0".to_string(),
                 duration_secs: 90,
+                log_file: None,
             },
         ))
         .unwrap();
@@ -231,6 +235,7 @@ fn test_multiple_extensions_status() {
                     version: "1.0.0".to_string(),
                     duration_secs: 10,
                     components_installed: vec![],
+                    log_file: None,
                 },
             ))
             .unwrap();
@@ -259,6 +264,7 @@ fn test_validation_events() {
                 version: "3.13.0".to_string(),
                 duration_secs: 100,
                 components_installed: vec![],
+                log_file: None,
             },
         ))
         .unwrap();
@@ -316,6 +322,7 @@ fn test_ledger_stats() {
                 version: "3.13.0".to_string(),
                 duration_secs: 150,
                 components_installed: vec![],
+                log_file: None,
             },
         ))
         .unwrap();

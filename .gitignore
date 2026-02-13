@@ -9,6 +9,7 @@
 *.env.staging
 .env.*
 !.env.example
+!**/versions.env
 .env.secrets
 secrets/
 keys/

@@ -1,7 +1,7 @@
 ---
 metadata:
   name: guacamole
-  version: 2.0.0
+  version: 2.1.0
   description: Apache Guacamole web-based remote desktop gateway (SSH/RDP/VNC)
   category: desktop
   author: Sindri Team
@@ -24,7 +24,7 @@ install:
   script:
     path: install.sh
     timeout: 1200
-    args: ["--version", "1.5.4"]
+    args: ["--version", "1.6.0"]
 
 configure:
   templates:
@@ -69,19 +69,19 @@ upgrade:
 bom:
   tools:
     - name: guacd
-      version: "1.5.4"
+      version: "1.6.0"
       source: binary
       type: server
       license: Apache-2.0
       homepage: https://guacamole.apache.org
-      purl: pkg:generic/guacamole-server@1.5.4
+      purl: pkg:generic/guacamole-server@1.6.0
     - name: guacamole-client
-      version: "1.5.4"
+      version: "1.6.0"
       source: binary
       type: framework
       license: Apache-2.0
       homepage: https://guacamole.apache.org
-      purl: pkg:maven/org.apache.guacamole/guacamole@1.5.4
+      purl: pkg:maven/org.apache.guacamole/guacamole@1.6.0
     - name: tomcat
       version: "9.x"
       source: mise
@@ -100,7 +100,7 @@ docs:
   title: "Guacamole"
   overview: |
     Apache Guacamole web-based remote desktop gateway. Provides browser-based access to SSH, RDP, and VNC connections.
-  last-updated: "2026-01-26"
+  last-updated: "2026-02-13"
   features:
     - "Web-based - Access from any browser"
     - "Multi-protocol - SSH, RDP, VNC support"

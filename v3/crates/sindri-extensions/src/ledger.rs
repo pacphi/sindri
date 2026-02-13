@@ -318,6 +318,20 @@ impl StatusLedger {
         fs::rename(&temp_path, &self.ledger_path)
             .context("Failed to replace ledger with compacted version")?;
 
+        // Clean up old per-extension log files (best-effort)
+        if let Ok(log_writer) = crate::log_files::ExtensionLogWriter::new_default() {
+            match log_writer.cleanup_old_logs(retention_days) {
+                Ok(log_removed) => {
+                    if log_removed > 0 {
+                        tracing::info!("Cleaned up {} old extension log file(s)", log_removed);
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to clean up old log files: {}", e);
+                }
+            }
+        }
+
         Ok(removed_count)
     }
 
@@ -556,6 +570,7 @@ mod tests {
                 version: "3.13.0".to_string(),
                 duration_secs: 150,
                 components_installed: vec!["python".to_string()],
+                log_file: None,
             },
         );
         ledger.append(event2).unwrap();
@@ -665,6 +680,7 @@ mod tests {
                 version: "1.0.0".to_string(),
                 duration_secs: 100,
                 components_installed: vec![],
+                log_file: None,
             },
         );
         old_event2.timestamp = Utc::now() - Duration::days(100);
@@ -680,6 +696,7 @@ mod tests {
                 version: "2.0.0".to_string(),
                 duration_secs: 50,
                 components_installed: vec![],
+                log_file: None,
             },
         );
         ledger.append(recent_event).unwrap();
@@ -723,6 +740,7 @@ mod tests {
                 version: "3.13.0".to_string(),
                 duration_secs: 150,
                 components_installed: vec![],
+                log_file: None,
             },
         );
         ledger.append(event2).unwrap();
@@ -819,6 +837,7 @@ mod tests {
                     version: "1.0.0".to_string(),
                     duration_secs: 10,
                     components_installed: vec![],
+                    log_file: None,
                 },
             );
             // Write directly to bypass auto-compact during setup
@@ -854,6 +873,7 @@ mod tests {
                     version: "2.0.0".to_string(),
                     duration_secs: 5,
                     components_installed: vec![],
+                    log_file: None,
                 },
             );
             ledger.append(event).unwrap();
@@ -881,6 +901,7 @@ mod tests {
                     version: "1.0.0".to_string(),
                     duration_secs: 10,
                     components_installed: vec![],
+                    log_file: None,
                 },
             );
             ledger.append(event).unwrap();
@@ -972,6 +993,7 @@ mod tests {
                 version: "3.13.0".to_string(),
                 duration_secs: 60,
                 components_installed: vec!["python".to_string()],
+                log_file: None,
             },
             ExtensionState::Installed,
         );
@@ -1009,6 +1031,7 @@ mod tests {
                 version: "3.13.0".to_string(),
                 duration_secs: 60,
                 components_installed: vec![],
+                log_file: None,
             },
             ExtensionState::Installed,
         );
@@ -1021,6 +1044,7 @@ mod tests {
                 error_message: "Network error".to_string(),
                 retry_count: 0,
                 duration_secs: 10,
+                log_file: None,
             },
             ExtensionState::Failed,
         );
@@ -1142,6 +1166,7 @@ mod tests {
                 version: "3.13.0".to_string(),
                 duration_secs: 60,
                 components_installed: vec![],
+                log_file: None,
             },
             ExtensionState::Installed,
         );
@@ -1153,6 +1178,7 @@ mod tests {
                 version: "22.0.0".to_string(),
                 duration_secs: 30,
                 components_installed: vec![],
+                log_file: None,
             },
             ExtensionState::Installed,
         );

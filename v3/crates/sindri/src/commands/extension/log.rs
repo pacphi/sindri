@@ -1,7 +1,7 @@
 //! Extension log command
 
 use anyhow::{anyhow, Context, Result};
-use sindri_extensions::{EventEnvelope, ExtensionEvent, StatusLedger};
+use sindri_extensions::{EventEnvelope, ExtensionEvent, ExtensionLogWriter, StatusLedger};
 
 use super::common::{format_duration, truncate_string};
 use crate::cli::ExtensionLogArgs;
@@ -19,6 +19,11 @@ const LOG_EVENT_TYPE_WIDTH: usize = 20;
 /// View extension event log with filtering, tail, and follow modes
 pub(super) async fn run(args: ExtensionLogArgs) -> Result<()> {
     let ledger = StatusLedger::load_default().context("Failed to load status ledger")?;
+
+    // Handle --detail mode
+    if let Some(ref event_id) = args.detail {
+        return show_event_detail(&ledger, event_id);
+    }
 
     // Parse date filters
     let since = args
@@ -301,6 +306,74 @@ fn format_event_details(event: &ExtensionEvent) -> String {
             version,
             truncate_string(error_message, LOG_ERROR_MESSAGE_WIDTH)
         ),
+    }
+}
+
+/// Show detailed log output for a specific event by event_id
+fn show_event_detail(ledger: &StatusLedger, event_id: &str) -> Result<()> {
+    use std::path::Path;
+
+    // Find the event in the ledger
+    let all_events = ledger.query_events(sindri_extensions::EventFilter::default())?;
+    let envelope = all_events
+        .iter()
+        .find(|e| e.event_id == event_id)
+        .ok_or_else(|| anyhow!("Event not found: {}", event_id))?;
+
+    // Print event summary
+    output::header("Event Detail");
+    println!();
+    output::kv("Event ID", &envelope.event_id);
+    output::kv(
+        "Timestamp",
+        &envelope
+            .timestamp
+            .format("%Y-%m-%d %H:%M:%S UTC")
+            .to_string(),
+    );
+    output::kv("Extension", &envelope.extension_name);
+    output::kv(
+        "Event Type",
+        &StatusLedger::get_event_type_name(&envelope.event),
+    );
+    output::kv("Details", &format_event_details(&envelope.event));
+    println!();
+
+    // Extract log_file from the event
+    match extract_log_file(&envelope.event) {
+        Some(log_path) => {
+            let path = Path::new(log_path);
+            if path.exists() {
+                output::header("Installation Log");
+                println!();
+                let content =
+                    ExtensionLogWriter::read_log(path).context("Failed to read log file")?;
+                print!("{}", content);
+            } else {
+                output::warning(&format!(
+                    "Log file no longer exists: {} (may have been cleaned up during compaction)",
+                    log_path
+                ));
+            }
+        }
+        None => {
+            output::info("No log file linked to this event");
+        }
+    }
+
+    Ok(())
+}
+
+/// Extract the log_file path from an event variant, if present
+fn extract_log_file(event: &ExtensionEvent) -> Option<&str> {
+    match event {
+        ExtensionEvent::InstallCompleted { log_file, .. }
+        | ExtensionEvent::InstallFailed { log_file, .. }
+        | ExtensionEvent::UpgradeCompleted { log_file, .. }
+        | ExtensionEvent::UpgradeFailed { log_file, .. }
+        | ExtensionEvent::RemoveCompleted { log_file, .. }
+        | ExtensionEvent::RemoveFailed { log_file, .. } => log_file.as_deref(),
+        _ => None,
     }
 }
 

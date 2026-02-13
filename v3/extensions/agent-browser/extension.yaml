@@ -1,7 +1,7 @@
 ---
 metadata:
   name: agent-browser
-  version: 0.6.0
+  version: 1.0.0
   description: Headless browser automation CLI for AI agents with snapshot-based element selection
   category: ai-agents
   author: Vercel Labs
@@ -54,12 +54,12 @@ upgrade:
 bom:
   tools:
     - name: agent-browser
-      version: "0.6.0"
+      version: "0.9.3"
       source: npm
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/vercel-labs/agent-browser
-      purl: pkg:npm/agent-browser@0.6.0
+      purl: pkg:npm/agent-browser@0.9.3
 docs:
   title: "Agent Browser"
   overview: |

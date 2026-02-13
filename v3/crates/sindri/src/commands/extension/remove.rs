@@ -267,6 +267,7 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
                     version: ext_version.clone(),
                     error_message: e.to_string(),
                     duration_secs,
+                    log_file: None,
                 },
             );
 
@@ -292,6 +293,7 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
             extension_name: args.name.clone(),
             version: ext_version.clone(),
             duration_secs,
+            log_file: None,
         },
     );
 

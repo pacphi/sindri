@@ -710,17 +710,18 @@ sindri extension log [OPTIONS]
 
 **Options:**
 
-| Option               | Short | Default | Description                                                |
-| -------------------- | ----- | ------- | ---------------------------------------------------------- |
-| `--no-tail`          | -     | false   | Show ALL events (not just last N)                          |
-| `--follow`           | `-f`  | false   | Watch for new events in real-time (Ctrl+C to stop)         |
-| `--extension <NAME>` | `-e`  | -       | Filter by extension name                                   |
-| `--type <TYPE>`      | `-t`  | -       | Event type: install, upgrade, remove, validation, outdated |
-| `--level <LEVEL>`    | `-l`  | -       | Severity: info, warn, error                                |
-| `--since <DATE>`     | -     | -       | Events after ISO 8601 timestamp (e.g. 2026-02-10)          |
-| `--until <DATE>`     | -     | -       | Events before ISO 8601 timestamp                           |
-| `--lines <N>`        | `-n`  | 25      | Number of recent events to show                            |
-| `--json`             | -     | false   | Machine-readable JSON output                               |
+| Option                | Short | Default | Description                                                |
+| --------------------- | ----- | ------- | ---------------------------------------------------------- |
+| `--no-tail`           | -     | false   | Show ALL events (not just last N)                          |
+| `--follow`            | `-f`  | false   | Watch for new events in real-time (Ctrl+C to stop)         |
+| `--extension <NAME>`  | `-e`  | -       | Filter by extension name                                   |
+| `--type <TYPE>`       | `-t`  | -       | Event type: install, upgrade, remove, validation, outdated |
+| `--level <LEVEL>`     | `-l`  | -       | Severity: info, warn, error                                |
+| `--since <DATE>`      | -     | -       | Events after ISO 8601 timestamp (e.g. 2026-02-10)          |
+| `--until <DATE>`      | -     | -       | Events before ISO 8601 timestamp                           |
+| `--lines <N>`         | `-n`  | 25      | Number of recent events to show                            |
+| `--detail <EVENT_ID>` | -     | -       | Show detailed log output for a specific event              |
+| `--json`              | -     | false   | Machine-readable JSON output                               |
 
 **Event types:**
 
@@ -767,6 +768,13 @@ sindri extension log --since 2026-02-10
 # JSON output for scripting
 sindri extension log --json | jq '.extension_name'
 
+# View detailed log output for a specific event
+sindri extension log --detail <event_id>
+
+# Find a failed install and view its detailed log
+sindri extension log -l error --json | jq -r '.event_id' | head -1
+sindri extension log --detail <that_event_id>
+
 # Show last 50 events
 sindri extension log -n 50
 ```
@@ -779,7 +787,7 @@ Manage the event ledger that tracks extension lifecycle operations.
 
 #### ledger compact
 
-Compact the ledger by removing old events while retaining the most recent event for each extension.
+Compact the ledger by removing old events while retaining the most recent event for each extension. Also cleans up old per-extension log files (`~/.sindri/logs/`) using the same retention period.
 
 **Synopsis:**
 

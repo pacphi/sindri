@@ -484,6 +484,7 @@ impl ProfileInstaller {
                         extension_name: ext_name.clone(),
                         version: self.get_version(ext_name).unwrap_or_default(),
                         duration_secs: 0,
+                        log_file: None,
                     },
                 ));
 
@@ -544,8 +545,8 @@ impl ProfileInstaller {
 
         let version = extension.metadata.version.clone();
 
-        // Execute installation
-        let result = self.executor.install(extension).await;
+        // Execute installation — returns (InstallOutput, Result<()>)
+        let (_install_output, result) = self.executor.install(extension).await;
         let duration_secs = start_time.elapsed().as_secs();
 
         match result {
@@ -564,6 +565,7 @@ impl ProfileInstaller {
                             version: version.clone(),
                             duration_secs,
                             components_installed: vec![],
+                            log_file: None,
                         },
                     ));
 
@@ -580,6 +582,7 @@ impl ProfileInstaller {
                             error_message: "Validation failed".to_string(),
                             retry_count: 0,
                             duration_secs,
+                            log_file: None,
                         },
                     ));
                     Err(anyhow!("Extension {} failed validation", name))
@@ -597,6 +600,7 @@ impl ProfileInstaller {
                         error_message: e.to_string(),
                         retry_count: 0,
                         duration_secs,
+                        log_file: None,
                     },
                 ));
                 Err(e)

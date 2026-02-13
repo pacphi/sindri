@@ -804,7 +804,7 @@ v3-fmt-check:
 .PHONY: v3-audit
 v3-audit:
 	@echo "$(BLUE)Running v3 security audit...$(RESET)"
-	cd $(V3_DIR) && cargo audit
+	.github/scripts/v3/cargo-audit.sh
 	@echo "$(GREEN)✓ Security audit complete$(RESET)"
 
 .PHONY: v3-audit-fix

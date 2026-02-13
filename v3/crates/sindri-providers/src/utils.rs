@@ -229,9 +229,9 @@ mod tests {
 
     #[test]
     fn test_get_command_version_success() {
-        // "ls --version" should work on Linux (GNU coreutils)
-        let result = get_command_version("ls", "--version");
-        assert!(result.is_ok(), "ls --version should succeed");
+        // "uname -r" works on both Linux and macOS
+        let result = get_command_version("uname", "-r");
+        assert!(result.is_ok(), "uname -r should succeed");
         let version = result.unwrap();
         assert!(!version.is_empty(), "version string should not be empty");
     }

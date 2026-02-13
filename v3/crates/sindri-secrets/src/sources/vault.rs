@@ -277,8 +277,10 @@ impl SecretSource for VaultSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_vault_config_from_env() {
         std::env::set_var("VAULT_ADDR", "https://vault.example.com");
         std::env::set_var("VAULT_TOKEN", "test-token");
@@ -312,6 +314,7 @@ mod tests {
     // --- Error path tests ---
 
     #[test]
+    #[serial]
     fn test_vault_config_from_env_missing_addr() {
         std::env::remove_var("VAULT_ADDR");
         std::env::set_var("VAULT_TOKEN", "test-token");
@@ -329,6 +332,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_vault_config_from_env_missing_token() {
         std::env::set_var("VAULT_ADDR", "https://vault.example.com");
         std::env::remove_var("VAULT_TOKEN");

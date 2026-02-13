@@ -1,8 +1,8 @@
 ---
 metadata:
   name: ruby
-  version: 2.0.0
-  description: Ruby 3.4.7 via mise with Rails and Bundler
+  version: 2.1.0
+  description: Ruby 4.0.x via mise with Rails and Bundler
   category: languages
   author: Sindri Team
   dependencies: []
@@ -49,31 +49,31 @@ upgrade:
 bom:
   tools:
     - name: ruby
-      version: "3.4.7"
+      version: "4.0"
       source: mise
       type: runtime
       license: Ruby OR BSD-2-Clause
       homepage: https://www.ruby-lang.org
       purl: pkg:generic/ruby
     - name: gem
-      version: "3.6.9"  # Bundled with Ruby 3.4.7
+      version: "4.0.3"
       source: mise
       type: package-manager
       license: Ruby OR MIT
       homepage: https://rubygems.org
-      purl: pkg:gem/rubygems@3.6.9
+      purl: pkg:gem/rubygems@4.0.3
     - name: bundle
-      version: "2.6.3"  # Bundled with Ruby 3.4.7
+      version: "4.0.3"
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://bundler.io
-      purl: pkg:gem/bundler@2.6.3
+      purl: pkg:gem/bundler@4.0.3
 docs:
   title: "Ruby"
   overview: |
-    Ruby 3.4.7 via mise with Rails and Bundler. Provides a complete Ruby development environment with modern tooling.
-  last-updated: "2026-01-26"
+    Ruby 4.0.x via mise with Rails and Bundler. Provides a complete Ruby development environment with modern tooling.
+  last-updated: "2026-02-13"
   usage:
     - section: "Basic Ruby"
       examples:

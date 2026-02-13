@@ -184,10 +184,10 @@ Total Extensions: 50
 ```bash
 # mise.toml
 [tools]
-go = "1.25"
+go = "1.26"
 
 # Manually sync to extension.yaml bom.tools
-# Update version: dynamic → version: "1.25"
+# Update version: dynamic → version: "1.26"
 ```
 
 ### Pattern B: Mise with npm Tools

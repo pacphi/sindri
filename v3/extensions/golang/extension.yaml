@@ -1,8 +1,8 @@
 ---
 metadata:
   name: golang
-  version: 1.0.1
-  description: Go 1.25 via mise
+  version: 1.1.0
+  description: Go 1.26 via mise
   category: languages
   dependencies:
     - mise-config
@@ -44,7 +44,7 @@ remove:
 bom:
   tools:
     - name: go
-      version: "1.25"
+      version: "1.26"
       source: mise
       type: compiler
       license: BSD-3-Clause
@@ -53,8 +53,8 @@ bom:
 docs:
   title: "Go (Golang)"
   overview: |
-    Go 1.25 via mise. Provides a complete Go development environment with proper workspace configuration.
-  last-updated: "2026-01-26"
+    Go 1.26 via mise. Provides a complete Go development environment with proper workspace configuration.
+  last-updated: "2026-02-13"
   usage:
     - section: "Basic Go Commands"
       examples:

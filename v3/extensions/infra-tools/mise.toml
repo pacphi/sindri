@@ -10,13 +10,13 @@ terraform = "1.14"
 packer = "1.14"
 
 # Kubernetes tools
-kubectl = "1.35.0"
-helm = "4.1.0"
+kubectl = "1.35"
+helm = "4.1"
 
 # Use asdf backends to avoid mise aqua GITHUB_TOKEN bug (#5418)
-"asdf:looztra/asdf-k9s" = "0.50.18"
-"asdf:Banno/asdf-kustomize" = "5.7.1"
-"asdf:sudermanjr/asdf-yq" = "4.50"
+"asdf:looztra/asdf-k9s" = "0.50"
+"asdf:Banno/asdf-kustomize" = "5.8"
+"asdf:sudermanjr/asdf-yq" = "4.52"
 
 # Configuration management
 # Note: Ansible installed via apt due to Python dependencies

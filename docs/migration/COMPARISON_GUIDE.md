@@ -352,17 +352,17 @@ This section provides a comprehensive comparison of extensions available in Sind
 
 ### Language Extensions
 
-| Extension | V2  | V3  | Description                                | Notes                   |
-| --------- | :-: | :-: | ------------------------------------------ | ----------------------- |
-| nodejs    | YES | YES | Node.js LTS via mise with pnpm             | Identical configuration |
-| python    | YES | YES | Python 3.13 with uv package manager        | Identical configuration |
-| rust      | YES | YES | Rust stable via rustup                     | Identical configuration |
-| golang    | YES | YES | Go 1.25 via mise                           | Identical configuration |
-| ruby      | YES | YES | Ruby via mise                              | Identical configuration |
-| php       | YES | YES | PHP via mise                               | Identical configuration |
-| haskell   | YES | YES | Haskell via ghcup (GHC, Cabal, Stack, HLS) | Identical configuration |
-| dotnet    | YES | YES | .NET SDK                                   | Identical configuration |
-| jvm       | YES | YES | Java/JVM languages                         | Identical configuration |
+| Extension | V2  | V3  | Description                                | Notes                      |
+| --------- | :-: | :-: | ------------------------------------------ | -------------------------- |
+| nodejs    | YES | YES | Node.js LTS via mise with pnpm             | Identical configuration    |
+| python    | YES | YES | Python 3.13 with uv package manager        | Identical configuration    |
+| rust      | YES | YES | Rust stable via rustup                     | Identical configuration    |
+| golang    | YES | YES | Go via mise                                | V2 (Go 1.25), V3 (Go 1.26) |
+| ruby      | YES | YES | Ruby via mise                              | Identical configuration    |
+| php       | YES | YES | PHP via mise                               | Identical configuration    |
+| haskell   | YES | YES | Haskell via ghcup (GHC, Cabal, Stack, HLS) | Identical configuration    |
+| dotnet    | YES | YES | .NET SDK                                   | Identical configuration    |
+| jvm       | YES | YES | Java/JVM languages                         | Identical configuration    |
 
 ### AI and Agent Extensions
 

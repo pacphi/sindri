@@ -159,6 +159,7 @@ pub(super) async fn run(args: ExtensionUpgradeArgs) -> Result<()> {
                     from_version: current.to_string(),
                     to_version: target.to_string(),
                     duration_secs,
+                    log_file: None,
                 },
             );
 
@@ -183,6 +184,7 @@ pub(super) async fn run(args: ExtensionUpgradeArgs) -> Result<()> {
                     to_version: target.to_string(),
                     error_message: e.to_string(),
                     duration_secs,
+                    log_file: None,
                 },
             );
 

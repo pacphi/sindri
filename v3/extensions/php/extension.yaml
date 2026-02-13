@@ -30,9 +30,6 @@ configure:
     - source: ssh-environment.template
       destination: ~/.profile
       mode: append
-    - source: development-ini.template
-      destination: /etc/php/8.4/cli/conf.d/99-development.ini
-      mode: overwrite
     - source: cs-fixer-config.template
       destination: ~/templates/.php-cs-fixer.php
       mode: overwrite

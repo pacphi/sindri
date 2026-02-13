@@ -1,7 +1,7 @@
 ---
 metadata:
   name: claudish
-  version: 1.0.0
+  version: 1.1.0
   description: >-
     Claude Code CLI proxy for OpenRouter models - run Claude Code with any OpenRouter model via local Anthropic API proxy
   category: claude
@@ -51,12 +51,12 @@ upgrade:
 bom:
   tools:
     - name: claudish
-      version: "3.2"
+      version: "4.6.6"
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/MadAppGang/claudish
-      purl: pkg:npm/claudish
+      purl: pkg:npm/claudish@4.6.6
 docs:
   title: "Claudish"
   overview: |

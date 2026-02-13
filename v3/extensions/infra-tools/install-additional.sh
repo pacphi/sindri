@@ -2,6 +2,11 @@
 # Install additional infrastructure tools not available via mise or apt
 set -euo pipefail
 
+# Load pinned versions from co-located config
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# shellcheck source=versions.env
+source "$SCRIPT_DIR/versions.env"
+
 # Use WORKSPACE from environment or derive from HOME
 WORKSPACE="${WORKSPACE:-${HOME}/workspace}"
 
@@ -17,9 +22,6 @@ install_pulumi() {
         return 0
     fi
 
-    # Pinned version for consistency (updated 2026-02-09)
-    # Note: Pulumi installer adds 'v' prefix automatically, so don't include it here
-    local PULUMI_VERSION="3.219.0"
     print_status "Installing Pulumi v${PULUMI_VERSION}..."
 
     # Install specific version
@@ -43,8 +45,6 @@ install_crossplane() {
         return 0
     fi
 
-    # Pinned version for consistency (updated 2026-02-09)
-    local CROSSPLANE_VERSION="v2.2.0"
     local OS="linux"
     local ARCH="amd64"
 
@@ -71,8 +71,6 @@ install_crossplane() {
 install_kubectx() {
     print_status "Installing kubectx and kubens..."
 
-    # Pinned version for consistency (updated 2026-02-09)
-    local KUBECTX_VERSION="v0.9.5"
     print_status "Using kubectx version: $KUBECTX_VERSION"
 
     local BASE_URL="https://raw.githubusercontent.com/ahmetb/kubectx/${KUBECTX_VERSION}/bin"
@@ -93,14 +91,12 @@ install_kubectx() {
 install_carvel() {
     print_status "Installing Carvel suite tools..."
 
-    # Pinned versions for consistency (updated 2026-02-09)
-    # Source: https://github.com/carvel-dev/
     declare -A CARVEL_VERSIONS=(
-        ["kapp"]="v0.65.0"
-        ["ytt"]="v0.52.2"
-        ["kbld"]="v0.45.2"
-        ["vendir"]="v0.43.0"
-        ["imgpkg"]="v0.46.0"
+        ["kapp"]="$KAPP_VERSION"
+        ["ytt"]="$YTT_VERSION"
+        ["kbld"]="$KBLD_VERSION"
+        ["vendir"]="$VENDIR_VERSION"
+        ["imgpkg"]="$IMGPKG_VERSION"
     )
 
     local CARVEL_TOOLS=(kapp ytt kbld vendir imgpkg)

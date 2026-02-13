@@ -15,6 +15,19 @@ use std::time::Duration;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
 
+/// Captured output from an extension installation
+#[derive(Debug, Clone, Default)]
+pub struct InstallOutput {
+    /// Lines captured from stdout
+    pub stdout_lines: Vec<String>,
+    /// Lines captured from stderr
+    pub stderr_lines: Vec<String>,
+    /// Install method used (e.g., "mise", "script", "apt")
+    pub install_method: String,
+    /// Exit status description (e.g., "success", "exit code 1", "timed out")
+    pub exit_status: String,
+}
+
 /// Extension executor for running install/remove/upgrade operations
 pub struct ExtensionExecutor {
     /// Extension base directory (v3/extensions in repo, ~/.sindri/extensions when deployed)
@@ -106,7 +119,10 @@ impl ExtensionExecutor {
     }
 
     /// Install an extension
-    pub async fn install(&self, extension: &Extension) -> Result<()> {
+    ///
+    /// Returns `(InstallOutput, Result<()>)` — the output is always populated
+    /// (even on failure) so callers can write log files regardless of outcome.
+    pub async fn install(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
         info!("Installing extension: {}", name);
 
@@ -121,13 +137,20 @@ impl ExtensionExecutor {
         if let Some(capabilities) = &extension.capabilities {
             if let Some(hooks) = &capabilities.hooks {
                 if let Some(pre_install) = &hooks.pre_install {
-                    self.execute_hook(name, pre_install, "pre-install").await?;
+                    if let Err(e) = self.execute_hook(name, pre_install, "pre-install").await {
+                        let output = InstallOutput {
+                            install_method: format!("{:?}", extension.install.method),
+                            exit_status: format!("pre-install hook failed: {}", e),
+                            ..Default::default()
+                        };
+                        return (output, Err(e));
+                    }
                 }
             }
         }
 
         // Execute installation based on method
-        let result = match extension.install.method {
+        let (mut output, result) = match extension.install.method {
             InstallMethod::Mise => self.install_mise(extension).await,
             InstallMethod::Apt => self.install_apt(extension).await,
             InstallMethod::Binary => self.install_binary(extension).await,
@@ -141,29 +164,43 @@ impl ExtensionExecutor {
             if let Some(capabilities) = &extension.capabilities {
                 if let Some(hooks) = &capabilities.hooks {
                     if let Some(post_install) = &hooks.post_install {
-                        self.execute_hook(name, post_install, "post-install")
-                            .await?;
+                        if let Err(e) = self.execute_hook(name, post_install, "post-install").await
+                        {
+                            output.exit_status = format!("post-install hook failed: {}", e);
+                            return (output, Err(e));
+                        }
                     }
                 }
             }
 
             // Execute configure phase
             if let Some(configure) = &extension.configure {
-                self.execute_configure(name, configure).await?;
+                if let Err(e) = self.execute_configure(name, configure).await {
+                    output.exit_status = format!("configure failed: {}", e);
+                    return (output, Err(e));
+                }
             }
         }
 
-        result
+        (output, result)
     }
 
     /// Install via mise
-    async fn install_mise(&self, extension: &Extension) -> Result<()> {
+    async fn install_mise(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
-        let mise_config = extension
-            .install
-            .mise
-            .as_ref()
-            .ok_or_else(|| anyhow!("mise configuration is missing"))?;
+        let mise_config = match extension.install.mise.as_ref() {
+            Some(c) => c,
+            None => {
+                return (
+                    InstallOutput {
+                        install_method: "mise".to_string(),
+                        exit_status: "missing config".to_string(),
+                        ..Default::default()
+                    },
+                    Err(anyhow!("mise configuration is missing")),
+                )
+            }
+        };
 
         info!(
             "Installing {} via mise (this may take 1-5 minutes)...",
@@ -172,7 +209,16 @@ impl ExtensionExecutor {
 
         // Step 1: Verify mise is available
         debug!("[1/4] Verifying mise availability...");
-        self.verify_command_exists("mise").await?;
+        if let Err(e) = self.verify_command_exists("mise").await {
+            return (
+                InstallOutput {
+                    install_method: "mise".to_string(),
+                    exit_status: "mise not found".to_string(),
+                    ..Default::default()
+                },
+                Err(e),
+            );
+        }
 
         // Step 2: Load and verify mise configuration
         debug!("[2/4] Loading mise configuration...");
@@ -181,23 +227,49 @@ impl ExtensionExecutor {
         let config_path = ext_dir.join(config_file);
 
         if !config_path.exists() {
-            return Err(anyhow!("mise config not found: {:?}", config_path));
+            return (
+                InstallOutput {
+                    install_method: "mise".to_string(),
+                    exit_status: "config not found".to_string(),
+                    ..Default::default()
+                },
+                Err(anyhow!("mise config not found: {:?}", config_path)),
+            );
         }
 
         // Ensure mise config directory exists
         let mise_conf_dir = self.home_dir.join(".config/mise/conf.d");
-        tokio::fs::create_dir_all(&mise_conf_dir)
+        if let Err(e) = tokio::fs::create_dir_all(&mise_conf_dir)
             .await
-            .context("Failed to create mise conf.d directory")?;
+            .context("Failed to create mise conf.d directory")
+        {
+            return (
+                InstallOutput {
+                    install_method: "mise".to_string(),
+                    exit_status: "setup failed".to_string(),
+                    ..Default::default()
+                },
+                Err(e),
+            );
+        }
 
         // Copy config to conf.d BEFORE installing
         let dest_config = mise_conf_dir.join(format!("{}.toml", name));
-        tokio::fs::copy(&config_path, &dest_config)
+        if let Err(e) = tokio::fs::copy(&config_path, &dest_config)
             .await
-            .context("Failed to copy mise config to conf.d")?;
+            .context("Failed to copy mise config to conf.d")
+        {
+            return (
+                InstallOutput {
+                    install_method: "mise".to_string(),
+                    exit_status: "config copy failed".to_string(),
+                    ..Default::default()
+                },
+                Err(e),
+            );
+        }
 
         // Trust the config directory (required by mise 2024+)
-        // Trust the entire conf.d directory to cover all config files
         let _ = Command::new("mise")
             .arg("trust")
             .arg(&mise_conf_dir)
@@ -209,7 +281,7 @@ impl ExtensionExecutor {
         // Step 3: Install tools
         debug!("[3/5] Installing tools with mise (timeout: 5min, 3 retries if needed)...");
 
-        // Build PATH with mise shims prepended (passed to child processes, not set globally)
+        // Build PATH with mise shims prepended
         let mise_path = {
             let mise_shims = self.home_dir.join(".local/share/mise/shims");
             let path_var = std::env::var("PATH").unwrap_or_default();
@@ -222,10 +294,13 @@ impl ExtensionExecutor {
         };
 
         // Run mise install with timeout and retry logic
-        // workspace_dir and mise_path are passed to run_mise_install via Command::current_dir/env
         let mut retry_count = 0;
         let max_retries = 3;
         let mut install_successful = false;
+        let mut last_output = InstallOutput {
+            install_method: "mise".to_string(),
+            ..Default::default()
+        };
 
         while retry_count < max_retries && !install_successful {
             let result = self
@@ -233,10 +308,12 @@ impl ExtensionExecutor {
                 .await;
 
             match result {
-                Ok(_) => {
+                Ok(output) => {
+                    last_output = output;
                     install_successful = true;
                 }
-                Err(e) => {
+                Err((output, e)) => {
+                    last_output = output;
                     retry_count += 1;
                     if retry_count < max_retries {
                         warn!(
@@ -245,11 +322,15 @@ impl ExtensionExecutor {
                         );
                         tokio::time::sleep(Duration::from_secs(2u64.pow(retry_count))).await;
                     } else {
-                        return Err(anyhow!(
-                            "mise install failed after {} attempts: {}",
-                            max_retries,
-                            e
-                        ));
+                        last_output.exit_status = format!("failed after {} attempts", max_retries);
+                        return (
+                            last_output,
+                            Err(anyhow!(
+                                "mise install failed after {} attempts: {}",
+                                max_retries,
+                                e
+                            )),
+                        );
                     }
                 }
             }
@@ -261,8 +342,9 @@ impl ExtensionExecutor {
             let _ = Command::new("mise").arg("reshim").output().await;
         }
 
+        last_output.exit_status = "success".to_string();
         info!("{} installation via mise completed successfully", name);
-        Ok(())
+        (last_output, Ok(()))
     }
 
     /// Run mise install with configuration and timeout
@@ -275,7 +357,7 @@ impl ExtensionExecutor {
         config_path: &Path,
         timeout: Duration,
         mise_path: Option<&str>,
-    ) -> Result<()> {
+    ) -> std::result::Result<InstallOutput, (InstallOutput, anyhow::Error)> {
         let mut cmd = Command::new("mise");
         cmd.arg("install");
         cmd.current_dir(&self.workspace_dir);
@@ -324,9 +406,19 @@ impl ExtensionExecutor {
         let stdout_lines = Arc::new(Mutex::new(Vec::<String>::new()));
         let stderr_lines = Arc::new(Mutex::new(Vec::<String>::new()));
 
-        let mut child = cmd
-            .spawn()
-            .context("Failed to spawn mise install command")?;
+        let mut child = match cmd.spawn().context("Failed to spawn mise install command") {
+            Ok(c) => c,
+            Err(e) => {
+                return Err((
+                    InstallOutput {
+                        install_method: "mise".to_string(),
+                        exit_status: "spawn failed".to_string(),
+                        ..Default::default()
+                    },
+                    e,
+                ))
+            }
+        };
 
         // Stream stdout - only log complete lines (ending with \n)
         // Discard carriage return progress indicators
@@ -432,53 +524,100 @@ impl ExtensionExecutor {
             let _ = handle.await;
         }
 
+        let make_output = |status_str: String| -> InstallOutput {
+            InstallOutput {
+                stdout_lines: stdout_lines.lock().map(|l| l.clone()).unwrap_or_default(),
+                stderr_lines: stderr_lines.lock().map(|l| l.clone()).unwrap_or_default(),
+                install_method: "mise".to_string(),
+                exit_status: status_str,
+            }
+        };
+
         match result {
             Ok(Ok(status)) => {
                 if status.success() {
-                    Ok(())
+                    Ok(make_output("success".to_string()))
                 } else {
-                    let output_tail = collect_output_tail(&stdout_lines, &stderr_lines, 20);
-                    if output_tail.is_empty() {
-                        Err(anyhow!("mise install failed with exit code: {}", status))
+                    let output = make_output(format!("exit code: {}", status));
+                    let output_tail = collect_output_tail_from_vecs(
+                        &output.stdout_lines,
+                        &output.stderr_lines,
+                        20,
+                    );
+                    let err = if output_tail.is_empty() {
+                        anyhow!("mise install failed with exit code: {}", status)
                     } else {
-                        Err(anyhow!(
+                        anyhow!(
                             "mise install failed with exit code: {}\n--- mise output ---\n{}\n---",
                             status,
                             output_tail
-                        ))
-                    }
+                        )
+                    };
+                    Err((output, err))
                 }
             }
-            Ok(Err(e)) => Err(anyhow!("Failed to wait for mise install: {}", e)),
-            Err(_) => Err(anyhow!("mise install timed out after {:?}", timeout)),
+            Ok(Err(e)) => {
+                let output = make_output("process error".to_string());
+                Err((output, anyhow!("Failed to wait for mise install: {}", e)))
+            }
+            Err(_) => {
+                let output = make_output("timed out".to_string());
+                Err((
+                    output,
+                    anyhow!("mise install timed out after {:?}", timeout),
+                ))
+            }
         }
     }
 
     /// Install via apt
-    async fn install_apt(&self, extension: &Extension) -> Result<()> {
+    async fn install_apt(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
-        let apt_config = extension
-            .install
-            .apt
-            .as_ref()
-            .ok_or_else(|| anyhow!("apt configuration is missing"))?;
+        let apt_config = match extension.install.apt.as_ref() {
+            Some(c) => c,
+            None => {
+                return (
+                    InstallOutput {
+                        install_method: "apt".to_string(),
+                        exit_status: "missing config".to_string(),
+                        ..Default::default()
+                    },
+                    Err(anyhow!("apt configuration is missing")),
+                )
+            }
+        };
 
         info!("Installing {} via apt...", name);
+
+        let mut output = InstallOutput {
+            install_method: "apt".to_string(),
+            ..Default::default()
+        };
 
         // Determine if we need sudo
         let use_sudo = self.needs_sudo().await;
 
         // Ensure keyrings directory exists
-        self.ensure_directory_with_sudo("/etc/apt/keyrings", use_sudo)
-            .await?;
+        if let Err(e) = self
+            .ensure_directory_with_sudo("/etc/apt/keyrings", use_sudo)
+            .await
+        {
+            output.exit_status = "setup failed".to_string();
+            return (output, Err(e));
+        }
 
         // Add repositories using modern GPG keyring method
-        self.add_apt_repositories(name, apt_config, use_sudo)
-            .await?;
+        if let Err(e) = self.add_apt_repositories(name, apt_config, use_sudo).await {
+            output.exit_status = "repo setup failed".to_string();
+            return (output, Err(e));
+        }
 
         // Update package list if configured
         if apt_config.update_first {
-            self.run_apt_command(&["update", "-qq"], use_sudo).await?;
+            if let Err(e) = self.run_apt_command(&["update", "-qq"], use_sudo).await {
+                output.exit_status = "apt update failed".to_string();
+                return (output, Err(e));
+            }
         }
 
         // Install packages
@@ -487,11 +626,15 @@ impl ExtensionExecutor {
             for pkg in &apt_config.packages {
                 args.push(pkg.as_str());
             }
-            self.run_apt_command(&args, use_sudo).await?;
+            if let Err(e) = self.run_apt_command(&args, use_sudo).await {
+                output.exit_status = "apt install failed".to_string();
+                return (output, Err(e));
+            }
         }
 
+        output.exit_status = "success".to_string();
         info!("{} installation via apt completed successfully", name);
-        Ok(())
+        (output, Ok(()))
     }
 
     /// Add APT repositories with GPG keys
@@ -553,30 +696,57 @@ impl ExtensionExecutor {
     }
 
     /// Install via binary download
-    async fn install_binary(&self, extension: &Extension) -> Result<()> {
+    async fn install_binary(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
-        let binary_config = extension
-            .install
-            .binary
-            .as_ref()
-            .ok_or_else(|| anyhow!("binary configuration is missing"))?;
+        let binary_config = match extension.install.binary.as_ref() {
+            Some(c) => c,
+            None => {
+                return (
+                    InstallOutput {
+                        install_method: "binary".to_string(),
+                        exit_status: "missing config".to_string(),
+                        ..Default::default()
+                    },
+                    Err(anyhow!("binary configuration is missing")),
+                )
+            }
+        };
 
         info!("Installing {} via binary download...", name);
 
+        let mut output = InstallOutput {
+            install_method: "binary".to_string(),
+            ..Default::default()
+        };
+
         if binary_config.downloads.is_empty() {
-            return Err(anyhow!("No binary downloads specified"));
+            output.exit_status = "no downloads".to_string();
+            return (output, Err(anyhow!("No binary downloads specified")));
         }
 
         let bin_dir = self.workspace_dir.join("bin");
-        tokio::fs::create_dir_all(&bin_dir)
+        if let Err(e) = tokio::fs::create_dir_all(&bin_dir)
             .await
-            .context("Failed to create bin directory")?;
+            .context("Failed to create bin directory")
+        {
+            output.exit_status = "setup failed".to_string();
+            return (output, Err(e));
+        }
 
         for download in &binary_config.downloads {
             info!("Downloading {}...", download.name);
+            output
+                .stdout_lines
+                .push(format!("Downloading {}", download.name));
 
             let url = &download.source.url;
-            let data = self.download_file(url).await?;
+            let data = match self.download_file(url).await {
+                Ok(d) => d,
+                Err(e) => {
+                    output.exit_status = "download failed".to_string();
+                    return (output, Err(e));
+                }
+            };
 
             let destination = download
                 .destination
@@ -584,73 +754,132 @@ impl ExtensionExecutor {
                 .map(PathBuf::from)
                 .unwrap_or_else(|| bin_dir.clone());
 
-            tokio::fs::create_dir_all(&destination)
+            if let Err(e) = tokio::fs::create_dir_all(&destination)
                 .await
-                .context("Failed to create destination directory")?;
+                .context("Failed to create destination directory")
+            {
+                output.exit_status = "setup failed".to_string();
+                return (output, Err(e));
+            }
 
             if download.extract {
-                // Extract archive
-                self.extract_tarball(&data, &destination).await?;
+                if let Err(e) = self.extract_tarball(&data, &destination).await {
+                    output.exit_status = "extraction failed".to_string();
+                    return (output, Err(e));
+                }
             } else {
-                // Write binary directly
                 let binary_path = destination.join(&download.name);
-                tokio::fs::write(&binary_path, &data)
+                if let Err(e) = tokio::fs::write(&binary_path, &data)
                     .await
-                    .context("Failed to write binary")?;
+                    .context("Failed to write binary")
+                {
+                    output.exit_status = "write failed".to_string();
+                    return (output, Err(e));
+                }
 
-                // Make executable
                 #[cfg(unix)]
                 {
                     use std::os::unix::fs::PermissionsExt;
                     let perms = std::fs::Permissions::from_mode(0o755);
-                    tokio::fs::set_permissions(&binary_path, perms)
+                    if let Err(e) = tokio::fs::set_permissions(&binary_path, perms)
                         .await
-                        .context("Failed to set executable permissions")?;
+                        .context("Failed to set executable permissions")
+                    {
+                        output.exit_status = "chmod failed".to_string();
+                        return (output, Err(e));
+                    }
                 }
             }
 
-            info!("Downloaded and installed {}", download.name);
+            output
+                .stdout_lines
+                .push(format!("Installed {}", download.name));
         }
 
+        output.exit_status = "success".to_string();
         info!(
             "{} installation via binary download completed successfully",
             name
         );
-        Ok(())
+        (output, Ok(()))
     }
 
     /// Install via npm
-    async fn install_npm(&self, extension: &Extension) -> Result<()> {
+    async fn install_npm(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
-        let npm_config = extension
-            .install
-            .npm
-            .as_ref()
-            .ok_or_else(|| anyhow!("npm configuration is missing"))?;
+        let npm_config = match extension.install.npm.as_ref() {
+            Some(c) => c,
+            None => {
+                return (
+                    InstallOutput {
+                        install_method: "npm".to_string(),
+                        exit_status: "missing config".to_string(),
+                        ..Default::default()
+                    },
+                    Err(anyhow!("npm configuration is missing")),
+                )
+            }
+        };
 
         info!("Installing {} via npm...", name);
 
-        // Verify npm is available
-        self.verify_command_exists("npm").await?;
+        if let Err(e) = self.verify_command_exists("npm").await {
+            return (
+                InstallOutput {
+                    install_method: "npm".to_string(),
+                    exit_status: "npm not found".to_string(),
+                    ..Default::default()
+                },
+                Err(e),
+            );
+        }
 
-        // Install package globally
         info!("Installing npm package globally: {}", npm_config.package);
 
-        let output = Command::new("npm")
+        let cmd_output = match Command::new("npm")
             .arg("install")
             .arg("-g")
             .arg(&npm_config.package)
             .output()
             .await
-            .context("Failed to run npm install")?;
+            .context("Failed to run npm install")
+        {
+            Ok(o) => o,
+            Err(e) => {
+                return (
+                    InstallOutput {
+                        install_method: "npm".to_string(),
+                        exit_status: "spawn failed".to_string(),
+                        ..Default::default()
+                    },
+                    Err(e),
+                )
+            }
+        };
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow!("npm install failed: {}", stderr));
+        let stdout_str = String::from_utf8_lossy(&cmd_output.stdout);
+        let stderr_str = String::from_utf8_lossy(&cmd_output.stderr);
+        let mut install_output = InstallOutput {
+            stdout_lines: stdout_str.lines().map(|l| l.to_string()).collect(),
+            stderr_lines: stderr_str.lines().map(|l| l.to_string()).collect(),
+            install_method: "npm".to_string(),
+            exit_status: if cmd_output.status.success() {
+                "success".to_string()
+            } else {
+                format!("exit code: {}", cmd_output.status)
+            },
+        };
+
+        if !cmd_output.status.success() {
+            return (
+                install_output,
+                Err(anyhow!("npm install failed: {}", stderr_str)),
+            );
         }
 
+        install_output.exit_status = "success".to_string();
         info!("{} installation via npm completed successfully", name);
-        Ok(())
+        (install_output, Ok(()))
     }
 
     /// Find common.sh by searching multiple locations in priority order.
@@ -706,13 +935,25 @@ impl ExtensionExecutor {
     }
 
     /// Install via script
-    async fn install_script(&self, extension: &Extension, _timeout: u64) -> Result<()> {
+    async fn install_script(
+        &self,
+        extension: &Extension,
+        _timeout: u64,
+    ) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
-        let script_config = extension
-            .install
-            .script
-            .as_ref()
-            .ok_or_else(|| anyhow!("script configuration is missing"))?;
+        let script_config = match extension.install.script.as_ref() {
+            Some(c) => c,
+            None => {
+                return (
+                    InstallOutput {
+                        install_method: "script".to_string(),
+                        exit_status: "missing config".to_string(),
+                        ..Default::default()
+                    },
+                    Err(anyhow!("script configuration is missing")),
+                )
+            }
+        };
 
         info!("Installing {} via script...", name);
 
@@ -736,16 +977,31 @@ impl ExtensionExecutor {
         debug!("install_script for {}: script_path={:?}", name, script_path);
 
         // Validate script path for directory traversal
-        self.validate_script_path(&script_path, &ext_dir)?;
+        if let Err(e) = self.validate_script_path(&script_path, &ext_dir) {
+            return (
+                InstallOutput {
+                    install_method: "script".to_string(),
+                    exit_status: "path validation failed".to_string(),
+                    ..Default::default()
+                },
+                Err(e),
+            );
+        }
 
         if !script_path.exists() {
-            // Include more context in error message for debugging
-            return Err(anyhow!(
-                "Install script not found: {:?} (executor.extension_dir={:?}, resolved ext_dir={:?})",
-                script_path,
-                self.extension_dir,
-                ext_dir
-            ));
+            return (
+                InstallOutput {
+                    install_method: "script".to_string(),
+                    exit_status: "script not found".to_string(),
+                    ..Default::default()
+                },
+                Err(anyhow!(
+                    "Install script not found: {:?} (executor.extension_dir={:?}, resolved ext_dir={:?})",
+                    script_path,
+                    self.extension_dir,
+                    ext_dir
+                )),
+            );
         }
 
         // Get timeout from script config or parameter
@@ -779,7 +1035,19 @@ impl ExtensionExecutor {
         let stdout_lines = Arc::new(Mutex::new(Vec::<String>::new()));
         let stderr_lines = Arc::new(Mutex::new(Vec::<String>::new()));
 
-        let mut child = cmd.spawn().context("Failed to spawn install script")?;
+        let mut child = match cmd.spawn().context("Failed to spawn install script") {
+            Ok(c) => c,
+            Err(e) => {
+                return (
+                    InstallOutput {
+                        install_method: "script".to_string(),
+                        exit_status: "spawn failed".to_string(),
+                        ..Default::default()
+                    },
+                    Err(e),
+                )
+            }
+        };
 
         // Stream stdout - only log complete lines (ending with \n)
         // Carriage returns (\r) are used for progress indicators that overwrite
@@ -903,91 +1171,122 @@ impl ExtensionExecutor {
             let _ = handle.await;
         }
 
+        let make_output = |status_str: String| -> InstallOutput {
+            InstallOutput {
+                stdout_lines: stdout_lines.lock().map(|l| l.clone()).unwrap_or_default(),
+                stderr_lines: stderr_lines.lock().map(|l| l.clone()).unwrap_or_default(),
+                install_method: "script".to_string(),
+                exit_status: status_str,
+            }
+        };
+
         match result {
             Ok(Ok(status)) => {
                 if status.success() {
                     info!("{} installation via script completed successfully", name);
-                    Ok(())
+                    (make_output("success".to_string()), Ok(()))
                 } else {
-                    let output_tail = collect_output_tail(&stdout_lines, &stderr_lines, 20);
-                    if output_tail.is_empty() {
-                        Err(anyhow!(
+                    let output = make_output(format!("exit code: {}", status));
+                    let output_tail = collect_output_tail_from_vecs(
+                        &output.stdout_lines,
+                        &output.stderr_lines,
+                        20,
+                    );
+                    let err = if output_tail.is_empty() {
+                        anyhow!(
                             "Script installation failed for {} (exit code: {})",
                             name,
                             status
-                        ))
+                        )
                     } else {
-                        Err(anyhow!(
+                        anyhow!(
                             "Script installation failed for {} (exit code: {})\n--- script output ---\n{}\n---",
                             name,
                             status,
                             output_tail
-                        ))
-                    }
+                        )
+                    };
+                    (output, Err(err))
                 }
             }
-            Ok(Err(e)) => Err(anyhow!("Failed to wait for script: {}", e)),
-            Err(_) => Err(anyhow!(
-                "Script installation timed out after {:?} for {}",
-                script_timeout,
-                name
-            )),
+            Ok(Err(e)) => (
+                make_output("process error".to_string()),
+                Err(anyhow!("Failed to wait for script: {}", e)),
+            ),
+            Err(_) => (
+                make_output("timed out".to_string()),
+                Err(anyhow!(
+                    "Script installation timed out after {:?} for {}",
+                    script_timeout,
+                    name
+                )),
+            ),
         }
     }
 
     /// Install via hybrid method (combination of methods)
-    async fn install_hybrid(&self, extension: &Extension, timeout: u64) -> Result<()> {
+    async fn install_hybrid(
+        &self,
+        extension: &Extension,
+        timeout: u64,
+    ) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
         info!("Installing {} via hybrid method...", name);
 
         let mut has_steps = false;
+        let mut combined_output = InstallOutput {
+            install_method: "hybrid".to_string(),
+            ..Default::default()
+        };
 
-        // Execute in order: apt -> mise -> npm -> binary -> script
-        // This order ensures:
-        // - apt installs system dependencies first
-        // - mise installs runtime/language tools
-        // - npm/binary install additional tools
-        // - script runs last for post-processing that may depend on above
+        macro_rules! run_step {
+            ($step:expr) => {{
+                has_steps = true;
+                let (step_output, step_result) = $step;
+                let method = step_output.install_method.clone();
+                combined_output
+                    .stdout_lines
+                    .extend(step_output.stdout_lines);
+                combined_output
+                    .stderr_lines
+                    .extend(step_output.stderr_lines);
+                if let Err(e) = step_result {
+                    combined_output.exit_status = format!("{} failed", method);
+                    return (combined_output, Err(e));
+                }
+            }};
+        }
 
-        // Execute apt installation if specified
         if extension.install.apt.is_some() {
-            has_steps = true;
-            self.install_apt(extension).await?;
+            run_step!(self.install_apt(extension).await);
         }
-
-        // Execute mise installation if specified
         if extension.install.mise.is_some() {
-            has_steps = true;
-            self.install_mise(extension).await?;
+            run_step!(self.install_mise(extension).await);
         }
-
-        // Execute npm installation if specified
         if extension.install.npm.is_some() {
-            has_steps = true;
-            self.install_npm(extension).await?;
+            run_step!(self.install_npm(extension).await);
         }
-
-        // Execute binary installation if specified
         if extension.install.binary.is_some() {
-            has_steps = true;
-            self.install_binary(extension).await?;
+            run_step!(self.install_binary(extension).await);
         }
-
-        // Execute script installation if specified (runs last)
         if extension.install.script.is_some() {
-            has_steps = true;
-            self.install_script(extension, timeout).await?;
+            run_step!(self.install_script(extension, timeout).await);
         }
 
         if !has_steps {
-            return Err(anyhow!("No installation steps specified for hybrid method"));
+            combined_output.exit_status = "no steps".to_string();
+            return (
+                combined_output,
+                Err(anyhow!("No installation steps specified for hybrid method")),
+            );
         }
 
+        combined_output.exit_status = "success".to_string();
         info!(
             "{} installation via hybrid method completed successfully",
             name
         );
-        Ok(())
+        (combined_output, Ok(()))
     }
 
     /// Validate an installed extension
@@ -1529,19 +1828,15 @@ impl ExtensionExecutor {
     }
 }
 
-/// Collect the last N lines from captured stdout/stderr buffers for error reporting
-fn collect_output_tail(
-    stdout_lines: &Arc<Mutex<Vec<String>>>,
-    stderr_lines: &Arc<Mutex<Vec<String>>>,
+/// Collect the last N lines from already-extracted stdout/stderr vectors for error reporting
+fn collect_output_tail_from_vecs(
+    stdout_lines: &[String],
+    stderr_lines: &[String],
     max_lines: usize,
 ) -> String {
-    let mut all_lines = Vec::new();
-    if let Ok(lines) = stdout_lines.lock() {
-        all_lines.extend(lines.iter().cloned());
-    }
-    if let Ok(lines) = stderr_lines.lock() {
-        all_lines.extend(lines.iter().cloned());
-    }
+    let mut all_lines: Vec<&str> = Vec::new();
+    all_lines.extend(stdout_lines.iter().map(|s| s.as_str()));
+    all_lines.extend(stderr_lines.iter().map(|s| s.as_str()));
 
     if all_lines.is_empty() {
         return String::new();

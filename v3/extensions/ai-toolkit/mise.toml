@@ -1,0 +1,9 @@
+# AI Toolkit - mise configuration
+# IMPORTANT: Use pinned versions instead of "latest" to avoid npm registry
+# query timeouts that can poison subsequent mise operations.
+
+[tools]
+# npm-based tools - pinned versions for stability
+"npm:@openai/codex" = "0.101.0"
+"npm:@google/gemini-cli" = "0.27.1"
+"npm:@vibe-kit/grok-cli" = "0.0.34"
