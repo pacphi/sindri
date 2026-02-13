@@ -268,7 +268,7 @@ impl ExtensionDistributor {
     ///
     /// In bundled mode (SINDRI_EXT_HOME set), installs from bundled extensions.
     /// Otherwise, downloads from raw.githubusercontent.com using CLI version tag.
-    pub async fn install(&self, name: &str, version: Option<&str>) -> Result<()> {
+    pub async fn install(&self, name: &str, version: Option<&str>) -> Result<String> {
         info!("Installing extension: {}", name);
 
         // 1. Fetch compatibility matrix
@@ -331,7 +331,7 @@ impl ExtensionDistributor {
         // 4. Check if already installed
         if self.is_installed(name, &target_version)? {
             info!("{} {} is already installed", name, target_version);
-            return Ok(());
+            return Ok(target_version.to_string());
         }
 
         // 5. Get extension directory (bundled or downloaded)
@@ -404,7 +404,7 @@ impl ExtensionDistributor {
 
         // 10. Event publishing is handled by the CLI layer
         info!("Successfully installed {} {}", name, target_version);
-        Ok(())
+        Ok(target_version.to_string())
     }
 
     /// Download extension metadata without executing installation

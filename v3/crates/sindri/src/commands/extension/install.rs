@@ -147,8 +147,12 @@ async fn install_by_name(
     let duration_secs = start_time.elapsed().as_secs();
 
     match result {
-        Ok(()) => {
+        Ok(resolved_version) => {
             spinner.finish_and_clear();
+
+            // Use the resolved version from the distributor (actual metadata.version)
+            // instead of the user-specified version which may be "latest"
+            let final_version = resolved_version;
 
             // Publish InstallCompleted event
             let install_completed_event = EventEnvelope::new(
@@ -157,7 +161,7 @@ async fn install_by_name(
                 ExtensionState::Installed,
                 ExtensionEvent::InstallCompleted {
                     extension_name: name.clone(),
-                    version: version_str.clone(),
+                    version: final_version.clone(),
                     duration_secs,
                     components_installed: vec![], // TODO: collect from executor
                 },
@@ -168,12 +172,8 @@ async fn install_by_name(
             }
 
             output::success(&format!(
-                "Successfully installed {}{}",
-                name,
-                version
-                    .as_ref()
-                    .map(|v| format!("@{}", v))
-                    .unwrap_or_default()
+                "Successfully installed {}@{}",
+                name, final_version
             ));
             Ok(())
         }

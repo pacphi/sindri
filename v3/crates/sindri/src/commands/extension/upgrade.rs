@@ -133,10 +133,11 @@ pub(super) async fn run(args: ExtensionUpgradeArgs) -> Result<()> {
     let spinner = output::spinner(&format!("Upgrading {} to {}", args.name, target));
 
     let result = if args.target_version.is_some() {
-        // Install specific version
+        // Install specific version (map to discard resolved version string)
         distributor
             .install(&args.name, Some(&target.to_string()))
             .await
+            .map(|_| ())
     } else {
         // Use upgrade method for latest
         distributor.upgrade(&args.name).await

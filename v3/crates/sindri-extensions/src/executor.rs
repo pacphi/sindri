@@ -10,6 +10,7 @@ use regex::Regex;
 use sindri_core::types::{AptInstallConfig, Extension, HookConfig, InstallMethod};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
@@ -319,14 +320,19 @@ impl ExtensionExecutor {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
+        // Shared buffers to capture output for error reporting
+        let stdout_lines = Arc::new(Mutex::new(Vec::<String>::new()));
+        let stderr_lines = Arc::new(Mutex::new(Vec::<String>::new()));
+
         let mut child = cmd
             .spawn()
             .context("Failed to spawn mise install command")?;
 
         // Stream stdout - only log complete lines (ending with \n)
         // Discard carriage return progress indicators
-        if let Some(mut stdout) = child.stdout.take() {
-            tokio::spawn(async move {
+        let stdout_handle = if let Some(mut stdout) = child.stdout.take() {
+            let captured = Arc::clone(&stdout_lines);
+            Some(tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
                 let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
@@ -342,8 +348,11 @@ impl ExtensionExecutor {
                             '\n' => {
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    let clean_line = console::strip_ansi_codes(line);
+                                    let clean_line = console::strip_ansi_codes(line).to_string();
                                     debug!("mise: {}", clean_line);
+                                    if let Ok(mut lines) = captured.lock() {
+                                        lines.push(clean_line);
+                                    }
                                 }
                                 line_buffer.clear();
                             }
@@ -355,14 +364,21 @@ impl ExtensionExecutor {
 
                 let line = line_buffer.trim();
                 if !line.is_empty() {
-                    debug!("mise: {}", line);
+                    let clean_line = console::strip_ansi_codes(line).to_string();
+                    debug!("mise: {}", clean_line);
+                    if let Ok(mut lines) = captured.lock() {
+                        lines.push(clean_line);
+                    }
                 }
-            });
-        }
+            }))
+        } else {
+            None
+        };
 
         // Stream stderr - same logic
-        if let Some(mut stderr) = child.stderr.take() {
-            tokio::spawn(async move {
+        let stderr_handle = if let Some(mut stderr) = child.stderr.take() {
+            let captured = Arc::clone(&stderr_lines);
+            Some(tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
                 let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
@@ -378,8 +394,11 @@ impl ExtensionExecutor {
                             '\n' => {
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    let clean_line = console::strip_ansi_codes(line);
+                                    let clean_line = console::strip_ansi_codes(line).to_string();
                                     debug!("mise: {}", clean_line);
+                                    if let Ok(mut lines) = captured.lock() {
+                                        lines.push(clean_line);
+                                    }
                                 }
                                 line_buffer.clear();
                             }
@@ -391,20 +410,43 @@ impl ExtensionExecutor {
 
                 let line = line_buffer.trim();
                 if !line.is_empty() {
-                    debug!("mise: {}", line);
+                    let clean_line = console::strip_ansi_codes(line).to_string();
+                    debug!("mise: {}", clean_line);
+                    if let Ok(mut lines) = captured.lock() {
+                        lines.push(clean_line);
+                    }
                 }
-            });
-        }
+            }))
+        } else {
+            None
+        };
 
         // Wait with timeout
         let result = tokio::time::timeout(timeout, child.wait()).await;
+
+        // Wait for output streaming tasks to finish so buffers are complete
+        if let Some(handle) = stdout_handle {
+            let _ = handle.await;
+        }
+        if let Some(handle) = stderr_handle {
+            let _ = handle.await;
+        }
 
         match result {
             Ok(Ok(status)) => {
                 if status.success() {
                     Ok(())
                 } else {
-                    Err(anyhow!("mise install failed with exit code: {}", status))
+                    let output_tail = collect_output_tail(&stdout_lines, &stderr_lines, 20);
+                    if output_tail.is_empty() {
+                        Err(anyhow!("mise install failed with exit code: {}", status))
+                    } else {
+                        Err(anyhow!(
+                            "mise install failed with exit code: {}\n--- mise output ---\n{}\n---",
+                            status,
+                            output_tail
+                        ))
+                    }
                 }
             }
             Ok(Err(e)) => Err(anyhow!("Failed to wait for mise install: {}", e)),
@@ -733,13 +775,18 @@ impl ExtensionExecutor {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
+        // Shared buffers to capture output for error reporting
+        let stdout_lines = Arc::new(Mutex::new(Vec::<String>::new()));
+        let stderr_lines = Arc::new(Mutex::new(Vec::<String>::new()));
+
         let mut child = cmd.spawn().context("Failed to spawn install script")?;
 
         // Stream stdout - only log complete lines (ending with \n)
         // Carriage returns (\r) are used for progress indicators that overwrite
         // the current line in a terminal - we discard these to avoid log spam
-        if let Some(mut stdout) = child.stdout.take() {
-            tokio::spawn(async move {
+        let stdout_handle = if let Some(mut stdout) = child.stdout.take() {
+            let captured = Arc::clone(&stdout_lines);
+            Some(tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
                 let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
@@ -757,8 +804,11 @@ impl ExtensionExecutor {
                                 // Complete line - log it with ANSI codes stripped
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    let clean_line = console::strip_ansi_codes(line);
+                                    let clean_line = console::strip_ansi_codes(line).to_string();
                                     info!("script: {}", clean_line);
+                                    if let Ok(mut lines) = captured.lock() {
+                                        lines.push(clean_line);
+                                    }
                                 }
                                 line_buffer.clear();
                             }
@@ -776,16 +826,22 @@ impl ExtensionExecutor {
                 // Flush any remaining output with ANSI codes stripped
                 let line = line_buffer.trim();
                 if !line.is_empty() {
-                    let clean_line = console::strip_ansi_codes(line);
+                    let clean_line = console::strip_ansi_codes(line).to_string();
                     info!("script: {}", clean_line);
+                    if let Ok(mut lines) = captured.lock() {
+                        lines.push(clean_line);
+                    }
                 }
-            });
-        }
+            }))
+        } else {
+            None
+        };
 
         // Stream stderr - same logic, but many tools use stderr for normal output
         // so we use debug level, not warn
-        if let Some(mut stderr) = child.stderr.take() {
-            tokio::spawn(async move {
+        let stderr_handle = if let Some(mut stderr) = child.stderr.take() {
+            let captured = Arc::clone(&stderr_lines);
+            Some(tokio::spawn(async move {
                 use tokio::io::AsyncReadExt;
                 let mut buffer = vec![0u8; 1024];
                 let mut line_buffer = String::new();
@@ -803,8 +859,11 @@ impl ExtensionExecutor {
                                 // Complete line - log it with ANSI codes stripped
                                 let line = line_buffer.trim();
                                 if !line.is_empty() {
-                                    let clean_line = console::strip_ansi_codes(line);
+                                    let clean_line = console::strip_ansi_codes(line).to_string();
                                     debug!("script: {}", clean_line);
+                                    if let Ok(mut lines) = captured.lock() {
+                                        lines.push(clean_line);
+                                    }
                                 }
                                 line_buffer.clear();
                             }
@@ -822,14 +881,27 @@ impl ExtensionExecutor {
                 // Flush any remaining output with ANSI codes stripped
                 let line = line_buffer.trim();
                 if !line.is_empty() {
-                    let clean_line = console::strip_ansi_codes(line);
+                    let clean_line = console::strip_ansi_codes(line).to_string();
                     debug!("script: {}", clean_line);
+                    if let Ok(mut lines) = captured.lock() {
+                        lines.push(clean_line);
+                    }
                 }
-            });
-        }
+            }))
+        } else {
+            None
+        };
 
         // Wait with timeout
         let result = tokio::time::timeout(script_timeout, child.wait()).await;
+
+        // Wait for output streaming tasks to finish so buffers are complete
+        if let Some(handle) = stdout_handle {
+            let _ = handle.await;
+        }
+        if let Some(handle) = stderr_handle {
+            let _ = handle.await;
+        }
 
         match result {
             Ok(Ok(status)) => {
@@ -837,11 +909,21 @@ impl ExtensionExecutor {
                     info!("{} installation via script completed successfully", name);
                     Ok(())
                 } else {
-                    Err(anyhow!(
-                        "Script installation failed for {} (exit code: {})",
-                        name,
-                        status
-                    ))
+                    let output_tail = collect_output_tail(&stdout_lines, &stderr_lines, 20);
+                    if output_tail.is_empty() {
+                        Err(anyhow!(
+                            "Script installation failed for {} (exit code: {})",
+                            name,
+                            status
+                        ))
+                    } else {
+                        Err(anyhow!(
+                            "Script installation failed for {} (exit code: {})\n--- script output ---\n{}\n---",
+                            name,
+                            status,
+                            output_tail
+                        ))
+                    }
                 }
             }
             Ok(Err(e)) => Err(anyhow!("Failed to wait for script: {}", e)),
@@ -1445,6 +1527,28 @@ impl ExtensionExecutor {
 
         Ok(())
     }
+}
+
+/// Collect the last N lines from captured stdout/stderr buffers for error reporting
+fn collect_output_tail(
+    stdout_lines: &Arc<Mutex<Vec<String>>>,
+    stderr_lines: &Arc<Mutex<Vec<String>>>,
+    max_lines: usize,
+) -> String {
+    let mut all_lines = Vec::new();
+    if let Ok(lines) = stdout_lines.lock() {
+        all_lines.extend(lines.iter().cloned());
+    }
+    if let Ok(lines) = stderr_lines.lock() {
+        all_lines.extend(lines.iter().cloned());
+    }
+
+    if all_lines.is_empty() {
+        return String::new();
+    }
+
+    let start = all_lines.len().saturating_sub(max_lines);
+    all_lines[start..].join("\n")
 }
 
 #[cfg(test)]

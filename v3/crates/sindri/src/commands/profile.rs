@@ -229,8 +229,8 @@ pub async fn install(args: ProfileInstallArgs) -> Result<()> {
                     println!("    Source: {}", source);
                 }
                 // Trim error message if too long
-                let error_msg = if failed.error.len() > 100 {
-                    format!("{}...", &failed.error[..97])
+                let error_msg = if failed.error.len() > 300 {
+                    format!("{}...", &failed.error[..297])
                 } else {
                     failed.error.clone()
                 };

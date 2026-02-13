@@ -11,7 +11,7 @@ use crate::output;
 const LOG_EXTENSION_NAME_WIDTH: usize = 15;
 
 /// Maximum error message display width before truncation
-const LOG_ERROR_MESSAGE_WIDTH: usize = 60;
+const LOG_ERROR_MESSAGE_WIDTH: usize = 200;
 
 /// Maximum event type column width
 const LOG_EVENT_TYPE_WIDTH: usize = 20;
