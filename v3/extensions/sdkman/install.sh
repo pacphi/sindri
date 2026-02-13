@@ -40,7 +40,11 @@ if ! command -v sdk &>/dev/null; then
     exit 1
 fi
 
-print_success "SDKMAN installed: $(sdk version 2>/dev/null | head -1)"
+# Note: sdk version can output multiple lines; avoid piping to head with pipefail
+# as SIGPIPE causes a non-zero exit code that triggers set -e
+sdk_ver=$(sdk version 2>/dev/null || true)
+sdk_ver_line=$(echo "$sdk_ver" | head -1)
+print_success "SDKMAN installed: ${sdk_ver_line}"
 print_status "SDKMAN directory: $SDKMAN_DIR"
 
 # Install sdk-validate wrapper for validation
