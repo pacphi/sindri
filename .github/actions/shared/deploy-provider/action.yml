@@ -179,10 +179,12 @@ runs:
         echo "::group::Step 1.K2: Create local Docker registry"
         if [ "$(docker inspect -f '{{.State.Running}}' "${REG_NAME}" 2>/dev/null || true)" != 'true' ]; then
           echo "→ Starting local registry: ${REG_NAME} on port ${REG_PORT}"
-          # Use distribution v3.0.0 which supports OCI 1.1 attestations with unknown/unknown platform
+          # Use registry:3 (distribution v3.x) which supports OCI 1.1 attestations
+          # with unknown/unknown platform manifests
+          # See: https://hub.docker.com/_/registry/tags
           # See: https://github.com/distribution/distribution/releases
           # See: https://opencontainers.org/posts/blog/2024-03-13-image-and-distribution-1-1/
-          docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" distribution/distribution:v3.0.0
+          docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" registry:3
         else
           echo "→ Local registry ${REG_NAME} already running"
         fi
