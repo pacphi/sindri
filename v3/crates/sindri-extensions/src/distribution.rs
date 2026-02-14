@@ -410,7 +410,10 @@ impl ExtensionDistributor {
                                 },
                             );
                             if let Err(e) = ledger.append(event) {
-                                warn!("Failed to publish dependency install_completed event: {}", e);
+                                warn!(
+                                    "Failed to publish dependency install_completed event: {}",
+                                    e
+                                );
                             }
                         }
                     }

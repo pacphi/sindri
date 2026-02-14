@@ -13,7 +13,9 @@ mod common;
 
 #[cfg(test)]
 mod dependency_event_tracking_tests {
-    use sindri_core::types::{ExtensionState, Extension, ExtensionMetadata, InstallConfig, InstallMethod};
+    use sindri_core::types::{
+        Extension, ExtensionMetadata, ExtensionState, InstallConfig, InstallMethod,
+    };
     use sindri_extensions::{EventEnvelope, ExtensionEvent, StatusLedger};
     use tempfile::TempDir;
 
@@ -106,82 +108,94 @@ mod dependency_event_tracking_tests {
         // Simulate installing dependency chain: mise-config -> sdkman -> jvm
 
         // 1. mise-config (no dependencies)
-        ledger.append(EventEnvelope::new(
-            "mise-config".to_string(),
-            None,
-            ExtensionState::Installing,
-            ExtensionEvent::InstallStarted {
-                extension_name: "mise-config".to_string(),
-                version: "2.0.0".to_string(),
-                source: "dependency of jvm".to_string(),
-                install_method: "Distributor".to_string(),
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "mise-config".to_string(),
+                None,
+                ExtensionState::Installing,
+                ExtensionEvent::InstallStarted {
+                    extension_name: "mise-config".to_string(),
+                    version: "2.0.0".to_string(),
+                    source: "dependency of jvm".to_string(),
+                    install_method: "Distributor".to_string(),
+                },
+            ))
+            .unwrap();
 
-        ledger.append(EventEnvelope::new(
-            "mise-config".to_string(),
-            Some(ExtensionState::Installing),
-            ExtensionState::Installed,
-            ExtensionEvent::InstallCompleted {
-                extension_name: "mise-config".to_string(),
-                version: "2.0.0".to_string(),
-                duration_secs: 5,
-                components_installed: vec![],
-                log_file: None,
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "mise-config".to_string(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Installed,
+                ExtensionEvent::InstallCompleted {
+                    extension_name: "mise-config".to_string(),
+                    version: "2.0.0".to_string(),
+                    duration_secs: 5,
+                    components_installed: vec![],
+                    log_file: None,
+                },
+            ))
+            .unwrap();
 
         // 2. sdkman (no dependencies)
-        ledger.append(EventEnvelope::new(
-            "sdkman".to_string(),
-            None,
-            ExtensionState::Installing,
-            ExtensionEvent::InstallStarted {
-                extension_name: "sdkman".to_string(),
-                version: "1.0.1".to_string(),
-                source: "dependency of jvm".to_string(),
-                install_method: "Distributor".to_string(),
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "sdkman".to_string(),
+                None,
+                ExtensionState::Installing,
+                ExtensionEvent::InstallStarted {
+                    extension_name: "sdkman".to_string(),
+                    version: "1.0.1".to_string(),
+                    source: "dependency of jvm".to_string(),
+                    install_method: "Distributor".to_string(),
+                },
+            ))
+            .unwrap();
 
-        ledger.append(EventEnvelope::new(
-            "sdkman".to_string(),
-            Some(ExtensionState::Installing),
-            ExtensionState::Installed,
-            ExtensionEvent::InstallCompleted {
-                extension_name: "sdkman".to_string(),
-                version: "1.0.1".to_string(),
-                duration_secs: 10,
-                components_installed: vec![],
-                log_file: None,
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "sdkman".to_string(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Installed,
+                ExtensionEvent::InstallCompleted {
+                    extension_name: "sdkman".to_string(),
+                    version: "1.0.1".to_string(),
+                    duration_secs: 10,
+                    components_installed: vec![],
+                    log_file: None,
+                },
+            ))
+            .unwrap();
 
         // 3. jvm (depends on mise-config and sdkman)
-        ledger.append(EventEnvelope::new(
-            "jvm".to_string(),
-            None,
-            ExtensionState::Installing,
-            ExtensionEvent::InstallStarted {
-                extension_name: "jvm".to_string(),
-                version: "2.1.1".to_string(),
-                source: "github:pacphi/sindri".to_string(),
-                install_method: "Distributor".to_string(),
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "jvm".to_string(),
+                None,
+                ExtensionState::Installing,
+                ExtensionEvent::InstallStarted {
+                    extension_name: "jvm".to_string(),
+                    version: "2.1.1".to_string(),
+                    source: "github:pacphi/sindri".to_string(),
+                    install_method: "Distributor".to_string(),
+                },
+            ))
+            .unwrap();
 
-        ledger.append(EventEnvelope::new(
-            "jvm".to_string(),
-            Some(ExtensionState::Installing),
-            ExtensionState::Installed,
-            ExtensionEvent::InstallCompleted {
-                extension_name: "jvm".to_string(),
-                version: "2.1.1".to_string(),
-                duration_secs: 30,
-                components_installed: vec![],
-                log_file: None,
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "jvm".to_string(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Installed,
+                ExtensionEvent::InstallCompleted {
+                    extension_name: "jvm".to_string(),
+                    version: "2.1.1".to_string(),
+                    duration_secs: 30,
+                    components_installed: vec![],
+                    log_file: None,
+                },
+            ))
+            .unwrap();
 
         // Verify all three extensions show as installed
         let status_map = ledger.get_all_latest_status().unwrap();
@@ -218,31 +232,36 @@ mod dependency_event_tracking_tests {
         let ledger = StatusLedger::new(ledger_path.clone());
 
         // Simulate installing a dependency that fails
-        ledger.append(EventEnvelope::new(
-            "sdkman".to_string(),
-            None,
-            ExtensionState::Installing,
-            ExtensionEvent::InstallStarted {
-                extension_name: "sdkman".to_string(),
-                version: "1.0.1".to_string(),
-                source: "dependency of jvm".to_string(),
-                install_method: "Distributor".to_string(),
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "sdkman".to_string(),
+                None,
+                ExtensionState::Installing,
+                ExtensionEvent::InstallStarted {
+                    extension_name: "sdkman".to_string(),
+                    version: "1.0.1".to_string(),
+                    source: "dependency of jvm".to_string(),
+                    install_method: "Distributor".to_string(),
+                },
+            ))
+            .unwrap();
 
-        ledger.append(EventEnvelope::new(
-            "sdkman".to_string(),
-            Some(ExtensionState::Installing),
-            ExtensionState::Failed,
-            ExtensionEvent::InstallFailed {
-                extension_name: "sdkman".to_string(),
-                version: "1.0.1".to_string(),
-                error_message: "Script installation failed for sdkman (exit code: 1)".to_string(),
-                retry_count: 0,
-                duration_secs: 5,
-                log_file: None,
-            },
-        )).unwrap();
+        ledger
+            .append(EventEnvelope::new(
+                "sdkman".to_string(),
+                Some(ExtensionState::Installing),
+                ExtensionState::Failed,
+                ExtensionEvent::InstallFailed {
+                    extension_name: "sdkman".to_string(),
+                    version: "1.0.1".to_string(),
+                    error_message: "Script installation failed for sdkman (exit code: 1)"
+                        .to_string(),
+                    retry_count: 0,
+                    duration_secs: 5,
+                    log_file: None,
+                },
+            ))
+            .unwrap();
 
         // Verify dependency shows as failed
         let status_map = ledger.get_all_latest_status().unwrap();
@@ -255,14 +274,15 @@ mod dependency_event_tracking_tests {
     #[test]
     fn test_extension_structure_with_dependencies() {
         // Verify extension metadata structure supports dependencies
-        let jvm = create_test_extension(
-            "jvm",
-            vec!["mise-config".to_string(), "sdkman".to_string()],
-        );
+        let jvm =
+            create_test_extension("jvm", vec!["mise-config".to_string(), "sdkman".to_string()]);
 
         assert_eq!(jvm.metadata.name, "jvm");
         assert_eq!(jvm.metadata.dependencies.len(), 2);
-        assert!(jvm.metadata.dependencies.contains(&"mise-config".to_string()));
+        assert!(jvm
+            .metadata
+            .dependencies
+            .contains(&"mise-config".to_string()));
         assert!(jvm.metadata.dependencies.contains(&"sdkman".to_string()));
     }
 }

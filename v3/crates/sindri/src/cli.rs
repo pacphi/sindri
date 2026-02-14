@@ -293,7 +293,10 @@ fn parse_doc_format(s: &str) -> Result<sindri_core::templates::DocOutputFormat, 
     match s.to_lowercase().as_str() {
         "markdown" | "md" => Ok(sindri_core::templates::DocOutputFormat::Markdown),
         "terminal" | "term" | "tty" => Ok(sindri_core::templates::DocOutputFormat::Terminal),
-        _ => Err(format!("Invalid format '{}'. Use 'markdown' or 'terminal'", s)),
+        _ => Err(format!(
+            "Invalid format '{}'. Use 'markdown' or 'terminal'",
+            s
+        )),
     }
 }
 
