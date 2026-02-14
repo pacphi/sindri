@@ -39,7 +39,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-rc.4
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-rc.4
 ```
@@ -131,7 +131,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-rc.1
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-rc.1
 ```
@@ -173,7 +173,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.11
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.11
 ```
@@ -219,7 +219,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.10
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.10
 ```
@@ -262,7 +262,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.9
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.9
 ```
@@ -304,7 +304,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.8
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.8
 ```
@@ -350,7 +350,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.7
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.7
 ```
@@ -400,7 +400,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.6
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.6
 ```
@@ -439,7 +439,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.5
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.5
 ```
@@ -483,7 +483,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.4
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.4
 ```
@@ -525,7 +525,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.3
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.3
 ```
@@ -567,7 +567,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.2
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.2
 ```
@@ -619,7 +619,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-beta.1
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-beta.1
 ```
@@ -662,7 +662,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.18
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.18
 ```
@@ -705,7 +705,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.17
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.17
 ```
@@ -747,7 +747,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.16
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.16
 ```
@@ -789,7 +789,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.15
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.15
 ```
@@ -837,7 +837,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.14
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.14
 ```
@@ -879,7 +879,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.13
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.13
 ```
@@ -921,7 +921,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.12
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.12
 ```
@@ -963,7 +963,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.11
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.11
 ```
@@ -1005,7 +1005,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.10
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.10
 ```
@@ -1056,7 +1056,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.9
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.9
 ```
@@ -1102,7 +1102,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.8
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.8
 ```
@@ -1148,7 +1148,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.7
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.7
 ```
@@ -1188,7 +1188,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.6
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.6
 ```
@@ -1228,7 +1228,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.5
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.5
 ```
@@ -1268,7 +1268,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.4
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.4
 ```
@@ -1306,7 +1306,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.3
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.3
 ```
@@ -1346,7 +1346,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.2
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.2
 ```
@@ -1401,7 +1401,7 @@ docker pull ghcr.io/pacphi/sindri:3.0.0-alpha.1
 
 # Run a container
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:3.0.0-alpha.1
 ```

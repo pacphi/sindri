@@ -88,7 +88,7 @@ This document provides a validation checklist for the v3 Dockerfile implementati
   - [ ] `start_ssh_daemon()` - Start SSH on port 2222
 - [ ] Extension installation logic
   - [ ] Uses `sindri profile install <name> --yes`
-  - [ ] Respects `SINDRI_PROFILE` environment variable
+  - [ ] Respects `INSTALL_PROFILE` environment variable
   - [ ] Defaults to `minimal` profile
   - [ ] Respects `SKIP_AUTO_INSTALL` flag
   - [ ] Logs to `~/.sindri/logs/install.log`
@@ -179,7 +179,7 @@ docker volume create sindri_test_home
 
 # Run container with minimal profile
 docker run -d --name sindri-test \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -e AUTHORIZED_KEYS="$(cat ~/.ssh/id_rsa.pub)" \
   -v sindri_test_home:/alt/home/developer \
   -p 2222:2222 \
@@ -284,7 +284,7 @@ docker rm sindri-test
 
 # Start a new container with same volume
 docker run -d --name sindri-test2 \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -e AUTHORIZED_KEYS="$(cat ~/.ssh/id_rsa.pub)" \
   -v sindri_test_home:/alt/home/developer \
   -p 2223:2222 \
@@ -311,7 +311,7 @@ sindri extension status  # Should show previously installed extensions
 ```bash
 # Test with different profile
 docker run -d --name sindri-full \
-  -e SINDRI_PROFILE=full \
+  -e INSTALL_PROFILE=full \
   -e AUTHORIZED_KEYS="$(cat ~/.ssh/id_rsa.pub)" \
   -v sindri_full_home:/alt/home/developer \
   -p 2224:2222 \
@@ -446,7 +446,7 @@ git config --global credential.helper  # Should be configured
 
 1. **Config File Installation Not Implemented**
    - **Issue**: `sindri extension install --from-config sindri.yaml` command does not exist
-   - **Workaround**: Entrypoint extracts profile from SINDRI_PROFILE env var or defaults to minimal
+   - **Workaround**: Entrypoint extracts profile from INSTALL_PROFILE env var or defaults to minimal
    - **Future**: Implement `sindri config apply` command to install from sindri.yaml
    - **Impact**: Users must use profiles or manually install extensions
 

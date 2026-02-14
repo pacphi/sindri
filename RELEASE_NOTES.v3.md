@@ -1596,7 +1596,7 @@ sindri doctor --all
 docker pull ghcr.io/pacphi/sindri:v3
 
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/pacphi/sindri:v3
 ```
