@@ -14,6 +14,16 @@ use tracing::debug;
 
 use crate::types::{Extension, InstallMethod, UpgradeStrategy};
 
+/// Output format for extension documentation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DocOutputFormat {
+    /// Plain markdown suitable for writing to files
+    Markdown,
+    /// Terminal-friendly colorized output (default)
+    #[default]
+    Terminal,
+}
+
 /// Template registry for config file generation
 pub struct ConfigTemplateRegistry {
     tera: Tera,
@@ -110,7 +120,11 @@ struct CapabilitySummary {
 }
 
 /// Render extension documentation from an Extension struct
-pub fn render_extension_doc(extension: &Extension) -> Result<String> {
+///
+/// # Arguments
+/// * `extension` - The extension to generate documentation for
+/// * `format` - The output format (Terminal or Markdown)
+pub fn render_extension_doc(extension: &Extension, format: DocOutputFormat) -> Result<String> {
     let mut tera = Tera::default();
     tera.add_raw_template("extension_doc.md", include_str!("extension_doc.md.tera"))?;
 
@@ -368,7 +382,28 @@ pub fn render_extension_doc(extension: &Extension) -> Result<String> {
     // Clean up excessive blank lines (collapse 3+ consecutive newlines to 2)
     let cleaned = collapse_blank_lines(&rendered);
 
-    Ok(cleaned)
+    // Apply formatting based on output format
+    match format {
+        DocOutputFormat::Markdown => Ok(cleaned),
+        DocOutputFormat::Terminal => {
+            // Use termimad to render beautiful terminal output
+            let mut skin = termimad::MadSkin::default();
+
+            // Customize the skin for better readability
+            skin.set_headers_fg(termimad::crossterm::style::Color::Cyan);
+            skin.bold.set_fg(termimad::crossterm::style::Color::Yellow);
+            skin.italic.set_fg(termimad::crossterm::style::Color::Green);
+            skin.inline_code.set_fg(termimad::crossterm::style::Color::Magenta);
+
+            // Remove background from code blocks for cleaner look
+            skin.code_block.set_bg(termimad::crossterm::style::Color::Reset);
+
+            // Render the markdown with terminal styling
+            // Note: We convert to string to avoid lifetime issues
+            let text = skin.text(&cleaned, None);
+            Ok(format!("{}", text))
+        }
+    }
 }
 
 /// Convert hyphenated name to title case (e.g., "golang" -> "Golang", "mise-config" -> "Mise Config")

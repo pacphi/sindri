@@ -82,8 +82,8 @@ pub(super) async fn run(args: ExtensionDocsArgs) -> Result<()> {
     let extension: sindri_core::types::Extension = serde_yaml_ng::from_str(&content)
         .with_context(|| format!("Failed to parse {}", extension_yaml_path.display()))?;
 
-    // Render documentation
-    let doc = sindri_core::templates::render_extension_doc(&extension)
+    // Render documentation with the specified format
+    let doc = sindri_core::templates::render_extension_doc(&extension, args.format)
         .context("Failed to render extension documentation")?;
 
     print!("{}", doc);

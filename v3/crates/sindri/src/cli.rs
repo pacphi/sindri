@@ -283,6 +283,18 @@ pub enum ExtensionCommands {
 pub struct ExtensionDocsArgs {
     /// Extension name
     pub name: String,
+
+    /// Output format
+    #[arg(short, long, default_value = "terminal", value_parser = parse_doc_format)]
+    pub format: sindri_core::templates::DocOutputFormat,
+}
+
+fn parse_doc_format(s: &str) -> Result<sindri_core::templates::DocOutputFormat, String> {
+    match s.to_lowercase().as_str() {
+        "markdown" | "md" => Ok(sindri_core::templates::DocOutputFormat::Markdown),
+        "terminal" | "term" | "tty" => Ok(sindri_core::templates::DocOutputFormat::Terminal),
+        _ => Err(format!("Invalid format '{}'. Use 'markdown' or 'terminal'", s)),
+    }
 }
 
 #[derive(Args, Debug)]
