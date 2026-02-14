@@ -42,8 +42,6 @@ docker run -it -v sindri-home:/alt/home/developer ghcr.io/pacphi/sindri:v2.5.1
 
 **Full Changelog**: https://github.com/pacphi/sindri/compare/v2.5.0...v2.5.1
 
-
-
 ## [2.5.0] - 2026-02-01
 
 ### :bug: Bug Fixes
