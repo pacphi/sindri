@@ -224,10 +224,31 @@ runs:
         # Step 1.K5: Push image to local registry
         echo "::group::Step 1.K5: Push image to local registry"
         LOCAL_IMAGE="localhost:${REG_PORT}/sindri:latest"
-        echo "→ Tagging image: ${{ inputs.image }} → ${LOCAL_IMAGE}"
+
+        # Re-pull image with explicit platform to ensure platform metadata is correct
+        # This avoids issues with multi-platform manifests and attestations
+        echo "→ Re-pulling image with explicit platform: ${{ inputs.image }}"
+        docker pull --platform linux/amd64 "${{ inputs.image }}"
+
+        # Verify image was pulled correctly
+        if ! docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
+          echo "::error::Failed to pull image ${{ inputs.image }}"
+          exit 1
+        fi
+
+        echo "→ Tagging image for local registry: ${LOCAL_IMAGE}"
         docker tag "${{ inputs.image }}" "${LOCAL_IMAGE}"
+
         echo "→ Pushing to local registry..."
         docker push "${LOCAL_IMAGE}"
+
+        # Verify image was pushed successfully
+        if ! docker pull "${LOCAL_IMAGE}" >/dev/null 2>&1; then
+          echo "::error::Failed to push/verify image in local registry"
+          exit 1
+        fi
+
+        echo "✓ Image available in local registry: ${LOCAL_IMAGE}"
         echo "::endgroup::"
 
         # Step 1.K6: Configure kubectl
