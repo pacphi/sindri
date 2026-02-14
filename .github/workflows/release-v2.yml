@@ -79,8 +79,8 @@ jobs:
         id: verify
         run: |
           SHA="${{ steps.get-sha.outputs.sha }}"
-          CI_PASSED="ghcr.io/${{ github.repository }}:ci-passed-${SHA}"
-          CI_TAG="ghcr.io/${{ github.repository }}:ci-${SHA}"
+          CI_PASSED="ghcr.io/${{ github.repository }}:v2-ci-passed-${SHA}"
+          CI_TAG="ghcr.io/${{ github.repository }}:v2-ci-${SHA}"
 
           echo "Looking for promotion candidate images..."
           echo "  Preferred: $CI_PASSED"
@@ -547,7 +547,7 @@ jobs:
 
           ## Build Provenance
 
-          - **CI Image**: Promoted from tested CI build (ci-passed-SHA)
+          - **CI Image**: Promoted from tested CI build (v2-ci-passed-SHA)
           - **Build Workflow**: https://github.com/REPO_PLACEHOLDER/actions
           - **Commit SHA**: Check image labels or SBOM metadata
           VERIFY_EOF

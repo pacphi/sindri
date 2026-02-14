@@ -79,8 +79,8 @@ jobs:
         id: find
         run: |
           SHA="${{ steps.resolve-sha.outputs.sha }}"
-          CI_PASSED="ghcr.io/${{ github.repository }}:ci-passed-${SHA}"
-          CI_TAG="ghcr.io/${{ github.repository }}:ci-${SHA}"
+          CI_PASSED="ghcr.io/${{ github.repository }}:v3-ci-passed-${SHA}"
+          CI_TAG="ghcr.io/${{ github.repository }}:v3-ci-${SHA}"
 
           echo "Looking for CI images for commit: $SHA"
           echo "  Preferred: $CI_PASSED (tested)"

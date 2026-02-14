@@ -258,7 +258,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=ci-${{ github.sha }}
+            type=raw,value=v3-ci-${{ github.sha }}
           labels: |
             org.opencontainers.image.title=Sindri v3
             org.opencontainers.image.description=Multi-cloud development environment orchestrator (Rust)
@@ -299,9 +299,9 @@ jobs:
 
       - name: Export image info
         run: |
-          echo "tag=ghcr.io/${{ github.repository }}:ci-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "tag=ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "✅ Image built and pushed (linux/amd64)"
-          echo "   Image: ghcr.io/${{ github.repository }}:ci-${{ github.sha }}"
+          echo "   Image: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}"
           echo "   Platform: linux/amd64"
           echo "   Note: Multi-arch (amd64+arm64) builds happen during releases"
 
@@ -330,7 +330,7 @@ jobs:
       - name: Scan with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}:ci-${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
@@ -346,7 +346,7 @@ jobs:
         if: always()
         run: |
           echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "Image: \`ghcr.io/${{ github.repository }}:ci-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Image: \`ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f trivy-results.sarif ]; then
             ISSUES=$(jq '.runs[0].results | length' trivy-results.sarif)
@@ -376,19 +376,19 @@ jobs:
       - name: Tag as promotion candidate
         run: |
           echo "Pulling CI image..."
-          docker pull ghcr.io/${{ github.repository }}:ci-${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}
 
-          echo "Tagging as ci-passed..."
-          docker tag ghcr.io/${{ github.repository }}:ci-${{ github.sha }} \
-                     ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}
+          echo "Tagging as v3-ci-passed..."
+          docker tag ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }} \
+                     ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}
 
           echo "Pushing promotion candidate tag..."
-          docker push ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}
 
           echo "✅ Image marked as promotion candidate"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Promotion Candidate" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image**: \`ghcr.io/${{ github.repository }}:ci-passed-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: \`ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: Ready for release promotion" >> $GITHUB_STEP_SUMMARY
           echo "- **Tests**: K8s integration tests passed" >> $GITHUB_STEP_SUMMARY
           echo "- **Security**: Vulnerability scan completed" >> $GITHUB_STEP_SUMMARY
