@@ -109,7 +109,7 @@ docker pull ghcr.io/${GITHUB_REPOSITORY}:{{TO_VERSION}}
 
 # Run with recommended settings
 docker run -d --name sindri \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v sindri_home:/alt/home/developer \
   ghcr.io/${GITHUB_REPOSITORY}:{{TO_VERSION}}
 ```

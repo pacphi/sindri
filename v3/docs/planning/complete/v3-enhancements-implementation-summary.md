@@ -78,7 +78,7 @@ pub struct ExtensionInstallArgs {
 - Updated extension installation logic to use new flags
 - Priority order:
   1. `sindri extension install --from-config sindri.yaml` (if sindri.yaml exists)
-  2. `sindri extension install --profile $SINDRI_PROFILE` (if env var set)
+  2. `sindri extension install --profile $INSTALL_PROFILE` (if env var set)
   3. `sindri extension install --profile minimal` (default)
 
 ### Usage Examples
@@ -113,7 +113,7 @@ sindri extension install --profile full --yes
 **Integration Tests Required:**
 
 - [ ] Test entrypoint with sindri.yaml present
-- [ ] Test entrypoint with SINDRI_PROFILE set
+- [ ] Test entrypoint with INSTALL_PROFILE set
 - [ ] Test entrypoint with neither (defaults to minimal)
 
 ---
@@ -554,7 +554,7 @@ docker logs -f test-config | grep "Installing extensions from sindri.yaml"
 
 ```bash
 docker run -d --name test-profile \
-  -e SINDRI_PROFILE=full \
+  -e INSTALL_PROFILE=full \
   -v test-profile-home:/alt/home/developer \
   sindri:v3-test
 
@@ -585,7 +585,7 @@ docker exec test-profile sindri extension status
 
 ```bash
 docker run --platform linux/arm64 -d --name test-arm64 \
-  -e SINDRI_PROFILE=minimal \
+  -e INSTALL_PROFILE=minimal \
   -v test-arm64-home:/alt/home/developer \
   sindri:v3-test
 
@@ -669,7 +669,7 @@ docker exec test-arm64 sindri --version
 
 1. No changes required to existing sindri.yaml files
 2. No changes to environment variables
-3. SINDRI_PROFILE still works as before
+3. INSTALL_PROFILE still works as before
 4. New flags optional but recommended
 
 **For Automation:**

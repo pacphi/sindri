@@ -134,7 +134,7 @@ elif [[ "$VERSION_PREFIX" == "v3" ]]; then
   changelog+="docker pull ghcr.io/${REPO}:${VERSION}"$'\n\n'
   changelog+="# Run a container"$'\n'
   changelog+="docker run -d --name sindri \\"$'\n'
-  changelog+="  -e SINDRI_PROFILE=minimal \\"$'\n'
+  changelog+="  -e INSTALL_PROFILE=minimal \\"$'\n'
   changelog+="  -v sindri_home:/alt/home/developer \\"$'\n'
   changelog+="  ghcr.io/${REPO}:${VERSION}"$'\n'
   changelog+='```'$'\n\n'
