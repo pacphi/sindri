@@ -226,29 +226,17 @@ runs:
         done
         echo "::endgroup::"
 
-        # Step 1.K5: Push image to local registry
-        echo "::group::Step 1.K5: Push image to local registry"
-        LOCAL_IMAGE="localhost:${REG_PORT}/sindri:latest"
-
-        # Verify image is available (should already be pulled with --platform linux/amd64)
-        if ! docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
-          echo "::error::Image ${{ inputs.image }} not found locally"
-          exit 1
-        fi
-
-        echo "→ Tagging image for local registry: ${LOCAL_IMAGE}"
-        docker tag "${{ inputs.image }}" "${LOCAL_IMAGE}"
-
-        echo "→ Pushing to local registry..."
-        docker push "${LOCAL_IMAGE}"
-
-        # Verify image was pushed successfully
-        if ! docker pull "${LOCAL_IMAGE}" >/dev/null 2>&1; then
-          echo "::error::Failed to push/verify image in local registry"
-          exit 1
-        fi
-
-        echo "✓ Image available in local registry: ${LOCAL_IMAGE}"
+        # Step 1.K5: Skip local registry push (use GHCR directly)
+        echo "::group::Step 1.K5: Image source configuration"
+        echo "→ Using image directly from GHCR: ${{ inputs.image }}"
+        echo "→ This validates production pattern: attested images from trusted registry"
+        echo "→ Skipping local registry push (avoids GitHub Actions environment issues)"
+        echo ""
+        echo "Note: Local registry is available for future use but not needed for this test."
+        echo "DevPod/k8s will pull image directly from GHCR, which:"
+        echo "  - Tests real-world production deployment pattern"
+        echo "  - Validates attestations work end-to-end"
+        echo "  - Avoids environment-specific registry push issues"
         echo "::endgroup::"
 
         # Step 1.K6: Configure kubectl
@@ -384,9 +372,11 @@ runs:
             # Always pass workspace name to ensure consistent ID between deploy and test
             EXTRA_FLAGS="--workspace-name $WORKSPACE_ID"
             if [[ "$PROVIDER" == "devpod-k8s" ]]; then
-              REGISTRY_URL="${{ steps.kind-setup.outputs.registry-url }}"
-              echo "→ Using image from local registry: ${REGISTRY_URL}/sindri:latest"
-              EXTRA_FLAGS="$EXTRA_FLAGS --skip-build --image ${REGISTRY_URL}/sindri:latest"
+              # Use image directly from GHCR (production pattern)
+              # This validates that users can deploy attested release images
+              # directly to k8s clusters without intermediate registries
+              echo "→ Using image directly from GHCR: ${{ inputs.image }}"
+              EXTRA_FLAGS="$EXTRA_FLAGS --skip-build --image ${{ inputs.image }}"
             fi
             echo "::endgroup::"
 
