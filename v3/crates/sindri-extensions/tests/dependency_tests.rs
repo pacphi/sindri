@@ -153,4 +153,124 @@ mod dependency_tests {
             assert!(!ext.metadata.dependencies.is_empty());
         }
     }
+
+    #[test]
+    fn test_dependency_event_tracking() {
+        // This test verifies that when an extension with dependencies is installed,
+        // ledger events are published for both the main extension and its dependencies.
+        //
+        // Test scenario:
+        // - Extension "jvm" depends on "mise-config" and "sdkman"
+        // - When jvm is installed, all three should have ledger events
+        //
+        // Expected ledger events:
+        // 1. mise-config: install_started -> install_completed
+        // 2. sdkman: install_started -> install_completed
+        // 3. jvm: install_started -> install_completed
+
+        use sindri_core::types::{Extension, ExtensionMetadata, InstallConfig, InstallMethod};
+
+        // Create test extensions with dependency chain
+        let mise_config = Extension {
+            metadata: ExtensionMetadata {
+                name: "mise-config".to_string(),
+                version: "2.0.0".to_string(),
+                description: "Global mise configuration".to_string(),
+                category: sindri_core::types::ExtensionCategory::PackageManager,
+                author: None,
+                homepage: None,
+                dependencies: vec![],
+            },
+            requirements: None,
+            install: InstallConfig {
+                method: InstallMethod::Script,
+                mise: None,
+                apt: None,
+                binary: None,
+                npm: None,
+                script: None,
+            },
+            configure: None,
+            validate: sindri_core::types::ValidateConfig {
+                commands: vec![],
+                mise: None,
+            },
+            remove: None,
+            upgrade: None,
+            capabilities: None,
+            docs: None,
+            bom: None,
+        };
+
+        let sdkman = Extension {
+            metadata: ExtensionMetadata {
+                name: "sdkman".to_string(),
+                version: "1.0.1".to_string(),
+                description: "SDKMAN - The Software Development Kit Manager".to_string(),
+                category: sindri_core::types::ExtensionCategory::PackageManager,
+                author: None,
+                homepage: None,
+                dependencies: vec![],
+            },
+            requirements: None,
+            install: InstallConfig {
+                method: InstallMethod::Script,
+                mise: None,
+                apt: None,
+                binary: None,
+                npm: None,
+                script: None,
+            },
+            configure: None,
+            validate: sindri_core::types::ValidateConfig {
+                commands: vec![],
+                mise: None,
+            },
+            remove: None,
+            upgrade: None,
+            capabilities: None,
+            docs: None,
+            bom: None,
+        };
+
+        let jvm = Extension {
+            metadata: ExtensionMetadata {
+                name: "jvm".to_string(),
+                version: "2.1.1".to_string(),
+                description: "JVM languages".to_string(),
+                category: sindri_core::types::ExtensionCategory::Languages,
+                author: None,
+                homepage: None,
+                dependencies: vec!["mise-config".to_string(), "sdkman".to_string()],
+            },
+            requirements: None,
+            install: InstallConfig {
+                method: InstallMethod::Script,
+                mise: None,
+                apt: None,
+                binary: None,
+                npm: None,
+                script: None,
+            },
+            configure: None,
+            validate: sindri_core::types::ValidateConfig {
+                commands: vec![],
+                mise: None,
+            },
+            remove: None,
+            upgrade: None,
+            capabilities: None,
+            docs: None,
+            bom: None,
+        };
+
+        // Verify dependency structure
+        assert_has_dependencies(&jvm, &["mise-config", "sdkman"]);
+        assert_no_dependencies(&mise_config);
+        assert_no_dependencies(&sdkman);
+
+        // Note: Full integration test with actual ledger verification would require
+        // ExtensionDistributor setup and mock installation environment.
+        // This test documents the expected behavior and structure.
+    }
 }

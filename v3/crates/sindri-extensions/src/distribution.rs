@@ -367,7 +367,79 @@ impl ExtensionDistributor {
         {
             if !self.is_any_version_installed(dep)? {
                 info!("Installing dependency: {}", dep);
-                Box::pin(self.install(dep, None)).await.map(|_| ())?;
+
+                // Track dependency installation start time
+                let dep_start_time = std::time::Instant::now();
+
+                // Publish install_started event for dependency
+                if let Ok(ledger) = crate::ledger::StatusLedger::load_default() {
+                    let event = crate::events::EventEnvelope::new(
+                        dep.clone(),
+                        None,
+                        sindri_core::types::ExtensionState::Installing,
+                        crate::events::ExtensionEvent::InstallStarted {
+                            extension_name: dep.clone(),
+                            version: "latest".to_string(),
+                            source: format!("dependency of {}", name),
+                            install_method: "Distributor".to_string(),
+                        },
+                    );
+                    if let Err(e) = ledger.append(event) {
+                        warn!("Failed to publish dependency install_started event: {}", e);
+                    }
+                }
+
+                // Recursively install dependency
+                let dep_result = Box::pin(self.install(dep, None)).await;
+                let dep_duration_secs = dep_start_time.elapsed().as_secs();
+
+                match dep_result {
+                    Ok((version, log_file)) => {
+                        // Publish install_completed event for dependency
+                        if let Ok(ledger) = crate::ledger::StatusLedger::load_default() {
+                            let event = crate::events::EventEnvelope::new(
+                                dep.clone(),
+                                Some(sindri_core::types::ExtensionState::Installing),
+                                sindri_core::types::ExtensionState::Installed,
+                                crate::events::ExtensionEvent::InstallCompleted {
+                                    extension_name: dep.clone(),
+                                    version,
+                                    duration_secs: dep_duration_secs,
+                                    components_installed: vec![],
+                                    log_file,
+                                },
+                            );
+                            if let Err(e) = ledger.append(event) {
+                                warn!("Failed to publish dependency install_completed event: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        // Publish install_failed event for dependency
+                        if let Ok(ledger) = crate::ledger::StatusLedger::load_default() {
+                            let event = crate::events::EventEnvelope::new(
+                                dep.clone(),
+                                Some(sindri_core::types::ExtensionState::Installing),
+                                sindri_core::types::ExtensionState::Failed,
+                                crate::events::ExtensionEvent::InstallFailed {
+                                    extension_name: dep.clone(),
+                                    version: "latest".to_string(),
+                                    error_message: e.to_string(),
+                                    retry_count: 0,
+                                    duration_secs: dep_duration_secs,
+                                    log_file: None,
+                                },
+                            );
+                            if let Err(ledger_err) = ledger.append(event) {
+                                warn!(
+                                    "Failed to publish dependency install_failed event: {}",
+                                    ledger_err
+                                );
+                            }
+                        }
+                        return Err(e);
+                    }
+                }
             }
         }
 
