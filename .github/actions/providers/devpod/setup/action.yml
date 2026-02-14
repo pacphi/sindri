@@ -293,7 +293,8 @@ runs:
 
           if [ "$(docker inspect -f '{{.State.Running}}' "${REG_NAME}" 2>/dev/null || true)" != 'true' ]; then
             echo "Creating local registry: ${REG_NAME} on port ${REG_PORT}"
-            docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" registry:2
+            # Use registry:3 for OCI 1.1 attestation support
+            docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --network bridge --name "${REG_NAME}" registry:3
           else
             echo "Local registry ${REG_NAME} already running"
           fi
