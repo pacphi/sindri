@@ -134,6 +134,7 @@ jobs:
           push: true  # NEW: Push to registry
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64  # Required for single-platform image with attestations
           no-cache: true  # NEW: Fresh builds
           pull: true      # NEW: Latest base images
           provenance: mode=max
