@@ -113,8 +113,8 @@ runs:
       if: inputs.use-registry == 'true'
       shell: bash
       run: |
-        echo "Pulling image from registry: ${{ inputs.image }}"
-        docker pull "${{ inputs.image }}"
+        echo "Pulling image from registry with explicit platform: ${{ inputs.image }}"
+        docker pull --platform linux/amd64 "${{ inputs.image }}"
         echo "Tagging as sindri:latest for provider compatibility"
         docker tag "${{ inputs.image }}" sindri:latest
         echo "✓ Image pulled from registry"
@@ -225,14 +225,9 @@ runs:
         echo "::group::Step 1.K5: Push image to local registry"
         LOCAL_IMAGE="localhost:${REG_PORT}/sindri:latest"
 
-        # Re-pull image with explicit platform to ensure platform metadata is correct
-        # This avoids issues with multi-platform manifests and attestations
-        echo "→ Re-pulling image with explicit platform: ${{ inputs.image }}"
-        docker pull --platform linux/amd64 "${{ inputs.image }}"
-
-        # Verify image was pulled correctly
+        # Verify image is available (should already be pulled with --platform linux/amd64)
         if ! docker image inspect "${{ inputs.image }}" >/dev/null 2>&1; then
-          echo "::error::Failed to pull image ${{ inputs.image }}"
+          echo "::error::Image ${{ inputs.image }} not found locally"
           exit 1
         fi
 
