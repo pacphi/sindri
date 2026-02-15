@@ -197,37 +197,27 @@ impl ImageVerifier {
     fn parse_signature_output(&self, output: &str) -> Result<Vec<SignatureInfo>> {
         let mut signatures = Vec::new();
 
-        // Cosign outputs JSON, parse it
+        // Cosign outputs JSON — either one object per line (v2.x) or a JSON array (v3.x).
+        // Keys may be uppercase (v2.x: "Optional", "Issuer", "Subject") or
+        // lowercase (v3.x: "optional", "issuer", "subject"). Handle both.
         for line in output.lines() {
-            if line.trim().is_empty() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
                 continue;
             }
 
-            // Try to parse as JSON
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-                if let Some(optional) = json.get("optional") {
-                    // Extract signature information
-                    let issuer = optional
-                        .get("Issuer")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("unknown")
-                        .to_string();
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
+                // If it's an array (cosign 3.x format), extract each element
+                let entries: Vec<&serde_json::Value> = if let Some(arr) = json.as_array() {
+                    arr.iter().collect()
+                } else {
+                    vec![&json]
+                };
 
-                    let subject = optional
-                        .get("Subject")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("unknown")
-                        .to_string();
-
-                    let valid_from = "N/A".to_string(); // Would need to parse certificate
-                    let valid_until = "N/A".to_string();
-
-                    signatures.push(SignatureInfo {
-                        issuer,
-                        subject,
-                        valid_from,
-                        valid_until,
-                    });
+                for entry in entries {
+                    if let Some(sig) = Self::extract_signature_from_entry(entry) {
+                        signatures.push(sig);
+                    }
                 }
             }
         }
@@ -245,43 +235,55 @@ impl ImageVerifier {
         Ok(signatures)
     }
 
+    /// Extract a `SignatureInfo` from a single cosign verify JSON entry.
+    /// Handles both cosign 2.x (uppercase) and 3.x (lowercase) key formats.
+    fn extract_signature_from_entry(entry: &serde_json::Value) -> Option<SignatureInfo> {
+        // Try both "optional" (v3.x) and "Optional" (v2.x)
+        let optional = entry.get("optional").or_else(|| entry.get("Optional"))?;
+
+        // Issuer: try "Issuer" (v2.x) then lowercase variants
+        let issuer = optional
+            .get("Issuer")
+            .or_else(|| optional.get("issuer"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        // Subject: try "Subject" (v2.x) then lowercase variants
+        let subject = optional
+            .get("Subject")
+            .or_else(|| optional.get("subject"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        Some(SignatureInfo {
+            issuer,
+            subject,
+            valid_from: "N/A".to_string(),
+            valid_until: "N/A".to_string(),
+        })
+    }
+
     fn parse_provenance_output(&self, output: &str) -> Result<(String, String, Option<String>)> {
-        // Parse SLSA provenance from cosign output
+        // Parse SLSA provenance from cosign output.
+        // Cosign 3.x may output a JSON array; cosign 2.x outputs one object per line.
         for line in output.lines() {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
-                if let Some(payload) = json.get("payload") {
-                    // Decode base64 payload
-                    if let Some(payload_str) = payload.as_str() {
-                        if let Ok(decoded) = BASE64.decode(payload_str) {
-                            if let Ok(provenance) =
-                                serde_json::from_slice::<serde_json::Value>(&decoded)
-                            {
-                                let slsa_level = provenance
-                                    .pointer("/predicate/buildType")
-                                    .and_then(|v| v.as_str())
-                                    .map(|s| {
-                                        if s.contains("slsa.dev/provenance") {
-                                            "SLSA Level 3".to_string()
-                                        } else {
-                                            "SLSA".to_string()
-                                        }
-                                    })
-                                    .unwrap_or_else(|| "SLSA".to_string());
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
 
-                                let builder_id = provenance
-                                    .pointer("/predicate/builder/id")
-                                    .and_then(|v| v.as_str())
-                                    .unwrap_or("unknown")
-                                    .to_string();
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
+                let entries: Vec<&serde_json::Value> = if let Some(arr) = json.as_array() {
+                    arr.iter().collect()
+                } else {
+                    vec![&json]
+                };
 
-                                let source_repo = provenance
-                                    .pointer("/predicate/materials/0/uri")
-                                    .and_then(|v| v.as_str())
-                                    .map(|s| s.to_string());
-
-                                return Ok((slsa_level, builder_id, source_repo));
-                            }
-                        }
+                for entry in entries {
+                    if let Some(result) = Self::extract_provenance_from_entry(entry) {
+                        return Ok(result);
                     }
                 }
             }
@@ -293,6 +295,40 @@ impl ImageVerifier {
             "GitHub Actions".to_string(),
             None,
         ))
+    }
+
+    /// Extract provenance info from a single cosign verify-attestation JSON entry.
+    fn extract_provenance_from_entry(
+        entry: &serde_json::Value,
+    ) -> Option<(String, String, Option<String>)> {
+        let payload_str = entry.get("payload").and_then(|v| v.as_str())?;
+        let decoded = BASE64.decode(payload_str).ok()?;
+        let provenance = serde_json::from_slice::<serde_json::Value>(&decoded).ok()?;
+
+        let slsa_level = provenance
+            .pointer("/predicate/buildType")
+            .and_then(|v| v.as_str())
+            .map(|s| {
+                if s.contains("slsa.dev/provenance") {
+                    "SLSA Level 3".to_string()
+                } else {
+                    "SLSA".to_string()
+                }
+            })
+            .unwrap_or_else(|| "SLSA".to_string());
+
+        let builder_id = provenance
+            .pointer("/predicate/builder/id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let source_repo = provenance
+            .pointer("/predicate/materials/0/uri")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        Some((slsa_level, builder_id, source_repo))
     }
 
     fn parse_sbom(&self, raw_data: &str) -> Result<Sbom> {
@@ -467,6 +503,65 @@ mod tests {
         let sigs = ImageVerifier::test_parse_signature_output(input).unwrap();
         assert_eq!(sigs.len(), 1);
         assert_eq!(sigs[0].issuer, "Verified");
+    }
+
+    // ── cosign 3.x format tests ──────────────────────────────────────
+
+    #[test]
+    fn test_parse_signature_cosign3_array_format() {
+        // Cosign 3.x wraps results in a JSON array
+        let input = r#"[{"critical":{},"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/pacphi/sindri/.github/workflows/release-v3.yml@refs/tags/v3.0.0"}}]"#;
+        let sigs = ImageVerifier::test_parse_signature_output(input).unwrap();
+        assert_eq!(sigs.len(), 1);
+        assert_eq!(
+            sigs[0].issuer,
+            "https://token.actions.githubusercontent.com"
+        );
+        assert!(sigs[0].subject.contains("pacphi/sindri"));
+    }
+
+    #[test]
+    fn test_parse_signature_cosign3_lowercase_keys() {
+        // Cosign 3.x may use lowercase keys
+        let input = r#"[{"critical":{},"optional":{"issuer":"https://token.actions.githubusercontent.com","subject":"https://github.com/example/repo"}}]"#;
+        let sigs = ImageVerifier::test_parse_signature_output(input).unwrap();
+        assert_eq!(sigs.len(), 1);
+        assert_eq!(
+            sigs[0].issuer,
+            "https://token.actions.githubusercontent.com"
+        );
+        assert_eq!(sigs[0].subject, "https://github.com/example/repo");
+    }
+
+    #[test]
+    fn test_parse_signature_cosign3_multiple_in_array() {
+        let input = r#"[{"critical":{},"optional":{"Issuer":"issuer-a","Subject":"sub-a"}},{"critical":{},"optional":{"Issuer":"issuer-b","Subject":"sub-b"}}]"#;
+        let sigs = ImageVerifier::test_parse_signature_output(input).unwrap();
+        assert_eq!(sigs.len(), 2);
+        assert_eq!(sigs[0].issuer, "issuer-a");
+        assert_eq!(sigs[1].issuer, "issuer-b");
+    }
+
+    #[test]
+    fn test_parse_provenance_cosign3_array_format() {
+        let predicate = serde_json::json!({
+            "predicate": {
+                "buildType": "https://slsa.dev/provenance/v1",
+                "builder": { "id": "https://github.com/actions/runner" },
+                "materials": [{ "uri": "git+https://github.com/pacphi/sindri" }]
+            }
+        });
+        let payload_b64 = BASE64.encode(predicate.to_string().as_bytes());
+        // Wrap in array like cosign 3.x
+        let line = format!(r#"[{{"payload":"{}"}}]"#, payload_b64);
+
+        let (level, builder, repo) = ImageVerifier::test_parse_provenance_output(&line).unwrap();
+        assert_eq!(level, "SLSA Level 3");
+        assert!(builder.contains("actions/runner"));
+        assert_eq!(
+            repo,
+            Some("git+https://github.com/pacphi/sindri".to_string())
+        );
     }
 
     // ── parse_provenance_output ─────────────────────────────────────

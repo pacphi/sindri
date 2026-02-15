@@ -287,9 +287,25 @@ async fn verify(args: ImageVerifyArgs) -> Result<()> {
 
     let verifier = ImageVerifier::new()?;
 
-    // Default certificate identity and issuer for Sindri images
-    let cert_identity = Some("https://github.com/pacphi/sindri");
-    let cert_oidc_issuer = Some("https://token.actions.githubusercontent.com");
+    // Load certificate identity and OIDC issuer from config, falling back to defaults
+    let config = SindriConfig::load(None).ok();
+    let image_config = config
+        .as_ref()
+        .and_then(|c| c.inner().deployment.image_config.as_ref());
+
+    let default_identity = sindri_core::types::DEFAULT_CERTIFICATE_IDENTITY;
+    let default_issuer = sindri_core::types::DEFAULT_CERTIFICATE_OIDC_ISSUER;
+
+    let cert_identity = Some(
+        image_config
+            .map(|ic| ic.cert_identity_or_default())
+            .unwrap_or(default_identity),
+    );
+    let cert_oidc_issuer = Some(
+        image_config
+            .map(|ic| ic.cert_oidc_issuer_or_default())
+            .unwrap_or(default_issuer),
+    );
 
     // Verify signature
     if !args.no_signature {

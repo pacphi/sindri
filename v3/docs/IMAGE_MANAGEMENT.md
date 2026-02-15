@@ -96,11 +96,12 @@ deployment:
     # Pull policy (default: IfNotPresent)
     pull_policy: IfNotPresent # Options: Always, IfNotPresent, Never
 
-    # Certificate identity for verification (optional)
-    certificate_identity: https://github.com/pacphi/sindri
 
-    # OIDC issuer for verification (optional)
-    certificate_oidc_issuer: https://token.actions.githubusercontent.com
+    # Certificate identity for verification (optional, defaults to Sindri project identity)
+    # certificate_identity: https://github.com/pacphi/sindri
+
+    # OIDC issuer for verification (optional, defaults to GitHub Actions OIDC issuer)
+    # certificate_oidc_issuer: https://token.actions.githubusercontent.com
 ```
 
 ### Resolution Strategies
@@ -195,19 +196,24 @@ Use when: Working in air-gapped environments
 
 ### Image Signing
 
-All release images are signed with [Cosign](https://docs.sigstore.dev/cosign/) using keyless signing (OIDC).
+All release images are signed with [Cosign 3.x](https://docs.sigstore.dev/cosign/) using keyless signing (OIDC), signed by digest for immutability. CI images also receive signatures and SLSA build provenance attestations.
 
 #### Verification
 
 ```bash
-# Automatic verification during deploy
+# Automatic verification during deploy (reads config for certificate identity/OIDC issuer)
 sindri deploy
 
-# Manual verification
+# Manual verification via sindri CLI
+sindri image verify ghcr.io/pacphi/sindri:v3.0.0
+
+# Manual verification via cosign directly
 cosign verify ghcr.io/pacphi/sindri:v3.0.0 \
   --certificate-identity-regexp='https://github.com/pacphi/sindri' \
   --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
 ```
+
+> **Note:** The `certificate_identity` and `certificate_oidc_issuer` values can be customized in `sindri.yaml` under `image_config`. When not specified, they default to the Sindri project's GitHub identity and the GitHub Actions OIDC issuer.
 
 #### Skip Verification
 
@@ -250,10 +256,13 @@ jq '.packages[] | select(.name | contains("openssl"))' sbom.spdx.json
 
 ### SLSA Provenance
 
-Images include SLSA Level 3 provenance attestations.
+Release and CI images include SLSA build provenance attestations generated via `actions/attest-build-provenance`.
 
 ```bash
-# Verify provenance
+# Verify provenance via sindri CLI
+sindri image verify ghcr.io/pacphi/sindri:v3.0.0
+
+# Verify provenance via cosign directly
 cosign verify-attestation \
   --type slsaprovenance \
   --certificate-identity-regexp='https://github.com/pacphi/sindri' \
@@ -487,13 +496,16 @@ sindri deploy
 
 ### "cosign not found"
 
-**Cause:** Cosign not installed
+**Cause:** Cosign not installed (requires cosign 3.x)
 
 **Solution:**
 
 ```bash
 # macOS
 brew install cosign
+
+# Via mise (recommended)
+mise use -g cosign@latest
 
 # Linux
 wget https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64

@@ -54,6 +54,12 @@ pub struct DeploymentConfig {
     pub volumes: VolumesConfig,
 }
 
+/// Default certificate identity regexp for Sindri image signature verification
+pub const DEFAULT_CERTIFICATE_IDENTITY: &str = "https://github.com/pacphi/sindri";
+
+/// Default OIDC issuer for Sindri image signature verification
+pub const DEFAULT_CERTIFICATE_OIDC_ISSUER: &str = "https://token.actions.githubusercontent.com";
+
 /// Container image configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImageConfig {
@@ -99,6 +105,22 @@ pub struct ImageConfig {
     /// OIDC issuer for signature verification
     #[serde(default)]
     pub certificate_oidc_issuer: Option<String>,
+}
+
+impl ImageConfig {
+    /// Returns the certificate identity for verification, falling back to the default.
+    pub fn cert_identity_or_default(&self) -> &str {
+        self.certificate_identity
+            .as_deref()
+            .unwrap_or(DEFAULT_CERTIFICATE_IDENTITY)
+    }
+
+    /// Returns the OIDC issuer for verification, falling back to the default.
+    pub fn cert_oidc_issuer_or_default(&self) -> &str {
+        self.certificate_oidc_issuer
+            .as_deref()
+            .unwrap_or(DEFAULT_CERTIFICATE_OIDC_ISSUER)
+    }
 }
 
 /// Build from source configuration (for Sindri developers)
