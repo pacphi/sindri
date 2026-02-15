@@ -145,15 +145,25 @@ sudo mv sindri /usr/local/bin/
 
 ## 🔒 Security & Verification
 
-### Image Signature Verification
+### Image Signature & Provenance Verification
 
-This release is signed with [Sigstore Cosign](https://docs.sigstore.dev/):
+This release is signed with [Cosign 3.x](https://docs.sigstore.dev/) (keyless, by digest) and includes SLSA build provenance attestations:
 
 ```bash
-# Verify Docker image signature
+# Verify via sindri CLI (signature + provenance)
+sindri image verify ghcr.io/${GITHUB_REPOSITORY}:{{TO_VERSION}}
+
+# Or verify via cosign directly
 cosign verify ghcr.io/${GITHUB_REPOSITORY}:{{TO_VERSION}} \
   --certificate-identity-regexp='https://github.com/${GITHUB_REPOSITORY}' \
   --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
+
+# Verify SLSA provenance
+cosign verify-attestation \
+  --type slsaprovenance \
+  --certificate-identity-regexp='https://github.com/${GITHUB_REPOSITORY}' \
+  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+  ghcr.io/${GITHUB_REPOSITORY}:{{TO_VERSION}}
 ```
 
 ### Software Bill of Materials (SBOM)

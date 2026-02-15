@@ -187,15 +187,8 @@ async fn verify_image(image: &str, config: &SindriConfig) -> Result<()> {
     let image_config = config.inner().deployment.image_config.as_ref().unwrap();
 
     // Get certificate identity and OIDC issuer from config or use defaults
-    let cert_identity = image_config
-        .certificate_identity
-        .as_deref()
-        .or(Some("https://github.com/pacphi/sindri"));
-
-    let cert_oidc_issuer = image_config
-        .certificate_oidc_issuer
-        .as_deref()
-        .or(Some("https://token.actions.githubusercontent.com"));
+    let cert_identity = Some(image_config.cert_identity_or_default());
+    let cert_oidc_issuer = Some(image_config.cert_oidc_issuer_or_default());
 
     // Verify signature
     if image_config.verify_signature {

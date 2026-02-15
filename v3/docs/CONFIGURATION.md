@@ -407,20 +407,22 @@ image_config:
 
 **Type:** `string`
 **Required:** No
+**Default:** `https://github.com/pacphi/sindri`
 
-Certificate identity regexp for signature verification.
+Certificate identity regexp for cosign signature verification. Override this when using a forked repository or custom signing identity.
 
 ```yaml
 image_config:
-  certificate_identity: "https://github.com/pacphi/sindri.*"
+  certificate_identity: "https://github.com/my-org/sindri-fork"
 ```
 
 #### image_config.certificate_oidc_issuer
 
 **Type:** `string`
 **Required:** No
+**Default:** `https://token.actions.githubusercontent.com`
 
-OIDC issuer for signature verification.
+OIDC issuer for cosign signature verification. Override this when using a non-GitHub CI system for signing.
 
 ```yaml
 image_config:

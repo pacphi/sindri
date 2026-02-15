@@ -344,17 +344,18 @@ jobs:
           echo "   Source:  $CI_IMAGE"
           echo "   Digest:  ${{ needs.verify-ci-image.outputs.image_digest }}"
 
-  # Job 6: Sign images with Cosign (keyless)
+  # Job 6: Sign images with Cosign 3.x (keyless)
   sign-image:
     runs-on: ubuntu-latest
-    needs: [validate-tag, promote-image]
+    needs: [validate-tag, verify-ci-image, promote-image]
     permissions:
       contents: read
       packages: write
       id-token: write  # Required for OIDC keyless signing
+      attestations: write  # Required for provenance attestation
     steps:
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@v4
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -363,52 +364,92 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sign images
+      - name: Get image digest
+        id: digest
         run: |
           VERSION="${{ needs.validate-tag.outputs.version }}"
           REPO="${{ github.repository }}"
+          IMAGE="ghcr.io/${REPO}:${VERSION}"
 
-          echo "Signing release images with Cosign (keyless)..."
-          echo ""
+          # Get the digest for the version tag (all tags point to same digest)
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE" 2>/dev/null || true)
 
-          # Sign main version tag
-          echo "→ Signing ghcr.io/${REPO}:${VERSION}"
-          cosign sign --yes "ghcr.io/${REPO}:${VERSION}"
-
-          # Sign major.minor tag (if not prerelease)
-          if [[ "${{ needs.validate-tag.outputs.is_prerelease }}" == "false" ]]; then
-            MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1-2)
-            echo "→ Signing ghcr.io/${REPO}:${MAJOR_MINOR}"
-            cosign sign --yes "ghcr.io/${REPO}:${MAJOR_MINOR}"
-
-            # Sign v3 tag
-            echo "→ Signing ghcr.io/${REPO}:v3"
-            cosign sign --yes "ghcr.io/${REPO}:v3"
-
-            # Sign v3-latest tag
-            echo "→ Signing ghcr.io/${REPO}:v3-latest"
-            cosign sign --yes "ghcr.io/${REPO}:v3-latest"
-
-            # Sign latest tag
-            echo "→ Signing ghcr.io/${REPO}:latest"
-            cosign sign --yes "ghcr.io/${REPO}:latest"
+          if [[ -z "$DIGEST" ]]; then
+            # Pull first if not available locally
+            docker pull "$IMAGE"
+            DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
           fi
 
+          # Extract just the sha256:... part
+          DIGEST_HASH="${DIGEST#*@}"
+          echo "digest=$DIGEST_HASH" >> $GITHUB_OUTPUT
+          echo "Image digest: $DIGEST_HASH"
+
+      - name: Sign image by digest
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          REPO="${{ github.repository }}"
+          DIGEST="${{ steps.digest.outputs.digest }}"
+
+          echo "Signing release image by digest with Cosign 3.x (keyless)..."
+          echo "  Image: ghcr.io/${REPO}@${DIGEST}"
           echo ""
-          echo "✅ Images signed successfully"
+
+          # Best practice: sign by digest (immutable) rather than tag (mutable)
+          cosign sign --yes "ghcr.io/${REPO}@${DIGEST}"
+
+          echo ""
+          echo "✅ Image signed successfully (by digest)"
           echo ""
           echo "Verify with:"
           echo "  cosign verify ghcr.io/${REPO}:${VERSION} \\"
           echo "    --certificate-identity-regexp='https://github.com/${{ github.repository }}' \\"
           echo "    --certificate-oidc-issuer='https://token.actions.githubusercontent.com'"
 
-  # Job 7: Generate and attach SBOM
-  generate-sbom:
+  # Job 7: Attest build provenance (SLSA)
+  attest-provenance:
     runs-on: ubuntu-latest
-    needs: [validate-tag, promote-image]
+    needs: [validate-tag, verify-ci-image, promote-image]
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get image digest
+        id: digest
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository }}:${VERSION}"
+
+          docker pull "$IMAGE"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
+          DIGEST_HASH="${DIGEST#*@}"
+          echo "digest=$DIGEST_HASH" >> $GITHUB_OUTPUT
+          echo "Image digest: $DIGEST_HASH"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true
+
+  # Job 8: Generate and attach SBOM
+  generate-sbom:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, verify-ci-image, promote-image]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # Required for cosign 3.x keyless operations
     steps:
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -418,7 +459,18 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@v4
+
+      - name: Get image digest
+        id: digest
+        run: |
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository }}:${VERSION}"
+
+          docker pull "$IMAGE"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
+          DIGEST_HASH="${DIGEST#*@}"
+          echo "digest=$DIGEST_HASH" >> $GITHUB_OUTPUT
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
@@ -429,16 +481,16 @@ jobs:
 
       - name: Attach SBOM to image
         run: |
-          VERSION="${{ needs.validate-tag.outputs.version }}"
-          IMAGE="ghcr.io/${{ github.repository }}:${VERSION}"
+          REPO="${{ github.repository }}"
+          DIGEST="${{ steps.digest.outputs.digest }}"
 
-          echo "Attaching SBOM to image..."
-          cosign attach sbom --sbom sbom.spdx.json "$IMAGE"
+          echo "Attaching SBOM to image by digest..."
+          cosign attach sbom --sbom sbom.spdx.json "ghcr.io/${REPO}@${DIGEST}"
 
           echo "✅ SBOM attached successfully"
           echo ""
           echo "Download with:"
-          echo "  cosign download sbom $IMAGE"
+          echo "  cosign download sbom ghcr.io/${REPO}:${{ needs.validate-tag.outputs.version }}"
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v6
@@ -580,7 +632,7 @@ jobs:
   # Job 9: Create GitHub Release
   create-release:
     runs-on: ubuntu-latest
-    needs: [validate-tag, generate-changelog, build-binaries, promote-image, sign-image, generate-sbom]
+    needs: [validate-tag, generate-changelog, build-binaries, promote-image, sign-image, attest-provenance, generate-sbom]
     permissions:
       contents: write
     outputs:
@@ -710,16 +762,30 @@ jobs:
 
           ## Docker Image Verification
 
-          ### Verify Signature (Cosign)
+          ### Verify Signature (Cosign 3.x)
 
           ```bash
-          # Install cosign (if not already installed)
+          # Install cosign 3.x (if not already installed)
           # https://docs.sigstore.dev/cosign/installation/
 
           # Verify image signature
           cosign verify ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER \
             --certificate-identity-regexp='https://github.com/REPO_PLACEHOLDER' \
             --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
+          ```
+
+          ### Verify Build Provenance (SLSA)
+
+          ```bash
+          # Verify SLSA provenance attestation
+          cosign verify-attestation \
+            --type slsaprovenance \
+            --certificate-identity-regexp='https://github.com/REPO_PLACEHOLDER' \
+            --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+            ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER
+
+          # Or use the sindri CLI
+          sindri image verify ghcr.io/REPO_PLACEHOLDER:VERSION_PLACEHOLDER
           ```
 
           ### Download SBOM
@@ -766,6 +832,8 @@ jobs:
 
           ## Build Provenance
 
+          - **Signing**: Cosign 3.x keyless (signed by digest)
+          - **SLSA Provenance**: Attested via `actions/attest-build-provenance`
           - **CI Image**: Promoted from tested CI build (v3-ci-passed-SHA)
           - **Build Workflow**: https://github.com/REPO_PLACEHOLDER/actions
           - **Commit SHA**: Check image labels or SBOM metadata
@@ -789,7 +857,7 @@ jobs:
   # Job 10: Notify on success or failure
   notify-release:
     runs-on: ubuntu-latest
-    needs: [validate-tag, create-release, update-version-files, promote-image, sign-image, generate-sbom]
+    needs: [validate-tag, create-release, update-version-files, promote-image, sign-image, attest-provenance, generate-sbom]
     if: always()
     permissions:
       contents: read
@@ -808,7 +876,8 @@ jobs:
           echo "   Image:  ghcr.io/${{ github.repository }}:$version"
           echo ""
           echo "🔐 Security Features:"
-          echo "   ✅ Image signed with Cosign (keyless)"
+          echo "   ✅ Image signed with Cosign 3.x (keyless, by digest)"
+          echo "   ✅ SLSA build provenance attested"
           echo "   ✅ SBOM generated (SPDX format)"
           echo "   ✅ SHA256 checksums for all binaries"
           echo "   ✅ Vulnerability scan completed"

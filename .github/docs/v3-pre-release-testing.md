@@ -189,14 +189,15 @@ docker push ghcr.io/pacphi/sindri:v3
 docker push ghcr.io/pacphi/sindri:v3-latest
 docker push ghcr.io/pacphi/sindri:latest
 
-# 6. Signs images
-cosign sign ghcr.io/pacphi/sindri:v3.0.0
-cosign sign ghcr.io/pacphi/sindri:v3-latest
-cosign sign ghcr.io/pacphi/sindri:latest
+# 6. Signs image by digest (cosign 3.x, keyless)
+cosign sign --yes ghcr.io/pacphi/sindri@sha256:<digest>
 
-# 7. Generates SBOM
+# 7. Attests build provenance (SLSA)
+actions/attest-build-provenance → pushed to registry
+
+# 8. Generates SBOM
 anchore/sbom-action → sbom.spdx.json
-cosign attach sbom --sbom sbom.spdx.json ghcr.io/pacphi/sindri:v3.0.0
+cosign attach sbom --sbom sbom.spdx.json ghcr.io/pacphi/sindri@sha256:<digest>
 ```
 
 ## Extension Testing Strategy

@@ -20,10 +20,8 @@ docker pull ghcr.io/pacphi/sindri:v3
 # Or use a specific version
 docker pull ghcr.io/pacphi/sindri:3.0.0
 
-# Verify the image signature
-cosign verify ghcr.io/pacphi/sindri:v3 \
-  --certificate-identity-regexp='https://github.com/pacphi/sindri' \
-  --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
+# Verify the image signature (requires cosign 3.x)
+sindri image verify ghcr.io/pacphi/sindri:v3
 ```
 
 ### Option 2: CLI Binary

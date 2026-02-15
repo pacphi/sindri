@@ -228,6 +228,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # Required for cosign keyless signing
+      attestations: write  # Required for provenance attestation
     outputs:
       image-tag: ${{ steps.build.outputs.tag }}
       image-digest: ${{ steps.build.outputs.digest }}
@@ -297,12 +299,33 @@ jobs:
           build-args: |
             SINDRI_VERSION=${{ env.VERSION }}
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4
+
+      - name: Sign image by digest
+        if: steps.build.outputs.digest != ''
+        run: |
+          echo "Signing CI image by digest with Cosign 3.x (keyless)..."
+          cosign sign --yes "ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}"
+          echo "✅ Image signed"
+
+      - name: Attest build provenance
+        if: steps.build.outputs.digest != ''
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
       - name: Export image info
         run: |
           echo "tag=ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "✅ Image built and pushed (linux/amd64)"
+          echo "✅ Image built, signed, and pushed (linux/amd64)"
           echo "   Image: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}"
+          echo "   Digest: ${{ steps.build.outputs.digest }}"
           echo "   Platform: linux/amd64"
+          echo "   Signed: Cosign 3.x (keyless, by digest)"
+          echo "   Provenance: SLSA build provenance attested"
           echo "   Note: Multi-arch (amd64+arm64) builds happen during releases"
 
   # ============================================

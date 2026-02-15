@@ -1859,12 +1859,14 @@ sindri image verify <TAG> [OPTIONS]
 | `--no-signature`  | Skip signature verification  |
 | `--no-provenance` | Skip provenance verification |
 
-**Requires:** cosign (install from https://docs.sigstore.dev/cosign/installation/)
+**Requires:** cosign 3.x (install via `mise use -g cosign@latest` or from https://docs.sigstore.dev/cosign/installation/)
+
+Certificate identity and OIDC issuer are read from `sindri.yaml` `image_config` settings, with sensible defaults for the Sindri project.
 
 **Examples:**
 
 ```bash
-# Full verification
+# Full verification (signature + provenance)
 sindri image verify ghcr.io/pacphi/sindri:v3.0.0
 
 # Signature only
@@ -2520,9 +2522,12 @@ aws configure
 Warning: cosign not installed - SBOM verification requires cosign
 ```
 
-Install cosign:
+Install cosign 3.x:
 
 ```bash
+# Via mise (recommended)
+mise use -g cosign@latest
+
 # macOS
 brew install cosign
 
