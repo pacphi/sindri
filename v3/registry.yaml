@@ -80,6 +80,9 @@ extensions:
   linear-mcp:
     category: "mcp"
     description: "Linear MCP integration"
+  notebooklm-mcp-cli:
+    category: "mcp"
+    description: "CLI and MCP server for Google NotebookLM automation"
   pal-mcp-server:
     category: "mcp"
     description: "PAL MCP server"

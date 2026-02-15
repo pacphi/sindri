@@ -1,0 +1,83 @@
+---
+metadata:
+  name: notebooklm-mcp-cli
+  version: 1.0.0
+  description: >-
+    CLI and MCP server for Google NotebookLM - notebook creation, source management, AI analysis, and content generation
+  category: mcp
+  author: jacob-bd
+  license: MIT
+  homepage: https://github.com/jacob-bd/notebooklm-mcp-cli
+  dependencies:
+    - python
+requirements:
+  domains:
+    - github.com
+    - pypi.org
+    - files.pythonhosted.org
+    - notebooklm.google.com
+  diskSpace: 100
+  memory: 128
+  installTime: 60
+  installTimeout: 300
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 300
+validate:
+  commands:
+    - name: nlm
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+"
+remove:
+  script:
+    path: scripts/uninstall.sh
+  paths:
+    - ~/extensions/notebooklm-mcp-cli
+  confirmation: true
+  warning: |
+    This will remove notebooklm-mcp-cli and its CLI tools.
+upgrade:
+  strategy: reinstall
+  script:
+    path: scripts/install.sh
+    timeout: 300
+bom:
+  tools:
+    - name: notebooklm-mcp-cli
+      version: dynamic
+      source: pip
+      type: cli
+      license: MIT
+      homepage: https://github.com/jacob-bd/notebooklm-mcp-cli
+      purl: pkg:pypi/notebooklm-mcp-cli
+docs:
+  title: "NotebookLM MCP CLI"
+  overview: |
+    Unified Python package providing programmatic access to Google NotebookLM through both a CLI (`nlm`) and MCP server (`notebooklm-mcp`). Enables automation of notebook creation, source management, AI analysis, and content generation.
+  last-updated: "2026-02-14"
+  features:
+    - "CLI + MCP Server - Use via terminal or AI assistant"
+    - "Source Management - Add URLs, text, Drive files, and local files"
+    - "AI Analysis - Query notebooks with AI chat"
+    - "Content Generation - Create audio, video, and other studio content"
+    - "Multi-profile - Support for multiple Google accounts"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - description: "Check CLI version"
+          code: "nlm --version"
+        - description: "View available commands"
+          code: "nlm --help"
+  related:
+    - name: python
+      description: "Required Python runtime"
+  notes: |
+    For detailed documentation, see:
+    - [CLI Guide](https://github.com/jacob-bd/notebooklm-mcp-cli/blob/main/docs/CLI_GUIDE.md)
+    - [Authentication](https://github.com/jacob-bd/notebooklm-mcp-cli/blob/main/docs/AUTHENTICATION.md)
+    - [MCP Guide](https://github.com/jacob-bd/notebooklm-mcp-cli/blob/main/docs/MCP_GUIDE.md)
+
+    This tool uses undocumented internal Google APIs that may change.
+    Authentication cookies require re-extraction every 2-4 weeks.
