@@ -106,7 +106,7 @@ impl ImageVerifier {
 
         let mut cmd = Command::new(&self.cosign_path);
         cmd.arg("verify-attestation");
-        cmd.arg("--type").arg("slsaprovenance");
+        cmd.arg("--type").arg("https://slsa.dev/provenance/v1");
 
         if let Some(identity) = certificate_identity {
             cmd.arg("--certificate-identity-regexp").arg(identity);
