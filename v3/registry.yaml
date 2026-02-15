@@ -146,6 +146,12 @@ extensions:
   ollama:
     category: "ai-dev"
     description: "Ollama local LLM runtime"
+  ruvector-cli:
+    category: "ai-dev"
+    description: "CLI for RuVector self-learning vector database with MCP server integration"
+  rvf-cli:
+    category: "ai-dev"
+    description: "Unified CLI for RuVector Format (RVF) vector storage operations"
 
   # Desktop & UI
   guacamole:

@@ -41,7 +41,7 @@ V3 extensions are organized into the following categories:
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
 | **devops**          | Infrastructure, deployment, and operations tools | 5     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 4     |
-| **ai-dev**          | AI development tools and LLM interfaces          | 3     |
+| **ai-dev**          | AI development tools and LLM interfaces          | 5     |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
@@ -106,11 +106,13 @@ V3 extensions are organized into the following categories:
 
 ### AI Development
 
-| Extension      | Version | Description                                                                      | Install Method |
-| -------------- | ------- | -------------------------------------------------------------------------------- | -------------- |
-| **ai-toolkit** | 2.2.1   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot) | script         |
-| **ollama**     | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)           | script         |
-| **goose**      | 1.0.0   | Block's open-source AI agent that automates engineering tasks                    | script         |
+| Extension        | Version | Description                                                                      | Install Method |
+| ---------------- | ------- | -------------------------------------------------------------------------------- | -------------- |
+| **ai-toolkit**   | 2.2.1   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot) | script         |
+| **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)           | script         |
+| **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                    | script         |
+| **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration       | script         |
+| **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                  | script         |
 
 ### MCP Servers
 
@@ -661,7 +663,7 @@ This generates comprehensive markdown documentation by combining auto-derived da
 
 ## Summary Statistics
 
-- **Total Extensions**: 50
+- **Total Extensions**: 52
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 11
