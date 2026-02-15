@@ -355,7 +355,7 @@ jobs:
       attestations: write  # Required for provenance attestation
     steps:
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -459,7 +459,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Get image digest
         id: digest

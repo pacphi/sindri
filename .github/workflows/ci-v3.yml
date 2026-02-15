@@ -300,7 +300,7 @@ jobs:
             SINDRI_VERSION=${{ env.VERSION }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Sign image by digest
         if: steps.build.outputs.digest != ''
