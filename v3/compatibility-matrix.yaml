@@ -3,7 +3,7 @@
 # and documents breaking changes between versions.
 #
 # Schema Version: 1.0
-# Last Updated: 2026-01-28
+# Last Updated: 2026-02-15
 
 schema_version: "1.0"
 
@@ -33,6 +33,7 @@ cli_versions:
       php: ">=2.1.0,<3.0.0"
       ruby: ">=2.0.0,<3.0.0"
       haskell: ">=2.0.0,<3.0.0"
+      swift: ">=1.0.0,<2.0.0"
 
       # AI & Agentic Tools
       agent-browser: ">=0.6.0,<1.0.0"
@@ -40,6 +41,8 @@ cli_versions:
       agentic-flow: ">=1.0.0,<2.0.0"
       agentic-qe: ">=1.1.0,<2.0.0"
       ai-toolkit: ">=2.1.0,<3.0.0"
+      ruvector-cli: ">=1.0.0,<2.0.0"
+      rvf-cli: ">=1.0.0,<2.0.0"
 
       # Claude Ecosystem
       claude-cli: ">=1.0.0,<2.0.0"
@@ -68,6 +71,7 @@ cli_versions:
       excalidraw-mcp: ">=1.0.0,<2.0.0"
       jira-mcp: ">=2.0.0,<3.0.0"
       linear-mcp: ">=2.1.0,<3.0.0"
+      notebooklm-mcp-cli: ">=1.0.0,<2.0.0"
       pal-mcp-server: ">=9.8.0,<10.0.0"
 
       # Development Tools
@@ -83,6 +87,7 @@ cli_versions:
 
       # Testing
       playwright: ">=2.0.0,<3.0.0"
+      shannon: ">=1.0.0,<2.0.0"
 
       # Documentation & Content
       mdflow: ">=1.0.0,<2.0.0"
@@ -124,6 +129,7 @@ cli_versions:
       php: ">=2.2.0,<3.0.0"
       ruby: ">=2.1.0,<3.0.0"
       haskell: ">=2.0.0,<3.0.0"
+      swift: ">=1.1.0,<2.0.0"
 
       # AI & Agentic Tools
       agent-browser: ">=0.7.0,<1.0.0"
@@ -131,6 +137,8 @@ cli_versions:
       agentic-flow: ">=1.1.0,<2.0.0"
       agentic-qe: ">=1.2.0,<2.0.0"
       ai-toolkit: ">=2.2.0,<3.0.0"
+      ruvector-cli: ">=1.1.0,<2.0.0"
+      rvf-cli: ">=1.1.0,<2.0.0"
 
       # Claude Ecosystem
       claude-cli: ">=1.0.0,<2.0.0"
@@ -159,6 +167,7 @@ cli_versions:
       excalidraw-mcp: ">=1.1.0,<2.0.0"
       jira-mcp: ">=2.1.0,<3.0.0"
       linear-mcp: ">=2.2.0,<3.0.0"
+      notebooklm-mcp-cli: ">=1.1.0,<2.0.0"
       pal-mcp-server: ">=9.9.0,<10.0.0"
 
       # Development Tools
@@ -174,6 +183,7 @@ cli_versions:
 
       # Testing
       playwright: ">=2.1.0,<3.0.0"
+      shannon: ">=1.1.0,<2.0.0"
 
       # Documentation & Content
       mdflow: ">=1.1.0,<2.0.0"
@@ -205,6 +215,7 @@ cli_versions:
       php: ">=3.0.0,<4.0.0"
       ruby: ">=3.0.0,<4.0.0"
       haskell: ">=2.0.0,<3.0.0"
+      swift: ">=2.0.0,<3.0.0"
 
       # AI & Agentic Tools
       agent-browser: ">=1.0.0,<2.0.0"
@@ -212,6 +223,8 @@ cli_versions:
       agentic-flow: ">=2.0.0,<3.0.0"
       agentic-qe: ">=2.0.0,<3.0.0"
       ai-toolkit: ">=3.0.0,<4.0.0"
+      ruvector-cli: ">=2.0.0,<3.0.0"
+      rvf-cli: ">=2.0.0,<3.0.0"
 
       # Claude Ecosystem
       claude-cli: ">=2.0.0,<3.0.0"
@@ -240,6 +253,7 @@ cli_versions:
       excalidraw-mcp: ">=2.0.0,<3.0.0"
       jira-mcp: ">=3.0.0,<4.0.0"
       linear-mcp: ">=3.0.0,<4.0.0"
+      notebooklm-mcp-cli: ">=2.0.0,<3.0.0"
       pal-mcp-server: ">=10.0.0,<11.0.0"
 
       # Development Tools
@@ -255,6 +269,7 @@ cli_versions:
 
       # Testing
       playwright: ">=3.0.0,<4.0.0"
+      shannon: ">=2.0.0,<3.0.0"
 
       # Documentation & Content
       mdflow: ">=2.0.0,<3.0.0"

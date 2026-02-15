@@ -1,6 +1,6 @@
 ---
 name: extension-guide-v3
-description: Create Sindri V3 extensions for the Rust CLI platform. Use when creating V3 extensions, understanding V3 extension.yaml structure, validating against V3 schema, or using collision-handling and project-context features. Covers mise, apt, binary, npm, npm-global, script, hybrid install methods.
+description: Create Sindri V3 extensions for the Rust CLI platform. Use when creating V3 extensions, understanding V3 extension.yaml structure, validating against V3 schema, using collision-handling and project-context features, adding extensions to the compatibility matrix, or upgrading extension software versions. Covers mise, apt, binary, npm, npm-global, script, hybrid install methods.
 ---
 
 # Sindri V3 Extension Development Guide
@@ -45,6 +45,7 @@ V3 extensions are YAML-driven, declarative configurations for the modern Rust-ba
 5. [ ] Add `docs` section to `extension.yaml` (optional, for human-written content)
 6. [ ] Update catalog: `v3/docs/EXTENSIONS.md`
 7. [ ] Add to registry: `v3/registry.yaml` (alphabetically by category)
+8. [ ] Add to compatibility matrix: `v3/compatibility-matrix.yaml` (see [Compatibility Matrix Management](#compatibility-matrix-management))
 
 ## Extension Directory Structure
 
@@ -582,6 +583,252 @@ extensions:
     description: "Brief description matching extension.yaml"
 ```
 
+## Compatibility Matrix Management
+
+When creating or modifying extensions, you MUST also update the compatibility matrix at `v3/compatibility-matrix.yaml`.
+
+### When to Update
+
+- **New extension created** - add entry to all applicable CLI version sections
+- **Extension version bumped** - update semver range if the new version falls outside existing range
+- **Extension removed** - remove entry from all CLI version sections
+
+### How to Add a New Extension
+
+1. Read `v3/compatibility-matrix.yaml`
+2. Read the new extension's `extension.yaml` to get `metadata.version` and `metadata.category`
+3. Add an entry under `compatible_extensions` in each CLI version section, placed alphabetically within the correct category comment group
+4. Use semver range format: `">=X.Y.Z,<NEXT_MAJOR.0.0"`
+
+#### Entry Format
+
+```yaml
+compatible_extensions:
+  # Category Comment (e.g., # MCP Servers)
+  my-extension: ">=1.0.0,<2.0.0"
+```
+
+#### Determining the Category Comment Group
+
+Map extension `metadata.category` to the matrix comment groups:
+
+| Extension Category | Matrix Comment Group |
+|-------------------|---------------------|
+| `ai-agents`, `ai-dev` | `# AI & Agentic Tools` |
+| `claude` | `# Claude Ecosystem` |
+| `cloud` | `# Cloud & Infrastructure` |
+| `devops` | `# DevOps & Tools` |
+| `mcp` | `# MCP Servers` |
+| `languages` | `# Language extensions` |
+| `desktop` | `# Desktop & UI` |
+| `testing` | `# Testing` |
+| `documentation` | `# Documentation & Content` |
+| `productivity`, `research` | `# Productivity` |
+
+#### Example: Adding `notebooklm-mcp-cli` (category: mcp, version: 1.0.0)
+
+In the `3.0.x` section, under `# MCP Servers`:
+```yaml
+      notebooklm-mcp-cli: ">=1.0.0,<2.0.0"
+```
+
+In the `3.1.x` section, under `# MCP Servers`:
+```yaml
+      notebooklm-mcp-cli: ">=1.1.0,<2.0.0"
+```
+
+In the `4.0.x` section, under `# MCP Servers`:
+```yaml
+      notebooklm-mcp-cli: ">=2.0.0,<3.0.0"
+```
+
+### Version Range Rules
+
+| CLI Series | Range Pattern | Notes |
+|-----------|---------------|-------|
+| `3.0.x` | `>=CURRENT,<NEXT_MAJOR` | Use the extension's current `metadata.version` |
+| `3.1.x` | `>=CURRENT_MINOR_BUMP,<NEXT_MAJOR` | Bump minor version (e.g., 1.0.0 -> 1.1.0) |
+| `4.0.x` | `>=NEXT_MAJOR,<NEXT_NEXT_MAJOR` | Use next major version (e.g., 1.x -> 2.0.0) |
+
+### Validation
+
+After updating, verify:
+- Entries are alphabetically sorted within their category group
+- All three CLI version sections have an entry for the new extension
+- Semver ranges are valid (use `>=` and `<` operators)
+- No duplicate entries exist
+
+## Extension Version Upgrade
+
+When a user asks to upgrade an extension's software versions, follow this introspection-and-research workflow.
+
+### Trigger Phrases
+
+- "upgrade extension X", "update versions for X", "check for newer versions in X"
+- "refresh versions", "bump versions", "update cloud-tools versions"
+
+### Step 1: Introspect the Extension
+
+Read the extension directory to identify all version sources:
+
+| Version Source | Where to Look | Example |
+|---------------|---------------|---------|
+| **versions.env** | `v3/extensions/{name}/versions.env` | `AWS_VERSION="2.33.21"` |
+| **mise.toml** | `v3/extensions/{name}/mise.toml` | `python = "3.13"` |
+| **extension.yaml BOM** | `bom.tools[].version` in `extension.yaml` | `version: "2.33.21"` |
+| **extension.yaml binary** | `install.binary.downloads[].source.version` | `version: "v1.2.3"` |
+| **install scripts** | `v3/extensions/{name}/scripts/install.sh` | Hardcoded version variables or download URLs |
+| **npm package** | `install.npm.package` | `"@scope/pkg@1.2.3"` |
+
+Build a **version inventory** - a list of every software component and its current pinned version.
+
+Example inventory for `cloud-tools`:
+```
+aws-cli:     2.33.21  (versions.env: AWS_VERSION, bom)
+azure-cli:   2.83.0   (versions.env: AZURE_CLI_VERSION, bom)
+gcloud:      556.0.0  (versions.env: GCLOUD_VERSION, bom)
+flyctl:      0.4.11   (versions.env: FLYCTL_VERSION, bom)
+aliyun-cli:  3.2.9    (versions.env: ALIYUN_VERSION, bom)
+doctl:       1.150.0  (versions.env: DOCTL_VERSION, bom)
+ibmcloud:    2.41.1   (versions.env: IBM_VERSION, bom)
+```
+
+### Step 2: Research Latest Versions
+
+For each component in the inventory, use **WebSearch** to find the latest stable release version:
+
+**Search strategies by tool type:**
+
+| Tool Type | Search Query Template | Authoritative Sources |
+|-----------|----------------------|----------------------|
+| GitHub-hosted CLI | `"{tool-name} latest release site:github.com"` | GitHub releases page |
+| Language runtime | `"{language} latest stable version {year}"` | Official language site |
+| Cloud CLI | `"{cloud} CLI latest version {year}"` | Cloud provider docs |
+| npm package | `"{package-name} npm latest version"` | npmjs.com |
+| pip package | `"{package-name} pypi latest version"` | pypi.org |
+| Cargo crate | `"{crate-name} crates.io latest"` | crates.io |
+
+**Key rules:**
+- Only consider **stable** releases (no alpha, beta, RC, nightly, dev)
+- For GitHub releases, use `gh api repos/{owner}/{repo}/releases/latest` via Bash when possible (faster and more reliable than web search)
+- Skip tools with `version: dynamic` or `version: lts` (these resolve at install time)
+- Include the current year in search queries for freshness
+
+### Step 3: Compare Versions
+
+For each component, determine if the latest version is newer:
+
+**Semver comparison** (most tools): Compare major.minor.patch numerically
+- `2.33.21` vs `2.35.0` -> newer (minor bump)
+- `0.4.11` vs `0.4.15` -> newer (patch bump)
+- `3.2.9` vs `3.2.9` -> same (skip)
+
+**Date-based versions** (e.g., Google Cloud SDK `556.0.0`): Compare as integers
+- `556.0.0` vs `563.0.0` -> newer
+
+**Symbolic versions** (e.g., `lts`, `latest`): Skip - these auto-resolve
+
+### Step 4: Apply Updates
+
+For each component with a newer version available, update ALL locations where the version appears:
+
+#### 4a. Update `versions.env`
+```bash
+# Before
+AWS_VERSION="2.33.21"
+# After
+AWS_VERSION="2.35.0"
+```
+Also update the `# Updated:` date comment at the top of the file.
+
+#### 4b. Update `mise.toml`
+```toml
+# Before
+[tools]
+python = "3.13"
+# After
+[tools]
+python = "3.14"
+```
+
+#### 4c. Update `extension.yaml` BOM entries
+```yaml
+bom:
+  tools:
+    - name: aws
+      version: "2.35.0"      # Updated from 2.33.21
+      purl: pkg:generic/awscli@2.35.0    # Update version in purl too
+      cpe: cpe:2.3:a:amazon:aws_cli:2.35.0:*:*:*:*:*:*:*  # Update CPE if present
+```
+
+#### 4d. Update install scripts (if versions are hardcoded)
+Search for the old version string in `scripts/install.sh` and replace with the new version.
+
+#### 4e. Update npm package version (if pinned)
+```yaml
+install:
+  method: npm-global
+  npm:
+    package: "@scope/package@2.0.0"  # Updated from 1.5.0
+```
+
+#### 4f. Update `bom` comment date
+```yaml
+bom:
+  # NOTE: Versions researched YYYY-MM-DD
+```
+
+#### 4g. Update `docs.last-updated`
+```yaml
+docs:
+  last-updated: "YYYY-MM-DD"
+```
+
+### Step 5: Bump Extension Version and Update References
+
+After updating software versions, bump the extension's own `metadata.version`:
+- **Patch bump** (e.g., 2.1.0 -> 2.1.1): Only patch-level software updates
+- **Minor bump** (e.g., 2.1.0 -> 2.2.0): Minor or mixed software version updates
+- **Major bump** (e.g., 2.1.0 -> 3.0.0): Major software version update (e.g., Python 3.x -> 4.x)
+
+Then update all external references to the extension version:
+
+1. **`v3/docs/EXTENSIONS.md`** - Update the version number shown in the extensions catalog
+2. **`v3/compatibility-matrix.yaml`** - Ensure the new version falls within the semver range; if not, update the range (see [Compatibility Matrix Management](#compatibility-matrix-management))
+3. **`v3/registry.yaml`** - Update description if the extension's capabilities changed
+
+### Step 6: Report Changes
+
+Present a summary table to the user:
+
+```
+Extension: cloud-tools (2.1.0 -> 2.2.0)
+
+| Component    | Old Version | New Version | Change Type |
+|-------------|-------------|-------------|-------------|
+| aws-cli     | 2.33.21     | 2.35.0      | minor       |
+| azure-cli   | 2.83.0      | 2.84.0      | minor       |
+| gcloud      | 556.0.0     | 563.0.0     | minor       |
+| flyctl      | 0.4.11      | 0.4.11      | (current)   |
+| aliyun-cli  | 3.2.9       | 3.2.9       | (current)   |
+| doctl       | 1.150.0     | 1.152.0     | minor       |
+| ibmcloud    | 2.41.1      | 2.41.1      | (current)   |
+
+Files modified:
+- v3/extensions/cloud-tools/versions.env
+- v3/extensions/cloud-tools/extension.yaml (bom + metadata.version)
+- v3/docs/EXTENSIONS.md (version reference updated)
+- v3/compatibility-matrix.yaml (if version range needed adjustment)
+```
+
+### Skipping Upgrades
+
+Some version types should NOT be upgraded automatically:
+- `version: dynamic` - resolved at install time
+- `version: lts` - symbolic, always resolves to latest LTS
+- `version: latest` - always resolves to latest
+- Tools where the extension description explicitly states a specific major version constraint (e.g., "Python 3.x runtime" should not jump to Python 4.x)
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -591,3 +838,5 @@ extensions:
 | Collision not detected | Verify version-markers paths |
 | MCP not registering | Check server command and args |
 | GPU validation fails | Ensure proper CUDA setup |
+| Missing from compat matrix | Run through [Compatibility Matrix Management](#compatibility-matrix-management) |
+| Version upgrade missed a file | Check all locations: versions.env, mise.toml, bom, scripts, purl, cpe |
