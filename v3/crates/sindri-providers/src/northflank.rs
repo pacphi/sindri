@@ -7,18 +7,38 @@ use crate::traits::Provider;
 use crate::utils::{command_exists, get_command_version};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sindri_core::config::SindriConfig;
 use sindri_core::types::{
     ActionType, Address, AddressType, ConnectionInfo, DeployOptions, DeployResult, DeploymentPlan,
     DeploymentState, DeploymentStatus, DeploymentTimestamps, PlannedAction, PlannedResource,
     Prerequisite, PrerequisiteStatus, ResourceUsage,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Stdio;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
+
+/// Persistent state for a Northflank deployment
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NorthflankState {
+    /// Northflank project name
+    pub project_name: String,
+    /// Northflank service name
+    pub service_name: String,
+    /// Northflank service ID
+    pub service_id: String,
+    /// Compute plan used
+    pub compute_plan: String,
+    /// Application name (from sindri config)
+    pub app_name: String,
+    /// Container image used
+    pub image: Option<String>,
+    /// Timestamp when the service was created
+    pub created_at: String,
+}
 
 /// Northflank provider for Kubernetes PaaS deployment
 pub struct NorthflankProvider {
@@ -38,6 +58,60 @@ impl NorthflankProvider {
     /// Create with a specific output directory
     pub fn with_output_dir(output_dir: PathBuf) -> Result<Self> {
         Ok(Self { output_dir })
+    }
+
+    /// Get the state file path for a given app name
+    fn state_file_path(app_name: &str) -> PathBuf {
+        let base = dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".sindri")
+            .join("state");
+        base.join(format!("northflank-{}.json", app_name))
+    }
+
+    /// Save deployment state to disk
+    fn save_state(state: &NorthflankState) -> Result<()> {
+        let path = Self::state_file_path(&state.app_name);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).context("Failed to create .sindri/state directory")?;
+        }
+        let json =
+            serde_json::to_string_pretty(state).context("Failed to serialize Northflank state")?;
+        std::fs::write(&path, json)
+            .with_context(|| format!("Failed to write state file: {}", path.display()))?;
+        debug!("Saved Northflank state to {}", path.display());
+        Ok(())
+    }
+
+    /// Load deployment state from disk
+    fn load_state(app_name: &str) -> Option<NorthflankState> {
+        let path = Self::state_file_path(app_name);
+        match std::fs::read_to_string(&path) {
+            Ok(content) => match serde_json::from_str::<NorthflankState>(&content) {
+                Ok(state) => Some(state),
+                Err(e) => {
+                    warn!(
+                        "Corrupted Northflank state file at {}: {}. Ignoring.",
+                        path.display(),
+                        e
+                    );
+                    None
+                }
+            },
+            Err(_) => None,
+        }
+    }
+
+    /// Remove state file from disk
+    fn remove_state(app_name: &str) {
+        let path = Self::state_file_path(app_name);
+        if path.exists() {
+            if let Err(e) = std::fs::remove_file(&path) {
+                warn!("Failed to remove state file {}: {}", path.display(), e);
+            } else {
+                debug!("Removed Northflank state file: {}", path.display());
+            }
+        }
     }
 
     /// Check if Northflank is authenticated
@@ -184,16 +258,20 @@ impl NorthflankProvider {
         Ok(())
     }
 
-    /// Create and attach a persistent volume
-    async fn create_and_attach_volume(
+    /// Create a persistent volume in a project.
+    ///
+    /// The volume is created as a standalone resource so it exists before any
+    /// service that references it is started.  Returns the volume name so the
+    /// caller can embed it in the service definition.
+    async fn create_volume(
         &self,
         project_name: &str,
-        service_id: &str,
+        volume_name: &str,
         size_gb: u32,
         mount_path: &str,
-    ) -> Result<()> {
+    ) -> Result<String> {
         let volume_def = serde_json::json!({
-            "name": format!("{}-data", service_id),
+            "name": volume_name,
             "size": size_gb * 1024,
             "mountPath": mount_path
         });
@@ -204,8 +282,6 @@ impl NorthflankProvider {
                 "volume",
                 "--project",
                 project_name,
-                "--service",
-                service_id,
                 "--input",
                 &volume_def.to_string(),
             ])
@@ -215,10 +291,14 @@ impl NorthflankProvider {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            warn!("Volume creation warning: {}", stderr);
+            return Err(anyhow!(
+                "Failed to create volume '{}': {}",
+                volume_name,
+                stderr
+            ));
         }
 
-        Ok(())
+        Ok(volume_name.to_string())
     }
 
     /// Wait for service to reach running state
@@ -273,18 +353,20 @@ impl NorthflankProvider {
         let nf = file.providers.northflank.as_ref();
 
         let project_name = nf
-            .and_then(|n| n.project_name.clone())
+            .map(|n| n.project_name.clone())
             .unwrap_or_else(|| format!("sindri-{}", file.name));
         let service_name = nf
             .and_then(|n| n.service_name.clone())
             .unwrap_or_else(|| file.name.clone());
 
-        let service = self
-            .find_service(&project_name, &service_name)
-            .await?
-            .ok_or_else(|| anyhow!("No Northflank service found for '{}'", file.name))?;
+        let service_id = match self.find_service(&project_name, &service_name).await? {
+            Some(s) => s.id,
+            None => Self::load_state(&file.name)
+                .map(|s| s.service_id)
+                .ok_or_else(|| anyhow!("No Northflank service found for '{}'", file.name))?,
+        };
 
-        Ok((project_name, service.id))
+        Ok((project_name, service_id))
     }
 
     /// Get Northflank config from SindriConfig
@@ -319,7 +401,7 @@ impl NorthflankProvider {
         InternalDeployConfig {
             name: &file.name,
             project_name: nf
-                .and_then(|n| n.project_name.clone())
+                .map(|n| n.project_name.clone())
                 .unwrap_or_else(|| format!("sindri-{}", file.name)),
             service_name: nf
                 .and_then(|n| n.service_name.clone())
@@ -400,6 +482,14 @@ impl NorthflankProvider {
             });
         }
 
+        // Attach a pre-created volume so the service starts with storage mounted
+        if let Some(ref vol_name) = config.volume_name {
+            service_def["volumes"] = serde_json::json!([{
+                "name": vol_name,
+                "mountPath": config.volume_mount_path
+            }]);
+        }
+
         Ok(service_def.to_string())
     }
 
@@ -435,6 +525,76 @@ impl NorthflankProvider {
 
         Ok(())
     }
+
+    /// Resolve secrets from config and return as a name->value map
+    async fn resolve_secrets(
+        &self,
+        config: &SindriConfig,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<HashMap<String, String>> {
+        let secrets = config.secrets();
+
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(HashMap::new());
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        let mut env_vars = HashMap::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                env_vars.insert(name.clone(), value.to_string());
+            } else {
+                warn!(
+                    "Northflank provider currently only supports environment variable secrets. \
+                     File secret '{}' will be skipped.",
+                    name
+                );
+            }
+        }
+
+        info!("Resolved {} environment variable secrets", env_vars.len());
+        Ok(env_vars)
+    }
+
+    /// Resolve secrets from config and create a Northflank secret group attached to the service
+    async fn resolve_and_create_secret_group(
+        &self,
+        config: &SindriConfig,
+        project_name: &str,
+        service_id: &str,
+    ) -> Result<usize> {
+        let secret_env_vars = self.resolve_secrets(config, None).await?;
+
+        if secret_env_vars.is_empty() {
+            debug!("No secrets to inject, skipping secret group creation");
+            return Ok(0);
+        }
+
+        let count = secret_env_vars.len();
+        info!(
+            "Creating secret group for service '{}' with {} secret(s)...",
+            service_id, count
+        );
+
+        self.create_secret_group(project_name, service_id, &secret_env_vars)
+            .await?;
+
+        info!("Secret group created and attached to service");
+        Ok(count)
+    }
 }
 
 /// Northflank deployment configuration
@@ -448,6 +608,10 @@ pub struct NorthflankDeployConfig<'a> {
     pub gpu_count: u32,
     pub volume_size_gb: u32,
     pub volume_mount_path: String,
+    /// Name of a pre-created volume to attach to the service.
+    /// When set, the volume reference is included in the service definition so
+    /// the service starts with persistent storage already mounted.
+    pub volume_name: Option<String>,
     pub region: Option<String>,
     pub ports: Vec<NorthflankPort>,
     pub health_check: Option<NorthflankHealthCheck>,
@@ -637,6 +801,28 @@ impl Provider for NorthflankProvider {
             });
         }
 
+        // Check Docker (needed for image builds)
+        if command_exists("docker") {
+            let version = get_command_version("docker", "--version")
+                .unwrap_or_else(|_| "unknown".to_string());
+            available.push(Prerequisite {
+                name: "docker".to_string(),
+                description: "Docker Engine (for image builds)".to_string(),
+                install_hint: None,
+                version: Some(version),
+            });
+        } else {
+            // Docker is optional - only needed when building from source
+            available.push(Prerequisite {
+                name: "docker".to_string(),
+                description: "Docker Engine not found (needed for --skip-build=false)".to_string(),
+                install_hint: Some(
+                    "Install Docker: https://docs.docker.com/get-docker/".to_string(),
+                ),
+                version: None,
+            });
+        }
+
         // Check authentication
         if self.is_authenticated() {
             available.push(Prerequisite {
@@ -710,15 +896,35 @@ impl Provider for NorthflankProvider {
         );
         self.ensure_project(&nf_config.project_name).await?;
 
-        // Resolve image
-        let image = config
-            .inner()
-            .deployment
-            .image
-            .clone()
-            .ok_or_else(|| anyhow!("No image configured for Northflank deployment"))?;
+        // Resolve image: build and push if necessary, or use pre-built
+        info!("Resolving deployment image...");
+        let image = crate::utils::resolve_and_build_image(config, opts.skip_build, opts.force)
+            .await
+            .context("Failed to resolve deployment image for Northflank")?;
+        info!("Using image: {}", image);
 
-        // Create deployment service
+        // Create volume BEFORE the service so the service definition can
+        // reference it and start with persistent storage already mounted.
+        let volume_name = if nf_config.volume_size_gb > 0 {
+            let vol_name = format!("{}-data", nf_config.service_name);
+            info!(
+                "Creating {}GB volume '{}' in project '{}'",
+                nf_config.volume_size_gb, vol_name, nf_config.project_name
+            );
+            let name = self
+                .create_volume(
+                    &nf_config.project_name,
+                    &vol_name,
+                    nf_config.volume_size_gb,
+                    &nf_config.volume_mount_path,
+                )
+                .await?;
+            Some(name)
+        } else {
+            None
+        };
+
+        // Create deployment service (with volume reference if one was created)
         info!("Creating Northflank service: {}", nf_config.service_name);
         let deploy_config = NorthflankDeployConfig {
             name: nf_config.name,
@@ -730,6 +936,7 @@ impl Provider for NorthflankProvider {
             gpu_count: 0,
             volume_size_gb: nf_config.volume_size_gb,
             volume_mount_path: nf_config.volume_mount_path.clone(),
+            volume_name,
             region: None,
             ports: vec![NorthflankPort {
                 name: "ssh".to_string(),
@@ -770,16 +977,24 @@ impl Provider for NorthflankProvider {
         let service: NorthflankService =
             serde_json::from_str(&stdout).context("Failed to parse service creation response")?;
 
-        // Create and attach volume
-        if nf_config.volume_size_gb > 0 {
-            self.create_and_attach_volume(
-                &nf_config.project_name,
-                &service.id,
-                nf_config.volume_size_gb,
-                &nf_config.volume_mount_path,
-            )
-            .await?;
+        // Save deployment state
+        let state = NorthflankState {
+            project_name: nf_config.project_name.clone(),
+            service_name: nf_config.service_name.clone(),
+            service_id: service.id.clone(),
+            compute_plan: nf_config.compute_plan.clone(),
+            app_name: nf_config.name.to_string(),
+            image: Some(image.clone()),
+            created_at: chrono::Utc::now().to_rfc3339(),
+        };
+        if let Err(e) = Self::save_state(&state) {
+            warn!("Failed to save deployment state: {}. Deployment succeeded but state tracking may be unavailable.", e);
         }
+
+        // Resolve and inject secrets as a Northflank secret group
+        let secrets_count = self
+            .resolve_and_create_secret_group(config, &nf_config.project_name, &service.id)
+            .await?;
 
         // Wait for running
         if opts.wait {
@@ -814,10 +1029,19 @@ impl Provider for NorthflankProvider {
             provider: "northflank".to_string(),
             instance_id: Some(service.id),
             connection: Some(connection),
-            messages: vec![format!(
-                "Service deployed on plan {} with {} instance(s)",
-                nf_config.compute_plan, nf_config.instances
-            )],
+            messages: {
+                let mut msgs = vec![format!(
+                    "Service deployed on plan {} with {} instance(s)",
+                    nf_config.compute_plan, nf_config.instances
+                )];
+                if secrets_count > 0 {
+                    msgs.push(format!(
+                        "Injected {} secret(s) via secret group",
+                        secrets_count
+                    ));
+                }
+                msgs
+            },
             warnings: vec![],
         })
     }
@@ -828,16 +1052,35 @@ impl Provider for NorthflankProvider {
         let nf = file.providers.northflank.as_ref();
 
         let project_name = nf
-            .and_then(|n| n.project_name.clone())
+            .map(|n| n.project_name.clone())
             .unwrap_or_else(|| format!("sindri-{}", name));
         let service_name = nf
             .and_then(|n| n.service_name.clone())
             .unwrap_or_else(|| name.clone());
 
-        let service = self
-            .find_service(&project_name, &service_name)
-            .await?
-            .ok_or_else(|| anyhow!("No Northflank service found for '{}'. Deploy first.", name))?;
+        let service = match self.find_service(&project_name, &service_name).await? {
+            Some(s) => s,
+            None => {
+                // Fall back to saved state for service ID
+                let saved = Self::load_state(name).ok_or_else(|| {
+                    anyhow!("No Northflank service found for '{}'. Deploy first.", name)
+                })?;
+                warn!(
+                    "Service not found via API, using saved state for '{}'",
+                    name
+                );
+                NorthflankService {
+                    id: saved.service_id,
+                    name: saved.service_name,
+                    status: "unknown".to_string(),
+                    image: saved.image,
+                    compute_plan: saved.compute_plan,
+                    instances: 1,
+                    ports: vec![],
+                    metrics: None,
+                }
+            }
+        };
 
         // Auto-resume if paused
         if service.status == "paused" {
@@ -870,7 +1113,7 @@ impl Provider for NorthflankProvider {
         let nf = file.providers.northflank.as_ref();
 
         let project_name = nf
-            .and_then(|n| n.project_name.clone())
+            .map(|n| n.project_name.clone())
             .unwrap_or_else(|| format!("sindri-{}", name));
         let service_name = nf
             .and_then(|n| n.service_name.clone())
@@ -879,6 +1122,28 @@ impl Provider for NorthflankProvider {
         let service = match self.find_service(&project_name, &service_name).await? {
             Some(s) => s,
             None => {
+                // Fall back to saved state for basic info
+                if let Some(saved) = Self::load_state(name) {
+                    warn!(
+                        "Service not found via API, returning saved state for '{}'",
+                        name
+                    );
+                    let mut details = HashMap::new();
+                    details.insert("project".to_string(), saved.project_name.clone());
+                    details.insert("compute_plan".to_string(), saved.compute_plan.clone());
+                    details.insert("source".to_string(), "saved_state".to_string());
+                    return Ok(DeploymentStatus {
+                        name: name.to_string(),
+                        provider: "northflank".to_string(),
+                        state: DeploymentState::Unknown,
+                        instance_id: Some(saved.service_id),
+                        image: saved.image,
+                        addresses: vec![],
+                        resources: None,
+                        timestamps: DeploymentTimestamps::default(),
+                        details,
+                    });
+                }
                 return Ok(DeploymentStatus {
                     name: name.to_string(),
                     provider: "northflank".to_string(),
@@ -940,24 +1205,27 @@ impl Provider for NorthflankProvider {
         let nf = file.providers.northflank.as_ref();
 
         let project_name = nf
-            .and_then(|n| n.project_name.clone())
+            .map(|n| n.project_name.clone())
             .unwrap_or_else(|| format!("sindri-{}", name));
         let service_name = nf
             .and_then(|n| n.service_name.clone())
             .unwrap_or_else(|| name.clone());
 
-        let service = self
-            .find_service(&project_name, &service_name)
-            .await?
-            .ok_or_else(|| anyhow!("No Northflank service found for '{}'", name))?;
+        let service_id = match self.find_service(&project_name, &service_name).await? {
+            Some(s) => s.id,
+            None => Self::load_state(name)
+                .map(|s| s.service_id)
+                .ok_or_else(|| anyhow!("No Northflank service found for '{}'", name))?,
+        };
 
         info!(
             "Destroying Northflank service: {} in project {}",
-            service.id, project_name
+            service_id, project_name
         );
-        self.delete_service(&project_name, &service.id).await?;
+        self.delete_service(&project_name, &service_id).await?;
+        Self::remove_state(name);
 
-        info!("Service {} destroyed", service.id);
+        info!("Service {} destroyed", service_id);
         info!(
             "Note: Project '{}' was preserved. Delete manually if no longer needed.",
             project_name
@@ -969,22 +1237,39 @@ impl Provider for NorthflankProvider {
     async fn plan(&self, config: &SindriConfig) -> Result<DeploymentPlan> {
         let nf_config = self.get_northflank_config(config);
 
-        let mut actions = vec![
-            PlannedAction {
-                action: ActionType::Create,
-                resource: "northflank-project".to_string(),
-                description: format!("Ensure project '{}' exists", nf_config.project_name),
-            },
-            PlannedAction {
-                action: ActionType::Create,
-                resource: "northflank-service".to_string(),
-                description: format!(
-                    "Create deployment service '{}' on plan {}",
-                    nf_config.service_name, nf_config.compute_plan
-                ),
-            },
-        ];
+        let mut actions = Vec::new();
 
+        // Check if image build is needed
+        let file = config.inner();
+        let needs_build = file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false)
+            || file.deployment.image.is_none();
+
+        if needs_build {
+            actions.push(PlannedAction {
+                action: ActionType::Create,
+                resource: "docker-image".to_string(),
+                description: "Build Docker image from Sindri source".to_string(),
+            });
+            actions.push(PlannedAction {
+                action: ActionType::Create,
+                resource: "registry-push".to_string(),
+                description: "Push Docker image to container registry".to_string(),
+            });
+        }
+
+        actions.push(PlannedAction {
+            action: ActionType::Create,
+            resource: "northflank-project".to_string(),
+            description: format!("Ensure project '{}' exists", nf_config.project_name),
+        });
+
+        // Volume is created before the service so the service definition can
+        // reference it and start with persistent storage already mounted.
         if nf_config.volume_size_gb > 0 {
             actions.push(PlannedAction {
                 action: ActionType::Create,
@@ -995,6 +1280,15 @@ impl Provider for NorthflankProvider {
                 ),
             });
         }
+
+        actions.push(PlannedAction {
+            action: ActionType::Create,
+            resource: "northflank-service".to_string(),
+            description: format!(
+                "Create deployment service '{}' on plan {}",
+                nf_config.service_name, nf_config.compute_plan
+            ),
+        });
 
         let resources = vec![PlannedResource {
             resource_type: "northflank-service".to_string(),
@@ -1152,5 +1446,41 @@ mod tests {
         assert_eq!(parse_size_to_gb("50GB"), Some(50));
         assert_eq!(parse_size_to_gb("2048MB"), Some(2));
         assert_eq!(parse_size_to_gb("bad"), None);
+    }
+
+    #[test]
+    fn test_state_serialization_roundtrip() {
+        let state = NorthflankState {
+            project_name: "sindri-myapp".to_string(),
+            service_name: "myapp".to_string(),
+            service_id: "svc-test-456".to_string(),
+            compute_plan: "nf-compute-50".to_string(),
+            app_name: "myapp".to_string(),
+            image: Some("ghcr.io/org/sindri:latest".to_string()),
+            created_at: "2026-02-16T10:00:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&state).unwrap();
+        let deserialized: NorthflankState = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.project_name, "sindri-myapp");
+        assert_eq!(deserialized.service_id, "svc-test-456");
+        assert_eq!(deserialized.compute_plan, "nf-compute-50");
+        assert_eq!(deserialized.app_name, "myapp");
+    }
+
+    #[test]
+    fn test_state_file_path() {
+        let path = NorthflankProvider::state_file_path("myapp");
+        let path_str = path.to_string_lossy();
+        assert!(path_str.contains(".sindri"));
+        assert!(path_str.contains("state"));
+        assert!(path_str.ends_with("northflank-myapp.json"));
+    }
+
+    #[test]
+    fn test_load_state_missing_file() {
+        // Loading state for a non-existent app should return None
+        let result = NorthflankProvider::load_state("nonexistent-app-xyz-12345");
+        assert!(result.is_none());
     }
 }

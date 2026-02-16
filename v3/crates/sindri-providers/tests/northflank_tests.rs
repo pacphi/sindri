@@ -592,6 +592,61 @@ async fn deploy_creates_project_when_missing() {
     );
 }
 
+#[tokio::test]
+#[serial]
+async fn deploy_creates_volume_before_service() {
+    use sindri_providers::traits::Provider;
+    let tmp = tempfile::tempdir().unwrap();
+    let new_svc = json!({"id":"svc-vo","name":"vo","status":"creating","image":"img","computePlan":"nf-compute-20","instances":1,"ports":[],"metrics":null});
+    create_conditional_mock(
+        tmp.path(),
+        "northflank",
+        &[
+            ("list services", "[]", 0),
+            ("get project", "{}", 0),
+            ("create volume", "{}", 0),
+            ("create service", &new_svc.to_string(), 0),
+            ("--version", "1.2.3", 0),
+            ("list projects", "{}", 0),
+        ],
+        "{}",
+        0,
+    )
+    .unwrap();
+
+    let orig = setup_mock_env(tmp.path());
+    let (_ct, cp) =
+        create_northflank_config_fixture("vo", "sindri-vo", "vo", "nf-compute-20").unwrap();
+    let provider = sindri_providers::northflank::NorthflankProvider::new().unwrap();
+    let _ = provider
+        .deploy(&load_config(&cp), DeployOptions::default())
+        .await;
+    restore_env(&orig);
+
+    let log = read_mock_log(tmp.path(), "northflank");
+    let vol_idx = log.iter().position(|l| l.contains("create volume"));
+    let svc_idx = log.iter().position(|l| l.contains("create service"));
+    assert!(
+        vol_idx.is_some(),
+        "Should call create volume. Log: {:?}",
+        log
+    );
+    assert!(
+        svc_idx.is_some(),
+        "Should call create service. Log: {:?}",
+        log
+    );
+    if let (Some(v), Some(s)) = (vol_idx, svc_idx) {
+        assert!(
+            v < s,
+            "Volume creation (idx {}) must happen before service creation (idx {}). Log: {:?}",
+            v,
+            s,
+            log
+        );
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 9. Status Queries (async, mocked CLI)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1038,7 +1093,7 @@ async fn plan_returns_project_service_actions() {
 }
 
 #[tokio::test]
-async fn plan_includes_volume_action() {
+async fn plan_includes_volume_action_before_service() {
     use sindri_providers::traits::Provider;
     let (_ct, cp) =
         create_northflank_config_fixture("pv", "sindri-pv", "pv", "nf-compute-20").unwrap();
@@ -1047,9 +1102,29 @@ async fn plan_includes_volume_action() {
         .plan(&load_config(&cp))
         .await
         .unwrap();
+    let vol_idx = plan
+        .actions
+        .iter()
+        .position(|a| a.resource.contains("volume"));
+    let svc_idx = plan
+        .actions
+        .iter()
+        .position(|a| a.resource.contains("service"));
     assert!(
-        plan.actions.iter().any(|a| a.resource.contains("volume")),
-        "Actions: {:?}",
+        vol_idx.is_some(),
+        "Plan should include volume action. Actions: {:?}",
+        plan.actions
+    );
+    assert!(
+        svc_idx.is_some(),
+        "Plan should include service action. Actions: {:?}",
+        plan.actions
+    );
+    assert!(
+        vol_idx.unwrap() < svc_idx.unwrap(),
+        "Volume action (idx {}) must come before service action (idx {}). Actions: {:?}",
+        vol_idx.unwrap(),
+        svc_idx.unwrap(),
         plan.actions
     );
 }
@@ -1070,6 +1145,7 @@ fn build_service_definition_basic() {
         gpu_count: 0,
         volume_size_gb: 10,
         volume_mount_path: "/workspace".into(),
+        volume_name: None,
         region: None,
         ports: vec![sindri_providers::northflank::NorthflankPort {
             name: "ssh".into(),
@@ -1103,6 +1179,7 @@ fn build_service_definition_with_health_check() {
         gpu_count: 0,
         volume_size_gb: 10,
         volume_mount_path: "/ws".into(),
+        volume_name: None,
         region: None,
         ports: vec![],
         health_check: Some(sindri_providers::northflank::NorthflankHealthCheck {
@@ -1140,6 +1217,7 @@ fn build_service_definition_with_auto_scaling() {
         gpu_count: 0,
         volume_size_gb: 10,
         volume_mount_path: "/ws".into(),
+        volume_name: None,
         region: None,
         ports: vec![],
         health_check: None,
@@ -1162,6 +1240,76 @@ fn build_service_definition_with_auto_scaling() {
     assert_eq!(v["deployment"]["scaling"]["minInstances"], 1);
     assert_eq!(v["deployment"]["scaling"]["maxInstances"], 5);
     assert_eq!(v["deployment"]["scaling"]["targetCpu"], 75);
+}
+
+#[test]
+fn build_service_definition_with_volume_name() {
+    let cfg = sindri_providers::northflank::NorthflankDeployConfig {
+        name: "vol",
+        project_name: "p".into(),
+        service_name: "vol".into(),
+        compute_plan: "nf-compute-20".into(),
+        instances: 1,
+        gpu_type: None,
+        gpu_count: 0,
+        volume_size_gb: 10,
+        volume_mount_path: "/workspace".into(),
+        volume_name: Some("vol-data".into()),
+        region: None,
+        ports: vec![],
+        health_check: None,
+        auto_scaling: None,
+        cpus: 2,
+        memory_mb: 2048,
+        image: "img".into(),
+    };
+    let v: serde_json::Value = serde_json::from_str(
+        &sindri_providers::northflank::NorthflankProvider::new()
+            .unwrap()
+            .build_service_definition(&cfg)
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(
+        v["volumes"].is_array(),
+        "Service definition should include volumes array"
+    );
+    assert_eq!(v["volumes"][0]["name"], "vol-data");
+    assert_eq!(v["volumes"][0]["mountPath"], "/workspace");
+}
+
+#[test]
+fn build_service_definition_without_volume_name() {
+    let cfg = sindri_providers::northflank::NorthflankDeployConfig {
+        name: "novol",
+        project_name: "p".into(),
+        service_name: "novol".into(),
+        compute_plan: "nf-compute-20".into(),
+        instances: 1,
+        gpu_type: None,
+        gpu_count: 0,
+        volume_size_gb: 0,
+        volume_mount_path: "/workspace".into(),
+        volume_name: None,
+        region: None,
+        ports: vec![],
+        health_check: None,
+        auto_scaling: None,
+        cpus: 2,
+        memory_mb: 2048,
+        image: "img".into(),
+    };
+    let v: serde_json::Value = serde_json::from_str(
+        &sindri_providers::northflank::NorthflankProvider::new()
+            .unwrap()
+            .build_service_definition(&cfg)
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(
+        v.get("volumes").is_none() || v["volumes"].is_null(),
+        "Service definition should NOT include volumes when volume_name is None"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

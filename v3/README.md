@@ -1,5 +1,8 @@
 # Sindri V3
 
+[![CI](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml)
+[![codecov](https://codecov.io/gh/pacphi/sindri/graph/badge.svg?flag=workspace)](https://codecov.io/gh/pacphi/sindri)
+
 A modern, high-performance CLI for declarative cloud development environments, rewritten in Rust.
 
 ## Overview

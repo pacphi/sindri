@@ -4987,6 +4987,7 @@ dependencies = [
  "dirs",
  "duct",
  "mockall 0.13.1",
+ "reqwest 0.13.2",
  "serde",
  "serde_json",
  "serde_yaml_ng",
@@ -4999,6 +5000,7 @@ dependencies = [
  "tokio",
  "tracing",
  "which",
+ "wiremock",
 ]
 
 [[package]]

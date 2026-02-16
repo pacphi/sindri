@@ -1,125 +1,314 @@
 //! RunPod provider implementation
 //!
 //! Deploys Sindri development environments on RunPod's GPU cloud.
-//! Uses `runpodctl` CLI for pod lifecycle management.
+//! Uses the RunPod REST API (v1) at `https://rest.runpod.io/v1` for pod lifecycle management.
+//! No external CLI tool installation required -- only a `RUNPOD_API_KEY` environment variable.
 
 use crate::traits::Provider;
-use crate::utils::{command_exists, get_command_version};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use serde::Deserialize;
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
+use serde::{Deserialize, Serialize};
 use sindri_core::config::SindriConfig;
 use sindri_core::types::{
     ActionType, Address, AddressType, ConnectionInfo, CostEstimate, DeployOptions, DeployResult,
     DeploymentPlan, DeploymentState, DeploymentStatus, DeploymentTimestamps, PlannedAction,
     PlannedResource, Prerequisite, PrerequisiteStatus, ResourceUsage,
 };
+use sindri_secrets::{ResolutionContext, SecretResolver};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::Stdio;
-use tokio::process::Command;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
+
+/// Default RunPod REST API base URL
+const RUNPOD_API_BASE: &str = "https://rest.runpod.io/v1";
+
+/// Persistent state for a RunPod deployment
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RunpodState {
+    /// RunPod pod ID
+    pub pod_id: String,
+    /// Application name (from sindri config)
+    pub app_name: String,
+    /// GPU type used
+    pub gpu_type: String,
+    /// Number of GPUs
+    pub gpu_count: u32,
+    /// Container image used
+    pub image: Option<String>,
+    /// Timestamp when the pod was created
+    pub created_at: String,
+}
 
 /// RunPod provider for GPU cloud deployment
 pub struct RunpodProvider {
     /// Output directory for generated files
     #[allow(dead_code)]
     output_dir: PathBuf,
+    /// HTTP client for RunPod REST API
+    client: reqwest::Client,
+    /// API base URL (overridable for testing)
+    api_base: String,
 }
 
 impl RunpodProvider {
     /// Create a new RunPod provider
     pub fn new() -> Result<Self> {
+        let client = build_http_client()?;
         Ok(Self {
             output_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            client,
+            api_base: RUNPOD_API_BASE.to_string(),
         })
     }
 
     /// Create with a specific output directory
     pub fn with_output_dir(output_dir: PathBuf) -> Result<Self> {
-        Ok(Self { output_dir })
+        let client = build_http_client()?;
+        Ok(Self {
+            output_dir,
+            client,
+            api_base: RUNPOD_API_BASE.to_string(),
+        })
+    }
+
+    /// Create with a custom API base URL and HTTP client (for testing)
+    #[doc(hidden)]
+    pub fn with_client(client: reqwest::Client, api_base: String) -> Self {
+        Self {
+            output_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            client,
+            api_base,
+        }
+    }
+
+    /// Get the state file path for a given app name
+    fn state_file_path(app_name: &str) -> PathBuf {
+        let base = dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".sindri")
+            .join("state");
+        base.join(format!("runpod-{}.json", app_name))
+    }
+
+    /// Save deployment state to disk
+    fn save_state(state: &RunpodState) -> Result<()> {
+        let path = Self::state_file_path(&state.app_name);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).context("Failed to create .sindri/state directory")?;
+        }
+        let json =
+            serde_json::to_string_pretty(state).context("Failed to serialize RunPod state")?;
+        std::fs::write(&path, json)
+            .with_context(|| format!("Failed to write state file: {}", path.display()))?;
+        debug!("Saved RunPod state to {}", path.display());
+        Ok(())
+    }
+
+    /// Load deployment state from disk
+    fn load_state(app_name: &str) -> Option<RunpodState> {
+        let path = Self::state_file_path(app_name);
+        match std::fs::read_to_string(&path) {
+            Ok(content) => match serde_json::from_str::<RunpodState>(&content) {
+                Ok(state) => Some(state),
+                Err(e) => {
+                    warn!(
+                        "Corrupted RunPod state file at {}: {}. Ignoring.",
+                        path.display(),
+                        e
+                    );
+                    None
+                }
+            },
+            Err(_) => None,
+        }
+    }
+
+    /// Remove state file from disk
+    fn remove_state(app_name: &str) {
+        let path = Self::state_file_path(app_name);
+        if path.exists() {
+            if let Err(e) = std::fs::remove_file(&path) {
+                warn!("Failed to remove state file {}: {}", path.display(), e);
+            } else {
+                debug!("Removed RunPod state file: {}", path.display());
+            }
+        }
+    }
+
+    /// Get the API key from the environment
+    fn get_api_key() -> Option<String> {
+        std::env::var("RUNPOD_API_KEY")
+            .ok()
+            .filter(|k| !k.is_empty())
     }
 
     /// Check if RunPod API key is configured
     fn is_authenticated(&self) -> bool {
-        // Check env var first
-        if std::env::var("RUNPOD_API_KEY").is_ok() {
-            return true;
+        Self::get_api_key().is_some()
+    }
+
+    /// List all pods via REST API (GET /v1/pods)
+    async fn list_pods(&self) -> Result<Vec<RunpodPod>> {
+        let url = format!("{}/pods", self.api_base);
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .context("Failed to list RunPod pods")?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!("Failed to list pods (HTTP {}): {}", status, body));
         }
-        // Try listing pods to verify auth
-        let output = std::process::Command::new("runpodctl")
-            .args(["get", "pod"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-        output.map(|s| s.success()).unwrap_or(false)
+
+        let pods: Vec<RunpodPod> = resp
+            .json()
+            .await
+            .context("Failed to parse RunPod pod list")?;
+        Ok(pods)
     }
 
     /// Find a pod by name, return its ID
     async fn find_pod_by_name(&self, name: &str) -> Option<String> {
-        let output = Command::new("runpodctl")
-            .args(["get", "pod", "--json"])
-            .output()
-            .await
-            .ok()?;
-
-        if !output.status.success() {
-            return None;
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let pods: Vec<RunpodPod> = serde_json::from_str(&stdout).ok()?;
-
+        let pods = self.list_pods().await.ok()?;
         pods.into_iter().find(|p| p.name == name).map(|p| p.id)
     }
 
     /// Find full pod details by name
     async fn find_pod_details(&self, name: &str) -> Result<Option<RunpodPod>> {
-        let output = Command::new("runpodctl")
-            .args(["get", "pod", "--json"])
-            .output()
-            .await
-            .context("Failed to query RunPod pods")?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow!("Failed to list pods: {}", stderr));
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let pods: Vec<RunpodPod> =
-            serde_json::from_str(&stdout).context("Failed to parse RunPod pod list")?;
-
+        let pods = self.list_pods().await?;
         Ok(pods.into_iter().find(|p| p.name == name))
     }
 
-    /// Remove a pod by ID
-    async fn remove_pod(&self, pod_id: &str) -> Result<()> {
-        let output = Command::new("runpodctl")
-            .args(["remove", "pod", pod_id])
-            .output()
+    /// Get a single pod by ID via REST API (GET /v1/pods/{podId})
+    async fn get_pod(&self, pod_id: &str) -> Result<RunpodPod> {
+        let url = format!("{}/pods/{}", self.api_base, pod_id);
+        let resp = self
+            .client
+            .get(&url)
+            .send()
             .await
-            .context("Failed to remove RunPod pod")?;
+            .context("Failed to get RunPod pod")?;
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow!("Failed to remove pod {}: {}", pod_id, stderr));
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "Failed to get pod {} (HTTP {}): {}",
+                pod_id,
+                status,
+                body
+            ));
+        }
+
+        let pod: RunpodPod = resp
+            .json()
+            .await
+            .context("Failed to parse RunPod pod details")?;
+        Ok(pod)
+    }
+
+    /// Create a pod via REST API (POST /v1/pods)
+    async fn create_pod_api(&self, request: &CreatePodRequest) -> Result<RunpodPod> {
+        let url = format!("{}/pods", self.api_base);
+        let resp = self
+            .client
+            .post(&url)
+            .json(request)
+            .send()
+            .await
+            .context("Failed to create RunPod pod")?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "Failed to create RunPod pod (HTTP {}): {}",
+                status,
+                body
+            ));
+        }
+
+        let pod: RunpodPod = resp
+            .json()
+            .await
+            .context("Failed to parse RunPod create pod response")?;
+        Ok(pod)
+    }
+
+    /// Terminate (delete) a pod by ID via REST API (DELETE /v1/pods/{podId})
+    async fn terminate_pod(&self, pod_id: &str) -> Result<()> {
+        let url = format!("{}/pods/{}", self.api_base, pod_id);
+        let resp = self
+            .client
+            .delete(&url)
+            .send()
+            .await
+            .context("Failed to terminate RunPod pod")?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "Failed to terminate pod {} (HTTP {}): {}",
+                pod_id,
+                status,
+                body
+            ));
         }
         Ok(())
     }
 
-    /// Parse pod ID from create output
-    fn parse_pod_id_from_output(&self, output: &str) -> Result<String> {
-        let v: serde_json::Value =
-            serde_json::from_str(output).context("Failed to parse runpodctl create output")?;
+    /// Start a pod by ID via REST API (POST /v1/pods/{podId}/start)
+    async fn start_pod_api(&self, pod_id: &str) -> Result<()> {
+        let url = format!("{}/pods/{}/start", self.api_base, pod_id);
+        let resp = self
+            .client
+            .post(&url)
+            .send()
+            .await
+            .context("Failed to start RunPod pod")?;
 
-        v.get("id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-            .ok_or_else(|| anyhow!("No pod ID found in create output"))
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "Failed to start pod {} (HTTP {}): {}",
+                pod_id,
+                status,
+                body
+            ));
+        }
+        Ok(())
     }
 
-    /// Wait for pod to reach RUNNING state
+    /// Stop a pod by ID via REST API (POST /v1/pods/{podId}/stop)
+    async fn stop_pod_api(&self, pod_id: &str) -> Result<()> {
+        let url = format!("{}/pods/{}/stop", self.api_base, pod_id);
+        let resp = self
+            .client
+            .post(&url)
+            .send()
+            .await
+            .context("Failed to stop RunPod pod")?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "Failed to stop pod {} (HTTP {}): {}",
+                pod_id,
+                status,
+                body
+            ));
+        }
+        Ok(())
+    }
+
+    /// Wait for pod to reach RUNNING state by polling the REST API
     async fn wait_for_running(&self, pod_id: &str, timeout_secs: u64) -> Result<()> {
         let start = std::time::Instant::now();
         let timeout = std::time::Duration::from_secs(timeout_secs);
@@ -133,17 +322,14 @@ impl RunpodProvider {
                 ));
             }
 
-            let output = Command::new("runpodctl")
-                .args(["get", "pod", pod_id, "--json"])
-                .output()
-                .await?;
-
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                if let Ok(pod) = serde_json::from_str::<RunpodPod>(&stdout) {
-                    if pod.desired_status == "RUNNING" {
-                        return Ok(());
-                    }
+            if let Ok(pod) = self.get_pod(pod_id).await {
+                let status_str = pod
+                    .status
+                    .as_deref()
+                    .or(pod.desired_status.as_deref())
+                    .unwrap_or("");
+                if status_str == "RUNNING" {
+                    return Ok(());
                 }
             }
 
@@ -156,12 +342,10 @@ impl RunpodProvider {
         let file = config.inner();
         let runpod = file.providers.runpod.as_ref();
 
-        // Memory in MB
         let memory_raw = file.deployment.resources.memory.as_deref().unwrap_or("2GB");
         let memory_mb = parse_memory_to_mb(memory_raw).unwrap_or(2048);
         let cpus = file.deployment.resources.cpus.unwrap_or(2);
 
-        // GPU configuration
         let gpu_count = file
             .deployment
             .resources
@@ -170,7 +354,6 @@ impl RunpodProvider {
             .map(|g| if g.enabled { g.count.max(1) } else { 0 })
             .unwrap_or(0);
 
-        // GPU type: prefer explicit gpuTypeId, then derive from tier
         let gpu_type = runpod
             .and_then(|r| r.gpu_type_id.clone())
             .unwrap_or_else(|| {
@@ -183,7 +366,6 @@ impl RunpodProvider {
                     .unwrap_or_else(|| "NVIDIA RTX A4000".to_string())
             });
 
-        // Volume size
         let volume_size_gb = file
             .deployment
             .volumes
@@ -199,15 +381,81 @@ impl RunpodProvider {
             container_disk_gb: runpod.map(|r| r.container_disk_gb).unwrap_or(20),
             volume_size_gb,
             cloud_type: runpod
-                .map(|r| r.cloud_type.clone())
+                .map(|r| format!("{:?}", r.cloud_type))
                 .unwrap_or_else(|| "COMMUNITY".to_string()),
             region: runpod.and_then(|r| r.region.clone()),
-            expose_ports: runpod.map(|r| r.expose_ports.clone()).unwrap_or_default(),
+            expose_ports: runpod
+                .map(|r| r.expose_ports.iter().map(|p| p.to_string()).collect())
+                .unwrap_or_default(),
             spot_bid: runpod.and_then(|r| r.spot_bid),
             cpus,
             memory_mb,
         }
     }
+
+    /// Resolve secrets from config and return as KEY=VALUE pairs for env injection
+    async fn resolve_secrets(
+        &self,
+        config: &SindriConfig,
+        custom_env_file: Option<PathBuf>,
+    ) -> Result<HashMap<String, String>> {
+        let secrets = config.secrets();
+
+        if secrets.is_empty() {
+            debug!("No secrets configured, skipping secrets resolution");
+            return Ok(HashMap::new());
+        }
+
+        info!("Resolving {} secrets...", secrets.len());
+
+        let config_dir = config
+            .config_path
+            .parent()
+            .map(|p| p.to_path_buf().into())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let context = ResolutionContext::new(config_dir).with_custom_env_file(custom_env_file);
+
+        let resolver = SecretResolver::new(context);
+        let resolved = resolver.resolve_all(secrets).await?;
+
+        let mut env_vars = HashMap::new();
+        for (name, secret) in &resolved {
+            if let Some(value) = secret.value.as_string() {
+                env_vars.insert(name.clone(), value.to_string());
+            } else {
+                warn!(
+                    "RunPod provider currently only supports environment variable secrets. \
+                     File secret '{}' will be skipped.",
+                    name
+                );
+            }
+        }
+
+        info!("Resolved {} environment variable secrets", env_vars.len());
+        Ok(env_vars)
+    }
+}
+
+/// Build an HTTP client with the RunPod API key from the environment.
+fn build_http_client() -> Result<reqwest::Client> {
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+
+    if let Some(api_key) = RunpodProvider::get_api_key() {
+        let auth_value = format!("Bearer {}", api_key);
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&auth_value)
+                .context("Invalid RUNPOD_API_KEY value for HTTP header")?,
+        );
+    }
+
+    reqwest::Client::builder()
+        .default_headers(headers)
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .context("Failed to build HTTP client for RunPod API")
 }
 
 /// RunPod deployment configuration extracted from SindriConfig
@@ -228,41 +476,111 @@ struct RunpodDeployConfig<'a> {
     memory_mb: u32,
 }
 
-/// RunPod pod response from `runpodctl get pod --json`
+/// Request body for POST /v1/pods (RunPod REST API)
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePodRequest {
+    pub name: String,
+    pub image_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gpu_type_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gpu_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compute_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cloud_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub container_disk_in_gb: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume_in_gb: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume_mount_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ports: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_center_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interruptible: Option<bool>,
+}
+
+/// RunPod pod response from the REST API
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RunpodPod {
-    id: String,
-    name: String,
-    desired_status: String,
-    image_name: Option<String>,
+pub struct RunpodPod {
+    pub id: String,
     #[serde(default)]
-    gpu_type: String,
+    pub name: String,
     #[serde(default)]
-    gpu_count: u32,
+    pub status: Option<String>,
     #[serde(default)]
-    cloud_type: String,
+    pub desired_status: Option<String>,
+    #[serde(default, alias = "image")]
+    pub image_name: Option<String>,
     #[serde(default)]
-    public_ip: Option<String>,
+    pub gpu: Option<RunpodGpuInfo>,
     #[serde(default)]
-    machine_id: Option<String>,
+    pub public_ip: Option<String>,
     #[serde(default)]
-    ports: Vec<u16>,
+    pub machine: Option<RunpodMachineInfo>,
     #[serde(default)]
-    runtime: Option<RunpodRuntime>,
+    pub port_mappings: Option<Vec<RunpodPortMapping>>,
+    #[serde(default)]
+    pub volume_in_gb: Option<u32>,
+    #[serde(default)]
+    pub container_disk_in_gb: Option<u32>,
+    #[serde(default)]
+    pub cost_per_hr: Option<f64>,
+    #[serde(default)]
+    pub runtime: Option<RunpodRuntime>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RunpodRuntime {
-    cpu_percent: Option<f64>,
-    memory_bytes: Option<u64>,
-    memory_limit: Option<u64>,
-    disk_bytes: Option<u64>,
-    disk_limit: Option<u64>,
+pub struct RunpodGpuInfo {
+    #[serde(default, alias = "type")]
+    pub gpu_type: Option<String>,
+    #[serde(default)]
+    pub count: Option<u32>,
 }
 
-/// Map GPU tier to RunPod GPU type identifier
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunpodMachineInfo {
+    #[serde(default)]
+    pub id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunpodPortMapping {
+    #[serde(default)]
+    pub private_port: Option<u16>,
+    #[serde(default)]
+    pub public_port: Option<u16>,
+    #[serde(default)]
+    pub ip: Option<String>,
+    #[serde(default, alias = "type")]
+    pub protocol: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunpodRuntime {
+    #[serde(default)]
+    pub cpu_percent: Option<f64>,
+    #[serde(default)]
+    pub memory_bytes: Option<u64>,
+    #[serde(default)]
+    pub memory_limit: Option<u64>,
+    #[serde(default)]
+    pub disk_bytes: Option<u64>,
+    #[serde(default)]
+    pub disk_limit: Option<u64>,
+}
+
 fn runpod_gpu_from_tier(tier: &sindri_core::types::GpuTier) -> String {
     use sindri_core::types::GpuTier;
     match tier {
@@ -273,7 +591,6 @@ fn runpod_gpu_from_tier(tier: &sindri_core::types::GpuTier) -> String {
     }
 }
 
-/// Parse memory string (e.g., "4GB", "512MB") to megabytes
 fn parse_memory_to_mb(memory: &str) -> Option<u32> {
     let memory = memory.trim();
     if let Some(gb) = memory.strip_suffix("GB") {
@@ -285,7 +602,6 @@ fn parse_memory_to_mb(memory: &str) -> Option<u32> {
     }
 }
 
-/// Parse size string to GB
 fn parse_size_to_gb(size: &str) -> Option<u32> {
     let size = size.trim();
     if let Some(gb) = size.strip_suffix("GB") {
@@ -297,7 +613,6 @@ fn parse_size_to_gb(size: &str) -> Option<u32> {
     }
 }
 
-/// Estimate hourly cost for a RunPod GPU type
 fn estimate_runpod_hourly_cost(gpu_type: &str, gpu_count: u32) -> f64 {
     let per_gpu = match gpu_type {
         t if t.contains("A4000") => 0.20,
@@ -320,28 +635,8 @@ impl Provider for RunpodProvider {
         let mut missing = Vec::new();
         let mut available = Vec::new();
 
-        // Check runpodctl CLI
-        if command_exists("runpodctl") {
-            let version = get_command_version("runpodctl", "version")
-                .unwrap_or_else(|_| "unknown".to_string());
-            available.push(Prerequisite {
-                name: "runpodctl".to_string(),
-                description: "RunPod CLI for pod management".to_string(),
-                install_hint: None,
-                version: Some(version),
-            });
-        } else {
-            missing.push(Prerequisite {
-                name: "runpodctl".to_string(),
-                description: "RunPod CLI for pod management".to_string(),
-                install_hint: Some(
-                    "Install from https://github.com/runpod/runpodctl/releases".to_string(),
-                ),
-                version: None,
-            });
-        }
-
-        // Check API key authentication
+        // RUNPOD_API_KEY environment variable
+        // No CLI tool installation required -- all operations use the REST API
         if self.is_authenticated() {
             available.push(Prerequisite {
                 name: "runpod-auth".to_string(),
@@ -354,9 +649,31 @@ impl Provider for RunpodProvider {
                 name: "runpod-auth".to_string(),
                 description: "RunPod API key not configured".to_string(),
                 install_hint: Some(
-                    "Run: runpodctl config --apiKey=YOUR_API_KEY\n\
-                     Or set RUNPOD_API_KEY environment variable"
+                    "Set the RUNPOD_API_KEY environment variable with your RunPod API key.\n\
+                     Get your key from https://www.runpod.io/console/user/settings"
                         .to_string(),
+                ),
+                version: None,
+            });
+        }
+
+        // Docker (needed for image builds when not using --skip-build)
+        if crate::utils::command_exists("docker") {
+            let version = crate::utils::get_command_version("docker", "--version")
+                .unwrap_or_else(|_| "unknown".to_string());
+            available.push(Prerequisite {
+                name: "docker".to_string(),
+                description: "Docker Engine (for image builds)".to_string(),
+                install_hint: None,
+                version: Some(version),
+            });
+        } else {
+            // Docker is optional -- only needed when building from source
+            available.push(Prerequisite {
+                name: "docker".to_string(),
+                description: "Docker not found (needed only for --skip-build=false)".to_string(),
+                install_hint: Some(
+                    "Install Docker: https://docs.docker.com/get-docker/".to_string(),
                 ),
                 version: None,
             });
@@ -372,7 +689,6 @@ impl Provider for RunpodProvider {
     async fn deploy(&self, config: &SindriConfig, opts: DeployOptions) -> Result<DeployResult> {
         let runpod_config = self.get_runpod_config(config);
 
-        // Handle dry run
         if opts.dry_run {
             let _plan = self.plan(config).await?;
             return Ok(DeployResult {
@@ -389,12 +705,11 @@ impl Provider for RunpodProvider {
             });
         }
 
-        // Check for existing pod
+        // Check for existing pod via REST API
         if let Some(existing_id) = self.find_pod_by_name(runpod_config.name).await {
             if opts.force {
-                info!("Force flag set, removing existing pod: {}", existing_id);
-                self.remove_pod(&existing_id).await?;
-                // Wait for cleanup
+                info!("Force flag set, terminating existing pod: {}", existing_id);
+                self.terminate_pod(&existing_id).await?;
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             } else {
                 return Err(anyhow!(
@@ -405,91 +720,92 @@ impl Provider for RunpodProvider {
             }
         }
 
-        // Resolve image
-        let image = config
-            .inner()
-            .deployment
-            .image
-            .clone()
-            .ok_or_else(|| anyhow!("No image configured for RunPod deployment"))?;
-
-        // Build runpodctl create command
-        info!("Creating RunPod pod: {}", runpod_config.name);
-        let mut cmd_args = vec![
-            "create".to_string(),
-            "pods".to_string(),
-            "--name".to_string(),
-            runpod_config.name.to_string(),
-            "--imageName".to_string(),
-            image.clone(),
-            "--containerDiskSize".to_string(),
-            runpod_config.container_disk_gb.to_string(),
-            "--volumeSize".to_string(),
-            runpod_config.volume_size_gb.to_string(),
-            "--volumeMountPath".to_string(),
-            "/workspace".to_string(),
-        ];
-
-        // GPU configuration
-        if runpod_config.gpu_count > 0 {
-            cmd_args.extend([
-                "--gpuType".to_string(),
-                runpod_config.gpu_type.clone(),
-                "--gpuCount".to_string(),
-                runpod_config.gpu_count.to_string(),
-            ]);
-        }
-
-        // Cloud type
-        cmd_args.extend(["--cloudType".to_string(), runpod_config.cloud_type.clone()]);
-
-        // Region
-        if let Some(ref region) = runpod_config.region {
-            cmd_args.extend(["--dataCenterId".to_string(), region.clone()]);
-        }
-
-        // Ports
-        if !runpod_config.expose_ports.is_empty() {
-            let ports_str = runpod_config.expose_ports.join(",");
-            cmd_args.extend(["--ports".to_string(), ports_str]);
-        }
-
-        // SSH
-        cmd_args.push("--startSSH".to_string());
-
-        debug!("Running: runpodctl {}", cmd_args.join(" "));
-
-        let output = Command::new("runpodctl")
-            .args(&cmd_args)
-            .output()
+        // Resolve image: build and push if necessary, or use pre-built
+        info!("Resolving deployment image...");
+        let image = crate::utils::resolve_and_build_image(config, opts.skip_build, opts.force)
             .await
-            .context("Failed to execute runpodctl create")?;
+            .context("Failed to resolve deployment image for RunPod")?;
+        info!("Using image: {}", image);
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow!("Failed to create RunPod pod: {}", stderr));
+        // Build REST API create request
+        info!("Creating RunPod pod via REST API: {}", runpod_config.name);
+
+        let mut ports = vec!["22/tcp".to_string()];
+        for port in &runpod_config.expose_ports {
+            ports.push(format!("{}/http", port));
         }
 
-        // Parse pod ID
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let pod_id = self.parse_pod_id_from_output(&stdout)?;
+        // Resolve and inject secrets as environment variables
+        let secret_env_vars = self.resolve_secrets(config, None).await?;
+        let env = if secret_env_vars.is_empty() {
+            None
+        } else {
+            Some(secret_env_vars.clone())
+        };
 
-        // Wait for running
+        let request = CreatePodRequest {
+            name: runpod_config.name.to_string(),
+            image_name: image.clone(),
+            gpu_type_ids: if runpod_config.gpu_count > 0 {
+                Some(vec![runpod_config.gpu_type.clone()])
+            } else {
+                None
+            },
+            gpu_count: if runpod_config.gpu_count > 0 {
+                Some(runpod_config.gpu_count)
+            } else {
+                None
+            },
+            compute_type: Some(if runpod_config.gpu_count > 0 {
+                "GPU".to_string()
+            } else {
+                "CPU".to_string()
+            }),
+            cloud_type: Some(runpod_config.cloud_type.clone()),
+            container_disk_in_gb: Some(runpod_config.container_disk_gb),
+            volume_in_gb: Some(runpod_config.volume_size_gb),
+            volume_mount_path: Some("/workspace".to_string()),
+            ports: Some(ports),
+            data_center_ids: runpod_config.region.as_ref().map(|r| vec![r.clone()]),
+            env,
+            interruptible: runpod_config.spot_bid.map(|bid| bid > 0.0),
+        };
+
+        debug!("RunPod create request: {:?}", request);
+
+        let pod = self.create_pod_api(&request).await?;
+        let pod_id = pod.id.clone();
+
         if opts.wait {
             let timeout = opts.timeout.unwrap_or(300);
             self.wait_for_running(&pod_id, timeout).await?;
         }
 
-        // Build connection info
+        // Save state
+        let state = RunpodState {
+            pod_id: pod_id.clone(),
+            app_name: runpod_config.name.to_string(),
+            gpu_type: runpod_config.gpu_type.clone(),
+            gpu_count: runpod_config.gpu_count,
+            image: Some(image.clone()),
+            created_at: chrono::Utc::now().to_rfc3339(),
+        };
+        if let Err(e) = Self::save_state(&state) {
+            warn!("Failed to save deployment state: {}. Deployment succeeded but state tracking may be unavailable.", e);
+        }
+
         let connection = ConnectionInfo {
-            ssh_command: Some(format!("runpodctl connect {}", pod_id)),
+            ssh_command: Some(format!(
+                "ssh root@ssh.runpod.io -i ~/.ssh/id_ed25519 (pod: {})",
+                pod_id
+            )),
             http_url: runpod_config
                 .expose_ports
                 .first()
                 .map(|port| format!("https://{}-{}.proxy.runpod.net", pod_id, port)),
             https_url: None,
             instructions: Some(format!(
-                "SSH: runpodctl connect {}\nWeb: https://www.runpod.io/console/pods/{}",
+                "SSH: ssh root@ssh.runpod.io (pod: {})\nWeb: https://www.runpod.io/console/pods/{}",
                 pod_id, pod_id
             )),
         };
@@ -500,10 +816,19 @@ impl Provider for RunpodProvider {
             provider: "runpod".to_string(),
             instance_id: Some(pod_id),
             connection: Some(connection),
-            messages: vec![format!(
-                "Pod deployed with {} GPU(s)",
-                runpod_config.gpu_count
-            )],
+            messages: {
+                let mut msgs = vec![format!(
+                    "Pod deployed with {} GPU(s)",
+                    runpod_config.gpu_count
+                )];
+                if !secret_env_vars.is_empty() {
+                    msgs.push(format!(
+                        "Injected {} secret(s) as environment variables",
+                        secret_env_vars.len()
+                    ));
+                }
+                msgs
+            },
             warnings: vec![],
         })
     }
@@ -512,21 +837,24 @@ impl Provider for RunpodProvider {
         let file = config.inner();
         let name = &file.name;
 
-        let pod_id = self
-            .find_pod_by_name(name)
-            .await
-            .ok_or_else(|| anyhow!("No RunPod pod found for '{}'. Deploy first.", name))?;
+        let pod_id = match self.find_pod_by_name(name).await {
+            Some(id) => id,
+            None => Self::load_state(name)
+                .map(|s| s.pod_id)
+                .ok_or_else(|| anyhow!("No RunPod pod found for '{}'. Deploy first.", name))?,
+        };
 
         info!("Connecting to RunPod pod: {}", pod_id);
 
-        let status = Command::new("runpodctl")
-            .args(["connect", &pod_id])
-            .stdin(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
+        // Use SSH proxy -- available on all RunPod pods
+        let status = tokio::process::Command::new("ssh")
+            .args(["root@ssh.runpod.io", "-i", "~/.ssh/id_ed25519"])
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit())
             .status()
             .await
-            .context("Failed to connect to RunPod pod")?;
+            .context("Failed to connect to RunPod pod via SSH")?;
 
         if !status.success() {
             return Err(anyhow!("SSH connection to pod {} failed", pod_id));
@@ -542,6 +870,28 @@ impl Provider for RunpodProvider {
         let pod = match self.find_pod_details(name).await? {
             Some(p) => p,
             None => {
+                // Fall back to saved state for basic info
+                if let Some(saved) = Self::load_state(name) {
+                    warn!(
+                        "Pod not found via API, returning saved state for '{}'",
+                        name
+                    );
+                    let mut details = HashMap::new();
+                    details.insert("gpu_type".to_string(), saved.gpu_type.clone());
+                    details.insert("gpu_count".to_string(), saved.gpu_count.to_string());
+                    details.insert("source".to_string(), "saved_state".to_string());
+                    return Ok(DeploymentStatus {
+                        name: name.to_string(),
+                        provider: "runpod".to_string(),
+                        state: DeploymentState::Unknown,
+                        instance_id: Some(saved.pod_id),
+                        image: saved.image,
+                        addresses: vec![],
+                        resources: None,
+                        timestamps: DeploymentTimestamps::default(),
+                        details,
+                    });
+                }
                 return Ok(DeploymentStatus {
                     name: name.to_string(),
                     provider: "runpod".to_string(),
@@ -556,7 +906,13 @@ impl Provider for RunpodProvider {
             }
         };
 
-        let state = match pod.desired_status.as_str() {
+        let status_str = pod
+            .status
+            .as_deref()
+            .or(pod.desired_status.as_deref())
+            .unwrap_or("UNKNOWN");
+
+        let state = match status_str {
             "RUNNING" => DeploymentState::Running,
             "EXITED" => DeploymentState::Stopped,
             "CREATED" => DeploymentState::Creating,
@@ -574,21 +930,32 @@ impl Provider for RunpodProvider {
             });
         }
 
-        for port in &pod.ports {
-            addresses.push(Address {
-                r#type: AddressType::Https,
-                value: format!("{}-{}.proxy.runpod.net", pod.id, port),
-                port: Some(*port),
-            });
+        if let Some(ref mappings) = pod.port_mappings {
+            for mapping in mappings {
+                if let Some(private_port) = mapping.private_port {
+                    addresses.push(Address {
+                        r#type: AddressType::Https,
+                        value: format!("{}-{}.proxy.runpod.net", pod.id, private_port),
+                        port: Some(private_port),
+                    });
+                }
+            }
         }
 
         let mut details = HashMap::new();
-        details.insert("gpu_type".to_string(), pod.gpu_type.clone());
-        details.insert("gpu_count".to_string(), pod.gpu_count.to_string());
-        if let Some(ref machine_id) = pod.machine_id {
-            details.insert("machine_id".to_string(), machine_id.clone());
+        if let Some(ref gpu) = pod.gpu {
+            if let Some(ref gpu_type) = gpu.gpu_type {
+                details.insert("gpu_type".to_string(), gpu_type.clone());
+            }
+            if let Some(count) = gpu.count {
+                details.insert("gpu_count".to_string(), count.to_string());
+            }
         }
-        details.insert("cloud_type".to_string(), pod.cloud_type.clone());
+        if let Some(ref machine) = pod.machine {
+            if let Some(ref machine_id) = machine.id {
+                details.insert("machine_id".to_string(), machine_id.clone());
+            }
+        }
 
         Ok(DeploymentStatus {
             name: name.to_string(),
@@ -613,13 +980,16 @@ impl Provider for RunpodProvider {
         let file = config.inner();
         let name = &file.name;
 
-        let pod_id = self
-            .find_pod_by_name(name)
-            .await
-            .ok_or_else(|| anyhow!("No RunPod pod found for '{}'", name))?;
+        let pod_id = match self.find_pod_by_name(name).await {
+            Some(id) => id,
+            None => Self::load_state(name)
+                .map(|s| s.pod_id)
+                .ok_or_else(|| anyhow!("No RunPod pod found for '{}'", name))?,
+        };
 
         info!("Destroying RunPod pod: {} ({})", name, pod_id);
-        self.remove_pod(&pod_id).await?;
+        self.terminate_pod(&pod_id).await?;
+        Self::remove_state(name);
         info!("Pod {} destroyed", pod_id);
 
         Ok(())
@@ -655,14 +1025,38 @@ impl Provider for RunpodProvider {
             ]),
         }];
 
-        let actions = vec![PlannedAction {
+        let mut actions = Vec::new();
+
+        let file = config.inner();
+        let needs_build = file
+            .deployment
+            .build_from_source
+            .as_ref()
+            .map(|b| b.enabled)
+            .unwrap_or(false)
+            || file.deployment.image.is_none();
+
+        if needs_build {
+            actions.push(PlannedAction {
+                action: ActionType::Create,
+                resource: "docker-image".to_string(),
+                description: "Build Docker image from Sindri source".to_string(),
+            });
+            actions.push(PlannedAction {
+                action: ActionType::Create,
+                resource: "registry-push".to_string(),
+                description: "Push Docker image to container registry".to_string(),
+            });
+        }
+
+        actions.push(PlannedAction {
             action: ActionType::Create,
             resource: "runpod-pod".to_string(),
             description: format!(
                 "Create RunPod pod '{}' with {} x {}",
                 runpod_config.name, runpod_config.gpu_count, runpod_config.gpu_type
             ),
-        }];
+        });
 
         let estimated_cost = Some(CostEstimate {
             hourly: Some(estimate_runpod_hourly_cost(
@@ -687,48 +1081,32 @@ impl Provider for RunpodProvider {
 
     async fn start(&self, config: &SindriConfig) -> Result<()> {
         let file = config.inner();
-        let pod_id = self
-            .find_pod_by_name(&file.name)
-            .await
-            .ok_or_else(|| anyhow!("No RunPod pod found for '{}'", file.name))?;
+        let name = &file.name;
+
+        let pod_id = match self.find_pod_by_name(name).await {
+            Some(id) => id,
+            None => Self::load_state(name)
+                .map(|s| s.pod_id)
+                .ok_or_else(|| anyhow!("No RunPod pod found for '{}'", name))?,
+        };
 
         info!("Starting RunPod pod: {}", pod_id);
-
-        let output = Command::new("runpodctl")
-            .args(["start", "pod", &pod_id])
-            .output()
-            .await
-            .context("Failed to start RunPod pod")?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow!("Failed to start pod: {}", stderr));
-        }
-
-        Ok(())
+        self.start_pod_api(&pod_id).await
     }
 
     async fn stop(&self, config: &SindriConfig) -> Result<()> {
         let file = config.inner();
-        let pod_id = self
-            .find_pod_by_name(&file.name)
-            .await
-            .ok_or_else(|| anyhow!("No RunPod pod found for '{}'", file.name))?;
+        let name = &file.name;
+
+        let pod_id = match self.find_pod_by_name(name).await {
+            Some(id) => id,
+            None => Self::load_state(name)
+                .map(|s| s.pod_id)
+                .ok_or_else(|| anyhow!("No RunPod pod found for '{}'", name))?,
+        };
 
         info!("Stopping RunPod pod: {}", pod_id);
-
-        let output = Command::new("runpodctl")
-            .args(["stop", "pod", &pod_id])
-            .output()
-            .await
-            .context("Failed to stop RunPod pod")?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(anyhow!("Failed to stop pod: {}", stderr));
-        }
-
-        Ok(())
+        self.stop_pod_api(&pod_id).await
     }
 
     fn supports_gpu(&self) -> bool {
@@ -777,18 +1155,114 @@ mod tests {
     }
 
     #[test]
+    fn test_check_prerequisites_requires_only_api_key() {
+        let provider = RunpodProvider::new().unwrap();
+        let status = provider.check_prerequisites().unwrap();
+        // Should NOT require any CLI tool -- only RUNPOD_API_KEY
+        for missing in &status.missing {
+            assert_ne!(
+                missing.name, "runpodctl",
+                "Should not require runpodctl CLI"
+            );
+        }
+    }
+
+    #[test]
+    fn test_create_pod_request_serialization() {
+        let request = CreatePodRequest {
+            name: "test-pod".to_string(),
+            image_name: "ghcr.io/org/sindri:latest".to_string(),
+            gpu_type_ids: Some(vec!["NVIDIA RTX A4000".to_string()]),
+            gpu_count: Some(1),
+            compute_type: Some("GPU".to_string()),
+            cloud_type: Some("COMMUNITY".to_string()),
+            container_disk_in_gb: Some(20),
+            volume_in_gb: Some(50),
+            volume_mount_path: Some("/workspace".to_string()),
+            ports: Some(vec!["22/tcp".to_string(), "8080/http".to_string()]),
+            data_center_ids: None,
+            env: None,
+            interruptible: None,
+        };
+
+        let json = serde_json::to_value(&request).unwrap();
+        assert_eq!(json["name"], "test-pod");
+        assert_eq!(json["imageName"], "ghcr.io/org/sindri:latest");
+        assert_eq!(json["gpuTypeIds"][0], "NVIDIA RTX A4000");
+        assert_eq!(json["gpuCount"], 1);
+        assert_eq!(json["computeType"], "GPU");
+        assert_eq!(json["cloudType"], "COMMUNITY");
+        assert_eq!(json["containerDiskInGb"], 20);
+        assert_eq!(json["volumeInGb"], 50);
+        assert_eq!(json["volumeMountPath"], "/workspace");
+    }
+
+    #[test]
+    fn test_create_pod_request_cpu_only_omits_gpu() {
+        let request = CreatePodRequest {
+            name: "cpu-pod".to_string(),
+            image_name: "sindri:latest".to_string(),
+            gpu_type_ids: None,
+            gpu_count: None,
+            compute_type: Some("CPU".to_string()),
+            cloud_type: Some("COMMUNITY".to_string()),
+            container_disk_in_gb: Some(20),
+            volume_in_gb: None,
+            volume_mount_path: None,
+            ports: None,
+            data_center_ids: None,
+            env: None,
+            interruptible: None,
+        };
+
+        let json = serde_json::to_value(&request).unwrap();
+        assert_eq!(json["computeType"], "CPU");
+        assert!(json.get("gpuTypeIds").is_none());
+        assert!(json.get("gpuCount").is_none());
+    }
+
+    #[test]
+    fn test_create_pod_request_with_env_vars() {
+        let mut env = HashMap::new();
+        env.insert("DB_PASSWORD".to_string(), "secret123".to_string());
+        env.insert("API_KEY".to_string(), "key456".to_string());
+
+        let request = CreatePodRequest {
+            name: "env-pod".to_string(),
+            image_name: "sindri:latest".to_string(),
+            gpu_type_ids: None,
+            gpu_count: None,
+            compute_type: None,
+            cloud_type: None,
+            container_disk_in_gb: None,
+            volume_in_gb: None,
+            volume_mount_path: None,
+            ports: None,
+            data_center_ids: None,
+            env: Some(env),
+            interruptible: None,
+        };
+
+        let json = serde_json::to_value(&request).unwrap();
+        assert_eq!(json["env"]["DB_PASSWORD"], "secret123");
+        assert_eq!(json["env"]["API_KEY"], "key456");
+    }
+
+    #[test]
     fn test_pod_response_deserialization() {
         let json = r#"{
             "id": "abc123",
             "name": "my-pod",
+            "status": "RUNNING",
             "desiredStatus": "RUNNING",
-            "imageName": "ghcr.io/org/sindri:latest",
-            "gpuType": "NVIDIA RTX A4000",
-            "gpuCount": 1,
-            "cloudType": "COMMUNITY",
+            "image": "ghcr.io/org/sindri:latest",
+            "gpu": { "type": "NVIDIA RTX A4000", "count": 1 },
             "publicIp": "1.2.3.4",
-            "machineId": "m-xyz",
-            "ports": [8080],
+            "machine": { "id": "m-xyz" },
+            "portMappings": [{ "privatePort": 8080, "publicPort": 8080, "type": "http" }],
+            "volumeInGb": 50,
+            "containerDiskInGb": 20,
+            "costPerHr": 0.20,
             "runtime": {
                 "cpuPercent": 25.0,
                 "memoryBytes": 2147483648,
@@ -801,8 +1275,32 @@ mod tests {
         let pod: RunpodPod = serde_json::from_str(json).unwrap();
         assert_eq!(pod.id, "abc123");
         assert_eq!(pod.name, "my-pod");
-        assert_eq!(pod.desired_status, "RUNNING");
-        assert_eq!(pod.gpu_count, 1);
+        assert_eq!(pod.status.as_deref(), Some("RUNNING"));
+        assert!(pod.gpu.is_some());
+        assert!(pod.runtime.is_some());
+    }
+
+    #[test]
+    fn test_pod_minimal_response_deserialization() {
+        let json = r#"{ "id": "min-001", "name": "minimal-pod" }"#;
+
+        let pod: RunpodPod = serde_json::from_str(json).unwrap();
+        assert_eq!(pod.id, "min-001");
+        assert!(pod.status.is_none());
+        assert!(pod.gpu.is_none());
+    }
+
+    #[test]
+    fn test_pod_list_deserialization() {
+        let json = r#"[
+            { "id": "p1", "name": "pod-one", "status": "RUNNING" },
+            { "id": "p2", "name": "pod-two", "status": "EXITED" }
+        ]"#;
+
+        let pods: Vec<RunpodPod> = serde_json::from_str(json).unwrap();
+        assert_eq!(pods.len(), 2);
+        assert_eq!(pods[0].status.as_deref(), Some("RUNNING"));
+        assert_eq!(pods[1].status.as_deref(), Some("EXITED"));
     }
 
     #[test]
@@ -836,5 +1334,38 @@ mod tests {
 
         let cost_2 = estimate_runpod_hourly_cost("NVIDIA A100 80GB PCIe", 2);
         assert!(cost_2 > cost);
+    }
+
+    #[test]
+    fn test_state_serialization_roundtrip() {
+        let state = RunpodState {
+            pod_id: "pod-test-123".to_string(),
+            app_name: "my-app".to_string(),
+            gpu_type: "NVIDIA RTX A4000".to_string(),
+            gpu_count: 1,
+            image: Some("sindri:latest".to_string()),
+            created_at: "2026-02-16T10:00:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&state).unwrap();
+        let deserialized: RunpodState = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.pod_id, "pod-test-123");
+        assert_eq!(deserialized.app_name, "my-app");
+    }
+
+    #[test]
+    fn test_state_file_path() {
+        let path = RunpodProvider::state_file_path("myapp");
+        let path_str = path.to_string_lossy();
+        assert!(path_str.contains(".sindri"));
+        assert!(path_str.contains("state"));
+        assert!(path_str.ends_with("runpod-myapp.json"));
+    }
+
+    #[test]
+    fn test_load_state_missing_file() {
+        // Loading state for a non-existent app should return None
+        let result = RunpodProvider::load_state("nonexistent-app-xyz-12345");
+        assert!(result.is_none());
     }
 }

@@ -209,6 +209,260 @@ pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> Resul
     Ok(())
 }
 
+/// Configuration for building and pushing a Docker image
+pub struct ImageBuildConfig<'a> {
+    /// Image name including registry path (e.g., "ghcr.io/org/sindri")
+    pub image_name: &'a str,
+    /// Image tag (e.g., "latest", "v3.0.0-a1b2c3d")
+    pub image_tag: &'a str,
+    /// Whether to skip Docker layer cache
+    pub no_cache: bool,
+}
+
+/// Result of a successful image build and push
+pub struct ImageBuildResult {
+    /// Full image reference that was pushed (e.g., "ghcr.io/org/sindri:v3.0.0-a1b2c3d")
+    pub image_ref: String,
+}
+
+/// Build a Sindri Docker image from the official build context.
+///
+/// Fetches the Sindri repository (if not cached), selects the appropriate Dockerfile,
+/// and builds a Docker image tagged with the CLI version and git SHA.
+///
+/// # Arguments
+/// * `config` - Build configuration specifying image name, tag, and cache behavior
+/// * `git_ref` - Optional git ref to fetch (defaults to CLI version tag)
+///
+/// # Returns
+/// The full image reference (name:tag) of the built image
+pub async fn build_sindri_image(
+    config: &ImageBuildConfig<'_>,
+    git_ref: Option<&str>,
+) -> Result<ImageBuildResult> {
+    use std::path::PathBuf;
+    use std::process::Stdio;
+    use tracing::info;
+
+    // Check Docker is available
+    if !command_exists("docker") {
+        return Err(anyhow!(
+            "Docker is required to build images. Install from https://docs.docker.com/get-docker/"
+        ));
+    }
+
+    // Fetch build context
+    let cache_dir = dirs::cache_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("sindri")
+        .join("repos");
+
+    let (v3_dir, git_ref_used) = fetch_sindri_build_context(&cache_dir, git_ref).await?;
+    let repo_dir = v3_dir.parent().unwrap();
+
+    let git_sha = get_git_sha(repo_dir)
+        .await
+        .unwrap_or_else(|_| "unknown".to_string());
+
+    let image_ref = format!("{}:{}", config.image_name, config.image_tag);
+    let dockerfile = v3_dir.join("Dockerfile");
+
+    info!(
+        "Building Docker image {} from {} (ref: {}, commit: {})",
+        image_ref,
+        v3_dir.display(),
+        git_ref_used,
+        git_sha
+    );
+
+    let sindri_version = git_ref.unwrap_or(&git_ref_used).to_string();
+
+    let mut args = vec!["build", "-t", &image_ref, "-f"];
+    let dockerfile_str = dockerfile.to_string_lossy();
+    args.push(&dockerfile_str);
+
+    if config.no_cache {
+        args.push("--no-cache");
+    }
+
+    args.push("--build-arg");
+    let sindri_version_arg = format!("SINDRI_VERSION={}", sindri_version);
+    args.push(&sindri_version_arg);
+
+    let context_str = repo_dir.to_string_lossy();
+    args.push(&context_str);
+
+    info!("Building Docker image - this may take several minutes...");
+    let status = tokio::process::Command::new("docker")
+        .args(&args)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+        .await
+        .map_err(|e| anyhow!("Failed to execute docker build: {}", e))?;
+
+    if !status.success() {
+        return Err(anyhow!(
+            "Docker build failed. Check the build output above for details."
+        ));
+    }
+
+    info!("Docker image built successfully: {}", image_ref);
+    Ok(ImageBuildResult { image_ref })
+}
+
+/// Push a Docker image to a registry.
+///
+/// Assumes `docker login` has already been performed for the target registry.
+/// Handles common registry authentication patterns (GHCR, Docker Hub, etc.).
+///
+/// # Arguments
+/// * `image_ref` - Full image reference to push (e.g., "ghcr.io/org/sindri:v3.0.0")
+///
+/// # Returns
+/// Ok(()) on success, error with details on failure
+pub async fn push_image_to_registry(image_ref: &str) -> Result<()> {
+    use std::process::Stdio;
+    use tracing::info;
+
+    if !command_exists("docker") {
+        return Err(anyhow!("Docker is required to push images"));
+    }
+
+    info!("Pushing image to registry: {}", image_ref);
+
+    let status = tokio::process::Command::new("docker")
+        .args(["push", image_ref])
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+        .await
+        .map_err(|e| anyhow!("Failed to execute docker push: {}", e))?;
+
+    if !status.success() {
+        return Err(anyhow!(
+            "Failed to push image {}. Ensure you are logged in to the registry with 'docker login'.",
+            image_ref
+        ));
+    }
+
+    info!("Image pushed successfully: {}", image_ref);
+    Ok(())
+}
+
+/// Check if a Docker image exists locally.
+///
+/// # Arguments
+/// * `image_ref` - Full image reference to check (e.g., "ghcr.io/org/sindri:latest")
+pub async fn image_exists_locally(image_ref: &str) -> bool {
+    let output = tokio::process::Command::new("docker")
+        .args(["image", "inspect", image_ref])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .await;
+
+    output.map(|s| s.success()).unwrap_or(false)
+}
+
+/// Resolve the image to use for deployment, building and pushing if necessary.
+///
+/// This is the main entry point for providers that need Docker image build+push.
+/// It handles the full workflow:
+/// 1. If skip_build is true, use the image from config as-is
+/// 2. If build_from_source is enabled, build from Sindri repository
+/// 3. If an image is configured, use it directly
+/// 4. Otherwise, build from source and push to registry
+///
+/// # Arguments
+/// * `config` - Sindri configuration
+/// * `skip_build` - Whether to skip the build step
+/// * `force` - Whether to force rebuild (no cache)
+///
+/// # Returns
+/// The image reference to use for deployment
+pub async fn resolve_and_build_image(
+    config: &sindri_core::config::SindriConfig,
+    skip_build: bool,
+    force: bool,
+) -> Result<String> {
+    use tracing::{debug, info};
+
+    let file = config.inner();
+
+    // If skip_build, use the configured image as-is
+    if skip_build {
+        let image = file.deployment.image.clone().ok_or_else(|| {
+            anyhow!(
+                "No image configured. Cannot use --skip-build without specifying \
+                     'deployment.image' in sindri.yaml"
+            )
+        })?;
+        info!("Using pre-built image (skip-build): {}", image);
+        return Ok(image);
+    }
+
+    // Check if build_from_source is explicitly enabled
+    let should_build = file
+        .deployment
+        .build_from_source
+        .as_ref()
+        .map(|b| b.enabled)
+        .unwrap_or(false);
+
+    // If there's a configured image and build_from_source is not enabled, use it directly
+    if !should_build {
+        if let Some(ref image) = file.deployment.image {
+            debug!("Using configured image: {}", image);
+            return Ok(image.clone());
+        }
+
+        // Try resolve_image for image_config support
+        if file.deployment.image_config.is_some() {
+            let resolved = config
+                .resolve_image(None)
+                .await
+                .map_err(|e| anyhow!("Failed to resolve image: {}", e))?;
+            debug!("Using resolved image: {}", resolved);
+            return Ok(resolved);
+        }
+    }
+
+    // Build from source
+    let git_ref = file
+        .deployment
+        .build_from_source
+        .as_ref()
+        .and_then(|b| b.git_ref.as_deref());
+
+    // Determine image name from config or use default
+    let image_name = file
+        .deployment
+        .image
+        .as_deref()
+        .and_then(|img| img.rsplit_once(':').map(|(name, _)| name))
+        .unwrap_or("sindri");
+
+    let cli_version = env!("CARGO_PKG_VERSION");
+    let image_tag = format!("{}-build", cli_version);
+
+    let build_config = ImageBuildConfig {
+        image_name,
+        image_tag: &image_tag,
+        no_cache: force,
+    };
+
+    let result = build_sindri_image(&build_config, git_ref).await?;
+
+    // If the image name contains a registry prefix, push it
+    if image_name.contains('/') {
+        info!("Pushing built image to registry...");
+        push_image_to_registry(&result.image_ref).await?;
+    }
+
+    Ok(result.image_ref)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

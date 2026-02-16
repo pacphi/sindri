@@ -23,6 +23,7 @@ which = "8.0"
 chrono = { workspace = true }
 dirs = { workspace = true }
 base64 = "0.22"
+reqwest = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
@@ -33,3 +34,4 @@ serde_json = { workspace = true }
 camino = { workspace = true }
 sindri-core = { workspace = true }
 serial_test = { workspace = true }
+wiremock = "0.6"

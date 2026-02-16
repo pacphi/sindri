@@ -20,7 +20,7 @@ pub mod northflank;
 pub mod runpod;
 pub mod templates;
 pub mod traits;
-mod utils;
+pub mod utils;
 
 pub use traits::{Provider, ProviderFactory};
 

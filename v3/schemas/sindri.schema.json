@@ -710,43 +710,77 @@
           "properties": {
             "gpuTypeId": {
               "type": "string",
-              "description": "RunPod GPU type identifier (e.g., 'NVIDIA RTX A4000', 'NVIDIA A100 80GB PCIe'). If omitted, derived from deployment.resources.gpu.tier."
+              "description": "RunPod GPU type identifier (e.g., 'NVIDIA RTX A4000', 'NVIDIA A100 80GB PCIe'). Required unless cpuOnly is true."
+            },
+            "gpuCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "default": 1,
+              "description": "Number of GPUs to attach to the pod"
             },
             "containerDiskGb": {
               "type": "integer",
               "minimum": 1,
               "maximum": 500,
               "default": 20,
-              "description": "Container disk size in GB (temporary, lost on pod termination)"
+              "description": "Container disk size in GB (ephemeral, lost on pod termination)"
+            },
+            "volumeSizeGb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2048,
+              "default": 50,
+              "description": "Network volume size in GB (persistent across pod restarts). Set to 0 to disable."
+            },
+            "volumeMountPath": {
+              "type": "string",
+              "default": "/workspace",
+              "description": "Mount path for the network volume inside the container"
             },
             "cloudType": {
               "type": "string",
               "enum": ["SECURE", "COMMUNITY"],
               "default": "COMMUNITY",
-              "description": "Cloud type: SECURE (dedicated) or COMMUNITY (shared, cheaper)"
+              "description": "Cloud type: SECURE (Tier 1/2 data centers) or COMMUNITY (peer-hosted, lower cost)"
             },
             "region": {
               "type": "string",
-              "description": "Datacenter region ID (optional, auto-selected if omitted)"
+              "description": "Datacenter region filter (e.g., 'US', 'EU', 'CA'). Leave empty for any region."
             },
             "exposePorts": {
               "type": "array",
               "items": {
-                "type": "string",
-                "pattern": "^\\d+$"
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
               },
               "default": [],
-              "description": "HTTP ports to expose via RunPod proxy URLs (e.g., ['8080', '3000'])"
+              "description": "HTTP ports to expose via RunPod proxy URLs (e.g., [8080, 8888])"
             },
             "spotBid": {
               "type": "number",
               "minimum": 0,
-              "description": "Spot instance bid price ($/hr). Omit or 0 for on-demand pricing."
+              "default": 0,
+              "description": "Spot instance bid price in $/hr. 0 = on-demand pricing, >0 = spot with maximum bid price."
             },
             "startSsh": {
               "type": "boolean",
               "default": true,
-              "description": "Enable SSH access on pod creation"
+              "description": "Enable SSH access on the pod"
+            },
+            "cpuOnly": {
+              "type": "boolean",
+              "default": false,
+              "description": "Deploy a CPU-only pod (no GPU). Uses CPU instance types."
+            },
+            "cpuInstanceId": {
+              "type": "string",
+              "description": "CPU instance type ID when cpuOnly is true (e.g., 'cpu3c-2-4' for 2 vCPU, 4GB RAM)"
+            },
+            "templateId": {
+              "type": "string",
+              "description": "RunPod template ID to use instead of a raw image. Overrides deployment.image."
             }
           },
           "additionalProperties": false
@@ -754,36 +788,61 @@
         "northflank": {
           "type": "object",
           "description": "Northflank PaaS provider options",
+          "required": ["projectName"],
           "properties": {
             "projectName": {
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]*$",
-              "description": "Northflank project name (default: 'sindri-{name}')"
+              "description": "Northflank project name. Created if it does not exist."
             },
             "serviceName": {
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]*$",
-              "description": "Northflank service name (default: sindri.yaml name)"
+              "description": "Service name within the project (defaults to sindri.yaml name)"
             },
             "computePlan": {
               "type": "string",
-              "enum": ["nf-compute-10", "nf-compute-20", "nf-compute-50", "nf-compute-100", "nf-compute-200"],
-              "description": "Compute plan (auto-selected from resources if omitted)"
+              "pattern": "^nf-compute-\\d+(-\\d+)?$",
+              "default": "nf-compute-50",
+              "description": "Northflank compute plan (e.g., 'nf-compute-50', 'nf-compute-200-8'). See Northflank pricing for available plans."
             },
             "gpuType": {
               "type": "string",
-              "description": "GPU type identifier (e.g., 'nvidia-a100', 'nvidia-a10g')"
+              "description": "GPU model for GPU workloads (e.g., 'nvidia-h100', 'nvidia-a100-40gb', 'nvidia-l4')"
+            },
+            "gpuCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "default": 1,
+              "description": "Number of GPUs (only used when gpuType is set)"
             },
             "instances": {
               "type": "integer",
-              "minimum": 1,
-              "maximum": 10,
+              "minimum": 0,
+              "maximum": 50,
               "default": 1,
-              "description": "Number of deployment instances"
+              "description": "Number of service instances. Set to 0 to pause billing while preserving config."
+            },
+            "volumeSizeGb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1500,
+              "default": 10,
+              "description": "Persistent volume size in GB. 0 = no volume. Note: volumes limit service to 1 instance."
+            },
+            "volumeMountPath": {
+              "type": "string",
+              "default": "/workspace",
+              "description": "Mount path for the persistent volume inside the container"
             },
             "region": {
               "type": "string",
-              "description": "Deployment region (optional)"
+              "description": "Northflank region slug (e.g., 'us-east', 'europe-west', 'asia-northeast'). Region is immutable after project creation."
+            },
+            "registryCredentials": {
+              "type": "string",
+              "description": "Northflank registry credential ID for pulling private images"
             },
             "ports": {
               "type": "array",
@@ -793,6 +852,7 @@
                 "properties": {
                   "name": {
                     "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$",
                     "description": "Port name identifier"
                   },
                   "internalPort": {
@@ -808,70 +868,126 @@
                   },
                   "protocol": {
                     "type": "string",
-                    "enum": ["TCP", "HTTP", "UDP"],
-                    "default": "TCP",
-                    "description": "Port protocol"
+                    "enum": ["HTTP", "TCP", "UDP"],
+                    "default": "HTTP",
+                    "description": "Protocol for this port"
                   }
-                }
+                },
+                "additionalProperties": false
               },
-              "description": "Port configuration (SSH port 22 is always included automatically)"
+              "description": "Port configuration for the service"
             },
             "healthCheck": {
               "type": "object",
-              "description": "HTTP health check configuration",
+              "description": "Health check configuration for liveness probing",
               "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["http", "tcp", "command"],
+                  "default": "tcp",
+                  "description": "Health check method"
+                },
                 "path": {
                   "type": "string",
-                  "default": "/health",
-                  "description": "HTTP path to check"
+                  "description": "HTTP endpoint path (required when type is 'http')"
                 },
                 "port": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 65535,
-                  "description": "Port to check"
+                  "description": "Port to check (required when type is 'http' or 'tcp')"
                 },
-                "intervalSecs": {
+                "command": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Command to execute (required when type is 'command')"
+                },
+                "initialDelaySeconds": {
                   "type": "integer",
-                  "minimum": 5,
-                  "maximum": 300,
-                  "default": 30,
-                  "description": "Check interval in seconds"
+                  "minimum": 0,
+                  "default": 10,
+                  "description": "Seconds to wait before starting health checks"
                 },
-                "timeoutSecs": {
+                "periodSeconds": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 60,
-                  "default": 5,
-                  "description": "Check timeout in seconds"
+                  "default": 15,
+                  "description": "Interval between health checks in seconds"
+                },
+                "failureThreshold": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 3,
+                  "description": "Number of consecutive failures before restart"
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "type": { "const": "http" } }
+                  },
+                  "then": {
+                    "required": ["path", "port"]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": { "type": { "const": "tcp" } }
+                  },
+                  "then": {
+                    "required": ["port"]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": { "type": { "const": "command" } }
+                  },
+                  "then": {
+                    "required": ["command"]
+                  }
+                }
+              ],
+              "additionalProperties": false
             },
             "autoScaling": {
               "type": "object",
-              "description": "Auto-scaling configuration",
+              "description": "Horizontal auto-scaling configuration",
               "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable auto-scaling based on resource utilization"
+                },
                 "minInstances": {
                   "type": "integer",
                   "minimum": 1,
+                  "maximum": 50,
                   "default": 1,
-                  "description": "Minimum number of instances"
+                  "description": "Minimum number of instances (scale-down floor)"
                 },
                 "maxInstances": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 20,
+                  "maximum": 50,
                   "default": 3,
-                  "description": "Maximum number of instances"
+                  "description": "Maximum number of instances (scale-up ceiling)"
                 },
-                "cpuTargetPercent": {
+                "targetCpuUtilization": {
                   "type": "integer",
-                  "minimum": 10,
-                  "maximum": 95,
+                  "minimum": 1,
+                  "maximum": 100,
+                  "default": 70,
+                  "description": "Target CPU utilization percentage (scale up when exceeded)"
+                },
+                "targetMemoryUtilization": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
                   "default": 80,
-                  "description": "CPU utilization target for scaling"
+                  "description": "Target memory utilization percentage (scale up when exceeded)"
                 }
-              }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

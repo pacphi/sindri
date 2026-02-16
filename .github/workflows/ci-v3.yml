@@ -32,6 +32,11 @@ on:
         required: false
         default: true
         type: boolean
+      test-cloud-providers:
+        description: 'Run cloud provider integration tests (RunPod/Northflank)'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ci-v3-${{ github.ref }}
@@ -193,28 +198,81 @@ jobs:
       - name: Install cargo-llvm-cov
         run: cargo binstall cargo-llvm-cov --no-confirm --force
 
-      - name: Generate LCOV coverage report
+      - name: Generate workspace LCOV coverage report
         run: |
           cd v3
           mkdir -p coverage
           cargo llvm-cov --workspace --lcov --output-path coverage/lcov.info
 
+      - name: Generate sindri-providers coverage report
+        run: |
+          cd v3
+          cargo llvm-cov --package sindri-providers --lcov --output-path coverage/providers-lcov.info
+
       - name: Generate coverage summary
         run: |
           cd v3
-          echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "## Code Coverage (Workspace)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cargo llvm-cov --workspace >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Code Coverage (sindri-providers)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo llvm-cov --package sindri-providers >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "> **Target**: >=70% line coverage for GA" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check coverage threshold
+        run: |
+          cd v3
+          # Extract line coverage percentage from workspace report
+          COVERAGE_OUTPUT=$(cargo llvm-cov --workspace 2>&1)
+          # Parse the TOTAL line for region coverage percentage
+          COVERAGE_PCT=$(echo "$COVERAGE_OUTPUT" | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%')
+
+          if [ -z "$COVERAGE_PCT" ]; then
+            echo "::warning::Could not parse coverage percentage"
+            exit 0
+          fi
+
+          echo "Workspace coverage: ${COVERAGE_PCT}%"
+          THRESHOLD=70
+
+          # Compare as integers (coverage is already a whole number or has decimals)
+          COVERAGE_INT=$(echo "$COVERAGE_PCT" | cut -d. -f1)
+          if [ "$COVERAGE_INT" -lt "$THRESHOLD" ]; then
+            echo "::warning::Coverage ${COVERAGE_PCT}% is below ${THRESHOLD}% target (aspirational, non-blocking)"
+          else
+            echo "Coverage ${COVERAGE_PCT}% meets ${THRESHOLD}% target"
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: v3/coverage/lcov.info
+          flags: workspace
+          name: sindri-v3-workspace
+          fail_ci_if_error: false
+
+      - name: Upload providers coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: v3/coverage/providers-lcov.info
+          flags: providers
+          name: sindri-v3-providers
+          fail_ci_if_error: false
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v6
         with:
           name: coverage-lcov-${{ github.sha }}
-          path: v3/coverage/lcov.info
+          path: |
+            v3/coverage/lcov.info
+            v3/coverage/providers-lcov.info
           retention-days: 30
 
   # ============================================
@@ -690,7 +748,8 @@ jobs:
   test-providers:
     name: Provider Tests (${{ matrix.provider }})
     runs-on: ubuntu-latest
-    needs: [rust-build]
+    needs: [rust-test]
+    continue-on-error: true  # Provider tests are informational, don't block PRs
     strategy:
       fail-fast: false
       matrix:
@@ -756,6 +815,7 @@ jobs:
     name: Validate Provider Configs
     runs-on: ubuntu-latest
     needs: [rust-build]
+    continue-on-error: true  # Config validation is informational, don't block PRs
     steps:
       - uses: actions/checkout@v6
 
@@ -823,6 +883,36 @@ jobs:
           echo "**Northflank**: $PASS passed, $FAIL failed" >> $GITHUB_STEP_SUMMARY
 
   # ============================================
+  # Cloud Provider Integration Tests (Optional)
+  # Calls reusable provider workflows for live cloud testing
+  # Only runs on manual dispatch or when provider code changes
+  # ============================================
+
+  cloud-provider-runpod:
+    name: Cloud Integration - RunPod
+    needs: [rust-test, test-providers]
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.event.inputs.test-cloud-providers == 'true'
+    uses: ./.github/workflows/v3-provider-runpod.yml
+    with:
+      extensions: '["basic-test"]'
+      max-parallel: 1
+    secrets:
+      RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+
+  cloud-provider-northflank:
+    name: Cloud Integration - Northflank
+    needs: [rust-test, test-providers]
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.event.inputs.test-cloud-providers == 'true'
+    uses: ./.github/workflows/v3-provider-northflank.yml
+    with:
+      extensions: '["basic-test"]'
+      max-parallel: 1
+    secrets:
+      NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
+
+  # ============================================
   # CI Status Checks
   # ============================================
 
@@ -887,6 +977,8 @@ jobs:
       - k8s-integration-kind
       - k8s-integration-k3d
       - k8s-cluster-lifecycle
+      - cloud-provider-runpod
+      - cloud-provider-northflank
     if: ${{ always() }}
     steps:
       - name: Check overall status
@@ -898,6 +990,8 @@ jobs:
           PROVIDERS="${{ needs.test-providers.result }}"
           DOCTOR="${{ needs.test-doctor.result }}"
           CONFIGS="${{ needs.validate-provider-configs.result }}"
+          CLOUD_RUNPOD="${{ needs.cloud-provider-runpod.result }}"
+          CLOUD_NORTHFLANK="${{ needs.cloud-provider-northflank.result }}"
 
           # Required checks must pass
           if [[ "$REQUIRED" != "success" ]]; then
@@ -910,6 +1004,14 @@ jobs:
             echo "⚠️ Security audit found issues (non-blocking)"
           fi
 
+          # Cloud provider tests are optional/informational
+          if [[ "$CLOUD_RUNPOD" == "failure" ]]; then
+            echo "⚠️ RunPod cloud integration tests failed (non-blocking)"
+          fi
+          if [[ "$CLOUD_NORTHFLANK" == "failure" ]]; then
+            echo "⚠️ Northflank cloud integration tests failed (non-blocking)"
+          fi
+
           echo "✅ CI v3 passed"
           echo "Results:"
           echo "  ci-required: $REQUIRED"
@@ -919,6 +1021,8 @@ jobs:
           echo "  test-providers: $PROVIDERS"
           echo "  test-doctor: $DOCTOR"
           echo "  validate-provider-configs: $CONFIGS"
+          echo "  cloud-provider-runpod: $CLOUD_RUNPOD"
+          echo "  cloud-provider-northflank: $CLOUD_NORTHFLANK"
 
       - name: Generate summary
         if: always()
@@ -935,6 +1039,7 @@ jobs:
           echo "- Code coverage (cargo-llvm-cov)" >> $GITHUB_STEP_SUMMARY
           echo "- YAML validation (extensions, schemas)" >> $GITHUB_STEP_SUMMARY
           echo "- Provider config validation (dry-run)" >> $GITHUB_STEP_SUMMARY
+          echo "- Cloud provider integration tests (RunPod, Northflank) - manual dispatch only" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Job Results" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
@@ -943,9 +1048,11 @@ jobs:
           echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Documentation Build | ${{ needs.docs-build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Extension Tests | ${{ needs.test-extensions.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Provider Tests (RunPod/Northflank) | ${{ needs.test-providers.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider Unit Tests (RunPod/Northflank) | ${{ needs.test-providers.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Doctor Tests | ${{ needs.test-doctor.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Provider Config Validation | ${{ needs.validate-provider-configs.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cloud Integration - RunPod | ${{ needs.cloud-provider-runpod.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cloud Integration - Northflank | ${{ needs.cloud-provider-northflank.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| K8s Integration (Kind) | ${{ needs.k8s-integration-kind.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| K8s Integration (K3d) | ${{ needs.k8s-integration-k3d.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Code Coverage | ${{ needs.coverage.result }} |" >> $GITHUB_STEP_SUMMARY

@@ -2,7 +2,7 @@
 
 > **Version:** 3.x
 > **Last Updated:** 2026-02
-> **Status:** Draft (pre-implementation)
+> **Status:** Production Ready
 
 GPU cloud deployment with 40+ GPU types, spot pricing, persistent network volumes, and SSH proxy access.
 
@@ -921,6 +921,14 @@ The RunPod provider uses direct HTTP REST API calls (`reqwest`) instead of shell
 | `STOPPED`     | Stopped      | Pod explicitly stopped         |
 | `TERMINATED`  | NotDeployed  | Pod permanently removed        |
 | `ERROR`       | Error        | Pod in error state             |
+
+## Current Limitations
+
+- **No Live Migration:** Pods cannot be migrated between data centers. To change regions, you must destroy and recreate.
+- **Secrets Immutable:** Environment variables are set at pod creation. Updating secrets requires destroying and recreating the pod.
+- **Network Volumes:** Only available on Secure Cloud, not Community Cloud.
+- **Volume Resize:** Volumes can only be enlarged, never reduced.
+- **Connection Timeout:** Proxy URLs have a 100-second connection timeout. Use SSH for long-running connections.
 
 ## Related Documentation
 

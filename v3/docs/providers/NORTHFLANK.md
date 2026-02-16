@@ -743,6 +743,14 @@ providers:
     # Paused services cost $0 for compute
 ```
 
+## Current Limitations
+
+- **Region Immutable:** Project region cannot be changed after creation. Choose carefully during initial deployment.
+- **Volume + Scaling Conflict:** Services with persistent volumes are limited to a single instance (cannot use auto-scaling).
+- **GPU Requires Credits:** GPU deployments require pre-purchased credits. Verify availability in your target region.
+- **Manual Cleanup:** The `destroy` command removes the service but preserves the project. Delete projects manually if no longer needed.
+- **Secret Updates:** Updating secrets requires service restart to take effect.
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

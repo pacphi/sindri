@@ -184,7 +184,7 @@ impl SchemaValidator {
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": ["docker", "docker-compose", "fly", "devpod", "e2b", "kubernetes"]
+                            "enum": ["docker", "docker-compose", "fly", "devpod", "e2b", "kubernetes", "runpod", "northflank"]
                         },
                         "image": { "type": "string" },
                         "resources": { "type": "object" },
