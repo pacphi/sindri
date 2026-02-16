@@ -48,7 +48,7 @@ bom:
     - name: notebooklm-mcp-cli
       version: dynamic
       source: pip
-      type: cli
+      type: cli-tool
       license: MIT
       homepage: https://github.com/jacob-bd/notebooklm-mcp-cli
       purl: pkg:pypi/notebooklm-mcp-cli

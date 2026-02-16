@@ -45,8 +45,8 @@ bom:
   tools:
     - name: rvf-cli
       version: dynamic
-      source: cargo
-      type: cli
+      source: binary
+      type: cli-tool
       license: MIT OR Apache-2.0
       homepage: https://github.com/ruvnet/ruvector
       purl: pkg:cargo/rvf-cli
