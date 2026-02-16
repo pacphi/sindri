@@ -21,7 +21,7 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod", "e2b"],
+          "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod", "e2b", "runpod", "northflank"],
           "description": "Deployment provider (docker is an alias for docker-compose)"
         },
         "image": {
@@ -700,6 +700,178 @@
               "type": "boolean",
               "default": false,
               "description": "Force rebuild template on every deploy"
+            }
+          },
+          "additionalProperties": false
+        },
+        "runpod": {
+          "type": "object",
+          "description": "RunPod GPU cloud provider options",
+          "properties": {
+            "gpuTypeId": {
+              "type": "string",
+              "description": "RunPod GPU type identifier (e.g., 'NVIDIA RTX A4000', 'NVIDIA A100 80GB PCIe'). If omitted, derived from deployment.resources.gpu.tier."
+            },
+            "containerDiskGb": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 20,
+              "description": "Container disk size in GB (temporary, lost on pod termination)"
+            },
+            "cloudType": {
+              "type": "string",
+              "enum": ["SECURE", "COMMUNITY"],
+              "default": "COMMUNITY",
+              "description": "Cloud type: SECURE (dedicated) or COMMUNITY (shared, cheaper)"
+            },
+            "region": {
+              "type": "string",
+              "description": "Datacenter region ID (optional, auto-selected if omitted)"
+            },
+            "exposePorts": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              "default": [],
+              "description": "HTTP ports to expose via RunPod proxy URLs (e.g., ['8080', '3000'])"
+            },
+            "spotBid": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Spot instance bid price ($/hr). Omit or 0 for on-demand pricing."
+            },
+            "startSsh": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable SSH access on pod creation"
+            }
+          },
+          "additionalProperties": false
+        },
+        "northflank": {
+          "type": "object",
+          "description": "Northflank PaaS provider options",
+          "properties": {
+            "projectName": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Northflank project name (default: 'sindri-{name}')"
+            },
+            "serviceName": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Northflank service name (default: sindri.yaml name)"
+            },
+            "computePlan": {
+              "type": "string",
+              "enum": ["nf-compute-10", "nf-compute-20", "nf-compute-50", "nf-compute-100", "nf-compute-200"],
+              "description": "Compute plan (auto-selected from resources if omitted)"
+            },
+            "gpuType": {
+              "type": "string",
+              "description": "GPU type identifier (e.g., 'nvidia-a100', 'nvidia-a10g')"
+            },
+            "instances": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 1,
+              "description": "Number of deployment instances"
+            },
+            "region": {
+              "type": "string",
+              "description": "Deployment region (optional)"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "internalPort"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Port name identifier"
+                  },
+                  "internalPort": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535,
+                    "description": "Container-internal port number"
+                  },
+                  "public": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Expose port publicly with auto-TLS"
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "enum": ["TCP", "HTTP", "UDP"],
+                    "default": "TCP",
+                    "description": "Port protocol"
+                  }
+                }
+              },
+              "description": "Port configuration (SSH port 22 is always included automatically)"
+            },
+            "healthCheck": {
+              "type": "object",
+              "description": "HTTP health check configuration",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "default": "/health",
+                  "description": "HTTP path to check"
+                },
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "description": "Port to check"
+                },
+                "intervalSecs": {
+                  "type": "integer",
+                  "minimum": 5,
+                  "maximum": 300,
+                  "default": 30,
+                  "description": "Check interval in seconds"
+                },
+                "timeoutSecs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60,
+                  "default": 5,
+                  "description": "Check timeout in seconds"
+                }
+              }
+            },
+            "autoScaling": {
+              "type": "object",
+              "description": "Auto-scaling configuration",
+              "properties": {
+                "minInstances": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 1,
+                  "description": "Minimum number of instances"
+                },
+                "maxInstances": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20,
+                  "default": 3,
+                  "description": "Maximum number of instances"
+                },
+                "cpuTargetPercent": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "maximum": 95,
+                  "default": 80,
+                  "description": "CPU utilization target for scaling"
+                }
+              }
             }
           },
           "additionalProperties": false

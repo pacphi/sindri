@@ -1,0 +1,30 @@
+# Northflank Basic Development Environment
+#
+# A simple development setup on Northflank with a small compute plan
+# and persistent volume. Good for web apps, APIs, and general development.
+#
+# Prerequisites:
+#   - Install Northflank CLI: npm i @northflank/cli -g
+#   - Authenticate: northflank login
+#   - Or set NORTHFLANK_API_TOKEN environment variable
+#
+# Usage:
+#   cp northflank-basic.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: northflank-dev
+
+deployment:
+  provider: northflank
+  image: ghcr.io/sindri-labs/sindri:latest
+  resources:
+    memory: 4GB
+    cpus: 2
+
+providers:
+  northflank:
+    projectName: sindri-dev
+    serviceName: my-workspace
+    computePlan: nf-compute-200  # 2 vCPU, 4 GB RAM
+    volumeSizeGb: 10

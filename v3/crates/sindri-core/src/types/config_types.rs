@@ -176,6 +176,8 @@ pub enum Provider {
     Devpod,
     E2b,
     Kubernetes,
+    Runpod,
+    Northflank,
 }
 
 impl std::fmt::Display for Provider {
@@ -187,6 +189,8 @@ impl std::fmt::Display for Provider {
             Provider::Devpod => write!(f, "devpod"),
             Provider::E2b => write!(f, "e2b"),
             Provider::Kubernetes => write!(f, "kubernetes"),
+            Provider::Runpod => write!(f, "runpod"),
+            Provider::Northflank => write!(f, "northflank"),
         }
     }
 }
@@ -200,6 +204,8 @@ impl Provider {
             Provider::Devpod => "devpod",
             Provider::E2b => "e2b",
             Provider::Kubernetes => "kubernetes",
+            Provider::Runpod => "runpod",
+            Provider::Northflank => "northflank",
         }
     }
 
@@ -212,6 +218,8 @@ impl Provider {
                 | Provider::Fly
                 | Provider::Devpod
                 | Provider::Kubernetes
+                | Provider::Runpod
+                | Provider::Northflank
         )
     }
 }
@@ -438,6 +446,14 @@ pub struct ProvidersConfig {
     /// E2B specific config
     #[serde(default)]
     pub e2b: Option<E2bProviderConfig>,
+
+    /// RunPod specific config
+    #[serde(default)]
+    pub runpod: Option<RunpodProviderConfig>,
+
+    /// Northflank specific config
+    #[serde(default)]
+    pub northflank: Option<NorthflankProviderConfig>,
 }
 
 /// Fly.io provider configuration
@@ -1001,4 +1017,141 @@ pub struct E2bProviderConfig {
 
 fn default_e2b_timeout() -> u32 {
     300
+}
+
+/// RunPod provider configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RunpodProviderConfig {
+    /// RunPod GPU type identifier (e.g., "NVIDIA RTX A4000")
+    #[serde(default, rename = "gpuTypeId")]
+    pub gpu_type_id: Option<String>,
+
+    /// Container disk size in GB
+    #[serde(default = "default_runpod_container_disk", rename = "containerDiskGb")]
+    pub container_disk_gb: u32,
+
+    /// Cloud type: SECURE or COMMUNITY
+    #[serde(default = "default_cloud_type", rename = "cloudType")]
+    pub cloud_type: String,
+
+    /// Datacenter region ID (optional)
+    #[serde(default)]
+    pub region: Option<String>,
+
+    /// HTTP ports to expose via proxy
+    #[serde(default, rename = "exposePorts")]
+    pub expose_ports: Vec<String>,
+
+    /// Spot instance bid price (None = on-demand)
+    #[serde(default, rename = "spotBid")]
+    pub spot_bid: Option<f64>,
+
+    /// Enable SSH access
+    #[serde(default = "default_true", rename = "startSsh")]
+    pub start_ssh: bool,
+}
+
+fn default_runpod_container_disk() -> u32 {
+    20
+}
+
+fn default_cloud_type() -> String {
+    "COMMUNITY".to_string()
+}
+
+/// Northflank provider configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NorthflankProviderConfig {
+    /// Northflank project name
+    #[serde(default, rename = "projectName")]
+    pub project_name: Option<String>,
+
+    /// Northflank service name
+    #[serde(default, rename = "serviceName")]
+    pub service_name: Option<String>,
+
+    /// Compute plan
+    #[serde(default, rename = "computePlan")]
+    pub compute_plan: Option<String>,
+
+    /// GPU type
+    #[serde(default, rename = "gpuType")]
+    pub gpu_type: Option<String>,
+
+    /// Number of instances
+    #[serde(default = "default_northflank_instances")]
+    pub instances: u32,
+
+    /// Deployment region
+    #[serde(default)]
+    pub region: Option<String>,
+
+    /// Port configuration
+    #[serde(default)]
+    pub ports: Vec<NorthflankPortConfig>,
+
+    /// Health check configuration
+    #[serde(default, rename = "healthCheck")]
+    pub health_check: Option<NorthflankHealthCheckConfig>,
+
+    /// Auto-scaling configuration
+    #[serde(default, rename = "autoScaling")]
+    pub auto_scaling: Option<NorthflankAutoScalingConfig>,
+}
+
+fn default_northflank_instances() -> u32 {
+    1
+}
+
+/// Northflank port configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NorthflankPortConfig {
+    /// Port name
+    pub name: String,
+
+    /// Internal port number
+    #[serde(rename = "internalPort")]
+    pub internal_port: u16,
+
+    /// Expose publicly
+    #[serde(default)]
+    pub public: bool,
+
+    /// Protocol (TCP, HTTP, UDP)
+    #[serde(default)]
+    pub protocol: Option<String>,
+}
+
+/// Northflank health check configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NorthflankHealthCheckConfig {
+    /// HTTP path
+    pub path: String,
+
+    /// Port to check
+    pub port: u16,
+
+    /// Check interval in seconds
+    #[serde(default, rename = "intervalSecs")]
+    pub interval_secs: Option<u32>,
+
+    /// Check timeout in seconds
+    #[serde(default, rename = "timeoutSecs")]
+    pub timeout_secs: Option<u32>,
+}
+
+/// Northflank auto-scaling configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NorthflankAutoScalingConfig {
+    /// Minimum instances
+    #[serde(default, rename = "minInstances")]
+    pub min_instances: Option<u32>,
+
+    /// Maximum instances
+    #[serde(default, rename = "maxInstances")]
+    pub max_instances: Option<u32>,
+
+    /// CPU utilization target
+    #[serde(default, rename = "cpuTargetPercent")]
+    pub cpu_target_percent: Option<u32>,
 }

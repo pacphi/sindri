@@ -1,0 +1,37 @@
+# RunPod A100 ML Training Environment
+#
+# High-performance A100 80GB setup for ML training workloads.
+# Uses a network volume for persistent storage across pod restarts
+# and terminations.
+#
+# Prerequisites:
+#   - Set RUNPOD_API_KEY environment variable
+#   - Pre-create a network volume in the RunPod console and replace
+#     "your-network-volume-id" with the actual volume ID
+#
+# Note: Network volumes must be in the same data center as the pod.
+#       Leave the region unset to allow RunPod to select a matching DC.
+#
+# Usage:
+#   cp runpod-a100-training.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: ml-training
+
+deployment:
+  provider: runpod
+  image: pytorch/pytorch:latest
+  resources:
+    gpu:
+      enabled: true
+      tier: "a100"
+    memory: 32GB
+
+providers:
+  runpod:
+    gpuType: "NVIDIA A100 80GB"
+    containerDiskGb: 100
+    volumeSizeGb: 200
+    networkVolumeId: "your-network-volume-id"  # Replace with your pre-created volume ID
+    volumeMountPath: /workspace

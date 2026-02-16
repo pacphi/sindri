@@ -1,0 +1,47 @@
+# Northflank Auto-Scaling Production API
+#
+# A production-ready API server with horizontal auto-scaling and
+# health checks. Scales between 2 and 5 instances based on CPU
+# and memory utilization.
+#
+# Prerequisites:
+#   - Install Northflank CLI: npm i @northflank/cli -g
+#   - Authenticate: northflank login
+#
+# Note: Auto-scaling is not compatible with persistent volumes.
+#       Services with volumes are limited to 1 instance.
+#
+# Usage:
+#   cp northflank-autoscaling.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: northflank-prod
+
+deployment:
+  provider: northflank
+  image: ghcr.io/yourorg/api:latest
+  resources:
+    memory: 4GB
+    cpus: 2
+
+providers:
+  northflank:
+    projectName: production
+    serviceName: api-server
+    computePlan: nf-compute-200
+    instances: 2
+    autoScaling:
+      enabled: true
+      minInstances: 2
+      maxInstances: 5
+      targetCpuUtilization: 70
+      targetMemoryUtilization: 80
+    healthCheck:
+      type: http
+      path: /health
+      port: 8080
+    ports:
+      - name: http
+        internalPort: 8080
+        public: true

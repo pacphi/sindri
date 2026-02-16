@@ -8,12 +8,16 @@
 //! - DevPod (multi-cloud development environments)
 //! - E2B (cloud sandboxes)
 //! - Kubernetes (container orchestration)
+//! - RunPod (GPU cloud)
+//! - Northflank (Kubernetes PaaS)
 
 pub mod devpod;
 pub mod docker;
 pub mod e2b;
 pub mod fly;
 pub mod kubernetes;
+pub mod northflank;
+pub mod runpod;
 pub mod templates;
 pub mod traits;
 mod utils;
@@ -33,5 +37,7 @@ pub fn create_provider(provider: ProviderType) -> Result<Box<dyn Provider>> {
         ProviderType::Devpod => Ok(Box::new(devpod::DevPodProvider::new()?)),
         ProviderType::E2b => Ok(Box::new(e2b::E2bProvider::new()?)),
         ProviderType::Kubernetes => Ok(Box::new(kubernetes::KubernetesProvider::new()?)),
+        ProviderType::Runpod => Ok(Box::new(runpod::RunpodProvider::new()?)),
+        ProviderType::Northflank => Ok(Box::new(northflank::NorthflankProvider::new()?)),
     }
 }

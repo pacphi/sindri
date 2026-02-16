@@ -1,0 +1,52 @@
+# Multi-Provider Comparison Example
+#
+# This file demonstrates the same workload configured for multiple providers.
+# Uncomment the provider you want to use under deployment.provider,
+# then configure the matching providers section.
+#
+# All three providers support GPU workloads with an A4000-class GPU,
+# 16 GB of memory, and 4 vCPUs. The provider-specific sections map
+# these generic resources to platform-native configurations.
+#
+# Usage:
+#   1. Copy this file: cp provider-comparison.yaml sindri.yaml
+#   2. Uncomment the desired provider under deployment.provider
+#   3. Verify the matching providers.* section
+#   4. Deploy: sindri deploy
+
+version: "3.0"
+name: multi-provider-example
+
+deployment:
+  # Uncomment one provider:
+  # provider: runpod
+  provider: northflank
+  # provider: fly
+
+  image: ghcr.io/sindri-labs/sindri:latest
+  resources:
+    gpu:
+      enabled: true
+      tier: "a4000"
+    memory: 16GB
+    cpus: 4
+
+# Provider-specific configurations.
+# Only the section matching your chosen provider is used at deploy time.
+providers:
+  # RunPod: GPU cloud with per-second billing
+  runpod:
+    gpuType: "NVIDIA RTX A4000"
+    containerDiskGb: 50
+    volumeSizeGb: 100
+
+  # Northflank: PaaS with managed Kubernetes and GPU support
+  northflank:
+    projectName: sindri-dev
+    computePlan: nf-compute-400-8
+    gpuType: nvidia-a4000
+
+  # Fly.io: Edge-first application platform (for comparison)
+  fly:
+    region: sjc
+    gpuTier: a100-40gb

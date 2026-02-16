@@ -85,6 +85,8 @@ Deploy to multiple cloud providers using the same configuration:
 - Kubernetes (kind, k3d, EKS, GKE, AKS)
 - DevPod (AWS, GCP, Azure, DigitalOcean)
 - E2B
+- [RunPod](v3/docs/providers/RUNPOD.md) - GPU-intensive ML workloads (40+ GPU types)
+- [Northflank](v3/docs/providers/NORTHFLANK.md) - Auto-scaling production apps with GPU support
 
 ### 🔐 Security-First
 

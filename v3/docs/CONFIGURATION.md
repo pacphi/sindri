@@ -142,17 +142,19 @@ deployment:
 
 **Type:** `string`
 **Required:** Yes
-**Values:** `docker`, `docker-compose`, `fly`, `devpod`, `e2b`, `kubernetes`
+**Values:** `docker`, `docker-compose`, `fly`, `devpod`, `e2b`, `kubernetes`, `runpod`, `northflank`
 
 Target deployment provider.
 
-| Provider                    | Best For                        | Access Method    | GPU Support |
-| --------------------------- | ------------------------------- | ---------------- | ----------- |
-| `docker` / `docker-compose` | Local development               | Direct container | Yes         |
-| `fly`                       | Remote cloud dev                | SSH              | Yes         |
-| `devpod`                    | IDE integration, multi-cloud    | SSH              | Yes         |
-| `e2b`                       | AI sandboxes, rapid prototyping | WebSocket PTY    | No          |
-| `kubernetes`                | Enterprise, GitOps              | kubectl          | Yes         |
+| Provider                    | Best For                        | Access Method    | GPU Support    |
+| --------------------------- | ------------------------------- | ---------------- | -------------- |
+| `docker` / `docker-compose` | Local development               | Direct container | Yes            |
+| `fly`                       | Remote cloud dev                | SSH              | Yes            |
+| `devpod`                    | IDE integration, multi-cloud    | SSH              | Yes            |
+| `e2b`                       | AI sandboxes, rapid prototyping | WebSocket PTY    | No             |
+| `kubernetes`                | Enterprise, GitOps              | kubectl          | Yes            |
+| `runpod`                    | GPU cloud, ML training          | SSH/Proxy URL    | Yes (40+ GPUs) |
+| `northflank`                | Managed K8s PaaS, auto-scaling  | HTTPS/exec       | Yes            |
 
 **Note:** `docker` is an alias for `docker-compose`.
 
@@ -195,6 +197,8 @@ Sindri follows this priority order for image resolution across all providers:
 | DevPod     | Yes                     | Cloud providers (with push) | Yes                      |
 | E2B        | Yes                     | Always (template system)    | No (Dockerfile required) |
 | Kubernetes | No                      | Never - use CI/CD           | Yes (image required)     |
+| RunPod     | No                      | Uses pre-built images       | Yes (image required)     |
+| Northflank | No                      | Uses pre-built images       | Yes (image required)     |
 
 ### Examples
 
@@ -1172,6 +1176,223 @@ providers:
 
 ---
 
+#### RunPod Provider
+
+RunPod provides GPU cloud compute with 40+ GPU types and per-second billing. Uses direct HTTP REST API -- no CLI tool required.
+
+```yaml
+providers:
+  runpod:
+    gpuType: "NVIDIA RTX A4000" # GPU type identifier
+    gpuCount: 1 # Number of GPUs (default: 1)
+    cpuOnly: false # Use CPU-only pod (default: false)
+    containerDiskGb: 50 # Container disk size in GB (default: 50)
+    volumeSizeGb: 20 # Pod volume size in GB (default: 20)
+    volumeMountPath: "/workspace" # Volume mount path (default: /workspace)
+    cloudType: SECURE # SECURE | COMMUNITY (default: SECURE)
+    region: "US-CA-2" # Data center ID (optional, auto-select)
+    spot: false # Use spot pricing (default: false)
+    ports: # Port mappings (optional)
+      - "8888/http"
+      - "22/tcp"
+    networkVolumeId: null # Pre-created network volume ID (optional)
+    publicIp: false # Request public IP for full SSH (default: false)
+```
+
+##### runpod.gpuType
+
+**Type:** `string`
+**Required:** For GPU pods
+
+RunPod GPU type identifier. Examples: `"NVIDIA RTX A4000"`, `"NVIDIA A100-SXM4-80GB"`, `"NVIDIA H100 80GB HBM3"`. Can also use pool IDs like `"ADA_24"` for flexible GPU selection.
+
+##### runpod.gpuCount
+
+**Type:** `integer`
+**Default:** `1`
+**Range:** 1-16
+
+Number of GPUs to request.
+
+##### runpod.cpuOnly
+
+**Type:** `boolean`
+**Default:** `false`
+
+Use a CPU-only pod (no GPU). When true, `gpuType` is not required.
+
+##### runpod.containerDiskGb
+
+**Type:** `integer`
+**Default:** `50`
+
+Container disk size in GB. This storage is ephemeral and lost when the pod is stopped.
+
+##### runpod.volumeSizeGb
+
+**Type:** `integer`
+**Default:** `20`
+
+Pod volume size in GB. Persists across pod stops but is lost on terminate.
+
+##### runpod.cloudType
+
+**Type:** `string`
+**Values:** `SECURE`, `COMMUNITY`
+**Default:** `SECURE`
+
+- `SECURE` - RunPod-managed data centers with network volume support
+- `COMMUNITY` - Community-hosted GPUs at lower cost (no network volumes)
+
+##### runpod.spot
+
+**Type:** `boolean`
+**Default:** `false`
+
+Use spot/interruptible pricing for 60-70% cost savings. Spot instances may be interrupted when demand increases.
+
+##### runpod.networkVolumeId
+
+**Type:** `string`
+
+Pre-created network volume ID for fully persistent storage that survives pod termination. Must be in the same data center as the pod.
+
+##### runpod.publicIp
+
+**Type:** `boolean`
+**Default:** `false`
+
+Request a public IP for full SSH/SCP/SFTP access. Without a public IP, only proxy SSH (terminal only) is available.
+
+**Prerequisites:** `RUNPOD_API_KEY` environment variable must be set.
+
+See [RunPod Provider Documentation](providers/RUNPOD.md) for the full configuration reference including GPU types and pricing.
+
+---
+
+#### Northflank Provider
+
+Northflank provides managed Kubernetes PaaS with auto-scaling, health checks, native pause/resume, and GPU support.
+
+```yaml
+providers:
+  northflank:
+    projectName: sindri-dev # Required: Northflank project name
+    serviceName: my-workspace # Service name (default: deployment name)
+    computePlan: nf-compute-200 # Compute plan (default: nf-compute-50)
+    gpuType: null # GPU type (optional, e.g., "nvidia-a100-40gb")
+    instances: 1 # Number of instances (default: 1)
+    region: us-east # Region slug (default: us-east)
+    volumeSizeGb: null # Persistent volume size in GB (optional)
+    volumeMountPath: /data # Volume mount path (default: /data)
+    registryCredentials: null # Credential ID for private registries
+    ports: # Port configuration
+      - name: http
+        internalPort: 8080
+        protocol: HTTP
+        public: true
+    autoScaling: # Auto-scaling configuration
+      enabled: true
+      minInstances: 1
+      maxInstances: 5
+      targetCpuUtilization: 70
+      targetMemoryUtilization: 80
+    healthCheck: # Health check / liveness probe
+      type: http # http | tcp | command
+      path: /healthz
+      port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      failureThreshold: 3
+```
+
+##### northflank.projectName
+
+**Type:** `string`
+**Required:** Yes
+
+Northflank project name. A project is created if it does not exist. Region is set at project creation and cannot be changed afterward.
+
+##### northflank.serviceName
+
+**Type:** `string`
+**Required:** No (defaults to deployment name)
+
+Service name within the project.
+
+##### northflank.computePlan
+
+**Type:** `string`
+**Default:** `nf-compute-50`
+
+Northflank compute plan identifier. Format: `nf-compute-{vCPU*100}[-{memoryGB}]`. Examples: `nf-compute-200` (2 vCPU, 4 GB), `nf-compute-800-32` (8 vCPU, 32 GB). Auto-selected based on resource configuration if not specified.
+
+##### northflank.gpuType
+
+**Type:** `string`
+
+GPU type for GPU-enabled workloads. Examples: `"nvidia-l4"`, `"nvidia-a100-40gb"`, `"nvidia-a100-80gb"`, `"nvidia-h100"`, `"nvidia-h200"`, `"nvidia-b200"`.
+
+##### northflank.instances
+
+**Type:** `integer`
+**Default:** `1`
+**Range:** 0-10
+
+Number of service instances. Set to `0` to pause the service (no compute billing). Services with persistent volumes are limited to 1 instance.
+
+##### northflank.autoScaling
+
+**Type:** `object`
+
+Horizontal auto-scaling configuration. Metrics are checked every 15 seconds. Cannot be used with persistent volumes.
+
+```yaml
+autoScaling:
+  enabled: true # Enable auto-scaling (default: false)
+  minInstances: 1 # Minimum instances (default: 1)
+  maxInstances: 5 # Maximum instances (default: 3)
+  targetCpuUtilization: 70 # CPU % threshold (default: 70)
+  targetMemoryUtilization: 80 # Memory % threshold (default: 80)
+```
+
+##### northflank.healthCheck
+
+**Type:** `object`
+
+Health check / liveness probe configuration. Supports HTTP, TCP, and command-based checks.
+
+```yaml
+healthCheck:
+  type: http # http | tcp | command
+  path: /healthz # HTTP endpoint path (if type: http)
+  port: 8080 # Port to check (if type: http or tcp)
+  command: ["/bin/sh", "-c", "..."] # Command (if type: command)
+  initialDelaySeconds: 10 # Delay before first check (default: 10)
+  periodSeconds: 15 # Interval between checks (default: 15)
+  failureThreshold: 3 # Failures before restart (default: 3)
+```
+
+##### northflank.ports
+
+**Type:** `array`
+
+Port configuration for the service. Public ports get automatic TLS termination.
+
+```yaml
+ports:
+  - name: http
+    internalPort: 8080
+    protocol: HTTP # HTTP | TCP | UDP
+    public: true # Expose publicly with auto-TLS
+```
+
+**Prerequisites:** Northflank CLI must be installed (`npm install -g @northflank/cli`) and authenticated (`northflank login`).
+
+See [Northflank Provider Documentation](providers/NORTHFLANK.md) for the full configuration reference including compute plans and pricing.
+
+---
+
 #### Local Kubernetes (kind/k3d)
 
 ```yaml
@@ -1348,6 +1569,89 @@ providers:
       purpose: ai-development
 ```
 
+### RunPod GPU Training
+
+```yaml
+version: "3.0"
+name: gpu-training
+
+deployment:
+  provider: runpod
+  image: ghcr.io/pacphi/sindri:3.0.0
+  resources:
+    memory: 32GB
+    cpus: 8
+    gpu:
+      enabled: true
+      tier: gpu-large
+
+extensions:
+  profile: anthropic-dev
+  additional:
+    - pytorch
+
+secrets:
+  - name: HF_TOKEN
+    source: env
+    required: true
+
+providers:
+  runpod:
+    gpuType: "NVIDIA A100-SXM4-80GB"
+    gpuCount: 2
+    containerDiskGb: 200
+    volumeSizeGb: 100
+    cloudType: SECURE
+    region: "US-CA-2"
+```
+
+### Northflank Auto-Scaling
+
+```yaml
+version: "3.0"
+name: nf-production
+
+deployment:
+  provider: northflank
+  image: ghcr.io/pacphi/sindri:latest
+  resources:
+    memory: 4GB
+    cpus: 2
+
+extensions:
+  profile: fullstack
+
+secrets:
+  - name: GITHUB_TOKEN
+    source: env
+    required: true
+
+providers:
+  northflank:
+    projectName: sindri-prod
+    serviceName: dev-env
+    computePlan: nf-compute-200
+    instances: 1
+    ports:
+      - name: http
+        internalPort: 8080
+        protocol: HTTP
+        public: true
+    healthCheck:
+      type: http
+      path: /healthz
+      port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      failureThreshold: 3
+    autoScaling:
+      enabled: true
+      minInstances: 1
+      maxInstances: 5
+      targetCpuUtilization: 70
+      targetMemoryUtilization: 80
+```
+
 ---
 
 ## Environment Variables
@@ -1395,12 +1699,12 @@ v3/schemas/sindri.schema.json
 
 ### Common Validation Errors
 
-| Error                       | Cause                            | Solution                                  |
-| --------------------------- | -------------------------------- | ----------------------------------------- |
-| `name: pattern mismatch`    | Name contains invalid characters | Use lowercase, alphanumeric, hyphens only |
-| `provider: unknown`         | Invalid provider value           | Use: docker, fly, devpod, e2b, kubernetes |
-| `extensions: oneOf failed`  | Both profile and active set      | Use profile OR active, not both           |
-| `version: pattern mismatch` | Invalid version format           | Use `X.Y` format (e.g., "3.0")            |
+| Error                       | Cause                            | Solution                                                      |
+| --------------------------- | -------------------------------- | ------------------------------------------------------------- |
+| `name: pattern mismatch`    | Name contains invalid characters | Use lowercase, alphanumeric, hyphens only                     |
+| `provider: unknown`         | Invalid provider value           | Use: docker, fly, devpod, e2b, kubernetes, runpod, northflank |
+| `extensions: oneOf failed`  | Both profile and active set      | Use profile OR active, not both                               |
+| `version: pattern mismatch` | Invalid version format           | Use `X.Y` format (e.g., "3.0")                                |
 
 ---
 

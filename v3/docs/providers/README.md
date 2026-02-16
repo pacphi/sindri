@@ -14,6 +14,8 @@ This directory contains documentation for Sindri V3 deployment providers.
 | [DevPod](DEVPOD.md)         | Multi-cloud DevContainers           | IDE integration, multi-cloud flexibility   | Yes (via cloud providers) |
 | [E2B](E2B.md)               | Cloud sandboxes with pause/resume   | AI sandboxes, fast startup, pay-per-second | No                        |
 | [Kubernetes](KUBERNETES.md) | Container orchestration             | Enterprise, multi-tenant, CI/CD            | Yes (node selectors)      |
+| [RunPod](RUNPOD.md)         | GPU cloud with 40+ GPU types        | GPU-intensive ML, cost-sensitive research  | Yes (40+ GPU types)       |
+| [Northflank](NORTHFLANK.md) | PaaS with auto-scaling and GPUs     | Auto-scaling apps, enterprise deployments  | Yes (L4, A100, H100+)     |
 | [VM Images](VM.md)          | Multi-cloud VM image building       | Golden images, enterprise, pre-baked envs  | Yes (cloud-dependent)     |
 
 ### VM Image Cloud-Specific Guides
@@ -39,18 +41,22 @@ This directory contains documentation for Sindri V3 deployment providers.
 | DevPod     | Yes       | No        | VS Code, JetBrains     |
 | E2B        | No        | Yes (PTY) | Limited                |
 | Kubernetes | No (exec) | No        | VS Code Remote K8s     |
+| RunPod     | Yes       | No        | VS Code Remote SSH     |
+| Northflank | No (exec) | No        | Port forwarding        |
 | VM Images  | Yes       | No        | VS Code Remote SSH     |
 
 ### Cost Model
 
-| Provider   | Pricing              | Auto-Suspend       | Persistence  |
-| ---------- | -------------------- | ------------------ | ------------ |
-| Docker     | Free (local)         | N/A                | Volumes      |
-| Fly.io     | Per-second + storage | Yes (suspend)      | Volumes      |
-| DevPod     | Depends on backend   | Depends on backend | Volumes      |
-| E2B        | Per-second           | Yes (pause)        | Pause/Resume |
-| Kubernetes | Depends on cluster   | Scale to zero      | PVC          |
-| VM Images  | Build + cloud costs  | Cloud-dependent    | EBS/Disk     |
+| Provider   | Pricing              | Auto-Suspend       | Persistence     |
+| ---------- | -------------------- | ------------------ | --------------- |
+| Docker     | Free (local)         | N/A                | Volumes         |
+| Fly.io     | Per-second + storage | Yes (suspend)      | Volumes         |
+| DevPod     | Depends on backend   | Depends on backend | Volumes         |
+| E2B        | Per-second           | Yes (pause)        | Pause/Resume    |
+| Kubernetes | Depends on cluster   | Scale to zero      | PVC             |
+| RunPod     | Per-second           | No (stop/start)    | Network volumes |
+| Northflank | Per-second           | Yes (pause/resume) | SSD volumes     |
+| VM Images  | Build + cloud costs  | Cloud-dependent    | EBS/Disk        |
 
 ### Prerequisites
 
@@ -61,6 +67,8 @@ This directory contains documentation for Sindri V3 deployment providers.
 | DevPod     | devpod CLI, Docker         | kubectl, cloud CLIs    |
 | E2B        | e2b CLI, E2B_API_KEY       | -                      |
 | Kubernetes | kubectl                    | kind, k3d              |
+| RunPod     | RUNPOD_API_KEY             | SSH client             |
+| Northflank | Northflank CLI, account    | Node.js                |
 | VM Images  | Packer 1.9+, cloud CLI     | Cloud-specific plugins |
 
 ## Choosing a Provider
@@ -152,6 +160,51 @@ providers:
   kubernetes:
     namespace: dev-environments
     storageClass: fast-ssd
+```
+
+### For GPU-Intensive ML Workloads
+
+**RunPod** has the widest GPU selection:
+
+- 40+ GPU types from RTX 3070 to H200/B200
+- Spot pricing for 60-70% savings
+- Per-second billing, no minimums
+- Network volumes for persistent model storage
+- No CLI required (direct REST API)
+
+```yaml
+deployment:
+  provider: runpod
+
+providers:
+  runpod:
+    gpuType: "NVIDIA RTX A4000"
+    containerDiskGb: 50
+    volumeSizeGb: 20
+```
+
+### For Auto-Scaling Production Apps
+
+**Northflank** provides managed Kubernetes with auto-scaling:
+
+- Native pause/resume (zero compute cost when paused)
+- CPU/memory-based horizontal auto-scaling
+- GPU support (L4, A100, H100, H200, B200)
+- Health checks (HTTP, TCP, command)
+- 16 managed regions + 600+ BYOC
+
+```yaml
+deployment:
+  provider: northflank
+
+providers:
+  northflank:
+    projectName: sindri-dev
+    computePlan: nf-compute-200
+    autoScaling:
+      enabled: true
+      minInstances: 1
+      maxInstances: 5
 ```
 
 ### For Pre-built VM Images
@@ -254,6 +307,29 @@ kubectl logs <pod> -n <namespace>
 kubectl exec -it <pod> -n <namespace> -- /bin/bash
 ```
 
+### RunPod
+
+```bash
+sindri deploy                          # Create pod
+sindri status                          # Check pod status
+sindri connect                         # SSH to pod
+sindri stop                            # Stop pod (preserves volume)
+sindri start                           # Resume stopped pod
+sindri destroy                         # Terminate pod permanently
+```
+
+### Northflank
+
+```bash
+sindri deploy                          # Create project + service
+sindri status                          # Check service status
+sindri connect                         # Interactive shell via exec
+sindri stop                            # Pause service (no compute cost)
+sindri start                           # Resume paused service
+sindri destroy                         # Remove service
+northflank forward service --project <project> --service <service>  # Port forward
+```
+
 ### VM Images
 
 ```bash
@@ -268,13 +344,13 @@ sindri vm delete --cloud aws <id> # Delete image
 
 V3 providers maintain compatibility with V2 configurations while offering enhanced features:
 
-| Feature            | V2           | V3                            |
-| ------------------ | ------------ | ----------------------------- |
-| Configuration      | sindri.yaml  | sindri.yaml (enhanced schema) |
-| Template rendering | Bash scripts | Rust-based Handlebars         |
-| Error handling     | Basic        | Comprehensive with recovery   |
-| GPU support        | Limited      | Full (provider-dependent)     |
-| Auto-suspend       | Fly.io only  | Fly.io, E2B                   |
+| Feature            | V2           | V3                                       |
+| ------------------ | ------------ | ---------------------------------------- |
+| Configuration      | sindri.yaml  | sindri.yaml (enhanced schema)            |
+| Template rendering | Bash scripts | Rust-based Handlebars                    |
+| Error handling     | Basic        | Comprehensive with recovery              |
+| GPU support        | Limited      | Full (RunPod 40+ GPUs, Northflank H100+) |
+| Auto-suspend       | Fly.io only  | Fly.io, E2B, Northflank                  |
 
 ## Related Documentation
 
