@@ -1,0 +1,80 @@
+---
+metadata:
+  name: rvf-cli
+  version: 1.0.0
+  description: >-
+    Unified CLI for RuVector Format (RVF) vector storage operations
+  category: ai-dev
+  author: ruvnet
+  license: MIT OR Apache-2.0
+  homepage: https://github.com/ruvnet/ruvector
+  dependencies:
+    - rust
+requirements:
+  domains:
+    - github.com
+    - crates.io
+  diskSpace: 200
+  memory: 256
+  installTime: 120
+  installTimeout: 300
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 300
+validate:
+  commands:
+    - name: rvf
+      versionFlag: --version
+      expectedPattern: "rvf \\d+\\.\\d+\\.\\d+"
+remove:
+  script:
+    path: scripts/uninstall.sh
+  paths:
+    - ~/extensions/rvf-cli
+  confirmation: true
+  warning: |
+    This will remove rvf-cli and its binary.
+upgrade:
+  strategy: reinstall
+  script:
+    path: scripts/install.sh
+    timeout: 300
+bom:
+  tools:
+    - name: rvf-cli
+      version: dynamic
+      source: binary
+      type: cli-tool
+      license: MIT OR Apache-2.0
+      homepage: https://github.com/ruvnet/ruvector
+      purl: pkg:cargo/rvf-cli
+docs:
+  title: "RVF CLI"
+  overview: |
+    Unified command-line interface for RuVector Format (RVF) operations.
+    Provides vector store creation, ingestion, k-nearest neighbor search, compaction, lineage inspection, and an optional HTTP server.
+  last-updated: "2026-02-14"
+  features:
+    - "Vector store management - create, ingest, query, delete, compact"
+    - "Multiple input formats - JSON, CSV, TSV"
+    - "Store inspection and lineage tracking"
+    - "Derived store generation from parent instances"
+    - "Optional HTTP server (with serve feature)"
+    - "Machine-readable JSON output via --json flag"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - description: "Check CLI version"
+          code: "rvf --version"
+        - description: "View available commands"
+          code: "rvf --help"
+  related:
+    - name: rust
+      description: "Required Rust toolchain (provides cargo)"
+    - name: ruvector-cli
+      description: "RuVector database CLI with MCP server integration"
+  notes: |
+    Requires the Rust extension to be installed (provides cargo for compilation).
+    For detailed documentation, see: https://github.com/ruvnet/ruvector/tree/main/crates/rvf/rvf-cli

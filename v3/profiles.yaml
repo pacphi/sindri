@@ -35,6 +35,7 @@ profiles:
       - agent-manager
       - claude-flow-v3
       - agentic-qe
+      - kilo
       - ralph
       - golang
       - ollama
@@ -56,12 +57,16 @@ profiles:
       - supabase-cli
       - tmux-workspace
       - cloud-tools
+      - notebooklm-mcp-cli
+      - ruvector-cli
+      - rvf-cli
 
   systems:
     description: Systems programming
     extensions:
       - rust
       - golang
+      - haskell
       - docker
       - infra-tools
 
@@ -69,6 +74,7 @@ profiles:
     description: Enterprise development (all languages)
     extensions:
       - claude-cli
+      - kilo
       - nodejs
       - python
       - golang

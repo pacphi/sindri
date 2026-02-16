@@ -1,0 +1,77 @@
+---
+metadata:
+  name: ruvector-cli
+  version: 1.0.0
+  description: >-
+    CLI for RuVector self-learning vector database with MCP server integration
+  category: ai-dev
+  author: ruvnet
+  license: MIT OR Apache-2.0
+  homepage: https://github.com/ruvnet/ruvector
+  dependencies:
+    - rust
+requirements:
+  domains:
+    - github.com
+    - crates.io
+  diskSpace: 200
+  memory: 256
+  installTime: 120
+  installTimeout: 300
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 300
+validate:
+  commands:
+    - name: ruvector
+      versionFlag: --version
+      expectedPattern: "ruvector \\d+\\.\\d+\\.\\d+"
+remove:
+  script:
+    path: scripts/uninstall.sh
+  paths:
+    - ~/extensions/ruvector-cli
+  confirmation: true
+  warning: |
+    This will remove ruvector-cli and its binary.
+upgrade:
+  strategy: reinstall
+  script:
+    path: scripts/install.sh
+    timeout: 300
+bom:
+  tools:
+    - name: ruvector-cli
+      version: dynamic
+      source: binary
+      type: cli-tool
+      license: MIT OR Apache-2.0
+      homepage: https://github.com/ruvnet/ruvector
+      purl: pkg:cargo/ruvector-cli
+docs:
+  title: "RuVector CLI"
+  overview: |
+    Command-line interface and MCP server for RuVector, a self-learning distributed vector database.
+    Provides database creation, vector similarity search, batch operations, benchmarking, and AI tool integration via MCP.
+  last-updated: "2026-02-14"
+  features:
+    - "Vector database operations - create, insert, search, export"
+    - "Multiple distance metrics - Cosine, Euclidean, DotProduct, Manhattan"
+    - "Sub-millisecond query performance with HNSW indexing"
+    - "Batch operations with progress tracking"
+    - "MCP server integration for AI tools"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - description: "Check CLI version"
+          code: "ruvector --version"
+        - description: "View available commands"
+          code: "ruvector --help"
+  related:
+    - name: rust
+      description: "Required Rust toolchain (provides cargo)"
+  notes: |
+    Requires the Rust extension to be installed (provides cargo for compilation).
+    For detailed documentation, see: https://github.com/ruvnet/ruvector

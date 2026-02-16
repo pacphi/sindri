@@ -358,7 +358,7 @@ docs:
     - section: "MCP Server"
       examples:
         - description: "Start MCP server"
-          code: "npx -y @claude-flow/cli@alpha mcp start --transport stdio"
+          code: "npx -y @claude-flow/cli@v3alpha mcp start --transport stdio"
   related:
     - name: claude-flow-v2
       description: "Stable V2 version"

@@ -62,8 +62,8 @@ bash "$GHCUP_INSTALL" || {
 # Clean up installer
 rm -f "$GHCUP_INSTALL"
 
-# Set up PATH for ghcup
-export PATH="${HOME}/.ghcup/bin:${HOME}/.cabal/bin:${PATH}"
+# Set up PATH for ghcup (includes ~/.local/bin for XDG_DIRS mode)
+export PATH="${HOME}/.ghcup/bin:${HOME}/.local/bin:${HOME}/.cabal/bin:${PATH}"
 
 # Verify ghcup is available
 if ! command -v ghcup &>/dev/null; then
@@ -115,7 +115,7 @@ export GHCUP_INSTALL_BASE_PREFIX="${HOME}"
 export GHCUP_USE_XDG_DIRS=1
 export CABAL_DIR="${HOME}/.cabal"
 export STACK_ROOT="${HOME}/.stack"
-export PATH="${HOME}/.ghcup/bin:${HOME}/.cabal/bin:${HOME}/.local/bin:${PATH}"
+export PATH="${HOME}/.ghcup/bin:${HOME}/.local/bin:${HOME}/.cabal/bin:${PATH}"
 EOF
 
 # Summary
