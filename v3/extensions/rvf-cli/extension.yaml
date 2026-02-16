@@ -27,7 +27,7 @@ validate:
   commands:
     - name: rvf
       versionFlag: --version
-      expectedPattern: "rvf-cli \\d+\\.\\d+\\.\\d+"
+      expectedPattern: "rvf \\d+\\.\\d+\\.\\d+"
 remove:
   script:
     path: scripts/uninstall.sh

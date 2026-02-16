@@ -9,6 +9,13 @@ if ! command -v cargo &>/dev/null; then
     exit 1
 fi
 
+# Use home directory for cargo build artifacts to avoid /tmp noexec issues
+export CARGO_TARGET_DIR="${HOME}/.cache/cargo-build"
+mkdir -p "$CARGO_TARGET_DIR"
+
 cargo install rvf-cli
+
+# Clean up build artifacts to reclaim disk space
+rm -rf "$CARGO_TARGET_DIR"
 
 echo "rvf-cli installed successfully."

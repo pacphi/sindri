@@ -1,0 +1,73 @@
+---
+metadata:
+  name: kilo
+  version: 1.0.0
+  description: Kilo Code AI coding assistant CLI for terminal-based AI pair programming
+  category: ai-dev
+  dependencies:
+    - mise-config
+    - nodejs
+
+requirements:
+  domains:
+    - kilo.ai
+    - registry.npmjs.org
+  diskSpace: 200
+  memory: 256
+  installTime: 60
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+validate:
+  commands:
+    - name: kilo
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools: ["npm:@kilocode/cli"]
+
+bom:
+  # NOTE: Versions researched 2026-02-16
+  tools:
+    - name: kilo
+      version: "1.0.21"
+      source: mise
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://kilo.ai
+      purl: pkg:npm/%40kilocode/cli@1.0.21
+
+docs:
+  title: "Kilo Code CLI"
+  overview: |
+    Kilo Code is an AI coding assistant CLI that brings AI pair programming to your terminal.
+    It supports multiple AI providers and enables interactive coding sessions directly from the command line.
+  last-updated: "2026-02-16"
+  features:
+    - "Terminal-based AI pair programming"
+    - "Multi-provider AI support"
+    - "Interactive coding sessions from the CLI"
+    - "Installed and managed via mise"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - description: "Check installed version"
+          code: "kilo --version"
+        - description: "Get help"
+          code: "kilo --help"
+    - section: "Interactive Coding"
+      examples:
+        - description: "Start an interactive session"
+          code: "kilo"
+  related:
+    - name: ai-toolkit
+      description: "Collection of AI CLI tools and coding assistants"
+    - name: claude-cli
+      description: "Claude Code CLI for AI-assisted development"

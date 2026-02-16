@@ -22,6 +22,9 @@ else
   exit 1
 fi
 
+# Ensure ~/.local/bin is in PATH (uv/pipx install location)
+export PATH="${HOME}/.local/bin:${PATH}"
+
 # Verify installation
 if command -v nlm &>/dev/null; then
   echo "Successfully installed ${PACKAGE}"

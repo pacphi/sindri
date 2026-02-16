@@ -27,7 +27,7 @@ validate:
   commands:
     - name: ruvector
       versionFlag: --version
-      expectedPattern: "ruvector-cli \\d+\\.\\d+\\.\\d+"
+      expectedPattern: "ruvector \\d+\\.\\d+\\.\\d+"
 remove:
   script:
     path: scripts/uninstall.sh

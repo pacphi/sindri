@@ -41,7 +41,7 @@ V3 extensions are organized into the following categories:
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
 | **devops**          | Infrastructure, deployment, and operations tools | 5     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 4     |
-| **ai-dev**          | AI development tools and LLM interfaces          | 5     |
+| **ai-dev**          | AI development tools and LLM interfaces          | 6     |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
@@ -111,6 +111,7 @@ V3 extensions are organized into the following categories:
 | **ai-toolkit**   | 2.2.1   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot) | script         |
 | **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)           | script         |
 | **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                    | script         |
+| **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming         | mise           |
 | **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration       | script         |
 | **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                  | script         |
 
@@ -248,15 +249,15 @@ sindri extension upgrade nodejs
 
 Profiles provide pre-configured extension sets for common use cases:
 
-| Profile           | Extensions                                                      |
-| ----------------- | --------------------------------------------------------------- |
-| **minimal**       | nodejs, python                                                  |
-| **fullstack**     | nodejs, python, docker, nodejs-devtools                         |
-| **anthropic-dev** | claude-cli, claude-flow-v3, agentic-qe, ralph, ai-toolkit, etc. |
-| **systems**       | rust, golang, docker, infra-tools                               |
-| **enterprise**    | claude-cli, all languages, jira-mcp, cloud-tools                |
-| **devops**        | docker, infra-tools, monitoring, cloud-tools                    |
-| **mobile**        | nodejs, swift, linear-mcp, supabase-cli                         |
+| Profile           | Extensions                                                            |
+| ----------------- | --------------------------------------------------------------------- |
+| **minimal**       | nodejs, python                                                        |
+| **fullstack**     | nodejs, python, docker, nodejs-devtools                               |
+| **anthropic-dev** | claude-cli, claude-flow-v3, agentic-qe, kilo, ralph, ai-toolkit, etc. |
+| **systems**       | rust, golang, haskell, docker, infra-tools                            |
+| **enterprise**    | claude-cli, kilo, all languages, jira-mcp, cloud-tools                |
+| **devops**        | docker, infra-tools, monitoring, cloud-tools                          |
+| **mobile**        | nodejs, swift, linear-mcp, supabase-cli                               |
 
 Configure profiles in `sindri.yaml`:
 
@@ -663,7 +664,7 @@ This generates comprehensive markdown documentation by combining auto-derived da
 
 ## Summary Statistics
 
-- **Total Extensions**: 52
+- **Total Extensions**: 53
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 11

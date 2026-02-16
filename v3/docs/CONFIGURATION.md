@@ -693,11 +693,11 @@ Pre-configured extension profile.
 | --------------- | ---------------------- | -------------------------------------------- |
 | `minimal`       | Basic development      | nodejs, python                               |
 | `fullstack`     | Full-stack web         | nodejs, python, docker, nodejs-devtools      |
-| `anthropic-dev` | Anthropic toolset      | claude-flow, agentic-flow, ai-toolkit        |
-| `systems`       | Systems programming    | rust, golang, docker, infra-tools            |
-| `enterprise`    | Enterprise development | All languages + jira-mcp, cloud-tools        |
+| `anthropic-dev` | Anthropic toolset      | claude-flow, kilo, agentic-flow, ai-toolkit  |
+| `systems`       | Systems programming    | rust, golang, haskell, docker, infra-tools   |
+| `enterprise`    | Enterprise development | All languages + kilo, jira-mcp, cloud-tools  |
 | `devops`        | DevOps/SRE             | docker, infra-tools, monitoring, cloud-tools |
-| `mobile`        | Mobile development     | nodejs, linear-mcp, supabase-cli             |
+| `mobile`        | Mobile development     | nodejs, swift, linear-mcp, supabase-cli      |
 
 **VisionFlow profiles:**
 

@@ -420,6 +420,41 @@ docs:
 | `related[].description` | string | No     | Why the extension is related                    |
 | `notes`        | string          | No       | Freeform notes (markdown supported)             |
 
+## BOM Tool Types
+
+The `bom.tools[].type` field uses **kebab-case** values. The Rust enum uses `#[serde(rename_all = "kebab-case")]`, so multi-word variants are hyphenated.
+
+**IMPORTANT**: Use `cli-tool`, NOT `cli`. Use `package-manager`, NOT `package-manager` shorthand.
+
+| YAML Value | Rust Variant | Use For |
+|------------|-------------|---------|
+| `runtime` | `Runtime` | Language runtimes (Node.js, Python, Ruby, Java) |
+| `compiler` | `Compiler` | Compilers (GCC, rustc, javac) |
+| `package-manager` | `PackageManager` | Package managers (npm, pip, cargo, apt) |
+| `cli-tool` | `CliTool` | CLI tools and utilities (kubectl, aws-cli, docker) |
+| `library` | `Library` | Libraries and SDKs |
+| `framework` | `Framework` | Frameworks (Spring, Django, Rails) |
+| `database` | `Database` | Database engines (PostgreSQL, Redis, SQLite) |
+| `server` | `Server` | Server software (nginx, Apache) |
+| `utility` | `Utility` | System utilities and helpers |
+| `application` | `Application` | Full applications |
+
+### Type Selection Guide
+
+- **Most extensions** should use `cli-tool` (the most common type)
+- **Language extensions** (nodejs, python, ruby): use `runtime` for the language, `package-manager` for its package manager
+- **MCP servers**: use `server`
+- **AI agents/tools**: use `cli-tool` (they are CLI tools, not applications)
+
+### Common Mistakes
+
+| Wrong | Correct | Why |
+|-------|---------|-----|
+| `type: cli` | `type: cli-tool` | `cli` is not a valid variant |
+| `type: tool` | `type: cli-tool` | `tool` is not a valid variant |
+| `type: package_manager` | `type: package-manager` | Must use kebab-case (hyphens, not underscores) |
+| `type: CLI-Tool` | `type: cli-tool` | Must be lowercase |
+
 ## Common V3 Patterns
 
 ### Language Runtime
@@ -448,6 +483,40 @@ bom:
       source: mise
       type: runtime
       license: MIT
+```
+
+### CLI Tool (e.g., AI coding assistant)
+
+```yaml
+metadata:
+  name: kilo
+  version: 1.0.0
+  description: AI coding assistant CLI
+  category: ai-dev
+  dependencies: [mise-config, nodejs]
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+validate:
+  commands:
+    - name: kilo
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+bom:
+  # NOTE: Versions researched 2026-02-16
+  tools:
+    - name: kilo
+      version: "1.0.21"
+      source: mise
+      type: cli-tool       # NOT 'cli' - must be 'cli-tool'
+      license: Apache-2.0
+      homepage: https://kilo.ai
+      purl: pkg:npm/%40kilocode/cli@1.0.21
 ```
 
 ### MCP Server Extension

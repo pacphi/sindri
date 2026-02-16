@@ -211,7 +211,7 @@ extensions:
   profile: mobile
 ```
 
-**Includes:** nodejs, linear-mcp, supabase-cli
+**Includes:** nodejs, swift, linear-mcp, supabase-cli
 
 ### Fullstack
 
@@ -233,7 +233,7 @@ extensions:
   profile: anthropic-dev
 ```
 
-**Includes:** claude-cli, claude-flow-v3, agentic-qe, ralph, ai-toolkit, and more
+**Includes:** claude-cli, claude-flow-v3, agentic-qe, kilo, ralph, ai-toolkit, and more
 
 ## Version Resolution Strategies
 

@@ -143,6 +143,9 @@ extensions:
   goose:
     category: "ai-dev"
     description: "Goose AI assistant"
+  kilo:
+    category: "ai-dev"
+    description: "Kilo Code AI coding assistant CLI for terminal-based AI pair programming"
   ollama:
     category: "ai-dev"
     description: "Ollama local LLM runtime"
