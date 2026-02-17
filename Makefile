@@ -456,6 +456,10 @@ deps-upgrade-npm:
 .PHONY: deps-upgrade-cargo
 deps-upgrade-cargo:
 	@echo "$(BLUE)Upgrading cargo dependencies...$(RESET)"
+	@if ! cargo upgrade --version >/dev/null 2>&1; then \
+		echo "$(YELLOW)cargo-edit not installed. Installing...$(RESET)"; \
+		cargo install cargo-edit; \
+	fi
 	pnpm deps:upgrade:cargo
 	@echo "$(GREEN)✓ cargo dependencies upgraded$(RESET)"
 
