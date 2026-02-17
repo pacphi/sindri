@@ -398,9 +398,9 @@ jobs:
 | `v3/crates/sindri-packer/tests/common/mock_cloud.rs`      | Cloud API mocks           |
 | `v3/crates/sindri-packer/tests/common/assertions.rs`      | Build assertions          |
 | `v3/crates/sindri-packer/tests/integration/*.rs`          | Build lifecycle tests     |
-| `v3/test/integration/sindri/controls/extensions.rb`       | Extension InSpec controls |
-| `v3/test/integration/sindri/controls/security.rb`         | Security InSpec controls  |
-| `v3/test/integration/sindri/controls/mise.rb`             | Mise InSpec controls      |
+| `v3/inspec/integration/sindri/controls/extensions.rb`       | Extension InSpec controls |
+| `v3/inspec/integration/sindri/controls/security.rb`         | Security InSpec controls  |
+| `v3/inspec/integration/sindri/controls/mise.rb`             | Mise InSpec controls      |
 | `.github/actions/packer/launch-instance/action.yml`       | Instance launch action    |
 | `.github/actions/packer/terminate-instance/action.yml`    | Instance cleanup action   |
 | `scripts/v3-packer-test.sh`                               | Local Packer test script  |
@@ -414,7 +414,7 @@ jobs:
 | `Makefile`                               | Add v3-ext-_, v3-packer-_ targets |
 | `.github/workflows/ci-v3.yml`            | Integrate test workflows          |
 | `.github/workflows/v3-packer-test.yml`   | Enhanced InSpec testing           |
-| `v3/test/integration/sindri/inspec.yml`  | Add new control dependencies      |
+| `v3/inspec/integration/sindri/inspec.yml`  | Add new control dependencies      |
 
 ---
 
