@@ -10,8 +10,13 @@ Sindri Console is a unified control plane for all deployed Sindri instances acro
 - **Web terminal** — browser-based PTY access to any running instance via xterm.js
 - **Instance registry** — automatic registration when instances deploy via the `console-agent` extension
 - **WebSocket streaming** — live CPU/memory/disk metrics and event feeds from agents
+- **RBAC & Teams** — role-based access control with team workspaces and audit log (Phase 4)
+- **Extension Administration** — extension registry, custom upload, approval workflow (Phase 4)
+- **Configuration Drift** — drift detection, severity classification, and remediation (Phase 4)
+- **Cost Tracking** — cost analysis, budget management, and optimization recommendations (Phase 4)
+- **Security Dashboard** — SBOM generation, CVE monitoring, secrets scanning (Phase 4)
 
-See `docs/ARCHITECTURE.md` for the full system design.
+See `docs/README.md` for the full feature documentation and `docs/ARCHITECTURE.md` for system design.
 
 ## Directory Structure
 

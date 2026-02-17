@@ -1329,3 +1329,412 @@ npx playwright test tests/e2e/fleet-dashboard.spec.ts tests/e2e/instance-dashboa
 | API integration (Vitest) | ≥ 80% statements |
 | Frontend unit (Vitest) | ≥ 75% statements |
 | E2E (Playwright) | All critical observability paths covered |
+
+---
+
+## Phase 4: Administration & Security
+
+Phase 4 adds enterprise-grade administration, security monitoring, and cost governance.
+
+### Phase 4 Feature Overview
+
+| Feature | Description |
+|---------|-------------|
+| RBAC & Team Workspaces | User and team management with permission enforcement, audit log |
+| Extension Administration | Extension registry, custom extension upload, approval workflow, usage tracking |
+| Configuration Drift Detection | Drift detection, severity classification, remediation, suppression rules |
+| Cost Tracking & Optimization | Cost calculation, budget management, anomaly detection, optimization recommendations |
+| Security Dashboard & BOM/CVE | SBOM generation, CVE detection, secrets scanning, security scoring |
+
+---
+
+## RBAC & Team Workspaces
+
+### User Roles
+
+| Role | Capabilities |
+|------|-------------|
+| `ADMIN` | Full system access — users, teams, all instances, audit log, settings |
+| `OPERATOR` | Deploy, suspend, resume instances; manage extensions; view audit log |
+| `DEVELOPER` | Read instances, execute commands, connect via terminal, install extensions |
+| `VIEWER` | Read-only access to instances, metrics, and logs |
+
+### Teams
+
+Teams group users and control access to sets of instances collectively.
+
+- Team slugs are URL-safe: `[a-z0-9-]+`
+- Users can belong to multiple teams with different roles per team
+- Team members inherit the instance access granted to the team
+- Adding/removing members generates `TEAM_ADD` / `TEAM_REMOVE` audit entries
+
+### Audit Log
+
+All permission-sensitive operations are recorded:
+
+| Action | Trigger |
+|--------|---------|
+| `CREATE` / `UPDATE` / `DELETE` | Resource lifecycle |
+| `LOGIN` / `LOGOUT` | User sessions |
+| `DEPLOY` / `DESTROY` / `SUSPEND` / `RESUME` | Instance lifecycle |
+| `EXECUTE` / `CONNECT` / `DISCONNECT` | Command and terminal events |
+| `PERMISSION_CHANGE` | Role changes |
+| `TEAM_ADD` / `TEAM_REMOVE` | Team membership |
+
+### API Key Management
+
+- Keys are stored as SHA-256 hashes; the raw value is shown once at creation
+- Keys can have an expiration date or be permanent (`expires_at: null`)
+- Keys inherit the permissions of the owning user
+
+### Phase 4 API Endpoints (RBAC)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/users` | List all users (ADMIN only) |
+| `POST` | `/api/v1/users` | Create a user (ADMIN only) |
+| `PATCH` | `/api/v1/users/:id` | Update user role (ADMIN only) |
+| `DELETE` | `/api/v1/users/:id` | Delete a user (ADMIN only) |
+| `GET` | `/api/v1/teams` | List all teams |
+| `POST` | `/api/v1/teams` | Create a team (ADMIN only) |
+| `GET` | `/api/v1/teams/:id` | Get team details |
+| `PATCH` | `/api/v1/teams/:id` | Update team (ADMIN only) |
+| `DELETE` | `/api/v1/teams/:id` | Delete team (ADMIN only) |
+| `GET` | `/api/v1/teams/:id/members` | List team members |
+| `POST` | `/api/v1/teams/:id/members` | Add a member (Team ADMIN+) |
+| `DELETE` | `/api/v1/teams/:id/members/:userId` | Remove a member (Team ADMIN+) |
+| `GET` | `/api/v1/audit` | Query audit log (ADMIN only) |
+
+---
+
+## Extension Administration & Registry
+
+### Extension Lifecycle
+
+```
+PENDING ──(admin approves)──→ APPROVED ──(admin deprecates)──→ DEPRECATED
+PENDING ──(admin rejects)──→ REJECTED
+```
+
+### Extension Visibility
+
+| Visibility | Access |
+|------------|--------|
+| `PUBLIC` | All authenticated users |
+| `TEAM` | Members of the owning team |
+| `PRIVATE` | Creator and ADMINs only |
+
+### Extension Versioning
+
+- Versions follow semantic versioning: `MAJOR.MINOR.PATCH`
+- Artifacts are stored with a `sha256:` checksum
+- Only one version can be marked as `is_latest: true` per extension
+
+### Usage Tracking
+
+The `install_count` field increments on each new installation. Usage reports show:
+- Which instances have each extension installed
+- Active vs. removed installation counts per extension
+
+### Phase 4 API Endpoints (Extensions)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/extensions` | List extensions (default: APPROVED only) |
+| `POST` | `/api/v1/extensions` | Upload a custom extension (DEVELOPER+) |
+| `GET` | `/api/v1/extensions/:id` | Get extension details |
+| `PATCH` | `/api/v1/extensions/:id` | Update extension metadata |
+| `GET` | `/api/v1/extensions/:id/versions` | List all versions |
+| `POST` | `/api/v1/extensions/:id/approve` | Approve extension (ADMIN only) |
+| `POST` | `/api/v1/extensions/:id/reject` | Reject extension (ADMIN only) |
+| `POST` | `/api/v1/extensions/:id/deprecate` | Deprecate extension (ADMIN only) |
+| `GET` | `/api/v1/extensions/:id/installations` | List instance installations |
+| `POST` | `/api/v1/instances/:id/extensions` | Install extension on an instance |
+| `DELETE` | `/api/v1/instances/:id/extensions/:extId` | Remove extension from an instance |
+
+---
+
+## Configuration Drift Detection
+
+### Drift Types
+
+| Type | Description | Default Severity |
+|------|-------------|-----------------|
+| `MISSING_EXTENSION` | Required extension not installed | CRITICAL |
+| `CONFIG_HASH_CHANGE` | `sindri.yaml` hash differs from deployed | HIGH |
+| `EXTENSION_MISMATCH` | Installed version differs from desired | HIGH |
+| `VERSION_MISMATCH` | Minor version mismatch | MEDIUM |
+| `RESOURCE_DRIFT` | Resource limits differ from spec | MEDIUM |
+| `EXTRA_EXTENSION` | Extension installed but not in desired config | LOW |
+
+### Drift State Machine
+
+```
+DETECTED ──(user acknowledges)──→ ACKNOWLEDGED
+ACKNOWLEDGED ──(remediation starts)──→ REMEDIATING
+REMEDIATING ──(success)──→ RESOLVED
+any ──(user suppresses)──→ SUPPRESSED
+```
+
+### Suppression Rules
+
+- Scoped per instance, per drift type, or fleet-wide
+- Can be permanent or time-limited (`expires_at`)
+- Used to acknowledge known deviations that are intentional
+
+### Remediation Modes
+
+| Mode | Description |
+|------|-------------|
+| `MANUAL` | User-triggered — requires explicit action |
+| `AUTOMATIC` | System-triggered — applies fix without user intervention |
+
+### Phase 4 API Endpoints (Drift)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/drift` | Fleet drift summary |
+| `GET` | `/api/v1/drift/:instanceId` | Instance drift report |
+| `POST` | `/api/v1/drift/:id/acknowledge` | Acknowledge a drift report |
+| `POST` | `/api/v1/drift/:id/remediate` | Trigger remediation |
+| `POST` | `/api/v1/drift/:id/suppress` | Create a suppression rule |
+| `GET` | `/api/v1/drift/suppress` | List suppression rules |
+| `DELETE` | `/api/v1/drift/suppress/:id` | Delete a suppression rule |
+
+---
+
+## Cost Tracking & Optimization
+
+### Cost Categories
+
+| Category | Description |
+|----------|-------------|
+| `COMPUTE` | CPU/compute hours |
+| `STORAGE` | Persistent volume costs |
+| `NETWORK` | Ingress/egress bandwidth |
+| `EGRESS` | Outbound data transfer |
+| `OTHER` | Miscellaneous provider charges |
+
+### Budget Scoping
+
+Budgets can be scoped to:
+- Fleet-wide (no scope)
+- A specific team
+- A specific instance
+
+### Alert Thresholds
+
+Budgets trigger alerts at configurable thresholds: 50%, 75%, 80%, 90%, 100% of limit.
+
+### Anomaly Detection
+
+A cost anomaly is detected when actual spend exceeds expected spend by more than 50% within a measurement window. Anomaly sensitivity is configurable.
+
+### Optimization Recommendations
+
+| Action | Trigger Condition |
+|--------|------------------|
+| `SUSPEND_IDLE` | Instance idle for 48h+ |
+| `DOWNSIZE` | Consistently low resource utilization |
+| `RIGHTSIZE` | Resource spec doesn't match actual usage pattern |
+| `SWITCH_PROVIDER` | Significantly cheaper alternative provider available |
+| `REMOVE_UNUSED` | Instance has had no activity for 30d+ |
+
+### Phase 4 API Endpoints (Costs)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/costs` | Fleet cost summary |
+| `GET` | `/api/v1/costs/instances/:id` | Instance cost breakdown |
+| `GET` | `/api/v1/costs/instances/:id/history` | Historical cost data |
+| `GET` | `/api/v1/budgets` | List all budgets |
+| `POST` | `/api/v1/budgets` | Create a budget |
+| `GET` | `/api/v1/budgets/:id` | Get budget details |
+| `PUT` | `/api/v1/budgets/:id` | Update a budget |
+| `DELETE` | `/api/v1/budgets/:id` | Delete a budget |
+| `GET` | `/api/v1/costs/anomalies` | List cost anomalies |
+| `GET` | `/api/v1/costs/recommendations` | List optimization recommendations |
+
+---
+
+## Security Dashboard & BOM/CVE Monitoring
+
+### SBOM (Software Bill of Materials)
+
+The Console generates SBOMs in **CycloneDX** and **SPDX** formats. An SBOM is regenerated after each extension installation and captures:
+
+- All direct and transitive dependencies per extension
+- Package URLs (PURL format: `pkg:type/namespace/name@version`)
+- License information for compliance
+
+### CVE Detection
+
+CVEs are matched against SBOM components using the NVD (National Vulnerability Database). Severity is classified by CVSS score:
+
+| CVSS Range | Severity |
+|-----------|---------|
+| 9.0–10.0 | CRITICAL |
+| 7.0–8.9 | HIGH |
+| 4.0–6.9 | MEDIUM |
+| 0.1–3.9 | LOW |
+| 0.0 | NONE / INFORMATIONAL |
+
+### Vulnerability Status Lifecycle
+
+```
+OPEN ──(user reviews)──→ ACKNOWLEDGED
+ACKNOWLEDGED ──(patch applied)──→ PATCHING ──→ FIXED
+OPEN ──(risk accepted)──→ ACCEPTED_RISK
+OPEN ──(not applicable)──→ FALSE_POSITIVE
+```
+
+### Secrets Scanning
+
+Scans sindri.yaml, .env files, and config directories for high-entropy strings indicative of:
+- API keys (`API_KEY`)
+- Tokens (`TOKEN`)
+- Passwords (`PASSWORD`)
+- Certificates (`CERTIFICATE`)
+- SSH private keys (`SSH_KEY`)
+- Generic high-entropy secrets (`GENERIC`)
+
+Shannon entropy > 4.0 combined with minimum length thresholds is used as the detection heuristic.
+
+### Security Scoring
+
+Each instance receives a security score (0–100) and letter grade:
+
+| Score | Grade |
+|-------|-------|
+| 90–100 | A |
+| 80–89 | B |
+| 70–79 | C |
+| 60–69 | D |
+| 0–59 | F |
+
+Scoring factors:
+- Open CVEs (weighted by severity — CRITICAL has the highest weight)
+- Unrotated secret findings
+- Unpatched high-severity vulnerabilities
+
+### Phase 4 API Endpoints (Security)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/security` | Fleet security summary |
+| `GET` | `/api/v1/security/instances/:id` | Instance security score |
+| `GET` | `/api/v1/security/instances/:id/sbom` | SBOM for an instance |
+| `GET` | `/api/v1/security/instances/:id/cves` | CVEs affecting an instance |
+| `GET` | `/api/v1/security/cves` | All CVEs (fleet-wide) |
+| `PATCH` | `/api/v1/security/cves/:id` | Update CVE status |
+| `GET` | `/api/v1/security/secrets` | All secret findings |
+| `PATCH` | `/api/v1/security/secrets/:id` | Update secret finding status |
+
+---
+
+## Phase 4 Testing Guide
+
+### Integration Tests (Vitest)
+
+Phase 4 tests are included in the default `npm test` run alongside Phase 1–3 tests.
+
+```bash
+cd apps/api
+
+# RBAC and team workspaces
+npm test -- tests/rbac-teams.test.ts
+
+# Extension administration
+npm test -- tests/extension-admin.test.ts
+
+# Configuration drift detection
+npm test -- tests/config-drift.test.ts
+
+# Cost tracking and budgets
+npm test -- tests/cost-tracking.test.ts
+
+# Security dashboard and CVE monitoring
+npm test -- tests/security-dashboard.test.ts
+```
+
+#### Test Coverage by File
+
+| File | Tests | Coverage Area |
+|------|-------|---------------|
+| `rbac-teams.test.ts` | User CRUD, team management, membership, permission matrix, team-scoped access, audit log, API keys | RBAC permission enforcement and team workspace data model |
+| `extension-admin.test.ts` | Registry listing/search, versioning, installation, custom upload, usage tracking, governance | Extension registry and installation lifecycle |
+| `config-drift.test.ts` | Drift detection algorithms, severity classification, state machine, remediation jobs, suppression rules, fleet summary | Drift detection engine |
+| `cost-tracking.test.ts` | Cost calculation, budget thresholds, anomaly detection, cost attribution, optimization recommendations | Cost tracking data model and budget alert logic |
+| `security-dashboard.test.ts` | SBOM format, CVE detection/scoring, secrets scanning, security scoring, fleet summary | Security monitoring data model |
+
+### E2E Tests (Playwright)
+
+```bash
+cd apps/web
+
+# User and team management flows
+npx playwright test tests/e2e/rbac-teams.spec.ts
+
+# Extension browsing, upload, and admin governance
+npx playwright test tests/e2e/extension-admin.spec.ts
+
+# Drift detection dashboard and remediation UI
+npx playwright test tests/e2e/drift-detection.spec.ts
+
+# Budget management and alert notifications
+npx playwright test tests/e2e/budget-alerts.spec.ts
+
+# Security dashboard, CVE list, SBOM, and secrets
+npx playwright test tests/e2e/security-dashboard.spec.ts
+
+# Run all Phase 4 E2E tests
+npx playwright test tests/e2e/rbac-teams.spec.ts tests/e2e/extension-admin.spec.ts tests/e2e/drift-detection.spec.ts tests/e2e/budget-alerts.spec.ts tests/e2e/security-dashboard.spec.ts
+```
+
+#### E2E Test Scenarios
+
+**rbac-teams.spec.ts:**
+- Team list renders with member counts
+- Creating a team persists and appears in list
+- Team detail page shows member list with roles
+- Users page shows email and role for each user
+- Audit log entries are ordered newest first
+
+**extension-admin.spec.ts:**
+- Extension registry displays name, version, and description
+- Search bar filters extensions by name
+- Extension detail shows install button and version history
+- Upload dialog validates required fields
+- Admin governance page shows pending/approve/reject controls
+
+**drift-detection.spec.ts:**
+- Drift dashboard shows fleet health percentage
+- Instance drift rows show severity badges
+- Drift detail shows individual drift items with expected/actual values
+- Acknowledge, remediate, and suppress buttons are available
+
+**budget-alerts.spec.ts:**
+- Budget rows show progress bars vs. limit
+- Budget threshold badges appear when spending exceeds 50%/80%/100%
+- Creating a valid budget adds it to the list
+- Optimization recommendations show action type and potential savings
+
+**security-dashboard.spec.ts:**
+- Fleet security score is displayed
+- CVE list shows severity badges and CVSS scores
+- CVE severity filter narrows the list
+- SBOM tab shows component names and versions
+- Secret findings show type, location, and rotation status
+
+### Phase 4 Coverage Targets
+
+| Layer | Target |
+|-------|--------|
+| RBAC unit tests | ≥ 85% statements |
+| Extension admin unit tests | ≥ 85% statements |
+| Drift detection unit tests | ≥ 85% statements |
+| Cost tracking unit tests | ≥ 85% statements |
+| Security dashboard unit tests | ≥ 85% statements |
+| API integration (Vitest) | ≥ 80% statements |
+| Frontend unit (Vitest) | ≥ 75% statements |
+| E2E (Playwright) | All critical Phase 4 user paths covered |

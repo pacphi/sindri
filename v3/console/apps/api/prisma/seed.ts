@@ -13,6 +13,17 @@ import {
   TerminalSessionStatus,
   ScheduledTaskStatus,
   TaskExecutionStatus,
+  TeamMemberRole,
+  AuditAction,
+  ExtensionScope,
+  VulnerabilitySeverity,
+  VulnerabilityStatus,
+  SshKeyStatus,
+  DriftStatus,
+  DriftSeverity,
+  RemediationStatus,
+  SecretType,
+  BudgetPeriod,
 } from "@prisma/client";
 import * as crypto from "crypto";
 
@@ -486,6 +497,786 @@ async function seedScheduledTasks(instances: Array<{ id: string; status: Instanc
   return tasks;
 }
 
+async function seedTeams(
+  users: Array<{ id: string; email: string }>,
+  instances: Array<{ id: string; status: InstanceStatus }>,
+) {
+  console.log("Seeding teams...");
+
+  const adminUser = users[0]; // admin@sindri.dev
+  const operatorUser = users[1]; // operator@sindri.dev
+  const devUser = users[2]; // developer@sindri.dev
+  const viewerUser = users[3]; // viewer@sindri.dev
+
+  const teams = [
+    {
+      id: "team_platform_01",
+      name: "Platform Engineering",
+      description: "Core infrastructure and platform reliability team.",
+      created_by: adminUser.id,
+    },
+    {
+      id: "team_ml_01",
+      name: "Machine Learning",
+      description: "ML research and experimentation workspaces.",
+      created_by: adminUser.id,
+    },
+    {
+      id: "team_frontend_01",
+      name: "Frontend",
+      description: "Web application development team.",
+      created_by: operatorUser.id,
+    },
+  ];
+
+  for (const team of teams) {
+    await prisma.team.upsert({
+      where: { name: team.name },
+      update: {},
+      create: { ...team, updated_at: new Date() },
+    });
+  }
+
+  // Assign members to teams
+  const memberships = [
+    // Platform Engineering: admin (ADMIN), operator (OPERATOR), developer (DEVELOPER)
+    { team_id: "team_platform_01", user_id: adminUser.id, role: TeamMemberRole.ADMIN },
+    { team_id: "team_platform_01", user_id: operatorUser.id, role: TeamMemberRole.OPERATOR },
+    { team_id: "team_platform_01", user_id: devUser.id, role: TeamMemberRole.DEVELOPER },
+    // Machine Learning: developer (ADMIN of team), viewer (DEVELOPER)
+    { team_id: "team_ml_01", user_id: devUser.id, role: TeamMemberRole.ADMIN },
+    { team_id: "team_ml_01", user_id: viewerUser.id, role: TeamMemberRole.DEVELOPER },
+    // Frontend: operator (ADMIN), developer (DEVELOPER), viewer (VIEWER)
+    { team_id: "team_frontend_01", user_id: operatorUser.id, role: TeamMemberRole.ADMIN },
+    { team_id: "team_frontend_01", user_id: devUser.id, role: TeamMemberRole.DEVELOPER },
+    { team_id: "team_frontend_01", user_id: viewerUser.id, role: TeamMemberRole.VIEWER },
+  ];
+
+  for (const m of memberships) {
+    await prisma.teamMember.upsert({
+      where: { team_id_user_id: { team_id: m.team_id, user_id: m.user_id } },
+      update: { role: m.role },
+      create: { team_id: m.team_id, user_id: m.user_id, role: m.role },
+    });
+  }
+
+  // Assign instances to teams
+  const runningInstances = instances.filter((i) => i.status === InstanceStatus.RUNNING);
+  const stoppedInstances = instances.filter((i) => i.status === InstanceStatus.STOPPED);
+
+  const instanceAssignments: Array<{ id: string; team_id: string }> = [];
+
+  // Assign first two running instances to Platform Engineering
+  runningInstances
+    .slice(0, 2)
+    .forEach((inst) => instanceAssignments.push({ id: inst.id, team_id: "team_platform_01" }));
+  // Assign remaining running instances to Frontend
+  runningInstances
+    .slice(2)
+    .forEach((inst) => instanceAssignments.push({ id: inst.id, team_id: "team_frontend_01" }));
+  // Assign stopped instances to ML team
+  stoppedInstances.forEach((inst) =>
+    instanceAssignments.push({ id: inst.id, team_id: "team_ml_01" }),
+  );
+
+  for (const assignment of instanceAssignments) {
+    await prisma.instance.update({
+      where: { id: assignment.id },
+      data: { team_id: assignment.team_id },
+    });
+  }
+
+  console.log(
+    `  Created ${teams.length} teams, ${memberships.length} memberships, assigned ${instanceAssignments.length} instances`,
+  );
+  return teams;
+}
+
+async function seedAuditLogs(users: Array<{ id: string; email: string }>) {
+  console.log("Seeding audit logs...");
+
+  const adminUser = users[0];
+  const operatorUser = users[1];
+  const devUser = users[2];
+
+  const now = new Date();
+  const minutesAgo = (m: number) => new Date(now.getTime() - m * 60 * 1000);
+
+  const logs = [
+    // Admin login and user management
+    {
+      user_id: adminUser.id,
+      action: AuditAction.LOGIN,
+      resource: "user",
+      resource_id: adminUser.id,
+      metadata: { ip: "10.0.0.1", method: "password" },
+      ip_address: "10.0.0.1",
+      user_agent: "Mozilla/5.0 (Sindri Console)",
+      timestamp: minutesAgo(120),
+    },
+    {
+      user_id: adminUser.id,
+      team_id: "team_platform_01",
+      action: AuditAction.TEAM_ADD,
+      resource: "team_member",
+      resource_id: "team_platform_01",
+      metadata: { added_user_id: devUser.id, role: "DEVELOPER" },
+      ip_address: "10.0.0.1",
+      user_agent: "Mozilla/5.0 (Sindri Console)",
+      timestamp: minutesAgo(115),
+    },
+    {
+      user_id: adminUser.id,
+      action: AuditAction.CREATE,
+      resource: "team",
+      resource_id: "team_ml_01",
+      metadata: { name: "Machine Learning" },
+      ip_address: "10.0.0.1",
+      user_agent: "Mozilla/5.0 (Sindri Console)",
+      timestamp: minutesAgo(110),
+    },
+    // Operator actions
+    {
+      user_id: operatorUser.id,
+      action: AuditAction.LOGIN,
+      resource: "user",
+      resource_id: operatorUser.id,
+      metadata: { ip: "10.0.0.2", method: "api_key" },
+      ip_address: "10.0.0.2",
+      user_agent: "sindri-cli/3.0.0",
+      timestamp: minutesAgo(90),
+    },
+    {
+      user_id: operatorUser.id,
+      team_id: "team_platform_01",
+      action: AuditAction.DEPLOY,
+      resource: "instance",
+      resource_id: "inst_fly_sea_01",
+      metadata: { provider: "fly", region: "sea", template: "fullstack-typescript" },
+      ip_address: "10.0.0.2",
+      user_agent: "sindri-cli/3.0.0",
+      timestamp: minutesAgo(85),
+    },
+    {
+      user_id: operatorUser.id,
+      team_id: "team_platform_01",
+      action: AuditAction.PERMISSION_CHANGE,
+      resource: "team_member",
+      resource_id: "team_platform_01",
+      metadata: {
+        target_user_id: devUser.id,
+        old_role: "VIEWER",
+        new_role: "DEVELOPER",
+      },
+      ip_address: "10.0.0.2",
+      user_agent: "Mozilla/5.0 (Sindri Console)",
+      timestamp: minutesAgo(60),
+    },
+    // Developer actions
+    {
+      user_id: devUser.id,
+      action: AuditAction.LOGIN,
+      resource: "user",
+      resource_id: devUser.id,
+      metadata: { ip: "192.168.1.50", method: "api_key" },
+      ip_address: "192.168.1.50",
+      user_agent: "sindri-cli/3.0.0",
+      timestamp: minutesAgo(45),
+    },
+    {
+      user_id: devUser.id,
+      team_id: "team_platform_01",
+      action: AuditAction.CONNECT,
+      resource: "terminal_session",
+      resource_id: "inst_fly_sea_01",
+      metadata: { instance_name: "dev-primary" },
+      ip_address: "192.168.1.50",
+      user_agent: "sindri-cli/3.0.0",
+      timestamp: minutesAgo(40),
+    },
+    {
+      user_id: devUser.id,
+      team_id: "team_platform_01",
+      action: AuditAction.EXECUTE,
+      resource: "command_execution",
+      resource_id: "inst_fly_sea_01",
+      metadata: { command: "npm run build", exit_code: 0 },
+      ip_address: "192.168.1.50",
+      user_agent: "sindri-cli/3.0.0",
+      timestamp: minutesAgo(35),
+    },
+    {
+      user_id: devUser.id,
+      team_id: "team_platform_01",
+      action: AuditAction.DISCONNECT,
+      resource: "terminal_session",
+      resource_id: "inst_fly_sea_01",
+      metadata: { session_duration_seconds: 300 },
+      ip_address: "192.168.1.50",
+      user_agent: "sindri-cli/3.0.0",
+      timestamp: minutesAgo(15),
+    },
+    // System-level audit (no user)
+    {
+      user_id: null,
+      action: AuditAction.SUSPEND,
+      resource: "instance",
+      resource_id: "inst_e2b_01",
+      metadata: { reason: "idle_timeout", idle_minutes: 60 },
+      ip_address: null,
+      user_agent: null,
+      timestamp: minutesAgo(5),
+    },
+  ];
+
+  await prisma.auditLog.createMany({ data: logs, skipDuplicates: false });
+  console.log(`  Created ${logs.length} audit log entries`);
+}
+
+async function seedExtensions() {
+  console.log("Seeding extensions...");
+
+  const extensions = [
+    {
+      id: "ext_node_lts",
+      name: "node-lts",
+      display_name: "Node.js LTS",
+      description: "Node.js Long Term Support runtime with npm and npx.",
+      category: "language",
+      version: "20.11.0",
+      author: "Sindri Team",
+      license: "MIT",
+      tags: ["javascript", "typescript", "node", "npm"],
+      dependencies: [],
+      scope: ExtensionScope.PUBLIC,
+      is_official: true,
+      download_count: 8420,
+    },
+    {
+      id: "ext_python3",
+      name: "python3",
+      display_name: "Python 3",
+      description: "Python 3 runtime with pip and virtualenv support.",
+      category: "language",
+      version: "3.12.1",
+      author: "Sindri Team",
+      license: "PSF-2.0",
+      tags: ["python", "pip", "ml", "scripting"],
+      dependencies: [],
+      scope: ExtensionScope.PUBLIC,
+      is_official: true,
+      download_count: 7850,
+    },
+    {
+      id: "ext_claude_code",
+      name: "claude-code",
+      display_name: "Claude Code",
+      description: "Anthropic Claude Code AI coding assistant integration.",
+      category: "ai",
+      version: "1.0.0",
+      author: "Anthropic",
+      license: "Proprietary",
+      tags: ["ai", "llm", "coding-assistant", "anthropic"],
+      dependencies: ["node-lts"],
+      scope: ExtensionScope.PUBLIC,
+      is_official: true,
+      download_count: 6210,
+    },
+    {
+      id: "ext_docker",
+      name: "docker-in-docker",
+      display_name: "Docker-in-Docker",
+      description: "Full Docker daemon for building and running containers inside Sindri.",
+      category: "infrastructure",
+      version: "24.0.7",
+      author: "Sindri Team",
+      license: "Apache-2.0",
+      tags: ["docker", "containers", "build", "ci"],
+      dependencies: [],
+      scope: ExtensionScope.PUBLIC,
+      is_official: true,
+      download_count: 5130,
+    },
+    {
+      id: "ext_rust",
+      name: "rust",
+      display_name: "Rust",
+      description: "Rust stable toolchain with cargo, rustfmt, and clippy.",
+      category: "language",
+      version: "1.76.0",
+      author: "Sindri Team",
+      license: "MIT OR Apache-2.0",
+      tags: ["rust", "cargo", "systems"],
+      dependencies: [],
+      scope: ExtensionScope.PUBLIC,
+      is_official: true,
+      download_count: 2980,
+    },
+  ];
+
+  for (const ext of extensions) {
+    await prisma.extension.upsert({
+      where: { name: ext.name },
+      update: { download_count: ext.download_count },
+      create: { ...ext, updated_at: new Date() },
+    });
+  }
+
+  // Seed usage records for running instances
+  const usages = [
+    {
+      extension_id: "ext_node_lts",
+      instance_id: "inst_fly_sea_01",
+      version: "20.11.0",
+      installed_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+      install_duration_ms: 12400,
+    },
+    {
+      extension_id: "ext_python3",
+      instance_id: "inst_fly_sea_01",
+      version: "3.12.1",
+      installed_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+      install_duration_ms: 8900,
+    },
+    {
+      extension_id: "ext_claude_code",
+      instance_id: "inst_fly_sea_01",
+      version: "1.0.0",
+      installed_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      install_duration_ms: 45200,
+    },
+    {
+      extension_id: "ext_docker",
+      instance_id: "inst_k8s_use1_01",
+      version: "24.0.7",
+      installed_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      install_duration_ms: 89000,
+    },
+    {
+      extension_id: "ext_rust",
+      instance_id: "inst_docker_01",
+      version: "1.76.0",
+      installed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      install_duration_ms: 132000,
+    },
+  ];
+
+  await prisma.extensionUsage.createMany({ data: usages, skipDuplicates: true });
+
+  // Seed auto-update policy for claude-code on the dev-primary instance
+  await prisma.extensionPolicy.upsert({
+    where: {
+      extension_id_instance_id: { extension_id: "ext_claude_code", instance_id: "inst_fly_sea_01" },
+    },
+    update: {},
+    create: {
+      extension_id: "ext_claude_code",
+      instance_id: "inst_fly_sea_01",
+      policy: "PIN",
+      pinned_version: "1.0.0",
+      updated_at: new Date(),
+    },
+  });
+
+  console.log(
+    `  Created ${extensions.length} extensions, ${usages.length} usage records, 1 policy`,
+  );
+}
+
+async function seedSecurityData(instances: Array<{ id: string; status: InstanceStatus }>) {
+  console.log("Seeding security data...");
+
+  const runningInstances = instances.filter((i) => i.status === InstanceStatus.RUNNING);
+  if (runningInstances.length === 0) {
+    console.log("  No running instances — skipping security seed");
+    return;
+  }
+
+  const primaryInst = runningInstances[0].id;
+  const secondaryInst = runningInstances[1]?.id ?? primaryInst;
+
+  // Vulnerabilities
+  const vulnerabilities = [
+    {
+      instance_id: primaryInst,
+      cve_id: "CVE-2024-21626",
+      package_name: "runc",
+      package_version: "1.1.11",
+      ecosystem: "Go",
+      severity: VulnerabilitySeverity.HIGH,
+      cvss_score: 8.6,
+      title: "runc container escape via process.cwd",
+      description: "A path traversal vulnerability in runc allows container escape.",
+      fix_version: "1.1.12",
+      references: ["https://nvd.nist.gov/vuln/detail/CVE-2024-21626"],
+      status: VulnerabilityStatus.OPEN,
+      detected_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    },
+    {
+      instance_id: primaryInst,
+      cve_id: "CVE-2023-46233",
+      package_name: "crypto-js",
+      package_version: "4.1.1",
+      ecosystem: "npm",
+      severity: VulnerabilitySeverity.CRITICAL,
+      cvss_score: 9.1,
+      title: "PBKDF2 1000x weaker than expected in crypto-js",
+      description: "crypto-js PBKDF2 is 1000x weaker than specified in the standard.",
+      fix_version: "4.2.0",
+      references: ["https://nvd.nist.gov/vuln/detail/CVE-2023-46233"],
+      status: VulnerabilityStatus.ACKNOWLEDGED,
+      detected_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      acknowledged_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      acknowledged_by: "user_admin_01",
+    },
+    {
+      instance_id: secondaryInst,
+      cve_id: "CVE-2024-24790",
+      package_name: "stdlib",
+      package_version: "go1.21.5",
+      ecosystem: "Go",
+      severity: VulnerabilitySeverity.MEDIUM,
+      cvss_score: 6.1,
+      title: "net/netip: unexpected behavior from Is methods for IPv4-mapped IPv6 addresses",
+      description: "The IPv4-mapped IPv6 address handling in Go stdlib is inconsistent.",
+      fix_version: "go1.22.0",
+      references: ["https://nvd.nist.gov/vuln/detail/CVE-2024-24790"],
+      status: VulnerabilityStatus.OPEN,
+      detected_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    },
+  ];
+
+  await prisma.vulnerability.createMany({ data: vulnerabilities, skipDuplicates: false });
+
+  // BOM entries
+  const bomEntries = [
+    {
+      instance_id: primaryInst,
+      package_name: "node",
+      package_version: "20.11.0",
+      ecosystem: "system",
+      license: "MIT",
+    },
+    {
+      instance_id: primaryInst,
+      package_name: "python3",
+      package_version: "3.12.1",
+      ecosystem: "system",
+      license: "PSF-2.0",
+    },
+    {
+      instance_id: primaryInst,
+      package_name: "express",
+      package_version: "4.18.2",
+      ecosystem: "npm",
+      license: "MIT",
+    },
+    {
+      instance_id: primaryInst,
+      package_name: "crypto-js",
+      package_version: "4.1.1",
+      ecosystem: "npm",
+      license: "MIT",
+    },
+    {
+      instance_id: secondaryInst,
+      package_name: "runc",
+      package_version: "1.1.11",
+      ecosystem: "Go",
+      license: "Apache-2.0",
+    },
+    {
+      instance_id: secondaryInst,
+      package_name: "kubectl",
+      package_version: "1.29.0",
+      ecosystem: "system",
+      license: "Apache-2.0",
+    },
+  ];
+
+  await prisma.bomEntry.createMany({ data: bomEntries, skipDuplicates: true });
+
+  // SSH keys
+  const sshKeys = [
+    {
+      instance_id: primaryInst,
+      fingerprint: "SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz1234567890abcdefg",
+      comment: "developer@sindri.dev",
+      key_type: "ed25519",
+      key_bits: 256,
+      status: SshKeyStatus.ACTIVE,
+      last_used_at: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    },
+    {
+      instance_id: primaryInst,
+      fingerprint: "SHA256:ZyXwVuTsRqPoNmLkJiHgFeDcBa0987654321zyxwvuts",
+      comment: "ci-github-actions",
+      key_type: "rsa",
+      key_bits: 4096,
+      status: SshKeyStatus.ACTIVE,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+    {
+      instance_id: secondaryInst,
+      fingerprint: "SHA256:MnOpQrStUvWxYzAbCdEfGhIjKl1234567890mnopqrst",
+      comment: "old-deploy-key",
+      key_type: "rsa",
+      key_bits: 2048,
+      status: SshKeyStatus.REVOKED,
+    },
+  ];
+
+  await prisma.sshKey.createMany({ data: sshKeys, skipDuplicates: true });
+
+  // Secret rotation records
+  const rotations = [
+    {
+      instance_id: primaryInst,
+      secret_name: "DATABASE_URL",
+      secret_type: "ENV_VAR",
+      last_rotated: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+      next_rotation: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
+      rotation_days: 90,
+      is_overdue: false,
+      updated_at: new Date(),
+    },
+    {
+      instance_id: primaryInst,
+      secret_name: "OPENAI_API_KEY",
+      secret_type: "API_KEY",
+      last_rotated: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000),
+      next_rotation: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      rotation_days: 90,
+      is_overdue: true,
+      updated_at: new Date(),
+    },
+  ];
+
+  await prisma.secretRotation.createMany({ data: rotations, skipDuplicates: false });
+
+  console.log(
+    `  Created ${vulnerabilities.length} vulnerabilities, ${bomEntries.length} BOM entries, ` +
+      `${sshKeys.length} SSH keys, ${rotations.length} rotation records`,
+  );
+}
+
+async function seedDriftData(instances: Array<{ id: string; status: InstanceStatus }>) {
+  console.log("Seeding configuration drift data...");
+
+  const runningInstances = instances.filter((i) => i.status === InstanceStatus.RUNNING);
+  if (runningInstances.length === 0) {
+    console.log("  No running instances — skipping drift seed");
+    return;
+  }
+
+  const primaryInst = runningInstances[0].id;
+
+  // Config snapshot — clean
+  const cleanSnap = await prisma.configSnapshot.create({
+    data: {
+      instance_id: primaryInst,
+      taken_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      declared: {
+        node_version: "20.11.0",
+        extensions: ["node-lts", "git"],
+        env: { NODE_ENV: "production" },
+      },
+      actual: {
+        node_version: "20.11.0",
+        extensions: ["node-lts", "git"],
+        env: { NODE_ENV: "production" },
+      },
+      config_hash: sha256("clean-snapshot-v1"),
+      drift_status: DriftStatus.CLEAN,
+    },
+  });
+
+  // Config snapshot — drifted
+  const driftedSnap = await prisma.configSnapshot.create({
+    data: {
+      instance_id: primaryInst,
+      taken_at: new Date(Date.now() - 30 * 60 * 1000),
+      declared: {
+        node_version: "20.11.0",
+        extensions: ["node-lts", "git"],
+        env: { NODE_ENV: "production" },
+      },
+      actual: {
+        node_version: "20.11.0",
+        extensions: ["node-lts", "git", "curl"],
+        env: { NODE_ENV: "development" },
+      },
+      config_hash: sha256("drifted-snapshot-v1"),
+      drift_status: DriftStatus.DRIFTED,
+    },
+  });
+
+  // Drift events for the drifted snapshot
+  const envDrift = await prisma.driftEvent.create({
+    data: {
+      snapshot_id: driftedSnap.id,
+      instance_id: primaryInst,
+      detected_at: new Date(Date.now() - 25 * 60 * 1000),
+      field_path: "env.NODE_ENV",
+      declared_val: "production",
+      actual_val: "development",
+      severity: DriftSeverity.HIGH,
+      description:
+        "NODE_ENV has been changed from 'production' to 'development' on the running instance.",
+    },
+  });
+
+  await prisma.driftEvent.create({
+    data: {
+      snapshot_id: driftedSnap.id,
+      instance_id: primaryInst,
+      detected_at: new Date(Date.now() - 25 * 60 * 1000),
+      field_path: "extensions[2]",
+      declared_val: null,
+      actual_val: "curl",
+      severity: DriftSeverity.LOW,
+      description: "Undeclared extension 'curl' found installed on instance.",
+    },
+  });
+
+  // Remediation for the env drift
+  await prisma.driftRemediation.create({
+    data: {
+      drift_event_id: envDrift.id,
+      instance_id: primaryInst,
+      action: "Reset NODE_ENV to production",
+      command: "export NODE_ENV=production",
+      status: RemediationStatus.PENDING,
+    },
+  });
+
+  // Vault secrets
+  await prisma.secret.createMany({
+    data: [
+      {
+        name: "DATABASE_URL",
+        description: "Primary PostgreSQL connection string",
+        type: SecretType.ENV_VAR,
+        instance_id: primaryInst,
+        encrypted_val: "enc:v1:aes256gcm:dGVzdC1lbmNyeXB0ZWQtdmFsdWU=",
+        scope: ["api", "migration"],
+        created_by: "user_admin_01",
+        updated_at: new Date(),
+      },
+      {
+        name: "SINDRI_DEPLOY_KEY",
+        description: "SSH private key for deployment automation",
+        type: SecretType.FILE,
+        instance_id: null,
+        encrypted_val: "enc:v1:aes256gcm:c3NoLXByaXZhdGUta2V5LWVuY3J5cHRlZA==",
+        scope: ["ci", "deploy"],
+        created_by: "user_operator_01",
+        updated_at: new Date(),
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log(
+    `  Created 2 config snapshots (1 clean, 1 drifted), 2 drift events, 1 remediation, 2 secrets`,
+  );
+  void cleanSnap; // used for reference
+}
+
+async function seedCostData(instances: Array<{ id: string; provider: string }>) {
+  console.log("Seeding cost data...");
+
+  const now = new Date();
+
+  // Helper — start/end of a past day
+  const dayRange = (daysAgo: number) => {
+    const start = new Date(now);
+    start.setUTCDate(start.getUTCDate() - daysAgo);
+    start.setUTCHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setUTCHours(23, 59, 59, 999);
+    return { start, end };
+  };
+
+  const costEntries = instances.flatMap((inst, idx) => {
+    // 7 days of cost entries per instance, varying slightly
+    const base = 1.5 + idx * 0.8;
+    return Array.from({ length: 7 }, (_, d) => {
+      const { start, end } = dayRange(6 - d);
+      const jitter = Math.random() * 0.3 - 0.15;
+      const compute = parseFloat((base + jitter).toFixed(4));
+      const storage = parseFloat((0.12 + Math.random() * 0.05).toFixed(4));
+      const network = parseFloat((0.04 + Math.random() * 0.02).toFixed(4));
+      return {
+        instance_id: inst.id,
+        provider: inst.provider,
+        period_start: start,
+        period_end: end,
+        compute_usd: compute,
+        storage_usd: storage,
+        network_usd: network,
+        total_usd: parseFloat((compute + storage + network).toFixed(4)),
+        currency: "USD",
+      };
+    });
+  });
+
+  await prisma.costEntry.createMany({ data: costEntries, skipDuplicates: true });
+
+  // Budgets
+  await prisma.budget.createMany({
+    data: [
+      {
+        name: "Fleet Monthly Budget",
+        amount_usd: 500,
+        period: BudgetPeriod.MONTHLY,
+        instance_id: null,
+        provider: null,
+        alert_threshold: 0.8,
+        created_by: "user_admin_01",
+        updated_at: now,
+      },
+      {
+        name: "dev-primary Daily Cap",
+        amount_usd: 10,
+        period: BudgetPeriod.DAILY,
+        instance_id: "inst_fly_sea_01",
+        provider: "fly",
+        alert_threshold: 0.9,
+        created_by: "user_operator_01",
+        updated_at: now,
+      },
+    ],
+    skipDuplicates: false,
+  });
+
+  // Right-sizing recommendations for running instances
+  const recommendations = instances.slice(0, 2).map((inst, idx) => ({
+    instance_id: inst.id,
+    current_tier: "fly-performance-2x",
+    suggested_tier: idx === 0 ? "fly-performance-1x" : "fly-shared-cpu-2x",
+    current_usd_mo: 60 + idx * 20,
+    suggested_usd_mo: 30 + idx * 10,
+    savings_usd_mo: 30 + idx * 10,
+    avg_cpu_percent: 18.5 + idx * 5,
+    avg_mem_percent: 34.2 - idx * 3,
+    confidence: 0.87 - idx * 0.05,
+    dismissed: false,
+  }));
+
+  for (const rec of recommendations) {
+    await prisma.rightSizingRecommendation.upsert({
+      where: { instance_id: rec.instance_id },
+      update: {},
+      create: rec,
+    });
+  }
+
+  console.log(
+    `  Created ${costEntries.length} cost entries, 2 budgets, ${recommendations.length} right-sizing recommendations`,
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
@@ -501,6 +1292,12 @@ async function main() {
   await seedTerminalSessions(instances, users);
   await seedDeploymentTemplates();
   await seedScheduledTasks(instances);
+  await seedTeams(users, instances);
+  await seedAuditLogs(users);
+  await seedExtensions();
+  await seedSecurityData(instances);
+  await seedDriftData(instances);
+  await seedCostData(instances);
 
   console.log("\nSeed complete.");
 }

@@ -34,6 +34,12 @@ export default defineConfig({
             "tests/instance-dashboard.test.ts",
             "tests/log-aggregation.test.ts",
             "tests/alerting.test.ts",
+            // Phase 4: Administration & Security
+            "tests/rbac-teams.test.ts",
+            "tests/extension-admin.test.ts",
+            "tests/config-drift.test.ts",
+            "tests/cost-tracking.test.ts",
+            "tests/security-dashboard.test.ts",
           ],
     coverage: {
       provider: "v8",

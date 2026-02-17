@@ -14,6 +14,10 @@ import {
   Calendar,
   ScrollText,
   Bell,
+  DollarSign,
+  Shield,
+  Package,
+  GitCompare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
@@ -30,7 +34,11 @@ const NAV_ITEMS = [
   { to: "/tasks", label: "Scheduled Tasks", icon: Calendar },
   { to: "/logs", label: "Logs", icon: ScrollText },
   { to: "/alerts", label: "Alerts", icon: Bell },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/costs", label: "Costs", icon: DollarSign },
+  { to: "/extensions", label: "Extensions", icon: Package },
+  { to: "/security", label: "Security", icon: Shield },
+  { to: "/drift", label: "Config Drift", icon: GitCompare },
+  { to: "/settings", label: "Admin", icon: Settings },
 ] as const;
 
 export function Sidebar() {

@@ -10,6 +10,7 @@ The Console uses **PostgreSQL 16** as its primary database, accessed via **Prism
 - Metric time series (Phase 3: full-fidelity `Metric` hypertable)
 - Heartbeat liveness table
 - User management and RBAC
+- Team workspaces (Phase 4)
 - API key management
 - Event log
 - Terminal sessions
@@ -18,6 +19,10 @@ The Console uses **PostgreSQL 16** as its primary database, accessed via **Prism
 - Command executions
 - Log entries (Phase 3)
 - Alert rules and alert events (Phase 3)
+- Extension registry and installations (Phase 4)
+- Configuration drift reports and suppression rules (Phase 4)
+- Cost entries, budgets, and anomalies (Phase 4)
+- SBOM components, CVE vulnerabilities, and secret findings (Phase 4)
 
 The `Metric` table is designed as a **TimescaleDB hypertable** partitioned by `timestamp`. On standard PostgreSQL it functions as a regular indexed table; the TimescaleDB migration is non-breaking.
 
@@ -554,3 +559,193 @@ The Prisma client continues to work unchanged; only the storage engine changes.
 | `LOGS_RETENTION_DAYS` | Days to keep log rows | `14` |
 | `EVENTS_RETENTION_DAYS` | Days to keep event rows | `90` |
 | `AUDIT_RETENTION_DAYS` | Days to keep audit entries | `365` |
+
+---
+
+## Phase 4 Models
+
+### Extension
+
+Extension registry entry. Official extensions have `is_official: true` and `created_by: null`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `name` | String | Display name |
+| `slug` | String (unique) | URL-safe identifier e.g. `node-lts` |
+| `description` | String | Short description |
+| `version` | String | Latest version (semver) |
+| `author` | String | Author name |
+| `license` | String | SPDX license identifier |
+| `status` | Enum | `APPROVED`, `PENDING`, `REJECTED`, `DEPRECATED` |
+| `visibility` | Enum | `PUBLIC`, `PRIVATE`, `TEAM` |
+| `is_official` | Boolean | Curated by Sindri team |
+| `compatible_providers` | String[] | Provider slugs |
+| `tags` | String[] | Searchable tags |
+| `install_count` | Int | Total installations |
+| `created_by` | String? | User ID for community extensions |
+
+Indexes: `(status)`, `(visibility)`, `(is_official)`, `(slug)`
+
+### ExtensionVersion
+
+Individual version record for an extension.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `extension_id` | String | FK → Extension |
+| `version` | String | Semver version string |
+| `changelog` | String? | Release notes |
+| `artifact_url` | String | Download URL |
+| `checksum` | String | `sha256:<hex>` |
+| `published_at` | DateTime | Publication time |
+| `is_latest` | Boolean | True for the current default version |
+
+Constraint: only one version per extension can have `is_latest: true`.
+
+### ExtensionInstallation
+
+Junction between Extension and Instance with installation metadata.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `extension_id` | String | FK → Extension |
+| `instance_id` | String | FK → Instance |
+| `version` | String | Installed version |
+| `status` | Enum | `INSTALLED`, `INSTALLING`, `FAILED`, `REMOVED` |
+| `config` | Json | Extension-specific configuration |
+| `installed_at` | DateTime | Installation time |
+| `installed_by` | String | User ID |
+
+### DriftReport
+
+Configuration drift detection report for an instance.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String | FK → Instance |
+| `detected_at` | DateTime | When drift was first detected |
+| `severity` | Enum | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `NONE` |
+| `status` | Enum | `DETECTED`, `ACKNOWLEDGED`, `REMEDIATING`, `RESOLVED`, `SUPPRESSED` |
+| `items` | Json | Array of DriftItem records |
+| `remediation_mode` | Enum | `MANUAL`, `AUTOMATIC` |
+| `remediated_at` | DateTime? | When remediation completed |
+| `suppressed_until` | DateTime? | Suppression expiry |
+
+### DriftSuppressRule
+
+Rule to suppress specific drift types for an instance or fleet-wide.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String? | Scoped instance (null = fleet-wide) |
+| `drift_type` | String? | Type to suppress (null = all types) |
+| `reason` | String | Human-readable justification |
+| `expires_at` | DateTime? | Suppression expiry (null = permanent) |
+| `created_by` | String | User ID |
+
+### CostEntry
+
+Per-instance cost record for a time window, split by category.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String | FK → Instance |
+| `category` | Enum | `COMPUTE`, `STORAGE`, `NETWORK`, `EGRESS`, `OTHER` |
+| `amount_usd` | Float | Cost in USD |
+| `period_start` | DateTime | Window start |
+| `period_end` | DateTime | Window end |
+| `provider` | String | Provider that incurred the cost |
+| `metadata` | Json? | Provider-specific billing metadata |
+
+Indexes: `(instance_id, period_start)`, `(category)`, `(period_start)`
+
+### Budget
+
+Cost budget with alert thresholds.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `name` | String | Human-readable name |
+| `team_id` | String? | Scoped team (null = no team scope) |
+| `instance_id` | String? | Scoped instance (null = no instance scope) |
+| `limit_usd` | Float | Budget cap in USD |
+| `period` | Enum | `DAILY`, `WEEKLY`, `MONTHLY` |
+| `alert_thresholds` | Int[] | Thresholds to alert at (e.g. [50, 80, 100]) |
+| `current_spend_usd` | Float | Current period spend |
+| `created_by` | String | User ID |
+
+### CostAnomaly
+
+Detected spend anomaly for an instance.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String | FK → Instance |
+| `detected_at` | DateTime | Detection time |
+| `status` | Enum | `DETECTED`, `ACKNOWLEDGED`, `RESOLVED` |
+| `expected_spend_usd` | Float | Baseline expected spend |
+| `actual_spend_usd` | Float | Observed spend |
+| `deviation_percent` | Float | % deviation from expected |
+| `period_start` | DateTime | Anomaly window start |
+| `period_end` | DateTime | Anomaly window end |
+
+### Sbom
+
+Software Bill of Materials snapshot for an instance.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String | FK → Instance |
+| `format` | Enum | `SPDX`, `CycloneDX` |
+| `spec_version` | String | Format spec version (e.g. `1.4`) |
+| `components` | Json | Array of SbomComponent records |
+| `generated_at` | DateTime | Generation time |
+| `extensions` | String[] | Extension names included in this SBOM |
+
+### CveVulnerability
+
+CVE vulnerability matched against an SBOM component.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `cve_id` | String | CVE identifier e.g. `CVE-2024-12345` |
+| `cvss_score` | Float | CVSS v3 score 0.0–10.0 |
+| `severity` | Enum | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFORMATIONAL`, `NONE` |
+| `title` | String | Vulnerability title |
+| `description` | String | Detailed description |
+| `affected_component` | String | Package name |
+| `affected_version` | String | Vulnerable version |
+| `fixed_in_version` | String? | Patched version (null = no patch) |
+| `published_at` | DateTime | NVD publication date |
+| `status` | Enum | `OPEN`, `ACKNOWLEDGED`, `PATCHING`, `FIXED`, `ACCEPTED_RISK`, `FALSE_POSITIVE` |
+| `instance_ids` | String[] | Instances affected by this CVE |
+
+Indexes: `(cve_id)`, `(severity)`, `(status)`, `(cvss_score)`
+
+### SecretFinding
+
+Detected secret (high-entropy string) in an instance's configuration or filesystem.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String | FK → Instance |
+| `secret_type` | Enum | `API_KEY`, `TOKEN`, `PASSWORD`, `CERTIFICATE`, `SSH_KEY`, `GENERIC` |
+| `location` | String | File path or config key |
+| `line_number` | Int? | Line number in file (null for config keys) |
+| `entropy_score` | Float | Shannon entropy 0–8 |
+| `status` | Enum | `DETECTED`, `REVOKED`, `ROTATED`, `FALSE_POSITIVE` |
+| `detected_at` | DateTime | Detection time |
+| `rotated_at` | DateTime? | When secret was rotated |
+
+Indexes: `(instance_id)`, `(status)`, `(secret_type)`, `(detected_at)`

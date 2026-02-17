@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { SettingsPage } from '@/components/admin/SettingsPage'
+import { createFileRoute } from "@tanstack/react-router";
+import { AdminPage } from "@/components/admin/AdminPage";
 
-export const Route = createFileRoute('/settings')({
-  component: SettingsPage,
-})
+export const Route = createFileRoute("/settings")({
+  component: AdminPage,
+});

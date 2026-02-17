@@ -74,7 +74,7 @@ function StatsLegend({
 
 function SingleChart({ title, data, color, unit, resolution, isLoading }: SingleChartProps) {
   const chartData = data.map((p) => ({ ts: p.ts, value: p.value }));
-  const domain: [number, number] = unit === "percent" ? [0, 100] : [0, "auto"];
+  const domain: [number, number | string] = unit === "percent" ? [0, 100] : [0, "auto"];
 
   return (
     <Card>

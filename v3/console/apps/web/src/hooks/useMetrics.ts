@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useCallback, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { metricsApi } from "@/lib/metricsApi";
 import type { TimeRange, MetricsStreamMessage, MetricsDataPoint } from "@/types/metrics";
 

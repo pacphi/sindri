@@ -1355,3 +1355,335 @@ Query alert event history.
   "nextCursor": null
 }
 ```
+
+---
+
+## Phase 4: Administration & Security API
+
+### Users (ADMIN only)
+
+#### GET /api/v1/users
+
+List all users. Requires `ADMIN` role.
+
+**Query params:** `?role=DEVELOPER&page=1&per_page=25`
+
+**Response 200:**
+```json
+{
+  "users": [
+    { "id": "user_01", "email": "dev@example.com", "role": "DEVELOPER", "created_at": "2026-01-01T00:00:00Z" }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 25
+}
+```
+
+#### PATCH /api/v1/users/:id
+
+Update a user's role. Requires `ADMIN` role. Generates a `PERMISSION_CHANGE` audit entry.
+
+**Request body:** `{ "role": "OPERATOR" }`
+
+**Response 200:** Updated user object.
+
+---
+
+### Teams
+
+#### GET /api/v1/teams
+
+List all teams. Returns all teams for `ADMIN`, team-scoped list for others.
+
+#### POST /api/v1/teams
+
+Create a team. Requires `ADMIN` role.
+
+**Request body:**
+```json
+{ "name": "Platform Engineering", "slug": "platform-engineering", "description": "Core infra team" }
+```
+
+#### GET /api/v1/teams/:id/members
+
+List team members. Requires team membership or `ADMIN`.
+
+**Response 200:**
+```json
+{
+  "members": [
+    { "user_id": "user_01", "email": "dev@example.com", "role": "DEVELOPER", "joined_at": "2026-01-01T00:00:00Z" }
+  ]
+}
+```
+
+#### POST /api/v1/teams/:id/members
+
+Add a user to a team. Requires team `ADMIN` or system `ADMIN`.
+
+**Request body:** `{ "user_id": "user_02", "role": "DEVELOPER" }`
+
+#### DELETE /api/v1/teams/:id/members/:userId
+
+Remove a member from a team. Requires team `ADMIN` or system `ADMIN`.
+
+---
+
+### Audit Log
+
+#### GET /api/v1/audit
+
+Query the audit log. Requires `ADMIN` role.
+
+**Query params:** `?action=PERMISSION_CHANGE&userId=user_01&from=2026-01-01&to=2026-02-01&limit=50`
+
+**Response 200:**
+```json
+{
+  "entries": [
+    {
+      "id": "audit_01",
+      "user_id": "user_01",
+      "action": "PERMISSION_CHANGE",
+      "resource_type": "user",
+      "resource_id": "user_02",
+      "metadata": { "old_role": "DEVELOPER", "new_role": "OPERATOR" },
+      "ip_address": "10.0.0.1",
+      "timestamp": "2026-02-17T10:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+### Extensions
+
+#### GET /api/v1/extensions
+
+List extensions from the registry.
+
+**Query params:** `?status=APPROVED&tag=runtime&provider=fly&q=node&page=1&per_page=20`
+
+**Response 200:**
+```json
+{
+  "extensions": [
+    {
+      "id": "ext_01",
+      "name": "Node.js LTS",
+      "slug": "node-lts",
+      "version": "20.11.0",
+      "description": "Node.js LTS runtime",
+      "status": "APPROVED",
+      "is_official": true,
+      "install_count": 1423,
+      "tags": ["runtime", "javascript"]
+    }
+  ],
+  "total": 1
+}
+```
+
+#### POST /api/v1/extensions
+
+Upload a custom extension. Requires `DEVELOPER` or higher role. Starts in `PENDING` status.
+
+**Request body (multipart/form-data):**
+- `name`, `slug`, `version`, `description`, `license`, `visibility`
+- `artifact` (file upload)
+
+#### POST /api/v1/extensions/:id/approve
+
+Approve a pending extension. Requires `ADMIN` role.
+
+#### POST /api/v1/extensions/:id/reject
+
+Reject a pending extension. Requires `ADMIN` role.
+
+**Request body:** `{ "reason": "Does not meet security requirements" }`
+
+#### POST /api/v1/instances/:id/extensions
+
+Install an extension on an instance. Requires `OPERATOR` or higher.
+
+**Request body:** `{ "extension_id": "ext_01", "version": "20.11.0", "config": {} }`
+
+---
+
+### Configuration Drift
+
+#### GET /api/v1/drift
+
+Fleet drift summary.
+
+**Response 200:**
+```json
+{
+  "summary": {
+    "total_instances": 25,
+    "drifting_instances": 4,
+    "health_percent": 84,
+    "by_severity": { "CRITICAL": 1, "HIGH": 2, "MEDIUM": 1, "LOW": 0 }
+  },
+  "reports": [...]
+}
+```
+
+#### GET /api/v1/drift/:instanceId
+
+Drift report for a specific instance.
+
+**Response 200:**
+```json
+{
+  "id": "dr_01",
+  "instance_id": "inst_01",
+  "severity": "HIGH",
+  "status": "DETECTED",
+  "detected_at": "2026-02-17T10:00:00Z",
+  "items": [
+    {
+      "drift_type": "EXTENSION_MISMATCH",
+      "severity": "HIGH",
+      "field": "extensions",
+      "expected_value": "node-lts@20.11.0",
+      "actual_value": "node-lts@20.9.0",
+      "description": "Extension node-lts version mismatch: expected 20.11.0, found 20.9.0"
+    }
+  ]
+}
+```
+
+#### POST /api/v1/drift/:id/remediate
+
+Trigger remediation for a drift report.
+
+**Request body:** `{ "mode": "MANUAL" }`
+
+---
+
+### Cost Tracking
+
+#### GET /api/v1/costs
+
+Fleet cost summary with optional time range.
+
+**Query params:** `?from=2026-02-01&to=2026-02-17&period=MONTHLY`
+
+**Response 200:**
+```json
+{
+  "total_usd": 1245.50,
+  "by_category": { "COMPUTE": 980.00, "STORAGE": 200.00, "NETWORK": 65.50 },
+  "by_instance": [
+    { "instance_id": "inst_01", "name": "prod-api", "total_usd": 450.00 }
+  ]
+}
+```
+
+#### GET /api/v1/budgets
+
+List all budgets.
+
+#### POST /api/v1/budgets
+
+Create a budget.
+
+**Request body:**
+```json
+{
+  "name": "Production Budget",
+  "limit_usd": 1000.00,
+  "period": "MONTHLY",
+  "alert_thresholds": [50, 80, 100],
+  "team_id": "team_01"
+}
+```
+
+#### GET /api/v1/costs/recommendations
+
+List optimization recommendations ordered by potential savings.
+
+**Response 200:**
+```json
+{
+  "recommendations": [
+    {
+      "id": "rec_01",
+      "instance_id": "inst_01",
+      "action": "SUSPEND_IDLE",
+      "potential_savings_usd": 45.00,
+      "description": "Instance has been idle for 48h.",
+      "confidence": 92
+    }
+  ],
+  "total_potential_savings_usd": 185.00
+}
+```
+
+---
+
+### Security Dashboard
+
+#### GET /api/v1/security
+
+Fleet security summary.
+
+**Response 200:**
+```json
+{
+  "fleet_score": 76,
+  "total_open_cves": 12,
+  "critical_cves": 2,
+  "secrets_detected": 3,
+  "instances": [
+    { "instance_id": "inst_01", "score": 40, "grade": "F", "open_cves": 8, "critical_cves": 2 }
+  ]
+}
+```
+
+#### GET /api/v1/security/instances/:id/sbom
+
+Get the SBOM for an instance.
+
+**Query params:** `?format=CycloneDX`
+
+**Response 200:**
+```json
+{
+  "id": "sbom_01",
+  "format": "CycloneDX",
+  "spec_version": "1.4",
+  "generated_at": "2026-02-17T00:00:00Z",
+  "components": [
+    { "name": "lodash", "version": "4.17.21", "package_url": "pkg:npm/lodash@4.17.21", "license": "MIT" }
+  ]
+}
+```
+
+#### GET /api/v1/security/cves
+
+List CVEs. Filterable by severity and status.
+
+**Query params:** `?severity=CRITICAL&status=OPEN&instanceId=inst_01`
+
+#### PATCH /api/v1/security/cves/:id
+
+Update CVE status.
+
+**Request body:** `{ "status": "ACCEPTED_RISK", "note": "Risk accepted by security team" }`
+
+#### GET /api/v1/security/secrets
+
+List secret findings.
+
+**Query params:** `?status=DETECTED&type=API_KEY&instanceId=inst_01`
+
+#### PATCH /api/v1/security/secrets/:id
+
+Update secret finding status.
+
+**Request body:** `{ "status": "ROTATED" }`

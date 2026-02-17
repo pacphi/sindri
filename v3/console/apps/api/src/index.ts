@@ -25,6 +25,8 @@ import {
   startAlertEvaluationWorker,
   stopAlertEvaluationWorker,
 } from "./services/alerts/evaluation.worker.js";
+import { startCostWorker, stopCostWorker } from "./workers/cost.worker.js";
+import { startDriftDetector, stopDriftDetector } from "./services/drift/detector.worker.js";
 
 const PORT = parseInt(process.env.PORT ?? "3001", 10);
 
@@ -74,6 +76,12 @@ async function main(): Promise<void> {
   // Start alert evaluation worker (60s evaluation cycle)
   startAlertEvaluationWorker();
 
+  // Start cost calculation worker (daily cost recording + right-sizing + budget alerts)
+  startCostWorker();
+
+  // Start hourly drift detection worker
+  startDriftDetector();
+
   // ── Graceful shutdown ──────────────────────────────────────────────────────
 
   async function shutdown(signal: string): Promise<void> {
@@ -83,6 +91,7 @@ async function main(): Promise<void> {
     cronScheduler.stop();
     stopAggregationWorker();
     stopAlertEvaluationWorker();
+    stopDriftDetector();
 
     server.close(async () => {
       logger.info("HTTP server closed");

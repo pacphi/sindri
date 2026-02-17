@@ -21,6 +21,14 @@ import { fleetRouter } from "./routes/fleet.js";
 import { metricsRouter, instanceMetricsRouter } from "./routes/metrics.js";
 import { logsRouter, instanceLogsRouter } from "./routes/logs.js";
 import { alertsRouter } from "./routes/alerts.js";
+import { adminUsersRouter } from "./routes/admin/users.js";
+import { adminTeamsRouter } from "./routes/admin/teams.js";
+import { auditRouter } from "./routes/audit.js";
+import { extensionsRouter } from "./routes/extensions.js";
+import { costsRouter } from "./routes/costs.js";
+import { securityRouter } from "./routes/security.js";
+import { driftRouter } from "./routes/drift.js";
+import { secretsRouter } from "./routes/secrets.js";
 import { logger } from "./lib/logger.js";
 
 export function createApp(): Hono {
@@ -60,6 +68,14 @@ export function createApp(): Hono {
   app.route("/api/v1/logs", logsRouter);
   app.route("/api/v1/instances", instanceLogsRouter);
   app.route("/api/v1/alerts", alertsRouter);
+  app.route("/api/v1/admin/users", adminUsersRouter);
+  app.route("/api/v1/admin/teams", adminTeamsRouter);
+  app.route("/api/v1/audit", auditRouter);
+  app.route("/api/v1/extensions", extensionsRouter);
+  app.route("/api/v1/costs", costsRouter);
+  app.route("/api/v1/security", securityRouter);
+  app.route("/api/v1/drift", driftRouter);
+  app.route("/api/v1/secrets", secretsRouter);
 
   // 404 handler
   app.notFound((c) => {

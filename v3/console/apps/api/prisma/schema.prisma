@@ -107,6 +107,31 @@ enum NotificationChannelType {
   IN_APP
 }
 
+enum TeamMemberRole {
+  ADMIN
+  OPERATOR
+  DEVELOPER
+  VIEWER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  DEPLOY
+  DESTROY
+  SUSPEND
+  RESUME
+  EXECUTE
+  CONNECT
+  DISCONNECT
+  PERMISSION_CHANGE
+  TEAM_ADD
+  TEAM_REMOVE
+}
+
 enum ScheduledTaskStatus {
   ACTIVE
   PAUSED
@@ -136,21 +161,31 @@ model Instance {
   config_hash  String?        // SHA256 of sindri.yaml at deploy time
   ssh_endpoint String?        // SSH connection string (host:port)
   status       InstanceStatus @default(UNKNOWN)
+  team_id      String?        // optional team workspace assignment
   created_at   DateTime       @default(now())
   updated_at   DateTime       @updatedAt
 
   // Relations
-  heartbeats         Heartbeat[]
-  metrics            Metric[]
-  events             Event[]
-  logs               Log[]
-  terminal_sessions  TerminalSession[]
-  command_executions CommandExecution[]
-  deployments        Deployment[]
+  heartbeats                  Heartbeat[]
+  metrics                     Metric[]
+  events                      Event[]
+  logs                        Log[]
+  terminal_sessions           TerminalSession[]
+  command_executions          CommandExecution[]
+  deployments                 Deployment[]
+  cost_entries                CostEntry[]
+  right_sizing_recommendation RightSizingRecommendation?
+  vulnerabilities             Vulnerability[]
+  bom_entries                 BomEntry[]
+  secret_rotations            SecretRotation[]
+  ssh_keys                    SshKey[]
+  config_snapshots            ConfigSnapshot[]
+  team               Team?              @relation(fields: [team_id], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([provider])
   @@index([created_at])
+  @@index([team_id])
 }
 
 /// Periodic health/metrics ping from a running Sindri instance agent.
@@ -240,17 +275,83 @@ model Event {
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
+  name          String?
   password_hash String   // bcrypt hash; null if SSO-only
   role          UserRole @default(DEVELOPER)
+  is_active     Boolean  @default(true)
+  last_login_at DateTime?
   created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
   // Relations
   api_keys           ApiKey[]
   terminal_sessions  TerminalSession[]
   command_executions CommandExecution[]
+  team_memberships   TeamMember[]
+  audit_logs         AuditLog[]
 
   @@index([email])
   @@index([role])
+  @@index([is_active])
+}
+
+/// A team workspace grouping instances and users.
+model Team {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  created_by  String?  // user_id
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  members   TeamMember[]
+  instances Instance[]
+  audit_logs AuditLog[]
+
+  @@index([name])
+  @@index([created_at])
+}
+
+/// Join table: team membership with per-team role override.
+model TeamMember {
+  id         String         @id @default(cuid())
+  team_id    String
+  user_id    String
+  role       TeamMemberRole @default(DEVELOPER)
+  joined_at  DateTime       @default(now())
+
+  team Team @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([team_id, user_id])
+  @@index([team_id])
+  @@index([user_id])
+}
+
+/// Audit log for tracking user actions across the system.
+model AuditLog {
+  id          String      @id @default(cuid())
+  user_id     String?     // null for system actions
+  team_id     String?     // scope to a team
+  action      AuditAction
+  resource    String      // e.g. "instance", "user", "team"
+  resource_id String?     // id of affected resource
+  metadata    Json?       // before/after state, extra context
+  ip_address  String?
+  user_agent  String?
+  timestamp   DateTime    @default(now())
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  team Team? @relation(fields: [team_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([team_id])
+  @@index([action])
+  @@index([resource])
+  @@index([resource_id])
+  @@index([timestamp])
+  @@index([user_id, timestamp])
 }
 
 /// API keys for CI/CD and programmatic access to the Console API.
@@ -540,6 +641,329 @@ model AlertNotification {
   @@index([sent_at])
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Extension Administration
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ExtensionUpdatePolicy {
+  AUTO_UPDATE
+  PIN
+  FREEZE
+}
+
+enum ExtensionScope {
+  PUBLIC
+  PRIVATE
+  INTERNAL
+}
+
+/// An extension registered in the Sindri extension registry.
+model Extension {
+  id           String              @id @default(cuid())
+  name         String              @unique  // e.g. "python", "nodejs"
+  display_name String
+  description  String
+  category     String              // e.g. "language", "tool", "framework"
+  version      String              // current/latest version
+  author       String?
+  license      String?
+  homepage_url String?
+  icon_url     String?
+  tags         String[]            @default([])
+  dependencies String[]            @default([])  // extension names this depends on
+  scope        ExtensionScope      @default(PUBLIC)
+  is_official  Boolean             @default(false)
+  is_deprecated Boolean            @default(false)
+  download_count Int               @default(0)
+  created_at   DateTime            @default(now())
+  updated_at   DateTime            @updatedAt
+  published_by String?             // user_id for private extensions
+
+  usages       ExtensionUsage[]
+  policies     ExtensionPolicy[]
+
+  @@index([category])
+  @@index([scope])
+  @@index([is_official])
+  @@index([created_at])
+}
+
+/// Tracks when an extension is installed/removed on an instance.
+model ExtensionUsage {
+  id           String    @id @default(cuid())
+  extension_id String
+  instance_id  String
+  version      String    // version installed
+  installed_at DateTime  @default(now())
+  removed_at   DateTime?
+  install_duration_ms Int?  // time taken to install
+  failed       Boolean   @default(false)
+  error        String?
+
+  extension Extension @relation(fields: [extension_id], references: [id], onDelete: Cascade)
+
+  @@index([extension_id])
+  @@index([instance_id])
+  @@index([installed_at])
+  @@index([extension_id, instance_id])
+}
+
+/// Per-instance or global policy for how extension updates are handled.
+model ExtensionPolicy {
+  id           String               @id @default(cuid())
+  extension_id String
+  instance_id  String?              // null = applies globally
+  policy       ExtensionUpdatePolicy @default(AUTO_UPDATE)
+  pinned_version String?            // version to pin to when policy is PIN
+  created_by   String?
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @updatedAt
+
+  extension Extension @relation(fields: [extension_id], references: [id], onDelete: Cascade)
+
+  @@unique([extension_id, instance_id])
+  @@index([extension_id])
+  @@index([instance_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security Dashboard Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum VulnerabilitySeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+enum VulnerabilityStatus {
+  OPEN
+  ACKNOWLEDGED
+  FIXED
+  FALSE_POSITIVE
+}
+
+enum SshKeyStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+/// A CVE/vulnerability detected in an instance's software BOM.
+model Vulnerability {
+  id               String                @id @default(cuid())
+  instance_id      String
+  cve_id           String
+  osv_id           String?
+  package_name     String
+  package_version  String
+  ecosystem        String
+  severity         VulnerabilitySeverity @default(UNKNOWN)
+  cvss_score       Float?
+  title            String
+  description      String
+  fix_version      String?
+  references       String[]              @default([])
+  status           VulnerabilityStatus   @default(OPEN)
+  detected_at      DateTime              @default(now())
+  acknowledged_at  DateTime?
+  acknowledged_by  String?
+  fixed_at         DateTime?
+
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([cve_id])
+  @@index([severity])
+  @@index([status])
+  @@index([detected_at])
+  @@index([instance_id, severity])
+  @@index([package_name, ecosystem])
+}
+
+/// Bill of Materials entry — a software package installed on an instance.
+model BomEntry {
+  id              String   @id @default(cuid())
+  instance_id     String
+  package_name    String
+  package_version String
+  ecosystem       String
+  license         String?
+  metadata        Json?
+  scanned_at      DateTime @default(now())
+
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@unique([instance_id, package_name, package_version, ecosystem])
+  @@index([instance_id])
+  @@index([ecosystem])
+  @@index([scanned_at])
+}
+
+/// Secret rotation record for compliance tracking.
+model SecretRotation {
+  id            String    @id @default(cuid())
+  instance_id   String
+  secret_name   String
+  secret_type   String
+  last_rotated  DateTime?
+  next_rotation DateTime?
+  rotation_days Int       @default(90)
+  is_overdue    Boolean   @default(false)
+  metadata      Json?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([is_overdue])
+  @@index([next_rotation])
+}
+
+/// SSH keys registered for or detected on an instance.
+model SshKey {
+  id           String       @id @default(cuid())
+  instance_id  String
+  fingerprint  String
+  comment      String?
+  key_type     String
+  key_bits     Int?
+  status       SshKeyStatus @default(ACTIVE)
+  last_used_at DateTime?
+  created_at   DateTime     @default(now())
+  expires_at   DateTime?
+
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@unique([instance_id, fingerprint])
+  @@index([instance_id])
+  @@index([status])
+  @@index([key_type])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Configuration Drift Detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DriftStatus {
+  CLEAN
+  DRIFTED
+  UNKNOWN
+  ERROR
+}
+
+enum DriftSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RemediationStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCEEDED
+  FAILED
+  DISMISSED
+}
+
+enum SecretType {
+  ENV_VAR
+  FILE
+  CERTIFICATE
+  API_KEY
+}
+
+/// A point-in-time snapshot of an instance's declared + actual configuration.
+model ConfigSnapshot {
+  id           String      @id @default(cuid())
+  instance_id  String
+  taken_at     DateTime    @default(now())
+  declared     Json
+  actual       Json
+  config_hash  String
+  drift_status DriftStatus @default(UNKNOWN)
+  error        String?
+
+  instance     Instance     @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+  drift_events DriftEvent[]
+
+  @@index([instance_id])
+  @@index([taken_at])
+  @@index([drift_status])
+  @@index([instance_id, taken_at])
+}
+
+/// A single detected drift between declared and actual config.
+model DriftEvent {
+  id           String        @id @default(cuid())
+  snapshot_id  String
+  instance_id  String
+  detected_at  DateTime      @default(now())
+  field_path   String
+  declared_val String?
+  actual_val   String?
+  severity     DriftSeverity @default(MEDIUM)
+  description  String
+  resolved_at  DateTime?
+  resolved_by  String?
+
+  remediation DriftRemediation?
+  snapshot    ConfigSnapshot    @relation(fields: [snapshot_id], references: [id], onDelete: Cascade)
+
+  @@index([snapshot_id])
+  @@index([instance_id])
+  @@index([detected_at])
+  @@index([instance_id, detected_at])
+  @@index([resolved_at])
+}
+
+/// A remediation action taken (or suggested) for a drift event.
+model DriftRemediation {
+  id             String            @id @default(cuid())
+  drift_event_id String            @unique
+  instance_id    String
+  action         String
+  command        String?
+  status         RemediationStatus @default(PENDING)
+  triggered_by   String?
+  started_at     DateTime          @default(now())
+  completed_at   DateTime?
+  output         String?
+  error          String?
+
+  drift_event DriftEvent @relation(fields: [drift_event_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([status])
+  @@index([started_at])
+}
+
+/// Encrypted secrets stored in the console vault.
+model Secret {
+  id              String     @id @default(cuid())
+  name            String
+  description     String?
+  type            SecretType @default(ENV_VAR)
+  instance_id     String?
+  encrypted_val   String
+  scope           String[]   @default([])
+  expires_at      DateTime?
+  created_by      String?
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+  last_rotated_at DateTime?
+
+  @@unique([name, instance_id])
+  @@index([instance_id])
+  @@index([type])
+  @@index([expires_at])
+  @@index([created_at])
+}
+
 /// Web terminal sessions opened from the Console to a Sindri instance.
 model TerminalSession {
   id          String                @id @default(cuid())
@@ -558,4 +982,78 @@ model TerminalSession {
   @@index([status])
   @@index([started_at])
   @@index([instance_id, user_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cost Tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum BudgetPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+/// A recorded cost entry for an instance over a billing period.
+model CostEntry {
+  id           String   @id @default(cuid())
+  instance_id  String
+  provider     String   // fly, aws, gcp, azure, runpod, northflank
+  period_start DateTime
+  period_end   DateTime
+  compute_usd  Float    @default(0)
+  storage_usd  Float    @default(0)
+  network_usd  Float    @default(0)
+  total_usd    Float    @default(0)
+  currency     String   @default("USD")
+  metadata     Json?
+  created_at   DateTime @default(now())
+
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([period_start])
+  @@index([instance_id, period_start])
+  @@index([provider])
+}
+
+/// A spending budget ceiling with configurable alert threshold.
+model Budget {
+  id              String       @id @default(cuid())
+  name            String
+  amount_usd      Float
+  period          BudgetPeriod
+  instance_id     String?
+  provider        String?
+  alert_threshold Float        @default(0.8)
+  alert_sent      Boolean      @default(false)
+  created_by      String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  @@index([instance_id])
+  @@index([period])
+  @@index([created_at])
+}
+
+/// Right-sizing recommendation derived from historical resource utilisation.
+model RightSizingRecommendation {
+  id               String   @id @default(cuid())
+  instance_id      String   @unique
+  current_tier     String
+  suggested_tier   String
+  current_usd_mo   Float
+  suggested_usd_mo Float
+  savings_usd_mo   Float
+  avg_cpu_percent  Float
+  avg_mem_percent  Float
+  confidence       Float
+  generated_at     DateTime @default(now())
+  dismissed        Boolean  @default(false)
+
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([savings_usd_mo])
+  @@index([dismissed])
 }
