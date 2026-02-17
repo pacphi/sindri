@@ -1,0 +1,54 @@
+---
+# Sindri v3 Configuration - Northflank GPU with Anthropic Dev
+# AI development on Northflank with GPU acceleration and full Anthropic toolset
+version: "3.0"
+name: sindri-v3-northflank-gpu
+
+deployment:
+  provider: northflank
+  image: ghcr.io/pacphi/sindri:v3-latest
+  resources:
+    memory: 16GB
+    cpus: 4
+    gpu:
+      enabled: true
+      type: nvidia
+      count: 1
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 50GB
+
+extensions:
+  profile: anthropic-dev
+  autoInstall: true
+
+secrets:
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  - name: GITHUB_TOKEN
+    source: env
+
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+providers:
+  northflank:
+    projectName: sindri-gpu-dev
+    serviceName: anthropic-workspace
+    computePlan: nf-compute-200
+    gpuType: nvidia-a100-40gb
+    gpuCount: 1
+    volumeSizeGb: 50
+    ports:
+      - name: ssh
+        internalPort: 22
+        protocol: TCP
+      - name: api
+        internalPort: 8080
+        public: false
+        protocol: HTTP

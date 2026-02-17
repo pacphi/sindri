@@ -1,0 +1,59 @@
+---
+# Sindri v3 Configuration - RunPod Enterprise (CPU-only)
+# Enterprise development environment on RunPod without GPU
+version: "3.0"
+name: sindri-v3-runpod-enterprise
+
+deployment:
+  provider: runpod
+  image: ghcr.io/pacphi/sindri:v3-latest
+  resources:
+    memory: 8GB
+    cpus: 4
+  volumes:
+    workspace:
+      path: /workspace
+      size: 100GB
+
+extensions:
+  profile: enterprise
+  autoInstall: true
+
+secrets:
+  - name: RUNPOD_API_KEY
+    source: env
+    required: true
+
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  - name: GITHUB_TOKEN
+    source: env
+    required: true
+
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+
+  - name: DOCKER_USERNAME
+    source: env
+  - name: DOCKER_PASSWORD
+    source: env
+
+providers:
+  runpod:
+    cpuOnly: true
+    containerDiskGb: 50
+    volumeSizeGb: 100
+    cloudType: SECURE
+    exposePorts:
+      - 8080
+      - 3000
+      - 5173

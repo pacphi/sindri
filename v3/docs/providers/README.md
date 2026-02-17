@@ -354,6 +354,7 @@ V3 providers maintain compatibility with V2 configurations while offering enhanc
 
 ## Related Documentation
 
+- [Provider Architecture](ARCHITECTURE.md) -- How providers translate config into deployments
 - [Configuration Reference](../CONFIGURATION.md)
 - [CLI Reference](../CLI.md)
 - [Secrets Management](../SECRETS_MANAGEMENT.md)
