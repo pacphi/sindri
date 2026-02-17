@@ -25,7 +25,7 @@ sindri-backup = { workspace = true }
 
 # CLI
 clap = { workspace = true }
-clap_complete = "4.5.65"
+clap_complete = "4.5.66"
 tokio = { workspace = true }
 anyhow = { workspace = true }
 futures = { workspace = true }
@@ -84,7 +84,7 @@ sindri-image = { workspace = true }
 semver = { workspace = true }
 
 [dev-dependencies]
-tempfile = "3.8"
+tempfile = "3.25"
 
 [[test]]
 name = "bom_cli_tests"

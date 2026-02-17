@@ -37,5 +37,5 @@ glob = { workspace = true }
 sindri-core = { workspace = true }
 
 [dev-dependencies]
-tempfile = "3.24"
+tempfile = "3.25"
 tokio-test = "0.4"
