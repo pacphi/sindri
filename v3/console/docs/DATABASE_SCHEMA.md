@@ -2,18 +2,111 @@
 
 ## Overview
 
-> **Implementation note:** The Prisma schema at `apps/api/prisma/schema.prisma` implements the Phase 1 minimal model set (6 models). The fuller schema shown below reflects the full target design for later phases. The Phase 1 schema is the authoritative source for what is currently deployed.
+> **Implementation note:** The Prisma schema at `apps/api/prisma/schema.prisma` is the authoritative source. The schema has grown across three phases and includes all models listed below.
 
 The Console uses **PostgreSQL 16** as its primary database, accessed via **Prisma ORM**. The schema covers:
 
 - Instance registry
-- Metric time series
+- Metric time series (Phase 3: full-fidelity `Metric` hypertable)
+- Heartbeat liveness table
 - User management and RBAC
 - API key management
-- Audit log
 - Event log
+- Terminal sessions
+- Deployment templates and deployments
+- Scheduled tasks and task executions
+- Command executions
+- Log entries (Phase 3)
+- Alert rules and alert events (Phase 3)
 
-For Phase 1, all time-series data is stored in a standard PostgreSQL table with a `timestamp` index. A future migration to **TimescaleDB** (PostgreSQL extension) can be applied transparently once data volumes warrant it.
+The `Metric` table is designed as a **TimescaleDB hypertable** partitioned by `timestamp`. On standard PostgreSQL it functions as a regular indexed table; the TimescaleDB migration is non-breaking.
+
+---
+
+## Phase 3 Models
+
+### Metric
+
+Full-fidelity per-collection metric snapshot.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String | FK → Instance (CASCADE delete) |
+| `timestamp` | DateTime | Collection time (TimescaleDB partition key) |
+| `cpu_percent` | Float | Overall CPU 0–100 |
+| `load_avg_1/5/15` | Float? | 1, 5, 15-min load averages |
+| `cpu_steal` | Float? | Hypervisor steal percent |
+| `core_count` | Int? | Number of CPU cores |
+| `mem_used` | BigInt | Bytes used |
+| `mem_total` | BigInt | Total bytes |
+| `mem_cached` | BigInt? | Page cache bytes |
+| `swap_used/total` | BigInt? | Swap utilization |
+| `disk_used/total` | BigInt | Primary volume bytes |
+| `disk_read/write_bps` | BigInt? | I/O throughput bytes/s |
+| `net_bytes_sent/recv` | BigInt? | Cumulative bytes since agent start |
+| `net_packets_sent/recv` | BigInt? | Cumulative packet counts |
+
+Indexes: `(instance_id, timestamp)`, `(timestamp)`
+
+### LogEntry
+
+Structured log line from an instance agent.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `instance_id` | String | FK → Instance |
+| `timestamp` | DateTime | Log line time |
+| `level` | Enum | `DEBUG`, `INFO`, `WARN`, `ERROR` |
+| `source` | Enum | `AGENT`, `EXTENSION`, `BUILD`, `APP`, `SYSTEM` |
+| `message` | String | Log message text (searchable) |
+| `metadata` | Json? | Structured context (requestId, statusCode, etc.) |
+
+Indexes: `(instance_id, timestamp)`, `(level)`, `(source)`, `(timestamp)`
+
+### AlertRule
+
+Configurable metric threshold alert rule.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `name` | String | Rule name |
+| `description` | String? | Optional description |
+| `instance_id` | String? | Target instance (null = fleet-wide) |
+| `conditions` | Json | Array of `{ metric, op, threshold }` |
+| `condition_operator` | String | `AND` or `OR` |
+| `severity` | String | `info`, `warning`, `critical` |
+| `evaluation_window_sec` | Int | Seconds of data to evaluate |
+| `pending_for_sec` | Int | Must stay firing for N sec before alerting |
+| `cooldown_sec` | Int | Min seconds between repeat notifications |
+| `notify_channels` | String[] | `email`, `webhook`, `slack` |
+| `notify_emails` | String[] | Email recipients |
+| `webhook_url` | String? | Webhook endpoint URL |
+| `enabled` | Boolean | Toggle rule without deleting |
+| `created_at` | DateTime | Creation time |
+| `updated_at` | DateTime | Last modified |
+
+### AlertEvent
+
+Individual alert state transition record.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String (CUID) | Primary key |
+| `rule_id` | String | FK → AlertRule |
+| `instance_id` | String | Instance this fired for |
+| `state` | String | `INACTIVE`, `PENDING`, `FIRING`, `RESOLVED` |
+| `severity` | String | Copied from rule at fire time |
+| `trigger_value` | Float | Metric value that triggered the alert |
+| `trigger_metric` | String | Which metric triggered |
+| `message` | String | Human-readable alert message |
+| `fired_at` | DateTime? | When state entered FIRING |
+| `resolved_at` | DateTime? | When state entered RESOLVED |
+| `notifications_sent` | Int | Count of dispatched notifications |
+
+Indexes: `(rule_id)`, `(instance_id)`, `(state)`, `(fired_at)`
 
 ---
 

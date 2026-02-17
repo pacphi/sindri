@@ -22,6 +22,9 @@ import { parseEnvelope, makeEnvelope, CHANNEL, MESSAGE_TYPE } from "../websocket
 import { redis, redisSub, REDIS_CHANNELS, REDIS_KEYS } from "../lib/redis.js";
 import { db } from "../lib/db.js";
 import { logger } from "../lib/logger.js";
+import { ingestLog, ingestBatch } from "../services/logs/index.js";
+import { enqueueMetric } from "../services/metrics/index.js";
+import type { LogLevel, LogSource } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Connection registry
@@ -183,8 +186,61 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
       }
       break;
 
-    case CHANNEL.METRICS:
-      // Forward raw metrics envelope to Redis for fan-out
+    case CHANNEL.METRICS: {
+      // Persist metric to write buffer (flushed every 60s by aggregation worker)
+      const metricsData = data as {
+        cpuPercent?: number;
+        loadAvg1?: number;
+        loadAvg5?: number;
+        loadAvg15?: number;
+        cpuSteal?: number;
+        coreCount?: number;
+        memUsed?: number;
+        memTotal?: number;
+        memCached?: number;
+        swapUsed?: number;
+        swapTotal?: number;
+        diskUsed?: number;
+        diskTotal?: number;
+        diskReadBps?: number;
+        diskWriteBps?: number;
+        netBytesSent?: number;
+        netBytesRecv?: number;
+        netPacketsSent?: number;
+        netPacketsRecv?: number;
+        ts?: number;
+      };
+
+      enqueueMetric({
+        instanceId: conn.instanceId,
+        timestamp: metricsData.ts ? new Date(metricsData.ts) : new Date(),
+        cpuPercent: metricsData.cpuPercent ?? 0,
+        loadAvg1: metricsData.loadAvg1,
+        loadAvg5: metricsData.loadAvg5,
+        loadAvg15: metricsData.loadAvg15,
+        cpuSteal: metricsData.cpuSteal,
+        coreCount: metricsData.coreCount,
+        memUsed: BigInt(metricsData.memUsed ?? 0),
+        memTotal: BigInt(metricsData.memTotal ?? 0),
+        memCached: metricsData.memCached != null ? BigInt(metricsData.memCached) : undefined,
+        swapUsed: metricsData.swapUsed != null ? BigInt(metricsData.swapUsed) : undefined,
+        swapTotal: metricsData.swapTotal != null ? BigInt(metricsData.swapTotal) : undefined,
+        diskUsed: BigInt(metricsData.diskUsed ?? 0),
+        diskTotal: BigInt(metricsData.diskTotal ?? 0),
+        diskReadBps: metricsData.diskReadBps != null ? BigInt(metricsData.diskReadBps) : undefined,
+        diskWriteBps:
+          metricsData.diskWriteBps != null ? BigInt(metricsData.diskWriteBps) : undefined,
+        netBytesSent:
+          metricsData.netBytesSent != null ? BigInt(metricsData.netBytesSent) : undefined,
+        netBytesRecv:
+          metricsData.netBytesRecv != null ? BigInt(metricsData.netBytesRecv) : undefined,
+        netPacketsSent:
+          metricsData.netPacketsSent != null ? BigInt(metricsData.netPacketsSent) : undefined,
+        netPacketsRecv:
+          metricsData.netPacketsRecv != null ? BigInt(metricsData.netPacketsRecv) : undefined,
+      });
+
+      // Forward raw metrics envelope to Redis for real-time fan-out to browser clients
       await redis
         .publish(
           REDIS_CHANNELS.instanceMetrics(conn.instanceId),
@@ -192,15 +248,85 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
         )
         .catch((err) => logger.warn({ err }, "Failed to publish metrics"));
       break;
+    }
 
-    case CHANNEL.LOGS:
-      await redis
-        .publish(
-          REDIS_CHANNELS.instanceLogs(conn.instanceId),
-          JSON.stringify({ ...envelope, instanceId: conn.instanceId }),
-        )
-        .catch((err) => logger.warn({ err }, "Failed to publish logs"));
+    case CHANNEL.LOGS: {
+      // Persist log(s) to database, then fan-out via Redis (ingestLog publishes internally)
+      const logLevelMap: Record<string, LogLevel> = {
+        debug: "DEBUG",
+        info: "INFO",
+        warn: "WARN",
+        warning: "WARN",
+        error: "ERROR",
+        err: "ERROR",
+      };
+      const logSourceMap: Record<string, LogSource> = {
+        agent: "AGENT",
+        extension: "EXTENSION",
+        build: "BUILD",
+        app: "APP",
+        system: "SYSTEM",
+      };
+
+      if (type === MESSAGE_TYPE.LOG_BATCH) {
+        // Batch ingestion
+        const batchData = data as {
+          lines?: Array<{
+            level?: string;
+            source?: string;
+            message?: string;
+            ts?: number;
+            metadata?: Record<string, unknown>;
+            deploymentId?: string;
+          }>;
+        };
+        const lines = batchData.lines ?? [];
+        ingestBatch({
+          entries: lines.map((l) => ({
+            instanceId: conn.instanceId,
+            level: (logLevelMap[String(l.level ?? "info").toLowerCase()] ?? "INFO") as LogLevel,
+            source: (logSourceMap[
+              String(l.source ?? "agent")
+                .toLowerCase()
+                .split(":")[0]
+            ] ?? "SYSTEM") as LogSource,
+            message: String(l.message ?? ""),
+            metadata: l.metadata,
+            deploymentId: l.deploymentId,
+            timestamp: l.ts ? new Date(l.ts) : new Date(),
+          })),
+        }).catch((err) =>
+          logger.warn({ err, instanceId: conn.instanceId }, "Failed to ingest log batch"),
+        );
+      } else {
+        // Single log line
+        const lineData = data as {
+          level?: string;
+          source?: string;
+          message?: string;
+          ts?: number;
+          metadata?: Record<string, unknown>;
+          deploymentId?: string;
+        };
+        ingestLog({
+          instanceId: conn.instanceId,
+          level: (logLevelMap[String(lineData.level ?? "info").toLowerCase()] ??
+            "INFO") as LogLevel,
+          source: (logSourceMap[
+            String(lineData.source ?? "agent")
+              .toLowerCase()
+              .split(":")[0]
+          ] ?? "SYSTEM") as LogSource,
+          message: String(lineData.message ?? ""),
+          metadata: lineData.metadata,
+          deploymentId: lineData.deploymentId,
+          timestamp: lineData.ts ? new Date(lineData.ts) : new Date(),
+        }).catch((err) =>
+          logger.warn({ err, instanceId: conn.instanceId }, "Failed to ingest log line"),
+        );
+      }
       break;
+    }
 
     case CHANNEL.EVENTS:
       await redis
@@ -398,12 +524,96 @@ export function attachWebSocketGateway(server: Server): WebSocketServer {
 
   logger.info("WebSocket gateway attached at /ws");
 
+  // ── Metrics stream WebSocket: /ws/metrics/stream ────────────────────────────
+  // Browser clients connect here to receive real-time metric updates from agents.
+  // After connecting, the client sends JSON: { "subscribe": ["<instanceId>", ...] }
+
+  const metricsWss = new WebSocketServer({ noServer: true });
+
+  metricsWss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+    // Authenticate (best-effort; unauthenticated connections are dropped)
+    void authenticateUpgrade(req, dbLookup)
+      .then((principal) => {
+        logger.info({ userId: principal.userId }, "Metrics stream WebSocket connected");
+
+        const subscribedInstances = new Set<string>();
+        const metricsChannel = (id: string) => REDIS_CHANNELS.instanceMetrics(id);
+
+        // Handle Redis pub/sub messages and forward to this client
+        const handleRedisMessage = (channel: string, message: string) => {
+          // channel format: sindri:instance:<id>:metrics
+          const parts = channel.split(":");
+          if (parts.length < 4) return;
+          const instanceId = parts[2];
+          if (subscribedInstances.has(instanceId) && ws.readyState === WebSocket.OPEN) {
+            ws.send(message);
+          }
+        };
+
+        redisSub.on("message", handleRedisMessage);
+
+        ws.on("message", (raw) => {
+          try {
+            const msg = JSON.parse(raw.toString()) as {
+              subscribe?: string[];
+              unsubscribe?: string[];
+            };
+
+            // Subscribe to requested instances
+            for (const id of msg.subscribe ?? []) {
+              if (!subscribedInstances.has(id)) {
+                subscribedInstances.add(id);
+                redisSub.subscribe(metricsChannel(id), (err) => {
+                  if (err) logger.warn({ err, instanceId: id }, "Metrics stream subscribe error");
+                });
+              }
+            }
+
+            // Unsubscribe from requested instances
+            for (const id of msg.unsubscribe ?? []) {
+              subscribedInstances.delete(id);
+              redisSub.unsubscribe(metricsChannel(id));
+            }
+          } catch {
+            // Ignore malformed messages
+          }
+        });
+
+        ws.on("close", () => {
+          redisSub.removeListener("message", handleRedisMessage);
+          for (const id of subscribedInstances) {
+            redisSub.unsubscribe(metricsChannel(id));
+          }
+          subscribedInstances.clear();
+          logger.info({ userId: principal.userId }, "Metrics stream WebSocket disconnected");
+        });
+
+        ws.on("error", (err) => {
+          logger.warn({ err }, "Metrics stream WebSocket error");
+        });
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Unauthorized";
+        ws.close(1008, message);
+        logger.warn({ message }, "Metrics stream WebSocket auth rejected");
+      });
+  });
+
   // ── Deployment progress WebSocket: /ws/deployments/:id ─────────────────────
 
   const deploymentWss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
     const pathname = (req.url ?? "").split("?")[0];
+
+    // Route metrics stream
+    if (pathname === "/ws/metrics/stream") {
+      metricsWss.handleUpgrade(req, socket, head, (ws) => {
+        metricsWss.emit("connection", ws, req);
+      });
+      return;
+    }
+
     const deployMatch = /^\/ws\/deployments\/([^/]+)$/.exec(pathname);
     if (!deployMatch) return;
 

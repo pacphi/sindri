@@ -12,12 +12,15 @@ import {
   Rocket,
   Terminal,
   Calendar,
+  ScrollText,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useCommandPaletteStore } from "@/stores/commandPaletteStore";
 import { Button } from "@/components/ui/button";
+import { AlertNotifications } from "@/components/alerts/AlertNotifications";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -25,6 +28,8 @@ const NAV_ITEMS = [
   { to: "/deployments", label: "Deployments", icon: Rocket },
   { to: "/commands", label: "Commands", icon: Terminal },
   { to: "/tasks", label: "Scheduled Tasks", icon: Calendar },
+  { to: "/logs", label: "Logs", icon: ScrollText },
+  { to: "/alerts", label: "Alerts", icon: Bell },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -123,6 +128,10 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-2 border-t border-border space-y-1">
+        {/* Alert notification bell */}
+        <div className={cn("flex", collapsed ? "justify-center" : "justify-end px-1 pb-1")}>
+          <AlertNotifications />
+        </div>
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "sm"}

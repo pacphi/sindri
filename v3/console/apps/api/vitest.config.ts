@@ -28,6 +28,12 @@ export default defineConfig({
             "tests/command-palette.test.ts",
             "tests/multi-terminal.test.ts",
             "tests/templates.test.ts",
+            // Phase 3: Observability
+            "tests/metrics-pipeline.test.ts",
+            "tests/fleet-dashboard.test.ts",
+            "tests/instance-dashboard.test.ts",
+            "tests/log-aggregation.test.ts",
+            "tests/alerting.test.ts",
           ],
     coverage: {
       provider: "v8",

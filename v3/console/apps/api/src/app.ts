@@ -17,6 +17,10 @@ import { tasksRouter } from "./routes/tasks.js";
 import { deploymentsRouter } from "./routes/deployments.js";
 import { templatesRouter } from "./routes/templates.js";
 import { providersRouter } from "./routes/providers.js";
+import { fleetRouter } from "./routes/fleet.js";
+import { metricsRouter, instanceMetricsRouter } from "./routes/metrics.js";
+import { logsRouter, instanceLogsRouter } from "./routes/logs.js";
+import { alertsRouter } from "./routes/alerts.js";
 import { logger } from "./lib/logger.js";
 
 export function createApp(): Hono {
@@ -50,6 +54,12 @@ export function createApp(): Hono {
   app.route("/api/v1/deployments", deploymentsRouter);
   app.route("/api/v1/templates", templatesRouter);
   app.route("/api/v1/providers", providersRouter);
+  app.route("/api/v1/fleet", fleetRouter);
+  app.route("/api/v1/metrics", metricsRouter);
+  app.route("/api/v1/instances", instanceMetricsRouter);
+  app.route("/api/v1/logs", logsRouter);
+  app.route("/api/v1/instances", instanceLogsRouter);
+  app.route("/api/v1/alerts", alertsRouter);
 
   // 404 handler
   app.notFound((c) => {

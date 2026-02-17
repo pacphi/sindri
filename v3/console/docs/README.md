@@ -21,6 +21,13 @@ The Console provides:
 - **Command Palette** - Quick keyboard-driven navigation and instance management
 - **Multi-Terminal** - Multiple simultaneous PTY sessions with broadcast mode
 
+**Phase 3 - Observability**
+- **Metrics Pipeline** - Full-fidelity time-series collection (CPU, memory, disk, network, load avg) stored in TimescaleDB hypertable with configurable granularity downsampling
+- **Fleet Dashboard** - Fleet-wide health summary, resource utilization rollup, top-N consumers, stale instance detection, and real-time status updates
+- **Instance Dashboard** - Per-instance charts with selectable time ranges (1h–30d), auto-refresh, event timeline overlay, and sparklines
+- **Log Aggregation** - Structured log ingestion from agents, full-text search, level/source/time-range filtering, cursor pagination, and real-time streaming
+- **Alerting Engine** - Rule-based alert evaluation with AND/OR conditions, pending window, cooldown suppression, email/webhook notifications, and FIRING/RESOLVED state machine
+
 ## Architecture
 
 ```
@@ -642,6 +649,203 @@ DATABASE_URL=... npx prisma migrate deploy
 
 ---
 
+## Phase 3: Observability
+
+### Metrics Pipeline
+
+The metrics pipeline ingests, stores, and queries full-fidelity time-series data from all running agents.
+
+#### Ingest
+
+Agents send `metrics:update` WebSocket messages every 30 seconds containing:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cpuPercent` | float 0–100 | Overall CPU utilization |
+| `loadAvg1/5/15` | float | 1, 5, 15-minute load averages |
+| `cpuSteal` | float | Hypervisor steal percentage |
+| `coreCount` | int | Number of CPU cores |
+| `memUsed / memTotal` | bigint (bytes) | Memory utilization |
+| `memCached` | bigint (bytes) | Page cache (optional) |
+| `swapUsed / swapTotal` | bigint (bytes) | Swap utilization (optional) |
+| `diskUsed / diskTotal` | bigint (bytes) | Primary volume utilization |
+| `diskReadBps / diskWriteBps` | bigint (bytes/s) | Disk I/O throughput (optional) |
+| `netBytesSent / netBytesRecv` | bigint (bytes) | Cumulative network bytes since agent start |
+| `netPacketsSent / netPacketsRecv` | bigint | Cumulative packet counts (optional) |
+
+#### Query Granularity
+
+| Granularity | Use Case | Retention |
+|-------------|----------|-----------|
+| `raw` | Last 7 days, high-resolution charts | 7 days |
+| `1m` | 1h–6h chart ranges | 30 days |
+| `5m` | 6h–24h chart ranges | 90 days |
+| `1h` | 7-day charts | 1 year |
+| `1d` | 30-day+ charts | Indefinite |
+
+#### API
+
+```
+GET /api/v1/metrics/:instanceId/timeseries
+  ?from=<ISO8601>&to=<ISO8601>&granularity=5m&limit=500
+
+GET /api/v1/metrics/:instanceId/aggregate
+  ?from=<ISO8601>&to=<ISO8601>&metrics=cpu_percent,mem_used
+
+GET /api/v1/metrics/latest
+  ?instanceIds=id1,id2,id3
+```
+
+---
+
+### Log Aggregation
+
+Structured log ingestion supports both individual lines and batched delivery.
+
+#### Log Levels
+
+| Level | Usage |
+|-------|-------|
+| `DEBUG` | Verbose diagnostic output |
+| `INFO` | Normal operational events |
+| `WARN` | Potentially problematic conditions |
+| `ERROR` | Failures requiring attention |
+
+#### Log Sources
+
+| Source | Description |
+|--------|-------------|
+| `AGENT` | Agent internal messages |
+| `EXTENSION` | Extension install/runtime output |
+| `BUILD` | Build step output |
+| `APP` | Application stdout/stderr |
+| `SYSTEM` | OS-level messages |
+
+#### Search API
+
+```
+GET /api/v1/logs
+  ?instanceId=<id>
+  &level=ERROR,WARN
+  &source=AGENT
+  &from=<ISO8601>&to=<ISO8601>
+  &q=<full-text-search>
+  &limit=50&cursor=<logId>
+```
+
+Results are paginated with cursor-based navigation. Response includes `hasMore` and `nextCursor` fields.
+
+#### Real-Time Streaming
+
+Subscribe to new log entries via SSE:
+
+```
+GET /api/v1/logs/stream?instanceId=<id>&level=ERROR
+```
+
+Or via the WebSocket `logs` channel (filters applied server-side before forwarding to subscribers).
+
+---
+
+### Alerting Engine
+
+The alerting engine evaluates rules on a 60-second cycle against the latest metric snapshot for each instance.
+
+#### Alert Rule Structure
+
+```json
+{
+  "name": "High CPU",
+  "instanceId": null,
+  "conditions": [
+    { "metric": "cpu_percent", "op": "gt", "threshold": 80 }
+  ],
+  "conditionOperator": "AND",
+  "severity": "warning",
+  "evaluationWindowSec": 60,
+  "pendingForSec": 120,
+  "cooldownSec": 300,
+  "notifyChannels": ["email", "webhook"],
+  "notifyEmails": ["ops@example.com"],
+  "webhookUrl": "https://hooks.example.com/alerts"
+}
+```
+
+#### Alert State Machine
+
+```
+INACTIVE ──(condition fires)──→ PENDING
+PENDING  ──(pendingForSec elapsed)──→ FIRING ──(notification sent)
+FIRING   ──(condition clears)──→ RESOLVED
+RESOLVED ──(next eval cycle)──→ INACTIVE
+```
+
+#### Severity Levels
+
+| Severity | Use Case |
+|----------|----------|
+| `info` | Informational threshold crossed |
+| `warning` | Performance degradation |
+| `critical` | Imminent failure / capacity exceeded |
+
+#### Alert API
+
+```
+GET  /api/v1/alerts/rules
+POST /api/v1/alerts/rules
+GET  /api/v1/alerts/rules/:id
+PUT  /api/v1/alerts/rules/:id
+DELETE /api/v1/alerts/rules/:id
+
+GET  /api/v1/alerts/events
+  ?ruleId=<id>&instanceId=<id>&state=FIRING&from=<ISO8601>
+```
+
+---
+
+### Fleet Dashboard
+
+The fleet dashboard provides a single-pane-of-glass view across all registered instances.
+
+#### Summary Metrics
+
+- Total instances, breakdown by status (RUNNING / STOPPED / DEPLOYING / ERROR)
+- Fleet-wide average and maximum CPU, memory, and disk utilization
+- Top-5 resource consumers (sortable by CPU, memory, disk)
+- Stale instance list (no heartbeat in 5+ minutes, status = RUNNING)
+
+#### Real-Time Updates
+
+Status changes and metric updates are pushed via the `/ws/console` WebSocket channel and applied as partial state merges to the React fleet store.
+
+---
+
+### Instance Dashboard
+
+Per-instance observability with configurable time ranges.
+
+#### Time Ranges
+
+| Range | Granularity | Auto-Refresh |
+|-------|-------------|--------------|
+| 1h | 1m | Yes (30s) |
+| 6h | 5m | Yes (30s) |
+| 24h | 5m | Yes (30s) |
+| 7d | 1h | No |
+| 30d | 1d | No |
+
+#### Chart Panels
+
+1. **CPU** — Utilization % with load average overlay (1/5/15 min)
+2. **Memory** — Used/Total with percentage gauge
+3. **Disk** — Used/Total with percentage gauge; optional read/write throughput
+4. **Network** — Bytes sent/received throughput
+5. **Events** — Lifecycle events overlaid on the time axis
+
+The latest-values panel (top of page) always reflects the most recent metric regardless of selected time range.
+
+---
+
 ## Phase 2: Advanced Instance Management
 
 Phase 2 extends the console with deployment automation, lifecycle management, and multi-instance operations.
@@ -993,7 +1197,7 @@ Tests in `apps/api/tests/` require no running server — the Hono app is exercis
 
 ```bash
 cd apps/api
-npm test                        # All tests
+npm test                        # All tests (Phase 1 + 2 + 3)
 npm test -- tests/deployment-wizard.test.ts
 npm test -- tests/instance-lifecycle.test.ts
 npm test -- tests/command-execution.test.ts
@@ -1032,3 +1236,96 @@ E2E tests use `TEST_BASE_URL` environment variable (default: `http://localhost:5
 | API integration (Vitest) | ≥ 80% statements |
 | Frontend unit (Vitest) | ≥ 75% statements |
 | E2E (Playwright) | Critical user paths covered |
+
+---
+
+## Phase 3 Testing Guide
+
+### Integration Tests (Vitest)
+
+Phase 3 tests are included in the default `npm test` run alongside Phase 1 and Phase 2 tests.
+
+```bash
+cd apps/api
+
+# All Phase 3 observability tests
+npm test -- tests/metrics-pipeline.test.ts
+npm test -- tests/fleet-dashboard.test.ts
+npm test -- tests/instance-dashboard.test.ts
+npm test -- tests/log-aggregation.test.ts
+npm test -- tests/alerting.test.ts
+```
+
+#### Test Coverage by File
+
+| File | Tests | Coverage Area |
+|------|-------|---------------|
+| `metrics-pipeline.test.ts` | Ingest validation, time-series shapes, aggregation, fleet rollup, granularity, retention | Metrics service types and data shapes |
+| `fleet-dashboard.test.ts` | Health summary, resource utilization, sorting, filtering, stale detection, top-N, real-time updates | Fleet aggregation logic |
+| `instance-dashboard.test.ts` | Chart data, time range selection, real-time stream, threshold alerts, event timeline, auto-refresh | Per-instance dashboard data layer |
+| `log-aggregation.test.ts` | WebSocket ingestion, storage schema, full-text search, filtering, streaming, pagination | Log pipeline from ingest to query |
+| `alerting.test.ts` | Rule validation, threshold evaluation, state machine, notifications, suppression, history | Alerting engine rules and events |
+
+### E2E Tests (Playwright)
+
+Phase 3 E2E tests cover critical observability user journeys:
+
+```bash
+cd apps/web
+
+# Fleet dashboard visualizations
+npx playwright test tests/e2e/fleet-dashboard.spec.ts
+
+# Instance dashboard real-time metrics
+npx playwright test tests/e2e/instance-dashboard.spec.ts
+
+# Log search functionality
+npx playwright test tests/e2e/log-search.spec.ts
+
+# Alert triggering and notifications
+npx playwright test tests/e2e/alerting.spec.ts
+
+# Run all Phase 3 E2E tests
+npx playwright test tests/e2e/fleet-dashboard.spec.ts tests/e2e/instance-dashboard.spec.ts tests/e2e/log-search.spec.ts tests/e2e/alerting.spec.ts
+```
+
+#### E2E Test Scenarios
+
+**fleet-dashboard.spec.ts:**
+- Fleet health summary renders correct instance counts by status
+- Sorting by CPU descending shows highest utilization first
+- Filtering by provider narrows the instance list
+- Stale instance badge appears after heartbeat timeout
+- Real-time status update applies without page reload
+
+**instance-dashboard.spec.ts:**
+- CPU/memory/disk charts render data for selected time range
+- Switching time range from 1h to 7d updates chart granularity
+- Real-time metric update appends to chart without full reload
+- Threshold breach triggers alert banner on the dashboard
+- Event timeline shows lifecycle events overlaid on chart
+
+**log-search.spec.ts:**
+- Full-text search returns matching log lines
+- Level filter (ERROR) hides INFO/DEBUG/WARN entries
+- Source filter (AGENT) scopes results correctly
+- Cursor pagination loads next page of results
+- Real-time stream appends new log lines as they arrive
+
+**alerting.spec.ts:**
+- Creating an alert rule persists and appears in the rules list
+- Alert transitions to FIRING when metric exceeds threshold
+- Notification is sent (mock email/webhook) on FIRING transition
+- Alert shows RESOLVED after metric drops below threshold
+- Alert history shows firedAt and resolvedAt timestamps
+
+### Phase 3 Coverage Targets
+
+| Layer | Target |
+|-------|--------|
+| Metrics service unit tests | ≥ 85% statements |
+| Log service unit tests | ≥ 85% statements |
+| Alerting engine unit tests | ≥ 85% statements |
+| API integration (Vitest) | ≥ 80% statements |
+| Frontend unit (Vitest) | ≥ 75% statements |
+| E2E (Playwright) | All critical observability paths covered |

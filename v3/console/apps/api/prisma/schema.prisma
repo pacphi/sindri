@@ -62,6 +62,51 @@ enum DeploymentStatus {
   CANCELLED
 }
 
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+}
+
+enum LogSource {
+  AGENT
+  EXTENSION
+  BUILD
+  APP
+  SYSTEM
+}
+
+enum AlertRuleType {
+  THRESHOLD
+  ANOMALY
+  LIFECYCLE
+  SECURITY
+  COST
+}
+
+enum AlertSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  SILENCED
+}
+
+enum NotificationChannelType {
+  WEBHOOK
+  SLACK
+  EMAIL
+  IN_APP
+}
+
 enum ScheduledTaskStatus {
   ACTIVE
   PAUSED
@@ -96,7 +141,9 @@ model Instance {
 
   // Relations
   heartbeats         Heartbeat[]
+  metrics            Metric[]
   events             Event[]
+  logs               Log[]
   terminal_sessions  TerminalSession[]
   command_executions CommandExecution[]
   deployments        Deployment[]
@@ -124,6 +171,48 @@ model Heartbeat {
   @@index([instance_id])
   @@index([timestamp])
   @@index([instance_id, timestamp])
+}
+
+/// Detailed per-collection metric snapshot — the full-fidelity time-series table.
+/// Converted to a TimescaleDB hypertable partitioned by `timestamp`.
+/// The lighter-weight Heartbeat table stores coarse liveness pings.
+model Metric {
+  id           String   @id @default(cuid())
+  instance_id  String
+  timestamp    DateTime @default(now())
+
+  // CPU
+  cpu_percent  Float    // overall usage 0–100
+  load_avg_1   Float?
+  load_avg_5   Float?
+  load_avg_15  Float?
+  cpu_steal    Float?   // hypervisor steal percent
+  core_count   Int?
+
+  // Memory (bytes)
+  mem_used     BigInt
+  mem_total    BigInt
+  mem_cached   BigInt?
+  swap_used    BigInt?
+  swap_total   BigInt?
+
+  // Disk (bytes, primary volume)
+  disk_used    BigInt
+  disk_total   BigInt
+  disk_read_bps  BigInt?
+  disk_write_bps BigInt?
+
+  // Network (cumulative bytes since agent start)
+  net_bytes_sent BigInt?
+  net_bytes_recv BigInt?
+  net_packets_sent BigInt?
+  net_packets_recv BigInt?
+
+  // Relations
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id, timestamp])
+  @@index([timestamp])
 }
 
 /// Lifecycle and operational events emitted by instances or the Console.
@@ -322,6 +411,133 @@ model Deployment {
   @@index([status])
   @@index([started_at])
   @@index([initiated_by])
+}
+
+/// Centralized log entries from instances, agents, extensions, and builds.
+/// Supports full-text search via a GIN index on the message field.
+model Log {
+  id            String    @id @default(cuid())
+  instance_id   String
+  level         LogLevel
+  source        LogSource
+  message       String
+  metadata      Json?     // Arbitrary structured payload (stack traces, context, etc.)
+  deployment_id String?   // Correlation with a specific deployment
+  timestamp     DateTime  @default(now())
+
+  // Relations
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([level])
+  @@index([source])
+  @@index([timestamp])
+  @@index([deployment_id])
+  @@index([instance_id, timestamp])
+  @@index([instance_id, level])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alerting Engine
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A rule that defines conditions for generating alerts.
+model AlertRule {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  type         AlertRuleType
+  severity     AlertSeverity @default(MEDIUM)
+  enabled      Boolean       @default(true)
+  instance_id  String?       // null = applies to all instances
+  conditions   Json          // type-specific condition config
+  cooldown_sec Int           @default(300)
+  created_by   String?
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  alerts       Alert[]
+  channels     AlertRuleChannel[]
+
+  @@index([type])
+  @@index([severity])
+  @@index([enabled])
+  @@index([instance_id])
+}
+
+/// A triggered alert instance from an AlertRule evaluation.
+model Alert {
+  id              String        @id @default(cuid())
+  rule_id         String
+  instance_id     String?
+  status          AlertStatus   @default(ACTIVE)
+  severity        AlertSeverity
+  title           String
+  message         String
+  metadata        Json?
+  fired_at        DateTime      @default(now())
+  acknowledged_at DateTime?
+  acknowledged_by String?
+  resolved_at     DateTime?
+  resolved_by     String?
+  dedupe_key      String
+
+  rule          AlertRule          @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+  notifications AlertNotification[]
+
+  @@index([rule_id])
+  @@index([instance_id])
+  @@index([status])
+  @@index([severity])
+  @@index([fired_at])
+  @@index([dedupe_key])
+}
+
+/// A notification channel (webhook, Slack, email, in-app).
+model NotificationChannel {
+  id         String                  @id @default(cuid())
+  name       String
+  type       NotificationChannelType
+  config     Json
+  enabled    Boolean                 @default(true)
+  created_by String?
+  created_at DateTime                @default(now())
+  updated_at DateTime                @updatedAt
+
+  rules         AlertRuleChannel[]
+  notifications AlertNotification[]
+
+  @@index([type])
+  @@index([enabled])
+}
+
+/// Join table: which channels receive notifications for an alert rule.
+model AlertRuleChannel {
+  rule_id    String
+  channel_id String
+
+  rule    AlertRule           @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+  channel NotificationChannel @relation(fields: [channel_id], references: [id], onDelete: Cascade)
+
+  @@id([rule_id, channel_id])
+}
+
+/// A dispatched notification for an alert.
+model AlertNotification {
+  id         String   @id @default(cuid())
+  alert_id   String
+  channel_id String
+  sent_at    DateTime @default(now())
+  success    Boolean  @default(true)
+  error      String?
+  payload    Json?
+
+  alert   Alert               @relation(fields: [alert_id], references: [id], onDelete: Cascade)
+  channel NotificationChannel @relation(fields: [channel_id], references: [id], onDelete: Cascade)
+
+  @@index([alert_id])
+  @@index([channel_id])
+  @@index([sent_at])
 }
 
 /// Web terminal sessions opened from the Console to a Sindri instance.

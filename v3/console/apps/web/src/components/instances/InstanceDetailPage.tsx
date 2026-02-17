@@ -4,6 +4,8 @@ import { useInstance } from "@/hooks/useInstances";
 import { StatusBadge } from "./StatusBadge";
 import { MetricsGauge } from "./MetricsGauge";
 import { LifecycleActions } from "./lifecycle";
+import { InstanceDashboard } from "@/components/dashboard/instance";
+import { LogAggregator } from "@/components/logs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Server, Clock, MapPin, Cpu } from "lucide-react";
@@ -120,6 +122,19 @@ export function InstanceDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Historical metrics charts + process list */}
+      <InstanceDashboard instanceId={instance.id} />
+
+      {/* Log aggregation panel */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Logs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LogAggregator instanceId={instance.id} />
+        </CardContent>
+      </Card>
 
       {instance.extensions.length > 0 && (
         <Card>

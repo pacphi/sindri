@@ -9,28 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root";
+import { Route as AlertsRouteImport } from "./routes/alerts";
+import { Route as LogsRouteImport } from "./routes/logs";
+import { Route as TasksRouteImport } from "./routes/tasks";
 import { Route as SettingsRouteImport } from "./routes/settings";
-import { Route as DeploymentsRouteImport } from "./routes/deployments";
 import { Route as InstancesRouteImport } from "./routes/instances";
+import { Route as DeploymentsRouteImport } from "./routes/deployments";
 import { Route as DashboardRouteImport } from "./routes/dashboard";
 import { Route as CommandsRouteImport } from "./routes/commands";
 import { Route as IndexRouteImport } from "./routes/index";
 import { Route as InstancesIdRouteImport } from "./routes/instances_.$id";
 import { Route as InstancesIdTerminalRouteImport } from "./routes/instances_.$id.terminal";
 
+const AlertsRoute = AlertsRouteImport.update({
+  id: "/alerts",
+  path: "/alerts",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const LogsRoute = LogsRouteImport.update({
+  id: "/logs",
+  path: "/logs",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const TasksRoute = TasksRouteImport.update({
+  id: "/tasks",
+  path: "/tasks",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SettingsRoute = SettingsRouteImport.update({
   id: "/settings",
   path: "/settings",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const CommandsRoute = CommandsRouteImport.update({
-  id: "/commands",
-  path: "/commands",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DeploymentsRoute = DeploymentsRouteImport.update({
-  id: "/deployments",
-  path: "/deployments",
   getParentRoute: () => rootRouteImport,
 } as any);
 const InstancesRoute = InstancesRouteImport.update({
@@ -38,9 +46,19 @@ const InstancesRoute = InstancesRouteImport.update({
   path: "/instances",
   getParentRoute: () => rootRouteImport,
 } as any);
+const DeploymentsRoute = DeploymentsRouteImport.update({
+  id: "/deployments",
+  path: "/deployments",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const DashboardRoute = DashboardRouteImport.update({
   id: "/dashboard",
   path: "/dashboard",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const CommandsRoute = CommandsRouteImport.update({
+  id: "/commands",
+  path: "/commands",
   getParentRoute: () => rootRouteImport,
 } as any);
 const IndexRoute = IndexRouteImport.update({
@@ -61,32 +79,41 @@ const InstancesIdTerminalRoute = InstancesIdTerminalRouteImport.update({
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute;
+  "/alerts": typeof AlertsRoute;
+  "/commands": typeof CommandsRoute;
   "/dashboard": typeof DashboardRoute;
   "/deployments": typeof DeploymentsRoute;
   "/instances": typeof InstancesRoute;
+  "/logs": typeof LogsRoute;
   "/settings": typeof SettingsRoute;
-  "/commands": typeof CommandsRoute;
+  "/tasks": typeof TasksRoute;
   "/instances/$id": typeof InstancesIdRouteWithChildren;
   "/instances/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute;
+  "/alerts": typeof AlertsRoute;
+  "/commands": typeof CommandsRoute;
   "/dashboard": typeof DashboardRoute;
   "/deployments": typeof DeploymentsRoute;
   "/instances": typeof InstancesRoute;
+  "/logs": typeof LogsRoute;
   "/settings": typeof SettingsRoute;
-  "/commands": typeof CommandsRoute;
+  "/tasks": typeof TasksRoute;
   "/instances/$id": typeof InstancesIdRouteWithChildren;
   "/instances/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/": typeof IndexRoute;
+  "/alerts": typeof AlertsRoute;
+  "/commands": typeof CommandsRoute;
   "/dashboard": typeof DashboardRoute;
   "/deployments": typeof DeploymentsRoute;
   "/instances": typeof InstancesRoute;
+  "/logs": typeof LogsRoute;
   "/settings": typeof SettingsRoute;
-  "/commands": typeof CommandsRoute;
+  "/tasks": typeof TasksRoute;
   "/instances_/$id": typeof InstancesIdRouteWithChildren;
   "/instances_/$id/terminal": typeof InstancesIdTerminalRoute;
 }
@@ -94,59 +121,78 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | "/"
+    | "/alerts"
+    | "/commands"
     | "/dashboard"
     | "/deployments"
     | "/instances"
+    | "/logs"
     | "/settings"
-    | "/commands"
+    | "/tasks"
     | "/instances/$id"
     | "/instances/$id/terminal";
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/"
+    | "/alerts"
+    | "/commands"
     | "/dashboard"
     | "/deployments"
     | "/instances"
+    | "/logs"
     | "/settings"
-    | "/commands"
+    | "/tasks"
     | "/instances/$id"
     | "/instances/$id/terminal";
   id:
     | "__root__"
     | "/"
+    | "/alerts"
+    | "/commands"
     | "/dashboard"
     | "/deployments"
     | "/instances"
+    | "/logs"
     | "/settings"
-    | "/commands"
+    | "/tasks"
     | "/instances_/$id"
     | "/instances_/$id/terminal";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
+  AlertsRoute: typeof AlertsRoute;
+  CommandsRoute: typeof CommandsRoute;
   DashboardRoute: typeof DashboardRoute;
   DeploymentsRoute: typeof DeploymentsRoute;
   InstancesRoute: typeof InstancesRoute;
+  LogsRoute: typeof LogsRoute;
   SettingsRoute: typeof SettingsRoute;
-  CommandsRoute: typeof CommandsRoute;
+  TasksRoute: typeof TasksRoute;
   InstancesIdRoute: typeof InstancesIdRouteWithChildren;
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+    "/logs": {
+      id: "/logs";
+      path: "/logs";
+      fullPath: "/logs";
+      preLoaderRoute: typeof LogsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/tasks": {
+      id: "/tasks";
+      path: "/tasks";
+      fullPath: "/tasks";
+      preLoaderRoute: typeof TasksRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     "/settings": {
       id: "/settings";
       path: "/settings";
       fullPath: "/settings";
       preLoaderRoute: typeof SettingsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/deployments": {
-      id: "/deployments";
-      path: "/deployments";
-      fullPath: "/deployments";
-      preLoaderRoute: typeof DeploymentsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/instances": {
@@ -156,11 +202,25 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof InstancesRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    "/deployments": {
+      id: "/deployments";
+      path: "/deployments";
+      fullPath: "/deployments";
+      preLoaderRoute: typeof DeploymentsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     "/dashboard": {
       id: "/dashboard";
       path: "/dashboard";
       fullPath: "/dashboard";
       preLoaderRoute: typeof DashboardRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/alerts": {
+      id: "/alerts";
+      path: "/alerts";
+      fullPath: "/alerts";
+      preLoaderRoute: typeof AlertsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/commands": {
@@ -206,11 +266,14 @@ const InstancesIdRouteWithChildren = InstancesIdRoute._addFileChildren(Instances
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlertsRoute: AlertsRoute,
+  CommandsRoute: CommandsRoute,
   DashboardRoute: DashboardRoute,
   DeploymentsRoute: DeploymentsRoute,
   InstancesRoute: InstancesRoute,
+  LogsRoute: LogsRoute,
   SettingsRoute: SettingsRoute,
-  CommandsRoute: CommandsRoute,
+  TasksRoute: TasksRoute,
   InstancesIdRoute: InstancesIdRouteWithChildren,
 };
 export const routeTree = rootRouteImport

@@ -1067,3 +1067,291 @@ List execution history for a task.
   "total": 14
 }
 ```
+
+---
+
+## Phase 3 Observability API
+
+### Metrics
+
+#### GET /api/v1/metrics/:instanceId/timeseries
+
+Retrieve time-series chart data for a single instance.
+
+**Auth:** Bearer token (DEVELOPER+)
+
+**Query parameters:**
+
+- `from` — ISO8601 start (required)
+- `to` — ISO8601 end (required)
+- `granularity` — `raw` | `1m` | `5m` | `1h` | `1d` (default: `raw`)
+- `limit` — max data points, default 500
+
+**Response 200:**
+```json
+{
+  "instanceId": "inst_01",
+  "granularity": "5m",
+  "points": [
+    {
+      "timestamp": "2026-02-17T10:00:00.000Z",
+      "instanceId": "inst_01",
+      "cpuPercent": 42.5,
+      "memUsed": "2147483648",
+      "memTotal": "8589934592",
+      "diskUsed": "21474836480",
+      "diskTotal": "107374182400",
+      "loadAvg1": 1.2,
+      "loadAvg5": 0.9,
+      "loadAvg15": 0.7,
+      "netBytesSent": "104857600",
+      "netBytesRecv": "209715200"
+    }
+  ]
+}
+```
+
+---
+
+#### GET /api/v1/metrics/:instanceId/aggregate
+
+Aggregate stats (avg/max) over a time window.
+
+**Auth:** Bearer token (DEVELOPER+)
+
+**Query parameters:**
+
+- `from` — ISO8601 start (required)
+- `to` — ISO8601 end (required)
+- `metrics` — comma-separated metric names (optional, default: all)
+
+**Response 200:**
+```json
+{
+  "instanceId": "inst_01",
+  "from": "2026-02-17T09:00:00.000Z",
+  "to": "2026-02-17T10:00:00.000Z",
+  "avgCpuPercent": 38.2,
+  "maxCpuPercent": 67.8,
+  "avgMemUsed": "2000000000",
+  "maxMemUsed": "3000000000",
+  "avgDiskUsed": "20000000000",
+  "maxDiskUsed": "22000000000",
+  "avgLoadAvg1": 1.1,
+  "sampleCount": 60
+}
+```
+
+---
+
+#### GET /api/v1/metrics/latest
+
+Latest metric snapshot per instance (fleet-wide or filtered).
+
+**Auth:** Bearer token (DEVELOPER+)
+
+**Query parameters:**
+
+- `instanceIds` — comma-separated instance IDs (optional, default: all)
+
+**Response 200:**
+```json
+{
+  "metrics": [
+    {
+      "instanceId": "inst_01",
+      "timestamp": "2026-02-17T10:00:00.000Z",
+      "cpuPercent": 42.5,
+      "memUsed": "2147483648",
+      "memTotal": "8589934592",
+      "memPercent": 25.0,
+      "diskUsed": "21474836480",
+      "diskTotal": "107374182400",
+      "diskPercent": 20.0,
+      "loadAvg1": 1.2,
+      "loadAvg5": 0.9,
+      "loadAvg15": 0.7,
+      "netBytesSent": "104857600",
+      "netBytesRecv": "209715200"
+    }
+  ]
+}
+```
+
+---
+
+### Logs
+
+#### GET /api/v1/logs
+
+Query and search log entries.
+
+**Auth:** Bearer token (DEVELOPER+)
+
+**Query parameters:**
+
+- `instanceId` — filter to one instance (optional)
+- `level` — comma-separated log levels: `DEBUG,INFO,WARN,ERROR` (optional)
+- `source` — comma-separated sources: `AGENT,EXTENSION,BUILD,APP,SYSTEM` (optional)
+- `from` — ISO8601 start (optional)
+- `to` — ISO8601 end (optional)
+- `q` — full-text search query (optional)
+- `limit` — page size, default 50, max 500
+- `cursor` — log entry ID for cursor pagination (optional)
+
+**Response 200:**
+```json
+{
+  "logs": [
+    {
+      "id": "log_01",
+      "instanceId": "inst_01",
+      "timestamp": "2026-02-17T10:05:00.000Z",
+      "level": "WARN",
+      "source": "SYSTEM",
+      "message": "High memory usage detected: 82%",
+      "metadata": null
+    }
+  ],
+  "total": 1240,
+  "hasMore": true,
+  "nextCursor": "log_50"
+}
+```
+
+---
+
+#### GET /api/v1/logs/stream
+
+Server-Sent Events stream of new log entries (real-time).
+
+**Auth:** Bearer token (DEVELOPER+)
+
+**Query parameters:**
+
+- `instanceId` — required
+- `level` — comma-separated level filter (optional)
+
+**Response:** `text/event-stream`
+
+```
+data: {"id":"log_new","instanceId":"inst_01","timestamp":"...","level":"ERROR","source":"APP","message":"Connection refused","metadata":null}
+
+data: {"id":"log_new2",...}
+```
+
+---
+
+### Alerts
+
+#### GET /api/v1/alerts/rules
+
+List all alert rules.
+
+**Auth:** Bearer token (DEVELOPER+)
+
+**Response 200:**
+```json
+{
+  "rules": [
+    {
+      "id": "rule_01",
+      "name": "High CPU",
+      "instanceId": null,
+      "conditions": [{"metric": "cpu_percent", "op": "gt", "threshold": 80}],
+      "conditionOperator": "AND",
+      "severity": "warning",
+      "evaluationWindowSec": 60,
+      "pendingForSec": 120,
+      "cooldownSec": 300,
+      "notifyChannels": ["email"],
+      "notifyEmails": ["ops@example.com"],
+      "webhookUrl": null,
+      "enabled": true,
+      "createdAt": "2026-02-17T00:00:00Z",
+      "updatedAt": "2026-02-17T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### POST /api/v1/alerts/rules
+
+Create a new alert rule.
+
+**Auth:** Bearer token (OPERATOR+)
+
+**Request body:** Alert rule fields (same shape as GET response, without `id`/`createdAt`/`updatedAt`).
+
+**Response 201:** Created rule object.
+
+---
+
+#### GET /api/v1/alerts/rules/:id
+
+Get a single alert rule.
+
+**Response 200:** Alert rule object.
+
+---
+
+#### PUT /api/v1/alerts/rules/:id
+
+Update an alert rule.
+
+**Auth:** Bearer token (OPERATOR+)
+
+**Response 200:** Updated rule object.
+
+---
+
+#### DELETE /api/v1/alerts/rules/:id
+
+Delete an alert rule (also deletes associated alert events).
+
+**Auth:** Bearer token (OPERATOR+)
+
+**Response 200:** `{ "ok": true }`
+
+---
+
+#### GET /api/v1/alerts/events
+
+Query alert event history.
+
+**Auth:** Bearer token (DEVELOPER+)
+
+**Query parameters:**
+
+- `ruleId` — filter by rule (optional)
+- `instanceId` — filter by instance (optional)
+- `state` — `INACTIVE` | `PENDING` | `FIRING` | `RESOLVED` (optional)
+- `from` — ISO8601 start (optional)
+- `to` — ISO8601 end (optional)
+- `limit` — default 50
+- `cursor` — event ID for pagination (optional)
+
+**Response 200:**
+```json
+{
+  "events": [
+    {
+      "id": "alert_01",
+      "ruleId": "rule_01",
+      "instanceId": "inst_01",
+      "state": "FIRING",
+      "severity": "warning",
+      "triggerValue": 87.5,
+      "triggerMetric": "cpu_percent",
+      "message": "cpu_percent is 87.5 (threshold: 80)",
+      "firedAt": "2026-02-17T10:00:00Z",
+      "resolvedAt": null,
+      "notificationsSent": 1
+    }
+  ],
+  "hasMore": false,
+  "nextCursor": null
+}
+```

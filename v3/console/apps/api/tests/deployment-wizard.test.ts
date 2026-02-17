@@ -371,7 +371,8 @@ describe("Deployment Wizard: Multi-Step Flow", () => {
     wizardState.step = 5;
     wizardState.deploymentId = mockDeployment.id;
     expect(wizardState.deploymentId).toBe("deploy_01");
-    expect(mockDeployment.status).toBe("DEPLOYING");
+    // Schema DeploymentStatus: PENDING | IN_PROGRESS | SUCCEEDED | FAILED | CANCELLED
+    expect(mockDeployment.status).toBe("PENDING");
   });
 
   it("allows navigating back to previous steps", () => {

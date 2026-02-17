@@ -20,6 +20,11 @@ import { db } from "./lib/db.js";
 import { connectRedis, disconnectRedis } from "./lib/redis.js";
 import { logger } from "./lib/logger.js";
 import { cronScheduler } from "./services/scheduler/index.js";
+import { startAggregationWorker, stopAggregationWorker } from "./services/metrics/index.js";
+import {
+  startAlertEvaluationWorker,
+  stopAlertEvaluationWorker,
+} from "./services/alerts/evaluation.worker.js";
 
 const PORT = parseInt(process.env.PORT ?? "3001", 10);
 
@@ -63,6 +68,12 @@ async function main(): Promise<void> {
   await cronScheduler.loadFromDatabase();
   cronScheduler.start();
 
+  // Start metric aggregation worker (60s flush + retention)
+  startAggregationWorker();
+
+  // Start alert evaluation worker (60s evaluation cycle)
+  startAlertEvaluationWorker();
+
   // ── Graceful shutdown ──────────────────────────────────────────────────────
 
   async function shutdown(signal: string): Promise<void> {
@@ -70,6 +81,8 @@ async function main(): Promise<void> {
 
     // Stop accepting new connections
     cronScheduler.stop();
+    stopAggregationWorker();
+    stopAlertEvaluationWorker();
 
     server.close(async () => {
       logger.info("HTTP server closed");
