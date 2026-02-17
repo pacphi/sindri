@@ -1,4 +1,4 @@
-import { Database, RefreshCw, HardDrive, Activity, Package } from 'lucide-react'
+import { Database, RefreshCw, Activity, Package } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

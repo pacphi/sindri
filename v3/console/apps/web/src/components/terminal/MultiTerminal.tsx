@@ -98,7 +98,6 @@ export function MultiTerminal({
 
     // No persisted state - create a default session for the primary instance
     createTabForInstance(primaryInstanceId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync broadcast targets with tabs
@@ -145,14 +144,13 @@ export function MultiTerminal({
         });
 
         return tabId;
-      } catch (error) {
+      } catch {
         // TODO: Show error notification to user
         return null;
       } finally {
         setIsCreating(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isCreating, instances],
   );
 

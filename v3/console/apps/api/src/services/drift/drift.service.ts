@@ -390,7 +390,7 @@ export async function buildDeclaredConfigFromInstance(instanceId: string): Promi
 
   if (!instance) return {};
 
-  let declared: DeclaredConfig = {
+  const declared: DeclaredConfig = {
     provider: instance.provider,
     region: instance.region ?? undefined,
     extensions: instance.extensions.map((name) => ({ name })),

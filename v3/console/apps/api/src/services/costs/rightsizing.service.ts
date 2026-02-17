@@ -159,7 +159,7 @@ export async function analyzeAndGenerateRecommendations(): Promise<{
 
     // Estimate current monthly cost from recent entries
     const recentSpend = inst.cost_entries.reduce((acc, e) => acc + e.total_usd, 0)
-    const currentUsdMo = recentSpend > 0 ? (recentSpend / inst.cost_entries.length) * 30 : 0
+    const _currentUsdMo = recentSpend > 0 ? (recentSpend / inst.cost_entries.length) * 30 : 0
 
     // Find cheapest tier that exceeds a 30% utilisation headroom
     // For simplicity: suggest the tier one step smaller in the pricing table

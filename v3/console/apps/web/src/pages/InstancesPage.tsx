@@ -2,7 +2,7 @@ import type { Instance } from "@/types/instance";
 import { InstanceList } from "@/components/instances";
 
 export function InstancesPage() {
-  function handleSelectInstance(instance: Instance) {
+  function handleSelectInstance(_instance: Instance) {
     // Navigate to instance detail — TanStack Router navigation will be wired up
     // when routes are configured
     // TODO: Implement navigation to /instances/${instance.id}

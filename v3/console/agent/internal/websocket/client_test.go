@@ -27,7 +27,7 @@ func echoServer(t *testing.T, received *[]protocol.Envelope, mu *sync.Mutex) *ht
 			t.Logf("upgrade error: %v", err)
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
@@ -110,7 +110,7 @@ func TestClient_HandlerCalledForInbound(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		msg, _ := json.Marshal(protocol.Envelope{Type: protocol.MsgCommandDispatch})
 		conn.WriteMessage(gorillaws.TextMessage, msg) //nolint:errcheck
@@ -157,7 +157,7 @@ func TestClient_ReconnectsAfterDisconnect(t *testing.T) {
 			return
 		}
 		// Close immediately to force a reconnect.
-		conn.Close()
+		_ = conn.Close()
 	}))
 	defer srv.Close()
 

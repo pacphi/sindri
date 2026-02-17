@@ -79,7 +79,7 @@ func (r *Registrar) post(ctx context.Context, body []byte) error {
 	if err != nil {
 		return fmt.Errorf("HTTP POST: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusConflict {
 		// Already registered — idempotent; treat as success.

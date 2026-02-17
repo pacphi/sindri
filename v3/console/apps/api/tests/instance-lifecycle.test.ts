@@ -10,7 +10,7 @@
  * - Role-based access control on lifecycle operations
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { buildApp, authHeaders, VALID_API_KEY, ADMIN_API_KEY } from "./helpers.js";
 import { createHash } from "crypto";
 

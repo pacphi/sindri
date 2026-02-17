@@ -83,7 +83,7 @@ export interface CreateTaskInput {
   notifyEmails?: string[]
 }
 
-export interface UpdateTaskInput extends Partial<Omit<CreateTaskInput, 'template'>> {}
+export type UpdateTaskInput = Partial<Omit<CreateTaskInput, 'template'>>
 
 export interface TaskFilters {
   status?: TaskStatus

@@ -6,7 +6,7 @@
  * validation) is exercised on every request.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildApp, instancePayload, authHeaders, VALID_API_KEY, EXPIRED_API_KEY, ADMIN_API_KEY } from './helpers.js';
 import { createHash } from 'crypto';
 

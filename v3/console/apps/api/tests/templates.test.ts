@@ -4,7 +4,7 @@
  * Database calls are mocked via vitest vi.mock.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildApp, authHeaders, VALID_API_KEY, ADMIN_API_KEY } from './helpers.js';
 import { createHash } from 'crypto';
 
@@ -26,9 +26,6 @@ const mockTemplate = {
   created_at: new Date('2026-02-17T00:00:00Z'),
   updated_at: new Date('2026-02-17T00:00:00Z'),
 };
-
-const VALID_HASH = sha256(VALID_API_KEY);
-const ADMIN_HASH = sha256(ADMIN_API_KEY);
 
 // Mock db
 vi.mock('../src/lib/db.js', () => {

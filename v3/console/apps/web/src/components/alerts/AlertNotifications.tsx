@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, AlertTriangle, CheckCircle, X, ChevronRight } from 'lucide-react'
+import { Bell, CheckCircle, X, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAlerts, useResolveAlert } from '@/hooks/useAlerts'
 import { formatRelativeTime } from '@/lib/utils'

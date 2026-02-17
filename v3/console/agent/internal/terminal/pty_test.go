@@ -26,16 +26,6 @@ func (m *mockSender) Send(env protocol.Envelope) error {
 	return nil
 }
 
-func (m *mockSender) types() []protocol.MessageType {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	var ts []protocol.MessageType
-	for _, e := range m.envelopes {
-		ts = append(ts, e.Type)
-	}
-	return ts
-}
-
 func newTestLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 }

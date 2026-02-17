@@ -128,7 +128,7 @@ async function runProvisioningFlow(
   deploymentId: string,
   input: CreateDeploymentInput,
 ): Promise<void> {
-  let logLines: string[] = [];
+  const logLines: string[] = [];
 
   function appendLog(line: string): void {
     logLines.push(line);

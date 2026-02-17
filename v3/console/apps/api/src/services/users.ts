@@ -5,7 +5,6 @@
 import type { User, UserRole, Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 import { db } from '../lib/db.js';
-import { logger } from '../lib/logger.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Input types

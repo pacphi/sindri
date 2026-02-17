@@ -3,7 +3,6 @@
  */
 
 import { db } from '../../lib/db.js'
-import { logger } from '../../lib/logger.js'
 
 export interface CostSummary {
   totalUsd: number
@@ -47,7 +46,7 @@ export interface InstanceCostBreakdown {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function periodBounds(period: 'daily' | 'weekly' | 'monthly'): { from: Date; to: Date } {
+function _periodBounds(period: 'daily' | 'weekly' | 'monthly'): { from: Date; to: Date } {
   const now = new Date()
   const to = now
   let from: Date

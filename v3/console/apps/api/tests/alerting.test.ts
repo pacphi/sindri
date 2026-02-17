@@ -12,7 +12,7 @@
  *   - Alert history and audit trail
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -291,7 +291,7 @@ describe('Alerting Engine: State Machine', () => {
   });
 
   it('resolved alert transitions back to INACTIVE (not directly PENDING)', () => {
-    const resolvedEvent = makeAlertEvent({ state: 'RESOLVED' });
+    const _resolvedEvent = makeAlertEvent({ state: 'RESOLVED' });
     // After resolution, state resets to INACTIVE for next evaluation cycle
     const nextState: AlertState = 'INACTIVE';
     expect(nextState).toBe('INACTIVE');

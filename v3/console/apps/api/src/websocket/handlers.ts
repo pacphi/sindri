@@ -11,7 +11,6 @@ import {
   CHANNEL,
   MESSAGE_TYPE,
   makeEnvelope,
-  type Channel,
   type Envelope,
   type MetricsPayload,
   type HeartbeatPayload,

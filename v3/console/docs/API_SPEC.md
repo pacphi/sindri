@@ -94,6 +94,7 @@ List all registered instances visible to the authenticated user.
 **Auth:** Session cookie (browser)
 
 **Query params:**
+
 - `provider` — filter by provider (fly, docker, devpod, e2b, kubernetes)
 - `status` — filter by status (running, stopped, error, unknown)
 - `region` — filter by region string
@@ -398,6 +399,7 @@ Revoke an API key.
 Fetch historical metric time series.
 
 **Query params:**
+
 - `metric` — one of: `cpu`, `memory`, `disk`, `network` (required)
 - `from` — ISO8601 start timestamp (default: 1 hour ago)
 - `to` — ISO8601 end timestamp (default: now)
@@ -411,9 +413,7 @@ Fetch historical metric time series.
   "resolution": "5m",
   "from": "ISO8601",
   "to": "ISO8601",
-  "datapoints": [
-    { "timestamp": "ISO8601", "value": 23.5 }
-  ]
+  "datapoints": [{ "timestamp": "ISO8601", "value": 23.5 }]
 }
 ```
 
@@ -428,6 +428,7 @@ Fetch audit log entries.
 **Auth:** Admin or operator role
 
 **Query params:**
+
 - `instanceId` — filter by instance
 - `userId` — filter by actor
 - `action` — filter by action type
@@ -778,28 +779,28 @@ All REST errors follow this shape:
 }
 ```
 
-| HTTP Status | Code | Meaning |
-|---|---|---|
-| 400 | VALIDATION_ERROR | Invalid request body |
-| 401 | UNAUTHORIZED | Missing or invalid credentials |
-| 403 | FORBIDDEN | Insufficient role |
-| 404 | NOT_FOUND | Resource does not exist |
-| 409 | CONFLICT | Resource already exists |
-| 429 | RATE_LIMITED | Too many requests |
-| 500 | INTERNAL_ERROR | Server error |
+| HTTP Status | Code             | Meaning                        |
+| ----------- | ---------------- | ------------------------------ |
+| 400         | VALIDATION_ERROR | Invalid request body           |
+| 401         | UNAUTHORIZED     | Missing or invalid credentials |
+| 403         | FORBIDDEN        | Insufficient role              |
+| 404         | NOT_FOUND        | Resource does not exist        |
+| 409         | CONFLICT         | Resource already exists        |
+| 429         | RATE_LIMITED     | Too many requests              |
+| 500         | INTERNAL_ERROR   | Server error                   |
 
 ---
 
 ## Rate Limiting
 
-| Endpoint | Limit |
-|---|---|
-| POST /instances/register | 10 req/min per IP |
-| POST /auth/login | 5 req/min per IP |
-| GET /instances | 300 req/min per token |
-| POST /instances/:id/metrics | 120 req/min per instance |
-| POST /instances/:id/heartbeat | 60 req/min per instance |
-| All other endpoints | 1000 req/min per token |
+| Endpoint                      | Limit                    |
+| ----------------------------- | ------------------------ |
+| POST /instances/register      | 10 req/min per IP        |
+| POST /auth/login              | 5 req/min per IP         |
+| GET /instances                | 300 req/min per token    |
+| POST /instances/:id/metrics   | 120 req/min per instance |
+| POST /instances/:id/heartbeat | 60 req/min per instance  |
+| All other endpoints           | 1000 req/min per token   |
 
 ---
 
@@ -814,10 +815,12 @@ List available deployment templates.
 **Auth:** Session cookie
 
 **Query params:**
+
 - `category` — filter by category (e.g. `data-science`, `web-development`, `systems`)
 - `provider` — filter by provider compatibility
 
 **Response 200:**
+
 ```json
 {
   "templates": [
@@ -842,6 +845,7 @@ List available deployment templates.
 Get a single template including the full `sindri.yaml` content.
 
 **Response 200:**
+
 ```json
 {
   "id": "tmpl_python_01",
@@ -862,6 +866,7 @@ Clone an existing instance configuration to a new instance.
 **Auth:** Session cookie (OPERATOR+ required)
 
 **Request body:**
+
 ```json
 {
   "name": "my-clone",
@@ -871,6 +876,7 @@ Clone an existing instance configuration to a new instance.
 ```
 
 **Response 201:**
+
 ```json
 {
   "id": "inst_clone_01",
@@ -890,6 +896,7 @@ Gracefully stop a running instance.
 **Auth:** Session cookie (OPERATOR+ required)
 
 **Response 200:**
+
 ```json
 { "id": "inst_01", "status": "STOPPED", "message": "Instance suspended" }
 ```
@@ -905,6 +912,7 @@ Restart a stopped instance.
 **Auth:** Session cookie (OPERATOR+ required)
 
 **Response 200:**
+
 ```json
 { "id": "inst_01", "status": "RUNNING", "message": "Instance resumed" }
 ```
@@ -920,6 +928,7 @@ Dispatch a command to a single instance. Output is streamed via WebSocket.
 **Auth:** Session cookie (DEVELOPER+ required)
 
 **Request body:**
+
 ```json
 {
   "command": "node --version",
@@ -929,6 +938,7 @@ Dispatch a command to a single instance. Output is streamed via WebSocket.
 ```
 
 **Response 202:**
+
 ```json
 { "commandId": "cmd_abc123", "instanceId": "inst_01" }
 ```
@@ -942,6 +952,7 @@ Dispatch the same command to multiple instances in parallel.
 **Auth:** Session cookie (DEVELOPER+ required)
 
 **Request body:**
+
 ```json
 {
   "instanceIds": ["inst_01", "inst_02"],
@@ -951,6 +962,7 @@ Dispatch the same command to multiple instances in parallel.
 ```
 
 **Response 202:**
+
 ```json
 {
   "batchId": "batch_xyz789",
@@ -972,6 +984,7 @@ List all scheduled tasks.
 **Auth:** Session cookie
 
 **Response 200:**
+
 ```json
 {
   "tasks": [
@@ -1000,6 +1013,7 @@ Create a new scheduled task.
 **Auth:** Session cookie (OPERATOR+ required)
 
 **Request body:**
+
 ```json
 {
   "name": "Nightly Backup",
@@ -1011,6 +1025,7 @@ Create a new scheduled task.
 ```
 
 **Response 201:**
+
 ```json
 { "id": "task_01", "name": "Nightly Backup", "nextRunAt": "2026-02-18T02:00:00Z" }
 ```
@@ -1022,6 +1037,7 @@ Create a new scheduled task.
 Update a scheduled task (including toggle enabled state).
 
 **Request body (partial):**
+
 ```json
 { "enabled": false }
 ```
@@ -1045,11 +1061,13 @@ Delete a scheduled task and its execution history.
 List execution history for a task.
 
 **Query params:**
+
 - `limit` — max results (default 20, max 100)
 - `offset` — pagination offset
 - `status` — filter by `success`, `failure`, `timeout`
 
 **Response 200:**
+
 ```json
 {
   "executions": [
@@ -1088,6 +1106,7 @@ Retrieve time-series chart data for a single instance.
 - `limit` — max data points, default 500
 
 **Response 200:**
+
 ```json
 {
   "instanceId": "inst_01",
@@ -1126,6 +1145,7 @@ Aggregate stats (avg/max) over a time window.
 - `metrics` — comma-separated metric names (optional, default: all)
 
 **Response 200:**
+
 ```json
 {
   "instanceId": "inst_01",
@@ -1155,6 +1175,7 @@ Latest metric snapshot per instance (fleet-wide or filtered).
 - `instanceIds` — comma-separated instance IDs (optional, default: all)
 
 **Response 200:**
+
 ```json
 {
   "metrics": [
@@ -1200,6 +1221,7 @@ Query and search log entries.
 - `cursor` — log entry ID for cursor pagination (optional)
 
 **Response 200:**
+
 ```json
 {
   "logs": [
@@ -1251,6 +1273,7 @@ List all alert rules.
 **Auth:** Bearer token (DEVELOPER+)
 
 **Response 200:**
+
 ```json
 {
   "rules": [
@@ -1258,7 +1281,7 @@ List all alert rules.
       "id": "rule_01",
       "name": "High CPU",
       "instanceId": null,
-      "conditions": [{"metric": "cpu_percent", "op": "gt", "threshold": 80}],
+      "conditions": [{ "metric": "cpu_percent", "op": "gt", "threshold": 80 }],
       "conditionOperator": "AND",
       "severity": "warning",
       "evaluationWindowSec": 60,
@@ -1334,6 +1357,7 @@ Query alert event history.
 - `cursor` — event ID for pagination (optional)
 
 **Response 200:**
+
 ```json
 {
   "events": [
@@ -1369,10 +1393,16 @@ List all users. Requires `ADMIN` role.
 **Query params:** `?role=DEVELOPER&page=1&per_page=25`
 
 **Response 200:**
+
 ```json
 {
   "users": [
-    { "id": "user_01", "email": "dev@example.com", "role": "DEVELOPER", "created_at": "2026-01-01T00:00:00Z" }
+    {
+      "id": "user_01",
+      "email": "dev@example.com",
+      "role": "DEVELOPER",
+      "created_at": "2026-01-01T00:00:00Z"
+    }
   ],
   "total": 1,
   "page": 1,
@@ -1401,6 +1431,7 @@ List all teams. Returns all teams for `ADMIN`, team-scoped list for others.
 Create a team. Requires `ADMIN` role.
 
 **Request body:**
+
 ```json
 { "name": "Platform Engineering", "slug": "platform-engineering", "description": "Core infra team" }
 ```
@@ -1410,10 +1441,16 @@ Create a team. Requires `ADMIN` role.
 List team members. Requires team membership or `ADMIN`.
 
 **Response 200:**
+
 ```json
 {
   "members": [
-    { "user_id": "user_01", "email": "dev@example.com", "role": "DEVELOPER", "joined_at": "2026-01-01T00:00:00Z" }
+    {
+      "user_id": "user_01",
+      "email": "dev@example.com",
+      "role": "DEVELOPER",
+      "joined_at": "2026-01-01T00:00:00Z"
+    }
   ]
 }
 ```
@@ -1439,6 +1476,7 @@ Query the audit log. Requires `ADMIN` role.
 **Query params:** `?action=PERMISSION_CHANGE&userId=user_01&from=2026-01-01&to=2026-02-01&limit=50`
 
 **Response 200:**
+
 ```json
 {
   "entries": [
@@ -1468,6 +1506,7 @@ List extensions from the registry.
 **Query params:** `?status=APPROVED&tag=runtime&provider=fly&q=node&page=1&per_page=20`
 
 **Response 200:**
+
 ```json
 {
   "extensions": [
@@ -1492,6 +1531,7 @@ List extensions from the registry.
 Upload a custom extension. Requires `DEVELOPER` or higher role. Starts in `PENDING` status.
 
 **Request body (multipart/form-data):**
+
 - `name`, `slug`, `version`, `description`, `license`, `visibility`
 - `artifact` (file upload)
 
@@ -1520,6 +1560,7 @@ Install an extension on an instance. Requires `OPERATOR` or higher.
 Fleet drift summary.
 
 **Response 200:**
+
 ```json
 {
   "summary": {
@@ -1537,6 +1578,7 @@ Fleet drift summary.
 Drift report for a specific instance.
 
 **Response 200:**
+
 ```json
 {
   "id": "dr_01",
@@ -1574,13 +1616,12 @@ Fleet cost summary with optional time range.
 **Query params:** `?from=2026-02-01&to=2026-02-17&period=MONTHLY`
 
 **Response 200:**
+
 ```json
 {
-  "total_usd": 1245.50,
-  "by_category": { "COMPUTE": 980.00, "STORAGE": 200.00, "NETWORK": 65.50 },
-  "by_instance": [
-    { "instance_id": "inst_01", "name": "prod-api", "total_usd": 450.00 }
-  ]
+  "total_usd": 1245.5,
+  "by_category": { "COMPUTE": 980.0, "STORAGE": 200.0, "NETWORK": 65.5 },
+  "by_instance": [{ "instance_id": "inst_01", "name": "prod-api", "total_usd": 450.0 }]
 }
 ```
 
@@ -1593,10 +1634,11 @@ List all budgets.
 Create a budget.
 
 **Request body:**
+
 ```json
 {
   "name": "Production Budget",
-  "limit_usd": 1000.00,
+  "limit_usd": 1000.0,
   "period": "MONTHLY",
   "alert_thresholds": [50, 80, 100],
   "team_id": "team_01"
@@ -1608,6 +1650,7 @@ Create a budget.
 List optimization recommendations ordered by potential savings.
 
 **Response 200:**
+
 ```json
 {
   "recommendations": [
@@ -1615,12 +1658,12 @@ List optimization recommendations ordered by potential savings.
       "id": "rec_01",
       "instance_id": "inst_01",
       "action": "SUSPEND_IDLE",
-      "potential_savings_usd": 45.00,
+      "potential_savings_usd": 45.0,
       "description": "Instance has been idle for 48h.",
       "confidence": 92
     }
   ],
-  "total_potential_savings_usd": 185.00
+  "total_potential_savings_usd": 185.0
 }
 ```
 
@@ -1633,6 +1676,7 @@ List optimization recommendations ordered by potential savings.
 Fleet security summary.
 
 **Response 200:**
+
 ```json
 {
   "fleet_score": 76,
@@ -1652,6 +1696,7 @@ Get the SBOM for an instance.
 **Query params:** `?format=CycloneDX`
 
 **Response 200:**
+
 ```json
 {
   "id": "sbom_01",
@@ -1659,7 +1704,12 @@ Get the SBOM for an instance.
   "spec_version": "1.4",
   "generated_at": "2026-02-17T00:00:00Z",
   "components": [
-    { "name": "lodash", "version": "4.17.21", "package_url": "pkg:npm/lodash@4.17.21", "license": "MIT" }
+    {
+      "name": "lodash",
+      "version": "4.17.21",
+      "package_url": "pkg:npm/lodash@4.17.21",
+      "license": "MIT"
+    }
   ]
 }
 ```

@@ -2,7 +2,6 @@ import type {
   User,
   Team,
   TeamDetail,
-  AuditLogEntry,
   UserListResponse,
   TeamListResponse,
   AuditLogListResponse,

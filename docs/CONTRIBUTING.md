@@ -602,6 +602,7 @@ To verify all console Makefile targets resolve and execute correctly, use the te
 The console Makefile CI runs automatically on every PR or push that touches `v3/console/**`, `Makefile`, or `scripts/test-makefile-targets.sh`. See `.github/workflows/console-makefile-ci.yml`.
 
 Jobs:
+
 1. **resolve** — dry-run test of all 28 console Makefile targets (fast, no compilation)
 2. **agent** — `console-agent-vet` + `console-agent-test` + `console-agent-build` on Ubuntu and macOS
 3. **agent-cross-compile** — four-platform matrix cross-compile

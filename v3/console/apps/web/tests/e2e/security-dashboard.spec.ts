@@ -24,7 +24,7 @@ async function navigateToSecurity(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
-async function navigateToSecurityInstance(page: Page, instanceId: string): Promise<void> {
+async function _navigateToSecurityInstance(page: Page, instanceId: string): Promise<void> {
   await page.goto(`${BASE_URL}/security/${instanceId}`);
   await page.waitForLoadState('networkidle');
 }

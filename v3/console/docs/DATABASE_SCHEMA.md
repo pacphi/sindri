@@ -34,23 +34,23 @@ The `Metric` table is designed as a **TimescaleDB hypertable** partitioned by `t
 
 Full-fidelity per-collection metric snapshot.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String | FK → Instance (CASCADE delete) |
-| `timestamp` | DateTime | Collection time (TimescaleDB partition key) |
-| `cpu_percent` | Float | Overall CPU 0–100 |
-| `load_avg_1/5/15` | Float? | 1, 5, 15-min load averages |
-| `cpu_steal` | Float? | Hypervisor steal percent |
-| `core_count` | Int? | Number of CPU cores |
-| `mem_used` | BigInt | Bytes used |
-| `mem_total` | BigInt | Total bytes |
-| `mem_cached` | BigInt? | Page cache bytes |
-| `swap_used/total` | BigInt? | Swap utilization |
-| `disk_used/total` | BigInt | Primary volume bytes |
-| `disk_read/write_bps` | BigInt? | I/O throughput bytes/s |
-| `net_bytes_sent/recv` | BigInt? | Cumulative bytes since agent start |
-| `net_packets_sent/recv` | BigInt? | Cumulative packet counts |
+| Field                   | Type          | Description                                 |
+| ----------------------- | ------------- | ------------------------------------------- |
+| `id`                    | String (CUID) | Primary key                                 |
+| `instance_id`           | String        | FK → Instance (CASCADE delete)              |
+| `timestamp`             | DateTime      | Collection time (TimescaleDB partition key) |
+| `cpu_percent`           | Float         | Overall CPU 0–100                           |
+| `load_avg_1/5/15`       | Float?        | 1, 5, 15-min load averages                  |
+| `cpu_steal`             | Float?        | Hypervisor steal percent                    |
+| `core_count`            | Int?          | Number of CPU cores                         |
+| `mem_used`              | BigInt        | Bytes used                                  |
+| `mem_total`             | BigInt        | Total bytes                                 |
+| `mem_cached`            | BigInt?       | Page cache bytes                            |
+| `swap_used/total`       | BigInt?       | Swap utilization                            |
+| `disk_used/total`       | BigInt        | Primary volume bytes                        |
+| `disk_read/write_bps`   | BigInt?       | I/O throughput bytes/s                      |
+| `net_bytes_sent/recv`   | BigInt?       | Cumulative bytes since agent start          |
+| `net_packets_sent/recv` | BigInt?       | Cumulative packet counts                    |
 
 Indexes: `(instance_id, timestamp)`, `(timestamp)`
 
@@ -58,15 +58,15 @@ Indexes: `(instance_id, timestamp)`, `(timestamp)`
 
 Structured log line from an instance agent.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String | FK → Instance |
-| `timestamp` | DateTime | Log line time |
-| `level` | Enum | `DEBUG`, `INFO`, `WARN`, `ERROR` |
-| `source` | Enum | `AGENT`, `EXTENSION`, `BUILD`, `APP`, `SYSTEM` |
-| `message` | String | Log message text (searchable) |
-| `metadata` | Json? | Structured context (requestId, statusCode, etc.) |
+| Field         | Type          | Description                                      |
+| ------------- | ------------- | ------------------------------------------------ |
+| `id`          | String (CUID) | Primary key                                      |
+| `instance_id` | String        | FK → Instance                                    |
+| `timestamp`   | DateTime      | Log line time                                    |
+| `level`       | Enum          | `DEBUG`, `INFO`, `WARN`, `ERROR`                 |
+| `source`      | Enum          | `AGENT`, `EXTENSION`, `BUILD`, `APP`, `SYSTEM`   |
+| `message`     | String        | Log message text (searchable)                    |
+| `metadata`    | Json?         | Structured context (requestId, statusCode, etc.) |
 
 Indexes: `(instance_id, timestamp)`, `(level)`, `(source)`, `(timestamp)`
 
@@ -74,42 +74,42 @@ Indexes: `(instance_id, timestamp)`, `(level)`, `(source)`, `(timestamp)`
 
 Configurable metric threshold alert rule.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `name` | String | Rule name |
-| `description` | String? | Optional description |
-| `instance_id` | String? | Target instance (null = fleet-wide) |
-| `conditions` | Json | Array of `{ metric, op, threshold }` |
-| `condition_operator` | String | `AND` or `OR` |
-| `severity` | String | `info`, `warning`, `critical` |
-| `evaluation_window_sec` | Int | Seconds of data to evaluate |
-| `pending_for_sec` | Int | Must stay firing for N sec before alerting |
-| `cooldown_sec` | Int | Min seconds between repeat notifications |
-| `notify_channels` | String[] | `email`, `webhook`, `slack` |
-| `notify_emails` | String[] | Email recipients |
-| `webhook_url` | String? | Webhook endpoint URL |
-| `enabled` | Boolean | Toggle rule without deleting |
-| `created_at` | DateTime | Creation time |
-| `updated_at` | DateTime | Last modified |
+| Field                   | Type          | Description                                |
+| ----------------------- | ------------- | ------------------------------------------ |
+| `id`                    | String (CUID) | Primary key                                |
+| `name`                  | String        | Rule name                                  |
+| `description`           | String?       | Optional description                       |
+| `instance_id`           | String?       | Target instance (null = fleet-wide)        |
+| `conditions`            | Json          | Array of `{ metric, op, threshold }`       |
+| `condition_operator`    | String        | `AND` or `OR`                              |
+| `severity`              | String        | `info`, `warning`, `critical`              |
+| `evaluation_window_sec` | Int           | Seconds of data to evaluate                |
+| `pending_for_sec`       | Int           | Must stay firing for N sec before alerting |
+| `cooldown_sec`          | Int           | Min seconds between repeat notifications   |
+| `notify_channels`       | String[]      | `email`, `webhook`, `slack`                |
+| `notify_emails`         | String[]      | Email recipients                           |
+| `webhook_url`           | String?       | Webhook endpoint URL                       |
+| `enabled`               | Boolean       | Toggle rule without deleting               |
+| `created_at`            | DateTime      | Creation time                              |
+| `updated_at`            | DateTime      | Last modified                              |
 
 ### AlertEvent
 
 Individual alert state transition record.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `rule_id` | String | FK → AlertRule |
-| `instance_id` | String | Instance this fired for |
-| `state` | String | `INACTIVE`, `PENDING`, `FIRING`, `RESOLVED` |
-| `severity` | String | Copied from rule at fire time |
-| `trigger_value` | Float | Metric value that triggered the alert |
-| `trigger_metric` | String | Which metric triggered |
-| `message` | String | Human-readable alert message |
-| `fired_at` | DateTime? | When state entered FIRING |
-| `resolved_at` | DateTime? | When state entered RESOLVED |
-| `notifications_sent` | Int | Count of dispatched notifications |
+| Field                | Type          | Description                                 |
+| -------------------- | ------------- | ------------------------------------------- |
+| `id`                 | String (CUID) | Primary key                                 |
+| `rule_id`            | String        | FK → AlertRule                              |
+| `instance_id`        | String        | Instance this fired for                     |
+| `state`              | String        | `INACTIVE`, `PENDING`, `FIRING`, `RESOLVED` |
+| `severity`           | String        | Copied from rule at fire time               |
+| `trigger_value`      | Float         | Metric value that triggered the alert       |
+| `trigger_metric`     | String        | Which metric triggered                      |
+| `message`            | String        | Human-readable alert message                |
+| `fired_at`           | DateTime?     | When state entered FIRING                   |
+| `resolved_at`        | DateTime?     | When state entered RESOLVED                 |
+| `notifications_sent` | Int           | Count of dispatched notifications           |
 
 Indexes: `(rule_id)`, `(instance_id)`, `(state)`, `(fired_at)`
 
@@ -474,41 +474,41 @@ Instance (1) ---< TerminalSession (many)
 
 ### Performance-Critical Indexes
 
-| Table | Index | Rationale |
-|---|---|---|
-| `Metric` | `(instanceId, timestamp)` | Primary query pattern: metrics for a given instance over a time range |
-| `Metric` | `(timestamp)` | Fleet-wide metric queries |
-| `Event` | `(instanceId, timestamp)` | Recent events per instance |
-| `Log` | `(instanceId, timestamp)` | Log tailing per instance |
-| `AuditEntry` | `(timestamp)` | Audit log pagination |
-| `Instance` | `(lastHeartbeat)` | Identify stale instances (heartbeat monitor) |
-| `Session` | `(expiresAt)` | Cleanup job index for expired sessions |
-| `User` | `(email)` | Login lookup |
-| `ApiKey` | `(keyHash)` | API key verification |
+| Table        | Index                     | Rationale                                                             |
+| ------------ | ------------------------- | --------------------------------------------------------------------- |
+| `Metric`     | `(instanceId, timestamp)` | Primary query pattern: metrics for a given instance over a time range |
+| `Metric`     | `(timestamp)`             | Fleet-wide metric queries                                             |
+| `Event`      | `(instanceId, timestamp)` | Recent events per instance                                            |
+| `Log`        | `(instanceId, timestamp)` | Log tailing per instance                                              |
+| `AuditEntry` | `(timestamp)`             | Audit log pagination                                                  |
+| `Instance`   | `(lastHeartbeat)`         | Identify stale instances (heartbeat monitor)                          |
+| `Session`    | `(expiresAt)`             | Cleanup job index for expired sessions                                |
+| `User`       | `(email)`                 | Login lookup                                                          |
+| `ApiKey`     | `(keyHash)`               | API key verification                                                  |
 
 ### Unique Constraints
 
-| Table | Unique | Rationale |
-|---|---|---|
-| `User` | `email` | One account per email |
-| `Team` | `slug` | URL-safe team identifier |
-| `Session` | `token` | Each session token is globally unique |
-| `ApiKey` | `keyHash` | Each key is unique |
-| `InstanceExtension` | `(instanceId, extensionName)` | An extension is installed once per instance |
-| `BomEntry` | `(instanceId, packageName, version)` | BOM deduplication |
+| Table               | Unique                               | Rationale                                   |
+| ------------------- | ------------------------------------ | ------------------------------------------- |
+| `User`              | `email`                              | One account per email                       |
+| `Team`              | `slug`                               | URL-safe team identifier                    |
+| `Session`           | `token`                              | Each session token is globally unique       |
+| `ApiKey`            | `keyHash`                            | Each key is unique                          |
+| `InstanceExtension` | `(instanceId, extensionName)`        | An extension is installed once per instance |
+| `BomEntry`          | `(instanceId, packageName, version)` | BOM deduplication                           |
 
 ---
 
 ## Data Retention Policy
 
-| Table | Default Retention | Configurable |
-|---|---|---|
-| `Metric` | 30 days | Yes (env: `METRICS_RETENTION_DAYS`) |
-| `Log` | 14 days | Yes (env: `LOGS_RETENTION_DAYS`) |
-| `Event` | 90 days | Yes (env: `EVENTS_RETENTION_DAYS`) |
-| `AuditEntry` | 1 year | Yes (env: `AUDIT_RETENTION_DAYS`) |
-| `Session` | Until expiry | No |
-| `TerminalSession` | 90 days | Yes |
+| Table             | Default Retention | Configurable                        |
+| ----------------- | ----------------- | ----------------------------------- |
+| `Metric`          | 30 days           | Yes (env: `METRICS_RETENTION_DAYS`) |
+| `Log`             | 14 days           | Yes (env: `LOGS_RETENTION_DAYS`)    |
+| `Event`           | 90 days           | Yes (env: `EVENTS_RETENTION_DAYS`)  |
+| `AuditEntry`      | 1 year            | Yes (env: `AUDIT_RETENTION_DAYS`)   |
+| `Session`         | Until expiry      | No                                  |
+| `TerminalSession` | 90 days           | Yes                                 |
 
 A BullMQ worker runs nightly to purge rows older than the configured retention window.
 
@@ -552,13 +552,13 @@ The Prisma client continues to work unchanged; only the storage engine changes.
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | required |
-| `METRICS_RETENTION_DAYS` | Days to keep metric rows | `30` |
-| `LOGS_RETENTION_DAYS` | Days to keep log rows | `14` |
-| `EVENTS_RETENTION_DAYS` | Days to keep event rows | `90` |
-| `AUDIT_RETENTION_DAYS` | Days to keep audit entries | `365` |
+| Variable                 | Description                  | Default  |
+| ------------------------ | ---------------------------- | -------- |
+| `DATABASE_URL`           | PostgreSQL connection string | required |
+| `METRICS_RETENTION_DAYS` | Days to keep metric rows     | `30`     |
+| `LOGS_RETENTION_DAYS`    | Days to keep log rows        | `14`     |
+| `EVENTS_RETENTION_DAYS`  | Days to keep event rows      | `90`     |
+| `AUDIT_RETENTION_DAYS`   | Days to keep audit entries   | `365`    |
 
 ---
 
@@ -568,22 +568,22 @@ The Prisma client continues to work unchanged; only the storage engine changes.
 
 Extension registry entry. Official extensions have `is_official: true` and `created_by: null`.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `name` | String | Display name |
-| `slug` | String (unique) | URL-safe identifier e.g. `node-lts` |
-| `description` | String | Short description |
-| `version` | String | Latest version (semver) |
-| `author` | String | Author name |
-| `license` | String | SPDX license identifier |
-| `status` | Enum | `APPROVED`, `PENDING`, `REJECTED`, `DEPRECATED` |
-| `visibility` | Enum | `PUBLIC`, `PRIVATE`, `TEAM` |
-| `is_official` | Boolean | Curated by Sindri team |
-| `compatible_providers` | String[] | Provider slugs |
-| `tags` | String[] | Searchable tags |
-| `install_count` | Int | Total installations |
-| `created_by` | String? | User ID for community extensions |
+| Field                  | Type            | Description                                     |
+| ---------------------- | --------------- | ----------------------------------------------- |
+| `id`                   | String (CUID)   | Primary key                                     |
+| `name`                 | String          | Display name                                    |
+| `slug`                 | String (unique) | URL-safe identifier e.g. `node-lts`             |
+| `description`          | String          | Short description                               |
+| `version`              | String          | Latest version (semver)                         |
+| `author`               | String          | Author name                                     |
+| `license`              | String          | SPDX license identifier                         |
+| `status`               | Enum            | `APPROVED`, `PENDING`, `REJECTED`, `DEPRECATED` |
+| `visibility`           | Enum            | `PUBLIC`, `PRIVATE`, `TEAM`                     |
+| `is_official`          | Boolean         | Curated by Sindri team                          |
+| `compatible_providers` | String[]        | Provider slugs                                  |
+| `tags`                 | String[]        | Searchable tags                                 |
+| `install_count`        | Int             | Total installations                             |
+| `created_by`           | String?         | User ID for community extensions                |
 
 Indexes: `(status)`, `(visibility)`, `(is_official)`, `(slug)`
 
@@ -591,16 +591,16 @@ Indexes: `(status)`, `(visibility)`, `(is_official)`, `(slug)`
 
 Individual version record for an extension.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `extension_id` | String | FK → Extension |
-| `version` | String | Semver version string |
-| `changelog` | String? | Release notes |
-| `artifact_url` | String | Download URL |
-| `checksum` | String | `sha256:<hex>` |
-| `published_at` | DateTime | Publication time |
-| `is_latest` | Boolean | True for the current default version |
+| Field          | Type          | Description                          |
+| -------------- | ------------- | ------------------------------------ |
+| `id`           | String (CUID) | Primary key                          |
+| `extension_id` | String        | FK → Extension                       |
+| `version`      | String        | Semver version string                |
+| `changelog`    | String?       | Release notes                        |
+| `artifact_url` | String        | Download URL                         |
+| `checksum`     | String        | `sha256:<hex>`                       |
+| `published_at` | DateTime      | Publication time                     |
+| `is_latest`    | Boolean       | True for the current default version |
 
 Constraint: only one version per extension can have `is_latest: true`.
 
@@ -608,60 +608,60 @@ Constraint: only one version per extension can have `is_latest: true`.
 
 Junction between Extension and Instance with installation metadata.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `extension_id` | String | FK → Extension |
-| `instance_id` | String | FK → Instance |
-| `version` | String | Installed version |
-| `status` | Enum | `INSTALLED`, `INSTALLING`, `FAILED`, `REMOVED` |
-| `config` | Json | Extension-specific configuration |
-| `installed_at` | DateTime | Installation time |
-| `installed_by` | String | User ID |
+| Field          | Type          | Description                                    |
+| -------------- | ------------- | ---------------------------------------------- |
+| `id`           | String (CUID) | Primary key                                    |
+| `extension_id` | String        | FK → Extension                                 |
+| `instance_id`  | String        | FK → Instance                                  |
+| `version`      | String        | Installed version                              |
+| `status`       | Enum          | `INSTALLED`, `INSTALLING`, `FAILED`, `REMOVED` |
+| `config`       | Json          | Extension-specific configuration               |
+| `installed_at` | DateTime      | Installation time                              |
+| `installed_by` | String        | User ID                                        |
 
 ### DriftReport
 
 Configuration drift detection report for an instance.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String | FK → Instance |
-| `detected_at` | DateTime | When drift was first detected |
-| `severity` | Enum | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `NONE` |
-| `status` | Enum | `DETECTED`, `ACKNOWLEDGED`, `REMEDIATING`, `RESOLVED`, `SUPPRESSED` |
-| `items` | Json | Array of DriftItem records |
-| `remediation_mode` | Enum | `MANUAL`, `AUTOMATIC` |
-| `remediated_at` | DateTime? | When remediation completed |
-| `suppressed_until` | DateTime? | Suppression expiry |
+| Field              | Type          | Description                                                         |
+| ------------------ | ------------- | ------------------------------------------------------------------- |
+| `id`               | String (CUID) | Primary key                                                         |
+| `instance_id`      | String        | FK → Instance                                                       |
+| `detected_at`      | DateTime      | When drift was first detected                                       |
+| `severity`         | Enum          | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `NONE`                         |
+| `status`           | Enum          | `DETECTED`, `ACKNOWLEDGED`, `REMEDIATING`, `RESOLVED`, `SUPPRESSED` |
+| `items`            | Json          | Array of DriftItem records                                          |
+| `remediation_mode` | Enum          | `MANUAL`, `AUTOMATIC`                                               |
+| `remediated_at`    | DateTime?     | When remediation completed                                          |
+| `suppressed_until` | DateTime?     | Suppression expiry                                                  |
 
 ### DriftSuppressRule
 
 Rule to suppress specific drift types for an instance or fleet-wide.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String? | Scoped instance (null = fleet-wide) |
-| `drift_type` | String? | Type to suppress (null = all types) |
-| `reason` | String | Human-readable justification |
-| `expires_at` | DateTime? | Suppression expiry (null = permanent) |
-| `created_by` | String | User ID |
+| Field         | Type          | Description                           |
+| ------------- | ------------- | ------------------------------------- |
+| `id`          | String (CUID) | Primary key                           |
+| `instance_id` | String?       | Scoped instance (null = fleet-wide)   |
+| `drift_type`  | String?       | Type to suppress (null = all types)   |
+| `reason`      | String        | Human-readable justification          |
+| `expires_at`  | DateTime?     | Suppression expiry (null = permanent) |
+| `created_by`  | String        | User ID                               |
 
 ### CostEntry
 
 Per-instance cost record for a time window, split by category.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String | FK → Instance |
-| `category` | Enum | `COMPUTE`, `STORAGE`, `NETWORK`, `EGRESS`, `OTHER` |
-| `amount_usd` | Float | Cost in USD |
-| `period_start` | DateTime | Window start |
-| `period_end` | DateTime | Window end |
-| `provider` | String | Provider that incurred the cost |
-| `metadata` | Json? | Provider-specific billing metadata |
+| Field          | Type          | Description                                        |
+| -------------- | ------------- | -------------------------------------------------- |
+| `id`           | String (CUID) | Primary key                                        |
+| `instance_id`  | String        | FK → Instance                                      |
+| `category`     | Enum          | `COMPUTE`, `STORAGE`, `NETWORK`, `EGRESS`, `OTHER` |
+| `amount_usd`   | Float         | Cost in USD                                        |
+| `period_start` | DateTime      | Window start                                       |
+| `period_end`   | DateTime      | Window end                                         |
+| `provider`     | String        | Provider that incurred the cost                    |
+| `metadata`     | Json?         | Provider-specific billing metadata                 |
 
 Indexes: `(instance_id, period_start)`, `(category)`, `(period_start)`
 
@@ -669,66 +669,66 @@ Indexes: `(instance_id, period_start)`, `(category)`, `(period_start)`
 
 Cost budget with alert thresholds.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `name` | String | Human-readable name |
-| `team_id` | String? | Scoped team (null = no team scope) |
-| `instance_id` | String? | Scoped instance (null = no instance scope) |
-| `limit_usd` | Float | Budget cap in USD |
-| `period` | Enum | `DAILY`, `WEEKLY`, `MONTHLY` |
-| `alert_thresholds` | Int[] | Thresholds to alert at (e.g. [50, 80, 100]) |
-| `current_spend_usd` | Float | Current period spend |
-| `created_by` | String | User ID |
+| Field               | Type          | Description                                 |
+| ------------------- | ------------- | ------------------------------------------- |
+| `id`                | String (CUID) | Primary key                                 |
+| `name`              | String        | Human-readable name                         |
+| `team_id`           | String?       | Scoped team (null = no team scope)          |
+| `instance_id`       | String?       | Scoped instance (null = no instance scope)  |
+| `limit_usd`         | Float         | Budget cap in USD                           |
+| `period`            | Enum          | `DAILY`, `WEEKLY`, `MONTHLY`                |
+| `alert_thresholds`  | Int[]         | Thresholds to alert at (e.g. [50, 80, 100]) |
+| `current_spend_usd` | Float         | Current period spend                        |
+| `created_by`        | String        | User ID                                     |
 
 ### CostAnomaly
 
 Detected spend anomaly for an instance.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String | FK → Instance |
-| `detected_at` | DateTime | Detection time |
-| `status` | Enum | `DETECTED`, `ACKNOWLEDGED`, `RESOLVED` |
-| `expected_spend_usd` | Float | Baseline expected spend |
-| `actual_spend_usd` | Float | Observed spend |
-| `deviation_percent` | Float | % deviation from expected |
-| `period_start` | DateTime | Anomaly window start |
-| `period_end` | DateTime | Anomaly window end |
+| Field                | Type          | Description                            |
+| -------------------- | ------------- | -------------------------------------- |
+| `id`                 | String (CUID) | Primary key                            |
+| `instance_id`        | String        | FK → Instance                          |
+| `detected_at`        | DateTime      | Detection time                         |
+| `status`             | Enum          | `DETECTED`, `ACKNOWLEDGED`, `RESOLVED` |
+| `expected_spend_usd` | Float         | Baseline expected spend                |
+| `actual_spend_usd`   | Float         | Observed spend                         |
+| `deviation_percent`  | Float         | % deviation from expected              |
+| `period_start`       | DateTime      | Anomaly window start                   |
+| `period_end`         | DateTime      | Anomaly window end                     |
 
 ### Sbom
 
 Software Bill of Materials snapshot for an instance.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String | FK → Instance |
-| `format` | Enum | `SPDX`, `CycloneDX` |
-| `spec_version` | String | Format spec version (e.g. `1.4`) |
-| `components` | Json | Array of SbomComponent records |
-| `generated_at` | DateTime | Generation time |
-| `extensions` | String[] | Extension names included in this SBOM |
+| Field          | Type          | Description                           |
+| -------------- | ------------- | ------------------------------------- |
+| `id`           | String (CUID) | Primary key                           |
+| `instance_id`  | String        | FK → Instance                         |
+| `format`       | Enum          | `SPDX`, `CycloneDX`                   |
+| `spec_version` | String        | Format spec version (e.g. `1.4`)      |
+| `components`   | Json          | Array of SbomComponent records        |
+| `generated_at` | DateTime      | Generation time                       |
+| `extensions`   | String[]      | Extension names included in this SBOM |
 
 ### CveVulnerability
 
 CVE vulnerability matched against an SBOM component.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `cve_id` | String | CVE identifier e.g. `CVE-2024-12345` |
-| `cvss_score` | Float | CVSS v3 score 0.0–10.0 |
-| `severity` | Enum | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFORMATIONAL`, `NONE` |
-| `title` | String | Vulnerability title |
-| `description` | String | Detailed description |
-| `affected_component` | String | Package name |
-| `affected_version` | String | Vulnerable version |
-| `fixed_in_version` | String? | Patched version (null = no patch) |
-| `published_at` | DateTime | NVD publication date |
-| `status` | Enum | `OPEN`, `ACKNOWLEDGED`, `PATCHING`, `FIXED`, `ACCEPTED_RISK`, `FALSE_POSITIVE` |
-| `instance_ids` | String[] | Instances affected by this CVE |
+| Field                | Type          | Description                                                                    |
+| -------------------- | ------------- | ------------------------------------------------------------------------------ |
+| `id`                 | String (CUID) | Primary key                                                                    |
+| `cve_id`             | String        | CVE identifier e.g. `CVE-2024-12345`                                           |
+| `cvss_score`         | Float         | CVSS v3 score 0.0–10.0                                                         |
+| `severity`           | Enum          | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFORMATIONAL`, `NONE`                   |
+| `title`              | String        | Vulnerability title                                                            |
+| `description`        | String        | Detailed description                                                           |
+| `affected_component` | String        | Package name                                                                   |
+| `affected_version`   | String        | Vulnerable version                                                             |
+| `fixed_in_version`   | String?       | Patched version (null = no patch)                                              |
+| `published_at`       | DateTime      | NVD publication date                                                           |
+| `status`             | Enum          | `OPEN`, `ACKNOWLEDGED`, `PATCHING`, `FIXED`, `ACCEPTED_RISK`, `FALSE_POSITIVE` |
+| `instance_ids`       | String[]      | Instances affected by this CVE                                                 |
 
 Indexes: `(cve_id)`, `(severity)`, `(status)`, `(cvss_score)`
 
@@ -736,16 +736,16 @@ Indexes: `(cve_id)`, `(severity)`, `(status)`, `(cvss_score)`
 
 Detected secret (high-entropy string) in an instance's configuration or filesystem.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String (CUID) | Primary key |
-| `instance_id` | String | FK → Instance |
-| `secret_type` | Enum | `API_KEY`, `TOKEN`, `PASSWORD`, `CERTIFICATE`, `SSH_KEY`, `GENERIC` |
-| `location` | String | File path or config key |
-| `line_number` | Int? | Line number in file (null for config keys) |
-| `entropy_score` | Float | Shannon entropy 0–8 |
-| `status` | Enum | `DETECTED`, `REVOKED`, `ROTATED`, `FALSE_POSITIVE` |
-| `detected_at` | DateTime | Detection time |
-| `rotated_at` | DateTime? | When secret was rotated |
+| Field           | Type          | Description                                                         |
+| --------------- | ------------- | ------------------------------------------------------------------- |
+| `id`            | String (CUID) | Primary key                                                         |
+| `instance_id`   | String        | FK → Instance                                                       |
+| `secret_type`   | Enum          | `API_KEY`, `TOKEN`, `PASSWORD`, `CERTIFICATE`, `SSH_KEY`, `GENERIC` |
+| `location`      | String        | File path or config key                                             |
+| `line_number`   | Int?          | Line number in file (null for config keys)                          |
+| `entropy_score` | Float         | Shannon entropy 0–8                                                 |
+| `status`        | Enum          | `DETECTED`, `REVOKED`, `ROTATED`, `FALSE_POSITIVE`                  |
+| `detected_at`   | DateTime      | Detection time                                                      |
+| `rotated_at`    | DateTime?     | When secret was rotated                                             |
 
 Indexes: `(instance_id)`, `(status)`, `(secret_type)`, `(detected_at)`

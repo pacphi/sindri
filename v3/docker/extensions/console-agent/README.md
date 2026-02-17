@@ -7,6 +7,7 @@ real-time monitoring, and web terminal access.
 ## Overview
 
 The agent provides:
+
 - **Heartbeat**: Periodic ping to the Console to track instance liveness
 - **Metrics**: System metrics collection (CPU, memory, disk, network) at configurable intervals
 - **Web Terminal**: PTY-based terminal sessions streamed to the Console via WebSocket
@@ -34,12 +35,12 @@ extensions:
 
 The agent is configured via environment variables. Set them in your `sindri.yaml`:
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `SINDRI_CONSOLE_URL` | Yes | `""` | URL of the Sindri Console API server |
-| `SINDRI_CONSOLE_API_KEY` | Yes | `""` | API key for authenticating with the Console |
-| `SINDRI_AGENT_HEARTBEAT` | No | `30` | Heartbeat interval in seconds |
-| `SINDRI_AGENT_METRICS` | No | `60` | Metrics collection interval in seconds |
+| Variable                 | Required | Default | Description                                 |
+| ------------------------ | -------- | ------- | ------------------------------------------- |
+| `SINDRI_CONSOLE_URL`     | Yes      | `""`    | URL of the Sindri Console API server        |
+| `SINDRI_CONSOLE_API_KEY` | Yes      | `""`    | API key for authenticating with the Console |
+| `SINDRI_AGENT_HEARTBEAT` | No       | `30`    | Heartbeat interval in seconds               |
+| `SINDRI_AGENT_METRICS`   | No       | `60`    | Metrics collection interval in seconds      |
 
 The configuration is written to `~/.config/sindri-agent/config.yaml` by `configure-agent.sh`.
 
@@ -55,12 +56,12 @@ bash configure-agent.sh
 
 ## Scripts
 
-| Script | Purpose |
-|---|---|
-| `install.sh` | Downloads the `sindri-agent` binary from GitHub Releases |
+| Script               | Purpose                                                                     |
+| -------------------- | --------------------------------------------------------------------------- |
+| `install.sh`         | Downloads the `sindri-agent` binary from GitHub Releases                    |
 | `configure-agent.sh` | Reads env vars / `sindri.yaml`, writes `~/.config/sindri-agent/config.yaml` |
-| `start-agent.sh` | Starts the agent as a systemd user service or background process |
-| `healthcheck.sh` | Verifies the agent is running and healthy |
+| `start-agent.sh`     | Starts the agent as a systemd user service or background process            |
+| `healthcheck.sh`     | Verifies the agent is running and healthy                                   |
 
 ## Running
 
@@ -94,6 +95,7 @@ bash healthcheck.sh
 ```
 
 This verifies:
+
 - Binary is installed at `~/.local/bin/sindri-agent`
 - Process is running (via systemd status or PID file)
 - Config file exists at `~/.config/sindri-agent/config.yaml`
@@ -113,16 +115,19 @@ journalctl --user -u sindri-agent -f
 ## Troubleshooting
 
 **Agent won't start**
+
 - Verify binary: `ls -la ~/.local/bin/sindri-agent`
 - Check logs: `cat /tmp/sindri-agent.log`
 - Re-install: `sindri extension install console-agent`
 
 **Agent can't connect to Console**
+
 - Verify `SINDRI_CONSOLE_URL` is correct and reachable
 - Check `SINDRI_CONSOLE_API_KEY` is valid
 - Re-run: `bash configure-agent.sh && bash start-agent.sh`
 
 **Agent crashes repeatedly**
+
 - Review logs for error messages
 - Verify network connectivity to the Console URL
 - Check system resources (disk, memory)

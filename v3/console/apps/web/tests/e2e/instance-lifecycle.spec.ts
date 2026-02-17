@@ -18,7 +18,7 @@ async function navigateToInstances(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
-async function openInstanceDetail(page: Page, instanceName?: string): Promise<void> {
+async function _openInstanceDetail(page: Page, instanceName?: string): Promise<void> {
   const instanceRow = instanceName
     ? page.getByTestId('instance-row').filter({ hasText: instanceName })
     : page.getByTestId('instance-row').first();

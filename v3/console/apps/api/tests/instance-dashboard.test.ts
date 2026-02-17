@@ -15,7 +15,6 @@ import { describe, it, expect, vi } from 'vitest';
 import type {
   TimeSeriesPoint,
   LatestMetric,
-  AggregateResult,
   Granularity,
 } from '../src/services/metrics/types.js';
 

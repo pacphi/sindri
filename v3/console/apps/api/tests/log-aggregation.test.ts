@@ -12,7 +12,7 @@
  *   - Log source enum values (AGENT, EXTENSION, BUILD, APP, SYSTEM)
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type { LogLinePayload, LogBatchPayload, LogLevel } from '../src/websocket/channels.js';
 
 // ─────────────────────────────────────────────────────────────────────────────

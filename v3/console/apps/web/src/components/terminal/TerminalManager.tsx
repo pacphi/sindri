@@ -86,7 +86,6 @@ export function TerminalManager({ instanceId, instanceName, theme = "dark", clas
   useEffect(() => {
     createTab();
     // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

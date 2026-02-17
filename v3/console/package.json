@@ -27,7 +27,8 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.0.0",
     "prettier": "^3.8.1",
-    "turbo": "^2.8.9"
+    "turbo": "^2.8.9",
+    "typescript-eslint": "^8.56.0"
   },
   "engines": {
     "node": ">=20.0.0",

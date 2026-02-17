@@ -6,7 +6,6 @@
  */
 
 import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
 
 export interface SshKeyInput {
   instanceId: string;

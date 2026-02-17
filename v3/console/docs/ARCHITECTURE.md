@@ -66,6 +66,7 @@ The system consists of three primary components:
 **Technology:** Node.js 22 LTS, Hono (HTTP framework), tRPC (type-safe API), Prisma (ORM)
 
 **Responsibilities:**
+
 - Instance registry: store and query registered Sindri instances
 - Authentication and RBAC enforcement
 - WebSocket gateway: multiplex connections from browser clients and instance agents
@@ -73,19 +74,20 @@ The system consists of three primary components:
 - Background job orchestration (BullMQ)
 
 **Port allocations:**
+
 - `3000` — HTTP API and WebSocket upgrade endpoint
 - `5432` — PostgreSQL (internal)
 - `6379` — Redis (internal)
 
 **Key modules:**
 
-| Module | Path | Responsibility |
-|---|---|---|
-| HTTP router | `apps/api/src/routes/` | REST endpoints and tRPC adapter |
-| WS gateway | `apps/api/src/ws/` | Agent and browser WebSocket management |
-| Services | `apps/api/src/services/` | Business logic layer |
-| Workers | `apps/api/src/workers/` | BullMQ metric aggregation, alerting |
-| Prisma client | `apps/api/prisma/` | Schema and migration management |
+| Module        | Path                     | Responsibility                         |
+| ------------- | ------------------------ | -------------------------------------- |
+| HTTP router   | `apps/api/src/routes/`   | REST endpoints and tRPC adapter        |
+| WS gateway    | `apps/api/src/ws/`       | Agent and browser WebSocket management |
+| Services      | `apps/api/src/services/` | Business logic layer                   |
+| Workers       | `apps/api/src/workers/`  | BullMQ metric aggregation, alerting    |
+| Prisma client | `apps/api/prisma/`       | Schema and migration management        |
 
 ---
 
@@ -94,6 +96,7 @@ The system consists of three primary components:
 **Technology:** React 19, Vite, TanStack Router, TanStack Query, Zustand, shadcn/ui, Tailwind CSS 4
 
 **Responsibilities:**
+
 - Instance list view with real-time status
 - Web terminal (xterm.js) connected via WebSocket to agent PTYs
 - Fleet health dashboard with live metrics (Recharts)
@@ -125,6 +128,7 @@ apps/web/src/
 **Technology:** Go 1.22+, gopsutil, gorilla/websocket, creack/pty, prometheus/client_golang, fsnotify
 
 **Responsibilities:**
+
 - Maintain persistent WebSocket connection to the Console API
 - Collect and ship system metrics (CPU, memory, disk, network) every 30s
 - Send heartbeat pings every 10s
@@ -136,6 +140,7 @@ apps/web/src/
 **Distribution:** Compiled as a static binary, delivered as a Sindri extension (`console-agent`). Zero runtime dependencies on the instance.
 
 **Startup sequence:**
+
 1. Read `SINDRI_CONSOLE_URL` and `SINDRI_CONSOLE_API_KEY` from environment
 2. POST `/api/v1/instances/register` with instance metadata
 3. Establish WebSocket connection to Console
@@ -285,28 +290,28 @@ v3/console/
 
 ## Technology Stack Justifications
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| API framework | Hono | Edge-compatible, ultra-low overhead, excellent TypeScript support |
-| API type safety | tRPC | End-to-end type safety from DB to browser; eliminates API contract drift |
-| ORM | Prisma | Type-safe queries, migration management, first-class PostgreSQL support |
-| Database | PostgreSQL | Relational integrity for instance registry, audit logs, RBAC; TimescaleDB extension path for metrics |
-| Cache/Pub-Sub | Redis | Real-time metric streaming via Pub/Sub; session state; BullMQ job backend |
-| Job queue | BullMQ | Built on Redis; reliable background jobs for metric aggregation and alerting |
-| WebSocket | ws (Node.js) | Low-level control for both agent connections and browser proxying |
-| Frontend framework | React 19 | Concurrent features, Suspense-based data fetching; large ecosystem |
-| Frontend build | Vite | Fast HMR, native ESM, excellent TypeScript DX |
-| Router | TanStack Router | Fully type-safe routes and search params |
-| Server state | TanStack Query | Caching, real-time subscriptions, optimistic updates |
-| Client state | Zustand | Minimal boilerplate for terminal sessions and UI state |
-| UI components | shadcn/ui + Radix | Accessible primitives; copy-owned, not locked to a package version |
-| Styling | Tailwind CSS 4 | Rapid iteration; design system via CSS variables |
-| Web terminal | xterm.js | Gold standard; powers VS Code terminal; full VT100 emulation |
-| YAML editor | Monaco Editor | VS Code editor component; YAML syntax, validation, diff |
-| Charts | Recharts | React-native charts with composable API |
-| Agent language | Go 1.22+ | Single static binary; low memory (~5MB); no runtime on instances |
-| Agent metrics | gopsutil | Cross-platform CPU, memory, disk, network collection |
-| Agent PTY | creack/pty | PTY allocation for web shell sessions |
+| Layer              | Technology        | Rationale                                                                                            |
+| ------------------ | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| API framework      | Hono              | Edge-compatible, ultra-low overhead, excellent TypeScript support                                    |
+| API type safety    | tRPC              | End-to-end type safety from DB to browser; eliminates API contract drift                             |
+| ORM                | Prisma            | Type-safe queries, migration management, first-class PostgreSQL support                              |
+| Database           | PostgreSQL        | Relational integrity for instance registry, audit logs, RBAC; TimescaleDB extension path for metrics |
+| Cache/Pub-Sub      | Redis             | Real-time metric streaming via Pub/Sub; session state; BullMQ job backend                            |
+| Job queue          | BullMQ            | Built on Redis; reliable background jobs for metric aggregation and alerting                         |
+| WebSocket          | ws (Node.js)      | Low-level control for both agent connections and browser proxying                                    |
+| Frontend framework | React 19          | Concurrent features, Suspense-based data fetching; large ecosystem                                   |
+| Frontend build     | Vite              | Fast HMR, native ESM, excellent TypeScript DX                                                        |
+| Router             | TanStack Router   | Fully type-safe routes and search params                                                             |
+| Server state       | TanStack Query    | Caching, real-time subscriptions, optimistic updates                                                 |
+| Client state       | Zustand           | Minimal boilerplate for terminal sessions and UI state                                               |
+| UI components      | shadcn/ui + Radix | Accessible primitives; copy-owned, not locked to a package version                                   |
+| Styling            | Tailwind CSS 4    | Rapid iteration; design system via CSS variables                                                     |
+| Web terminal       | xterm.js          | Gold standard; powers VS Code terminal; full VT100 emulation                                         |
+| YAML editor        | Monaco Editor     | VS Code editor component; YAML syntax, validation, diff                                              |
+| Charts             | Recharts          | React-native charts with composable API                                                              |
+| Agent language     | Go 1.22+          | Single static binary; low memory (~5MB); no runtime on instances                                     |
+| Agent metrics      | gopsutil          | Cross-platform CPU, memory, disk, network collection                                                 |
+| Agent PTY          | creack/pty        | PTY allocation for web shell sessions                                                                |
 
 ---
 
@@ -315,6 +320,7 @@ v3/console/
 ### mTLS Between Agent and Console
 
 Every agent-to-Console WebSocket connection uses mutual TLS:
+
 - Console presents a server certificate
 - Each agent is issued a client certificate upon registration
 - Certificates are rotated on a configurable schedule
@@ -329,15 +335,15 @@ Every agent-to-Console WebSocket connection uses mutual TLS:
 
 Roles (highest to lowest privilege): `admin`, `operator`, `developer`, `viewer`
 
-| Action | viewer | developer | operator | admin |
-|---|---|---|---|---|
-| View instance list | Y | Y | Y | Y |
-| View instance metrics | Y | Y | Y | Y |
-| Open terminal | N | Y | Y | Y |
-| Deploy new instance | N | Y | Y | Y |
-| Destroy instance | N | N | Y | Y |
-| Manage users | N | N | N | Y |
-| Manage API keys | N | N | Y | Y |
+| Action                | viewer | developer | operator | admin |
+| --------------------- | ------ | --------- | -------- | ----- |
+| View instance list    | Y      | Y         | Y        | Y     |
+| View instance metrics | Y      | Y         | Y        | Y     |
+| Open terminal         | N      | Y         | Y        | Y     |
+| Deploy new instance   | N      | Y         | Y        | Y     |
+| Destroy instance      | N      | N         | Y        | Y     |
+| Manage users          | N      | N         | N        | Y     |
+| Manage API keys       | N      | N         | Y        | Y     |
 
 ### Additional Security Controls
 

@@ -164,8 +164,8 @@ function SummaryCard({
 function OverviewTab({
   summary,
   recentEvents,
-  onTriggerCheck,
-  isTriggeringCheck,
+  onTriggerCheck: _onTriggerCheck,
+  isTriggeringCheck: _isTriggeringCheck,
 }: {
   summary: ReturnType<typeof useDriftSummary>['data'];
   recentEvents: Parameters<typeof DriftAlert>[0]['event'][];

@@ -250,7 +250,7 @@ async function sendSlack(config: SlackChannelConfig, payload: AlertPayload): Pro
 async function sendEmail(config: EmailChannelConfig, payload: AlertPayload): Promise<object> {
   // Email integration stub — in production wire up to Resend, SendGrid, or Nodemailer
   const subject = `${config.subject_prefix ?? '[Sindri Alert]'} ${payload.severity}: ${payload.title}`;
-  const text = [
+  const _text = [
     `Alert: ${payload.title}`,
     `Severity: ${payload.severity}`,
     `Rule: ${payload.ruleName}`,

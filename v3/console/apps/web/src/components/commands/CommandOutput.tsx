@@ -28,6 +28,7 @@ function ansiToHtml(text: string): string {
   let result = ''
   let openSpans = 0
 
+  // eslint-disable-next-line no-control-regex
   const parts = escaped.split(/\x1b\[([0-9;]*)m/)
   for (let i = 0; i < parts.length; i++) {
     if (i % 2 === 0) {
@@ -42,7 +43,7 @@ function ansiToHtml(text: string): string {
         // Reset - nothing to do (spans already closed)
       } else {
         let style = ''
-        let cls = ''
+        const cls = ''
         for (const code of codes) {
           const color = ANSI_COLORS[code]
           if (color) style += `color:${color};`

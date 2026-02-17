@@ -2,14 +2,14 @@
 
 ## Prerequisites
 
-| Tool | Version | Install |
-|---|---|---|
-| Node.js | 22 LTS | https://nodejs.org or `nvm install 22` |
-| pnpm | 9+ | `npm install -g pnpm` |
-| Go | 1.22+ | https://go.dev/dl/ |
-| Docker | 24+ | https://docs.docker.com/get-docker/ |
-| Docker Compose | 2.20+ | Bundled with Docker Desktop |
-| PostgreSQL client | Any | `brew install libpq` (macOS) or `apt install postgresql-client` |
+| Tool              | Version | Install                                                         |
+| ----------------- | ------- | --------------------------------------------------------------- |
+| Node.js           | 22 LTS  | https://nodejs.org or `nvm install 22`                          |
+| pnpm              | 9+      | `npm install -g pnpm`                                           |
+| Go                | 1.22+   | https://go.dev/dl/                                              |
+| Docker            | 24+     | https://docs.docker.com/get-docker/                             |
+| Docker Compose    | 2.20+   | Bundled with Docker Desktop                                     |
+| PostgreSQL client | Any     | `brew install libpq` (macOS) or `apt install postgresql-client` |
 
 ---
 
@@ -44,6 +44,7 @@ docker compose up -d postgres redis
 ```
 
 This starts:
+
 - PostgreSQL 16 on `localhost:5432` (database: `sindri_console`, user: `sindri`, password: `sindri`)
 - Redis 7 on `localhost:6379`
 
@@ -177,26 +178,26 @@ volumes:
 
 ### Console API (`apps/api/.env`)
 
-| Variable | Required | Description | Default |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string | — |
-| `REDIS_URL` | Yes | Redis connection URL | — |
-| `JWT_SECRET` | Yes | HMAC secret for JWT signing | — |
-| `SESSION_SECRET` | Yes | Secret for session cookies | — |
-| `SINDRI_CONSOLE_API_KEY` | Yes | Bootstrap key for agent registration | — |
-| `PORT` | No | HTTP server port | `3000` |
-| `NODE_ENV` | No | `development` or `production` | `development` |
-| `LOG_LEVEL` | No | `debug`, `info`, `warn`, `error` | `info` |
-| `METRICS_RETENTION_DAYS` | No | Days to keep metric records | `30` |
-| `LOGS_RETENTION_DAYS` | No | Days to keep log records | `14` |
-| `CORS_ORIGIN` | No | Allowed CORS origin for browser requests | `http://localhost:5173` |
+| Variable                 | Required | Description                              | Default                 |
+| ------------------------ | -------- | ---------------------------------------- | ----------------------- |
+| `DATABASE_URL`           | Yes      | PostgreSQL connection string             | —                       |
+| `REDIS_URL`              | Yes      | Redis connection URL                     | —                       |
+| `JWT_SECRET`             | Yes      | HMAC secret for JWT signing              | —                       |
+| `SESSION_SECRET`         | Yes      | Secret for session cookies               | —                       |
+| `SINDRI_CONSOLE_API_KEY` | Yes      | Bootstrap key for agent registration     | —                       |
+| `PORT`                   | No       | HTTP server port                         | `3000`                  |
+| `NODE_ENV`               | No       | `development` or `production`            | `development`           |
+| `LOG_LEVEL`              | No       | `debug`, `info`, `warn`, `error`         | `info`                  |
+| `METRICS_RETENTION_DAYS` | No       | Days to keep metric records              | `30`                    |
+| `LOGS_RETENTION_DAYS`    | No       | Days to keep log records                 | `14`                    |
+| `CORS_ORIGIN`            | No       | Allowed CORS origin for browser requests | `http://localhost:5173` |
 
 ### React Frontend (`apps/web/.env`)
 
-| Variable | Required | Description | Default |
-|---|---|---|---|
-| `VITE_API_URL` | No | Console API URL | `http://localhost:3000` |
-| `VITE_WS_URL` | No | WebSocket URL | `ws://localhost:3000` |
+| Variable       | Required | Description     | Default                 |
+| -------------- | -------- | --------------- | ----------------------- |
+| `VITE_API_URL` | No       | Console API URL | `http://localhost:3000` |
+| `VITE_WS_URL`  | No       | WebSocket URL   | `ws://localhost:3000`   |
 
 ---
 
@@ -344,6 +345,7 @@ cd v3/console/agent && go mod tidy
 ### VS Code
 
 Recommended extensions (add to `.vscode/extensions.json`):
+
 - `dbaeumer.vscode-eslint` - ESLint
 - `esbenp.prettier-vscode` - Prettier
 - `prisma.prisma` - Prisma schema support

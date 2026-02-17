@@ -156,7 +156,7 @@ export function SecurityDashboard() {
   const { data: secrets, isLoading: secretsLoading } = useSecretRotations();
   const { data: sshData, isLoading: sshLoading } = useSshKeys();
   const { data: compliance, isLoading: complianceLoading } = useComplianceReport();
-  const { mutate: triggerScan, isPending: scanning } = useTriggerScan();
+  const { mutate: _triggerScan, isPending: scanning } = useTriggerScan();
 
   function handleFilterBySeverity(sev: VulnerabilitySeverity) {
     setVulnFilters({ severity: sev });

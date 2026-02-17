@@ -91,6 +91,7 @@ async function main(): Promise<void> {
     cronScheduler.stop();
     stopAggregationWorker();
     stopAlertEvaluationWorker();
+    stopCostWorker();
     stopDriftDetector();
 
     server.close(async () => {

@@ -178,7 +178,7 @@ export async function getFleetDeployments(): Promise<FleetDeploymentsResponse> {
   }
 
   let totalSucceeded = 0;
-  let totalFailed = 0;
+  let _totalFailed = 0;
 
   for (const dep of deployments) {
     const key = dep.started_at.toISOString().slice(0, 13) + ":00:00.000Z";
@@ -187,7 +187,7 @@ export async function getFleetDeployments(): Promise<FleetDeploymentsResponse> {
     bucket.deployments += 1;
     if (dep.status === "FAILED") {
       bucket.failures += 1;
-      totalFailed += 1;
+      _totalFailed += 1;
     } else if (dep.status === "SUCCEEDED") {
       totalSucceeded += 1;
     }

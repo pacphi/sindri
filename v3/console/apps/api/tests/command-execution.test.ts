@@ -10,8 +10,8 @@
  * - Exit code handling and error reporting
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildApp, authHeaders, VALID_API_KEY } from './helpers.js';
+import { describe, it, expect, vi } from 'vitest';
+import { buildApp, authHeaders } from './helpers.js';
 import { createHash } from 'crypto';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ describe('Command Execution: Payload Validation', () => {
   });
 
   it('commandId follows UUID-like format', () => {
-    const uuidRegex = /^[0-9a-f-]{8,36}$/;
+    const _uuidRegex = /^[0-9a-f-]{8,36}$/;
     const commandId = 'cmd_abc123def456';
     expect(commandId).toMatch(/^cmd_[a-z0-9]+$/);
   });
@@ -278,7 +278,7 @@ describe('Command Execution: Multi-Instance Parallel Dispatch', () => {
 describe('Command Execution: Timeout and Cancellation', () => {
   it('command times out after specified duration', () => {
     const timeout = 5; // seconds
-    const startTime = Date.now();
+    const _startTime = Date.now();
     const mockElapsed = 5100; // ms — just over timeout
     const isTimedOut = mockElapsed / 1000 >= timeout;
     expect(isTimedOut).toBe(true);

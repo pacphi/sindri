@@ -9,8 +9,8 @@
  * - Deployment initiation and status tracking
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { buildApp, authHeaders, VALID_API_KEY, ADMIN_API_KEY } from "./helpers.js";
+import { describe, it, expect, vi } from "vitest";
+import { buildApp, authHeaders } from "./helpers.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mocks
@@ -80,8 +80,8 @@ const mockDeployment = {
 };
 
 // Pre-computed SHA256 hashes of test API keys (avoids require inside vi.mock hoisting)
-const WIZ_VALID_HASH = "3762e9aa503654d601c34795e887f6e61ecbf137c1e26bc25e2602c5fb2b684d";
-const WIZ_ADMIN_HASH = "202025f117fb2da5b458b8fbfaca54aeae4a348466190e2aa9f63deddba6481f";
+const _WIZ_VALID_HASH = "3762e9aa503654d601c34795e887f6e61ecbf137c1e26bc25e2602c5fb2b684d";
+const _WIZ_ADMIN_HASH = "202025f117fb2da5b458b8fbfaca54aeae4a348466190e2aa9f63deddba6481f";
 
 vi.mock("../src/lib/db.js", () => {
   const VALID_H = "3762e9aa503654d601c34795e887f6e61ecbf137c1e26bc25e2602c5fb2b684d";

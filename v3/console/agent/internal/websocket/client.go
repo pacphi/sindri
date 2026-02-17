@@ -139,7 +139,7 @@ func (c *Client) readLoop(ctx context.Context) {
 			c.conn = nil
 		}
 		c.mu.Unlock()
-		conn.Close()
+		_ = conn.Close()
 	}()
 
 	for {

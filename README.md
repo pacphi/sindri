@@ -199,13 +199,13 @@ make clean   # Remove all build artifacts (v2, v3, console, agent)
 
 ### Prerequisites
 
-| Tool           | Required by              | Minimum version |
-| -------------- | ------------------------ | --------------- |
-| `go`           | console-agent-* targets  | 1.22            |
-| `pnpm`         | console-* TS targets     | 9               |
-| `node`         | console-* TS targets     | 20              |
-| `golangci-lint`| console-agent-lint       | latest          |
-| `govulncheck`  | console-agent-audit      | latest          |
+| Tool            | Required by              | Minimum version |
+| --------------- | ------------------------ | --------------- |
+| `go`            | console-agent-\* targets | 1.22            |
+| `pnpm`          | console-\* TS targets    | 9               |
+| `node`          | console-\* TS targets    | 20              |
+| `golangci-lint` | console-agent-lint       | latest          |
+| `govulncheck`   | console-agent-audit      | latest          |
 
 Optional tools (`golangci-lint`, `govulncheck`) print a warning and are skipped if absent.
 

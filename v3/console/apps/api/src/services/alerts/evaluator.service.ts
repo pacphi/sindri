@@ -34,7 +34,7 @@ export async function evaluateAllRules(): Promise<void> {
   if (rules.length === 0) return;
 
   // Gather all unique instance IDs from rules (plus null = all instances)
-  const ruleInstanceIds = [...new Set(rules.map((r) => r.instance_id).filter(Boolean) as string[])];
+  const _ruleInstanceIds = [...new Set(rules.map((r) => r.instance_id).filter(Boolean) as string[])];
   const allInstances = await db.instance.findMany({
     select: { id: true, name: true, status: true },
   });
@@ -43,7 +43,7 @@ export async function evaluateAllRules(): Promise<void> {
   const latestMetrics = await fetchLatestMetrics(allInstances.map((i) => i.id));
   const latestHeartbeats = await fetchLatestHeartbeats(allInstances.map((i) => i.id));
 
-  const instanceMap = new Map(allInstances.map((i) => [i.id, i]));
+  const _instanceMap = new Map(allInstances.map((i) => [i.id, i]));
   const now = new Date();
 
   await Promise.allSettled(
@@ -370,7 +370,7 @@ function compare(value: number, op: string, threshold: number): boolean {
   }
 }
 
-function buildDedupeKey(ruleId: string, instanceId: string, conditions: unknown): string {
+function buildDedupeKey(ruleId: string, instanceId: string, _conditions: unknown): string {
   // Stable key based on rule + instance (ignores condition values so updates don't bypass dedup)
   return `${ruleId}:${instanceId}`;
 }

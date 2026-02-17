@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, ChevronDown, ChevronUp } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -14,8 +14,6 @@ import type {
   AlertSeverity,
   AlertConditions,
   ThresholdCondition,
-  LifecycleCondition,
-  AnomalyCondition,
   CreateAlertRuleInput,
 } from '@/types/alert'
 

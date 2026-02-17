@@ -10,8 +10,7 @@
  *   - WebSocket fan-out for real-time fleet updates
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { LatestMetric } from '../src/services/metrics/types.js';
+import { describe, it, expect } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test fixtures

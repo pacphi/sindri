@@ -14,13 +14,13 @@ func TestLoad_RequiredEnvVars(t *testing.T) {
 		t.Fatal("expected error when SINDRI_CONSOLE_URL is missing")
 	}
 
-	os.Setenv("SINDRI_CONSOLE_URL", "http://console.test")
+	t.Setenv("SINDRI_CONSOLE_URL", "http://console.test")
 	_, err = Load()
 	if err == nil {
 		t.Fatal("expected error when SINDRI_CONSOLE_API_KEY is missing")
 	}
 
-	os.Setenv("SINDRI_CONSOLE_API_KEY", "test-key")
+	t.Setenv("SINDRI_CONSOLE_API_KEY", "test-key")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -32,7 +32,7 @@ func TestLoad_RequiredEnvVars(t *testing.T) {
 
 func TestLoad_Defaults(t *testing.T) {
 	clearEnv()
-	setRequired()
+	setRequired(t)
 
 	cfg, err := Load()
 	if err != nil {
@@ -58,10 +58,10 @@ func TestLoad_Defaults(t *testing.T) {
 
 func TestLoad_Intervals(t *testing.T) {
 	clearEnv()
-	setRequired()
+	setRequired(t)
 
-	os.Setenv("SINDRI_AGENT_HEARTBEAT", "15")
-	os.Setenv("SINDRI_AGENT_METRICS", "120")
+	t.Setenv("SINDRI_AGENT_HEARTBEAT", "15")
+	t.Setenv("SINDRI_AGENT_METRICS", "120")
 
 	cfg, err := Load()
 	if err != nil {
@@ -77,9 +77,9 @@ func TestLoad_Intervals(t *testing.T) {
 
 func TestLoad_InvalidInterval(t *testing.T) {
 	clearEnv()
-	setRequired()
+	setRequired(t)
 
-	os.Setenv("SINDRI_AGENT_HEARTBEAT", "not-a-number")
+	t.Setenv("SINDRI_AGENT_HEARTBEAT", "not-a-number")
 	_, err := Load()
 	if err == nil {
 		t.Fatal("expected error for invalid heartbeat interval")
@@ -88,9 +88,9 @@ func TestLoad_InvalidInterval(t *testing.T) {
 
 func TestLoad_Tags(t *testing.T) {
 	clearEnv()
-	setRequired()
+	setRequired(t)
 
-	os.Setenv("SINDRI_AGENT_TAGS", "env=production, team=platform")
+	t.Setenv("SINDRI_AGENT_TAGS", "env=production, team=platform")
 
 	cfg, err := Load()
 	if err != nil {
@@ -106,8 +106,8 @@ func TestLoad_Tags(t *testing.T) {
 
 func TestLoad_TrailingSlashStripped(t *testing.T) {
 	clearEnv()
-	os.Setenv("SINDRI_CONSOLE_URL", "https://console.example.com/")
-	os.Setenv("SINDRI_CONSOLE_API_KEY", "key")
+	t.Setenv("SINDRI_CONSOLE_URL", "https://console.example.com/")
+	t.Setenv("SINDRI_CONSOLE_API_KEY", "key")
 
 	cfg, err := Load()
 	if err != nil {
@@ -158,11 +158,12 @@ func clearEnv() {
 		"SINDRI_AGENT_TAGS",
 	}
 	for _, v := range vars {
-		os.Unsetenv(v)
+		_ = os.Unsetenv(v)
 	}
 }
 
-func setRequired() {
-	os.Setenv("SINDRI_CONSOLE_URL", "https://console.test")
-	os.Setenv("SINDRI_CONSOLE_API_KEY", "test-api-key")
+func setRequired(t *testing.T) {
+	t.Helper()
+	t.Setenv("SINDRI_CONSOLE_URL", "https://console.test")
+	t.Setenv("SINDRI_CONSOLE_API_KEY", "test-api-key")
 }

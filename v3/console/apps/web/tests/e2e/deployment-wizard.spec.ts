@@ -28,7 +28,7 @@ async function navigateToWizard(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
-async function selectTemplate(page: Page, templateName: string): Promise<void> {
+async function _selectTemplate(page: Page, templateName: string): Promise<void> {
   const templateCard = page.getByTestId('template-card').filter({ hasText: templateName });
   await expect(templateCard).toBeVisible({ timeout: TIMEOUT });
   await templateCard.click();
@@ -178,7 +178,7 @@ test.describe('Deployment Wizard: YAML Editor', () => {
       const errorIndicator = page.getByTestId('yaml-error');
       // Error may not appear immediately; check if editor shows any validation
       // This is a best-effort check
-      const hasError = await errorIndicator.isVisible().catch(() => false);
+      const _hasError = await errorIndicator.isVisible().catch(() => false);
       // Test passes whether or not error is shown — depends on implementation
     }
   });

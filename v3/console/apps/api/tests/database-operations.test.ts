@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { PrismaClient } from '@prisma/client'
-import type { Instance, User, ApiKey } from '@prisma/client'
+import type { Instance, User } from '@prisma/client'
 
 // ---------------------------------------------------------------------------
 // Setup
