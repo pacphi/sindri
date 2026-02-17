@@ -15,18 +15,13 @@
  * Each WebSocket message is a JSON-encoded `Envelope` (see channels.ts).
  */
 
-import { WebSocketServer, WebSocket } from 'ws';
-import type { IncomingMessage, Server } from 'http';
-import { authenticateUpgrade } from '../websocket/auth.js';
-import {
-  parseEnvelope,
-  makeEnvelope,
-  CHANNEL,
-  MESSAGE_TYPE,
-} from '../websocket/channels.js';
-import { redis, redisSub, REDIS_CHANNELS, REDIS_KEYS } from '../lib/redis.js';
-import { db } from '../lib/db.js';
-import { logger } from '../lib/logger.js';
+import { WebSocketServer, WebSocket } from "ws";
+import type { IncomingMessage, Server } from "http";
+import { authenticateUpgrade } from "../websocket/auth.js";
+import { parseEnvelope, makeEnvelope, CHANNEL, MESSAGE_TYPE } from "../websocket/channels.js";
+import { redis, redisSub, REDIS_CHANNELS, REDIS_KEYS } from "../lib/redis.js";
+import { db } from "../lib/db.js";
+import { logger } from "../lib/logger.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Connection registry
@@ -49,7 +44,7 @@ interface BrowserConnection {
   connectedAt: Date;
 }
 
-const agentConnections = new Map<string, AgentConnection>(); // key: instanceId
+export const agentConnections = new Map<string, AgentConnection>(); // key: instanceId
 const browserConnections = new Set<BrowserConnection>();
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +61,7 @@ const dbLookup = {
     return {
       id: key.id,
       userId: key.user_id,
-      userRole: key.user.role as 'ADMIN' | 'OPERATOR' | 'DEVELOPER' | 'VIEWER',
+      userRole: key.user.role as "ADMIN" | "OPERATOR" | "DEVELOPER" | "VIEWER",
       expiresAt: key.expires_at,
     };
   },
@@ -83,14 +78,14 @@ function initRedisSubscriber(): void {
   redisSubInitialised = true;
 
   // Pattern-subscribe to all sindri:instance:* channels
-  redisSub.psubscribe('sindri:instance:*', (err) => {
-    if (err) logger.error({ err }, 'Failed to psubscribe to instance channels');
-    else logger.info('Redis psubscribe: sindri:instance:*');
+  redisSub.psubscribe("sindri:instance:*", (err) => {
+    if (err) logger.error({ err }, "Failed to psubscribe to instance channels");
+    else logger.info("Redis psubscribe: sindri:instance:*");
   });
 
-  redisSub.on('pmessage', (_pattern: string, channel: string, message: string) => {
+  redisSub.on("pmessage", (_pattern: string, channel: string, message: string) => {
     // Extract instanceId from channel: sindri:instance:<id>:<type>
-    const parts = channel.split(':');
+    const parts = channel.split(":");
     if (parts.length < 4) return;
     const instanceId = parts[2];
 
@@ -133,15 +128,15 @@ async function processHeartbeat(
         },
       }),
       // Keep instance marked online in Redis (10s grace period for 10s heartbeat interval)
-      redis.setex(REDIS_KEYS.instanceOnline(instanceId), 30, '1'),
+      redis.setex(REDIS_KEYS.instanceOnline(instanceId), 30, "1"),
       // Update instance status to RUNNING if it was previously degraded
       db.instance.updateMany({
-        where: { id: instanceId, status: { in: ['ERROR', 'UNKNOWN'] } },
-        data: { status: 'RUNNING', updated_at: new Date() },
+        where: { id: instanceId, status: { in: ["ERROR", "UNKNOWN"] } },
+        data: { status: "RUNNING", updated_at: new Date() },
       }),
     ]);
   } catch (err) {
-    logger.warn({ err, instanceId }, 'Failed to persist heartbeat');
+    logger.warn({ err, instanceId }, "Failed to persist heartbeat");
   }
 }
 
@@ -152,7 +147,7 @@ async function processHeartbeat(
 async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<void> {
   const envelope = parseEnvelope(raw);
   if (!envelope) {
-    logger.warn({ instanceId: conn.instanceId }, 'Received invalid envelope from agent');
+    logger.warn({ instanceId: conn.instanceId }, "Received invalid envelope from agent");
     return;
   }
 
@@ -175,9 +170,14 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
         // Ack back to agent
         conn.ws.send(
           JSON.stringify(
-            makeEnvelope(CHANNEL.HEARTBEAT, MESSAGE_TYPE.HEARTBEAT_PONG, { ok: true }, {
-              instanceId: conn.instanceId,
-            }),
+            makeEnvelope(
+              CHANNEL.HEARTBEAT,
+              MESSAGE_TYPE.HEARTBEAT_PONG,
+              { ok: true },
+              {
+                instanceId: conn.instanceId,
+              },
+            ),
           ),
         );
       }
@@ -190,7 +190,7 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
           REDIS_CHANNELS.instanceMetrics(conn.instanceId),
           JSON.stringify({ ...envelope, instanceId: conn.instanceId }),
         )
-        .catch((err) => logger.warn({ err }, 'Failed to publish metrics'));
+        .catch((err) => logger.warn({ err }, "Failed to publish metrics"));
       break;
 
     case CHANNEL.LOGS:
@@ -199,7 +199,7 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
           REDIS_CHANNELS.instanceLogs(conn.instanceId),
           JSON.stringify({ ...envelope, instanceId: conn.instanceId }),
         )
-        .catch((err) => logger.warn({ err }, 'Failed to publish logs'));
+        .catch((err) => logger.warn({ err }, "Failed to publish logs"));
       break;
 
     case CHANNEL.EVENTS:
@@ -208,17 +208,17 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
           REDIS_CHANNELS.instanceEvents(conn.instanceId),
           JSON.stringify({ ...envelope, instanceId: conn.instanceId }),
         )
-        .catch((err) => logger.warn({ err }, 'Failed to publish event'));
+        .catch((err) => logger.warn({ err }, "Failed to publish event"));
       // Persist the event
       db.event
         .create({
           data: {
             instance_id: conn.instanceId,
-            event_type: 'DEPLOY', // fallback; real impl maps eventType → EventType enum
+            event_type: "DEPLOY", // fallback; real impl maps eventType → EventType enum
             metadata: data as Record<string, unknown>,
           },
         })
-        .catch((err) => logger.warn({ err }, 'Failed to persist event'));
+        .catch((err) => logger.warn({ err }, "Failed to persist event"));
       break;
 
     case CHANNEL.TERMINAL:
@@ -230,8 +230,27 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
       }
       break;
 
+    case CHANNEL.COMMANDS:
+      // Store command result in Redis so the HTTP route can pick it up
+      if (type === MESSAGE_TYPE.COMMAND_RESULT && envelope.correlationId) {
+        const resultKey = `sindri:cmd:result:${envelope.correlationId}`;
+        await redis
+          .setex(resultKey, 120, JSON.stringify(data))
+          .catch((err) => logger.warn({ err }, "Failed to store command result"));
+        // Also fan-out to subscribed browser clients
+        for (const client of browserConnections) {
+          if (
+            client.subscriptions.has(conn.instanceId) &&
+            client.ws.readyState === WebSocket.OPEN
+          ) {
+            client.ws.send(JSON.stringify({ ...envelope, instanceId: conn.instanceId }));
+          }
+        }
+      }
+      break;
+
     default:
-      logger.warn({ channel, type, instanceId: conn.instanceId }, 'Unknown channel from agent');
+      logger.warn({ channel, type, instanceId: conn.instanceId }, "Unknown channel from agent");
   }
 }
 
@@ -243,9 +262,17 @@ async function routeBrowserMessage(conn: BrowserConnection, raw: string): Promis
 
   if (!instanceId) {
     // Subscribe/unsubscribe messages
-    if (channel === 'system' && type === 'subscribe' && typeof (envelope.data as { instanceId?: string }).instanceId === 'string') {
+    if (
+      channel === "system" &&
+      type === "subscribe" &&
+      typeof (envelope.data as { instanceId?: string }).instanceId === "string"
+    ) {
       conn.subscriptions.add((envelope.data as { instanceId: string }).instanceId);
-    } else if (channel === 'system' && type === 'unsubscribe' && typeof (envelope.data as { instanceId?: string }).instanceId === 'string') {
+    } else if (
+      channel === "system" &&
+      type === "unsubscribe" &&
+      typeof (envelope.data as { instanceId?: string }).instanceId === "string"
+    ) {
       conn.subscriptions.delete((envelope.data as { instanceId: string }).instanceId);
     }
     return;
@@ -254,11 +281,8 @@ async function routeBrowserMessage(conn: BrowserConnection, raw: string): Promis
   // Route to agent via Redis commands channel
   if (channel === CHANNEL.COMMANDS || channel === CHANNEL.TERMINAL) {
     await redis
-      .publish(
-        REDIS_CHANNELS.instanceCommands(instanceId),
-        JSON.stringify(envelope),
-      )
-      .catch((err) => logger.warn({ err }, 'Failed to publish command to agent'));
+      .publish(REDIS_CHANNELS.instanceCommands(instanceId), JSON.stringify(envelope))
+      .catch((err) => logger.warn({ err }, "Failed to publish command to agent"));
 
     // Also forward directly if agent is connected on this server
     const agentConn = agentConnections.get(instanceId);
@@ -275,17 +299,17 @@ async function routeBrowserMessage(conn: BrowserConnection, raw: string): Promis
 export function attachWebSocketGateway(server: Server): WebSocketServer {
   initRedisSubscriber();
 
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ server, path: "/ws" });
 
-  wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
+  wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
     // Authenticate
     let principal: Awaited<ReturnType<typeof authenticateUpgrade>>;
     try {
       principal = await authenticateUpgrade(req, dbLookup);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unauthorized';
+      const message = err instanceof Error ? err.message : "Unauthorized";
       ws.close(1008, message);
-      logger.warn({ message }, 'WebSocket auth rejected');
+      logger.warn({ message }, "WebSocket auth rejected");
       return;
     }
 
@@ -302,46 +326,42 @@ export function attachWebSocketGateway(server: Server): WebSocketServer {
 
       // Replace any existing connection from this instance
       const existing = agentConnections.get(principal.instanceId);
-      if (existing) existing.ws.close(1001, 'Replaced by new connection');
+      if (existing) existing.ws.close(1001, "Replaced by new connection");
       agentConnections.set(principal.instanceId, conn);
 
       // Mark online in Redis
-      await redis
-        .sadd(REDIS_KEYS.activeAgents, principal.instanceId)
-        .catch(() => {});
-      await redis
-        .setex(REDIS_KEYS.instanceOnline(principal.instanceId), 30, '1')
-        .catch(() => {});
+      await redis.sadd(REDIS_KEYS.activeAgents, principal.instanceId).catch(() => {});
+      await redis.setex(REDIS_KEYS.instanceOnline(principal.instanceId), 30, "1").catch(() => {});
 
       // Update instance status
       await db.instance
         .updateMany({
-          where: { id: principal.instanceId, status: 'STOPPED' },
-          data: { status: 'RUNNING', updated_at: new Date() },
+          where: { id: principal.instanceId, status: "STOPPED" },
+          data: { status: "RUNNING", updated_at: new Date() },
         })
         .catch(() => {});
 
-      logger.info({ instanceId: principal.instanceId }, 'Agent connected via WebSocket');
+      logger.info({ instanceId: principal.instanceId }, "Agent connected via WebSocket");
 
-      ws.on('message', async (data) => {
+      ws.on("message", async (data) => {
         await routeAgentMessage(conn, data.toString());
       });
 
-      ws.on('close', async (code, reason) => {
+      ws.on("close", async (code, reason) => {
         agentConnections.delete(principal.instanceId!);
         await redis.srem(REDIS_KEYS.activeAgents, principal.instanceId!).catch(() => {});
 
         // Mark instance as degraded after agent disconnects
         await db.instance
           .updateMany({
-            where: { id: principal.instanceId!, status: 'RUNNING' },
-            data: { status: 'ERROR', updated_at: new Date() },
+            where: { id: principal.instanceId!, status: "RUNNING" },
+            data: { status: "ERROR", updated_at: new Date() },
           })
           .catch(() => {});
 
         logger.info(
           { instanceId: principal.instanceId, code, reason: reason.toString() },
-          'Agent disconnected',
+          "Agent disconnected",
         );
       });
     } else {
@@ -355,28 +375,71 @@ export function attachWebSocketGateway(server: Server): WebSocketServer {
       };
       browserConnections.add(conn);
 
-      logger.info({ userId: principal.userId }, 'Browser client connected via WebSocket');
+      logger.info({ userId: principal.userId }, "Browser client connected via WebSocket");
 
-      ws.on('message', async (data) => {
+      ws.on("message", async (data) => {
         await routeBrowserMessage(conn, data.toString());
       });
 
-      ws.on('close', () => {
+      ws.on("close", () => {
         browserConnections.delete(conn);
-        logger.info({ userId: principal.userId }, 'Browser client disconnected');
+        logger.info({ userId: principal.userId }, "Browser client disconnected");
       });
     }
 
-    ws.on('error', (err) => {
-      logger.warn({ err }, 'WebSocket error');
+    ws.on("error", (err) => {
+      logger.warn({ err }, "WebSocket error");
     });
   });
 
-  wss.on('error', (err) => {
-    logger.error({ err }, 'WebSocket server error');
+  wss.on("error", (err) => {
+    logger.error({ err }, "WebSocket server error");
   });
 
-  logger.info('WebSocket gateway attached at /ws');
+  logger.info("WebSocket gateway attached at /ws");
+
+  // ── Deployment progress WebSocket: /ws/deployments/:id ─────────────────────
+
+  const deploymentWss = new WebSocketServer({ noServer: true });
+
+  server.on("upgrade", (req, socket, head) => {
+    const pathname = (req.url ?? "").split("?")[0];
+    const deployMatch = /^\/ws\/deployments\/([^/]+)$/.exec(pathname);
+    if (!deployMatch) return;
+
+    const deploymentId = deployMatch[1];
+    deploymentWss.handleUpgrade(req, socket, head, (ws) => {
+      deploymentWss.emit("connection", ws, req, deploymentId);
+    });
+  });
+
+  deploymentWss.on("connection", (ws: WebSocket, _req: IncomingMessage, deploymentId: string) => {
+    logger.info({ deploymentId }, "Deployment progress WebSocket connected");
+
+    const channel = REDIS_CHANNELS.deploymentProgress(deploymentId);
+
+    // Subscribe to deployment progress events from Redis
+    const handleMessage = (_pattern: string, ch: string, message: string) => {
+      if (ch === channel && ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    };
+
+    redisSub.psubscribe(`sindri:deployment:${deploymentId}:progress`, (err) => {
+      if (err) logger.warn({ err, deploymentId }, "Failed to subscribe to deployment channel");
+    });
+    redisSub.on("pmessage", handleMessage);
+
+    ws.on("close", () => {
+      redisSub.removeListener("pmessage", handleMessage);
+      logger.info({ deploymentId }, "Deployment progress WebSocket disconnected");
+    });
+
+    ws.on("error", (err) => {
+      logger.warn({ err, deploymentId }, "Deployment WebSocket error");
+    });
+  });
+
   return wss;
 }
 

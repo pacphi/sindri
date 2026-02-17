@@ -13,32 +13,33 @@
  *   CORS_ORIGIN     — comma-separated allowed origins
  */
 
-import { serve } from '@hono/node-server';
-import { createApp } from './app.js';
-import { attachWebSocketGateway } from './agents/gateway.js';
-import { db } from './lib/db.js';
-import { connectRedis, disconnectRedis } from './lib/redis.js';
-import { logger } from './lib/logger.js';
+import { serve } from "@hono/node-server";
+import { createApp } from "./app.js";
+import { attachWebSocketGateway } from "./agents/gateway.js";
+import { db } from "./lib/db.js";
+import { connectRedis, disconnectRedis } from "./lib/redis.js";
+import { logger } from "./lib/logger.js";
+import { cronScheduler } from "./services/scheduler/index.js";
 
-const PORT = parseInt(process.env.PORT ?? '3001', 10);
+const PORT = parseInt(process.env.PORT ?? "3001", 10);
 
 async function main(): Promise<void> {
-  logger.info('Starting Sindri Console API...');
+  logger.info("Starting Sindri Console API...");
 
   // Connect to Redis
   try {
     await connectRedis();
-    logger.info('Redis connected');
+    logger.info("Redis connected");
   } catch (err) {
-    logger.error({ err }, 'Failed to connect to Redis — continuing without real-time layer');
+    logger.error({ err }, "Failed to connect to Redis — continuing without real-time layer");
   }
 
   // Verify database connectivity
   try {
     await db.$connect();
-    logger.info('Database connected');
+    logger.info("Database connected");
   } catch (err) {
-    logger.fatal({ err }, 'Failed to connect to database — aborting');
+    logger.fatal({ err }, "Failed to connect to database — aborting");
     process.exit(1);
   }
 
@@ -51,62 +52,68 @@ async function main(): Promise<void> {
       port: PORT,
     },
     (info) => {
-      logger.info({ port: info.port }, 'HTTP server listening');
+      logger.info({ port: info.port }, "HTTP server listening");
     },
   );
 
   // Attach WebSocket gateway to the same HTTP server
-  attachWebSocketGateway(server as unknown as import('http').Server);
+  attachWebSocketGateway(server as unknown as import("http").Server);
+
+  // Start cron scheduler
+  await cronScheduler.loadFromDatabase();
+  cronScheduler.start();
 
   // ── Graceful shutdown ──────────────────────────────────────────────────────
 
   async function shutdown(signal: string): Promise<void> {
-    logger.info({ signal }, 'Received shutdown signal');
+    logger.info({ signal }, "Received shutdown signal");
 
     // Stop accepting new connections
+    cronScheduler.stop();
+
     server.close(async () => {
-      logger.info('HTTP server closed');
+      logger.info("HTTP server closed");
 
       try {
         await db.$disconnect();
-        logger.info('Database disconnected');
+        logger.info("Database disconnected");
       } catch (err) {
-        logger.warn({ err }, 'Error disconnecting from database');
+        logger.warn({ err }, "Error disconnecting from database");
       }
 
       try {
         await disconnectRedis();
-        logger.info('Redis disconnected');
+        logger.info("Redis disconnected");
       } catch (err) {
-        logger.warn({ err }, 'Error disconnecting from Redis');
+        logger.warn({ err }, "Error disconnecting from Redis");
       }
 
-      logger.info('Shutdown complete');
+      logger.info("Shutdown complete");
       process.exit(0);
     });
 
     // Force exit after 10 seconds
     setTimeout(() => {
-      logger.error('Graceful shutdown timed out — forcing exit');
+      logger.error("Graceful shutdown timed out — forcing exit");
       process.exit(1);
     }, 10_000);
   }
 
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 
-  process.on('uncaughtException', (err) => {
-    logger.fatal({ err }, 'Uncaught exception');
+  process.on("uncaughtException", (err) => {
+    logger.fatal({ err }, "Uncaught exception");
     process.exit(1);
   });
 
-  process.on('unhandledRejection', (reason) => {
-    logger.fatal({ reason }, 'Unhandled promise rejection');
+  process.on("unhandledRejection", (reason) => {
+    logger.fatal({ reason }, "Unhandled promise rejection");
     process.exit(1);
   });
 }
 
 main().catch((err) => {
-  logger.fatal({ err }, 'Fatal startup error');
+  logger.fatal({ err }, "Fatal startup error");
   process.exit(1);
 });

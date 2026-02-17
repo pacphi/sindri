@@ -24,6 +24,12 @@
     "lint": {
       "inputs": ["$TURBO_DEFAULT$"]
     },
+    "format": {
+      "cache": false
+    },
+    "format:check": {
+      "inputs": ["$TURBO_DEFAULT$"]
+    },
     "typecheck": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$"]

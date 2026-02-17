@@ -800,3 +800,270 @@ All REST errors follow this shape:
 | POST /instances/:id/metrics | 120 req/min per instance |
 | POST /instances/:id/heartbeat | 60 req/min per instance |
 | All other endpoints | 1000 req/min per token |
+
+---
+
+## Phase 2 REST API Endpoints
+
+### Deployment Templates
+
+#### GET /api/v1/templates
+
+List available deployment templates.
+
+**Auth:** Session cookie
+
+**Query params:**
+- `category` — filter by category (e.g. `data-science`, `web-development`, `systems`)
+- `provider` — filter by provider compatibility
+
+**Response 200:**
+```json
+{
+  "templates": [
+    {
+      "id": "tmpl_python_01",
+      "name": "Python Data Science",
+      "description": "Jupyter + pandas + scikit-learn environment",
+      "category": "data-science",
+      "extensions": ["python3", "jupyter", "pandas"],
+      "providers": ["fly", "docker", "e2b"],
+      "version": "1.0.0"
+    }
+  ],
+  "total": 12
+}
+```
+
+---
+
+#### GET /api/v1/templates/:id
+
+Get a single template including the full `sindri.yaml` content.
+
+**Response 200:**
+```json
+{
+  "id": "tmpl_python_01",
+  "name": "Python Data Science",
+  "yaml": "name: python-data-science\nextensions:\n  - python3\n",
+  "version": "1.0.0"
+}
+```
+
+---
+
+### Instance Lifecycle
+
+#### POST /api/v1/instances/:id/clone
+
+Clone an existing instance configuration to a new instance.
+
+**Auth:** Session cookie (OPERATOR+ required)
+
+**Request body:**
+```json
+{
+  "name": "my-clone",
+  "provider": "fly",
+  "region": "iad"
+}
+```
+
+**Response 201:**
+```json
+{
+  "id": "inst_clone_01",
+  "name": "my-clone",
+  "provider": "fly",
+  "status": "DEPLOYING",
+  "sourceInstanceId": "inst_01"
+}
+```
+
+---
+
+#### POST /api/v1/instances/:id/suspend
+
+Gracefully stop a running instance.
+
+**Auth:** Session cookie (OPERATOR+ required)
+
+**Response 200:**
+```json
+{ "id": "inst_01", "status": "STOPPED", "message": "Instance suspended" }
+```
+
+**Response 409:** Instance is not in a suspendable state.
+
+---
+
+#### POST /api/v1/instances/:id/resume
+
+Restart a stopped instance.
+
+**Auth:** Session cookie (OPERATOR+ required)
+
+**Response 200:**
+```json
+{ "id": "inst_01", "status": "RUNNING", "message": "Instance resumed" }
+```
+
+---
+
+### Command Execution
+
+#### POST /api/v1/instances/:id/execute
+
+Dispatch a command to a single instance. Output is streamed via WebSocket.
+
+**Auth:** Session cookie (DEVELOPER+ required)
+
+**Request body:**
+```json
+{
+  "command": "node --version",
+  "timeout": 30,
+  "env": {}
+}
+```
+
+**Response 202:**
+```json
+{ "commandId": "cmd_abc123", "instanceId": "inst_01" }
+```
+
+---
+
+#### POST /api/v1/instances/execute-many
+
+Dispatch the same command to multiple instances in parallel.
+
+**Auth:** Session cookie (DEVELOPER+ required)
+
+**Request body:**
+```json
+{
+  "instanceIds": ["inst_01", "inst_02"],
+  "command": "uptime",
+  "timeout": 30
+}
+```
+
+**Response 202:**
+```json
+{
+  "batchId": "batch_xyz789",
+  "commands": [
+    { "commandId": "cmd_01", "instanceId": "inst_01" },
+    { "commandId": "cmd_02", "instanceId": "inst_02" }
+  ]
+}
+```
+
+---
+
+### Scheduled Tasks
+
+#### GET /api/v1/scheduled-tasks
+
+List all scheduled tasks.
+
+**Auth:** Session cookie
+
+**Response 200:**
+```json
+{
+  "tasks": [
+    {
+      "id": "task_01",
+      "name": "Nightly Backup",
+      "command": "/usr/local/bin/backup.sh",
+      "cronExpression": "0 2 * * *",
+      "instanceIds": ["inst_01", "inst_02"],
+      "enabled": true,
+      "timezone": "UTC",
+      "lastRunAt": "2026-02-17T02:00:00Z",
+      "nextRunAt": "2026-02-18T02:00:00Z"
+    }
+  ],
+  "total": 5
+}
+```
+
+---
+
+#### POST /api/v1/scheduled-tasks
+
+Create a new scheduled task.
+
+**Auth:** Session cookie (OPERATOR+ required)
+
+**Request body:**
+```json
+{
+  "name": "Nightly Backup",
+  "command": "/usr/local/bin/backup.sh",
+  "cronExpression": "0 2 * * *",
+  "instanceIds": ["inst_01", "inst_02"],
+  "timezone": "UTC"
+}
+```
+
+**Response 201:**
+```json
+{ "id": "task_01", "name": "Nightly Backup", "nextRunAt": "2026-02-18T02:00:00Z" }
+```
+
+---
+
+#### PATCH /api/v1/scheduled-tasks/:id
+
+Update a scheduled task (including toggle enabled state).
+
+**Request body (partial):**
+```json
+{ "enabled": false }
+```
+
+**Response 200:** Updated task object.
+
+---
+
+#### DELETE /api/v1/scheduled-tasks/:id
+
+Delete a scheduled task and its execution history.
+
+**Auth:** OPERATOR+ required
+
+**Response 204:** No content.
+
+---
+
+#### GET /api/v1/scheduled-tasks/:id/executions
+
+List execution history for a task.
+
+**Query params:**
+- `limit` — max results (default 20, max 100)
+- `offset` — pagination offset
+- `status` — filter by `success`, `failure`, `timeout`
+
+**Response 200:**
+```json
+{
+  "executions": [
+    {
+      "id": "exec_01",
+      "taskId": "task_01",
+      "instanceId": "inst_01",
+      "status": "success",
+      "startedAt": "2026-02-17T02:00:00Z",
+      "completedAt": "2026-02-17T02:00:05Z",
+      "exitCode": 0,
+      "output": "Backup completed. 1.2GB archived."
+    }
+  ],
+  "total": 14
+}
+```

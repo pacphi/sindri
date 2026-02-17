@@ -8,14 +8,24 @@ import { cn } from '@/lib/utils'
 interface InstanceTableProps {
   instances: Instance[]
   onSelectInstance?: (instance: Instance) => void
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
 }
 
-export function InstanceTable({ instances, onSelectInstance }: InstanceTableProps) {
+export function InstanceTable({
+  instances,
+  onSelectInstance,
+  selectedIds,
+  onToggleSelect,
+}: InstanceTableProps) {
+  const hasSelection = Boolean(onToggleSelect)
+
   return (
     <div className="rounded-lg border overflow-hidden">
       <table className="w-full text-sm" role="table" aria-label="Instances">
         <thead>
           <tr className="border-b bg-muted/50">
+            {hasSelection && <th className="h-11 w-10 px-3" />}
             <th className="h-11 px-4 text-left font-medium text-muted-foreground">Name</th>
             <th className="h-11 px-4 text-left font-medium text-muted-foreground">Status</th>
             <th className="h-11 px-4 text-left font-medium text-muted-foreground hidden sm:table-cell">
@@ -42,6 +52,7 @@ export function InstanceTable({ instances, onSelectInstance }: InstanceTableProp
             const memPercent = hb
               ? (Number(hb.memory_used) / Number(hb.memory_total)) * 100
               : null
+            const isSelected = selectedIds?.has(instance.id) ?? false
 
             return (
               <tr
@@ -50,6 +61,7 @@ export function InstanceTable({ instances, onSelectInstance }: InstanceTableProp
                   'border-b last:border-0 transition-colors',
                   onSelectInstance && 'cursor-pointer hover:bg-muted/50',
                   idx % 2 === 0 ? 'bg-background' : 'bg-muted/20',
+                  isSelected && 'bg-primary/5 hover:bg-primary/10',
                 )}
                 onClick={() => onSelectInstance?.(instance)}
                 onKeyDown={
@@ -63,9 +75,29 @@ export function InstanceTable({ instances, onSelectInstance }: InstanceTableProp
                     : undefined
                 }
                 tabIndex={onSelectInstance ? 0 : undefined}
-                role={onSelectInstance ? 'row' : 'row'}
+                role="row"
                 aria-label={`Instance ${instance.name}`}
+                aria-selected={isSelected}
               >
+                {/* Selection checkbox */}
+                {hasSelection && (
+                  <td
+                    className="h-14 px-3"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onToggleSelect?.(instance.id)
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleSelect?.(instance.id)}
+                      className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                      aria-label={`Select ${instance.name}`}
+                    />
+                  </td>
+                )}
+
                 {/* Name */}
                 <td className="h-14 px-4">
                   <div className="flex items-center gap-2 font-medium">

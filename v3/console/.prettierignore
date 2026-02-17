@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+# Prisma generates this file — don't reformat it
+apps/api/src/generated/
+# pnpm lock file
+pnpm-lock.yaml

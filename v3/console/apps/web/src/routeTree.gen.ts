@@ -8,171 +8,211 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as InstancesRouteImport } from './routes/instances'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as InstancesIdRouteImport } from './routes/instances_.$id'
-import { Route as InstancesIdTerminalRouteImport } from './routes/instances_.$id.terminal'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as SettingsRouteImport } from "./routes/settings";
+import { Route as DeploymentsRouteImport } from "./routes/deployments";
+import { Route as InstancesRouteImport } from "./routes/instances";
+import { Route as DashboardRouteImport } from "./routes/dashboard";
+import { Route as CommandsRouteImport } from "./routes/commands";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as InstancesIdRouteImport } from "./routes/instances_.$id";
+import { Route as InstancesIdTerminalRouteImport } from "./routes/instances_.$id.terminal";
 
 const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+  id: "/settings",
+  path: "/settings",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
+const CommandsRoute = CommandsRouteImport.update({
+  id: "/commands",
+  path: "/commands",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const DeploymentsRoute = DeploymentsRouteImport.update({
+  id: "/deployments",
+  path: "/deployments",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const InstancesRoute = InstancesRouteImport.update({
-  id: '/instances',
-  path: '/instances',
+  id: "/instances",
+  path: "/instances",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+  id: "/dashboard",
+  path: "/dashboard",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const InstancesIdRoute = InstancesIdRouteImport.update({
-  id: '/instances_/$id',
-  path: '/instances/$id',
+  id: "/instances_/$id",
+  path: "/instances/$id",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const InstancesIdTerminalRoute = InstancesIdTerminalRouteImport.update({
-  id: '/terminal',
-  path: '/terminal',
+  id: "/terminal",
+  path: "/terminal",
   getParentRoute: () => InstancesIdRoute,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/instances': typeof InstancesRoute
-  '/settings': typeof SettingsRoute
-  '/instances/$id': typeof InstancesIdRouteWithChildren
-  '/instances/$id/terminal': typeof InstancesIdTerminalRoute
+  "/": typeof IndexRoute;
+  "/dashboard": typeof DashboardRoute;
+  "/deployments": typeof DeploymentsRoute;
+  "/instances": typeof InstancesRoute;
+  "/settings": typeof SettingsRoute;
+  "/commands": typeof CommandsRoute;
+  "/instances/$id": typeof InstancesIdRouteWithChildren;
+  "/instances/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/instances': typeof InstancesRoute
-  '/settings': typeof SettingsRoute
-  '/instances/$id': typeof InstancesIdRouteWithChildren
-  '/instances/$id/terminal': typeof InstancesIdTerminalRoute
+  "/": typeof IndexRoute;
+  "/dashboard": typeof DashboardRoute;
+  "/deployments": typeof DeploymentsRoute;
+  "/instances": typeof InstancesRoute;
+  "/settings": typeof SettingsRoute;
+  "/commands": typeof CommandsRoute;
+  "/instances/$id": typeof InstancesIdRouteWithChildren;
+  "/instances/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
-  '/instances': typeof InstancesRoute
-  '/settings': typeof SettingsRoute
-  '/instances_/$id': typeof InstancesIdRouteWithChildren
-  '/instances_/$id/terminal': typeof InstancesIdTerminalRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/dashboard": typeof DashboardRoute;
+  "/deployments": typeof DeploymentsRoute;
+  "/instances": typeof InstancesRoute;
+  "/settings": typeof SettingsRoute;
+  "/commands": typeof CommandsRoute;
+  "/instances_/$id": typeof InstancesIdRouteWithChildren;
+  "/instances_/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/dashboard'
-    | '/instances'
-    | '/settings'
-    | '/instances/$id'
-    | '/instances/$id/terminal'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/dashboard"
+    | "/deployments"
+    | "/instances"
+    | "/settings"
+    | "/commands"
+    | "/instances/$id"
+    | "/instances/$id/terminal";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/dashboard'
-    | '/instances'
-    | '/settings'
-    | '/instances/$id'
-    | '/instances/$id/terminal'
+    | "/"
+    | "/dashboard"
+    | "/deployments"
+    | "/instances"
+    | "/settings"
+    | "/commands"
+    | "/instances/$id"
+    | "/instances/$id/terminal";
   id:
-    | '__root__'
-    | '/'
-    | '/dashboard'
-    | '/instances'
-    | '/settings'
-    | '/instances_/$id'
-    | '/instances_/$id/terminal'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/dashboard"
+    | "/deployments"
+    | "/instances"
+    | "/settings"
+    | "/commands"
+    | "/instances_/$id"
+    | "/instances_/$id/terminal";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
-  InstancesRoute: typeof InstancesRoute
-  SettingsRoute: typeof SettingsRoute
-  InstancesIdRoute: typeof InstancesIdRouteWithChildren
+  IndexRoute: typeof IndexRoute;
+  DashboardRoute: typeof DashboardRoute;
+  DeploymentsRoute: typeof DeploymentsRoute;
+  InstancesRoute: typeof InstancesRoute;
+  SettingsRoute: typeof SettingsRoute;
+  CommandsRoute: typeof CommandsRoute;
+  InstancesIdRoute: typeof InstancesIdRouteWithChildren;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/instances': {
-      id: '/instances'
-      path: '/instances'
-      fullPath: '/instances'
-      preLoaderRoute: typeof InstancesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/instances_/$id': {
-      id: '/instances_/$id'
-      path: '/instances/$id'
-      fullPath: '/instances/$id'
-      preLoaderRoute: typeof InstancesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/instances_/$id/terminal': {
-      id: '/instances_/$id/terminal'
-      path: '/terminal'
-      fullPath: '/instances/$id/terminal'
-      preLoaderRoute: typeof InstancesIdTerminalRouteImport
-      parentRoute: typeof InstancesIdRoute
-    }
+    "/settings": {
+      id: "/settings";
+      path: "/settings";
+      fullPath: "/settings";
+      preLoaderRoute: typeof SettingsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/deployments": {
+      id: "/deployments";
+      path: "/deployments";
+      fullPath: "/deployments";
+      preLoaderRoute: typeof DeploymentsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/instances": {
+      id: "/instances";
+      path: "/instances";
+      fullPath: "/instances";
+      preLoaderRoute: typeof InstancesRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/dashboard": {
+      id: "/dashboard";
+      path: "/dashboard";
+      fullPath: "/dashboard";
+      preLoaderRoute: typeof DashboardRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/commands": {
+      id: "/commands";
+      path: "/commands";
+      fullPath: "/commands";
+      preLoaderRoute: typeof CommandsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/instances_/$id": {
+      id: "/instances_/$id";
+      path: "/instances/$id";
+      fullPath: "/instances/$id";
+      preLoaderRoute: typeof InstancesIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/instances_/$id/terminal": {
+      id: "/instances_/$id/terminal";
+      path: "/terminal";
+      fullPath: "/instances/$id/terminal";
+      preLoaderRoute: typeof InstancesIdTerminalRouteImport;
+      parentRoute: typeof InstancesIdRoute;
+    };
   }
 }
 
 interface InstancesIdRouteChildren {
-  InstancesIdTerminalRoute: typeof InstancesIdTerminalRoute
+  InstancesIdTerminalRoute: typeof InstancesIdTerminalRoute;
 }
 
 const InstancesIdRouteChildren: InstancesIdRouteChildren = {
   InstancesIdTerminalRoute: InstancesIdTerminalRoute,
-}
+};
 
-const InstancesIdRouteWithChildren = InstancesIdRoute._addFileChildren(
-  InstancesIdRouteChildren,
-)
+const InstancesIdRouteWithChildren = InstancesIdRoute._addFileChildren(InstancesIdRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  DeploymentsRoute: DeploymentsRoute,
   InstancesRoute: InstancesRoute,
   SettingsRoute: SettingsRoute,
+  CommandsRoute: CommandsRoute,
   InstancesIdRoute: InstancesIdRouteWithChildren,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

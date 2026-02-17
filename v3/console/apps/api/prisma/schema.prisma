@@ -19,6 +19,7 @@ enum InstanceStatus {
   STOPPED
   DEPLOYING
   DESTROYING
+  SUSPENDED
   ERROR
   UNKNOWN
 }
@@ -44,11 +45,21 @@ enum EventType {
   BACKUP
   RESTORE
   DESTROY
+  SUSPEND
+  RESUME
   EXTENSION_INSTALL
   EXTENSION_REMOVE
   HEARTBEAT_LOST
   HEARTBEAT_RECOVERED
   ERROR
+}
+
+enum DeploymentStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCEEDED
+  FAILED
+  CANCELLED
 }
 
 enum ScheduledTaskStatus {
@@ -84,9 +95,11 @@ model Instance {
   updated_at   DateTime       @updatedAt
 
   // Relations
-  heartbeats       Heartbeat[]
-  events           Event[]
-  terminal_sessions TerminalSession[]
+  heartbeats         Heartbeat[]
+  events             Event[]
+  terminal_sessions  TerminalSession[]
+  command_executions CommandExecution[]
+  deployments        Deployment[]
 
   @@index([status])
   @@index([provider])
@@ -143,8 +156,9 @@ model User {
   created_at    DateTime @default(now())
 
   // Relations
-  api_keys          ApiKey[]
-  terminal_sessions TerminalSession[]
+  api_keys           ApiKey[]
+  terminal_sessions  TerminalSession[]
+  command_executions CommandExecution[]
 
   @@index([email])
   @@index([role])
@@ -170,6 +184,145 @@ model ApiKey {
 // ─────────────────────────────────────────────────────────────────────────────
 // Terminal Sessions
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scheduled Tasks
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A scheduled cron task that executes commands on Sindri instances.
+model ScheduledTask {
+  id            String              @id @default(cuid())
+  name          String
+  description   String?
+  cron          String              // cron expression e.g. "0 2 * * *"
+  timezone      String              @default("UTC")
+  command       String              // command to execute
+  instance_id   String?             // target instance (null = all)
+  status        ScheduledTaskStatus @default(ACTIVE)
+  template      String?             // template key if from gallery
+  timeout_sec   Int                 @default(300)
+  max_retries   Int                 @default(0)
+  notify_on_failure Boolean         @default(false)
+  notify_on_success Boolean         @default(false)
+  notify_emails   String[]          @default([])
+  last_run_at     DateTime?
+  next_run_at     DateTime?
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+  created_by      String?           // user id
+
+  executions      TaskExecution[]
+
+  @@index([status])
+  @@index([instance_id])
+  @@index([next_run_at])
+  @@index([created_at])
+}
+
+/// An individual execution record for a scheduled task.
+model TaskExecution {
+  id          String              @id @default(cuid())
+  task_id     String
+  instance_id String?
+  status      TaskExecutionStatus @default(PENDING)
+  exit_code   Int?
+  stdout      String?
+  stderr      String?
+  started_at  DateTime            @default(now())
+  finished_at DateTime?
+  duration_ms Int?
+  triggered_by String?            // "scheduler" | "manual"
+
+  task ScheduledTask @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@index([task_id])
+  @@index([status])
+  @@index([started_at])
+  @@index([task_id, started_at])
+}
+
+/// A command execution record — dispatched via the Console to one instance.
+model CommandExecution {
+  id             String   @id @default(cuid())
+  instance_id    String
+  user_id        String
+  command        String
+  args           String[] @default([])
+  env            Json     @default("{}")
+  working_dir    String?
+  timeout_ms     Int      @default(30000)
+  status         String   @default("RUNNING") // PENDING | RUNNING | SUCCEEDED | FAILED | TIMEOUT
+  exit_code      Int?
+  stdout         String?
+  stderr         String?
+  duration_ms    Int?
+  correlation_id String   @unique
+  script_content String?  // populated for script executions
+  created_at     DateTime @default(now())
+  completed_at   DateTime?
+
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([created_at])
+  @@index([instance_id, created_at])
+  @@index([correlation_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Deployment Templates & Deployments
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A reusable sindri.yaml template shown in the deployment wizard.
+model DeploymentTemplate {
+  id                       String   @id @default(cuid())
+  name                     String
+  slug                     String   @unique // URL-safe identifier, e.g. "python-ml"
+  category                 String   // e.g. "language", "ai", "infrastructure"
+  description              String
+  yaml_content             String   // Full sindri.yaml content
+  extensions               String[] // Derived list of extension names from yaml_content
+  provider_recommendations String[] // Suggested providers e.g. ["fly", "docker"]
+  is_official              Boolean  @default(false) // Curated by the Sindri team
+  created_by               String?  // user_id of uploader; null = built-in template
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
+  deployments Deployment[]
+
+  @@index([category])
+  @@index([is_official])
+  @@index([created_at])
+}
+
+/// A deployment run — tracks the full lifecycle of one sindri deploy operation.
+model Deployment {
+  id           String           @id @default(cuid())
+  instance_id  String?          // null before the instance is registered
+  template_id  String?          // source template, if any
+  config_hash  String           // SHA256 of the sindri.yaml used
+  yaml_content String           // Snapshot of sindri.yaml at deploy time
+  provider     String           // Target provider
+  region       String?          // Target region
+  status       DeploymentStatus @default(PENDING)
+  initiated_by String?          // user_id
+  started_at   DateTime         @default(now())
+  completed_at DateTime?
+  logs         String?          // Captured deploy output
+  error        String?          // Error message on failure
+
+  instance Instance?           @relation(fields: [instance_id], references: [id], onDelete: SetNull)
+  template DeploymentTemplate? @relation(fields: [template_id], references: [id], onDelete: SetNull)
+
+  @@index([instance_id])
+  @@index([template_id])
+  @@index([status])
+  @@index([started_at])
+  @@index([initiated_by])
+}
 
 /// Web terminal sessions opened from the Console to a Sindri instance.
 model TerminalSession {

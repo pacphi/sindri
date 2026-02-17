@@ -3,6 +3,7 @@ import { Route } from "@/routes/instances_.$id";
 import { useInstance } from "@/hooks/useInstances";
 import { StatusBadge } from "./StatusBadge";
 import { MetricsGauge } from "./MetricsGauge";
+import { LifecycleActions } from "./lifecycle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Server, Clock, MapPin, Cpu } from "lucide-react";
@@ -15,7 +16,9 @@ export function InstanceDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center h-64 text-muted-foreground text-sm">Loading instance...</div>
+      <div className="p-6 flex items-center justify-center h-64 text-muted-foreground text-sm">
+        Loading instance...
+      </div>
     );
   }
 
@@ -52,6 +55,7 @@ export function InstanceDetailPage() {
             {instance.region ? ` / ${instance.region}` : ""}
           </p>
         </div>
+        <LifecycleActions instance={instance} />
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
@@ -104,8 +108,14 @@ export function InstanceDetailPage() {
           <CardContent>
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-3">
               <MetricsGauge label="CPU" value={hb.cpu_percent} />
-              <MetricsGauge label="Memory" value={hb.memory_total > 0 ? (hb.memory_used / hb.memory_total) * 100 : 0} />
-              <MetricsGauge label="Disk" value={hb.disk_total > 0 ? (hb.disk_used / hb.disk_total) * 100 : 0} />
+              <MetricsGauge
+                label="Memory"
+                value={hb.memory_total > 0 ? (hb.memory_used / hb.memory_total) * 100 : 0}
+              />
+              <MetricsGauge
+                label="Disk"
+                value={hb.disk_total > 0 ? (hb.disk_used / hb.disk_total) * 100 : 0}
+              />
             </div>
           </CardContent>
         </Card>
@@ -131,7 +141,9 @@ export function InstanceDetailPage() {
         </Card>
       )}
 
-      <div className="text-xs text-muted-foreground">Last updated: {formatRelativeTime(instance.updated_at)}</div>
+      <div className="text-xs text-muted-foreground">
+        Last updated: {formatRelativeTime(instance.updated_at)}
+      </div>
     </div>
   );
 }

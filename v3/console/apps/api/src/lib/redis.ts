@@ -13,31 +13,31 @@
  *   sindri:instance:<instanceId>:commands
  */
 
-import Redis from 'ioredis';
-import { logger } from './logger.js';
+import Redis from "ioredis";
+import { logger } from "./logger.js";
 
 function createRedisClient(name: string): Redis {
-  const url = process.env.REDIS_URL ?? 'redis://localhost:6379';
+  const url = process.env.REDIS_URL ?? "redis://localhost:6379";
   const client = new Redis(url, {
     lazyConnect: true,
     maxRetriesPerRequest: 3,
     retryStrategy: (times) => Math.min(times * 100, 3000),
     reconnectOnError: (err) => {
-      const targetErrors = ['READONLY', 'ECONNRESET', 'ECONNREFUSED'];
+      const targetErrors = ["READONLY", "ECONNRESET", "ECONNREFUSED"];
       return targetErrors.some((t) => err.message.includes(t));
     },
   });
 
-  client.on('connect', () => logger.info({ client: name }, 'Redis connected'));
-  client.on('close', () => logger.warn({ client: name }, 'Redis connection closed'));
-  client.on('error', (err) => logger.error({ client: name, err }, 'Redis error'));
-  client.on('reconnecting', () => logger.info({ client: name }, 'Redis reconnecting'));
+  client.on("connect", () => logger.info({ client: name }, "Redis connected"));
+  client.on("close", () => logger.warn({ client: name }, "Redis connection closed"));
+  client.on("error", (err) => logger.error({ client: name, err }, "Redis error"));
+  client.on("reconnecting", () => logger.info({ client: name }, "Redis reconnecting"));
 
   return client;
 }
 
-export const redis = createRedisClient('main');
-export const redisSub = createRedisClient('subscriber');
+export const redis = createRedisClient("main");
+export const redisSub = createRedisClient("subscriber");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Channel helpers
@@ -49,11 +49,12 @@ export const REDIS_CHANNELS = {
   instanceLogs: (instanceId: string) => `sindri:instance:${instanceId}:logs`,
   instanceEvents: (instanceId: string) => `sindri:instance:${instanceId}:events`,
   instanceCommands: (instanceId: string) => `sindri:instance:${instanceId}:commands`,
+  deploymentProgress: (deploymentId: string) => `sindri:deployment:${deploymentId}:progress`,
 } as const;
 
 export const REDIS_KEYS = {
   instanceOnline: (instanceId: string) => `sindri:instance:${instanceId}:online`,
-  activeAgents: 'sindri:agents:active',
+  activeAgents: "sindri:agents:active",
 } as const;
 
 export async function connectRedis(): Promise<void> {

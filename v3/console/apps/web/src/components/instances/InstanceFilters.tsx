@@ -1,30 +1,31 @@
-import { Search, X } from 'lucide-react'
-import type { InstanceFilters as Filters, InstanceStatus } from '@/types/instance'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Search, X } from "lucide-react";
+import type { InstanceFilters as Filters, InstanceStatus } from "@/types/instance";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 
-const PROVIDERS = ['fly', 'docker', 'devpod', 'e2b', 'kubernetes', 'runpod', 'northflank']
+const PROVIDERS = ["fly", "docker", "devpod", "e2b", "kubernetes", "runpod", "northflank"];
 const STATUSES: { value: InstanceStatus; label: string }[] = [
-  { value: 'RUNNING', label: 'Running' },
-  { value: 'STOPPED', label: 'Stopped' },
-  { value: 'DEPLOYING', label: 'Deploying' },
-  { value: 'DESTROYING', label: 'Destroying' },
-  { value: 'ERROR', label: 'Error' },
-  { value: 'UNKNOWN', label: 'Unknown' },
-]
+  { value: "RUNNING", label: "Running" },
+  { value: "STOPPED", label: "Stopped" },
+  { value: "SUSPENDED", label: "Suspended" },
+  { value: "DEPLOYING", label: "Deploying" },
+  { value: "DESTROYING", label: "Destroying" },
+  { value: "ERROR", label: "Error" },
+  { value: "UNKNOWN", label: "Unknown" },
+];
 
 interface InstanceFiltersProps {
-  filters: Filters
-  onChange: (filters: Filters) => void
-  totalCount?: number
-  filteredCount?: number
+  filters: Filters;
+  onChange: (filters: Filters) => void;
+  totalCount?: number;
+  filteredCount?: number;
 }
 
 export function InstanceFilters({
@@ -34,10 +35,10 @@ export function InstanceFilters({
   filteredCount,
 }: InstanceFiltersProps) {
   const hasActiveFilters =
-    Boolean(filters.search) || Boolean(filters.provider) || Boolean(filters.status)
+    Boolean(filters.search) || Boolean(filters.provider) || Boolean(filters.status);
 
   function clearFilters() {
-    onChange({ search: '', provider: undefined, status: undefined, region: undefined })
+    onChange({ search: "", provider: undefined, status: undefined, region: undefined });
   }
 
   return (
@@ -49,7 +50,7 @@ export function InstanceFilters({
           type="search"
           placeholder="Search instances..."
           className="pl-9"
-          value={filters.search ?? ''}
+          value={filters.search ?? ""}
           onChange={(e) => onChange({ ...filters, search: e.target.value })}
           aria-label="Search instances"
         />
@@ -57,10 +58,8 @@ export function InstanceFilters({
 
       {/* Provider filter */}
       <Select
-        value={filters.provider ?? ''}
-        onValueChange={(val) =>
-          onChange({ ...filters, provider: val === 'all' ? undefined : val })
-        }
+        value={filters.provider ?? ""}
+        onValueChange={(val) => onChange({ ...filters, provider: val === "all" ? undefined : val })}
       >
         <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by provider">
           <SelectValue placeholder="All providers" />
@@ -77,9 +76,9 @@ export function InstanceFilters({
 
       {/* Status filter */}
       <Select
-        value={filters.status ?? ''}
+        value={filters.status ?? ""}
         onValueChange={(val) =>
-          onChange({ ...filters, status: val === 'all' ? undefined : (val as InstanceStatus) })
+          onChange({ ...filters, status: val === "all" ? undefined : (val as InstanceStatus) })
         }
       >
         <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by status">
@@ -110,5 +109,5 @@ export function InstanceFilters({
         </span>
       )}
     </div>
-  )
+  );
 }

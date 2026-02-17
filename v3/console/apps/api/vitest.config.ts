@@ -18,7 +18,17 @@ export default defineConfig({
             "tests/heartbeat-metrics.test.ts",
             "tests/terminal-session.test.ts",
           ]
-        : ["tests/instances.test.ts", "tests/websocket-channels.test.ts"],
+        : [
+            "tests/instances.test.ts",
+            "tests/websocket-channels.test.ts",
+            "tests/deployment-wizard.test.ts",
+            "tests/instance-lifecycle.test.ts",
+            "tests/command-execution.test.ts",
+            "tests/scheduled-tasks.test.ts",
+            "tests/command-palette.test.ts",
+            "tests/multi-terminal.test.ts",
+            "tests/templates.test.ts",
+          ],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

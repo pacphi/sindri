@@ -14,6 +14,12 @@ interface TerminalProps {
   theme?: "dark" | "light";
   onStatusChange?: (status: ConnectionStatus) => void;
   className?: string;
+  /** When provided, the terminal registers its sendData fn via this callback for broadcast use */
+  onSendDataRef?: (fn: (data: string) => void) => void;
+  /** Called with user input when broadcast is active so the orchestrator can fan out */
+  onBroadcastData?: (data: string) => void;
+  /** Whether broadcast mode is active for this terminal (affects input color hint) */
+  broadcastEnabled?: boolean;
 }
 
 export function Terminal({
@@ -22,6 +28,9 @@ export function Terminal({
   theme = "dark",
   onStatusChange,
   className,
+  onSendDataRef,
+  onBroadcastData,
+  broadcastEnabled,
 }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -35,7 +44,7 @@ export function Terminal({
       setStatus(newStatus);
       onStatusChange?.(newStatus);
     },
-    [onStatusChange]
+    [onStatusChange],
   );
 
   // Initialize xterm.js once on mount
@@ -128,12 +137,19 @@ export function Terminal({
     },
   });
 
+  // Register sendData ref for external broadcast use
+  useEffect(() => {
+    onSendDataRef?.(sendData);
+  }, [sendData, onSendDataRef]);
+
   // Wire xterm input events to WebSocket output
   useEffect(() => {
     if (!xtermInstance) return;
 
     const dataDisposable = xtermInstance.onData((data) => {
       sendData(data);
+      // Fan out to other terminals in broadcast mode
+      onBroadcastData?.(data);
     });
 
     const resizeDisposable = xtermInstance.onResize(({ cols, rows }) => {
@@ -144,13 +160,15 @@ export function Terminal({
       dataDisposable.dispose();
       resizeDisposable.dispose();
     };
-  }, [xtermInstance, sendData, sendResize]);
+  }, [xtermInstance, sendData, sendResize, onBroadcastData]);
 
   // Show status overlay when not connected and a session was requested
   const showOverlay = status !== "connected" && sessionId !== null;
 
   return (
-    <div className={`relative flex flex-col h-full bg-[#0d1117] ${className ?? ""}`}>
+    <div
+      className={`relative flex flex-col h-full bg-[#0d1117] ${broadcastEnabled ? "ring-1 ring-orange-500/40" : ""} ${className ?? ""}`}
+    >
       {showOverlay && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
           <div className="flex flex-col items-center gap-3 text-sm text-white">
@@ -160,7 +178,9 @@ export function Terminal({
                 <span>Connecting to terminal...</span>
               </>
             )}
-            {status === "error" && <span className="text-red-400">Connection error. Retrying...</span>}
+            {status === "error" && (
+              <span className="text-red-400">Connection error. Retrying...</span>
+            )}
             {status === "disconnected" && <span className="text-gray-400">Disconnected</span>}
           </div>
         </div>

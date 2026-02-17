@@ -9,6 +9,8 @@
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,css,md,yaml,yml}\"",
     "typecheck": "turbo run typecheck",
     "db:generate": "turbo run db:generate --filter=@sindri-console/api",
     "db:migrate": "pnpm --filter=@sindri-console/api run db:migrate",
@@ -22,6 +24,9 @@
     "infra:logs": "docker compose logs -f"
   },
   "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "eslint": "^9.21.0",
+    "prettier": "^3.5.0",
     "turbo": "^2.3.3"
   },
   "engines": {
