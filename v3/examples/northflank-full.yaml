@@ -1,0 +1,55 @@
+# Northflank Enterprise Setup (All Features)
+#
+# A comprehensive Northflank configuration demonstrating all available
+# provider options including multi-instance deployment, persistent storage,
+# port configuration, health checks, and auto-scaling.
+#
+# Prerequisites:
+#   - Install Northflank CLI: npm i @northflank/cli -g
+#   - Authenticate: northflank login
+#
+# Important:
+#   - Region is immutable after project creation
+#   - Volumes limit the service to 1 instance (auto-scaling and
+#     multi-instance settings will be overridden by the platform)
+#   - For multi-instance + auto-scaling, remove the volumeSizeGb field
+#
+# Usage:
+#   cp northflank-full.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: northflank-enterprise
+
+deployment:
+  provider: northflank
+  image: ghcr.io/yourorg/app:latest
+  resources:
+    memory: 8GB
+    cpus: 4
+
+providers:
+  northflank:
+    projectName: enterprise
+    serviceName: main-app
+    computePlan: nf-compute-400-8
+    instances: 3
+    region: us-east-1
+    volumeSizeGb: 100
+    volumeMountPath: /data
+    ports:
+      - name: http
+        internalPort: 8080
+        public: true
+      - name: grpc
+        internalPort: 9090
+        public: false
+    healthCheck:
+      type: http
+      path: /health
+      port: 8080
+    autoScaling:
+      enabled: true
+      minInstances: 3
+      maxInstances: 10
+      targetCpuUtilization: 75

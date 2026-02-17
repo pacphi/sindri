@@ -1,0 +1,37 @@
+# Northflank GPU-Enabled ML Training
+#
+# GPU-accelerated environment on Northflank using an NVIDIA A100.
+# Suitable for ML training, fine-tuning, and inference workloads.
+#
+# Prerequisites:
+#   - Install Northflank CLI: npm i @northflank/cli -g
+#   - Authenticate: northflank login
+#   - GPU deployments require pre-purchased credits on Northflank
+#
+# Note: GPU availability varies by region. Verify availability at
+#       https://northflank.com/gpu before deploying.
+#
+# Usage:
+#   cp northflank-gpu.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: northflank-gpu
+
+deployment:
+  provider: northflank
+  image: pytorch/pytorch:latest
+  resources:
+    gpu:
+      enabled: true
+      tier: "a100"
+    memory: 16GB
+    cpus: 4
+
+providers:
+  northflank:
+    projectName: ml-project
+    serviceName: gpu-training
+    computePlan: nf-compute-400-8  # 4 vCPU, 8 GB RAM
+    gpuType: nvidia-a100-40gb
+    volumeSizeGb: 50

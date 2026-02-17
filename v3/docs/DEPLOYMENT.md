@@ -17,6 +17,8 @@ Sindri V3 uses a **provider-agnostic architecture** where a single `sindri.yaml`
 | DevPod     | Multi-cloud development environments | IDE users, multi-cloud, K8s        |
 | E2B        | Ultra-fast cloud sandboxes           | AI agents, rapid prototyping       |
 | Kubernetes | Container orchestration              | Production, enterprise deployments |
+| RunPod     | GPU cloud with 40+ GPU types         | GPU-intensive ML workloads         |
+| Northflank | PaaS with auto-scaling and GPUs      | Auto-scaling production apps       |
 
 ## Docker Image Architecture
 
@@ -116,16 +118,16 @@ For detailed Dockerfile comparison and migration guide, see:
 
 ## Provider Comparison
 
-| Feature                | Docker         | Fly.io      | DevPod            | E2B               | Kubernetes         |
-| ---------------------- | -------------- | ----------- | ----------------- | ----------------- | ------------------ |
-| **Cost**               | Free (local)   | ~$6-50/mo   | Varies by backend | ~$0.13/hr         | Cluster-dependent  |
-| **Setup Time**         | < 1 min        | < 5 min     | < 2 min           | < 1 sec           | < 5 min            |
-| **Auto-Suspend**       | Manual         | Yes         | Backend-dependent | Yes               | No (custom needed) |
-| **Persistent Storage** | Docker volumes | Fly volumes | Volumes/PVCs      | Pause snapshots   | PVCs               |
-| **Remote Access**      | Local only     | SSH/Web     | SSH/VSCode        | WebSocket PTY     | kubectl/SSH        |
-| **Scaling**            | Manual         | Auto/Manual | Backend-dependent | Per-sandbox       | Auto/Manual        |
-| **GPU Support**        | Yes            | Yes         | Yes               | No                | Yes                |
-| **Prerequisites**      | Docker         | flyctl      | DevPod CLI        | E2B CLI + API key | kubectl + cluster  |
+| Feature                | Docker         | Fly.io      | DevPod            | E2B               | Kubernetes         | RunPod                | Northflank             |
+| ---------------------- | -------------- | ----------- | ----------------- | ----------------- | ------------------ | --------------------- | ---------------------- |
+| **Cost**               | Free (local)   | ~$6-50/mo   | Varies by backend | ~$0.13/hr         | Cluster-dependent  | ~$0.05-5.00/hr        | ~$0.004-5.87/hr        |
+| **Setup Time**         | < 1 min        | < 5 min     | < 2 min           | < 1 sec           | < 5 min            | < 2 min               | < 3 min                |
+| **Auto-Suspend**       | Manual         | Yes         | Backend-dependent | Yes               | No (custom needed) | No (stop/start)       | Yes (pause/resume)     |
+| **Persistent Storage** | Docker volumes | Fly volumes | Volumes/PVCs      | Pause snapshots   | PVCs               | Network volumes       | SSD volumes            |
+| **Remote Access**      | Local only     | SSH/Web     | SSH/VSCode        | WebSocket PTY     | kubectl/SSH        | SSH proxy + public IP | Container exec + ports |
+| **Scaling**            | Manual         | Auto/Manual | Backend-dependent | Per-sandbox       | Auto/Manual        | Manual                | Auto/Manual            |
+| **GPU Support**        | Yes            | Yes         | Yes               | No                | Yes                | Yes (40+ GPUs)        | Yes (L4, A100, H100)   |
+| **Prerequisites**      | Docker         | flyctl      | DevPod CLI        | E2B CLI + API key | kubectl + cluster  | API key only          | Northflank CLI         |
 
 ## Quick Start
 
@@ -150,7 +152,7 @@ version: "3.0"
 name: my-dev-env
 
 deployment:
-  provider: docker # docker | fly | devpod | e2b | kubernetes
+  provider: docker # docker | fly | devpod | e2b | kubernetes | runpod | northflank
   resources:
     memory: "4GB"
     cpus: 2
@@ -367,6 +369,65 @@ providers:
       hostname: dev.example.com
 ```
 
+### RunPod
+
+**Use when:**
+
+- Need access to 40+ GPU types (RTX 3070 to H200/B200)
+- Want spot pricing for up to 60-70% savings
+- Running ML training or GPU-intensive workloads
+- Need per-second billing with no minimum commitments
+- Want CPU-only pods for non-GPU tasks
+
+**Not recommended when:**
+
+- Need auto-suspend/resume (use stop/start instead)
+- Need managed databases or auto-scaling
+- Require VS Code Remote SSH without public IP
+
+**Configuration:**
+
+```yaml
+deployment:
+  provider: runpod
+
+providers:
+  runpod:
+    gpuType: "NVIDIA RTX A4000"
+    containerDiskGb: 50
+    volumeSizeGb: 20
+    cloudType: SECURE
+```
+
+### Northflank
+
+**Use when:**
+
+- Need native pause/resume to stop compute costs
+- Want CPU/memory-based auto-scaling
+- Running GPU workloads (H100, B200, A100, L4, H200)
+- Need managed Kubernetes without cluster management
+- Want health checks (HTTP, TCP, command probes)
+- Deploying to 16+ global regions or BYOC
+
+**Not recommended when:**
+
+- Need SSH access (uses container exec instead)
+- Need volumes with multiple instances (limited to 1)
+- Working offline (requires internet)
+
+**Configuration:**
+
+```yaml
+deployment:
+  provider: northflank
+
+providers:
+  northflank:
+    projectName: my-project
+    computePlan: nf-compute-200
+```
+
 ## Deployment Workflow
 
 ### Standard Workflow
@@ -481,6 +542,32 @@ kubectl delete pod <pod-name> -n sindri-dev
 kubectl delete namespace sindri-dev
 ```
 
+**RunPod:**
+
+```bash
+# Status check via API
+curl -H "Authorization: Bearer $RUNPOD_API_KEY" https://rest.runpod.io/v1/pods/<pod-id>
+
+# Stop pod (preserves pod volume)
+sindri stop
+
+# Start stopped pod
+sindri start
+
+# Web terminal fallback
+# https://www.runpod.io/console/pods/<pod-id>/terminal
+```
+
+**Northflank:**
+
+```bash
+northflank get service details --project <project> --service <service>
+northflank forward service --project <project> --service <service>
+# Pause/resume
+sindri stop   # Pauses service (no compute costs)
+sindri start  # Resumes paused service
+```
+
 ## Local Kubernetes Clusters
 
 V3 includes built-in support for local Kubernetes clusters via kind or k3d:
@@ -530,6 +617,8 @@ Each provider handles secrets differently:
 | Kubernetes | Kubernetes secrets       | `kubectl create secret generic ...`        |
 | DevPod     | IDE settings/environment | VS Code settings or environment variables  |
 | E2B        | Environment variables    | Injected at sandbox creation               |
+| RunPod     | Environment variables    | Injected at pod creation via API           |
+| Northflank | Environment variables    | Injected at service creation via CLI       |
 
 V3 supports multiple secret sources:
 
@@ -569,13 +658,15 @@ deployment:
 
 ### GPU Support by Provider
 
-| Provider   | GPU Support | Notes                             |
-| ---------- | ----------- | --------------------------------- |
-| Docker     | Yes         | Requires NVIDIA Container Toolkit |
-| Fly.io     | Yes         | GPU machines available            |
-| DevPod     | Yes         | Backend-dependent                 |
-| E2B        | No          | Not currently supported           |
-| Kubernetes | Yes         | Requires GPU nodes                |
+| Provider   | GPU Support    | Notes                                         |
+| ---------- | -------------- | --------------------------------------------- |
+| Docker     | Yes            | Requires NVIDIA Container Toolkit             |
+| Fly.io     | Yes            | GPU machines available                        |
+| DevPod     | Yes            | Backend-dependent                             |
+| E2B        | No             | Not currently supported                       |
+| Kubernetes | Yes            | Requires GPU nodes                            |
+| RunPod     | Yes (40+ GPUs) | RTX 3070 to H200/B200, spot pricing available |
+| Northflank | Yes            | L4, A100, H100, H200, B200, AMD MI300X        |
 
 ## Backup and Restore
 
@@ -628,6 +719,8 @@ Use different providers for different purposes:
 - **Production workloads:** Kubernetes
 - **IDE integration:** DevPod
 - **AI sandboxes/rapid prototyping:** E2B
+- **GPU-intensive ML:** RunPod
+- **Auto-scaling apps:** Northflank
 
 All use the same base image and extension system.
 
@@ -685,6 +778,12 @@ sindri deploy --skip-image-verification
 - [Backup & Restore](./BACKUP_RESTORE.md) - Backup procedures
 - [Image Management](./IMAGE_MANAGEMENT.md) - Container image security
 - [Doctor](./DOCTOR.md) - System diagnostics
+
+### Provider Documentation
+
+- [Providers Overview](./providers/README.md) - Overview of all deployment providers
+- [RunPod](./providers/RUNPOD.md) - GPU-intensive ML workloads
+- [Northflank](./providers/NORTHFLANK.md) - Auto-scaling production apps
 
 ### Architecture Decision Records
 

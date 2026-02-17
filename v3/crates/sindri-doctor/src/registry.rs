@@ -300,6 +300,84 @@ pub static TOOL_REGISTRY: &[ToolDefinition] = &[
         optional: false,
     },
     // ==========================================================================
+    // RunPod Provider
+    // ==========================================================================
+    ToolDefinition {
+        id: "runpodctl",
+        name: "RunPod CLI",
+        description: "Command-line interface for RunPod platform",
+        command: "runpodctl",
+        version_flag: "version",
+        min_version: Some("1.14.0"),
+        categories: &[ToolCategory::ProviderRunpod],
+        auth_check: Some(AuthCheck {
+            command: "runpodctl",
+            args: &["get", "pod"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: None,
+                command: "curl -L https://github.com/runpod/runpodctl/releases/latest/download/runpodctl-darwin-amd64 -o runpodctl && chmod +x runpodctl && sudo mv runpodctl /usr/local/bin/",
+                notes: Some("Then set API key: runpodctl config --apiKey=YOUR_API_KEY"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: None,
+                command: "curl -L https://github.com/runpod/runpodctl/releases/latest/download/runpodctl-linux-amd64 -o runpodctl && chmod +x runpodctl && sudo mv runpodctl /usr/local/bin/",
+                notes: Some("Then set API key: runpodctl config --apiKey=YOUR_API_KEY"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: None,
+                command: "Download runpodctl-windows-amd64.exe from https://github.com/runpod/runpodctl/releases",
+                notes: Some("Then set API key: runpodctl config --apiKey=YOUR_API_KEY"),
+            },
+        ],
+        docs_url: "https://github.com/runpod/runpodctl",
+        optional: false,
+    },
+    // ==========================================================================
+    // Northflank Provider
+    // ==========================================================================
+    ToolDefinition {
+        id: "northflank",
+        name: "Northflank CLI",
+        description: "Command-line interface for Northflank platform",
+        command: "northflank",
+        version_flag: "--version",
+        min_version: Some("0.10.0"),
+        categories: &[ToolCategory::ProviderNorthflank],
+        auth_check: Some(AuthCheck {
+            command: "northflank",
+            args: &["list", "projects"],
+            success_indicator: AuthSuccessIndicator::ExitCode(0),
+        }),
+        install_instructions: &[
+            InstallInstruction {
+                platform: Platform::MacOS,
+                package_manager: Some(PackageManager::Npm),
+                command: "npm install -g @northflank/cli",
+                notes: Some("Then authenticate: northflank login"),
+            },
+            InstallInstruction {
+                platform: Platform::Linux(LinuxDistro::Unknown),
+                package_manager: Some(PackageManager::Npm),
+                command: "npm install -g @northflank/cli",
+                notes: Some("Then authenticate: northflank login"),
+            },
+            InstallInstruction {
+                platform: Platform::Windows,
+                package_manager: Some(PackageManager::Npm),
+                command: "npm install -g @northflank/cli",
+                notes: Some("Then authenticate: northflank login"),
+            },
+        ],
+        docs_url: "https://northflank.com/docs/v1/api/cli",
+        optional: false,
+    },
+    // ==========================================================================
     // Extension Installation Backends
     // ==========================================================================
     ToolDefinition {
@@ -1295,6 +1373,8 @@ impl ToolRegistry {
             "devpod" => Some(ToolCategory::ProviderDevpod),
             "e2b" => Some(ToolCategory::ProviderE2B),
             "kubernetes" | "k8s" => Some(ToolCategory::ProviderKubernetes),
+            "runpod" => Some(ToolCategory::ProviderRunpod),
+            "northflank" => Some(ToolCategory::ProviderNorthflank),
             "packer" | "vm" => Some(ToolCategory::ProviderPacker),
             "kind" | "k3d" | "local-k8s" => Some(ToolCategory::KubernetesClusters),
             "terraform" | "ansible" | "pulumi" | "iac" => Some(ToolCategory::Infrastructure),
@@ -1324,6 +1404,8 @@ impl ToolRegistry {
                 tools.extend(Self::by_category(ToolCategory::ProviderDevpod));
                 tools.extend(Self::by_category(ToolCategory::ProviderE2B));
                 tools.extend(Self::by_category(ToolCategory::ProviderKubernetes));
+                tools.extend(Self::by_category(ToolCategory::ProviderRunpod));
+                tools.extend(Self::by_category(ToolCategory::ProviderNorthflank));
                 tools
             }
             "cluster" | "clusters" => Self::by_category(ToolCategory::KubernetesClusters),
@@ -1570,5 +1652,66 @@ mod tests {
         let infra_tools = ToolRegistry::by_command("infra");
         assert!(!infra_tools.is_empty());
         assert!(infra_tools.iter().any(|t| t.id == "terraform"));
+    }
+
+    #[test]
+    fn test_get_runpodctl() {
+        let runpod = ToolRegistry::get("runpodctl");
+        assert!(runpod.is_some());
+        let runpod = runpod.unwrap();
+        assert_eq!(runpod.name, "RunPod CLI");
+        assert_eq!(runpod.command, "runpodctl");
+        assert!(runpod.categories.contains(&ToolCategory::ProviderRunpod));
+        assert!(runpod.auth_check.is_some());
+        assert!(!runpod.optional);
+        assert_eq!(runpod.min_version, Some("1.14.0"));
+    }
+
+    #[test]
+    fn test_get_northflank() {
+        let nf = ToolRegistry::get("northflank");
+        assert!(nf.is_some());
+        let nf = nf.unwrap();
+        assert_eq!(nf.name, "Northflank CLI");
+        assert_eq!(nf.command, "northflank");
+        assert!(nf.categories.contains(&ToolCategory::ProviderNorthflank));
+        assert!(nf.auth_check.is_some());
+        assert!(!nf.optional);
+        assert_eq!(nf.min_version, Some("0.10.0"));
+    }
+
+    #[test]
+    fn test_by_provider_runpod() {
+        let runpod_tools = ToolRegistry::by_provider("runpod");
+        assert!(!runpod_tools.is_empty());
+        assert!(runpod_tools.iter().any(|t| t.id == "runpodctl"));
+    }
+
+    #[test]
+    fn test_by_provider_northflank() {
+        let nf_tools = ToolRegistry::by_provider("northflank");
+        assert!(!nf_tools.is_empty());
+        assert!(nf_tools.iter().any(|t| t.id == "northflank"));
+    }
+
+    #[test]
+    fn test_by_category_runpod() {
+        let runpod_tools = ToolRegistry::by_category(ToolCategory::ProviderRunpod);
+        assert_eq!(runpod_tools.len(), 1);
+        assert_eq!(runpod_tools[0].id, "runpodctl");
+    }
+
+    #[test]
+    fn test_by_category_northflank() {
+        let nf_tools = ToolRegistry::by_category(ToolCategory::ProviderNorthflank);
+        assert_eq!(nf_tools.len(), 1);
+        assert_eq!(nf_tools[0].id, "northflank");
+    }
+
+    #[test]
+    fn test_deploy_command_includes_runpod_and_northflank() {
+        let deploy_tools = ToolRegistry::by_command("deploy");
+        assert!(deploy_tools.iter().any(|t| t.id == "runpodctl"));
+        assert!(deploy_tools.iter().any(|t| t.id == "northflank"));
     }
 }

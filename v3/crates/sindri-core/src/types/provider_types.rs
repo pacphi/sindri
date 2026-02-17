@@ -171,6 +171,8 @@ pub struct DeployOptions {
     pub skip_validation: bool,
     /// Verbose output
     pub verbose: bool,
+    /// Skip Docker image build (use pre-built image from config)
+    pub skip_build: bool,
 }
 
 /// Deployment plan (for dry-run)

@@ -70,6 +70,8 @@ impl ConfigInitContext {
             Provider::Kubernetes => (true, true, true, "default".to_string()),
             Provider::Devpod => (true, true, true, "us-west-2".to_string()),
             Provider::E2b => (false, false, false, "".to_string()),
+            Provider::Runpod => (true, false, true, "".to_string()),
+            Provider::Northflank => (true, false, true, "".to_string()),
         };
 
         Self {

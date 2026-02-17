@@ -107,6 +107,8 @@ pub enum PackageManager {
     Chocolatey,
     /// Scoop (Windows)
     Scoop,
+    /// npm (Node.js package manager, cross-platform)
+    Npm,
 }
 
 impl std::fmt::Display for PackageManager {
@@ -122,6 +124,7 @@ impl std::fmt::Display for PackageManager {
             Self::Winget => write!(f, "Winget"),
             Self::Chocolatey => write!(f, "Chocolatey"),
             Self::Scoop => write!(f, "Scoop"),
+            Self::Npm => write!(f, "npm"),
         }
     }
 }

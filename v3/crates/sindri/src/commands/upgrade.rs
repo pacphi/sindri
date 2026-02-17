@@ -14,11 +14,10 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
 
+use sindri_extensions::ExtensionSourceConfig;
+
 use crate::cli::UpgradeArgs;
 use crate::output;
-
-const COMPAT_MATRIX_URL: &str =
-    "https://raw.githubusercontent.com/pacphi/sindri/main/compatibility-matrix.yaml";
 
 pub async fn run(args: UpgradeArgs) -> Result<()> {
     let mut manager = ReleaseManager::new()?;
@@ -125,8 +124,10 @@ async fn show_compatibility(manager: &ReleaseManager, target_version: &str) -> R
     // Load compatibility matrix
     let spinner = output::spinner("Checking extension compatibility...");
     let mut checker = CompatibilityChecker::new()?;
+    let source_config = ExtensionSourceConfig::load().unwrap_or_default();
+    let compat_url = source_config.build_repo_url("main", "v3/compatibility-matrix.yaml");
 
-    match checker.load_matrix(COMPAT_MATRIX_URL).await {
+    match checker.load_matrix(&compat_url).await {
         Ok(_) => {
             spinner.finish_and_clear();
 
@@ -235,8 +236,10 @@ async fn do_upgrade(manager: &ReleaseManager, args: &UpgradeArgs) -> Result<()> 
     if !installed.is_empty() && !args.force {
         let spinner = output::spinner("Checking extension compatibility...");
         let mut checker = CompatibilityChecker::new()?;
+        let source_config = ExtensionSourceConfig::load().unwrap_or_default();
+        let compat_url = source_config.build_repo_url("main", "v3/compatibility-matrix.yaml");
 
-        let compat_result = match checker.load_matrix(COMPAT_MATRIX_URL).await {
+        let compat_result = match checker.load_matrix(&compat_url).await {
             Ok(_) => {
                 let result =
                     checker.check_compatibility(&target_version.to_string(), &installed)?;

@@ -1,0 +1,36 @@
+# RunPod Spot Instance (Cost-Optimized)
+#
+# Uses spot (interruptible) pricing on a community cloud RTX 4090
+# for significant cost savings. Spot pods may be preempted when demand
+# is high, so this setup is best for fault-tolerant workloads like
+# batch inference, data processing, or checkpointed training.
+#
+# Prerequisites:
+#   - Set RUNPOD_API_KEY environment variable
+#
+# Pricing:
+#   - spotBid sets the maximum $/hr you are willing to pay
+#   - If the market price exceeds your bid, the pod may be stopped
+#   - Use COMMUNITY cloud type for broader availability
+#
+# Usage:
+#   cp runpod-spot.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: runpod-spot
+
+deployment:
+  provider: runpod
+  image: ghcr.io/sindri-labs/sindri:latest
+  resources:
+    gpu:
+      enabled: true
+      tier: "rtx4090"
+
+providers:
+  runpod:
+    gpuType: "NVIDIA RTX 4090"
+    cloudType: "COMMUNITY"
+    spotBid: 0.50  # Maximum $0.50/hr bid price
+    containerDiskGb: 50

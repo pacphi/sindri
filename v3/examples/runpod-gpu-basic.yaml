@@ -1,0 +1,32 @@
+# RunPod Basic GPU Development Environment
+#
+# A simple GPU development setup using an NVIDIA RTX A4000.
+# Suitable for day-to-day development, inference testing, and light training.
+#
+# Prerequisites:
+#   - Set RUNPOD_API_KEY environment variable
+#   - Get your key at https://www.runpod.io/console/user/settings
+#
+# Usage:
+#   cp runpod-gpu-basic.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: runpod-dev
+
+deployment:
+  provider: runpod
+  image: ghcr.io/sindri-labs/sindri:latest
+  resources:
+    gpu:
+      enabled: true
+      tier: "a4000"
+    memory: 16GB
+    cpus: 4
+
+providers:
+  runpod:
+    gpuType: "NVIDIA RTX A4000"
+    containerDiskGb: 20
+    volumeSizeGb: 50
+    startSsh: true

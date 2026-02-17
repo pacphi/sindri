@@ -39,6 +39,8 @@ use std::path::PathBuf;
 use tokio::fs;
 use tracing::{debug, info, warn};
 
+use crate::distribution::ExtensionSourceConfig;
+
 /// Metadata about fetched support files
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SupportFileMetadata {
@@ -128,8 +130,7 @@ pub struct SupportFileManager {
     metadata_path: PathBuf,
 
     /// GitHub repository config
-    repo_owner: String,
-    repo_name: String,
+    source_config: ExtensionSourceConfig,
 }
 
 impl SupportFileManager {
@@ -146,12 +147,13 @@ impl SupportFileManager {
 
         let metadata_path = sindri_home.join(".support-files-metadata.yaml");
 
+        let source_config = ExtensionSourceConfig::load()?;
+
         Ok(Self {
             cli_version,
             sindri_home,
             metadata_path,
-            repo_owner: "pacphi".to_string(),
-            repo_name: "sindri".to_string(),
+            source_config,
         })
     }
 
@@ -186,10 +188,7 @@ impl SupportFileManager {
 
     /// Build GitHub raw URL for a file
     fn build_github_url(&self, tag: &str, repo_path: &str) -> String {
-        format!(
-            "https://raw.githubusercontent.com/{}/{}/{}/{}",
-            self.repo_owner, self.repo_name, tag, repo_path
-        )
+        self.source_config.build_repo_url(tag, repo_path)
     }
 
     /// Check if support files need updating
@@ -407,8 +406,7 @@ mod tests {
             cli_version: Version::parse("3.0.0").unwrap(),
             sindri_home: PathBuf::from("/tmp"),
             metadata_path: PathBuf::from("/tmp/.metadata"),
-            repo_owner: "pacphi".to_string(),
-            repo_name: "sindri".to_string(),
+            source_config: ExtensionSourceConfig::default(),
         };
 
         assert_eq!(manager.build_tag(), "v3.0.0");
@@ -420,8 +418,7 @@ mod tests {
             cli_version: Version::parse("3.0.0-alpha.18").unwrap(),
             sindri_home: PathBuf::from("/tmp"),
             metadata_path: PathBuf::from("/tmp/.metadata"),
-            repo_owner: "pacphi".to_string(),
-            repo_name: "sindri".to_string(),
+            source_config: ExtensionSourceConfig::default(),
         };
 
         assert_eq!(manager.build_tag(), "v3.0.0-alpha.18");
@@ -434,8 +431,7 @@ mod tests {
             cli_version: Version::parse("3.0.0+20240115").unwrap(),
             sindri_home: PathBuf::from("/tmp"),
             metadata_path: PathBuf::from("/tmp/.metadata"),
-            repo_owner: "pacphi".to_string(),
-            repo_name: "sindri".to_string(),
+            source_config: ExtensionSourceConfig::default(),
         };
 
         // Build metadata is automatically stripped
@@ -448,8 +444,7 @@ mod tests {
             cli_version: Version::parse("3.0.0-alpha.18").unwrap(),
             sindri_home: PathBuf::from("/tmp"),
             metadata_path: PathBuf::from("/tmp/.metadata"),
-            repo_owner: "pacphi".to_string(),
-            repo_name: "sindri".to_string(),
+            source_config: ExtensionSourceConfig::default(),
         };
 
         let url = manager.build_github_url("v3.0.0-alpha.18", "v3/common.sh");

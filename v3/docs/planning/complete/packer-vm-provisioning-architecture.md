@@ -1719,7 +1719,7 @@ mod integration_tests {
 ### InSpec Tests for Built Images
 
 ```ruby
-# test/integration/sindri/controls/sindri.rb
+# inspec/integration/sindri/controls/sindri.rb
 
 title 'Sindri VM Image Validation'
 
@@ -1921,7 +1921,7 @@ end
 
 - `.github/workflows/v3-packer-build.yml`
 - `.github/workflows/v3-packer-test.yml`
-- `v3/test/integration/sindri/`
+- `v3/inspec/integration/sindri/`
 
 ### Phase 8: Security & Hardening (Week 8-9)
 

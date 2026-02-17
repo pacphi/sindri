@@ -1,0 +1,334 @@
+# Manual Integration Test: RunPod & Northflank Providers
+# Triggers real deployments against provider APIs for validation
+name: "v3: Integration Test - Providers (Manual)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'Provider to test'
+        required: true
+        type: choice
+        options:
+          - runpod
+          - northflank
+          - all
+      test-mode:
+        description: 'Test mode (dry-run validates configs, live creates real resources)'
+        required: true
+        type: choice
+        default: dry-run
+        options:
+          - dry-run
+          - live
+      gpu-type:
+        description: 'GPU type for RunPod (leave empty for CPU-only)'
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: integration-providers-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ============================================
+  # Build sindri binary
+  # ============================================
+
+  build:
+    name: Build Sindri CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
+      - name: Build release binary
+        run: cd v3 && cargo build --release
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: sindri-integration-binary-${{ github.sha }}
+          path: v3/target/release/sindri
+          retention-days: 1
+
+  # ============================================
+  # Dry-run validation (validates configs without creating resources)
+  # ============================================
+
+  validate-runpod-configs:
+    name: Validate RunPod Configs
+    if: ${{ github.event.inputs.provider == 'runpod' || github.event.inputs.provider == 'all' }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v7
+        with:
+          name: sindri-integration-binary-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Validate RunPod example configs
+        run: |
+          echo "## RunPod Config Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          PASS=0
+          FAIL=0
+
+          for config in v3/examples/runpod-*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+
+              if sindri deploy --config "$config" --dry-run 2>&1 | tee "/tmp/validate-$CONFIG_NAME.log"; then
+                echo "- $CONFIG_NAME: PASS" >> $GITHUB_STEP_SUMMARY
+                PASS=$((PASS + 1))
+              else
+                echo "- $CONFIG_NAME: **FAIL**" >> $GITHUB_STEP_SUMMARY
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Results**: $PASS passed, $FAIL failed" >> $GITHUB_STEP_SUMMARY
+
+          if [[ $FAIL -gt 0 ]]; then
+            echo "::error::$FAIL RunPod config(s) failed validation"
+            exit 1
+          fi
+
+  validate-northflank-configs:
+    name: Validate Northflank Configs
+    if: ${{ github.event.inputs.provider == 'northflank' || github.event.inputs.provider == 'all' }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v7
+        with:
+          name: sindri-integration-binary-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Validate Northflank example configs
+        run: |
+          echo "## Northflank Config Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          PASS=0
+          FAIL=0
+
+          for config in v3/examples/northflank-*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+
+              if sindri deploy --config "$config" --dry-run 2>&1 | tee "/tmp/validate-$CONFIG_NAME.log"; then
+                echo "- $CONFIG_NAME: PASS" >> $GITHUB_STEP_SUMMARY
+                PASS=$((PASS + 1))
+              else
+                echo "- $CONFIG_NAME: **FAIL**" >> $GITHUB_STEP_SUMMARY
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Results**: $PASS passed, $FAIL failed" >> $GITHUB_STEP_SUMMARY
+
+          if [[ $FAIL -gt 0 ]]; then
+            echo "::error::$FAIL Northflank config(s) failed validation"
+            exit 1
+          fi
+
+  # ============================================
+  # Live integration tests (creates real resources - use with caution)
+  # ============================================
+
+  test-runpod-integration:
+    name: RunPod Live Integration Test
+    if: ${{ github.event.inputs.test-mode == 'live' && (github.event.inputs.provider == 'runpod' || github.event.inputs.provider == 'all') }}
+    runs-on: ubuntu-latest
+    needs: [build, validate-runpod-configs]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v7
+        with:
+          name: sindri-integration-binary-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Install runpodctl
+        run: |
+          curl -Lo runpodctl "https://github.com/runpod/runpodctl/releases/latest/download/runpodctl-linux-amd64"
+          chmod +x runpodctl
+          sudo mv runpodctl /usr/local/bin/
+          runpodctl version
+
+      - name: Test RunPod deployment lifecycle
+        env:
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+        timeout-minutes: 20
+        run: |
+          set -e
+
+          echo "## RunPod Integration Test" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Use CPU-only config for cost efficiency
+          CONFIG="v3/examples/runpod-cpu-only.yaml"
+
+          echo "### Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "Config: \`$(basename $CONFIG)\`" >> $GITHUB_STEP_SUMMARY
+
+          # Deploy
+          echo "Deploying with: $CONFIG"
+          sindri deploy --config "$CONFIG" 2>&1 | tee deploy.log
+          echo "- Deploy: PASS" >> $GITHUB_STEP_SUMMARY
+
+          # Status check
+          echo "Checking deployment status..."
+          sindri status --config "$CONFIG" 2>&1 | tee status.log
+          echo "- Status: PASS" >> $GITHUB_STEP_SUMMARY
+
+          # Teardown
+          echo "Tearing down deployment..."
+          sindri destroy --config "$CONFIG" --force 2>&1 | tee destroy.log
+          echo "- Destroy: PASS" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: runpod-integration-logs-${{ github.sha }}
+          path: |
+            deploy.log
+            status.log
+            destroy.log
+          retention-days: 7
+
+  test-northflank-integration:
+    name: Northflank Live Integration Test
+    if: ${{ github.event.inputs.test-mode == 'live' && (github.event.inputs.provider == 'northflank' || github.event.inputs.provider == 'all') }}
+    runs-on: ubuntu-latest
+    needs: [build, validate-northflank-configs]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download sindri binary
+        uses: actions/download-artifact@v7
+        with:
+          name: sindri-integration-binary-${{ github.sha }}
+          path: ./bin
+
+      - name: Setup binary
+        run: |
+          chmod +x ./bin/sindri
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Install Northflank CLI
+        run: npm install -g @northflank/cli
+
+      - name: Test Northflank deployment lifecycle
+        env:
+          NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
+        timeout-minutes: 20
+        run: |
+          set -e
+
+          echo "## Northflank Integration Test" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          CONFIG="v3/examples/northflank-basic.yaml"
+
+          echo "### Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "Config: \`$(basename $CONFIG)\`" >> $GITHUB_STEP_SUMMARY
+
+          # Deploy
+          echo "Deploying with: $CONFIG"
+          sindri deploy --config "$CONFIG" 2>&1 | tee deploy.log
+          echo "- Deploy: PASS" >> $GITHUB_STEP_SUMMARY
+
+          # Status check
+          echo "Checking deployment status..."
+          sindri status --config "$CONFIG" 2>&1 | tee status.log
+          echo "- Status: PASS" >> $GITHUB_STEP_SUMMARY
+
+          # Teardown
+          echo "Tearing down deployment..."
+          sindri destroy --config "$CONFIG" --force 2>&1 | tee destroy.log
+          echo "- Destroy: PASS" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: northflank-integration-logs-${{ github.sha }}
+          path: |
+            deploy.log
+            status.log
+            destroy.log
+          retention-days: 7
+
+  # ============================================
+  # Summary
+  # ============================================
+
+  summary:
+    name: Integration Test Summary
+    runs-on: ubuntu-latest
+    needs:
+      - validate-runpod-configs
+      - validate-northflank-configs
+      - test-runpod-integration
+      - test-northflank-integration
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Provider Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| RunPod Config Validation | ${{ needs.validate-runpod-configs.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Northflank Config Validation | ${{ needs.validate-northflank-configs.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| RunPod Live Test | ${{ needs.test-runpod-integration.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Northflank Live Test | ${{ needs.test-northflank-integration.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Provider:** ${{ github.event.inputs.provider }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** ${{ github.event.inputs.test-mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

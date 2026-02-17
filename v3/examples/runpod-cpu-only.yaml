@@ -1,0 +1,32 @@
+# RunPod CPU-Only Pod
+#
+# A lightweight CPU-only pod for workloads that do not require a GPU.
+# Useful for API servers, build jobs, or CPU-based data processing.
+#
+# Prerequisites:
+#   - Set RUNPOD_API_KEY environment variable
+#
+# CPU Instance Types (examples):
+#   - cpu3c-2-4  : 2 vCPU, 4 GB RAM
+#   - cpu3c-4-8  : 4 vCPU, 8 GB RAM
+#   - cpu3c-8-16 : 8 vCPU, 16 GB RAM
+#
+# Usage:
+#   cp runpod-cpu-only.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: runpod-cpu
+
+deployment:
+  provider: runpod
+  image: node:20-slim
+  resources:
+    memory: 8GB
+    cpus: 4
+
+providers:
+  runpod:
+    cpuOnly: true
+    cpuInstanceId: "cpu3c-4-8"
+    containerDiskGb: 20

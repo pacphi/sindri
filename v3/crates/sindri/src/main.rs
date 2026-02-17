@@ -34,6 +34,8 @@ async fn main() -> Result<()> {
         Commands::Connect(args) => commands::connect::run(args, cli.config.as_deref()).await,
         Commands::Status(args) => commands::status::run(args, cli.config.as_deref()).await,
         Commands::Destroy(args) => commands::destroy::run(args, cli.config.as_deref()).await,
+        Commands::Start(args) => commands::start::run(args, cli.config.as_deref()).await,
+        Commands::Stop(args) => commands::stop::run(args, cli.config.as_deref()).await,
         Commands::Extension(args) => commands::extension::run(args).await,
         Commands::Profile(args) => commands::profile::run(args).await,
         Commands::Upgrade(args) => commands::upgrade::run(args).await,

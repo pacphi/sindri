@@ -1,0 +1,46 @@
+---
+# Sindri v3 Configuration - Northflank Systems (CPU-only)
+# Systems administration environment on Northflank without GPU
+version: "3.0"
+name: sindri-v3-northflank-systems
+
+deployment:
+  provider: northflank
+  image: ghcr.io/pacphi/sindri:v3-latest
+  resources:
+    memory: 4GB
+    cpus: 2
+  volumes:
+    workspace:
+      path: /alt/home/developer/workspace
+      size: 20GB
+
+extensions:
+  profile: systems
+  autoInstall: true
+
+secrets:
+  - name: GITHUB_TOKEN
+    source: env
+
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+  - name: AWS_ACCESS_KEY_ID
+    source: env
+  - name: AWS_SECRET_ACCESS_KEY
+    source: env
+
+providers:
+  northflank:
+    projectName: sindri-systems
+    serviceName: systems-workspace
+    computePlan: nf-compute-50
+    volumeSizeGb: 20
+    healthCheck:
+      type: TCP
+      port: 22
+      initialDelay: 30
+      interval: 30

@@ -1,0 +1,372 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sindri.dev/schemas/sindri.schema.json",
+  "$comment": "DRAFT -- Shows only the modified/new sections for RunPod and Northflank provider support. The full schema includes all existing providers unchanged.",
+  "title": "Sindri Configuration (Draft with RunPod + Northflank)",
+  "description": "Provider-agnostic Sindri deployment configuration -- draft showing new provider extensions",
+  "type": "object",
+  "required": ["version", "name", "deployment", "extensions"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Deployment name"
+    },
+    "deployment": {
+      "type": "object",
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod", "e2b", "runpod", "northflank"],
+          "description": "Deployment provider"
+        },
+        "image": {
+          "type": "string",
+          "description": "Docker image to deploy"
+        },
+        "resources": {
+          "$comment": "Unchanged from existing schema -- included for reference only",
+          "type": "object",
+          "properties": {
+            "memory": {
+              "type": "string",
+              "pattern": "^\\d+(MB|GB)$"
+            },
+            "cpus": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "gpu": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "default": false },
+                "type": { "type": "string", "enum": ["nvidia", "amd"], "default": "nvidia" },
+                "count": { "type": "integer", "minimum": 1, "maximum": 8, "default": 1 },
+                "tier": { "type": "string", "enum": ["gpu-small", "gpu-medium", "gpu-large", "gpu-xlarge"] },
+                "memory": { "type": "string", "pattern": "^\\d+(GB|MB)$" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "volumes": {
+          "$comment": "Unchanged from existing schema"
+        }
+      }
+    },
+    "extensions": {
+      "$comment": "Unchanged from existing schema"
+    },
+    "secrets": {
+      "$comment": "Unchanged from existing schema"
+    },
+    "providers": {
+      "type": "object",
+      "properties": {
+        "fly": {
+          "$comment": "Unchanged -- existing Fly.io provider schema"
+        },
+        "docker": {
+          "$comment": "Unchanged -- existing Docker provider schema"
+        },
+        "kubernetes": {
+          "$comment": "Unchanged -- existing Kubernetes provider schema"
+        },
+        "devpod": {
+          "$comment": "Unchanged -- existing DevPod provider schema"
+        },
+        "k8s": {
+          "$comment": "Unchanged -- existing local K8s (kind/k3d) provider schema"
+        },
+        "e2b": {
+          "$comment": "Unchanged -- existing E2B provider schema"
+        },
+        "runpod": {
+          "type": "object",
+          "description": "RunPod GPU cloud provider options",
+          "properties": {
+            "gpuType": {
+              "type": "string",
+              "description": "GPU type identifier (e.g., 'NVIDIA RTX A4000', 'NVIDIA A100 80GB', 'NVIDIA H100 80GB'). Required unless cpuOnly is true."
+            },
+            "gpuCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "default": 1,
+              "description": "Number of GPUs to attach to the pod"
+            },
+            "containerDiskGb": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 20,
+              "description": "Container disk size in GB (ephemeral, lost on pod termination)"
+            },
+            "volumeSizeGb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2048,
+              "default": 50,
+              "description": "Network volume size in GB (persistent across pod restarts). Set to 0 to disable."
+            },
+            "volumeMountPath": {
+              "type": "string",
+              "default": "/workspace",
+              "description": "Mount path for the network volume inside the container"
+            },
+            "cloudType": {
+              "type": "string",
+              "enum": ["SECURE", "COMMUNITY"],
+              "default": "COMMUNITY",
+              "description": "Cloud type: SECURE (Tier 1/2 data centers) or COMMUNITY (peer-hosted, lower cost)"
+            },
+            "region": {
+              "type": "string",
+              "description": "Datacenter region filter (e.g., 'US', 'EU', 'CA'). Leave empty for any region."
+            },
+            "spotBid": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0,
+              "description": "Spot instance bid price in $/hr. 0 = on-demand pricing, >0 = spot with maximum bid price."
+            },
+            "exposePorts": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "description": "HTTP ports to expose via RunPod proxy URLs (e.g., [8080, 8888])"
+            },
+            "cpuOnly": {
+              "type": "boolean",
+              "default": false,
+              "description": "Deploy a CPU-only pod (no GPU). Uses CPU instance types."
+            },
+            "cpuInstanceId": {
+              "type": "string",
+              "description": "CPU instance type ID when cpuOnly is true (e.g., 'cpu3c-2-4' for 2 vCPU, 4GB RAM)"
+            },
+            "startSsh": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable SSH access on the pod"
+            },
+            "templateId": {
+              "type": "string",
+              "description": "RunPod template ID to use instead of a raw image. Overrides deployment.image."
+            }
+          },
+          "additionalProperties": false
+        },
+        "northflank": {
+          "type": "object",
+          "description": "Northflank PaaS provider options",
+          "required": ["projectName"],
+          "properties": {
+            "projectName": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Northflank project name. Created if it does not exist."
+            },
+            "serviceName": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "description": "Service name within the project (defaults to sindri.yaml name)"
+            },
+            "computePlan": {
+              "type": "string",
+              "pattern": "^nf-compute-\\d+(-\\d+)?$",
+              "default": "nf-compute-50",
+              "description": "Northflank compute plan (e.g., 'nf-compute-50', 'nf-compute-200-8'). See Northflank pricing for available plans."
+            },
+            "gpuType": {
+              "type": "string",
+              "description": "GPU model for GPU workloads (e.g., 'nvidia-h100', 'nvidia-a100-40gb', 'nvidia-l4')"
+            },
+            "instances": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 50,
+              "default": 1,
+              "description": "Number of service instances. Set to 0 to pause billing while preserving config."
+            },
+            "volumeSizeGb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1500,
+              "default": 10,
+              "description": "Persistent volume size in GB. 0 = no volume. Note: volumes limit service to 1 instance."
+            },
+            "volumeMountPath": {
+              "type": "string",
+              "default": "/workspace",
+              "description": "Mount path for the persistent volume inside the container"
+            },
+            "region": {
+              "type": "string",
+              "description": "Northflank region slug (e.g., 'us-east', 'europe-west', 'asia-northeast'). Region is immutable after project creation."
+            },
+            "registryCredentials": {
+              "type": "string",
+              "description": "Northflank registry credential ID for pulling private images"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "internalPort"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$",
+                    "description": "Port name (used as identifier)"
+                  },
+                  "internalPort": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535,
+                    "description": "Container-internal port number"
+                  },
+                  "public": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Expose this port publicly with auto-TLS"
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "enum": ["HTTP", "TCP", "UDP"],
+                    "default": "HTTP",
+                    "description": "Protocol for this port"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "description": "Port configuration for the service"
+            },
+            "autoScaling": {
+              "type": "object",
+              "description": "Horizontal auto-scaling configuration",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable auto-scaling based on resource utilization"
+                },
+                "minInstances": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50,
+                  "default": 1,
+                  "description": "Minimum number of instances (scale-down floor)"
+                },
+                "maxInstances": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50,
+                  "default": 3,
+                  "description": "Maximum number of instances (scale-up ceiling)"
+                },
+                "targetCpuUtilization": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "default": 70,
+                  "description": "Target CPU utilization percentage (scale up when exceeded)"
+                },
+                "targetMemoryUtilization": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "default": 80,
+                  "description": "Target memory utilization percentage (scale up when exceeded)"
+                }
+              },
+              "additionalProperties": false
+            },
+            "healthCheck": {
+              "type": "object",
+              "description": "Health check configuration for liveness probing",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["http", "tcp", "command"],
+                  "default": "tcp",
+                  "description": "Health check method"
+                },
+                "path": {
+                  "type": "string",
+                  "description": "HTTP endpoint path (required when type is 'http')"
+                },
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535,
+                  "description": "Port to check (required when type is 'http' or 'tcp')"
+                },
+                "command": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Command to execute (required when type is 'command')"
+                },
+                "initialDelaySeconds": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 10,
+                  "description": "Seconds to wait before starting health checks"
+                },
+                "periodSeconds": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 15,
+                  "description": "Interval between health checks in seconds"
+                },
+                "failureThreshold": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 3,
+                  "description": "Number of consecutive failures before restart"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "type": { "const": "http" } }
+                  },
+                  "then": {
+                    "required": ["path", "port"]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": { "type": { "const": "tcp" } }
+                  },
+                  "then": {
+                    "required": ["port"]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": { "type": { "const": "command" } }
+                  },
+                  "then": {
+                    "required": ["command"]
+                  }
+                }
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

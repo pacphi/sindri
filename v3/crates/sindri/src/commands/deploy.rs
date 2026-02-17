@@ -112,6 +112,7 @@ pub async fn run(args: DeployArgs, config_path: Option<&Utf8Path>) -> Result<()>
         timeout: Some(args.timeout),
         skip_validation: args.skip_validation,
         verbose: false,
+        skip_build: args.skip_build,
     };
 
     // Display deployment info

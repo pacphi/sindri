@@ -270,29 +270,57 @@ impl DownloadedSource {
 
 ### URL Construction
 
-**File:** `crates/sindri-extensions/src/distribution.rs` (lines 108-137)
+All GitHub URLs are built through `ExtensionSourceConfig`, which loads repository coordinates from `extension-source.yaml` (or falls back to defaults). No module constructs GitHub URLs from hardcoded string literals.
+
+**File:** `crates/sindri-extensions/src/distribution.rs`
 
 ```rust
 impl ExtensionSourceConfig {
-    /// Build raw.githubusercontent.com URL for a file
+    /// Build URL for an extension file
     pub fn build_url(&self, tag: &str, name: &str, file: &str) -> String {
         format!(
             "https://raw.githubusercontent.com/{}/{}/{}/{}/{}/{}",
-            self.github.owner,    // "pacphi"
-            self.github.repo,     // "sindri"
+            self.github.owner,    // from extension-source.yaml or "pacphi"
+            self.github.repo,     // from extension-source.yaml or "sindri"
             tag,                  // "v3.0.0-alpha.11"
             self.github.base_path,// "v3/extensions"
             name,                 // "nodejs"
             file                  // "extension.yaml"
         )
     }
+
+    /// Build URL for a repo-level file (registry, profiles, compat matrix)
+    pub fn build_repo_url(&self, tag: &str, path: &str) -> String {
+        format!(
+            "https://raw.githubusercontent.com/{}/{}/{}/{}",
+            self.github.owner, self.github.repo, tag, path
+        )
+    }
 }
 ```
 
-**Example URL:**
+**Example URLs (with default config):**
 
 ```
+# Extension file
 https://raw.githubusercontent.com/pacphi/sindri/v3.0.0-alpha.11/v3/extensions/nodejs/extension.yaml
+
+# Registry (repo-level file)
+https://raw.githubusercontent.com/pacphi/sindri/v3.0.0-alpha.11/v3/registry.yaml
+```
+
+**Custom source example** (`~/.sindri/extension-source.yaml`):
+
+```yaml
+github:
+  owner: "my-org"
+  repo: "my-sindri-fork"
+  base_path: "v3/extensions"
+```
+
+```
+# Same extension, different repo
+https://raw.githubusercontent.com/my-org/my-sindri-fork/v3.0.0-alpha.11/v3/extensions/nodejs/extension.yaml
 ```
 
 ### Download Flow
@@ -334,11 +362,21 @@ async fn download_extension_files(&self, name: &str, version: &Version) -> Resul
 }
 ```
 
-**Fallback Logic:**
+**Tag-First Fallback Logic (consistent across all modules):**
 
-1. Try CLI version tag (e.g., `v3.0.0-alpha.11`)
-2. If 404 → Try `main` branch
-3. Cache downloaded files locally
+1. Load `ExtensionSourceConfig` from `extension-source.yaml` (or defaults)
+2. Build URL using CLI version tag (e.g., `v3.0.0-alpha.18`)
+3. If tag not found (404) → Retry with `main` branch
+4. Cache downloaded files locally
+
+This pattern is used consistently by:
+
+- `ExtensionDistributor` (extension files)
+- `ExtensionRegistry` (registry.yaml, profiles.yaml)
+- `SupportFileManager` (common.sh, compatibility-matrix.yaml)
+- `fetch_sindri_build_context()` (git clone for Docker builds)
+
+**Exception:** `upgrade.rs` intentionally uses `main` for the compatibility matrix because the upgrade command needs the latest matrix to check forward compatibility.
 
 ### Execution Path Resolution
 
@@ -498,21 +536,30 @@ impl ExtensionSourceResolver {
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. Extension Request (distribution.rs:install)              │
-│    Check bundled? ❌ No                                     │
-│    Check downloaded? ❌ Not yet                             │
+│ 3. Load Source Config (distribution.rs)                     │
+│    ExtensionSourceConfig::load()                            │
+│    → ~/.sindri/extension-source.yaml or defaults            │
+│    → {owner}/{repo} + base_path                             │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 4. Extension Request (distribution.rs:install)              │
+│    Check bundled? ❌ No                                      │
+│    Check downloaded? ❌ Not yet                              │
 │    → Trigger download from GitHub                           │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌──────────────────────────────────────────────────────────────┐
-│ 4. GitHub Download (distribution.rs:download_extension_files)│
-│    Build URL: raw.githubusercontent.com/pacphi/sindri/       │
-│              v3.0.0-alpha.11/v3/extensions/nodejs/           │
+│ 5. GitHub Download (distribution.rs:download_extension_files)│
+│    Build URL via source_config.build_url():                  │
+│      raw.githubusercontent.com/{owner}/{repo}/               │
+│      v3.0.0-alpha.11/v3/extensions/nodejs/extension.yaml     │
+│    Tag not found? → Fallback to main branch                  │
 │    Download to: ~/.sindri/extensions/nodejs/1.2.0/           │
 └──────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. Execution (executor.rs:resolve_extension_dir)            │
+│ 6. Execution (executor.rs:resolve_extension_dir)            │
 │    Scan: ~/.sindri/extensions/nodejs/*/extension.yaml       │
 │    Find newest version: 1.2.0                               │
 │    → Use: ~/.sindri/extensions/nodejs/1.2.0/                │
@@ -523,15 +570,19 @@ impl ExtensionSourceResolver {
 
 ## Key Code Entry Points
 
-| Functionality                    | File              | Function                                   | Lines   |
-| -------------------------------- | ----------------- | ------------------------------------------ | ------- |
-| **Bundled detection**            | `source.rs`       | `BundledSource::from_env()`                | 56-66   |
-| **Downloaded detection**         | `source.rs`       | `DownloadedSource::from_env()`             | 126-144 |
-| **Priority resolution**          | `source.rs`       | `ExtensionSourceResolver::get_extension()` | 400-426 |
-| **Bundled check during install** | `distribution.rs` | `get_bundled_extension_dir()`              | 432-461 |
-| **GitHub download**              | `distribution.rs` | `download_extension_files()`               | 787-836 |
-| **URL construction**             | `distribution.rs` | `ExtensionSourceConfig::build_url()`       | 114-119 |
-| **Execution path resolution**    | `executor.rs`     | `resolve_extension_dir()`                  | 54-105  |
+| Functionality                    | File               | Function                                   | Lines   |
+| -------------------------------- | ------------------ | ------------------------------------------ | ------- |
+| **Source config loading**        | `distribution.rs`  | `ExtensionSourceConfig::load()`            | 60-108  |
+| **Extension URL construction**   | `distribution.rs`  | `ExtensionSourceConfig::build_url()`       | 116-121 |
+| **Repo-level URL construction**  | `distribution.rs`  | `ExtensionSourceConfig::build_repo_url()`  | 128-133 |
+| **Bundled detection**            | `source.rs`        | `BundledSource::from_env()`                | 56-66   |
+| **Downloaded detection**         | `source.rs`        | `DownloadedSource::from_env()`             | 126-144 |
+| **Priority resolution**          | `source.rs`        | `ExtensionSourceResolver::get_extension()` | 400-426 |
+| **Bundled check during install** | `distribution.rs`  | `get_bundled_extension_dir()`              | 432-461 |
+| **GitHub download**              | `distribution.rs`  | `download_extension_files()`               | 787-836 |
+| **Registry fetch (tag-first)**   | `registry.rs`      | `fetch_from_github()`                      | 197-256 |
+| **Support file fetch**           | `support_files.rs` | `SupportFileManager::build_github_url()`   | 188-190 |
+| **Execution path resolution**    | `executor.rs`      | `resolve_extension_dir()`                  | 54-105  |
 
 ---
 
@@ -675,7 +726,11 @@ ls -la /opt/sindri/extensions/nodejs/extension.yaml
 echo $SINDRI_EXT_HOME
 # Expected: /alt/home/developer/.sindri/extensions
 
-# Verify internet connectivity
+# Check extension-source.yaml config (if customized)
+cat ~/.sindri/extension-source.yaml
+
+# Verify internet connectivity (uses your configured source or defaults)
+# Default: raw.githubusercontent.com/pacphi/sindri
 curl -I https://raw.githubusercontent.com/pacphi/sindri/main/v3/extensions/nodejs/extension.yaml
 
 # Check cache

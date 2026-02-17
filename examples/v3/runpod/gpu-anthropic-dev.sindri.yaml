@@ -1,0 +1,51 @@
+---
+# Sindri v3 Configuration - RunPod GPU with Anthropic Dev
+# AI development on RunPod with GPU acceleration and full Anthropic toolset
+version: "3.0"
+name: sindri-v3-runpod-gpu
+
+deployment:
+  provider: runpod
+  image: ghcr.io/pacphi/sindri:v3-latest
+  resources:
+    memory: 16GB
+    cpus: 4
+    gpu:
+      enabled: true
+      type: nvidia
+      count: 1
+  volumes:
+    workspace:
+      path: /workspace
+      size: 50GB
+
+extensions:
+  profile: anthropic-dev
+  autoInstall: true
+
+secrets:
+  - name: RUNPOD_API_KEY
+    source: env
+    required: true
+
+  - name: ANTHROPIC_API_KEY
+    source: env
+    required: true
+
+  - name: GITHUB_TOKEN
+    source: env
+
+  - name: GIT_USER_NAME
+    source: env
+  - name: GIT_USER_EMAIL
+    source: env
+
+providers:
+  runpod:
+    gpuTypeId: "NVIDIA RTX A4000"
+    containerDiskGb: 30
+    volumeSizeGb: 50
+    cloudType: COMMUNITY
+    exposePorts:
+      - 8080
+      - 3000
