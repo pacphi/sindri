@@ -85,6 +85,13 @@ pub async fn fetch_sindri_build_context(
         fs::remove_dir_all(&repo_dir).await?;
     }
 
+    // Derive clone URL from extension source config
+    let source_config = sindri_extensions::ExtensionSourceConfig::load().unwrap_or_default();
+    let clone_url = format!(
+        "https://github.com/{}/{}.git",
+        source_config.github.owner, source_config.github.repo
+    );
+
     // Shallow clone the repository
     info!("Cloning Sindri repository (ref: {})", git_ref);
 
@@ -96,7 +103,7 @@ pub async fn fetch_sindri_build_context(
             "--branch",
             &git_ref,
             "--single-branch",
-            "https://github.com/pacphi/sindri.git",
+            &clone_url,
             repo_dir.to_str().unwrap(),
         ])
         .output()
@@ -119,7 +126,7 @@ pub async fn fetch_sindri_build_context(
                 "--branch",
                 "main",
                 "--single-branch",
-                "https://github.com/pacphi/sindri.git",
+                &clone_url,
                 repo_dir.to_str().unwrap(),
             ])
             .output()

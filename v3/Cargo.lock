@@ -4993,6 +4993,7 @@ dependencies = [
  "serde_yaml_ng",
  "serial_test",
  "sindri-core",
+ "sindri-extensions",
  "sindri-secrets",
  "tempfile",
  "tera",
