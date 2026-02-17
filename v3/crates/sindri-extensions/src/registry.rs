@@ -17,9 +17,8 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tracing::{debug, info, warn};
 
-/// GitHub repository for extension registry
-const GITHUB_REPO: &str = "pacphi/sindri";
-const GITHUB_RAW_URL: &str = "https://raw.githubusercontent.com";
+use crate::distribution::ExtensionSourceConfig;
+
 const CACHE_TTL: Duration = Duration::from_secs(3600); // 1 hour
 
 /// Extension registry with loaded extensions and profiles
@@ -138,7 +137,8 @@ impl ExtensionRegistry {
             )
         } else {
             debug!("Fetching fresh registry from GitHub");
-            match Self::fetch_from_github(branch).await {
+            let source_config = ExtensionSourceConfig::load()?;
+            match Self::fetch_from_github(branch, &source_config).await {
                 Ok((reg, prof)) => {
                     // Cache the downloaded files
                     std::fs::write(&registry_cache, &reg)?;
@@ -195,22 +195,44 @@ impl ExtensionRegistry {
     }
 
     /// Fetch registry files from GitHub
-    async fn fetch_from_github(branch: &str) -> Result<(String, String)> {
-        let registry_url = format!(
-            "{}/{}/{}/v3/registry.yaml",
-            GITHUB_RAW_URL, GITHUB_REPO, branch
-        );
-        let profiles_url = format!(
-            "{}/{}/{}/v3/profiles.yaml",
-            GITHUB_RAW_URL, GITHUB_REPO, branch
-        );
-
-        debug!("Fetching registry from: {}", registry_url);
-        debug!("Fetching profiles from: {}", profiles_url);
+    ///
+    /// Tries the CLI version tag first for release consistency, then falls
+    /// back to the given `fallback_branch` (typically "main") when the tag
+    /// doesn't exist (e.g., dev builds).
+    async fn fetch_from_github(
+        fallback_branch: &str,
+        source_config: &ExtensionSourceConfig,
+    ) -> Result<(String, String)> {
+        let cli_tag = format!("v{}", env!("CARGO_PKG_VERSION"));
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()?;
+
+        // Try CLI version tag first, then fall back to branch
+        let ref_to_use = {
+            let probe_url = source_config.build_repo_url(&cli_tag, "v3/registry.yaml");
+            debug!("Probing registry at CLI tag: {}", probe_url);
+            match client.get(&probe_url).send().await {
+                Ok(resp) if resp.status().is_success() => {
+                    debug!("Found registry at CLI tag {}", cli_tag);
+                    cli_tag.clone()
+                }
+                _ => {
+                    warn!(
+                        "Registry not found at tag {}, falling back to {} branch",
+                        cli_tag, fallback_branch
+                    );
+                    fallback_branch.to_string()
+                }
+            }
+        };
+
+        let registry_url = source_config.build_repo_url(&ref_to_use, "v3/registry.yaml");
+        let profiles_url = source_config.build_repo_url(&ref_to_use, "v3/profiles.yaml");
+
+        debug!("Fetching registry from: {}", registry_url);
+        debug!("Fetching profiles from: {}", profiles_url);
 
         let registry_response = client.get(&registry_url).send().await?;
         if !registry_response.status().is_success() {
@@ -395,13 +417,19 @@ mod tests {
 
     #[test]
     fn test_github_urls() {
-        // Verify URL construction
-        let branch = "main";
-        let expected_registry = format!(
-            "{}/{}/{}/v3/registry.yaml",
-            GITHUB_RAW_URL, GITHUB_REPO, branch
-        );
-        assert!(expected_registry.contains("raw.githubusercontent.com"));
-        assert!(expected_registry.contains("/registry.yaml"));
+        // Verify URL construction via ExtensionSourceConfig for both tag and fallback
+        let config = ExtensionSourceConfig::default();
+
+        // CLI version tag path
+        let cli_tag = format!("v{}", env!("CARGO_PKG_VERSION"));
+        let tagged_url = config.build_repo_url(&cli_tag, "v3/registry.yaml");
+        assert!(tagged_url.contains("raw.githubusercontent.com"));
+        assert!(tagged_url.contains(&cli_tag));
+        assert!(tagged_url.contains("/registry.yaml"));
+
+        // Fallback branch path
+        let fallback_url = config.build_repo_url("main", "v3/profiles.yaml");
+        assert!(fallback_url.contains("/main/"));
+        assert!(fallback_url.contains("/profiles.yaml"));
     }
 }

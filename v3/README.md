@@ -1,5 +1,8 @@
 # Sindri V3
 
+[![CI](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml/badge.svg)](https://github.com/pacphi/sindri/actions/workflows/ci-v3.yml)
+[![codecov](https://codecov.io/gh/pacphi/sindri/graph/badge.svg?flag=workspace)](https://codecov.io/gh/pacphi/sindri)
+
 A modern, high-performance CLI for declarative cloud development environments, rewritten in Rust.
 
 ## Overview
@@ -8,7 +11,7 @@ Sindri V3 is a complete rewrite of the Sindri CLI in Rust, delivering improved p
 
 ## Key Features
 
-- **Multi-Provider Support** - Deploy to Docker, Fly.io, DevPod, Kubernetes, E2B, and VMs (AWS, Azure, GCP, OCI, Alibaba)
+- **Multi-Provider Support** - Deploy to Docker, Fly.io, DevPod, Kubernetes, E2B, RunPod, Northflank, and VMs (AWS, Azure, GCP, OCI, Alibaba)
 - **Golden VM Images** - Build pre-configured VM images with Packer across all major cloud providers
 - **Extension System** - 40+ modular extensions for languages, tools, and infrastructure
 - **Secrets Management** - Multi-backend support (environment, file, HashiCorp Vault, S3)
@@ -74,6 +77,8 @@ For detailed installation instructions and first deployment walkthrough, see the
 | [E2B](docs/providers/E2B.md)                         | E2B cloud sandboxes                    |
 | [Kubernetes](docs/providers/KUBERNETES.md)           | Kubernetes cluster deployment          |
 | [DevPod](docs/providers/DEVPOD.md)                   | DevPod multi-cloud support             |
+| [RunPod](docs/providers/RUNPOD.md)                   | RunPod GPU cloud deployment            |
+| [Northflank](docs/providers/NORTHFLANK.md)           | Northflank auto-scaling PaaS           |
 | [VM Providers](docs/providers/VM.md)                 | Virtual machine deployment overview    |
 | [VM Distribution](docs/providers/vm/DISTRIBUTION.md) | VM image distribution and CDN strategy |
 | [VM Security](docs/providers/vm/SECURITY.md)         | VM security and hardening              |
@@ -127,6 +132,8 @@ Sindri V3 uses a modular architecture with clear separation between providers, e
 | `devpod`         | Multi-cloud workspaces (AWS, GCP, Azure, K8s)    | DevPod CLI                      |
 | `kubernetes`     | K8s clusters                                     | kubectl + cluster access        |
 | `e2b`            | Ultra-fast cloud sandboxes                       | E2B account                     |
+| `runpod`         | GPU cloud with 40+ GPU types                     | RUNPOD_API_KEY                  |
+| `northflank`     | Auto-scaling PaaS with GPU support               | Northflank CLI + account        |
 | `vm`             | Golden VM images (AWS, Azure, GCP, OCI, Alibaba) | Packer 1.9+ + cloud CLI + creds |
 
 ## Extension Profiles

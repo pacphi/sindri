@@ -50,6 +50,12 @@ pub enum Commands {
     /// Destroy the deployment
     Destroy(DestroyArgs),
 
+    /// Start a stopped/suspended deployment
+    Start(StartArgs),
+
+    /// Stop a running deployment
+    Stop(StopArgs),
+
     /// Extension management
     #[command(subcommand)]
     Extension(ExtensionCommands),
@@ -196,6 +202,10 @@ pub struct DeployArgs {
     #[arg(long, alias = "fs")]
     pub from_source: bool,
 
+    /// Skip Docker image build and use the image from config as-is
+    #[arg(long)]
+    pub skip_build: bool,
+
     /// Path to .env file (default: look for .env/.env.local in config directory)
     #[arg(long)]
     pub env_file: Option<Utf8PathBuf>,
@@ -232,6 +242,14 @@ pub struct DestroyArgs {
     #[arg(long)]
     pub volumes: bool,
 }
+
+// Start command
+#[derive(Args, Debug)]
+pub struct StartArgs;
+
+// Stop command
+#[derive(Args, Debug)]
+pub struct StopArgs;
 
 // Extension commands
 #[derive(Subcommand, Debug)]

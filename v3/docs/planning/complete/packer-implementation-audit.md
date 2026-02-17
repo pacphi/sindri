@@ -346,7 +346,7 @@ jobs:
    - `--security-group-ids ${{ secrets.AWS_SECURITY_GROUP_ID }}`
    - These assume specific infrastructure exists
 
-5. **InSpec Profile:** `v3/test/integration/sindri/` exists with controls for:
+5. **InSpec Profile:** `v3/inspec/integration/sindri/` exists with controls for:
    - `docker_installed.rb` - Docker installation verification
    - `extensions.rb` - Extension system checks
    - `mise.rb` - Mise installation
@@ -1286,7 +1286,7 @@ These provide excellent technical detail but need to be translated into user doc
    - Replace inline instance management with `.github/actions/packer/launch-instance`
    - Add `test-oci` and `test-alibaba` jobs for full coverage
    - Fix workflow_run trigger name: `"Build Sindri VM Images"` → `"v3: Build Sindri VM Images"`
-   - Verify InSpec profile path exists: `v3/test/integration/sindri/`
+   - Verify InSpec profile path exists: `v3/inspec/integration/sindri/`
 
 4. **Create providers/VM.md**
    - Follow pattern of DOCKER.md, FLY.md

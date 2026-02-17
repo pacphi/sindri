@@ -91,7 +91,7 @@ jobs:
 
       - name: Run InSpec Tests
         run: |
-          inspec exec v3/test/integration/sindri/ \
+          inspec exec v3/inspec/integration/sindri/ \
             -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
             -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json
@@ -149,7 +149,7 @@ jobs:
 
       - name: Run InSpec Tests
         run: |
-          inspec exec v3/test/integration/sindri/ \
+          inspec exec v3/inspec/integration/sindri/ \
             -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
             -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json
@@ -210,7 +210,7 @@ jobs:
 
       - name: Run InSpec Tests
         run: |
-          inspec exec v3/test/integration/sindri/ \
+          inspec exec v3/inspec/integration/sindri/ \
             -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
             -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json
@@ -274,7 +274,7 @@ jobs:
 
       - name: Run InSpec Tests
         run: |
-          inspec exec v3/test/integration/sindri/ \
+          inspec exec v3/inspec/integration/sindri/ \
             -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
             -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json
@@ -329,7 +329,7 @@ jobs:
 
       - name: Run InSpec Tests
         run: |
-          inspec exec v3/test/integration/sindri/ \
+          inspec exec v3/inspec/integration/sindri/ \
             -t ssh://${{ steps.launch.outputs.ssh-user }}@${{ steps.launch.outputs.public-ip }} \
             -i ${{ steps.launch.outputs.ssh-key-path }} \
             --reporter cli json:test-results.json

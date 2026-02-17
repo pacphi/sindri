@@ -582,3 +582,73 @@ Schema available at `v3/schemas/extension-source.schema.json`.
 | `v3/Dockerfile`                                   | Copy extension-source.yaml     |
 | `v3/Dockerfile.dev`                               | Copy extension-source.yaml     |
 | `v3/crates/sindri-extensions/Cargo.toml`          | Remove octocrab                |
+
+---
+
+## Amendment 2: Eliminate Hardcoded GitHub Repository References (2026-02)
+
+### Context for Amendment
+
+The first amendment introduced `ExtensionSourceConfig` and `extension-source.yaml` to externalize the GitHub repository configuration. However, four modules still bypassed this configuration with hardcoded `pacphi/sindri` values, breaking custom source configurations:
+
+1. **`registry.rs`** - `GITHUB_REPO` and `GITHUB_RAW_URL` constants for registry/profile fetches
+2. **`support_files.rs`** - `repo_owner` and `repo_name` String fields hardcoded in `new()`
+3. **`upgrade.rs`** - `COMPAT_MATRIX_URL` constant pointing to `pacphi/sindri/main`
+4. **`providers/utils.rs`** - Hardcoded `https://github.com/pacphi/sindri.git` clone URLs
+
+Additionally, the registry fetch always read from `main` branch, while every other GitHub-sourced resource (extensions, support files, compatibility matrix) tried the CLI version tag first. This inconsistency meant a released CLI could see registry entries for extensions not yet available at its tagged snapshot.
+
+### Decision Amendment
+
+#### 1. All GitHub URL construction uses `ExtensionSourceConfig`
+
+Every module that builds a GitHub URL now loads `ExtensionSourceConfig` (from `extension-source.yaml` or defaults) and delegates URL construction to `build_url()` or `build_repo_url()`. No module constructs GitHub URLs from string literals.
+
+`ExtensionSourceConfig` is now re-exported from the crate root (`sindri_extensions::ExtensionSourceConfig`) for ergonomic use by downstream crates.
+
+#### 2. Registry fetches use CLI version tag with main-branch fallback
+
+`ExtensionRegistry::fetch_from_github()` now:
+
+1. Builds the CLI version tag from `CARGO_PKG_VERSION` (e.g., `v3.0.0-alpha.18`)
+2. Probes `registry.yaml` at the tag
+3. If found, fetches both `registry.yaml` and `profiles.yaml` from that tag
+4. If not found (dev builds, unreleased tags), falls back to the caller's branch (typically `main`)
+
+This matches the tag-first-then-main pattern already established by `ExtensionDistributor`, `SupportFileManager`, and `fetch_sindri_build_context()`.
+
+#### 3. Consistent fallback strategy across all modules
+
+All modules now follow the same resolution pattern:
+
+| Module               | Primary source              | Fallback      |
+| -------------------- | --------------------------- | ------------- |
+| `distribution.rs`    | CLI version tag             | `main` branch |
+| `registry.rs`        | CLI version tag             | `main` branch |
+| `support_files.rs`   | CLI version tag             | Bundled files |
+| `upgrade.rs`         | `main` branch (intentional) | N/A           |
+| `providers/utils.rs` | CLI version tag             | `main` branch |
+
+**Note:** `upgrade.rs` intentionally uses `main` because the upgrade command checks what's compatible for upgrading _to a new version_, requiring the latest matrix.
+
+### Benefits
+
+1. **Custom source support works end-to-end**: Users pointing `extension-source.yaml` at a fork or mirror now get consistent behavior across all operations
+2. **Release snapshot consistency**: A tagged CLI release fetches registry, extensions, profiles, support files, and compatibility matrix all from the same tagged snapshot
+3. **Single source of truth**: Repository coordinates defined once in `extension-source.yaml`, not scattered across 4 modules
+
+### Trade-offs
+
+1. **Extra HTTP probe for registry**: One lightweight GET request to check if the tag exists (only when cache is stale, once per hour)
+2. **New workspace dependency**: `sindri-providers` now depends on `sindri-extensions` for `ExtensionSourceConfig` (no circular dependency)
+
+### Files Changed
+
+| File                                               | Change                                                                        |
+| -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `v3/crates/sindri-extensions/src/lib.rs`           | Re-export `ExtensionSourceConfig`                                             |
+| `v3/crates/sindri-extensions/src/registry.rs`      | Remove hardcoded constants; use `ExtensionSourceConfig`; tag-first resolution |
+| `v3/crates/sindri-extensions/src/support_files.rs` | Replace `repo_owner`/`repo_name` fields with `ExtensionSourceConfig`          |
+| `v3/crates/sindri/src/commands/upgrade.rs`         | Remove `COMPAT_MATRIX_URL` constant; build URL from config                    |
+| `v3/crates/sindri-providers/src/utils.rs`          | Derive clone URL from `ExtensionSourceConfig`                                 |
+| `v3/crates/sindri-providers/Cargo.toml`            | Add `sindri-extensions` workspace dependency                                  |

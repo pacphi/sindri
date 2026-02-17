@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 sindri-core = { workspace = true }
+sindri-extensions = { workspace = true }
 sindri-secrets = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
@@ -23,6 +24,15 @@ which = "8.0"
 chrono = { workspace = true }
 dirs = { workspace = true }
 base64 = "0.22"
+reqwest = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+mockall = "0.13"
+tokio = { workspace = true, features = ["test-util", "macros"] }
+serde_yaml_ng = { workspace = true }
+serde_json = { workspace = true }
+camino = { workspace = true }
+sindri-core = { workspace = true }
+serial_test = { workspace = true }
+wiremock = "0.6"

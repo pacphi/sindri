@@ -1,0 +1,327 @@
+# Reusable Workflow: Northflank Provider
+# Tests extensions on Northflank Kubernetes PaaS
+name: "v3: Provider - Northflank"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extension names to test'
+        type: string
+        required: true
+      max-parallel:
+        description: 'Maximum parallel jobs'
+        type: number
+        default: 2
+      node-plan:
+        description: 'Northflank compute plan (nf-compute-10, nf-compute-20, etc.)'
+        type: string
+        default: 'nf-compute-10'
+      sindri-image:
+        description: 'Sindri container image to test'
+        type: string
+        default: 'ghcr.io/pacphi/sindri:latest'
+
+    outputs:
+      results:
+        description: 'Test results JSON'
+        value: ${{ jobs.summary.outputs.results }}
+      passed:
+        description: 'Number of passed tests'
+        value: ${{ jobs.summary.outputs.passed }}
+      failed:
+        description: 'Number of failed tests'
+        value: ${{ jobs.summary.outputs.failed }}
+
+    secrets:
+      NORTHFLANK_API_TOKEN:
+        description: 'Northflank API token'
+        required: true
+
+env:
+  NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
+
+jobs:
+  # Test each extension on Northflank
+  test:
+    name: "Test: ${{ matrix.extension }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        extension: ${{ fromJson(inputs.extensions) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Northflank CLI
+        run: |
+          npm install -g @northflank/cli
+          northflank version || northflank --version || echo "Northflank CLI installed"
+
+      - name: Get Extension Requirements
+        id: requirements
+        run: |
+          EXT_FILE="v3/extensions/${{ matrix.extension }}/extension.yaml"
+          if [[ -f "$EXT_FILE" ]]; then
+            MEMORY=$(yq -r '.requirements.memory // 1024' "$EXT_FILE")
+            GPU=$(yq -r '.requirements.gpu // false' "$EXT_FILE")
+          else
+            MEMORY=1024
+            GPU=false
+          fi
+          echo "memory=$MEMORY" >> $GITHUB_OUTPUT
+          echo "gpu=$GPU" >> $GITHUB_OUTPUT
+
+          # Map memory to Northflank compute plan
+          if [[ $MEMORY -le 1024 ]]; then
+            PLAN="nf-compute-10"
+          elif [[ $MEMORY -le 2048 ]]; then
+            PLAN="nf-compute-20"
+          elif [[ $MEMORY -le 4096 ]]; then
+            PLAN="nf-compute-50"
+          else
+            PLAN="nf-compute-100"
+          fi
+          echo "plan=$PLAN" >> $GITHUB_OUTPUT
+
+      - name: Create Northflank Project
+        id: create-project
+        run: |
+          PROJECT_NAME="sindri-test-$(date +%s)"
+
+          echo "Creating Northflank project: $PROJECT_NAME"
+
+          northflank create project \
+            --name "$PROJECT_NAME" \
+            --description "Sindri CI test for ${{ matrix.extension }}" \
+            --output json > project.json 2>&1 || true
+
+          PROJECT_ID=$(jq -r '.data.id // empty' project.json 2>/dev/null || echo "")
+
+          if [[ -z "$PROJECT_ID" ]]; then
+            echo "::error::Failed to create Northflank project"
+            cat project.json || true
+            exit 1
+          fi
+
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
+          echo "Project created: $PROJECT_ID"
+
+      - name: Create Northflank Service
+        id: create-service
+        run: |
+          PROJECT_ID="${{ steps.create-project.outputs.project_id }}"
+          SERVICE_NAME="sindri-ext-test"
+
+          echo "Creating Northflank service: $SERVICE_NAME"
+
+          PLAN="${{ inputs.node-plan }}"
+          if [[ -z "$PLAN" || "$PLAN" == "nf-compute-10" ]]; then
+            PLAN="${{ steps.requirements.outputs.plan }}"
+          fi
+
+          northflank create service \
+            --projectId "$PROJECT_ID" \
+            --name "$SERVICE_NAME" \
+            --type "combined" \
+            --billing.deploymentPlan "$PLAN" \
+            --deployment.docker.image "${{ inputs.sindri-image }}" \
+            --deployment.docker.cmd '["sleep", "infinity"]' \
+            --output json > service.json 2>&1 || true
+
+          SERVICE_ID=$(jq -r '.data.id // empty' service.json 2>/dev/null || echo "")
+
+          if [[ -z "$SERVICE_ID" ]]; then
+            echo "::error::Failed to create Northflank service"
+            cat service.json || true
+            exit 1
+          fi
+
+          echo "service_id=$SERVICE_ID" >> $GITHUB_OUTPUT
+          echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
+          echo "Service created: $SERVICE_ID"
+
+      - name: Wait for Service Ready
+        id: wait
+        timeout-minutes: 10
+        run: |
+          PROJECT_ID="${{ steps.create-project.outputs.project_id }}"
+          SERVICE_ID="${{ steps.create-service.outputs.service_id }}"
+
+          echo "Waiting for service $SERVICE_ID to be ready..."
+
+          for i in $(seq 1 60); do
+            STATUS=$(northflank get service \
+              --projectId "$PROJECT_ID" \
+              --serviceId "$SERVICE_ID" \
+              --output json 2>/dev/null | jq -r '.data.status // "unknown"' 2>/dev/null || echo "unknown")
+
+            if [[ "$STATUS" == "running" ]]; then
+              echo "Service is running"
+              break
+            fi
+            echo "Status: $STATUS (attempt $i/60)"
+            sleep 10
+          done
+
+      - name: Run Extension Tests
+        id: test
+        timeout-minutes: 15
+        run: |
+          PROJECT_ID="${{ steps.create-project.outputs.project_id }}"
+          SERVICE_ID="${{ steps.create-service.outputs.service_id }}"
+
+          echo "::group::Installing ${{ matrix.extension }}"
+          START_TIME=$(date +%s)
+
+          if northflank exec service \
+            --projectId "$PROJECT_ID" \
+            --serviceId "$SERVICE_ID" \
+            -- sindri extension install ${{ matrix.extension }} --yes 2>&1 | tee install.log; then
+            INSTALL_RESULT="success"
+          else
+            INSTALL_RESULT="failure"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "::endgroup::"
+
+          if [[ "$INSTALL_RESULT" == "success" ]]; then
+            echo "::group::Validating ${{ matrix.extension }}"
+            if northflank exec service \
+              --projectId "$PROJECT_ID" \
+              --serviceId "$SERVICE_ID" \
+              -- sindri extension validate ${{ matrix.extension }} 2>&1 | tee validate.log; then
+              VALIDATE_RESULT="success"
+            else
+              VALIDATE_RESULT="failure"
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Removing ${{ matrix.extension }}"
+            northflank exec service \
+              --projectId "$PROJECT_ID" \
+              --serviceId "$SERVICE_ID" \
+              -- sindri extension remove ${{ matrix.extension }} --yes 2>&1 | tee remove.log || true
+            echo "::endgroup::"
+          else
+            VALIDATE_RESULT="skipped"
+          fi
+
+          echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
+          echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Cleanup Northflank Resources
+        if: always()
+        run: |
+          PROJECT_ID="${{ steps.create-project.outputs.project_id }}"
+          if [[ -n "$PROJECT_ID" ]]; then
+            echo "Destroying Northflank project: $PROJECT_ID"
+            northflank delete project --projectId "$PROJECT_ID" --yes || true
+          fi
+
+      - name: Create Test Report
+        id: report
+        if: always()
+        run: |
+          cat > test-result.json << EOF
+          {
+            "extension": "${{ matrix.extension }}",
+            "provider": "northflank",
+            "plan": "${{ steps.requirements.outputs.plan }}",
+            "install": {
+              "result": "${{ steps.test.outputs.install_result || 'error' }}",
+              "duration": ${{ steps.test.outputs.install_duration || 0 }}
+            },
+            "validate": {
+              "result": "${{ steps.test.outputs.validate_result || 'skipped' }}"
+            },
+            "overall": "${{ steps.test.outputs.install_result == 'success' && steps.test.outputs.validate_result == 'success' && 'passed' || 'failed' }}"
+          }
+          EOF
+
+          cat test-result.json
+          echo "result=$(cat test-result.json | jq -c .)" >> $GITHUB_OUTPUT
+
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: northflank-result-${{ matrix.extension }}
+          path: |
+            test-result.json
+            install.log
+            validate.log
+            remove.log
+          retention-days: 7
+
+  # Aggregate results
+  summary:
+    name: Test Summary
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.aggregate.outputs.results }}
+      passed: ${{ steps.aggregate.outputs.passed }}
+      failed: ${{ steps.aggregate.outputs.failed }}
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: northflank-result-*
+
+      - name: Aggregate Results
+        id: aggregate
+        run: |
+          RESULTS="[]"
+          PASSED=0
+          FAILED=0
+
+          for dir in results/*/; do
+            if [[ -f "$dir/test-result.json" ]]; then
+              RESULT=$(cat "$dir/test-result.json")
+              RESULTS=$(echo "$RESULTS" | jq --argjson r "$RESULT" '. + [$r]')
+
+              OVERALL=$(echo "$RESULT" | jq -r '.overall')
+              if [[ "$OVERALL" == "passed" ]]; then
+                PASSED=$((PASSED + 1))
+              else
+                FAILED=$((FAILED + 1))
+              fi
+            fi
+          done
+
+          {
+            echo "results<<EOF"
+            echo "$RESULTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+
+      - name: Generate Summary
+        run: |
+          echo "## Northflank Provider Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Plan:** ${{ inputs.node-plan }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Passed:** ${{ steps.aggregate.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed:** ${{ steps.aggregate.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Extension | Install | Validate | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|----------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | " +
+            (if .install.result == "success" then "pass" else "fail" end) + " | " +
+            (if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) +
+            " | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

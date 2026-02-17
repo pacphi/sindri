@@ -79,6 +79,10 @@ pub enum ToolCategory {
     ProviderE2B,
     /// Kubernetes provider tools
     ProviderKubernetes,
+    /// RunPod provider tools
+    ProviderRunpod,
+    /// Northflank provider tools
+    ProviderNorthflank,
     /// Local Kubernetes cluster tools (kind, k3d)
     KubernetesClusters,
     /// Packer/VM image building tools
@@ -105,6 +109,8 @@ impl ToolCategory {
             Self::ProviderDevpod => "DevPod Provider",
             Self::ProviderE2B => "E2B Provider",
             Self::ProviderKubernetes => "Kubernetes Provider",
+            Self::ProviderRunpod => "RunPod Provider",
+            Self::ProviderNorthflank => "Northflank Provider",
             Self::KubernetesClusters => "Local Kubernetes Clusters",
             Self::ProviderPacker => "Packer/VM Images",
             Self::Infrastructure => "Infrastructure-as-Code",
