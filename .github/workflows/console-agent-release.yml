@@ -1,0 +1,310 @@
+name: "Console Agent: Release"
+
+# Triggers on tags matching console-agent-v* (e.g. console-agent-v1.0.0).
+#
+# The extension downloads binaries from:
+#   https://github.com/pacphi/sindri/releases/download/console-agent-v${version}/sindri-agent-${os}-${arch}
+#
+# So this workflow uploads:
+#   sindri-agent-linux-amd64
+#   sindri-agent-linux-arm64
+#   sindri-agent-darwin-amd64
+#   sindri-agent-darwin-arm64
+
+on:
+  push:
+    tags:
+      - "console-agent-v*"
+
+defaults:
+  run:
+    working-directory: v3/console/agent
+
+jobs:
+  # ── validate the tag ────────────────────────────────────────────────────────
+  validate-tag:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      is_prerelease: ${{ steps.validate.outputs.is_prerelease }}
+    steps:
+      - name: Parse and validate tag
+        id: validate
+        run: |
+          tag_name="${GITHUB_REF#refs/tags/}"
+          echo "Tag: $tag_name"
+
+          # Must match: console-agent-v<major>.<minor>.<patch>[-prerelease]
+          if [[ ! $tag_name =~ ^console-agent-v([0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?)$ ]]; then
+            echo "::error::Invalid tag format: $tag_name"
+            echo "Expected: console-agent-v<semver>  e.g. console-agent-v1.0.0"
+            exit 1
+          fi
+
+          version="${BASH_REMATCH[1]}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if [[ "$version" =~ -[a-zA-Z] ]]; then
+            echo "is_prerelease=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Releasing console-agent v$version"
+
+  # ── unit tests must pass before we build release binaries ──────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: Run tests
+        run: go test ./... -count=1 -timeout 120s
+
+  # ── cross-compile all 4 static binaries ─────────────────────────────────────
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    needs: [validate-tag, test]
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: Build static binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+          VERSION: ${{ needs.validate-tag.outputs.version }}
+        run: |
+          BINARY_NAME="sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}"
+          go build \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "${BINARY_NAME}" \
+            ./cmd/agent
+
+          echo "Binary info:"
+          ls -lh "${BINARY_NAME}"
+          file  "${BINARY_NAME}" || true
+
+      - name: Generate SHA256 checksum
+        run: |
+          BINARY_NAME="sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}"
+          sha256sum "${BINARY_NAME}" > "${BINARY_NAME}.sha256"
+          echo "Checksum:"
+          cat "${BINARY_NAME}.sha256"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            v3/console/agent/sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}
+            v3/console/agent/sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+          retention-days: 1
+
+  # ── publish the GitHub Release ───────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-tag, build]
+    permissions:
+      contents: write
+    outputs:
+      release_url: ${{ steps.create_release.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts into release-assets/
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name "sindri-agent-*" \) -exec cp {} release-assets/ \;
+          echo "Release assets:"
+          ls -lh release-assets/
+        working-directory: ${{ github.workspace }}
+
+      - name: Combine checksums
+        run: |
+          cd release-assets
+          cat sindri-agent-*.sha256 > checksums.txt
+          echo ""
+          echo "Combined checksums:"
+          cat checksums.txt
+        working-directory: ${{ github.workspace }}
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          tag="console-agent-v${version}"
+          repo="${{ github.repository }}"
+          base_url="https://github.com/${repo}/releases/download/${tag}"
+
+          prev_tag=$(git tag --sort=-creatordate \
+            | grep '^console-agent-v' \
+            | grep -v "^${tag}$" \
+            | head -1 || true)
+
+          if [[ -n "$prev_tag" ]]; then
+            range="${prev_tag}..HEAD"
+          else
+            range="HEAD"
+          fi
+
+          {
+            echo "## What's Changed"
+            echo ""
+            git log $range --pretty=format:"- %s (%h)" -- v3/console/agent/ 2>/dev/null | head -50 || true
+            echo ""
+            echo ""
+            echo "## Installation"
+            echo ""
+            echo "The \`console-agent\` Sindri extension installs the binary automatically."
+            echo "To install manually:"
+            echo ""
+            echo '```bash'
+            echo "# Linux amd64"
+            echo "curl -fsSL ${base_url}/sindri-agent-linux-amd64 \\"
+            echo "  -o ~/.local/bin/sindri-agent && chmod +x ~/.local/bin/sindri-agent"
+            echo '```'
+            echo ""
+            echo "## Supported Platforms"
+            echo ""
+            echo "| OS | Architecture | Asset |"
+            echo "|----|--------------|-------|"
+            echo "| Linux | amd64 | \`sindri-agent-linux-amd64\` |"
+            echo "| Linux | arm64 | \`sindri-agent-linux-arm64\` |"
+            echo "| macOS | amd64 | \`sindri-agent-darwin-amd64\` |"
+            echo "| macOS | arm64 (M-series) | \`sindri-agent-darwin-arm64\` |"
+            echo ""
+            echo "## Configuration"
+            echo ""
+            echo "| Variable | Required | Default | Description |"
+            echo "|----------|----------|---------|-------------|"
+            echo "| \`SINDRI_CONSOLE_URL\` | yes | — | Console base URL |"
+            echo "| \`SINDRI_CONSOLE_API_KEY\` | yes | — | Authentication key |"
+            echo "| \`SINDRI_INSTANCE_ID\` | no | hostname | Unique instance identifier |"
+            echo "| \`SINDRI_PROVIDER\` | no | — | fly, docker, k8s, e2b, devpod |"
+            echo "| \`SINDRI_REGION\` | no | — | Geographic region |"
+            echo "| \`SINDRI_AGENT_HEARTBEAT\` | no | 30 | Heartbeat interval (seconds) |"
+            echo "| \`SINDRI_AGENT_METRICS\` | no | 60 | Metrics interval (seconds) |"
+            echo "| \`SINDRI_AGENT_TAGS\` | no | — | Comma-separated key=value labels |"
+            echo "| \`SINDRI_LOG_LEVEL\` | no | info | debug/info/warn/error |"
+          } > changelog.md
+        working-directory: ${{ github.workspace }}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Console Agent v${{ needs.validate-tag.outputs.version }}"
+          tag_name: "console-agent-v${{ needs.validate-tag.outputs.version }}"
+          body_path: changelog.md
+          prerelease: ${{ needs.validate-tag.outputs.is_prerelease == 'true' }}
+          files: |
+            release-assets/sindri-agent-linux-amd64
+            release-assets/sindri-agent-linux-arm64
+            release-assets/sindri-agent-darwin-amd64
+            release-assets/sindri-agent-darwin-arm64
+            release-assets/sindri-agent-linux-amd64.sha256
+            release-assets/sindri-agent-linux-arm64.sha256
+            release-assets/sindri-agent-darwin-amd64.sha256
+            release-assets/sindri-agent-darwin-arm64.sha256
+            release-assets/checksums.txt
+
+  # ── notify on outcome ────────────────────────────────────────────────────────
+  notify:
+    name: Notify outcome
+    runs-on: ubuntu-latest
+    needs: [validate-tag, release]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Success summary
+        if: needs.release.result == 'success'
+        run: |
+          version="${{ needs.validate-tag.outputs.version }}"
+          tag="console-agent-v${version}"
+          repo="${{ github.repository }}"
+          base_url="https://github.com/${repo}/releases/download/${tag}"
+
+          echo "::notice title=Release Published::console-agent v${version} published"
+          echo ""
+          echo "Asset download URLs:"
+          for target in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64; do
+            echo "  ${base_url}/sindri-agent-${target}"
+          done
+          echo ""
+          echo "Release URL: ${{ needs.release.outputs.release_url }}"
+        working-directory: ${{ github.workspace }}
+
+      - name: Open failure issue
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const version = '${{ needs.validate-tag.outputs.version }}';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title: `console-agent release v${version} failed`,
+              body: [
+                '## Release Failure',
+                '',
+                `The automated release for **console-agent v${version}** failed.`,
+                '',
+                '### Details',
+                '',
+                `- **Tag**: console-agent-v${version}`,
+                `- **Workflow run**: ${runUrl}`,
+                `- **Triggered by**: @${context.actor}`,
+                '',
+                '### To retry',
+                '',
+                '```bash',
+                `git tag -d console-agent-v${version}`,
+                `git push origin :refs/tags/console-agent-v${version}`,
+                '# fix the issue...',
+                `git tag console-agent-v${version}`,
+                `git push origin console-agent-v${version}`,
+                '```',
+              ].join('\n'),
+              labels: ['release-failure', 'automated', 'console-agent'],
+            });

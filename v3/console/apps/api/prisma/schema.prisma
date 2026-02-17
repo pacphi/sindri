@@ -1,0 +1,192 @@
+// Prisma schema for Sindri Console
+// PostgreSQL primary database for instance registry, observability, and administration
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enumerations
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum InstanceStatus {
+  RUNNING
+  STOPPED
+  DEPLOYING
+  DESTROYING
+  ERROR
+  UNKNOWN
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  DEVELOPER
+  VIEWER
+}
+
+enum TerminalSessionStatus {
+  ACTIVE
+  CLOSED
+  DISCONNECTED
+}
+
+enum EventType {
+  DEPLOY
+  REDEPLOY
+  CONNECT
+  DISCONNECT
+  BACKUP
+  RESTORE
+  DESTROY
+  EXTENSION_INSTALL
+  EXTENSION_REMOVE
+  HEARTBEAT_LOST
+  HEARTBEAT_RECOVERED
+  ERROR
+}
+
+enum ScheduledTaskStatus {
+  ACTIVE
+  PAUSED
+  DISABLED
+}
+
+enum TaskExecutionStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  SKIPPED
+  TIMED_OUT
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Core Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Represents a deployed Sindri environment instance across any provider.
+model Instance {
+  id           String         @id @default(cuid())
+  name         String         @unique
+  provider     String         // fly, docker, devpod, e2b, kubernetes
+  region       String?        // e.g. sea, iad, us-east-1
+  extensions   String[]       // List of installed extension names
+  config_hash  String?        // SHA256 of sindri.yaml at deploy time
+  ssh_endpoint String?        // SSH connection string (host:port)
+  status       InstanceStatus @default(UNKNOWN)
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+
+  // Relations
+  heartbeats       Heartbeat[]
+  events           Event[]
+  terminal_sessions TerminalSession[]
+
+  @@index([status])
+  @@index([provider])
+  @@index([created_at])
+}
+
+/// Periodic health/metrics ping from a running Sindri instance agent.
+model Heartbeat {
+  id           String   @id @default(cuid())
+  instance_id  String
+  timestamp    DateTime @default(now())
+  cpu_percent  Float    // 0–100
+  memory_used  BigInt   // bytes
+  memory_total BigInt   // bytes
+  disk_used    BigInt   // bytes
+  disk_total   BigInt   // bytes
+  uptime       BigInt   // seconds
+
+  // Relations
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([timestamp])
+  @@index([instance_id, timestamp])
+}
+
+/// Lifecycle and operational events emitted by instances or the Console.
+model Event {
+  id          String    @id @default(cuid())
+  instance_id String
+  event_type  EventType
+  timestamp   DateTime  @default(now())
+  metadata    Json?     // Arbitrary structured payload per event type
+
+  // Relations
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([event_type])
+  @@index([timestamp])
+  @@index([instance_id, timestamp])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User & Access Management
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Console user accounts with RBAC role assignment.
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String   // bcrypt hash; null if SSO-only
+  role          UserRole @default(DEVELOPER)
+  created_at    DateTime @default(now())
+
+  // Relations
+  api_keys          ApiKey[]
+  terminal_sessions TerminalSession[]
+
+  @@index([email])
+  @@index([role])
+}
+
+/// API keys for CI/CD and programmatic access to the Console API.
+model ApiKey {
+  id         String    @id @default(cuid())
+  user_id    String
+  key_hash   String    @unique // SHA256 of the raw key; raw key shown once at creation
+  name       String            // Human-readable label
+  created_at DateTime  @default(now())
+  expires_at DateTime?         // Null means non-expiring
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([key_hash])
+  @@index([expires_at])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Terminal Sessions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Web terminal sessions opened from the Console to a Sindri instance.
+model TerminalSession {
+  id          String                @id @default(cuid())
+  instance_id String
+  user_id     String
+  started_at  DateTime              @default(now())
+  ended_at    DateTime?
+  status      TerminalSessionStatus @default(ACTIVE)
+
+  // Relations
+  instance Instance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([instance_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([started_at])
+  @@index([instance_id, user_id])
+}

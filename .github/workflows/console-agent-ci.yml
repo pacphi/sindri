@@ -1,0 +1,101 @@
+name: "Console Agent: CI"
+
+# Runs on every pull request that touches the Go agent source,
+# and on direct pushes to main that touch those paths.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "v3/console/agent/**"
+      - ".github/workflows/console-agent-ci.yml"
+  pull_request:
+    paths:
+      - "v3/console/agent/**"
+      - ".github/workflows/console-agent-ci.yml"
+
+defaults:
+  run:
+    working-directory: v3/console/agent
+
+jobs:
+  # ── lint & vet ─────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Check go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum || {
+            echo "::error::go.mod or go.sum is not tidy. Run 'go mod tidy' and commit the result."
+            exit 1
+          }
+
+  # ── unit tests ─────────────────────────────────────────────────────────────
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: Run tests
+        run: go test ./... -count=1 -timeout 120s -race
+
+  # ── build (verify all 4 cross-compile targets succeed) ─────────────────────
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          go build -ldflags "-s -w" -o sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/agent
+          ls -lh sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}

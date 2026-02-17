@@ -1,0 +1,32 @@
+{
+  "name": "sindri-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sindri Console — orchestration, administration, and observability for Sindri environments",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "turbo run db:generate --filter=@sindri-console/api",
+    "db:migrate": "pnpm --filter=@sindri-console/api run db:migrate",
+    "db:migrate:deploy": "turbo run db:migrate:deploy --filter=@sindri-console/api",
+    "db:seed": "pnpm --filter=@sindri-console/api run db:seed",
+    "db:reset": "pnpm --filter=@sindri-console/api run db:reset",
+    "db:studio": "pnpm --filter=@sindri-console/api run db:studio",
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose down",
+    "infra:reset": "docker compose down -v && docker compose up -d postgres redis",
+    "infra:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

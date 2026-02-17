@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+.turbo/
+
+# Environment files — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Prisma generated client
+apps/api/node_modules/.prisma/
+
+# Test coverage
+coverage/
+*.lcov
+
+# Go build artifacts
+agent/dist/
+agent/bin/
+agent/*.exe
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/settings.json
+
+# Docker volumes (if accidentally created locally)
+postgres_data/
+redis_data/

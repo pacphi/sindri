@@ -1,0 +1,29 @@
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    globals: false,
+    environment: "node",
+    // Unit and mock-based integration tests that run without a live server.
+    // Tests that require a running server (agent-registration, auth-middleware,
+    // database-operations, heartbeat-metrics, terminal-session) are tagged as
+    // "integration" and run separately against a real deployment using:
+    //   VITEST_MODE=integration npm test
+    include:
+      process.env.VITEST_MODE === "integration"
+        ? [
+            "tests/agent-registration.test.ts",
+            "tests/auth-middleware.test.ts",
+            "tests/database-operations.test.ts",
+            "tests/heartbeat-metrics.test.ts",
+            "tests/terminal-session.test.ts",
+          ]
+        : ["tests/instances.test.ts", "tests/websocket-channels.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov"],
+      include: ["src/**/*.ts"],
+      exclude: ["src/index.ts"],
+    },
+  },
+});

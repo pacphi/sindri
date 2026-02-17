@@ -5,3 +5,5 @@ packages:
   - "."
   - "v2"
   - "v3"
+  - "v3/console/apps/*"
+  - "v3/console/packages/*"

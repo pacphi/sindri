@@ -1,0 +1,323 @@
+name: "Console Agent: Test & Lint"
+
+# CI workflow for the sindri-agent Go binary.
+# Runs on changes to the agent source or manual dispatch.
+# Tests: unit tests, cross-compilation, binary size checks, golangci-lint.
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "v3/console/agent/**"
+      - ".github/workflows/console-agent-test.yml"
+      - ".github/workflows/console-agent-release.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "v3/console/agent/**"
+      - ".github/workflows/console-agent-test.yml"
+      - ".github/workflows/console-agent-release.yml"
+  workflow_dispatch:
+    inputs:
+      run_race_detector:
+        description: "Run tests with race detector"
+        required: false
+        default: true
+        type: boolean
+      lint_only:
+        description: "Run lint only (skip tests)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: console-agent-test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_MODULE_PATH: v3/console/agent
+  # Maximum acceptable binary size for linux/amd64 (20 MB)
+  MAX_BINARY_SIZE_MB: 20
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Read Go version once for use across all jobs
+  # ---------------------------------------------------------------------------
+  go-version:
+    name: Detect Go Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Extract Go version from go.mod
+        id: version
+        run: |
+          go_version=$(grep '^go ' "${{ env.GO_MODULE_PATH }}/go.mod" | awk '{print $2}')
+          echo "version=${go_version}" >> "$GITHUB_OUTPUT"
+          echo "Using Go ${go_version}"
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Lint with golangci-lint
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: go-version
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go-version.outputs.version }}
+          cache: true
+          cache-dependency-path: ${{ env.GO_MODULE_PATH }}/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          working-directory: ${{ env.GO_MODULE_PATH }}
+          args: >-
+            --timeout=5m
+            --enable=govet,errcheck,staticcheck,unused,gosimple,ineffassign,typecheck
+            --enable=gofmt,goimports,misspell,unconvert,unparam
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Unit tests (native platform)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: go-version
+    if: github.event.inputs.lint_only != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go-version.outputs.version }}
+          cache: true
+          cache-dependency-path: ${{ env.GO_MODULE_PATH }}/go.sum
+
+      - name: Run unit tests
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          cd "${{ env.GO_MODULE_PATH }}"
+          go test \
+            -v \
+            -count=1 \
+            -timeout=5m \
+            ./...
+
+      - name: Run unit tests with race detector
+        if: github.event.inputs.run_race_detector != 'false'
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          cd "${{ env.GO_MODULE_PATH }}"
+          go test \
+            -v \
+            -race \
+            -count=1 \
+            -timeout=5m \
+            ./...
+
+      - name: Generate test coverage report
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          cd "${{ env.GO_MODULE_PATH }}"
+          go test \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            -timeout=5m \
+            ./...
+          go tool cover -func=coverage.out | tail -1
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: |
+            ${{ env.GO_MODULE_PATH }}/coverage.out
+            ${{ env.GO_MODULE_PATH }}/coverage.html
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Job 4: Cross-compilation verification for all 4 target platforms
+  # ---------------------------------------------------------------------------
+  cross-compile:
+    name: Cross-compile ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    needs: go-version
+    if: github.event.inputs.lint_only != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go-version.outputs.version }}
+          cache: true
+          cache-dependency-path: ${{ env.GO_MODULE_PATH }}/go.sum
+
+      - name: Cross-compile for ${{ matrix.goos }}/${{ matrix.goarch }}
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          output="sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}"
+          echo "Building ${output}..."
+
+          go build \
+            -C "${{ env.GO_MODULE_PATH }}" \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o "$GITHUB_WORKSPACE/${output}" \
+            ./cmd/agent
+
+          echo "Build successful"
+          ls -lh "$GITHUB_WORKSPACE/${output}"
+
+      - name: Check binary size
+        run: |
+          binary="sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}"
+          size_bytes=$(stat -c%s "$GITHUB_WORKSPACE/${binary}")
+          size_mb=$(echo "scale=2; ${size_bytes} / 1048576" | bc)
+          max_mb="${{ env.MAX_BINARY_SIZE_MB }}"
+
+          echo "Binary size: ${size_mb} MB (limit: ${max_mb} MB)"
+
+          if (( $(echo "${size_mb} > ${max_mb}" | bc -l) )); then
+            echo "::error::Binary ${binary} exceeds size limit: ${size_mb} MB > ${max_mb} MB"
+            exit 1
+          else
+            echo "Binary size check passed: ${size_mb} MB"
+          fi
+
+      - name: Verify binary is statically compiled (Linux only)
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+        run: |
+          binary="$GITHUB_WORKSPACE/sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}"
+          echo "Checking linkage of $(basename "$binary")..."
+          ldd_output=$(ldd "$binary" 2>&1 || true)
+          echo "$ldd_output"
+
+          if echo "$ldd_output" | grep -q "not a dynamic executable"; then
+            echo "Confirmed: binary is statically linked"
+          elif echo "$ldd_output" | grep -qE "linux-vdso|ld-linux"; then
+            echo "::error::Binary has dynamic dependencies - ensure CGO_ENABLED=0"
+            exit 1
+          else
+            echo "Static linking confirmed (ldd could not resolve dynamic deps)"
+          fi
+
+      - name: Upload compiled binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: cross-binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}
+          retention-days: 3
+
+  # ---------------------------------------------------------------------------
+  # Job 5: go vet and build checks
+  # ---------------------------------------------------------------------------
+  vet:
+    name: Go Vet & Build Check
+    runs-on: ubuntu-latest
+    needs: go-version
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go-version.outputs.version }}
+          cache: true
+          cache-dependency-path: ${{ env.GO_MODULE_PATH }}/go.sum
+
+      - name: Run go vet
+        run: |
+          cd "${{ env.GO_MODULE_PATH }}"
+          go vet ./...
+
+      - name: Check go mod tidy
+        run: |
+          cd "${{ env.GO_MODULE_PATH }}"
+          go mod tidy
+          if ! git diff --quiet go.mod go.sum; then
+            echo "::error::go.mod or go.sum is not tidy. Run 'go mod tidy' and commit the changes."
+            git diff go.mod go.sum
+            exit 1
+          fi
+          echo "go.mod and go.sum are tidy"
+
+      - name: Check formatting
+        run: |
+          cd "${{ env.GO_MODULE_PATH }}"
+          unformatted=$(gofmt -l .)
+          if [[ -n "${unformatted}" ]]; then
+            echo "::error::The following files are not gofmt-formatted:"
+            echo "${unformatted}"
+            echo ""
+            echo "Run 'gofmt -w .' to format the code."
+            exit 1
+          fi
+          echo "All files are properly formatted"
+
+  # ---------------------------------------------------------------------------
+  # Job 6: Summary
+  # ---------------------------------------------------------------------------
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test, cross-compile, vet]
+    if: always()
+    steps:
+      - name: Report results
+        run: |
+          echo "=== Console Agent CI Summary ==="
+          echo "Lint:          ${{ needs.lint.result }}"
+          echo "Unit Tests:    ${{ needs.test.result }}"
+          echo "Cross-compile: ${{ needs.cross-compile.result }}"
+          echo "Vet & Format:  ${{ needs.vet.result }}"
+          echo ""
+
+          # Fail if any required job failed
+          failed=false
+          for result in "${{ needs.lint.result }}" "${{ needs.test.result }}" "${{ needs.cross-compile.result }}" "${{ needs.vet.result }}"; do
+            if [[ "$result" == "failure" ]]; then
+              failed=true
+            fi
+          done
+
+          if [[ "$failed" == "true" ]]; then
+            echo "::error::One or more CI checks failed"
+            exit 1
+          else
+            echo "All checks passed"
+          fi
