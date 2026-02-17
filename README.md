@@ -33,6 +33,7 @@ Like its mythological namesake, Sindri forges powerful development environments 
 
 - **[v2](v2)** - Bash/Docker implementation (stable)
 - **[v3](v3)** - Rust CLI implementation (active development)
+- **[Console](v3/console)** - Web-based management console (Go agent + TypeScript API + React UI)
 
 ## Quick Start (v3)
 
@@ -127,6 +128,106 @@ Example prompts:
 ```
 
 See [Version Comparison](docs/migration/COMPARISON_GUIDE.md) for detailed differences.
+
+## Console Development
+
+The Sindri Console is a full-stack management UI for deployed instances. It consists of:
+
+- **Agent** (`v3/console/agent/`) — Go binary, runs on managed instances
+- **API** (`v3/console/apps/api/`) — Hono/TypeScript backend with PostgreSQL + Redis
+- **Web** (`v3/console/apps/web/`) — React + Vite frontend
+
+### Quick Start
+
+```bash
+# Install TypeScript dependencies
+make console-install
+
+# Start dev servers (API + Web with hot reload)
+make console-dev
+
+# Build the agent binary for the current platform
+make console-agent-build
+```
+
+### Makefile Target Reference
+
+All targets are available from the repo root. Run `make help` for the full list.
+
+#### Console Agent (Go)
+
+```bash
+make console-agent-build       # Build for current platform → dist/sindri-agent
+make console-agent-build-all   # Cross-compile: linux/amd64, linux/arm64, darwin/amd64, darwin/arm64
+make console-agent-test        # Unit tests (with -race)
+make console-agent-vet         # go vet
+make console-agent-fmt         # Format with gofmt
+make console-agent-fmt-check   # Check formatting (non-destructive)
+make console-agent-lint        # golangci-lint
+make console-agent-audit       # govulncheck vulnerability scan
+make console-agent-install     # Install binary to GOPATH/bin
+make console-agent-clean       # Remove dist/
+make console-agent-ci          # Agent CI: vet + test + build-all
+```
+
+#### Console TypeScript (API + Web)
+
+```bash
+make console-install             # Install all npm dependencies (pnpm)
+make console-dev                 # Start development servers
+make console-build               # Production build
+make console-test                # Vitest unit tests
+make console-test-coverage       # Tests with coverage report
+make console-lint                # ESLint
+make console-fmt                 # Prettier (write)
+make console-fmt-check           # Prettier (check only)
+make console-typecheck           # TypeScript type check
+make console-audit               # npm vulnerability audit
+make console-audit-fix           # Apply safe audit fixes
+make console-db-migrate          # Apply Prisma migrations
+make console-db-generate         # Regenerate Prisma client
+make console-clean               # Remove build artifacts + node_modules
+make console-ci                  # Full console CI pipeline
+```
+
+#### Aggregate targets
+
+```bash
+make ci      # Full CI: v2-ci + v3-ci + console-ci
+make clean   # Remove all build artifacts (v2, v3, console, agent)
+```
+
+### Prerequisites
+
+| Tool           | Required by              | Minimum version |
+| -------------- | ------------------------ | --------------- |
+| `go`           | console-agent-* targets  | 1.22            |
+| `pnpm`         | console-* TS targets     | 9               |
+| `node`         | console-* TS targets     | 20              |
+| `golangci-lint`| console-agent-lint       | latest          |
+| `govulncheck`  | console-agent-audit      | latest          |
+
+Optional tools (`golangci-lint`, `govulncheck`) print a warning and are skipped if absent.
+
+### Verifying Makefile Targets
+
+```bash
+# Fast syntax check — no compilation
+./scripts/test-makefile-targets.sh --dry-run
+
+# Agent targets only
+./scripts/test-makefile-targets.sh --agent-only
+
+# All targets (requires Go + pnpm + node_modules)
+./scripts/test-makefile-targets.sh
+```
+
+CI automatically validates all console Makefile targets on every PR via
+`.github/workflows/console-makefile-ci.yml`.
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md#console-development) for the full Console development guide.
+
+---
 
 ## License
 
