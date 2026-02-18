@@ -39,7 +39,7 @@ linters:
     - nestif
 
   disable:
-    - err113  # Can be overly strict for some codebases
+    - err113 # Can be overly strict for some codebases
     - wrapcheck # Can be overly verbose
 
   settings:
@@ -63,6 +63,16 @@ linters:
           - unparam
           - errcheck
         path: _test\.go
+      # G702: taint-analysis command injection — shell path is intentionally configurable for PTY
+      - linters:
+          - gosec
+        text: "G702"
+        path: internal/terminal/pty\.go
+      # G704: taint-analysis SSRF — registration URL comes from trusted agent config
+      - linters:
+          - gosec
+        text: "G704"
+        path: internal/registration/registration\.go
 
 formatters:
   enable:
