@@ -1,27 +1,25 @@
-import { useProcessList } from '@/hooks/useMetrics'
-import { MetricsGauge } from '@/components/instances/MetricsGauge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn, formatBytes } from '@/lib/utils'
-import { RefreshCw, Cpu } from 'lucide-react'
+import { useProcessList } from "@/hooks/useMetrics";
+import { MetricsGauge } from "@/components/instances/MetricsGauge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn, formatBytes } from "@/lib/utils";
+import { RefreshCw, Cpu } from "lucide-react";
 
-const TOP_N = 10
+const TOP_N = 10;
 
 interface ProcessTreeProps {
-  instanceId: string
-  className?: string
+  instanceId: string;
+  className?: string;
 }
 
 export function ProcessTree({ instanceId, className }: ProcessTreeProps) {
-  const { data, isLoading, isError, isFetching } = useProcessList(instanceId)
+  const { data, isLoading, isError, isFetching } = useProcessList(instanceId);
 
   const processes = data
-    ? [...data.processes]
-        .sort((a, b) => b.cpu_percent - a.cpu_percent)
-        .slice(0, TOP_N)
-    : []
+    ? [...data.processes].sort((a, b) => b.cpu_percent - a.cpu_percent).slice(0, TOP_N)
+    : [];
 
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn("", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -69,8 +67,8 @@ export function ProcessTree({ instanceId, className }: ProcessTreeProps) {
                 <tr
                   key={proc.pid}
                   className={cn(
-                    'border-b last:border-0',
-                    idx % 2 === 0 ? 'bg-background' : 'bg-muted/10',
+                    "border-b last:border-0",
+                    idx % 2 === 0 ? "bg-background" : "bg-muted/10",
                   )}
                 >
                   <td className="h-11 px-4 tabular-nums text-muted-foreground">{proc.pid}</td>
@@ -80,20 +78,10 @@ export function ProcessTree({ instanceId, className }: ProcessTreeProps) {
                     </span>
                   </td>
                   <td className="h-11 px-4">
-                    <MetricsGauge
-                      label=""
-                      value={proc.cpu_percent}
-                      size="sm"
-                      className="w-24"
-                    />
+                    <MetricsGauge label="" value={proc.cpu_percent} size="sm" className="w-24" />
                   </td>
                   <td className="h-11 px-4 hidden sm:table-cell">
-                    <MetricsGauge
-                      label=""
-                      value={proc.memory_percent}
-                      size="sm"
-                      className="w-28"
-                    />
+                    <MetricsGauge label="" value={proc.memory_percent} size="sm" className="w-28" />
                     <span className="text-muted-foreground block mt-0.5">
                       {formatBytes(proc.memory_bytes)}
                     </span>
@@ -108,5 +96,5 @@ export function ProcessTree({ instanceId, className }: ProcessTreeProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

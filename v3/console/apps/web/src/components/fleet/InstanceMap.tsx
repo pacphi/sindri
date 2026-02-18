@@ -1,48 +1,36 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { GeoPin } from '@/types/fleet'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { GeoPin } from "@/types/fleet";
 
 // Simple equirectangular projection: map lat/lon to SVG coordinates
 function project(lat: number, lon: number, width: number, height: number) {
-  const x = ((lon + 180) / 360) * width
-  const y = ((90 - lat) / 180) * height
-  return { x, y }
+  const x = ((lon + 180) / 360) * width;
+  const y = ((90 - lat) / 180) * height;
+  return { x, y };
 }
 
 interface PinProps {
-  pin: GeoPin
-  width: number
-  height: number
+  pin: GeoPin;
+  width: number;
+  height: number;
 }
 
 function MapPin({ pin, width, height }: PinProps) {
-  const { x, y } = project(pin.lat, pin.lon, width, height)
-  const isHealthy = (pin.statuses['RUNNING'] ?? 0) === pin.count
-  const hasError = (pin.statuses['ERROR'] ?? 0) > 0
+  const { x, y } = project(pin.lat, pin.lon, width, height);
+  const isHealthy = (pin.statuses["RUNNING"] ?? 0) === pin.count;
+  const hasError = (pin.statuses["ERROR"] ?? 0) > 0;
 
-  const color = hasError ? '#ef4444' : isHealthy ? '#10b981' : '#f59e0b'
-  const radius = Math.min(4 + pin.count * 1.5, 12)
+  const color = hasError ? "#ef4444" : isHealthy ? "#10b981" : "#f59e0b";
+  const radius = Math.min(4 + pin.count * 1.5, 12);
 
   return (
     <g>
       <title>
-        {pin.label} — {pin.count} instance{pin.count !== 1 ? 's' : ''}
-        {pin.statuses['RUNNING'] ? `, ${pin.statuses['RUNNING']} running` : ''}
-        {pin.statuses['ERROR'] ? `, ${pin.statuses['ERROR']} error` : ''}
+        {pin.label} — {pin.count} instance{pin.count !== 1 ? "s" : ""}
+        {pin.statuses["RUNNING"] ? `, ${pin.statuses["RUNNING"]} running` : ""}
+        {pin.statuses["ERROR"] ? `, ${pin.statuses["ERROR"]} error` : ""}
       </title>
-      <circle
-        cx={x}
-        cy={y}
-        r={radius + 2}
-        fill={color}
-        fillOpacity={0.2}
-      />
-      <circle
-        cx={x}
-        cy={y}
-        r={radius}
-        fill={color}
-        fillOpacity={0.85}
-      />
+      <circle cx={x} cy={y} r={radius + 2} fill={color} fillOpacity={0.2} />
+      <circle cx={x} cy={y} r={radius} fill={color} fillOpacity={0.85} />
       <text
         x={x}
         y={y + 1}
@@ -55,12 +43,12 @@ function MapPin({ pin, width, height }: PinProps) {
         {pin.count}
       </text>
     </g>
-  )
+  );
 }
 
 interface InstanceMapProps {
-  pins: GeoPin[]
-  loading?: boolean
+  pins: GeoPin[];
+  loading?: boolean;
 }
 
 // Minimal world map outline as a simplified SVG path (Robinson-like approximation)
@@ -78,11 +66,11 @@ const WORLD_LAND_PATH = `
   M 215,50 L 240,48 L 255,55 L 255,65 L 240,70 L 220,68 Z
   M 250,48 L 275,45 L 295,48 L 300,55 L 285,62 L 265,60 L 250,55 Z
   M 295,55 L 330,52 L 350,58 L 345,70 L 320,72 L 295,65 Z
-`
+`;
 
 export function InstanceMap({ pins, loading }: InstanceMapProps) {
-  const width = 360
-  const height = 180
+  const width = 360;
+  const height = 180;
 
   return (
     <Card>
@@ -97,7 +85,7 @@ export function InstanceMap({ pins, loading }: InstanceMapProps) {
             <svg
               viewBox={`0 0 ${width} ${height}`}
               className="w-full h-auto"
-              style={{ display: 'block' }}
+              style={{ display: "block" }}
               aria-label="World map with instance location pins"
             >
               {/* Ocean background */}
@@ -115,7 +103,7 @@ export function InstanceMap({ pins, loading }: InstanceMapProps) {
 
               {/* Grid lines */}
               {[-60, -30, 0, 30, 60].map((lat) => {
-                const { y } = project(lat, 0, width, height)
+                const { y } = project(lat, 0, width, height);
                 return (
                   <line
                     key={lat}
@@ -127,10 +115,10 @@ export function InstanceMap({ pins, loading }: InstanceMapProps) {
                     strokeOpacity={0.08}
                     strokeWidth={0.5}
                   />
-                )
+                );
               })}
               {[-120, -60, 0, 60, 120].map((lon) => {
-                const { x } = project(0, lon, width, height)
+                const { x } = project(0, lon, width, height);
                 return (
                   <line
                     key={lon}
@@ -142,17 +130,12 @@ export function InstanceMap({ pins, loading }: InstanceMapProps) {
                     strokeOpacity={0.08}
                     strokeWidth={0.5}
                   />
-                )
+                );
               })}
 
               {/* Instance pins */}
               {pins.map((pin) => (
-                <MapPin
-                  key={pin.region}
-                  pin={pin}
-                  width={width}
-                  height={height}
-                />
+                <MapPin key={pin.region} pin={pin} width={width} height={height} />
               ))}
             </svg>
 
@@ -181,5 +164,5 @@ export function InstanceMap({ pins, loading }: InstanceMapProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

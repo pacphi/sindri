@@ -2,9 +2,9 @@
  * User management service — CRUD operations for console users.
  */
 
-import type { User, UserRole, Prisma } from '@prisma/client';
-import { createHash } from 'crypto';
-import { db } from '../lib/db.js';
+import type { User, UserRole, Prisma } from "@prisma/client";
+import { createHash } from "crypto";
+import { db } from "../lib/db.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Input types
@@ -39,7 +39,7 @@ export interface ListUsersFilter {
 
 function hashPassword(password: string): string {
   // Simple SHA-256 hash for demo; in production use bcrypt
-  return createHash('sha256').update(password).digest('hex');
+  return createHash("sha256").update(password).digest("hex");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
       email: input.email,
       name: input.name ?? null,
       password_hash,
-      role: input.role ?? 'DEVELOPER',
+      role: input.role ?? "DEVELOPER",
     },
   });
 }
@@ -75,8 +75,8 @@ export async function listUsers(filter: ListUsersFilter): Promise<{
   if (filter.is_active !== undefined) where.is_active = filter.is_active;
   if (filter.search) {
     where.OR = [
-      { email: { contains: filter.search, mode: 'insensitive' } },
-      { name: { contains: filter.search, mode: 'insensitive' } },
+      { email: { contains: filter.search, mode: "insensitive" } },
+      { name: { contains: filter.search, mode: "insensitive" } },
     ];
   }
 
@@ -85,7 +85,7 @@ export async function listUsers(filter: ListUsersFilter): Promise<{
       where,
       skip,
       take: pageSize,
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
     }),
     db.user.count({ where }),
   ]);

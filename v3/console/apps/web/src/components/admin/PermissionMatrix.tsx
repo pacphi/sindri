@@ -1,62 +1,62 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ROLE_PERMISSIONS } from '@/types/rbac'
-import type { UserRole } from '@/types/rbac'
-import { Check, X, ShieldCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ROLE_PERMISSIONS } from "@/types/rbac";
+import type { UserRole } from "@/types/rbac";
+import { Check, X, ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const ROLES: UserRole[] = ['ADMIN', 'OPERATOR', 'DEVELOPER', 'VIEWER']
+const ROLES: UserRole[] = ["ADMIN", "OPERATOR", "DEVELOPER", "VIEWER"];
 
 const PERMISSION_GROUPS = [
   {
-    label: 'Instances',
+    label: "Instances",
     permissions: [
-      { key: 'instances.view', label: 'View instances' },
-      { key: 'instances.create', label: 'Register/create' },
-      { key: 'instances.deploy', label: 'Deploy' },
-      { key: 'instances.connect', label: 'Connect terminal' },
-      { key: 'instances.execute', label: 'Execute commands' },
-      { key: 'instances.suspend', label: 'Suspend' },
-      { key: 'instances.resume', label: 'Resume' },
-      { key: 'instances.delete', label: 'Destroy/delete' },
+      { key: "instances.view", label: "View instances" },
+      { key: "instances.create", label: "Register/create" },
+      { key: "instances.deploy", label: "Deploy" },
+      { key: "instances.connect", label: "Connect terminal" },
+      { key: "instances.execute", label: "Execute commands" },
+      { key: "instances.suspend", label: "Suspend" },
+      { key: "instances.resume", label: "Resume" },
+      { key: "instances.delete", label: "Destroy/delete" },
     ],
   },
   {
-    label: 'Users',
+    label: "Users",
     permissions: [
-      { key: 'users.view', label: 'View users' },
-      { key: 'users.create', label: 'Create users' },
-      { key: 'users.edit', label: 'Edit users' },
-      { key: 'users.delete', label: 'Delete users' },
+      { key: "users.view", label: "View users" },
+      { key: "users.create", label: "Create users" },
+      { key: "users.edit", label: "Edit users" },
+      { key: "users.delete", label: "Delete users" },
     ],
   },
   {
-    label: 'Teams',
+    label: "Teams",
     permissions: [
-      { key: 'teams.view', label: 'View teams' },
-      { key: 'teams.create', label: 'Create teams' },
-      { key: 'teams.edit', label: 'Edit teams' },
-      { key: 'teams.delete', label: 'Delete teams' },
+      { key: "teams.view", label: "View teams" },
+      { key: "teams.create", label: "Create teams" },
+      { key: "teams.edit", label: "Edit teams" },
+      { key: "teams.delete", label: "Delete teams" },
     ],
   },
   {
-    label: 'Audit',
-    permissions: [{ key: 'audit.view', label: 'View audit logs' }],
+    label: "Audit",
+    permissions: [{ key: "audit.view", label: "View audit logs" }],
   },
-]
+];
 
 const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
-  ADMIN: 'Full system access',
-  OPERATOR: 'Deploy and manage instances',
-  DEVELOPER: 'Connect and execute commands',
-  VIEWER: 'Read-only access',
-}
+  ADMIN: "Full system access",
+  OPERATOR: "Deploy and manage instances",
+  DEVELOPER: "Connect and execute commands",
+  VIEWER: "Read-only access",
+};
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  ADMIN: 'text-red-600 dark:text-red-400',
-  OPERATOR: 'text-orange-600 dark:text-orange-400',
-  DEVELOPER: 'text-blue-600 dark:text-blue-400',
-  VIEWER: 'text-gray-600 dark:text-gray-400',
-}
+  ADMIN: "text-red-600 dark:text-red-400",
+  OPERATOR: "text-orange-600 dark:text-orange-400",
+  DEVELOPER: "text-blue-600 dark:text-blue-400",
+  VIEWER: "text-gray-600 dark:text-gray-400",
+};
 
 export function PermissionMatrix() {
   return (
@@ -76,7 +76,7 @@ export function PermissionMatrix() {
         {ROLES.map((role) => (
           <Card key={role} className="text-center">
             <CardHeader className="pb-2">
-              <CardTitle className={cn('text-sm font-semibold', ROLE_COLORS[role])}>
+              <CardTitle className={cn("text-sm font-semibold", ROLE_COLORS[role])}>
                 {role}
               </CardTitle>
             </CardHeader>
@@ -106,7 +106,7 @@ export function PermissionMatrix() {
                   <th
                     key={role}
                     className={cn(
-                      'text-center px-4 py-3 font-semibold text-xs uppercase tracking-wide',
+                      "text-center px-4 py-3 font-semibold text-xs uppercase tracking-wide",
                       ROLE_COLORS[role],
                     )}
                   >
@@ -130,7 +130,7 @@ export function PermissionMatrix() {
                     <tr key={perm.key} className="border-b border-border/50 hover:bg-muted/20">
                       <td className="px-4 py-2.5 text-sm">{perm.label}</td>
                       {ROLES.map((role) => {
-                        const allowed = ROLE_PERMISSIONS[role][perm.key] ?? false
+                        const allowed = ROLE_PERMISSIONS[role][perm.key] ?? false;
                         return (
                           <td key={role} className="text-center px-4 py-2.5">
                             {allowed ? (
@@ -139,7 +139,7 @@ export function PermissionMatrix() {
                               <X className="h-4 w-4 text-muted-foreground/40 mx-auto" />
                             )}
                           </td>
-                        )
+                        );
                       })}
                     </tr>
                   ))}
@@ -150,5 +150,5 @@ export function PermissionMatrix() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

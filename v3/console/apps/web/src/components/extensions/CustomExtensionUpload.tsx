@@ -1,93 +1,93 @@
-import { useState } from 'react'
-import { Upload, Package, X, CheckCircle, AlertCircle, Tag, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { useCreateExtension } from '@/hooks/useExtensions'
-import type { CreateExtensionInput, ExtensionScope } from '@/types/extension'
+import { useState } from "react";
+import { Upload, Package, X, CheckCircle, AlertCircle, Tag, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useCreateExtension } from "@/hooks/useExtensions";
+import type { CreateExtensionInput, ExtensionScope } from "@/types/extension";
 
 interface CustomExtensionUploadProps {
-  onClose: () => void
-  onSuccess?: () => void
+  onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const CATEGORIES = ['language', 'tool', 'framework', 'database', 'ai', 'infrastructure', 'other']
+const CATEGORIES = ["language", "tool", "framework", "database", "ai", "infrastructure", "other"];
 
 export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUploadProps) {
   const [form, setForm] = useState<Partial<CreateExtensionInput>>({
-    scope: 'PRIVATE',
+    scope: "PRIVATE",
     tags: [],
     dependencies: [],
-  })
-  const [tagInput, setTagInput] = useState('')
-  const [depInput, setDepInput] = useState('')
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  });
+  const [tagInput, setTagInput] = useState("");
+  const [depInput, setDepInput] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const createExtension = useCreateExtension()
+  const createExtension = useCreateExtension();
 
   const update = (field: keyof CreateExtensionInput, value: unknown) => {
-    setForm((f) => ({ ...f, [field]: value }))
-    setErrors((e) => ({ ...e, [field]: '' }))
-  }
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((e) => ({ ...e, [field]: "" }));
+  };
 
   const addTag = () => {
-    const tag = tagInput.trim().toLowerCase()
+    const tag = tagInput.trim().toLowerCase();
     if (tag && !form.tags?.includes(tag)) {
-      update('tags', [...(form.tags ?? []), tag])
+      update("tags", [...(form.tags ?? []), tag]);
     }
-    setTagInput('')
-  }
+    setTagInput("");
+  };
 
   const removeTag = (tag: string) => {
-    update('tags', form.tags?.filter((t) => t !== tag) ?? [])
-  }
+    update("tags", form.tags?.filter((t) => t !== tag) ?? []);
+  };
 
   const addDep = () => {
-    const dep = depInput.trim().toLowerCase()
+    const dep = depInput.trim().toLowerCase();
     if (dep && !form.dependencies?.includes(dep)) {
-      update('dependencies', [...(form.dependencies ?? []), dep])
+      update("dependencies", [...(form.dependencies ?? []), dep]);
     }
-    setDepInput('')
-  }
+    setDepInput("");
+  };
 
   const removeDep = (dep: string) => {
-    update('dependencies', form.dependencies?.filter((d) => d !== dep) ?? [])
-  }
+    update("dependencies", form.dependencies?.filter((d) => d !== dep) ?? []);
+  };
 
   const validate = (): boolean => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
     if (!form.name?.match(/^[a-z0-9_-]+$/)) {
-      newErrors.name = 'Name must be lowercase alphanumeric with hyphens/underscores'
+      newErrors.name = "Name must be lowercase alphanumeric with hyphens/underscores";
     }
-    if (!form.display_name) newErrors.display_name = 'Display name is required'
-    if (!form.description) newErrors.description = 'Description is required'
-    if (!form.category) newErrors.category = 'Category is required'
+    if (!form.display_name) newErrors.display_name = "Display name is required";
+    if (!form.description) newErrors.description = "Description is required";
+    if (!form.category) newErrors.category = "Category is required";
     if (!form.version?.match(/^\d+\.\d+\.\d+/)) {
-      newErrors.version = 'Version must follow semver (e.g. 1.0.0)'
+      newErrors.version = "Version must follow semver (e.g. 1.0.0)";
     }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async () => {
-    if (!validate()) return
+    if (!validate()) return;
 
     try {
-      await createExtension.mutateAsync(form as CreateExtensionInput)
-      onSuccess?.()
-      onClose()
+      await createExtension.mutateAsync(form as CreateExtensionInput);
+      onSuccess?.();
+      onClose();
     } catch {
-      setErrors({ _global: 'Failed to create extension. The name may already exist.' })
+      setErrors({ _global: "Failed to create extension. The name may already exist." });
     }
-  }
+  };
 
   const Field = ({
     label,
     name,
     children,
   }: {
-    label: string
-    name: string
-    children: React.ReactNode
+    label: string;
+    name: string;
+    children: React.ReactNode;
   }) => (
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-400">{label}</label>
@@ -99,7 +99,7 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
         </p>
       )}
     </div>
-  )
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -111,7 +111,9 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
           </div>
           <div>
             <h2 className="text-base font-semibold text-white">Upload Custom Extension</h2>
-            <p className="text-xs text-gray-400">Register a private extension for your organization</p>
+            <p className="text-xs text-gray-400">
+              Register a private extension for your organization
+            </p>
           </div>
         </div>
         <button onClick={onClose} className="rounded p-1 text-gray-400 hover:text-white">
@@ -131,17 +133,17 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
         <Field label="Extension Name *" name="name">
           <Input
             placeholder="my-extension"
-            value={form.name ?? ''}
-            onChange={(e) => update('name', e.target.value)}
-            className={errors.name ? 'border-red-500/50' : ''}
+            value={form.name ?? ""}
+            onChange={(e) => update("name", e.target.value)}
+            className={errors.name ? "border-red-500/50" : ""}
           />
         </Field>
         <Field label="Display Name *" name="display_name">
           <Input
             placeholder="My Extension"
-            value={form.display_name ?? ''}
-            onChange={(e) => update('display_name', e.target.value)}
-            className={errors.display_name ? 'border-red-500/50' : ''}
+            value={form.display_name ?? ""}
+            onChange={(e) => update("display_name", e.target.value)}
+            className={errors.display_name ? "border-red-500/50" : ""}
           />
         </Field>
       </div>
@@ -149,11 +151,11 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
       <Field label="Description *" name="description">
         <textarea
           className={`min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-            errors.description ? 'border-red-500/50' : 'border-white/10'
+            errors.description ? "border-red-500/50" : "border-white/10"
           }`}
           placeholder="Describe what this extension does..."
-          value={form.description ?? ''}
-          onChange={(e) => update('description', e.target.value)}
+          value={form.description ?? ""}
+          onChange={(e) => update("description", e.target.value)}
         />
       </Field>
 
@@ -161,30 +163,32 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
         <Field label="Category *" name="category">
           <select
             className={`h-9 w-full rounded-md border bg-gray-900 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-              errors.category ? 'border-red-500/50' : 'border-white/10'
+              errors.category ? "border-red-500/50" : "border-white/10"
             }`}
-            value={form.category ?? ''}
-            onChange={(e) => update('category', e.target.value)}
+            value={form.category ?? ""}
+            onChange={(e) => update("category", e.target.value)}
           >
             <option value="">Select...</option>
             {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
           </select>
         </Field>
         <Field label="Version *" name="version">
           <Input
             placeholder="1.0.0"
-            value={form.version ?? ''}
-            onChange={(e) => update('version', e.target.value)}
-            className={errors.version ? 'border-red-500/50' : ''}
+            value={form.version ?? ""}
+            onChange={(e) => update("version", e.target.value)}
+            className={errors.version ? "border-red-500/50" : ""}
           />
         </Field>
         <Field label="Scope" name="scope">
           <select
             className="h-9 w-full rounded-md border border-white/10 bg-gray-900 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            value={form.scope ?? 'PRIVATE'}
-            onChange={(e) => update('scope', e.target.value as ExtensionScope)}
+            value={form.scope ?? "PRIVATE"}
+            onChange={(e) => update("scope", e.target.value as ExtensionScope)}
           >
             <option value="PRIVATE">Private</option>
             <option value="INTERNAL">Internal</option>
@@ -197,15 +201,15 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
         <Field label="Author" name="author">
           <Input
             placeholder="author name or org"
-            value={form.author ?? ''}
-            onChange={(e) => update('author', e.target.value)}
+            value={form.author ?? ""}
+            onChange={(e) => update("author", e.target.value)}
           />
         </Field>
         <Field label="License" name="license">
           <Input
             placeholder="MIT, Apache-2.0, ..."
-            value={form.license ?? ''}
-            onChange={(e) => update('license', e.target.value)}
+            value={form.license ?? ""}
+            onChange={(e) => update("license", e.target.value)}
           />
         </Field>
       </div>
@@ -218,7 +222,7 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
             placeholder="Add tag..."
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addTag()}
+            onKeyDown={(e) => e.key === "Enter" && addTag()}
             className="flex-1"
           />
           <Button variant="outline" size="sm" onClick={addTag}>
@@ -234,7 +238,10 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
               >
                 <Tag className="h-2.5 w-2.5" />
                 {tag}
-                <button onClick={() => removeTag(tag)} className="ml-0.5 text-gray-600 hover:text-gray-300">
+                <button
+                  onClick={() => removeTag(tag)}
+                  className="ml-0.5 text-gray-600 hover:text-gray-300"
+                >
                   <X className="h-2.5 w-2.5" />
                 </button>
               </span>
@@ -251,7 +258,7 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
             placeholder="extension-name..."
             value={depInput}
             onChange={(e) => setDepInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addDep()}
+            onKeyDown={(e) => e.key === "Enter" && addDep()}
             className="flex-1"
           />
           <Button variant="outline" size="sm" onClick={addDep}>
@@ -267,7 +274,10 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
               >
                 <Package className="h-2.5 w-2.5 text-gray-500" />
                 {dep}
-                <button onClick={() => removeDep(dep)} className="ml-0.5 text-gray-600 hover:text-gray-300">
+                <button
+                  onClick={() => removeDep(dep)}
+                  className="ml-0.5 text-gray-600 hover:text-gray-300"
+                >
                   <X className="h-2.5 w-2.5" />
                 </button>
               </span>
@@ -278,11 +288,10 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={createExtension.isPending}
-        >
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={createExtension.isPending}>
           {createExtension.isPending ? (
             <>
               <div className="mr-2 h-3.5 w-3.5 animate-spin rounded-full border-b border-white" />
@@ -297,5 +306,5 @@ export function CustomExtensionUpload({ onClose, onSuccess }: CustomExtensionUpl
         </Button>
       </div>
     </div>
-  )
+  );
 }

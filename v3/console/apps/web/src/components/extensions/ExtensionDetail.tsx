@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   ArrowLeft,
   Package,
@@ -8,43 +8,34 @@ import {
   Tag,
   GitBranch,
   BarChart2,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useExtension } from '@/hooks/useExtensions'
-import { ExtensionAnalytics } from './ExtensionAnalytics'
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useExtension } from "@/hooks/useExtensions";
+import { ExtensionAnalytics } from "./ExtensionAnalytics";
 
-type DetailTab = 'overview' | 'analytics'
+type DetailTab = "overview" | "analytics";
 
 interface ExtensionDetailProps {
-  extensionId: string
-  onBack: () => void
+  extensionId: string;
+  onBack: () => void;
 }
 
 export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview')
-  const { data: extension, isLoading } = useExtension(extensionId)
+  const [activeTab, setActiveTab] = useState<DetailTab>("overview");
+  const { data: extension, isLoading } = useExtension(extensionId);
 
   if (isLoading) {
-    return (
-      <div className="py-16 text-center text-gray-500">Loading extension details...</div>
-    )
+    return <div className="py-16 text-center text-gray-500">Loading extension details...</div>;
   }
 
   if (!extension) {
-    return (
-      <div className="py-16 text-center text-gray-500">Extension not found</div>
-    )
+    return <div className="py-16 text-center text-gray-500">Extension not found</div>;
   }
 
   return (
     <div className="space-y-6" data-testid="extension-detail">
       {/* Back button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onBack}
-        className="text-gray-400 hover:text-white"
-      >
+      <Button variant="ghost" size="sm" onClick={onBack} className="text-gray-400 hover:text-white">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Registry
       </Button>
@@ -75,7 +66,9 @@ export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-500 mb-2">{extension.name} · v{extension.version}</p>
+            <p className="text-sm text-gray-500 mb-2">
+              {extension.name} · v{extension.version}
+            </p>
             <p className="text-sm text-gray-400">{extension.description}</p>
           </div>
         </div>
@@ -83,8 +76,8 @@ export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
         {/* Meta grid */}
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
           <MetaItem label="Category" value={extension.category} />
-          <MetaItem label="License" value={extension.license ?? 'Unknown'} />
-          <MetaItem label="Author" value={extension.author ?? 'Unknown'} />
+          <MetaItem label="License" value={extension.license ?? "Unknown"} />
+          <MetaItem label="Author" value={extension.author ?? "Unknown"} />
           <MetaItem label="Scope" value={extension.scope} />
           <MetaItem label="Downloads" value={extension.download_count.toLocaleString()} />
           <MetaItem label="Active Installs" value={extension.install_count.toLocaleString()} />
@@ -107,17 +100,19 @@ export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
       {/* Tabs */}
       <div className="border-b border-gray-800">
         <nav className="-mb-px flex gap-6">
-          {([
-            { id: 'overview' as const, label: 'Overview', icon: Package },
-            { id: 'analytics' as const, label: 'Analytics', icon: BarChart2 },
-          ] as const).map(({ id, label, icon: Icon }) => (
+          {(
+            [
+              { id: "overview" as const, label: "Overview", icon: Package },
+              { id: "analytics" as const, label: "Analytics", icon: BarChart2 },
+            ] as const
+          ).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
               className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition-colors ${
                 activeTab === id
-                  ? 'border-indigo-500 text-white'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-gray-400 hover:text-gray-300"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -128,7 +123,7 @@ export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <div className="space-y-4">
           {/* Tags */}
           {extension.tags.length > 0 && (
@@ -156,7 +151,10 @@ export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {extension.dependencies.map((dep) => (
-                  <span key={dep} className="rounded border border-gray-700 px-2 py-1 text-xs text-gray-400">
+                  <span
+                    key={dep}
+                    className="rounded border border-gray-700 px-2 py-1 text-xs text-gray-400"
+                  >
                     {dep}
                   </span>
                 ))}
@@ -173,10 +171,7 @@ export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
               </div>
               <div className="rounded-lg border border-gray-800 divide-y divide-gray-800 overflow-hidden">
                 {extension.usages.map((usage, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between px-4 py-2 text-sm"
-                  >
+                  <div key={i} className="flex items-center justify-between px-4 py-2 text-sm">
                     <span className="font-mono text-xs text-gray-400 truncate">
                       {usage.instance_id}
                     </span>
@@ -194,11 +189,9 @@ export function ExtensionDetail({ extensionId, onBack }: ExtensionDetailProps) {
         </div>
       )}
 
-      {activeTab === 'analytics' && (
-        <ExtensionAnalytics extensionId={extensionId} />
-      )}
+      {activeTab === "analytics" && <ExtensionAnalytics extensionId={extensionId} />}
     </div>
-  )
+  );
 }
 
 function MetaItem({ label, value }: { label: string; value: string }) {
@@ -207,5 +200,5 @@ function MetaItem({ label, value }: { label: string; value: string }) {
       <dt className="text-gray-500">{label}</dt>
       <dd className="text-gray-300">{value}</dd>
     </div>
-  )
+  );
 }

@@ -1,80 +1,80 @@
-import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   useAlertRule,
   useCreateAlertRule,
   useUpdateAlertRule,
   useNotificationChannels,
-} from '@/hooks/useAlerts'
-import { cn } from '@/lib/utils'
+} from "@/hooks/useAlerts";
+import { cn } from "@/lib/utils";
 import type {
   AlertRuleType,
   AlertSeverity,
   AlertConditions,
   ThresholdCondition,
   CreateAlertRuleInput,
-} from '@/types/alert'
+} from "@/types/alert";
 
 interface AlertRuleEditorProps {
-  ruleId?: string
-  onClose: () => void
+  ruleId?: string;
+  onClose: () => void;
 }
 
 const RULE_TYPES: Array<{ value: AlertRuleType; label: string; description: string }> = [
-  { value: 'THRESHOLD', label: 'Threshold', description: 'CPU, memory, disk usage limits' },
-  { value: 'ANOMALY', label: 'Anomaly', description: 'Unusual metric deviations' },
-  { value: 'LIFECYCLE', label: 'Lifecycle', description: 'Heartbeat, status, deploy events' },
-  { value: 'SECURITY', label: 'Security', description: 'CVE, secrets, access events' },
-  { value: 'COST', label: 'Cost', description: 'Budget threshold alerts' },
-]
+  { value: "THRESHOLD", label: "Threshold", description: "CPU, memory, disk usage limits" },
+  { value: "ANOMALY", label: "Anomaly", description: "Unusual metric deviations" },
+  { value: "LIFECYCLE", label: "Lifecycle", description: "Heartbeat, status, deploy events" },
+  { value: "SECURITY", label: "Security", description: "CVE, secrets, access events" },
+  { value: "COST", label: "Cost", description: "Budget threshold alerts" },
+];
 
-const SEVERITY_OPTIONS: AlertSeverity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']
+const SEVERITY_OPTIONS: AlertSeverity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
 
 const SEVERITY_COLORS: Record<AlertSeverity, string> = {
-  CRITICAL: 'text-red-400 bg-red-400/10 border-red-400/30',
-  HIGH: 'text-orange-400 bg-orange-400/10 border-orange-400/30',
-  MEDIUM: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
-  LOW: 'text-blue-400 bg-blue-400/10 border-blue-400/30',
-  INFO: 'text-gray-400 bg-gray-400/10 border-gray-400/30',
-}
+  CRITICAL: "text-red-400 bg-red-400/10 border-red-400/30",
+  HIGH: "text-orange-400 bg-orange-400/10 border-orange-400/30",
+  MEDIUM: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
+  LOW: "text-blue-400 bg-blue-400/10 border-blue-400/30",
+  INFO: "text-gray-400 bg-gray-400/10 border-gray-400/30",
+};
 
 export function AlertRuleEditor({ ruleId, onClose }: AlertRuleEditorProps) {
-  const isEdit = Boolean(ruleId)
-  const { data: existingRule } = useAlertRule(ruleId ?? '')
-  const { data: channels = [] } = useNotificationChannels()
+  const isEdit = Boolean(ruleId);
+  const { data: existingRule } = useAlertRule(ruleId ?? "");
+  const { data: channels = [] } = useNotificationChannels();
 
-  const createMutation = useCreateAlertRule()
-  const updateMutation = useUpdateAlertRule()
-  const isPending = createMutation.isPending || updateMutation.isPending
+  const createMutation = useCreateAlertRule();
+  const updateMutation = useUpdateAlertRule();
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [type, setType] = useState<AlertRuleType>('THRESHOLD')
-  const [severity, setSeverity] = useState<AlertSeverity>('MEDIUM')
-  const [cooldownSec, setCooldownSec] = useState(300)
-  const [channelIds, setChannelIds] = useState<string[]>([])
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState<AlertRuleType>("THRESHOLD");
+  const [severity, setSeverity] = useState<AlertSeverity>("MEDIUM");
+  const [cooldownSec, setCooldownSec] = useState(300);
+  const [channelIds, setChannelIds] = useState<string[]>([]);
   const [conditions, setConditions] = useState<Partial<ThresholdCondition>>({
-    metric: 'cpu_percent',
-    operator: 'gt',
+    metric: "cpu_percent",
+    operator: "gt",
     threshold: 90,
-  })
+  });
 
   useEffect(() => {
     if (existingRule) {
-      setName(existingRule.name)
-      setDescription(existingRule.description ?? '')
-      setType(existingRule.type)
-      setSeverity(existingRule.severity)
-      setCooldownSec(existingRule.cooldownSec)
-      setChannelIds(existingRule.channels.map((c) => c.id))
-      setConditions(existingRule.conditions as Partial<ThresholdCondition>)
+      setName(existingRule.name);
+      setDescription(existingRule.description ?? "");
+      setType(existingRule.type);
+      setSeverity(existingRule.severity);
+      setCooldownSec(existingRule.cooldownSec);
+      setChannelIds(existingRule.channels.map((c) => c.id));
+      setConditions(existingRule.conditions as Partial<ThresholdCondition>);
     }
-  }, [existingRule])
+  }, [existingRule]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     const input: CreateAlertRuleInput = {
       name,
@@ -84,31 +84,29 @@ export function AlertRuleEditor({ ruleId, onClose }: AlertRuleEditorProps) {
       conditions: conditions as AlertConditions,
       cooldownSec,
       channelIds,
-    }
+    };
 
     try {
       if (isEdit && ruleId) {
-        await updateMutation.mutateAsync({ id: ruleId, input })
+        await updateMutation.mutateAsync({ id: ruleId, input });
       } else {
-        await createMutation.mutateAsync(input)
+        await createMutation.mutateAsync(input);
       }
-      onClose()
+      onClose();
     } catch {
       // errors handled by mutation
     }
-  }
+  };
 
   const toggleChannel = (id: string) => {
-    setChannelIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    )
-  }
+    setChannelIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">
-          {isEdit ? 'Edit Alert Rule' : 'New Alert Rule'}
+          {isEdit ? "Edit Alert Rule" : "New Alert Rule"}
         </h2>
         <button type="button" onClick={onClose} className="text-gray-400 hover:text-white">
           <X className="h-5 w-5" />
@@ -148,10 +146,10 @@ export function AlertRuleEditor({ ruleId, onClose }: AlertRuleEditorProps) {
               type="button"
               onClick={() => setType(t.value)}
               className={cn(
-                'rounded-lg border p-3 text-left transition-all',
+                "rounded-lg border p-3 text-left transition-all",
                 type === t.value
-                  ? 'border-indigo-500 bg-indigo-500/10 text-white'
-                  : 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600',
+                  ? "border-indigo-500 bg-indigo-500/10 text-white"
+                  : "border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600",
               )}
             >
               <div className="font-medium text-sm">{t.label}</div>
@@ -171,10 +169,10 @@ export function AlertRuleEditor({ ruleId, onClose }: AlertRuleEditorProps) {
               type="button"
               onClick={() => setSeverity(s)}
               className={cn(
-                'rounded-full border px-3 py-1 text-xs font-medium transition-all',
+                "rounded-full border px-3 py-1 text-xs font-medium transition-all",
                 severity === s
                   ? SEVERITY_COLORS[s]
-                  : 'border-gray-700 text-gray-500 hover:border-gray-600',
+                  : "border-gray-700 text-gray-500 hover:border-gray-600",
               )}
             >
               {s}
@@ -229,11 +227,11 @@ export function AlertRuleEditor({ ruleId, onClose }: AlertRuleEditorProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={isPending || !name.trim()}>
-          {isPending ? 'Saving...' : isEdit ? 'Update Rule' : 'Create Rule'}
+          {isPending ? "Saving..." : isEdit ? "Update Rule" : "Create Rule"}
         </Button>
       </div>
     </form>
-  )
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -245,27 +243,33 @@ function ConditionsEditor({
   conditions,
   onChange,
 }: {
-  type: AlertRuleType
-  conditions: Record<string, unknown>
-  onChange: (c: Record<string, unknown>) => void
+  type: AlertRuleType;
+  conditions: Record<string, unknown>;
+  onChange: (c: Record<string, unknown>) => void;
 }) {
   switch (type) {
-    case 'THRESHOLD':
-      return <ThresholdEditor conditions={conditions} onChange={onChange} />
-    case 'ANOMALY':
-      return <AnomalyEditor conditions={conditions} onChange={onChange} />
-    case 'LIFECYCLE':
-      return <LifecycleEditor conditions={conditions} onChange={onChange} />
-    case 'SECURITY':
-      return <SecurityEditor conditions={conditions} onChange={onChange} />
-    case 'COST':
-      return <CostEditor conditions={conditions} onChange={onChange} />
+    case "THRESHOLD":
+      return <ThresholdEditor conditions={conditions} onChange={onChange} />;
+    case "ANOMALY":
+      return <AnomalyEditor conditions={conditions} onChange={onChange} />;
+    case "LIFECYCLE":
+      return <LifecycleEditor conditions={conditions} onChange={onChange} />;
+    case "SECURITY":
+      return <SecurityEditor conditions={conditions} onChange={onChange} />;
+    case "COST":
+      return <CostEditor conditions={conditions} onChange={onChange} />;
     default:
-      return null
+      return null;
   }
 }
 
-function ThresholdEditor({ conditions, onChange }: { conditions: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+function ThresholdEditor({
+  conditions,
+  onChange,
+}: {
+  conditions: Record<string, unknown>;
+  onChange: (c: Record<string, unknown>) => void;
+}) {
   return (
     <div className="space-y-3">
       <label className="block text-sm text-gray-300">Threshold Condition</label>
@@ -273,7 +277,7 @@ function ThresholdEditor({ conditions, onChange }: { conditions: Record<string, 
         <div>
           <label className="mb-1 block text-xs text-gray-400">Metric</label>
           <select
-            value={(conditions.metric as string) ?? 'cpu_percent'}
+            value={(conditions.metric as string) ?? "cpu_percent"}
             onChange={(e) => onChange({ ...conditions, metric: e.target.value })}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -287,14 +291,14 @@ function ThresholdEditor({ conditions, onChange }: { conditions: Record<string, 
         <div>
           <label className="mb-1 block text-xs text-gray-400">Operator</label>
           <select
-            value={(conditions.operator as string) ?? 'gt'}
+            value={(conditions.operator as string) ?? "gt"}
             onChange={(e) => onChange({ ...conditions, operator: e.target.value })}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="gt">{'>'}</option>
-            <option value="gte">{'>='}</option>
-            <option value="lt">{'<'}</option>
-            <option value="lte">{'<='}</option>
+            <option value="gt">{">"}</option>
+            <option value="gte">{">="}</option>
+            <option value="lt">{"<"}</option>
+            <option value="lte">{"<="}</option>
           </select>
         </div>
         <div>
@@ -310,10 +314,16 @@ function ThresholdEditor({ conditions, onChange }: { conditions: Record<string, 
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function AnomalyEditor({ conditions, onChange }: { conditions: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+function AnomalyEditor({
+  conditions,
+  onChange,
+}: {
+  conditions: Record<string, unknown>;
+  onChange: (c: Record<string, unknown>) => void;
+}) {
   return (
     <div className="space-y-3">
       <label className="block text-sm text-gray-300">Anomaly Detection</label>
@@ -321,7 +331,7 @@ function AnomalyEditor({ conditions, onChange }: { conditions: Record<string, un
         <div>
           <label className="mb-1 block text-xs text-gray-400">Metric</label>
           <select
-            value={(conditions.metric as string) ?? 'cpu_percent'}
+            value={(conditions.metric as string) ?? "cpu_percent"}
             onChange={(e) => onChange({ ...conditions, metric: e.target.value })}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -355,10 +365,16 @@ function AnomalyEditor({ conditions, onChange }: { conditions: Record<string, un
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function LifecycleEditor({ conditions, onChange }: { conditions: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+function LifecycleEditor({
+  conditions,
+  onChange,
+}: {
+  conditions: Record<string, unknown>;
+  onChange: (c: Record<string, unknown>) => void;
+}) {
   return (
     <div className="space-y-3">
       <label className="block text-sm text-gray-300">Lifecycle Event</label>
@@ -366,7 +382,7 @@ function LifecycleEditor({ conditions, onChange }: { conditions: Record<string, 
         <div>
           <label className="mb-1 block text-xs text-gray-400">Event</label>
           <select
-            value={(conditions.event as string) ?? 'heartbeat_lost'}
+            value={(conditions.event as string) ?? "heartbeat_lost"}
             onChange={(e) => onChange({ ...conditions, event: e.target.value })}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -376,7 +392,7 @@ function LifecycleEditor({ conditions, onChange }: { conditions: Record<string, 
             <option value="status_changed">Status Changed</option>
           </select>
         </div>
-        {conditions.event === 'heartbeat_lost' && (
+        {conditions.event === "heartbeat_lost" && (
           <div>
             <label className="mb-1 block text-xs text-gray-400">Timeout (seconds)</label>
             <Input
@@ -391,17 +407,23 @@ function LifecycleEditor({ conditions, onChange }: { conditions: Record<string, 
         )}
       </div>
     </div>
-  )
+  );
 }
 
-function SecurityEditor({ conditions, onChange }: { conditions: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+function SecurityEditor({
+  conditions,
+  onChange,
+}: {
+  conditions: Record<string, unknown>;
+  onChange: (c: Record<string, unknown>) => void;
+}) {
   return (
     <div className="space-y-3">
       <label className="block text-sm text-gray-300">Security Check</label>
       <div>
         <label className="mb-1 block text-xs text-gray-400">Check Type</label>
         <select
-          value={(conditions.check as string) ?? 'cve_detected'}
+          value={(conditions.check as string) ?? "cve_detected"}
           onChange={(e) => onChange({ ...conditions, check: e.target.value })}
           className="rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
@@ -410,12 +432,20 @@ function SecurityEditor({ conditions, onChange }: { conditions: Record<string, u
           <option value="unauthorized_access">Unauthorized Access</option>
         </select>
       </div>
-      <p className="text-xs text-gray-500">Security checks require external integration (coming soon)</p>
+      <p className="text-xs text-gray-500">
+        Security checks require external integration (coming soon)
+      </p>
     </div>
-  )
+  );
 }
 
-function CostEditor({ conditions, onChange }: { conditions: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
+function CostEditor({
+  conditions,
+  onChange,
+}: {
+  conditions: Record<string, unknown>;
+  onChange: (c: Record<string, unknown>) => void;
+}) {
   return (
     <div className="space-y-3">
       <label className="block text-sm text-gray-300">Cost Budget</label>
@@ -433,7 +463,7 @@ function CostEditor({ conditions, onChange }: { conditions: Record<string, unkno
         <div>
           <label className="mb-1 block text-xs text-gray-400">Period</label>
           <select
-            value={(conditions.period as string) ?? 'monthly'}
+            value={(conditions.period as string) ?? "monthly"}
             onChange={(e) => onChange({ ...conditions, period: e.target.value })}
             className="rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
@@ -454,7 +484,9 @@ function CostEditor({ conditions, onChange }: { conditions: Record<string, unkno
           />
         </div>
       </div>
-      <p className="text-xs text-gray-500">Cost alerts require billing data integration (coming soon)</p>
+      <p className="text-xs text-gray-500">
+        Cost alerts require billing data integration (coming soon)
+      </p>
     </div>
-  )
+  );
 }

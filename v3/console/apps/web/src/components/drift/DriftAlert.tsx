@@ -1,6 +1,6 @@
-import { AlertTriangle, CheckCircle, Clock, Wrench } from 'lucide-react';
-import type { DriftEvent, DriftSeverity } from '@/types/drift';
-import { useResolveDriftEvent, useCreateRemediation } from '@/hooks/useDrift';
+import { AlertTriangle, CheckCircle, Clock, Wrench } from "lucide-react";
+import type { DriftEvent, DriftSeverity } from "@/types/drift";
+import { useResolveDriftEvent, useCreateRemediation } from "@/hooks/useDrift";
 
 interface DriftAlertProps {
   event: DriftEvent;
@@ -14,22 +14,32 @@ export function DriftAlert({ event, onRemediationCreated }: DriftAlertProps) {
   const isResolved = Boolean(event.resolvedAt);
 
   const severityConfig: Record<DriftSeverity, { color: string; bg: string; label: string }> = {
-    CRITICAL: { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/30', label: 'Critical' },
-    HIGH: { color: 'text-orange-400', bg: 'bg-orange-400/10 border-orange-400/30', label: 'High' },
-    MEDIUM: { color: 'text-yellow-400', bg: 'bg-yellow-400/10 border-yellow-400/30', label: 'Medium' },
-    LOW: { color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/30', label: 'Low' },
+    CRITICAL: { color: "text-red-400", bg: "bg-red-400/10 border-red-400/30", label: "Critical" },
+    HIGH: { color: "text-orange-400", bg: "bg-orange-400/10 border-orange-400/30", label: "High" },
+    MEDIUM: {
+      color: "text-yellow-400",
+      bg: "bg-yellow-400/10 border-yellow-400/30",
+      label: "Medium",
+    },
+    LOW: { color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/30", label: "Low" },
   };
 
   const cfg = severityConfig[event.severity];
 
   return (
-    <div className={`rounded-lg border p-4 ${isResolved ? 'border-gray-700 bg-gray-900/30 opacity-60' : cfg.bg}`}>
+    <div
+      className={`rounded-lg border p-4 ${isResolved ? "border-gray-700 bg-gray-900/30 opacity-60" : cfg.bg}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${isResolved ? 'text-gray-500' : cfg.color}`} />
+          <AlertTriangle
+            className={`mt-0.5 h-4 w-4 shrink-0 ${isResolved ? "text-gray-500" : cfg.color}`}
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${isResolved ? 'bg-gray-700 text-gray-400' : `bg-current/10 ${cfg.color}`}`}>
+              <span
+                className={`text-xs font-medium px-1.5 py-0.5 rounded ${isResolved ? "bg-gray-700 text-gray-400" : `bg-current/10 ${cfg.color}`}`}
+              >
                 {cfg.label}
               </span>
               <code className="text-xs text-gray-400 font-mono">{event.fieldPath}</code>
@@ -40,7 +50,7 @@ export function DriftAlert({ event, onRemediationCreated }: DriftAlertProps) {
                 </span>
               )}
             </div>
-            <p className={`mt-1 text-sm ${isResolved ? 'text-gray-500' : 'text-gray-300'}`}>
+            <p className={`mt-1 text-sm ${isResolved ? "text-gray-500" : "text-gray-300"}`}>
               {event.description}
             </p>
             {(event.declaredVal !== null || event.actualVal !== null) && (

@@ -1,63 +1,63 @@
-import { useState, useMemo, useCallback } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { LayoutGrid, List, RefreshCw, AlertCircle, ServerOff } from 'lucide-react'
-import type { Instance, InstanceFilters } from '@/types/instance'
-import { useInstances } from '@/hooks/useInstances'
-import { useInstanceWebSocket } from '@/hooks/useInstanceWebSocket'
-import { InstanceCard } from './InstanceCard'
-import { InstanceFilters as FiltersBar } from './InstanceFilters'
-import { InstanceTable } from './InstanceTable'
-import { BulkOperations } from './lifecycle/BulkOperations'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { useState, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { LayoutGrid, List, RefreshCw, AlertCircle, ServerOff } from "lucide-react";
+import type { Instance, InstanceFilters } from "@/types/instance";
+import { useInstances } from "@/hooks/useInstances";
+import { useInstanceWebSocket } from "@/hooks/useInstanceWebSocket";
+import { InstanceCard } from "./InstanceCard";
+import { InstanceFilters as FiltersBar } from "./InstanceFilters";
+import { InstanceTable } from "./InstanceTable";
+import { BulkOperations } from "./lifecycle/BulkOperations";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-type ViewMode = 'grid' | 'table'
+type ViewMode = "grid" | "table";
 
 interface InstanceListProps {
-  onSelectInstance?: (instance: Instance) => void
+  onSelectInstance?: (instance: Instance) => void;
 }
 
 export function InstanceList({ onSelectInstance }: InstanceListProps) {
-  const [filters, setFilters] = useState<InstanceFilters>({})
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
-  const [page] = useState(1)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [filters, setFilters] = useState<InstanceFilters>({});
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [page] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const queryClient = useQueryClient()
-  const { data, isLoading, isError, error, refetch, isFetching } = useInstances(filters, page)
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error, refetch, isFetching } = useInstances(filters, page);
 
   // WebSocket integration for live updates
-  useInstanceWebSocket()
+  useInstanceWebSocket();
 
-  const instances = useMemo(() => data?.instances ?? [], [data])
+  const instances = useMemo(() => data?.instances ?? [], [data]);
 
   const selectedInstances = useMemo(
     () => instances.filter((i) => selectedIds.has(i.id)),
     [instances, selectedIds],
-  )
+  );
 
   const handleToggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(id)) {
-        next.delete(id)
+        next.delete(id);
       } else {
-        next.add(id)
+        next.add(id);
       }
-      return next
-    })
-  }, [])
+      return next;
+    });
+  }, []);
 
   const handleClearSelection = useCallback(() => {
-    setSelectedIds(new Set())
-  }, [])
+    setSelectedIds(new Set());
+  }, []);
 
   const handleBulkSuccess = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['instances'] })
-  }, [queryClient])
+    void queryClient.invalidateQueries({ queryKey: ["instances"] });
+  }, [queryClient]);
 
   if (isLoading) {
-    return <InstanceListSkeleton viewMode={viewMode} />
+    return <InstanceListSkeleton viewMode={viewMode} />;
   }
 
   if (isError) {
@@ -67,7 +67,7 @@ export function InstanceList({ onSelectInstance }: InstanceListProps) {
         <div>
           <p className="font-semibold">Failed to load instances</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {error instanceof Error ? error.message : 'An unexpected error occurred'}
+            {error instanceof Error ? error.message : "An unexpected error occurred"}
           </p>
         </div>
         <Button variant="outline" onClick={() => void refetch()}>
@@ -75,7 +75,7 @@ export function InstanceList({ onSelectInstance }: InstanceListProps) {
           Retry
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -99,27 +99,27 @@ export function InstanceList({ onSelectInstance }: InstanceListProps) {
             disabled={isFetching}
             aria-label="Refresh instances"
           >
-            <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
           </Button>
 
           <div className="flex rounded-md border">
             <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
               size="icon"
               className="rounded-r-none"
-              onClick={() => setViewMode('grid')}
+              onClick={() => setViewMode("grid")}
               aria-label="Grid view"
-              aria-pressed={viewMode === 'grid'}
+              aria-pressed={viewMode === "grid"}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              variant={viewMode === "table" ? "secondary" : "ghost"}
               size="icon"
               className="rounded-l-none border-l"
-              onClick={() => setViewMode('table')}
+              onClick={() => setViewMode("table")}
               aria-label="Table view"
-              aria-pressed={viewMode === 'table'}
+              aria-pressed={viewMode === "table"}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -139,7 +139,7 @@ export function InstanceList({ onSelectInstance }: InstanceListProps) {
       {/* Content */}
       {instances.length === 0 ? (
         <EmptyState hasFilters={Boolean(filters.search || filters.provider || filters.status)} />
-      ) : viewMode === 'grid' ? (
+      ) : viewMode === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {instances.map((instance) => (
             <SelectableInstanceCard
@@ -160,14 +160,14 @@ export function InstanceList({ onSelectInstance }: InstanceListProps) {
         />
       )}
     </div>
-  )
+  );
 }
 
 interface SelectableInstanceCardProps {
-  instance: Instance
-  selected: boolean
-  onToggleSelect: (id: string) => void
-  onClick?: (instance: Instance) => void
+  instance: Instance;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
+  onClick?: (instance: Instance) => void;
 }
 
 function SelectableInstanceCard({
@@ -182,8 +182,8 @@ function SelectableInstanceCard({
       <div
         className="absolute left-2 top-2 z-10"
         onClick={(e) => {
-          e.stopPropagation()
-          onToggleSelect(instance.id)
+          e.stopPropagation();
+          onToggleSelect(instance.id);
         }}
       >
         <input
@@ -197,10 +197,10 @@ function SelectableInstanceCard({
       <InstanceCard
         instance={instance}
         onClick={onClick}
-        className={cn(selected && 'ring-2 ring-primary border-primary/50')}
+        className={cn(selected && "ring-2 ring-primary border-primary/50")}
       />
     </div>
-  )
+  );
 }
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
@@ -209,27 +209,27 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
       <ServerOff className="h-10 w-10 text-muted-foreground" />
       <div>
         <p className="font-semibold">
-          {hasFilters ? 'No instances match your filters' : 'No instances found'}
+          {hasFilters ? "No instances match your filters" : "No instances found"}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
           {hasFilters
-            ? 'Try adjusting your search or filter criteria.'
-            : 'Deploy your first Sindri instance to get started.'}
+            ? "Try adjusting your search or filter criteria."
+            : "Deploy your first Sindri instance to get started."}
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function InstanceListSkeleton({ viewMode }: { viewMode: ViewMode }) {
-  if (viewMode === 'table') {
+  if (viewMode === "table") {
     return (
       <div className="space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-14 rounded-md bg-muted animate-pulse" />
         ))}
       </div>
-    )
+    );
   }
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -237,5 +237,5 @@ function InstanceListSkeleton({ viewMode }: { viewMode: ViewMode }) {
         <div key={i} className="h-48 rounded-lg bg-muted animate-pulse" />
       ))}
     </div>
-  )
+  );
 }

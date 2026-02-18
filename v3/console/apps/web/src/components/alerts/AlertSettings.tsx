@@ -1,4 +1,4 @@
-import { Shield, Clock, Bell } from 'lucide-react'
+import { Shield, Clock, Bell } from "lucide-react";
 
 export function AlertSettings() {
   return (
@@ -9,8 +9,9 @@ export function AlertSettings() {
           <h3 className="font-medium text-white">Evaluation Schedule</h3>
         </div>
         <p className="text-sm text-gray-400">
-          Alert rules are evaluated every 60 seconds against the latest instance metrics and lifecycle state.
-          The evaluation interval is fixed and runs automatically in the background.
+          Alert rules are evaluated every 60 seconds against the latest instance metrics and
+          lifecycle state. The evaluation interval is fixed and runs automatically in the
+          background.
         </p>
       </div>
 
@@ -20,8 +21,9 @@ export function AlertSettings() {
           <h3 className="font-medium text-white">Notification Delivery</h3>
         </div>
         <p className="text-sm text-gray-400">
-          Notifications are dispatched asynchronously after an alert fires. Each configured channel for the
-          matching rule receives the notification. Failed deliveries are logged but do not block other channels.
+          Notifications are dispatched asynchronously after an alert fires. Each configured channel
+          for the matching rule receives the notification. Failed deliveries are logged but do not
+          block other channels.
         </p>
         <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -49,11 +51,11 @@ export function AlertSettings() {
           <h3 className="font-medium text-white">Deduplication & Cooldown</h3>
         </div>
         <p className="text-sm text-gray-400">
-          Each alert rule has a configurable cooldown period (default 5 minutes). During the cooldown,
-          the same alert will not fire again for the same instance. When a condition clears, the active
-          alert is automatically resolved by the evaluation engine.
+          Each alert rule has a configurable cooldown period (default 5 minutes). During the
+          cooldown, the same alert will not fire again for the same instance. When a condition
+          clears, the active alert is automatically resolved by the evaluation engine.
         </p>
       </div>
     </div>
-  )
+  );
 }

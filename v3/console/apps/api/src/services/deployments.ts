@@ -7,11 +7,11 @@
  * the browser client.
  */
 
-import { createHash } from 'node:crypto';
-import type { Deployment } from '@prisma/client';
-import { db } from '../lib/db.js';
-import { redis, REDIS_CHANNELS } from '../lib/redis.js';
-import { logger } from '../lib/logger.js';
+import { createHash } from "node:crypto";
+import type { Deployment } from "@prisma/client";
+import { db } from "../lib/db.js";
+import { redis, REDIS_CHANNELS } from "../lib/redis.js";
+import { logger } from "../lib/logger.js";
 
 export interface CreateDeploymentInput {
   name: string;
@@ -27,7 +27,7 @@ export interface CreateDeploymentInput {
 }
 
 function hashYaml(yaml: string): string {
-  return createHash('sha256').update(yaml).digest('hex');
+  return createHash("sha256").update(yaml).digest("hex");
 }
 
 /**
@@ -67,13 +67,13 @@ export async function createDeployment(input: CreateDeploymentInput): Promise<De
       region: input.region,
       template_id: input.template_id ?? null,
       initiated_by: input.initiated_by ?? null,
-      status: 'PENDING',
+      status: "PENDING",
     },
   });
 
   logger.info(
     { deploymentId: deployment.id, provider: input.provider, name: input.name },
-    'Deployment created',
+    "Deployment created",
   );
 
   // Fire-and-forget provisioning — HTTP response returns before it completes.
@@ -94,14 +94,14 @@ async function emitProgress(
   deploymentId: string,
   message: string,
   opts: {
-    type?: 'progress' | 'status' | 'error' | 'complete';
+    type?: "progress" | "status" | "error" | "complete";
     status?: string;
     progress_percent?: number;
     instance_id?: string;
   } = {},
 ): Promise<void> {
   const event = {
-    type: opts.type ?? 'progress',
+    type: opts.type ?? "progress",
     deployment_id: deploymentId,
     message,
     status: opts.status,
@@ -112,7 +112,7 @@ async function emitProgress(
   try {
     await redis.publish(REDIS_CHANNELS.deploymentProgress(deploymentId), JSON.stringify(event));
   } catch (err) {
-    logger.warn({ err, deploymentId }, 'Failed to publish deployment progress event');
+    logger.warn({ err, deploymentId }, "Failed to publish deployment progress event");
   }
 }
 
@@ -138,39 +138,37 @@ async function runProvisioningFlow(
     // ── IN_PROGRESS ──────────────────────────────────────────────────────────
     await db.deployment.update({
       where: { id: deploymentId },
-      data: { status: 'IN_PROGRESS' },
+      data: { status: "IN_PROGRESS" },
     });
 
-    await emitProgress(deploymentId, 'Provisioning infrastructure...', {
-      type: 'status',
-      status: 'IN_PROGRESS',
+    await emitProgress(deploymentId, "Provisioning infrastructure...", {
+      type: "status",
+      status: "IN_PROGRESS",
       progress_percent: 10,
     });
-    appendLog('Provisioning infrastructure...');
+    appendLog("Provisioning infrastructure...");
     await sleep(1500);
 
-    await emitProgress(
-      deploymentId,
-      `Allocating VM on ${input.provider} (${input.region})...`,
-      { progress_percent: 25 },
-    );
+    await emitProgress(deploymentId, `Allocating VM on ${input.provider} (${input.region})...`, {
+      progress_percent: 25,
+    });
     appendLog(`Allocating VM on ${input.provider} (${input.region})...`);
     await sleep(1500);
 
-    await emitProgress(deploymentId, 'Configuring instance...', { progress_percent: 40 });
-    appendLog('Configuring instance...');
+    await emitProgress(deploymentId, "Configuring instance...", { progress_percent: 40 });
+    appendLog("Configuring instance...");
     await sleep(1000);
 
-    await emitProgress(deploymentId, 'Applying YAML configuration...', { progress_percent: 55 });
-    appendLog('Applying YAML configuration...');
+    await emitProgress(deploymentId, "Applying YAML configuration...", { progress_percent: 55 });
+    appendLog("Applying YAML configuration...");
     await sleep(1000);
 
-    await emitProgress(deploymentId, 'Installing extensions...', { progress_percent: 70 });
-    appendLog('Installing extensions...');
+    await emitProgress(deploymentId, "Installing extensions...", { progress_percent: 70 });
+    appendLog("Installing extensions...");
     await sleep(1500);
 
-    await emitProgress(deploymentId, 'Starting Sindri agent...', { progress_percent: 85 });
-    appendLog('Starting Sindri agent...');
+    await emitProgress(deploymentId, "Starting Sindri agent...", { progress_percent: 85 });
+    appendLog("Starting Sindri agent...");
     await sleep(1000);
 
     // ── Register instance in DB ──────────────────────────────────────────────
@@ -181,61 +179,58 @@ async function runProvisioningFlow(
         provider: input.provider,
         region: input.region,
         extensions: [],
-        status: 'RUNNING',
+        status: "RUNNING",
       },
       update: {
         provider: input.provider,
         region: input.region,
-        status: 'RUNNING',
+        status: "RUNNING",
       },
     });
 
-    appendLog('Instance registered in database.');
-    appendLog('Instance is online and ready.');
+    appendLog("Instance registered in database.");
+    appendLog("Instance is online and ready.");
 
     // ── SUCCEEDED ────────────────────────────────────────────────────────────
     await db.deployment.update({
       where: { id: deploymentId },
       data: {
-        status: 'SUCCEEDED',
+        status: "SUCCEEDED",
         instance_id: instance.id,
         completed_at: new Date(),
-        logs: logLines.join('\n'),
+        logs: logLines.join("\n"),
       },
     });
 
-    await emitProgress(deploymentId, 'Instance is online and ready', {
-      type: 'complete',
-      status: 'SUCCEEDED',
+    await emitProgress(deploymentId, "Instance is online and ready", {
+      type: "complete",
+      status: "SUCCEEDED",
       progress_percent: 100,
       instance_id: instance.id,
     });
 
-    logger.info(
-      { deploymentId, instanceId: instance.id },
-      'Deployment completed successfully',
-    );
+    logger.info({ deploymentId, instanceId: instance.id }, "Deployment completed successfully");
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error during provisioning';
+    const message = err instanceof Error ? err.message : "Unknown error during provisioning";
     appendLog(`ERROR: ${message}`);
 
     await db.deployment
       .update({
         where: { id: deploymentId },
         data: {
-          status: 'FAILED',
+          status: "FAILED",
           error: message,
           completed_at: new Date(),
-          logs: logLines.join('\n'),
+          logs: logLines.join("\n"),
         },
       })
-      .catch((dbErr) => logger.warn({ dbErr, deploymentId }, 'Failed to persist failure state'));
+      .catch((dbErr) => logger.warn({ dbErr, deploymentId }, "Failed to persist failure state"));
 
     await emitProgress(deploymentId, message, {
-      type: 'error',
-      status: 'FAILED',
+      type: "error",
+      status: "FAILED",
     });
 
-    logger.error({ err, deploymentId }, 'Deployment failed');
+    logger.error({ err, deploymentId }, "Deployment failed");
   }
 }

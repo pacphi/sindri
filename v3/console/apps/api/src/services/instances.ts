@@ -5,10 +5,10 @@
  * real-time updates to connected browser clients.
  */
 
-import type { Instance, InstanceStatus, Prisma } from '@prisma/client';
-import { db } from '../lib/db.js';
-import { redis, REDIS_CHANNELS } from '../lib/redis.js';
-import { logger } from '../lib/logger.js';
+import type { Instance, InstanceStatus, Prisma } from "@prisma/client";
+import { db } from "../lib/db.js";
+import { redis, REDIS_CHANNELS } from "../lib/redis.js";
+import { logger } from "../lib/logger.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Input types (validated by Zod in the route layer)
@@ -49,7 +49,7 @@ export async function registerInstance(input: RegisterInstanceInput): Promise<In
       extensions: input.extensions,
       config_hash: input.configHash ?? null,
       ssh_endpoint: input.sshEndpoint ?? null,
-      status: 'RUNNING',
+      status: "RUNNING",
     },
     update: {
       provider: input.provider,
@@ -57,7 +57,7 @@ export async function registerInstance(input: RegisterInstanceInput): Promise<In
       extensions: input.extensions,
       config_hash: input.configHash ?? null,
       ssh_endpoint: input.sshEndpoint ?? null,
-      status: 'RUNNING',
+      status: "RUNNING",
       updated_at: new Date(),
     },
   });
@@ -66,15 +66,18 @@ export async function registerInstance(input: RegisterInstanceInput): Promise<In
   await db.event.create({
     data: {
       instance_id: instance.id,
-      event_type: 'DEPLOY',
-      metadata: { triggered_by: 'api', provider: input.provider },
+      event_type: "DEPLOY",
+      metadata: { triggered_by: "api", provider: input.provider },
     },
   });
 
   // Publish to Redis for real-time subscribers
-  publishInstanceEvent(instance.id, 'deploy', { name: instance.name, provider: instance.provider });
+  publishInstanceEvent(instance.id, "deploy", { name: instance.name, provider: instance.provider });
 
-  logger.info({ instanceId: instance.id, name: instance.name, provider: input.provider }, 'Instance registered');
+  logger.info(
+    { instanceId: instance.id, name: instance.name, provider: input.provider },
+    "Instance registered",
+  );
   return instance;
 }
 
@@ -102,7 +105,7 @@ export async function listInstances(filter: ListInstancesFilter = {}): Promise<{
       where,
       skip,
       take: pageSize,
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
     }),
     db.instance.count({ where }),
   ]);
@@ -119,13 +122,26 @@ export async function listInstances(filter: ListInstancesFilter = {}): Promise<{
 /**
  * Get a single instance by ID, with its most recent heartbeat.
  */
-export async function getInstanceById(id: string): Promise<(Instance & { lastHeartbeat: { cpu_percent: number; memory_used: bigint; memory_total: bigint; disk_used: bigint; disk_total: bigint; uptime: bigint; timestamp: Date } | null }) | null> {
+export async function getInstanceById(id: string): Promise<
+  | (Instance & {
+      lastHeartbeat: {
+        cpu_percent: number;
+        memory_used: bigint;
+        memory_total: bigint;
+        disk_used: bigint;
+        disk_total: bigint;
+        uptime: bigint;
+        timestamp: Date;
+      } | null;
+    })
+  | null
+> {
   const instance = await db.instance.findUnique({ where: { id } });
   if (!instance) return null;
 
   const lastHeartbeat = await db.heartbeat.findFirst({
     where: { instance_id: id },
-    orderBy: { timestamp: 'desc' },
+    orderBy: { timestamp: "desc" },
     select: {
       cpu_percent: true,
       memory_used: true,
@@ -150,25 +166,25 @@ export async function deregisterInstance(id: string): Promise<Instance | null> {
 
   const instance = await db.instance.update({
     where: { id },
-    data: { status: 'STOPPED', updated_at: new Date() },
+    data: { status: "STOPPED", updated_at: new Date() },
   });
 
   // Record DESTROY event
   await db.event.create({
     data: {
       instance_id: id,
-      event_type: 'DESTROY',
-      metadata: { triggered_by: 'api' },
+      event_type: "DESTROY",
+      metadata: { triggered_by: "api" },
     },
   });
 
   // Publish to Redis
-  publishInstanceEvent(id, 'destroy', { name: instance.name });
+  publishInstanceEvent(id, "destroy", { name: instance.name });
 
   // Remove from online set in Redis
-  await redis.srem('sindri:agents:active', id).catch(() => {});
+  await redis.srem("sindri:agents:active", id).catch(() => {});
 
-  logger.info({ instanceId: id, name: instance.name }, 'Instance deregistered');
+  logger.info({ instanceId: id, name: instance.name }, "Instance deregistered");
   return instance;
 }
 
@@ -183,7 +199,9 @@ function publishInstanceEvent(
 ): void {
   const channel = REDIS_CHANNELS.instanceEvents(instanceId);
   const payload = JSON.stringify({ eventType, metadata, ts: Date.now() });
-  redis.publish(channel, payload).catch((err) =>
-    logger.warn({ err, instanceId, eventType }, 'Failed to publish instance event to Redis'),
-  );
+  redis
+    .publish(channel, payload)
+    .catch((err) =>
+      logger.warn({ err, instanceId, eventType }, "Failed to publish instance event to Redis"),
+    );
 }

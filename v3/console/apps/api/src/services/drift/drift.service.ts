@@ -5,17 +5,17 @@
  * query functions for the drift API routes.
  */
 
-import { createHash } from 'node:crypto';
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import { compareConfigs } from './comparator.js';
+import { createHash } from "node:crypto";
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import { compareConfigs } from "./comparator.js";
 import type {
   CreateSnapshotInput,
   ListSnapshotFilter,
   ListDriftEventFilter,
   DeclaredConfig,
   ActualConfig,
-} from './types.js';
+} from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Snapshot management
@@ -24,12 +24,10 @@ import type {
 export async function takeSnapshot(input: CreateSnapshotInput) {
   const { instanceId, declared, actual } = input;
 
-  const configHash = createHash('sha256')
-    .update(JSON.stringify(declared))
-    .digest('hex');
+  const configHash = createHash("sha256").update(JSON.stringify(declared)).digest("hex");
 
   const comparison = compareConfigs(declared, actual);
-  const driftStatus = comparison.hasDrift ? 'DRIFTED' : 'CLEAN';
+  const driftStatus = comparison.hasDrift ? "DRIFTED" : "CLEAN";
 
   const snapshot = await db.configSnapshot.create({
     data: {
@@ -57,7 +55,7 @@ export async function takeSnapshot(input: CreateSnapshotInput) {
 
   logger.info(
     { instanceId, snapshotId: snapshot.id, driftStatus, driftCount: comparison.fields.length },
-    'Configuration snapshot taken',
+    "Configuration snapshot taken",
   );
 
   return snapshot;
@@ -79,7 +77,7 @@ export async function listSnapshots(filter: ListSnapshotFilter) {
     db.configSnapshot.count({ where }),
     db.configSnapshot.findMany({
       where,
-      orderBy: { taken_at: 'desc' },
+      orderBy: { taken_at: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
@@ -105,7 +103,7 @@ export async function getSnapshotById(id: string) {
     include: {
       drift_events: {
         include: { remediation: true },
-        orderBy: { detected_at: 'desc' },
+        orderBy: { detected_at: "desc" },
       },
     },
   });
@@ -116,12 +114,12 @@ export async function getSnapshotById(id: string) {
 export async function getLatestSnapshotForInstance(instanceId: string) {
   const snapshot = await db.configSnapshot.findFirst({
     where: { instance_id: instanceId },
-    orderBy: { taken_at: 'desc' },
+    orderBy: { taken_at: "desc" },
     include: {
       drift_events: {
         where: { resolved_at: null },
         include: { remediation: true },
-        orderBy: { detected_at: 'desc' },
+        orderBy: { detected_at: "desc" },
       },
     },
   });
@@ -152,7 +150,7 @@ export async function listDriftEvents(filter: ListDriftEventFilter) {
     db.driftEvent.count({ where }),
     db.driftEvent.findMany({
       where,
-      orderBy: { detected_at: 'desc' },
+      orderBy: { detected_at: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: { remediation: true },
@@ -190,7 +188,11 @@ export async function createRemediation(driftEventId: string, triggeredBy: strin
   if (event.remediation) return event.remediation;
 
   // Generate a suggested remediation action based on the drift field
-  const { action, command } = suggestRemediation(event.field_path, event.declared_val, event.actual_val);
+  const { action, command } = suggestRemediation(
+    event.field_path,
+    event.declared_val,
+    event.actual_val,
+  );
 
   return db.driftRemediation.create({
     data: {
@@ -199,7 +201,7 @@ export async function createRemediation(driftEventId: string, triggeredBy: strin
       action,
       command,
       triggered_by: triggeredBy,
-      status: 'PENDING',
+      status: "PENDING",
     },
   });
 }
@@ -210,19 +212,19 @@ export async function executeRemediation(remediationId: string) {
 
   await db.driftRemediation.update({
     where: { id: remediationId },
-    data: { status: 'IN_PROGRESS' },
+    data: { status: "IN_PROGRESS" },
   });
 
   // In a real implementation this would dispatch the command to the agent.
   // Here we simulate the result and mark as succeeded.
   const output = remediation.command
     ? `Executing: ${remediation.command}\nCommand dispatched to agent.`
-    : 'No command to execute — manual action required.';
+    : "No command to execute — manual action required.";
 
   return db.driftRemediation.update({
     where: { id: remediationId },
     data: {
-      status: 'SUCCEEDED',
+      status: "SUCCEEDED",
       output,
       completed_at: new Date(),
     },
@@ -234,7 +236,7 @@ export async function dismissRemediation(remediationId: string) {
   if (!remediation) return null;
   return db.driftRemediation.update({
     where: { id: remediationId },
-    data: { status: 'DISMISSED' },
+    data: { status: "DISMISSED" },
   });
 }
 
@@ -245,18 +247,18 @@ export async function dismissRemediation(remediationId: string) {
 export async function getDriftSummary() {
   const [statusCounts, severityCounts, recentEvents, instancesWithDrift] = await Promise.all([
     db.configSnapshot.groupBy({
-      by: ['drift_status'],
+      by: ["drift_status"],
       _count: { id: true },
-      orderBy: { drift_status: 'asc' },
+      orderBy: { drift_status: "asc" },
     }),
     db.driftEvent.groupBy({
-      by: ['severity'],
+      by: ["severity"],
       _count: { id: true },
       where: { resolved_at: null },
     }),
     db.driftEvent.findMany({
       where: { resolved_at: null },
-      orderBy: { detected_at: 'desc' },
+      orderBy: { detected_at: "desc" },
       take: 10,
       select: {
         id: true,
@@ -268,18 +270,14 @@ export async function getDriftSummary() {
       },
     }),
     db.driftEvent.groupBy({
-      by: ['instance_id'],
+      by: ["instance_id"],
       _count: { id: true },
       where: { resolved_at: null },
     }),
   ]);
 
-  const byStatus = Object.fromEntries(
-    statusCounts.map((s) => [s.drift_status, s._count.id]),
-  );
-  const bySeverity = Object.fromEntries(
-    severityCounts.map((s) => [s.severity, s._count.id]),
-  );
+  const byStatus = Object.fromEntries(statusCounts.map((s) => [s.drift_status, s._count.id]));
+  const bySeverity = Object.fromEntries(severityCounts.map((s) => [s.severity, s._count.id]));
 
   return {
     byStatus,
@@ -296,7 +294,12 @@ export async function getDriftSummary() {
 
 function formatSnapshot(
   snapshot: Awaited<ReturnType<typeof db.configSnapshot.findMany>>[number] & {
-    drift_events: Array<{ id: string; field_path: string; severity: string; resolved_at: Date | null }>;
+    drift_events: Array<{
+      id: string;
+      field_path: string;
+      severity: string;
+      resolved_at: Date | null;
+    }>;
   },
 ) {
   const unresolvedCount = snapshot.drift_events.filter((e) => !e.resolved_at).length;
@@ -312,9 +315,11 @@ function formatSnapshot(
   };
 }
 
-function formatSnapshotDetail(snapshot: Awaited<ReturnType<typeof db.configSnapshot.findUnique>> & {
-  drift_events: Array<unknown>;
-}) {
+function formatSnapshotDetail(
+  snapshot: Awaited<ReturnType<typeof db.configSnapshot.findUnique>> & {
+    drift_events: Array<unknown>;
+  },
+) {
   return {
     id: snapshot!.id,
     instanceId: snapshot!.instance_id,
@@ -338,23 +343,27 @@ function suggestRemediation(
   declaredVal: string | null,
   _actualVal: string | null,
 ): RemediationSuggestion {
-  if (fieldPath.startsWith('extensions.') && fieldPath.endsWith('.present') && declaredVal === 'true') {
-    const extName = fieldPath.split('.')[1];
+  if (
+    fieldPath.startsWith("extensions.") &&
+    fieldPath.endsWith(".present") &&
+    declaredVal === "true"
+  ) {
+    const extName = fieldPath.split(".")[1];
     return {
       action: `Install extension "${extName}" on the instance`,
       command: `sindri extension install ${extName}`,
     };
   }
 
-  if (fieldPath.startsWith('extensions.') && fieldPath.endsWith('.version') && declaredVal) {
-    const extName = fieldPath.split('.')[1];
+  if (fieldPath.startsWith("extensions.") && fieldPath.endsWith(".version") && declaredVal) {
+    const extName = fieldPath.split(".")[1];
     return {
       action: `Upgrade extension "${extName}" to version ${declaredVal}`,
       command: `sindri extension upgrade ${extName}@${declaredVal}`,
     };
   }
 
-  if (fieldPath.startsWith('env.')) {
+  if (fieldPath.startsWith("env.")) {
     const varName = fieldPath.slice(4);
     return {
       action: `Update environment variable "${varName}" to declared value`,
@@ -362,8 +371,8 @@ function suggestRemediation(
     };
   }
 
-  if (fieldPath.startsWith('network.ports.')) {
-    const port = fieldPath.split('.')[2];
+  if (fieldPath.startsWith("network.ports.")) {
+    const port = fieldPath.split(".")[2];
     return {
       action: `Open port ${port} on the instance`,
       command: `sindri ports open ${port}`,
@@ -371,7 +380,7 @@ function suggestRemediation(
   }
 
   return {
-    action: `Reconcile drift on field "${fieldPath}" to declared value: ${declaredVal ?? 'N/A'}`,
+    action: `Reconcile drift on field "${fieldPath}" to declared value: ${declaredVal ?? "N/A"}`,
     command: null,
   };
 }
@@ -381,8 +390,8 @@ export async function buildDeclaredConfigFromInstance(instanceId: string): Promi
     where: { id: instanceId },
     include: {
       deployments: {
-        where: { status: 'SUCCEEDED' },
-        orderBy: { started_at: 'desc' },
+        where: { status: "SUCCEEDED" },
+        orderBy: { started_at: "desc" },
         take: 1,
       },
     },
@@ -406,12 +415,12 @@ export async function buildDeclaredConfigFromInstance(instanceId: string): Promi
       // Extract env vars from yaml
       const envMatch = yamlContent.match(/env:\s*\n((?:\s+\w+:.*\n)*)/m);
       if (envMatch) {
-        const envLines = envMatch[1].trim().split('\n');
+        const envLines = envMatch[1].trim().split("\n");
         const env: Record<string, string> = {};
         for (const line of envLines) {
-          const [k, ...vParts] = line.trim().split(':');
+          const [k, ...vParts] = line.trim().split(":");
           if (k && vParts.length > 0) {
-            env[k.trim()] = vParts.join(':').trim();
+            env[k.trim()] = vParts.join(":").trim();
           }
         }
         declared.env = env;
@@ -429,7 +438,7 @@ export async function buildActualConfigFromInstance(instanceId: string): Promise
     where: { id: instanceId },
     include: {
       heartbeats: {
-        orderBy: { timestamp: 'desc' },
+        orderBy: { timestamp: "desc" },
         take: 1,
       },
     },
@@ -442,7 +451,7 @@ export async function buildActualConfigFromInstance(instanceId: string): Promise
   const actual: ActualConfig = {
     provider: instance.provider,
     region: instance.region ?? undefined,
-    extensions: instance.extensions.map((name) => ({ name, status: 'active' })),
+    extensions: instance.extensions.map((name) => ({ name, status: "active" })),
   };
 
   if (lastHb) {

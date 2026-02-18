@@ -1,37 +1,37 @@
-import { Server, LayoutDashboard, Zap } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { Instance } from '@/types/instance'
-import type { PaletteAction } from './ActionRegistry'
-import { StatusBadge } from '@/components/instances/StatusBadge'
+import { Server, LayoutDashboard, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Instance } from "@/types/instance";
+import type { PaletteAction } from "./ActionRegistry";
+import { StatusBadge } from "@/components/instances/StatusBadge";
 
 export interface SearchResultItem {
-  type: 'instance' | 'action' | 'page'
-  id: string
-  instance?: Instance
-  action?: PaletteAction
-  score: number
+  type: "instance" | "action" | "page";
+  id: string;
+  instance?: Instance;
+  action?: PaletteAction;
+  score: number;
 }
 
 interface SearchResultsProps {
-  results: SearchResultItem[]
-  selectedIndex: number
-  onSelectInstance: (instance: Instance) => void
-  onSelectAction: (action: PaletteAction) => void
+  results: SearchResultItem[];
+  selectedIndex: number;
+  onSelectInstance: (instance: Instance) => void;
+  onSelectAction: (action: PaletteAction) => void;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  navigation: 'Pages',
-  action: 'Actions',
-  instance: 'Instances',
-  system: 'System',
-}
+  navigation: "Pages",
+  action: "Actions",
+  instance: "Instances",
+  system: "System",
+};
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   navigation: LayoutDashboard,
   action: Zap,
   instance: Server,
   system: Server,
-}
+};
 
 export function SearchResults({
   results,
@@ -41,30 +41,26 @@ export function SearchResults({
 }: SearchResultsProps) {
   if (results.length === 0) {
     return (
-      <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-        No results found
-      </div>
-    )
+      <div className="px-4 py-8 text-center text-sm text-muted-foreground">No results found</div>
+    );
   }
 
   // Group results by category
-  const grouped: Record<string, SearchResultItem[]> = {}
+  const grouped: Record<string, SearchResultItem[]> = {};
   for (const result of results) {
-    const category = result.instance
-      ? 'instance'
-      : result.action?.category ?? 'action'
-    if (!grouped[category]) grouped[category] = []
-    grouped[category].push(result)
+    const category = result.instance ? "instance" : (result.action?.category ?? "action");
+    if (!grouped[category]) grouped[category] = [];
+    grouped[category].push(result);
   }
 
-  let runningIndex = 0
+  let runningIndex = 0;
 
   return (
     <div>
       {Object.entries(grouped).map(([category, items]) => {
-        const CategoryIcon = CATEGORY_ICONS[category] ?? Zap
-        const sectionStart = runningIndex
-        runningIndex += items.length
+        const CategoryIcon = CATEGORY_ICONS[category] ?? Zap;
+        const sectionStart = runningIndex;
+        runningIndex += items.length;
 
         return (
           <div key={category}>
@@ -76,8 +72,8 @@ export function SearchResults({
             </div>
 
             {items.map((result, i) => {
-              const itemIndex = sectionStart + i
-              const isSelected = selectedIndex === itemIndex
+              const itemIndex = sectionStart + i;
+              const isSelected = selectedIndex === itemIndex;
 
               if (result.instance) {
                 return (
@@ -88,7 +84,7 @@ export function SearchResults({
                     onClick={() => onSelectInstance(result.instance!)}
                     dataIndex={itemIndex}
                   />
-                )
+                );
               }
               if (result.action) {
                 return (
@@ -99,30 +95,30 @@ export function SearchResults({
                     onClick={() => onSelectAction(result.action!)}
                     dataIndex={itemIndex}
                   />
-                )
+                );
               }
-              return null
+              return null;
             })}
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 interface InstanceResultProps {
-  instance: Instance
-  isSelected: boolean
-  onClick: () => void
-  dataIndex: number
+  instance: Instance;
+  isSelected: boolean;
+  onClick: () => void;
+  dataIndex: number;
 }
 
 function InstanceResult({ instance, isSelected, onClick, dataIndex }: InstanceResultProps) {
   return (
     <button
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
-        isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50',
+        "w-full flex items-center gap-3 px-3 py-2 text-left transition-colors",
+        isSelected ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
       )}
       onClick={onClick}
       data-result-index={dataIndex}
@@ -134,27 +130,28 @@ function InstanceResult({ instance, isSelected, onClick, dataIndex }: InstanceRe
           <StatusBadge status={instance.status} />
         </div>
         <span className="text-xs text-muted-foreground">
-          {instance.provider}{instance.region ? ` · ${instance.region}` : ''}
+          {instance.provider}
+          {instance.region ? ` · ${instance.region}` : ""}
         </span>
       </div>
     </button>
-  )
+  );
 }
 
 interface ActionResultProps {
-  action: PaletteAction
-  isSelected: boolean
-  onClick: () => void
-  dataIndex: number
+  action: PaletteAction;
+  isSelected: boolean;
+  onClick: () => void;
+  dataIndex: number;
 }
 
 function ActionResult({ action, isSelected, onClick, dataIndex }: ActionResultProps) {
-  const Icon = action.icon
+  const Icon = action.icon;
   return (
     <button
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
-        isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50',
+        "w-full flex items-center gap-3 px-3 py-2 text-left transition-colors",
+        isSelected ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
       )}
       onClick={onClick}
       data-result-index={dataIndex}
@@ -179,5 +176,5 @@ function ActionResult({ action, isSelected, onClick, dataIndex }: ActionResultPr
         </div>
       )}
     </button>
-  )
+  );
 }

@@ -2,9 +2,9 @@
  * Extension policy service — per-instance and global update policies.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import type { SetPolicyInput } from './types.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import type { SetPolicyInput } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Query
@@ -21,7 +21,7 @@ export async function listPolicies(extensionId?: string, instanceId?: string) {
     include: {
       extension: { select: { id: true, name: true, display_name: true, version: true } },
     },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
   });
 
   return policies;
@@ -50,14 +50,14 @@ export async function setPolicy(input: SetPolicyInput) {
     },
     update: {
       policy: input.policy,
-      pinned_version: input.policy === 'PIN' ? (input.pinned_version ?? null) : null,
+      pinned_version: input.policy === "PIN" ? (input.pinned_version ?? null) : null,
       updated_at: new Date(),
     },
     create: {
       extension_id: input.extension_id,
       instance_id: input.instance_id ?? null,
       policy: input.policy,
-      pinned_version: input.policy === 'PIN' ? (input.pinned_version ?? null) : null,
+      pinned_version: input.policy === "PIN" ? (input.pinned_version ?? null) : null,
       created_by: input.created_by,
     },
     include: {
@@ -65,16 +65,21 @@ export async function setPolicy(input: SetPolicyInput) {
     },
   });
 
-  logger.info({ policyId: policy.id, extensionId: input.extension_id, policy: input.policy }, 'Extension policy set');
+  logger.info(
+    { policyId: policy.id, extensionId: input.extension_id, policy: input.policy },
+    "Extension policy set",
+  );
   return policy;
 }
 
 export async function deletePolicy(id: string) {
   await db.extensionPolicy.delete({ where: { id } });
-  logger.info({ policyId: id }, 'Extension policy deleted');
+  logger.info({ policyId: id }, "Extension policy deleted");
 }
 
-export async function getEffectivePolicies(instanceId: string): Promise<Record<string, { policy: string; pinned_version: string | null }>> {
+export async function getEffectivePolicies(
+  instanceId: string,
+): Promise<Record<string, { policy: string; pinned_version: string | null }>> {
   // Get global policies first, then override with instance-specific ones
   const [globalPolicies, instancePolicies] = await Promise.all([
     db.extensionPolicy.findMany({

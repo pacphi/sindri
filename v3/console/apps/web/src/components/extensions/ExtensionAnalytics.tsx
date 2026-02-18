@@ -1,37 +1,24 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from 'recharts'
-import { TrendingUp, Clock, AlertTriangle, CheckCircle } from 'lucide-react'
-import { useExtensionAnalytics } from '@/hooks/useExtensions'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { TrendingUp, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { useExtensionAnalytics } from "@/hooks/useExtensions";
 
 interface ExtensionAnalyticsProps {
-  extensionId: string
+  extensionId: string;
 }
 
 export function ExtensionAnalytics({ extensionId }: ExtensionAnalyticsProps) {
-  const { data, isLoading } = useExtensionAnalytics(extensionId)
+  const { data, isLoading } = useExtensionAnalytics(extensionId);
 
   if (isLoading) {
-    return (
-      <div className="py-8 text-center text-gray-500">Loading analytics...</div>
-    )
+    return <div className="py-8 text-center text-gray-500">Loading analytics...</div>;
   }
 
   if (!data) {
-    return (
-      <div className="py-8 text-center text-gray-500">No analytics available</div>
-    )
+    return <div className="py-8 text-center text-gray-500">No analytics available</div>;
   }
 
-  const avgInstallSec = data.avg_install_time_ms > 0
-    ? (data.avg_install_time_ms / 1000).toFixed(1)
-    : null
+  const avgInstallSec =
+    data.avg_install_time_ms > 0 ? (data.avg_install_time_ms / 1000).toFixed(1) : null;
 
   return (
     <div className="space-y-6">
@@ -51,12 +38,12 @@ export function ExtensionAnalytics({ extensionId }: ExtensionAnalyticsProps) {
           icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
           label="Failure Rate"
           value={`${data.failure_rate_pct.toFixed(1)}%`}
-          valueClass={data.failure_rate_pct > 10 ? 'text-red-400' : 'text-white'}
+          valueClass={data.failure_rate_pct > 10 ? "text-red-400" : "text-white"}
         />
         <StatCard
           icon={<Clock className="h-4 w-4 text-yellow-400" />}
           label="Avg Install Time"
-          value={avgInstallSec ? `${avgInstallSec}s` : 'N/A'}
+          value={avgInstallSec ? `${avgInstallSec}s` : "N/A"}
         />
       </div>
 
@@ -79,26 +66,26 @@ export function ExtensionAnalytics({ extensionId }: ExtensionAnalyticsProps) {
                 <XAxis
                   dataKey="date"
                   tickFormatter={(d: string) => {
-                    const [, , day] = d.split('-')
-                    return day
+                    const [, , day] = d.split("-");
+                    return day;
                   }}
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  tick={{ fill: "#6b7280", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  tick={{ fill: "#6b7280", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#111827',
-                    border: '1px solid #374151',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    color: '#e5e7eb',
+                    backgroundColor: "#111827",
+                    border: "1px solid #374151",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    color: "#e5e7eb",
                   }}
                   labelFormatter={(label) => `Date: ${label}`}
                 />
@@ -120,19 +107,19 @@ export function ExtensionAnalytics({ extensionId }: ExtensionAnalyticsProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 function StatCard({
   icon,
   label,
   value,
-  valueClass = 'text-white',
+  valueClass = "text-white",
 }: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  valueClass?: string
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueClass?: string;
 }) {
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
@@ -142,5 +129,5 @@ function StatCard({
       </div>
       <div className={`text-xl font-bold ${valueClass}`}>{value}</div>
     </div>
-  )
+  );
 }

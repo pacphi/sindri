@@ -2,10 +2,10 @@
 // Drift Detection Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type DriftStatus = 'CLEAN' | 'DRIFTED' | 'UNKNOWN' | 'ERROR';
-export type DriftSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-export type RemediationStatus = 'PENDING' | 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'DISMISSED';
-export type SecretType = 'ENV_VAR' | 'FILE' | 'CERTIFICATE' | 'API_KEY';
+export type DriftStatus = "CLEAN" | "DRIFTED" | "UNKNOWN" | "ERROR";
+export type DriftSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+export type RemediationStatus = "PENDING" | "IN_PROGRESS" | "SUCCEEDED" | "FAILED" | "DISMISSED";
+export type SecretType = "ENV_VAR" | "FILE" | "CERTIFICATE" | "API_KEY";
 
 export interface ConfigSnapshot {
   id: string;

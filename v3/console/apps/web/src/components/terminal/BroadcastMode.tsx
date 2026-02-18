@@ -12,7 +12,9 @@ export function BroadcastMode({ enabled, targets, onToggle, onTargetToggle }: Br
   const enabledCount = targets.filter((t) => t.enabled).length;
 
   return (
-    <div className={`flex flex-col border-b border-gray-700 ${enabled ? "bg-orange-950/30" : "bg-gray-900"}`}>
+    <div
+      className={`flex flex-col border-b border-gray-700 ${enabled ? "bg-orange-950/30" : "bg-gray-900"}`}
+    >
       {/* Toggle row */}
       <div className="flex items-center gap-2 px-3 py-1.5">
         <button
@@ -21,7 +23,11 @@ export function BroadcastMode({ enabled, targets, onToggle, onTargetToggle }: Br
           className={`flex items-center gap-2 text-xs font-medium transition-colors ${
             enabled ? "text-orange-400" : "text-gray-400 hover:text-gray-200"
           }`}
-          title={enabled ? "Disable broadcast mode" : "Enable broadcast mode - send input to multiple terminals"}
+          title={
+            enabled
+              ? "Disable broadcast mode"
+              : "Enable broadcast mode - send input to multiple terminals"
+          }
         >
           <span
             className={`inline-flex items-center justify-center w-5 h-5 rounded border transition-colors ${
@@ -82,7 +88,7 @@ function BroadcastTargetChip({ target, onToggle }: BroadcastTargetChipProps) {
         onToggle();
       }
     },
-    [onToggle]
+    [onToggle],
   );
 
   return (

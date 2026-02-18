@@ -2,9 +2,9 @@
  * Extension usage analytics service — install tracking, failure rates, heatmap matrix.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import type { RecordUsageInput, UsageMatrixFilter } from './types.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import type { RecordUsageInput, UsageMatrixFilter } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Record usage events
@@ -24,22 +24,27 @@ export async function recordInstall(input: RecordUsageInput) {
 
   // Increment download counter on success
   if (!input.failed) {
-    await db.extension.update({
-      where: { id: input.extension_id },
-      data: { download_count: { increment: 1 } },
-    }).catch(() => {
-      // Non-fatal; counter is best-effort
-    });
+    await db.extension
+      .update({
+        where: { id: input.extension_id },
+        data: { download_count: { increment: 1 } },
+      })
+      .catch(() => {
+        // Non-fatal; counter is best-effort
+      });
   }
 
-  logger.info({ usageId: usage.id, extensionId: input.extension_id, instanceId: input.instance_id }, 'Extension install recorded');
+  logger.info(
+    { usageId: usage.id, extensionId: input.extension_id, instanceId: input.instance_id },
+    "Extension install recorded",
+  );
   return usage;
 }
 
 export async function recordRemoval(extensionId: string, instanceId: string) {
   const usage = await db.extensionUsage.findFirst({
     where: { extension_id: extensionId, instance_id: instanceId, removed_at: null },
-    orderBy: { installed_at: 'desc' },
+    orderBy: { installed_at: "desc" },
   });
 
   if (!usage) return null;
@@ -49,7 +54,7 @@ export async function recordRemoval(extensionId: string, instanceId: string) {
     data: { removed_at: new Date() },
   });
 
-  logger.info({ usageId: usage.id, extensionId, instanceId }, 'Extension removal recorded');
+  logger.info({ usageId: usage.id, extensionId, instanceId }, "Extension removal recorded");
   return updated;
 }
 
@@ -78,7 +83,10 @@ export async function getUsageMatrix(filter: UsageMatrixFilter = {}) {
   });
 
   // Build matrix: { instanceId -> { extensionId -> { installed: true, version, failed } } }
-  const matrix: Record<string, Record<string, { installed: boolean; version: string; failed: boolean; installed_at: string }>> = {};
+  const matrix: Record<
+    string,
+    Record<string, { installed: boolean; version: string; failed: boolean; installed_at: string }>
+  > = {};
 
   for (const u of usages) {
     if (!matrix[u.instance_id]) matrix[u.instance_id] = {};
@@ -106,7 +114,9 @@ export async function getUsageMatrix(filter: UsageMatrixFilter = {}) {
 export async function getExtensionAnalytics(extensionId: string) {
   const [totalInstalls, activeInstalls, failedInstalls, avgInstallTime] = await Promise.all([
     db.extensionUsage.count({ where: { extension_id: extensionId } }),
-    db.extensionUsage.count({ where: { extension_id: extensionId, removed_at: null, failed: false } }),
+    db.extensionUsage.count({
+      where: { extension_id: extensionId, removed_at: null, failed: false },
+    }),
     db.extensionUsage.count({ where: { extension_id: extensionId, failed: true } }),
     db.extensionUsage.aggregate({
       where: { extension_id: extensionId, install_duration_ms: { not: null }, failed: false },
@@ -124,7 +134,7 @@ export async function getExtensionAnalytics(extensionId: string) {
       installed_at: { gte: thirtyDaysAgo },
     },
     select: { installed_at: true, failed: true },
-    orderBy: { installed_at: 'asc' },
+    orderBy: { installed_at: "asc" },
   });
 
   // Group by day
@@ -164,13 +174,13 @@ export async function getFleetExtensionSummary() {
       download_count: true,
       _count: { select: { usages: true } },
     },
-    orderBy: { download_count: 'desc' },
+    orderBy: { download_count: "desc" },
     take: 20,
   });
 
   // Count instances that have at least one extension installed
   const instancesWithExtensions = await db.extensionUsage.groupBy({
-    by: ['instance_id'],
+    by: ["instance_id"],
     where: { removed_at: null },
     _count: { instance_id: true },
   });

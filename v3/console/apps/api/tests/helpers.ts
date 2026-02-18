@@ -6,8 +6,8 @@
  * mocked via vitest `vi.mock` where indicated.
  */
 
-import { createApp } from '../src/app.js';
-import type { Hono } from 'hono';
+import { createApp } from "../src/app.js";
+import type { Hono } from "hono";
 
 /** Create a fresh Hono app instance for each test suite. */
 export function buildApp(): Hono {
@@ -17,20 +17,20 @@ export function buildApp(): Hono {
 /** Build a minimal valid registration payload. */
 export function instancePayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    name: 'test-instance',
-    provider: 'fly',
-    region: 'sea',
-    extensions: ['node-lts', 'git'],
-    configHash: 'a'.repeat(64),
-    sshEndpoint: 'test.fly.dev:22',
+    name: "test-instance",
+    provider: "fly",
+    region: "sea",
+    extensions: ["node-lts", "git"],
+    configHash: "a".repeat(64),
+    sshEndpoint: "test.fly.dev:22",
     ...overrides,
   };
 }
 
 /** Valid seed API key raw value (must match what the mock DB returns). */
-export const VALID_API_KEY = 'sk-test-valid-key-0001';
-export const EXPIRED_API_KEY = 'sk-test-expired-key-0001';
-export const ADMIN_API_KEY = 'sk-test-admin-key-0001';
+export const VALID_API_KEY = "sk-test-valid-key-0001";
+export const EXPIRED_API_KEY = "sk-test-expired-key-0001";
+export const ADMIN_API_KEY = "sk-test-admin-key-0001";
 
 /** Standard auth headers using valid key. */
 export function authHeaders(key = VALID_API_KEY): Record<string, string> {

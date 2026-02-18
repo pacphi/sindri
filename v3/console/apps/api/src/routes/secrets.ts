@@ -10,11 +10,11 @@
  * GET    /api/v1/secrets/:id/value    — reveal decrypted value (ADMIN only)
  */
 
-import { Hono } from 'hono';
-import { z } from 'zod';
-import { authMiddleware, requireRole } from '../middleware/auth.js';
-import { rateLimitDefault, rateLimitStrict } from '../middleware/rateLimit.js';
-import { logger } from '../lib/logger.js';
+import { Hono } from "hono";
+import { z } from "zod";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
+import { rateLimitDefault, rateLimitStrict } from "../middleware/rateLimit.js";
+import { logger } from "../lib/logger.js";
 import {
   createSecret,
   listSecrets,
@@ -23,18 +23,22 @@ import {
   updateSecret,
   deleteSecret,
   rotateSecret,
-} from '../services/drift/secrets.service.js';
+} from "../services/drift/secrets.service.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SecretTypeEnum = z.enum(['ENV_VAR', 'FILE', 'CERTIFICATE', 'API_KEY']);
+const SecretTypeEnum = z.enum(["ENV_VAR", "FILE", "CERTIFICATE", "API_KEY"]);
 
 const CreateSecretSchema = z.object({
-  name: z.string().min(1).max(256).regex(/^[\w.-]+$/, 'Name must be alphanumeric with dots, dashes, underscores'),
+  name: z
+    .string()
+    .min(1)
+    .max(256)
+    .regex(/^[\w.-]+$/, "Name must be alphanumeric with dots, dashes, underscores"),
   description: z.string().max(512).optional(),
-  type: SecretTypeEnum.default('ENV_VAR'),
+  type: SecretTypeEnum.default("ENV_VAR"),
   instanceId: z.string().optional(),
   value: z.string().min(1),
   scope: z.array(z.string()).max(50).optional(),
@@ -65,14 +69,14 @@ const ListSecretsQuerySchema = z.object({
 
 export const secretsRouter = new Hono();
 
-secretsRouter.use('*', authMiddleware);
+secretsRouter.use("*", authMiddleware);
 
-secretsRouter.get('/', rateLimitDefault, async (c) => {
+secretsRouter.get("/", rateLimitDefault, async (c) => {
   const queryResult = ListSecretsQuerySchema.safeParse(
     Object.fromEntries(new URL(c.req.url).searchParams),
   );
   if (!queryResult.success) {
-    return c.json({ error: 'Bad Request', details: queryResult.error.flatten() }, 400);
+    return c.json({ error: "Bad Request", details: queryResult.error.flatten() }, 400);
   }
   const q = queryResult.data;
   const result = await listSecrets({
@@ -84,15 +88,18 @@ secretsRouter.get('/', rateLimitDefault, async (c) => {
   return c.json(result);
 });
 
-secretsRouter.post('/', rateLimitStrict, requireRole('OPERATOR'), async (c) => {
+secretsRouter.post("/", rateLimitStrict, requireRole("OPERATOR"), async (c) => {
   let body: unknown;
-  try { body = await c.req.json(); } catch {
-    return c.json({ error: 'Bad Request', message: 'Invalid JSON' }, 400);
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Bad Request", message: "Invalid JSON" }, 400);
   }
   const parsed = CreateSecretSchema.safeParse(body);
-  if (!parsed.success) return c.json({ error: 'Bad Request', details: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: "Bad Request", details: parsed.error.flatten() }, 400);
 
-  const auth = c.get('auth');
+  const auth = c.get("auth");
   try {
     const secret = await createSecret({
       ...parsed.data,
@@ -101,62 +108,74 @@ secretsRouter.post('/', rateLimitStrict, requireRole('OPERATOR'), async (c) => {
     });
     return c.json(secret, 201);
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes('Unique constraint')) {
-      return c.json({ error: 'Conflict', message: 'A secret with this name already exists for this instance' }, 409);
+    if (err instanceof Error && err.message.includes("Unique constraint")) {
+      return c.json(
+        { error: "Conflict", message: "A secret with this name already exists for this instance" },
+        409,
+      );
     }
-    logger.error({ err }, 'Failed to create secret');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to create secret' }, 500);
+    logger.error({ err }, "Failed to create secret");
+    return c.json({ error: "Internal Server Error", message: "Failed to create secret" }, 500);
   }
 });
 
-secretsRouter.get('/:id', rateLimitDefault, async (c) => {
-  const secret = await getSecretById(c.req.param('id'));
-  if (!secret) return c.json({ error: 'Not Found', message: 'Secret not found' }, 404);
+secretsRouter.get("/:id", rateLimitDefault, async (c) => {
+  const secret = await getSecretById(c.req.param("id"));
+  if (!secret) return c.json({ error: "Not Found", message: "Secret not found" }, 404);
   return c.json(secret);
 });
 
-secretsRouter.put('/:id', rateLimitStrict, requireRole('OPERATOR'), async (c) => {
+secretsRouter.put("/:id", rateLimitStrict, requireRole("OPERATOR"), async (c) => {
   let body: unknown;
-  try { body = await c.req.json(); } catch {
-    return c.json({ error: 'Bad Request', message: 'Invalid JSON' }, 400);
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Bad Request", message: "Invalid JSON" }, 400);
   }
   const parsed = UpdateSecretSchema.safeParse(body);
-  if (!parsed.success) return c.json({ error: 'Bad Request', details: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: "Bad Request", details: parsed.error.flatten() }, 400);
 
-  const secret = await updateSecret(c.req.param('id'), {
+  const secret = await updateSecret(c.req.param("id"), {
     ...parsed.data,
     expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
   });
-  if (!secret) return c.json({ error: 'Not Found', message: 'Secret not found' }, 404);
+  if (!secret) return c.json({ error: "Not Found", message: "Secret not found" }, 404);
   return c.json(secret);
 });
 
-secretsRouter.delete('/:id', rateLimitStrict, requireRole('OPERATOR'), async (c) => {
-  const secret = await deleteSecret(c.req.param('id'));
-  if (!secret) return c.json({ error: 'Not Found', message: 'Secret not found' }, 404);
-  return c.json({ message: 'Secret deleted', id: secret.id, name: secret.name });
+secretsRouter.delete("/:id", rateLimitStrict, requireRole("OPERATOR"), async (c) => {
+  const secret = await deleteSecret(c.req.param("id"));
+  if (!secret) return c.json({ error: "Not Found", message: "Secret not found" }, 404);
+  return c.json({ message: "Secret deleted", id: secret.id, name: secret.name });
 });
 
-secretsRouter.post('/:id/rotate', rateLimitStrict, requireRole('OPERATOR'), async (c) => {
+secretsRouter.post("/:id/rotate", rateLimitStrict, requireRole("OPERATOR"), async (c) => {
   let body: unknown;
-  try { body = await c.req.json(); } catch {
-    return c.json({ error: 'Bad Request', message: 'Invalid JSON' }, 400);
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Bad Request", message: "Invalid JSON" }, 400);
   }
   const parsed = RotateSecretSchema.safeParse(body);
-  if (!parsed.success) return c.json({ error: 'Bad Request', details: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: "Bad Request", details: parsed.error.flatten() }, 400);
 
-  const secret = await rotateSecret(c.req.param('id'), parsed.data.value);
-  if (!secret) return c.json({ error: 'Not Found', message: 'Secret not found' }, 404);
+  const secret = await rotateSecret(c.req.param("id"), parsed.data.value);
+  if (!secret) return c.json({ error: "Not Found", message: "Secret not found" }, 404);
   return c.json(secret);
 });
 
 // Reveal decrypted value — ADMIN-only, audit-worthy operation
-secretsRouter.get('/:id/value', rateLimitStrict, requireRole('ADMIN'), async (c) => {
-  const value = await getSecretValue(c.req.param('id'));
-  if (value === null) return c.json({ error: 'Not Found', message: 'Secret not found' }, 404);
+secretsRouter.get("/:id/value", rateLimitStrict, requireRole("ADMIN"), async (c) => {
+  const value = await getSecretValue(c.req.param("id"));
+  if (value === null) return c.json({ error: "Not Found", message: "Secret not found" }, 404);
 
-  const auth = c.get('auth');
-  logger.warn({ secretId: c.req.param('id'), userId: auth.userId }, 'Secret value revealed (audit)');
+  const auth = c.get("auth");
+  logger.warn(
+    { secretId: c.req.param("id"), userId: auth.userId },
+    "Secret value revealed (audit)",
+  );
 
   return c.json({ value });
 });

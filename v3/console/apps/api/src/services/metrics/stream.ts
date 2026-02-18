@@ -11,9 +11,9 @@
  *   This subscriber receives the message and forwards to all subscribed browsers.
  */
 
-import type { WebSocket } from 'ws';
-import { redis, redisSub, REDIS_CHANNELS } from '../../lib/redis.js';
-import { logger } from '../../lib/logger.js';
+import type { WebSocket } from "ws";
+import { redis, redisSub, REDIS_CHANNELS } from "../../lib/redis.js";
+import { logger } from "../../lib/logger.js";
 
 // instanceId → Set<WebSocket>
 const subscriptions = new Map<string, Set<WebSocket>>();
@@ -27,13 +27,13 @@ export function subscribeToInstance(instanceId: string, ws: WebSocket): void {
     subscriptions.set(instanceId, new Set());
     redisSub.subscribe(REDIS_CHANNELS.instanceMetrics(instanceId), (err) => {
       if (err) {
-        logger.error({ err, instanceId }, 'Failed to subscribe to metrics Redis channel');
+        logger.error({ err, instanceId }, "Failed to subscribe to metrics Redis channel");
       }
     });
-    logger.debug({ instanceId }, 'Metrics stream: subscribed to Redis channel');
+    logger.debug({ instanceId }, "Metrics stream: subscribed to Redis channel");
   }
   subscriptions.get(instanceId)!.add(ws);
-  logger.debug({ instanceId }, 'Metrics stream: browser client subscribed');
+  logger.debug({ instanceId }, "Metrics stream: browser client subscribed");
 }
 
 export function unsubscribeFromInstance(instanceId: string, ws: WebSocket): void {
@@ -45,7 +45,7 @@ export function unsubscribeFromInstance(instanceId: string, ws: WebSocket): void
   if (clients.size === 0) {
     subscriptions.delete(instanceId);
     redisSub.unsubscribe(REDIS_CHANNELS.instanceMetrics(instanceId));
-    logger.debug({ instanceId }, 'Metrics stream: unsubscribed from Redis channel');
+    logger.debug({ instanceId }, "Metrics stream: unsubscribed from Redis channel");
   }
 }
 
@@ -59,7 +59,7 @@ export function unsubscribeAll(ws: WebSocket): void {
 // Forward Redis pub/sub messages to subscribed browser clients
 // ─────────────────────────────────────────────────────────────────────────────
 
-redisSub.on('message', (channel: string, message: string) => {
+redisSub.on("message", (channel: string, message: string) => {
   const match = channel.match(/^sindri:instance:(.+):metrics$/);
   if (!match) return;
 
@@ -80,7 +80,7 @@ redisSub.on('message', (channel: string, message: string) => {
 
 export async function publishMetricUpdate(instanceId: string, payload: unknown): Promise<void> {
   const message = JSON.stringify({
-    type: 'metrics:update',
+    type: "metrics:update",
     instanceId,
     ts: Date.now(),
     data: payload,
@@ -88,6 +88,6 @@ export async function publishMetricUpdate(instanceId: string, payload: unknown):
   try {
     await redis.publish(REDIS_CHANNELS.instanceMetrics(instanceId), message);
   } catch (err) {
-    logger.warn({ err, instanceId }, 'Failed to publish metric update to Redis');
+    logger.warn({ err, instanceId }, "Failed to publish metric update to Redis");
   }
 }

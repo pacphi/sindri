@@ -14,7 +14,7 @@ interface StoredState {
 export function saveSessionState(
   tabs: TerminalTab[],
   groups: TerminalGroup[],
-  activeTabId: string | null
+  activeTabId: string | null,
 ): void {
   const sessions: PersistedSession[] = tabs.map((tab) => ({
     tabId: tab.id,
@@ -44,9 +44,7 @@ export function loadSessionState(): StoredState | null {
     const now = Date.now();
 
     // Filter out expired sessions
-    state.sessions = state.sessions.filter(
-      (s) => now - s.savedAt < SESSION_TTL_MS
-    );
+    state.sessions = state.sessions.filter((s) => now - s.savedAt < SESSION_TTL_MS);
 
     if (state.sessions.length === 0) {
       clearSessionState();
@@ -72,7 +70,11 @@ interface SessionManagerProps {
   tabs: TerminalTab[];
   groups: TerminalGroup[];
   activeTabId: string | null;
-  onRestore: (sessions: PersistedSession[], groups: TerminalGroup[], activeTabId: string | null) => void;
+  onRestore: (
+    sessions: PersistedSession[],
+    groups: TerminalGroup[],
+    activeTabId: string | null,
+  ) => void;
 }
 
 export function SessionManager({ tabs, groups, activeTabId, onRestore }: SessionManagerProps) {

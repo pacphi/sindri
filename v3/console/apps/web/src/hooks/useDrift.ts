@@ -1,39 +1,38 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { driftApi, secretsApi } from '@/api/drift';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { driftApi, secretsApi } from "@/api/drift";
 import type {
   SnapshotFilters,
   DriftEventFilters,
   SecretFilters,
   CreateSecretInput,
   UpdateSecretInput,
-} from '@/types/drift';
+} from "@/types/drift";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Query keys
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const driftKeys = {
-  all: ['drift'] as const,
-  summary: () => [...driftKeys.all, 'summary'] as const,
+  all: ["drift"] as const,
+  summary: () => [...driftKeys.all, "summary"] as const,
 
-  snapshots: ['snapshots'] as const,
-  snapshotLists: () => [...driftKeys.snapshots, 'list'] as const,
+  snapshots: ["snapshots"] as const,
+  snapshotLists: () => [...driftKeys.snapshots, "list"] as const,
   snapshotList: (filters: SnapshotFilters, page: number) =>
     [...driftKeys.snapshotLists(), filters, page] as const,
-  snapshotDetail: (id: string) => [...driftKeys.snapshots, 'detail', id] as const,
-  instanceLatest: (instanceId: string) =>
-    [...driftKeys.snapshots, 'latest', instanceId] as const,
+  snapshotDetail: (id: string) => [...driftKeys.snapshots, "detail", id] as const,
+  instanceLatest: (instanceId: string) => [...driftKeys.snapshots, "latest", instanceId] as const,
 
-  events: ['driftEvents'] as const,
-  eventLists: () => [...driftKeys.events, 'list'] as const,
+  events: ["driftEvents"] as const,
+  eventLists: () => [...driftKeys.events, "list"] as const,
   eventList: (filters: DriftEventFilters, page: number) =>
     [...driftKeys.eventLists(), filters, page] as const,
 
-  secrets: ['secrets'] as const,
-  secretLists: () => [...driftKeys.secrets, 'list'] as const,
+  secrets: ["secrets"] as const,
+  secretLists: () => [...driftKeys.secrets, "list"] as const,
   secretList: (filters: SecretFilters, page: number) =>
     [...driftKeys.secretLists(), filters, page] as const,
-  secretDetail: (id: string) => [...driftKeys.secrets, 'detail', id] as const,
+  secretDetail: (id: string) => [...driftKeys.secrets, "detail", id] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

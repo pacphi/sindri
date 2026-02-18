@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Trash2, AlertTriangle } from 'lucide-react'
+import { useState } from "react";
+import { Trash2, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,54 +7,54 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { VolumeBackupSelector } from './VolumeBackupSelector'
-import { instancesApi } from '@/lib/api'
-import type { Instance } from '@/types/instance'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { VolumeBackupSelector } from "./VolumeBackupSelector";
+import { instancesApi } from "@/lib/api";
+import type { Instance } from "@/types/instance";
 
 interface DestroyDialogProps {
-  instance: Instance
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  instance: Instance;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function DestroyDialog({ instance, open, onOpenChange, onSuccess }: DestroyDialogProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [confirmName, setConfirmName] = useState('')
-  const [backupVolume, setBackupVolume] = useState(false)
-  const [backupLabel, setBackupLabel] = useState('')
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmName, setConfirmName] = useState("");
+  const [backupVolume, setBackupVolume] = useState(false);
+  const [backupLabel, setBackupLabel] = useState("");
 
-  const isConfirmed = confirmName === instance.name
+  const isConfirmed = confirmName === instance.name;
 
   function handleOpenChange(open: boolean) {
     if (!open) {
-      setConfirmName('')
-      setBackupVolume(false)
-      setBackupLabel('')
-      setError(null)
+      setConfirmName("");
+      setBackupVolume(false);
+      setBackupLabel("");
+      setError(null);
     }
-    onOpenChange(open)
+    onOpenChange(open);
   }
 
   async function handleDestroy() {
-    if (!isConfirmed) return
-    setIsLoading(true)
-    setError(null)
+    if (!isConfirmed) return;
+    setIsLoading(true);
+    setError(null);
     try {
       await instancesApi.destroy(instance.id, {
         backupVolume,
         backupLabel: backupLabel || undefined,
-      })
-      handleOpenChange(false)
-      onSuccess?.()
+      });
+      handleOpenChange(false);
+      onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to destroy instance')
+      setError(err instanceof Error ? err.message : "Failed to destroy instance");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -66,9 +66,7 @@ export function DestroyDialog({ instance, open, onOpenChange, onSuccess }: Destr
             <Trash2 className="h-5 w-5 text-destructive" />
             Destroy Instance
           </DialogTitle>
-          <DialogDescription>
-            This action cannot be undone.
-          </DialogDescription>
+          <DialogDescription>This action cannot be undone.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -121,10 +119,10 @@ export function DestroyDialog({ instance, open, onOpenChange, onSuccess }: Destr
             onClick={() => void handleDestroy()}
             disabled={!isConfirmed || isLoading}
           >
-            {isLoading ? 'Destroying...' : 'Destroy Instance'}
+            {isLoading ? "Destroying..." : "Destroy Instance"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

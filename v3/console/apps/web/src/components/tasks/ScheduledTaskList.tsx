@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Play,
   Pause,
@@ -11,67 +11,70 @@ import {
   Clock,
   PlayCircle,
   ChevronRight,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   useTasks,
   useDeleteTask,
   usePauseTask,
   useResumeTask,
   useTriggerTask,
-} from '@/hooks/useTasks'
-import { TaskEditor } from './TaskEditor'
-import { TaskHistory } from './TaskHistory'
-import type { ScheduledTask, TaskStatus } from '@/types/task'
-import { cn } from '@/lib/utils'
+} from "@/hooks/useTasks";
+import { TaskEditor } from "./TaskEditor";
+import { TaskHistory } from "./TaskHistory";
+import type { ScheduledTask, TaskStatus } from "@/types/task";
+import { cn } from "@/lib/utils";
 
-const STATUS_BADGE: Record<TaskStatus, { variant: 'success' | 'warning' | 'muted'; label: string }> = {
-  ACTIVE: { variant: 'success', label: 'Active' },
-  PAUSED: { variant: 'warning', label: 'Paused' },
-  DISABLED: { variant: 'muted', label: 'Disabled' },
-}
+const STATUS_BADGE: Record<
+  TaskStatus,
+  { variant: "success" | "warning" | "muted"; label: string }
+> = {
+  ACTIVE: { variant: "success", label: "Active" },
+  PAUSED: { variant: "warning", label: "Paused" },
+  DISABLED: { variant: "muted", label: "Disabled" },
+};
 
 function formatNextRun(iso: string | null): string {
-  if (!iso) return 'Not scheduled'
-  const d = new Date(iso)
-  const diff = d.getTime() - Date.now()
-  if (diff < 0) return 'Due now'
-  if (diff < 60_000) return 'In less than a minute'
-  if (diff < 3600_000) return `In ${Math.floor(diff / 60_000)}m`
-  if (diff < 86_400_000) return `In ${Math.floor(diff / 3600_000)}h`
-  return d.toLocaleDateString()
+  if (!iso) return "Not scheduled";
+  const d = new Date(iso);
+  const diff = d.getTime() - Date.now();
+  if (diff < 0) return "Due now";
+  if (diff < 60_000) return "In less than a minute";
+  if (diff < 3600_000) return `In ${Math.floor(diff / 60_000)}m`;
+  if (diff < 86_400_000) return `In ${Math.floor(diff / 3600_000)}h`;
+  return d.toLocaleDateString();
 }
 
 function formatLastRun(iso: string | null): string {
-  if (!iso) return 'Never'
-  const d = new Date(iso)
-  const diff = Date.now() - d.getTime()
-  if (diff < 60_000) return 'Just now'
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`
-  if (diff < 86_400_000) return `${Math.floor(diff / 3600_000)}h ago`
-  return d.toLocaleDateString()
+  if (!iso) return "Never";
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000) return "Just now";
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3600_000)}h ago`;
+  return d.toLocaleDateString();
 }
 
 interface TaskRowProps {
-  task: ScheduledTask
-  onEdit: (task: ScheduledTask) => void
-  onViewHistory: (task: ScheduledTask) => void
+  task: ScheduledTask;
+  onEdit: (task: ScheduledTask) => void;
+  onViewHistory: (task: ScheduledTask) => void;
 }
 
 function TaskRow({ task, onEdit, onViewHistory }: TaskRowProps) {
-  const pauseMutation = usePauseTask()
-  const resumeMutation = useResumeTask()
-  const deleteMutation = useDeleteTask()
-  const triggerMutation = useTriggerTask()
-  const statusCfg = STATUS_BADGE[task.status]
+  const pauseMutation = usePauseTask();
+  const resumeMutation = useResumeTask();
+  const deleteMutation = useDeleteTask();
+  const triggerMutation = useTriggerTask();
+  const statusCfg = STATUS_BADGE[task.status];
 
   const isPending =
     pauseMutation.isPending ||
     resumeMutation.isPending ||
     deleteMutation.isPending ||
-    triggerMutation.isPending
+    triggerMutation.isPending;
 
   return (
     <Card>
@@ -112,10 +115,10 @@ function TaskRow({ task, onEdit, onViewHistory }: TaskRowProps) {
             disabled={isPending}
             title="Run now"
           >
-            <PlayCircle className={cn('h-4 w-4', triggerMutation.isPending && 'animate-spin')} />
+            <PlayCircle className={cn("h-4 w-4", triggerMutation.isPending && "animate-spin")} />
           </Button>
 
-          {task.status === 'ACTIVE' ? (
+          {task.status === "ACTIVE" ? (
             <Button
               variant="ghost"
               size="icon"
@@ -163,7 +166,7 @@ function TaskRow({ task, onEdit, onViewHistory }: TaskRowProps) {
             className="text-destructive hover:text-destructive"
             onClick={() => {
               if (confirm(`Delete task "${task.name}"?`)) {
-                void deleteMutation.mutateAsync(task.id)
+                void deleteMutation.mutateAsync(task.id);
               }
             }}
             disabled={isPending}
@@ -174,17 +177,17 @@ function TaskRow({ task, onEdit, onViewHistory }: TaskRowProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function ScheduledTaskList() {
-  const [page] = useState(1)
-  const { data, isLoading, isError, error, refetch, isFetching } = useTasks({}, page)
-  const [editTask, setEditTask] = useState<ScheduledTask | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
-  const [historyTask, setHistoryTask] = useState<ScheduledTask | null>(null)
+  const [page] = useState(1);
+  const { data, isLoading, isError, error, refetch, isFetching } = useTasks({}, page);
+  const [editTask, setEditTask] = useState<ScheduledTask | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [historyTask, setHistoryTask] = useState<ScheduledTask | null>(null);
 
-  const tasks = data?.tasks ?? []
+  const tasks = data?.tasks ?? [];
 
   return (
     <div className="space-y-4">
@@ -194,7 +197,7 @@ export function ScheduledTaskList() {
           <h2 className="text-lg font-semibold">Scheduled Tasks</h2>
           {data && (
             <p className="text-sm text-muted-foreground">
-              {data.pagination.total} task{data.pagination.total !== 1 ? 's' : ''}
+              {data.pagination.total} task{data.pagination.total !== 1 ? "s" : ""}
             </p>
           )}
         </div>
@@ -206,7 +209,7 @@ export function ScheduledTaskList() {
             disabled={isFetching}
             aria-label="Refresh"
           >
-            <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
+            <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
           </Button>
           <Button size="sm" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" />
@@ -226,7 +229,7 @@ export function ScheduledTaskList() {
         <div className="flex flex-col items-center gap-4 rounded-lg border border-destructive/20 bg-destructive/5 p-10 text-center">
           <AlertCircle className="h-8 w-8 text-destructive" />
           <p className="text-sm">
-            {error instanceof Error ? error.message : 'Failed to load tasks'}
+            {error instanceof Error ? error.message : "Failed to load tasks"}
           </p>
           <Button variant="outline" onClick={() => void refetch()}>
             Retry
@@ -284,11 +287,11 @@ export function ScheduledTaskList() {
         <TaskEditor
           task={editTask}
           onClose={() => {
-            setShowCreate(false)
-            setEditTask(null)
+            setShowCreate(false);
+            setEditTask(null);
           }}
         />
       )}
     </div>
-  )
+  );
 }

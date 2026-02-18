@@ -33,7 +33,7 @@ export function splitPane(
   root: PaneNode,
   targetId: string,
   newTabId: string,
-  direction: SplitDirection
+  direction: SplitDirection,
 ): PaneNode {
   if (root.id === targetId && root.tabId !== undefined) {
     return {
@@ -93,7 +93,7 @@ export function TerminalSplitView({
       const updated = updatePaneRatio(splitLayout, paneId, ratio);
       onSplitLayoutChange(updated);
     },
-    [splitLayout, onSplitLayoutChange]
+    [splitLayout, onSplitLayoutChange],
   );
 
   if (!splitLayout) {
@@ -229,7 +229,14 @@ interface ResizableSplitProps {
   second: React.ReactNode;
 }
 
-function ResizableSplit({ direction, ratio, paneId, onResize, first, second }: ResizableSplitProps) {
+function ResizableSplit({
+  direction,
+  ratio,
+  paneId,
+  onResize,
+  first,
+  second,
+}: ResizableSplitProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const [localRatio, setLocalRatio] = useState(ratio);
@@ -282,7 +289,7 @@ function ResizableSplit({ direction, ratio, paneId, onResize, first, second }: R
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     },
-    [direction, paneId, onResize]
+    [direction, paneId, onResize],
   );
 
   const isHorizontal = direction === "horizontal";
@@ -294,16 +301,17 @@ function ResizableSplit({ direction, ratio, paneId, onResize, first, second }: R
       ref={containerRef}
       className={`flex h-full w-full ${isHorizontal ? "flex-col" : "flex-row"}`}
     >
-      <div style={{ [isHorizontal ? "height" : "width"]: firstSize, flexShrink: 0 }} className="overflow-hidden">
+      <div
+        style={{ [isHorizontal ? "height" : "width"]: firstSize, flexShrink: 0 }}
+        className="overflow-hidden"
+      >
         {first}
       </div>
 
       {/* Resizer */}
       <div
         className={`group relative flex-shrink-0 flex items-center justify-center bg-gray-800 hover:bg-blue-600/50 transition-colors ${
-          isHorizontal
-            ? "h-1 w-full cursor-row-resize"
-            : "w-1 h-full cursor-col-resize"
+          isHorizontal ? "h-1 w-full cursor-row-resize" : "w-1 h-full cursor-col-resize"
         }`}
         onMouseDown={handleMouseDown}
       >
@@ -314,7 +322,10 @@ function ResizableSplit({ direction, ratio, paneId, onResize, first, second }: R
         />
       </div>
 
-      <div style={{ [isHorizontal ? "height" : "width"]: secondSize }} className="overflow-hidden flex-1">
+      <div
+        style={{ [isHorizontal ? "height" : "width"]: secondSize }}
+        className="overflow-hidden flex-1"
+      >
         {second}
       </div>
     </div>

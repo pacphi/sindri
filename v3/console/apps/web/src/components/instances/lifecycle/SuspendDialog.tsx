@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { PauseCircle, DollarSign } from 'lucide-react'
+import { useState } from "react";
+import { PauseCircle, DollarSign } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,33 +7,33 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { instancesApi } from '@/lib/api'
-import type { Instance } from '@/types/instance'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { instancesApi } from "@/lib/api";
+import type { Instance } from "@/types/instance";
 
 interface SuspendDialogProps {
-  instance: Instance
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  instance: Instance;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function SuspendDialog({ instance, open, onOpenChange, onSuccess }: SuspendDialogProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSuspend() {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      await instancesApi.suspend(instance.id)
-      onOpenChange(false)
-      onSuccess?.()
+      await instancesApi.suspend(instance.id);
+      onOpenChange(false);
+      onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to suspend instance')
+      setError(err instanceof Error ? err.message : "Failed to suspend instance");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -57,8 +57,8 @@ export function SuspendDialog({ instance, open, onOpenChange, onSuccess }: Suspe
               <div className="text-sm">
                 <p className="font-medium text-amber-700 dark:text-amber-400">Cost savings</p>
                 <p className="text-amber-600 dark:text-amber-500 mt-0.5">
-                  Suspending this instance will pause compute billing while preserving your data
-                  and configuration. You can resume it at any time.
+                  Suspending this instance will pause compute billing while preserving your data and
+                  configuration. You can resume it at any time.
                 </p>
               </div>
             </div>
@@ -90,10 +90,10 @@ export function SuspendDialog({ instance, open, onOpenChange, onSuccess }: Suspe
             onClick={() => void handleSuspend()}
             disabled={isLoading}
           >
-            {isLoading ? 'Suspending...' : 'Suspend Instance'}
+            {isLoading ? "Suspending..." : "Suspend Instance"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

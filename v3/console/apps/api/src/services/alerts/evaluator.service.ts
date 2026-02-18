@@ -34,7 +34,9 @@ export async function evaluateAllRules(): Promise<void> {
   if (rules.length === 0) return;
 
   // Gather all unique instance IDs from rules (plus null = all instances)
-  const _ruleInstanceIds = [...new Set(rules.map((r) => r.instance_id).filter(Boolean) as string[])];
+  const _ruleInstanceIds = [
+    ...new Set(rules.map((r) => r.instance_id).filter(Boolean) as string[]),
+  ];
   const allInstances = await db.instance.findMany({
     select: { id: true, name: true, status: true },
   });

@@ -57,7 +57,7 @@ function sendError(ws: WebSocket, code: string, message: string, correlationId?:
     CHANNEL.EVENTS, // error channel reuses events for simplicity
     MESSAGE_TYPE.ERROR,
     { code, message },
-    { correlationId }
+    { correlationId },
   );
   send(ws, envelope);
 }
@@ -75,7 +75,10 @@ function requireInstanceId(ctx: HandlerContext, correlationId?: string): string 
 // Metrics handler
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function handleMetrics(envelope: Envelope<MetricsPayload>, ctx: HandlerContext): Promise<void> {
+export async function handleMetrics(
+  envelope: Envelope<MetricsPayload>,
+  ctx: HandlerContext,
+): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
@@ -87,7 +90,12 @@ export async function handleMetrics(envelope: Envelope<MetricsPayload>, ctx: Han
     typeof payload.memoryUsed !== "number" ||
     typeof payload.memoryTotal !== "number"
   ) {
-    sendError(ctx.ws, "INVALID_PAYLOAD", "Metrics payload missing required fields", envelope.correlationId);
+    sendError(
+      ctx.ws,
+      "INVALID_PAYLOAD",
+      "Metrics payload missing required fields",
+      envelope.correlationId,
+    );
     return;
   }
 
@@ -95,10 +103,15 @@ export async function handleMetrics(envelope: Envelope<MetricsPayload>, ctx: Han
   await ctx.persistMetrics?.(instanceId, payload);
 
   // Broadcast to all browser subscribers watching this instance
-  const outbound = makeEnvelope<MetricsPayload>(CHANNEL.METRICS, MESSAGE_TYPE.METRICS_UPDATE, payload, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<MetricsPayload>(
+    CHANNEL.METRICS,
+    MESSAGE_TYPE.METRICS_UPDATE,
+    payload,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.METRICS, instanceId, JSON.stringify(outbound));
 }
 
@@ -106,7 +119,10 @@ export async function handleMetrics(envelope: Envelope<MetricsPayload>, ctx: Han
 // Heartbeat handler
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function handleHeartbeat(envelope: Envelope<HeartbeatPayload>, ctx: HandlerContext): Promise<void> {
+export async function handleHeartbeat(
+  envelope: Envelope<HeartbeatPayload>,
+  ctx: HandlerContext,
+): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
@@ -119,7 +135,7 @@ export async function handleHeartbeat(envelope: Envelope<HeartbeatPayload>, ctx:
     CHANNEL.HEARTBEAT,
     MESSAGE_TYPE.HEARTBEAT_PONG,
     { ok: true as const },
-    { instanceId, correlationId: envelope.correlationId }
+    { instanceId, correlationId: envelope.correlationId },
   );
   send(ctx.ws, pong);
 
@@ -131,25 +147,41 @@ export async function handleHeartbeat(envelope: Envelope<HeartbeatPayload>, ctx:
 // Logs handler
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function handleLogLine(envelope: Envelope<LogLinePayload>, ctx: HandlerContext): Promise<void> {
+export async function handleLogLine(
+  envelope: Envelope<LogLinePayload>,
+  ctx: HandlerContext,
+): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
-  const outbound = makeEnvelope<LogLinePayload>(CHANNEL.LOGS, MESSAGE_TYPE.LOG_LINE, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<LogLinePayload>(
+    CHANNEL.LOGS,
+    MESSAGE_TYPE.LOG_LINE,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.LOGS, instanceId, JSON.stringify(outbound));
 }
 
-export async function handleLogBatch(envelope: Envelope<LogBatchPayload>, ctx: HandlerContext): Promise<void> {
+export async function handleLogBatch(
+  envelope: Envelope<LogBatchPayload>,
+  ctx: HandlerContext,
+): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
-  const outbound = makeEnvelope<LogBatchPayload>(CHANNEL.LOGS, MESSAGE_TYPE.LOG_BATCH, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<LogBatchPayload>(
+    CHANNEL.LOGS,
+    MESSAGE_TYPE.LOG_BATCH,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.LOGS, instanceId, JSON.stringify(outbound));
 }
 
@@ -163,55 +195,78 @@ export async function handleLogBatch(envelope: Envelope<LogBatchPayload>, ctx: H
 
 export async function handleTerminalCreate(
   envelope: Envelope<TerminalCreatePayload>,
-  ctx: HandlerContext
+  ctx: HandlerContext,
 ): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
   // Forward the create request to the instance agent via pub/sub
-  const outbound = makeEnvelope<TerminalCreatePayload>(CHANNEL.TERMINAL, MESSAGE_TYPE.TERMINAL_CREATE, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<TerminalCreatePayload>(
+    CHANNEL.TERMINAL,
+    MESSAGE_TYPE.TERMINAL_CREATE,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.TERMINAL, instanceId, JSON.stringify(outbound));
 }
 
-export async function handleTerminalData(envelope: Envelope<TerminalDataPayload>, ctx: HandlerContext): Promise<void> {
+export async function handleTerminalData(
+  envelope: Envelope<TerminalDataPayload>,
+  ctx: HandlerContext,
+): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
-  const outbound = makeEnvelope<TerminalDataPayload>(CHANNEL.TERMINAL, MESSAGE_TYPE.TERMINAL_DATA, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<TerminalDataPayload>(
+    CHANNEL.TERMINAL,
+    MESSAGE_TYPE.TERMINAL_DATA,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.TERMINAL, instanceId, JSON.stringify(outbound));
 }
 
 export async function handleTerminalResize(
   envelope: Envelope<TerminalResizePayload>,
-  ctx: HandlerContext
+  ctx: HandlerContext,
 ): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
-  const outbound = makeEnvelope<TerminalResizePayload>(CHANNEL.TERMINAL, MESSAGE_TYPE.TERMINAL_RESIZE, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<TerminalResizePayload>(
+    CHANNEL.TERMINAL,
+    MESSAGE_TYPE.TERMINAL_RESIZE,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.TERMINAL, instanceId, JSON.stringify(outbound));
 }
 
 export async function handleTerminalClose(
   envelope: Envelope<TerminalClosePayload>,
-  ctx: HandlerContext
+  ctx: HandlerContext,
 ): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
-  const outbound = makeEnvelope<TerminalClosePayload>(CHANNEL.TERMINAL, MESSAGE_TYPE.TERMINAL_CLOSE, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<TerminalClosePayload>(
+    CHANNEL.TERMINAL,
+    MESSAGE_TYPE.TERMINAL_CLOSE,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.TERMINAL, instanceId, JSON.stringify(outbound));
 }
 
@@ -221,7 +276,7 @@ export async function handleTerminalClose(
 
 export async function handleInstanceEvent(
   envelope: Envelope<InstanceEventPayload>,
-  ctx: HandlerContext
+  ctx: HandlerContext,
 ): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
@@ -230,10 +285,15 @@ export async function handleInstanceEvent(
 
   await ctx.persistEvent?.(instanceId, payload);
 
-  const outbound = makeEnvelope<InstanceEventPayload>(CHANNEL.EVENTS, MESSAGE_TYPE.EVENT_INSTANCE, payload, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<InstanceEventPayload>(
+    CHANNEL.EVENTS,
+    MESSAGE_TYPE.EVENT_INSTANCE,
+    payload,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.EVENTS, instanceId, JSON.stringify(outbound));
 }
 
@@ -247,7 +307,10 @@ export async function handleInstanceEvent(
  * agent via pub/sub. The agent replies with COMMAND_RESULT which flows back
  * through the same pipeline.
  */
-export async function handleCommandExec(envelope: Envelope<CommandExecPayload>, ctx: HandlerContext): Promise<void> {
+export async function handleCommandExec(
+  envelope: Envelope<CommandExecPayload>,
+  ctx: HandlerContext,
+): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
@@ -257,25 +320,35 @@ export async function handleCommandExec(envelope: Envelope<CommandExecPayload>, 
     return;
   }
 
-  const outbound = makeEnvelope<CommandExecPayload>(CHANNEL.COMMANDS, MESSAGE_TYPE.COMMAND_EXEC, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<CommandExecPayload>(
+    CHANNEL.COMMANDS,
+    MESSAGE_TYPE.COMMAND_EXEC,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.COMMANDS, instanceId, JSON.stringify(outbound));
 }
 
 export async function handleCommandResult(
   envelope: Envelope<CommandResultPayload>,
-  ctx: HandlerContext
+  ctx: HandlerContext,
 ): Promise<void> {
   const instanceId = requireInstanceId(ctx, envelope.correlationId);
   if (!instanceId) return;
 
   // Agent sends results; broadcast to browser subscribers
-  const outbound = makeEnvelope<CommandResultPayload>(CHANNEL.COMMANDS, MESSAGE_TYPE.COMMAND_RESULT, envelope.data, {
-    instanceId,
-    correlationId: envelope.correlationId,
-  });
+  const outbound = makeEnvelope<CommandResultPayload>(
+    CHANNEL.COMMANDS,
+    MESSAGE_TYPE.COMMAND_RESULT,
+    envelope.data,
+    {
+      instanceId,
+      correlationId: envelope.correlationId,
+    },
+  );
   await ctx.pubsub.publish(CHANNEL.COMMANDS, instanceId, JSON.stringify(outbound));
 }
 
@@ -324,7 +397,7 @@ export async function dispatch(envelope: Envelope, ctx: HandlerContext): Promise
         ctx.ws,
         "UNKNOWN_MESSAGE_TYPE",
         `Unknown message type: ${String(envelope.type)}`,
-        envelope.correlationId
+        envelope.correlationId,
       );
   }
 }

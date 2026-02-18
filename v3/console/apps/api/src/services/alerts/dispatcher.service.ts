@@ -2,15 +2,15 @@
  * Notification dispatcher — sends notifications via webhook, Slack, email, in-app.
  */
 
-import { createHmac } from 'crypto';
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
+import { createHmac } from "crypto";
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
 import type {
   WebhookChannelConfig,
   SlackChannelConfig,
   EmailChannelConfig,
   InAppChannelConfig,
-} from './types.js';
+} from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Payload builder
@@ -48,7 +48,7 @@ export const dispatcher = {
     });
 
     if (!alert || !alert.rule) {
-      logger.warn({ alertId }, 'Alert not found for dispatch');
+      logger.warn({ alertId }, "Alert not found for dispatch");
       return;
     }
 
@@ -70,7 +70,15 @@ export const dispatcher = {
     await Promise.allSettled(
       channels
         .filter((ch) => ch.enabled)
-        .map((ch) => this.sendToChannel(alertId, ch.id, ch.type, ch.config as Record<string, unknown>, payload)),
+        .map((ch) =>
+          this.sendToChannel(
+            alertId,
+            ch.id,
+            ch.type,
+            ch.config as Record<string, unknown>,
+            payload,
+          ),
+        ),
     );
   },
 
@@ -87,69 +95,71 @@ export const dispatcher = {
 
     try {
       switch (type) {
-        case 'WEBHOOK':
+        case "WEBHOOK":
           sentPayload = await sendWebhook(config as unknown as WebhookChannelConfig, payload);
           break;
-        case 'SLACK':
+        case "SLACK":
           sentPayload = await sendSlack(config as unknown as SlackChannelConfig, payload);
           break;
-        case 'EMAIL':
+        case "EMAIL":
           sentPayload = await sendEmail(config as unknown as EmailChannelConfig, payload);
           break;
-        case 'IN_APP':
+        case "IN_APP":
           sentPayload = await sendInApp(config as unknown as InAppChannelConfig, payload, alertId);
           break;
         default:
           throw new Error(`Unknown channel type: ${type}`);
       }
       success = true;
-      logger.info({ alertId, channelId, type }, 'Notification sent successfully');
+      logger.info({ alertId, channelId, type }, "Notification sent successfully");
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
-      logger.error({ alertId, channelId, type, error }, 'Failed to send notification');
+      logger.error({ alertId, channelId, type, error }, "Failed to send notification");
     }
 
     // Record notification attempt
-    await db.alertNotification.create({
-      data: {
-        alert_id: alertId,
-        channel_id: channelId,
-        success,
-        error: error ?? null,
-        payload: sentPayload ? (sentPayload as object) : null,
-      },
-    }).catch((err) => logger.warn({ err, alertId, channelId }, 'Failed to record notification'));
+    await db.alertNotification
+      .create({
+        data: {
+          alert_id: alertId,
+          channel_id: channelId,
+          success,
+          error: error ?? null,
+          payload: sentPayload ? (sentPayload as object) : null,
+        },
+      })
+      .catch((err) => logger.warn({ err, alertId, channelId }, "Failed to record notification"));
   },
 
   async test(
-    type: 'WEBHOOK' | 'SLACK' | 'EMAIL' | 'IN_APP',
+    type: "WEBHOOK" | "SLACK" | "EMAIL" | "IN_APP",
     config: object,
   ): Promise<{ success: boolean; error?: string }> {
     const testPayload: AlertPayload = {
-      alertId: 'test-alert-id',
-      ruleId: 'test-rule-id',
-      ruleName: 'Test Alert Rule',
-      ruleType: 'THRESHOLD',
+      alertId: "test-alert-id",
+      ruleId: "test-rule-id",
+      ruleName: "Test Alert Rule",
+      ruleType: "THRESHOLD",
       instanceId: null,
-      severity: 'INFO',
-      title: 'Test Notification',
-      message: 'This is a test notification from Sindri Console.',
-      status: 'ACTIVE',
+      severity: "INFO",
+      title: "Test Notification",
+      message: "This is a test notification from Sindri Console.",
+      status: "ACTIVE",
       firedAt: new Date().toISOString(),
     };
 
     try {
       switch (type) {
-        case 'WEBHOOK':
+        case "WEBHOOK":
           await sendWebhook(config as WebhookChannelConfig, testPayload);
           break;
-        case 'SLACK':
+        case "SLACK":
           await sendSlack(config as SlackChannelConfig, testPayload);
           break;
-        case 'EMAIL':
+        case "EMAIL":
           await sendEmail(config as EmailChannelConfig, testPayload);
           break;
-        case 'IN_APP':
+        case "IN_APP":
           // In-app test is always successful
           break;
       }
@@ -167,19 +177,19 @@ export const dispatcher = {
 async function sendWebhook(config: WebhookChannelConfig, payload: AlertPayload): Promise<object> {
   const body = JSON.stringify(payload);
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Sindri-Console/1.0',
+    "Content-Type": "application/json",
+    "User-Agent": "Sindri-Console/1.0",
     ...config.headers,
   };
 
   // HMAC signing if secret is configured
   if (config.secret) {
-    const sig = createHmac('sha256', config.secret).update(body).digest('hex');
-    headers['X-Sindri-Signature'] = `sha256=${sig}`;
+    const sig = createHmac("sha256", config.secret).update(body).digest("hex");
+    headers["X-Sindri-Signature"] = `sha256=${sig}`;
   }
 
   const resp = await fetch(config.url, {
-    method: config.method ?? 'POST',
+    method: config.method ?? "POST",
     headers,
     body,
     signal: AbortSignal.timeout(10_000),
@@ -193,25 +203,27 @@ async function sendWebhook(config: WebhookChannelConfig, payload: AlertPayload):
 }
 
 async function sendSlack(config: SlackChannelConfig, payload: AlertPayload): Promise<object> {
-  const severityEmoji = {
-    CRITICAL: ':rotating_light:',
-    HIGH: ':red_circle:',
-    MEDIUM: ':large_yellow_circle:',
-    LOW: ':large_blue_circle:',
-    INFO: ':white_circle:',
-  }[payload.severity] ?? ':bell:';
+  const severityEmoji =
+    {
+      CRITICAL: ":rotating_light:",
+      HIGH: ":red_circle:",
+      MEDIUM: ":large_yellow_circle:",
+      LOW: ":large_blue_circle:",
+      INFO: ":white_circle:",
+    }[payload.severity] ?? ":bell:";
 
-  const color = {
-    CRITICAL: '#FF0000',
-    HIGH: '#FF6600',
-    MEDIUM: '#FFA500',
-    LOW: '#0099FF',
-    INFO: '#999999',
-  }[payload.severity] ?? '#999999';
+  const color =
+    {
+      CRITICAL: "#FF0000",
+      HIGH: "#FF6600",
+      MEDIUM: "#FFA500",
+      LOW: "#0099FF",
+      INFO: "#999999",
+    }[payload.severity] ?? "#999999";
 
   const body = {
-    username: config.username ?? 'Sindri Alerts',
-    icon_emoji: config.icon_emoji ?? ':bell:',
+    username: config.username ?? "Sindri Alerts",
+    icon_emoji: config.icon_emoji ?? ":bell:",
     ...(config.channel && { channel: config.channel }),
     attachments: [
       {
@@ -219,22 +231,22 @@ async function sendSlack(config: SlackChannelConfig, payload: AlertPayload): Pro
         title: `${severityEmoji} ${payload.title}`,
         text: payload.message,
         fields: [
-          { title: 'Severity', value: payload.severity, short: true },
-          { title: 'Rule', value: payload.ruleName, short: true },
+          { title: "Severity", value: payload.severity, short: true },
+          { title: "Rule", value: payload.ruleName, short: true },
           ...(payload.instanceId
-            ? [{ title: 'Instance', value: payload.instanceId, short: true }]
+            ? [{ title: "Instance", value: payload.instanceId, short: true }]
             : []),
-          { title: 'Fired At', value: new Date(payload.firedAt).toLocaleString(), short: true },
+          { title: "Fired At", value: new Date(payload.firedAt).toLocaleString(), short: true },
         ],
-        footer: 'Sindri Console',
+        footer: "Sindri Console",
         ts: Math.floor(new Date(payload.firedAt).getTime() / 1000),
       },
     ],
   };
 
   const resp = await fetch(config.webhook_url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
   });
@@ -249,7 +261,7 @@ async function sendSlack(config: SlackChannelConfig, payload: AlertPayload): Pro
 
 async function sendEmail(config: EmailChannelConfig, payload: AlertPayload): Promise<object> {
   // Email integration stub — in production wire up to Resend, SendGrid, or Nodemailer
-  const subject = `${config.subject_prefix ?? '[Sindri Alert]'} ${payload.severity}: ${payload.title}`;
+  const subject = `${config.subject_prefix ?? "[Sindri Alert]"} ${payload.severity}: ${payload.title}`;
   const _text = [
     `Alert: ${payload.title}`,
     `Severity: ${payload.severity}`,
@@ -260,18 +272,25 @@ async function sendEmail(config: EmailChannelConfig, payload: AlertPayload): Pro
     ``,
     `Fired at: ${new Date(payload.firedAt).toLocaleString()}`,
     `Alert ID: ${payload.alertId}`,
-  ].join('\n');
+  ].join("\n");
 
-  logger.info({ to: config.recipients, subject, alertId: payload.alertId }, 'Email notification (stub)');
+  logger.info(
+    { to: config.recipients, subject, alertId: payload.alertId },
+    "Email notification (stub)",
+  );
   // TODO: integrate SMTP/email service
   // await mailer.send({ to: config.recipients, subject, text });
 
   return { recipients: config.recipients, subject };
 }
 
-async function sendInApp(config: InAppChannelConfig, payload: AlertPayload, alertId: string): Promise<object> {
+async function sendInApp(
+  config: InAppChannelConfig,
+  payload: AlertPayload,
+  alertId: string,
+): Promise<object> {
   // In-app notifications are stored directly in the Alert record via WebSocket push
   // The frontend polls /api/v1/alerts?status=ACTIVE for the notification bell
-  logger.debug({ alertId, userIds: config.user_ids }, 'In-app notification queued');
+  logger.debug({ alertId, userIds: config.user_ids }, "In-app notification queued");
   return { alertId, userIds: config.user_ids ?? [] };
 }

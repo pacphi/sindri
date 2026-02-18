@@ -1,6 +1,6 @@
-import { Play, XCircle, CheckCircle, Clock, Terminal } from 'lucide-react';
-import type { DriftEvent, DriftRemediation, RemediationStatus } from '@/types/drift';
-import { useExecuteRemediation, useDismissRemediation } from '@/hooks/useDrift';
+import { Play, XCircle, CheckCircle, Clock, Terminal } from "lucide-react";
+import type { DriftEvent, DriftRemediation, RemediationStatus } from "@/types/drift";
+import { useExecuteRemediation, useDismissRemediation } from "@/hooks/useDrift";
 
 interface RemediationOptionsProps {
   event: DriftEvent;
@@ -45,17 +45,32 @@ function RemediationCard({
   isExecuting,
   isDismissing,
 }: RemediationCardProps) {
-  const statusConfig: Record<RemediationStatus, { color: string; label: string; icon: React.ReactNode }> = {
-    PENDING: { color: 'text-yellow-400', label: 'Pending', icon: <Clock className="h-4 w-4" /> },
-    IN_PROGRESS: { color: 'text-blue-400', label: 'In Progress', icon: <Play className="h-4 w-4 animate-pulse" /> },
-    SUCCEEDED: { color: 'text-green-400', label: 'Succeeded', icon: <CheckCircle className="h-4 w-4" /> },
-    FAILED: { color: 'text-red-400', label: 'Failed', icon: <XCircle className="h-4 w-4" /> },
-    DISMISSED: { color: 'text-gray-500', label: 'Dismissed', icon: <XCircle className="h-4 w-4" /> },
+  const statusConfig: Record<
+    RemediationStatus,
+    { color: string; label: string; icon: React.ReactNode }
+  > = {
+    PENDING: { color: "text-yellow-400", label: "Pending", icon: <Clock className="h-4 w-4" /> },
+    IN_PROGRESS: {
+      color: "text-blue-400",
+      label: "In Progress",
+      icon: <Play className="h-4 w-4 animate-pulse" />,
+    },
+    SUCCEEDED: {
+      color: "text-green-400",
+      label: "Succeeded",
+      icon: <CheckCircle className="h-4 w-4" />,
+    },
+    FAILED: { color: "text-red-400", label: "Failed", icon: <XCircle className="h-4 w-4" /> },
+    DISMISSED: {
+      color: "text-gray-500",
+      label: "Dismissed",
+      icon: <XCircle className="h-4 w-4" />,
+    },
   };
 
   const cfg = statusConfig[remediation.status];
-  const canExecute = remediation.status === 'PENDING' || remediation.status === 'FAILED';
-  const canDismiss = remediation.status === 'PENDING' || remediation.status === 'FAILED';
+  const canExecute = remediation.status === "PENDING" || remediation.status === "FAILED";
+  const canDismiss = remediation.status === "PENDING" || remediation.status === "FAILED";
 
   return (
     <div className="rounded-lg border border-gray-700 bg-gray-900 p-4 space-y-3">
@@ -78,7 +93,9 @@ function RemediationCard({
         {remediation.command && (
           <div className="mt-2 flex items-start gap-2 rounded bg-gray-800 p-2">
             <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-500" />
-            <code className="text-xs font-mono text-green-300 break-all">{remediation.command}</code>
+            <code className="text-xs font-mono text-green-300 break-all">
+              {remediation.command}
+            </code>
           </div>
         )}
       </div>
@@ -86,7 +103,9 @@ function RemediationCard({
       {/* Output */}
       {remediation.output && (
         <div className="rounded bg-black p-3">
-          <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap">{remediation.output}</pre>
+          <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap">
+            {remediation.output}
+          </pre>
         </div>
       )}
 
@@ -115,7 +134,7 @@ function RemediationCard({
               className="flex items-center gap-1.5 rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               <Play className="h-3 w-3" />
-              {isExecuting ? 'Executing...' : 'Execute'}
+              {isExecuting ? "Executing..." : "Execute"}
             </button>
           )}
           {canDismiss && (

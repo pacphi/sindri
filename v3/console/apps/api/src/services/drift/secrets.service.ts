@@ -7,33 +7,38 @@
  * development. Never deploy without a real key in production.
  */
 
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import type { CreateSecretInput, UpdateSecretInput, ListSecretFilter, SecretType } from './types.js';
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import type {
+  CreateSecretInput,
+  UpdateSecretInput,
+  ListSecretFilter,
+  SecretType,
+} from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Encryption
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ALGORITHM = 'aes-256-gcm';
+const ALGORITHM = "aes-256-gcm";
 
 function getVaultKey(): Buffer {
   const envKey = process.env.SECRET_VAULT_KEY;
   if (envKey) {
-    const buf = Buffer.from(envKey, 'hex');
+    const buf = Buffer.from(envKey, "hex");
     if (buf.length !== 32) {
-      throw new Error('SECRET_VAULT_KEY must be a 64-character hex string (32 bytes)');
+      throw new Error("SECRET_VAULT_KEY must be a 64-character hex string (32 bytes)");
     }
     return buf;
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('SECRET_VAULT_KEY must be set in production');
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SECRET_VAULT_KEY must be set in production");
   }
 
   // Dev-only deterministic key — NOT secure
-  logger.warn('Using dev-only vault key — set SECRET_VAULT_KEY in production');
+  logger.warn("Using dev-only vault key — set SECRET_VAULT_KEY in production");
   return Buffer.alloc(32, 0x42);
 }
 
@@ -42,29 +47,29 @@ function encrypt(plaintext: string): string {
   const iv = randomBytes(12); // 96-bit IV for GCM
   const cipher = createCipheriv(ALGORITHM, key, iv);
 
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
   // Format: base64(iv):base64(authTag):base64(ciphertext)
-  return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted.toString('base64')}`;
+  return `${iv.toString("base64")}:${authTag.toString("base64")}:${encrypted.toString("base64")}`;
 }
 
 function decrypt(encryptedVal: string): string {
   const key = getVaultKey();
-  const parts = encryptedVal.split(':');
+  const parts = encryptedVal.split(":");
   if (parts.length !== 3) {
-    throw new Error('Invalid encrypted value format');
+    throw new Error("Invalid encrypted value format");
   }
 
   const [ivB64, authTagB64, ciphertextB64] = parts;
-  const iv = Buffer.from(ivB64, 'base64');
-  const authTag = Buffer.from(authTagB64, 'base64');
-  const ciphertext = Buffer.from(ciphertextB64, 'base64');
+  const iv = Buffer.from(ivB64, "base64");
+  const authTag = Buffer.from(authTagB64, "base64");
+  const ciphertext = Buffer.from(ciphertextB64, "base64");
 
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
 
-  return decipher.update(ciphertext) + decipher.final('utf8');
+  return decipher.update(ciphertext) + decipher.final("utf8");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,7 +92,7 @@ export async function createSecret(input: CreateSecretInput) {
     },
   });
 
-  logger.info({ secretId: secret.id, name: secret.name, type: secret.type }, 'Secret created');
+  logger.info({ secretId: secret.id, name: secret.name, type: secret.type }, "Secret created");
   return formatSecret(secret);
 }
 
@@ -102,7 +107,7 @@ export async function listSecrets(filter: ListSecretFilter) {
     db.secret.count({ where }),
     db.secret.findMany({
       where,
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -144,7 +149,7 @@ export async function updateSecret(id: string, input: UpdateSecretInput) {
   }
 
   const updated = await db.secret.update({ where: { id }, data });
-  logger.info({ secretId: id }, 'Secret updated');
+  logger.info({ secretId: id }, "Secret updated");
   return formatSecret(updated);
 }
 
@@ -152,7 +157,7 @@ export async function deleteSecret(id: string) {
   const existing = await db.secret.findUnique({ where: { id } });
   if (!existing) return null;
   await db.secret.delete({ where: { id } });
-  logger.info({ secretId: id, name: existing.name }, 'Secret deleted');
+  logger.info({ secretId: id, name: existing.name }, "Secret deleted");
   return formatSecret(existing);
 }
 
@@ -166,7 +171,7 @@ export async function rotateSecret(id: string, newValue: string) {
     data: { encrypted_val: encryptedVal, last_rotated_at: new Date() },
   });
 
-  logger.info({ secretId: id, name: existing.name }, 'Secret rotated');
+  logger.info({ secretId: id, name: existing.name }, "Secret rotated");
   return formatSecret(updated);
 }
 

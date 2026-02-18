@@ -4,12 +4,12 @@
  * GET /api/v1/audit — list audit logs (ADMIN only)
  */
 
-import { Hono } from 'hono';
-import { z } from 'zod';
-import { authMiddleware, requireRole } from '../middleware/auth.js';
-import { rateLimitDefault } from '../middleware/rateLimit.js';
-import { logger } from '../lib/logger.js';
-import { listAuditLogs } from '../services/audit.js';
+import { Hono } from "hono";
+import { z } from "zod";
+import { authMiddleware, requireRole } from "../middleware/auth.js";
+import { rateLimitDefault } from "../middleware/rateLimit.js";
+import { logger } from "../lib/logger.js";
+import { listAuditLogs } from "../services/audit.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Zod schemas
@@ -20,9 +20,21 @@ const ListAuditLogsQuerySchema = z.object({
   team_id: z.string().optional(),
   action: z
     .enum([
-      'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'DEPLOY', 'DESTROY',
-      'SUSPEND', 'RESUME', 'EXECUTE', 'CONNECT', 'DISCONNECT',
-      'PERMISSION_CHANGE', 'TEAM_ADD', 'TEAM_REMOVE',
+      "CREATE",
+      "UPDATE",
+      "DELETE",
+      "LOGIN",
+      "LOGOUT",
+      "DEPLOY",
+      "DESTROY",
+      "SUSPEND",
+      "RESUME",
+      "EXECUTE",
+      "CONNECT",
+      "DISCONNECT",
+      "PERMISSION_CHANGE",
+      "TEAM_ADD",
+      "TEAM_REMOVE",
     ])
     .optional(),
   resource: z.string().max(64).optional(),
@@ -39,16 +51,20 @@ const ListAuditLogsQuerySchema = z.object({
 
 const router = new Hono();
 
-router.use('*', authMiddleware);
-router.use('*', requireRole('ADMIN'));
+router.use("*", authMiddleware);
+router.use("*", requireRole("ADMIN"));
 
-router.get('/', rateLimitDefault, async (c) => {
+router.get("/", rateLimitDefault, async (c) => {
   const parsed = ListAuditLogsQuerySchema.safeParse(
     Object.fromEntries(new URL(c.req.url).searchParams),
   );
   if (!parsed.success) {
     return c.json(
-      { error: 'Validation Error', message: 'Invalid query parameters', details: parsed.error.flatten() },
+      {
+        error: "Validation Error",
+        message: "Invalid query parameters",
+        details: parsed.error.flatten(),
+      },
       422,
     );
   }
@@ -57,7 +73,7 @@ router.get('/', rateLimitDefault, async (c) => {
     const { from, to, ...rest } = parsed.data;
     const result = await listAuditLogs({
       ...rest,
-      action: rest.action as Parameters<typeof listAuditLogs>[0]['action'],
+      action: rest.action as Parameters<typeof listAuditLogs>[0]["action"],
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
     });
@@ -84,8 +100,8 @@ router.get('/', rateLimitDefault, async (c) => {
       },
     });
   } catch (err) {
-    logger.error({ err }, 'Failed to list audit logs');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to list audit logs' }, 500);
+    logger.error({ err }, "Failed to list audit logs");
+    return c.json({ error: "Internal Server Error", message: "Failed to list audit logs" }, 500);
   }
 });
 

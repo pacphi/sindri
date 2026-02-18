@@ -447,8 +447,7 @@ lifecycle.post("/:id/destroy", rateLimitStrict, requireRole("OPERATOR"), async (
     let backupId: string | undefined;
 
     if (parseResult.data.backupVolume) {
-      const label =
-        parseResult.data.backupLabel ?? `pre-destroy-${existing.name}-${Date.now()}`;
+      const label = parseResult.data.backupLabel ?? `pre-destroy-${existing.name}-${Date.now()}`;
       backupId = randomUUID();
 
       const backupMeta = {
@@ -626,7 +625,12 @@ lifecycle.post("/bulk-action", rateLimitStrict, requireRole("OPERATOR"), async (
         try {
           const existing = await db.instance.findUnique({ where: { id: instanceId } });
           if (!existing) {
-            return { id: instanceId, name: instanceId, success: false, error: "Instance not found" };
+            return {
+              id: instanceId,
+              name: instanceId,
+              success: false,
+              error: "Instance not found",
+            };
           }
 
           if (action === "suspend") {
@@ -753,7 +757,7 @@ lifecycle.post("/bulk-action", rateLimitStrict, requireRole("OPERATOR"), async (
         name: r.name,
         success: r.success,
         error: r.success ? null : r.error,
-        newStatus: r.success ? (r as { newStatus?: string }).newStatus ?? null : null,
+        newStatus: r.success ? ((r as { newStatus?: string }).newStatus ?? null) : null,
       })),
       summary: {
         total: resultList.length,
@@ -763,7 +767,10 @@ lifecycle.post("/bulk-action", rateLimitStrict, requireRole("OPERATOR"), async (
     });
   } catch (err) {
     logger.error({ err }, "Failed to execute bulk action");
-    return c.json({ error: "Internal Server Error", message: "Failed to execute bulk action" }, 500);
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to execute bulk action" },
+      500,
+    );
   }
 });
 

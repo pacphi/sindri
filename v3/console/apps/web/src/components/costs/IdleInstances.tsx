@@ -1,24 +1,24 @@
-import { useIdleInstances } from '@/hooks/useCosts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { Clock, AlertCircle } from 'lucide-react'
+import { useIdleInstances } from "@/hooks/useCosts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { Clock, AlertCircle } from "lucide-react";
 
 interface IdleInstancesProps {
-  className?: string
+  className?: string;
 }
 
 function formatUsd(value: number): string {
-  return `$${value.toFixed(2)}`
+  return `$${value.toFixed(2)}`;
 }
 
 export function IdleInstances({ className }: IdleInstancesProps) {
-  const { data, isLoading } = useIdleInstances()
+  const { data, isLoading } = useIdleInstances();
 
-  const instances = data?.instances ?? []
-  const totalWasted = data?.totalWastedUsdMo ?? 0
+  const instances = data?.instances ?? [];
+  const totalWasted = data?.totalWastedUsdMo ?? 0;
 
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn("", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -72,10 +72,12 @@ export function IdleInstances({ className }: IdleInstancesProps) {
                       {inst.idleSinceDays}d
                     </td>
                     <td className="py-2 pr-2 text-right">
-                      <span className={cn(
-                        'font-mono',
-                        inst.avgCpuPercent < 5 ? 'text-muted-foreground' : 'text-foreground',
-                      )}>
+                      <span
+                        className={cn(
+                          "font-mono",
+                          inst.avgCpuPercent < 5 ? "text-muted-foreground" : "text-foreground",
+                        )}
+                      >
                         {inst.avgCpuPercent.toFixed(1)}%
                       </span>
                     </td>
@@ -88,7 +90,9 @@ export function IdleInstances({ className }: IdleInstancesProps) {
               {instances.length > 0 && (
                 <tfoot>
                   <tr className="border-t">
-                    <td colSpan={4} className="pt-2 text-muted-foreground">Total</td>
+                    <td colSpan={4} className="pt-2 text-muted-foreground">
+                      Total
+                    </td>
                     <td className="pt-2 text-right font-semibold text-yellow-600">
                       {formatUsd(totalWasted)}/mo
                     </td>
@@ -100,5 +104,5 @@ export function IdleInstances({ className }: IdleInstancesProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

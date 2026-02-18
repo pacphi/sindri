@@ -1,19 +1,9 @@
-import { useState } from 'react';
-import {
-  Key,
-  Plus,
-  Trash2,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  AlertTriangle,
-  Clock,
-  X,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useSecrets, useCreateSecret, useDeleteSecret, useRotateSecret } from '@/hooks/useDrift';
-import { secretsApi } from '@/api/drift';
-import type { Secret, CreateSecretInput, SecretType } from '@/types/drift';
+import { useState } from "react";
+import { Key, Plus, Trash2, RefreshCw, Eye, EyeOff, AlertTriangle, Clock, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSecrets, useCreateSecret, useDeleteSecret, useRotateSecret } from "@/hooks/useDrift";
+import { secretsApi } from "@/api/drift";
+import type { Secret, CreateSecretInput, SecretType } from "@/types/drift";
 
 export function SecretsVault() {
   const [page] = useState(1);
@@ -41,7 +31,7 @@ export function SecretsVault() {
         const { value } = await secretsApi.revealSecretValue(id);
         setRevealedSecrets((prev) => new Map(prev).set(id, value));
       } catch {
-        alert('Failed to reveal secret — insufficient permissions');
+        alert("Failed to reveal secret — insufficient permissions");
       }
     }
   };
@@ -54,7 +44,7 @@ export function SecretsVault() {
           {expiredCount > 0 && (
             <div className="flex items-center gap-2 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-400">
               <AlertTriangle className="h-4 w-4" />
-              {expiredCount} expired secret{expiredCount !== 1 ? 's' : ''}
+              {expiredCount} expired secret{expiredCount !== 1 ? "s" : ""}
             </div>
           )}
           {expiringSoonCount > 0 && (
@@ -82,7 +72,7 @@ export function SecretsVault() {
       {/* List header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-400">
-          {data?.total ?? 0} secret{(data?.total ?? 0) !== 1 ? 's' : ''}
+          {data?.total ?? 0} secret{(data?.total ?? 0) !== 1 ? "s" : ""}
         </h3>
         {!showCreate && (
           <Button size="sm" onClick={() => setShowCreate(true)}>
@@ -137,13 +127,13 @@ function SecretRow({
   isDeleting: boolean;
 }) {
   const [showRotateForm, setShowRotateForm] = useState(false);
-  const [newValue, setNewValue] = useState('');
+  const [newValue, setNewValue] = useState("");
 
   const typeColors: Record<SecretType, string> = {
-    ENV_VAR: 'text-blue-400 bg-blue-400/10',
-    FILE: 'text-purple-400 bg-purple-400/10',
-    CERTIFICATE: 'text-green-400 bg-green-400/10',
-    API_KEY: 'text-yellow-400 bg-yellow-400/10',
+    ENV_VAR: "text-blue-400 bg-blue-400/10",
+    FILE: "text-purple-400 bg-purple-400/10",
+    CERTIFICATE: "text-green-400 bg-green-400/10",
+    API_KEY: "text-yellow-400 bg-yellow-400/10",
   };
 
   const isExpiringSoon =
@@ -153,10 +143,10 @@ function SecretRow({
     <div
       className={`rounded-lg border p-4 ${
         secret.isExpired
-          ? 'border-red-400/30 bg-red-400/5'
+          ? "border-red-400/30 bg-red-400/5"
           : isExpiringSoon
-          ? 'border-yellow-400/30 bg-yellow-400/5'
-          : 'border-gray-700 bg-gray-900/50'
+            ? "border-yellow-400/30 bg-yellow-400/5"
+            : "border-gray-700 bg-gray-900/50"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -164,7 +154,9 @@ function SecretRow({
           <div className="flex items-center gap-2 flex-wrap">
             <Key className="h-4 w-4 shrink-0 text-gray-400" />
             <span className="font-medium text-white">{secret.name}</span>
-            <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${typeColors[secret.type]}`}>
+            <span
+              className={`rounded px-1.5 py-0.5 text-xs font-medium ${typeColors[secret.type]}`}
+            >
               {secret.type}
             </span>
             {secret.isExpired && (
@@ -178,9 +170,7 @@ function SecretRow({
               </span>
             )}
           </div>
-          {secret.description && (
-            <p className="mt-1 text-xs text-gray-500">{secret.description}</p>
-          )}
+          {secret.description && <p className="mt-1 text-xs text-gray-500">{secret.description}</p>}
           <div className="mt-2 flex items-center gap-3 text-xs text-gray-600">
             {revealedValue !== undefined ? (
               <code className="rounded bg-gray-800 px-2 py-0.5 text-gray-300 font-mono break-all">
@@ -211,7 +201,7 @@ function SecretRow({
                 onClick={() => {
                   if (newValue) {
                     onRotate(newValue);
-                    setNewValue('');
+                    setNewValue("");
                     setShowRotateForm(false);
                   }
                 }}
@@ -220,7 +210,10 @@ function SecretRow({
                 Rotate
               </button>
               <button
-                onClick={() => { setShowRotateForm(false); setNewValue(''); }}
+                onClick={() => {
+                  setShowRotateForm(false);
+                  setNewValue("");
+                }}
                 className="rounded p-1.5 text-gray-400 hover:bg-gray-700"
               >
                 <X className="h-3.5 w-3.5" />
@@ -233,7 +226,7 @@ function SecretRow({
           <button
             onClick={onToggleReveal}
             className="rounded p-1.5 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
-            title={revealedValue !== undefined ? 'Hide' : 'Reveal'}
+            title={revealedValue !== undefined ? "Hide" : "Reveal"}
           >
             {revealedValue !== undefined ? (
               <EyeOff className="h-4 w-4" />
@@ -272,16 +265,16 @@ function CreateSecretForm({
   isSubmitting: boolean;
 }) {
   const [form, setForm] = useState<CreateSecretInput>({
-    name: '',
-    type: 'ENV_VAR',
-    value: '',
+    name: "",
+    type: "ENV_VAR",
+    value: "",
   });
 
   const secretTypes: Array<{ value: SecretType; label: string }> = [
-    { value: 'ENV_VAR', label: 'Environment Variable' },
-    { value: 'API_KEY', label: 'API Key' },
-    { value: 'CERTIFICATE', label: 'Certificate' },
-    { value: 'FILE', label: 'File' },
+    { value: "ENV_VAR", label: "Environment Variable" },
+    { value: "API_KEY", label: "API Key" },
+    { value: "CERTIFICATE", label: "Certificate" },
+    { value: "FILE", label: "File" },
   ];
 
   return (
@@ -326,7 +319,7 @@ function CreateSecretForm({
           <label className="mb-1 block text-xs font-medium text-gray-400">Description</label>
           <input
             type="text"
-            value={form.description ?? ''}
+            value={form.description ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value || undefined }))}
             placeholder="Optional description"
             className="w-full rounded border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
@@ -336,7 +329,7 @@ function CreateSecretForm({
           <label className="mb-1 block text-xs font-medium text-gray-400">Expires At</label>
           <input
             type="datetime-local"
-            value={form.expiresAt?.slice(0, 16) ?? ''}
+            value={form.expiresAt?.slice(0, 16) ?? ""}
             onChange={(e) =>
               setForm((f) => ({
                 ...f,
@@ -353,7 +346,7 @@ function CreateSecretForm({
           onClick={() => onSubmit(form)}
           disabled={!form.name || !form.value || isSubmitting}
         >
-          {isSubmitting ? 'Creating...' : 'Create Secret'}
+          {isSubmitting ? "Creating..." : "Create Secret"}
         </Button>
         <Button size="sm" variant="outline" onClick={onCancel}>
           Cancel

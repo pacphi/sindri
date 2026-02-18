@@ -1,8 +1,8 @@
-export { CommandPalette } from './CommandPalette'
-export { KeyboardShortcuts } from './KeyboardShortcuts'
-export { RecentInstances } from './RecentInstances'
-export { SearchResults } from './SearchResults'
-export { buildActionRegistry } from './ActionRegistry'
-export type { PaletteAction } from './ActionRegistry'
-export type { SearchResultItem } from './SearchResults'
-export { fuzzySearch, fuzzyScore, fuzzyMatch } from './fuzzySearch'
+export { CommandPalette } from "./CommandPalette";
+export { KeyboardShortcuts } from "./KeyboardShortcuts";
+export { RecentInstances } from "./RecentInstances";
+export { SearchResults } from "./SearchResults";
+export { buildActionRegistry } from "./ActionRegistry";
+export type { PaletteAction } from "./ActionRegistry";
+export type { SearchResultItem } from "./SearchResults";
+export { fuzzySearch, fuzzyScore, fuzzyMatch } from "./fuzzySearch";

@@ -24,7 +24,11 @@ export function RedeployDialog({ instance, open, onClose, onSuccess }: RedeployD
     enabled: open,
   });
 
-  const { mutate: redeploy, isPending, error } = useMutation({
+  const {
+    mutate: redeploy,
+    isPending,
+    error,
+  } = useMutation({
     mutationFn: () =>
       lifecycleApi.redeploy(instance.id, {
         config: editedConfig ?? undefined,
@@ -42,17 +46,13 @@ export function RedeployDialog({ instance, open, onClose, onSuccess }: RedeployD
   const configToRedeploy = editedConfig ?? currentConfig;
   const hasChanges = editedConfig !== null && editedConfig !== currentConfig;
 
-  const isBlockedStatus =
-    instance.status === "DEPLOYING" || instance.status === "DESTROYING";
+  const isBlockedStatus = instance.status === "DEPLOYING" || instance.status === "DESTROYING";
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-lg max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-border shrink-0">
           <h2 className="text-lg font-semibold">Redeploy Instance</h2>
@@ -65,8 +65,9 @@ export function RedeployDialog({ instance, open, onClose, onSuccess }: RedeployD
         <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
           {isBlockedStatus && (
             <div className="rounded-md bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 text-sm text-yellow-700 dark:text-yellow-400">
-              Instance is currently in <span className="font-mono font-medium">{instance.status}</span> state.
-              You must enable force redeploy to continue.
+              Instance is currently in{" "}
+              <span className="font-mono font-medium">{instance.status}</span> state. You must
+              enable force redeploy to continue.
             </div>
           )}
 

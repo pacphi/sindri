@@ -1,13 +1,13 @@
-import { useState } from 'react'
-import { Bell, Plus, Trash2, TestTube, Globe, Hash, Mail, Monitor } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState } from "react";
+import { Bell, Plus, Trash2, TestTube, Globe, Hash, Mail, Monitor } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   useNotificationChannels,
   useCreateChannel,
   useDeleteChannel,
   useTestChannel,
-} from '@/hooks/useAlerts'
+} from "@/hooks/useAlerts";
 import type {
   NotificationChannelType,
   NotificationChannel,
@@ -15,45 +15,53 @@ import type {
   WebhookChannelConfig,
   SlackChannelConfig,
   EmailChannelConfig,
-} from '@/types/alert'
+} from "@/types/alert";
 
 const CHANNEL_ICONS: Record<NotificationChannelType, React.ReactNode> = {
   WEBHOOK: <Globe className="h-4 w-4" />,
   SLACK: <Hash className="h-4 w-4" />,
   EMAIL: <Mail className="h-4 w-4" />,
   IN_APP: <Monitor className="h-4 w-4" />,
-}
+};
 
 const CHANNEL_TYPE_LABELS: Record<NotificationChannelType, string> = {
-  WEBHOOK: 'Webhook',
-  SLACK: 'Slack',
-  EMAIL: 'Email',
-  IN_APP: 'In-App',
-}
+  WEBHOOK: "Webhook",
+  SLACK: "Slack",
+  EMAIL: "Email",
+  IN_APP: "In-App",
+};
 
 export function NotificationChannels() {
-  const [showForm, setShowForm] = useState(false)
-  const { data: channels = [], isLoading } = useNotificationChannels()
-  const deleteMutation = useDeleteChannel()
-  const testMutation = useTestChannel()
-  const [testResults, setTestResults] = useState<Record<string, { success: boolean; error?: string }>>({})
+  const [showForm, setShowForm] = useState(false);
+  const { data: channels = [], isLoading } = useNotificationChannels();
+  const deleteMutation = useDeleteChannel();
+  const testMutation = useTestChannel();
+  const [testResults, setTestResults] = useState<
+    Record<string, { success: boolean; error?: string }>
+  >({});
 
   const handleTest = async (id: string) => {
-    const result = await testMutation.mutateAsync(id)
-    setTestResults((prev) => ({ ...prev, [id]: result }))
-    setTimeout(() => setTestResults((prev) => { const next = { ...prev }; delete next[id]; return next }), 5000)
-  }
+    const result = await testMutation.mutateAsync(id);
+    setTestResults((prev) => ({ ...prev, [id]: result }));
+    setTimeout(
+      () =>
+        setTestResults((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        }),
+      5000,
+    );
+  };
 
   if (isLoading) {
-    return <div className="py-12 text-center text-gray-500">Loading channels...</div>
+    return <div className="py-12 text-center text-gray-500">Loading channels...</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-400">
-          Configure where alerts are sent when rules fire.
-        </p>
+        <p className="text-sm text-gray-400">Configure where alerts are sent when rules fire.</p>
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Channel
@@ -88,7 +96,7 @@ export function NotificationChannels() {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 function ChannelCard({
@@ -99,12 +107,12 @@ function ChannelCard({
   isDeleting,
   isTesting,
 }: {
-  channel: NotificationChannel
-  testResult?: { success: boolean; error?: string }
-  onDelete: () => void
-  onTest: () => void
-  isDeleting: boolean
-  isTesting: boolean
+  channel: NotificationChannel;
+  testResult?: { success: boolean; error?: string };
+  onDelete: () => void;
+  onTest: () => void;
+  isDeleting: boolean;
+  isTesting: boolean;
 }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 p-4">
@@ -119,15 +127,21 @@ function ChannelCard({
               {CHANNEL_TYPE_LABELS[channel.type]}
             </span>
             {!channel.enabled && (
-              <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-xs text-red-400">Disabled</span>
+              <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-xs text-red-400">
+                Disabled
+              </span>
             )}
           </div>
           <div className="mt-0.5 text-xs text-gray-500">
-            Used by {channel.ruleCount} rule{channel.ruleCount !== 1 ? 's' : ''}
+            Used by {channel.ruleCount} rule{channel.ruleCount !== 1 ? "s" : ""}
           </div>
           {testResult && (
-            <div className={`mt-1 text-xs ${testResult.success ? 'text-green-400' : 'text-red-400'}`}>
-              {testResult.success ? 'Test successful' : `Test failed: ${testResult.error ?? 'Unknown error'}`}
+            <div
+              className={`mt-1 text-xs ${testResult.success ? "text-green-400" : "text-red-400"}`}
+            >
+              {testResult.success
+                ? "Test successful"
+                : `Test failed: ${testResult.error ?? "Unknown error"}`}
             </div>
           )}
         </div>
@@ -155,43 +169,46 @@ function ChannelCard({
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
 function ChannelForm({ onClose }: { onClose: () => void }) {
-  const [type, setType] = useState<NotificationChannelType>('WEBHOOK')
-  const [name, setName] = useState('')
-  const [webhookUrl, setWebhookUrl] = useState('')
-  const [webhookSecret, setWebhookSecret] = useState('')
-  const [slackUrl, setSlackUrl] = useState('')
-  const [slackChannel, setSlackChannel] = useState('')
-  const [emailRecipients, setEmailRecipients] = useState('')
+  const [type, setType] = useState<NotificationChannelType>("WEBHOOK");
+  const [name, setName] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
+  const [slackUrl, setSlackUrl] = useState("");
+  const [slackChannel, setSlackChannel] = useState("");
+  const [emailRecipients, setEmailRecipients] = useState("");
 
-  const createMutation = useCreateChannel()
+  const createMutation = useCreateChannel();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    let config: CreateChannelInput['config']
+    let config: CreateChannelInput["config"];
 
-    if (type === 'WEBHOOK') {
-      config = { url: webhookUrl, secret: webhookSecret || undefined } as WebhookChannelConfig
-    } else if (type === 'SLACK') {
-      config = { webhook_url: slackUrl, channel: slackChannel || undefined } as SlackChannelConfig
-    } else if (type === 'EMAIL') {
-      const recipients = emailRecipients.split(',').map((r) => r.trim()).filter(Boolean)
-      config = { recipients } as EmailChannelConfig
+    if (type === "WEBHOOK") {
+      config = { url: webhookUrl, secret: webhookSecret || undefined } as WebhookChannelConfig;
+    } else if (type === "SLACK") {
+      config = { webhook_url: slackUrl, channel: slackChannel || undefined } as SlackChannelConfig;
+    } else if (type === "EMAIL") {
+      const recipients = emailRecipients
+        .split(",")
+        .map((r) => r.trim())
+        .filter(Boolean);
+      config = { recipients } as EmailChannelConfig;
     } else {
-      config = {}
+      config = {};
     }
 
     try {
-      await createMutation.mutateAsync({ name, type, config })
-      onClose()
+      await createMutation.mutateAsync({ name, type, config });
+      onClose();
     } catch {
       // errors handled by mutation
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -223,7 +240,7 @@ function ChannelForm({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {type === 'WEBHOOK' && (
+      {type === "WEBHOOK" && (
         <div className="space-y-3">
           <div>
             <label className="mb-1.5 block text-xs text-gray-400">Webhook URL</label>
@@ -237,7 +254,9 @@ function ChannelForm({ onClose }: { onClose: () => void }) {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs text-gray-400">Secret (optional, for HMAC signing)</label>
+            <label className="mb-1.5 block text-xs text-gray-400">
+              Secret (optional, for HMAC signing)
+            </label>
             <Input
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
@@ -249,7 +268,7 @@ function ChannelForm({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      {type === 'SLACK' && (
+      {type === "SLACK" && (
         <div className="space-y-3">
           <div>
             <label className="mb-1.5 block text-xs text-gray-400">Slack Webhook URL</label>
@@ -274,7 +293,7 @@ function ChannelForm({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      {type === 'EMAIL' && (
+      {type === "EMAIL" && (
         <div>
           <label className="mb-1.5 block text-xs text-gray-400">Recipients (comma-separated)</label>
           <Input
@@ -287,16 +306,20 @@ function ChannelForm({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      {type === 'IN_APP' && (
-        <p className="text-xs text-gray-500">In-app notifications will be shown in the console for all administrators.</p>
+      {type === "IN_APP" && (
+        <p className="text-xs text-gray-500">
+          In-app notifications will be shown in the console for all administrators.
+        </p>
       )}
 
       <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button type="button" variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
         <Button type="submit" disabled={createMutation.isPending || !name.trim()}>
-          {createMutation.isPending ? 'Creating...' : 'Create Channel'}
+          {createMutation.isPending ? "Creating..." : "Create Channel"}
         </Button>
       </div>
     </form>
-  )
+  );
 }

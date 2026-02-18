@@ -84,7 +84,7 @@ jobs:
           working-directory: ${{ env.GO_MODULE_PATH }}
           args: >-
             --timeout=5m
-            --enable=govet,errcheck,staticcheck,unused,gosimple,ineffassign,typecheck
+            --enable=govet,errcheck,staticcheck,unused,gosimple,ineffassign
             --enable=gofmt,goimports,misspell,unconvert,unparam
 
   # ---------------------------------------------------------------------------

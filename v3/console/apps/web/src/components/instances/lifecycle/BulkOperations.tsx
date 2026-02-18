@@ -1,5 +1,13 @@
-import { useState } from 'react'
-import { PauseCircle, PlayCircle, Trash2, X, CheckSquare, AlertCircle, CheckCircle } from 'lucide-react'
+import { useState } from "react";
+import {
+  PauseCircle,
+  PlayCircle,
+  Trash2,
+  X,
+  CheckSquare,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,27 +15,27 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { VolumeBackupSelector } from './VolumeBackupSelector'
-import { instancesApi } from '@/lib/api'
-import type { Instance } from '@/types/instance'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { VolumeBackupSelector } from "./VolumeBackupSelector";
+import { instancesApi } from "@/lib/api";
+import type { Instance } from "@/types/instance";
+import { cn } from "@/lib/utils";
 
 interface BulkOperationsProps {
-  selectedInstances: Instance[]
-  onClearSelection: () => void
-  onSuccess?: () => void
+  selectedInstances: Instance[];
+  onClearSelection: () => void;
+  onSuccess?: () => void;
 }
 
-type BulkAction = 'suspend' | 'resume' | 'destroy'
+type BulkAction = "suspend" | "resume" | "destroy";
 
 interface BulkResult {
-  id: string
-  name: string
-  success: boolean
-  error?: string | null
-  newStatus?: string | null
+  id: string;
+  name: string;
+  success: boolean;
+  error?: string | null;
+  newStatus?: string | null;
 }
 
 export function BulkOperations({
@@ -35,55 +43,55 @@ export function BulkOperations({
   onClearSelection,
   onSuccess,
 }: BulkOperationsProps) {
-  const [action, setAction] = useState<BulkAction | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [results, setResults] = useState<BulkResult[] | null>(null)
-  const [backupVolume, setBackupVolume] = useState(false)
-  const [backupLabel, setBackupLabel] = useState('')
+  const [action, setAction] = useState<BulkAction | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [results, setResults] = useState<BulkResult[] | null>(null);
+  const [backupVolume, setBackupVolume] = useState(false);
+  const [backupLabel, setBackupLabel] = useState("");
 
-  const count = selectedInstances.length
+  const count = selectedInstances.length;
 
-  if (count === 0) return null
+  if (count === 0) return null;
 
   function handleClose() {
-    setAction(null)
-    setResults(null)
-    setBackupVolume(false)
-    setBackupLabel('')
+    setAction(null);
+    setResults(null);
+    setBackupVolume(false);
+    setBackupLabel("");
   }
 
   async function handleConfirm() {
-    if (!action) return
-    setIsLoading(true)
+    if (!action) return;
+    setIsLoading(true);
     try {
-      const ids = selectedInstances.map((i) => i.id)
+      const ids = selectedInstances.map((i) => i.id);
       const response = await instancesApi.bulkAction(ids, action, {
-        backupVolume: action === 'destroy' ? backupVolume : false,
-      })
-      setResults(response.results)
-      onSuccess?.()
+        backupVolume: action === "destroy" ? backupVolume : false,
+      });
+      setResults(response.results);
+      onSuccess?.();
     } catch (err) {
       setResults(
         selectedInstances.map((i) => ({
           id: i.id,
           name: i.name,
           success: false,
-          error: err instanceof Error ? err.message : 'Operation failed',
+          error: err instanceof Error ? err.message : "Operation failed",
         })),
-      )
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   function handleDone() {
-    handleClose()
-    onClearSelection()
+    handleClose();
+    onClearSelection();
   }
 
-  const hasResults = results !== null
-  const succeeded = results?.filter((r) => r.success).length ?? 0
-  const failed = results?.filter((r) => !r.success).length ?? 0
+  const hasResults = results !== null;
+  const succeeded = results?.filter((r) => r.success).length ?? 0;
+  const failed = results?.filter((r) => !r.success).length ?? 0;
 
   return (
     <>
@@ -101,7 +109,7 @@ export function BulkOperations({
             variant="ghost"
             size="sm"
             className="h-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950"
-            onClick={() => setAction('suspend')}
+            onClick={() => setAction("suspend")}
           >
             <PauseCircle className="h-3.5 w-3.5" />
             Suspend
@@ -110,7 +118,7 @@ export function BulkOperations({
             variant="ghost"
             size="sm"
             className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
-            onClick={() => setAction('resume')}
+            onClick={() => setAction("resume")}
           >
             <PlayCircle className="h-3.5 w-3.5" />
             Resume
@@ -119,7 +127,7 @@ export function BulkOperations({
             variant="ghost"
             size="sm"
             className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setAction('destroy')}
+            onClick={() => setAction("destroy")}
           >
             <Trash2 className="h-3.5 w-3.5" />
             Destroy
@@ -146,21 +154,16 @@ export function BulkOperations({
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  {action === 'suspend' && (
-                    <PauseCircle className="h-5 w-5 text-amber-500" />
-                  )}
-                  {action === 'resume' && (
-                    <PlayCircle className="h-5 w-5 text-green-500" />
-                  )}
-                  {action === 'destroy' && (
-                    <Trash2 className="h-5 w-5 text-destructive" />
-                  )}
-                  Bulk {action === 'suspend' ? 'Suspend' : action === 'resume' ? 'Resume' : 'Destroy'}
+                  {action === "suspend" && <PauseCircle className="h-5 w-5 text-amber-500" />}
+                  {action === "resume" && <PlayCircle className="h-5 w-5 text-green-500" />}
+                  {action === "destroy" && <Trash2 className="h-5 w-5 text-destructive" />}
+                  Bulk{" "}
+                  {action === "suspend" ? "Suspend" : action === "resume" ? "Resume" : "Destroy"}
                 </DialogTitle>
                 <DialogDescription>
-                  {action === 'destroy'
-                    ? `Permanently destroy ${count} instance${count > 1 ? 's' : ''}? This cannot be undone.`
-                    : `${action === 'suspend' ? 'Suspend' : 'Resume'} ${count} instance${count > 1 ? 's' : ''}?`}
+                  {action === "destroy"
+                    ? `Permanently destroy ${count} instance${count > 1 ? "s" : ""}? This cannot be undone.`
+                    : `${action === "suspend" ? "Suspend" : "Resume"} ${count} instance${count > 1 ? "s" : ""}?`}
                 </DialogDescription>
               </DialogHeader>
 
@@ -177,7 +180,7 @@ export function BulkOperations({
                   ))}
                 </div>
 
-                {action === 'destroy' && (
+                {action === "destroy" && (
                   <VolumeBackupSelector
                     enabled={backupVolume}
                     onToggle={setBackupVolume}
@@ -192,16 +195,16 @@ export function BulkOperations({
                   Cancel
                 </Button>
                 <Button
-                  variant={action === 'destroy' ? 'destructive' : 'default'}
+                  variant={action === "destroy" ? "destructive" : "default"}
                   className={cn(
-                    action === 'suspend' && 'bg-amber-500 hover:bg-amber-600 text-white',
+                    action === "suspend" && "bg-amber-500 hover:bg-amber-600 text-white",
                   )}
                   onClick={() => void handleConfirm()}
                   disabled={isLoading}
                 >
                   {isLoading
-                    ? 'Processing...'
-                    : `${action === 'suspend' ? 'Suspend' : action === 'resume' ? 'Resume' : 'Destroy'} ${count} Instance${count > 1 ? 's' : ''}`}
+                    ? "Processing..."
+                    : `${action === "suspend" ? "Suspend" : action === "resume" ? "Resume" : "Destroy"} ${count} Instance${count > 1 ? "s" : ""}`}
                 </Button>
               </DialogFooter>
             </>
@@ -225,7 +228,7 @@ export function BulkOperations({
                     <span className="font-medium truncate flex-1">{result.name}</span>
                     {result.success ? (
                       <span className="text-xs text-muted-foreground capitalize">
-                        {result.newStatus?.toLowerCase() ?? 'done'}
+                        {result.newStatus?.toLowerCase() ?? "done"}
                       </span>
                     ) : (
                       <span className="text-xs text-destructive truncate max-w-[160px]">
@@ -244,5 +247,5 @@ export function BulkOperations({
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

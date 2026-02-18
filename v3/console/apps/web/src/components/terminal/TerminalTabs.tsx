@@ -1,29 +1,24 @@
-import type { TerminalTab } from '@/types/terminal'
-import type { ConnectionStatus } from '@/hooks/useTerminalWebSocket'
+import type { TerminalTab } from "@/types/terminal";
+import type { ConnectionStatus } from "@/hooks/useTerminalWebSocket";
 
 interface TerminalTabsProps {
-  tabs: TerminalTab[]
-  activeTabId: string | null
-  onTabSelect: (tabId: string) => void
-  onTabClose: (tabId: string) => void
-  onNewTab: () => void
-  isCreating: boolean
+  tabs: TerminalTab[];
+  activeTabId: string | null;
+  onTabSelect: (tabId: string) => void;
+  onTabClose: (tabId: string) => void;
+  onNewTab: () => void;
+  isCreating: boolean;
 }
 
 function StatusIndicator({ status }: { status: ConnectionStatus }) {
   const colorClass = {
-    connected: 'bg-green-500',
-    connecting: 'bg-yellow-500 animate-pulse',
-    disconnected: 'bg-gray-500',
-    error: 'bg-red-500',
-  }[status]
+    connected: "bg-green-500",
+    connecting: "bg-yellow-500 animate-pulse",
+    disconnected: "bg-gray-500",
+    error: "bg-red-500",
+  }[status];
 
-  return (
-    <span
-      className={`inline-block h-2 w-2 rounded-full ${colorClass}`}
-      title={status}
-    />
-  )
+  return <span className={`inline-block h-2 w-2 rounded-full ${colorClass}`} title={status} />;
 }
 
 export function TerminalTabs({
@@ -38,7 +33,7 @@ export function TerminalTabs({
     <div className="flex items-center border-b border-gray-700 bg-gray-900 overflow-x-auto">
       <div className="flex items-center min-w-0 flex-1">
         {tabs.map((tab) => {
-          const isActive = tab.id === activeTabId
+          const isActive = tab.id === activeTabId;
           return (
             <div
               key={tab.id}
@@ -47,9 +42,10 @@ export function TerminalTabs({
               className={`
                 group flex items-center gap-2 px-3 py-2 text-sm cursor-pointer select-none
                 border-b-2 whitespace-nowrap transition-colors
-                ${isActive
-                  ? 'border-blue-500 text-white bg-gray-800'
-                  : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                ${
+                  isActive
+                    ? "border-blue-500 text-white bg-gray-800"
+                    : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
                 }
               `}
               onClick={() => onTabSelect(tab.id)}
@@ -61,11 +57,11 @@ export function TerminalTabs({
                 className={`
                   ml-1 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity
                   hover:bg-gray-600 text-gray-400 hover:text-white
-                  ${isActive ? 'opacity-100' : ''}
+                  ${isActive ? "opacity-100" : ""}
                 `}
                 onClick={(e) => {
-                  e.stopPropagation()
-                  onTabClose(tab.id)
+                  e.stopPropagation();
+                  onTabClose(tab.id);
                 }}
                 aria-label={`Close ${tab.title}`}
               >
@@ -85,7 +81,7 @@ export function TerminalTabs({
                 </svg>
               </button>
             </div>
-          )
+          );
         })}
       </div>
 
@@ -117,5 +113,5 @@ export function TerminalTabs({
         )}
       </button>
     </div>
-  )
+  );
 }

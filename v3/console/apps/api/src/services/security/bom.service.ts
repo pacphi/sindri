@@ -6,9 +6,9 @@
  * This service provides CRUD and scanning trigger operations.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import type { BomPackage } from './types.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import type { BomPackage } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BOM upsert
@@ -18,7 +18,10 @@ import type { BomPackage } from './types.js';
  * Upsert a batch of BOM entries for an instance.
  * Replaces entries with matching (instance_id, package_name, version, ecosystem).
  */
-export async function upsertBomEntries(instanceId: string, packages: BomPackage[]): Promise<number> {
+export async function upsertBomEntries(
+  instanceId: string,
+  packages: BomPackage[],
+): Promise<number> {
   let upserted = 0;
   for (const pkg of packages) {
     try {
@@ -46,7 +49,7 @@ export async function upsertBomEntries(instanceId: string, packages: BomPackage[
       });
       upserted++;
     } catch (err) {
-      logger.warn({ err, instanceId, pkg }, 'Failed to upsert BOM entry');
+      logger.warn({ err, instanceId, pkg }, "Failed to upsert BOM entry");
     }
   }
   return upserted;
@@ -65,7 +68,7 @@ export async function getBomForInstance(
       instance_id: instanceId,
       ...(ecosystem ? { ecosystem } : {}),
     },
-    orderBy: [{ ecosystem: 'asc' }, { package_name: 'asc' }],
+    orderBy: [{ ecosystem: "asc" }, { package_name: "asc" }],
   });
 
   return entries.map((e) => ({
@@ -84,7 +87,7 @@ export async function getBomSummary(instanceId: string): Promise<{
   const entries = await db.bomEntry.findMany({
     where: { instance_id: instanceId },
     select: { ecosystem: true, scanned_at: true },
-    orderBy: { scanned_at: 'desc' },
+    orderBy: { scanned_at: "desc" },
   });
 
   const byEcosystem: Record<string, number> = {};
@@ -104,26 +107,26 @@ export async function getBomSummary(instanceId: string): Promise<{
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SYNTHETIC_NPM_PACKAGES: BomPackage[] = [
-  { name: 'express', version: '4.18.2', ecosystem: 'npm' },
-  { name: 'lodash', version: '4.17.21', ecosystem: 'npm' },
-  { name: 'axios', version: '1.6.0', ecosystem: 'npm' },
-  { name: 'jsonwebtoken', version: '9.0.0', ecosystem: 'npm' },
-  { name: 'bcrypt', version: '5.1.0', ecosystem: 'npm' },
-  { name: 'dotenv', version: '16.3.1', ecosystem: 'npm' },
-  { name: 'zod', version: '3.22.4', ecosystem: 'npm' },
-  { name: 'typescript', version: '5.2.2', ecosystem: 'npm' },
+  { name: "express", version: "4.18.2", ecosystem: "npm" },
+  { name: "lodash", version: "4.17.21", ecosystem: "npm" },
+  { name: "axios", version: "1.6.0", ecosystem: "npm" },
+  { name: "jsonwebtoken", version: "9.0.0", ecosystem: "npm" },
+  { name: "bcrypt", version: "5.1.0", ecosystem: "npm" },
+  { name: "dotenv", version: "16.3.1", ecosystem: "npm" },
+  { name: "zod", version: "3.22.4", ecosystem: "npm" },
+  { name: "typescript", version: "5.2.2", ecosystem: "npm" },
 ];
 
 const SYNTHETIC_PYPI_PACKAGES: BomPackage[] = [
-  { name: 'requests', version: '2.31.0', ecosystem: 'PyPI' },
-  { name: 'flask', version: '3.0.0', ecosystem: 'PyPI' },
-  { name: 'sqlalchemy', version: '2.0.23', ecosystem: 'PyPI' },
-  { name: 'pydantic', version: '2.5.0', ecosystem: 'PyPI' },
+  { name: "requests", version: "2.31.0", ecosystem: "PyPI" },
+  { name: "flask", version: "3.0.0", ecosystem: "PyPI" },
+  { name: "sqlalchemy", version: "2.0.23", ecosystem: "PyPI" },
+  { name: "pydantic", version: "2.5.0", ecosystem: "PyPI" },
 ];
 
 export function generateSyntheticBom(provider: string): BomPackage[] {
   const base = [...SYNTHETIC_NPM_PACKAGES];
-  if (provider === 'fly' || provider === 'docker') {
+  if (provider === "fly" || provider === "docker") {
     base.push(...SYNTHETIC_PYPI_PACKAGES);
   }
   return base;

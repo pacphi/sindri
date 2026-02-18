@@ -1,48 +1,48 @@
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ShortcutGroup {
-  label: string
-  shortcuts: { keys: string[]; description: string }[]
+  label: string;
+  shortcuts: { keys: string[]; description: string }[];
 }
 
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
-    label: 'Command Palette',
+    label: "Command Palette",
     shortcuts: [
-      { keys: ['⌘', 'K'], description: 'Open command palette' },
-      { keys: ['⌘', 'P'], description: 'Open instance switcher' },
-      { keys: ['/'], description: 'Quick search' },
-      { keys: ['?'], description: 'Show keyboard shortcuts' },
+      { keys: ["⌘", "K"], description: "Open command palette" },
+      { keys: ["⌘", "P"], description: "Open instance switcher" },
+      { keys: ["/"], description: "Quick search" },
+      { keys: ["?"], description: "Show keyboard shortcuts" },
     ],
   },
   {
-    label: 'Navigation',
+    label: "Navigation",
     shortcuts: [
-      { keys: ['↑', '↓'], description: 'Move through results' },
-      { keys: ['Enter'], description: 'Select item' },
-      { keys: ['Esc'], description: 'Close / go back' },
-      { keys: ['Tab'], description: 'Next result' },
+      { keys: ["↑", "↓"], description: "Move through results" },
+      { keys: ["Enter"], description: "Select item" },
+      { keys: ["Esc"], description: "Close / go back" },
+      { keys: ["Tab"], description: "Next result" },
     ],
   },
   {
-    label: 'General',
+    label: "General",
     shortcuts: [
-      { keys: ['⌘', 'K'], description: 'Open command palette' },
-      { keys: ['⌘', '/'], description: 'Toggle sidebar' },
+      { keys: ["⌘", "K"], description: "Open command palette" },
+      { keys: ["⌘", "/"], description: "Toggle sidebar" },
     ],
   },
-]
+];
 
 interface KeyboardShortcutsProps {
-  onClose: () => void
-  className?: string
+  onClose: () => void;
+  className?: string;
 }
 
 export function KeyboardShortcuts({ onClose, className }: KeyboardShortcutsProps) {
   return (
-    <div className={cn('flex flex-col', className)}>
+    <div className={cn("flex flex-col", className)}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-sm font-semibold">Keyboard Shortcuts</h2>
@@ -60,10 +60,7 @@ export function KeyboardShortcuts({ onClose, className }: KeyboardShortcutsProps
             </h3>
             <div className="space-y-1">
               {group.shortcuts.map((shortcut) => (
-                <div
-                  key={shortcut.description}
-                  className="flex items-center justify-between py-1"
-                >
+                <div key={shortcut.description} className="flex items-center justify-between py-1">
                   <span className="text-sm text-foreground">{shortcut.description}</span>
                   <div className="flex items-center gap-1">
                     {shortcut.keys.map((key, i) => (
@@ -84,5 +81,5 @@ export function KeyboardShortcuts({ onClose, className }: KeyboardShortcutsProps
         ))}
       </div>
     </div>
-  )
+  );
 }

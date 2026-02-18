@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { Check, ChevronDown, Server, X } from 'lucide-react'
-import type { Instance } from '@/types/instance'
-import { cn } from '@/lib/utils'
+import { useState } from "react";
+import { Check, ChevronDown, Server, X } from "lucide-react";
+import type { Instance } from "@/types/instance";
+import { cn } from "@/lib/utils";
 
 interface InstanceSelectorProps {
-  instances: Instance[]
-  selectedIds: string[]
-  onChange: (ids: string[]) => void
-  maxSelections?: number
-  disabled?: boolean
-  placeholder?: string
+  instances: Instance[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  maxSelections?: number;
+  disabled?: boolean;
+  placeholder?: string;
 }
 
 export function InstanceSelector({
@@ -18,40 +18,40 @@ export function InstanceSelector({
   onChange,
   maxSelections,
   disabled = false,
-  placeholder = 'Select instances...',
+  placeholder = "Select instances...",
 }: InstanceSelectorProps) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const running = instances.filter((i) => i.status === 'RUNNING')
+  const running = instances.filter((i) => i.status === "RUNNING");
   const filtered = running.filter(
     (i) =>
       i.name.toLowerCase().includes(search.toLowerCase()) ||
       i.provider.toLowerCase().includes(search.toLowerCase()),
-  )
+  );
 
-  const selectedInstances = instances.filter((i) => selectedIds.includes(i.id))
+  const selectedInstances = instances.filter((i) => selectedIds.includes(i.id));
 
   function toggle(id: string) {
     if (selectedIds.includes(id)) {
-      onChange(selectedIds.filter((s) => s !== id))
+      onChange(selectedIds.filter((s) => s !== id));
     } else {
-      if (maxSelections && selectedIds.length >= maxSelections) return
-      onChange([...selectedIds, id])
+      if (maxSelections && selectedIds.length >= maxSelections) return;
+      onChange([...selectedIds, id]);
     }
   }
 
   function selectAll() {
-    const runningIds = filtered.map((i) => i.id)
+    const runningIds = filtered.map((i) => i.id);
     if (maxSelections) {
-      onChange(runningIds.slice(0, maxSelections))
+      onChange(runningIds.slice(0, maxSelections));
     } else {
-      onChange(runningIds)
+      onChange(runningIds);
     }
   }
 
   function clearAll() {
-    onChange([])
+    onChange([]);
   }
 
   return (
@@ -62,10 +62,10 @@ export function InstanceSelector({
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex min-h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-          disabled && 'cursor-not-allowed opacity-50',
-          !disabled && 'hover:bg-accent/30',
+          "flex min-h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          disabled && "cursor-not-allowed opacity-50",
+          !disabled && "hover:bg-accent/30",
         )}
       >
         <div className="flex flex-wrap gap-1 flex-1 min-w-0">
@@ -81,8 +81,8 @@ export function InstanceSelector({
                 <button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    toggle(inst.id)
+                    e.stopPropagation();
+                    toggle(inst.id);
                   }}
                   className="ml-0.5 hover:text-primary/70"
                 >
@@ -93,7 +93,10 @@ export function InstanceSelector({
           )}
         </div>
         <ChevronDown
-          className={cn('ml-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+          className={cn(
+            "ml-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
         />
       </button>
 
@@ -114,7 +117,7 @@ export function InstanceSelector({
           <div className="flex items-center justify-between px-3 py-1.5 border-b text-xs text-muted-foreground">
             <span>
               {selectedIds.length} selected
-              {maxSelections ? ` / ${maxSelections}` : ''}
+              {maxSelections ? ` / ${maxSelections}` : ""}
             </span>
             <div className="flex gap-2">
               <button type="button" onClick={selectAll} className="hover:text-foreground">
@@ -128,11 +131,14 @@ export function InstanceSelector({
 
           <div className="max-h-48 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">No running instances found</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                No running instances found
+              </div>
             ) : (
               filtered.map((inst) => {
-                const selected = selectedIds.includes(inst.id)
-                const atLimit = !selected && maxSelections !== undefined && selectedIds.length >= maxSelections
+                const selected = selectedIds.includes(inst.id);
+                const atLimit =
+                  !selected && maxSelections !== undefined && selectedIds.length >= maxSelections;
                 return (
                   <button
                     key={inst.id}
@@ -140,16 +146,18 @@ export function InstanceSelector({
                     disabled={atLimit}
                     onClick={() => toggle(inst.id)}
                     className={cn(
-                      'flex w-full items-center gap-2 px-3 py-2 text-left text-sm',
-                      selected && 'bg-primary/10',
-                      !atLimit && 'hover:bg-accent',
-                      atLimit && 'cursor-not-allowed opacity-40',
+                      "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
+                      selected && "bg-primary/10",
+                      !atLimit && "hover:bg-accent",
+                      atLimit && "cursor-not-allowed opacity-40",
                     )}
                   >
                     <div
                       className={cn(
-                        'flex h-4 w-4 items-center justify-center rounded border',
-                        selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground',
+                        "flex h-4 w-4 items-center justify-center rounded border",
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-muted-foreground",
                       )}
                     >
                       {selected && <Check className="h-3 w-3" />}
@@ -158,7 +166,7 @@ export function InstanceSelector({
                     <span className="truncate font-medium">{inst.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">{inst.provider}</span>
                   </button>
-                )
+                );
               })
             )}
           </div>
@@ -170,5 +178,5 @@ export function InstanceSelector({
         <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
       )}
     </div>
-  )
+  );
 }

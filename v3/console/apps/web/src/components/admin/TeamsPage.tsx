@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { teamsApi } from '@/api/rbac'
-import type { Team, TeamFilters } from '@/types/rbac'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { teamsApi } from "@/api/rbac";
+import type { Team, TeamFilters } from "@/types/rbac";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -12,55 +12,55 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { TeamEditor } from './TeamEditor'
-import { Users, Plus, Search, Trash2, Edit, Eye } from 'lucide-react'
+} from "@/components/ui/table";
+import { TeamEditor } from "./TeamEditor";
+import { Users, Plus, Search, Trash2, Edit, Eye } from "lucide-react";
 
 export function TeamsPage() {
-  const queryClient = useQueryClient()
-  const [filters, setFilters] = useState<TeamFilters>({})
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editingTeam, setEditingTeam] = useState<Team | null>(null)
-  const [detailTeamId, setDetailTeamId] = useState<string | null>(null)
+  const queryClient = useQueryClient();
+  const [filters, setFilters] = useState<TeamFilters>({});
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [detailTeamId, setDetailTeamId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-teams', filters, page],
+    queryKey: ["admin-teams", filters, page],
     queryFn: () => teamsApi.listTeams(filters, page),
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => teamsApi.deleteTeam(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-teams'] }),
-  })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-teams"] }),
+  });
 
   const handleSearch = () => {
-    setFilters({ search: search || undefined })
-    setPage(1)
-  }
+    setFilters({ search: search || undefined });
+    setPage(1);
+  };
 
   const handleEdit = (team: Team) => {
-    setEditingTeam(team)
-    setEditorOpen(true)
-    setDetailTeamId(null)
-  }
+    setEditingTeam(team);
+    setEditorOpen(true);
+    setDetailTeamId(null);
+  };
 
   const handleCreate = () => {
-    setEditingTeam(null)
-    setEditorOpen(true)
-    setDetailTeamId(null)
-  }
+    setEditingTeam(null);
+    setEditorOpen(true);
+    setDetailTeamId(null);
+  };
 
   const handleEditorClose = () => {
-    setEditorOpen(false)
-    setEditingTeam(null)
-  }
+    setEditorOpen(false);
+    setEditingTeam(null);
+  };
 
   const handleEditorSave = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin-teams'] })
-    handleEditorClose()
-  }
+    queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
+    handleEditorClose();
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -88,7 +88,7 @@ export function TeamsPage() {
               placeholder="Search teams..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               className="flex-1 max-w-sm"
             />
             <Button variant="outline" size="icon" onClick={handleSearch}>
@@ -102,7 +102,7 @@ export function TeamsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {data?.pagination.total ?? 0} team{data?.pagination.total !== 1 ? 's' : ''}
+            {data?.pagination.total ?? 0} team{data?.pagination.total !== 1 ? "s" : ""}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -137,7 +137,7 @@ export function TeamsPage() {
                       <span className="font-medium text-sm">{team.name}</span>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                      {team.description ?? '—'}
+                      {team.description ?? "—"}
                     </TableCell>
                     <TableCell className="text-sm">{team.memberCount}</TableCell>
                     <TableCell className="text-sm">{team.instanceCount}</TableCell>
@@ -168,8 +168,12 @@ export function TeamsPage() {
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => {
-                            if (confirm(`Delete team "${team.name}"? This will not delete its members or instances.`)) {
-                              deleteMutation.mutate(team.id)
+                            if (
+                              confirm(
+                                `Delete team "${team.name}"? This will not delete its members or instances.`,
+                              )
+                            ) {
+                              deleteMutation.mutate(team.id);
                             }
                           }}
                         >
@@ -225,30 +229,30 @@ export function TeamsPage() {
         onSave={handleEditorSave}
       />
     </div>
-  )
+  );
 }
 
 function TeamDetailPanel({ teamId, onClose }: { teamId: string; onClose: () => void }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const { data: team, isLoading } = useQuery({
-    queryKey: ['admin-team-detail', teamId],
+    queryKey: ["admin-team-detail", teamId],
     queryFn: () => teamsApi.getTeam(teamId),
-  })
+  });
 
   const removeMemberMutation = useMutation({
     mutationFn: (userId: string) => teamsApi.removeMember(teamId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-team-detail', teamId] })
-      queryClient.invalidateQueries({ queryKey: ['admin-teams'] })
+      queryClient.invalidateQueries({ queryKey: ["admin-team-detail", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
     },
-  })
+  });
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">
-            {isLoading ? 'Loading...' : `${team?.name} — Members`}
+            {isLoading ? "Loading..." : `${team?.name} — Members`}
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
@@ -290,5 +294,5 @@ function TeamDetailPanel({ teamId, onClose }: { teamId: string; onClose: () => v
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

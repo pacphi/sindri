@@ -1,23 +1,23 @@
-import { useRef, useState } from 'react'
-import { Upload, FileCode, X, ChevronDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useRef, useState } from "react";
+import { Upload, FileCode, X, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ScriptUploadProps {
-  value: string
-  onChange: (script: string, filename?: string) => void
-  interpreter: string
-  onInterpreterChange: (interpreter: string) => void
-  disabled?: boolean
+  value: string;
+  onChange: (script: string, filename?: string) => void;
+  interpreter: string;
+  onInterpreterChange: (interpreter: string) => void;
+  disabled?: boolean;
 }
 
 const INTERPRETERS = [
-  { label: 'Bash', value: '/bin/bash' },
-  { label: 'Shell', value: '/bin/sh' },
-  { label: 'Python 3', value: '/usr/bin/python3' },
-  { label: 'Node.js', value: '/usr/bin/node' },
-  { label: 'Perl', value: '/usr/bin/perl' },
-  { label: 'Ruby', value: '/usr/bin/ruby' },
-]
+  { label: "Bash", value: "/bin/bash" },
+  { label: "Shell", value: "/bin/sh" },
+  { label: "Python 3", value: "/usr/bin/python3" },
+  { label: "Node.js", value: "/usr/bin/node" },
+  { label: "Perl", value: "/usr/bin/perl" },
+  { label: "Ruby", value: "/usr/bin/ruby" },
+];
 
 export function ScriptUpload({
   value,
@@ -26,39 +26,39 @@ export function ScriptUpload({
   onInterpreterChange,
   disabled = false,
 }: ScriptUploadProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [filename, setFilename] = useState<string>('')
-  const [dragOver, setDragOver] = useState(false)
-  const [interpreterOpen, setInterpreterOpen] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [filename, setFilename] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
+  const [interpreterOpen, setInterpreterOpen] = useState(false);
 
   function handleFile(file: File) {
-    setFilename(file.name)
-    const reader = new FileReader()
+    setFilename(file.name);
+    const reader = new FileReader();
     reader.onload = (e) => {
-      onChange(e.target?.result as string, file.name)
-    }
-    reader.readAsText(file)
+      onChange(e.target?.result as string, file.name);
+    };
+    reader.readAsText(file);
   }
 
   function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFile(file)
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) handleFile(file)
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
   }
 
   function clearFile() {
-    setFilename('')
-    onChange('')
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    setFilename("");
+    onChange("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  const selectedInterpreter = INTERPRETERS.find((i) => i.value === interpreter)
+  const selectedInterpreter = INTERPRETERS.find((i) => i.value === interpreter);
 
   return (
     <div className="space-y-2">
@@ -71,9 +71,9 @@ export function ScriptUpload({
             disabled={disabled}
             onClick={() => setInterpreterOpen((o) => !o)}
             className={cn(
-              'flex items-center gap-1.5 rounded border border-input bg-background px-2.5 py-1 text-xs',
-              'hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-ring',
-              disabled && 'cursor-not-allowed opacity-50',
+              "flex items-center gap-1.5 rounded border border-input bg-background px-2.5 py-1 text-xs",
+              "hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-ring",
+              disabled && "cursor-not-allowed opacity-50",
             )}
           >
             <FileCode className="h-3.5 w-3.5 text-muted-foreground" />
@@ -93,12 +93,12 @@ export function ScriptUpload({
                     key={interp.value}
                     type="button"
                     onClick={() => {
-                      onInterpreterChange(interp.value)
-                      setInterpreterOpen(false)
+                      onInterpreterChange(interp.value);
+                      setInterpreterOpen(false);
                     }}
                     className={cn(
-                      'flex w-full items-center px-3 py-1.5 text-xs hover:bg-accent',
-                      interp.value === interpreter && 'bg-accent/50 font-medium',
+                      "flex w-full items-center px-3 py-1.5 text-xs hover:bg-accent",
+                      interp.value === interpreter && "bg-accent/50 font-medium",
                     )}
                   >
                     {interp.label}
@@ -109,9 +109,9 @@ export function ScriptUpload({
                     className="w-full bg-transparent text-xs px-1 py-0.5 focus:outline-none"
                     placeholder="Custom path..."
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        onInterpreterChange((e.target as HTMLInputElement).value)
-                        setInterpreterOpen(false)
+                      if (e.key === "Enter") {
+                        onInterpreterChange((e.target as HTMLInputElement).value);
+                        setInterpreterOpen(false);
                       }
                     }}
                     onClick={(e) => e.stopPropagation()}
@@ -126,15 +126,17 @@ export function ScriptUpload({
       {/* Drop zone */}
       <div
         onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
+          e.preventDefault();
+          setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-md border-2 border-dashed p-6 text-sm transition-colors',
-          dragOver ? 'border-primary bg-primary/5' : 'border-muted hover:border-muted-foreground/50',
-          disabled && 'opacity-50',
+          "relative flex flex-col items-center justify-center rounded-md border-2 border-dashed p-6 text-sm transition-colors",
+          dragOver
+            ? "border-primary bg-primary/5"
+            : "border-muted hover:border-muted-foreground/50",
+          disabled && "opacity-50",
         )}
       >
         {filename ? (
@@ -154,7 +156,7 @@ export function ScriptUpload({
           <>
             <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
             <p className="text-muted-foreground">
-              Drop a script file here or{' '}
+              Drop a script file here or{" "}
               <button
                 type="button"
                 disabled={disabled}
@@ -184,7 +186,7 @@ export function ScriptUpload({
         <div className="rounded-md border bg-muted/30 overflow-hidden">
           <div className="flex items-center justify-between border-b px-3 py-1.5 text-xs text-muted-foreground">
             <span>Script preview</span>
-            <span>{value.split('\n').length} lines</span>
+            <span>{value.split("\n").length} lines</span>
           </div>
           <textarea
             value={value}
@@ -197,5 +199,5 @@ export function ScriptUpload({
         </div>
       )}
     </div>
-  )
+  );
 }

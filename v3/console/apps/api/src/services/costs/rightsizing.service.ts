@@ -3,25 +3,25 @@
  * pricing to suggest cheaper tiers where utilisation is low.
  */
 
-import { db } from '../../lib/db.js'
-import { logger } from '../../lib/logger.js'
-import { getProviderPricing } from './pricing.js'
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import { getProviderPricing } from "./pricing.js";
 
 export interface RightSizingResult {
-  id: string
-  instanceId: string
-  instanceName: string
-  provider: string
-  currentTier: string
-  suggestedTier: string
-  currentUsdMo: number
-  suggestedUsdMo: number
-  savingsUsdMo: number
-  avgCpuPercent: number
-  avgMemPercent: number
-  confidence: number
-  generatedAt: string
-  dismissed: boolean
+  id: string;
+  instanceId: string;
+  instanceName: string;
+  provider: string;
+  currentTier: string;
+  suggestedTier: string;
+  currentUsdMo: number;
+  suggestedUsdMo: number;
+  savingsUsdMo: number;
+  avgCpuPercent: number;
+  avgMemPercent: number;
+  confidence: number;
+  generatedAt: string;
+  dismissed: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,8 +32,8 @@ export async function listRecommendations(showDismissed = false): Promise<RightS
   const recs = await db.rightSizingRecommendation.findMany({
     where: showDismissed ? {} : { dismissed: false },
     include: { instance: { select: { name: true, provider: true } } },
-    orderBy: { savings_usd_mo: 'desc' },
-  })
+    orderBy: { savings_usd_mo: "desc" },
+  });
 
   return recs.map((r) => ({
     id: r.id,
@@ -50,7 +50,7 @@ export async function listRecommendations(showDismissed = false): Promise<RightS
     confidence: r.confidence,
     generatedAt: r.generated_at.toISOString(),
     dismissed: r.dismissed,
-  }))
+  }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,14 +61,14 @@ export async function dismissRecommendation(id: string): Promise<RightSizingResu
   const rec = await db.rightSizingRecommendation.findUnique({
     where: { id },
     include: { instance: { select: { name: true, provider: true } } },
-  })
-  if (!rec) return null
+  });
+  if (!rec) return null;
 
   const updated = await db.rightSizingRecommendation.update({
     where: { id },
     data: { dismissed: true },
     include: { instance: { select: { name: true, provider: true } } },
-  })
+  });
 
   return {
     id: updated.id,
@@ -85,7 +85,7 @@ export async function dismissRecommendation(id: string): Promise<RightSizingResu
     confidence: updated.confidence,
     generatedAt: updated.generated_at.toISOString(),
     dismissed: updated.dismissed,
-  }
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -93,15 +93,15 @@ export async function dismissRecommendation(id: string): Promise<RightSizingResu
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function analyzeAndGenerateRecommendations(): Promise<{
-  analyzed: number
-  generated: number
-  skipped: number
+  analyzed: number;
+  generated: number;
+  skipped: number;
 }> {
-  const lookbackDays = 30
-  const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+  const lookbackDays = 30;
+  const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
 
   const instances = await db.instance.findMany({
-    where: { status: 'RUNNING' },
+    where: { status: "RUNNING" },
     select: {
       id: true,
       name: true,
@@ -115,75 +115,74 @@ export async function analyzeAndGenerateRecommendations(): Promise<{
         },
       },
       cost_entries: {
-        orderBy: { period_start: 'desc' },
+        orderBy: { period_start: "desc" },
         take: 30,
         select: { total_usd: true },
       },
     },
-  })
+  });
 
-  let analyzed = 0
-  let generated = 0
-  let skipped = 0
+  let analyzed = 0;
+  let generated = 0;
+  let skipped = 0;
 
   for (const inst of instances) {
-    analyzed++
+    analyzed++;
 
     if (inst.metrics.length < 10) {
-      skipped++ // not enough data
-      continue
+      skipped++; // not enough data
+      continue;
     }
 
-    const pricing = getProviderPricing(inst.provider)
+    const pricing = getProviderPricing(inst.provider);
     if (!pricing || pricing.computeTiers.length < 2) {
-      skipped++
-      continue
+      skipped++;
+      continue;
     }
 
     // Compute averages
-    const avgCpu =
-      inst.metrics.reduce((acc, m) => acc + m.cpu_percent, 0) / inst.metrics.length
+    const avgCpu = inst.metrics.reduce((acc, m) => acc + m.cpu_percent, 0) / inst.metrics.length;
     const avgMem =
       inst.metrics.reduce((acc, m) => {
-        const pct = Number(m.mem_total) > 0 ? (Number(m.mem_used) / Number(m.mem_total)) * 100 : 0
-        return acc + pct
-      }, 0) / inst.metrics.length
+        const pct = Number(m.mem_total) > 0 ? (Number(m.mem_used) / Number(m.mem_total)) * 100 : 0;
+        return acc + pct;
+      }, 0) / inst.metrics.length;
 
     // Consider downsizing if avg utilisation < 40%
-    const isUnderutilized = avgCpu < 40 && avgMem < 50
+    const isUnderutilized = avgCpu < 40 && avgMem < 50;
 
     if (!isUnderutilized) {
-      skipped++
-      continue
+      skipped++;
+      continue;
     }
 
     // Estimate current monthly cost from recent entries
-    const recentSpend = inst.cost_entries.reduce((acc, e) => acc + e.total_usd, 0)
-    const _currentUsdMo = recentSpend > 0 ? (recentSpend / inst.cost_entries.length) * 30 : 0
+    const recentSpend = inst.cost_entries.reduce((acc, e) => acc + e.total_usd, 0);
+    const _currentUsdMo = recentSpend > 0 ? (recentSpend / inst.cost_entries.length) * 30 : 0;
 
     // Find cheapest tier that exceeds a 30% utilisation headroom
     // For simplicity: suggest the tier one step smaller in the pricing table
-    const tiers = pricing.computeTiers
-    const currentTierIdx = Math.floor(tiers.length / 2) // default to middle tier
-    const suggestedTierIdx = Math.max(0, currentTierIdx - 1)
+    const tiers = pricing.computeTiers;
+    const currentTierIdx = Math.floor(tiers.length / 2); // default to middle tier
+    const suggestedTierIdx = Math.max(0, currentTierIdx - 1);
 
     if (currentTierIdx === suggestedTierIdx) {
-      skipped++
-      continue
+      skipped++;
+      continue;
     }
 
-    const currentTier = tiers[currentTierIdx]
-    const suggestedTier = tiers[suggestedTierIdx]
-    const suggestedUsdMo = suggestedTier.pricePerMonth
-    const savingsUsdMo = Math.max(0, currentTier.pricePerMonth - suggestedUsdMo)
+    const currentTier = tiers[currentTierIdx];
+    const suggestedTier = tiers[suggestedTierIdx];
+    const suggestedUsdMo = suggestedTier.pricePerMonth;
+    const savingsUsdMo = Math.max(0, currentTier.pricePerMonth - suggestedUsdMo);
 
     if (savingsUsdMo <= 0) {
-      skipped++
-      continue
+      skipped++;
+      continue;
     }
 
     // Confidence based on data points
-    const confidence = Math.min(0.95, inst.metrics.length / 100)
+    const confidence = Math.min(0.95, inst.metrics.length / 100);
 
     try {
       await db.rightSizingRecommendation.upsert({
@@ -212,13 +211,13 @@ export async function analyzeAndGenerateRecommendations(): Promise<{
           generated_at: new Date(),
           dismissed: false,
         },
-      })
-      generated++
+      });
+      generated++;
     } catch (err) {
-      logger.error({ err, instanceId: inst.id }, 'Failed to upsert right-sizing recommendation')
-      skipped++
+      logger.error({ err, instanceId: inst.id }, "Failed to upsert right-sizing recommendation");
+      skipped++;
     }
   }
 
-  return { analyzed, generated, skipped }
+  return { analyzed, generated, skipped };
 }

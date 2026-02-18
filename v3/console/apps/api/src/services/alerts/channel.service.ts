@@ -2,9 +2,9 @@
  * Notification channel CRUD service.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import type { CreateChannelInput, UpdateChannelInput } from './types.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import type { CreateChannelInput, UpdateChannelInput } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CRUD
@@ -21,14 +21,17 @@ export async function createChannel(input: CreateChannelInput) {
     },
   });
 
-  logger.info({ channelId: channel.id, name: channel.name, type: channel.type }, 'Notification channel created');
+  logger.info(
+    { channelId: channel.id, name: channel.name, type: channel.type },
+    "Notification channel created",
+  );
   return formatChannel(channel);
 }
 
 export async function listChannels() {
   const channels = await db.notificationChannel.findMany({
     include: { _count: { select: { rules: true } } },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
   });
   return channels.map(formatChannel);
 }
@@ -56,7 +59,7 @@ export async function updateChannel(id: string, input: UpdateChannelInput) {
     include: { _count: { select: { rules: true } } },
   });
 
-  logger.info({ channelId: id }, 'Notification channel updated');
+  logger.info({ channelId: id }, "Notification channel updated");
   return formatChannel(channel);
 }
 
@@ -64,16 +67,19 @@ export async function deleteChannel(id: string) {
   const existing = await db.notificationChannel.findUnique({ where: { id } });
   if (!existing) return null;
   await db.notificationChannel.delete({ where: { id } });
-  logger.info({ channelId: id }, 'Notification channel deleted');
+  logger.info({ channelId: id }, "Notification channel deleted");
   return existing;
 }
 
 export async function testChannel(id: string): Promise<{ success: boolean; error?: string }> {
   const channel = await db.notificationChannel.findUnique({ where: { id } });
-  if (!channel) return { success: false, error: 'Channel not found' };
+  if (!channel) return { success: false, error: "Channel not found" };
 
-  const { dispatcher } = await import('./dispatcher.service.js');
-  return dispatcher.test(channel.type as 'WEBHOOK' | 'SLACK' | 'EMAIL' | 'IN_APP', channel.config as object);
+  const { dispatcher } = await import("./dispatcher.service.js");
+  return dispatcher.test(
+    channel.type as "WEBHOOK" | "SLACK" | "EMAIL" | "IN_APP",
+    channel.config as object,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,24 +111,24 @@ function maskConfig(type: string, config: Record<string, unknown>): Record<strin
   const masked = { ...config };
 
   switch (type) {
-    case 'WEBHOOK':
-      if (masked.secret) masked.secret = '***';
+    case "WEBHOOK":
+      if (masked.secret) masked.secret = "***";
       if (masked.headers) {
         const headers = { ...(masked.headers as Record<string, string>) };
         for (const key of Object.keys(headers)) {
-          if (/auth|token|key|secret/i.test(key)) headers[key] = '***';
+          if (/auth|token|key|secret/i.test(key)) headers[key] = "***";
         }
         masked.headers = headers;
       }
       break;
-    case 'SLACK':
+    case "SLACK":
       if (masked.webhook_url) {
         // Keep the structure, mask the token portion
         const url = masked.webhook_url as string;
-        masked.webhook_url = url.replace(/\/[^/]+$/, '/***');
+        masked.webhook_url = url.replace(/\/[^/]+$/, "/***");
       }
       break;
-    case 'EMAIL':
+    case "EMAIL":
       // Email recipients are not sensitive
       break;
   }

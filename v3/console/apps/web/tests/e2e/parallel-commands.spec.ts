@@ -9,48 +9,48 @@
  * - Handling partial failures across instances
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from "@playwright/test";
 
-const BASE_URL = process.env.TEST_BASE_URL ?? 'http://localhost:5173';
+const BASE_URL = process.env.TEST_BASE_URL ?? "http://localhost:5173";
 const TIMEOUT = 30_000;
 
 async function navigateToInstances(page: Page): Promise<void> {
   await page.goto(`${BASE_URL}/instances`);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState("networkidle");
 }
 
-test.describe('Parallel Command Execution: UI', () => {
+test.describe("Parallel Command Execution: UI", () => {
   test.beforeEach(async ({ page }) => {
     await navigateToInstances(page);
   });
 
-  test('command execution panel is accessible', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("command execution panel is accessible", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
-      const panel = page.getByTestId('command-panel');
+      const panel = page.getByTestId("command-panel");
       await expect(panel).toBeVisible({ timeout: TIMEOUT });
     }
   });
 
-  test('instance selector shows all running instances', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("instance selector shows all running instances", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
-      const instanceList = page.getByTestId('command-instance-list');
+      const instanceList = page.getByTestId("command-instance-list");
       if (await instanceList.isVisible()) {
-        const items = instanceList.getByTestId('command-instance-item');
+        const items = instanceList.getByTestId("command-instance-item");
         const count = await items.count();
         expect(count).toBeGreaterThanOrEqual(0);
       }
     }
   });
 
-  test('command input field accepts text', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("command input field accepts text", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
-      const commandInput = page.getByTestId('command-input');
+      const commandInput = page.getByTestId("command-input");
       if (await commandInput.isVisible()) {
         await commandInput.fill('echo "hello from test"');
         const value = await commandInput.inputValue();
@@ -59,34 +59,34 @@ test.describe('Parallel Command Execution: UI', () => {
     }
   });
 
-  test('run button is disabled when no instances selected', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("run button is disabled when no instances selected", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
-      const runBtn = page.getByTestId('execute-command-btn');
+      const runBtn = page.getByTestId("execute-command-btn");
       if (await runBtn.isVisible()) {
         await expect(runBtn).toBeDisabled();
       }
     }
   });
 
-  test('run button is disabled when command is empty', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("run button is disabled when command is empty", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
 
       // Select an instance if available
-      const firstInstance = page.getByTestId('command-instance-item').first();
+      const firstInstance = page.getByTestId("command-instance-item").first();
       if (await firstInstance.isVisible()) {
         await firstInstance.click();
       }
 
-      const runBtn = page.getByTestId('execute-command-btn');
+      const runBtn = page.getByTestId("execute-command-btn");
       if (await runBtn.isVisible()) {
         // With empty command, button should still be disabled
-        const commandInput = page.getByTestId('command-input');
+        const commandInput = page.getByTestId("command-input");
         if (await commandInput.isVisible()) {
-          await commandInput.fill('');
+          await commandInput.fill("");
           await expect(runBtn).toBeDisabled();
         }
       }
@@ -94,29 +94,29 @@ test.describe('Parallel Command Execution: UI', () => {
   });
 });
 
-test.describe('Parallel Command Execution: Output', () => {
+test.describe("Parallel Command Execution: Output", () => {
   test.beforeEach(async ({ page }) => {
     await navigateToInstances(page);
   });
 
-  test('output area shows per-instance results', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("output area shows per-instance results", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
 
-      const firstInstance = page.getByTestId('command-instance-item').first();
+      const firstInstance = page.getByTestId("command-instance-item").first();
       if (await firstInstance.isVisible()) {
         await firstInstance.click();
 
-        const commandInput = page.getByTestId('command-input');
+        const commandInput = page.getByTestId("command-input");
         if (await commandInput.isVisible()) {
-          await commandInput.fill('echo test');
+          await commandInput.fill("echo test");
 
-          const runBtn = page.getByTestId('execute-command-btn');
+          const runBtn = page.getByTestId("execute-command-btn");
           if (await runBtn.isEnabled()) {
             await runBtn.click();
 
-            const outputArea = page.getByTestId('command-output-area');
+            const outputArea = page.getByTestId("command-output-area");
             await expect(outputArea).toBeVisible({ timeout: TIMEOUT });
           }
         }
@@ -124,27 +124,27 @@ test.describe('Parallel Command Execution: Output', () => {
     }
   });
 
-  test('output shows instance name as label', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("output shows instance name as label", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
 
-      const firstInstance = page.getByTestId('command-instance-item').first();
+      const firstInstance = page.getByTestId("command-instance-item").first();
       if (await firstInstance.isVisible()) {
-        const instanceName = await firstInstance.getByTestId('instance-name').textContent();
+        const instanceName = await firstInstance.getByTestId("instance-name").textContent();
         await firstInstance.click();
 
-        const commandInput = page.getByTestId('command-input');
+        const commandInput = page.getByTestId("command-input");
         if (await commandInput.isVisible()) {
-          await commandInput.fill('echo test');
+          await commandInput.fill("echo test");
 
-          const runBtn = page.getByTestId('execute-command-btn');
+          const runBtn = page.getByTestId("execute-command-btn");
           if (await runBtn.isEnabled()) {
             await runBtn.click();
             await page.waitForTimeout(2000);
 
-            const outputLabel = page.getByTestId('output-instance-label');
-            if (await outputLabel.isVisible() && instanceName) {
+            const outputLabel = page.getByTestId("output-instance-label");
+            if ((await outputLabel.isVisible()) && instanceName) {
               await expect(outputLabel).toContainText(instanceName.trim());
             }
           }
@@ -154,20 +154,20 @@ test.describe('Parallel Command Execution: Output', () => {
   });
 });
 
-test.describe('Parallel Command Execution: Select All', () => {
+test.describe("Parallel Command Execution: Select All", () => {
   test.beforeEach(async ({ page }) => {
     await navigateToInstances(page);
   });
 
-  test('select all checkbox targets all running instances', async ({ page }) => {
-    const cmdBtn = page.getByTestId('run-command-btn');
+  test("select all checkbox targets all running instances", async ({ page }) => {
+    const cmdBtn = page.getByTestId("run-command-btn");
     if (await cmdBtn.isVisible()) {
       await cmdBtn.click();
 
-      const selectAll = page.getByTestId('select-all-instances');
+      const selectAll = page.getByTestId("select-all-instances");
       if (await selectAll.isVisible()) {
         await selectAll.click();
-        const checkedItems = page.getByTestId('command-instance-item').filter({
+        const checkedItems = page.getByTestId("command-instance-item").filter({
           has: page.locator('[aria-checked="true"], [data-checked="true"]'),
         });
         const count = await checkedItems.count();

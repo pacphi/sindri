@@ -1,38 +1,38 @@
-import { useState, useRef, useEffect } from 'react'
-import { Bell, CheckCircle, X, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAlerts, useResolveAlert } from '@/hooks/useAlerts'
-import { formatRelativeTime } from '@/lib/utils'
-import type { Alert, AlertSeverity } from '@/types/alert'
+import { useState, useRef, useEffect } from "react";
+import { Bell, CheckCircle, X, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAlerts, useResolveAlert } from "@/hooks/useAlerts";
+import { formatRelativeTime } from "@/lib/utils";
+import type { Alert, AlertSeverity } from "@/types/alert";
 
 const SEVERITY_DOT: Record<AlertSeverity, string> = {
-  CRITICAL: 'bg-red-400',
-  HIGH: 'bg-orange-400',
-  MEDIUM: 'bg-yellow-400',
-  LOW: 'bg-blue-400',
-  INFO: 'bg-gray-400',
-}
+  CRITICAL: "bg-red-400",
+  HIGH: "bg-orange-400",
+  MEDIUM: "bg-yellow-400",
+  LOW: "bg-blue-400",
+  INFO: "bg-gray-400",
+};
 
 export function AlertNotifications() {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   // Fetch only active alerts for the bell
-  const { data } = useAlerts({ status: 'ACTIVE' }, 1, 10)
-  const resolveMutation = useResolveAlert()
-  const activeAlerts = data?.alerts ?? []
-  const totalActive = data?.total ?? 0
+  const { data } = useAlerts({ status: "ACTIVE" }, 1, 10);
+  const resolveMutation = useResolveAlert();
+  const activeAlerts = data?.alerts ?? [];
+  const totalActive = data?.total ?? 0;
 
   // Close on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
+        setOpen(false);
       }
     }
-    if (open) document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
+    if (open) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
 
   return (
     <div ref={ref} className="relative">
@@ -45,7 +45,7 @@ export function AlertNotifications() {
         <Bell className="h-5 w-5" />
         {totalActive > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            {totalActive > 9 ? '9+' : totalActive}
+            {totalActive > 9 ? "9+" : totalActive}
           </span>
         )}
       </button>
@@ -93,21 +93,15 @@ export function AlertNotifications() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
-function AlertNotificationItem({
-  alert,
-  onResolve,
-}: {
-  alert: Alert
-  onResolve: () => void
-}) {
-  const dot = SEVERITY_DOT[alert.severity]
+function AlertNotificationItem({ alert, onResolve }: { alert: Alert; onResolve: () => void }) {
+  const dot = SEVERITY_DOT[alert.severity];
 
   return (
     <div className="flex items-start gap-3 px-4 py-3 hover:bg-gray-800/30 transition-colors">
-      <div className={cn('mt-1.5 h-2 w-2 flex-shrink-0 rounded-full', dot)} />
+      <div className={cn("mt-1.5 h-2 w-2 flex-shrink-0 rounded-full", dot)} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-white line-clamp-1">{alert.title}</div>
         <div className="mt-0.5 text-xs text-gray-400 line-clamp-2">{alert.message}</div>
@@ -121,5 +115,5 @@ function AlertNotificationItem({
         <X className="h-3.5 w-3.5" />
       </button>
     </div>
-  )
+  );
 }

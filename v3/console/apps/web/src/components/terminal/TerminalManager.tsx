@@ -15,7 +15,12 @@ interface TerminalManagerProps {
 let tabIdCounter = 0;
 const nextTabId = () => `tab-${++tabIdCounter}`;
 
-export function TerminalManager({ instanceId, instanceName, theme = "dark", className }: TerminalManagerProps) {
+export function TerminalManager({
+  instanceId,
+  instanceName,
+  theme = "dark",
+  className,
+}: TerminalManagerProps) {
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -70,7 +75,7 @@ export function TerminalManager({ instanceId, instanceName, theme = "dark", clas
         return remaining[remaining.length - 1]?.id ?? null;
       });
     },
-    [instanceId]
+    [instanceId],
   );
 
   const handleTabSelect = useCallback((tabId: string) => {
@@ -107,7 +112,10 @@ export function TerminalManager({ instanceId, instanceName, theme = "dark", clas
         )}
 
         {tabs.map((tab) => (
-          <div key={tab.id} className={`absolute inset-0 ${tab.id === activeTabId ? "block" : "hidden"}`}>
+          <div
+            key={tab.id}
+            className={`absolute inset-0 ${tab.id === activeTabId ? "block" : "hidden"}`}
+          >
             <Terminal
               sessionId={tab.sessionId}
               instanceId={instanceId}

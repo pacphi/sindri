@@ -1,11 +1,6 @@
 // Deployment template and deployment run shared types.
 
-export type DeploymentStatus =
-  | "PENDING"
-  | "IN_PROGRESS"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CANCELLED";
+export type DeploymentStatus = "PENDING" | "IN_PROGRESS" | "SUCCEEDED" | "FAILED" | "CANCELLED";
 
 export interface DeploymentTemplate {
   id: string;

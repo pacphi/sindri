@@ -1,15 +1,15 @@
-import { Server, MapPin, ChevronRight } from 'lucide-react'
-import type { Instance } from '@/types/instance'
-import { StatusBadge } from './StatusBadge'
-import { MetricsGauge } from './MetricsGauge'
-import { formatRelativeTime } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { Server, MapPin, ChevronRight } from "lucide-react";
+import type { Instance } from "@/types/instance";
+import { StatusBadge } from "./StatusBadge";
+import { MetricsGauge } from "./MetricsGauge";
+import { formatRelativeTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface InstanceTableProps {
-  instances: Instance[]
-  onSelectInstance?: (instance: Instance) => void
-  selectedIds?: Set<string>
-  onToggleSelect?: (id: string) => void
+  instances: Instance[];
+  onSelectInstance?: (instance: Instance) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export function InstanceTable({
@@ -18,7 +18,7 @@ export function InstanceTable({
   selectedIds,
   onToggleSelect,
 }: InstanceTableProps) {
-  const hasSelection = Boolean(onToggleSelect)
+  const hasSelection = Boolean(onToggleSelect);
 
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -48,28 +48,26 @@ export function InstanceTable({
         </thead>
         <tbody>
           {instances.map((instance, idx) => {
-            const hb = instance.latest_heartbeat
-            const memPercent = hb
-              ? (Number(hb.memory_used) / Number(hb.memory_total)) * 100
-              : null
-            const isSelected = selectedIds?.has(instance.id) ?? false
+            const hb = instance.latest_heartbeat;
+            const memPercent = hb ? (Number(hb.memory_used) / Number(hb.memory_total)) * 100 : null;
+            const isSelected = selectedIds?.has(instance.id) ?? false;
 
             return (
               <tr
                 key={instance.id}
                 className={cn(
-                  'border-b last:border-0 transition-colors',
-                  onSelectInstance && 'cursor-pointer hover:bg-muted/50',
-                  idx % 2 === 0 ? 'bg-background' : 'bg-muted/20',
-                  isSelected && 'bg-primary/5 hover:bg-primary/10',
+                  "border-b last:border-0 transition-colors",
+                  onSelectInstance && "cursor-pointer hover:bg-muted/50",
+                  idx % 2 === 0 ? "bg-background" : "bg-muted/20",
+                  isSelected && "bg-primary/5 hover:bg-primary/10",
                 )}
                 onClick={() => onSelectInstance?.(instance)}
                 onKeyDown={
                   onSelectInstance
                     ? (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          onSelectInstance(instance)
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSelectInstance(instance);
                         }
                       }
                     : undefined
@@ -84,8 +82,8 @@ export function InstanceTable({
                   <td
                     className="h-14 px-3"
                     onClick={(e) => {
-                      e.stopPropagation()
-                      onToggleSelect?.(instance.id)
+                      e.stopPropagation();
+                      onToggleSelect?.(instance.id);
                     }}
                   >
                     <input
@@ -130,7 +128,7 @@ export function InstanceTable({
 
                 {/* CPU */}
                 <td className="h-14 px-4 hidden lg:table-cell">
-                  {hb && instance.status === 'RUNNING' ? (
+                  {hb && instance.status === "RUNNING" ? (
                     <MetricsGauge label="" value={hb.cpu_percent} size="sm" className="w-24" />
                   ) : (
                     <span className="text-muted-foreground/50">—</span>
@@ -139,7 +137,7 @@ export function InstanceTable({
 
                 {/* Memory */}
                 <td className="h-14 px-4 hidden lg:table-cell">
-                  {memPercent !== null && instance.status === 'RUNNING' ? (
+                  {memPercent !== null && instance.status === "RUNNING" ? (
                     <MetricsGauge label="" value={memPercent} size="sm" className="w-24" />
                   ) : (
                     <span className="text-muted-foreground/50">—</span>
@@ -158,10 +156,10 @@ export function InstanceTable({
                   </td>
                 )}
               </tr>
-            )
+            );
           })}
         </tbody>
       </table>
     </div>
-  )
+  );
 }

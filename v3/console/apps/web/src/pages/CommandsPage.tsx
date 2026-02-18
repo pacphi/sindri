@@ -1,4 +1,4 @@
-import { CommandDispatch } from '@/components/commands'
+import { CommandDispatch } from "@/components/commands";
 
 export function CommandsPage() {
   return (
@@ -11,5 +11,5 @@ export function CommandsPage() {
       </div>
       <CommandDispatch />
     </div>
-  )
+  );
 }

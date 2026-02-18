@@ -1,4 +1,4 @@
-import { ScheduledTaskList } from '@/components/tasks'
+import { ScheduledTaskList } from "@/components/tasks";
 
 export function TasksPage() {
   return (
@@ -11,5 +11,5 @@ export function TasksPage() {
       </div>
       <ScheduledTaskList />
     </div>
-  )
+  );
 }

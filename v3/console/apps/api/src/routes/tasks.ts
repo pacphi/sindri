@@ -13,12 +13,12 @@
  * GET    /api/v1/tasks/:id/history          — execution history
  */
 
-import { Hono } from 'hono';
-import { z } from 'zod';
-import { authMiddleware } from '../middleware/auth.js';
-import { rateLimitDefault, rateLimitStrict } from '../middleware/rateLimit.js';
-import { logger } from '../lib/logger.js';
-import { validateCron, TASK_TEMPLATES } from '../services/scheduler/index.js';
+import { Hono } from "hono";
+import { z } from "zod";
+import { authMiddleware } from "../middleware/auth.js";
+import { rateLimitDefault, rateLimitStrict } from "../middleware/rateLimit.js";
+import { logger } from "../lib/logger.js";
+import { validateCron, TASK_TEMPLATES } from "../services/scheduler/index.js";
 import {
   createTask,
   listTasks,
@@ -29,19 +29,19 @@ import {
   resumeTask,
   triggerTask,
   listExecutions,
-} from '../services/scheduler/task.service.js';
+} from "../services/scheduler/task.service.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CronSchema = z.string().refine(validateCron, { message: 'Invalid cron expression' });
+const CronSchema = z.string().refine(validateCron, { message: "Invalid cron expression" });
 
 const CreateTaskSchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().max(512).optional(),
   cron: CronSchema,
-  timezone: z.string().max(64).default('UTC'),
+  timezone: z.string().max(64).default("UTC"),
   command: z.string().min(1).max(2048),
   instanceId: z.string().max(128).optional(),
   template: z.string().max(64).optional(),
@@ -55,14 +55,14 @@ const CreateTaskSchema = z.object({
 const UpdateTaskSchema = CreateTaskSchema.partial().omit({ template: true });
 
 const ListTasksQuerySchema = z.object({
-  status: z.enum(['ACTIVE', 'PAUSED', 'DISABLED']).optional(),
+  status: z.enum(["ACTIVE", "PAUSED", "DISABLED"]).optional(),
   instanceId: z.string().max(128).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 const ListExecutionsQuerySchema = z.object({
-  status: z.enum(['PENDING', 'RUNNING', 'SUCCESS', 'FAILED', 'SKIPPED', 'TIMED_OUT']).optional(),
+  status: z.enum(["PENDING", "RUNNING", "SUCCESS", "FAILED", "SKIPPED", "TIMED_OUT"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
@@ -72,178 +72,222 @@ const ListExecutionsQuerySchema = z.object({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const tasks = new Hono();
-tasks.use('*', authMiddleware);
+tasks.use("*", authMiddleware);
 
 // ─── GET /api/v1/tasks/templates ─────────────────────────────────────────────
 
-tasks.get('/templates', rateLimitDefault, (c) => {
+tasks.get("/templates", rateLimitDefault, (c) => {
   return c.json({ templates: TASK_TEMPLATES });
 });
 
 // ─── GET /api/v1/tasks ───────────────────────────────────────────────────────
 
-tasks.get('/', rateLimitDefault, async (c) => {
+tasks.get("/", rateLimitDefault, async (c) => {
   const q = ListTasksQuerySchema.safeParse(Object.fromEntries(new URL(c.req.url).searchParams));
   if (!q.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid query parameters', details: q.error.flatten() }, 422);
+    return c.json(
+      {
+        error: "Validation Error",
+        message: "Invalid query parameters",
+        details: q.error.flatten(),
+      },
+      422,
+    );
   }
 
   try {
     const result = await listTasks(q.data);
     return c.json({
       tasks: result.tasks.map(serializeTask),
-      pagination: { total: result.total, page: result.page, pageSize: result.pageSize, totalPages: result.totalPages },
+      pagination: {
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages,
+      },
     });
   } catch (err) {
-    logger.error({ err }, 'Failed to list tasks');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to list tasks' }, 500);
+    logger.error({ err }, "Failed to list tasks");
+    return c.json({ error: "Internal Server Error", message: "Failed to list tasks" }, 500);
   }
 });
 
 // ─── POST /api/v1/tasks ──────────────────────────────────────────────────────
 
-tasks.post('/', rateLimitStrict, async (c) => {
+tasks.post("/", rateLimitStrict, async (c) => {
   let body: unknown;
-  try { body = await c.req.json(); } catch {
-    return c.json({ error: 'Bad Request', message: 'Request body must be valid JSON' }, 400);
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Bad Request", message: "Request body must be valid JSON" }, 400);
   }
 
   const parsed = CreateTaskSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid request body', details: parsed.error.flatten() }, 422);
+    return c.json(
+      {
+        error: "Validation Error",
+        message: "Invalid request body",
+        details: parsed.error.flatten(),
+      },
+      422,
+    );
   }
 
   try {
     const task = await createTask(parsed.data);
     return c.json(serializeTask(task), 201);
   } catch (err) {
-    logger.error({ err }, 'Failed to create task');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to create task' }, 500);
+    logger.error({ err }, "Failed to create task");
+    return c.json({ error: "Internal Server Error", message: "Failed to create task" }, 500);
   }
 });
 
 // ─── GET /api/v1/tasks/:id ───────────────────────────────────────────────────
 
-tasks.get('/:id', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
+tasks.get("/:id", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const task = await getTaskById(id);
-    if (!task) return c.json({ error: 'Not Found', message: `Task '${id}' not found` }, 404);
+    if (!task) return c.json({ error: "Not Found", message: `Task '${id}' not found` }, 404);
     return c.json(serializeTask(task));
   } catch (err) {
-    logger.error({ err, taskId: id }, 'Failed to fetch task');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to fetch task' }, 500);
+    logger.error({ err, taskId: id }, "Failed to fetch task");
+    return c.json({ error: "Internal Server Error", message: "Failed to fetch task" }, 500);
   }
 });
 
 // ─── PUT /api/v1/tasks/:id ───────────────────────────────────────────────────
 
-tasks.put('/:id', rateLimitStrict, async (c) => {
-  const id = c.req.param('id');
+tasks.put("/:id", rateLimitStrict, async (c) => {
+  const id = c.req.param("id");
 
   let body: unknown;
-  try { body = await c.req.json(); } catch {
-    return c.json({ error: 'Bad Request', message: 'Request body must be valid JSON' }, 400);
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Bad Request", message: "Request body must be valid JSON" }, 400);
   }
 
   const parsed = UpdateTaskSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid request body', details: parsed.error.flatten() }, 422);
+    return c.json(
+      {
+        error: "Validation Error",
+        message: "Invalid request body",
+        details: parsed.error.flatten(),
+      },
+      422,
+    );
   }
 
   try {
     const task = await updateTask(id, parsed.data);
-    if (!task) return c.json({ error: 'Not Found', message: `Task '${id}' not found` }, 404);
+    if (!task) return c.json({ error: "Not Found", message: `Task '${id}' not found` }, 404);
     return c.json(serializeTask(task));
   } catch (err) {
-    logger.error({ err, taskId: id }, 'Failed to update task');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to update task' }, 500);
+    logger.error({ err, taskId: id }, "Failed to update task");
+    return c.json({ error: "Internal Server Error", message: "Failed to update task" }, 500);
   }
 });
 
 // ─── DELETE /api/v1/tasks/:id ────────────────────────────────────────────────
 
-tasks.delete('/:id', rateLimitStrict, async (c) => {
-  const id = c.req.param('id');
+tasks.delete("/:id", rateLimitStrict, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const task = await deleteTask(id);
-    if (!task) return c.json({ error: 'Not Found', message: `Task '${id}' not found` }, 404);
-    return c.json({ message: 'Task deleted', id: task.id, name: task.name });
+    if (!task) return c.json({ error: "Not Found", message: `Task '${id}' not found` }, 404);
+    return c.json({ message: "Task deleted", id: task.id, name: task.name });
   } catch (err) {
-    logger.error({ err, taskId: id }, 'Failed to delete task');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to delete task' }, 500);
+    logger.error({ err, taskId: id }, "Failed to delete task");
+    return c.json({ error: "Internal Server Error", message: "Failed to delete task" }, 500);
   }
 });
 
 // ─── POST /api/v1/tasks/:id/pause ────────────────────────────────────────────
 
-tasks.post('/:id/pause', rateLimitStrict, async (c) => {
-  const id = c.req.param('id');
+tasks.post("/:id/pause", rateLimitStrict, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const task = await pauseTask(id);
-    if (!task) return c.json({ error: 'Not Found', message: `Task '${id}' not found` }, 404);
+    if (!task) return c.json({ error: "Not Found", message: `Task '${id}' not found` }, 404);
     return c.json(serializeTask(task));
   } catch (err) {
-    logger.error({ err, taskId: id }, 'Failed to pause task');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to pause task' }, 500);
+    logger.error({ err, taskId: id }, "Failed to pause task");
+    return c.json({ error: "Internal Server Error", message: "Failed to pause task" }, 500);
   }
 });
 
 // ─── POST /api/v1/tasks/:id/resume ───────────────────────────────────────────
 
-tasks.post('/:id/resume', rateLimitStrict, async (c) => {
-  const id = c.req.param('id');
+tasks.post("/:id/resume", rateLimitStrict, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const task = await resumeTask(id);
-    if (!task) return c.json({ error: 'Not Found', message: `Task '${id}' not found` }, 404);
+    if (!task) return c.json({ error: "Not Found", message: `Task '${id}' not found` }, 404);
     return c.json(serializeTask(task));
   } catch (err) {
-    logger.error({ err, taskId: id }, 'Failed to resume task');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to resume task' }, 500);
+    logger.error({ err, taskId: id }, "Failed to resume task");
+    return c.json({ error: "Internal Server Error", message: "Failed to resume task" }, 500);
   }
 });
 
 // ─── POST /api/v1/tasks/:id/trigger ──────────────────────────────────────────
 
-tasks.post('/:id/trigger', rateLimitStrict, async (c) => {
-  const id = c.req.param('id');
+tasks.post("/:id/trigger", rateLimitStrict, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const execution = await triggerTask(id);
-    if (!execution) return c.json({ error: 'Not Found', message: `Task '${id}' not found` }, 404);
+    if (!execution) return c.json({ error: "Not Found", message: `Task '${id}' not found` }, 404);
     return c.json(serializeExecution(execution), 202);
   } catch (err) {
-    logger.error({ err, taskId: id }, 'Failed to trigger task');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to trigger task' }, 500);
+    logger.error({ err, taskId: id }, "Failed to trigger task");
+    return c.json({ error: "Internal Server Error", message: "Failed to trigger task" }, 500);
   }
 });
 
 // ─── GET /api/v1/tasks/:id/history ───────────────────────────────────────────
 
-tasks.get('/:id/history', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
+tasks.get("/:id/history", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
 
-  const q = ListExecutionsQuerySchema.safeParse(Object.fromEntries(new URL(c.req.url).searchParams));
+  const q = ListExecutionsQuerySchema.safeParse(
+    Object.fromEntries(new URL(c.req.url).searchParams),
+  );
   if (!q.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid query parameters', details: q.error.flatten() }, 422);
+    return c.json(
+      {
+        error: "Validation Error",
+        message: "Invalid query parameters",
+        details: q.error.flatten(),
+      },
+      422,
+    );
   }
 
   try {
     const task = await getTaskById(id);
-    if (!task) return c.json({ error: 'Not Found', message: `Task '${id}' not found` }, 404);
+    if (!task) return c.json({ error: "Not Found", message: `Task '${id}' not found` }, 404);
 
     const result = await listExecutions({ taskId: id, ...q.data });
     return c.json({
       executions: result.executions.map(serializeExecution),
-      pagination: { total: result.total, page: result.page, pageSize: result.pageSize, totalPages: result.totalPages },
+      pagination: {
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages,
+      },
     });
   } catch (err) {
-    logger.error({ err, taskId: id }, 'Failed to list executions');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to list executions' }, 500);
+    logger.error({ err, taskId: id }, "Failed to list executions");
+    return c.json({ error: "Internal Server Error", message: "Failed to list executions" }, 500);
   }
 });
 

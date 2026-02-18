@@ -16,13 +16,13 @@ const (
 	MsgCommandDispatch MessageType = "command:dispatch"
 
 	// Outbound (Agent → Console)
-	MsgHeartbeat       MessageType = "heartbeat"
-	MsgMetrics         MessageType = "metrics"
-	MsgTerminalOutput  MessageType = "terminal:output"
-	MsgTerminalClosed  MessageType = "terminal:closed"
-	MsgCommandResult   MessageType = "command:result"
-	MsgEvent           MessageType = "event"
-	MsgRegistration    MessageType = "registration"
+	MsgHeartbeat      MessageType = "heartbeat"
+	MsgMetrics        MessageType = "metrics"
+	MsgTerminalOutput MessageType = "terminal:output"
+	MsgTerminalClosed MessageType = "terminal:closed"
+	MsgCommandResult  MessageType = "command:result"
+	MsgEvent          MessageType = "event"
+	MsgRegistration   MessageType = "registration"
 )
 
 // Envelope wraps every WebSocket message with routing metadata.
@@ -41,12 +41,12 @@ type HeartbeatPayload struct {
 
 // MetricsPayload carries a snapshot of system resource usage.
 type MetricsPayload struct {
-	InstanceID  string         `json:"instance_id"`
-	Timestamp   time.Time      `json:"timestamp"`
-	CPU         CPUMetrics     `json:"cpu"`
-	Memory      MemoryMetrics  `json:"memory"`
-	Disk        []DiskMetrics  `json:"disk"`
-	Network     NetworkMetrics `json:"network"`
+	InstanceID string         `json:"instance_id"`
+	Timestamp  time.Time      `json:"timestamp"`
+	CPU        CPUMetrics     `json:"cpu"`
+	Memory     MemoryMetrics  `json:"memory"`
+	Disk       []DiskMetrics  `json:"disk"`
+	Network    NetworkMetrics `json:"network"`
 }
 
 // CPUMetrics holds CPU usage statistics.
@@ -91,15 +91,15 @@ type NetworkMetrics struct {
 
 // RegistrationPayload is POSTed to the Console on agent boot.
 type RegistrationPayload struct {
-	InstanceID string            `json:"instance_id"`
-	Hostname   string            `json:"hostname"`
-	Provider   string            `json:"provider"`
-	Region     string            `json:"region"`
-	AgentVersion string          `json:"agent_version"`
-	OS         string            `json:"os"`
-	Arch       string            `json:"arch"`
-	Tags       map[string]string `json:"tags,omitempty"`
-	Timestamp  time.Time         `json:"timestamp"`
+	InstanceID   string            `json:"instance_id"`
+	Hostname     string            `json:"hostname"`
+	Provider     string            `json:"provider"`
+	Region       string            `json:"region"`
+	AgentVersion string            `json:"agent_version"`
+	OS           string            `json:"os"`
+	Arch         string            `json:"arch"`
+	Tags         map[string]string `json:"tags,omitempty"`
+	Timestamp    time.Time         `json:"timestamp"`
 }
 
 // TerminalCreatePayload requests PTY allocation.
@@ -131,9 +131,9 @@ type TerminalOutputPayload struct {
 
 // TerminalClosedPayload is sent when a PTY session ends.
 type TerminalClosedPayload struct {
-	SessionID  string `json:"session_id"`
-	ExitCode   int    `json:"exit_code"`
-	Reason     string `json:"reason,omitempty"`
+	SessionID string `json:"session_id"`
+	ExitCode  int    `json:"exit_code"`
+	Reason    string `json:"reason,omitempty"`
 }
 
 // CommandDispatchPayload requests one-off command execution.
@@ -147,11 +147,11 @@ type CommandDispatchPayload struct {
 
 // CommandResultPayload returns stdout/stderr and exit code.
 type CommandResultPayload struct {
-	CommandID string `json:"command_id"`
-	Stdout    string `json:"stdout"`
-	Stderr    string `json:"stderr"`
-	ExitCode  int    `json:"exit_code"`
-	DurationMs int64 `json:"duration_ms"`
+	CommandID  string `json:"command_id"`
+	Stdout     string `json:"stdout"`
+	Stderr     string `json:"stderr"`
+	ExitCode   int    `json:"exit_code"`
+	DurationMs int64  `json:"duration_ms"`
 }
 
 // EventPayload carries lifecycle events from the agent.

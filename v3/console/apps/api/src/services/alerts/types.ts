@@ -6,25 +6,25 @@
 // Alert Rule Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type AlertRuleType = 'THRESHOLD' | 'ANOMALY' | 'LIFECYCLE' | 'SECURITY' | 'COST';
-export type AlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
-export type AlertStatus = 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SILENCED';
-export type NotificationChannelType = 'WEBHOOK' | 'SLACK' | 'EMAIL' | 'IN_APP';
+export type AlertRuleType = "THRESHOLD" | "ANOMALY" | "LIFECYCLE" | "SECURITY" | "COST";
+export type AlertSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+export type AlertStatus = "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED" | "SILENCED";
+export type NotificationChannelType = "WEBHOOK" | "SLACK" | "EMAIL" | "IN_APP";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Condition configs per rule type
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ThresholdCondition {
-  metric: 'cpu_percent' | 'mem_percent' | 'disk_percent' | 'load_avg_1' | 'load_avg_5';
-  operator: 'gt' | 'gte' | 'lt' | 'lte';
+  metric: "cpu_percent" | "mem_percent" | "disk_percent" | "load_avg_1" | "load_avg_5";
+  operator: "gt" | "gte" | "lt" | "lte";
   threshold: number;
   /** Duration in seconds the condition must be sustained before firing */
   duration_sec?: number;
 }
 
 export interface AnomalyCondition {
-  metric: 'cpu_percent' | 'mem_percent' | 'net_bytes_recv' | 'net_bytes_sent';
+  metric: "cpu_percent" | "mem_percent" | "net_bytes_recv" | "net_bytes_sent";
   /** Percentage deviation from rolling baseline to consider anomalous */
   deviation_percent: number;
   /** Lookback window in seconds for baseline calculation */
@@ -32,7 +32,7 @@ export interface AnomalyCondition {
 }
 
 export interface LifecycleCondition {
-  event: 'heartbeat_lost' | 'unresponsive' | 'deploy_failed' | 'status_changed';
+  event: "heartbeat_lost" | "unresponsive" | "deploy_failed" | "status_changed";
   /** For heartbeat_lost: seconds without a heartbeat */
   timeout_sec?: number;
   /** For status_changed: which statuses trigger the alert */
@@ -40,13 +40,13 @@ export interface LifecycleCondition {
 }
 
 export interface SecurityCondition {
-  check: 'cve_detected' | 'secret_expired' | 'unauthorized_access';
-  severity_threshold?: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+  check: "cve_detected" | "secret_expired" | "unauthorized_access";
+  severity_threshold?: "CRITICAL" | "HIGH" | "MEDIUM";
 }
 
 export interface CostCondition {
   budget_usd: number;
-  period: 'daily' | 'weekly' | 'monthly';
+  period: "daily" | "weekly" | "monthly";
   /** Fire at this percentage of the budget */
   threshold_percent: number;
 }
@@ -64,7 +64,7 @@ export type AlertConditions =
 
 export interface WebhookChannelConfig {
   url: string;
-  method?: 'POST' | 'PUT';
+  method?: "POST" | "PUT";
   headers?: Record<string, string>;
   secret?: string; // HMAC secret for payload signing
 }

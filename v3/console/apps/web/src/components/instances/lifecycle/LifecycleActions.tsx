@@ -43,21 +43,11 @@ export function LifecycleActions({ instance }: LifecycleActionsProps) {
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setRedeployOpen(true)}
-          className="gap-2"
-        >
+        <Button variant="outline" size="sm" onClick={() => setRedeployOpen(true)} className="gap-2">
           <RefreshCw className="h-3.5 w-3.5" />
           Redeploy
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCloneOpen(true)}
-          className="gap-2"
-        >
+        <Button variant="outline" size="sm" onClick={() => setCloneOpen(true)} className="gap-2">
           <Copy className="h-3.5 w-3.5" />
           Clone
         </Button>

@@ -10,12 +10,12 @@
  * and metric aggregation workers — no BullMQ dependency required.
  */
 
-import { logger } from '../lib/logger.js';
-import { db } from '../lib/db.js';
-import { recordCostEntry } from '../services/costs/cost.service.js';
-import { analyzeAndGenerateRecommendations } from '../services/costs/rightsizing.service.js';
-import { evaluateBudgetAlerts } from '../services/costs/budget.service.js';
-import { estimateMonthlyCost, getProviderPricing } from '../services/costs/pricing.js';
+import { logger } from "../lib/logger.js";
+import { db } from "../lib/db.js";
+import { recordCostEntry } from "../services/costs/cost.service.js";
+import { analyzeAndGenerateRecommendations } from "../services/costs/rightsizing.service.js";
+import { evaluateBudgetAlerts } from "../services/costs/budget.service.js";
+import { estimateMonthlyCost, getProviderPricing } from "../services/costs/pricing.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Worker state
@@ -31,11 +31,11 @@ let isRunning = false;
 
 export function startCostWorker(): void {
   if (workerTimer !== null) {
-    logger.warn('Cost worker already started');
+    logger.warn("Cost worker already started");
     return;
   }
 
-  logger.info({ intervalMs: WORKER_INTERVAL_MS }, 'Cost worker started');
+  logger.info({ intervalMs: WORKER_INTERVAL_MS }, "Cost worker started");
 
   // Run once immediately on startup (async — non-blocking)
   void runCostCycle();
@@ -47,7 +47,7 @@ export function stopCostWorker(): void {
   if (workerTimer !== null) {
     clearInterval(workerTimer);
     workerTimer = null;
-    logger.info('Cost worker stopped');
+    logger.info("Cost worker stopped");
   }
 }
 
@@ -57,7 +57,7 @@ export function stopCostWorker(): void {
 
 async function runCostCycle(): Promise<void> {
   if (isRunning) {
-    logger.debug('Skipping cost cycle — previous run still in progress');
+    logger.debug("Skipping cost cycle — previous run still in progress");
     return;
   }
 
@@ -65,7 +65,7 @@ async function runCostCycle(): Promise<void> {
   const start = Date.now();
 
   try {
-    logger.info('Cost worker cycle starting');
+    logger.info("Cost worker cycle starting");
 
     const [costResult, rsResult, budgetAlerts] = await Promise.allSettled([
       recordDailyCosts(),
@@ -73,30 +73,30 @@ async function runCostCycle(): Promise<void> {
       evaluateBudgetAlerts(),
     ]);
 
-    if (costResult.status === 'fulfilled') {
-      logger.info(costResult.value, 'Daily cost entries recorded');
+    if (costResult.status === "fulfilled") {
+      logger.info(costResult.value, "Daily cost entries recorded");
     } else {
-      logger.error({ err: costResult.reason }, 'Failed to record daily costs');
+      logger.error({ err: costResult.reason }, "Failed to record daily costs");
     }
 
-    if (rsResult.status === 'fulfilled') {
-      logger.info(rsResult.value, 'Right-sizing analysis complete');
+    if (rsResult.status === "fulfilled") {
+      logger.info(rsResult.value, "Right-sizing analysis complete");
     } else {
-      logger.error({ err: rsResult.reason }, 'Failed to run right-sizing analysis');
+      logger.error({ err: rsResult.reason }, "Failed to run right-sizing analysis");
     }
 
-    if (budgetAlerts.status === 'fulfilled') {
+    if (budgetAlerts.status === "fulfilled") {
       if (budgetAlerts.value.length > 0) {
-        logger.warn({ alerts: budgetAlerts.value }, 'Budget thresholds breached');
+        logger.warn({ alerts: budgetAlerts.value }, "Budget thresholds breached");
       }
     } else {
-      logger.error({ err: budgetAlerts.reason }, 'Failed to evaluate budget alerts');
+      logger.error({ err: budgetAlerts.reason }, "Failed to evaluate budget alerts");
     }
 
     const durationMs = Date.now() - start;
-    logger.info({ durationMs }, 'Cost worker cycle complete');
+    logger.info({ durationMs }, "Cost worker cycle complete");
   } catch (err) {
-    logger.error({ err }, 'Cost worker cycle failed');
+    logger.error({ err }, "Cost worker cycle failed");
   } finally {
     isRunning = false;
   }
@@ -116,13 +116,13 @@ async function recordDailyCosts(): Promise<{ recorded: number; skipped: number; 
   const periodEnd = endOfDay(new Date());
 
   const instances = await db.instance.findMany({
-    where: { status: { in: ['RUNNING', 'STOPPED', 'SUSPENDED'] } },
+    where: { status: { in: ["RUNNING", "STOPPED", "SUSPENDED"] } },
     select: {
       id: true,
       name: true,
       provider: true,
       metrics: {
-        orderBy: { timestamp: 'desc' },
+        orderBy: { timestamp: "desc" },
         take: 1,
         select: {
           disk_used: true,
@@ -152,7 +152,10 @@ async function recordDailyCosts(): Promise<{ recorded: number; skipped: number; 
 
     const pricing = getProviderPricing(inst.provider);
     if (!pricing) {
-      logger.debug({ provider: inst.provider, instanceId: inst.id }, 'No pricing table for provider — skipping');
+      logger.debug(
+        { provider: inst.provider, instanceId: inst.id },
+        "No pricing table for provider — skipping",
+      );
       skipped++;
       continue;
     }
@@ -163,15 +166,11 @@ async function recordDailyCosts(): Promise<{ recorded: number; skipped: number; 
       const tier = pricing.computeTiers[defaultTierIdx];
 
       const latestMetric = inst.metrics[0];
-      const diskGb = latestMetric
-        ? Math.round(Number(latestMetric.disk_total) / (1024 ** 3))
-        : 20; // default 20 GB
+      const diskGb = latestMetric ? Math.round(Number(latestMetric.disk_total) / 1024 ** 3) : 20; // default 20 GB
 
       // Estimate monthly egress from last metric (bytes → GB)
-      const egressBytes = latestMetric
-        ? Number(latestMetric.net_bytes_sent ?? 0n)
-        : 0;
-      const egressGbMonth = Math.round((egressBytes * 30) / (1024 ** 3));
+      const egressBytes = latestMetric ? Number(latestMetric.net_bytes_sent ?? 0n) : 0;
+      const egressGbMonth = Math.round((egressBytes * 30) / 1024 ** 3);
 
       const monthly = estimateMonthlyCost(inst.provider, tier.id, diskGb, egressGbMonth);
       if (!monthly) {
@@ -196,13 +195,13 @@ async function recordDailyCosts(): Promise<{ recorded: number; skipped: number; 
           tier: tier.id,
           diskGb,
           egressGbMonth,
-          source: 'cost-worker',
+          source: "cost-worker",
         },
       });
 
       recorded++;
     } catch (err) {
-      logger.error({ err, instanceId: inst.id }, 'Failed to record cost entry for instance');
+      logger.error({ err, instanceId: inst.id }, "Failed to record cost entry for instance");
       failed++;
     }
   }

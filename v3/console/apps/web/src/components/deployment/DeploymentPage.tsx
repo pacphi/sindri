@@ -1,25 +1,22 @@
-import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { Button } from '@/components/ui/button'
-import { DeploymentWizard } from './wizard'
+import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { DeploymentWizard } from "./wizard";
 
 export function DeploymentPage() {
-  const navigate = useNavigate()
-  const [showWizard, setShowWizard] = useState(false)
+  const navigate = useNavigate();
+  const [showWizard, setShowWizard] = useState(false);
 
   function handleDeployed(instanceId: string) {
-    void navigate({ to: '/instances/$id', params: { id: instanceId } })
+    void navigate({ to: "/instances/$id", params: { id: instanceId } });
   }
 
   if (showWizard) {
     return (
       <div className="p-6 max-w-3xl mx-auto">
-        <DeploymentWizard
-          onClose={() => setShowWizard(false)}
-          onDeployed={handleDeployed}
-        />
+        <DeploymentWizard onClose={() => setShowWizard(false)} onDeployed={handleDeployed} />
       </div>
-    )
+    );
   }
 
   return (
@@ -41,7 +38,12 @@ export function DeploymentPage() {
 
       <div className="rounded-lg border border-dashed border-border p-12 text-center">
         <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
-          <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-6 h-6 text-muted-foreground"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -59,5 +61,5 @@ export function DeploymentPage() {
         </Button>
       </div>
     </div>
-  )
+  );
 }

@@ -8,8 +8,8 @@
  * consistent with the existing metrics aggregation worker pattern.
  */
 
-import { logger } from '../../lib/logger.js';
-import { evaluateAllRules } from './evaluator.service.js';
+import { logger } from "../../lib/logger.js";
+import { evaluateAllRules } from "./evaluator.service.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Worker state
@@ -25,11 +25,11 @@ let isEvaluating = false;
 
 export function startAlertEvaluationWorker(): void {
   if (evaluationTimer !== null) {
-    logger.warn('Alert evaluation worker already started');
+    logger.warn("Alert evaluation worker already started");
     return;
   }
 
-  logger.info({ intervalMs: EVALUATION_INTERVAL_MS }, 'Alert evaluation worker started');
+  logger.info({ intervalMs: EVALUATION_INTERVAL_MS }, "Alert evaluation worker started");
 
   // Run once immediately on start (async — don't block startup)
   void runEvaluation();
@@ -41,7 +41,7 @@ export function stopAlertEvaluationWorker(): void {
   if (evaluationTimer !== null) {
     clearInterval(evaluationTimer);
     evaluationTimer = null;
-    logger.info('Alert evaluation worker stopped');
+    logger.info("Alert evaluation worker stopped");
   }
 }
 
@@ -51,7 +51,7 @@ export function stopAlertEvaluationWorker(): void {
 
 async function runEvaluation(): Promise<void> {
   if (isEvaluating) {
-    logger.debug('Skipping alert evaluation — previous run still in progress');
+    logger.debug("Skipping alert evaluation — previous run still in progress");
     return;
   }
 
@@ -61,9 +61,9 @@ async function runEvaluation(): Promise<void> {
   try {
     await evaluateAllRules();
     const duration = Date.now() - start;
-    logger.debug({ durationMs: duration }, 'Alert evaluation cycle complete');
+    logger.debug({ durationMs: duration }, "Alert evaluation cycle complete");
   } catch (err) {
-    logger.error({ err }, 'Alert evaluation cycle failed');
+    logger.error({ err }, "Alert evaluation cycle failed");
   } finally {
     isEvaluating = false;
   }

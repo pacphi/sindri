@@ -1,39 +1,41 @@
-import { useRightSizingRecommendations, useDismissRecommendation } from '@/hooks/useCosts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { TrendingDown, X, AlertCircle } from 'lucide-react'
+import { useRightSizingRecommendations, useDismissRecommendation } from "@/hooks/useCosts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { TrendingDown, X, AlertCircle } from "lucide-react";
 
 interface RightSizingRecommendationsProps {
-  className?: string
+  className?: string;
 }
 
 function formatUsd(value: number): string {
-  return `$${value.toFixed(2)}`
+  return `$${value.toFixed(2)}`;
 }
 
 function ConfidenceBadge({ confidence }: { confidence: number }) {
-  const pct = Math.round(confidence * 100)
+  const pct = Math.round(confidence * 100);
   const color =
-    pct >= 80 ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950'
-      : pct >= 60 ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950'
-        : 'text-muted-foreground bg-muted'
+    pct >= 80
+      ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950"
+      : pct >= 60
+        ? "text-yellow-600 bg-yellow-50 dark:bg-yellow-950"
+        : "text-muted-foreground bg-muted";
   return (
-    <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium', color)}>
+    <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium", color)}>
       {pct}% confidence
     </span>
-  )
+  );
 }
 
 export function RightSizingRecommendations({ className }: RightSizingRecommendationsProps) {
-  const { data, isLoading } = useRightSizingRecommendations()
-  const dismiss = useDismissRecommendation()
+  const { data, isLoading } = useRightSizingRecommendations();
+  const dismiss = useDismissRecommendation();
 
-  const recommendations = data?.recommendations ?? []
-  const totalSavings = data?.totalSavingsUsdMo ?? 0
+  const recommendations = data?.recommendations ?? [];
+  const totalSavings = data?.totalSavingsUsdMo ?? 0;
 
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn("", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Right-Sizing Recommendations</CardTitle>
@@ -65,12 +67,18 @@ export function RightSizingRecommendations({ className }: RightSizingRecommendat
                   <div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-medium">{rec.instanceName}</span>
-                      <span className="text-[10px] text-muted-foreground capitalize">{rec.provider}</span>
+                      <span className="text-[10px] text-muted-foreground capitalize">
+                        {rec.provider}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[10px] font-mono bg-muted px-1 rounded">{rec.currentTier}</span>
+                      <span className="text-[10px] font-mono bg-muted px-1 rounded">
+                        {rec.currentTier}
+                      </span>
                       <span className="text-[10px] text-muted-foreground">→</span>
-                      <span className="text-[10px] font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1 rounded">{rec.suggestedTier}</span>
+                      <span className="text-[10px] font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1 rounded">
+                        {rec.suggestedTier}
+                      </span>
                       <ConfidenceBadge confidence={rec.confidence} />
                     </div>
                   </div>
@@ -128,5 +136,5 @@ export function RightSizingRecommendations({ className }: RightSizingRecommendat
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

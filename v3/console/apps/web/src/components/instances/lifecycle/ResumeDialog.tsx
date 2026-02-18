@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { PlayCircle } from 'lucide-react'
+import { useState } from "react";
+import { PlayCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,33 +7,33 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { instancesApi } from '@/lib/api'
-import type { Instance } from '@/types/instance'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { instancesApi } from "@/lib/api";
+import type { Instance } from "@/types/instance";
 
 interface ResumeDialogProps {
-  instance: Instance
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  instance: Instance;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function ResumeDialog({ instance, open, onOpenChange, onSuccess }: ResumeDialogProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleResume() {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      await instancesApi.resume(instance.id)
-      onOpenChange(false)
-      onSuccess?.()
+      await instancesApi.resume(instance.id);
+      onOpenChange(false);
+      onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resume instance')
+      setError(err instanceof Error ? err.message : "Failed to resume instance");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -65,15 +65,11 @@ export function ResumeDialog({ instance, open, onOpenChange, onSuccess }: Resume
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button
-            variant="default"
-            onClick={() => void handleResume()}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Resuming...' : 'Resume Instance'}
+          <Button variant="default" onClick={() => void handleResume()} disabled={isLoading}>
+            {isLoading ? "Resuming..." : "Resume Instance"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

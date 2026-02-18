@@ -1,44 +1,48 @@
-import { useInstanceExtensions } from '@/hooks/useMetrics'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn, formatRelativeTime } from '@/lib/utils'
-import { CheckCircle, AlertCircle, XCircle, HelpCircle, Puzzle, RefreshCw } from 'lucide-react'
-import type { ExtensionStatusEntry } from '@/lib/metricsApi'
+import { useInstanceExtensions } from "@/hooks/useMetrics";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn, formatRelativeTime } from "@/lib/utils";
+import { CheckCircle, AlertCircle, XCircle, HelpCircle, Puzzle, RefreshCw } from "lucide-react";
+import type { ExtensionStatusEntry } from "@/lib/metricsApi";
 
 interface ExtensionHealthProps {
-  instanceId: string
-  className?: string
+  instanceId: string;
+  className?: string;
 }
 
-function StatusIcon({ status }: { status: ExtensionStatusEntry['status'] }) {
+function StatusIcon({ status }: { status: ExtensionStatusEntry["status"] }) {
   switch (status) {
-    case 'healthy':
-      return <CheckCircle className="h-4 w-4 text-emerald-500" />
-    case 'degraded':
-      return <AlertCircle className="h-4 w-4 text-amber-500" />
-    case 'error':
-      return <XCircle className="h-4 w-4 text-red-500" />
+    case "healthy":
+      return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+    case "degraded":
+      return <AlertCircle className="h-4 w-4 text-amber-500" />;
+    case "error":
+      return <XCircle className="h-4 w-4 text-red-500" />;
     default:
-      return <HelpCircle className="h-4 w-4 text-muted-foreground" />
+      return <HelpCircle className="h-4 w-4 text-muted-foreground" />;
   }
 }
 
-function statusLabel(status: ExtensionStatusEntry['status']): string {
+function statusLabel(status: ExtensionStatusEntry["status"]): string {
   switch (status) {
-    case 'healthy':  return 'Healthy'
-    case 'degraded': return 'Degraded'
-    case 'error':    return 'Error'
-    default:         return 'Unknown'
+    case "healthy":
+      return "Healthy";
+    case "degraded":
+      return "Degraded";
+    case "error":
+      return "Error";
+    default:
+      return "Unknown";
   }
 }
 
 export function ExtensionHealth({ instanceId, className }: ExtensionHealthProps) {
-  const { data, isLoading, isError, isFetching } = useInstanceExtensions(instanceId)
+  const { data, isLoading, isError, isFetching } = useInstanceExtensions(instanceId);
 
-  const extensions = data?.extensions ?? []
-  const healthyCount = extensions.filter((e) => e.status === 'healthy').length
+  const extensions = data?.extensions ?? [];
+  const healthyCount = extensions.filter((e) => e.status === "healthy").length;
 
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn("", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -83,11 +87,11 @@ export function ExtensionHealth({ instanceId, className }: ExtensionHealthProps)
                 <div className="flex items-center gap-3 shrink-0 ml-2">
                   <span
                     className={cn(
-                      'text-xs font-medium',
-                      ext.status === 'healthy'  && 'text-emerald-600 dark:text-emerald-400',
-                      ext.status === 'degraded' && 'text-amber-600 dark:text-amber-400',
-                      ext.status === 'error'    && 'text-red-600 dark:text-red-400',
-                      ext.status === 'unknown'  && 'text-muted-foreground',
+                      "text-xs font-medium",
+                      ext.status === "healthy" && "text-emerald-600 dark:text-emerald-400",
+                      ext.status === "degraded" && "text-amber-600 dark:text-amber-400",
+                      ext.status === "error" && "text-red-600 dark:text-red-400",
+                      ext.status === "unknown" && "text-muted-foreground",
                     )}
                   >
                     {statusLabel(ext.status)}
@@ -102,5 +106,5 @@ export function ExtensionHealth({ instanceId, className }: ExtensionHealthProps)
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

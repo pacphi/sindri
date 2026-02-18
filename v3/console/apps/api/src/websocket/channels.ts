@@ -16,12 +16,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const CHANNEL = {
-  METRICS: 'metrics',
-  HEARTBEAT: 'heartbeat',
-  LOGS: 'logs',
-  TERMINAL: 'terminal',
-  EVENTS: 'events',
-  COMMANDS: 'commands',
+  METRICS: "metrics",
+  HEARTBEAT: "heartbeat",
+  LOGS: "logs",
+  TERMINAL: "terminal",
+  EVENTS: "events",
+  COMMANDS: "commands",
 } as const;
 
 export type Channel = (typeof CHANNEL)[keyof typeof CHANNEL];
@@ -32,34 +32,34 @@ export type Channel = (typeof CHANNEL)[keyof typeof CHANNEL];
 
 export const MESSAGE_TYPE = {
   // Metrics channel
-  METRICS_UPDATE: 'metrics:update',
+  METRICS_UPDATE: "metrics:update",
 
   // Heartbeat channel
-  HEARTBEAT_PING: 'heartbeat:ping',
-  HEARTBEAT_PONG: 'heartbeat:pong',
+  HEARTBEAT_PING: "heartbeat:ping",
+  HEARTBEAT_PONG: "heartbeat:pong",
 
   // Logs channel
-  LOG_LINE: 'log:line',
-  LOG_BATCH: 'log:batch',
+  LOG_LINE: "log:line",
+  LOG_BATCH: "log:batch",
 
   // Terminal channel
-  TERMINAL_CREATE: 'terminal:create',
-  TERMINAL_DATA: 'terminal:data',
-  TERMINAL_RESIZE: 'terminal:resize',
-  TERMINAL_CLOSE: 'terminal:close',
-  TERMINAL_CREATED: 'terminal:created',
-  TERMINAL_ERROR: 'terminal:error',
+  TERMINAL_CREATE: "terminal:create",
+  TERMINAL_DATA: "terminal:data",
+  TERMINAL_RESIZE: "terminal:resize",
+  TERMINAL_CLOSE: "terminal:close",
+  TERMINAL_CREATED: "terminal:created",
+  TERMINAL_ERROR: "terminal:error",
 
   // Events channel
-  EVENT_INSTANCE: 'event:instance',
+  EVENT_INSTANCE: "event:instance",
 
   // Commands channel
-  COMMAND_EXEC: 'command:exec',
-  COMMAND_RESULT: 'command:result',
+  COMMAND_EXEC: "command:exec",
+  COMMAND_RESULT: "command:result",
 
   // System / connection-level
-  ERROR: 'error',
-  ACK: 'ack',
+  ERROR: "error",
+  ACK: "ack",
 } as const;
 
 export type MessageType = (typeof MESSAGE_TYPE)[keyof typeof MESSAGE_TYPE];
@@ -89,11 +89,11 @@ export interface Envelope<T = unknown> {
 
 export interface MetricsPayload {
   cpuPercent: number;
-  memoryUsed: number;   // bytes
-  memoryTotal: number;  // bytes
-  diskUsed: number;     // bytes
-  diskTotal: number;    // bytes
-  uptime: number;       // seconds
+  memoryUsed: number; // bytes
+  memoryTotal: number; // bytes
+  diskUsed: number; // bytes
+  diskTotal: number; // bytes
+  uptime: number; // seconds
   loadAvg: [number, number, number];
   networkBytesIn: number;
   networkBytesOut: number;
@@ -113,7 +113,7 @@ export interface HeartbeatPayload {
 // Payload types — logs channel
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface LogLinePayload {
   level: LogLevel;
@@ -168,18 +168,18 @@ export interface TerminalErrorPayload {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type InstanceEventType =
-  | 'deploy'
-  | 'redeploy'
-  | 'connect'
-  | 'disconnect'
-  | 'backup'
-  | 'restore'
-  | 'destroy'
-  | 'extension:install'
-  | 'extension:remove'
-  | 'heartbeat:lost'
-  | 'heartbeat:recovered'
-  | 'error';
+  | "deploy"
+  | "redeploy"
+  | "connect"
+  | "disconnect"
+  | "backup"
+  | "restore"
+  | "destroy"
+  | "extension:install"
+  | "extension:remove"
+  | "heartbeat:lost"
+  | "heartbeat:recovered"
+  | "error";
 
 export interface InstanceEventPayload {
   eventType: InstanceEventType;
@@ -244,9 +244,9 @@ export function parseEnvelope(raw: string): Envelope | null {
   try {
     const parsed = JSON.parse(raw) as Partial<Envelope>;
     if (
-      typeof parsed.channel !== 'string' ||
-      typeof parsed.type !== 'string' ||
-      typeof parsed.ts !== 'number' ||
+      typeof parsed.channel !== "string" ||
+      typeof parsed.type !== "string" ||
+      typeof parsed.ts !== "number" ||
       parsed.data === undefined
     ) {
       return null;

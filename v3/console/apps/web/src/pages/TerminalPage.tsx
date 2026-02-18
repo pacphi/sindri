@@ -1,8 +1,8 @@
-import { TerminalManager } from '@/components/terminal'
+import { TerminalManager } from "@/components/terminal";
 
 interface TerminalPageProps {
-  instanceId: string
-  instanceName: string
+  instanceId: string;
+  instanceName: string;
 }
 
 /**
@@ -42,5 +42,5 @@ export function TerminalPage({ instanceId, instanceName }: TerminalPageProps) {
         className="flex-1"
       />
     </div>
-  )
+  );
 }

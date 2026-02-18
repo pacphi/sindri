@@ -1,69 +1,69 @@
-import { useState, useEffect } from 'react'
-import { X, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { CronBuilder } from './CronBuilder'
-import { TaskNotifications } from './TaskNotifications'
-import { TaskTemplates } from './TaskTemplates'
-import { useCreateTask, useUpdateTask } from '@/hooks/useTasks'
-import type { ScheduledTask, CreateTaskInput, TaskTemplate } from '@/types/task'
-import { cn } from '@/lib/utils'
+import { useState, useEffect } from "react";
+import { X, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CronBuilder } from "./CronBuilder";
+import { TaskNotifications } from "./TaskNotifications";
+import { TaskTemplates } from "./TaskTemplates";
+import { useCreateTask, useUpdateTask } from "@/hooks/useTasks";
+import type { ScheduledTask, CreateTaskInput, TaskTemplate } from "@/types/task";
+import { cn } from "@/lib/utils";
 
 interface TaskEditorProps {
-  task?: ScheduledTask | null
-  onClose: () => void
+  task?: ScheduledTask | null;
+  onClose: () => void;
 }
 
-type Step = 'form' | 'templates'
+type Step = "form" | "templates";
 
 export function TaskEditor({ task, onClose }: TaskEditorProps) {
-  const isEdit = Boolean(task)
-  const [step, setStep] = useState<Step>('form')
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const isEdit = Boolean(task);
+  const [step, setStep] = useState<Step>("form");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const [name, setName] = useState(task?.name ?? '')
-  const [description, setDescription] = useState(task?.description ?? '')
-  const [cron, setCron] = useState(task?.cron ?? '0 2 * * *')
-  const [timezone, setTimezone] = useState(task?.timezone ?? 'UTC')
-  const [command, setCommand] = useState(task?.command ?? '')
-  const [timeoutSec, setTimeoutSec] = useState(task?.timeoutSec ?? 300)
-  const [maxRetries, setMaxRetries] = useState(task?.maxRetries ?? 0)
-  const [notifyOnFailure, setNotifyOnFailure] = useState(task?.notifyOnFailure ?? false)
-  const [notifyOnSuccess, setNotifyOnSuccess] = useState(task?.notifyOnSuccess ?? false)
-  const [notifyEmails, setNotifyEmails] = useState<string[]>(task?.notifyEmails ?? [])
-  const [templateKey, setTemplateKey] = useState<string | undefined>(task?.template ?? undefined)
+  const [name, setName] = useState(task?.name ?? "");
+  const [description, setDescription] = useState(task?.description ?? "");
+  const [cron, setCron] = useState(task?.cron ?? "0 2 * * *");
+  const [timezone, setTimezone] = useState(task?.timezone ?? "UTC");
+  const [command, setCommand] = useState(task?.command ?? "");
+  const [timeoutSec, setTimeoutSec] = useState(task?.timeoutSec ?? 300);
+  const [maxRetries, setMaxRetries] = useState(task?.maxRetries ?? 0);
+  const [notifyOnFailure, setNotifyOnFailure] = useState(task?.notifyOnFailure ?? false);
+  const [notifyOnSuccess, setNotifyOnSuccess] = useState(task?.notifyOnSuccess ?? false);
+  const [notifyEmails, setNotifyEmails] = useState<string[]>(task?.notifyEmails ?? []);
+  const [templateKey, setTemplateKey] = useState<string | undefined>(task?.template ?? undefined);
 
-  const createMutation = useCreateTask()
-  const updateMutation = useUpdateTask()
-  const isPending = createMutation.isPending || updateMutation.isPending
+  const createMutation = useCreateTask();
+  const updateMutation = useUpdateTask();
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   useEffect(() => {
     if (task) {
-      setName(task.name)
-      setDescription(task.description ?? '')
-      setCron(task.cron)
-      setTimezone(task.timezone)
-      setCommand(task.command)
-      setTimeoutSec(task.timeoutSec)
-      setMaxRetries(task.maxRetries)
-      setNotifyOnFailure(task.notifyOnFailure)
-      setNotifyOnSuccess(task.notifyOnSuccess)
-      setNotifyEmails(task.notifyEmails)
+      setName(task.name);
+      setDescription(task.description ?? "");
+      setCron(task.cron);
+      setTimezone(task.timezone);
+      setCommand(task.command);
+      setTimeoutSec(task.timeoutSec);
+      setMaxRetries(task.maxRetries);
+      setNotifyOnFailure(task.notifyOnFailure);
+      setNotifyOnSuccess(task.notifyOnSuccess);
+      setNotifyEmails(task.notifyEmails);
     }
-  }, [task])
+  }, [task]);
 
   const applyTemplate = (template: TaskTemplate) => {
-    setName(template.name)
-    setDescription(template.description)
-    setCron(template.cron)
-    setCommand(template.command)
-    setTimeoutSec(template.timeoutSec)
-    setTemplateKey(template.key)
-    setStep('form')
-  }
+    setName(template.name);
+    setDescription(template.description);
+    setCron(template.cron);
+    setCommand(template.command);
+    setTimeoutSec(template.timeoutSec);
+    setTemplateKey(template.key);
+    setStep("form");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     const input: CreateTaskInput = {
       name,
@@ -77,16 +77,16 @@ export function TaskEditor({ task, onClose }: TaskEditorProps) {
       notifyOnSuccess,
       notifyEmails,
       template: templateKey,
-    }
+    };
 
     if (isEdit && task) {
-      await updateMutation.mutateAsync({ id: task.id, input })
+      await updateMutation.mutateAsync({ id: task.id, input });
     } else {
-      await createMutation.mutateAsync(input)
+      await createMutation.mutateAsync(input);
     }
 
-    onClose()
-  }
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -94,7 +94,11 @@ export function TaskEditor({ task, onClose }: TaskEditorProps) {
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
           <h2 className="text-lg font-semibold">
-            {step === 'templates' ? 'Task Templates' : isEdit ? 'Edit Scheduled Task' : 'New Scheduled Task'}
+            {step === "templates"
+              ? "Task Templates"
+              : isEdit
+                ? "Edit Scheduled Task"
+                : "New Scheduled Task"}
           </h2>
           <div className="flex items-center gap-2">
             {!isEdit && (
@@ -102,9 +106,9 @@ export function TaskEditor({ task, onClose }: TaskEditorProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setStep(step === 'templates' ? 'form' : 'templates')}
+                onClick={() => setStep(step === "templates" ? "form" : "templates")}
               >
-                {step === 'templates' ? 'Back to Form' : 'Browse Templates'}
+                {step === "templates" ? "Back to Form" : "Browse Templates"}
               </Button>
             )}
             <Button type="button" variant="ghost" size="icon" onClick={onClose}>
@@ -115,7 +119,7 @@ export function TaskEditor({ task, onClose }: TaskEditorProps) {
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5">
-          {step === 'templates' ? (
+          {step === "templates" ? (
             <TaskTemplates onSelect={applyTemplate} />
           ) : (
             <form id="task-form" onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
@@ -178,7 +182,11 @@ export function TaskEditor({ task, onClose }: TaskEditorProps) {
                 onClick={() => setShowAdvanced((v) => !v)}
                 className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
-                {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {showAdvanced ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
                 Advanced options
               </button>
 
@@ -251,7 +259,7 @@ export function TaskEditor({ task, onClose }: TaskEditorProps) {
         </div>
 
         {/* Footer */}
-        {step === 'form' && (
+        {step === "form" && (
           <div className="flex items-center justify-end gap-2 border-t px-6 py-4 shrink-0">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -260,14 +268,14 @@ export function TaskEditor({ task, onClose }: TaskEditorProps) {
               type="submit"
               form="task-form"
               disabled={isPending || !name || !command || !cron}
-              className={cn(isPending && 'opacity-70')}
+              className={cn(isPending && "opacity-70")}
             >
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isEdit ? 'Save Changes' : 'Create Task'}
+              {isEdit ? "Save Changes" : "Create Task"}
             </Button>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }

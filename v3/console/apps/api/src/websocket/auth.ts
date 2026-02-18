@@ -13,9 +13,9 @@
  *      instance via the `X-Instance-ID` header.
  */
 
-import { createHash } from 'crypto';
-import type { IncomingMessage } from 'http';
-import { db } from '../lib/db.js';
+import { createHash } from "crypto";
+import type { IncomingMessage } from "http";
+import { db } from "../lib/db.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -23,7 +23,7 @@ import { db } from '../lib/db.js';
 
 export interface AuthenticatedPrincipal {
   userId: string;
-  role: 'ADMIN' | 'OPERATOR' | 'DEVELOPER' | 'VIEWER';
+  role: "ADMIN" | "OPERATOR" | "DEVELOPER" | "VIEWER";
   /** Present when the connection is from an instance agent */
   instanceId?: string;
   /** The API key record ID (not the raw key) */
@@ -40,7 +40,7 @@ export class AuthError extends Error {
     public readonly code: string,
   ) {
     super(message);
-    this.name = 'AuthError';
+    this.name = "AuthError";
   }
 }
 
@@ -49,7 +49,7 @@ export class AuthError extends Error {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function hashApiKey(rawKey: string): string {
-  return createHash('sha256').update(rawKey).digest('hex');
+  return createHash("sha256").update(rawKey).digest("hex");
 }
 
 /**
@@ -58,16 +58,16 @@ export function hashApiKey(rawKey: string): string {
  * query-string parameter for browser clients.
  */
 export function extractRawKey(req: IncomingMessage): string | null {
-  const headerKey = req.headers['x-api-key'];
-  if (typeof headerKey === 'string' && headerKey.length > 0) {
+  const headerKey = req.headers["x-api-key"];
+  if (typeof headerKey === "string" && headerKey.length > 0) {
     return headerKey;
   }
 
-  const url = req.url ?? '';
-  const qmark = url.indexOf('?');
+  const url = req.url ?? "";
+  const qmark = url.indexOf("?");
   if (qmark !== -1) {
     const params = new URLSearchParams(url.slice(qmark + 1));
-    const queryKey = params.get('apiKey');
+    const queryKey = params.get("apiKey");
     if (queryKey && queryKey.length > 0) {
       return queryKey;
     }
@@ -81,8 +81,8 @@ export function extractRawKey(req: IncomingMessage): string | null {
  * Instance agents supply `X-Instance-ID`; browser clients do not.
  */
 export function extractInstanceId(req: IncomingMessage): string | undefined {
-  const header = req.headers['x-instance-id'];
-  return typeof header === 'string' && header.length > 0 ? header : undefined;
+  const header = req.headers["x-instance-id"];
+  return typeof header === "string" && header.length > 0 ? header : undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,12 +94,10 @@ export function extractInstanceId(req: IncomingMessage): string | undefined {
  * Prisma client. Throws `AuthError` when authentication fails — the caller
  * should reject the socket with HTTP 401.
  */
-export async function authenticateUpgrade(
-  req: IncomingMessage,
-): Promise<AuthenticatedPrincipal> {
+export async function authenticateUpgrade(req: IncomingMessage): Promise<AuthenticatedPrincipal> {
   const rawKey = extractRawKey(req);
   if (!rawKey) {
-    throw new AuthError('Missing API key', 'MISSING_API_KEY');
+    throw new AuthError("Missing API key", "MISSING_API_KEY");
   }
 
   const keyHash = hashApiKey(rawKey);
@@ -110,11 +108,11 @@ export async function authenticateUpgrade(
   });
 
   if (!record) {
-    throw new AuthError('Invalid API key', 'INVALID_API_KEY');
+    throw new AuthError("Invalid API key", "INVALID_API_KEY");
   }
 
   if (record.expires_at !== null && record.expires_at < new Date()) {
-    throw new AuthError('API key has expired', 'EXPIRED_API_KEY');
+    throw new AuthError("API key has expired", "EXPIRED_API_KEY");
   }
 
   return {

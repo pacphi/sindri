@@ -1,32 +1,32 @@
-import { useState } from 'react'
-import { useCostTrends, type CostDateRange } from '@/hooks/useCosts'
-import { CostTrends } from './CostTrends'
-import { InstanceCostBreakdown } from './InstanceCostBreakdown'
-import { BudgetManager } from './BudgetManager'
-import { RightSizingRecommendations } from './RightSizingRecommendations'
-import { IdleInstances } from './IdleInstances'
-import { CostAlerts } from './CostAlerts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { DollarSign, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { useState } from "react";
+import { useCostTrends, type CostDateRange } from "@/hooks/useCosts";
+import { CostTrends } from "./CostTrends";
+import { InstanceCostBreakdown } from "./InstanceCostBreakdown";
+import { BudgetManager } from "./BudgetManager";
+import { RightSizingRecommendations } from "./RightSizingRecommendations";
+import { IdleInstances } from "./IdleInstances";
+import { CostAlerts } from "./CostAlerts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { DollarSign, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 function formatUsd(value: number): string {
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`
-  return `$${value.toFixed(2)}`
+  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+  return `$${value.toFixed(2)}`;
 }
 
 const DATE_RANGES: { value: CostDateRange; label: string }[] = [
-  { value: '7d', label: '7d' },
-  { value: '30d', label: '30d' },
-  { value: '90d', label: '90d' },
-]
+  { value: "7d", label: "7d" },
+  { value: "30d", label: "30d" },
+  { value: "90d", label: "90d" },
+];
 
 interface SummaryCardProps {
-  title: string
-  value: string
-  sub?: string
-  changePercent?: number | null
-  loading?: boolean
+  title: string;
+  value: string;
+  sub?: string;
+  changePercent?: number | null;
+  loading?: boolean;
 }
 
 function SummaryCard({ title, value, sub, changePercent, loading }: SummaryCardProps) {
@@ -47,8 +47,12 @@ function SummaryCard({ title, value, sub, changePercent, loading }: SummaryCardP
               {changePercent != null && (
                 <span
                   className={cn(
-                    'flex items-center text-xs font-medium',
-                    changePercent > 0 ? 'text-destructive' : changePercent < 0 ? 'text-emerald-600' : 'text-muted-foreground',
+                    "flex items-center text-xs font-medium",
+                    changePercent > 0
+                      ? "text-destructive"
+                      : changePercent < 0
+                        ? "text-emerald-600"
+                        : "text-muted-foreground",
                   )}
                 >
                   {changePercent > 0 ? (
@@ -66,15 +70,15 @@ function SummaryCard({ title, value, sub, changePercent, loading }: SummaryCardP
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function CostDashboard() {
-  const [range, setRange] = useState<CostDateRange>('30d')
-  const { data: trends, isLoading } = useCostTrends(range)
+  const [range, setRange] = useState<CostDateRange>("30d");
+  const { data: trends, isLoading } = useCostTrends(range);
 
-  const summary = trends?.summary
-  const byTeam = trends?.byTeam ?? []
+  const summary = trends?.summary;
+  const byTeam = trends?.byTeam ?? [];
 
   return (
     <div className="p-6 space-y-6">
@@ -82,7 +86,9 @@ export function CostDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Cost Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track spending and optimize resource costs</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track spending and optimize resource costs
+          </p>
         </div>
         {/* Date range selector */}
         <div className="flex gap-1 p-0.5 rounded-lg border bg-muted/30">
@@ -92,10 +98,10 @@ export function CostDashboard() {
               onClick={() => setRange(value)}
               aria-pressed={range === value}
               className={cn(
-                'px-3 py-1 rounded-md text-xs font-medium transition-colors',
+                "px-3 py-1 rounded-md text-xs font-medium transition-colors",
                 range === value
-                  ? 'bg-background shadow-sm text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {label}
@@ -108,26 +114,38 @@ export function CostDashboard() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           title="Total Spend"
-          value={summary ? formatUsd(summary.totalUsd) : '—'}
+          value={summary ? formatUsd(summary.totalUsd) : "—"}
           changePercent={summary?.changePercent}
           loading={isLoading}
         />
         <SummaryCard
           title="Compute"
-          value={summary ? formatUsd(summary.computeUsd) : '—'}
-          sub={summary ? `${summary.totalUsd > 0 ? ((summary.computeUsd / summary.totalUsd) * 100).toFixed(0) : 0}% of total` : undefined}
+          value={summary ? formatUsd(summary.computeUsd) : "—"}
+          sub={
+            summary
+              ? `${summary.totalUsd > 0 ? ((summary.computeUsd / summary.totalUsd) * 100).toFixed(0) : 0}% of total`
+              : undefined
+          }
           loading={isLoading}
         />
         <SummaryCard
           title="Storage"
-          value={summary ? formatUsd(summary.storageUsd) : '—'}
-          sub={summary ? `${summary.totalUsd > 0 ? ((summary.storageUsd / summary.totalUsd) * 100).toFixed(0) : 0}% of total` : undefined}
+          value={summary ? formatUsd(summary.storageUsd) : "—"}
+          sub={
+            summary
+              ? `${summary.totalUsd > 0 ? ((summary.storageUsd / summary.totalUsd) * 100).toFixed(0) : 0}% of total`
+              : undefined
+          }
           loading={isLoading}
         />
         <SummaryCard
           title="Network"
-          value={summary ? formatUsd(summary.networkUsd) : '—'}
-          sub={summary ? `${summary.instanceCount} instance${summary.instanceCount !== 1 ? 's' : ''}` : undefined}
+          value={summary ? formatUsd(summary.networkUsd) : "—"}
+          sub={
+            summary
+              ? `${summary.instanceCount} instance${summary.instanceCount !== 1 ? "s" : ""}`
+              : undefined
+          }
           loading={isLoading}
         />
       </div>
@@ -180,5 +198,5 @@ export function CostDashboard() {
       {/* Budget manager */}
       <BudgetManager />
     </div>
-  )
+  );
 }

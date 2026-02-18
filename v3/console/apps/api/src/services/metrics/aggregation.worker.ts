@@ -14,10 +14,10 @@
  * consistent with the rest of the codebase's lightweight worker pattern.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import { ingestMetricBatch } from './metric.service.js';
-import type { IngestMetricInput } from './types.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import { ingestMetricBatch } from "./metric.service.js";
+import type { IngestMetricInput } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Write buffer
@@ -45,9 +45,9 @@ async function flushBuffer(): Promise<void> {
   const batch = writeBuffer.splice(0, writeBuffer.length);
   try {
     await ingestMetricBatch(batch);
-    logger.debug({ count: batch.length }, 'Metrics batch flushed');
+    logger.debug({ count: batch.length }, "Metrics batch flushed");
   } catch (err) {
-    logger.error({ err, count: batch.length }, 'Failed to flush metrics batch — data lost');
+    logger.error({ err, count: batch.length }, "Failed to flush metrics batch — data lost");
   }
 }
 
@@ -79,7 +79,7 @@ async function refreshContinuousAggregates(): Promise<void> {
   for (const view of ['"MetricHourly"', '"MetricDaily"']) {
     try {
       await db.$queryRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}`);
-      logger.debug({ view }, 'Refreshed materialized view');
+      logger.debug({ view }, "Refreshed materialized view");
     } catch {
       // View might not exist in minimal test environments — ignore
     }
@@ -102,10 +102,10 @@ async function enforceRetention(): Promise<void> {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const result = await db.metric.deleteMany({ where: { timestamp: { lt: cutoff } } });
     if (result.count > 0) {
-      logger.info({ deleted: result.count }, 'Retention: pruned old metric rows');
+      logger.info({ deleted: result.count }, "Retention: pruned old metric rows");
     }
   } catch (err) {
-    logger.warn({ err }, 'Retention enforcement failed');
+    logger.warn({ err }, "Retention enforcement failed");
   }
 }
 
@@ -130,7 +130,7 @@ export function startAggregationWorker(): void {
     void enforceRetention();
   }, 10 * 60_000);
 
-  logger.info({ intervalMs: FLUSH_INTERVAL_MS }, 'Metric aggregation worker started');
+  logger.info({ intervalMs: FLUSH_INTERVAL_MS }, "Metric aggregation worker started");
 }
 
 export function stopAggregationWorker(): void {
@@ -141,5 +141,5 @@ export function stopAggregationWorker(): void {
   workerStarted = false;
   // Flush any remaining buffered metrics synchronously (best effort)
   void flushBuffer();
-  logger.info('Metric aggregation worker stopped');
+  logger.info("Metric aggregation worker stopped");
 }

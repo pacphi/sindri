@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronRight, GitCompare, X } from 'lucide-react';
-import type { ConfigSnapshot, DriftEvent, DriftSeverity } from '@/types/drift';
+import { useState } from "react";
+import { ChevronDown, ChevronRight, GitCompare, X } from "lucide-react";
+import type { ConfigSnapshot, DriftEvent, DriftSeverity } from "@/types/drift";
 
 interface ConfigDiffViewerProps {
   snapshot: ConfigSnapshot;
@@ -8,7 +8,7 @@ interface ConfigDiffViewerProps {
 }
 
 export function ConfigDiffViewer({ snapshot, onClose }: ConfigDiffViewerProps) {
-  const [view, setView] = useState<'diff' | 'declared' | 'actual'>('diff');
+  const [view, setView] = useState<"diff" | "declared" | "actual">("diff");
   const driftEvents = snapshot.driftEvents ?? [];
 
   const unresolvedEvents = driftEvents.filter((e) => !e.resolvedAt);
@@ -28,14 +28,14 @@ export function ConfigDiffViewer({ snapshot, onClose }: ConfigDiffViewerProps) {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-gray-700 overflow-hidden text-xs">
-            {(['diff', 'declared', 'actual'] as const).map((v) => (
+            {(["diff", "declared", "actual"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={`px-3 py-1.5 capitalize transition-colors ${
                   view === v
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-700"
                 }`}
               >
                 {v}
@@ -43,7 +43,10 @@ export function ConfigDiffViewer({ snapshot, onClose }: ConfigDiffViewerProps) {
             ))}
           </div>
           {onClose && (
-            <button onClick={onClose} className="rounded p-1.5 text-gray-400 hover:text-white hover:bg-gray-700">
+            <button
+              onClick={onClose}
+              className="rounded p-1.5 text-gray-400 hover:text-white hover:bg-gray-700"
+            >
               <X className="h-4 w-4" />
             </button>
           )}
@@ -51,26 +54,26 @@ export function ConfigDiffViewer({ snapshot, onClose }: ConfigDiffViewerProps) {
       </div>
 
       {/* Diff view */}
-      {view === 'diff' && (
+      {view === "diff" && (
         <div className="space-y-2">
           {unresolvedEvents.length === 0 ? (
             <div className="rounded-lg border border-green-400/20 bg-green-400/5 p-4 text-center">
               <p className="text-sm text-green-400">No configuration drift detected</p>
-              <p className="mt-1 text-xs text-gray-500">Declared config matches actual running state</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Declared config matches actual running state
+              </p>
             </div>
           ) : (
-            unresolvedEvents.map((event) => (
-              <DiffRow key={event.id} event={event} />
-            ))
+            unresolvedEvents.map((event) => <DiffRow key={event.id} event={event} />)
           )}
         </div>
       )}
 
       {/* Declared / Actual raw JSON views */}
-      {view === 'declared' && (
+      {view === "declared" && (
         <JsonView data={snapshot.declared ?? {}} label="Declared Configuration" color="green" />
       )}
-      {view === 'actual' && (
+      {view === "actual" && (
         <JsonView data={snapshot.actual ?? {}} label="Actual Running State" color="blue" />
       )}
     </div>
@@ -81,10 +84,10 @@ function DiffRow({ event }: { event: DriftEvent }) {
   const [expanded, setExpanded] = useState(false);
 
   const severityColors: Record<DriftSeverity, string> = {
-    CRITICAL: 'text-red-400 bg-red-400/10',
-    HIGH: 'text-orange-400 bg-orange-400/10',
-    MEDIUM: 'text-yellow-400 bg-yellow-400/10',
-    LOW: 'text-blue-400 bg-blue-400/10',
+    CRITICAL: "text-red-400 bg-red-400/10",
+    HIGH: "text-orange-400 bg-orange-400/10",
+    MEDIUM: "text-yellow-400 bg-yellow-400/10",
+    LOW: "text-blue-400 bg-blue-400/10",
   };
 
   return (
@@ -141,12 +144,12 @@ function ValueBox({
 }: {
   label: string;
   value: string | null;
-  color: 'green' | 'red' | 'blue';
+  color: "green" | "red" | "blue";
 }) {
   const colorMap = {
-    green: 'border-green-400/30 bg-green-400/5 text-green-300',
-    red: 'border-red-400/30 bg-red-400/5 text-red-300',
-    blue: 'border-blue-400/30 bg-blue-400/5 text-blue-300',
+    green: "border-green-400/30 bg-green-400/5 text-green-300",
+    red: "border-red-400/30 bg-red-400/5 text-red-300",
+    blue: "border-blue-400/30 bg-blue-400/5 text-blue-300",
   };
   return (
     <div className={`rounded border p-3 ${colorMap[color]}`}>
@@ -163,11 +166,11 @@ function JsonView({
 }: {
   data: Record<string, unknown>;
   label: string;
-  color: 'green' | 'blue';
+  color: "green" | "blue";
 }) {
   const colorMap = {
-    green: 'border-green-400/20 bg-green-400/5 text-green-300',
-    blue: 'border-blue-400/20 bg-blue-400/5 text-blue-300',
+    green: "border-green-400/20 bg-green-400/5 text-green-300",
+    blue: "border-blue-400/20 bg-blue-400/5 text-blue-300",
   };
 
   return (

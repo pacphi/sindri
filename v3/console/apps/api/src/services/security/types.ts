@@ -2,9 +2,9 @@
  * Security service type definitions.
  */
 
-export type VulnerabilitySeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
-export type VulnerabilityStatus = 'OPEN' | 'ACKNOWLEDGED' | 'FIXED' | 'FALSE_POSITIVE';
-export type SshKeyStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
+export type VulnerabilitySeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "UNKNOWN";
+export type VulnerabilityStatus = "OPEN" | "ACKNOWLEDGED" | "FIXED" | "FALSE_POSITIVE";
+export type SshKeyStatus = "ACTIVE" | "REVOKED" | "EXPIRED";
 
 export interface OsvVulnerability {
   id: string;
@@ -65,13 +65,13 @@ export interface DetectedVulnerability {
 }
 
 export interface SecurityScore {
-  total: number;        // 0–100
+  total: number; // 0–100
   breakdown: {
     vulnerabilities: number;
     secretRotation: number;
     sshKeys: number;
   };
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  grade: "A" | "B" | "C" | "D" | "F";
 }
 
 export interface SecuritySummary {

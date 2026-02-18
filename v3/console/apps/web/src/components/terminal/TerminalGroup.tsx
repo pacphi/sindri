@@ -61,7 +61,7 @@ export function TerminalGroupManager({
       }
       setEditingGroupId(null);
     },
-    [editName, onRenameGroup]
+    [editName, onRenameGroup],
   );
 
   const ungroupedTabs = tabs.filter((t) => !t.groupId);
@@ -160,7 +160,12 @@ export function TerminalGroupManager({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
               <button
                 type="button"
@@ -172,7 +177,12 @@ export function TerminalGroupManager({
                 title="Delete group"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -239,9 +249,7 @@ function DraggableTabItem({
       onDragEnd={() => setDragTabId(null)}
       onClick={() => onSelect(tab.id)}
       className={`flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded text-xs transition-colors ${
-        isActive
-          ? "bg-gray-700 text-white"
-          : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
+        isActive ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
       } ${dragTabId === tab.id ? "opacity-50" : ""}`}
     >
       {groupColor && (
@@ -250,7 +258,9 @@ function DraggableTabItem({
           style={{ backgroundColor: groupColor }}
         />
       )}
-      <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${statusColors[tab.status] ?? "bg-gray-500"}`} />
+      <span
+        className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${statusColors[tab.status] ?? "bg-gray-500"}`}
+      />
       <span className="truncate flex-1">{tab.title}</span>
       <span className="text-gray-600 truncate max-w-[80px]">{tab.instanceName}</span>
       {tab.groupId && (
@@ -264,7 +274,12 @@ function DraggableTabItem({
           title="Remove from group"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       )}

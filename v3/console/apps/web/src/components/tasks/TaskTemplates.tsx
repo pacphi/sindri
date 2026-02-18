@@ -1,22 +1,22 @@
-import { Database, RefreshCw, Activity, Package } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { useTaskTemplates } from '@/hooks/useTasks'
-import type { TaskTemplate } from '@/types/task'
+import { Database, RefreshCw, Activity, Package } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useTaskTemplates } from "@/hooks/useTasks";
+import type { TaskTemplate } from "@/types/task";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   Maintenance: <Database className="h-4 w-4" />,
   Monitoring: <Activity className="h-4 w-4" />,
   Extensions: <Package className="h-4 w-4" />,
-}
+};
 
 interface TaskTemplatesProps {
-  onSelect: (template: TaskTemplate) => void
+  onSelect: (template: TaskTemplate) => void;
 }
 
 export function TaskTemplates({ onSelect }: TaskTemplatesProps) {
-  const { data, isLoading } = useTaskTemplates()
+  const { data, isLoading } = useTaskTemplates();
 
   if (isLoading) {
     return (
@@ -25,16 +25,16 @@ export function TaskTemplates({ onSelect }: TaskTemplatesProps) {
           <div key={i} className="h-36 rounded-xl bg-muted animate-pulse" />
         ))}
       </div>
-    )
+    );
   }
 
-  const templates = data?.templates ?? []
+  const templates = data?.templates ?? [];
 
   const byCategory = templates.reduce<Record<string, TaskTemplate[]>>((acc, t) => {
-    if (!acc[t.category]) acc[t.category] = []
-    acc[t.category].push(t)
-    return acc
-  }, {})
+    if (!acc[t.category]) acc[t.category] = [];
+    acc[t.category].push(t);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6">
@@ -52,15 +52,15 @@ export function TaskTemplates({ onSelect }: TaskTemplatesProps) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function TemplateCard({
   template,
   onSelect,
 }: {
-  template: TaskTemplate
-  onSelect: (t: TaskTemplate) => void
+  template: TaskTemplate;
+  onSelect: (t: TaskTemplate) => void;
 }) {
   return (
     <Card className="flex flex-col hover:border-primary/50 transition-colors">
@@ -93,5 +93,5 @@ function TemplateCard({
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }

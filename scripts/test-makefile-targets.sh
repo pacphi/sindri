@@ -222,25 +222,30 @@ if $RUN_AGENT; then
         # Single-platform build
         check_target "console-agent-build" "single-platform build succeeds"
 
-        # Verify binary exists after build
-        AGENT_BIN="${REPO_ROOT}/v3/console/agent/dist/sindri-agent"
-        if [[ -f "${AGENT_BIN}" ]]; then
-            pass "console-agent-build — binary artifact exists at dist/sindri-agent"
-        else
-            fail "console-agent-build — binary artifact exists at dist/sindri-agent" "File not found: ${AGENT_BIN}"
+        # Verify binary exists after build (skip in dry-run — no actual build occurs)
+        if ! $DRY_RUN_ONLY; then
+            AGENT_BIN="${REPO_ROOT}/v3/console/agent/dist/sindri-agent"
+            if [[ -f "${AGENT_BIN}" ]]; then
+                pass "console-agent-build — binary artifact exists at dist/sindri-agent"
+            else
+                fail "console-agent-build — binary artifact exists at dist/sindri-agent" "File not found: ${AGENT_BIN}"
+            fi
         fi
 
         # Build-all (cross-compile)
         check_target "console-agent-build-all" "cross-compile all platforms"
 
-        DIST="${REPO_ROOT}/v3/console/agent/dist"
-        for binary in sindri-agent-linux-amd64 sindri-agent-linux-arm64 sindri-agent-darwin-amd64 sindri-agent-darwin-arm64; do
-            if [[ -f "${DIST}/${binary}" ]]; then
-                pass "console-agent-build-all — ${binary} exists"
-            else
-                fail "console-agent-build-all — ${binary} exists" "File not found: ${DIST}/${binary}"
-            fi
-        done
+        # Verify cross-compiled binaries exist (skip in dry-run — no actual build occurs)
+        if ! $DRY_RUN_ONLY; then
+            DIST="${REPO_ROOT}/v3/console/agent/dist"
+            for binary in sindri-agent-linux-amd64 sindri-agent-linux-arm64 sindri-agent-darwin-amd64 sindri-agent-darwin-arm64; do
+                if [[ -f "${DIST}/${binary}" ]]; then
+                    pass "console-agent-build-all — ${binary} exists"
+                else
+                    fail "console-agent-build-all — ${binary} exists" "File not found: ${DIST}/${binary}"
+                fi
+            done
+        fi
 
         # Clean
         check_target "console-agent-clean" "clean removes dist/"

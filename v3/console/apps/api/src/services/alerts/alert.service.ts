@@ -2,9 +2,9 @@
  * Alert management service — CRUD, acknowledge, resolve, history.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import type { ListAlertsFilter } from './types.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import type { ListAlertsFilter } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Query
@@ -35,7 +35,7 @@ export async function listAlerts(filter: ListAlertsFilter = {}) {
         rule: { select: { id: true, name: true, type: true } },
         _count: { select: { notifications: true } },
       },
-      orderBy: { fired_at: 'desc' },
+      orderBy: { fired_at: "desc" },
       skip,
       take: pageSize,
     }),
@@ -58,7 +58,7 @@ export async function getAlertById(id: string) {
       rule: { select: { id: true, name: true, type: true, severity: true } },
       notifications: {
         include: { channel: { select: { id: true, name: true, type: true } } },
-        orderBy: { sent_at: 'desc' },
+        orderBy: { sent_at: "desc" },
         take: 20,
       },
     },
@@ -68,18 +68,18 @@ export async function getAlertById(id: string) {
 }
 
 export async function getActiveAlertCount(): Promise<number> {
-  return db.alert.count({ where: { status: 'ACTIVE' } });
+  return db.alert.count({ where: { status: "ACTIVE" } });
 }
 
 export async function getAlertSummary() {
   const [bySeverity, byStatus] = await Promise.all([
     db.alert.groupBy({
-      by: ['severity'],
-      where: { status: 'ACTIVE' },
+      by: ["severity"],
+      where: { status: "ACTIVE" },
       _count: { id: true },
     }),
     db.alert.groupBy({
-      by: ['status'],
+      by: ["status"],
       _count: { id: true },
     }),
   ]);
@@ -97,19 +97,19 @@ export async function getAlertSummary() {
 export async function acknowledgeAlert(id: string, userId: string) {
   const alert = await db.alert.findUnique({ where: { id } });
   if (!alert) return null;
-  if (alert.status === 'RESOLVED') return null;
+  if (alert.status === "RESOLVED") return null;
 
   const updated = await db.alert.update({
     where: { id },
     data: {
-      status: 'ACKNOWLEDGED',
+      status: "ACKNOWLEDGED",
       acknowledged_at: new Date(),
       acknowledged_by: userId,
     },
     include: { rule: { select: { id: true, name: true, type: true } } },
   });
 
-  logger.info({ alertId: id, userId }, 'Alert acknowledged');
+  logger.info({ alertId: id, userId }, "Alert acknowledged");
   return formatAlert(updated);
 }
 
@@ -120,40 +120,40 @@ export async function resolveAlert(id: string, userId: string) {
   const updated = await db.alert.update({
     where: { id },
     data: {
-      status: 'RESOLVED',
+      status: "RESOLVED",
       resolved_at: new Date(),
       resolved_by: userId,
     },
     include: { rule: { select: { id: true, name: true, type: true } } },
   });
 
-  logger.info({ alertId: id, userId }, 'Alert resolved');
+  logger.info({ alertId: id, userId }, "Alert resolved");
   return formatAlert(updated);
 }
 
 export async function bulkAcknowledge(ids: string[], userId: string) {
   const result = await db.alert.updateMany({
-    where: { id: { in: ids }, status: 'ACTIVE' },
+    where: { id: { in: ids }, status: "ACTIVE" },
     data: {
-      status: 'ACKNOWLEDGED',
+      status: "ACKNOWLEDGED",
       acknowledged_at: new Date(),
       acknowledged_by: userId,
     },
   });
-  logger.info({ count: result.count, userId }, 'Bulk acknowledge alerts');
+  logger.info({ count: result.count, userId }, "Bulk acknowledge alerts");
   return result.count;
 }
 
 export async function bulkResolve(ids: string[], userId: string) {
   const result = await db.alert.updateMany({
-    where: { id: { in: ids }, status: { not: 'RESOLVED' } },
+    where: { id: { in: ids }, status: { not: "RESOLVED" } },
     data: {
-      status: 'RESOLVED',
+      status: "RESOLVED",
       resolved_at: new Date(),
       resolved_by: userId,
     },
   });
-  logger.info({ count: result.count, userId }, 'Bulk resolve alerts');
+  logger.info({ count: result.count, userId }, "Bulk resolve alerts");
   return result.count;
 }
 
@@ -174,12 +174,12 @@ export async function fireAlert(params: {
   const existing = await db.alert.findFirst({
     where: {
       dedupe_key: params.dedupeKey,
-      status: { in: ['ACTIVE', 'ACKNOWLEDGED'] },
+      status: { in: ["ACTIVE", "ACKNOWLEDGED"] },
     },
   });
 
   if (existing) {
-    logger.debug({ dedupeKey: params.dedupeKey, alertId: existing.id }, 'Alert deduplicated');
+    logger.debug({ dedupeKey: params.dedupeKey, alertId: existing.id }, "Alert deduplicated");
     return { alert: existing, isDuplicate: true };
   }
 
@@ -187,16 +187,16 @@ export async function fireAlert(params: {
     data: {
       rule_id: params.ruleId,
       instance_id: params.instanceId ?? null,
-      severity: params.severity as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO',
+      severity: params.severity as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO",
       title: params.title,
       message: params.message,
       metadata: params.metadata ?? null,
       dedupe_key: params.dedupeKey,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     },
   });
 
-  logger.info({ alertId: alert.id, ruleId: params.ruleId, title: params.title }, 'Alert fired');
+  logger.info({ alertId: alert.id, ruleId: params.ruleId, title: params.title }, "Alert fired");
   return { alert, isDuplicate: false };
 }
 
@@ -233,13 +233,14 @@ function formatAlert(alert: NonNullable<AlertWithRelations>) {
     resolvedBy: alert.resolved_by,
     dedupeKey: alert.dedupe_key,
     rule: alert.rule ?? null,
-    notifications: alert.notifications?.map((n) => ({
-      id: n.id,
-      sentAt: n.sent_at.toISOString(),
-      success: n.success,
-      error: n.error,
-      channel: n.channel,
-    })) ?? null,
+    notifications:
+      alert.notifications?.map((n) => ({
+        id: n.id,
+        sentAt: n.sent_at.toISOString(),
+        success: n.success,
+        error: n.error,
+        channel: n.channel,
+      })) ?? null,
     notificationCount: alert._count?.notifications ?? null,
   };
 }

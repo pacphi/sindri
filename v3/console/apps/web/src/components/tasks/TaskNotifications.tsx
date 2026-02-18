@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { X, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState } from "react";
+import { X, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface TaskNotificationsProps {
-  notifyOnFailure: boolean
-  notifyOnSuccess: boolean
-  notifyEmails: string[]
-  onNotifyOnFailureChange: (v: boolean) => void
-  onNotifyOnSuccessChange: (v: boolean) => void
-  onNotifyEmailsChange: (emails: string[]) => void
+  notifyOnFailure: boolean;
+  notifyOnSuccess: boolean;
+  notifyEmails: string[];
+  onNotifyOnFailureChange: (v: boolean) => void;
+  onNotifyOnSuccessChange: (v: boolean) => void;
+  onNotifyEmailsChange: (emails: string[]) => void;
 }
 
 export function TaskNotifications({
@@ -20,19 +20,19 @@ export function TaskNotifications({
   onNotifyOnSuccessChange,
   onNotifyEmailsChange,
 }: TaskNotificationsProps) {
-  const [newEmail, setNewEmail] = useState('')
+  const [newEmail, setNewEmail] = useState("");
 
   const addEmail = () => {
-    const email = newEmail.trim()
-    if (!email || notifyEmails.includes(email)) return
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
-    onNotifyEmailsChange([...notifyEmails, email])
-    setNewEmail('')
-  }
+    const email = newEmail.trim();
+    if (!email || notifyEmails.includes(email)) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    onNotifyEmailsChange([...notifyEmails, email]);
+    setNewEmail("");
+  };
 
   const removeEmail = (email: string) => {
-    onNotifyEmailsChange(notifyEmails.filter((e) => e !== email))
-  }
+    onNotifyEmailsChange(notifyEmails.filter((e) => e !== email));
+  };
 
   return (
     <div className="space-y-4">
@@ -69,9 +69,9 @@ export function TaskNotifications({
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addEmail()
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addEmail();
                 }
               }}
               placeholder="user@example.com"
@@ -102,5 +102,5 @@ export function TaskNotifications({
         </div>
       )}
     </div>
-  )
+  );
 }

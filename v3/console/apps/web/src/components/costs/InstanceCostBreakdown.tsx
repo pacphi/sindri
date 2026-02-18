@@ -1,25 +1,25 @@
-import { useCostBreakdown, type CostDateRange } from '@/hooks/useCosts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { useCostBreakdown, type CostDateRange } from "@/hooks/useCosts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface InstanceCostBreakdownProps {
-  range: CostDateRange
-  className?: string
+  range: CostDateRange;
+  className?: string;
 }
 
 function formatUsd(value: number): string {
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`
-  return `$${value.toFixed(2)}`
+  if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
+  return `$${value.toFixed(2)}`;
 }
 
 export function InstanceCostBreakdown({ range, className }: InstanceCostBreakdownProps) {
-  const { data, isLoading } = useCostBreakdown(range)
+  const { data, isLoading } = useCostBreakdown(range);
 
-  const rows = data?.rows ?? []
-  const totalUsd = data?.totalUsd ?? 0
+  const rows = data?.rows ?? [];
+  const totalUsd = data?.totalUsd ?? 0;
 
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn("", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Per-Instance Costs</CardTitle>
@@ -46,7 +46,9 @@ export function InstanceCostBreakdown({ range, className }: InstanceCostBreakdow
                 <div className="flex items-center justify-between text-xs mb-1">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-medium truncate max-w-[160px]">{row.instanceName}</span>
-                    <span className="text-muted-foreground capitalize flex-shrink-0">{row.provider}</span>
+                    <span className="text-muted-foreground capitalize flex-shrink-0">
+                      {row.provider}
+                    </span>
                     {row.region && (
                       <span className="text-muted-foreground flex-shrink-0">{row.region}</span>
                     )}
@@ -75,5 +77,5 @@ export function InstanceCostBreakdown({ range, className }: InstanceCostBreakdow
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

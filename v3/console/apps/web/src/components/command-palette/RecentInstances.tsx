@@ -1,13 +1,13 @@
-import { Server, Clock } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { Instance } from '@/types/instance'
-import { StatusBadge } from '@/components/instances/StatusBadge'
+import { Server, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Instance } from "@/types/instance";
+import { StatusBadge } from "@/components/instances/StatusBadge";
 
 interface RecentInstancesProps {
-  instances: Instance[]
-  selectedIndex: number
-  indexOffset: number
-  onSelect: (instance: Instance) => void
+  instances: Instance[];
+  selectedIndex: number;
+  indexOffset: number;
+  onSelect: (instance: Instance) => void;
 }
 
 export function RecentInstances({
@@ -16,7 +16,7 @@ export function RecentInstances({
   indexOffset,
   onSelect,
 }: RecentInstancesProps) {
-  if (instances.length === 0) return null
+  if (instances.length === 0) return null;
 
   return (
     <div>
@@ -24,13 +24,13 @@ export function RecentInstances({
         Recent Instances
       </div>
       {instances.map((instance, i) => {
-        const isSelected = selectedIndex === indexOffset + i
+        const isSelected = selectedIndex === indexOffset + i;
         return (
           <button
             key={instance.id}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
-              isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50',
+              "w-full flex items-center gap-3 px-3 py-2 text-left transition-colors",
+              isSelected ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
             )}
             onClick={() => onSelect(instance)}
             data-result-index={indexOffset + i}
@@ -42,13 +42,15 @@ export function RecentInstances({
                 <StatusBadge status={instance.status} />
               </div>
               {instance.region && (
-                <span className="text-xs text-muted-foreground">{instance.provider} · {instance.region}</span>
+                <span className="text-xs text-muted-foreground">
+                  {instance.provider} · {instance.region}
+                </span>
               )}
             </div>
             <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

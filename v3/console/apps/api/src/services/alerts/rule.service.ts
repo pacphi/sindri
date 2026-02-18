@@ -2,13 +2,9 @@
  * Alert rule CRUD service.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import type {
-  CreateAlertRuleInput,
-  UpdateAlertRuleInput,
-  ListRulesFilter,
-} from './types.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import type { CreateAlertRuleInput, UpdateAlertRuleInput, ListRulesFilter } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CRUD
@@ -40,7 +36,7 @@ export async function createAlertRule(input: CreateAlertRuleInput) {
     });
   }
 
-  logger.info({ ruleId: rule.id, name: rule.name, type: rule.type }, 'Alert rule created');
+  logger.info({ ruleId: rule.id, name: rule.name, type: rule.type }, "Alert rule created");
   return getAlertRuleById(rule.id);
 }
 
@@ -65,7 +61,7 @@ export async function listAlertRules(filter: ListRulesFilter = {}) {
         channels: { include: { channel: { select: { id: true, name: true, type: true } } } },
         _count: { select: { alerts: true } },
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
       skip,
       take: pageSize,
     }),
@@ -121,7 +117,7 @@ export async function updateAlertRule(id: string, input: UpdateAlertRuleInput) {
     }
   }
 
-  logger.info({ ruleId: id }, 'Alert rule updated');
+  logger.info({ ruleId: id }, "Alert rule updated");
   return getAlertRuleById(id);
 }
 
@@ -129,13 +125,13 @@ export async function deleteAlertRule(id: string) {
   const existing = await db.alertRule.findUnique({ where: { id } });
   if (!existing) return null;
   await db.alertRule.delete({ where: { id } });
-  logger.info({ ruleId: id }, 'Alert rule deleted');
+  logger.info({ ruleId: id }, "Alert rule deleted");
   return existing;
 }
 
 export async function toggleAlertRule(id: string, enabled: boolean) {
   const rule = await db.alertRule.update({ where: { id }, data: { enabled } });
-  logger.info({ ruleId: id, enabled }, 'Alert rule toggled');
+  logger.info({ ruleId: id, enabled }, "Alert rule toggled");
   return rule;
 }
 

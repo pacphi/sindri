@@ -34,7 +34,7 @@ export interface IngestMetricInput {
 // Query filters
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type Granularity = 'raw' | '1m' | '5m' | '1h' | '1d';
+export type Granularity = "raw" | "1m" | "5m" | "1h" | "1d";
 
 export interface TimeSeriesFilter {
   instanceId?: string;
@@ -57,16 +57,16 @@ export interface LatestFilter {
 }
 
 export type MetricName =
-  | 'cpu_percent'
-  | 'mem_used'
-  | 'mem_total'
-  | 'disk_used'
-  | 'disk_total'
-  | 'load_avg_1'
-  | 'load_avg_5'
-  | 'load_avg_15'
-  | 'net_bytes_sent'
-  | 'net_bytes_recv';
+  | "cpu_percent"
+  | "mem_used"
+  | "mem_total"
+  | "disk_used"
+  | "disk_total"
+  | "load_avg_1"
+  | "load_avg_5"
+  | "load_avg_15"
+  | "net_bytes_sent"
+  | "net_bytes_recv";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Response shapes

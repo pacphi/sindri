@@ -5,16 +5,16 @@
  * Falls back gracefully on network errors so a scan failure doesn't block the API.
  */
 
-import { logger } from '../../lib/logger.js';
+import { logger } from "../../lib/logger.js";
 import type {
   OsvQueryResponse,
   OsvVulnerability,
   BomPackage,
   DetectedVulnerability,
   VulnerabilitySeverity,
-} from './types.js';
+} from "./types.js";
 
-const OSV_API_BASE = 'https://api.osv.dev/v1';
+const OSV_API_BASE = "https://api.osv.dev/v1";
 const OSV_QUERY_TIMEOUT_MS = 10_000;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,31 +24,31 @@ const OSV_QUERY_TIMEOUT_MS = 10_000;
 function mapSeverity(vuln: OsvVulnerability): VulnerabilitySeverity {
   // Check database_specific severity first
   const dbSev = vuln.database_specific?.severity?.toUpperCase();
-  if (dbSev === 'CRITICAL') return 'CRITICAL';
-  if (dbSev === 'HIGH') return 'HIGH';
-  if (dbSev === 'MODERATE' || dbSev === 'MEDIUM') return 'MEDIUM';
-  if (dbSev === 'LOW') return 'LOW';
+  if (dbSev === "CRITICAL") return "CRITICAL";
+  if (dbSev === "HIGH") return "HIGH";
+  if (dbSev === "MODERATE" || dbSev === "MEDIUM") return "MEDIUM";
+  if (dbSev === "LOW") return "LOW";
 
   // Check CVSS score
   const cvssScore = vuln.database_specific?.cvss?.score;
   if (cvssScore != null) {
-    if (cvssScore >= 9.0) return 'CRITICAL';
-    if (cvssScore >= 7.0) return 'HIGH';
-    if (cvssScore >= 4.0) return 'MEDIUM';
-    if (cvssScore > 0) return 'LOW';
+    if (cvssScore >= 9.0) return "CRITICAL";
+    if (cvssScore >= 7.0) return "HIGH";
+    if (cvssScore >= 4.0) return "MEDIUM";
+    if (cvssScore > 0) return "LOW";
   }
 
   // Check severity array
-  const sevEntry = vuln.severity?.find((s) => s.type === 'CVSS_V3' || s.type === 'CVSS_V2');
+  const sevEntry = vuln.severity?.find((s) => s.type === "CVSS_V3" || s.type === "CVSS_V2");
   if (sevEntry) {
     const score = parseCvssScore(sevEntry.score);
-    if (score >= 9.0) return 'CRITICAL';
-    if (score >= 7.0) return 'HIGH';
-    if (score >= 4.0) return 'MEDIUM';
-    if (score > 0) return 'LOW';
+    if (score >= 9.0) return "CRITICAL";
+    if (score >= 7.0) return "HIGH";
+    if (score >= 4.0) return "MEDIUM";
+    if (score > 0) return "LOW";
   }
 
-  return 'UNKNOWN';
+  return "UNKNOWN";
 }
 
 function parseCvssScore(vector: string): number {
@@ -61,7 +61,7 @@ function parseCvssScore(vector: string): number {
 
 function extractCveId(vuln: OsvVulnerability): string {
   // Prefer CVE IDs from aliases
-  const cve = vuln.aliases?.find((a) => a.startsWith('CVE-'));
+  const cve = vuln.aliases?.find((a) => a.startsWith("CVE-"));
   return cve ?? vuln.id;
 }
 
@@ -92,8 +92,8 @@ async function queryOsvForPackage(pkg: BomPackage): Promise<OsvVulnerability[]> 
     const timer = setTimeout(() => controller.abort(), OSV_QUERY_TIMEOUT_MS);
 
     const res = await fetch(`${OSV_API_BASE}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body,
       signal: controller.signal,
     });
@@ -101,14 +101,14 @@ async function queryOsvForPackage(pkg: BomPackage): Promise<OsvVulnerability[]> 
     clearTimeout(timer);
 
     if (!res.ok) {
-      logger.warn({ pkg, status: res.status }, 'OSV API returned non-OK status');
+      logger.warn({ pkg, status: res.status }, "OSV API returned non-OK status");
       return [];
     }
 
     const data = (await res.json()) as OsvQueryResponse;
     return data.vulns ?? [];
   } catch (err) {
-    logger.warn({ err, pkg }, 'Failed to query OSV API for package');
+    logger.warn({ err, pkg }, "Failed to query OSV API for package");
     return [];
   }
 }
@@ -117,7 +117,9 @@ async function queryOsvForPackage(pkg: BomPackage): Promise<OsvVulnerability[]> 
  * Batch query OSV for a list of packages. Runs queries concurrently with a
  * concurrency cap to avoid hammering the OSV API.
  */
-export async function detectVulnerabilities(packages: BomPackage[]): Promise<DetectedVulnerability[]> {
+export async function detectVulnerabilities(
+  packages: BomPackage[],
+): Promise<DetectedVulnerability[]> {
   const CONCURRENCY = 5;
   const results: DetectedVulnerability[] = [];
 
@@ -126,19 +128,21 @@ export async function detectVulnerabilities(packages: BomPackage[]): Promise<Det
     const batchResults = await Promise.all(
       batch.map(async (pkg) => {
         const vulns = await queryOsvForPackage(pkg);
-        return vulns.map((vuln): DetectedVulnerability => ({
-          cveId: extractCveId(vuln),
-          osvId: vuln.id,
-          packageName: pkg.name,
-          packageVersion: pkg.version,
-          ecosystem: pkg.ecosystem,
-          severity: mapSeverity(vuln),
-          cvssScore: vuln.database_specific?.cvss?.score,
-          title: vuln.summary ?? vuln.id,
-          description: vuln.details ?? vuln.summary ?? 'No description available.',
-          fixVersion: extractFixVersion(vuln, pkg.ecosystem),
-          references: (vuln.references ?? []).map((r) => r.url),
-        }));
+        return vulns.map(
+          (vuln): DetectedVulnerability => ({
+            cveId: extractCveId(vuln),
+            osvId: vuln.id,
+            packageName: pkg.name,
+            packageVersion: pkg.version,
+            ecosystem: pkg.ecosystem,
+            severity: mapSeverity(vuln),
+            cvssScore: vuln.database_specific?.cvss?.score,
+            title: vuln.summary ?? vuln.id,
+            description: vuln.details ?? vuln.summary ?? "No description available.",
+            fixVersion: extractFixVersion(vuln, pkg.ecosystem),
+            references: (vuln.references ?? []).map((r) => r.url),
+          }),
+        );
       }),
     );
     results.push(...batchResults.flat());

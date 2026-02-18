@@ -1,103 +1,104 @@
-import { useEffect, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { teamsApi, usersApi } from '@/api/rbac'
-import type { Team, TeamMemberRole } from '@/types/rbac'
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { teamsApi, usersApi } from "@/api/rbac";
+import type { Team, TeamMemberRole } from "@/types/rbac";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 
 interface TeamEditorProps {
-  open: boolean
-  team: Team | null
-  onClose: () => void
-  onSave: () => void
+  open: boolean;
+  team: Team | null;
+  onClose: () => void;
+  onSave: () => void;
 }
 
 export function TeamEditor({ open, team, onClose, onSave }: TeamEditorProps) {
-  const isEditing = team !== null
+  const isEditing = team !== null;
 
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [addUserId, setAddUserId] = useState('')
-  const [addUserRole, setAddUserRole] = useState<TeamMemberRole>('DEVELOPER')
-  const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [addUserId, setAddUserId] = useState("");
+  const [addUserRole, setAddUserRole] = useState<TeamMemberRole>("DEVELOPER");
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch users for the "add member" dropdown
   const { data: usersData } = useQuery({
-    queryKey: ['admin-users-for-team'],
+    queryKey: ["admin-users-for-team"],
     queryFn: () => usersApi.listUsers({}, 1, 100),
     enabled: open && isEditing,
-  })
+  });
 
   useEffect(() => {
     if (team) {
-      setName(team.name)
-      setDescription(team.description ?? '')
+      setName(team.name);
+      setDescription(team.description ?? "");
     } else {
-      setName('')
-      setDescription('')
+      setName("");
+      setDescription("");
     }
-    setAddUserId('')
-    setAddUserRole('DEVELOPER')
-    setError(null)
-  }, [team, open])
+    setAddUserId("");
+    setAddUserRole("DEVELOPER");
+    setError(null);
+  }, [team, open]);
 
   const createMutation = useMutation({
     mutationFn: () => teamsApi.createTeam({ name, description: description || undefined }),
     onSuccess: onSave,
     onError: (err: Error) => setError(err.message),
-  })
+  });
 
   const updateMutation = useMutation({
-    mutationFn: () => teamsApi.updateTeam(team!.id, { name, description: description || undefined }),
+    mutationFn: () =>
+      teamsApi.updateTeam(team!.id, { name, description: description || undefined }),
     onSuccess: onSave,
     onError: (err: Error) => setError(err.message),
-  })
+  });
 
   const addMemberMutation = useMutation({
     mutationFn: () => teamsApi.addMember(team!.id, addUserId, addUserRole),
     onSuccess: () => {
-      setAddUserId('')
-      setAddUserRole('DEVELOPER')
+      setAddUserId("");
+      setAddUserRole("DEVELOPER");
     },
     onError: (err: Error) => setError(err.message),
-  })
+  });
 
   const handleSave = () => {
-    setError(null)
+    setError(null);
     if (!name.trim()) {
-      setError('Team name is required')
-      return
+      setError("Team name is required");
+      return;
     }
     if (isEditing) {
-      updateMutation.mutate()
+      updateMutation.mutate();
     } else {
-      createMutation.mutate()
+      createMutation.mutate();
     }
-  }
+  };
 
-  const isPending = createMutation.isPending || updateMutation.isPending
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Team' : 'Create Team'}</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Team" : "Create Team"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -145,7 +146,10 @@ export function TeamEditor({ open, team, onClose, onSave }: TeamEditorProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={addUserRole} onValueChange={(v) => setAddUserRole(v as TeamMemberRole)}>
+                <Select
+                  value={addUserRole}
+                  onValueChange={(v) => setAddUserRole(v as TeamMemberRole)}
+                >
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -173,10 +177,10 @@ export function TeamEditor({ open, team, onClose, onSave }: TeamEditorProps) {
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
-            {isPending ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Team'}
+            {isPending ? "Saving..." : isEditing ? "Save Changes" : "Create Team"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

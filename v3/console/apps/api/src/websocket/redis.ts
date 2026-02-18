@@ -15,9 +15,9 @@
  *   - InProcessPubSub — EventEmitter-based, single-replica (development)
  */
 
-import { EventEmitter } from 'events';
-import type Redis from 'ioredis';
-import type { Channel } from './channels.js';
+import { EventEmitter } from "events";
+import type Redis from "ioredis";
+import type { Channel } from "./channels.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Redis key helpers (aligned with src/lib/redis.ts naming convention)
@@ -60,12 +60,12 @@ export class WsPubSub extends EventEmitter {
     this.setMaxListeners(0);
 
     // Forward incoming Redis messages to local EventEmitter
-    this.subscriber.on('message', (key: string, message: string) => {
+    this.subscriber.on("message", (key: string, message: string) => {
       this.emit(key, message);
     });
 
     // Pattern-subscribe messages carry both the matching channel and the message
-    this.subscriber.on('pmessage', (_pattern: string, key: string, message: string) => {
+    this.subscriber.on("pmessage", (_pattern: string, key: string, message: string) => {
       this.emit(key, message);
     });
   }
@@ -115,8 +115,8 @@ export class WsPubSub extends EventEmitter {
 
     const wrapped = (key: string, message: string) => {
       // Extract instanceId from: sindri:instance:<instanceId>:<channel>
-      const parts = key.split(':');
-      const instanceId = parts[2] ?? '';
+      const parts = key.split(":");
+      const instanceId = parts[2] ?? "";
       callback(instanceId, message);
     };
 
@@ -229,8 +229,8 @@ export class InProcessPubSub extends EventEmitter {
   // Override emit to also trigger subscribeAll listeners
   override emit(event: string | symbol, ...args: unknown[]): boolean {
     const result = super.emit(event, ...args);
-    if (typeof event === 'string' && event.startsWith('sindri:instance:')) {
-      const parts = event.split(':');
+    if (typeof event === "string" && event.startsWith("sindri:instance:")) {
+      const parts = event.split(":");
       const channel = parts[3] as Channel;
       super.emit(`__all__:${channel}`, event, args[0]);
     }

@@ -2,8 +2,8 @@
  * Team workspace management service.
  */
 
-import type { Team, TeamMember, TeamMemberRole, Prisma } from '@prisma/client';
-import { db } from '../lib/db.js';
+import type { Team, TeamMember, TeamMemberRole, Prisma } from "@prisma/client";
+import { db } from "../lib/db.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Input types
@@ -59,8 +59,8 @@ export async function listTeams(filter: ListTeamsFilter): Promise<{
   const where: Prisma.TeamWhereInput = {};
   if (filter.search) {
     where.OR = [
-      { name: { contains: filter.search, mode: 'insensitive' } },
-      { description: { contains: filter.search, mode: 'insensitive' } },
+      { name: { contains: filter.search, mode: "insensitive" } },
+      { description: { contains: filter.search, mode: "insensitive" } },
     ];
   }
 
@@ -69,7 +69,7 @@ export async function listTeams(filter: ListTeamsFilter): Promise<{
       where,
       skip,
       take: pageSize,
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
       include: { _count: { select: { members: true, instances: true } } },
     }),
     db.team.count({ where }),
@@ -91,7 +91,7 @@ export async function getTeamById(id: string) {
       _count: { select: { members: true, instances: true } },
       members: {
         include: { user: { select: { id: true, email: true, name: true, role: true } } },
-        orderBy: { joined_at: 'asc' },
+        orderBy: { joined_at: "asc" },
       },
     },
   });
@@ -125,10 +125,10 @@ export async function addTeamMember(
     create: {
       team_id: teamId,
       user_id: input.user_id,
-      role: input.role ?? 'DEVELOPER',
+      role: input.role ?? "DEVELOPER",
     },
     update: {
-      role: input.role ?? 'DEVELOPER',
+      role: input.role ?? "DEVELOPER",
     },
   });
 }
@@ -161,14 +161,11 @@ export async function updateTeamMemberRole(
 export async function getTeamInstances(teamId: string) {
   return db.instance.findMany({
     where: { team_id: teamId },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
   });
 }
 
-export async function assignInstanceToTeam(
-  instanceId: string,
-  teamId: string | null,
-) {
+export async function assignInstanceToTeam(instanceId: string, teamId: string | null) {
   return db.instance.update({
     where: { id: instanceId },
     data: { team_id: teamId },

@@ -1,7 +1,7 @@
 # Sindri Console Agent Extension
 
 The `console-agent` extension installs and runs the `sindri-agent` binary on each Sindri
-instance, connecting it to the [Sindri Console](../../console/) for centralized orchestration,
+instance, connecting it to the [Sindri Console](../../../console/) for centralized orchestration,
 real-time monitoring, and web terminal access.
 
 ## Overview

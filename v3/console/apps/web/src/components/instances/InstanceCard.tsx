@@ -1,37 +1,37 @@
-import { Server, MapPin, Puzzle, Clock, Cpu, HardDrive, MemoryStick } from 'lucide-react'
-import type { Instance } from '@/types/instance'
-import { StatusBadge } from './StatusBadge'
-import { MetricsGauge } from './MetricsGauge'
-import { formatBytes, formatRelativeTime, formatUptime } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { Server, MapPin, Puzzle, Clock, Cpu, HardDrive, MemoryStick } from "lucide-react";
+import type { Instance } from "@/types/instance";
+import { StatusBadge } from "./StatusBadge";
+import { MetricsGauge } from "./MetricsGauge";
+import { formatBytes, formatRelativeTime, formatUptime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface InstanceCardProps {
-  instance: Instance
-  className?: string
-  onClick?: (instance: Instance) => void
+  instance: Instance;
+  className?: string;
+  onClick?: (instance: Instance) => void;
 }
 
 export function InstanceCard({ instance, className, onClick }: InstanceCardProps) {
-  const hb = instance.latest_heartbeat
-  const memoryPercent = hb ? (Number(hb.memory_used) / Number(hb.memory_total)) * 100 : null
-  const diskPercent = hb ? (Number(hb.disk_used) / Number(hb.disk_total)) * 100 : null
+  const hb = instance.latest_heartbeat;
+  const memoryPercent = hb ? (Number(hb.memory_used) / Number(hb.memory_total)) * 100 : null;
+  const diskPercent = hb ? (Number(hb.disk_used) / Number(hb.disk_total)) * 100 : null;
 
   return (
     <article
       className={cn(
-        'group relative rounded-lg border bg-card p-4 text-card-foreground shadow-sm transition-all',
-        onClick && 'cursor-pointer hover:border-primary/50 hover:shadow-md',
+        "group relative rounded-lg border bg-card p-4 text-card-foreground shadow-sm transition-all",
+        onClick && "cursor-pointer hover:border-primary/50 hover:shadow-md",
         className,
       )}
       onClick={() => onClick?.(instance)}
-      role={onClick ? 'button' : undefined}
+      role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={
         onClick
           ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onClick(instance)
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick(instance);
               }
             }
           : undefined
@@ -74,7 +74,7 @@ export function InstanceCard({ instance, className, onClick }: InstanceCardProps
       </div>
 
       {/* Metrics */}
-      {hb && instance.status === 'RUNNING' && (
+      {hb && instance.status === "RUNNING" && (
         <div className="mt-3 space-y-1.5">
           <MetricsGauge label="CPU" value={hb.cpu_percent} size="sm" />
           {memoryPercent !== null && (
@@ -95,7 +95,7 @@ export function InstanceCard({ instance, className, onClick }: InstanceCardProps
       )}
 
       {/* No metrics placeholder */}
-      {!hb && instance.status === 'RUNNING' && (
+      {!hb && instance.status === "RUNNING" && (
         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
           <Cpu className="h-3 w-3" />
           <MemoryStick className="h-3 w-3" />
@@ -107,10 +107,8 @@ export function InstanceCard({ instance, className, onClick }: InstanceCardProps
       {/* Footer */}
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
         <span>Updated {formatRelativeTime(instance.updated_at)}</span>
-        {hb && (
-          <span>Last heartbeat {formatRelativeTime(hb.timestamp)}</span>
-        )}
+        {hb && <span>Last heartbeat {formatRelativeTime(hb.timestamp)}</span>}
       </div>
     </article>
-  )
+  );
 }

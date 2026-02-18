@@ -1,21 +1,21 @@
-import { Star, Download, Package, ExternalLink } from 'lucide-react'
-import type { Extension } from '@/types/extension'
+import { Star, Download, Package, ExternalLink } from "lucide-react";
+import type { Extension } from "@/types/extension";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  AI: 'bg-purple-500/20 text-purple-300',
-  Languages: 'bg-blue-500/20 text-blue-300',
-  Infrastructure: 'bg-orange-500/20 text-orange-300',
-  Databases: 'bg-green-500/20 text-green-300',
-  Tools: 'bg-gray-500/20 text-gray-300',
-}
+  AI: "bg-purple-500/20 text-purple-300",
+  Languages: "bg-blue-500/20 text-blue-300",
+  Infrastructure: "bg-orange-500/20 text-orange-300",
+  Databases: "bg-green-500/20 text-green-300",
+  Tools: "bg-gray-500/20 text-gray-300",
+};
 
 interface ExtensionCardProps {
-  extension: Extension
-  onClick: (id: string) => void
+  extension: Extension;
+  onClick: (id: string) => void;
 }
 
 export function ExtensionCard({ extension, onClick }: ExtensionCardProps) {
-  const categoryColor = CATEGORY_COLORS[extension.category] ?? 'bg-gray-500/20 text-gray-300'
+  const categoryColor = CATEGORY_COLORS[extension.category] ?? "bg-gray-500/20 text-gray-300";
 
   return (
     <div
@@ -23,8 +23,8 @@ export function ExtensionCard({ extension, onClick }: ExtensionCardProps) {
       onClick={() => onClick(extension.id)}
       className={`group relative flex cursor-pointer flex-col gap-3 rounded-lg border p-4 transition-colors ${
         extension.is_deprecated
-          ? 'border-gray-800 bg-gray-900/30 opacity-60'
-          : 'border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-900'
+          ? "border-gray-800 bg-gray-900/30 opacity-60"
+          : "border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-900"
       }`}
     >
       {/* Header */}
@@ -43,10 +43,7 @@ export function ExtensionCard({ extension, onClick }: ExtensionCardProps) {
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span
-                data-testid="extension-card-name"
-                className="font-medium text-white truncate"
-              >
+              <span data-testid="extension-card-name" className="font-medium text-white truncate">
                 {extension.display_name}
               </span>
               {extension.is_official && (
@@ -61,7 +58,9 @@ export function ExtensionCard({ extension, onClick }: ExtensionCardProps) {
             <p className="text-xs text-gray-500 truncate">{extension.name}</p>
           </div>
         </div>
-        <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${categoryColor}`}>
+        <span
+          className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${categoryColor}`}
+        >
           {extension.category}
         </span>
       </div>
@@ -109,5 +108,5 @@ export function ExtensionCard({ extension, onClick }: ExtensionCardProps) {
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -4,7 +4,7 @@
 
 export interface ListExtensionsFilter {
   category?: string;
-  scope?: 'PUBLIC' | 'PRIVATE' | 'INTERNAL';
+  scope?: "PUBLIC" | "PRIVATE" | "INTERNAL";
   search?: string;
   isOfficial?: boolean;
   tags?: string[];
@@ -24,7 +24,7 @@ export interface CreateExtensionInput {
   icon_url?: string;
   tags?: string[];
   dependencies?: string[];
-  scope?: 'PUBLIC' | 'PRIVATE' | 'INTERNAL';
+  scope?: "PUBLIC" | "PRIVATE" | "INTERNAL";
   is_official?: boolean;
   published_by?: string;
 }
@@ -62,7 +62,7 @@ export interface UsageMatrixFilter {
 export interface SetPolicyInput {
   extension_id: string;
   instance_id?: string;
-  policy: 'AUTO_UPDATE' | 'PIN' | 'FREEZE';
+  policy: "AUTO_UPDATE" | "PIN" | "FREEZE";
   pinned_version?: string;
   created_by?: string;
 }

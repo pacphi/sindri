@@ -4,8 +4,8 @@
  * Tracks when secrets were last rotated and flags overdue secrets.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
 
 export interface SecretRotationInput {
   instanceId: string;
@@ -45,7 +45,9 @@ export async function upsertSecretRotation(input: SecretRotationInput) {
         next_rotation: nextRotation,
         rotation_days: input.rotationDays ?? 90,
         is_overdue: isOverdue,
-        metadata: input.metadata as Parameters<typeof db.secretRotation.update>[0]['data']['metadata'],
+        metadata: input.metadata as Parameters<
+          typeof db.secretRotation.update
+        >[0]["data"]["metadata"],
       },
     });
   }
@@ -59,13 +61,18 @@ export async function upsertSecretRotation(input: SecretRotationInput) {
       next_rotation: nextRotation,
       rotation_days: input.rotationDays ?? 90,
       is_overdue: isOverdue,
-      metadata: input.metadata as Parameters<typeof db.secretRotation.create>[0]['data']['metadata'],
+      metadata: input.metadata as Parameters<
+        typeof db.secretRotation.create
+      >[0]["data"]["metadata"],
     },
   });
 }
 
 export async function markSecretRotated(id: string) {
-  const rotation = await db.secretRotation.findUnique({ where: { id }, select: { rotation_days: true } });
+  const rotation = await db.secretRotation.findUnique({
+    where: { id },
+    select: { rotation_days: true },
+  });
   if (!rotation) throw new Error(`SecretRotation ${id} not found`);
 
   const now = new Date();
@@ -85,7 +92,7 @@ export async function listSecretRotations(instanceId?: string, overdueOnly = fal
 
   const entries = await db.secretRotation.findMany({
     where,
-    orderBy: [{ is_overdue: 'desc' }, { next_rotation: 'asc' }],
+    orderBy: [{ is_overdue: "desc" }, { next_rotation: "asc" }],
     include: { instance: { select: { name: true } } },
   });
 
@@ -124,7 +131,7 @@ export async function refreshOverdueFlags(): Promise<number> {
       });
       updated++;
     } catch (err) {
-      logger.warn({ err, id: s.id }, 'Failed to update overdue flag');
+      logger.warn({ err, id: s.id }, "Failed to update overdue flag");
     }
   }
   return updated;

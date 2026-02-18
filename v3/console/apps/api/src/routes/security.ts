@@ -18,12 +18,12 @@
  * GET  /api/v1/security/compliance           — compliance report
  */
 
-import { Hono } from 'hono';
-import { z } from 'zod';
-import { authMiddleware } from '../middleware/auth.js';
-import { rateLimitDefault, rateLimitStrict } from '../middleware/rateLimit.js';
-import { db } from '../lib/db.js';
-import { logger } from '../lib/logger.js';
+import { Hono } from "hono";
+import { z } from "zod";
+import { authMiddleware } from "../middleware/auth.js";
+import { rateLimitDefault, rateLimitStrict } from "../middleware/rateLimit.js";
+import { db } from "../lib/db.js";
+import { logger } from "../lib/logger.js";
 import {
   getSecuritySummary,
   listVulnerabilities,
@@ -43,7 +43,7 @@ import {
   upsertSshKey,
   revokeSshKey,
   getSshAuditSummary,
-} from '../services/security/index.js';
+} from "../services/security/index.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schemas
@@ -51,8 +51,8 @@ import {
 
 const VulnerabilityFiltersSchema = z.object({
   instanceId: z.string().max(128).optional(),
-  severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN']).optional(),
-  status: z.enum(['OPEN', 'ACKNOWLEDGED', 'FIXED', 'FALSE_POSITIVE']).optional(),
+  severity: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"]).optional(),
+  status: z.enum(["OPEN", "ACKNOWLEDGED", "FIXED", "FALSE_POSITIVE"]).optional(),
   ecosystem: z.string().max(64).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
@@ -67,7 +67,11 @@ const SecretRotationCreateSchema = z.object({
   instanceId: z.string().min(1).max(128),
   secretName: z.string().min(1).max(256),
   secretType: z.string().min(1).max(64),
-  lastRotated: z.string().datetime({ offset: true }).optional().transform((s) => s ? new Date(s) : undefined),
+  lastRotated: z
+    .string()
+    .datetime({ offset: true })
+    .optional()
+    .transform((s) => (s ? new Date(s) : undefined)),
   rotationDays: z.number().int().min(1).max(3650).optional(),
 });
 
@@ -82,13 +86,21 @@ const SshKeyCreateSchema = z.object({
   comment: z.string().max(256).optional(),
   keyType: z.string().min(1).max(32),
   keyBits: z.number().int().min(256).max(16384).optional(),
-  expiresAt: z.string().datetime({ offset: true }).optional().transform((s) => s ? new Date(s) : undefined),
-  lastUsedAt: z.string().datetime({ offset: true }).optional().transform((s) => s ? new Date(s) : undefined),
+  expiresAt: z
+    .string()
+    .datetime({ offset: true })
+    .optional()
+    .transform((s) => (s ? new Date(s) : undefined)),
+  lastUsedAt: z
+    .string()
+    .datetime({ offset: true })
+    .optional()
+    .transform((s) => (s ? new Date(s) : undefined)),
 });
 
 const SshKeyQuerySchema = z.object({
   instanceId: z.string().max(128).optional(),
-  status: z.enum(['ACTIVE', 'REVOKED', 'EXPIRED']).optional(),
+  status: z.enum(["ACTIVE", "REVOKED", "EXPIRED"]).optional(),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,30 +109,40 @@ const SshKeyQuerySchema = z.object({
 
 const security = new Hono();
 
-security.use('*', authMiddleware);
+security.use("*", authMiddleware);
 
 // ─── GET /api/v1/security/summary ────────────────────────────────────────────
 
-security.get('/summary', rateLimitDefault, async (c) => {
-  const instanceId = new URL(c.req.url).searchParams.get('instanceId') ?? undefined;
+security.get("/summary", rateLimitDefault, async (c) => {
+  const instanceId = new URL(c.req.url).searchParams.get("instanceId") ?? undefined;
 
   try {
     const summary = await getSecuritySummary(instanceId);
     return c.json({ summary });
   } catch (err) {
-    logger.error({ err }, 'Failed to get security summary');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to get security summary' }, 500);
+    logger.error({ err }, "Failed to get security summary");
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to get security summary" },
+      500,
+    );
   }
 });
 
 // ─── GET /api/v1/security/vulnerabilities ────────────────────────────────────
 
-security.get('/vulnerabilities', rateLimitDefault, async (c) => {
+security.get("/vulnerabilities", rateLimitDefault, async (c) => {
   const q = VulnerabilityFiltersSchema.safeParse(
     Object.fromEntries(new URL(c.req.url).searchParams),
   );
   if (!q.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid query parameters', details: q.error.flatten() }, 422);
+    return c.json(
+      {
+        error: "Validation Error",
+        message: "Invalid query parameters",
+        details: q.error.flatten(),
+      },
+      422,
+    );
   }
 
   try {
@@ -136,17 +158,20 @@ security.get('/vulnerabilities', rateLimitDefault, async (c) => {
     );
     return c.json(result);
   } catch (err) {
-    logger.error({ err }, 'Failed to list vulnerabilities');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to list vulnerabilities' }, 500);
+    logger.error({ err }, "Failed to list vulnerabilities");
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to list vulnerabilities" },
+      500,
+    );
   }
 });
 
 // ─── GET /api/v1/security/vulnerabilities/:id ────────────────────────────────
 
-security.get('/vulnerabilities/:id', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
+security.get("/vulnerabilities/:id", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
   if (!id || id.length > 128) {
-    return c.json({ error: 'Bad Request', message: 'Invalid vulnerability ID' }, 400);
+    return c.json({ error: "Bad Request", message: "Invalid vulnerability ID" }, 400);
   }
 
   try {
@@ -155,7 +180,7 @@ security.get('/vulnerabilities/:id', rateLimitDefault, async (c) => {
       include: { instance: { select: { name: true } } },
     });
     if (!vuln) {
-      return c.json({ error: 'Not Found', message: `Vulnerability '${id}' not found` }, 404);
+      return c.json({ error: "Not Found", message: `Vulnerability '${id}' not found` }, 404);
     }
     return c.json({
       id: vuln.id,
@@ -178,60 +203,66 @@ security.get('/vulnerabilities/:id', rateLimitDefault, async (c) => {
       fixedAt: vuln.fixed_at?.toISOString(),
     });
   } catch (err) {
-    logger.error({ err, id }, 'Failed to get vulnerability');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to get vulnerability' }, 500);
+    logger.error({ err, id }, "Failed to get vulnerability");
+    return c.json({ error: "Internal Server Error", message: "Failed to get vulnerability" }, 500);
   }
 });
 
 // ─── POST /api/v1/security/vulnerabilities/:id/acknowledge ───────────────────
 
-security.post('/vulnerabilities/:id/acknowledge', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
-  const auth = c.get('auth');
+security.post("/vulnerabilities/:id/acknowledge", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
+  const auth = c.get("auth");
 
   try {
     const vuln = await acknowledgeVulnerability(id, auth.userId);
     return c.json({ id: vuln.id, status: vuln.status });
   } catch (err) {
-    logger.error({ err, id }, 'Failed to acknowledge vulnerability');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to acknowledge vulnerability' }, 500);
+    logger.error({ err, id }, "Failed to acknowledge vulnerability");
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to acknowledge vulnerability" },
+      500,
+    );
   }
 });
 
 // ─── POST /api/v1/security/vulnerabilities/:id/fix ───────────────────────────
 
-security.post('/vulnerabilities/:id/fix', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
+security.post("/vulnerabilities/:id/fix", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const vuln = await markVulnerabilityFixed(id);
     return c.json({ id: vuln.id, status: vuln.status });
   } catch (err) {
-    logger.error({ err, id }, 'Failed to mark vulnerability fixed');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to mark fixed' }, 500);
+    logger.error({ err, id }, "Failed to mark vulnerability fixed");
+    return c.json({ error: "Internal Server Error", message: "Failed to mark fixed" }, 500);
   }
 });
 
 // ─── POST /api/v1/security/vulnerabilities/:id/false-positive ────────────────
 
-security.post('/vulnerabilities/:id/false-positive', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
+security.post("/vulnerabilities/:id/false-positive", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const vuln = await markFalsePositive(id);
     return c.json({ id: vuln.id, status: vuln.status });
   } catch (err) {
-    logger.error({ err, id }, 'Failed to mark false positive');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to mark false positive' }, 500);
+    logger.error({ err, id }, "Failed to mark false positive");
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to mark false positive" },
+      500,
+    );
   }
 });
 
 // ─── GET /api/v1/security/bom ────────────────────────────────────────────────
 
-security.get('/bom', rateLimitDefault, async (c) => {
+security.get("/bom", rateLimitDefault, async (c) => {
   const q = BomQuerySchema.safeParse(Object.fromEntries(new URL(c.req.url).searchParams));
   if (!q.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid query parameters' }, 422);
+    return c.json({ error: "Validation Error", message: "Invalid query parameters" }, 422);
   }
 
   try {
@@ -245,9 +276,9 @@ security.get('/bom', rateLimitDefault, async (c) => {
 
     // Fleet-wide BOM summary
     const summaries = await db.bomEntry.groupBy({
-      by: ['ecosystem'],
+      by: ["ecosystem"],
       _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
+      orderBy: { _count: { id: "desc" } },
     });
 
     const totalPackages = summaries.reduce((acc, s) => acc + s._count.id, 0);
@@ -258,18 +289,18 @@ security.get('/bom', rateLimitDefault, async (c) => {
 
     return c.json({ totalPackages, byEcosystem });
   } catch (err) {
-    logger.error({ err }, 'Failed to get BOM data');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to get BOM data' }, 500);
+    logger.error({ err }, "Failed to get BOM data");
+    return c.json({ error: "Internal Server Error", message: "Failed to get BOM data" }, 500);
   }
 });
 
 // ─── POST /api/v1/security/scan/:instanceId ──────────────────────────────────
 // Triggers a BOM scan and CVE detection for an instance.
 
-security.post('/scan/:instanceId', rateLimitStrict, async (c) => {
-  const instanceId = c.req.param('instanceId');
+security.post("/scan/:instanceId", rateLimitStrict, async (c) => {
+  const instanceId = c.req.param("instanceId");
   if (!instanceId || instanceId.length > 128) {
-    return c.json({ error: 'Bad Request', message: 'Invalid instance ID' }, 400);
+    return c.json({ error: "Bad Request", message: "Invalid instance ID" }, 400);
   }
 
   try {
@@ -278,7 +309,7 @@ security.post('/scan/:instanceId', rateLimitStrict, async (c) => {
       select: { id: true, provider: true, name: true },
     });
     if (!instance) {
-      return c.json({ error: 'Not Found', message: `Instance '${instanceId}' not found` }, 404);
+      return c.json({ error: "Not Found", message: `Instance '${instanceId}' not found` }, 404);
     }
 
     // Generate synthetic BOM for demo; in production the agent provides real packages
@@ -293,7 +324,7 @@ security.post('/scan/:instanceId', rateLimitStrict, async (c) => {
     // Save vulnerabilities
     const savedVulns = await saveVulnerabilities(instanceId, detectedVulns);
 
-    logger.info({ instanceId, packages: upserted, vulns: savedVulns }, 'Security scan completed');
+    logger.info({ instanceId, packages: upserted, vulns: savedVulns }, "Security scan completed");
 
     return c.json({
       instanceId,
@@ -304,47 +335,58 @@ security.post('/scan/:instanceId', rateLimitStrict, async (c) => {
       newVulnerabilitiesSaved: savedVulns,
     });
   } catch (err) {
-    logger.error({ err, instanceId }, 'Security scan failed');
-    return c.json({ error: 'Internal Server Error', message: 'Security scan failed' }, 500);
+    logger.error({ err, instanceId }, "Security scan failed");
+    return c.json({ error: "Internal Server Error", message: "Security scan failed" }, 500);
   }
 });
 
 // ─── GET /api/v1/security/secrets ────────────────────────────────────────────
 
-security.get('/secrets', rateLimitDefault, async (c) => {
-  const q = SecretRotationQuerySchema.safeParse(Object.fromEntries(new URL(c.req.url).searchParams));
+security.get("/secrets", rateLimitDefault, async (c) => {
+  const q = SecretRotationQuerySchema.safeParse(
+    Object.fromEntries(new URL(c.req.url).searchParams),
+  );
   if (!q.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid query parameters' }, 422);
+    return c.json({ error: "Validation Error", message: "Invalid query parameters" }, 422);
   }
 
   try {
     const secrets = await listSecretRotations(q.data.instanceId, q.data.overdueOnly);
     return c.json({ secrets, count: secrets.length });
   } catch (err) {
-    logger.error({ err }, 'Failed to list secret rotations');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to list secrets' }, 500);
+    logger.error({ err }, "Failed to list secret rotations");
+    return c.json({ error: "Internal Server Error", message: "Failed to list secrets" }, 500);
   }
 });
 
 // ─── POST /api/v1/security/secrets ───────────────────────────────────────────
 
-security.post('/secrets', rateLimitDefault, async (c) => {
+security.post("/secrets", rateLimitDefault, async (c) => {
   let body: unknown;
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ error: 'Bad Request', message: 'Invalid JSON body' }, 400);
+    return c.json({ error: "Bad Request", message: "Invalid JSON body" }, 400);
   }
 
   const parsed = SecretRotationCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid input', details: parsed.error.flatten() }, 422);
+    return c.json(
+      { error: "Validation Error", message: "Invalid input", details: parsed.error.flatten() },
+      422,
+    );
   }
 
   try {
-    const instance = await db.instance.findUnique({ where: { id: parsed.data.instanceId }, select: { id: true } });
+    const instance = await db.instance.findUnique({
+      where: { id: parsed.data.instanceId },
+      select: { id: true },
+    });
     if (!instance) {
-      return c.json({ error: 'Not Found', message: `Instance '${parsed.data.instanceId}' not found` }, 404);
+      return c.json(
+        { error: "Not Found", message: `Instance '${parsed.data.instanceId}' not found` },
+        404,
+      );
     }
 
     const record = await upsertSecretRotation({
@@ -355,33 +397,51 @@ security.post('/secrets', rateLimitDefault, async (c) => {
       rotationDays: parsed.data.rotationDays,
     });
 
-    return c.json({ id: record.id, instanceId: record.instance_id, secretName: record.secret_name, isOverdue: record.is_overdue }, 201);
+    return c.json(
+      {
+        id: record.id,
+        instanceId: record.instance_id,
+        secretName: record.secret_name,
+        isOverdue: record.is_overdue,
+      },
+      201,
+    );
   } catch (err) {
-    logger.error({ err }, 'Failed to create secret rotation');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to create secret rotation' }, 500);
+    logger.error({ err }, "Failed to create secret rotation");
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to create secret rotation" },
+      500,
+    );
   }
 });
 
 // ─── POST /api/v1/security/secrets/:id/rotate ────────────────────────────────
 
-security.post('/secrets/:id/rotate', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
+security.post("/secrets/:id/rotate", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const record = await markSecretRotated(id);
-    return c.json({ id: record.id, lastRotated: record.last_rotated?.toISOString(), isOverdue: record.is_overdue });
+    return c.json({
+      id: record.id,
+      lastRotated: record.last_rotated?.toISOString(),
+      isOverdue: record.is_overdue,
+    });
   } catch (err) {
-    logger.error({ err, id }, 'Failed to mark secret rotated');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to mark secret rotated' }, 500);
+    logger.error({ err, id }, "Failed to mark secret rotated");
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to mark secret rotated" },
+      500,
+    );
   }
 });
 
 // ─── GET /api/v1/security/ssh-keys ───────────────────────────────────────────
 
-security.get('/ssh-keys', rateLimitDefault, async (c) => {
+security.get("/ssh-keys", rateLimitDefault, async (c) => {
   const q = SshKeyQuerySchema.safeParse(Object.fromEntries(new URL(c.req.url).searchParams));
   if (!q.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid query parameters' }, 422);
+    return c.json({ error: "Validation Error", message: "Invalid query parameters" }, 422);
   }
 
   try {
@@ -391,30 +451,39 @@ security.get('/ssh-keys', rateLimitDefault, async (c) => {
     ]);
     return c.json({ keys, summary, count: keys.length });
   } catch (err) {
-    logger.error({ err }, 'Failed to list SSH keys');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to list SSH keys' }, 500);
+    logger.error({ err }, "Failed to list SSH keys");
+    return c.json({ error: "Internal Server Error", message: "Failed to list SSH keys" }, 500);
   }
 });
 
 // ─── POST /api/v1/security/ssh-keys ──────────────────────────────────────────
 
-security.post('/ssh-keys', rateLimitDefault, async (c) => {
+security.post("/ssh-keys", rateLimitDefault, async (c) => {
   let body: unknown;
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ error: 'Bad Request', message: 'Invalid JSON body' }, 400);
+    return c.json({ error: "Bad Request", message: "Invalid JSON body" }, 400);
   }
 
   const parsed = SshKeyCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json({ error: 'Validation Error', message: 'Invalid input', details: parsed.error.flatten() }, 422);
+    return c.json(
+      { error: "Validation Error", message: "Invalid input", details: parsed.error.flatten() },
+      422,
+    );
   }
 
   try {
-    const instance = await db.instance.findUnique({ where: { id: parsed.data.instanceId }, select: { id: true } });
+    const instance = await db.instance.findUnique({
+      where: { id: parsed.data.instanceId },
+      select: { id: true },
+    });
     if (!instance) {
-      return c.json({ error: 'Not Found', message: `Instance '${parsed.data.instanceId}' not found` }, 404);
+      return c.json(
+        { error: "Not Found", message: `Instance '${parsed.data.instanceId}' not found` },
+        404,
+      );
     }
 
     const key = await upsertSshKey({
@@ -427,67 +496,76 @@ security.post('/ssh-keys', rateLimitDefault, async (c) => {
       lastUsedAt: parsed.data.lastUsedAt,
     });
 
-    return c.json({ id: key.id, instanceId: key.instance_id, fingerprint: key.fingerprint, keyType: key.key_type, status: key.status }, 201);
+    return c.json(
+      {
+        id: key.id,
+        instanceId: key.instance_id,
+        fingerprint: key.fingerprint,
+        keyType: key.key_type,
+        status: key.status,
+      },
+      201,
+    );
   } catch (err) {
-    logger.error({ err }, 'Failed to register SSH key');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to register SSH key' }, 500);
+    logger.error({ err }, "Failed to register SSH key");
+    return c.json({ error: "Internal Server Error", message: "Failed to register SSH key" }, 500);
   }
 });
 
 // ─── POST /api/v1/security/ssh-keys/:id/revoke ───────────────────────────────
 
-security.post('/ssh-keys/:id/revoke', rateLimitDefault, async (c) => {
-  const id = c.req.param('id');
+security.post("/ssh-keys/:id/revoke", rateLimitDefault, async (c) => {
+  const id = c.req.param("id");
 
   try {
     const key = await revokeSshKey(id);
     return c.json({ id: key.id, status: key.status });
   } catch (err) {
-    logger.error({ err, id }, 'Failed to revoke SSH key');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to revoke SSH key' }, 500);
+    logger.error({ err, id }, "Failed to revoke SSH key");
+    return c.json({ error: "Internal Server Error", message: "Failed to revoke SSH key" }, 500);
   }
 });
 
 // ─── GET /api/v1/security/compliance ─────────────────────────────────────────
 
-security.get('/compliance', rateLimitDefault, async (c) => {
-  const instanceId = new URL(c.req.url).searchParams.get('instanceId') ?? undefined;
+security.get("/compliance", rateLimitDefault, async (c) => {
+  const instanceId = new URL(c.req.url).searchParams.get("instanceId") ?? undefined;
 
   try {
     const [summary, overdueSecrets, weakKeys] = await Promise.all([
       getSecuritySummary(instanceId),
       listSecretRotations(instanceId, true),
-      listSshKeys(instanceId, 'ACTIVE').then((keys) => keys.filter((k) => k.isWeak)),
+      listSshKeys(instanceId, "ACTIVE").then((keys) => keys.filter((k) => k.isWeak)),
     ]);
 
     const checks = [
       {
-        id: 'no-critical-vulns',
-        name: 'No Critical Vulnerabilities',
+        id: "no-critical-vulns",
+        name: "No Critical Vulnerabilities",
         passed: summary.bySeverity.CRITICAL === 0,
         details: `${summary.bySeverity.CRITICAL} critical vulnerabilities open`,
       },
       {
-        id: 'no-high-vulns',
-        name: 'No High Vulnerabilities',
+        id: "no-high-vulns",
+        name: "No High Vulnerabilities",
         passed: summary.bySeverity.HIGH === 0,
         details: `${summary.bySeverity.HIGH} high vulnerabilities open`,
       },
       {
-        id: 'secrets-rotated',
-        name: 'All Secrets Rotated on Schedule',
+        id: "secrets-rotated",
+        name: "All Secrets Rotated on Schedule",
         passed: overdueSecrets.length === 0,
         details: `${overdueSecrets.length} secrets overdue for rotation`,
       },
       {
-        id: 'no-weak-ssh',
-        name: 'No Weak SSH Keys',
+        id: "no-weak-ssh",
+        name: "No Weak SSH Keys",
         passed: weakKeys.length === 0,
         details: `${weakKeys.length} weak SSH keys detected (DSA or RSA<2048)`,
       },
       {
-        id: 'ssh-keys-current',
-        name: 'No Expired SSH Keys',
+        id: "ssh-keys-current",
+        name: "No Expired SSH Keys",
         passed: summary.expiredSshKeys === 0,
         details: `${summary.expiredSshKeys} expired SSH keys found`,
       },
@@ -506,8 +584,11 @@ security.get('/compliance', rateLimitDefault, async (c) => {
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {
-    logger.error({ err }, 'Failed to generate compliance report');
-    return c.json({ error: 'Internal Server Error', message: 'Failed to generate compliance report' }, 500);
+    logger.error({ err }, "Failed to generate compliance report");
+    return c.json(
+      { error: "Internal Server Error", message: "Failed to generate compliance report" },
+      500,
+    );
   }
 });
 

@@ -2,8 +2,8 @@
  * Audit log service — records and retrieves user action audit trails.
  */
 
-import type { AuditLog, AuditAction, Prisma } from '@prisma/client';
-import { db } from '../lib/db.js';
+import type { AuditLog, AuditAction, Prisma } from "@prisma/client";
+import { db } from "../lib/db.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Input types
@@ -44,7 +44,7 @@ export async function createAuditLog(input: CreateAuditLogInput): Promise<AuditL
       action: input.action,
       resource: input.resource,
       resource_id: input.resource_id ?? null,
-      metadata: input.metadata as Prisma.InputJsonValue ?? null,
+      metadata: (input.metadata as Prisma.InputJsonValue) ?? null,
       ip_address: input.ip_address ?? null,
       user_agent: input.user_agent ?? null,
     },
@@ -79,7 +79,7 @@ export async function listAuditLogs(filter: ListAuditLogsFilter): Promise<{
       where,
       skip,
       take: pageSize,
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
       include: {
         user: { select: { email: true, name: true } },
       },

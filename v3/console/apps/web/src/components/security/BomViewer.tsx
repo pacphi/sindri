@@ -1,50 +1,59 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import type { BomPackage, BomSummary } from '@/types/security'
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import type { BomPackage, BomSummary } from "@/types/security";
 
 interface Props {
-  packages?: BomPackage[]
-  summary?: BomSummary
-  loading?: boolean
+  packages?: BomPackage[];
+  summary?: BomSummary;
+  loading?: boolean;
 }
 
-function ecosystemColor(eco: string): 'info' | 'warning' | 'success' | 'muted' {
+function ecosystemColor(eco: string): "info" | "warning" | "success" | "muted" {
   switch (eco.toLowerCase()) {
-    case 'npm': return 'info'
-    case 'pypi': return 'warning'
-    case 'go': return 'success'
-    default: return 'muted'
+    case "npm":
+      return "info";
+    case "pypi":
+      return "warning";
+    case "go":
+      return "success";
+    default:
+      return "muted";
   }
 }
 
 export function BomViewer({ packages = [], summary, loading }: Props) {
-  const [search, setSearch] = useState('')
-  const [selectedEco, setSelectedEco] = useState<string | null>(null)
+  const [search, setSearch] = useState("");
+  const [selectedEco, setSelectedEco] = useState<string | null>(null);
 
   if (loading) {
     return (
       <Card>
-        <CardHeader><CardTitle>Bill of Materials</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Bill of Materials</CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-10 bg-muted rounded" />)}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-10 bg-muted rounded" />
+            ))}
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   const ecosystems = summary
     ? Object.keys(summary.byEcosystem)
-    : [...new Set(packages.map((p) => p.ecosystem))]
+    : [...new Set(packages.map((p) => p.ecosystem))];
 
   const filtered = packages.filter((p) => {
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.version.includes(search)
-    const matchEco = !selectedEco || p.ecosystem === selectedEco
-    return matchSearch && matchEco
-  })
+    const matchSearch =
+      !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.version.includes(search);
+    const matchEco = !selectedEco || p.ecosystem === selectedEco;
+    return matchSearch && matchEco;
+  });
 
   return (
     <Card>
@@ -62,7 +71,7 @@ export function BomViewer({ packages = [], summary, loading }: Props) {
           <button
             onClick={() => setSelectedEco(null)}
             className={`text-xs px-2 py-1 rounded-full border transition-colors ${
-              !selectedEco ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+              !selectedEco ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
           >
             All
@@ -72,10 +81,10 @@ export function BomViewer({ packages = [], summary, loading }: Props) {
               key={eco}
               onClick={() => setSelectedEco(eco === selectedEco ? null : eco)}
               className={`text-xs px-2 py-1 rounded-full border transition-colors ${
-                selectedEco === eco ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                selectedEco === eco ? "bg-primary text-primary-foreground" : "hover:bg-muted"
               }`}
             >
-              {eco} {summary?.byEcosystem[eco] ? `(${summary.byEcosystem[eco]})` : ''}
+              {eco} {summary?.byEcosystem[eco] ? `(${summary.byEcosystem[eco]})` : ""}
             </button>
           ))}
         </div>
@@ -90,13 +99,20 @@ export function BomViewer({ packages = [], summary, loading }: Props) {
 
         {/* Package list */}
         {packages.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No BOM data. Run a scan first.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No BOM data. Run a scan first.
+          </p>
         ) : (
           <div className="space-y-1 max-h-80 overflow-y-auto">
             {filtered.slice(0, 100).map((pkg, i) => (
-              <div key={`${pkg.ecosystem}:${pkg.name}:${i}`} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 text-sm">
+              <div
+                key={`${pkg.ecosystem}:${pkg.name}:${i}`}
+                className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 text-sm"
+              >
                 <div className="flex items-center gap-2 min-w-0">
-                  <Badge variant={ecosystemColor(pkg.ecosystem)} className="text-xs shrink-0">{pkg.ecosystem}</Badge>
+                  <Badge variant={ecosystemColor(pkg.ecosystem)} className="text-xs shrink-0">
+                    {pkg.ecosystem}
+                  </Badge>
                   <span className="font-mono truncate">{pkg.name}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -122,5 +138,5 @@ export function BomViewer({ packages = [], summary, loading }: Props) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

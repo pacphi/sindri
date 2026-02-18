@@ -9,7 +9,7 @@ import type {
   ComparisonResult,
   DriftField,
   DriftSeverity,
-} from './types.js';
+} from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public API
@@ -51,9 +51,9 @@ function compareExtensions(
     if (!act) {
       out.push({
         fieldPath: `extensions.${dec.name}.present`,
-        declaredVal: 'true',
-        actualVal: 'false',
-        severity: 'HIGH',
+        declaredVal: "true",
+        actualVal: "false",
+        severity: "HIGH",
         description: `Extension "${dec.name}" is declared but not installed on the instance`,
       });
       continue;
@@ -64,17 +64,17 @@ function compareExtensions(
         fieldPath: `extensions.${dec.name}.version`,
         declaredVal: dec.version,
         actualVal: act.version,
-        severity: 'MEDIUM',
+        severity: "MEDIUM",
         description: `Extension "${dec.name}" version mismatch: declared ${dec.version}, actual ${act.version}`,
       });
     }
 
-    if (dec.enabled === false && act.status !== 'disabled') {
+    if (dec.enabled === false && act.status !== "disabled") {
       out.push({
         fieldPath: `extensions.${dec.name}.enabled`,
-        declaredVal: 'false',
-        actualVal: act.status ?? 'unknown',
-        severity: 'LOW',
+        declaredVal: "false",
+        actualVal: act.status ?? "unknown",
+        severity: "LOW",
         description: `Extension "${dec.name}" is declared disabled but appears active`,
       });
     }
@@ -85,9 +85,9 @@ function compareExtensions(
     if (!declaredMap.has(act.name)) {
       out.push({
         fieldPath: `extensions.${act.name}.present`,
-        declaredVal: 'false',
-        actualVal: 'true',
-        severity: 'LOW',
+        declaredVal: "false",
+        actualVal: "true",
+        severity: "LOW",
         description: `Extension "${act.name}" is running but not declared in configuration`,
       });
     }
@@ -105,21 +105,22 @@ function compareEnv(declared: DeclaredConfig, actual: ActualConfig, out: DriftFi
         fieldPath: `env.${key}`,
         declaredVal,
         actualVal: null,
-        severity: 'HIGH',
+        severity: "HIGH",
         description: `Environment variable "${key}" is declared but not set on the instance`,
       });
     } else if (declaredVal !== actualVal) {
       // Detect if this looks like a secret placeholder vs actual mismatch
-      const looksLikeSecret = key.toLowerCase().includes('secret') ||
-        key.toLowerCase().includes('token') ||
-        key.toLowerCase().includes('password') ||
-        key.toLowerCase().includes('key');
+      const looksLikeSecret =
+        key.toLowerCase().includes("secret") ||
+        key.toLowerCase().includes("token") ||
+        key.toLowerCase().includes("password") ||
+        key.toLowerCase().includes("key");
 
       out.push({
         fieldPath: `env.${key}`,
-        declaredVal: looksLikeSecret ? '<redacted>' : declaredVal,
-        actualVal: looksLikeSecret ? '<redacted>' : actualVal,
-        severity: looksLikeSecret ? 'HIGH' : 'MEDIUM',
+        declaredVal: looksLikeSecret ? "<redacted>" : declaredVal,
+        actualVal: looksLikeSecret ? "<redacted>" : actualVal,
+        severity: looksLikeSecret ? "HIGH" : "MEDIUM",
         description: looksLikeSecret
           ? `Secret env var "${key}" value differs from declaration`
           : `Environment variable "${key}" value differs: declared "${declaredVal}", actual "${actualVal}"`,
@@ -128,11 +129,7 @@ function compareEnv(declared: DeclaredConfig, actual: ActualConfig, out: DriftFi
   }
 }
 
-function compareResources(
-  declared: DeclaredConfig,
-  actual: ActualConfig,
-  out: DriftField[],
-): void {
+function compareResources(declared: DeclaredConfig, actual: ActualConfig, out: DriftField[]): void {
   if (!declared.resources) return;
 
   const decRes = declared.resources;
@@ -141,10 +138,10 @@ function compareResources(
   if (decRes.cpu !== undefined && actRes.cpu_count !== undefined) {
     if (decRes.cpu !== actRes.cpu_count) {
       out.push({
-        fieldPath: 'resources.cpu',
+        fieldPath: "resources.cpu",
         declaredVal: String(decRes.cpu),
         actualVal: String(actRes.cpu_count),
-        severity: 'HIGH',
+        severity: "HIGH",
         description: `CPU allocation mismatch: declared ${decRes.cpu} cores, actual ${actRes.cpu_count} cores`,
       });
     }
@@ -155,10 +152,10 @@ function compareResources(
     const actNorm = normalizeMemory(actRes.memory_total);
     if (decNorm !== actNorm) {
       out.push({
-        fieldPath: 'resources.memory',
+        fieldPath: "resources.memory",
         declaredVal: decRes.memory,
         actualVal: actRes.memory_total,
-        severity: 'MEDIUM',
+        severity: "MEDIUM",
         description: `Memory allocation mismatch: declared ${decRes.memory}, actual ${actRes.memory_total}`,
       });
     }
@@ -171,10 +168,10 @@ function compareNetwork(declared: DeclaredConfig, actual: ActualConfig, out: Dri
 
   if (decNet.hostname && actNet.hostname && decNet.hostname !== actNet.hostname) {
     out.push({
-      fieldPath: 'network.hostname',
+      fieldPath: "network.hostname",
       declaredVal: decNet.hostname,
       actualVal: actNet.hostname,
-      severity: 'MEDIUM',
+      severity: "MEDIUM",
       description: `Hostname mismatch: declared "${decNet.hostname}", actual "${actNet.hostname}"`,
     });
   }
@@ -187,7 +184,7 @@ function compareNetwork(declared: DeclaredConfig, actual: ActualConfig, out: Dri
           fieldPath: `network.ports.${port}`,
           declaredVal: String(port),
           actualVal: null,
-          severity: 'HIGH',
+          severity: "HIGH",
           description: `Port ${port} is declared but not open on the instance`,
         });
       }
@@ -195,27 +192,23 @@ function compareNetwork(declared: DeclaredConfig, actual: ActualConfig, out: Dri
   }
 }
 
-function compareTopLevel(
-  declared: DeclaredConfig,
-  actual: ActualConfig,
-  out: DriftField[],
-): void {
+function compareTopLevel(declared: DeclaredConfig, actual: ActualConfig, out: DriftField[]): void {
   if (declared.provider && actual.provider && declared.provider !== actual.provider) {
     out.push({
-      fieldPath: 'provider',
+      fieldPath: "provider",
       declaredVal: declared.provider,
       actualVal: actual.provider,
-      severity: 'CRITICAL',
+      severity: "CRITICAL",
       description: `Provider mismatch: declared "${declared.provider}", actual "${actual.provider}"`,
     });
   }
 
   if (declared.region && actual.region && declared.region !== actual.region) {
     out.push({
-      fieldPath: 'region',
+      fieldPath: "region",
       declaredVal: declared.region,
       actualVal: actual.region,
-      severity: 'HIGH',
+      severity: "HIGH",
       description: `Region mismatch: declared "${declared.region}", actual "${actual.region}"`,
     });
   }
@@ -231,20 +224,20 @@ function normalizeMemory(value: string): number {
   const num = parseFloat(lower);
   if (Number.isNaN(num)) return 0;
 
-  if (lower.endsWith('gi') || lower.endsWith('gib')) return Math.round(num * 1024 ** 3);
-  if (lower.endsWith('gb')) return Math.round(num * 1000 ** 3);
-  if (lower.endsWith('mi') || lower.endsWith('mib')) return Math.round(num * 1024 ** 2);
-  if (lower.endsWith('mb')) return Math.round(num * 1000 ** 2);
-  if (lower.endsWith('ki') || lower.endsWith('kib')) return Math.round(num * 1024);
-  if (lower.endsWith('kb')) return Math.round(num * 1000);
+  if (lower.endsWith("gi") || lower.endsWith("gib")) return Math.round(num * 1024 ** 3);
+  if (lower.endsWith("gb")) return Math.round(num * 1000 ** 3);
+  if (lower.endsWith("mi") || lower.endsWith("mib")) return Math.round(num * 1024 ** 2);
+  if (lower.endsWith("mb")) return Math.round(num * 1000 ** 2);
+  if (lower.endsWith("ki") || lower.endsWith("kib")) return Math.round(num * 1024);
+  if (lower.endsWith("kb")) return Math.round(num * 1000);
   return Math.round(num);
 }
 
 export function maxSeverity(fields: DriftField[]): DriftSeverity {
   const rank: Record<DriftSeverity, number> = { CRITICAL: 3, HIGH: 2, MEDIUM: 1, LOW: 0 };
-  if (fields.length === 0) return 'LOW';
+  if (fields.length === 0) return "LOW";
   return fields.reduce<DriftSeverity>(
     (max, f) => (rank[f.severity] > rank[max] ? f.severity : max),
-    'LOW',
+    "LOW",
   );
 }

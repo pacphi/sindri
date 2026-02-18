@@ -1,61 +1,61 @@
-import { useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { Terminal, FileCode, List, Play, Loader2, Settings2 } from 'lucide-react'
-import { dispatchCommand, dispatchBulkCommand, dispatchScript } from '@/api/commands'
-import type { BulkCommandResult, CommandExecution } from '@/types/command'
-import { CommandEditor } from './CommandEditor'
-import { ScriptUpload } from './ScriptUpload'
-import { CommandOutput } from './CommandOutput'
-import { CommandHistory } from './CommandHistory'
-import { InstanceSelector } from './InstanceSelector'
-import { OutputAggregator } from './OutputAggregator'
-import { cn } from '@/lib/utils'
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Terminal, FileCode, List, Play, Loader2, Settings2 } from "lucide-react";
+import { dispatchCommand, dispatchBulkCommand, dispatchScript } from "@/api/commands";
+import type { BulkCommandResult, CommandExecution } from "@/types/command";
+import { CommandEditor } from "./CommandEditor";
+import { ScriptUpload } from "./ScriptUpload";
+import { CommandOutput } from "./CommandOutput";
+import { CommandHistory } from "./CommandHistory";
+import { InstanceSelector } from "./InstanceSelector";
+import { OutputAggregator } from "./OutputAggregator";
+import { cn } from "@/lib/utils";
 
 // Fetch instances for the selector
 async function fetchInstances() {
-  const response = await fetch('/api/v1/instances?pageSize=100')
-  if (!response.ok) throw new Error('Failed to fetch instances')
-  const data = await response.json() as { instances: import('@/types/instance').Instance[] }
-  return data.instances
+  const response = await fetch("/api/v1/instances?pageSize=100");
+  if (!response.ok) throw new Error("Failed to fetch instances");
+  const data = (await response.json()) as { instances: import("@/types/instance").Instance[] };
+  return data.instances;
 }
 
-type Tab = 'command' | 'script' | 'history'
+type Tab = "command" | "script" | "history";
 
 interface EnvEntry {
-  key: string
-  value: string
+  key: string;
+  value: string;
 }
 
 export function CommandDispatch() {
-  const [activeTab, setActiveTab] = useState<Tab>('command')
+  const [activeTab, setActiveTab] = useState<Tab>("command");
 
   // Command state
-  const [command, setCommand] = useState('')
-  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([])
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [workingDir, setWorkingDir] = useState('')
-  const [timeoutMs, setTimeoutMs] = useState(30_000)
-  const [envEntries, setEnvEntries] = useState<EnvEntry[]>([])
+  const [command, setCommand] = useState("");
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [workingDir, setWorkingDir] = useState("");
+  const [timeoutMs, setTimeoutMs] = useState(30_000);
+  const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
 
   // Script state
-  const [script, setScript] = useState('')
-  const [interpreter, setInterpreter] = useState('/bin/bash')
-  const [scriptInstanceIds, setScriptInstanceIds] = useState<string[]>([])
+  const [script, setScript] = useState("");
+  const [interpreter, setInterpreter] = useState("/bin/bash");
+  const [scriptInstanceIds, setScriptInstanceIds] = useState<string[]>([]);
 
   // Results
-  const [singleResult, setSingleResult] = useState<CommandExecution | null>(null)
-  const [bulkResults, setBulkResults] = useState<BulkCommandResult[] | null>(null)
+  const [singleResult, setSingleResult] = useState<CommandExecution | null>(null);
+  const [bulkResults, setBulkResults] = useState<BulkCommandResult[] | null>(null);
 
   const { data: instances = [] } = useQuery({
-    queryKey: ['instances', 'all'],
+    queryKey: ["instances", "all"],
     queryFn: fetchInstances,
     staleTime: 30_000,
-  })
+  });
 
   const env = envEntries.reduce<Record<string, string>>((acc, e) => {
-    if (e.key.trim()) acc[e.key.trim()] = e.value
-    return acc
-  }, {})
+    if (e.key.trim()) acc[e.key.trim()] = e.value;
+    return acc;
+  }, {});
 
   const singleDispatch = useMutation({
     mutationFn: () =>
@@ -67,10 +67,10 @@ export function CommandDispatch() {
         timeoutMs,
       }),
     onSuccess: (data) => {
-      setSingleResult(data)
-      setBulkResults(null)
+      setSingleResult(data);
+      setBulkResults(null);
     },
-  })
+  });
 
   const bulkDispatch = useMutation({
     mutationFn: () =>
@@ -82,10 +82,10 @@ export function CommandDispatch() {
         timeoutMs,
       }),
     onSuccess: (data) => {
-      setBulkResults(data.results)
-      setSingleResult(null)
+      setBulkResults(data.results);
+      setSingleResult(null);
     },
-  })
+  });
 
   const scriptDispatch = useMutation({
     mutationFn: () =>
@@ -96,44 +96,44 @@ export function CommandDispatch() {
         timeoutMs,
       }),
     onSuccess: (data) => {
-      setBulkResults(data.results)
-      setSingleResult(null)
+      setBulkResults(data.results);
+      setSingleResult(null);
     },
-  })
+  });
 
   function handleRun() {
-    if (activeTab === 'command') {
+    if (activeTab === "command") {
       if (selectedInstanceIds.length === 1) {
-        singleDispatch.mutate()
+        singleDispatch.mutate();
       } else {
-        bulkDispatch.mutate()
+        bulkDispatch.mutate();
       }
-    } else if (activeTab === 'script') {
-      scriptDispatch.mutate()
+    } else if (activeTab === "script") {
+      scriptDispatch.mutate();
     }
   }
 
-  const currentInstanceIds = activeTab === 'script' ? scriptInstanceIds : selectedInstanceIds
+  const currentInstanceIds = activeTab === "script" ? scriptInstanceIds : selectedInstanceIds;
   const canRun =
-    activeTab === 'history'
+    activeTab === "history"
       ? false
-      : activeTab === 'command'
+      : activeTab === "command"
         ? command.trim().length > 0 && selectedInstanceIds.length > 0
-        : script.trim().length > 0 && scriptInstanceIds.length > 0
+        : script.trim().length > 0 && scriptInstanceIds.length > 0;
 
-  const isRunning = singleDispatch.isPending || bulkDispatch.isPending || scriptDispatch.isPending
-  const runError = singleDispatch.error ?? bulkDispatch.error ?? scriptDispatch.error
+  const isRunning = singleDispatch.isPending || bulkDispatch.isPending || scriptDispatch.isPending;
+  const runError = singleDispatch.error ?? bulkDispatch.error ?? scriptDispatch.error;
 
   function addEnvEntry() {
-    setEnvEntries((e) => [...e, { key: '', value: '' }])
+    setEnvEntries((e) => [...e, { key: "", value: "" }]);
   }
 
   function removeEnvEntry(index: number) {
-    setEnvEntries((e) => e.filter((_, i) => i !== index))
+    setEnvEntries((e) => e.filter((_, i) => i !== index));
   }
 
-  function updateEnvEntry(index: number, field: 'key' | 'value', val: string) {
-    setEnvEntries((e) => e.map((entry, i) => (i === index ? { ...entry, [field]: val } : entry)))
+  function updateEnvEntry(index: number, field: "key" | "value", val: string) {
+    setEnvEntries((e) => e.map((entry, i) => (i === index ? { ...entry, [field]: val } : entry)));
   }
 
   return (
@@ -142,9 +142,9 @@ export function CommandDispatch() {
       <div className="flex items-center gap-1 border-b pb-0">
         {(
           [
-            { id: 'command', label: 'Command', Icon: Terminal },
-            { id: 'script', label: 'Script', Icon: FileCode },
-            { id: 'history', label: 'History', Icon: List },
+            { id: "command", label: "Command", Icon: Terminal },
+            { id: "script", label: "Script", Icon: FileCode },
+            { id: "history", label: "History", Icon: List },
           ] as { id: Tab; label: string; Icon: React.ElementType }[]
         ).map(({ id, label, Icon }) => (
           <button
@@ -152,10 +152,10 @@ export function CommandDispatch() {
             type="button"
             onClick={() => setActiveTab(id)}
             className={cn(
-              'flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+              "flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
               activeTab === id
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
             <Icon className="h-4 w-4" />
@@ -165,7 +165,7 @@ export function CommandDispatch() {
       </div>
 
       {/* Command tab */}
-      {activeTab === 'command' && (
+      {activeTab === "command" && (
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -181,8 +181,7 @@ export function CommandDispatch() {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Command{' '}
-              <span className="text-muted-foreground/60">(Ctrl+Enter to run)</span>
+              Command <span className="text-muted-foreground/60">(Ctrl+Enter to run)</span>
             </label>
             <CommandEditor
               value={command}
@@ -200,7 +199,7 @@ export function CommandDispatch() {
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Settings2 className="h-3.5 w-3.5" />
-            {showAdvanced ? 'Hide' : 'Show'} advanced options
+            {showAdvanced ? "Hide" : "Show"} advanced options
           </button>
 
           {showAdvanced && (
@@ -254,14 +253,14 @@ export function CommandDispatch() {
                     <input
                       placeholder="KEY"
                       value={entry.key}
-                      onChange={(e) => updateEnvEntry(i, 'key', e.target.value)}
+                      onChange={(e) => updateEnvEntry(i, "key", e.target.value)}
                       className="w-1/3 rounded border border-input bg-background px-2 py-1 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                     <span className="text-muted-foreground">=</span>
                     <input
                       placeholder="value"
                       value={entry.value}
-                      onChange={(e) => updateEnvEntry(i, 'value', e.target.value)}
+                      onChange={(e) => updateEnvEntry(i, "value", e.target.value)}
                       className="flex-1 rounded border border-input bg-background px-2 py-1 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                     <button
@@ -280,7 +279,7 @@ export function CommandDispatch() {
       )}
 
       {/* Script tab */}
-      {activeTab === 'script' && (
+      {activeTab === "script" && (
         <div className="space-y-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -304,7 +303,7 @@ export function CommandDispatch() {
       )}
 
       {/* Run button (not shown in history tab) */}
-      {activeTab !== 'history' && (
+      {activeTab !== "history" && (
         <div className="flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
             {currentInstanceIds.length > 0 ? (
@@ -318,10 +317,10 @@ export function CommandDispatch() {
             onClick={handleRun}
             disabled={!canRun || isRunning}
             className={cn(
-              'flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium',
-              'bg-primary text-primary-foreground hover:bg-primary/90',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             )}
           >
             {isRunning ? (
@@ -329,7 +328,7 @@ export function CommandDispatch() {
             ) : (
               <Play className="h-4 w-4" />
             )}
-            {isRunning ? 'Running...' : 'Run'}
+            {isRunning ? "Running..." : "Run"}
           </button>
         </div>
       )}
@@ -342,21 +341,14 @@ export function CommandDispatch() {
       )}
 
       {/* Results */}
-      {singleResult && activeTab !== 'history' && (
-        <CommandOutput execution={singleResult} />
-      )}
+      {singleResult && activeTab !== "history" && <CommandOutput execution={singleResult} />}
 
-      {bulkResults && activeTab !== 'history' && (
-        <OutputAggregator
-          results={bulkResults}
-          instances={instances}
-        />
+      {bulkResults && activeTab !== "history" && (
+        <OutputAggregator results={bulkResults} instances={instances} />
       )}
 
       {/* History tab */}
-      {activeTab === 'history' && (
-        <CommandHistory />
-      )}
+      {activeTab === "history" && <CommandHistory />}
     </div>
-  )
+  );
 }

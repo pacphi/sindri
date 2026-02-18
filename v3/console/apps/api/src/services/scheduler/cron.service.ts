@@ -6,8 +6,8 @@
  * (BullMQ) would replace this, but this keeps the footprint minimal.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cron parsing helpers (simplified 5-field cron: min hour dom month dow)
@@ -18,26 +18,26 @@ interface CronField {
 }
 
 function parseCronField(field: string, min: number, max: number): CronField {
-  if (field === '*') {
+  if (field === "*") {
     const values: number[] = [];
     for (let i = min; i <= max; i++) values.push(i);
     return { values };
   }
 
-  if (field.startsWith('*/')) {
+  if (field.startsWith("*/")) {
     const step = parseInt(field.slice(2), 10);
     const values: number[] = [];
     for (let i = min; i <= max; i += step) values.push(i);
     return { values };
   }
 
-  if (field.includes(',')) {
-    const values = field.split(',').map((v) => parseInt(v.trim(), 10));
+  if (field.includes(",")) {
+    const values = field.split(",").map((v) => parseInt(v.trim(), 10));
     return { values };
   }
 
-  if (field.includes('-')) {
-    const [start, end] = field.split('-').map((v) => parseInt(v.trim(), 10));
+  if (field.includes("-")) {
+    const [start, end] = field.split("-").map((v) => parseInt(v.trim(), 10));
     const values: number[] = [];
     for (let i = start; i <= end; i++) values.push(i);
     return { values };
@@ -50,7 +50,9 @@ function parseCronField(field: string, min: number, max: number): CronField {
  * Parse a 5-field cron expression into its components.
  * Returns null if the expression is invalid.
  */
-export function parseCron(expr: string): { minute: CronField; hour: CronField; dom: CronField; month: CronField; dow: CronField } | null {
+export function parseCron(
+  expr: string,
+): { minute: CronField; hour: CronField; dom: CronField; month: CronField; dow: CronField } | null {
   const parts = expr.trim().split(/\s+/);
   if (parts.length !== 5) return null;
 
@@ -131,7 +133,7 @@ class CronScheduler {
     this.started = true;
     // Check every minute
     this.timer = setInterval(() => void this.tick(), 60_000);
-    logger.info('Cron scheduler started');
+    logger.info("Cron scheduler started");
   }
 
   stop(): void {
@@ -140,10 +142,10 @@ class CronScheduler {
       this.timer = null;
     }
     this.started = false;
-    logger.info('Cron scheduler stopped');
+    logger.info("Cron scheduler stopped");
   }
 
-  register(taskId: string, cron: string, timezone: string = 'UTC'): void {
+  register(taskId: string, cron: string, timezone: string = "UTC"): void {
     this.jobs.set(taskId, { taskId, cron, timezone });
   }
 
@@ -151,7 +153,7 @@ class CronScheduler {
     this.jobs.delete(taskId);
   }
 
-  getNextRunDate(cron: string, _timezone: string = 'UTC'): Date | null {
+  getNextRunDate(cron: string, _timezone: string = "UTC"): Date | null {
     return getNextDate(cron);
   }
 
@@ -164,14 +166,14 @@ class CronScheduler {
     try {
       await db.taskExecution.update({
         where: { id: executionId },
-        data: { status: 'RUNNING', started_at: startedAt },
+        data: { status: "RUNNING", started_at: startedAt },
       });
 
       // In production, this would dispatch to the instance agent via WebSocket/command.
       // For now we simulate command dispatch and record a success.
       logger.info(
         { taskId, executionId, command: task.command, instanceId: task.instance_id },
-        'Executing scheduled task command',
+        "Executing scheduled task command",
       );
 
       // Simulate dispatch latency
@@ -183,7 +185,7 @@ class CronScheduler {
       await db.taskExecution.update({
         where: { id: executionId },
         data: {
-          status: 'SUCCESS',
+          status: "SUCCESS",
           finished_at: finishedAt,
           duration_ms: durationMs,
           exit_code: 0,
@@ -200,18 +202,20 @@ class CronScheduler {
       });
     } catch (err) {
       const finishedAt = new Date();
-      await db.taskExecution.update({
-        where: { id: executionId },
-        data: {
-          status: 'FAILED',
-          finished_at: finishedAt,
-          duration_ms: finishedAt.getTime() - startedAt.getTime(),
-          exit_code: 1,
-          stderr: err instanceof Error ? err.message : String(err),
-        },
-      }).catch(() => {});
+      await db.taskExecution
+        .update({
+          where: { id: executionId },
+          data: {
+            status: "FAILED",
+            finished_at: finishedAt,
+            duration_ms: finishedAt.getTime() - startedAt.getTime(),
+            exit_code: 1,
+            stderr: err instanceof Error ? err.message : String(err),
+          },
+        })
+        .catch(() => {});
 
-      logger.error({ err, taskId, executionId }, 'Scheduled task execution failed');
+      logger.error({ err, taskId, executionId }, "Scheduled task execution failed");
     }
   }
 
@@ -221,7 +225,7 @@ class CronScheduler {
     // Find all ACTIVE tasks whose next_run_at is <= now
     const dueTasks = await db.scheduledTask.findMany({
       where: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         next_run_at: { lte: now },
       },
     });
@@ -231,13 +235,13 @@ class CronScheduler {
         data: {
           task_id: task.id,
           instance_id: task.instance_id,
-          status: 'PENDING',
-          triggered_by: 'scheduler',
+          status: "PENDING",
+          triggered_by: "scheduler",
         },
       });
 
       this.executeTask(task.id, execution.id).catch((err) =>
-        logger.error({ err, taskId: task.id }, 'Cron tick execution error'),
+        logger.error({ err, taskId: task.id }, "Cron tick execution error"),
       );
     }
   }
@@ -247,7 +251,7 @@ class CronScheduler {
    */
   async loadFromDatabase(): Promise<void> {
     const tasks = await db.scheduledTask.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: "ACTIVE" },
       select: { id: true, cron: true, timezone: true },
     });
 
@@ -255,7 +259,7 @@ class CronScheduler {
       this.register(t.id, t.cron, t.timezone);
     }
 
-    logger.info({ count: tasks.length }, 'Loaded scheduled tasks from database');
+    logger.info({ count: tasks.length }, "Loaded scheduled tasks from database");
   }
 }
 

@@ -5,29 +5,29 @@
  * pause/resume, and listing execution history.
  */
 
-import { db } from '../../lib/db.js';
-import { logger } from '../../lib/logger.js';
-import { cronScheduler } from './cron.service.js';
+import { db } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
+import { cronScheduler } from "./cron.service.js";
 import type {
   CreateTaskInput,
   UpdateTaskInput,
   ListTasksFilter,
   ListExecutionsFilter,
-} from './types.js';
+} from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Task CRUD
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function createTask(input: CreateTaskInput) {
-  const nextRun = cronScheduler.getNextRunDate(input.cron, input.timezone ?? 'UTC');
+  const nextRun = cronScheduler.getNextRunDate(input.cron, input.timezone ?? "UTC");
 
   const task = await db.scheduledTask.create({
     data: {
       name: input.name,
       description: input.description ?? null,
       cron: input.cron,
-      timezone: input.timezone ?? 'UTC',
+      timezone: input.timezone ?? "UTC",
       command: input.command,
       instance_id: input.instanceId ?? null,
       template: input.template ?? null,
@@ -38,13 +38,13 @@ export async function createTask(input: CreateTaskInput) {
       notify_emails: input.notifyEmails ?? [],
       next_run_at: nextRun,
       created_by: input.createdBy ?? null,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     },
   });
 
   cronScheduler.register(task.id, task.cron, task.timezone);
 
-  logger.info({ taskId: task.id, name: task.name, cron: task.cron }, 'Scheduled task created');
+  logger.info({ taskId: task.id, name: task.name, cron: task.cron }, "Scheduled task created");
   return task;
 }
 
@@ -62,7 +62,7 @@ export async function listTasks(filter: ListTasksFilter = {}) {
       where,
       skip,
       take: pageSize,
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
     }),
     db.scheduledTask.count({ where }),
   ]);
@@ -114,7 +114,7 @@ export async function updateTask(id: string, input: UpdateTaskInput) {
     cronScheduler.register(id, newCron, newTimezone);
   }
 
-  logger.info({ taskId: id }, 'Scheduled task updated');
+  logger.info({ taskId: id }, "Scheduled task updated");
   return task;
 }
 
@@ -125,39 +125,39 @@ export async function deleteTask(id: string) {
   cronScheduler.unregister(id);
 
   await db.scheduledTask.delete({ where: { id } });
-  logger.info({ taskId: id, name: existing.name }, 'Scheduled task deleted');
+  logger.info({ taskId: id, name: existing.name }, "Scheduled task deleted");
   return existing;
 }
 
 export async function pauseTask(id: string) {
   const existing = await db.scheduledTask.findUnique({ where: { id } });
   if (!existing) return null;
-  if (existing.status === 'PAUSED') return existing;
+  if (existing.status === "PAUSED") return existing;
 
   const task = await db.scheduledTask.update({
     where: { id },
-    data: { status: 'PAUSED', updated_at: new Date() },
+    data: { status: "PAUSED", updated_at: new Date() },
   });
 
   cronScheduler.unregister(id);
-  logger.info({ taskId: id }, 'Scheduled task paused');
+  logger.info({ taskId: id }, "Scheduled task paused");
   return task;
 }
 
 export async function resumeTask(id: string) {
   const existing = await db.scheduledTask.findUnique({ where: { id } });
   if (!existing) return null;
-  if (existing.status === 'ACTIVE') return existing;
+  if (existing.status === "ACTIVE") return existing;
 
   const nextRun = cronScheduler.getNextRunDate(existing.cron, existing.timezone);
 
   const task = await db.scheduledTask.update({
     where: { id },
-    data: { status: 'ACTIVE', next_run_at: nextRun, updated_at: new Date() },
+    data: { status: "ACTIVE", next_run_at: nextRun, updated_at: new Date() },
   });
 
   cronScheduler.register(id, existing.cron, existing.timezone);
-  logger.info({ taskId: id }, 'Scheduled task resumed');
+  logger.info({ taskId: id }, "Scheduled task resumed");
   return task;
 }
 
@@ -169,15 +169,17 @@ export async function triggerTask(id: string) {
     data: {
       task_id: id,
       instance_id: existing.instance_id,
-      status: 'PENDING',
-      triggered_by: 'manual',
+      status: "PENDING",
+      triggered_by: "manual",
     },
   });
 
   // Fire-and-forget execution
-  cronScheduler.executeTask(id, execution.id).catch((err) =>
-    logger.error({ err, taskId: id, executionId: execution.id }, 'Manual task execution failed'),
-  );
+  cronScheduler
+    .executeTask(id, execution.id)
+    .catch((err) =>
+      logger.error({ err, taskId: id, executionId: execution.id }, "Manual task execution failed"),
+    );
 
   return execution;
 }
@@ -199,7 +201,7 @@ export async function listExecutions(filter: ListExecutionsFilter) {
       where,
       skip,
       take: pageSize,
-      orderBy: { started_at: 'desc' },
+      orderBy: { started_at: "desc" },
     }),
     db.taskExecution.count({ where }),
   ]);

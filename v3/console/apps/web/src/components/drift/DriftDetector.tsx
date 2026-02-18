@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   GitCompare,
   AlertTriangle,
@@ -6,17 +6,17 @@ import {
   RefreshCw,
   Server,
   ShieldAlert,
-} from 'lucide-react';
-import { useDriftSummary, useDriftEvents, useTriggerDriftCheck } from '@/hooks/useDrift';
-import { DriftAlert } from './DriftAlert';
-import { ConfigHistory } from './ConfigHistory';
-import { SecretsVault } from './SecretsVault';
-import type { DriftSeverity } from '@/types/drift';
+} from "lucide-react";
+import { useDriftSummary, useDriftEvents, useTriggerDriftCheck } from "@/hooks/useDrift";
+import { DriftAlert } from "./DriftAlert";
+import { ConfigHistory } from "./ConfigHistory";
+import { SecretsVault } from "./SecretsVault";
+import type { DriftSeverity } from "@/types/drift";
 
-type Tab = 'overview' | 'events' | 'history' | 'secrets';
+type Tab = "overview" | "events" | "history" | "secrets";
 
 export function DriftDetector() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [eventsPage] = useState(1);
   const [eventsFilter] = useState({ resolved: false });
 
@@ -30,10 +30,10 @@ export function DriftDetector() {
   const highCount = summary?.bySeverity?.HIGH ?? 0;
 
   const tabs: Array<{ id: Tab; label: string; count?: number }> = [
-    { id: 'overview', label: 'Overview', count: unresolvedCount || undefined },
-    { id: 'events', label: 'Drift Events', count: unresolvedCount || undefined },
-    { id: 'history', label: 'Config History' },
-    { id: 'secrets', label: 'Secrets Vault' },
+    { id: "overview", label: "Overview", count: unresolvedCount || undefined },
+    { id: "events", label: "Drift Events", count: unresolvedCount || undefined },
+    { id: "history", label: "Config History" },
+    { id: "secrets", label: "Secrets Vault" },
   ];
 
   return (
@@ -80,7 +80,7 @@ export function DriftDetector() {
         <SummaryCard
           icon={<CheckCircle className="h-5 w-5 text-green-400" />}
           label="Clean Instances"
-          value={(summary?.byStatus?.CLEAN ?? 0)}
+          value={summary?.byStatus?.CLEAN ?? 0}
           colorClass="border-green-400/20 bg-green-400/5"
         />
       </div>
@@ -94,8 +94,8 @@ export function DriftDetector() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'border-indigo-500 text-white'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? "border-indigo-500 text-white"
+                  : "border-transparent text-gray-400 hover:text-gray-300"
               }`}
             >
               {tab.label}
@@ -110,7 +110,7 @@ export function DriftDetector() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <OverviewTab
           summary={summary}
           recentEvents={eventsData?.events.slice(0, 5) ?? []}
@@ -123,7 +123,7 @@ export function DriftDetector() {
         />
       )}
 
-      {activeTab === 'events' && (
+      {activeTab === "events" && (
         <EventsTab
           events={eventsData?.events ?? []}
           isLoading={eventsLoading}
@@ -131,8 +131,8 @@ export function DriftDetector() {
         />
       )}
 
-      {activeTab === 'history' && <ConfigHistory />}
-      {activeTab === 'secrets' && <SecretsVault />}
+      {activeTab === "history" && <ConfigHistory />}
+      {activeTab === "secrets" && <SecretsVault />}
     </div>
   );
 }
@@ -167,16 +167,16 @@ function OverviewTab({
   onTriggerCheck: _onTriggerCheck,
   isTriggeringCheck: _isTriggeringCheck,
 }: {
-  summary: ReturnType<typeof useDriftSummary>['data'];
-  recentEvents: Parameters<typeof DriftAlert>[0]['event'][];
+  summary: ReturnType<typeof useDriftSummary>["data"];
+  recentEvents: Parameters<typeof DriftAlert>[0]["event"][];
   onTriggerCheck: (instanceId: string) => void;
   isTriggeringCheck: boolean;
 }) {
   const severityColors: Record<DriftSeverity, string> = {
-    CRITICAL: 'bg-red-400',
-    HIGH: 'bg-orange-400',
-    MEDIUM: 'bg-yellow-400',
-    LOW: 'bg-blue-400',
+    CRITICAL: "bg-red-400",
+    HIGH: "bg-orange-400",
+    MEDIUM: "bg-yellow-400",
+    LOW: "bg-blue-400",
   };
 
   const bySeverity = summary?.bySeverity ?? {};
@@ -252,12 +252,12 @@ function OverviewTab({
 
 function StatusDot({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    CLEAN: 'bg-green-400',
-    DRIFTED: 'bg-yellow-400',
-    UNKNOWN: 'bg-gray-400',
-    ERROR: 'bg-red-400',
+    CLEAN: "bg-green-400",
+    DRIFTED: "bg-yellow-400",
+    UNKNOWN: "bg-gray-400",
+    ERROR: "bg-red-400",
   };
-  return <div className={`h-2 w-2 rounded-full ${colors[status] ?? 'bg-gray-400'}`} />;
+  return <div className={`h-2 w-2 rounded-full ${colors[status] ?? "bg-gray-400"}`} />;
 }
 
 function EventsTab({
@@ -265,7 +265,7 @@ function EventsTab({
   isLoading,
   total,
 }: {
-  events: Parameters<typeof DriftAlert>[0]['event'][];
+  events: Parameters<typeof DriftAlert>[0]["event"][];
   isLoading: boolean;
   total: number;
 }) {
@@ -278,16 +278,16 @@ function EventsTab({
       <div className="rounded-lg border border-dashed border-gray-700 py-12 text-center">
         <ShieldAlert className="mx-auto mb-3 h-8 w-8 text-gray-600" />
         <p className="text-gray-400">No unresolved drift events</p>
-        <p className="mt-1 text-sm text-gray-600">
-          All configurations match their declared state
-        </p>
+        <p className="mt-1 text-sm text-gray-600">All configurations match their declared state</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">{total} unresolved drift event{total !== 1 ? 's' : ''}</p>
+      <p className="text-sm text-gray-500">
+        {total} unresolved drift event{total !== 1 ? "s" : ""}
+      </p>
       {events.map((event) => (
         <DriftAlert key={event.id} event={event} />
       ))}

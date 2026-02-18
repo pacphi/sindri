@@ -48,10 +48,13 @@ function connectAgent(instanceId: string): Promise<WebSocket> {
 function waitForMessage<T>(
   ws: WebSocket,
   predicate: (msg: Envelope<T>) => boolean,
-  timeoutMs = 5000
+  timeoutMs = 5000,
 ): Promise<Envelope<T>> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`No matching message in ${timeoutMs}ms`)), timeoutMs);
+    const timer = setTimeout(
+      () => reject(new Error(`No matching message in ${timeoutMs}ms`)),
+      timeoutMs,
+    );
 
     const handler = (raw: Buffer | string) => {
       try {
@@ -100,7 +103,7 @@ describe("Instance List Real-Time Updates", () => {
     it("client receives heartbeat when agent sends ping", async () => {
       const heartbeatPromise = waitForMessage<{ instanceId: string }>(
         clientWs,
-        (msg) => msg.type === "heartbeat:ping" || msg.channel === "heartbeat"
+        (msg) => msg.type === "heartbeat:ping" || msg.channel === "heartbeat",
       );
 
       agentWs.send(
@@ -110,7 +113,7 @@ describe("Instance List Real-Time Updates", () => {
           instanceId: INSTANCE_ID,
           ts: Date.now(),
           data: { agentVersion: "0.1.0", uptime: 300 },
-        })
+        }),
       );
 
       const msg = await heartbeatPromise;
@@ -120,7 +123,10 @@ describe("Instance List Real-Time Updates", () => {
 
   describe("Metrics broadcasts", () => {
     it("client receives metrics update when agent reports metrics", async () => {
-      const metricsPromise = waitForMessage<MetricsPayload>(clientWs, (msg) => msg.type === "metrics:update");
+      const metricsPromise = waitForMessage<MetricsPayload>(
+        clientWs,
+        (msg) => msg.type === "metrics:update",
+      );
 
       agentWs.send(
         JSON.stringify({
@@ -140,7 +146,7 @@ describe("Instance List Real-Time Updates", () => {
             networkBytesOut: 25000,
             processCount: 15,
           },
-        })
+        }),
       );
 
       const msg = await metricsPromise;
@@ -160,7 +166,7 @@ describe("Instance List Real-Time Updates", () => {
           instanceId: INSTANCE_ID,
           ts: Date.now(),
           data: { eventType: "heartbeat:lost", metadata: { lastSeen: Date.now() - 35000 } },
-        })
+        }),
       );
 
       const msg = await eventPromise;
@@ -176,7 +182,9 @@ describe("Instance List Real-Time Updates", () => {
       const instanceRes = await fetch(`${BASE_URL}/api/v1/instances`, {
         headers: { "X-API-Key": API_KEY },
       });
-      const { instances } = (await instanceRes.json()) as { instances: Array<{ id: string; name: string }> };
+      const { instances } = (await instanceRes.json()) as {
+        instances: Array<{ id: string; name: string }>;
+      };
       const instance = instances.find((i) => i.name === INSTANCE_ID);
 
       if (!instance) return; // Instance may not exist in test DB
@@ -201,7 +209,7 @@ describe("Instance List Real-Time Updates", () => {
           type: "command:exec",
           ts: Date.now(),
           data: { command: "subscribe", args: [INSTANCE_ID] },
-        })
+        }),
       );
 
       // Server should acknowledge or silently accept
@@ -252,7 +260,7 @@ describe("Instance List Real-Time Updates", () => {
             networkBytesOut: 0,
             processCount: 0,
           },
-        })
+        }),
       );
 
       const [m1, m2, m3] = await Promise.all([msg1Promise, msg2Promise, msg3Promise]);

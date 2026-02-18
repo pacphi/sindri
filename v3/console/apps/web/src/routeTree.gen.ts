@@ -8,343 +8,341 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as TasksRouteImport } from './routes/tasks'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SecurityRouteImport } from './routes/security'
-import { Route as LogsRouteImport } from './routes/logs'
-import { Route as InstancesRouteImport } from './routes/instances'
-import { Route as ExtensionsRouteImport } from './routes/extensions'
-import { Route as DriftRouteImport } from './routes/drift'
-import { Route as DeploymentsRouteImport } from './routes/deployments'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as CostsRouteImport } from './routes/costs'
-import { Route as CommandsRouteImport } from './routes/commands'
-import { Route as AlertsRouteImport } from './routes/alerts'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as InstancesIdRouteImport } from './routes/instances_.$id'
-import { Route as InstancesIdTerminalRouteImport } from './routes/instances_.$id.terminal'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as TasksRouteImport } from "./routes/tasks";
+import { Route as SettingsRouteImport } from "./routes/settings";
+import { Route as SecurityRouteImport } from "./routes/security";
+import { Route as LogsRouteImport } from "./routes/logs";
+import { Route as InstancesRouteImport } from "./routes/instances";
+import { Route as ExtensionsRouteImport } from "./routes/extensions";
+import { Route as DriftRouteImport } from "./routes/drift";
+import { Route as DeploymentsRouteImport } from "./routes/deployments";
+import { Route as DashboardRouteImport } from "./routes/dashboard";
+import { Route as CostsRouteImport } from "./routes/costs";
+import { Route as CommandsRouteImport } from "./routes/commands";
+import { Route as AlertsRouteImport } from "./routes/alerts";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as InstancesIdRouteImport } from "./routes/instances_.$id";
+import { Route as InstancesIdTerminalRouteImport } from "./routes/instances_.$id.terminal";
 
 const TasksRoute = TasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
+  id: "/tasks",
+  path: "/tasks",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+  id: "/settings",
+  path: "/settings",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SecurityRoute = SecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
+  id: "/security",
+  path: "/security",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const LogsRoute = LogsRouteImport.update({
-  id: '/logs',
-  path: '/logs',
+  id: "/logs",
+  path: "/logs",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const InstancesRoute = InstancesRouteImport.update({
-  id: '/instances',
-  path: '/instances',
+  id: "/instances",
+  path: "/instances",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ExtensionsRoute = ExtensionsRouteImport.update({
-  id: '/extensions',
-  path: '/extensions',
+  id: "/extensions",
+  path: "/extensions",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const DriftRoute = DriftRouteImport.update({
-  id: '/drift',
-  path: '/drift',
+  id: "/drift",
+  path: "/drift",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const DeploymentsRoute = DeploymentsRouteImport.update({
-  id: '/deployments',
-  path: '/deployments',
+  id: "/deployments",
+  path: "/deployments",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+  id: "/dashboard",
+  path: "/dashboard",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const CostsRoute = CostsRouteImport.update({
-  id: '/costs',
-  path: '/costs',
+  id: "/costs",
+  path: "/costs",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const CommandsRoute = CommandsRouteImport.update({
-  id: '/commands',
-  path: '/commands',
+  id: "/commands",
+  path: "/commands",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const AlertsRoute = AlertsRouteImport.update({
-  id: '/alerts',
-  path: '/alerts',
+  id: "/alerts",
+  path: "/alerts",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const InstancesIdRoute = InstancesIdRouteImport.update({
-  id: '/instances_/$id',
-  path: '/instances/$id',
+  id: "/instances_/$id",
+  path: "/instances/$id",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const InstancesIdTerminalRoute = InstancesIdTerminalRouteImport.update({
-  id: '/terminal',
-  path: '/terminal',
+  id: "/terminal",
+  path: "/terminal",
   getParentRoute: () => InstancesIdRoute,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/alerts': typeof AlertsRoute
-  '/commands': typeof CommandsRoute
-  '/costs': typeof CostsRoute
-  '/dashboard': typeof DashboardRoute
-  '/deployments': typeof DeploymentsRoute
-  '/drift': typeof DriftRoute
-  '/extensions': typeof ExtensionsRoute
-  '/instances': typeof InstancesRoute
-  '/logs': typeof LogsRoute
-  '/security': typeof SecurityRoute
-  '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/instances/$id': typeof InstancesIdRouteWithChildren
-  '/instances/$id/terminal': typeof InstancesIdTerminalRoute
+  "/": typeof IndexRoute;
+  "/alerts": typeof AlertsRoute;
+  "/commands": typeof CommandsRoute;
+  "/costs": typeof CostsRoute;
+  "/dashboard": typeof DashboardRoute;
+  "/deployments": typeof DeploymentsRoute;
+  "/drift": typeof DriftRoute;
+  "/extensions": typeof ExtensionsRoute;
+  "/instances": typeof InstancesRoute;
+  "/logs": typeof LogsRoute;
+  "/security": typeof SecurityRoute;
+  "/settings": typeof SettingsRoute;
+  "/tasks": typeof TasksRoute;
+  "/instances/$id": typeof InstancesIdRouteWithChildren;
+  "/instances/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/alerts': typeof AlertsRoute
-  '/commands': typeof CommandsRoute
-  '/costs': typeof CostsRoute
-  '/dashboard': typeof DashboardRoute
-  '/deployments': typeof DeploymentsRoute
-  '/drift': typeof DriftRoute
-  '/extensions': typeof ExtensionsRoute
-  '/instances': typeof InstancesRoute
-  '/logs': typeof LogsRoute
-  '/security': typeof SecurityRoute
-  '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/instances/$id': typeof InstancesIdRouteWithChildren
-  '/instances/$id/terminal': typeof InstancesIdTerminalRoute
+  "/": typeof IndexRoute;
+  "/alerts": typeof AlertsRoute;
+  "/commands": typeof CommandsRoute;
+  "/costs": typeof CostsRoute;
+  "/dashboard": typeof DashboardRoute;
+  "/deployments": typeof DeploymentsRoute;
+  "/drift": typeof DriftRoute;
+  "/extensions": typeof ExtensionsRoute;
+  "/instances": typeof InstancesRoute;
+  "/logs": typeof LogsRoute;
+  "/security": typeof SecurityRoute;
+  "/settings": typeof SettingsRoute;
+  "/tasks": typeof TasksRoute;
+  "/instances/$id": typeof InstancesIdRouteWithChildren;
+  "/instances/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/alerts': typeof AlertsRoute
-  '/commands': typeof CommandsRoute
-  '/costs': typeof CostsRoute
-  '/dashboard': typeof DashboardRoute
-  '/deployments': typeof DeploymentsRoute
-  '/drift': typeof DriftRoute
-  '/extensions': typeof ExtensionsRoute
-  '/instances': typeof InstancesRoute
-  '/logs': typeof LogsRoute
-  '/security': typeof SecurityRoute
-  '/settings': typeof SettingsRoute
-  '/tasks': typeof TasksRoute
-  '/instances_/$id': typeof InstancesIdRouteWithChildren
-  '/instances_/$id/terminal': typeof InstancesIdTerminalRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/alerts": typeof AlertsRoute;
+  "/commands": typeof CommandsRoute;
+  "/costs": typeof CostsRoute;
+  "/dashboard": typeof DashboardRoute;
+  "/deployments": typeof DeploymentsRoute;
+  "/drift": typeof DriftRoute;
+  "/extensions": typeof ExtensionsRoute;
+  "/instances": typeof InstancesRoute;
+  "/logs": typeof LogsRoute;
+  "/security": typeof SecurityRoute;
+  "/settings": typeof SettingsRoute;
+  "/tasks": typeof TasksRoute;
+  "/instances_/$id": typeof InstancesIdRouteWithChildren;
+  "/instances_/$id/terminal": typeof InstancesIdTerminalRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/alerts'
-    | '/commands'
-    | '/costs'
-    | '/dashboard'
-    | '/deployments'
-    | '/drift'
-    | '/extensions'
-    | '/instances'
-    | '/logs'
-    | '/security'
-    | '/settings'
-    | '/tasks'
-    | '/instances/$id'
-    | '/instances/$id/terminal'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/alerts"
+    | "/commands"
+    | "/costs"
+    | "/dashboard"
+    | "/deployments"
+    | "/drift"
+    | "/extensions"
+    | "/instances"
+    | "/logs"
+    | "/security"
+    | "/settings"
+    | "/tasks"
+    | "/instances/$id"
+    | "/instances/$id/terminal";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/alerts'
-    | '/commands'
-    | '/costs'
-    | '/dashboard'
-    | '/deployments'
-    | '/drift'
-    | '/extensions'
-    | '/instances'
-    | '/logs'
-    | '/security'
-    | '/settings'
-    | '/tasks'
-    | '/instances/$id'
-    | '/instances/$id/terminal'
+    | "/"
+    | "/alerts"
+    | "/commands"
+    | "/costs"
+    | "/dashboard"
+    | "/deployments"
+    | "/drift"
+    | "/extensions"
+    | "/instances"
+    | "/logs"
+    | "/security"
+    | "/settings"
+    | "/tasks"
+    | "/instances/$id"
+    | "/instances/$id/terminal";
   id:
-    | '__root__'
-    | '/'
-    | '/alerts'
-    | '/commands'
-    | '/costs'
-    | '/dashboard'
-    | '/deployments'
-    | '/drift'
-    | '/extensions'
-    | '/instances'
-    | '/logs'
-    | '/security'
-    | '/settings'
-    | '/tasks'
-    | '/instances_/$id'
-    | '/instances_/$id/terminal'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/alerts"
+    | "/commands"
+    | "/costs"
+    | "/dashboard"
+    | "/deployments"
+    | "/drift"
+    | "/extensions"
+    | "/instances"
+    | "/logs"
+    | "/security"
+    | "/settings"
+    | "/tasks"
+    | "/instances_/$id"
+    | "/instances_/$id/terminal";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AlertsRoute: typeof AlertsRoute
-  CommandsRoute: typeof CommandsRoute
-  CostsRoute: typeof CostsRoute
-  DashboardRoute: typeof DashboardRoute
-  DeploymentsRoute: typeof DeploymentsRoute
-  DriftRoute: typeof DriftRoute
-  ExtensionsRoute: typeof ExtensionsRoute
-  InstancesRoute: typeof InstancesRoute
-  LogsRoute: typeof LogsRoute
-  SecurityRoute: typeof SecurityRoute
-  SettingsRoute: typeof SettingsRoute
-  TasksRoute: typeof TasksRoute
-  InstancesIdRoute: typeof InstancesIdRouteWithChildren
+  IndexRoute: typeof IndexRoute;
+  AlertsRoute: typeof AlertsRoute;
+  CommandsRoute: typeof CommandsRoute;
+  CostsRoute: typeof CostsRoute;
+  DashboardRoute: typeof DashboardRoute;
+  DeploymentsRoute: typeof DeploymentsRoute;
+  DriftRoute: typeof DriftRoute;
+  ExtensionsRoute: typeof ExtensionsRoute;
+  InstancesRoute: typeof InstancesRoute;
+  LogsRoute: typeof LogsRoute;
+  SecurityRoute: typeof SecurityRoute;
+  SettingsRoute: typeof SettingsRoute;
+  TasksRoute: typeof TasksRoute;
+  InstancesIdRoute: typeof InstancesIdRouteWithChildren;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/tasks': {
-      id: '/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof TasksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/security': {
-      id: '/security'
-      path: '/security'
-      fullPath: '/security'
-      preLoaderRoute: typeof SecurityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logs': {
-      id: '/logs'
-      path: '/logs'
-      fullPath: '/logs'
-      preLoaderRoute: typeof LogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/instances': {
-      id: '/instances'
-      path: '/instances'
-      fullPath: '/instances'
-      preLoaderRoute: typeof InstancesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/extensions': {
-      id: '/extensions'
-      path: '/extensions'
-      fullPath: '/extensions'
-      preLoaderRoute: typeof ExtensionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/drift': {
-      id: '/drift'
-      path: '/drift'
-      fullPath: '/drift'
-      preLoaderRoute: typeof DriftRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/deployments': {
-      id: '/deployments'
-      path: '/deployments'
-      fullPath: '/deployments'
-      preLoaderRoute: typeof DeploymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/costs': {
-      id: '/costs'
-      path: '/costs'
-      fullPath: '/costs'
-      preLoaderRoute: typeof CostsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/commands': {
-      id: '/commands'
-      path: '/commands'
-      fullPath: '/commands'
-      preLoaderRoute: typeof CommandsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/alerts': {
-      id: '/alerts'
-      path: '/alerts'
-      fullPath: '/alerts'
-      preLoaderRoute: typeof AlertsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/instances_/$id': {
-      id: '/instances_/$id'
-      path: '/instances/$id'
-      fullPath: '/instances/$id'
-      preLoaderRoute: typeof InstancesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/instances_/$id/terminal': {
-      id: '/instances_/$id/terminal'
-      path: '/terminal'
-      fullPath: '/instances/$id/terminal'
-      preLoaderRoute: typeof InstancesIdTerminalRouteImport
-      parentRoute: typeof InstancesIdRoute
-    }
+    "/tasks": {
+      id: "/tasks";
+      path: "/tasks";
+      fullPath: "/tasks";
+      preLoaderRoute: typeof TasksRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/settings": {
+      id: "/settings";
+      path: "/settings";
+      fullPath: "/settings";
+      preLoaderRoute: typeof SettingsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/security": {
+      id: "/security";
+      path: "/security";
+      fullPath: "/security";
+      preLoaderRoute: typeof SecurityRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/logs": {
+      id: "/logs";
+      path: "/logs";
+      fullPath: "/logs";
+      preLoaderRoute: typeof LogsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/instances": {
+      id: "/instances";
+      path: "/instances";
+      fullPath: "/instances";
+      preLoaderRoute: typeof InstancesRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/extensions": {
+      id: "/extensions";
+      path: "/extensions";
+      fullPath: "/extensions";
+      preLoaderRoute: typeof ExtensionsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/drift": {
+      id: "/drift";
+      path: "/drift";
+      fullPath: "/drift";
+      preLoaderRoute: typeof DriftRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/deployments": {
+      id: "/deployments";
+      path: "/deployments";
+      fullPath: "/deployments";
+      preLoaderRoute: typeof DeploymentsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/dashboard": {
+      id: "/dashboard";
+      path: "/dashboard";
+      fullPath: "/dashboard";
+      preLoaderRoute: typeof DashboardRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/costs": {
+      id: "/costs";
+      path: "/costs";
+      fullPath: "/costs";
+      preLoaderRoute: typeof CostsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/commands": {
+      id: "/commands";
+      path: "/commands";
+      fullPath: "/commands";
+      preLoaderRoute: typeof CommandsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/alerts": {
+      id: "/alerts";
+      path: "/alerts";
+      fullPath: "/alerts";
+      preLoaderRoute: typeof AlertsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/instances_/$id": {
+      id: "/instances_/$id";
+      path: "/instances/$id";
+      fullPath: "/instances/$id";
+      preLoaderRoute: typeof InstancesIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/instances_/$id/terminal": {
+      id: "/instances_/$id/terminal";
+      path: "/terminal";
+      fullPath: "/instances/$id/terminal";
+      preLoaderRoute: typeof InstancesIdTerminalRouteImport;
+      parentRoute: typeof InstancesIdRoute;
+    };
   }
 }
 
 interface InstancesIdRouteChildren {
-  InstancesIdTerminalRoute: typeof InstancesIdTerminalRoute
+  InstancesIdTerminalRoute: typeof InstancesIdTerminalRoute;
 }
 
 const InstancesIdRouteChildren: InstancesIdRouteChildren = {
   InstancesIdTerminalRoute: InstancesIdTerminalRoute,
-}
+};
 
-const InstancesIdRouteWithChildren = InstancesIdRoute._addFileChildren(
-  InstancesIdRouteChildren,
-)
+const InstancesIdRouteWithChildren = InstancesIdRoute._addFileChildren(InstancesIdRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -361,7 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TasksRoute: TasksRoute,
   InstancesIdRoute: InstancesIdRouteWithChildren,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

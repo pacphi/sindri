@@ -95,14 +95,17 @@ export class SindriWebSocketServer {
   private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly config: WebSocketServerConfig) {
-    this.pubsub = config.redis ? new WsPubSub(config.redis.publisher, config.redis.subscriber) : new InProcessPubSub();
+    this.pubsub = config.redis
+      ? new WsPubSub(config.redis.publisher, config.redis.subscriber)
+      : new InProcessPubSub();
 
     this.wss = new WebSocketServer({
       noServer: true, // we handle the upgrade manually for authentication
     });
 
     this.wss.on("connection", (ws, req) => {
-      const principal = (req as IncomingMessage & { __principal?: AuthenticatedPrincipal }).__principal;
+      const principal = (req as IncomingMessage & { __principal?: AuthenticatedPrincipal })
+        .__principal;
       if (!principal) {
         ws.close(4001, "Unauthorized");
         return;
@@ -148,7 +151,7 @@ export class SindriWebSocketServer {
             `Content-Type: text/plain\r\n` +
             `X-Error-Code: ${code}\r\n` +
             `\r\n` +
-            `${message}`
+            `${message}`,
         );
         socket.destroy();
       }
@@ -235,7 +238,7 @@ export class SindriWebSocketServer {
         CHANNEL.EVENTS,
         MESSAGE_TYPE.ERROR,
         { code: "HANDLER_ERROR", message: "Internal error processing message" },
-        { correlationId: envelope.correlationId }
+        { correlationId: envelope.correlationId },
       );
       if (client.ws.readyState === WebSocket.OPEN) {
         client.ws.send(JSON.stringify(errEnv));
@@ -247,7 +250,11 @@ export class SindriWebSocketServer {
    * Browser clients send a subscribe message to receive real-time pushes for
    * a specific instance + channel combination.
    */
-  private async handleSubscribeRequest(client: ConnectedClient, channel: Channel, instanceId: string): Promise<void> {
+  private async handleSubscribeRequest(
+    client: ConnectedClient,
+    channel: Channel,
+    instanceId: string,
+  ): Promise<void> {
     const unsubscribe = await this.pubsub.subscribe(channel, instanceId, (message) => {
       if (client.ws.readyState === WebSocket.OPEN) {
         client.ws.send(message);

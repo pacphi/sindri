@@ -19,7 +19,14 @@ function getColorClass(value: number): string {
   return "bg-emerald-500";
 }
 
-export function MetricsGauge({ label, value, max, unit, className, size = "md" }: MetricsGaugeProps) {
+export function MetricsGauge({
+  label,
+  value,
+  max,
+  unit,
+  className,
+  size = "md",
+}: MetricsGaugeProps) {
   const percentage = max !== undefined && max > 0 ? (value / max) * 100 : value;
   const clampedValue = Math.min(100, Math.max(0, percentage));
   const colorClass = getColorClass(clampedValue);
@@ -34,21 +41,28 @@ export function MetricsGauge({ label, value, max, unit, className, size = "md" }
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       <div className="flex items-center justify-between">
-        <span className={cn("font-medium text-muted-foreground", size === "sm" ? "text-xs" : "text-sm")}>{label}</span>
+        <span
+          className={cn("font-medium text-muted-foreground", size === "sm" ? "text-xs" : "text-sm")}
+        >
+          {label}
+        </span>
         <span
           className={cn(
             "font-semibold tabular-nums",
             size === "sm" ? "text-xs" : "text-sm",
             clampedValue >= 90 && "text-red-600 dark:text-red-400",
             clampedValue >= 75 && clampedValue < 90 && "text-amber-600 dark:text-amber-400",
-            clampedValue < 75 && "text-foreground"
+            clampedValue < 75 && "text-foreground",
           )}
         >
           {renderValueLabel()}
         </span>
       </div>
       <div
-        className={cn("w-full overflow-hidden rounded-full bg-secondary", size === "sm" ? "h-1" : "h-1.5")}
+        className={cn(
+          "w-full overflow-hidden rounded-full bg-secondary",
+          size === "sm" ? "h-1" : "h-1.5",
+        )}
         role="progressbar"
         aria-valuenow={clampedValue}
         aria-valuemin={0}

@@ -1,7 +1,7 @@
-import { useInstances } from '@/hooks/useInstances'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Server, Activity, AlertTriangle, CheckCircle } from 'lucide-react'
-import type { InstanceStatus } from '@/types/instance'
+import { useInstances } from "@/hooks/useInstances";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Server, Activity, AlertTriangle, CheckCircle } from "lucide-react";
+import type { InstanceStatus } from "@/types/instance";
 
 function StatCard({
   title,
@@ -10,11 +10,11 @@ function StatCard({
   description,
   className,
 }: {
-  title: string
-  value: string | number
-  icon: React.ComponentType<{ className?: string }>
-  description?: string
-  className?: string
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }>;
+  description?: string;
+  className?: string;
 }) {
   return (
     <Card className={className}>
@@ -27,21 +27,21 @@ function StatCard({
         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function countByStatus(instances: { status: InstanceStatus }[], status: InstanceStatus) {
-  return instances.filter((i) => i.status === status).length
+  return instances.filter((i) => i.status === status).length;
 }
 
 export function DashboardPage() {
-  const { data, isLoading, isError } = useInstances({}, 1, 100)
+  const { data, isLoading, isError } = useInstances({}, 1, 100);
 
-  const instances = data?.instances ?? []
-  const total = data?.total ?? 0
-  const running = countByStatus(instances, 'RUNNING')
-  const errors = countByStatus(instances, 'ERROR')
-  const deploying = countByStatus(instances, 'DEPLOYING')
+  const instances = data?.instances ?? [];
+  const total = data?.total ?? 0;
+  const running = countByStatus(instances, "RUNNING");
+  const errors = countByStatus(instances, "ERROR");
+  const deploying = countByStatus(instances, "DEPLOYING");
 
   return (
     <div className="p-6 space-y-6">
@@ -61,25 +61,25 @@ export function DashboardPage() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Instances"
-          value={isLoading ? '—' : total}
+          value={isLoading ? "—" : total}
           icon={Server}
           description="Across all providers"
         />
         <StatCard
           title="Running"
-          value={isLoading ? '—' : running}
+          value={isLoading ? "—" : running}
           icon={CheckCircle}
           description="Active environments"
         />
         <StatCard
           title="Deploying"
-          value={isLoading ? '—' : deploying}
+          value={isLoading ? "—" : deploying}
           icon={Activity}
           description="In progress"
         />
         <StatCard
           title="Errors"
-          value={isLoading ? '—' : errors}
+          value={isLoading ? "—" : errors}
           icon={AlertTriangle}
           description="Require attention"
         />
@@ -103,5 +103,5 @@ export function DashboardPage() {
         </Card>
       )}
     </div>
-  )
+  );
 }

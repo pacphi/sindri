@@ -1,17 +1,17 @@
-import { useRef } from 'react'
-import { AlignLeft, Download, Upload, Copy, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useRef } from "react";
+import { AlignLeft, Download, Upload, Copy, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 export interface YamlToolbarProps {
-  onFormat?: () => void
-  onImport?: (yaml: string) => void
-  onExport?: () => void
-  onCopy?: () => void
-  fileName?: string
-  className?: string
-  disabled?: boolean
+  onFormat?: () => void;
+  onImport?: (yaml: string) => void;
+  onExport?: () => void;
+  onCopy?: () => void;
+  fileName?: string;
+  className?: string;
+  disabled?: boolean;
 }
 
 export function YamlToolbar({
@@ -19,41 +19,41 @@ export function YamlToolbar({
   onImport,
   onExport,
   onCopy,
-  fileName = 'sindri.yaml',
+  fileName = "sindri.yaml",
   className,
   disabled = false,
 }: YamlToolbarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [copied, setCopied] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleImportClick = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result
-      if (typeof content === 'string') {
-        onImport?.(content)
+      const content = event.target?.result;
+      if (typeof content === "string") {
+        onImport?.(content);
       }
-    }
-    reader.readAsText(file)
+    };
+    reader.readAsText(file);
     // Reset input so the same file can be re-imported
-    e.target.value = ''
-  }
+    e.target.value = "";
+  };
 
   const handleCopy = async () => {
-    await onCopy?.()
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    await onCopy?.();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className={cn('flex items-center gap-1 border-b bg-muted/30 px-2 py-1', className)}>
+    <div className={cn("flex items-center gap-1 border-b bg-muted/30 px-2 py-1", className)}>
       <span className="mr-2 text-xs font-medium text-muted-foreground">{fileName}</span>
 
       <div className="flex items-center gap-1 ml-auto">
@@ -80,8 +80,12 @@ export function YamlToolbar({
             disabled={disabled}
             title="Copy to clipboard"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-green-500" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+            {copied ? "Copied" : "Copy"}
           </Button>
         )}
 
@@ -124,5 +128,5 @@ export function YamlToolbar({
         )}
       </div>
     </div>
-  )
+  );
 }

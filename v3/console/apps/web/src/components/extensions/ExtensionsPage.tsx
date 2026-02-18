@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { Package } from 'lucide-react'
-import { ExtensionRegistry } from './ExtensionRegistry'
-import { ExtensionDetail } from './ExtensionDetail'
+import { useState } from "react";
+import { Package } from "lucide-react";
+import { ExtensionRegistry } from "./ExtensionRegistry";
+import { ExtensionDetail } from "./ExtensionDetail";
 
 export function ExtensionsPage() {
-  const [selectedExtensionId, setSelectedExtensionId] = useState<string | null>(null)
+  const [selectedExtensionId, setSelectedExtensionId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -28,5 +28,5 @@ export function ExtensionsPage() {
         <ExtensionRegistry onSelectExtension={(id) => setSelectedExtensionId(id)} />
       )}
     </div>
-  )
+  );
 }

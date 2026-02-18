@@ -1,4 +1,4 @@
-import { LogAggregator } from '@/components/logs'
+import { LogAggregator } from "@/components/logs";
 
 export function LogsPage() {
   return (
@@ -11,5 +11,5 @@ export function LogsPage() {
       </div>
       <LogAggregator />
     </div>
-  )
+  );
 }
