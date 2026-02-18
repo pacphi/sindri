@@ -101,7 +101,7 @@ func run() error {
 }
 
 // buildHandler returns a Handler that dispatches inbound Console messages.
-func buildHandler(cfg *config.Config, termMgr *terminal.Manager, logger *slog.Logger) agentws.Handler {
+func buildHandler(_ *config.Config, termMgr *terminal.Manager, logger *slog.Logger) agentws.Handler {
 	return func(env protocol.Envelope) error {
 		switch env.Type {
 		case protocol.MsgTerminalCreate:
@@ -138,7 +138,7 @@ func handleTerminalCreate(env protocol.Envelope, mgr *terminal.Manager, logger *
 	return mgr.Create(&req)
 }
 
-func handleTerminalInput(env protocol.Envelope, mgr *terminal.Manager, logger *slog.Logger) error {
+func handleTerminalInput(env protocol.Envelope, mgr *terminal.Manager, _ *slog.Logger) error {
 	req, err := decodePayload[protocol.TerminalInputPayload](env.Payload)
 	if err != nil {
 		return fmt.Errorf("terminal:input payload: %w", err)
@@ -150,7 +150,7 @@ func handleTerminalInput(env protocol.Envelope, mgr *terminal.Manager, logger *s
 	return mgr.Write(sid, req.Data)
 }
 
-func handleTerminalResize(env protocol.Envelope, mgr *terminal.Manager, logger *slog.Logger) error {
+func handleTerminalResize(env protocol.Envelope, mgr *terminal.Manager, _ *slog.Logger) error {
 	req, err := decodePayload[protocol.TerminalResizePayload](env.Payload)
 	if err != nil {
 		return fmt.Errorf("terminal:resize payload: %w", err)

@@ -106,7 +106,10 @@ func (c *Client) connect(ctx context.Context) error {
 		"Authorization": {"Bearer " + c.apiKey},
 	}
 
-	conn, _, err := dialer.DialContext(ctx, c.url, headers)
+	conn, resp, err := dialer.DialContext(ctx, c.url, headers)
+	if resp != nil && resp.Body != nil {
+		defer func() { _ = resp.Body.Close() }()
+	}
 	if err != nil {
 		return fmt.Errorf("dial %s: %w", c.url, err)
 	}

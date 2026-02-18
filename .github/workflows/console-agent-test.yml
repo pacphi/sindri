@@ -82,10 +82,7 @@ jobs:
         with:
           version: latest
           working-directory: ${{ env.GO_MODULE_PATH }}
-          args: >-
-            --timeout=5m
-            --enable=govet,errcheck,staticcheck,unused,gosimple,ineffassign
-            --enable=gofmt,goimports,misspell,unconvert,unparam
+          args: --timeout=5m
 
   # ---------------------------------------------------------------------------
   # Job 3: Unit tests (native platform)

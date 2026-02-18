@@ -113,7 +113,7 @@ func TestClient_HandlerCalledForInbound(t *testing.T) {
 		defer func() { _ = conn.Close() }()
 
 		msg, _ := json.Marshal(protocol.Envelope{Type: protocol.MsgCommandDispatch})
-		conn.WriteMessage(gorillaws.TextMessage, msg) //nolint:errcheck
+		_ = conn.WriteMessage(gorillaws.TextMessage, msg)
 
 		// Keep alive briefly.
 		time.Sleep(300 * time.Millisecond)

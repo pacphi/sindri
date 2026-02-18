@@ -1,0 +1,74 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    # Default linters (always good to have)
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    # Additional recommended linters
+    - gosec
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - whitespace
+
+    # Performance linters
+    - prealloc
+
+    # Style linters
+    - nolintlint
+
+    # Bug detection
+    - bodyclose
+    - rowserrcheck
+    - sqlclosecheck
+    - nilerr
+
+    # Complexity
+    - gocyclo
+    - nestif
+
+  disable:
+    - err113  # Can be overly strict for some codebases
+    - wrapcheck # Can be overly verbose
+
+  settings:
+    gocyclo:
+      min-complexity: 40
+
+    nestif:
+      min-complexity: 15
+
+    revive:
+      confidence: 0.8
+
+    gosec:
+      severity: high
+      confidence: high
+
+  exclusions:
+    rules:
+      - linters:
+          - gosec
+          - unparam
+          - errcheck
+        path: _test\.go
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
