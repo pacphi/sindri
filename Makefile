@@ -1626,6 +1626,7 @@ console-fmt-check:
 console-typecheck:
 	@echo "$(BLUE)Running TypeScript type checks on Console...$(RESET)"
 	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR)/apps/api && pnpm db:generate
 	cd $(CONSOLE_DIR) && pnpm typecheck
 	@echo "$(GREEN)✓ Console type checks passed$(RESET)"
 

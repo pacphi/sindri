@@ -437,7 +437,7 @@ function serializeExecution(e: {
   user_id: string;
   command: string;
   args: string[];
-  env: Record<string, string>;
+  env: unknown;
   working_dir: string | null;
   timeout_ms: number;
   status: string;

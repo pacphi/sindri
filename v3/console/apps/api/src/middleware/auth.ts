@@ -105,7 +105,7 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
   // Update last_used_at without blocking the response
   db.apiKey
     .update({ where: { id: record.id }, data: {} })
-    .catch((err) => logger.warn({ err, apiKeyId: record!.id }, "Failed to update last_used_at"));
+    .catch((err: unknown) => logger.warn({ err, apiKeyId: record!.id }, "Failed to update last_used_at"));
 
   await next();
 }

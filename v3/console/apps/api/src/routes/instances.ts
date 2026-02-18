@@ -197,35 +197,21 @@ function serializeInstance(instance: {
 }
 
 function serializeInstanceDetail(
-  instance: ReturnType<typeof serializeInstance> extends infer T
-    ? T & {
-        lastHeartbeat?: {
-          cpu_percent: number;
-          memory_used: bigint;
-          memory_total: bigint;
-          disk_used: bigint;
-          disk_total: bigint;
-          uptime: bigint;
-          timestamp: Date;
-        } | null;
-      }
-    : never,
+  instance: Parameters<typeof serializeInstance>[0] & {
+    lastHeartbeat?: {
+      cpu_percent: number;
+      memory_used: bigint;
+      memory_total: bigint;
+      disk_used: bigint;
+      disk_total: bigint;
+      uptime: bigint;
+      timestamp: Date;
+    } | null;
+  },
 ): unknown {
-  const base = serializeInstance(instance as Parameters<typeof serializeInstance>[0]);
+  const base = serializeInstance(instance);
 
-  const heartbeat = (
-    instance as {
-      lastHeartbeat?: {
-        cpu_percent: number;
-        memory_used: bigint;
-        memory_total: bigint;
-        disk_used: bigint;
-        disk_total: bigint;
-        uptime: bigint;
-        timestamp: Date;
-      } | null;
-    }
-  ).lastHeartbeat;
+  const heartbeat = instance.lastHeartbeat;
 
   return {
     ...base,

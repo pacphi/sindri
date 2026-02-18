@@ -17,6 +17,7 @@
 
 import { WebSocketServer, WebSocket } from "ws";
 import type { IncomingMessage, Server } from "http";
+import { Prisma } from "@prisma/client";
 import { authenticateUpgrade } from "../websocket/auth.js";
 import { parseEnvelope, makeEnvelope, CHANNEL, MESSAGE_TYPE } from "../websocket/channels.js";
 import { redis, redisSub, REDIS_CHANNELS, REDIS_KEYS } from "../lib/redis.js";
@@ -24,7 +25,8 @@ import { db } from "../lib/db.js";
 import { logger } from "../lib/logger.js";
 import { ingestLog, ingestBatch } from "../services/logs/index.js";
 import { enqueueMetric } from "../services/metrics/index.js";
-import type { LogLevel, LogSource } from "@prisma/client";
+type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
+type LogSource = "AGENT" | "EXTENSION" | "BUILD" | "APP" | "SYSTEM";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Connection registry
@@ -49,26 +51,6 @@ interface BrowserConnection {
 
 export const agentConnections = new Map<string, AgentConnection>(); // key: instanceId
 const browserConnections = new Set<BrowserConnection>();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Prisma-backed API key lookup (satisfies ApiKeyLookup interface)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const dbLookup = {
-  async findByKeyHash(hash: string) {
-    const key = await db.apiKey.findUnique({
-      where: { key_hash: hash },
-      include: { user: { select: { role: true } } },
-    });
-    if (!key) return null;
-    return {
-      id: key.id,
-      userId: key.user_id,
-      userRole: key.user.role as "ADMIN" | "OPERATOR" | "DEVELOPER" | "VIEWER",
-      expiresAt: key.expires_at,
-    };
-  },
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Redis subscriber — fan-out to browser clients
@@ -246,7 +228,7 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
           REDIS_CHANNELS.instanceMetrics(conn.instanceId),
           JSON.stringify({ ...envelope, instanceId: conn.instanceId }),
         )
-        .catch((err) => logger.warn({ err }, "Failed to publish metrics"));
+        .catch((err: unknown) => logger.warn({ err }, "Failed to publish metrics"));
       break;
     }
 
@@ -295,7 +277,7 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
             deploymentId: l.deploymentId,
             timestamp: l.ts ? new Date(l.ts) : new Date(),
           })),
-        }).catch((err) =>
+        }).catch((err: unknown) =>
           logger.warn({ err, instanceId: conn.instanceId }, "Failed to ingest log batch"),
         );
       } else {
@@ -321,7 +303,7 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
           metadata: lineData.metadata,
           deploymentId: lineData.deploymentId,
           timestamp: lineData.ts ? new Date(lineData.ts) : new Date(),
-        }).catch((err) =>
+        }).catch((err: unknown) =>
           logger.warn({ err, instanceId: conn.instanceId }, "Failed to ingest log line"),
         );
       }
@@ -334,17 +316,17 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
           REDIS_CHANNELS.instanceEvents(conn.instanceId),
           JSON.stringify({ ...envelope, instanceId: conn.instanceId }),
         )
-        .catch((err) => logger.warn({ err }, "Failed to publish event"));
+        .catch((err: unknown) => logger.warn({ err }, "Failed to publish event"));
       // Persist the event
       db.event
         .create({
           data: {
             instance_id: conn.instanceId,
             event_type: "DEPLOY", // fallback; real impl maps eventType → EventType enum
-            metadata: data as Record<string, unknown>,
+            metadata: (data ?? Prisma.JsonNull) as Prisma.InputJsonValue,
           },
         })
-        .catch((err) => logger.warn({ err }, "Failed to persist event"));
+        .catch((err: unknown) => logger.warn({ err }, "Failed to persist event"));
       break;
 
     case CHANNEL.TERMINAL:
@@ -362,7 +344,7 @@ async function routeAgentMessage(conn: AgentConnection, raw: string): Promise<vo
         const resultKey = `sindri:cmd:result:${envelope.correlationId}`;
         await redis
           .setex(resultKey, 120, JSON.stringify(data))
-          .catch((err) => logger.warn({ err }, "Failed to store command result"));
+          .catch((err: unknown) => logger.warn({ err }, "Failed to store command result"));
         // Also fan-out to subscribed browser clients
         for (const client of browserConnections) {
           if (
@@ -387,16 +369,19 @@ async function routeBrowserMessage(conn: BrowserConnection, raw: string): Promis
   const { channel, type, instanceId } = envelope;
 
   if (!instanceId) {
-    // Subscribe/unsubscribe messages
+    // Subscribe/unsubscribe messages (raw string comparison — browser sends
+    // system-level messages outside the typed Channel/MessageType enums)
+    const ch = channel as string;
+    const mt = type as string;
     if (
-      channel === "system" &&
-      type === "subscribe" &&
+      ch === "system" &&
+      mt === "subscribe" &&
       typeof (envelope.data as { instanceId?: string }).instanceId === "string"
     ) {
       conn.subscriptions.add((envelope.data as { instanceId: string }).instanceId);
     } else if (
-      channel === "system" &&
-      type === "unsubscribe" &&
+      ch === "system" &&
+      mt === "unsubscribe" &&
       typeof (envelope.data as { instanceId?: string }).instanceId === "string"
     ) {
       conn.subscriptions.delete((envelope.data as { instanceId: string }).instanceId);
@@ -408,7 +393,7 @@ async function routeBrowserMessage(conn: BrowserConnection, raw: string): Promis
   if (channel === CHANNEL.COMMANDS || channel === CHANNEL.TERMINAL) {
     await redis
       .publish(REDIS_CHANNELS.instanceCommands(instanceId), JSON.stringify(envelope))
-      .catch((err) => logger.warn({ err }, "Failed to publish command to agent"));
+      .catch((err: unknown) => logger.warn({ err }, "Failed to publish command to agent"));
 
     // Also forward directly if agent is connected on this server
     const agentConn = agentConnections.get(instanceId);
@@ -431,8 +416,8 @@ export function attachWebSocketGateway(server: Server): WebSocketServer {
     // Authenticate
     let principal: Awaited<ReturnType<typeof authenticateUpgrade>>;
     try {
-      principal = await authenticateUpgrade(req, dbLookup);
-    } catch (err) {
+      principal = await authenticateUpgrade(req);
+    } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unauthorized";
       ws.close(1008, message);
       logger.warn({ message }, "WebSocket auth rejected");
@@ -532,7 +517,7 @@ export function attachWebSocketGateway(server: Server): WebSocketServer {
 
   metricsWss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
     // Authenticate (best-effort; unauthenticated connections are dropped)
-    void authenticateUpgrade(req, dbLookup)
+    void authenticateUpgrade(req)
       .then((principal) => {
         logger.info({ userId: principal.userId }, "Metrics stream WebSocket connected");
 
@@ -592,7 +577,7 @@ export function attachWebSocketGateway(server: Server): WebSocketServer {
           logger.warn({ err }, "Metrics stream WebSocket error");
         });
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : "Unauthorized";
         ws.close(1008, message);
         logger.warn({ message }, "Metrics stream WebSocket auth rejected");

@@ -147,7 +147,7 @@ async function evaluateRule(
     // Dispatch notifications asynchronously
     dispatcher
       .dispatch(alert.id)
-      .catch((err) => logger.error({ err, alertId: alert.id }, "Failed to dispatch notifications"));
+      .catch((err: unknown) => logger.error({ err, alertId: alert.id }, "Failed to dispatch notifications"));
   }
 }
 
@@ -181,7 +181,7 @@ function evaluateThreshold(cond: ThresholdCondition, ctx: EvaluationContext): Ev
 
   const metrics = ctx.latestMetrics;
   let value: number | null = null;
-  let metricLabel = cond.metric;
+  let metricLabel: string = cond.metric;
 
   switch (cond.metric) {
     case "cpu_percent":

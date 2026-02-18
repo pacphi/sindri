@@ -45,7 +45,7 @@ export async function setPolicy(input: SetPolicyInput) {
     where: {
       extension_id_instance_id: {
         extension_id: input.extension_id,
-        instance_id: input.instance_id ?? null,
+        instance_id: input.instance_id ?? "",
       },
     },
     update: {

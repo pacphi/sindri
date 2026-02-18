@@ -472,30 +472,19 @@ function serializeTeam(team: {
 }
 
 function serializeTeamDetail(
-  team: ReturnType<typeof serializeTeam> extends infer T
-    ? T & {
-        members: Array<{
-          user_id: string;
-          role: string;
-          joined_at: Date;
-          user: { id: string; email: string; name: string | null; role: string };
-        }>;
-      }
-    : never,
+  team: Parameters<typeof serializeTeam>[0] & {
+    members: Array<{
+      user_id: string;
+      role: string;
+      joined_at: Date;
+      user: { id: string; email: string; name: string | null; role: string };
+    }>;
+  },
 ) {
-  const base = serializeTeam(team as Parameters<typeof serializeTeam>[0]);
+  const base = serializeTeam(team);
   return {
     ...base,
-    members: (
-      team as {
-        members: Array<{
-          user_id: string;
-          role: string;
-          joined_at: Date;
-          user: { id: string; email: string; name: string | null; role: string };
-        }>;
-      }
-    ).members.map((m) => ({
+    members: team.members.map((m) => ({
       userId: m.user_id,
       role: m.role,
       joinedAt: m.joined_at.toISOString(),

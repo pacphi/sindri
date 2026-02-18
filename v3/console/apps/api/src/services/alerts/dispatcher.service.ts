@@ -3,6 +3,7 @@
  */
 
 import { createHmac } from "crypto";
+import { Prisma } from "@prisma/client";
 import { db } from "../../lib/db.js";
 import { logger } from "../../lib/logger.js";
 import type {
@@ -125,10 +126,10 @@ export const dispatcher = {
           channel_id: channelId,
           success,
           error: error ?? null,
-          payload: sentPayload ? (sentPayload as object) : null,
+          payload: sentPayload ? (sentPayload as Prisma.InputJsonValue) : Prisma.JsonNull,
         },
       })
-      .catch((err) => logger.warn({ err, alertId, channelId }, "Failed to record notification"));
+      .catch((err: unknown) => logger.warn({ err, alertId, channelId }, "Failed to record notification"));
   },
 
   async test(

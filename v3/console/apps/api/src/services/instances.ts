@@ -201,7 +201,7 @@ function publishInstanceEvent(
   const payload = JSON.stringify({ eventType, metadata, ts: Date.now() });
   redis
     .publish(channel, payload)
-    .catch((err) =>
+    .catch((err: unknown) =>
       logger.warn({ err, instanceId, eventType }, "Failed to publish instance event to Redis"),
     );
 }

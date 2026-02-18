@@ -177,7 +177,7 @@ export async function triggerTask(id: string) {
   // Fire-and-forget execution
   cronScheduler
     .executeTask(id, execution.id)
-    .catch((err) =>
+    .catch((err: unknown) =>
       logger.error({ err, taskId: id, executionId: execution.id }, "Manual task execution failed"),
     );
 

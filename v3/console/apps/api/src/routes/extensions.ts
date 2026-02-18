@@ -226,7 +226,7 @@ extensions.post("/policies", rateLimitStrict, requireRole("OPERATOR"), async (c)
   try {
     const policy = await setPolicy({
       ...parsed.data,
-      created_by: c.get("userId") as string | undefined,
+      created_by: c.get("auth")?.userId,
     });
     return c.json(policy, 201);
   } catch (err) {
@@ -302,7 +302,7 @@ extensions.get("/:id/dependencies", rateLimitDefault, async (c) => {
     if (!ext) {
       return c.json({ error: "Not Found", message: `Extension '${id}' not found` }, 404);
     }
-    const resolved = await resolveDependencies((ext as { name: string }).name);
+    const resolved = await resolveDependencies((ext as unknown as { name: string }).name);
     return c.json({ extension_id: id, dependencies: resolved });
   } catch (err) {
     logger.error({ err, extensionId: id }, "Failed to resolve dependencies");
@@ -325,7 +325,7 @@ extensions.post("/", rateLimitStrict, requireRole("OPERATOR"), async (c) => {
   try {
     const ext = await createExtension({
       ...parsed.data,
-      published_by: c.get("userId") as string | undefined,
+      published_by: c.get("auth")?.userId,
     });
     return c.json(ext, 201);
   } catch (err: unknown) {

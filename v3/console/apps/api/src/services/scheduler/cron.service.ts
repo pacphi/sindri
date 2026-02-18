@@ -240,7 +240,7 @@ class CronScheduler {
         },
       });
 
-      this.executeTask(task.id, execution.id).catch((err) =>
+      this.executeTask(task.id, execution.id).catch((err: unknown) =>
         logger.error({ err, taskId: task.id }, "Cron tick execution error"),
       );
     }

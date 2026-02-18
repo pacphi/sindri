@@ -224,7 +224,7 @@ async function runProvisioningFlow(
           logs: logLines.join("\n"),
         },
       })
-      .catch((dbErr) => logger.warn({ dbErr, deploymentId }, "Failed to persist failure state"));
+      .catch((dbErr: unknown) => logger.warn({ dbErr, deploymentId }, "Failed to persist failure state"));
 
     await emitProgress(deploymentId, message, {
       type: "error",

@@ -2,6 +2,7 @@
  * Cost service — CRUD for CostEntry records, summary queries, and trend data.
  */
 
+import { Prisma } from "@prisma/client";
 import { db } from "../../lib/db.js";
 
 export interface CostSummary {
@@ -248,7 +249,7 @@ export async function recordCostEntry(params: {
       storage_usd: params.storageUsd,
       network_usd: params.networkUsd,
       total_usd: Math.round(total * 100) / 100,
-      metadata: params.metadata ?? undefined,
+      metadata: (params.metadata as Prisma.InputJsonValue) ?? undefined,
     },
   });
 }

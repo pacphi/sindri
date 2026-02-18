@@ -2,6 +2,7 @@
  * Alert management service — CRUD, acknowledge, resolve, history.
  */
 
+import { Prisma } from "@prisma/client";
 import { db } from "../../lib/db.js";
 import { logger } from "../../lib/logger.js";
 import type { ListAlertsFilter } from "./types.js";
@@ -190,7 +191,7 @@ export async function fireAlert(params: {
       severity: params.severity as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO",
       title: params.title,
       message: params.message,
-      metadata: params.metadata ?? null,
+      metadata: (params.metadata as Prisma.InputJsonValue) ?? Prisma.JsonNull,
       dedupe_key: params.dedupeKey,
       status: "ACTIVE",
     },

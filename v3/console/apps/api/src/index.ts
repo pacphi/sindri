@@ -136,7 +136,7 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   logger.fatal({ err }, "Fatal startup error");
   process.exit(1);
 });
