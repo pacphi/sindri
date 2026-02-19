@@ -129,7 +129,9 @@ export const dispatcher = {
           payload: sentPayload ? (sentPayload as Prisma.InputJsonValue) : Prisma.JsonNull,
         },
       })
-      .catch((err: unknown) => logger.warn({ err, alertId, channelId }, "Failed to record notification"));
+      .catch((err: unknown) =>
+        logger.warn({ err, alertId, channelId }, "Failed to record notification"),
+      );
   },
 
   async test(

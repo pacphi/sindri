@@ -147,7 +147,9 @@ async function evaluateRule(
     // Dispatch notifications asynchronously
     dispatcher
       .dispatch(alert.id)
-      .catch((err: unknown) => logger.error({ err, alertId: alert.id }, "Failed to dispatch notifications"));
+      .catch((err: unknown) =>
+        logger.error({ err, alertId: alert.id }, "Failed to dispatch notifications"),
+      );
   }
 }
 
