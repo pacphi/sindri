@@ -1493,7 +1493,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1678,7 +1678,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2732,9 +2732,9 @@ dependencies = [
 
 [[package]]
 name = "jsonschema"
-version = "0.41.0"
+version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9320368abda84a3aad44953d61e70515681fe43ae94529dff5567e0215b88438"
+checksum = "6103dcd3815c9bd04239a6d0343dac2b7a18ee260e800d0a6e3eb5b9333504fb"
 dependencies = [
  "ahash",
  "bytecount",
@@ -2918,9 +2918,9 @@ checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
 name = "minimad"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9c5d708226d186590a7b6d4a9780e2bdda5f689e0d58cd17012a298efd745d2"
+checksum = "df8b688969b16915f3ecadc7829d5b7779dee4977e503f767f34136803d5c06f"
 dependencies = [
  "once_cell",
 ]
@@ -3027,7 +3027,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3227,7 +3227,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.45.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3719,7 +3719,7 @@ dependencies = [
  "once_cell",
  "socket2 0.6.2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3873,9 +3873,9 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.41.0"
+version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5773259506800a8c6ef38df3674b061c62c5941162507891ff8b580e93d954e"
+checksum = "1a76b0c93f3dd49da2900cfb3c6b883602471a0e3e34b1578a3310ca1269d418"
 dependencies = [
  "ahash",
  "fluent-uri",
@@ -4159,7 +4159,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4230,7 +4230,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5300,7 +5300,7 @@ dependencies = [
  "getrandom 0.4.1",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5327,9 +5327,9 @@ dependencies = [
 
 [[package]]
 name = "termimad"
-version = "0.31.3"
+version = "0.34.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7301d9c2c4939c97f25376b70d3c13311f8fefdee44092fc361d2a98adc2cbb6"
+checksum = "889a9370996b74cf46016ce35b96c248a9ac36d69aab1d112b3e09bc33affa49"
 dependencies = [
  "coolor",
  "crokey",
@@ -6144,7 +6144,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
