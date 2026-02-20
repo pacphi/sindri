@@ -23,22 +23,63 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 
 ```text
 .github/
-├── workflows/                    # GitHub Workflows
-│   ├── ci-v2.yml                 # v2 CI pipeline (Docker builds, provider tests)
-│   ├── ci-v3.yml                 # v3 CI pipeline (Rust builds, cargo tests)
-│   ├── validate-yaml.yml         # YAML/schema validation (both versions)
-│   ├── validate-shell.yml        # Shell script validation (shellcheck)
-│   ├── validate-markdown.yml     # Markdown validation (markdownlint)
-│   ├── v2-test-extensions.yml    # Registry-based v2 extension testing (Docker-only)
+├── workflows/                       # GitHub Workflows
+│   │
+│   │  # ── CI Pipelines ──
+│   ├── ci-v2.yml                    # v2 CI pipeline (Docker builds, provider tests)
+│   ├── ci-v3.yml                    # v3 CI pipeline (Rust builds, cargo tests)
+│   │
+│   │  # ── Validation ──
+│   ├── validate-yaml.yml            # YAML/schema validation (both versions)
+│   ├── validate-shell.yml           # Shell script validation (shellcheck)
+│   ├── validate-markdown.yml        # Markdown validation (markdownlint)
+│   ├── check-links.yml              # Documentation link checking
+│   │
+│   │  # ── v2 Testing & Deployment ──
+│   ├── v2-test-extensions.yml       # Registry-based v2 extension testing (Docker-only)
 │   ├── v2-test-profiles.yml         # Config-driven profile testing (discovers sindri.yaml)
 │   ├── v2-test-provider.yml         # Full test suite per provider (CLI + extensions + integration)
 │   ├── v2-deploy-sindri.yml         # Reusable deployment
 │   ├── v2-teardown-sindri.yml       # Reusable teardown
-│   ├── v2-manual-deploy.yml      # v2 manual deployment (UI-driven)
-│   ├── release-v2.yml            # v2 release automation (Docker images)
-│   ├── release-v3.yml            # v3 release automation (Rust binaries)
-│   ├── check-links.yml           # Documentation link checking
-│   └── cleanup-workflow-runs.yml # Workflow run cleanup
+│   ├── v2-manual-deploy.yml         # v2 manual deployment (UI-driven)
+│   │
+│   │  # ── v3 Extension Testing ──
+│   ├── v3-extension-test.yml        # v3 extension test entry point (multi-provider)
+│   ├── v3-discover-extensions.yml   # Reusable extension discovery (metadata/JSON)
+│   ├── v3-matrix-generator.yml      # Reusable matrix generation per provider resource limits
+│   ├── v3-test-profiles.yml         # v3 profile-based config testing
+│   ├── v3-pre-release-test.yml      # Pre-release extension validation against RC images
+│   │
+│   │  # ── v3 Provider Workflows (reusable) ──
+│   ├── v3-provider-docker.yml       # Test extensions in Docker containers
+│   ├── v3-provider-fly.yml          # Test extensions on Fly.io VMs
+│   ├── v3-provider-k3d.yml          # Test extensions in k3d Kubernetes pods
+│   ├── v3-provider-devpod.yml       # Test extensions in DevPod devcontainers
+│   ├── v3-provider-packer.yml       # Test extensions on Packer VM images
+│   ├── v3-provider-northflank.yml   # Test extensions on Northflank PaaS
+│   ├── v3-provider-runpod.yml       # Test extensions on RunPod GPU pods
+│   │
+│   │  # ── v3 Packer (VM Images) ──
+│   ├── v3-packer-build.yml          # Build Sindri VM images across cloud providers
+│   ├── v3-packer-test.yml           # Test Sindri VM images with InSpec compliance
+│   │
+│   │  # ── v3 Provider Integration Testing ──
+│   ├── integration-test-providers.yml # Manual integration tests (RunPod & Northflank)
+│   │
+│   │  # ── Console (Agent & API) ──
+│   ├── console-agent-ci.yml         # Console agent CI (lint, vet, unit tests)
+│   ├── console-agent-test.yml       # Console agent extended tests (race, cross-compile, lint)
+│   ├── console-agent-release.yml    # Console agent release (multi-platform Go binaries)
+│   ├── console-makefile-ci.yml      # Console Makefile target validation
+│   │
+│   │  # ── Release ──
+│   ├── release-v2.yml               # v2 release automation (Docker images)
+│   ├── release-v3.yml               # v3 release automation (Rust binaries)
+│   │
+│   │  # ── Infrastructure ──
+│   ├── build-base-image.yml         # Build multi-arch base image for fast dev builds
+│   ├── cleanup-container-images.yml # Cleanup orphaned GHCR container images
+│   └── cleanup-workflow-runs.yml    # Workflow run cleanup
 │
 ├── actions/                      # Composite Actions
 │   ├── shared/                   # Shared actions (used by v2, available to v3)
@@ -137,20 +178,25 @@ Cleans up provider resources after deployment.
 
 ## Path-Based Triggers
 
-| Changed Path                  | Triggers         | Example                                 |
-| ----------------------------- | ---------------- | --------------------------------------- |
-| `v2/**`                       | `ci-v2.yml`      | Changes to v2 code, scripts, extensions |
-| `v3/**`                       | `ci-v3.yml`      | Changes to v3 Rust code, extensions     |
-| `.github/workflows/ci-v2.yml` | `ci-v2.yml`      | Self-trigger for workflow changes       |
-| `.github/workflows/ci-v3.yml` | `ci-v3.yml`      | Self-trigger for workflow changes       |
-| `.github/actions/shared/**`   | `ci-v2.yml`      | Shared action changes (build, deploy)   |
-| `.github/actions/v3/**`       | `ci-v3.yml`      | v3 action changes                       |
-| `.github/actions/packer/**`   | `ci-v3.yml`      | Packer VM image action changes          |
-| `.github/workflows/v3-*.yml`  | `ci-v3.yml`      | v3 extension testing workflows          |
-| `.github/scripts/v3/**`       | `ci-v3.yml`      | v3 scripts (discovery, k3d management)  |
-| `package.json`                | `ci-v2.yml`      | Root tooling affects v2 validation      |
-| Tags `v2.*.*`                 | `release-v2.yml` | v2 release trigger                      |
-| Tags `v3.*.*`                 | `release-v3.yml` | v3 release trigger                      |
+| Changed Path                  | Triggers                    | Example                                 |
+| ----------------------------- | --------------------------- | --------------------------------------- |
+| `v2/**`                       | `ci-v2.yml`                 | Changes to v2 code, scripts, extensions |
+| `v3/**`                       | `ci-v3.yml`                 | Changes to v3 Rust code, extensions     |
+| `.github/workflows/ci-v2.yml` | `ci-v2.yml`                 | Self-trigger for workflow changes       |
+| `.github/workflows/ci-v3.yml` | `ci-v3.yml`                 | Self-trigger for workflow changes       |
+| `.github/actions/shared/**`   | `ci-v2.yml`                 | Shared action changes (build, deploy)   |
+| `.github/actions/v3/**`       | `ci-v3.yml`                 | v3 action changes                       |
+| `.github/actions/packer/**`   | `ci-v3.yml`                 | Packer VM image action changes          |
+| `.github/workflows/v3-*.yml`  | `ci-v3.yml`                 | v3 extension testing workflows          |
+| `.github/scripts/v3/**`       | `ci-v3.yml`                 | v3 scripts (discovery, k3d management)  |
+| `package.json`                | `ci-v2.yml`                 | Root tooling affects v2 validation      |
+| Tags `v2.*.*`                 | `release-v2.yml`            | v2 release trigger                      |
+| Tags `v3.*.*`                 | `release-v3.yml`            | v3 release trigger                      |
+| Tags `console-agent-v*`       | `console-agent-release.yml` | Console agent release trigger           |
+| `v3/console/agent/**`         | `console-agent-ci.yml`      | Console agent source changes            |
+| `v3/console/agent/**`         | `console-agent-test.yml`    | Console agent test/lint changes         |
+| `v3/console/**`               | `console-makefile-ci.yml`   | Console source or Makefile changes      |
+| `v3/Dockerfile.base`          | `build-base-image.yml`      | Base image Dockerfile changes           |
 
 ## CI Workflows
 
@@ -302,6 +348,200 @@ git tag -a v3.0.0 -m "Release v3.0.0 - First Rust release"
 git push origin v3.0.0
 ```
 
+### console-agent-release.yml - Console Agent Releases
+
+**Trigger**: Git tags matching `console-agent-v*` (e.g., `console-agent-v1.0.0`)
+
+**Process**:
+
+1. Validate tag format (`console-agent-v<semver>`)
+2. Build Go binaries for multiple platforms:
+   - Linux (amd64, arm64)
+   - macOS (amd64, arm64)
+3. Upload release assets named `sindri-agent-<os>-<arch>`
+4. Create GitHub release with pre-release detection
+
+**Creating a Console Agent Release**:
+
+```bash
+git tag console-agent-v1.0.0
+git push origin console-agent-v1.0.0
+```
+
+## Console Workflows
+
+The Sindri Console includes a Go-based agent binary and a TypeScript API. These workflows provide CI, testing, and release automation for the console subsystem.
+
+### console-agent-ci.yml - Console Agent CI
+
+**Triggers**: Push to `main` or pull request, when `v3/console/agent/**` changes
+
+**Jobs**:
+
+- **lint**: `go vet`, `go mod tidy` check
+- **test**: Unit tests on Ubuntu and macOS matrix
+
+Runs the core CI gate for the Go agent: linting, vet, and unit tests across multiple operating systems.
+
+### console-agent-test.yml - Console Agent Test and Lint
+
+**Triggers**: Push to `main`/`develop` or pull request to `main`/`develop`, when `v3/console/agent/**` changes; also `workflow_dispatch`
+
+**Jobs**:
+
+- **go-version**: Detects Go version from `go.mod`
+- **lint**: golangci-lint with race detector option
+- **test**: Unit tests with optional race detector
+- **cross-compile**: Verifies builds for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64
+- **binary-size**: Checks binary size stays under 20 MB threshold
+
+Provides extended testing beyond basic CI, including cross-compilation validation and binary size enforcement.
+
+### console-makefile-ci.yml - Console Makefile CI
+
+**Triggers**: Push to `main` or pull request, when `v3/console/**`, `Makefile`, `scripts/test-makefile-targets.sh`, or the workflow file changes
+
+**Jobs**:
+
+- **resolve**: Validates that all `console-agent-*` and `console-*` Makefile targets resolve correctly (syntax/PHONY check)
+- **execute**: Runs agent Makefile targets on Ubuntu and macOS matrix
+
+Ensures the root Makefile's console-related targets stay in sync with the console subsystem.
+
+## Infrastructure Workflows
+
+### build-base-image.yml - Build Base Image
+
+**Triggers**: `workflow_dispatch` (manual), push to `main`/`develop` when `v3/Dockerfile.base` changes, or `workflow_call` (reusable)
+
+**Purpose**: Builds and publishes the multi-arch base image (`linux/amd64`, `linux/arm64`) containing slow-changing dependencies (Rust toolchain, cargo-chef, system packages, GitHub CLI). Used by `Dockerfile.dev` to reduce build times from 40-50 min to 3-5 min.
+
+**Inputs** (workflow_dispatch):
+
+| Input            | Default  | Description             |
+| ---------------- | -------- | ----------------------- |
+| `rust_version`   | `1.93`   | Rust toolchain version  |
+| `ubuntu_version` | `24.04`  | Ubuntu base version     |
+| `gh_version`     | `2.86.0` | GitHub CLI version      |
+| `push_to_ghcr`   | `true`   | Whether to push to GHCR |
+
+### cleanup-container-images.yml - Cleanup Container Images
+
+**Triggers**: Weekly schedule (Sunday 3am UTC), `workflow_dispatch` (manual)
+
+**Purpose**: Smart cleanup of orphaned container image versions in GHCR. Preserves tagged manifests, multi-arch platform manifests (amd64, arm64), and attestation manifests (provenance, SBOM). Only deletes truly orphaned untagged versions older than the minimum age.
+
+**Inputs** (workflow_dispatch):
+
+| Input          | Default | Description                                 |
+| -------------- | ------- | ------------------------------------------- |
+| `min_age_days` | `7`     | Minimum age in days before deletion         |
+| `dry_run`      | `false` | Show what would be deleted without deleting |
+
+### cleanup-workflow-runs.yml - Cleanup Workflow Runs
+
+**Triggers**: Schedule or manual dispatch
+
+**Purpose**: Removes old workflow run logs to keep the Actions tab manageable.
+
+## V3 Extension Helper Workflows
+
+These reusable workflows support the v3 extension testing pipeline by providing discovery, matrix generation, and profile testing capabilities.
+
+### v3-discover-extensions.yml - Extension Discovery
+
+**Triggers**: `workflow_call` only (reusable)
+
+**Purpose**: Scans `v3/extensions/` and returns extension metadata as JSON for downstream matrix generation. Supports filtering by profile, category, memory requirements, GPU needs, and heavy-extension exclusion.
+
+**Outputs**: `extensions` (JSON array of metadata), `extension-names` (JSON array of names), `count`, `categories`, `profiles`
+
+### v3-matrix-generator.yml - Matrix Generator
+
+**Triggers**: `workflow_call` only (reusable)
+
+**Purpose**: Filters discovered extensions per provider based on resource limits (Docker 2GB, k3d 4GB, Fly.io 8GB, DevPod 16GB, Packer 32GB). Generates provider-specific extension matrices so each provider only tests extensions it can handle.
+
+**Outputs**: Per-provider extension lists and counts (`docker-extensions`, `fly-extensions`, `k3d-extensions`, `devpod-extensions`, `packer-extensions`)
+
+### v3-test-profiles.yml - V3 Profile Testing
+
+**Triggers**: `workflow_call` (reusable) or `workflow_dispatch` (manual)
+
+**Purpose**: Tests `sindri.yaml` configuration files from the `examples/v3/` directory. Validates profile-based deployments across different providers using the v3 Rust CLI.
+
+**Inputs**:
+
+| Input          | Required | Default | Description                                       |
+| -------------- | -------- | ------- | ------------------------------------------------- |
+| `config-path`  | Yes      | -       | Path to sindri.yaml file or directory to test all |
+| `test-level`   | No       | `quick` | Test level to run (quick, profile, all)           |
+| `skip-cleanup` | No       | `false` | Skip cleanup for debugging                        |
+
+### v3-pre-release-test.yml - Pre-Release Tests
+
+**Triggers**: `workflow_dispatch` only (manual)
+
+**Purpose**: Comprehensive extension validation using CI release candidate images before tagging a release. Tests against a specific commit SHA's container image across multiple providers to validate everything works before creating a version tag.
+
+**Inputs**:
+
+| Input          | Default          | Description                                            |
+| -------------- | ---------------- | ------------------------------------------------------ |
+| `commit-sha`   | (latest main)    | Commit SHA to test                                     |
+| `providers`    | `docker,k3d,fly` | Providers to test (comma-separated)                    |
+| `filter-heavy` | `false`          | Exclude heavy extensions (>4GB memory, >10min install) |
+| `max-parallel` | `2`              | Maximum parallel jobs per provider                     |
+
+## V3 Packer Workflows
+
+### v3-packer-build.yml - Build Sindri VM Images
+
+**Triggers**: `workflow_dispatch` only (manual)
+
+**Purpose**: Builds Sindri v3 VM images across multiple cloud providers (AWS, Azure, GCP, OCI, Alibaba) using Packer. Supports optional extension profiles, additional extensions, and CIS security hardening.
+
+**Inputs**:
+
+| Input            | Default  | Description                                                |
+| ---------------- | -------- | ---------------------------------------------------------- |
+| `clouds`         | `aws`    | Target clouds (comma-separated: aws,azure,gcp,oci,alibaba) |
+| `sindri_version` | `latest` | Sindri version to install                                  |
+| `profile`        | (empty)  | Extension profile to install (optional)                    |
+| `extensions`     | (empty)  | Additional extensions (comma-separated)                    |
+| `cis_hardening`  | `false`  | Enable CIS security hardening                              |
+| `dry_run`        | `false`  | Validate only without building                             |
+
+### v3-packer-test.yml - Test Sindri VM Images
+
+**Triggers**: `workflow_dispatch` (manual) or `workflow_run` (after `v3-packer-build.yml` completes)
+
+**Purpose**: Tests Sindri v3 VM images using InSpec compliance profiles. Launches instances from built images, runs compliance tests, then terminates the instances.
+
+**Inputs**:
+
+| Input      | Default     | Description                                        |
+| ---------- | ----------- | -------------------------------------------------- |
+| `cloud`    | (choice)    | Cloud provider to test (aws/azure/gcp/oci/alibaba) |
+| `image_id` | (required)  | Image ID to test                                   |
+| `region`   | `us-west-2` | Cloud region                                       |
+
+## V3 Provider Integration Testing
+
+### integration-test-providers.yml - Manual Provider Integration Tests
+
+**Triggers**: `workflow_dispatch` only (manual)
+
+**Purpose**: Triggers real deployments against RunPod and Northflank provider APIs for end-to-end validation. Supports dry-run mode (validates configs only) and live mode (creates real resources). Includes optional GPU type selection for RunPod.
+
+**Inputs**:
+
+| Input       | Default   | Description                                       |
+| ----------- | --------- | ------------------------------------------------- |
+| `provider`  | (choice)  | Provider to test (runpod, northflank, or all)     |
+| `test-mode` | `dry-run` | dry-run validates configs; live creates resources |
+| `gpu-type`  | (empty)   | GPU type for RunPod (leave empty for CPU-only)    |
+
 ## Testing Workflows
 
 ### Extension Testing Workflow (`v2-test-extensions.yml`)
@@ -347,13 +587,15 @@ The v3 extension testing system uses a multi-workflow architecture with dynamic 
 
 **Provider Workflows**:
 
-| Workflow                 | Provider | Resource Limit | Use Case                    |
-| ------------------------ | -------- | -------------- | --------------------------- |
-| `v3-provider-docker.yml` | Docker   | 2GB            | Local testing, CI runners   |
-| `v3-provider-fly.yml`    | Fly.io   | 8GB            | Cloud VMs with auto-suspend |
-| `v3-provider-k3d.yml`    | k3d      | 4GB            | Kubernetes testing          |
-| `v3-provider-devpod.yml` | DevPod   | 16GB           | Multi-cloud (AWS/GCP/Azure) |
-| `v3-provider-packer.yml` | Packer   | 32GB           | VM image testing            |
+| Workflow                     | Provider   | Resource Limit | Use Case                    |
+| ---------------------------- | ---------- | -------------- | --------------------------- |
+| `v3-provider-docker.yml`     | Docker     | 2GB            | Local testing, CI runners   |
+| `v3-provider-fly.yml`        | Fly.io     | 8GB            | Cloud VMs with auto-suspend |
+| `v3-provider-k3d.yml`        | k3d        | 4GB            | Kubernetes testing          |
+| `v3-provider-devpod.yml`     | DevPod     | 16GB           | Multi-cloud (AWS/GCP/Azure) |
+| `v3-provider-packer.yml`     | Packer     | 32GB           | VM image testing            |
+| `v3-provider-northflank.yml` | Northflank | varies         | Kubernetes PaaS testing     |
+| `v3-provider-runpod.yml`     | RunPod     | varies         | GPU cloud pod testing       |
 
 **Extension Lifecycle Test Pattern**:
 
@@ -754,6 +996,8 @@ The `.github/scripts/` directory contains test utilities:
 | DevPod Azure        | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`         |
 | DevPod DigitalOcean | `DIGITALOCEAN_TOKEN`                                                |
 | Kubernetes          | `KUBECONFIG` (optional - auto-creates kind cluster if not provided) |
+| Northflank          | `NORTHFLANK_API_TOKEN`                                              |
+| RunPod              | `RUNPOD_API_KEY`                                                    |
 
 ### Kubernetes Testing with Kind
 
@@ -1126,6 +1370,7 @@ Extensions are automatically tested via `v2-test-extensions.yml`:
    - **Solution**: Use correct format:
      - v2 releases: `v2.x.y` (e.g., v2.3.0, v2.3.1-beta.1)
      - v3 releases: `v3.x.y` (e.g., v3.0.0, v3.1.0-alpha.1)
+     - Console agent releases: `console-agent-v<semver>` (e.g., console-agent-v1.0.0)
 
 7. **Cache Issues**
    - **Clear cache**: Go to Actions → Caches → Delete cache
@@ -1138,6 +1383,49 @@ Extensions are automatically tested via `v2-test-extensions.yml`:
 export DEBUG=true
 ./v2/cli/sindri test --config examples/v2/fly/minimal.sindri.yaml --suite smoke
 ```
+
+## Complete Workflow Inventory
+
+The following table provides a quick reference for every workflow file in `.github/workflows/`:
+
+| File                             | Name                             | Category               | Triggers                                                          |
+| -------------------------------- | -------------------------------- | ---------------------- | ----------------------------------------------------------------- |
+| `build-base-image.yml`           | Build Base Image                 | Infrastructure         | `workflow_dispatch`, push (`v3/Dockerfile.base`), `workflow_call` |
+| `check-links.yml`                | Check Links                      | Validation             | Push/PR on `**.md` files                                          |
+| `ci-v2.yml`                      | CI v2                            | CI                     | Push/PR on `v2/**`                                                |
+| `ci-v3.yml`                      | CI v3                            | CI                     | Push/PR on `v3/**`                                                |
+| `cleanup-container-images.yml`   | Cleanup Container Images         | Infrastructure         | Weekly schedule, `workflow_dispatch`                              |
+| `cleanup-workflow-runs.yml`      | Cleanup Workflow Runs            | Infrastructure         | Schedule, `workflow_dispatch`                                     |
+| `console-agent-ci.yml`           | Console Agent: CI                | Console                | Push to `main`, PR on `v3/console/agent/**`                       |
+| `console-agent-release.yml`      | Console Agent: Release           | Console / Release      | Push tags `console-agent-v*`                                      |
+| `console-agent-test.yml`         | Console Agent: Test & Lint       | Console                | Push/PR on `v3/console/agent/**`, `workflow_dispatch`             |
+| `console-makefile-ci.yml`        | Console: Makefile CI             | Console                | Push/PR on `v3/console/**`, `Makefile`                            |
+| `integration-test-providers.yml` | v3: Integration Test - Providers | v3 Testing             | `workflow_dispatch`                                               |
+| `release-v2.yml`                 | Release v2                       | Release                | Push tags `v2.*.*`                                                |
+| `release-v3.yml`                 | Release v3                       | Release                | Push tags `v3.*.*`                                                |
+| `v2-deploy-sindri.yml`           | v2 Deploy                        | v2 Deployment          | `workflow_call`, `workflow_dispatch`                              |
+| `v2-manual-deploy.yml`           | v2 Manual Deploy                 | v2 Deployment          | `workflow_dispatch`                                               |
+| `v2-teardown-sindri.yml`         | v2 Teardown                      | v2 Deployment          | `workflow_call`, `workflow_dispatch`                              |
+| `v2-test-extensions.yml`         | v2 Test Extensions               | v2 Testing             | `workflow_call`, `workflow_dispatch`                              |
+| `v2-test-profiles.yml`           | v2 Test Profiles                 | v2 Testing             | `workflow_call`, `workflow_dispatch`                              |
+| `v2-test-provider.yml`           | v2 Test Provider                 | v2 Testing             | `workflow_call`, `workflow_dispatch`                              |
+| `v3-discover-extensions.yml`     | v3: Discover Extensions          | v3 Testing (reusable)  | `workflow_call`                                                   |
+| `v3-extension-test.yml`          | v3: Extension Tests              | v3 Testing             | `workflow_dispatch`                                               |
+| `v3-matrix-generator.yml`        | v3: Matrix Generator             | v3 Testing (reusable)  | `workflow_call`                                                   |
+| `v3-packer-build.yml`            | v3: Build Sindri VM Images       | v3 Packer              | `workflow_dispatch`                                               |
+| `v3-packer-test.yml`             | v3: Test Sindri VM Images        | v3 Packer              | `workflow_dispatch`, `workflow_run`                               |
+| `v3-pre-release-test.yml`        | v3: Pre-Release Tests            | v3 Testing             | `workflow_dispatch`                                               |
+| `v3-provider-devpod.yml`         | v3: Provider - DevPod            | v3 Provider (reusable) | `workflow_call`                                                   |
+| `v3-provider-docker.yml`         | v3: Provider - Docker            | v3 Provider (reusable) | `workflow_call`                                                   |
+| `v3-provider-fly.yml`            | v3: Provider - Fly.io            | v3 Provider (reusable) | `workflow_call`                                                   |
+| `v3-provider-k3d.yml`            | v3: Provider - k3d               | v3 Provider (reusable) | `workflow_call`                                                   |
+| `v3-provider-northflank.yml`     | v3: Provider - Northflank        | v3 Provider (reusable) | `workflow_call`                                                   |
+| `v3-provider-packer.yml`         | v3: Provider - Packer            | v3 Provider (reusable) | `workflow_call`                                                   |
+| `v3-provider-runpod.yml`         | v3: Provider - RunPod            | v3 Provider (reusable) | `workflow_call`                                                   |
+| `v3-test-profiles.yml`           | v3: Test Profiles                | v3 Testing             | `workflow_call`, `workflow_dispatch`                              |
+| `validate-markdown.yml`          | Validate Markdown                | Validation             | Push/PR on `**.md`                                                |
+| `validate-shell.yml`             | Validate Shell                   | Validation             | Push/PR on `**.sh`                                                |
+| `validate-yaml.yml`              | Validate YAML                    | Validation             | Push/PR on `**.yaml`, `**.yml`                                    |
 
 ## Future Enhancements
 

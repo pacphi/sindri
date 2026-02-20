@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Sindri v3 has no CLI-native log viewing capability. The only monitoring guidance in Docker environments is `tail -f ~/.sindri/logs/install.log`, which is Docker-only and doesn't work with the native Rust CLI. The structured event ledger at `~/.sindri/status_ledger.jsonl` (see ADR-043) already captures all extension lifecycle events (install, upgrade, remove, validation, outdated) with timestamps, but `sindri extension status` only shows current state snapshots -- not a chronological event log.
+Sindri v3 has no CLI-native log viewing capability. The only monitoring guidance in Docker environments is `tail -f ~/.sindri/logs/install.log`, which is Docker-only and doesn't work with the native Rust CLI. The structured event ledger at `~/.sindri/status_ledger.jsonl` (see ADR-046) already captures all extension lifecycle events (install, upgrade, remove, validation, outdated) with timestamps, but `sindri extension status` only shows current state snapshots -- not a chronological event log.
 
 Users need a unified way to:
 

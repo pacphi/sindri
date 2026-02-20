@@ -1,4 +1,4 @@
-# ADR-043: Event-Driven Extension Status Architecture
+# ADR-046: Event-Driven Extension Status Architecture
 
 ## Status
 

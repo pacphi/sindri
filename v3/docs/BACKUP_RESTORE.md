@@ -589,14 +589,14 @@ tar xzf ~/.sindri/restore-snapshots/snapshot-{id}.tar.gz
 
 The following features are planned but not yet implemented in V3:
 
-| Feature                    | Status  | Notes                                |
-| -------------------------- | ------- | ------------------------------------ |
-| S3 Backup Destination      | WIP     | Local backups fully supported        |
-| HTTPS Download Source      | WIP     | Local restore fully supported        |
-| GPG Encryption Integration | Planned | Use external gpg for now             |
-| Incremental Backups        | Planned | Full backups only                    |
-| Extension Reinstallation   | Planned | Manual reinstall after restore       |
-| Shell Config Merging       | Partial | Basic overwrite, smart merge planned |
+| Feature                    | Status                       | Notes                                |
+| -------------------------- | ---------------------------- | ------------------------------------ |
+| S3 Backup Destination      | Planned — tracked in backlog | Local backups fully supported        |
+| HTTPS Download Source      | Planned — tracked in backlog | Local restore fully supported        |
+| GPG Encryption Integration | Planned                      | Use external gpg for now             |
+| Incremental Backups        | Planned                      | Full backups only                    |
+| Extension Reinstallation   | Planned                      | Manual reinstall after restore       |
+| Shell Config Merging       | Partial                      | Basic overwrite, smart merge planned |
 
 ---
 

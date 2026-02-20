@@ -128,7 +128,7 @@ else
       breaking_section+="$breaking_desc"$'\n\n'
     fi
 
-    breaking_section+="**TODO**: Add migration instructions, code examples (before/after), and user impact."$'\n\n'
+    breaking_section+="> **Action Required**: Fill in migration instructions, code examples (before/after), and user impact for each breaking change listed above."$'\n\n'
     breaking_section+="---"$'\n\n'
   done
 fi

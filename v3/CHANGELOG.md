@@ -124,7 +124,7 @@ _GA release placeholder. See [3.0.0-rc.3] and earlier pre-releases for cumulativ
 
 ### Breaking Changes
 
-- **Event-driven extension status**: Replaced `manifest.yaml` with append-only event ledger (`~/.sindri/status_ledger.jsonl`). Users upgrading from previous versions must reinstall their extensions. See [ADR-043](docs/architecture/adr/043-event-driven-status.md).
+- **Event-driven extension status**: Replaced `manifest.yaml` with append-only event ledger (`~/.sindri/status_ledger.jsonl`). Users upgrading from previous versions must reinstall their extensions. See [ADR-043](docs/architecture/adr/046-event-driven-status.md).
 
 ### Added
 

@@ -4,45 +4,53 @@ This directory contains Architecture Decision Records documenting key architectu
 
 ## Quick Reference
 
-| ADR                                                      | Title                                      | Phase | Status     |
-| -------------------------------------------------------- | ------------------------------------------ | ----- | ---------- |
-| [001](001-rust-migration-workspace-architecture.md)      | Rust Migration Workspace Architecture      | 1     | Accepted   |
-| [002](002-provider-abstraction-layer.md)                 | Provider Abstraction Layer                 | 2     | Accepted   |
-| [003](003-template-based-configuration.md)               | Template-Based Configuration               | 2     | Accepted   |
-| [004](004-async-runtime-command-execution.md)            | Async Runtime Command Execution            | 2     | Accepted   |
-| [005](005-provider-specific-implementations.md)          | Provider-Specific Implementations          | 3     | Accepted   |
-| [006](006-template-refactoring-consistency.md)           | Template Refactoring Consistency           | 3     | Accepted   |
-| [007](007-phases-2-3-completion.md)                      | Phases 2-3 Completion                      | 3     | Accepted   |
-| [008](008-extension-type-system-yaml-deserialization.md) | Extension Type System YAML Deserialization | 4     | Accepted   |
-| [009](009-dependency-resolution-dag-topological-sort.md) | Dependency Resolution DAG Topological Sort | 4     | Accepted   |
-| [010](010-github-extension-distribution.md)              | GitHub Extension Distribution              | 4     | Accepted   |
-| [011](011-multi-method-extension-installation.md)        | Multi-Method Extension Installation        | 4     | Accepted   |
-| [012](012-registry-manifest-dual-state-architecture.md)  | Registry Manifest Dual-State Architecture  | 4     | Accepted   |
-| [013](013-schema-validation-strategy.md)                 | Schema Validation Strategy                 | 4     | Accepted   |
-| [014](014-sbom-generation-industry-standards.md)         | SBOM Generation Industry Standards         | 4     | Accepted   |
-| [015](015-secrets-resolver-core-architecture.md)         | Secrets Resolver Core Architecture         | 5     | Proposed   |
-| [016](016-vault-integration-architecture.md)             | Vault Integration Architecture             | 5     | Proposed   |
-| [017](017-backup-system-architecture.md)                 | Backup System Architecture                 | 5     | Accepted   |
-| [018](018-restore-system-architecture.md)                | Restore System Architecture                | 5     | Accepted   |
-| [019](019-phase-5-secrets-backup-integration.md)         | Phase 5 Integration Strategy               | 5     | Accepted   |
-| [020](020-s3-encrypted-secret-storage.md)                | S3 Encrypted Secret Storage                | 5     | Proposed   |
-| [021](021-bifurcated-ci-cd-v2-v3.md)                     | Bifurcated CI/CD Pipeline for v2 and v3    | 6     | Accepted   |
-| [022](022-phase-6-self-update-implementation.md)         | Phase 6 Self-Update Implementation         | 6     | Accepted   |
-| [023](023-phase-7-project-management-architecture.md)    | Phase 7 Project Management Architecture    | 7     | Accepted   |
-| [024](024-template-based-project-scaffolding.md)         | Template-Based Project Scaffolding         | 7     | Accepted   |
-| [025](025-git-operations-repository-management.md)       | Git Operations and Repository Management   | 7     | Accepted   |
-| [026](026-extension-version-lifecycle-management.md)     | Extension Version Lifecycle Management     | 4     | Accepted   |
-| [027](027-tool-dependency-management-system.md)          | Tool Dependency Management System          | 8     | Accepted   |
-| [028](028-config-init-template-generation.md)            | Config Init Template Generation            | -     | Accepted   |
-| [029](029-local-kubernetes-cluster-management.md)        | Local Kubernetes Cluster Management        | -     | Accepted   |
-| [030](030-kubernetes-ci-integration-testing.md)          | Kubernetes CI Integration Testing          | -     | Accepted   |
-| [031](031-packer-vm-provisioning-architecture.md)        | Packer VM Provisioning Architecture        | -     | Accepted   |
-| [032](032-extension-configure-processing.md)             | Extension Configure Processing             | 4     | Accepted   |
-| [033](033-environment-based-template-selection.md)       | Environment-Based Template Selection       | 4     | Accepted   |
-| [034](034-image-handling-consistency-framework.md)       | Image Handling Consistency Framework       | -     | Accepted   |
-| [035](035-dockerfile-path-standardization.md)            | Dockerfile Path Standardization            | -     | Superseded |
-| [036](036-build-time-image-metadata-caching.md)          | Build-Time Image Metadata Caching          | -     | Accepted   |
-| [037](037-image-naming-and-tagging-strategy.md)          | Image Naming and Tagging Strategy          | -     | Accepted   |
+| ADR                                                      | Title                                             | Phase | Status     |
+| -------------------------------------------------------- | ------------------------------------------------- | ----- | ---------- |
+| [001](001-rust-migration-workspace-architecture.md)      | Rust Migration Workspace Architecture             | 1     | Accepted   |
+| [002](002-provider-abstraction-layer.md)                 | Provider Abstraction Layer                        | 2     | Accepted   |
+| [003](003-template-based-configuration.md)               | Template-Based Configuration                      | 2     | Accepted   |
+| [004](004-async-runtime-command-execution.md)            | Async Runtime Command Execution                   | 2     | Accepted   |
+| [005](005-provider-specific-implementations.md)          | Provider-Specific Implementations                 | 3     | Accepted   |
+| [006](006-template-refactoring-consistency.md)           | Template Refactoring Consistency                  | 3     | Accepted   |
+| [007](007-phases-2-3-completion.md)                      | Phases 2-3 Completion                             | 3     | Accepted   |
+| [008](008-extension-type-system-yaml-deserialization.md) | Extension Type System YAML Deserialization        | 4     | Accepted   |
+| [009](009-dependency-resolution-dag-topological-sort.md) | Dependency Resolution DAG Topological Sort        | 4     | Accepted   |
+| [010](010-github-extension-distribution.md)              | GitHub Extension Distribution                     | 4     | Accepted   |
+| [011](011-multi-method-extension-installation.md)        | Multi-Method Extension Installation               | 4     | Accepted   |
+| [012](012-registry-manifest-dual-state-architecture.md)  | Registry Manifest Dual-State Architecture         | 4     | Accepted   |
+| [013](013-schema-validation-strategy.md)                 | Schema Validation Strategy                        | 4     | Accepted   |
+| [014](014-sbom-generation-industry-standards.md)         | SBOM Generation Industry Standards                | 4     | Accepted   |
+| [015](015-secrets-resolver-core-architecture.md)         | Secrets Resolver Core Architecture                | 5     | Accepted   |
+| [016](016-vault-integration-architecture.md)             | Vault Integration Architecture                    | 5     | Accepted   |
+| [017](017-backup-system-architecture.md)                 | Backup System Architecture                        | 5     | Accepted   |
+| [018](018-restore-system-architecture.md)                | Restore System Architecture                       | 5     | Accepted   |
+| [019](019-phase-5-secrets-backup-integration.md)         | Phase 5 Integration Strategy                      | 5     | Accepted   |
+| [020](020-s3-encrypted-secret-storage.md)                | S3 Encrypted Secret Storage                       | 5     | Accepted   |
+| [021](021-bifurcated-ci-cd-v2-v3.md)                     | Bifurcated CI/CD Pipeline for v2 and v3           | 6     | Accepted   |
+| [022](022-phase-6-self-update-implementation.md)         | Phase 6 Self-Update Implementation                | 6     | Accepted   |
+| [023](023-phase-7-project-management-architecture.md)    | Phase 7 Project Management Architecture           | 7     | Accepted   |
+| [024](024-template-based-project-scaffolding.md)         | Template-Based Project Scaffolding                | 7     | Accepted   |
+| [025](025-git-operations-repository-management.md)       | Git Operations and Repository Management          | 7     | Accepted   |
+| [026](026-extension-version-lifecycle-management.md)     | Extension Version Lifecycle Management            | 4     | Accepted   |
+| [027](027-tool-dependency-management-system.md)          | Tool Dependency Management System                 | 8     | Accepted   |
+| [028](028-config-init-template-generation.md)            | Config Init Template Generation                   | -     | Accepted   |
+| [029](029-local-kubernetes-cluster-management.md)        | Local Kubernetes Cluster Management               | -     | Accepted   |
+| [030](030-kubernetes-ci-integration-testing.md)          | Kubernetes CI Integration Testing                 | -     | Accepted   |
+| [031](031-packer-vm-provisioning-architecture.md)        | Packer VM Provisioning Architecture               | -     | Accepted   |
+| [032](032-extension-configure-processing.md)             | Extension Configure Processing                    | 4     | Accepted   |
+| [033](033-environment-based-template-selection.md)       | Environment-Based Template Selection              | 4     | Accepted   |
+| [034](034-image-handling-consistency-framework.md)       | Image Handling Consistency Framework              | -     | Accepted   |
+| [035](035-dockerfile-path-standardization.md)            | Dockerfile Path Standardization                   | -     | Superseded |
+| [036](036-build-time-image-metadata-caching.md)          | Build-Time Image Metadata Caching                 | -     | Accepted   |
+| [037](037-image-naming-and-tagging-strategy.md)          | Image Naming and Tagging Strategy                 | -     | Accepted   |
+| [038](038-env-file-preflight-check.md)                   | .env File Preflight Check and Custom Paths        | -     | Accepted   |
+| [040](040-two-dockerfile-architecture.md)                | Two-Dockerfile Architecture with SINDRI_EXT_HOME  | -     | Accepted   |
+| [041](041-security-hardened-extension-installation.md)   | Security-Hardened Extension Installation          | -     | Accepted   |
+| [042](042-bom-capability-architecture.md)                | Bill of Materials (BOM) Capability Architecture   | -     | Accepted   |
+| [043](043-shell-startup-optimization.md)                 | Shell Startup Performance Optimization            | -     | Accepted   |
+| [044](044-extension-log-command.md)                      | Extension Log Command                             | -     | Accepted   |
+| [045](045-per-extension-log-files.md)                    | Per-Extension Log Files Linked from Ledger Events | -     | Accepted   |
+| [046](046-event-driven-status.md)                        | Event-Driven Extension Status Architecture        | -     | Accepted   |
 
 ## By Phase
 
@@ -104,14 +112,25 @@ This directory contains Architecture Decision Records documenting key architectu
 - **ADR-034**: Image handling consistency framework across providers
 - **ADR-036**: Build-time image metadata caching for zero-friction first use
 - **ADR-037**: Image naming and tagging strategy (official releases vs on-demand builds)
+- **ADR-040**: Two-Dockerfile architecture with SINDRI_EXT_HOME for extension isolation
+- **ADR-041**: Security-hardened extension installation
+
+### Extension Operations
+
+- **ADR-038**: .env file preflight check and custom paths
+- **ADR-042**: Bill of Materials (BOM) capability architecture
+- **ADR-043**: Shell startup performance optimization
+- **ADR-044**: Extension log command for CLI-native log viewing
+- **ADR-045**: Per-extension log files linked from ledger events
+- **ADR-046**: Event-driven extension status architecture (append-only ledger)
 
 ## ADR Statistics
 
-- **Total ADRs**: 37
+- **Total ADRs**: 45 (ADR-039 reserved/skipped)
 - **Total Lines**: 16,000+ lines
 - **Total Size**: ~530KB
-- **Phases Covered**: 1-8 + K8s Cluster Management + Packer VM Provisioning + Image Management
-- **Implementation Status**: Phases 1-8 complete, K8s cluster management added, Packer provisioning added, Image metadata caching added, Image naming/tagging standardized
+- **Phases Covered**: 1-8 + K8s Cluster Management + Packer VM Provisioning + Image Management + Extension Operations
+- **Implementation Status**: Phases 1-8 complete, K8s cluster management added, Packer provisioning added, Image metadata caching added, Image naming/tagging standardized, event-driven status and logging added
 
 ## Key Architectural Themes
 
@@ -154,7 +173,7 @@ This directory contains Architecture Decision Records documenting key architectu
 
 When adding new ADRs:
 
-1. Use sequential numbering (next: 038)
+1. Use sequential numbering (next: 047)
 2. Follow template structure (Context → Decision → Consequences)
 3. Include implementation details and code examples
 4. Link to related ADRs
