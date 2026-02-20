@@ -134,6 +134,7 @@ RUN /docker/scripts/install-nerd-fonts.sh && \
     rm -rf /tmp/* /var/tmp/*
 
 # Install starship (shell prompt) system-wide
+ARG GITHUB_TOKEN
 RUN /docker/scripts/install-starship.sh && \
     rm -rf /tmp/* /var/tmp/*
 

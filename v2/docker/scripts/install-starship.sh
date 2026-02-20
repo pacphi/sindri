@@ -23,7 +23,12 @@ print_status "Installing starship to $INSTALL_DIR/starship..."
 
 # Fetch latest version if not specified
 if [[ "$STARSHIP_VERSION" == "latest" ]]; then
-    STARSHIP_VERSION=$(curl -sL https://api.github.com/repos/starship/starship/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+    CURL_ARGS=(-sL)
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        CURL_ARGS+=(-H "Authorization: token $GITHUB_TOKEN")
+        print_status "Using GITHUB_TOKEN for GitHub API request..."
+    fi
+    STARSHIP_VERSION=$(curl "${CURL_ARGS[@]}" https://api.github.com/repos/starship/starship/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
     print_status "Latest version: v$STARSHIP_VERSION"
 fi
 

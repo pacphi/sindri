@@ -221,6 +221,7 @@ RUN gh --version
 # Install Tools: All setup scripts in single layer (changes occasionally)
 # ------------------------------------------------------------------------------
 # Consolidates 12 layers → 2 layers for mise, fonts, starship, SSH env, MOTD
+ARG GITHUB_TOKEN
 COPY v3/docker/scripts/setup-ssh-environment.sh \
      v3/docker/scripts/install-mise.sh \
      v3/docker/scripts/install-nerd-fonts.sh \

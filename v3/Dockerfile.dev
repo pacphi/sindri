@@ -152,6 +152,7 @@ FROM ${BASE_IMAGE}
 # ------------------------------------------------------------------------------
 # Install mise, fonts, starship (changes occasionally)
 # ------------------------------------------------------------------------------
+ARG GITHUB_TOKEN
 COPY v3/docker/scripts/setup-ssh-environment.sh \
      v3/docker/scripts/install-mise.sh \
      v3/docker/scripts/install-nerd-fonts.sh \

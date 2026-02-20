@@ -356,6 +356,7 @@ jobs:
           sbom: true
           build-args: |
             SINDRI_VERSION=${{ env.VERSION }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v4.0.0
