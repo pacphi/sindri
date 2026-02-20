@@ -4,7 +4,7 @@
  * Handles state transitions and emits Redis events for real-time updates.
  */
 
-import type { Instance } from "@prisma/client";
+import { type Instance, EventType } from "@prisma/client";
 import { db } from "../lib/db.js";
 import { redis, REDIS_CHANNELS } from "../lib/redis.js";
 import { logger } from "../lib/logger.js";
@@ -75,7 +75,7 @@ export async function suspendInstance(id: string): Promise<Instance | null> {
   await db.event.create({
     data: {
       instance_id: id,
-      event_type: "SUSPEND" as any,
+      event_type: EventType.SUSPEND,
       metadata: { triggered_by: "api", previous_status: "RUNNING" },
     },
   });

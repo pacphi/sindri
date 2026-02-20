@@ -31,6 +31,7 @@ import {
 import { authenticateUpgrade, type AuthenticatedPrincipal, AuthError } from "./auth.js";
 import { WsPubSub, InProcessPubSub, type PubSub } from "./redis.js";
 import { dispatch, type HandlerContext } from "./handlers.js";
+import { logger } from "../lib/logger.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuration
@@ -176,12 +177,7 @@ export class SindriWebSocketServer {
 
     this.clients.set(clientId, client);
 
-    console.info("[ws:server] Client connected", {
-      clientId,
-      userId: principal.userId,
-      instanceId: principal.instanceId,
-      role: principal.role,
-    });
+    logger.info({ clientId, userId: principal.userId, instanceId: principal.instanceId, role: principal.role }, "[ws:server] Client connected");
 
     ws.on("pong", () => {
       client.lastPong = new Date();
@@ -269,13 +265,7 @@ export class SindriWebSocketServer {
   }
 
   private async onClose(client: ConnectedClient, code: number, reason: string): Promise<void> {
-    console.info("[ws:server] Client disconnected", {
-      clientId: client.id,
-      userId: client.principal.userId,
-      instanceId: client.principal.instanceId,
-      code,
-      reason,
-    });
+    logger.info({ clientId: client.id, userId: client.principal.userId, instanceId: client.principal.instanceId, code, reason }, "[ws:server] Client disconnected");
 
     await Promise.allSettled(client.unsubscribers.map((fn) => fn()));
     this.clients.delete(client.id);
