@@ -118,6 +118,7 @@ ENV/
 # Logs and Monitoring
 *.log
 logs/
+!v3/console/apps/web/src/components/logs/
 log/
 *.out
 *.err
