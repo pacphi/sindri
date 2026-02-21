@@ -100,7 +100,7 @@ V3 extensions are organized into the following categories:
 | Extension         | Version | Description                                                                          | Install Method |
 | ----------------- | ------- | ------------------------------------------------------------------------------------ | -------------- |
 | **agentic-flow**  | 1.0.0   | Multi-model AI agent framework for Claude Code with cost optimization (alpha)        | mise           |
-| **agentic-qe**    | 1.1.1   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
+| **agentic-qe**    | 1.1.2   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
 | **agent-manager** | 2.0.0   | Claude Code agent manager for managing AI agents                                     | script         |
 | **agent-browser** | 1.0.0   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
 
