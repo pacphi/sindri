@@ -36,9 +36,7 @@ export function LogAggregator({ instanceId }: LogAggregatorProps) {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["logs", instanceId, filters, page],
     queryFn: () =>
-      instanceId
-        ? logsApi.listForInstance(instanceId, filters, page)
-        : logsApi.list(filters, page),
+      instanceId ? logsApi.listForInstance(instanceId, filters, page) : logsApi.list(filters, page),
   });
 
   const applySearch = () => {
