@@ -126,7 +126,7 @@ Total Extensions: 50
 **Rationale**: Ubuntu repository versions vary by release
 
 - **docker**: 4 tools (target: 29.2.1, compose 5.0.2)
-- **github-cli**: gh (target: 2.86.0)
+- **github-cli**: gh (target: 2.87.2)
 - **dotnet**: .NET SDK (target: 10.0.2 LTS)
 - **ollama**: Ollama (target: 0.15.6)
 

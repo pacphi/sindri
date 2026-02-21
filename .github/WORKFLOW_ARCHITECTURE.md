@@ -422,7 +422,7 @@ Ensures the root Makefile's console-related targets stay in sync with the consol
 | ---------------- | -------- | ----------------------- |
 | `rust_version`   | `1.93`   | Rust toolchain version  |
 | `ubuntu_version` | `24.04`  | Ubuntu base version     |
-| `gh_version`     | `2.86.0` | GitHub CLI version      |
+| `gh_version`     | `2.87.2` | GitHub CLI version      |
 | `push_to_ghcr`   | `true`   | Whether to push to GHCR |
 
 ### cleanup-container-images.yml - Cleanup Container Images

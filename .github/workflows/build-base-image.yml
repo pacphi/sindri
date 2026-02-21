@@ -27,9 +27,9 @@ on:
         required: false
         default: '24.04'
       gh_version:
-        description: 'GitHub CLI version (e.g., 2.86.0)'
+        description: 'GitHub CLI version (e.g., 2.87.2)'
         required: false
-        default: '2.86.0'
+        default: '2.87.2'
       push_to_ghcr:
         description: 'Push to GHCR (true/false)'
         required: false
@@ -79,7 +79,7 @@ jobs:
         run: |
           RUST_VERSION="${{ github.event.inputs.rust_version || '1.93' }}"
           UBUNTU_VERSION="${{ github.event.inputs.ubuntu_version || '24.04' }}"
-          GH_VERSION="${{ github.event.inputs.gh_version || '2.86.0' }}"
+          GH_VERSION="${{ github.event.inputs.gh_version || '2.87.2' }}"
 
           echo "rust_version=$RUST_VERSION" >> $GITHUB_OUTPUT
           echo "ubuntu_version=$UBUNTU_VERSION" >> $GITHUB_OUTPUT

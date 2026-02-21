@@ -32,7 +32,7 @@
 # ------------------------------------------------------------------------------
 ARG UBUNTU_VERSION=24.04
 ARG SINDRI_VERSION=3.0.0
-ARG GH_VERSION=2.86.0
+ARG GH_VERSION=2.87.2
 
 # ==============================================================================
 # Stage 1a: Local Binary from Build Context (CI workflows)
