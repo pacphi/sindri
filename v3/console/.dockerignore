@@ -1,0 +1,33 @@
+# Dependencies — reinstalled inside the image
+**/node_modules
+
+# Build outputs — rebuilt inside the image
+**/dist
+**/.turbo
+
+# Test artifacts
+**/coverage
+**/*.lcov
+
+# Environment files — never bake secrets into an image
+.env
+.env.docker
+.env.local
+.env.*.local
+
+# Go build artifacts (agent is built separately)
+agent/bin
+agent/*.exe
+
+# OS / editor
+.DS_Store
+Thumbs.db
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+
+# Docker files themselves (not needed in build context)
+**/Dockerfile*
+**/.dockerignore
+docker-compose*.yml

@@ -22,11 +22,11 @@ zeroize = { version = "1.8", features = ["derive"] }
 base64 = "0.22"
 vaultrs = "0.7"
 dotenvy = "0.15"
-tempfile = "3.24"
+tempfile = "3.25"
 regex = "1.12"
 
 # S3 backend
-aws-sdk-s3 = "1.121"
+aws-sdk-s3 = "1.124"
 aws-config = "1.8"
 
 # Encryption
@@ -40,5 +40,5 @@ chrono = { workspace = true }
 [dev-dependencies]
 mockall = "0.14"
 serial_test = { workspace = true }
-tempfile = "3.24"
+tempfile = "3.25"
 tokio-test = "0.4"

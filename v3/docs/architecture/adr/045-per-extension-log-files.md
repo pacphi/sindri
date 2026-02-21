@@ -10,7 +10,7 @@ Sindri has two disconnected logging mechanisms:
 
 1. **`~/.sindri/logs/install.log`** (Docker only) — raw stdout/stderr from all extensions, written by `entrypoint.sh` via `tee -a`. Contains full tool output but is unstructured, Docker-only, and not per-extension.
 
-2. **`~/.sindri/status_ledger.jsonl`** (ADR-043) — structured JSONL events read by `sindri extension log` (ADR-044). Queryable and cross-platform, but captures only 1-line error messages on failure and zero tool output on success.
+2. **`~/.sindri/status_ledger.jsonl`** (ADR-046) — structured JSONL events read by `sindri extension log` (ADR-044). Queryable and cross-platform, but captures only 1-line error messages on failure and zero tool output on success.
 
 **The gap:** When a user runs `sindri extension log` and sees an install failure, they can't drill into the detailed mise/script output. The executor (`executor.rs`) already captures stdout/stderr in `Arc<Mutex<Vec<String>>>` buffers during installation, but these were dropped after each `install_*` method returned. We needed to preserve this output in per-extension log files and link them from ledger events.
 

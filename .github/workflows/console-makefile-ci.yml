@@ -1,0 +1,208 @@
+name: "Console: Makefile CI"
+
+# Validates that all console-agent-* and console-* Makefile targets resolve
+# correctly and that the agent targets execute cleanly on both Ubuntu and macOS.
+# Runs on every PR/push that touches console source, the Makefile, or this
+# workflow file itself.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "v3/console/**"
+      - "Makefile"
+      - "scripts/test-makefile-targets.sh"
+      - ".github/workflows/console-makefile-ci.yml"
+  pull_request:
+    paths:
+      - "v3/console/**"
+      - "Makefile"
+      - "scripts/test-makefile-targets.sh"
+      - ".github/workflows/console-makefile-ci.yml"
+
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  # ── Target resolution (syntax / PHONY check) ──────────────────────────────
+  resolve:
+    name: Makefile Target Resolution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      - name: Verify all console targets resolve (dry-run)
+        run: |
+          chmod +x scripts/test-makefile-targets.sh
+          scripts/test-makefile-targets.sh --dry-run
+
+  # ── Console Agent execution tests ─────────────────────────────────────────
+  agent:
+    name: Console Agent (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: go vet
+        run: make console-agent-vet
+
+      - name: Unit tests
+        run: make console-agent-test
+
+      - name: Single-platform build
+        run: make console-agent-build
+
+      - name: Verify binary artifact
+        run: |
+          ls -lh v3/console/agent/dist/sindri-agent
+          file v3/console/agent/dist/sindri-agent
+
+  # ── Console Agent cross-compile ───────────────────────────────────────────
+  agent-cross-compile:
+    name: Agent Cross-Compile (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: v3/console/agent/go.mod
+          cache-dependency-path: v3/console/agent/go.sum
+
+      - name: Cross-compile
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          cd v3/console/agent
+          go build -ldflags "-s -w" \
+            -o dist/sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }} \
+            ./cmd/agent
+          ls -lh dist/sindri-agent-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  # ── Console TypeScript CI ─────────────────────────────────────────────────
+  typescript:
+    name: Console TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('v3/console/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: make console-install
+
+      - name: Format check
+        run: make console-fmt-check
+
+      - name: Type check
+        run: make console-typecheck
+
+      - name: Lint
+        run: make console-lint
+
+      - name: Unit tests
+        run: make console-test
+
+      - name: Production build
+        run: make console-build
+
+  # ── Aggregate target smoke-test ────────────────────────────────────────────
+  aggregate:
+    name: Aggregate Targets
+    runs-on: ubuntu-latest
+    needs: [resolve]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify ci target includes console-ci
+        run: grep -q "^ci:.*console" Makefile
+
+      - name: Verify clean target includes console clean
+        run: grep -q "^clean:.*console" Makefile
+
+  # ── Summary gate ──────────────────────────────────────────────────────────
+  console-makefile-ci:
+    name: Console Makefile CI
+    runs-on: ubuntu-latest
+    needs: [resolve, agent, agent-cross-compile, typescript, aggregate]
+    if: always()
+
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.resolve.result }}" != "success" ]] ||
+             [[ "${{ needs.agent.result }}" != "success" ]] ||
+             [[ "${{ needs.agent-cross-compile.result }}" != "success" ]] ||
+             [[ "${{ needs.typescript.result }}" != "success" ]] ||
+             [[ "${{ needs.aggregate.result }}" != "success" ]]; then
+            echo "One or more console Makefile CI jobs failed."
+            exit 1
+          fi
+          echo "All console Makefile CI jobs passed."

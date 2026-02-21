@@ -85,7 +85,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Setup Packer
-        uses: hashicorp/setup-packer@main
+        uses: hashicorp/setup-packer@v3.1.0
 
       - name: Build Sindri CLI
         working-directory: v3
@@ -458,7 +458,7 @@ jobs:
 
     steps:
       - name: Download All Results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: results
           pattern: packer-result-*

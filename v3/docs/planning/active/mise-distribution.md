@@ -1,6 +1,6 @@
 # mise Distribution Plan
 
-## Status: Ready for Implementation
+## Status: Planned — pending release pipeline integration
 
 This plan describes how to distribute Sindri v3 via [mise](https://mise.jdx.dev/), the polyglot runtime manager, allowing users to install with `mise use sindri`.
 

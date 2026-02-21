@@ -193,7 +193,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@main
+        uses: cargo-bins/cargo-binstall@v1.12.3
 
       - name: Install cargo-llvm-cov
         run: cargo binstall cargo-llvm-cov --no-confirm --force
@@ -356,6 +356,7 @@ jobs:
           sbom: true
           build-args: |
             SINDRI_VERSION=${{ env.VERSION }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v4.0.0
@@ -489,7 +490,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@main
+        uses: cargo-bins/cargo-binstall@v1.12.3
 
       - name: Install cargo-audit
         run: cargo binstall cargo-audit --no-confirm

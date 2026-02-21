@@ -1,0 +1,117 @@
+---
+metadata:
+  name: console-agent
+  version: 1.0.0
+  description: Sindri Console agent for orchestration and observability
+  category: tools
+  author: Sindri Team
+  license: MIT
+  homepage: https://github.com/pacphi/sindri
+  dependencies: []
+
+requirements:
+  domains:
+    - github.com
+    - api.github.com
+    - objects.githubusercontent.com
+  diskSpace: 50
+  memory: 64
+  installTime: 60
+
+install:
+  method: script
+  script:
+    path: install.sh
+    timeout: 300
+
+configure:
+  scripts:
+    - path: configure-agent.sh
+      description: Configure agent from environment variables and sindri.yaml
+  environment:
+    - key: SINDRI_CONSOLE_URL
+      value: ""
+      scope: bashrc
+      description: URL of the Sindri Console API server
+    - key: SINDRI_CONSOLE_API_KEY
+      value: ""
+      scope: bashrc
+      description: API key for authenticating with the Sindri Console
+    - key: SINDRI_AGENT_HEARTBEAT
+      value: "30"
+      scope: bashrc
+      description: Heartbeat interval in seconds
+    - key: SINDRI_AGENT_METRICS
+      value: "60"
+      scope: bashrc
+      description: Metrics collection interval in seconds
+
+post_install:
+  scripts:
+    - path: configure-agent.sh
+      description: Write agent configuration file
+    - path: start-agent.sh
+      description: Start agent as background service
+
+validate:
+  scripts:
+    - path: healthcheck.sh
+      description: Verify agent is running and healthy
+
+remove:
+  paths:
+    - ~/.local/bin/sindri-agent
+    - ~/.config/sindri-agent
+    - /tmp/sindri-agent.pid
+  scripts:
+    - command: pkill -f sindri-agent || true
+      description: Stop the running agent process
+  confirmation: true
+
+upgrade:
+  strategy: in-place
+  script:
+    path: install.sh
+    timeout: 300
+
+bom:
+  track: true
+  tools:
+    - name: sindri-agent
+      version: dynamic
+      source: github-release
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/pacphi/sindri
+      purl: pkg:github/pacphi/sindri
+
+docs:
+  title: "Sindri Console Agent"
+  overview: |
+    The Sindri Console Agent runs on each Sindri instance and connects it to the
+    Sindri Console for centralized orchestration, monitoring, and web terminal access.
+
+    The agent provides:
+    - System metrics collection (CPU, memory, disk, network)
+    - Heartbeat to Console for liveness tracking
+    - PTY-based web terminal sessions via WebSocket
+    - Auto-registration on instance boot
+  last-updated: "2026-02-17"
+  usage:
+    - section: "Configuration"
+      examples:
+        - description: "Set Console URL and API key in sindri.yaml"
+          code: |
+            extensions:
+              - name: console-agent
+                env:
+                  SINDRI_CONSOLE_URL: "https://console.example.com"
+                  SINDRI_CONSOLE_API_KEY: "your-api-key"
+                  SINDRI_AGENT_HEARTBEAT: "30"
+                  SINDRI_AGENT_METRICS: "60"
+    - section: "Health Check"
+      examples:
+        - description: "Check agent status"
+          code: "~/.local/bin/healthcheck.sh"
+        - description: "View agent logs"
+          code: "cat /tmp/sindri-agent.log"

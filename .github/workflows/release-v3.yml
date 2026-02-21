@@ -473,7 +473,7 @@ jobs:
           echo "digest=$DIGEST_HASH" >> $GITHUB_OUTPUT
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.22.2
         with:
           image: ghcr.io/${{ github.repository }}:${{ needs.validate-tag.outputs.version }}
           format: spdx-json

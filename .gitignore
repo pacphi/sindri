@@ -9,6 +9,7 @@
 *.env.staging
 .env.*
 !.env.example
+!**/.env.docker.example
 !**/versions.env
 .env.secrets
 secrets/
@@ -39,6 +40,7 @@ fly.toml
 
 # Docker local development
 docker-compose.yml
+!v3/console/docker-compose.yml
 docker-compose.override.yml
 docker-compose.local.yml
 
@@ -118,6 +120,7 @@ ENV/
 # Logs and Monitoring
 *.log
 logs/
+!v3/console/apps/web/src/components/logs/
 log/
 *.out
 *.err

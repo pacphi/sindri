@@ -22,6 +22,13 @@ V3_DIR := $(PROJECT_ROOT)/v3
 V3_BINARY := $(V3_DIR)/target/release/sindri
 V3_DEBUG_BINARY := $(V3_DIR)/target/debug/sindri
 
+# Console Agent (Go binary)
+CONSOLE_AGENT_DIR := $(V3_DIR)/console/agent
+GO_BIN := go
+
+# Console TypeScript monorepo
+CONSOLE_DIR := $(V3_DIR)/console
+
 # Detect OS for cross-platform support
 UNAME_S := $(shell uname -s 2>/dev/null || echo Windows)
 ifeq ($(UNAME_S),Darwin)
@@ -195,8 +202,16 @@ endef
 	v3-docker-build v3-docker-build-latest v3-docker-build-nocache \
 	v3-docker-build-from-source v3-docker-build-from-binary \
 	v3-cycle \
-	ci v2-ci v3-ci v3-quality \
-	clean v2-clean v3-clean
+	ci v2-ci v3-ci v3-quality console-agent-ci console-ci \
+	clean v2-clean v3-clean console-agent-clean console-clean \
+	console-agent-build console-agent-build-all \
+	console-agent-test console-agent-fmt console-agent-fmt-check \
+	console-agent-lint console-agent-vet console-agent-audit \
+	console-agent-install \
+	console-install console-build console-dev console-test console-test-coverage \
+	console-lint console-typecheck console-fmt console-fmt-check \
+	console-audit console-audit-fix console-upgrade console-upgrade-interactive \
+	console-db-migrate console-db-generate
 
 # ============================================================================
 # Default Target
@@ -211,11 +226,13 @@ help:
 	@echo ""
 	@echo "$(BOLD)Quick Start:$(RESET)"
 	@echo "  make deps-check        - Check all dependencies"
-	@echo "  make ci                - Run full CI pipeline (v2 + v3)"
+	@echo "  make ci                - Run full CI pipeline (v2 + v3 + console)"
 	@echo "  make v3-build          - Build Rust binary (release)"
 	@echo "  make v2-test           - Run v2 unit tests"
-	@echo "  make format            - Format all code (Prettier + Cargo)"
+	@echo "  make format            - Format all code (Prettier + Cargo + gofmt)"
 	@echo "  make lint              - Run all linters"
+	@echo "  make console-build     - Build Console (API + Web)"
+	@echo "  make console-agent-build - Build Go agent binary"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ Dependency Management ═══════════════════════════════════════════$(RESET)"
 	@echo "  deps-check             - Check all dependencies (required + optional)"
@@ -226,12 +243,12 @@ help:
 	@echo "  deps-upgrade-cargo     - Upgrade cargo dependencies"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ Formatting & Validation ═════════════════════════════════════════$(RESET)"
-	@echo "  format                 - Format all files (Prettier + Cargo fmt)"
+	@echo "  format                 - Format all files (Prettier + Cargo fmt + gofmt)"
 	@echo "  format-check           - Check formatting without changes"
 	@echo "  links-check            - Check markdown links (local files only)"
 	@echo "  links-check-external   - Check external HTTP/HTTPS links"
 	@echo "  links-check-all        - Check all links (local + external)"
-	@echo "  audit                  - Run security audits (npm + cargo)"
+	@echo "  audit                  - Run security audits (npm + cargo + pnpm + govulncheck)"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ Linting ═════════════════════════════════════════════════════════$(RESET)"
 	@echo "  lint                   - Run all linters (YAML + MD + JSON + Rust)"
@@ -301,16 +318,57 @@ help:
 	@echo "  v3-cache-clear-medium  - Clear cargo + build cache"
 	@echo "  v3-cache-clear-hard    - Clear all except base"
 	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Console Agent (Go) Targets ══════════════════════════════════════$(RESET)"
+	@echo "  console-agent-build    - Build agent for current platform (static)"
+	@echo "  console-agent-build-all - Cross-compile: linux-amd64, linux-arm64, darwin-amd64, darwin-arm64"
+	@echo "  console-agent-test     - Run agent unit tests"
+	@echo "  console-agent-fmt      - Format Go code (gofmt)"
+	@echo "  console-agent-fmt-check - Check Go formatting without changes"
+	@echo "  console-agent-vet      - Run go vet"
+	@echo "  console-agent-lint     - Run golangci-lint"
+	@echo "  console-agent-audit    - Vulnerability scan (govulncheck)"
+	@echo "  console-agent-install  - Install sindri-agent to ~/.local/bin"
+	@echo "  console-agent-clean    - Remove agent build artifacts"
+	@echo "  console-agent-ci       - Full agent CI (vet + test + build-all)"
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ Console (TypeScript) Targets ════════════════════════════════════$(RESET)"
+	@echo "  console-install        - Install pnpm dependencies"
+	@echo "  console-build          - Build all Console packages (API + Web)"
+	@echo "  console-dev            - Start Console in development mode (API + Web, parallel)"
+	@echo "  console-test           - Run all Console tests"
+	@echo "  console-test-coverage  - Run tests with coverage report"
+	@echo "  console-lint           - Run ESLint on all packages"
+	@echo "  console-typecheck      - Run TypeScript type checking"
+	@echo "  console-fmt            - Format TypeScript/CSS/JSON with Prettier"
+	@echo "  console-fmt-check      - Check Prettier formatting without changes"
+	@echo "  console-audit          - Run pnpm security audit"
+	@echo "  console-audit-fix      - Auto-fix pnpm audit issues"
+	@echo "  console-upgrade        - Upgrade console dependencies (latest)"
+	@echo "  console-upgrade-interactive - Interactive dependency upgrade"
+	@echo "  console-clean          - Clean build artifacts and node_modules"
+	@echo "  console-db-migrate     - Run Prisma migrations (dev)"
+	@echo "  console-db-generate    - Generate Prisma client"
+	@echo ""
+	@echo "$(BOLD)Quick examples:$(RESET)"
+	@echo "  make console-build                   - Build API + Web"
+	@echo "  make console-agent-build             - Build Go agent (current platform)"
+	@echo "  make console-agent-build-all         - Cross-compile all platforms"
+	@echo "  make console-ci                      - Full Console CI pipeline"
+	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ CI/CD Targets ═══════════════════════════════════════════════════$(RESET)"
-	@echo "  ci                     - Run full CI (v2 + v3)"
+	@echo "  ci                     - Run full CI (v2 + v3 + console)"
 	@echo "  v2-ci                  - Run v2 CI pipeline"
 	@echo "  v3-ci                  - Run v3 CI pipeline (validate + test + build)"
 	@echo "  v3-quality             - Full quality gate (fmt + clippy + test + audit + coverage)"
+	@echo "  console-agent-ci       - Console agent CI (vet + test + build-all)"
+	@echo "  console-ci             - Full Console CI (agent + TypeScript: fmt-check + lint + typecheck + test + build)"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ Utility ═════════════════════════════════════════════════════════$(RESET)"
 	@echo "  clean                  - Clean all build artifacts"
 	@echo "  v2-clean               - Clean v2 Docker images"
 	@echo "  v3-clean               - Clean v3 Rust artifacts"
+	@echo "  console-agent-clean    - Clean Go agent build artifacts"
+	@echo "  console-clean          - Clean Console TypeScript artifacts"
 	@echo ""
 
 # ============================================================================
@@ -336,6 +394,10 @@ deps-check-required:
 	@echo "$(BOLD)Rust tooling:$(RESET)"
 	$(call require_tool,cargo,)
 	$(call require_tool,rustc,)
+	@echo ""
+	@echo "$(BOLD)Go tooling:$(RESET)"
+	$(call require_tool,go,)
+	$(call require_tool,gofmt,)
 	@echo ""
 	@echo "$(BOLD)Container tools:$(RESET)"
 	$(call require_tool,docker,)
@@ -365,6 +427,10 @@ deps-check-optional:
 	$(call check_optional_tool,cargo-audit,)
 	$(call check_optional_tool,cargo-upgrade,)
 	@echo ""
+	@echo "$(BOLD)Go optional tools:$(RESET)"
+	$(call check_optional_tool,golangci-lint,)
+	$(call check_optional_tool,govulncheck,)
+	@echo ""
 	@echo "$(BOLD)Link checking:$(RESET)"
 	$(call check_optional_tool,lychee,)
 	@echo ""
@@ -378,7 +444,7 @@ deps-check-optional:
 # ============================================================================
 
 .PHONY: deps-upgrade
-deps-upgrade: deps-upgrade-npm deps-upgrade-cargo
+deps-upgrade: deps-upgrade-npm deps-upgrade-cargo console-upgrade
 	@echo "$(GREEN)$(BOLD)✓ All dependencies upgraded$(RESET)"
 
 .PHONY: deps-upgrade-npm
@@ -390,6 +456,10 @@ deps-upgrade-npm:
 .PHONY: deps-upgrade-cargo
 deps-upgrade-cargo:
 	@echo "$(BLUE)Upgrading cargo dependencies...$(RESET)"
+	@if ! cargo upgrade --version >/dev/null 2>&1; then \
+		echo "$(YELLOW)cargo-edit not installed. Installing...$(RESET)"; \
+		cargo install cargo-edit; \
+	fi
 	pnpm deps:upgrade:cargo
 	@echo "$(GREEN)✓ cargo dependencies upgraded$(RESET)"
 
@@ -409,6 +479,10 @@ format:
 	@pnpm format
 	@echo "$(BLUE)  → Running cargo fmt (Rust)...$(RESET)"
 	@cd $(V3_DIR) && cargo fmt --all
+	@echo "$(BLUE)  → Running Prettier on Console (TypeScript)...$(RESET)"
+	@$(MAKE) console-fmt
+	@echo "$(BLUE)  → Running gofmt on Console agent (Go)...$(RESET)"
+	@$(MAKE) console-agent-fmt
 	@echo "$(GREEN)✓ All files formatted$(RESET)"
 
 .PHONY: format-check
@@ -418,6 +492,10 @@ format-check:
 	@pnpm format:check
 	@echo "$(BLUE)  → Checking Rust formatting...$(RESET)"
 	@cd $(V3_DIR) && cargo fmt --all -- --check
+	@echo "$(BLUE)  → Checking Console TypeScript formatting...$(RESET)"
+	@$(MAKE) console-fmt-check
+	@echo "$(BLUE)  → Checking Console agent Go formatting...$(RESET)"
+	@$(MAKE) console-agent-fmt-check
 	@echo "$(GREEN)✓ All formatting checks passed$(RESET)"
 
 # ============================================================================
@@ -448,7 +526,7 @@ links-check-all:
 # ============================================================================
 
 .PHONY: audit
-audit: audit-npm audit-cargo
+audit: audit-npm audit-cargo console-audit console-agent-audit
 	@echo "$(GREEN)$(BOLD)✓ All security audits complete$(RESET)"
 
 .PHONY: audit-npm
@@ -468,7 +546,7 @@ audit-cargo:
 # ============================================================================
 
 .PHONY: lint
-lint: lint-yaml lint-markdown lint-json lint-rust
+lint: lint-yaml lint-markdown lint-json lint-rust console-lint console-agent-lint
 	@echo "$(GREEN)$(BOLD)✓ All linting complete$(RESET)"
 
 .PHONY: lint-yaml
@@ -1319,7 +1397,7 @@ v3-inspec-exec-local:
 # ============================================================================
 
 .PHONY: ci
-ci: v2-ci v3-ci
+ci: v2-ci v3-ci console-ci
 	@echo "$(GREEN)$(BOLD)✓ Full CI pipeline passed$(RESET)"
 
 .PHONY: v2-ci
@@ -1335,11 +1413,20 @@ v3-quality: v3-fmt-check v3-clippy v3-test v3-audit v3-coverage
 	@echo "$(GREEN)$(BOLD)✓ v3 quality gate passed (fmt + clippy + test + audit + coverage)$(RESET)"
 
 # ============================================================================
+# Console CI Target
+# ============================================================================
+
+.PHONY: console-ci
+console-ci: console-agent-fmt-check console-agent-lint console-agent-test console-agent-build \
+            console-fmt-check console-lint console-typecheck console-test console-build
+	@echo "$(GREEN)$(BOLD)✓ Console CI pipeline passed (agent + TypeScript)$(RESET)"
+
+# ============================================================================
 # Clean Targets
 # ============================================================================
 
 .PHONY: clean
-clean: v2-clean v3-clean
+clean: v2-clean v3-clean console-clean console-agent-clean
 	@echo "$(GREEN)✓ All build artifacts cleaned$(RESET)"
 
 .PHONY: v2-clean
@@ -1359,3 +1446,234 @@ v3-clean:
 	@docker builder prune --all --force 2>/dev/null || true
 	@docker buildx prune --all --force 2>/dev/null || true
 	@echo "$(GREEN)✓ v3 artifacts cleaned$(RESET)"
+
+# ============================================================================
+# Console Agent (Go) Targets
+# ============================================================================
+
+.PHONY: console-agent-build
+console-agent-build:
+	@echo "$(BLUE)Building console agent for current platform (static)...$(RESET)"
+	$(call require_tool,go,)
+	@mkdir -p $(CONSOLE_AGENT_DIR)/dist
+	cd $(CONSOLE_AGENT_DIR) && CGO_ENABLED=0 $(GO_BIN) build \
+		-ldflags "-s -w" \
+		-o dist/sindri-agent \
+		./cmd/agent
+	@echo "$(GREEN)✓ Agent built: $(CONSOLE_AGENT_DIR)/dist/sindri-agent$(RESET)"
+
+.PHONY: console-agent-build-all
+console-agent-build-all:
+	@echo "$(BLUE)Cross-compiling console agent for all platforms...$(RESET)"
+	$(call require_tool,go,)
+	@mkdir -p $(CONSOLE_AGENT_DIR)/dist
+	GOOS=linux  GOARCH=amd64 CGO_ENABLED=0 $(GO_BIN) build \
+		-C $(CONSOLE_AGENT_DIR) \
+		-ldflags "-s -w" \
+		-o dist/sindri-agent-linux-amd64 ./cmd/agent
+	GOOS=linux  GOARCH=arm64 CGO_ENABLED=0 $(GO_BIN) build \
+		-C $(CONSOLE_AGENT_DIR) \
+		-ldflags "-s -w" \
+		-o dist/sindri-agent-linux-arm64 ./cmd/agent
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 $(GO_BIN) build \
+		-C $(CONSOLE_AGENT_DIR) \
+		-ldflags "-s -w" \
+		-o dist/sindri-agent-darwin-amd64 ./cmd/agent
+	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 $(GO_BIN) build \
+		-C $(CONSOLE_AGENT_DIR) \
+		-ldflags "-s -w" \
+		-o dist/sindri-agent-darwin-arm64 ./cmd/agent
+	@echo "$(GREEN)✓ Cross-compiled binaries:$(RESET)"
+	@ls -lh $(CONSOLE_AGENT_DIR)/dist/
+
+.PHONY: console-agent-test
+console-agent-test:
+	@echo "$(BLUE)Running console agent unit tests...$(RESET)"
+	$(call require_tool,go,)
+	cd $(CONSOLE_AGENT_DIR) && $(GO_BIN) test ./... -count=1 -timeout 120s -race
+	@echo "$(GREEN)✓ Console agent tests passed$(RESET)"
+
+.PHONY: console-agent-fmt
+console-agent-fmt:
+	@echo "$(BLUE)Formatting console agent Go code (gofmt)...$(RESET)"
+	$(call require_tool,go,)
+	cd $(CONSOLE_AGENT_DIR) && gofmt -w .
+	@echo "$(GREEN)✓ Console agent code formatted$(RESET)"
+
+.PHONY: console-agent-fmt-check
+console-agent-fmt-check:
+	@echo "$(BLUE)Checking console agent Go formatting...$(RESET)"
+	$(call require_tool,go,)
+	@UNFORMATTED=$$(cd $(CONSOLE_AGENT_DIR) && gofmt -l .); \
+	if [ -n "$$UNFORMATTED" ]; then \
+		echo "$(RED)✗ Unformatted files:$(RESET)"; \
+		echo "$$UNFORMATTED"; \
+		echo "  Run: make console-agent-fmt"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✓ Console agent formatting check passed$(RESET)"
+
+.PHONY: console-agent-vet
+console-agent-vet:
+	@echo "$(BLUE)Running go vet on console agent...$(RESET)"
+	$(call require_tool,go,)
+	cd $(CONSOLE_AGENT_DIR) && $(GO_BIN) vet ./...
+	@echo "$(GREEN)✓ go vet passed$(RESET)"
+
+.PHONY: console-agent-lint
+console-agent-lint:
+	@echo "$(BLUE)Running golangci-lint on console agent...$(RESET)"
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "$(YELLOW)golangci-lint not installed. Falling back to go vet.$(RESET)"; \
+		echo "  Install: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin"; \
+		cd $(CONSOLE_AGENT_DIR) && $(GO_BIN) vet ./...; \
+	else \
+		cd $(CONSOLE_AGENT_DIR) && golangci-lint run ./...; \
+	fi
+	@echo "$(GREEN)✓ Console agent lint passed$(RESET)"
+
+.PHONY: console-agent-audit
+console-agent-audit:
+	@echo "$(BLUE)Running vulnerability scan on console agent (govulncheck)...$(RESET)"
+	@if ! command -v govulncheck >/dev/null 2>&1; then \
+		echo "$(YELLOW)govulncheck not installed.$(RESET)"; \
+		echo "  Install: go install golang.org/x/vuln/cmd/govulncheck@latest"; \
+		echo "  $(YELLOW)Skipping vulnerability scan.$(RESET)"; \
+	else \
+		cd $(CONSOLE_AGENT_DIR) && govulncheck ./...; \
+		echo "$(GREEN)✓ Console agent vulnerability scan passed$(RESET)"; \
+	fi
+
+.PHONY: console-agent-install
+console-agent-install: console-agent-build
+	@echo "$(BLUE)Installing sindri-agent to ~/.local/bin...$(RESET)"
+	@mkdir -p ~/.local/bin
+	@cp $(CONSOLE_AGENT_DIR)/dist/sindri-agent ~/.local/bin/sindri-agent
+	@chmod +x ~/.local/bin/sindri-agent
+	@echo "$(GREEN)✓ Installed: ~/.local/bin/sindri-agent$(RESET)"
+	@echo "  Ensure ~/.local/bin is in your PATH"
+
+.PHONY: console-agent-clean
+console-agent-clean:
+	@echo "$(BLUE)Cleaning console agent build artifacts...$(RESET)"
+	@rm -rf $(CONSOLE_AGENT_DIR)/dist
+	@echo "$(GREEN)✓ Console agent artifacts cleaned$(RESET)"
+
+.PHONY: console-agent-ci
+console-agent-ci: console-agent-vet console-agent-test console-agent-build-all
+	@echo "$(GREEN)$(BOLD)✓ Console agent CI passed (vet + test + build-all)$(RESET)"
+
+# ============================================================================
+# Console TypeScript / pnpm Targets
+# ============================================================================
+
+.PHONY: console-install
+console-install:
+	@echo "$(BLUE)Installing Console Node.js dependencies...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm install
+	@echo "$(GREEN)✓ Console dependencies installed$(RESET)"
+
+.PHONY: console-build
+console-build:
+	@echo "$(BLUE)Building Console (API + web)...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm build
+	@echo "$(GREEN)✓ Console build complete$(RESET)"
+
+.PHONY: console-dev
+console-dev:
+	@echo "$(BLUE)Starting Console in development mode (API + Web, parallel)...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm dev
+
+.PHONY: console-test
+console-test:
+	@echo "$(BLUE)Running Console test suite...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm test
+	@echo "$(GREEN)✓ Console tests passed$(RESET)"
+
+.PHONY: console-test-coverage
+console-test-coverage:
+	@echo "$(BLUE)Running Console tests with coverage...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm test:coverage
+	@echo "$(GREEN)✓ Console test coverage report generated$(RESET)"
+
+.PHONY: console-lint
+console-lint:
+	@echo "$(BLUE)Linting Console TypeScript code (ESLint)...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm lint
+	@echo "$(GREEN)✓ Console lint passed$(RESET)"
+
+.PHONY: console-fmt
+console-fmt:
+	@echo "$(BLUE)Formatting Console code (Prettier)...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm format
+	@echo "$(GREEN)✓ Console code formatted$(RESET)"
+
+.PHONY: console-fmt-check
+console-fmt-check:
+	@echo "$(BLUE)Checking Console code formatting (Prettier)...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm format:check
+	@echo "$(GREEN)✓ Console format check passed$(RESET)"
+
+.PHONY: console-typecheck
+console-typecheck:
+	@echo "$(BLUE)Running TypeScript type checks on Console...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR)/apps/api && pnpm db:generate
+	cd $(CONSOLE_DIR) && pnpm typecheck
+	@echo "$(GREEN)✓ Console type checks passed$(RESET)"
+
+.PHONY: console-audit
+console-audit:
+	@echo "$(BLUE)Running Console pnpm security audit...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm audit
+	@echo "$(GREEN)✓ Console security audit complete$(RESET)"
+
+.PHONY: console-audit-fix
+console-audit-fix:
+	@echo "$(BLUE)Attempting to auto-fix Console audit issues...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm audit --fix
+	@echo "$(GREEN)✓ Console audit fixes applied$(RESET)"
+
+.PHONY: console-upgrade
+console-upgrade:
+	@echo "$(BLUE)Upgrading Console dependencies to latest...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm update --latest
+	@echo "$(GREEN)✓ Console dependencies upgraded$(RESET)"
+
+.PHONY: console-upgrade-interactive
+console-upgrade-interactive:
+	@echo "$(BLUE)Interactive Console dependency upgrade...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm update --interactive --latest
+
+.PHONY: console-db-migrate
+console-db-migrate:
+	@echo "$(BLUE)Running Console database migrations (dev)...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm db:migrate
+	@echo "$(GREEN)✓ Console database migrations applied$(RESET)"
+
+.PHONY: console-db-generate
+console-db-generate:
+	@echo "$(BLUE)Generating Prisma client...$(RESET)"
+	$(call require_tool,pnpm,)
+	cd $(CONSOLE_DIR) && pnpm db:generate
+	@echo "$(GREEN)✓ Prisma client generated$(RESET)"
+
+.PHONY: console-clean
+console-clean:
+	@echo "$(BLUE)Cleaning Console TypeScript build artifacts...$(RESET)"
+	@rm -rf $(CONSOLE_DIR)/apps/api/dist 2>/dev/null || true
+	@rm -rf $(CONSOLE_DIR)/apps/web/dist 2>/dev/null || true
+	@echo "$(GREEN)✓ Console artifacts cleaned$(RESET)"

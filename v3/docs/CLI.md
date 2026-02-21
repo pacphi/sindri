@@ -2574,4 +2574,4 @@ sindri k8s install k3d
 - [Extensions](./EXTENSIONS.md) - Extension catalog and BOM patterns
 - [Extension Authoring](./extensions/guides/AUTHORING.md) - BOM best practices for extension authors
 - [ADR-042: BOM Architecture](./architecture/adr/042-bom-capability-architecture.md) - BOM design decisions
-- [ADR-043: Event-Driven Status](./architecture/adr/043-event-driven-status.md) - Event ledger design decisions
+- [ADR-046: Event-Driven Status](./architecture/adr/046-event-driven-status.md) - Event ledger design decisions

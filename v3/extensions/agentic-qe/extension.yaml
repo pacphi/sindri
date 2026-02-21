@@ -1,7 +1,7 @@
 ---
 metadata:
   name: agentic-qe
-  version: 1.1.1
+  version: 1.1.2
   description: >-
     Agentic Quality Engineering v3 with AI-powered test generation, coverage analysis, and multi-agent workflows.
   category: ai-agents
@@ -148,17 +148,17 @@ capabilities:
 bom:
   tools:
     - name: agentic-qe
-      version: "3.6.4"
+      version: "3.6.16"
       source: npm
       type: framework
       license: MIT
       homepage: https://github.com/proffesor-for-testing/agentic-qe
-      purl: pkg:npm/agentic-qe@3.6.4
+      purl: pkg:npm/agentic-qe@3.6.16
 docs:
   title: "Agentic QE"
   overview: |
     Agentic Quality Engineering v3 with AI-powered test generation, coverage analysis, and multi-agent workflows. Comprehensive testing automation framework.
-  last-updated: "2026-01-26"
+  last-updated: "2026-02-21"
   features:
     - "AI Test Generation - Automatically generate tests from code"
     - "Coverage Analysis - Intelligent coverage gap detection"

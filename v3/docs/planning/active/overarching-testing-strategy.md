@@ -59,23 +59,23 @@ This document defines the comprehensive testing strategy for Sindri V3, covering
 
 **Effectiveness Rating: 8/10** _(Updated 2026-01-26)_
 
-| Component                   | Status     | Effectiveness                                      |
-| --------------------------- | ---------- | -------------------------------------------------- |
-| Unit tests (37 total)       | ✅ Exists  | Medium - covers validation, manifest, dependencies |
-| Lifecycle integration tests | ✅ Exists  | Good - install, validate, hooks, configure covered |
-| Hook execution tests        | ✅ Exists  | Good - hooks_lifecycle_tests.rs implemented        |
-| Provider-based tests        | 🟡 Partial | Docker tested, others TBD                          |
-| V2 extension workflow       | ✅ Exists  | Good pattern to follow                             |
-| sindri-test.sh              | ✅ Exists  | Good - serial/parallel/profile/quick levels        |
-| Test infrastructure         | ✅ Exists  | Excellent - builders, mocks, assertions, fixtures  |
-| CI workflow                 | ✅ Exists  | Good - v3-extension-test.yml with matrix support   |
+| Component                   | Status     | Effectiveness                                                    |
+| --------------------------- | ---------- | ---------------------------------------------------------------- |
+| Unit tests (37 total)       | ✅ Exists  | Medium - covers validation, manifest, dependencies               |
+| Lifecycle integration tests | ✅ Exists  | Good - install, validate, hooks, configure covered               |
+| Hook execution tests        | ✅ Exists  | Good - hooks_lifecycle_tests.rs implemented                      |
+| Provider-based tests        | 🟡 Partial | Docker tested; other providers tracked for future implementation |
+| V2 extension workflow       | ✅ Exists  | Good pattern to follow                                           |
+| sindri-test.sh              | ✅ Exists  | Good - serial/parallel/profile/quick levels                      |
+| Test infrastructure         | ✅ Exists  | Excellent - builders, mocks, assertions, fixtures                |
+| CI workflow                 | ✅ Exists  | Good - v3-extension-test.yml with matrix support                 |
 
 ### Remaining Gaps _(Updated 2026-01-26)_
 
 1. ~~**NO lifecycle integration tests**~~ ✅ RESOLVED - install, validate, hooks, configure tests exist
 2. ~~**NO hook testing**~~ ✅ RESOLVED - hooks_lifecycle_tests.rs implemented
-3. **Removal lifecycle tests** - `removal_lifecycle_tests.rs` not yet created
-4. **Upgrade lifecycle tests** - `upgrade_lifecycle_tests.rs` not yet created
+3. **Removal lifecycle tests** - `removal_lifecycle_tests.rs` not yet created (tracked for future implementation)
+4. **Upgrade lifecycle tests** - `upgrade_lifecycle_tests.rs` not yet created (tracked for future implementation)
 5. ~~**NO serial vs parallel execution modes**~~ ✅ RESOLVED - v3-extension-test.sh supports both
 6. ~~**Test helpers scattered**~~ ✅ RESOLVED - Consolidated in sindri-extensions/tests/common/
 
@@ -196,7 +196,7 @@ predicates = "3.1"
 2. **NO extension validation in images** - pre-installed extensions not tested
 3. **NO cross-cloud image parity tests** - images may differ between clouds
 4. **NO image boot/connectivity tests** - SSH validation is basic (60s wait)
-5. **NO security scan integration** - OpenSCAP planned but not implemented
+5. **NO security scan integration** - OpenSCAP planned but not implemented (tracked for future implementation)
 6. **NO image lifecycle tests** - build→deploy→validate→destroy not automated
 
 ### Packer Testing Architecture

@@ -8,7 +8,7 @@
 
 [tools]
 # Agentic QE CLI tool v3 - pinned to stable version
-"npm:agentic-qe" = "3.6.4"
+"npm:agentic-qe" = "3.6.16"
 
 [tasks.init]
 description = "Initialize AQE v3 in current project"

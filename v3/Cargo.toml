@@ -40,7 +40,7 @@ serde_json = "1.0"
 serde_yaml_ng = "0.10"
 
 # JSON Schema validation
-jsonschema = "0.41"
+jsonschema = "0.42"
 
 # Template rendering
 tera = "1.20"
@@ -90,7 +90,7 @@ url = "2.5"
 petgraph = "0.8"
 
 # UUID for unique identifiers
-uuid = { version = "1.20", features = ["v4", "serde"] }
+uuid = { version = "1.21", features = ["v4", "serde"] }
 
 # File locking for concurrent access
 fs4 = "0.13"
@@ -108,8 +108,8 @@ futures = "0.3"
 dirs = "6.0"
 
 # Testing
-tempfile = "3.24"
-serial_test = "3.2"
+tempfile = "3.25"
+serial_test = "3.3"
 
 # Workspace crates
 sindri-core = { path = "crates/sindri-core" }

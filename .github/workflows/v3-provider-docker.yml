@@ -80,7 +80,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download CLI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: sindri-cli
           path: /tmp/sindri
@@ -207,7 +207,7 @@ jobs:
 
     steps:
       - name: Download All Results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: results
           pattern: docker-result-*

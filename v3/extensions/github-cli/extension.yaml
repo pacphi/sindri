@@ -34,7 +34,7 @@ upgrade:
 bom:
   # EXCEPTIONAL CASE: Pre-installed in Docker image via apt
   # Cannot pin to specific version - depends on Ubuntu release
-  # Target version (as of 2026-02-09): 2.86.0
+  # Target version (as of 2026-02-09): 2.87.2
   tools:
     - name: gh
       version: dynamic  # apt-managed

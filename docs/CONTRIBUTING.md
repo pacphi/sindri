@@ -11,10 +11,11 @@ Thank you for your interest in contributing to Sindri! This guide will help you 
 
 ## Development Versions
 
-Sindri has two active development versions:
+Sindri has three active development areas:
 
 - **V2** (Bash/Docker): The original implementation using shell scripts, Docker containers, and pnpm tooling. See [V2 Development](#v2-development) below.
 - **V3** (Rust CLI): The next-generation CLI rewritten in Rust as a cargo workspace. See [V3 Development](#v3-development) below.
+- **Console** (Go + TypeScript): The web-based management console consisting of a Go agent binary, a Hono/TypeScript API, and a React frontend. See [Console Development](#console-development) below.
 
 Choose the section below that matches your work.
 
@@ -444,6 +445,169 @@ V3-specific documentation lives in `v3/docs/`. Key guides:
 - [Extensions](../v3/docs/EXTENSIONS.md)
 - [Configuration](../v3/docs/CONFIGURATION.md)
 - [Schema Reference](../v3/docs/SCHEMA.md)
+
+---
+
+## Console Development
+
+The Sindri Console is a full-stack web application (V3) composed of:
+
+- **Console Agent** — a Go binary (`v3/console/agent/`) that runs on managed instances and communicates with the Console API over WebSocket.
+- **Console API** — a TypeScript/Hono backend (`v3/console/apps/api/`) with a PostgreSQL database (Prisma ORM) and Redis for pub/sub.
+- **Console Web** — a TypeScript/React frontend (`v3/console/apps/web/`) built with Vite.
+
+All Console targets are exposed through the root `Makefile`. See [Makefile Target Reference](#makefile-target-reference) below.
+
+### Prerequisites
+
+- **Go 1.22+** — for the Console Agent binary
+- **Node.js 20+** and **pnpm 9+** — for the Console API and Web
+- **PostgreSQL** and **Redis** — for local API development (or use Docker Compose)
+- **make** — to run Makefile targets
+
+### Initial Setup
+
+```bash
+# Install TypeScript dependencies (API + Web)
+make console-install
+
+# Build the Console Agent binary for the current platform
+make console-agent-build
+```
+
+### Development Workflow
+
+#### Console Agent (Go)
+
+```bash
+# Run all Go vet checks
+make console-agent-vet
+
+# Run unit tests (with race detector)
+make console-agent-test
+
+# Build for the current platform → dist/sindri-agent
+make console-agent-build
+
+# Cross-compile for all platforms → dist/sindri-agent-{os}-{arch}
+make console-agent-build-all
+
+# Format Go code
+make console-agent-fmt
+
+# Check formatting without writing
+make console-agent-fmt-check
+
+# Run golangci-lint
+make console-agent-lint
+
+# Run govulncheck (vulnerability scan)
+make console-agent-audit
+
+# Remove dist/ artifacts
+make console-agent-clean
+
+# Full agent CI pipeline (vet + test + build-all)
+make console-agent-ci
+```
+
+#### Console TypeScript (API + Web)
+
+```bash
+# Start development servers (API + Web with hot reload)
+make console-dev
+
+# Type-check all packages
+make console-typecheck
+
+# Run ESLint across all packages
+make console-lint
+
+# Check Prettier formatting without writing
+make console-fmt-check
+
+# Format code with Prettier
+make console-fmt
+
+# Run Vitest unit tests
+make console-test
+
+# Run tests with coverage report
+make console-test-coverage
+
+# Production build (API + Web)
+make console-build
+
+# Audit npm dependencies for vulnerabilities
+make console-audit
+
+# Apply safe audit fixes
+make console-audit-fix
+
+# Apply database migrations
+make console-db-migrate
+
+# Regenerate Prisma client after schema changes
+make console-db-generate
+
+# Remove build artifacts and node_modules
+make console-clean
+
+# Full TypeScript CI pipeline (fmt + typecheck + lint + test + build)
+make console-ci
+```
+
+### Makefile Target Reference
+
+The full list of targets and a description of each is available via:
+
+```bash
+make help
+```
+
+To verify all console Makefile targets resolve and execute correctly, use the test script:
+
+```bash
+# Dry-run (fast — syntax check only, no compilation)
+./scripts/test-makefile-targets.sh --dry-run
+
+# Agent targets only
+./scripts/test-makefile-targets.sh --agent-only
+
+# TypeScript targets only (requires node_modules)
+./scripts/test-makefile-targets.sh --ts-only
+
+# All targets (requires Go and pnpm)
+./scripts/test-makefile-targets.sh
+```
+
+### Console Testing Guidelines
+
+#### Agent (Go)
+
+- Tests live alongside source files in `*_test.go` files.
+- Use `make console-agent-test` which runs with `-race` flag.
+- Integration tests that hit external services should be skipped with `t.Skip()` unless the required environment variables are set.
+- Run a specific test: `cd v3/console/agent && go test ./internal/... -run TestName`
+
+#### TypeScript (API + Web)
+
+- API tests use **Vitest** — files under `v3/console/apps/api/tests/`.
+- Web tests use **Vitest** — co-located `*.test.tsx` files.
+- Add new API test files to the `include` list in `v3/console/apps/api/vitest.config.ts`.
+- Run a single test suite: `cd v3/console && pnpm --filter=@sindri/api test -- --reporter=verbose`
+
+### CI
+
+The console Makefile CI runs automatically on every PR or push that touches `v3/console/**`, `Makefile`, or `scripts/test-makefile-targets.sh`. See `.github/workflows/console-makefile-ci.yml`.
+
+Jobs:
+
+1. **resolve** — dry-run test of all 28 console Makefile targets (fast, no compilation)
+2. **agent** — `console-agent-vet` + `console-agent-test` + `console-agent-build` on Ubuntu and macOS
+3. **agent-cross-compile** — four-platform matrix cross-compile
+4. **typescript** — install + format-check + typecheck + lint + test + build
+5. **aggregate** — verifies `ci` and `clean` aggregate targets include console
 
 ---
 

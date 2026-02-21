@@ -742,7 +742,7 @@ async fn install_single(name: &str, version: Option<&str>) -> Result<()> {
                     extension_name: name.to_string(),
                     version: installed_version,
                     duration_secs,
-                    components_installed: vec![],  // TODO: Collect from executor
+                    components_installed: vec![],  // Collect execution metrics from the executor
                 },
             );
             ledger.append(event)?;
@@ -1095,7 +1095,7 @@ pub struct ExtensionStatusArgs {
    - **Lines added:** ~30
 
 3. **Documentation**
-   - Create ADR: `v3/docs/architecture/adr/043-event-driven-status.md`
+   - Create ADR: `v3/docs/architecture/adr/046-event-driven-status.md`
    - Update `v3/docs/CLI.md` with new commands
    - Update `v3/docs/AUTHORING.md` (if relevant)
    - **Lines added:** ~500 (documentation)
@@ -1663,7 +1663,7 @@ sindri_extension_status{extension="docker"} 0
 
 - [ ] `v3/crates/sindri-extensions/src/events.rs` (~200 lines)
 - [ ] `v3/crates/sindri-extensions/src/ledger.rs` (~400 lines)
-- [ ] `v3/docs/architecture/adr/043-event-driven-status.md` (~150 lines)
+- [ ] `v3/docs/architecture/adr/046-event-driven-status.md` (~150 lines)
 
 ### Files to Modify
 
