@@ -43,7 +43,7 @@ This directory contains Architecture Decision Records documenting key architectu
 | [035](035-dockerfile-path-standardization.md)            | Dockerfile Path Standardization                   | -     | Superseded |
 | [036](036-build-time-image-metadata-caching.md)          | Build-Time Image Metadata Caching                 | -     | Accepted   |
 | [037](037-image-naming-and-tagging-strategy.md)          | Image Naming and Tagging Strategy                 | -     | Accepted   |
-| [038](038-env-file-preflight-check-and-custom-paths.md)                   | .env File Preflight Check and Custom Paths        | -     | Accepted   |
+| [038](038-env-file-preflight-check-and-custom-paths.md)  | .env File Preflight Check and Custom Paths        | -     | Accepted   |
 | [040](040-two-dockerfile-architecture.md)                | Two-Dockerfile Architecture with SINDRI_EXT_HOME  | -     | Accepted   |
 | [041](041-security-hardened-extension-installation.md)   | Security-Hardened Extension Installation          | -     | Accepted   |
 | [042](042-bom-capability-architecture.md)                | Bill of Materials (BOM) Capability Architecture   | -     | Accepted   |

@@ -204,8 +204,8 @@ if (createRes.status !== 201) return; // Skip if endpoint not implemented
 
 All are correctly infrastructure-gated. Run via `cargo test -- --ignored` when infra is available.
 
-| File                                                                                                            | Line | Test                               | Gating Requirement |
-| --------------------------------------------------------------------------------------------------------------- | ---- | ---------------------------------- | ------------------ |
+| File                                                                                                               | Line | Test                               | Gating Requirement |
+| ------------------------------------------------------------------------------------------------------------------ | ---- | ---------------------------------- | ------------------ |
 | [`v3/crates/sindri-clusters/tests/k3d_integration.rs`](../../../crates/sindri-clusters/tests/k3d_integration.rs)   | 17   | `test_k3d_cluster_lifecycle`       | Docker + k3d       |
 | [`v3/crates/sindri-clusters/tests/k3d_integration.rs`](../../../crates/sindri-clusters/tests/k3d_integration.rs)   | 79   | `test_k3d_cluster_with_registry`   | Docker + k3d       |
 | [`v3/crates/sindri-clusters/tests/kind_integration.rs`](../../../crates/sindri-clusters/tests/kind_integration.rs) | 15   | `test_kind_cluster_lifecycle`      | Docker + kind      |
@@ -216,8 +216,8 @@ All are correctly infrastructure-gated. Run via `cargo test -- --ignored` when i
 
 All use the pattern `if (count === 0) { test.skip(); return; }` — they skip on absent seed data, not incomplete code.
 
-| File                                                                                                                      | Skip Count |
-| ------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| File                                                                                                                         | Skip Count |
+| ---------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | [`v3/console/apps/web/tests/e2e/security-dashboard.spec.ts`](../../../console/apps/web/tests/e2e/security-dashboard.spec.ts) | 7          |
 | [`v3/console/apps/web/tests/e2e/drift-detection.spec.ts`](../../../console/apps/web/tests/e2e/drift-detection.spec.ts)       | 6          |
 | [`v3/console/apps/web/tests/e2e/rbac-teams.spec.ts`](../../../console/apps/web/tests/e2e/rbac-teams.spec.ts)                 | 4          |
@@ -411,8 +411,8 @@ All use the pattern `if (count === 0) { test.skip(); return; }` — they skip on
 
 **`download-artifact@v4` instances (should be `@v7`):**
 
-| File                                                                                                    | Lines         |
-| ------------------------------------------------------------------------------------------------------- | ------------- |
+| File                                                                                                       | Lines         |
+| ---------------------------------------------------------------------------------------------------------- | ------------- |
 | [`.github/workflows/v3-provider-k3d.yml`](../../../../.github/workflows/v3-provider-k3d.yml)               | 118, 268, 292 |
 | [`.github/workflows/v3-provider-docker.yml`](../../../../.github/workflows/v3-provider-docker.yml)         | 83, 210       |
 | [`.github/workflows/v3-provider-northflank.yml`](../../../../.github/workflows/v3-provider-northflank.yml) | 277           |
@@ -438,8 +438,8 @@ All use the pattern `if (count === 0) { test.skip(); return; }` — they skip on
 - **Category:** CI-Deprecated
 - **Description:** Three actions reference `@main` — a mutable, unpinned branch. Supply chain risk if upstream pushes breaking or malicious commits.
 
-| File                                                                                            | Lines                       | Action                           |
-| ----------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------- |
+| File                                                                                               | Lines                       | Action                           |
+| -------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------- |
 | [`.github/workflows/ci-v3.yml`](../../../../.github/workflows/ci-v3.yml)                           | 196, 492                    | `cargo-bins/cargo-binstall@main` |
 | [`.github/workflows/v3-packer-build.yml`](../../../../.github/workflows/v3-packer-build.yml)       | 59, 125, 179, 237, 306, 366 | `hashicorp/setup-packer@main`    |
 | [`.github/workflows/v3-provider-packer.yml`](../../../../.github/workflows/v3-provider-packer.yml) | 88                          | `hashicorp/setup-packer@main`    |

@@ -81,8 +81,8 @@ RUSTFLAGS="-W dead_code -W unused-imports -W unused-variables -W unused-mut -W u
 
 #### Production Code (4 items — review recommended)
 
-| File                                                                                                     | Line          | Context                                                         |
-| -------------------------------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------- |
+| File                                                                                                        | Line          | Context                                                         |
+| ----------------------------------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------- |
 | [`crates/sindri-providers/src/northflank.rs`](../../../crates/sindri-providers/src/northflank.rs)           | 46            | Struct field in provider implementation                         |
 | [`crates/sindri-providers/src/runpod.rs`](../../../crates/sindri-providers/src/runpod.rs)                   | 46            | Struct field in provider implementation                         |
 | [`crates/sindri-providers/src/runpod.rs`](../../../crates/sindri-providers/src/runpod.rs)                   | 471, 473, 475 | Three struct fields                                             |
@@ -94,8 +94,8 @@ RUSTFLAGS="-W dead_code -W unused-imports -W unused-variables -W unused-mut -W u
 
 #### Test Code (28 items — acceptable)
 
-| File                                                                                                       | Count | Context                                |
-| ---------------------------------------------------------------------------------------------------------- | ----- | -------------------------------------- |
+| File                                                                                                          | Count | Context                                |
+| ------------------------------------------------------------------------------------------------------------- | ----- | -------------------------------------- |
 | [`crates/sindri-packer/tests/common/mock_cloud.rs`](../../../crates/sindri-packer/tests/common/mock_cloud.rs) | 6     | Mock struct fields and builder methods |
 | [`crates/sindri-packer/tests/common/assertions.rs`](../../../crates/sindri-packer/tests/common/assertions.rs) | 3     | Assertion helper functions             |
 | [`crates/sindri-providers/tests/common/mod.rs`](../../../crates/sindri-providers/tests/common/mod.rs)         | 18    | Test fixtures, builders, mock helpers  |
@@ -107,8 +107,8 @@ RUSTFLAGS="-W dead_code -W unused-imports -W unused-variables -W unused-mut -W u
 
 ### Rust Suppressed Unused Imports
 
-| File                                                                                       | Line | Context                                      |
-| ------------------------------------------------------------------------------------------ | ---- | -------------------------------------------- |
+| File                                                                                          | Line | Context                                      |
+| --------------------------------------------------------------------------------------------- | ---- | -------------------------------------------- |
 | [`crates/sindri-secrets/src/s3/backend.rs`](../../../crates/sindri-secrets/src/s3/backend.rs) | 411  | `#[allow(unused_imports)]` — single instance |
 
 **Assessment:** Likely a conditional import. Low priority — verify if import is actually needed.
@@ -121,8 +121,8 @@ RUSTFLAGS="-W dead_code -W unused-imports -W unused-variables -W unused-mut -W u
 
 Detected by `tsc --noEmit --noUnusedLocals --noUnusedParameters` on `apps/api/tsconfig.json`:
 
-| File                                                                                                                             | Line | Variable           | Error                           |
-| -------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------ | ------------------------------- |
+| File                                                                                                                                | Line | Variable           | Error                           |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------ | ------------------------------- |
 | [`console/apps/api/src/services/alerts/dispatcher.service.ts`](../../../console/apps/api/src/services/alerts/dispatcher.service.ts) | 268  | `_text`            | TS6133: declared but never read |
 | [`console/apps/api/src/services/alerts/dispatcher.service.ts`](../../../console/apps/api/src/services/alerts/dispatcher.service.ts) | 292  | `payload`          | TS6133: declared but never read |
 | [`console/apps/api/src/services/alerts/evaluator.service.ts`](../../../console/apps/api/src/services/alerts/evaluator.service.ts)   | 37   | `_ruleInstanceIds` | TS6133: declared but never read |
@@ -140,8 +140,8 @@ The `apps/web`, `packages/shared`, and `packages/ui` projects passed with **0 un
 
 Detected by `tsc --noEmit --noUnusedLocals --noUnusedParameters` on `apps/web/tsconfig.json`:
 
-| File                                                                                                                                         | Line | Error                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---------------------------------------------- |
+| File                                                                                                                                            | Line | Error                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---------------------------------------------- |
 | [`console/apps/web/src/components/instances/InstanceDetailPage.tsx`](../../../console/apps/web/src/components/instances/InstanceDetailPage.tsx) | 8    | TS2307: Cannot find module `@/components/logs` |
 | [`console/apps/web/src/pages/LogsPage.tsx`](../../../console/apps/web/src/pages/LogsPage.tsx)                                                   | 1    | TS2307: Cannot find module `@/components/logs` |
 
@@ -160,8 +160,8 @@ Detected by [`knip`](https://github.com/webpro/knip) — files with no inbound i
 
 #### API App — 14 unused files
 
-| #   | File                                                                                                             | Category                 |
-| --- | ---------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| #   | File                                                                                                                | Category                 |
+| --- | ------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | 1   | [`console/apps/api/src/routes/lifecycle.ts`](../../../console/apps/api/src/routes/lifecycle.ts)                     | Route (never registered) |
 | 2   | [`console/apps/api/src/services/alerts/index.ts`](../../../console/apps/api/src/services/alerts/index.ts)           | Barrel re-export         |
 | 3   | [`console/apps/api/src/services/costs/index.ts`](../../../console/apps/api/src/services/costs/index.ts)             | Barrel re-export         |
@@ -181,8 +181,8 @@ Detected by [`knip`](https://github.com/webpro/knip) — files with no inbound i
 
 #### Web App — 37 unused files
 
-| #     | File                                                                                                                                                         | Category         |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| #     | File                                                                                                                                                            | Category         |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | 1     | [`console/apps/web/src/api/logs.ts`](../../../console/apps/web/src/api/logs.ts)                                                                                 | API client       |
 | 2     | [`console/apps/web/src/components/costs/index.ts`](../../../console/apps/web/src/components/costs/index.ts)                                                     | Barrel re-export |
 | 3     | [`console/apps/web/src/components/dashboard/DashboardPage.tsx`](../../../console/apps/web/src/components/dashboard/DashboardPage.tsx)                           | Page component   |
@@ -207,7 +207,7 @@ Detected by [`knip`](https://github.com/webpro/knip) — files with no inbound i
 | 22    | [`console/apps/web/src/pages/TerminalPage.tsx`](../../../console/apps/web/src/pages/TerminalPage.tsx)                                                           | Page             |
 | 23    | [`console/apps/web/src/stores/terminal.ts`](../../../console/apps/web/src/stores/terminal.ts)                                                                   | Zustand store    |
 | 24    | [`console/apps/web/src/types/log.ts`](../../../console/apps/web/src/types/log.ts)                                                                               | Type definitions |
-| 25–37 | `console/apps/web/tests/e2e/*.spec.ts` (13 files)                                                                                                            | E2E test files   |
+| 25–37 | `console/apps/web/tests/e2e/*.spec.ts` (13 files)                                                                                                               | E2E test files   |
 
 **E2E test files** (items 25–37): `alerting`, `budget-alerts`, `deployment-wizard`, `drift-detection`, `extension-admin`, `fleet-dashboard`, `instance-dashboard`, `instance-lifecycle`, `log-search`, `parallel-commands`, `rbac-teams`, `scheduled-tasks`, `security-dashboard`
 
@@ -223,8 +223,8 @@ Detected by `knip` — packages listed in `package.json` but never imported in s
 
 #### Unused `dependencies` (10)
 
-| Package                         | Location                                                                  |
-| ------------------------------- | ------------------------------------------------------------------------- |
+| Package                         | Location                                                                     |
+| ------------------------------- | ---------------------------------------------------------------------------- |
 | `pino-pretty`                   | [`console/apps/api/package.json`](../../../console/apps/api/package.json):32 |
 | `@radix-ui/react-avatar`        | [`console/apps/web/package.json`](../../../console/apps/web/package.json):18 |
 | `@radix-ui/react-dropdown-menu` | [`console/apps/web/package.json`](../../../console/apps/web/package.json):20 |
@@ -238,8 +238,8 @@ Detected by `knip` — packages listed in `package.json` but never imported in s
 
 #### Unused `devDependencies` (4)
 
-| Package            | Location                                                                        |
-| ------------------ | ------------------------------------------------------------------------------- |
+| Package            | Location                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------- |
 | `@types/ws`        | [`console/apps/web/package.json`](../../../console/apps/web/package.json):53       |
 | `ws`               | [`console/apps/web/package.json`](../../../console/apps/web/package.json):62       |
 | `@types/react`     | [`console/packages/ui/package.json`](../../../console/packages/ui/package.json):22 |
@@ -247,8 +247,8 @@ Detected by `knip` — packages listed in `package.json` but never imported in s
 
 #### Unlisted dependency (1)
 
-| Package                  | Location                                                                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Package                  | Location                                                                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@sindri-console/shared` | [`console/apps/api/tests/scheduled-tasks.test.ts`](../../../console/apps/api/tests/scheduled-tasks.test.ts):23 (imported but not in `package.json`) |
 
 **Assessment:** The 7 unused `@radix-ui/*` packages were likely added in anticipation of UI components that haven't been built yet (or were built with different primitives). `pino-pretty` is typically a CLI dev tool — check if it's used via `pino-pretty` transport configuration rather than direct import. `@types/react` and `@types/react-dom` in `packages/ui` may be needed as peer type references — verify before removing.
@@ -261,8 +261,8 @@ Detected by `knip` — 145 exported functions/variables and 93 exported types th
 
 #### API App — Unused Function Exports (30)
 
-| Export                                                   | File                                                                                                                      | Line |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---- |
+| Export                                                   | File                                                                                                                         | Line |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---- |
 | `getGatewayStatus`                                       | [`agents/gateway.ts`](../../../console/apps/api/src/agents/gateway.ts)                                                       | 645  |
 | `getActiveAlertCount`                                    | [`services/alerts/alert.service.ts`](../../../console/apps/api/src/services/alerts/alert.service.ts)                         | 71   |
 | `flyPricing`                                             | [`services/costs/pricing.ts`](../../../console/apps/api/src/services/costs/pricing.ts)                                       | 36   |
@@ -289,7 +289,7 @@ Detected by `knip` — 145 exported functions/variables and 93 exported types th
 | `hashApiKey`                                             | [`websocket/auth.ts`](../../../console/apps/api/src/websocket/auth.ts)                                                       | 51   |
 | `extractRawKey`                                          | [`websocket/auth.ts`](../../../console/apps/api/src/websocket/auth.ts)                                                       | 60   |
 | `extractInstanceId`                                      | [`websocket/auth.ts`](../../../console/apps/api/src/websocket/auth.ts)                                                       | 83   |
-| + 6 via barrel re-exports in `services/metrics/index.ts` | —                                                                                                                         | —    |
+| + 6 via barrel re-exports in `services/metrics/index.ts` | —                                                                                                                            | —    |
 
 #### Web App — Unused Component/Hook/Store Exports (115)
 

@@ -177,7 +177,15 @@ export class SindriWebSocketServer {
 
     this.clients.set(clientId, client);
 
-    logger.info({ clientId, userId: principal.userId, instanceId: principal.instanceId, role: principal.role }, "[ws:server] Client connected");
+    logger.info(
+      {
+        clientId,
+        userId: principal.userId,
+        instanceId: principal.instanceId,
+        role: principal.role,
+      },
+      "[ws:server] Client connected",
+    );
 
     ws.on("pong", () => {
       client.lastPong = new Date();
@@ -265,7 +273,16 @@ export class SindriWebSocketServer {
   }
 
   private async onClose(client: ConnectedClient, code: number, reason: string): Promise<void> {
-    logger.info({ clientId: client.id, userId: client.principal.userId, instanceId: client.principal.instanceId, code, reason }, "[ws:server] Client disconnected");
+    logger.info(
+      {
+        clientId: client.id,
+        userId: client.principal.userId,
+        instanceId: client.principal.instanceId,
+        code,
+        reason,
+      },
+      "[ws:server] Client disconnected",
+    );
 
     await Promise.allSettled(client.unsubscribers.map((fn) => fn()));
     this.clients.delete(client.id);
