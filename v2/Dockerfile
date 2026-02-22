@@ -105,7 +105,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /tmp/yq /usr/local/bin/yq
 
 # Install GitHub CLI from official releases (avoids CVE vulnerabilities in apt version)
-ARG GH_VERSION=2.86.0
+ARG GH_VERSION=2.87.2
 RUN ARCH=$(dpkg --print-architecture) && \
     wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
     tar -xzf /tmp/gh.tar.gz -C /tmp && \
@@ -134,7 +134,9 @@ RUN /docker/scripts/install-nerd-fonts.sh && \
     rm -rf /tmp/* /var/tmp/*
 
 # Install starship (shell prompt) system-wide
-RUN /docker/scripts/install-starship.sh && \
+RUN --mount=type=secret,id=github_token \
+    GITHUB_TOKEN=$(cat /run/secrets/github_token 2>/dev/null || true) \
+    /docker/scripts/install-starship.sh && \
     rm -rf /tmp/* /var/tmp/*
 
 # Set permissions for scripts and CLI tools
