@@ -625,7 +625,94 @@ Step 4: Review & Deploy
 
 ---
 
-## 12. Why This Fits Sindri's Philosophy
+## 12. Implementation Status (as of February 2026)
+
+All four phases of the roadmap are implemented. The console runs as a Docker Compose stack (`make console-stack-build && make console-stack-up`) or in pnpm dev mode (`make console-dev-full`).
+
+### Phase Completion Summary
+
+| Phase              | Scope                                                                                                                 | Status      |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1 — Foundation     | Instance registry, API auth, WebSocket gateway, web terminal, React app                                               | ✅ Complete |
+| 2 — Orchestration  | Deployment wizard, lifecycle ops (suspend/resume/destroy/clone/redeploy), command dispatch, scheduled tasks           | ✅ Complete |
+| 3 — Observability  | Metrics pipeline (TimescaleDB hypertables), fleet dashboard, instance detail charts, log aggregation, alerting engine | ✅ Complete |
+| 4 — Administration | RBAC, team workspaces, extension registry, drift detection, cost tracking, security/BOM dashboard                     | ✅ Complete |
+
+### Docker Compose Operational Notes
+
+The following issues were discovered and fixed during initial Docker Compose bring-up. Fixes are committed in the repo.
+
+#### 1. Stale `pnpm-lock.yaml` after dependency version changes
+
+After upgrading `@prisma/client` (pinned to `^6.3.1`) and `@types/recharts` (pinned to `^1.8.29`), the lockfile still referenced older/newer resolved versions. Docker builds use `--frozen-lockfile` and fail when the lockfile diverges from `package.json`.
+
+**Fix:** Run `pnpm install` from `v3/console/` to regenerate the lockfile after any `package.json` version change.
+
+#### 2. Duplicate migration — `20260217000002_scheduled_tasks`
+
+`ScheduledTaskStatus`, `TaskExecutionStatus`, `ScheduledTask`, and `TaskExecution` were already created in `20260217000001_phase2_orchestration`. Migration 002 tried to create them again, causing `prisma migrate deploy` to fail on every container start (including fresh volumes).
+
+**Fix:** Replaced migration 002's SQL with a no-op `SELECT 1;` to preserve migration history without re-executing the duplicate DDL.
+
+#### 3. Wrong postgres image — TimescaleDB required
+
+Migration `20260217000004_timescaledb_metrics` uses `CREATE EXTENSION IF NOT EXISTS timescaledb`, `create_hypertable`, continuous aggregates, retention policies, and compression. The standard `postgres:16-alpine` image does not ship with TimescaleDB.
+
+**Fix:** Changed `docker-compose.yml` postgres image from `postgres:${POSTGRES_VERSION:-16}-alpine` to `timescale/timescaledb:latest-pg16`.
+
+#### 4. `Heartbeat` primary key incompatible with TimescaleDB hypertable conversion
+
+Migration 004 converts the `Heartbeat` table (created in migration 000) to a TimescaleDB hypertable partitioned by `timestamp`. TimescaleDB requires that any unique constraint or primary key on a hypertable includes the partition column. The original `Heartbeat` table had `PRIMARY KEY ("id")` which excludes `timestamp`.
+
+**Fix:** Added DDL to migration 004 to drop `Heartbeat_pkey` and replace it with `PRIMARY KEY ("id", "timestamp")` before calling `create_hypertable`.
+
+#### 5. Frontend authentication not wired up
+
+The web app's `apiFetch` utility sends no auth headers. The API requires `Authorization: Bearer <key>` or `X-Api-Key: <key>` on every request. In Docker Compose mode, the nginx reverse proxy sits between the browser and the API — it is the right place to inject the key without modifying the React app.
+
+**Fix:** Added `proxy_set_header X-Api-Key "sk-admin-dev-seed-key-0001"` to the `/api/` proxy block in `apps/web/nginx.conf`. This authenticates all browser requests as the seeded admin user in the dev stack.
+
+> **Note:** This is a dev/demo-only approach. When a real login flow is implemented (JWT, session, OIDC), this proxy header should be removed and auth should come from the user's session instead.
+
+### Running the Full Stack
+
+```bash
+# First time or after dependency changes:
+make console-stack-build   # builds api + web Docker images
+
+# Start everything:
+make console-stack-up      # postgres (TimescaleDB) + redis + api + web
+
+# Seed development data (only needed once per fresh volume):
+make console-db-seed       # seeds users, instances, teams, extensions, costs, security data, etc.
+
+# Access:
+#   Web UI: http://localhost:5173
+#   API:    http://localhost:3001
+#   Health: http://localhost:3001/health
+
+# Tear down (preserves volumes):
+make console-stack-down
+
+# Full reset (destroys all data):
+docker compose -f v3/console/docker-compose.yml down -v
+```
+
+### Seeded Development Credentials
+
+The seed populates these API keys for direct API access (e.g. via curl or API clients):
+
+| User      | Email                  | Raw API Key                  | Role      |
+| --------- | ---------------------- | ---------------------------- | --------- |
+| Admin     | `admin@sindri.dev`     | `sk-admin-dev-seed-key-0001` | ADMIN     |
+| Developer | `developer@sindri.dev` | `sk-dev-seed-key-0001`       | DEVELOPER |
+| Developer | `developer@sindri.dev` | `sk-dev-gh-seed-key-0002`    | DEVELOPER |
+
+In the Docker Compose stack, the web UI automatically authenticates as admin via the nginx proxy injection. No manual key entry is required.
+
+---
+
+## 13. Why This Fits Sindri's Philosophy
 
 Sindri's ethos is "define once, deploy anywhere." The Console extends this to "define once, deploy anywhere, **observe everywhere**." It preserves the declarative nature — the Console doesn't replace the CLI or the YAML-driven workflow. Instead it:
 

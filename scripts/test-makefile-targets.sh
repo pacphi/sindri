@@ -13,7 +13,7 @@
 #
 # Requirements:
 #   - Go 1.22+ (for console-agent targets)
-#   - pnpm 9+ with node_modules installed (for console-* targets)
+#   - pnpm 10+ with node_modules installed (for console-* targets)
 #   - make
 # ============================================================================
 

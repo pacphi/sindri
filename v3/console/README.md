@@ -65,9 +65,18 @@ This starts PostgreSQL 16 on `localhost:5432` and Valkey (Redis-compatible) on `
 
 ### 3. Configure the API
 
+**For local pnpm dev** (infrastructure in Docker, API/web via pnpm):
+
 ```bash
 cp apps/api/.env.example apps/api/.env
-# Edit apps/api/.env — defaults work with docker-compose out of the box
+# Edit apps/api/.env — defaults work with the infra containers out of the box
+```
+
+**For full Docker Compose** (all services in Docker):
+
+```bash
+cp .env.example .env
+# Edit .env — replace placeholder secrets before running docker compose up
 ```
 
 ### 4. Run database migrations

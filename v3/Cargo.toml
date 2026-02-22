@@ -109,7 +109,7 @@ dirs = "6.0"
 
 # Testing
 tempfile = "3.25"
-serial_test = "3.3"
+serial_test = "3.4"
 
 # Workspace crates
 sindri-core = { path = "crates/sindri-core" }

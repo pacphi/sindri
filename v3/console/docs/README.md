@@ -81,7 +81,7 @@ The agent-to-Console communication uses an Envelope-based protocol:
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - Go 1.25+
 - Docker (for local PostgreSQL and Redis)
 - `pnpm` or `npm`
@@ -104,7 +104,7 @@ docker run -d --name sindri-redis \
 ```bash
 cd apps/api
 cp .env.example .env
-# Edit .env with your database URL and API key
+# Edit .env with your database URL and secrets
 ```
 
 Required environment variables:
@@ -112,9 +112,10 @@ Required environment variables:
 ```env
 DATABASE_URL=postgresql://sindri:sindri@localhost:5432/sindri_console
 REDIS_URL=redis://localhost:6379
-CONSOLE_API_KEY=your-secret-key-here
+SINDRI_CONSOLE_API_KEY=your-secret-key-here
 JWT_SECRET=your-jwt-secret-here
-PORT=3000
+SESSION_SECRET=your-session-secret-here
+PORT=3001
 ```
 
 ### 3. Run Database Migrations

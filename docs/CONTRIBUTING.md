@@ -28,8 +28,8 @@ Choose the section below that matches your work.
 ### Prerequisites
 
 - Docker 20.10+
-- Node.js 18+ (for pnpm scripts)
-- pnpm 8+
+- Node.js 24+ (for pnpm scripts)
+- pnpm 10+
 - yq 4+
 - Optional: flyctl (for Fly.io testing)
 
@@ -461,7 +461,7 @@ All Console targets are exposed through the root `Makefile`. See [Makefile Targe
 ### Prerequisites
 
 - **Go 1.22+** — for the Console Agent binary
-- **Node.js 20+** and **pnpm 9+** — for the Console API and Web
+- **Node.js 24+** and **pnpm 10+** — for the Console API and Web
 - **PostgreSQL** and **Redis** — for local API development (or use Docker Compose)
 - **make** — to run Makefile targets
 

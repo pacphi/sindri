@@ -48,8 +48,12 @@ SELECT create_hypertable(
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Convert Heartbeat to a hypertable as well
--- (already exists from the initial migration)
+-- TimescaleDB requires the partition column (timestamp) to be part of the PK.
+-- Drop the id-only PK and replace with a composite (id, timestamp) PK first.
 -- ─────────────────────────────────────────────────────────────────────────────
+ALTER TABLE "Heartbeat" DROP CONSTRAINT "Heartbeat_pkey";
+ALTER TABLE "Heartbeat" ADD PRIMARY KEY ("id", "timestamp");
+
 SELECT create_hypertable(
   '"Heartbeat"',
   'timestamp',

@@ -63,7 +63,7 @@ The system consists of three primary components:
 
 ### Console API
 
-**Technology:** Node.js 22 LTS, Hono (HTTP framework), tRPC (type-safe API), Prisma (ORM)
+**Technology:** Node.js 24 LTS, Hono (HTTP framework), tRPC (type-safe API), Prisma (ORM)
 
 **Responsibilities:**
 
