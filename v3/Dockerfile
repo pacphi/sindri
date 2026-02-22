@@ -186,6 +186,7 @@ apt-get install -y --no-install-recommends \
     gnupg \
     iproute2 \
     nano vim
+apt-get install -y --only-upgrade libgnutls30t64
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 apt-get clean
