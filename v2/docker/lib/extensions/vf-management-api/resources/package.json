@@ -14,6 +14,9 @@
   ],
   "author": "Agentic Flow",
   "license": "MIT",
+  "overrides": {
+    "minimatch": "^10.2.1"
+  },
   "dependencies": {
     "fastify": "^5.7.4",
     "@fastify/cors": "^9.0.1",
