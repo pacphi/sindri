@@ -186,15 +186,15 @@ echo ""
 echo "${BOLD}${BLUE}═══ Aggregate Target Integration ════════════════════════════════════${RESET}"
 echo ""
 
-# ci should depend on console-ci (check Makefile definition, not execution output)
-if grep -q "^ci:.*console" "$REPO_ROOT/Makefile"; then
+# ci should depend on console-ci (check Makefile and included sub-makefiles)
+if grep -rq "^ci:.*console" "$REPO_ROOT/Makefile" "$REPO_ROOT/makefiles/" 2>/dev/null; then
     pass "ci — includes console targets"
 else
     fail "ci — includes console targets" "ci target does not depend on any console targets in Makefile"
 fi
 
 # clean should depend on console-clean or console-agent-clean
-if grep -q "^clean:.*console" "$REPO_ROOT/Makefile"; then
+if grep -rq "^clean:.*console" "$REPO_ROOT/Makefile" "$REPO_ROOT/makefiles/" 2>/dev/null; then
     pass "clean — includes console clean targets"
 else
     fail "clean — includes console clean targets" "clean target does not clean console artifacts"
