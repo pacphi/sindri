@@ -137,8 +137,8 @@ jobs:
           platforms: linux/amd64  # Required for single-platform image with attestations
           no-cache: true  # NEW: Fresh builds
           pull: true      # NEW: Latest base images
-          build-args: |
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
           provenance: mode=max
           sbom: true
 

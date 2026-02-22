@@ -134,8 +134,9 @@ RUN /docker/scripts/install-nerd-fonts.sh && \
     rm -rf /tmp/* /var/tmp/*
 
 # Install starship (shell prompt) system-wide
-ARG GITHUB_TOKEN
-RUN /docker/scripts/install-starship.sh && \
+RUN --mount=type=secret,id=github_token \
+    GITHUB_TOKEN=$(cat /run/secrets/github_token 2>/dev/null || true) \
+    /docker/scripts/install-starship.sh && \
     rm -rf /tmp/* /var/tmp/*
 
 # Set permissions for scripts and CLI tools
