@@ -41,6 +41,7 @@ cli_versions:
       agentic-flow: ">=1.0.0,<2.0.0"
       agentic-qe: ">=1.1.0,<2.0.0"
       ai-toolkit: ">=2.1.0,<3.0.0"
+      gitnexus: ">=1.0.0,<2.0.0"
       ruvector-cli: ">=1.0.0,<2.0.0"
       rvf-cli: ">=1.0.0,<2.0.0"
 
@@ -138,6 +139,7 @@ cli_versions:
       agentic-flow: ">=1.1.0,<2.0.0"
       agentic-qe: ">=1.2.0,<2.0.0"
       ai-toolkit: ">=2.2.0,<3.0.0"
+      gitnexus: ">=1.1.0,<2.0.0"
       ruvector-cli: ">=1.1.0,<2.0.0"
       rvf-cli: ">=1.1.0,<2.0.0"
 
@@ -225,6 +227,7 @@ cli_versions:
       agentic-flow: ">=2.0.0,<3.0.0"
       agentic-qe: ">=2.0.0,<3.0.0"
       ai-toolkit: ">=3.0.0,<4.0.0"
+      gitnexus: ">=2.0.0,<3.0.0"
       ruvector-cli: ">=2.0.0,<3.0.0"
       rvf-cli: ">=2.0.0,<3.0.0"
 

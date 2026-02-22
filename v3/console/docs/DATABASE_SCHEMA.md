@@ -7,22 +7,22 @@
 The Console uses **PostgreSQL 16** as its primary database, accessed via **Prisma ORM**. The schema covers:
 
 - Instance registry
-- Metric time series (Phase 3: full-fidelity `Metric` hypertable)
+- Metric time series (full-fidelity `Metric` hypertable)
 - Heartbeat liveness table
 - User management and RBAC
-- Team workspaces (Phase 4)
+- Team workspaces
 - API key management
 - Event log
 - Terminal sessions
 - Deployment templates and deployments
 - Scheduled tasks and task executions
 - Command executions
-- Log entries (Phase 3)
-- Alert rules and alert events (Phase 3)
-- Extension registry and installations (Phase 4)
-- Configuration drift reports and suppression rules (Phase 4)
-- Cost entries, budgets, and anomalies (Phase 4)
-- SBOM components, CVE vulnerabilities, and secret findings (Phase 4)
+- Log entries
+- Alert rules and alert events
+- Extension registry and installations
+- Configuration drift reports and suppression rules
+- Cost entries, budgets, and anomalies
+- SBOM components, CVE vulnerabilities, and secret findings
 
 The `Metric` table is designed as a **TimescaleDB hypertable** partitioned by `timestamp`. On standard PostgreSQL it functions as a regular indexed table; the TimescaleDB migration is non-breaking.
 
@@ -562,7 +562,7 @@ The Prisma client continues to work unchanged; only the storage engine changes.
 
 ---
 
-## Phase 4 Models
+## Models
 
 ### Extension
 

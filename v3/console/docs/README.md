@@ -6,7 +6,7 @@ The Sindri Console is a web-based management interface for monitoring and contro
 
 The Console provides:
 
-**Phase 1 - Core Platform**
+**Core Platform**
 
 - **Instance Dashboard** - Real-time status, metrics, and health of all Sindri instances
 - **Web Terminal** - Browser-based PTY sessions into running instances via xterm.js
@@ -14,7 +14,7 @@ The Console provides:
 - **Event Log** - Full audit trail of lifecycle events (deploy, backup, destroy, etc.)
 - **RBAC** - Role-based access control with Admin, Operator, Developer, and Viewer roles
 
-**Phase 2 - Orchestration**
+**Orchestration**
 
 - **Deployment Wizard** - Multi-step deployment flow with YAML editor and template gallery
 - **Instance Lifecycle** - Suspend, resume, destroy, backup, clone, and bulk operations
@@ -23,7 +23,7 @@ The Console provides:
 - **Command Palette** - Quick keyboard-driven navigation and instance management
 - **Multi-Terminal** - Multiple simultaneous PTY sessions with broadcast mode
 
-**Phase 3 - Observability**
+**Observability**
 
 - **Metrics Pipeline** - Full-fidelity time-series collection (CPU, memory, disk, network, load avg) stored in TimescaleDB hypertable with configurable granularity downsampling
 - **Fleet Dashboard** - Fleet-wide health summary, resource utilization rollup, top-N consumers, stale instance detection, and real-time status updates
@@ -35,23 +35,23 @@ The Console provides:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Browser Client                        │
+│                        Browser Client                       │
 │   React 19 + TanStack Router + TanStack Query + xterm.js    │
-│                     (port 5173 in dev)                       │
+│                     (port 5173 in dev)                      │
 └─────────────────────┬───────────────────────────────────────┘
                       │  HTTP /api/v1/*
                       │  WebSocket /ws/console
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      Console API Server                      │
-│              Hono + Node.js + Prisma + Redis                 │
-│                       (port 3000)                            │
+│                      Console API Server                     │
+│              Hono + Node.js + Prisma + Redis                │
+│                       (port 3000)                           │
 └──────────┬──────────────────────────────────┬───────────────┘
-           │  PostgreSQL                       │  WebSocket /ws/agent
+           │  PostgreSQL                      │  WebSocket /ws/agent
            ▼                                  ▼
 ┌──────────────────┐               ┌──────────────────────────┐
-│   PostgreSQL DB  │               │  Sindri Instance + Agent  │
-│   (port 5432)    │               │     Go binary, PTY        │
+│   PostgreSQL DB  │               │  Sindri Instance + Agent │
+│   (port 5432)    │               │     Go binary, PTY       │
 └──────────────────┘               └──────────────────────────┘
 ```
 

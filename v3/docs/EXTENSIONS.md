@@ -41,7 +41,7 @@ V3 extensions are organized into the following categories:
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
 | **devops**          | Infrastructure, deployment, and operations tools | 5     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 4     |
-| **ai-dev**          | AI development tools and LLM interfaces          | 6     |
+| **ai-dev**          | AI development tools and LLM interfaces          | 7     |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
@@ -109,6 +109,7 @@ V3 extensions are organized into the following categories:
 | Extension        | Version | Description                                                                      | Install Method |
 | ---------------- | ------- | -------------------------------------------------------------------------------- | -------------- |
 | **ai-toolkit**   | 2.2.1   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot) | script         |
+| **gitnexus**     | 1.0.0   | Codebase knowledge graph CLI with AI agent integration via MCP server            | mise           |
 | **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)           | script         |
 | **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                    | script         |
 | **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming         | mise           |
@@ -664,9 +665,9 @@ This generates comprehensive markdown documentation by combining auto-derived da
 
 ## Summary Statistics
 
-- **Total Extensions**: 53
+- **Total Extensions**: 54
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
-- **Extensions with project-init**: 11
-- **Extensions with MCP integration**: 6
-- **Extensions with dependencies**: 31
+- **Extensions with project-init**: 12
+- **Extensions with MCP integration**: 7
+- **Extensions with dependencies**: 32

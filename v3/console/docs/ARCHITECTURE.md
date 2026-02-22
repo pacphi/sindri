@@ -18,43 +18,43 @@ The system consists of three primary components:
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         USER BROWSER                                │
 │                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │                    React SPA (Vite)                          │  │
-│  │  xterm.js  │  Monaco Editor  │  Recharts  │  TanStack Query  │  │
-│  └──────────────────────┬────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                    React SPA (Vite)                          │   │
+│  │  xterm.js  │  Monaco Editor  │  Recharts  │  TanStack Query  │   │
+│  └──────────────────────┬───────────────────────────────────────┘   │
 └─────────────────────────┼───────────────────────────────────────────┘
                           │  HTTPS + WSS
 ┌─────────────────────────▼───────────────────────────────────────────┐
 │                      CONSOLE API (Node.js / Hono)                   │
 │                                                                     │
-│   ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐    │
-│   │  tRPC Routes  │  │  WebSocket   │  │   BullMQ Workers      │    │
-│   │  (REST API)   │  │  Gateway     │  │   (metrics, alerts)   │    │
-│   └──────┬───────┘  └──────┬───────┘  └───────────┬───────────┘    │
-│          │                 │                       │                │
-│   ┌──────▼─────────────────▼───────────────────────▼───────────┐   │
-│   │              Services Layer                                  │   │
-│   │  InstanceService │ TerminalService │ MetricsService │ Auth  │   │
-│   └──────┬─────────────────────────────────────────────────────┘   │
+│   ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐     │
+│   │  tRPC Routes │  │  WebSocket   │  │   BullMQ Workers      │     │
+│   │  (REST API)  │  │  Gateway     │  │   (metrics, alerts)   │     │
+│   └──────┬───────┘  └──────┬───────┘  └───────────┬───────────┘     │
+│          │                 │                      │                 │
+│   ┌──────▼─────────────────▼───────────────────────▼───────────┐    │
+│   │              Services Layer                                │    │
+│   │  InstanceService │ TerminalService │ MetricsService │ Auth │    │
+│   └──────┬─────────────────────────────────────────────────────┘    │
 │          │                                                          │
-│   ┌──────▼──────────┐  ┌─────────────┐                            │
-│   │   PostgreSQL     │  │    Redis     │                            │
-│   │   (Prisma ORM)   │  │  (Pub/Sub)  │                            │
-│   └─────────────────┘  └─────────────┘                            │
+│   ┌──────▼──────────┐  ┌─────────────┐                              │
+│   │   PostgreSQL    │  │    Redis    │                              │
+│   │   (Prisma ORM)  │  │  (Pub/Sub)  │                              │
+│   └─────────────────┘  └─────────────┘                              │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │  mTLS WebSocket (WSS)
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-┌─────────▼──────┐  ┌──────────▼─────┐  ┌──────────▼─────┐
+          ┌────────────────────┼─────────────────────┐
+          │                    │                     │
+┌─────────▼───────┐  ┌─────────▼───────┐  ┌──────────▼──────┐
 │ Sindri Instance │  │ Sindri Instance │  │ Sindri Instance │
-│  (Fly.io/sea)   │  │   (k8s/us-e1)  │  │  (E2B sandbox)  │
-│                 │  │                │  │                 │
-│  [Go Agent]     │  │  [Go Agent]    │  │  [Go Agent]     │
-│  - heartbeat    │  │  - heartbeat   │  │  - heartbeat   │
-│  - metrics      │  │  - metrics     │  │  - metrics     │
-│  - PTY/terminal │  │  - PTY/term    │  │  - PTY/term    │
-│  - log stream   │  │  - log stream  │  │  - log stream  │
-└─────────────────┘  └────────────────┘  └────────────────┘
+│  (Fly.io/sea)   │  │   (k8s/us-e1)   │  │  (E2B sandbox)  │
+│                 │  │                 │  │                 │
+│  [Go Agent]     │  │  [Go Agent]     │  │  [Go Agent]     │
+│  - heartbeat    │  │  - heartbeat    │  │  - heartbeat    │
+│  - metrics      │  │  - metrics      │  │  - metrics      │
+│  - PTY/terminal │  │  - PTY/term     │  │  - PTY/term     │
+│  - log stream   │  │  - log stream   │  │  - log stream   │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
 ---

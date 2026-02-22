@@ -40,11 +40,11 @@ COPY packages/ui/package.json ./packages/ui/
 # Production-only install (no dev tools, no tsx, no tsc)
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy compiled output and Prisma artifacts from the build stage
+# Copy compiled output and Prisma schema from the build stage
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 
-# Re-generate Prisma client against the production node_modules
+# Generate Prisma client against production node_modules
 RUN pnpm --filter=@sindri-console/api exec prisma generate
 
 COPY packages/shared/src ./packages/shared/src
@@ -54,4 +54,4 @@ WORKDIR /app/apps/api
 EXPOSE 3001
 
 # Run pending migrations then start the compiled server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/index.js"]
