@@ -54,6 +54,12 @@
         "source": "github",
         "repo": "affaan-m/everything-claude-code"
       }
+    },
+    "claude-code-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-code"
+      }
     }
   },
   "enabledPlugins": {
@@ -94,6 +100,7 @@
     "document-skills-xlsx@awesome-claude-skills": true,
     "prompt-improver@claude-code-marketplace": true,
     "spring-m11n@spring-m11n-marketplace": true,
-    "everything-claude-code@everything-claude-code": true
+    "everything-claude-code@everything-claude-code": true,
+    "frontend-design@claude-code-plugins": true
   }
 }
