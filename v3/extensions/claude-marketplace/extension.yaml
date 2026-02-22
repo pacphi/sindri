@@ -67,9 +67,9 @@ docs:
   title: "Claude Marketplace"
   overview: |
     Claude Code plugin marketplace integration via JSON configuration. Provides automated configuration of plugin marketplaces that merge directly into `~/.claude/settings.json`.
-  last-updated: "2026-01-27"
+  last-updated: "2026-02-21"
   features:
-    - "Multiple Marketplaces - Access 8 different plugin sources (local) or 3 (CI)"
+    - "Multiple Marketplaces - Access 10 different plugin sources (local) or 3 (CI)"
     - "JSON Configuration - Native Claude Code settings format"
     - "Environment-aware - Automatic CI/local detection"
     - "Settings Merging - Deep merge preserves existing Claude settings"
@@ -119,7 +119,7 @@ docs:
   notes: |
     Marketplace Sources (Local): beads-marketplace, cc-blueprint-toolkit, claude-equity-research-marketplace,
     n8n-mcp-skills, life-sciences, awesome-claude-skills, claude-code-marketplace, spring-m11n-marketplace,
-    everything-claude-code.
+    everything-claude-code, claude-code-plugins.
     CI Configuration (Minimal): beads-marketplace, cc-blueprint-toolkit, claude-equity-research-marketplace.
 
     Migration from YAML Version: YAML templates removed, JSON templates now merge directly into settings.json,
