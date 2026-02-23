@@ -1,6 +1,6 @@
 # Homebrew Distribution Plan
 
-## Status: Ready for Implementation
+## Status: Planned — pending release pipeline integration
 
 This plan describes how to distribute Sindri v3 via Homebrew, allowing macOS and Linux users to install with `brew install pacphi/sindri/sindri`.
 

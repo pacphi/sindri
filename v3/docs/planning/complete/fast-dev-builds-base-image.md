@@ -98,7 +98,7 @@ Separate Docker build into two distinct images:
 - Rust 1.93 toolchain
 - cargo-chef installation
 - System packages (Ubuntu 24.04)
-- GitHub CLI v2.86.0
+- GitHub CLI v2.87.2
 - Developer user and workspace setup
 
 **Build command:**

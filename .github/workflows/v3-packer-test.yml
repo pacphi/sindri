@@ -62,7 +62,7 @@ jobs:
 
       - name: Download Build Manifest
         if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: aws-build-manifest
           run-id: ${{ github.event.workflow_run.id }}
@@ -356,7 +356,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
 

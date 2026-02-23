@@ -115,7 +115,7 @@ jobs:
           curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
       - name: Download Kubeconfig
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: kubeconfig
 
@@ -265,7 +265,7 @@ jobs:
           curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
       - name: Download Kubeconfig
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: kubeconfig
         continue-on-error: true
@@ -289,7 +289,7 @@ jobs:
 
     steps:
       - name: Download All Results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: results
           pattern: k3d-result-*

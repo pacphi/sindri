@@ -9,7 +9,7 @@ This document tracks all TODO comments in the v3 codebase, categorized by priori
 For detailed implementation notes, see:
 
 - [v3 Enhancements Implementation Summary](../complete/v3-enhancements-implementation-summary.md)
-- [v3 Dockerfile Validation Checklist](../complete/v3-dockerfile-validation-checklist.md)
+- [v3 Dockerfile Validation Checklist](../active/v3-dockerfile-validation-checklist.md)
 
 ---
 
@@ -656,7 +656,7 @@ Remaining items:
   - Testing recommendations and validation steps
   - Migration notes from v2 to v3
 
-- **[v3 Dockerfile Validation Checklist](../complete/v3-dockerfile-validation-checklist.md)**
+- **[v3 Dockerfile Validation Checklist](../active/v3-dockerfile-validation-checklist.md)**
   - Comprehensive testing checklist for Docker implementation
   - 11 detailed test scenarios with expected results
   - Performance benchmarks and metrics

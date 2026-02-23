@@ -121,7 +121,7 @@ runs:
 
     - name: Download image artifact (if specified)
       if: inputs.image-artifact != '' && inputs.use-registry != 'true'
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: ${{ inputs.image-artifact }}
 
