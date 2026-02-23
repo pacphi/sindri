@@ -5,3 +5,4 @@ packages:
   - "."
   - "v2"
   - "v3"
+  - "packages/@sindri/*"

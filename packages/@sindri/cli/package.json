@@ -1,0 +1,31 @@
+{
+  "name": "@sindri/cli",
+  "version": "3.0.1",
+  "description": "Sindri CLI — declarative cloud development environment manager",
+  "homepage": "https://github.com/pacphi/sindri",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pacphi/sindri"
+  },
+  "bin": {
+    "sindri": "lib/index.js"
+  },
+  "main": "lib/index.js",
+  "files": [
+    "lib/"
+  ],
+  "scripts": {
+    "postinstall": "node lib/install.js"
+  },
+  "optionalDependencies": {
+    "@sindri/cli-darwin-arm64": "3.0.1",
+    "@sindri/cli-darwin-x64": "3.0.1",
+    "@sindri/cli-linux-x64": "3.0.1",
+    "@sindri/cli-linux-arm64": "3.0.1",
+    "@sindri/cli-win32-x64": "3.0.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

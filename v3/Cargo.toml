@@ -154,7 +154,7 @@ targets = [
 ]
 # Publish to npm under the @sindri scope
 npm-scope = "@sindri"
-# The npm package names map to the platform packages in v3/console/packages/
+# The npm package names map to the platform packages in packages/@sindri/
 npm-package = "@sindri/cli"
 # CI provider (generates .github/workflows/release.yml)
 ci = ["github"]

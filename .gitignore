@@ -247,6 +247,3 @@ v3/bin/sindri
 
 # Generated FAQ site (rebuild with: pnpm build:faq)
 docs/faq/index.html
-
-# Archives
-.archived/

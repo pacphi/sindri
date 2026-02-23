@@ -1,0 +1,24 @@
+metadata:
+  name: draupnir
+  version: 1.0.0
+  description: Sindri instance agent for mimir fleet management
+  category: management
+  tags:
+    - agent
+    - fleet
+    - monitoring
+    - websocket
+  homepage: https://github.com/pacphi/draupnir
+  dependencies: []
+
+install:
+  method: script
+  script:
+    url: https://raw.githubusercontent.com/pacphi/draupnir/main/extension/install.sh
+    timeout: 120
+
+validate:
+  commands:
+    - name: sindri-agent
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
