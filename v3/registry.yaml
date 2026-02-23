@@ -140,6 +140,9 @@ extensions:
     description: "Swift programming language"
 
   # AI/ML Tools
+  gitnexus:
+    category: "ai-dev"
+    description: "Codebase knowledge graph CLI with AI agent integration via MCP server"
   goose:
     category: "ai-dev"
     description: "Goose AI assistant"

@@ -1,0 +1,191 @@
+---
+metadata:
+  name: gitnexus
+  version: 1.0.0
+  description: Codebase knowledge graph CLI with AI agent integration via MCP server
+  category: ai-dev
+  author: abhigyanpatwari
+  license: MIT
+  homepage: https://github.com/abhigyanpatwari/GitNexus
+  dependencies:
+    - nodejs
+    - claude-cli
+
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+  diskSpace: 500
+  memory: 512
+  installTime: 60
+  installTimeout: 300
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+validate:
+  commands:
+    - name: gitnexus
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools:
+      - "npm:gitnexus"
+  paths:
+    - ~/.gitnexus
+  confirmation: true
+
+upgrade:
+  strategy: automatic
+  mise:
+    upgradeAll: false
+    tools:
+      - "npm:gitnexus"
+
+capabilities:
+  project-init:
+    enabled: true
+    priority: 60
+    commands:
+      - command: "npx gitnexus analyze"
+        description: "Index codebase into GitNexus knowledge graph"
+        requiresAuth: none
+        conditional: false
+    state-markers:
+      - path: ".gitnexus"
+        type: directory
+        description: "GitNexus local index directory"
+    validation:
+      command: "gitnexus list"
+      expectedExitCode: 0
+
+  hooks:
+    post-install:
+      command: "claude mcp add gitnexus -- npx -y gitnexus@1.2.7 mcp"
+      description: "Register GitNexus MCP server with Claude Code"
+    post-project-init:
+      command: "echo 'GitNexus analysis complete — knowledge graph is ready'"
+      description: "GitNexus project initialization complete"
+
+  mcp:
+    enabled: true
+    server:
+      command: "npx"
+      args:
+        - "-y"
+        - "gitnexus@1.2.7"
+        - "mcp"
+    tools:
+      - name: "list_repos"
+        description: "Discover all indexed repositories"
+      - name: "query"
+        description: "Process-grouped hybrid search (BM25 + semantic + RRF ranking)"
+      - name: "context"
+        description: "360-degree symbol view with categorized references"
+      - name: "impact"
+        description: "Blast radius analysis with depth grouping"
+      - name: "detect_changes"
+        description: "Map git-diff to affected processes and symbols"
+      - name: "rename"
+        description: "Coordinated multi-file renaming with confidence scoring"
+      - name: "cypher"
+        description: "Raw Cypher graph queries on the knowledge graph"
+
+bom:
+  # NOTE: Versions researched 2026-02-22
+  tools:
+    - name: gitnexus
+      version: "1.2.7"
+      source: mise
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/abhigyanpatwari/GitNexus
+      purl: pkg:npm/gitnexus@1.2.7
+
+docs:
+  title: "GitNexus"
+  overview: |
+    GitNexus indexes any codebase into a knowledge graph — every dependency, call chain, cluster,
+    and execution flow — and exposes these through intelligent tools for AI agents via a local MCP
+    server. It provides "Precomputed Relational Intelligence": indexing precomputes clustering,
+    tracing, and scoring so tools return complete context in one call rather than requiring multiple
+    LLM queries for code exploration.
+  last-updated: "2026-02-22"
+  features:
+    - "Knowledge graph indexing — dependency mapping, call chain tracking, functional clustering"
+    - "7 MCP tools — query, context, impact, detect_changes, rename, cypher, list_repos"
+    - "2 MCP prompts for guided workflows"
+    - "Hybrid search — BM25 + semantic + RRF ranking for precise code discovery"
+    - "Git-diff impact detection — maps changes to affected processes"
+    - "Multi-file coordinated renaming with confidence scoring"
+    - "4 pre-installed agent skills (Exploring, Debugging, Impact Analysis, Refactoring)"
+    - "PreToolUse hooks for Claude Code auto-augmentation"
+    - "All local — no network calls, no data leaves your machine"
+    - "9 supported languages: TypeScript, JavaScript, Python, Java, C, C++, C#, Go, Rust"
+    - "Browser-based graph explorer at gitnexus.vercel.app (WebAssembly, fully client-side)"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - description: "Index the current repository (run from repo root)"
+          code: "npx gitnexus analyze"
+        - description: "Force full re-index"
+          code: "npx gitnexus analyze --force"
+        - description: "Check installed version"
+          code: "gitnexus --version"
+    - section: "Repository Management"
+      examples:
+        - description: "List all indexed repositories"
+          code: "gitnexus list"
+        - description: "Delete index for current repo"
+          code: "gitnexus clean"
+        - description: "Generate repository wiki/documentation"
+          code: "gitnexus wiki"
+        - description: "Analyze a specific path"
+          code: "gitnexus analyze /path/to/repo"
+    - section: "MCP Server"
+      examples:
+        - description: "Start MCP server (stdio transport)"
+          code: "npx -y gitnexus@1.2.7 mcp"
+        - description: "Register with Claude Code (one-time setup)"
+          code: "claude mcp add gitnexus -- npx -y gitnexus@1.2.7 mcp"
+        - description: "Configure MCP for all supported editors"
+          code: "npx gitnexus setup"
+        - description: "Start HTTP server for web UI"
+          code: "gitnexus serve"
+    - section: "Manual MCP Configuration (Cursor/Windsurf)"
+      examples:
+        - description: "Cursor/Windsurf MCP server config"
+          code: |
+            {
+              "mcpServers": {
+                "gitnexus": {
+                  "command": "npx",
+                  "args": ["-y", "gitnexus@1.2.7", "mcp"]
+                }
+              }
+            }
+          language: "json"
+  related:
+    - name: claude-cli
+      description: "Required for MCP registration with Claude Code"
+    - name: nodejs
+      description: "Required Node.js runtime"
+    - name: claude-flow-v3
+      description: "Complementary multi-agent orchestration framework"
+  notes: |
+    GitNexus stores its index in `.gitnexus/` within each repository (gitignored by default,
+    portable). A single global MCP server registry at `~/.gitnexus/registry.json` serves
+    multiple indexed repos. KuzuDB connections open lazily and evict after 5 minutes
+    (max 5 concurrent connections).
+
+    **Privacy**: All analysis runs locally. The CLI makes no network calls. The web UI
+    runs entirely in the browser via WebAssembly — no server involved. Open source for
+    independent auditing.
+
+    **Tech Stack**: Node.js, Tree-sitter native, KuzuDB native, transformers.js, MCP stdio.
