@@ -2,7 +2,7 @@ metadata:
   name: draupnir
   version: 1.0.0
   description: Sindri instance agent for mimir fleet management
-  category: management
+  category: devops
   tags:
     - agent
     - fleet
