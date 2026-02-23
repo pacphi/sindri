@@ -14,7 +14,7 @@ metadata:
 install:
   method: script
   script:
-    url: https://raw.githubusercontent.com/pacphi/draupnir/main/extension/install.sh
+    path: install.sh
     timeout: 120
 
 validate:

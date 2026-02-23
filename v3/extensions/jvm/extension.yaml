@@ -59,9 +59,9 @@ validate:
       versionFlag: "-version"
     - name: scala
       versionFlag: "-version"
-  # Note: clojure and leiningen are installed via mise but excluded from validation
-  # due to PATH resolution issues with SDKMAN Java. Verify manually after install:
-  #   source ~/.bashrc && clojure --version && lein version
+    # Note: clojure and leiningen are installed via mise but excluded from validation
+    # due to PATH resolution issues with SDKMAN Java. Verify manually after install:
+    #   source ~/.bashrc && clojure --version && lein version
 remove:
   paths:
     - ~/.m2
