@@ -78,7 +78,7 @@ jobs:
           cache-dependency-path: ${{ env.GO_MODULE_PATH }}/go.sum
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
           working-directory: ${{ env.GO_MODULE_PATH }}
