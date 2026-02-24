@@ -34,8 +34,8 @@ validate:
     - name: node
       expectedPattern: "v\\d+\\.\\d+\\.\\d+"
     - name: npm
-  # pnpm managed by corepack - available on-demand after first use
-  # Skipping validation since it requires sourcing bashrc first
+    # pnpm managed by corepack - available on-demand after first use
+    # Skipping validation since it requires sourcing bashrc first
 remove:
   mise:
     removeConfig: true

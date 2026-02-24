@@ -143,7 +143,9 @@ bom:
 docs:
   title: "Excalidraw MCP"
   overview: |
-    The Excalidraw MCP extension enables AI agents to create, manipulate, and control diagrams on a live Excalidraw canvas in real-time. It combines an MCP server with a Docker-based canvas server to provide comprehensive diagramming capabilities through the Model Context Protocol.
+    The Excalidraw MCP extension enables AI agents to create, manipulate, and control diagrams on a live Excalidraw
+    canvas in real-time. It combines an MCP server with a Docker-based canvas server to provide comprehensive
+    diagramming capabilities through the Model Context Protocol.
   last-updated: "2026-02-09"
   features:
     - "13 MCP Tools - Complete CRUD operations, layout management, and diagram conversion"

@@ -343,9 +343,12 @@ mod tests {
         // Should have status for each tool
         assert_eq!(statuses.len(), 3);
 
-        // Parallel execution should be faster than sequential
-        // (3 tools with 5s timeout each would be 15s if sequential)
-        // This is a sanity check, not a strict assertion
-        assert!(duration < Duration::from_secs(10));
+        // Parallel execution should be faster than fully sequential
+        // (3 tools × up to 10s each [version + auth check] = 30s sequential)
+        // Docker (tool #2) has both a version check and an auth check, each
+        // with a 5s timeout, so a single docker check can take up to 10s.
+        // With parallelism, total should be ~10s (docker's sequential steps).
+        // This is a sanity check, not a strict assertion.
+        assert!(duration < Duration::from_secs(15));
     }
 }

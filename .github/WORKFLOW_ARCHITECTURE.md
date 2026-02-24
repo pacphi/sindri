@@ -66,12 +66,6 @@ The architecture follows a configuration-first approach where `sindri.yaml` file
 │   │  # ── v3 Provider Integration Testing ──
 │   ├── integration-test-providers.yml # Manual integration tests (RunPod & Northflank)
 │   │
-│   │  # ── Console (Agent & API) ──
-│   ├── console-agent-ci.yml         # Console agent CI (lint, vet, unit tests)
-│   ├── console-agent-test.yml       # Console agent extended tests (race, cross-compile, lint)
-│   ├── console-agent-release.yml    # Console agent release (multi-platform Go binaries)
-│   ├── console-makefile-ci.yml      # Console Makefile target validation
-│   │
 │   │  # ── Release ──
 │   ├── release-v2.yml               # v2 release automation (Docker images)
 │   ├── release-v3.yml               # v3 release automation (Rust binaries)
@@ -192,10 +186,6 @@ Cleans up provider resources after deployment.
 | `package.json`                | `ci-v2.yml`                 | Root tooling affects v2 validation      |
 | Tags `v2.*.*`                 | `release-v2.yml`            | v2 release trigger                      |
 | Tags `v3.*.*`                 | `release-v3.yml`            | v3 release trigger                      |
-| Tags `console-agent-v*`       | `console-agent-release.yml` | Console agent release trigger           |
-| `v3/console/agent/**`         | `console-agent-ci.yml`      | Console agent source changes            |
-| `v3/console/agent/**`         | `console-agent-test.yml`    | Console agent test/lint changes         |
-| `v3/console/**`               | `console-makefile-ci.yml`   | Console source or Makefile changes      |
 | `v3/Dockerfile.base`          | `build-base-image.yml`      | Base image Dockerfile changes           |
 
 ## CI Workflows
@@ -347,66 +337,6 @@ git push origin v3.0.0
 git tag -a v3.0.0 -m "Release v3.0.0 - First Rust release"
 git push origin v3.0.0
 ```
-
-### console-agent-release.yml - Console Agent Releases
-
-**Trigger**: Git tags matching `console-agent-v*` (e.g., `console-agent-v1.0.0`)
-
-**Process**:
-
-1. Validate tag format (`console-agent-v<semver>`)
-2. Build Go binaries for multiple platforms:
-   - Linux (amd64, arm64)
-   - macOS (amd64, arm64)
-3. Upload release assets named `sindri-agent-<os>-<arch>`
-4. Create GitHub release with pre-release detection
-
-**Creating a Console Agent Release**:
-
-```bash
-git tag console-agent-v1.0.0
-git push origin console-agent-v1.0.0
-```
-
-## Console Workflows
-
-The Sindri Console includes a Go-based agent binary and a TypeScript API. These workflows provide CI, testing, and release automation for the console subsystem.
-
-### console-agent-ci.yml - Console Agent CI
-
-**Triggers**: Push to `main` or pull request, when `v3/console/agent/**` changes
-
-**Jobs**:
-
-- **lint**: `go vet`, `go mod tidy` check
-- **test**: Unit tests on Ubuntu and macOS matrix
-
-Runs the core CI gate for the Go agent: linting, vet, and unit tests across multiple operating systems.
-
-### console-agent-test.yml - Console Agent Test and Lint
-
-**Triggers**: Push to `main`/`develop` or pull request to `main`/`develop`, when `v3/console/agent/**` changes; also `workflow_dispatch`
-
-**Jobs**:
-
-- **go-version**: Detects Go version from `go.mod`
-- **lint**: golangci-lint with race detector option
-- **test**: Unit tests with optional race detector
-- **cross-compile**: Verifies builds for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64
-- **binary-size**: Checks binary size stays under 20 MB threshold
-
-Provides extended testing beyond basic CI, including cross-compilation validation and binary size enforcement.
-
-### console-makefile-ci.yml - Console Makefile CI
-
-**Triggers**: Push to `main` or pull request, when `v3/console/**`, `Makefile`, `scripts/test-makefile-targets.sh`, or the workflow file changes
-
-**Jobs**:
-
-- **resolve**: Validates that all `console-agent-*` and `console-*` Makefile targets resolve correctly (syntax/PHONY check)
-- **execute**: Runs agent Makefile targets on Ubuntu and macOS matrix
-
-Ensures the root Makefile's console-related targets stay in sync with the console subsystem.
 
 ## Infrastructure Workflows
 
@@ -1370,7 +1300,6 @@ Extensions are automatically tested via `v2-test-extensions.yml`:
    - **Solution**: Use correct format:
      - v2 releases: `v2.x.y` (e.g., v2.3.0, v2.3.1-beta.1)
      - v3 releases: `v3.x.y` (e.g., v3.0.0, v3.1.0-alpha.1)
-     - Console agent releases: `console-agent-v<semver>` (e.g., console-agent-v1.0.0)
 
 7. **Cache Issues**
    - **Clear cache**: Go to Actions → Caches → Delete cache
@@ -1396,10 +1325,6 @@ The following table provides a quick reference for every workflow file in `.gith
 | `ci-v3.yml`                      | CI v3                            | CI                     | Push/PR on `v3/**`                                                |
 | `cleanup-container-images.yml`   | Cleanup Container Images         | Infrastructure         | Weekly schedule, `workflow_dispatch`                              |
 | `cleanup-workflow-runs.yml`      | Cleanup Workflow Runs            | Infrastructure         | Schedule, `workflow_dispatch`                                     |
-| `console-agent-ci.yml`           | Console Agent: CI                | Console                | Push to `main`, PR on `v3/console/agent/**`                       |
-| `console-agent-release.yml`      | Console Agent: Release           | Console / Release      | Push tags `console-agent-v*`                                      |
-| `console-agent-test.yml`         | Console Agent: Test & Lint       | Console                | Push/PR on `v3/console/agent/**`, `workflow_dispatch`             |
-| `console-makefile-ci.yml`        | Console: Makefile CI             | Console                | Push/PR on `v3/console/**`, `Makefile`                            |
 | `integration-test-providers.yml` | v3: Integration Test - Providers | v3 Testing             | `workflow_dispatch`                                               |
 | `release-v2.yml`                 | Release v2                       | Release                | Push tags `v2.*.*`                                                |
 | `release-v3.yml`                 | Release v3                       | Release                | Push tags `v3.*.*`                                                |

@@ -61,7 +61,8 @@ bom:
 docs:
   title: "compahook"
   overview: |
-    Persistent memory layer for Claude Code's /compact command. Improves post-compact context quality by extracting, scoring, and re-injecting high-signal information that would otherwise be lost during conversation compaction.
+    Persistent memory layer for Claude Code's /compact command. Improves post-compact context quality by extracting,
+    scoring, and re-injecting high-signal information that would otherwise be lost during conversation compaction.
   last-updated: "2026-02-09"
   features:
     - "Collector (PostToolUse) - Logs file edits and commands to working-state.jsonl"

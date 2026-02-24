@@ -55,7 +55,9 @@ bom:
 docs:
   title: "NotebookLM MCP CLI"
   overview: |
-    Unified Python package providing programmatic access to Google NotebookLM through both a CLI (`nlm`) and MCP server (`notebooklm-mcp`). Enables automation of notebook creation, source management, AI analysis, and content generation.
+    Unified Python package providing programmatic access to Google NotebookLM through both a CLI (`nlm`) and
+    MCP server (`notebooklm-mcp`). Enables automation of notebook creation, source management, AI analysis,
+    and content generation.
   last-updated: "2026-02-14"
   features:
     - "CLI + MCP Server - Use via terminal or AI assistant"
