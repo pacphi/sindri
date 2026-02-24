@@ -97,6 +97,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     zip \
     zlib1g-dev \
+    && apt-get install -y --only-upgrade libgnutls30t64 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/* \
     && rm -f /etc/ssh/ssh_host_*

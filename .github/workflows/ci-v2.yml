@@ -216,7 +216,7 @@ jobs:
           image-ref: ghcr.io/${{ github.repository }}:v2-ci-${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
-          severity: CRITICAL,HIGH
+          severity: CRITICAL,HIGH,MEDIUM
           ignore-unfixed: true
 
       - name: Upload to GitHub Security
