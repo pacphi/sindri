@@ -26,6 +26,6 @@
     "@sindri/cli-win32-x64": "3.0.1"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   }
 }
