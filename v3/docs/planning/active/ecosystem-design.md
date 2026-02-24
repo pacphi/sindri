@@ -35,11 +35,11 @@ draupnir (Go agent on each instance)
 mimir (control plane: API + web dashboard)
 ```
 
-| Repository | Role | Language |
-|---|---|---|
-| **sindri** (this repo) | CLI tool — provisions, configures, and connects to instances | Rust |
-| [mimir](https://github.com/pacphi/mimir) | Fleet management control plane — orchestrates, observes, and administers instances at scale | TypeScript |
-| [draupnir](https://github.com/pacphi/draupnir) | Lightweight per-instance agent — bridges each instance to mimir | Go |
+| Repository                                     | Role                                                                                        | Language   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------- |
+| **sindri** (this repo)                         | CLI tool — provisions, configures, and connects to instances                                | Rust       |
+| [mimir](https://github.com/pacphi/mimir)       | Fleet management control plane — orchestrates, observes, and administers instances at scale | TypeScript |
+| [draupnir](https://github.com/pacphi/draupnir) | Lightweight per-instance agent — bridges each instance to mimir                             | Go         |
 
 ### Dependency model
 
@@ -90,13 +90,13 @@ v3/
 
 ### Key Architectural Concepts
 
-| Concept | Description |
-|---|---|
-| **Extension System** | YAML-driven modules with dependency resolution. 60+ extensions across AI, languages, infrastructure, databases, and tools. |
-| **Provider Adapters** | Common interface for deploy, destroy, status, connect across all providers. |
-| **Volume Architecture** | Immutable system layer + mutable `$HOME` volume that survives redeployments. |
-| **BOM Tracking** | Every installed tool's version, source, and hash tracked for SBOM and security auditing. |
-| **Schema Validation** | All YAML validated against JSON schemas before deployment. |
+| Concept                 | Description                                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Extension System**    | YAML-driven modules with dependency resolution. 60+ extensions across AI, languages, infrastructure, databases, and tools. |
+| **Provider Adapters**   | Common interface for deploy, destroy, status, connect across all providers.                                                |
+| **Volume Architecture** | Immutable system layer + mutable `$HOME` volume that survives redeployments.                                               |
+| **BOM Tracking**        | Every installed tool's version, source, and hash tracked for SBOM and security auditing.                                   |
+| **Schema Validation**   | All YAML validated against JSON schemas before deployment.                                                                 |
 
 ---
 
@@ -126,7 +126,7 @@ install:
 
 validate:
   commands:
-    - name: sindri-agent
+    - name: draupnir
       versionFlag: --version
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
 ```
@@ -141,14 +141,14 @@ The Sindri CLI (Rust binary) is distributed as an npm package using the **option
 
 ### Package layout (`packages/@sindri/`)
 
-| Package | Platform | Contents |
-|---|---|---|
-| `@sindri/cli` | wrapper | `optionalDependencies` + resolver script |
-| `@sindri/cli-darwin-arm64` | macOS/ARM64 | `sindri` binary |
-| `@sindri/cli-darwin-x64` | macOS/x64 | `sindri` binary |
-| `@sindri/cli-linux-x64` | Linux/x64 | `sindri` binary |
-| `@sindri/cli-linux-arm64` | Linux/ARM64 | `sindri` binary |
-| `@sindri/cli-win32-x64` | Windows/x64 | `sindri.exe` binary |
+| Package                    | Platform    | Contents                                 |
+| -------------------------- | ----------- | ---------------------------------------- |
+| `@sindri/cli`              | wrapper     | `optionalDependencies` + resolver script |
+| `@sindri/cli-darwin-arm64` | macOS/ARM64 | `sindri` binary                          |
+| `@sindri/cli-darwin-x64`   | macOS/x64   | `sindri` binary                          |
+| `@sindri/cli-linux-x64`    | Linux/x64   | `sindri` binary                          |
+| `@sindri/cli-linux-arm64`  | Linux/ARM64 | `sindri` binary                          |
+| `@sindri/cli-win32-x64`    | Windows/x64 | `sindri.exe` binary                      |
 
 ### Version alignment
 
@@ -191,6 +191,7 @@ The `GET /api/v1/version` endpoint (backed by `sindri version --json`) exposes:
 ```
 
 Badge semantics:
+
 - **Green**: instance's sindri version matches console's minor version
 - **Yellow**: older patch/minor (minor feature gaps possible)
 - **Red**: major version mismatch (API calls may fail)
@@ -199,17 +200,17 @@ Badge semantics:
 
 ## 7. Implementation Status (as of February 2026)
 
-| Component | Status |
-|---|---|
-| Rust CLI v3 (12 crates) | ✅ v3.0.1 released |
-| 60+ extensions | ✅ Complete |
-| RunPod + Northflank providers | ✅ Complete |
-| `v3/extensions/draupnir/extension.yaml` | ✅ Present (v1.0.0) |
-| `packages/@sindri/cli*` npm packages | ✅ Scaffolded at v3.0.1 |
-| cargo-dist configuration | ✅ Complete |
-| Automated cross-platform builds | ✅ CI on `v3.*.*` tags |
-| SLSA provenance + Cosign signing | ✅ Complete |
-| `sindri version --json` | ✅ Used by mimir's `/api/v1/version` |
+| Component                               | Status                               |
+| --------------------------------------- | ------------------------------------ |
+| Rust CLI v3 (12 crates)                 | ✅ v3.0.1 released                   |
+| 60+ extensions                          | ✅ Complete                          |
+| RunPod + Northflank providers           | ✅ Complete                          |
+| `v3/extensions/draupnir/extension.yaml` | ✅ Present (v1.0.0)                  |
+| `packages/@sindri/cli*` npm packages    | ✅ Scaffolded at v3.0.1              |
+| cargo-dist configuration                | ✅ Complete                          |
+| Automated cross-platform builds         | ✅ CI on `v3.*.*` tags               |
+| SLSA provenance + Cosign signing        | ✅ Complete                          |
+| `sindri version --json`                 | ✅ Used by mimir's `/api/v1/version` |
 
 ---
 

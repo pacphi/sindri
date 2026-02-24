@@ -19,6 +19,6 @@ install:
 
 validate:
   commands:
-    - name: sindri-agent
+    - name: draupnir
       versionFlag: --version
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
