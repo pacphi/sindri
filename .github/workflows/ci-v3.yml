@@ -88,6 +88,32 @@ jobs:
           cd v3
           cargo clippy --workspace --all-targets --all-features -- -D warnings
 
+  rust-deadcode:
+    name: Dead Code Scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3 -> target
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@v1.17.5
+
+      - name: Install cargo-machete
+        run: cargo binstall cargo-machete --no-confirm
+
+      - name: Scan for unused dependencies
+        run: |
+          cd v3
+          cargo machete
+
   rust-test:
     name: Rust Tests
     runs-on: ubuntu-latest

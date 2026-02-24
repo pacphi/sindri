@@ -74,13 +74,16 @@
     "v3:fmt:fix": "cd v3 && cargo fmt --all",
     "v3:audit": "cd v3 && cargo audit",
     "v3:doc": "cd v3 && cargo doc --workspace --no-deps --all-features --open",
-    "build:faq": "node docs/faq/build.mjs"
+    "build:faq": "node docs/faq/build.mjs",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.0.0",
+    "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
+    "lint-staged": "^16.2.7",
     "markdownlint-cli": "^0.47.0",
     "npm-check-updates": "^19.4.1",
     "prettier": "^3.8.1",
@@ -97,6 +100,9 @@
   ],
   "author": "Sindri Team",
   "license": "MIT",
+  "lint-staged": {
+    "*.{json,md,yaml,yml}": "prettier --check"
+  },
   "engines": {
     "node": ">=24.0.0",
     "pnpm": ">=10.0.0"

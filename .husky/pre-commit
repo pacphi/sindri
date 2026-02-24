@@ -1,0 +1,7 @@
+pnpm lint-staged
+
+# Rust checks (only if v3/ files are staged)
+if git diff --cached --name-only | grep -q '^v3/'; then
+  echo "Rust files staged — running cargo fmt --check and clippy..."
+  (cd v3 && cargo fmt --check && cargo clippy --workspace -- -D warnings)
+fi

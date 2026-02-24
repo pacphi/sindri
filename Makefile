@@ -1338,6 +1338,20 @@ v3-quality: v3-fmt-check v3-clippy v3-test v3-audit v3-coverage
 # Clean Targets
 # ============================================================================
 
+# ============================================================================
+# Dead Code Detection
+# ============================================================================
+
+.PHONY: v3-deadcode
+v3-deadcode:
+	@echo "$(BLUE)Scanning for unused Rust dependencies (cargo-machete)...$(RESET)"
+	@if ! command -v cargo-machete >/dev/null 2>&1; then \
+		echo "$(YELLOW)Installing cargo-machete...$(RESET)"; \
+		cargo install cargo-machete; \
+	fi
+	cd $(V3_DIR) && cargo machete || true
+	@echo "$(GREEN)✓ Dead code scan complete$(RESET)"
+
 .PHONY: clean
 clean: v2-clean v3-clean
 	@echo "$(GREEN)✓ All build artifacts cleaned$(RESET)"
