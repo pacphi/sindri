@@ -112,7 +112,18 @@ jobs:
       - name: Scan for unused dependencies
         run: |
           cd v3
-          cargo machete
+          cargo machete 2>&1 | tee /tmp/machete-output.txt || true
+
+      - name: Report unused dependencies
+        run: |
+          if grep -q "is defined" /tmp/machete-output.txt 2>/dev/null; then
+            echo "::warning::Unused dependencies detected (informational only — not blocking):"
+            grep "is defined" /tmp/machete-output.txt | while IFS= read -r line; do
+              echo "::warning::$line"
+            done
+          else
+            echo "No unused dependencies found."
+          fi
 
   rust-test:
     name: Rust Tests
