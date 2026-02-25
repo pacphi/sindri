@@ -156,6 +156,9 @@ extensions:
   ollama:
     category: "ai-dev"
     description: "Ollama local LLM runtime"
+  openclaw:
+    category: "ai-dev"
+    description: "OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI"
   opencode:
     category: "ai-dev"
     description: "OpenCode - Open source AI coding agent for terminal, desktop, and IDE integration"

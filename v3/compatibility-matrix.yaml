@@ -84,6 +84,7 @@ cli_versions:
       goose: ">=1.0.0,<2.0.0"
       kilo: ">=1.0.0,<2.0.0"
       ollama: ">=1.0.0,<2.0.0"
+      openclaw: ">=1.0.0,<2.0.0"
       opencode: ">=1.0.0,<2.0.0"
 
       # Desktop & UI
@@ -184,6 +185,7 @@ cli_versions:
       goose: ">=1.1.0,<2.0.0"
       kilo: ">=1.1.0,<2.0.0"
       ollama: ">=1.1.0,<2.0.0"
+      openclaw: ">=1.1.0,<2.0.0"
       opencode: ">=1.1.0,<2.0.0"
 
       # Desktop & UI
@@ -274,6 +276,7 @@ cli_versions:
       goose: ">=2.0.0,<3.0.0"
       kilo: ">=2.0.0,<3.0.0"
       ollama: ">=2.0.0,<3.0.0"
+      openclaw: ">=2.0.0,<3.0.0"
       opencode: ">=2.0.0,<3.0.0"
 
       # Desktop & UI
