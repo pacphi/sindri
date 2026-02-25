@@ -7,7 +7,7 @@ version: "3.0.0"
 metadata:
   name: "Sindri v3 Extension Registry"
   description: "Registry of available extensions for Sindri v3 (Rust-based CLI)"
-  last_updated: "2026-01-22"
+  last_updated: "2026-02-25"
 
 extensions:
   # AI & Agentic Tools
@@ -152,6 +152,9 @@ extensions:
   ollama:
     category: "ai-dev"
     description: "Ollama local LLM runtime"
+  opencode:
+    category: "ai-dev"
+    description: "OpenCode - Open source AI coding agent for terminal, desktop, and IDE integration"
   ruvector-cli:
     category: "ai-dev"
     description: "CLI for RuVector self-learning vector database with MCP server integration"

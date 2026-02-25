@@ -41,7 +41,7 @@ V3 extensions are organized into the following categories:
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
 | **devops**          | Infrastructure, deployment, and operations tools | 5     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 4     |
-| **ai-dev**          | AI development tools and LLM interfaces          | 7     |
+| **ai-dev**          | AI development tools and LLM interfaces          | 8     |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
@@ -113,6 +113,7 @@ V3 extensions are organized into the following categories:
 | **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)           | script         |
 | **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                    | script         |
 | **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming         | mise           |
+| **opencode**     | 1.0.0   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE            | mise           |
 | **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration       | script         |
 | **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                  | script         |
 
