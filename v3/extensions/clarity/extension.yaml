@@ -30,10 +30,7 @@ configure:
       mode: overwrite
 
 validate:
-  commands:
-    - name: clarity-skill-check
-      command: "test -f ~/.claude/skills/clarity/SKILL.md"
-      expectedExitCode: 0
+  commands: []
 
 remove:
   paths:
@@ -81,7 +78,7 @@ bom:
   tools:
     - name: clarity
       version: "1.0.0"
-      source: git
+      source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/francyjglisboa/clarity

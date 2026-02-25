@@ -1418,8 +1418,25 @@ impl ExtensionExecutor {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            warn!("{} hook failed for {}: {}", phase, ext_name, stderr);
-            // Don't fail the installation if hooks fail, just warn
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let message = if !stdout.is_empty() {
+                stdout.trim().to_string()
+            } else {
+                stderr.trim().to_string()
+            };
+
+            // Pre-install hooks are precondition checks — abort on failure
+            // Post-install/project-init hooks are best-effort — warn only
+            if phase.starts_with("pre-") {
+                return Err(anyhow!(
+                    "{} hook failed for {}: {}",
+                    phase,
+                    ext_name,
+                    message
+                ));
+            } else {
+                warn!("{} hook failed for {}: {}", phase, ext_name, message);
+            }
         }
 
         Ok(())
