@@ -9,6 +9,7 @@ metadata:
   description: "Registry of available extensions for Sindri v3 (Rust-based CLI)"
   last_updated: "2026-02-25"
 
+
 extensions:
   # AI & Agentic Tools
   agent-browser:
@@ -140,6 +141,9 @@ extensions:
     description: "Swift programming language"
 
   # AI/ML Tools
+  clarity:
+    category: "ai-dev"
+    description: "Autonomous spec generation skill that produces implementable specifications from reference materials"
   gitnexus:
     category: "ai-dev"
     description: "Codebase knowledge graph CLI with AI agent integration via MCP server"
