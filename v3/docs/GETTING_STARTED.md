@@ -18,7 +18,7 @@ This guide will help you get started with Sindri v3, from installation to your f
 docker pull ghcr.io/pacphi/sindri:v3
 
 # Or use a specific version
-docker pull ghcr.io/pacphi/sindri:3.0.0
+docker pull ghcr.io/pacphi/sindri:3.1.0
 
 # Verify the image signature (requires cosign 3.x)
 sindri image verify ghcr.io/pacphi/sindri:v3
@@ -129,20 +129,20 @@ sindri image list --include-prerelease
 
 ```bash
 # Get image details
-sindri image inspect ghcr.io/pacphi/sindri:v3.0.0
+sindri image inspect ghcr.io/pacphi/sindri:v3.1.0
 
 # View SBOM
-sindri image inspect ghcr.io/pacphi/sindri:v3.0.0 --sbom
+sindri image inspect ghcr.io/pacphi/sindri:v3.1.0 --sbom
 
 # JSON output
-sindri image inspect ghcr.io/pacphi/sindri:v3.0.0 --json
+sindri image inspect ghcr.io/pacphi/sindri:v3.1.0 --json
 ```
 
 ### Verify Image Security
 
 ```bash
 # Verify signature and provenance
-sindri image verify ghcr.io/pacphi/sindri:v3.0.0
+sindri image verify ghcr.io/pacphi/sindri:v3.1.0
 ```
 
 ### Check Current Image

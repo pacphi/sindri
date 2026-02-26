@@ -1,7 +1,7 @@
 ---
 metadata:
   name: ai-toolkit
-  version: 2.2.1
+  version: 2.3.0
   description: >-
     AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
   category: ai-dev
@@ -84,7 +84,7 @@ bom:
       homepage: https://github.com/openai/openai-codex
       purl: pkg:pypi/openai-codex
     - name: gemini
-      version: "0.27.1"
+      version: "0.30.0"
       source: script
       type: cli-tool
       license: Apache-2.0
@@ -108,7 +108,7 @@ docs:
   title: "AI Toolkit"
   overview: |
     AI CLI tools and coding assistants including Fabric, Codex, Gemini, Droid, and Grok. For local LLM hosting, install the separate ollama extension.
-  last-updated: "2026-01-26"
+  last-updated: "2026-02-25"
   usage:
     - section: "Fabric"
       examples:

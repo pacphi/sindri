@@ -135,9 +135,9 @@ fi
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
-python = "3.13"
+python = "3.14"
 # Use ubi backend to avoid aqua GitHub API rate limits (mise bug #5418)
-"ubi:astral-sh/uv" = "0.9"
+"ubi:astral-sh/uv" = "0.10"
 
 [env]
 PYTHONDONTWRITEBYTECODE = "1"
@@ -165,9 +165,9 @@ PYTHONUNBUFFERED = "1"
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
-python = "3.13"
+python = "3.14"
 # Install from crates.io to avoid GitHub API entirely
-"cargo:uv" = "0.9"
+"cargo:uv" = "0.10"
 
 [env]
 PYTHONDONTWRITEBYTECODE = "1"
@@ -196,8 +196,8 @@ PYTHONUNBUFFERED = "1"
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
-python = "3.13"
-"asdf:b0o/asdf-uv" = "0.9"
+python = "3.14"
+"asdf:b0o/asdf-uv" = "0.10"
 
 [env]
 PYTHONDONTWRITEBYTECODE = "1"
@@ -234,7 +234,7 @@ And modify extension to skip uv installation:
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
-python = "3.13"
+python = "3.14"
 # uv is pre-installed in base image
 
 [env]
@@ -265,7 +265,7 @@ PYTHONUNBUFFERED = "1"
 ```toml
 # docker/lib/extensions/python/mise.toml
 [tools]
-python = "3.13"
+python = "3.14"
 # Direct download bypasses GitHub API
 "ubi:astral-sh/uv[exe=uv]" = "0.9.26"
 
@@ -327,8 +327,8 @@ env:
 
    ```toml
    [tools]
-   python = "3.13"
-   "ubi:astral-sh/uv" = "0.9"
+   python = "3.14"
+   "ubi:astral-sh/uv" = "0.10"
    ```
 
 2. **Verify GITHUB_TOKEN propagation in CI:**

@@ -103,7 +103,7 @@ Tables used ASCII box-drawing characters that were visually heavy:
 +--------------------+-----------------+---------+-----------+---------------+
 | name               | category        | version | installed | description   |
 +--------------------+-----------------+---------+-----------+---------------+
-| python             | language        | latest  | 3.13.0    | Python...     |
+| python             | language        | latest  | 3.14.0    | Python...     |
 +--------------------+-----------------+---------+-----------+---------------+
 ```
 
@@ -115,7 +115,7 @@ Applied `Style::sharp()` from the `tabled` crate for cleaner, more compact outpu
 ┌────────────────────┬─────────────────┬─────────┬───────────┬───────────────┐
 │ name               │ category        │ version │ installed │ description   │
 ├────────────────────┼─────────────────┼─────────┼───────────┼───────────────┤
-│ python             │ language        │ latest  │ 3.13.0    │ Python...     │
+│ python             │ language        │ latest  │ 3.14.0    │ Python...     │
 │ nodejs             │ language        │ latest  │ 20.0.0    │ Node.js...    │
 └────────────────────┴─────────────────┴─────────┴───────────┴───────────────┘
 ```

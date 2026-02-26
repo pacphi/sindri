@@ -60,25 +60,25 @@ V3 extensions are organized into the following categories:
 | Extension           | Version | Description                                                                     | Install Method |
 | ------------------- | ------- | ------------------------------------------------------------------------------- | -------------- |
 | **nodejs**          | 1.1.0   | Node.js LTS via mise with pnpm package manager (corepack)                       | mise           |
-| **python**          | 1.1.1   | Python 3.13 with uv package manager via mise                                    | mise           |
+| **python**          | 1.2.0   | Python 3.14 with uv package manager via mise                                    | mise           |
 | **rust**            | 1.0.2   | Rust stable via rustup                                                          | script         |
 | **golang**          | 1.1.0   | Go 1.26 via mise                                                                | mise           |
 | **dotnet**          | 2.2.0   | .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools                   | script         |
 | **jvm**             | 2.1.1   | JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise | script         |
-| **php**             | 2.1.0   | PHP 8.4 with Composer, Symfony CLI, and development tools                       | script         |
+| **php**             | 2.2.0   | PHP 8.5 with Composer, Symfony CLI, and development tools                       | script         |
 | **ruby**            | 2.1.0   | Ruby 4.0.x via mise with Rails and Bundler                                      | script         |
-| **haskell**         | 2.0.0   | Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup       | script         |
+| **haskell**         | 2.1.0   | Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup       | script         |
 | **swift**           | 1.0.0   | Swift 6.2.3 programming language via mise                                       | mise           |
-| **nodejs-devtools** | 2.2.0   | TypeScript, ESLint, Prettier, and Node.js development tools                     | mise           |
+| **nodejs-devtools** | 2.3.0   | TypeScript, ESLint, Prettier, and Node.js development tools                     | mise           |
 
 ### DevOps
 
 | Extension       | Version | Description                                                                       | Install Method |
 | --------------- | ------- | --------------------------------------------------------------------------------- | -------------- |
 | **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                           | hybrid         |
-| **infra-tools** | 2.1.0   | Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)                   | hybrid         |
+| **infra-tools** | 2.2.0   | Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)                   | hybrid         |
 | **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                              | script         |
-| **cloud-tools** | 2.1.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)         | script         |
+| **cloud-tools** | 2.2.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)         | script         |
 | **monitoring**  | 2.0.0   | Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli) | script         |
 
 ### Claude Code Integrations
@@ -100,15 +100,15 @@ V3 extensions are organized into the following categories:
 | Extension         | Version | Description                                                                          | Install Method |
 | ----------------- | ------- | ------------------------------------------------------------------------------------ | -------------- |
 | **agentic-flow**  | 1.0.0   | Multi-model AI agent framework for Claude Code with cost optimization (alpha)        | mise           |
-| **agentic-qe**    | 1.2.0   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
+| **agentic-qe**    | 1.2.1   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
 | **agent-manager** | 2.0.0   | Claude Code agent manager for managing AI agents                                     | script         |
-| **agent-browser** | 1.0.0   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
+| **agent-browser** | 1.1.0   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
 
 ### AI Development
 
 | Extension        | Version | Description                                                                         | Install Method |
 | ---------------- | ------- | ----------------------------------------------------------------------------------- | -------------- |
-| **ai-toolkit**   | 2.2.1   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)    | script         |
+| **ai-toolkit**   | 2.3.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)    | script         |
 | **clarity**      | 1.0.0   | Autonomous spec generation skill from reference materials (5-phase workflow)        | script         |
 | **gitnexus**     | 1.0.0   | Codebase knowledge graph CLI with AI agent integration via MCP server               | mise           |
 | **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)              | script         |
@@ -156,14 +156,14 @@ V3 extensions are organized into the following categories:
 
 | Extension    | Version | Description                                                          | Install Method |
 | ------------ | ------- | -------------------------------------------------------------------- | -------------- |
-| **mdflow**   | 1.0.0   | Multi-backend CLI that transforms markdown into executable AI agents | mise           |
+| **mdflow**   | 1.1.0   | Multi-backend CLI that transforms markdown into executable AI agents | mise           |
 | **spec-kit** | 1.0.0   | GitHub specification kit for AI-powered repository documentation     | script         |
 
 ### Cloud Services
 
 | Extension        | Version | Description                                                        | Install Method |
 | ---------------- | ------- | ------------------------------------------------------------------ | -------------- |
-| **supabase-cli** | 2.0.0   | Supabase CLI for local development, migrations, and edge functions | script         |
+| **supabase-cli** | 2.0.1   | Supabase CLI for local development, migrations, and edge functions | script         |
 
 ### Desktop
 
@@ -224,7 +224,7 @@ sindri extension list --all --category languages
 
 **Column Meanings:**
 
-- **software packaged**: Shows what the extension will install if you choose it (e.g., "python (3.13), pip (26.0.1), uv (0.9)")
+- **software packaged**: Shows what the extension will install if you choose it (e.g., "python (3.14), pip (26.0.1), uv (0.10)") — see [CLI Extension Compatibility Guide](CLI_EXTENSION_COMPATIBILITY_GUIDE.md) for full version matrix
 - **software installed**: Shows what's actually installed on your system
 - **software** (in --all mode): Shows software components regardless of installation status
 - **status**: Shows "installed" or "available"
@@ -657,6 +657,7 @@ This generates comprehensive markdown documentation by combining auto-derived da
 
 ## See Also
 
+- [CLI Extension Compatibility Guide](CLI_EXTENSION_COMPATIBILITY_GUIDE.md) - Software versions shipped per CLI release
 - [Extension Authoring Guide](extensions/guides/AUTHORING.md) - Guide to creating new extensions
 - [CONFIGURATION.md](CONFIGURATION.md) - Sindri configuration reference
 - [Architecture Decision Records](architecture/adr/README.md):

@@ -1375,7 +1375,7 @@ sindri extension info python
   Name: python
   Version: 1.2.0
   Category: language
-  Description: Python 3.13 with uv package manager
+  Description: Python 3.14 with uv package manager
   Source: github:sindri/sindri-extensions
   Installed: 2026-01-20
   Dependencies: mise-config

@@ -1,6 +1,6 @@
 [tools]
-python = "3.13"
-uv = "0.9"
+python = "3.14"
+uv = "0.10"
 
 [env]
 PYTHONDONTWRITEBYTECODE = "1"

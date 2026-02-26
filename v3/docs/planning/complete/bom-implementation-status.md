@@ -73,7 +73,7 @@ Comprehensive Bill of Materials (BOM) implementation for Sindri v3, enabling sec
 
 **Extensions Synced**:
 
-- golang (go 1.26), python (3.13, uv 0.9), ruby (3.4.7)
+- golang (go 1.26), python (3.14, uv 0.10), ruby (3.4.7)
 - nodejs (node lts), swift, rust (stable)
 - 14 npm-based tools via mise (agentic-qe 3.6.0, claudeup 1.8, etc.)
 
@@ -105,13 +105,13 @@ Comprehensive Bill of Materials (BOM) implementation for Sindri v3, enabling sec
 ##### Development Tools
 
 4. **nodejs-devtools** (5 tools) ✅
-   - TypeScript 5.9, ts-node 10.9, eslint 9, prettier 3.6, nodemon 3.1
+   - TypeScript 5.9, ts-node 10.9, eslint 10, prettier 3.8, nodemon 3.1
 
 5. **playwright** (1 tool) ✅ - v1.58.2
-6. **supabase-cli** (1 tool) ✅ - v2.76.4
+6. **supabase-cli** (1 tool) ✅ - v2.76.15
 7. **pal-mcp-server** (1 tool) ✅ - v9.8.2
 
-8. **php** (1 tool) ✅ - PHP 8.4 (Composer/Symfony dynamic)
+8. **php** (1 tool) ✅ - PHP 8.5 (Composer/Symfony dynamic)
 
 ##### npm-Based Tools (8 extensions)
 

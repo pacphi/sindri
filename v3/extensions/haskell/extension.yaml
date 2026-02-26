@@ -1,7 +1,7 @@
 ---
 metadata:
   name: haskell
-  version: 2.0.0
+  version: 2.1.0
   description: Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup
   category: languages
   author: Sindri Team
@@ -47,7 +47,7 @@ remove:
 bom:
   tools:
     - name: ghcup
-      version: "0.1.30"
+      version: "0.1.50.2"
       source: script
       type: cli-tool
       license: LGPL-3.0
@@ -85,7 +85,7 @@ docs:
   title: "Haskell"
   overview: |
     Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup. Provides a complete functional programming environment with IDE support.
-  last-updated: "2026-01-30"
+  last-updated: "2026-02-25"
   usage:
     - section: "GHC (Compiler)"
       examples:

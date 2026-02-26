@@ -13,4 +13,4 @@
 bun = "1"
 
 # mdflow CLI - transform markdown files into executable AI agents
-"npm:mdflow" = "2.33"
+"npm:mdflow" = "2.35.5"

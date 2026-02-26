@@ -414,7 +414,7 @@ sindri extension list [OPTIONS]
 - **Default** (no flags): Shows only **available** extensions that are NOT already installed
   - Columns: name, category, available version, software packaged, description
   - "available version" shows the latest compatible version for your CLI (e.g., "1.1.1"), not just "latest"
-  - "software packaged" shows what the extension will install (e.g., "python (3.13), pip (26.0.1), uv (0.9)")
+  - "software packaged" shows what the extension will install (e.g., "python (3.14), pip (26.0.1), uv (0.10)") — see [CLI Extension Compatibility Guide](CLI_EXTENSION_COMPATIBILITY_GUIDE.md) for full version matrix
 
 - **With `--installed`**: Shows only **installed** extensions
   - Columns: name, category, installed version, software installed, description, install date
@@ -441,6 +441,8 @@ sindri extension list --category languages
 # List installed extensions by category
 sindri extension list --installed --category languages
 ```
+
+> **Tip:** For exact software versions shipped with each CLI release, see the [CLI Extension Compatibility Guide](CLI_EXTENSION_COMPATIBILITY_GUIDE.md).
 
 #### extension validate
 

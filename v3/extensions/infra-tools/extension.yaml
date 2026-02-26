@@ -1,7 +1,7 @@
 ---
 metadata:
   name: infra-tools
-  version: 2.1.0
+  version: 2.2.0
   description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
   category: devops
   author: Sindri Team
@@ -122,6 +122,13 @@ bom:
       homepage: https://www.terraform.io
       purl: pkg:generic/terraform
       cpe: cpe:2.3:a:hashicorp:terraform:*:*:*:*:*:*:*:*
+    - name: packer
+      version: "1.15"
+      source: mise
+      type: cli-tool
+      license: BUSL-1.1
+      homepage: https://www.packer.io
+      purl: pkg:generic/packer
     - name: kubectl
       version: "1.35"
       source: mise
@@ -152,14 +159,14 @@ bom:
       purl: pkg:deb/ubuntu/ansible
       cpe: cpe:2.3:a:ansible:ansible:*:*:*:*:*:*:*:*
     - name: pulumi
-      version: "3.220.0"
+      version: "3.223.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.pulumi.com
       purl: pkg:generic/pulumi
     - name: crossplane
-      version: "2.1.4"
+      version: "2.2.0"
       source: script
       type: cli-tool
       license: Apache-2.0
@@ -180,19 +187,19 @@ bom:
       homepage: https://github.com/ahmetb/kubectx
       purl: pkg:github/ahmetb/kubectx@0.9.5
     - name: kapp
-      version: "0.65.0"
+      version: "0.65.1"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/kapp
-      purl: pkg:github/carvel-dev/kapp@0.65.0
+      purl: pkg:github/carvel-dev/kapp@0.65.1
     - name: ytt
-      version: "0.53.0"
+      version: "0.53.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/ytt
-      purl: pkg:github/carvel-dev/ytt@0.53.0
+      purl: pkg:github/carvel-dev/ytt@0.53.2
     - name: kbld
       version: "0.47.1"
       source: script
@@ -201,24 +208,24 @@ bom:
       homepage: https://carvel.dev/kbld
       purl: pkg:github/carvel-dev/kbld@0.47.1
     - name: vendir
-      version: "0.45.1"
+      version: "0.45.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/vendir
-      purl: pkg:github/carvel-dev/vendir@0.45.1
+      purl: pkg:github/carvel-dev/vendir@0.45.2
     - name: imgpkg
-      version: "0.47.1"
+      version: "0.47.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/imgpkg
-      purl: pkg:github/carvel-dev/imgpkg@0.47.1
+      purl: pkg:github/carvel-dev/imgpkg@0.47.2
 docs:
   title: "Infrastructure Tools"
   overview: |
     Infrastructure and DevOps tooling including Terraform, Kubernetes tools, and Configuration Management. Comprehensive IaC toolkit.
-  last-updated: "2026-01-26"
+  last-updated: "2026-02-25"
   usage:
     - section: "Terraform"
       examples:

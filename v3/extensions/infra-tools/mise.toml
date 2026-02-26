@@ -7,7 +7,7 @@
 # Infrastructure as Code
 # These work with aqua because they use releases.hashicorp.com
 terraform = "1.14"
-packer = "1.14"
+packer = "1.15"
 
 # Kubernetes tools
 kubectl = "1.35"

@@ -142,7 +142,7 @@ Total Extensions: 50
 
 - **ruby**: gem, bundle (bundled with ruby 3.4.7)
 - **python**: uvx (bundled with uv/python)
-- **php**: composer, symfony (PHP 8.4 pinned, these dynamic)
+- **php**: composer, symfony (PHP 8.5 pinned, these dynamic)
 - **nodejs**: npm, npx, pnpm (bundled with node lts)
 - **compahook**: node (bundled, compahook itself pinned)
 

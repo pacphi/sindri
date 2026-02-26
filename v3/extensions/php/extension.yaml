@@ -1,8 +1,8 @@
 ---
 metadata:
   name: php
-  version: 2.1.0
-  description: PHP 8.4 with Composer, Symfony CLI, and development tools
+  version: 2.2.0
+  description: PHP 8.5 with Composer, Symfony CLI, and development tools
   category: languages
   author: Sindri Team
   dependencies: []
@@ -37,7 +37,7 @@ configure:
 validate:
   commands:
     - name: php
-      expectedPattern: "PHP 8\\.4"
+      expectedPattern: "PHP 8\\.5"
     - name: composer
     - name: symfony
       versionFlag: "version"
@@ -50,19 +50,19 @@ upgrade:
   strategy: automatic
   apt:
     packages:
-      - php8.4
-      - php8.4-cli
-      - php8.4-common
+      - php8.5
+      - php8.5-cli
+      - php8.5-common
     updateFirst: true
 bom:
   tools:
     - name: php
-      version: "8.4"  # Pinned in install script (ppa:ondrej/php)
+      version: "8.5"  # Pinned in install script (ppa:ondrej/php)
       source: script
       type: runtime
       license: PHP-3.01
       homepage: https://www.php.net
-      purl: pkg:deb/ubuntu/php8.4
+      purl: pkg:deb/ubuntu/php8.5
       cpe: cpe:2.3:a:php:php:*:*:*:*:*:*:*:*
     - name: composer
       version: dynamic
@@ -81,8 +81,8 @@ bom:
 docs:
   title: "PHP"
   overview: |
-    PHP 8.4 with Composer, Symfony CLI, and development tools. Provides a complete PHP development environment for modern web applications.
-  last-updated: "2026-01-26"
+    PHP 8.5 with Composer, Symfony CLI, and development tools. Provides a complete PHP development environment for modern web applications.
+  last-updated: "2026-02-25"
   usage:
     - section: "Basic PHP"
       examples:

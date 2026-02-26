@@ -526,7 +526,7 @@ V3 introduces significant enhancements to extension management with unified view
 **Extension List Improvements:**
 
 - **Unified Extension View**: New `--all` flag shows both available and installed extensions in one view
-- **Software Version Display**: See exact versions of tools (e.g., "python (3.13), pip (26.0.1)")
+- **Software Version Display**: See exact versions of tools (e.g., "python (3.14), pip (26.0.1)")
 - **Installation State Tracking**: Failed installations now visible via `sindri extension status`
 - **Parallel Metadata Fetching**: Extension list loads in 3-5 seconds (first run), instant thereafter
 - **Smart Caching**: Extension metadata cached in `~/.sindri/cache/extensions/`

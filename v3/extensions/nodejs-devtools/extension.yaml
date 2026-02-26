@@ -1,7 +1,7 @@
 ---
 metadata:
   name: nodejs-devtools
-  version: 2.2.0
+  version: 2.3.0
   description: >-
     TypeScript, ESLint, Prettier, and Node.js development tools via pnpm
   category: languages
@@ -81,19 +81,19 @@ bom:
       homepage: https://typestrong.org/ts-node
       purl: pkg:npm/ts-node@10.9
     - name: prettier
-      version: "3.6"  # Pinned in mise.toml
+      version: "3.8"  # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://prettier.io
-      purl: pkg:npm/prettier@3.6
+      purl: pkg:npm/prettier@3.8
     - name: eslint
-      version: "9"  # Pinned in mise.toml
+      version: "10"  # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://eslint.org
-      purl: pkg:npm/eslint@9
+      purl: pkg:npm/eslint@10
     - name: nodemon
       version: "3.1"  # Pinned in mise.toml
       source: npm
@@ -105,7 +105,7 @@ docs:
   title: "Node.js DevTools"
   overview: |
     TypeScript, ESLint, Prettier, and Node.js development tools via pnpm. Provides essential tooling for modern JavaScript/TypeScript development.
-  last-updated: "2026-01-26"
+  last-updated: "2026-02-25"
   usage:
     - section: "TypeScript"
       examples:

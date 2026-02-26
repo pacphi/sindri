@@ -1,7 +1,7 @@
 ---
 metadata:
   name: supabase-cli
-  version: 2.0.0
+  version: 2.0.1
   description: Supabase CLI for local development, migrations, and edge functions
   category: cloud
   author: Sindri Team
@@ -52,7 +52,7 @@ upgrade:
 bom:
   tools:
     - name: supabase
-      version: "2.76.4"
+      version: "2.76.15"
       source: binary
       type: cli-tool
       license: MIT
@@ -62,7 +62,7 @@ docs:
   title: "Supabase CLI"
   overview: |
     Supabase CLI for local development, migrations, and edge functions. Full-featured tooling for Supabase backend development.
-  last-updated: "2026-01-26"
+  last-updated: "2026-02-25"
   usage:
     - section: "Project Setup"
       examples:

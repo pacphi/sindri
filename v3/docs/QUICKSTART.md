@@ -58,7 +58,7 @@ sindri version
 Expected output:
 
 ```
-sindri 3.0.0
+sindri 3.1.0
 ```
 
 ## First Deployment

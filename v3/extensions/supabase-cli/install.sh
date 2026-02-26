@@ -36,7 +36,7 @@ case "$ARCH" in
 esac
 
 # Pinned version for consistency (researched 2026-02-09)
-LATEST_VERSION="2.76.4"
+LATEST_VERSION="2.76.15"
 print_status "Installing Supabase CLI version: v$LATEST_VERSION"
 
 # Download .deb package

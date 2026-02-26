@@ -171,7 +171,7 @@ cli_version: "3.0.0"
 last_updated: "2026-01-21T10:00:00Z"
 extensions:
   python:
-    version: "3.13.0"
+    version: "3.14.0"
     status_datetime: "2026-01-20T15:30:00Z"
     source: "github:pacphi/sindri"
     state: installed # Can be: installed, failed, outdated, installing, removing
@@ -481,8 +481,8 @@ uuid = { version = "1.20", features = ["v4", "serde"] }
 **Example:**
 
 ```jsonl
-{"event_id":"550e8400-e29b-41d4-a716-446655440000","timestamp":"2026-02-11T10:00:00Z","extension_name":"python","cli_version":"3.0.0","state_before":null,"state_after":"installing","event":{"type":"install_started","extension_name":"python","version":"3.13.0","source":"github:pacphi/sindri","install_method":"Mise"}}
-{"event_id":"550e8400-e29b-41d4-a716-446655440001","timestamp":"2026-02-11T10:02:30Z","extension_name":"python","cli_version":"3.0.0","state_before":"installing","state_after":"installed","event":{"type":"install_completed","extension_name":"python","version":"3.13.0","duration_secs":150,"components_installed":["python","pip","uv"]}}
+{"event_id":"550e8400-e29b-41d4-a716-446655440000","timestamp":"2026-02-11T10:00:00Z","extension_name":"python","cli_version":"3.0.0","state_before":null,"state_after":"installing","event":{"type":"install_started","extension_name":"python","version":"3.14.0","source":"github:pacphi/sindri","install_method":"Mise"}}
+{"event_id":"550e8400-e29b-41d4-a716-446655440001","timestamp":"2026-02-11T10:02:30Z","extension_name":"python","cli_version":"3.0.0","state_before":"installing","state_after":"installed","event":{"type":"install_completed","extension_name":"python","version":"3.14.0","duration_secs":150,"components_installed":["python","pip","uv"]}}
 {"event_id":"550e8400-e29b-41d4-a716-446655440002","timestamp":"2026-02-11T10:05:00Z","extension_name":"nodejs","cli_version":"3.0.0","state_before":null,"state_after":"installing","event":{"type":"install_started","extension_name":"nodejs","version":"20.11.0","source":"github:pacphi/sindri","install_method":"Mise"}}
 {"event_id":"550e8400-e29b-41d4-a716-446655440003","timestamp":"2026-02-11T10:06:45Z","extension_name":"nodejs","cli_version":"3.0.0","state_before":"installing","state_after":"failed","event":{"type":"install_failed","extension_name":"nodejs","version":"20.11.0","error_message":"Network timeout downloading Node.js","retry_count":0,"duration_secs":105}}
 ```
@@ -1131,7 +1131,7 @@ $ time sindri extension status
 ┌────────────────┬────────────┬───────────┬──────────────────┐
 │ name           │ version    │ status    │ status date/time │
 ├────────────────┼────────────┼───────────┼──────────────────┤
-│ python         │ 3.13.0     │ installed │ 2026-02-11 01:41 │
+│ python         │ 3.14.0     │ installed │ 2026-02-11 01:41 │
 │ nodejs         │ 20.11.0    │ installed │ 2026-02-11 01:40 │
 └────────────────┴────────────┴───────────┴──────────────────┘
 
@@ -1292,16 +1292,16 @@ $ sindri extension status python
 Status history for extension: python
 
 2026-02-11 10:30:00 | installed → installed
-  Event: Validation succeeded (v3.13.0, manual)
+  Event: Validation succeeded (v3.14.0, manual)
 
 2026-02-11 10:00:00 | installing → installed
-  Event: Install completed (v3.13.0, 150s)
+  Event: Install completed (v3.14.0, 150s)
 
 2026-02-11 09:58:00 | None → installing
-  Event: Install started (v3.13.0, method: Mise, source: github:pacphi/sindri)
+  Event: Install started (v3.14.0, method: Mise, source: github:pacphi/sindri)
 
-2026-01-20 14:30:00 | 3.12.0 → installed
-  Event: Upgrade completed (3.12.0 → 3.13.0, 180s)
+2026-01-20 14:30:00 | 3.13.0 → installed
+  Event: Upgrade completed (3.13.0 → 3.14.0, 180s)
 ```
 
 **Impact:**

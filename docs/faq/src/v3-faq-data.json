@@ -1261,7 +1261,7 @@
       "id": "python-uv",
       "category": "extensions",
       "question": "What is uv and how do I use it with Python?",
-      "answer": "uv is a modern, extremely fast Python package installer and resolver (10-100x faster than pip) included with the Python extension v1.1.0+. Use 'uv pip install <package>' for fast package installation, 'uv venv' to create virtual environments, and 'uvx <package>' to execute packages without installation (like npx for Node.js). uv is installed via mise alongside Python 3.13. It replaces pip for most workflows while maintaining compatibility with requirements.txt and pyproject.toml. Use uv for faster CI/CD builds, large dependency trees, and rapid prototyping. Available in both v2 and v3.",
+      "answer": "uv is a modern, extremely fast Python package installer and resolver (10-100x faster than pip) included with the Python extension v1.1.0+. Use 'uv pip install <package>' for fast package installation, 'uv venv' to create virtual environments, and 'uvx <package>' to execute packages without installation (like npx for Node.js). uv is installed via mise alongside Python 3.14. It replaces pip for most workflows while maintaining compatibility with requirements.txt and pyproject.toml. Use uv for faster CI/CD builds, large dependency trees, and rapid prototyping. Available in both v2 and v3.",
       "versionsApplicable": ["v2", "v3"],
       "versionSpecifics": {
         "v2": {

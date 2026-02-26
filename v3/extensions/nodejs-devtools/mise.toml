@@ -13,10 +13,10 @@
 #       to avoid circular dependency (mise using pnpm to install pnpm)
 "npm:typescript" = "5.9"
 "npm:ts-node" = "10.9"
-"npm:eslint" = "9"
+"npm:eslint" = "10"
 "npm:@typescript-eslint/parser" = "8"
 "npm:@typescript-eslint/eslint-plugin" = "8"
-"npm:prettier" = "3.6"
+"npm:prettier" = "3.8"
 "npm:nodemon" = "3.1"
 
 [tasks.format]

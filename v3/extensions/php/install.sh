@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # php install script - Simplified for YAML-driven architecture
-# Installs PHP 8.4 + Composer + Symfony CLI + dev tools
+# Installs PHP 8.5 + Composer + Symfony CLI + dev tools
 
 print_status "Installing PHP and Symfony development environment..."
 
@@ -21,13 +21,13 @@ fi
 sudo apt-get update || exit 1
 
 # Install PHP and extensions
-print_status "Installing PHP 8.4 and extensions..."
+print_status "Installing PHP 8.5 and extensions..."
 php_packages=(
-  php8.4 php8.4-cli php8.4-common php8.4-curl php8.4-mbstring
-  php8.4-mysql php8.4-pgsql php8.4-sqlite3 php8.4-xml php8.4-zip
-  php8.4-bcmath php8.4-gd php8.4-intl php8.4-opcache php8.4-readline
-  php8.4-soap php8.4-xdebug php8.4-redis php8.4-amqp
-  php8.4-mongodb php8.4-imagick
+  php8.5 php8.5-cli php8.5-common php8.5-curl php8.5-mbstring
+  php8.5-mysql php8.5-pgsql php8.5-sqlite3 php8.5-xml php8.5-zip
+  php8.5-bcmath php8.5-gd php8.5-intl php8.5-opcache php8.5-readline
+  php8.5-soap php8.5-xdebug php8.5-redis php8.5-amqp
+  php8.5-mongodb php8.5-imagick
 )
 
 failed_packages=()
@@ -36,7 +36,7 @@ for package in "${php_packages[@]}"; do
 done
 
 # Check core PHP installed
-if [[ " ${failed_packages[*]} " =~ php8.4 ]] || [[ " ${failed_packages[*]} " =~ php8.4-cli ]]; then
+if [[ " ${failed_packages[*]} " =~ php8.5 ]] || [[ " ${failed_packages[*]} " =~ php8.5-cli ]]; then
   print_error "Failed to install core PHP packages"
   exit 1
 fi
@@ -116,8 +116,8 @@ done
 
 # Install development PHP ini AFTER all tools to avoid xdebug/JIT interference
 # during Composer and tool installations (requires root — done here instead of configure phase)
-if [[ -f "$SCRIPT_DIR/development-ini.template" ]] && [[ -d /etc/php/8.4/cli/conf.d ]]; then
-  sudo cp "$SCRIPT_DIR/development-ini.template" /etc/php/8.4/cli/conf.d/99-development.ini
+if [[ -f "$SCRIPT_DIR/development-ini.template" ]] && [[ -d /etc/php/8.5/cli/conf.d ]]; then
+  sudo cp "$SCRIPT_DIR/development-ini.template" /etc/php/8.5/cli/conf.d/99-development.ini
   print_success "PHP development ini installed"
 fi
 
