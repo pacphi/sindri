@@ -7,7 +7,7 @@
 
 schema_version: "1.0"
 
-# Last Updated: 2026-02-25
+# Last Updated: 2026-02-26
 # CLI version compatibility mappings
 # Key format: CLI version (supports wildcards like "3.0.x")
 # Compatible extension versions use semver ranges (e.g., ">=1.0.0,<2.0.0")
@@ -46,6 +46,7 @@ cli_versions:
       gitnexus: ">=1.0.0,<2.0.0"
       ruvector-cli: ">=1.0.0,<2.0.0"
       rvf-cli: ">=1.0.0,<2.0.0"
+      openfang: ">=1.0.0,<2.0.0"
 
       # Claude Ecosystem
       claude-cli: ">=1.0.0,<2.0.0"
@@ -147,6 +148,7 @@ cli_versions:
       gitnexus: ">=1.1.0,<2.0.0"
       ruvector-cli: ">=1.1.0,<2.0.0"
       rvf-cli: ">=1.1.0,<2.0.0"
+      openfang: ">=1.0.0,<2.0.0"
 
       # Claude Ecosystem
       claude-cli: ">=1.0.0,<2.0.0"
@@ -238,6 +240,7 @@ cli_versions:
       gitnexus: ">=2.0.0,<3.0.0"
       ruvector-cli: ">=2.0.0,<3.0.0"
       rvf-cli: ">=2.0.0,<3.0.0"
+      openfang: ">=2.0.0,<3.0.0"
 
       # Claude Ecosystem
       claude-cli: ">=2.0.0,<3.0.0"

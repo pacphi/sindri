@@ -7,7 +7,7 @@ version: "3.0.0"
 metadata:
   name: "Sindri v3 Extension Registry"
   description: "Registry of available extensions for Sindri v3 (Rust-based CLI)"
-  last_updated: "2026-02-25"
+  last_updated: "2026-02-26"
 
 
 extensions:
@@ -24,6 +24,9 @@ extensions:
   agentic-qe:
     category: "ai-agents"
     description: "Agentic quality engineering"
+  openfang:
+    category: "ai-agents"
+    description: "OpenFang - Open-source agent OS for autonomous AI agents across 40+ messaging platforms"
   ai-toolkit:
     category: "ai-dev"
     description: "AI development toolkit"

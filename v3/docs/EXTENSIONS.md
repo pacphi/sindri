@@ -40,7 +40,7 @@ V3 extensions are organized into the following categories:
 | **languages**       | Programming language runtimes and toolchains     | 11    |
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
 | **devops**          | Infrastructure, deployment, and operations tools | 5     |
-| **ai-agents**       | AI agent frameworks and orchestration            | 4     |
+| **ai-agents**       | AI agent frameworks and orchestration            | 5     |
 | **ai-dev**          | AI development tools and LLM interfaces          | 10    |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
@@ -103,6 +103,7 @@ V3 extensions are organized into the following categories:
 | **agentic-qe**    | 1.2.1   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
 | **agent-manager** | 2.0.0   | Claude Code agent manager for managing AI agents                                     | script         |
 | **agent-browser** | 1.1.0   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
+| **openfang**      | 1.0.0   | Open-source agent OS for autonomous AI agents across 40+ messaging platforms         | script         |
 
 ### AI Development
 
@@ -669,7 +670,7 @@ This generates comprehensive markdown documentation by combining auto-derived da
 
 ## Summary Statistics
 
-- **Total Extensions**: 56
+- **Total Extensions**: 57
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 12

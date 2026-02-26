@@ -1,0 +1,162 @@
+---
+metadata:
+  name: openfang
+  version: 1.0.0
+  description: >-
+    OpenFang - Open-source agent OS for autonomous AI agents across 40+ messaging platforms
+  category: ai-agents
+  author: OpenFang
+  homepage: https://openfang.sh
+  dependencies: []
+
+requirements:
+  domains:
+    - openfang.sh
+    - github.com
+  diskSpace: 150
+  memory: 512
+  installTime: 180
+  installTimeout: 600
+
+install:
+  method: script
+  script:
+    path: scripts/install.sh
+    timeout: 300
+
+configure:
+  environment:
+    - key: PATH
+      value: "$HOME/.openfang/bin:$PATH"
+      scope: bashrc
+
+validate:
+  commands:
+    - name: openfang
+      versionFlag: --version
+      expectedPattern: "0\\.1\\.\\d+"
+
+remove:
+  paths:
+    - ~/.openfang
+  confirmation: true
+
+upgrade:
+  strategy: manual
+  script:
+    path: scripts/install.sh
+    timeout: 300
+
+capabilities:
+  auth:
+    provider: custom
+    required: false
+    methods:
+      - api-key
+    envVars:
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - GROQ_API_KEY
+    validator:
+      command: "openfang --version"
+    features:
+      - name: cloud-llm
+        description: "Use cloud LLM providers (Anthropic, OpenAI, Groq)"
+        requiresApiKey: true
+      - name: local-ollama
+        description: "Use local Ollama models for offline agent operation"
+        requiresApiKey: false
+  hooks:
+    post-install:
+      command: "openfang init && openfang doctor"
+      description: "Initialize config directory and verify system health"
+
+bom:
+  # NOTE: Versions researched 2026-02-26
+  tools:
+    - name: openfang
+      version: "0.1.1"
+      source: script
+      type: cli-tool
+      license: Apache-2.0
+      homepage: https://openfang.sh
+      purl: pkg:cargo/openfang-cli@0.1.1
+
+docs:
+  title: "OpenFang Agent OS"
+  overview: |
+    OpenFang is an open-source agent operating system built in Rust that spawns and manages autonomous AI agents.
+    Agents are deployable across 40+ messaging platforms (Slack, Discord, Telegram, WhatsApp, etc.) with support
+    for 20+ LLM providers. OpenFang supports local-first operation with Ollama for privacy-sensitive deployments,
+    or cloud providers like Anthropic, OpenAI, and Groq for maximum capability.
+  last-updated: "2026-02-26"
+  features:
+    - "Agent OS - Spawn and manage autonomous AI agents from the terminal"
+    - "40+ messaging platforms - Slack, Discord, Telegram, WhatsApp, Matrix, and more"
+    - "20+ LLM providers - Anthropic, OpenAI, Groq, Ollama, and others"
+    - "Local-first with Ollama - Run agents entirely offline with local models"
+    - "Built in Rust - Fast, memory-safe, single binary with no runtime dependencies"
+    - "Health diagnostics - Built-in doctor command verifies system configuration"
+    - "TOML configuration - Simple config.toml for provider and platform setup"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - description: "Initialize OpenFang configuration"
+          code: "openfang init"
+        - description: "Check system health and configuration"
+          code: "openfang doctor"
+        - description: "Check installed version"
+          code: "openfang --version"
+    - section: "Agent Management"
+      examples:
+        - description: "Spawn a new agent"
+          code: "openfang agent spawn --name my-agent --platform slack"
+        - description: "Start all configured agents"
+          code: "openfang start"
+        - description: "Chat with an agent locally"
+          code: "openfang chat --agent my-agent"
+    - section: "Configuration Examples"
+      examples:
+        - description: "Configure with Ollama (local, no API key needed)"
+          code: |
+            # ~/.openfang/config.toml
+            [llm]
+            provider = "ollama"
+            model = "llama3.2"
+            endpoint = "http://localhost:11434"
+        - description: "Configure with Anthropic (cloud, API key required)"
+          code: |
+            # ~/.openfang/config.toml
+            [llm]
+            provider = "anthropic"
+            model = "claude-sonnet-4-20250514"
+            # Set ANTHROPIC_API_KEY in environment
+  related:
+    - name: ollama
+      description: "Ollama - Local LLM runtime for privacy-first agent deployments"
+    - name: agent-manager
+      description: "Agent orchestration and management"
+    - name: agentic-flow
+      description: "Multi-model AI agent framework with cost optimization"
+  notes: |
+    ## LLM Provider Setup
+
+    OpenFang supports 20+ LLM providers. Set the appropriate API key environment variable:
+
+    - **Anthropic**: `export ANTHROPIC_API_KEY=sk-ant-...`
+    - **OpenAI**: `export OPENAI_API_KEY=sk-...`
+    - **Groq**: `export GROQ_API_KEY=gsk_...`
+    - **Ollama** (local): No API key needed — install the `ollama` extension and run `ollama serve`
+
+    ## Post-Install
+
+    After installation, OpenFang automatically runs `openfang init` to create the config directory
+    and `openfang doctor` to verify your system is ready. If doctor reports issues, follow its
+    guidance to resolve them before spawning agents.
+
+    ## Platform Connections
+
+    Each messaging platform requires its own credentials (bot tokens, webhooks, etc.).
+    See the OpenFang documentation for platform-specific setup guides: https://openfang.sh/docs/
+
+    More information: https://openfang.sh
