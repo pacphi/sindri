@@ -696,6 +696,8 @@ Map extension `metadata.category` to the matrix comment groups:
 
 #### Example: Adding `notebooklm-mcp-cli` (category: mcp, version: 1.0.0)
 
+For a **newly created extension**, use the **same range** for all current CLI series — the extension is new, so there is no version difference between CLI series yet.
+
 In the `3.0.x` section, under `# MCP Servers`:
 ```yaml
       notebooklm-mcp-cli: ">=1.0.0,<2.0.0"
@@ -703,7 +705,7 @@ In the `3.0.x` section, under `# MCP Servers`:
 
 In the `3.1.x` section, under `# MCP Servers`:
 ```yaml
-      notebooklm-mcp-cli: ">=1.1.0,<2.0.0"
+      notebooklm-mcp-cli: ">=1.0.0,<2.0.0"
 ```
 
 In the `4.0.x` section, under `# MCP Servers`:
@@ -716,8 +718,10 @@ In the `4.0.x` section, under `# MCP Servers`:
 | CLI Series | Range Pattern | Notes |
 |-----------|---------------|-------|
 | `3.0.x` | `>=CURRENT,<NEXT_MAJOR` | Use the extension's current `metadata.version` |
-| `3.1.x` | `>=CURRENT_MINOR_BUMP,<NEXT_MAJOR` | Bump minor version (e.g., 1.0.0 -> 1.1.0) |
-| `4.0.x` | `>=NEXT_MAJOR,<NEXT_NEXT_MAJOR` | Use next major version (e.g., 1.x -> 2.0.0) |
+| `3.1.x` | `>=CURRENT,<NEXT_MAJOR` | Same as 3.0.x unless this extension shipped a **real software change** for 3.1.x |
+| `4.0.x` | `>=NEXT_MAJOR,<NEXT_NEXT_MAJOR` | Placeholder for future major version (aspirational, not enforced today) |
+
+**Key principle:** Only bump the minimum version for a CLI series when the extension itself ships a real software change for that series (actual BOM version updates, new features, changed install scripts). Do not auto-bump minimums just because a new CLI series exists.
 
 ### Validation
 
@@ -865,6 +869,12 @@ Then update all external references to the extension version:
 1. **`v3/docs/EXTENSIONS.md`** - Update the version number shown in the extensions catalog
 2. **`v3/compatibility-matrix.yaml`** - Ensure the new version falls within the semver range; if not, update the range (see [Compatibility Matrix Management](#compatibility-matrix-management))
 3. **`v3/registry.yaml`** - Update description if the extension's capabilities changed
+
+### When NOT to Bump
+
+- **Do NOT bump `metadata.version`** if only the CLI version changed but the extension's software, install scripts, configuration, and capabilities remain identical. `metadata.version` tracks **extension content changes** (software versions, install methods, config, BOM), not CLI release cadence.
+- **Do NOT inflate compatibility matrix ranges** to require higher minimums for extensions with no changes. If extension v1.0.0 works fine with CLI 3.1.x, the range should still say `>=1.0.0`. The matrix should reflect reality.
+- **Do NOT auto-bump 3.1.x minimums** for newly created extensions. A new extension gets the same range across all current CLI series since there is no version difference yet.
 
 ### Step 6: Report Changes
 

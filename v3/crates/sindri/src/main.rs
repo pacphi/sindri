@@ -23,8 +23,17 @@ async fn main() -> Result<()> {
     // Parse CLI args
     let cli = Cli::parse();
 
-    // Initialize tracing
-    init_tracing(cli.verbose, cli.quiet);
+    // Detect JSON mode from subcommand flags — must happen before any output
+    let json_mode = has_json_flag(&cli.command);
+    if json_mode {
+        output::set_json_mode(true);
+    }
+
+    // Initialize tracing (suppress to error-only in JSON mode so tracing
+    // INFO/WARN lines don't contaminate stdout — tracing-subscriber's
+    // fmt layer writes to stderr by default, but we suppress anyway to
+    // keep stderr clean for structured consumers).
+    init_tracing(cli.verbose, cli.quiet || json_mode);
 
     // Run command
     match cli.command {
@@ -71,4 +80,61 @@ fn init_tracing(verbose: u8, quiet: bool) {
         .with(fmt::layer().with_target(false))
         .with(filter)
         .init();
+}
+
+/// Inspect the parsed command tree and return `true` if any subcommand
+/// has its `--json` flag set.  This avoids touching individual command
+/// files — the detection happens once in main before dispatch.
+fn has_json_flag(cmd: &Commands) -> bool {
+    use cli::*;
+    match cmd {
+        // Top-level commands with json field
+        Commands::Version(a) => a.json,
+        Commands::Status(a) => a.json,
+
+        // Config subcommands
+        Commands::Config(ConfigCommands::Show(a)) => a.json,
+
+        // Extension subcommands
+        Commands::Extension(ExtensionCommands::List(a)) => a.json,
+        Commands::Extension(ExtensionCommands::Status(a)) => a.json,
+        Commands::Extension(ExtensionCommands::Info(a)) => a.json,
+        Commands::Extension(ExtensionCommands::Versions(a)) => a.json,
+        Commands::Extension(ExtensionCommands::Check(a)) => a.json,
+        Commands::Extension(ExtensionCommands::Log(a)) => a.json,
+
+        // Profile subcommands
+        Commands::Profile(ProfileCommands::List(a)) => a.json,
+        Commands::Profile(ProfileCommands::Info(a)) => a.json,
+        Commands::Profile(ProfileCommands::Status(a)) => a.json,
+
+        // K8s subcommands
+        Commands::K8s(K8sCommands::Create(a)) => a.json,
+        Commands::K8s(K8sCommands::List(a)) => a.json,
+        Commands::K8s(K8sCommands::Status(a)) => a.json,
+
+        // Image subcommands
+        Commands::Image(ImageCommands::List(a)) => a.json,
+        Commands::Image(ImageCommands::Inspect(a)) => a.json,
+        Commands::Image(ImageCommands::Current(a)) => a.json,
+
+        // VM subcommands
+        Commands::Vm(VmCommands::Build(a)) => a.json,
+        Commands::Vm(VmCommands::Validate(a)) => a.json,
+        Commands::Vm(VmCommands::List(a)) => a.json,
+        Commands::Vm(VmCommands::Doctor(a)) => a.json,
+        Commands::Vm(VmCommands::Deploy(a)) => a.json,
+
+        // BOM subcommands
+        Commands::Bom(BomCommands::Generate(a)) => a.json,
+        Commands::Bom(BomCommands::Show(a)) => a.json,
+        Commands::Bom(BomCommands::List(a)) => a.json,
+
+        // Secrets subcommands
+        Commands::Secrets(SecretsCommands::List(a)) => a.json,
+        Commands::Secrets(SecretsCommands::TestVault(a)) => a.json,
+
+        // Everything else has no json flag
+        _ => false,
+    }
 }

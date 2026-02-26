@@ -187,7 +187,7 @@ endef
 	v2-deploy v2-deploy-docker v2-deploy-fly v2-deploy-devpod \
 	v3-build v3-build-debug v3-check \
 	v3-test v3-test-verbose v3-test-crate \
-	v3-validate v3-validate-yaml v3-validate-rust \
+	v3-validate v3-validate-yaml v3-validate-rust v3-validate-compat \
 	v3-clippy v3-fmt v3-fmt-check \
 	v3-audit v3-audit-fix \
 	v3-coverage v3-coverage-html v3-coverage-lcov \
@@ -269,9 +269,10 @@ help:
 	@echo "  v3-test                - Run Rust tests"
 	@echo "  v3-test-verbose        - Run Rust tests (verbose output)"
 	@echo "  v3-test-crate          - Test one crate (use: make v3-test-crate CRATE=sindri-core)"
-	@echo "  v3-validate            - Validate Rust code (fmt + clippy + YAML)"
+	@echo "  v3-validate            - Validate Rust code (fmt + clippy + YAML + compat)"
 	@echo "  v3-validate-yaml       - Validate v3 YAML files"
 	@echo "  v3-validate-rust       - Validate Rust code only"
+	@echo "  v3-validate-compat     - Validate compatibility matrix"
 	@echo "  v3-clippy              - Run clippy linter"
 	@echo "  v3-fmt                 - Format Rust code"
 	@echo "  v3-fmt-check           - Check Rust formatting"
@@ -762,8 +763,14 @@ v3-test-crate:
 # ============================================================================
 
 .PHONY: v3-validate
-v3-validate: v3-validate-yaml v3-validate-rust
+v3-validate: v3-validate-yaml v3-validate-rust v3-validate-compat
 	@echo "$(GREEN)$(BOLD)✓ All v3 validation passed$(RESET)"
+
+.PHONY: v3-validate-compat
+v3-validate-compat:
+	@echo "$(BLUE)Validating compatibility matrix...$(RESET)"
+	python3 scripts/validate-compat-matrix.py
+	@echo "$(GREEN)✓ Compatibility matrix validation passed$(RESET)"
 
 .PHONY: v3-validate-yaml
 v3-validate-yaml:

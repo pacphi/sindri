@@ -5,3 +5,9 @@ if git diff --cached --name-only | grep -q '^v3/'; then
   echo "Rust files staged — running cargo fmt --check and clippy..."
   (cd v3 && cargo fmt --check && cargo clippy --workspace -- -D warnings)
 fi
+
+# Compatibility matrix validation (only if extension or matrix files are staged)
+if git diff --cached --name-only | grep -qE '^v3/(extensions/.*/extension\.yaml|compatibility-matrix\.yaml)'; then
+  echo "Extension/matrix files staged — validating compatibility matrix..."
+  python3 scripts/validate-compat-matrix.py
+fi

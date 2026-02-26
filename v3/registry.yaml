@@ -61,6 +61,9 @@ extensions:
   cloud-tools:
     category: "devops"
     description: "Cloud platform tools"
+  draupnir:
+    category: "devops"
+    description: "Sindri instance agent for mimir fleet management"
   infra-tools:
     category: "devops"
     description: "Infrastructure management tools"

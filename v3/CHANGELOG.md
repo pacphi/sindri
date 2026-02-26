@@ -32,6 +32,11 @@ For detailed extension software versions per CLI release, see the [CLI Extension
 - Extension metadata version bumps for all 11 updated extensions
 - Updated compatibility matrix for agent-browser version range (now >=1.0.0)
 
+### Fixed
+
+- fix(compatibility): correct 3.1.x matrix ranges — only require higher minimums for 11 extensions with actual software upgrades
+- feat(extensions): add draupnir to compatibility matrix and registry
+
 ## [3.0.1] - 2026-02-24
 
 ### Added

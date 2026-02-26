@@ -39,7 +39,7 @@ V3 extensions are organized into the following categories:
 | ------------------- | ------------------------------------------------ | ----- |
 | **languages**       | Programming language runtimes and toolchains     | 11    |
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
-| **devops**          | Infrastructure, deployment, and operations tools | 5     |
+| **devops**          | Infrastructure, deployment, and operations tools | 6     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 5     |
 | **ai-dev**          | AI development tools and LLM interfaces          | 10    |
 | **mcp**             | Model Context Protocol servers                   | 5     |
@@ -77,6 +77,7 @@ V3 extensions are organized into the following categories:
 | --------------- | ------- | --------------------------------------------------------------------------------- | -------------- |
 | **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                           | hybrid         |
 | **infra-tools** | 2.2.0   | Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)                   | hybrid         |
+| **draupnir**    | 1.0.0   | Sindri instance agent for mimir fleet management                                  | script         |
 | **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                              | script         |
 | **cloud-tools** | 2.2.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)         | script         |
 | **monitoring**  | 2.0.0   | Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli) | script         |
@@ -164,7 +165,7 @@ V3 extensions are organized into the following categories:
 
 | Extension        | Version | Description                                                        | Install Method |
 | ---------------- | ------- | ------------------------------------------------------------------ | -------------- |
-| **supabase-cli** | 2.0.1   | Supabase CLI for local development, migrations, and edge functions | script         |
+| **supabase-cli** | 2.1.0   | Supabase CLI for local development, migrations, and edge functions | script         |
 
 ### Desktop
 
@@ -670,7 +671,7 @@ This generates comprehensive markdown documentation by combining auto-derived da
 
 ## Summary Statistics
 
-- **Total Extensions**: 57
+- **Total Extensions**: 58
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 12

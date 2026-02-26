@@ -66,6 +66,7 @@ cli_versions:
 
       # DevOps & Tools
       docker: ">=1.1.0,<2.0.0"
+      draupnir: ">=1.0.0,<2.0.0"
       github-cli: ">=2.0.0,<3.0.0"
       supabase-cli: ">=2.0.0,<3.0.0"
       tmux-workspace: ">=2.0.0,<3.0.0"
@@ -123,89 +124,90 @@ cli_versions:
 
     compatible_extensions:
       # Core extensions
-      mise-config: ">=2.1.0,<3.0.0"
+      mise-config: ">=2.0.0,<3.0.0"
 
       # Language extensions (updated for new features)
       python: ">=1.1.0,<2.0.0"
-      nodejs: ">=1.2.0,<2.0.0"
-      rust: ">=1.1.0,<2.0.0"
-      golang: ">=1.1.0,<2.0.0"
-      sdkman: ">=1.1.0,<2.0.0"
-      jvm: ">=2.1.0,<3.0.0"
-      dotnet: ">=2.2.0,<3.0.0"
+      nodejs: ">=1.1.0,<2.0.0"
+      rust: ">=1.0.0,<2.0.0"
+      golang: ">=1.0.1,<2.0.0"
+      sdkman: ">=1.0.0,<2.0.0"
+      jvm: ">=2.0.0,<3.0.0"
+      dotnet: ">=2.1.0,<3.0.0"
       php: ">=2.2.0,<3.0.0"
-      ruby: ">=2.1.0,<3.0.0"
+      ruby: ">=2.0.0,<3.0.0"
       haskell: ">=2.0.0,<3.0.0"
-      swift: ">=1.1.0,<2.0.0"
+      swift: ">=1.0.0,<2.0.0"
 
       # AI & Agentic Tools
       agent-browser: ">=1.0.0,<2.0.0"
-      agent-manager: ">=2.1.0,<3.0.0"
-      agentic-flow: ">=1.1.0,<2.0.0"
+      agent-manager: ">=2.0.0,<3.0.0"
+      agentic-flow: ">=1.0.0,<2.0.0"
       agentic-qe: ">=1.2.0,<2.0.0"
       ai-toolkit: ">=2.2.0,<3.0.0"
-      clarity: ">=1.1.0,<2.0.0"
-      gitnexus: ">=1.1.0,<2.0.0"
-      ruvector-cli: ">=1.1.0,<2.0.0"
-      rvf-cli: ">=1.1.0,<2.0.0"
+      clarity: ">=1.0.0,<2.0.0"
+      gitnexus: ">=1.0.0,<2.0.0"
+      ruvector-cli: ">=1.0.0,<2.0.0"
+      rvf-cli: ">=1.0.0,<2.0.0"
       openfang: ">=1.0.0,<2.0.0"
 
       # Claude Ecosystem
       claude-cli: ">=1.0.0,<2.0.0"
-      claude-code-mux: ">=1.1.0,<2.0.0"
-      claude-codepro: ">=4.6.0,<5.0.0"
-      claude-flow-v2: ">=2.8.0,<3.0.0"
-      claude-flow-v3: ">=3.1.0,<4.0.0"
-      claude-marketplace: ">=2.1.0,<3.0.0"
-      claudeup: ">=1.1.0,<2.0.0"
-      claudish: ">=1.1.0,<2.0.0"
-      compahook: ">=1.1.0,<2.0.0"
+      claude-code-mux: ">=1.0.0,<2.0.0"
+      claude-codepro: ">=4.5.0,<5.0.0"
+      claude-flow-v2: ">=2.7.0,<3.0.0"
+      claude-flow-v3: ">=3.0.0,<4.0.0"
+      claude-marketplace: ">=2.0.0,<3.0.0"
+      claudeup: ">=1.0.0,<2.0.0"
+      claudish: ">=1.0.0,<2.0.0"
+      compahook: ">=1.0.0,<2.0.0"
 
       # Cloud & Infrastructure
       cloud-tools: ">=2.1.0,<3.0.0"
       infra-tools: ">=2.1.0,<3.0.0"
-      monitoring: ">=2.1.0,<3.0.0"
+      monitoring: ">=2.0.0,<3.0.0"
 
       # DevOps & Tools
-      docker: ">=1.2.0,<2.0.0"
-      github-cli: ">=2.1.0,<3.0.0"
+      docker: ">=1.1.0,<2.0.0"
+      draupnir: ">=1.0.0,<2.0.0"
+      github-cli: ">=2.0.0,<3.0.0"
       supabase-cli: ">=2.1.0,<3.0.0"
-      tmux-workspace: ">=2.1.0,<3.0.0"
+      tmux-workspace: ">=2.0.0,<3.0.0"
 
       # MCP Servers
-      context7-mcp: ">=1.1.0,<2.0.0"
-      excalidraw-mcp: ">=1.1.0,<2.0.0"
-      jira-mcp: ">=2.1.0,<3.0.0"
-      linear-mcp: ">=2.2.0,<3.0.0"
-      notebooklm-mcp-cli: ">=1.1.0,<2.0.0"
-      pal-mcp-server: ">=9.9.0,<10.0.0"
+      context7-mcp: ">=1.0.0,<2.0.0"
+      excalidraw-mcp: ">=1.0.0,<2.0.0"
+      jira-mcp: ">=2.0.0,<3.0.0"
+      linear-mcp: ">=2.1.0,<3.0.0"
+      notebooklm-mcp-cli: ">=1.0.0,<2.0.0"
+      pal-mcp-server: ">=9.8.0,<10.0.0"
 
       # Development Tools
       nodejs-devtools: ">=2.3.0,<3.0.0"
 
       # AI/ML Tools
-      goose: ">=1.1.0,<2.0.0"
-      kilo: ">=1.1.0,<2.0.0"
-      ollama: ">=1.1.0,<2.0.0"
-      openclaw: ">=1.1.0,<2.0.0"
-      opencode: ">=1.1.0,<2.0.0"
+      goose: ">=1.0.0,<2.0.0"
+      kilo: ">=1.0.0,<2.0.0"
+      ollama: ">=1.0.0,<2.0.0"
+      openclaw: ">=1.0.0,<2.0.0"
+      opencode: ">=1.0.0,<2.0.0"
 
       # Desktop & UI
-      guacamole: ">=2.1.0,<3.0.0"
-      xfce-ubuntu: ">=2.1.0,<3.0.0"
+      guacamole: ">=2.0.0,<3.0.0"
+      xfce-ubuntu: ">=2.0.0,<3.0.0"
 
       # Testing
-      playwright: ">=2.1.0,<3.0.0"
-      shannon: ">=1.1.0,<2.0.0"
+      playwright: ">=2.0.0,<3.0.0"
+      shannon: ">=1.0.0,<2.0.0"
 
       # Documentation & Content
       mdflow: ">=1.1.0,<2.0.0"
-      spec-kit: ">=1.1.0,<2.0.0"
+      spec-kit: ">=1.0.0,<2.0.0"
 
       # Productivity
-      openskills: ">=2.1.0,<3.0.0"
-      ralph: ">=1.1.0,<2.0.0"
-      ruvnet-research: ">=1.1.0,<2.0.0"
+      openskills: ">=2.0.0,<3.0.0"
+      ralph: ">=1.0.0,<2.0.0"
+      ruvnet-research: ">=1.0.0,<2.0.0"
 
     breaking_changes:
       - "Extension schema v1.1 adds support for conditional dependencies"
@@ -260,6 +262,7 @@ cli_versions:
 
       # DevOps & Tools
       docker: ">=2.0.0,<3.0.0"
+      draupnir: ">=2.0.0,<3.0.0"
       github-cli: ">=3.0.0,<4.0.0"
       supabase-cli: ">=3.0.0,<4.0.0"
       tmux-workspace: ">=3.0.0,<4.0.0"

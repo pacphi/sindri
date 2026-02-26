@@ -1,7 +1,7 @@
 ---
 metadata:
   name: supabase-cli
-  version: 2.0.1
+  version: 2.1.0
   description: Supabase CLI for local development, migrations, and edge functions
   category: cloud
   author: Sindri Team
