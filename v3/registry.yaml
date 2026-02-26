@@ -27,9 +27,6 @@ extensions:
   openfang:
     category: "ai-agents"
     description: "OpenFang - Open-source agent OS for autonomous AI agents across 40+ messaging platforms"
-  ai-toolkit:
-    category: "ai-dev"
-    description: "AI development toolkit"
 
   # Claude Ecosystem
   claude-cli:
@@ -144,6 +141,9 @@ extensions:
     description: "Swift programming language"
 
   # AI/ML Tools
+  ai-toolkit:
+    category: "ai-dev"
+    description: "AI development toolkit"
   clarity:
     category: "ai-dev"
     description: "Autonomous spec generation skill that produces implementable specifications from reference materials"
