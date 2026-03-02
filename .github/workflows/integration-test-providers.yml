@@ -58,7 +58,7 @@ jobs:
         run: cd v3 && cargo build --release
 
       - name: Upload binary
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sindri-integration-binary-${{ github.sha }}
           path: v3/target/release/sindri
@@ -230,7 +230,7 @@ jobs:
           echo "- Destroy: PASS" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload test logs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: runpod-integration-logs-${{ github.sha }}
@@ -293,7 +293,7 @@ jobs:
           echo "- Destroy: PASS" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload test logs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: northflank-integration-logs-${{ github.sha }}
