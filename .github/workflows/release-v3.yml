@@ -512,7 +512,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download changelog artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: changelog-v3
 
@@ -641,17 +641,17 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download all binary artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
       - name: Download changelog
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: changelog-v3
 
       - name: Download SBOM
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sbom-v${{ needs.validate-tag.outputs.version }}
 

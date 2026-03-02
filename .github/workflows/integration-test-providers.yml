@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sindri-integration-binary-${{ github.sha }}
           path: ./bin
@@ -127,7 +127,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sindri-integration-binary-${{ github.sha }}
           path: ./bin
@@ -181,7 +181,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sindri-integration-binary-${{ github.sha }}
           path: ./bin
@@ -249,7 +249,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download sindri binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sindri-integration-binary-${{ github.sha }}
           path: ./bin

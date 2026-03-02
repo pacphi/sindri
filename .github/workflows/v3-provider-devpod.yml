@@ -245,7 +245,7 @@ jobs:
 
     steps:
       - name: Download All Results
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: results
           pattern: devpod-result-*
