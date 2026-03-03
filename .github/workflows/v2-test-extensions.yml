@@ -131,7 +131,7 @@ jobs:
           sparse-checkout: v2/docker/lib/extensions
 
       - name: Download image artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sindri-test-image
           path: /tmp
