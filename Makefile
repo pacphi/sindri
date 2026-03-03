@@ -811,12 +811,20 @@ v3-fmt-check:
 .PHONY: v3-audit
 v3-audit:
 	@echo "$(BLUE)Running v3 security audit...$(RESET)"
+	@command -v cargo-audit >/dev/null 2>&1 || { \
+		echo "$(BLUE)Installing cargo-audit...$(RESET)"; \
+		cargo install cargo-audit; \
+	}
 	.github/scripts/v3/cargo-audit.sh
 	@echo "$(GREEN)✓ Security audit complete$(RESET)"
 
 .PHONY: v3-audit-fix
 v3-audit-fix:
 	@echo "$(BLUE)Fixing v3 security vulnerabilities...$(RESET)"
+	@if ! cargo audit fix --help >/dev/null 2>&1; then \
+		echo "$(BLUE)Installing cargo-audit with fix feature...$(RESET)"; \
+		cargo install cargo-audit --features=fix; \
+	fi
 	cd $(V3_DIR) && cargo audit fix
 	@echo "$(GREEN)✓ Security fixes applied$(RESET)"
 

@@ -18,8 +18,6 @@ tracing = { workspace = true }
 tokio = { workspace = true }
 reqwest = { workspace = true }
 semver = { workspace = true }
-self_update = { workspace = true }
-octocrab = { workspace = true }
 sha2 = "0.10"
 indicatif = { workspace = true }
 tempfile = "3.24"
