@@ -152,7 +152,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-v3
           path: v3/test-results.txt
@@ -198,7 +198,7 @@ jobs:
           fi
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sindri-v3-binaries-${{ github.sha }}
           path: |
@@ -304,7 +304,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-lcov-${{ github.sha }}
           path: |
@@ -825,7 +825,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: provider-test-results-${{ matrix.provider }}-${{ github.sha }}
           path: v3/provider-test-results.txt

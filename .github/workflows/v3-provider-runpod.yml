@@ -225,7 +225,7 @@ jobs:
           echo "result=$(cat test-result.json | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: Upload Test Result
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: runpod-result-${{ matrix.extension }}
