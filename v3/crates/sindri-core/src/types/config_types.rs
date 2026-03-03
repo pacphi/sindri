@@ -209,6 +209,32 @@ impl Provider {
         }
     }
 
+    /// Return all user-facing provider names
+    pub fn all_names() -> &'static [&'static str] {
+        &[
+            "docker",
+            "fly",
+            "devpod",
+            "e2b",
+            "kubernetes",
+            "runpod",
+            "northflank",
+        ]
+    }
+
+    /// Short description of the provider
+    pub fn description(&self) -> &'static str {
+        match self {
+            Provider::Docker | Provider::DockerCompose => "Local Docker/Docker Compose deployment",
+            Provider::Fly => "Fly.io cloud deployment",
+            Provider::Devpod => "DevPod development environment",
+            Provider::E2b => "E2B cloud sandbox",
+            Provider::Kubernetes => "Kubernetes cluster deployment",
+            Provider::Runpod => "RunPod GPU cloud deployment",
+            Provider::Northflank => "Northflank container platform deployment",
+        }
+    }
+
     /// Check if the provider supports GPU
     pub fn supports_gpu(&self) -> bool {
         matches!(

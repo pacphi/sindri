@@ -45,7 +45,7 @@ pub enum Error {
     MissingField { field: String },
 
     /// Invalid provider
-    #[error("Unknown provider: {provider}. Valid providers: docker, fly, devpod, e2b, kubernetes")]
+    #[error("Unknown provider: {provider}. Valid providers: docker, fly, devpod, e2b, kubernetes, runpod, northflank")]
     InvalidProvider { provider: String },
 
     /// Invalid extension

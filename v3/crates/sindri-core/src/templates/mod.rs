@@ -495,6 +495,33 @@ mod tests {
     }
 
     #[test]
+    fn test_render_config_runpod() {
+        let registry = ConfigTemplateRegistry::new().unwrap();
+        let context = ConfigInitContext::new("gpu-dev", Provider::Runpod, "minimal");
+
+        let result = registry.render_config(&context);
+        let content = result.expect("render_config for RunPod provider should succeed");
+        assert!(content.contains("name: gpu-dev"));
+        assert!(content.contains("provider: runpod"));
+        assert!(content.contains("runpod:"));
+        assert!(content.contains("gpuTypeId:"));
+        assert!(content.contains("containerDiskGb: 20"));
+    }
+
+    #[test]
+    fn test_render_config_northflank() {
+        let registry = ConfigTemplateRegistry::new().unwrap();
+        let context = ConfigInitContext::new("nf-app", Provider::Northflank, "minimal");
+
+        let result = registry.render_config(&context);
+        let content = result.expect("render_config for Northflank provider should succeed");
+        assert!(content.contains("name: nf-app"));
+        assert!(content.contains("provider: northflank"));
+        assert!(content.contains("northflank:"));
+        assert!(content.contains("projectName: my-project"));
+    }
+
+    #[test]
     fn test_context_profiles_loaded() {
         let context = ConfigInitContext::new("test", Provider::Docker, "minimal");
         assert!(!context.profiles.is_empty());

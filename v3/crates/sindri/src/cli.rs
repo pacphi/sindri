@@ -128,6 +128,16 @@ pub enum ConfigCommands {
 
     /// Show resolved configuration
     Show(ConfigShowArgs),
+
+    /// List available deployment providers
+    Providers(ConfigProvidersArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct ConfigProvidersArgs {
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Args, Debug)]
@@ -136,7 +146,7 @@ pub struct ConfigInitArgs {
     #[arg(short, long)]
     pub name: Option<String>,
 
-    /// Provider to use
+    /// Provider to use (docker, fly, devpod, e2b, kubernetes, runpod, northflank)
     #[arg(short, long, default_value = "docker")]
     pub provider: String,
 

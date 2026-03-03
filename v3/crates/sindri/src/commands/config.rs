@@ -6,7 +6,9 @@ use sindri_core::config::{generate_config, SindriConfig};
 use sindri_core::schema::SchemaValidator;
 use sindri_core::types::Provider;
 
-use crate::cli::{ConfigCommands, ConfigInitArgs, ConfigShowArgs, ConfigValidateArgs};
+use crate::cli::{
+    ConfigCommands, ConfigInitArgs, ConfigProvidersArgs, ConfigShowArgs, ConfigValidateArgs,
+};
 use crate::output;
 
 pub async fn run(cmd: ConfigCommands) -> Result<()> {
@@ -14,6 +16,7 @@ pub async fn run(cmd: ConfigCommands) -> Result<()> {
         ConfigCommands::Init(args) => init(args),
         ConfigCommands::Validate(args) => validate(args),
         ConfigCommands::Show(args) => show(args),
+        ConfigCommands::Providers(args) => providers(args),
     }
 }
 
@@ -43,6 +46,8 @@ fn init(args: ConfigInitArgs) -> Result<()> {
         "devpod" => Provider::Devpod,
         "e2b" => Provider::E2b,
         "kubernetes" | "k8s" => Provider::Kubernetes,
+        "runpod" => Provider::Runpod,
+        "northflank" => Provider::Northflank,
         _ => return Err(anyhow!("Unknown provider: {}", args.provider)),
     };
 
@@ -101,6 +106,48 @@ fn show(args: ConfigShowArgs) -> Result<()> {
     } else {
         let yaml = config.to_yaml()?;
         println!("{}", yaml);
+    }
+
+    Ok(())
+}
+
+fn providers(args: ConfigProvidersArgs) -> Result<()> {
+    let providers: Vec<_> = Provider::all_names()
+        .iter()
+        .map(|name| {
+            let p: Provider = match *name {
+                "docker" => Provider::Docker,
+                "fly" => Provider::Fly,
+                "devpod" => Provider::Devpod,
+                "e2b" => Provider::E2b,
+                "kubernetes" => Provider::Kubernetes,
+                "runpod" => Provider::Runpod,
+                "northflank" => Provider::Northflank,
+                _ => unreachable!(),
+            };
+            (name, p)
+        })
+        .collect();
+
+    if args.json {
+        let items: Vec<serde_json::Value> = providers
+            .iter()
+            .map(|(name, p)| {
+                serde_json::json!({
+                    "name": name,
+                    "description": p.description(),
+                    "gpu": p.supports_gpu(),
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&items)?);
+    } else {
+        output::header("Available Providers");
+        for (name, p) in &providers {
+            output::kv(name, p.description());
+        }
+        println!();
+        output::info("Use with: sindri config init -p <provider>");
     }
 
     Ok(())

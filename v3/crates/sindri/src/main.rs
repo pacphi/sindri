@@ -94,6 +94,7 @@ fn has_json_flag(cmd: &Commands) -> bool {
 
         // Config subcommands
         Commands::Config(ConfigCommands::Show(a)) => a.json,
+        Commands::Config(ConfigCommands::Providers(a)) => a.json,
 
         // Extension subcommands
         Commands::Extension(ExtensionCommands::List(a)) => a.json,

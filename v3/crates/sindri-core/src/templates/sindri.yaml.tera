@@ -714,4 +714,111 @@ providers:
   # - Set buildOnDeploy: false to reuse templates (faster startup)
   # - Paused sandboxes: no compute cost (only snapshot storage)
   # - Data expires 30 days from initial sandbox creation
+{% elif provider == "runpod" %}
+  # ---------------------------------------------------------------------------
+  # RunPod GPU Cloud Configuration
+  # ---------------------------------------------------------------------------
+  # RunPod provides on-demand GPU instances for ML/AI workloads.
+  # Required: RUNPOD_API_KEY from https://www.runpod.io/console/user/settings
+  runpod:
+    gpuTypeId: "NVIDIA RTX A4000"  # GPU type (see below for options)
+    gpuCount: 1                    # Number of GPUs to attach
+    containerDiskGb: 20            # Container disk size in GB
+    volumeSizeGb: 50               # Persistent network volume in GB
+    volumeMountPath: /workspace    # Mount path for network volume
+    cloudType: COMMUNITY           # COMMUNITY (cheaper) or SECURE (dedicated)
+    startSsh: true                 # Enable SSH access to the pod
+
+    # Region filter (omit for auto-select based on availability)
+    # region: US
+
+    # HTTP ports to expose via RunPod proxy
+    # exposePorts: [8080, 3000]
+
+    # Spot instance pricing (omit or 0 for on-demand)
+    # spotBid: 0.30                # Max $/hr bid for spot instance
+
+    # CPU-only mode (no GPU)
+    # cpuOnly: true
+    # cpuInstanceId: cpu3c-2-4     # Required when cpuOnly is true
+
+    # Use a RunPod template instead of a raw image
+    # templateId: abc123
+
+  # ---------------------------------------------------------------------------
+  # RunPod GPU Types (common options)
+  # ---------------------------------------------------------------------------
+  # Consumer:    NVIDIA RTX 4090, NVIDIA RTX A4000, NVIDIA RTX A5000
+  # Datacenter:  NVIDIA A100 80GB, NVIDIA H100 80GB, NVIDIA L40S
+  # Budget:      NVIDIA RTX 3090, NVIDIA RTX A4000
+  #
+  # Full list: https://www.runpod.io/console/gpu-cloud
+  #
+  # Cloud Types:
+  #   COMMUNITY - Shared hosts, lower cost, higher availability
+  #   SECURE    - Dedicated hosts, guaranteed specs, higher cost
+
+  # ---------------------------------------------------------------------------
+  # RunPod Cost Tips
+  # ---------------------------------------------------------------------------
+  # - Use COMMUNITY cloud type for ~30% savings over SECURE
+  # - Spot instances (spotBid) can save 50-80% but may be interrupted
+  # - Stop pods when idle to avoid GPU charges (volume persists)
+  # - Use cpuOnly mode for tasks that don't need GPU
+{% elif provider == "northflank" %}
+  # ---------------------------------------------------------------------------
+  # Northflank Configuration
+  # ---------------------------------------------------------------------------
+  # Northflank provides managed container hosting with GPU support.
+  # Required: NORTHFLANK_API_TOKEN or authenticate via `northflank login`
+  northflank:
+    projectName: my-project        # Northflank project name (required)
+    instances: 1                   # Number of service instances (0 = paused)
+    volumeSizeGb: 10               # Persistent volume size in GB (0 = none)
+    volumeMountPath: /workspace    # Mount path for persistent volume
+
+    # Service name (auto-generated from project name if omitted)
+    # serviceName: my-workspace
+
+    # Compute plan (e.g., "nf-compute-50", "nf-compute-200")
+    # computePlan: nf-compute-200
+
+    # GPU configuration
+    # gpuType: nvidia-a100-40gb    # GPU type (nvidia-h100, nvidia-a100-40gb, etc.)
+    # gpuCount: 1                  # Number of GPUs
+
+    # Deployment region
+    # region: europe-west
+
+    # Registry credentials for pulling private images
+    # registryCredentials: my-registry-cred-id
+
+    # Port configuration
+    # ports:
+    #   - name: http
+    #     internalPort: 8080
+    #     public: true
+    #     protocol: HTTP
+
+    # Health check
+    # healthCheck:
+    #   path: /health
+    #   port: 8080
+    #   initialDelaySeconds: 30
+
+    # Auto-scaling
+    # autoScaling:
+    #   minInstances: 1
+    #   maxInstances: 5
+    #   targetCpuPercent: 70
+
+  # ---------------------------------------------------------------------------
+  # Northflank Compute Plans
+  # ---------------------------------------------------------------------------
+  # nf-compute-50   - 0.5 vCPU, 512 MB RAM (dev/test)
+  # nf-compute-100  - 1 vCPU, 1 GB RAM
+  # nf-compute-200  - 2 vCPU, 4 GB RAM (recommended for development)
+  # nf-compute-400  - 4 vCPU, 8 GB RAM
+  #
+  # GPU plans available for ML/AI workloads
 {% endif %}
