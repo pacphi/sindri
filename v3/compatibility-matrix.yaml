@@ -49,6 +49,7 @@ cli_versions:
       openfang: ">=1.0.0,<2.0.0"
 
       # Claude Ecosystem
+      agent-skills-cli: ">=1.0.0,<2.0.0"
       claude-cli: ">=1.0.0,<2.0.0"
       claude-code-mux: ">=1.0.0,<2.0.0"
       claude-codepro: ">=4.5.0,<5.0.0"
@@ -154,6 +155,7 @@ cli_versions:
       openfang: ">=1.0.0,<2.0.0"
 
       # Claude Ecosystem
+      agent-skills-cli: ">=1.0.0,<2.0.0"
       claude-cli: ">=1.0.0,<2.0.0"
       claude-code-mux: ">=1.0.0,<2.0.0"
       claude-codepro: ">=4.5.0,<5.0.0"
@@ -249,6 +251,7 @@ cli_versions:
       openfang: ">=2.0.0,<3.0.0"
 
       # Claude Ecosystem
+      agent-skills-cli: ">=1.0.0,<2.0.0"
       claude-cli: ">=2.0.0,<3.0.0"
       claude-code-mux: ">=2.0.0,<3.0.0"
       claude-codepro: ">=5.0.0,<6.0.0"
