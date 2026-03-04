@@ -21,7 +21,7 @@ The 3.1.0 release upgraded 11 extensions covering ~25 software components.
 | nodejs-devtools | Prettier         | 3.6             | 3.8      |
 | mdflow          | mdflow           | 2.33            | 2.35.5   |
 | agent-browser   | agent-browser    | 0.9.3           | 0.15.0   |
-| agentic-qe      | agentic-qe       | 3.7.1           | 3.7.2    |
+| agentic-qe      | agentic-qe       | 3.7.1           | 3.7.7    |
 | ai-toolkit      | Gemini CLI       | 0.27.1          | 0.30.0   |
 | supabase-cli    | Supabase CLI     | 2.76.4          | 2.76.15  |
 | haskell         | ghcup            | 0.1.30          | 0.1.50.2 |
@@ -90,7 +90,7 @@ The 3.1.0 release upgraded 11 extensions covering ~25 software components.
 
 | Extension     | Software      | Version | Source |
 | ------------- | ------------- | ------- | ------ |
-| agentic-qe    | agentic-qe    | 3.7.2   | npm    |
+| agentic-qe    | agentic-qe    | 3.7.7   | npm    |
 | agent-browser | agent-browser | 0.15.0  | npm    |
 
 ### AI Dev

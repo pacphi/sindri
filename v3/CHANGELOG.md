@@ -15,7 +15,7 @@ For detailed extension software versions per CLI release, see the [CLI Extension
 
 - feat(extensions): upgrade 11 extensions to latest stable software versions
   - agent-browser 0.9.3 → 0.15.0 (major jump)
-  - agentic-qe 3.7.1 → 3.7.2 (patch)
+  - agentic-qe 3.7.1 → 3.7.7 (patch)
   - ai-toolkit: gemini CLI 0.27.1 → 0.30.0 (minor)
   - cloud-tools: aws-cli 2.33.21 → 2.33.30, gcloud 556 → 558, aliyun 3.2.9 → 3.2.10, doctl 1.150 → 1.151, flyctl 0.4.11 → 0.4.15
   - haskell: ghcup 0.1.30 → 0.1.50.2 (significant)
