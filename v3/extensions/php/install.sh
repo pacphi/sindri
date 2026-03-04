@@ -36,7 +36,7 @@ for package in "${php_packages[@]}"; do
 done
 
 # Check core PHP installed
-if [[ " ${failed_packages[*]} " =~ php8.5 ]] || [[ " ${failed_packages[*]} " =~ php8.5-cli ]]; then
+if [[ " ${failed_packages[*]} " =~ " php8.5 " ]] || [[ " ${failed_packages[*]} " =~ " php8.5-cli " ]]; then
   print_error "Failed to install core PHP packages"
   exit 1
 fi
