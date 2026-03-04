@@ -1,7 +1,7 @@
 ---
 metadata:
   name: agentic-qe
-  version: 1.2.7
+  version: 1.2.8
   description: >-
     Agentic Quality Engineering v3 with AI-powered test generation, coverage analysis, and multi-agent workflows.
   category: ai-agents
@@ -59,7 +59,7 @@ capabilities:
     enabled: true
     priority: 50
     commands:
-      - command: "aqe init --auto"
+      - command: "aqe init --auto --with-all-platforms"
         description: "Initialize Agentic Quality Engineering framework v3"
         requiresAuth: anthropic
     state-markers:
@@ -149,12 +149,12 @@ bom:
   # NOTE: Versions researched 2026-02-25
   tools:
     - name: agentic-qe
-      version: "3.7.7"
+      version: "3.7.8"
       source: npm
       type: framework
       license: MIT
       homepage: https://github.com/proffesor-for-testing/agentic-qe
-      purl: pkg:npm/agentic-qe@3.7.7
+      purl: pkg:npm/agentic-qe@3.7.8
 docs:
   title: "Agentic QE"
   overview: |
