@@ -19,28 +19,28 @@ install:
 
 configure:
   environment:
-    - name: ANTHROPIC_BASE_URL
+    - key: ANTHROPIC_BASE_URL
       value: "http://localhost:9090/v1/anthropic"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
-    - name: OPENAI_BASE_URL
+    - key: OPENAI_BASE_URL
       value: "http://localhost:9090/v1/openai"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
-    - name: GOOGLE_API_BASE_URL
+    - key: GOOGLE_API_BASE_URL
       value: "http://localhost:9090/v1/google"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
-    - name: GROQ_BASE_URL
+    - key: GROQ_BASE_URL
       value: "http://localhost:9090/v1/groq"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
-    - name: MISTRAL_BASE_URL
+    - key: MISTRAL_BASE_URL
       value: "http://localhost:9090/v1/mistral"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
-    - name: CO_API_URL
+    - key: CO_API_URL
       value: "http://localhost:9090/v1/cohere"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
-    - name: TOGETHER_API_BASE
+    - key: TOGETHER_API_BASE
       value: "http://localhost:9090/v1/together"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
-    - name: AZURE_OPENAI_ENDPOINT
+    - key: AZURE_OPENAI_ENDPOINT
       value: "http://localhost:9090/v1/azure"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
 
