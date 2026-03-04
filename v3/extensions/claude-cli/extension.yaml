@@ -33,7 +33,7 @@ configure:
   files:
     - source: settings.json
       destination: ~/.claude/settings.json
-      mode: create-if-missing
+      mode: merge
       description: Default Claude Code settings
   environment:
     - key: PATH
@@ -86,6 +86,22 @@ docs:
           code: "claude login"
         - description: "Or set API key directly"
           code: "export ANTHROPIC_API_KEY=\"your-api-key\""
+    - section: "Agent Teams (Experimental)"
+      examples:
+        - description: "Enabled by default via settings.json"
+          code: |
+            # Agent teams are enabled automatically.
+            # To verify, check your settings:
+            cat ~/.claude/settings.json
+            # Should contain: "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+        - description: "Start a team for parallel work"
+          code: |
+            claude
+            # Then prompt: "Create an agent team with 3 teammates to review this PR"
+        - description: "Disable agent teams if not needed"
+          code: |
+            # Remove or set to "0" in ~/.claude/settings.json:
+            # "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
     - section: "Project Context"
       examples:
         - description: "Create project context file"

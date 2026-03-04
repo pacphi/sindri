@@ -109,7 +109,9 @@ if [[ ! -f "$SETTINGS_FILE" ]]; then
     "allow": [],
     "deny": []
   },
-  "env": {}
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
 }
 SETTINGS_EOF
     chmod 644 "$SETTINGS_FILE"
