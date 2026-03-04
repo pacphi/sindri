@@ -239,6 +239,10 @@ HEADER
             if [[ "$name" =~ _(TOKEN|API_KEY|KEY|KEYS|SECRET|PASSWORD|PASS)$ ]]; then
                 match=true
             fi
+            # LLM proxy base URL patterns (set by Draupnir extension)
+            if [[ "$name" =~ _(BASE_URL|API_BASE|API_URL|ENDPOINT)$ ]]; then
+                match=true
+            fi
         fi
 
         if [[ "$match" == "true" ]]; then
