@@ -168,6 +168,9 @@ extensions:
   opencode:
     category: "ai-dev"
     description: "OpenCode - Open source AI coding agent for terminal, desktop, and IDE integration"
+  p-replicator:
+    category: "ai-dev"
+    description: "P-Replicator — Claude Code toolkit for AI-assisted product development and Vibe Coding"
   ruvector-cli:
     category: "ai-dev"
     description: "CLI for RuVector self-learning vector database with MCP server integration"

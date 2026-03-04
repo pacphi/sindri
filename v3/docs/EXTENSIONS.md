@@ -41,7 +41,7 @@ V3 extensions are organized into the following categories:
 | **claude**          | Claude Code integrations and workflow tools      | 9     |
 | **devops**          | Infrastructure, deployment, and operations tools | 6     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 5     |
-| **ai-dev**          | AI development tools and LLM interfaces          | 10    |
+| **ai-dev**          | AI development tools and LLM interfaces          | 11    |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
@@ -108,18 +108,19 @@ V3 extensions are organized into the following categories:
 
 ### AI Development
 
-| Extension        | Version | Description                                                                         | Install Method |
-| ---------------- | ------- | ----------------------------------------------------------------------------------- | -------------- |
-| **ai-toolkit**   | 2.3.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)    | script         |
-| **clarity**      | 1.0.0   | Autonomous spec generation skill from reference materials (5-phase workflow)        | script         |
-| **gitnexus**     | 1.0.0   | Codebase knowledge graph CLI with AI agent integration via MCP server               | mise           |
-| **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)              | script         |
-| **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                       | script         |
-| **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming            | mise           |
-| **openclaw**     | 1.0.0   | OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI | mise           |
-| **opencode**     | 1.0.0   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE               | mise           |
-| **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration          | script         |
-| **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                     | script         |
+| Extension        | Version | Description                                                                          | Install Method |
+| ---------------- | ------- | ------------------------------------------------------------------------------------ | -------------- |
+| **ai-toolkit**   | 2.3.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)     | script         |
+| **clarity**      | 1.0.0   | Autonomous spec generation skill from reference materials (5-phase workflow)         | script         |
+| **gitnexus**     | 1.0.0   | Codebase knowledge graph CLI with AI agent integration via MCP server                | mise           |
+| **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)               | script         |
+| **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                        | script         |
+| **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming             | mise           |
+| **openclaw**     | 1.0.0   | OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI  | mise           |
+| **opencode**     | 1.0.0   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE                | mise           |
+| **p-replicator** | 1.0.0   | P-Replicator — Claude Code toolkit for AI-assisted product development (Vibe Coding) | mise           |
+| **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration           | script         |
+| **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                      | script         |
 
 ### MCP Servers
 
@@ -671,7 +672,7 @@ This generates comprehensive markdown documentation by combining auto-derived da
 
 ## Summary Statistics
 
-- **Total Extensions**: 58
+- **Total Extensions**: 59
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 12

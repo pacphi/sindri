@@ -88,6 +88,7 @@ cli_versions:
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
       opencode: ">=1.0.0,<2.0.0"
+      p-replicator: ">=1.0.0,<2.0.0"
 
       # Desktop & UI
       guacamole: ">=2.0.0,<3.0.0"
@@ -191,6 +192,7 @@ cli_versions:
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
       opencode: ">=1.0.0,<2.0.0"
+      p-replicator: ">=1.0.0,<2.0.0"
 
       # Desktop & UI
       guacamole: ">=2.0.0,<3.0.0"
@@ -284,6 +286,7 @@ cli_versions:
       ollama: ">=2.0.0,<3.0.0"
       openclaw: ">=2.0.0,<3.0.0"
       opencode: ">=2.0.0,<3.0.0"
+      p-replicator: ">=2.0.0,<3.0.0"
 
       # Desktop & UI
       guacamole: ">=3.0.0,<4.0.0"
