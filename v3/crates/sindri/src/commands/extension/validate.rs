@@ -203,6 +203,7 @@ pub(super) async fn run(args: ExtensionValidateArgs) -> Result<()> {
                 remove: None,
                 upgrade: None,
                 capabilities: None,
+                deprecation: None,
                 docs: None,
                 bom: None,
             };

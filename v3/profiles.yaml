@@ -33,7 +33,7 @@ profiles:
     extensions:
       - claude-cli
       - agent-manager
-      - claude-flow-v3
+      - ruflo
       - agentic-qe
       - kilo
       - ralph

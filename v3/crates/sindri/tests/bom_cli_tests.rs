@@ -49,6 +49,7 @@ fn create_test_extension(
         remove: None,
         upgrade: None,
         capabilities: None,
+        deprecation: None,
         docs: None,
         bom: if bom_tools.is_empty() {
             None
@@ -118,6 +119,8 @@ fn build_registry_with_extensions(extensions: Vec<(&str, Extension)>) -> Extensi
                 dependencies: ext.metadata.dependencies.clone(),
                 conflicts: vec![],
                 sha256: None,
+                deprecated: false,
+                successor: None,
             },
         );
         registry.extensions.insert(name.to_string(), ext);

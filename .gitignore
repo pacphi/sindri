@@ -245,5 +245,8 @@ target/
 # CI-built binaries (keep .gitkeep for directory structure)
 v3/bin/sindri
 
+# npm platform package binaries (downloaded at install time)
+packages/@sindri/cli/bin/
+
 # Generated FAQ site (rebuild with: pnpm build:faq)
 docs/faq/index.html

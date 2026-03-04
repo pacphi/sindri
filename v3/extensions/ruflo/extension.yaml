@@ -1,24 +1,14 @@
 ---
 metadata:
-  name: claude-flow-v3
-  version: 3.0.0
-  description: Next-gen multi-agent orchestration with modular packages, 10x performance, 150x faster search (v3 alpha)
+  name: ruflo
+  version: 3.5.2
+  description: "Ruflo - AI Agent Orchestration Platform with multi-agent swarms, HNSW search, and 215 MCP tools"
   category: claude
   author: ruvnet
-  license: MIT
-  homepage: https://github.com/ruvnet/claude-flow
+  homepage: https://github.com/ruvnet/ruflo
   dependencies:
     - claude-cli
     - nodejs
-deprecation:
-  deprecated: true
-  since: "2026-03-04"
-  successor: ruflo
-  message: |
-    Claude Flow has been rebranded to Ruflo (v3.5).
-    Please migrate to the 'ruflo' extension:
-      sindri extension install ruflo
-      sindri extension remove claude-flow-v3
 requirements:
   domains:
     - registry.npmjs.org
@@ -33,10 +23,9 @@ install:
     configFile: mise.toml
 configure:
   templates:
-    - source: claude-flow-v3.aliases
+    - source: ruflo.aliases
       destination: ~/.bashrc
       mode: append
-      description: Convert PRD to comprehensive documentation
     - source: commands/github/check-ci.md
       destination: ~/.claude/commands/github/check-ci.md
       mode: overwrite
@@ -46,42 +35,42 @@ configure:
       mode: overwrite
       description: Analyze git changes and create intelligent commit
   environment:
-    - key: CLAUDE_FLOW_VERSION
-      value: "3"
+    - key: RUFLO_VERSION
+      value: "3.5"
       scope: bashrc
     - key: PATH
       value: "$HOME/.local/bin:$PATH"
       scope: bashrc
-    - key: CF_SWARM_TOPOLOGY
+    - key: RF_SWARM_TOPOLOGY
       value: "hierarchical-mesh"
       scope: bashrc
-    - key: CF_CONSENSUS_ALGO
+    - key: RF_CONSENSUS_ALGO
       value: "raft"
       scope: bashrc
-    - key: CF_LLM_PROVIDER
+    - key: RF_LLM_PROVIDER
       value: "anthropic"
       scope: bashrc
-    - key: CF_DAEMON_AUTOSTART
+    - key: RF_DAEMON_AUTOSTART
       value: "true"
       scope: bashrc
-    - key: CF_FLASH_ATTENTION
+    - key: RF_FLASH_ATTENTION
       value: "true"
       scope: bashrc
-    - key: CF_MCP_TRANSPORT
+    - key: RF_MCP_TRANSPORT
       value: "stdio"
       scope: bashrc
-    - key: CF_MCP_AUTOSTART
+    - key: RF_MCP_AUTOSTART
       value: "false"
       scope: bashrc
 validate:
   commands:
-    - name: claude-flow
-      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\.\\d+)?)?"
+    - name: ruflo
+      expectedPattern: "ruflo v\\d+\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
 remove:
   mise:
     removeConfig: true
     tools:
-      - "npm:claude-flow"
+      - "npm:ruflo"
   paths:
     - ~/.claude/commands/github/check-ci.md
     - ~/.claude/commands/git/commit.md
@@ -91,21 +80,18 @@ upgrade:
   mise:
     upgradeAll: true
     tools:
-      - "npm:claude-flow"
+      - "npm:ruflo"
 capabilities:
-  # Project initialization capability (v3 features)
-  # Uses single --start-all command for complete initialization
   project-init:
     enabled: true
     priority: 20
     commands:
-      # Single command does everything: init, memory, swarm (hierarchical-mesh), daemon, hooks
-      - command: "claude-flow init --start-all --topology hierarchical-mesh"
-        description: "Initialize Claude Flow v3 with all services (swarm, daemon, memory, hooks)"
+      - command: "ruflo init --start-all --topology hierarchical-mesh"
+        description: "Initialize Ruflo with all services (swarm, daemon, memory, hooks)"
         requiresAuth: anthropic
         conditional: false
-      - command: "claude-flow doctor --fix"
-        description: "Run v3 health check and auto-fix common issues"
+      - command: "ruflo doctor --fix"
+        description: "Run health check and auto-fix common issues"
         requiresAuth: none
         conditional: true
     state-markers:
@@ -114,7 +100,7 @@ capabilities:
         description: "Claude Code configuration directory"
       - path: ".claude/config.json"
         type: file
-        description: "V3 unified config (replaces multiple settings files)"
+        description: "Unified config (replaces multiple settings files)"
       - path: ".claude/swarm.state"
         type: file
         description: "Swarm coordinator state (created if swarm initialized)"
@@ -122,10 +108,9 @@ capabilities:
         type: directory
         description: "Hook system directory (created if hooks initialized)"
     validation:
-      command: "claude-flow --version && claude-flow doctor --check"
-      expectedPattern: "claude-flow v3\\.\\d+\\.\\d+(-[a-z]+(\\.\\d+)?)?"
+      command: "ruflo --version && ruflo doctor --check"
+      expectedPattern: "ruflo v\\d+\\.\\d+\\.\\d+(-[a-z]+(\\. \\d+)?)?"
       expectedExitCode: 0
-  # Authentication requirements
   auth:
     provider: anthropic
     required: false
@@ -144,65 +129,59 @@ capabilities:
       - name: api-integration
         requiresApiKey: true
         description: "Direct API features"
-  # Lifecycle hooks (v3-specific)
   hooks:
     post-install:
       command: "bash scripts/install-plugins.sh"
-      description: "Verify v3 installation and install core plugins"
+      description: "Verify installation and install core plugins"
     post-project-init:
       command: "true"
-      description: "v3 initialization complete"
-  # MCP server registration (v3 modular CLI)
+      description: "Initialization complete"
   mcp:
     enabled: true
     server:
       command: "npx"
       args:
         - "-y"
-        - "@claude-flow/cli@alpha"
+        - "ruflo@latest"
         - "mcp"
         - "start"
         - "--transport"
-        - "${CF_MCP_TRANSPORT:-stdio}"
+        - "${RF_MCP_TRANSPORT:-stdio}"
       env:
-        CLAUDE_FLOW_MCP_MODE: "1"
-        CF_SWARM_TOPOLOGY: "${CF_SWARM_TOPOLOGY:-hierarchical-mesh}"
-        CF_CONSENSUS_ALGO: "${CF_CONSENSUS_ALGO:-raft}"
+        RUFLO_MCP_MODE: "1"
+        RF_SWARM_TOPOLOGY: "${RF_SWARM_TOPOLOGY:-hierarchical-mesh}"
+        RF_CONSENSUS_ALGO: "${RF_CONSENSUS_ALGO:-raft}"
     tools:
-      # Core V3 tools (existing)
-      - name: "claude-flow-agent-spawn"
+      - name: "ruflo-agent-spawn"
         description: "Spawn specialized AI agents (15-agent hierarchy)"
-      - name: "claude-flow-memory-store"
+      - name: "ruflo-memory-store"
         description: "Store patterns in unified memory (150x-12,500x faster HNSW)"
-      - name: "claude-flow-swarm-coordinate"
+      - name: "ruflo-swarm-coordinate"
         description: "Coordinate multi-agent swarms (UnifiedSwarmCoordinator)"
-      - name: "claude-flow-hooks-dispatch"
+      - name: "ruflo-hooks-dispatch"
         description: "Dispatch background workers (31 hooks + 12 workers)"
-      - name: "claude-flow-security-scan"
+      - name: "ruflo-security-scan"
         description: "Security scanning with CVE remediation"
-      - name: "claude-flow-performance-benchmark"
+      - name: "ruflo-performance-benchmark"
         description: "Performance benchmarking (Flash Attention, SONA)"
-      # Essential V3 tools (new)
-      - name: "claude-flow-swarm-topology"
+      - name: "ruflo-swarm-topology"
         description: "Configure swarm topology (hierarchical-mesh, mesh, ring, hierarchical)"
-      - name: "claude-flow-daemon-control"
+      - name: "ruflo-daemon-control"
         description: "Control background daemon and workers"
-      - name: "claude-flow-goal-planning"
+      - name: "ruflo-goal-planning"
         description: "Goal-oriented action planning (GOAP)"
-      # Advanced V3 tools (new)
-      - name: "claude-flow-consensus"
+      - name: "ruflo-consensus"
         description: "Select consensus algorithm (raft, paxos, gossip, crdt, byzantine)"
-      - name: "claude-flow-plugin-manage"
+      - name: "ruflo-plugin-manage"
         description: "Plugin lifecycle management"
-      - name: "claude-flow-llm-provider"
+      - name: "ruflo-llm-provider"
         description: "Configure LLM provider (anthropic, openai, google, cohere, local)"
-      - name: "claude-flow-neural-sona"
+      - name: "ruflo-neural-sona"
         description: "SONA self-optimizing neural architecture"
-      - name: "claude-flow-flash-attention"
+      - name: "ruflo-flash-attention"
         description: "Flash Attention optimization controls"
-      - name: "claude-flow-claims-manage"
+      - name: "ruflo-claims-manage"
         description: "Work claims and authorization"
-  # Collision handling for cloned projects
   collision-handling:
     enabled: true
     conflict-rules:
@@ -211,7 +190,6 @@ capabilities:
         on-conflict:
           action: append
           separator: "\n\n---\n\n"
-      # Critical JSON files - must merge
       - path: ".claude/mcp.json"
         type: file
         on-conflict:
@@ -220,46 +198,40 @@ capabilities:
         type: file
         on-conflict:
           action: merge-json
-      # Root MCP config (only claude-flow creates this)
       - path: ".mcp.json"
         type: file
         on-conflict:
-          action: overwrite # claude-flow owns this
-      # Directories - merge strategy
+          action: overwrite
       - path: ".claude"
         type: directory
         on-conflict:
           action: merge
-          backup: false # No backup needed, merge is safe
-      - path: ".claude-flow"
+          backup: false
+      - path: ".ruflo"
         type: directory
         on-conflict:
           action: merge
           backup: false
     version-markers:
-      # V3 marker: unified config with swarm/sona
       - path: ".claude/config.json"
         type: file
-        version: "v3"
+        version: "ruflo"
         detection:
           method: content-match
           patterns:
             - '"swarm"'
             - '"sona"'
           match-any: true
-      # V2 marker: memory.db
       - path: ".claude/memory.db"
         type: file
         version: "v2"
         detection:
           method: file-exists
-      # V2 marker: memory directory
       - path: ".claude/memory"
         type: directory
         version: "v2"
         detection:
           method: directory-exists
-      # Unknown marker
       - path: ".claude"
         type: directory
         version: "unknown"
@@ -270,70 +242,67 @@ capabilities:
             - ".claude/memory.db"
             - ".claude/memory"
     scenarios:
-      # Scenario 1: V2 detected when installing V3 (upgrade)
-      - name: "v2-to-v3-upgrade"
+      - name: "v2-to-ruflo-upgrade"
         detected-version: "v2"
-        installing-version: "3.0.0"
+        installing-version: "3.5.2"
         action: stop
         message: |
-          ⚠️  Claude Flow V2 installation detected
+          Claude Flow V2 installation detected.
 
           Your project has an existing Claude Flow V2 setup.
-          To migrate to V3, please run these commands manually:
+          To migrate to Ruflo, please run these commands manually:
 
-            1. Install claude-flow-v3:
-               sindri extension install claude-flow-v3
+            1. Install ruflo:
+               sindri extension install ruflo
 
-            2. Migrate memory (AgentDB → HNSW):
-               cf-memory-migrate --from v2 --to v3
+            2. Migrate memory (AgentDB to HNSW):
+               ruflo memory migrate --from v2
 
             3. Migrate configuration:
-               cf-doctor-fix
-
-          📖 Full migration guide:
-             https://github.com/ruvnet/claude-flow/wiki/Migrating-to-V3
+               ruflo doctor --fix
 
           Skipping automatic initialization to prevent data loss.
-      # Scenario 2: Same version already installed
-      - name: "same-version-v3"
-        detected-version: "v3"
-        installing-version: "3.0.0"
+      - name: "same-version-ruflo"
+        detected-version: "ruflo"
+        installing-version: "3.5.2"
         action: skip
         message: |
-          ✓ Claude Flow V3 is already initialized
+          Ruflo is already initialized.
 
-          To force a fresh V3 installation, run:
-            claude-flow init --full --force
-      # Scenario 3: Unknown .claude directory
+          To force a fresh installation, run:
+            ruflo init --full --force
       - name: "unknown-origin"
         detected-version: "unknown"
-        installing-version: "3.0.0"
+        installing-version: "3.5.2"
         action: stop
         message: |
-          ⚠️  Existing .claude directory detected (unknown origin)
+          Existing .claude directory detected (unknown origin).
 
           Your project has a .claude directory that doesn't match
-          known Claude Flow V2 or V3 structure.
+          known Claude Flow V2, V3, or Ruflo structure.
 
           Options:
-            1. Backup and reinitialize: mv .claude .claude.backup && claude-flow init --full --force
+            1. Backup and reinitialize: mv .claude .claude.backup && ruflo init --full --force
             2. Skip initialization: (do nothing)
 
           Skipping automatic initialization for safety.
 bom:
   tools:
-    - name: claude-flow
-      version: "3.1.0-alpha"  # Tracks v3alpha tag in mise.toml
+    - name: ruflo
+      version: "3.5.2"
       source: npm
       type: cli-tool
       license: MIT
-      homepage: https://github.com/ruvnet/claude-flow
-      purl: pkg:npm/claude-flow@v3alpha
+      homepage: https://github.com/ruvnet/ruflo
+      purl: pkg:npm/ruflo@3.5.2
 docs:
-  title: "Claude Flow V3"
+  title: "Ruflo"
   overview: |
-    Next-gen multi-agent orchestration with modular packages, 10x performance, and 150x faster search (v3 alpha). The latest evolution of Claude Flow for advanced AI workflows.
-  last-updated: "2026-01-26"
+    Ruflo is the successor to Claude Flow, providing AI agent orchestration with
+    multi-agent swarms, HNSW-powered search (150x-12,500x faster), Flash Attention
+    optimization, and 215 MCP tools. The ruflo npm package is a thin branded wrapper
+    around @claude-flow/cli - all claude-flow commands work identically via ruflo.
+  last-updated: "2026-03-04"
   features:
     - "15-agent hierarchy - Specialized agent roles"
     - "HNSW search - 150x-12,500x faster pattern retrieval"
@@ -341,35 +310,39 @@ docs:
     - "SONA learning - Self-optimizing neural architecture"
     - "31 hooks + 12 workers - Comprehensive automation"
     - "UnifiedSwarmCoordinator - Advanced swarm management"
+    - "215 MCP tools - Comprehensive tool integration"
+    - "Branded successor to Claude Flow with identical functionality"
   usage:
     - section: "Initialization"
       examples:
         - description: "Full initialization with all services"
-          code: "claude-flow init --start-all --topology hierarchical-mesh"
+          code: "ruflo init --start-all --topology hierarchical-mesh"
         - description: "Run health check"
-          code: "claude-flow doctor --fix"
+          code: "ruflo doctor --fix"
         - description: "Check version"
-          code: "claude-flow --version"
+          code: "ruflo --version"
     - section: "Agent Management"
       examples:
         - description: "Spawn an agent"
-          code: "claude-flow agent spawn --type coder"
+          code: "ruflo agent spawn --type coder"
         - description: "List agents"
-          code: "claude-flow agent list"
+          code: "ruflo agent list"
         - description: "Coordinate swarm"
-          code: "claude-flow swarm coordinate --task \"implement feature\""
+          code: "ruflo swarm coordinate --task \"implement feature\""
     - section: "Memory Operations"
       examples:
         - description: "Store pattern"
-          code: "claude-flow memory store --key \"pattern:auth\" --value \"JWT implementation\""
+          code: "ruflo memory store --key \"pattern:auth\" --value \"JWT implementation\""
         - description: "Search patterns (HNSW-powered)"
-          code: "claude-flow memory search --query \"authentication\""
+          code: "ruflo memory search --query \"authentication\""
     - section: "MCP Server"
       examples:
         - description: "Start MCP server"
-          code: "npx -y @claude-flow/cli@v3alpha mcp start --transport stdio"
+          code: "npx ruflo@latest mcp start --transport stdio"
   related:
     - name: claude-flow-v2
-      description: "Stable V2 version"
+      description: "Predecessor (deprecated)"
+    - name: claude-flow-v3
+      description: "Predecessor (deprecated)"
     - name: nodejs
       description: "Required dependency"

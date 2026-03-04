@@ -198,6 +198,7 @@ mod dependency_tests {
             remove: None,
             upgrade: None,
             capabilities: None,
+            deprecation: None,
             docs: None,
             bom: None,
         };
@@ -229,6 +230,7 @@ mod dependency_tests {
             remove: None,
             upgrade: None,
             capabilities: None,
+            deprecation: None,
             docs: None,
             bom: None,
         };
@@ -260,6 +262,7 @@ mod dependency_tests {
             remove: None,
             upgrade: None,
             capabilities: None,
+            deprecation: None,
             docs: None,
             bom: None,
         };

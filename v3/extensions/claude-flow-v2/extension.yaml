@@ -10,6 +10,15 @@ metadata:
   dependencies:
     - claude-cli
     - nodejs
+deprecation:
+  deprecated: true
+  since: "2026-03-04"
+  successor: ruflo
+  message: |
+    Claude Flow has been rebranded to Ruflo (v3.5).
+    Please migrate to the 'ruflo' extension:
+      sindri extension install ruflo
+      sindri extension remove claude-flow-v2
 requirements:
   domains:
     - registry.npmjs.org

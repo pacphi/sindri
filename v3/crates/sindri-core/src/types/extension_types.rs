@@ -35,6 +35,10 @@ pub struct Extension {
     #[serde(default)]
     pub capabilities: Option<CapabilitiesConfig>,
 
+    /// Deprecation notice
+    #[serde(default)]
+    pub deprecation: Option<DeprecationConfig>,
+
     /// Documentation metadata
     #[serde(default)]
     pub docs: Option<DocsConfig>,
@@ -42,6 +46,24 @@ pub struct Extension {
     /// Bill of Materials
     #[serde(default)]
     pub bom: Option<BomConfig>,
+}
+
+/// Deprecation metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeprecationConfig {
+    /// Whether this extension is deprecated
+    pub deprecated: bool,
+
+    /// ISO date when deprecation was declared
+    #[serde(default)]
+    pub since: Option<String>,
+
+    /// Name of the replacement extension
+    pub successor: String,
+
+    /// Human-readable deprecation notice
+    #[serde(default)]
+    pub message: Option<String>,
 }
 
 /// Extension metadata

@@ -58,6 +58,15 @@
               "type": "string"
             },
             "description": "List of extension names that conflict with this extension (mutually exclusive)"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this extension is deprecated"
+          },
+          "successor": {
+            "type": "string",
+            "description": "Name of the replacement extension (if deprecated)"
           }
         },
         "additionalProperties": false

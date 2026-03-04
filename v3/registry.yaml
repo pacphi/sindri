@@ -40,10 +40,14 @@ extensions:
     description: "Claude Code professional features"
   claude-flow-v2:
     category: "claude"
-    description: "Claude Flow v2"
+    description: "Claude Flow v2 (deprecated - use ruflo)"
+    deprecated: true
+    successor: ruflo
   claude-flow-v3:
     category: "claude"
-    description: "Claude Flow v3"
+    description: "Claude Flow v3 (deprecated - use ruflo)"
+    deprecated: true
+    successor: ruflo
   claude-marketplace:
     category: "claude"
     description: "Claude marketplace integration"
@@ -56,6 +60,12 @@ extensions:
   compahook:
     category: "claude"
     description: "Persistent memory layer for Claude Code's /compact command"
+  ruflo:
+    category: "claude"
+    description: "Ruflo - AI Agent Orchestration Platform (successor to Claude Flow)"
+    conflicts:
+      - claude-flow-v2
+      - claude-flow-v3
 
   # Cloud & Infrastructure
   cloud-tools:

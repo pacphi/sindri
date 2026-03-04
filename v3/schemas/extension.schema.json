@@ -1110,6 +1110,31 @@
         }
       }
     },
+    "deprecation": {
+      "type": ["object", "null"],
+      "description": "Deprecation notice - marks extension as deprecated with migration guidance",
+      "properties": {
+        "deprecated": {
+          "type": "boolean",
+          "description": "Whether this extension is deprecated"
+        },
+        "since": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO date when deprecation was declared (YYYY-MM-DD)"
+        },
+        "successor": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Name of the replacement extension"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable deprecation notice with migration guidance"
+        }
+      },
+      "required": ["deprecated", "successor"]
+    },
     "bom": {
       "type": ["object", "null"],
       "description": "Bill of Materials - declarative listing of software installed by this extension",

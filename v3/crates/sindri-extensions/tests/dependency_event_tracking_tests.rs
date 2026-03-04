@@ -48,6 +48,7 @@ mod dependency_event_tracking_tests {
             remove: None,
             upgrade: None,
             capabilities: None,
+            deprecation: None,
             docs: None,
             bom: None,
         }

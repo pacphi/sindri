@@ -40,6 +40,14 @@ pub struct RegistryEntry {
     /// this checksum. If absent, a warning is logged but installation proceeds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
+
+    /// Whether this extension is deprecated
+    #[serde(default)]
+    pub deprecated: bool,
+
+    /// Name of the replacement extension (if deprecated)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub successor: Option<String>,
 }
 
 /// Profiles file (profiles.yaml)

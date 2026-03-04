@@ -44,6 +44,7 @@ fn make_extension_with_bom(name: &str, bom_config: BomConfig) -> Extension {
         remove: None,
         upgrade: None,
         capabilities: None,
+        deprecation: None,
         docs: None,
         bom: Some(bom_config),
     }
@@ -77,6 +78,7 @@ fn make_extension_with_validation(name: &str, commands: Vec<CommandValidation>) 
         remove: None,
         upgrade: None,
         capabilities: None,
+        deprecation: None,
         docs: None,
         bom: None,
     }

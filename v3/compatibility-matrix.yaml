@@ -58,6 +58,7 @@ cli_versions:
       claudeup: ">=1.0.0,<2.0.0"
       claudish: ">=1.0.0,<2.0.0"
       compahook: ">=1.0.0,<2.0.0"
+      ruflo: ">=3.5.0,<4.0.0"
 
       # Cloud & Infrastructure
       cloud-tools: ">=2.0.0,<3.0.0"
@@ -162,6 +163,7 @@ cli_versions:
       claudeup: ">=1.0.0,<2.0.0"
       claudish: ">=1.0.0,<2.0.0"
       compahook: ">=1.0.0,<2.0.0"
+      ruflo: ">=3.5.0,<4.0.0"
 
       # Cloud & Infrastructure
       cloud-tools: ">=2.1.0,<3.0.0"
@@ -256,6 +258,7 @@ cli_versions:
       claudeup: ">=2.0.0,<3.0.0"
       claudish: ">=2.0.0,<3.0.0"
       compahook: ">=2.0.0,<3.0.0"
+      ruflo: ">=3.5.0,<4.0.0"
 
       # Cloud & Infrastructure
       cloud-tools: ">=3.0.0,<4.0.0"
