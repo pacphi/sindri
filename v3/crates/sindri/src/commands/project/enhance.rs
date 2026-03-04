@@ -706,7 +706,7 @@ pub(super) fn initialize_project_tools() -> Result<()> {
 /// Check if authentication is configured for a given provider
 fn check_auth_configured(
     extension: &sindri_core::types::Extension,
-    _required_auth: &sindri_core::types::AuthProvider,
+    required_auth: &sindri_core::types::AuthProvider,
 ) -> bool {
     if let Some(capabilities) = &extension.capabilities {
         if let Some(auth) = &capabilities.auth {
@@ -728,6 +728,16 @@ fn check_auth_configured(
                 }
             }
         }
+    }
+
+    // Provider-aware fallback: subscription-based Claude auth has no API key,
+    // so check `claude auth status` directly rather than returning false.
+    if matches!(required_auth, sindri_core::types::AuthProvider::Anthropic) {
+        return Command::new("claude")
+            .args(["auth", "status"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
     }
 
     false
