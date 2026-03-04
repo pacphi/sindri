@@ -37,6 +37,7 @@
 # - cargo-chef for dependency caching
 # - System packages (Ubuntu 24.04)
 # - GitHub CLI
+# - Cosign (container signing)
 #
 # ------------------------------------------------------------------------------
 # Quick Commands:

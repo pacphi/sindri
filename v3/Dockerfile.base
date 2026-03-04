@@ -27,6 +27,7 @@
 ARG UBUNTU_VERSION=24.04
 ARG RUST_VERSION=1.93
 ARG GH_VERSION=2.87.3
+ARG COSIGN_VERSION=3.0.5
 
 # ==============================================================================
 # Stage 1: Rust Builder Base (with cargo-chef)
@@ -120,6 +121,22 @@ RUN apt-get update && \
     echo "GitHub CLI ${GH_VERSION} installed for ${ARCH}"
 
 # ==============================================================================
+# Stage 4: Cosign Downloader (parallel build, cached independently)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS cosign-downloader
+
+ARG COSIGN_VERSION
+ARG TARGETARCH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    echo "Downloading cosign for linux-${TARGETARCH}..." && \
+    wget -qO /cosign "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-${TARGETARCH}" && \
+    chmod +x /cosign && \
+    echo "Cosign ${COSIGN_VERSION} installed for ${TARGETARCH}"
+
+# ==============================================================================
 # Final Stage: Complete Base Image
 # ==============================================================================
 FROM runtime-base
@@ -136,8 +153,11 @@ ENV CARGO_HOME=/usr/local/cargo \
 # Copy GitHub CLI from parallel build
 COPY --from=gh-downloader /gh /usr/local/bin/gh
 
+# Copy Cosign from parallel build
+COPY --from=cosign-downloader /cosign /usr/local/bin/cosign
+
 # Verify tools work
-RUN gh --version && rustc --version && cargo --version
+RUN gh --version && rustc --version && cargo --version && cosign version
 
 # Create docker directories (for scripts/config to be added by Dockerfile.dev)
 RUN mkdir -p /docker/scripts /docker/config && \
@@ -152,6 +172,7 @@ LABEL sindri.base.version="3.0.0" \
       sindri.base.rust="${RUST_VERSION}" \
       sindri.base.ubuntu="${UBUNTU_VERSION}" \
       sindri.base.gh="${GH_VERSION}" \
+      sindri.base.cosign="${COSIGN_VERSION}" \
       sindri.type="base"
 
 # ==============================================================================

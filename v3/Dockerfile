@@ -24,7 +24,7 @@
 # Layer optimizations:
 #   - Layers ordered by change frequency (least → most frequent)
 #   - Consolidated COPY + RUN operations for scripts
-#   - Multi-stage GH CLI download (parallel build, isolated caching)
+#   - Multi-stage GH CLI + Cosign download (parallel build, isolated caching)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -33,6 +33,7 @@
 ARG UBUNTU_VERSION=24.04
 ARG SINDRI_VERSION=3.0.0
 ARG GH_VERSION=2.87.3
+ARG COSIGN_VERSION=3.0.5
 
 # ==============================================================================
 # Stage 1a: Local Binary from Build Context (CI workflows)
@@ -140,6 +141,22 @@ RUN apt-get update && \
     chmod +x /gh
 
 # ==============================================================================
+# Stage 3b: Download Cosign (parallel build, isolated caching)
+# ==============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS cosign-downloader
+
+ARG COSIGN_VERSION
+ARG TARGETARCH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    echo "Downloading cosign for linux-${TARGETARCH}..." && \
+    wget -qO /cosign "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-${TARGETARCH}" && \
+    chmod +x /cosign && \
+    echo "Cosign ${COSIGN_VERSION} installed for ${TARGETARCH}"
+
+# ==============================================================================
 # Stage 4: Runtime Image
 # ==============================================================================
 FROM ubuntu:${UBUNTU_VERSION}
@@ -217,6 +234,12 @@ RUN mkdir -p /run/sshd /etc/ssh/sshd_config.d && \
 # ------------------------------------------------------------------------------
 COPY --from=gh-downloader /gh /usr/local/bin/gh
 RUN gh --version
+
+# ------------------------------------------------------------------------------
+# Copy Cosign Binary (cached independently via multi-stage)
+# ------------------------------------------------------------------------------
+COPY --from=cosign-downloader /cosign /usr/local/bin/cosign
+RUN cosign version
 
 # ------------------------------------------------------------------------------
 # Install Tools: All setup scripts in single layer (changes occasionally)
