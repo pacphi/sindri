@@ -16,6 +16,7 @@ install:
   script:
     path: install.sh
     timeout: 120
+    args: ["1.0.0"]
 
 configure:
   environment:
@@ -49,3 +50,13 @@ validate:
     - name: draupnir
       versionFlag: --version
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+bom:
+  tools:
+    - name: draupnir
+      version: "1.0.0"
+      source: github-release
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/pacphi/draupnir
+      purl: pkg:github/pacphi/draupnir@v1.0.0
