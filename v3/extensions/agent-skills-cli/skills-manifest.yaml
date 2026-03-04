@@ -1,0 +1,35 @@
+version: "1.0"
+description: "Skills installed via agent-skills-cli for Claude Code (~/.claude/skills/)"
+
+sources:
+  - repo: "https://github.com/ComposioHQ/awesome-claude-skills"
+    branch: master
+    skills:
+      # Confirmed SKILL.md present in each subdir
+      - brand-guidelines
+      - canvas-design
+      - competitive-ads-extractor
+      - content-research-writer
+      - domain-name-brainstormer
+      - file-organizer
+      - internal-comms
+      - invoice-organizer
+      - lead-research-assistant
+      - mcp-builder
+      - meeting-insights-analyzer
+      - raffle-winner-picker
+      - skill-creator
+      - slack-gif-creator
+      - template-skill
+      - theme-factory
+      - video-downloader
+      - webapp-testing
+      - artifacts-builder
+      # Excluded:
+      # - algorithmic-art (directory doesn't exist in the repo)
+      # - document-skills-docx/pdf/pptx/xlsx (Claude plugin format only, no SKILL.md)
+
+  - repo: "https://github.com/severity1/claude-code-prompt-improver"
+    branch: main
+    skills:
+      - prompt-improver  # Whole-repo install

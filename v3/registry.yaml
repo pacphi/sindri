@@ -48,6 +48,9 @@ extensions:
     description: "Claude Flow v3 (deprecated - use ruflo)"
     deprecated: true
     successor: ruflo
+  agent-skills-cli:
+    category: "claude"
+    description: "Universal skill manager — installs skills from GitHub into ~/.claude/skills/"
   claude-marketplace:
     category: "claude"
     description: "Claude marketplace integration"

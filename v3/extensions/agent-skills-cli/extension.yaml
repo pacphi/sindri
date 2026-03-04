@@ -1,0 +1,78 @@
+---
+metadata:
+  name: agent-skills-cli
+  version: 1.1.7
+  description: "Installs Claude Code skills from GitHub sources via agent-skills-cli — covers repos that lack Claude marketplace manifests"
+  category: claude
+  author: Sindri Team
+  homepage: https://github.com/Karanjot786/agent-skills-cli
+  dependencies:
+    - nodejs
+requirements:
+  domains:
+    - registry.npmjs.org
+    - github.com
+    - raw.githubusercontent.com
+  diskSpace: 100
+  memory: 0
+  installTime: 120
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+validate:
+  commands:
+    - name: skills
+      versionFlag: --version
+      expectedPattern: "\\d+\\.\\d+\\.\\d+"
+  mise:
+    tools:
+      - npm:agent-skills-cli
+    minToolCount: 1
+remove:
+  confirmation: true
+  mise:
+    removeConfig: true
+    tools:
+      - npm:agent-skills-cli
+upgrade:
+  strategy: none
+capabilities:
+  hooks:
+    post-install:
+      command: "bash scripts/install-skills.sh"
+      description: "Install curated skills into ~/.claude/skills/ from skills-manifest.yaml"
+bom:
+  tools:
+    - name: agent-skills-cli
+      version: "1.1.7"
+      source: npm
+      type: cli-tool
+      license: MIT
+      homepage: https://github.com/Karanjot786/agent-skills-cli
+      purl: pkg:npm/agent-skills-cli@1.1.7
+docs:
+  title: "Agent Skills CLI"
+  overview: |
+    Installs and manages AI coding skills for Claude Code via agent-skills-cli.
+    Complements claude-marketplace by covering skill sources that use SKILL.md format
+    rather than the Claude marketplace manifest format. Skills land in ~/.claude/skills/.
+  last-updated: "2026-03-04"
+  features:
+    - "GitHub source installs — any repo/subdirectory with a SKILL.md"
+    - "Git sparse-checkout fallback — works even without agent-skills-cli"
+    - "Non-interactive — fully automated via post-install hook"
+    - "Curated manifest — skills-manifest.yaml controls what gets installed"
+  usage:
+    - section: "Manual skill install"
+      examples:
+        - description: "Install any skill from GitHub"
+          code: "skills install https://github.com/owner/repo --agent claude --global --yes"
+        - description: "Check installed skills"
+          code: "skills check"
+  related:
+    - name: claude-marketplace
+      description: "Companion extension for native Claude plugin/marketplace format"
+    - name: nodejs
+      description: "Required runtime dependency"

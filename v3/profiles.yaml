@@ -42,6 +42,7 @@ profiles:
       - ai-toolkit
       - claudish
       - claude-marketplace
+      - agent-skills-cli
       - compahook
       - infra-tools
       - jvm
