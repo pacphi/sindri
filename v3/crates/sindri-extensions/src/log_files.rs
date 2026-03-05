@@ -107,6 +107,46 @@ impl ExtensionLogWriter {
             .context(format!("Failed to read log file: {}", path.display()))
     }
 
+    /// Write a collision resolution log for an extension's project-init phase.
+    pub fn write_collision_log(
+        &self,
+        extension_name: &str,
+        timestamp: DateTime<Utc>,
+        status: &str,
+        log_lines: &[String],
+    ) -> Result<PathBuf> {
+        let ext_log_dir = self.log_dir.join(extension_name);
+        std::fs::create_dir_all(&ext_log_dir).context(format!(
+            "Failed to create log directory: {}",
+            ext_log_dir.display()
+        ))?;
+
+        let filename = format!("{}.log", timestamp.format("%Y%m%dT%H%M%SZ"));
+        let log_path = ext_log_dir.join(&filename);
+
+        let mut content = String::new();
+        content.push_str(&format!("# Extension: {}\n", extension_name));
+        content.push_str(&format!(
+            "# Timestamp: {}\n",
+            timestamp.format("%Y-%m-%dT%H:%M:%SZ")
+        ));
+        content.push_str("# Phase: project-init-collision\n");
+        content.push_str(&format!("# Status: {}\n", status));
+        content.push_str("# --- collision resolution ---\n");
+        for line in log_lines {
+            content.push_str(line);
+            content.push('\n');
+        }
+
+        std::fs::write(&log_path, &content).context(format!(
+            "Failed to write collision log: {}",
+            log_path.display()
+        ))?;
+
+        debug!("Wrote collision log: {}", log_path.display());
+        Ok(log_path)
+    }
+
     /// Clean up log files older than the retention period
     ///
     /// Returns the number of files removed. Failures on individual files

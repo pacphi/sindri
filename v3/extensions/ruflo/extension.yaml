@@ -201,7 +201,7 @@ capabilities:
       - path: ".mcp.json"
         type: file
         on-conflict:
-          action: overwrite
+          action: merge-json
       - path: ".claude"
         type: directory
         on-conflict:
@@ -232,6 +232,12 @@ capabilities:
         version: "v2"
         detection:
           method: directory-exists
+      # Co-tenant marker: agentic-qe
+      - path: ".agentic-qe"
+        type: directory
+        version: "agentic-qe"
+        detection:
+          method: directory-exists
       - path: ".claude"
         type: directory
         version: "unknown"
@@ -241,6 +247,7 @@ capabilities:
             - ".claude/config.json"
             - ".claude/memory.db"
             - ".claude/memory"
+            - ".agentic-qe"
     scenarios:
       - name: "v2-to-ruflo-upgrade"
         detected-version: "v2"
@@ -271,6 +278,15 @@ capabilities:
 
           To force a fresh installation, run:
             ruflo init --full --force
+      - name: "agentic-qe-coexist"
+        detected-version: "agentic-qe"
+        installing-version: "3.5.2"
+        action: proceed
+        message: |
+          Agentic QE detected as co-tenant.
+
+          Ruflo will merge into the existing .claude directory
+          without overwriting agentic-qe configuration.
       - name: "unknown-origin"
         detected-version: "unknown"
         installing-version: "3.5.2"

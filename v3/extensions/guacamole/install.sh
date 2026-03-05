@@ -207,23 +207,23 @@ build_guacamole_server() {
         --with-init-dir=/etc/init.d \
         --enable-allow-freerdp-snapshots \
         --disable-guaclog \
-        > /tmp/guac-configure.log 2>&1; then
-        print_error "Failed to configure (see /tmp/guac-configure.log)"
+        > "${SINDRI_LOG_DIR:-/tmp}/guac-configure.log" 2>&1; then
+        print_error "Failed to configure (see ${SINDRI_LOG_DIR:-/tmp}/guac-configure.log)"
         return 1
     fi
 
     # Build
     print_status "Compiling (this may take 5-10 minutes)..."
-    if ! make -j"$(nproc)" > /tmp/guac-make.log 2>&1; then
-        print_error "Failed to compile (see /tmp/guac-make.log)"
+    if ! make -j"$(nproc)" > "${SINDRI_LOG_DIR:-/tmp}/guac-make.log" 2>&1; then
+        print_error "Failed to compile (see ${SINDRI_LOG_DIR:-/tmp}/guac-make.log)"
         return 1
     fi
 
     # Install
     print_status "Installing..."
     # shellcheck disable=SC2024  # /tmp is world-writable, redirect is safe
-    if ! sudo make install > /tmp/guac-install.log 2>&1; then
-        print_error "Failed to install (see /tmp/guac-install.log)"
+    if ! sudo make install > "${SINDRI_LOG_DIR:-/tmp}/guac-install.log" 2>&1; then
+        print_error "Failed to install (see ${SINDRI_LOG_DIR:-/tmp}/guac-install.log)"
         return 1
     fi
 

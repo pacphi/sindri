@@ -11,6 +11,7 @@ mod templates;
 pub use conditions::ConditionEvaluator;
 pub use environment::{EnvironmentProcessor, EnvironmentResult};
 pub use path::PathResolver;
+pub(crate) use templates::{merge_json_values, merge_yaml_values};
 pub use templates::{FileType, TemplateProcessor, TemplateResult};
 
 use anyhow::{Context, Result};

@@ -12,6 +12,7 @@
 //! - Trait-based extension sources (bundled, downloaded, local-dev)
 
 pub mod bom;
+pub mod collision;
 pub mod configure;
 pub mod dependency;
 pub mod distribution;
@@ -29,6 +30,9 @@ pub mod validator;
 pub mod verifier;
 
 pub use bom::BomGenerator;
+pub use collision::{
+    CollisionResolver, InitOutcome, InteractivityMode, ProjectInitEntry, ProjectInitResult,
+};
 pub use configure::ConfigureProcessor;
 pub use dependency::DependencyResolver;
 pub use distribution::{

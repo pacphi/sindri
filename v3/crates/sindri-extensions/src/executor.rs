@@ -65,6 +65,11 @@ impl ExtensionExecutor {
         self
     }
 
+    /// Get the standard SINDRI_LOG_DIR path for an extension
+    fn sindri_log_dir(&self, ext_name: &str) -> PathBuf {
+        self.home_dir.join(".sindri").join("logs").join(ext_name)
+    }
+
     /// Resolve the actual extension directory for an extension
     ///
     /// Handles three cases:
@@ -1028,6 +1033,10 @@ impl ExtensionExecutor {
         cmd.arg(&resolved_script);
         cmd.args(&script_config.args);
         cmd.current_dir(&ext_dir);
+        // Inject SINDRI_LOG_DIR so scripts log to ~/.sindri/logs/<name>/
+        let log_dir = self.sindri_log_dir(name);
+        let _ = std::fs::create_dir_all(&log_dir);
+        cmd.env("SINDRI_LOG_DIR", &log_dir);
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
@@ -1400,6 +1409,10 @@ impl ExtensionExecutor {
     }
 
     /// Execute a lifecycle hook
+    ///
+    /// Hook commands run with current_dir set to the extension's own directory,
+    /// so relative paths in hook commands (e.g., `bash scripts/install-plugins.sh`)
+    /// resolve against the extension directory where those scripts live.
     async fn execute_hook(&self, ext_name: &str, hook: &HookConfig, phase: &str) -> Result<()> {
         if let Some(desc) = &hook.description {
             info!("Executing {} hook for {}: {}", phase, ext_name, desc);
@@ -1407,11 +1420,17 @@ impl ExtensionExecutor {
             info!("Executing {} hook for {}", phase, ext_name);
         }
 
+        let ext_dir = self.resolve_extension_dir(ext_name);
+
+        let log_dir = self.sindri_log_dir(ext_name);
+        let _ = std::fs::create_dir_all(&log_dir);
+
         let output = self
             .create_bash_command()
             .arg("-c")
             .arg(&hook.command)
-            .current_dir(&self.workspace_dir)
+            .current_dir(&ext_dir)
+            .env("SINDRI_LOG_DIR", &log_dir)
             .output()
             .await
             .context(format!("Failed to execute {} hook", phase))?;

@@ -377,7 +377,7 @@ impl TemplateProcessor {
 }
 
 /// Deep merge YAML values (source takes precedence)
-fn merge_yaml_values(dest: &mut serde_yaml_ng::Value, source: serde_yaml_ng::Value) {
+pub(crate) fn merge_yaml_values(dest: &mut serde_yaml_ng::Value, source: serde_yaml_ng::Value) {
     use serde_yaml_ng::Value;
 
     match (dest, source) {
@@ -396,7 +396,7 @@ fn merge_yaml_values(dest: &mut serde_yaml_ng::Value, source: serde_yaml_ng::Val
 }
 
 /// Deep merge JSON values (source takes precedence)
-fn merge_json_values(dest: &mut serde_json::Value, source: serde_json::Value) {
+pub(crate) fn merge_json_values(dest: &mut serde_json::Value, source: serde_json::Value) {
     use serde_json::Value;
 
     match (dest, source) {
@@ -415,7 +415,7 @@ fn merge_json_values(dest: &mut serde_json::Value, source: serde_json::Value) {
 }
 
 /// Replace a marker section in a file
-fn replace_marker_section(
+pub(crate) fn replace_marker_section(
     content: &str,
     marker_begin: &str,
     marker_end: &str,

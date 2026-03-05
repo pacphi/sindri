@@ -667,6 +667,23 @@ This generates comprehensive markdown documentation by combining auto-derived da
   - [ADR-008: Extension Type System](architecture/adr/008-extension-type-system-yaml-deserialization.md)
   - [ADR-011: Multi-Method Installation](architecture/adr/011-multi-method-extension-installation.md)
   - [ADR-032: Configure Processing](architecture/adr/032-extension-configure-processing.md)
+  - [ADR-047: Project-Init Collision Handling](architecture/adr/047-project-init-collision-handling.md)
+
+---
+
+## Script Logging Best Practices
+
+When your extension uses custom scripts (hooks, install scripts, init scripts), use the `SINDRI_LOG_DIR` environment variable for log output:
+
+```bash
+LOG_DIR="${SINDRI_LOG_DIR:-/tmp}"
+LOG_FILE="${LOG_DIR}/my-operation.log"
+mkdir -p "$LOG_DIR"
+```
+
+When run via sindri, `SINDRI_LOG_DIR` is automatically set to `~/.sindri/logs/<your-extension>/`. When run standalone, it falls back to `/tmp`.
+
+**Do NOT** hardcode log paths like `/tmp/my-extension.log`. These are ephemeral, not discoverable by users, and not visible in `sindri extension log`.
 
 ---
 

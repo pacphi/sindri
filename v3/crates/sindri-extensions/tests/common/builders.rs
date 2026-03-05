@@ -6,9 +6,11 @@
 #![allow(dead_code)]
 
 use sindri_core::types::{
-    CapabilitiesConfig, CommandValidation, Extension, ExtensionCategory, ExtensionMetadata,
-    HookConfig, HooksCapability, InstallConfig, InstallMethod, MiseInstallConfig, ScriptConfig,
-    ValidateConfig,
+    AuthProvider, CapabilitiesConfig, CollisionHandlingConfig, CollisionScenario,
+    CommandValidation, ConflictActionType, ConflictResourceType, ConflictRule, DetectionMethod,
+    Extension, ExtensionCategory, ExtensionMetadata, HookConfig, HooksCapability, InstallConfig,
+    InstallMethod, MiseInstallConfig, OnConflictAction, ProjectInitCapability, ProjectInitCommand,
+    ScenarioAction, ScriptConfig, StateMarkerType, ValidateConfig, VersionDetection, VersionMarker,
 };
 
 /// Builder for creating Extension test fixtures
@@ -25,6 +27,8 @@ pub struct ExtensionBuilder {
     pre_install_hook: Option<HookConfig>,
     post_install_hook: Option<HookConfig>,
     install_timeout: u32,
+    project_init: Option<ProjectInitCapability>,
+    collision_handling: Option<CollisionHandlingConfig>,
 }
 
 impl ExtensionBuilder {
@@ -51,6 +55,8 @@ impl ExtensionBuilder {
             pre_install_hook: None,
             post_install_hook: None,
             install_timeout: 300,
+            project_init: None,
+            collision_handling: None,
         }
     }
 
@@ -171,6 +177,24 @@ impl ExtensionBuilder {
         self
     }
 
+    /// Set project-init capability with priority and commands
+    pub fn with_project_init(mut self, priority: u32, commands: Vec<ProjectInitCommand>) -> Self {
+        self.project_init = Some(ProjectInitCapability {
+            enabled: true,
+            priority,
+            commands,
+            state_markers: vec![],
+            validation: None,
+        });
+        self
+    }
+
+    /// Set collision-handling configuration
+    pub fn with_collision_handling(mut self, config: CollisionHandlingConfig) -> Self {
+        self.collision_handling = Some(config);
+        self
+    }
+
     /// Build the Extension
     pub fn build(self) -> Extension {
         let metadata = ExtensionMetadata {
@@ -197,21 +221,29 @@ impl ExtensionBuilder {
             mise: None,
         };
 
-        // Build capabilities with hooks if configured
-        let capabilities = if self.pre_install_hook.is_some() || self.post_install_hook.is_some() {
+        // Build capabilities with hooks, project-init, and collision-handling if configured
+        let has_hooks = self.pre_install_hook.is_some() || self.post_install_hook.is_some();
+        let has_capabilities =
+            has_hooks || self.project_init.is_some() || self.collision_handling.is_some();
+
+        let capabilities = if has_capabilities {
             Some(CapabilitiesConfig {
-                hooks: Some(HooksCapability {
-                    pre_install: self.pre_install_hook,
-                    post_install: self.post_install_hook,
-                    pre_project_init: None,
-                    post_project_init: None,
-                }),
-                project_init: None,
+                hooks: if has_hooks {
+                    Some(HooksCapability {
+                        pre_install: self.pre_install_hook,
+                        post_install: self.post_install_hook,
+                        pre_project_init: None,
+                        post_project_init: None,
+                    })
+                } else {
+                    None
+                },
+                project_init: self.project_init,
                 auth: None,
                 mcp: None,
                 project_context: None,
                 features: None,
-                collision_handling: None,
+                collision_handling: self.collision_handling,
             })
         } else {
             None
@@ -316,6 +348,68 @@ mod tests {
         assert_eq!(deps.len(), 2);
         assert!(deps.contains(&"dep1".to_string()));
         assert!(deps.contains(&"dep2".to_string()));
+    }
+
+    #[test]
+    fn test_extension_builder_with_project_init() {
+        let ext = ExtensionBuilder::new()
+            .with_project_init(
+                20,
+                vec![ProjectInitCommand {
+                    command: "echo init".to_string(),
+                    description: "Initialize".to_string(),
+                    requires_auth: AuthProvider::None,
+                    conditional: false,
+                }],
+            )
+            .build();
+        let caps = ext.capabilities.unwrap();
+        let pi = caps.project_init.unwrap();
+        assert!(pi.enabled);
+        assert_eq!(pi.priority, 20);
+        assert_eq!(pi.commands.len(), 1);
+    }
+
+    #[test]
+    fn test_extension_builder_with_collision_handling() {
+        let ext = ExtensionBuilder::new()
+            .with_collision_handling(CollisionHandlingConfig {
+                enabled: true,
+                conflict_rules: vec![ConflictRule {
+                    path: "CLAUDE.md".to_string(),
+                    r#type: ConflictResourceType::File,
+                    on_conflict: OnConflictAction {
+                        action: ConflictActionType::Append,
+                        separator: Some("\n---\n".to_string()),
+                        backup_suffix: ".backup".to_string(),
+                        backup: false,
+                        prompt_options: vec![],
+                    },
+                }],
+                version_markers: vec![],
+                scenarios: vec![],
+            })
+            .build();
+        let caps = ext.capabilities.unwrap();
+        let ch = caps.collision_handling.unwrap();
+        assert!(ch.enabled);
+        assert_eq!(ch.conflict_rules.len(), 1);
+    }
+
+    #[test]
+    fn test_extension_builder_with_project_init_and_collision() {
+        let ext = ExtensionBuilder::new()
+            .with_project_init(50, vec![])
+            .with_collision_handling(CollisionHandlingConfig {
+                enabled: true,
+                conflict_rules: vec![],
+                version_markers: vec![],
+                scenarios: vec![],
+            })
+            .build();
+        let caps = ext.capabilities.unwrap();
+        assert!(caps.project_init.is_some());
+        assert!(caps.collision_handling.is_some());
     }
 
     #[test]

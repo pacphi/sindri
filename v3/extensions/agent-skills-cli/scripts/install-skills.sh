@@ -2,7 +2,9 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="/tmp/agent-skills-install.log"
+LOG_DIR="${SINDRI_LOG_DIR:-/tmp}"
+mkdir -p "$LOG_DIR"
+LOG_FILE="${LOG_DIR}/skills-install.log"
 SKILLS_DIR="$HOME/.claude/skills"
 
 SUCCESS=0

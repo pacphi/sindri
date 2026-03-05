@@ -65,7 +65,25 @@ capabilities:
     state-markers:
       - path: ".agentic-qe"
         type: directory
-        description: "Agentic QE configuration directory"
+        description: "Agentic QE configuration directory (config, memory.db, data, workers)"
+      - path: ".claude/agents/v3"
+        type: directory
+        description: "QE agent definitions (51 qe-*.md files, subagents/, templates/)"
+      - path: ".claude/docs"
+        type: directory
+        description: "QE documentation (v3-agents-index.md)"
+      - path: ".claude/guidance"
+        type: directory
+        description: "Governance constitution and 12 shard files"
+      - path: ".claude/helpers"
+        type: directory
+        description: "Brain checkpoint and v3 helper scripts"
+      - path: ".claude/hooks"
+        type: directory
+        description: "Hook configs (cross-phase-memory, v3-domain-workers)"
+      - path: ".claude/skills"
+        type: directory
+        description: "77 QE skill directories with SKILL.md, evals, schemas"
     validation:
       command: "aqe --version"
       expectedPattern: "3\\.\\d+\\.\\d+(-[a-z]+(\\.[0-9]+)?)?"
@@ -85,18 +103,22 @@ capabilities:
         mise reshim && sleep 2 &&
         INSTALL_DIR=$(mise where npm:agentic-qe 2>/dev/null) &&
         if [ -n "$INSTALL_DIR" ] && [ -d "$INSTALL_DIR" ]; then
-          SHARP_DIR=$(find "$INSTALL_DIR" -path "*/node_modules/sharp/package.json" -maxdepth 8 2>/dev/null | head -1 | xargs dirname 2>/dev/null) &&
-          if [ -n "$SHARP_DIR" ] && [ -d "$SHARP_DIR" ]; then
-            echo "Rebuilding sharp native module in $SHARP_DIR..." &&
-            cd "$SHARP_DIR" &&
-            npx --yes prebuild-install --runtime napi --target 9 2>&1 ||
-            npm run install 2>&1 ||
-            echo "WARN: sharp native module rebuild failed - aqe may not work correctly";
-          else
-            echo "WARN: sharp module not found under $INSTALL_DIR";
-          fi
+          echo "Rebuilding native modules in $INSTALL_DIR..." &&
+          for MODULE in better-sqlite3 hnswlib-node sharp; do
+            MOD_DIR=$(find "$INSTALL_DIR" -path "*/${MODULE}/package.json" -maxdepth 8 2>/dev/null | head -1 | xargs dirname 2>/dev/null) &&
+            if [ -n "$MOD_DIR" ] && [ -d "$MOD_DIR" ]; then
+              echo "  Rebuilding ${MODULE} in $MOD_DIR..." &&
+              (cd "$MOD_DIR" &&
+                npx --yes prebuild-install --runtime napi --target 9 2>&1 ||
+                npm run install 2>&1 ||
+                echo "WARN: ${MODULE} native rebuild failed") ;
+            fi ;
+          done &&
+          echo "Native module rebuild complete" ;
+        else
+          echo "WARN: agentic-qe install dir not found" ;
         fi
-      description: "Refresh shims and rebuild native modules (sharp)"
+      description: "Refresh shims and rebuild native modules (better-sqlite3, hnswlib-node, sharp)"
     pre-project-init:
       command: "echo 'Initializing agentic-qe project...'"
       description: "Pre-initialization setup"
@@ -121,12 +143,47 @@ capabilities:
         type: file
         on-conflict:
           action: merge-json
-      # Directory merge (remove backup: true since agentic-qe runs AFTER claude-flow)
+      # Root MCP config (aqe init also creates .mcp.json at project root)
+      - path: ".mcp.json"
+        type: file
+        on-conflict:
+          action: merge-json
+      # Directory merge (agentic-qe runs AFTER claude-flow/ruflo at priority 50)
       - path: ".claude"
         type: directory
         on-conflict:
           action: merge
-          backup: false # claude-flow already created structure
+          backup: false # claude-flow/ruflo already created structure
+      - path: ".claude/agents"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+      - path: ".claude/docs"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+      - path: ".claude/guidance"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+      - path: ".claude/helpers"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+      - path: ".claude/hooks"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
+      - path: ".claude/skills"
+        type: directory
+        on-conflict:
+          action: merge
+          backup: false
     version-markers:
       # Agentic QE marker
       - path: ".agentic-qe"

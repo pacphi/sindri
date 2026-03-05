@@ -78,7 +78,7 @@ if command_exists mise; then
   # CRITICAL: Change to home directory to avoid mise discovering the untrusted
   # mise.toml in the extension directory (current working directory)
   cd "$HOME" || exit 1
-  if mise install 2>&1 | tee /tmp/mise-install.log; then
+  if mise install 2>&1 | tee "${SINDRI_LOG_DIR:-/tmp}/mise-install.log"; then
     print_success "mise install completed"
   else
     print_warning "mise install encountered issues"

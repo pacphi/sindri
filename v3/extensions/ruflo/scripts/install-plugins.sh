@@ -5,7 +5,9 @@ set -euo pipefail
 # Purpose: Install 15 core plugins after extension installation
 # Exit codes: 0 (success, even with partial failures), 1 (critical failure)
 
-LOG_FILE="/tmp/ruflo-plugin-install.log"
+LOG_DIR="${SINDRI_LOG_DIR:-/tmp}"
+mkdir -p "$LOG_DIR"
+LOG_FILE="${LOG_DIR}/plugin-install.log"
 PREFIX="[ruflo]"
 
 # Plugin list (9 original + 6 new official)

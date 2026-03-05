@@ -72,3 +72,7 @@ path = "tests/bom_generation_tests.rs"
 [[test]]
 name = "ledger_tests"
 path = "tests/ledger_tests.rs"
+
+[[test]]
+name = "collision_handling_tests"
+path = "tests/collision_handling_tests.rs"

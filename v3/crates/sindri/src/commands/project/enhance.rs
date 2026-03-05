@@ -11,7 +11,10 @@ use crate::output;
 use crate::utils::{get_cache_dir, get_extensions_dir};
 
 use sindri_core::types::ExtensionState;
-use sindri_extensions::{ExtensionDistributor, ExtensionSourceResolver, StatusLedger};
+use sindri_extensions::{
+    CollisionResolver, ExtensionDistributor, ExtensionSourceResolver, InitOutcome,
+    InteractivityMode, ProjectInitEntry, StatusLedger,
+};
 
 use super::template::InternalProjectTemplate;
 
@@ -571,10 +574,11 @@ pub(super) fn install_dependencies(project_dir: &Utf8PathBuf) -> Result<()> {
     Ok(())
 }
 
-/// Initialize project tools using capability-manager
+/// Initialize project tools using collision-aware orchestration
 ///
-/// Discovers installed extensions with project-init capabilities and runs
-/// their initialization commands in the project directory.
+/// Discovers installed extensions with project-init capabilities, sorts them
+/// by priority, evaluates collision scenarios, executes commands, and applies
+/// conflict rules. Uses CollisionResolver from sindri-extensions.
 pub(super) fn initialize_project_tools() -> Result<()> {
     // Load ledger to get installed extensions
     let ledger = match StatusLedger::load_default() {
@@ -612,8 +616,8 @@ pub(super) fn initialize_project_tools() -> Result<()> {
         }
     };
 
-    // Iterate through installed extensions looking for project-init capabilities
-    let mut initialized_count = 0;
+    // Collect all project-init-capable extensions into ProjectInitEntry vec
+    let mut entries = Vec::new();
     for (name, _status) in status_map
         .iter()
         .filter(|(_, s)| s.current_state == ExtensionState::Installed)
@@ -623,7 +627,6 @@ pub(super) fn initialize_project_tools() -> Result<()> {
             None => continue,
         };
 
-        // Load extension definition
         let content = match std::fs::read_to_string(&ext_yaml_path) {
             Ok(c) => c,
             Err(_) => continue,
@@ -638,58 +641,63 @@ pub(super) fn initialize_project_tools() -> Result<()> {
         if let Some(capabilities) = &extension.capabilities {
             if let Some(project_init) = &capabilities.project_init {
                 if project_init.enabled {
-                    tracing::debug!("Running project-init for extension: {}", name);
-
-                    // Execute project-init commands
-                    for cmd_config in &project_init.commands {
-                        // Check if auth is required
-                        let auth_ok = match cmd_config.requires_auth {
-                            sindri_core::types::AuthProvider::None => true,
-                            _ => {
-                                // Check if auth is configured
-                                check_auth_configured(&extension, &cmd_config.requires_auth)
-                            }
-                        };
-
-                        if !auth_ok && cmd_config.conditional {
-                            tracing::debug!(
-                                "Skipping {} command (requires auth): {}",
-                                name,
-                                cmd_config.description
-                            );
-                            continue;
-                        }
-
-                        output::info(&format!("    Running: {}", cmd_config.description));
-
-                        let result = Command::new("sh")
-                            .arg("-c")
-                            .arg(&cmd_config.command)
-                            .current_dir(&workspace_dir)
-                            .output();
-
-                        match result {
-                            Ok(output) if output.status.success() => {
-                                initialized_count += 1;
-                            }
-                            Ok(output) => {
-                                let stderr = String::from_utf8_lossy(&output.stderr);
-                                tracing::debug!(
-                                    "Project-init command failed for {}: {}",
-                                    name,
-                                    stderr
-                                );
-                            }
-                            Err(e) => {
-                                tracing::debug!(
-                                    "Failed to run project-init command for {}: {}",
-                                    name,
-                                    e
-                                );
-                            }
-                        }
-                    }
+                    entries.push(ProjectInitEntry {
+                        extension_name: name.clone(),
+                        extension: extension.clone(),
+                        priority: project_init.priority,
+                    });
                 }
+            }
+        }
+    }
+
+    if entries.is_empty() {
+        tracing::debug!("No extensions with project-init capabilities found");
+        return Ok(());
+    }
+
+    let total = entries.len();
+
+    // Create CollisionResolver and execute
+    let collision_resolver =
+        CollisionResolver::new(workspace_dir, InteractivityMode::NonInteractive);
+
+    let results = collision_resolver
+        .resolve_and_execute(entries, &|ext, auth| check_auth_configured(ext, auth))?;
+
+    // Log results per extension
+    let mut initialized_count = 0;
+    for result in &results {
+        match &result.outcome {
+            InitOutcome::Executed {
+                commands_run,
+                conflicts_resolved,
+            } => {
+                if *commands_run > 0 {
+                    initialized_count += 1;
+                    let conflict_summary = if conflicts_resolved.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" ({} conflicts resolved)", conflicts_resolved.len())
+                    };
+                    output::info(&format!(
+                        "    {} -> {} command(s) executed{}",
+                        result.extension_name, commands_run, conflict_summary
+                    ));
+                }
+            }
+            InitOutcome::Skipped { reason } => {
+                tracing::debug!("{} skipped: {}", result.extension_name, reason.trim());
+            }
+            InitOutcome::Stopped { reason } => {
+                output::warning(&format!(
+                    "    {} stopped: {}",
+                    result.extension_name,
+                    reason.trim().lines().next().unwrap_or("")
+                ));
+            }
+            InitOutcome::Failed { error } => {
+                output::warning(&format!("    {} failed: {}", result.extension_name, error));
             }
         }
     }
@@ -700,6 +708,7 @@ pub(super) fn initialize_project_tools() -> Result<()> {
         tracing::debug!("No extensions with project-init capabilities found");
     }
 
+    let _ = total; // Used in log context above via CollisionResolver
     Ok(())
 }
 
