@@ -74,14 +74,7 @@ capabilities:
           echo "GitNexus native dependency tree-sitter has no prebuilt binaries for linux-arm64 and cannot compile against Node.js 24. Skipping installation."
           exit 1
         fi
-        # Allow kuzu build script in pnpm v10 (blocked by default)
-        # tree-sitter uses prebuildify and works without build scripts
-        if ! grep -q 'onlyBuiltDependencies' "${HOME}/.npmrc" 2>/dev/null; then
-          echo "onlyBuiltDependencies[]=kuzu" >> "${HOME}/.npmrc"
-        elif ! grep -q 'kuzu' "${HOME}/.npmrc" 2>/dev/null; then
-          echo "onlyBuiltDependencies[]=kuzu" >> "${HOME}/.npmrc"
-        fi
-      description: "Check platform compatibility and configure pnpm for native dependencies"
+      description: "Check platform compatibility for native dependencies"
     post-install:
       command: "claude mcp add gitnexus -- npx -y @veewo/gitnexus@1.3.7 mcp"
       description: "Register GitNexus MCP server with Claude Code"

@@ -41,21 +41,38 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
 
     let extensions_dir = get_extensions_dir()?;
     let ext_version_dir = extensions_dir.join(&args.name).join(&ext_version);
+    // Bundled extensions live at extensions/{name}/ (no version subdirectory)
+    let ext_flat_dir = extensions_dir.join(&args.name);
 
-    let extension = if ext_version_dir.exists() {
+    let (extension, ext_dir_to_remove) = if ext_version_dir.exists() {
         let ext_yaml = ext_version_dir.join("extension.yaml");
         if ext_yaml.exists() {
             let content =
                 std::fs::read_to_string(&ext_yaml).context("Failed to read extension.yaml")?;
+            (
+                Some(
+                    serde_yaml_ng::from_str::<sindri_core::types::Extension>(&content)
+                        .context("Failed to parse extension.yaml")?,
+                ),
+                Some(ext_version_dir.clone()),
+            )
+        } else {
+            (None, Some(ext_version_dir.clone()))
+        }
+    } else if ext_flat_dir.join("extension.yaml").exists() {
+        // Fallback: bundled extension without version subdirectory
+        let ext_yaml = ext_flat_dir.join("extension.yaml");
+        let content =
+            std::fs::read_to_string(&ext_yaml).context("Failed to read extension.yaml")?;
+        (
             Some(
                 serde_yaml_ng::from_str::<sindri_core::types::Extension>(&content)
                     .context("Failed to parse extension.yaml")?,
-            )
-        } else {
-            None
-        }
+            ),
+            None, // Don't delete bundled extension directory
+        )
     } else {
-        None
+        (None, Some(ext_version_dir.clone()))
     };
 
     // 3. Check if other extensions depend on it (unless --force)
@@ -207,12 +224,13 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
             if let Some(script_remove) = &remove_config.script {
                 if let Some(script_path_str) = &script_remove.path {
                     output::info("Running removal script...");
-                    let script_path = ext_version_dir.join(script_path_str);
+                    let script_base = ext_dir_to_remove.as_ref().unwrap_or(&ext_flat_dir);
+                    let script_path = script_base.join(script_path_str);
 
                     if script_path.exists() {
                         let result = tokio::process::Command::new("bash")
                             .arg(&script_path)
-                            .current_dir(&ext_version_dir)
+                            .current_dir(script_base)
                             .output()
                             .await
                             .context("Failed to execute removal script")?;
@@ -249,9 +267,9 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
         }
     }
 
-    // 7. Remove extension directory
-    if ext_version_dir.exists() {
-        if let Err(e) = tokio::fs::remove_dir_all(&ext_version_dir)
+    // 7. Remove extension directory (only versioned downloads, not bundled extensions)
+    if let Some(ref dir_to_remove) = ext_dir_to_remove {
+        if let Err(e) = tokio::fs::remove_dir_all(dir_to_remove)
             .await
             .context("Failed to remove extension directory")
         {
@@ -288,7 +306,7 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
     let remove_completed_event = EventEnvelope::new(
         args.name.clone(),
         Some(ExtensionState::Removing),
-        ExtensionState::Installed, // Note: Actually removed, but no "Removed" state exists
+        ExtensionState::Removed,
         ExtensionEvent::RemoveCompleted {
             extension_name: args.name.clone(),
             version: ext_version.clone(),

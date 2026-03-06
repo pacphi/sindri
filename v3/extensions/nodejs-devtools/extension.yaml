@@ -3,7 +3,7 @@ metadata:
   name: nodejs-devtools
   version: 2.3.0
   description: >-
-    TypeScript, ESLint, Prettier, and Node.js development tools via pnpm
+    TypeScript, ESLint, Prettier, and Node.js development tools via mise
   category: languages
   author: Sindri Team
   dependencies:
@@ -104,7 +104,7 @@ bom:
 docs:
   title: "Node.js DevTools"
   overview: |
-    TypeScript, ESLint, Prettier, and Node.js development tools via pnpm. Provides essential tooling for modern JavaScript/TypeScript development.
+    TypeScript, ESLint, Prettier, and Node.js development tools via mise. Provides essential tooling for modern JavaScript/TypeScript development.
   last-updated: "2026-02-25"
   usage:
     - section: "TypeScript"

@@ -2,7 +2,7 @@
 metadata:
   name: nodejs
   version: 1.1.0
-  description: Node.js LTS via mise with pnpm package manager (corepack)
+  description: Node.js LTS via mise with corepack (pnpm/yarn available for projects)
   category: languages
   dependencies:
     - mise-config
@@ -73,7 +73,7 @@ bom:
 docs:
   title: "Node.js"
   overview: |
-    Node.js LTS via mise with pnpm package manager (via corepack). Provides a complete Node.js development environment with modern package management.
+    Node.js LTS via mise with corepack. Provides a complete Node.js development environment with npm, pnpm, and yarn available for project-level package management.
   last-updated: "2026-01-26"
   usage:
     - section: "Running Node.js"

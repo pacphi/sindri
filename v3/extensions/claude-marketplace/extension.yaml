@@ -1,7 +1,7 @@
 ---
 metadata:
   name: claude-marketplace
-  version: 2.0.0
+  version: 2.1.0
   description: Claude Code plugin marketplace integration via JSON configuration
   category: claude
   author: Sindri Team
@@ -22,7 +22,7 @@ install:
     timeout: 300
 configure:
   templates:
-    # Local environment gets full marketplace list (9 marketplaces)
+    # Local environment gets full marketplace list (10 marketplaces)
     - source: marketplaces.local.json
       destination: ~/.claude/settings.json
       mode: merge
@@ -66,14 +66,19 @@ bom:
 docs:
   title: "Claude Marketplace"
   overview: |
-    Claude Code plugin marketplace integration via JSON configuration. Provides automated configuration of plugin marketplaces that merge directly into `~/.claude/settings.json`.
-  last-updated: "2026-02-21"
+    Claude Code plugin marketplace integration via JSON configuration. Provides automated configuration
+    of plugin marketplaces that merge directly into `~/.claude/settings.json`. Curated plugin categories
+    span AI development, life sciences, financial analysis, workflow automation, code review, security,
+    and Java/Spring modernization.
+  last-updated: "2026-03-05"
   features:
-    - "Multiple Marketplaces - Access 8 different plugin sources (local) or 3 (CI)"
+    - "Multiple Marketplaces - Access 10 marketplace sources (9 GitHub + 1 local) or 3 (CI)"
+    - "Standalone Plugin Wrapper - sindri-standalone marketplace wraps plugins lacking marketplace.json"
+    - "Curated Plugin Categories - Plugins organized across AI dev, life sciences, finance, automation, and more"
+    - "Official + Community Sources - Includes Anthropic official plugins alongside community marketplaces"
     - "JSON Configuration - Native Claude Code settings format"
     - "Environment-aware - Automatic CI/local detection"
     - "Settings Merging - Deep merge preserves existing Claude settings"
-    - "No External Dependencies - Uses V3's native merge capabilities"
   usage:
     - section: "Configuration Structure"
       examples:
@@ -112,14 +117,25 @@ docs:
             # Claude Code automatically registers marketplaces
             claude /plugin marketplace list
   related:
+    - name: claude-cli
+      description: "Claude Code CLI (required dependency)"
     - name: openskills
       description: "Skill management CLI"
     - name: nodejs
       description: "Node.js runtime (recommended for many plugins)"
   notes: |
-    Marketplace Sources (Local): beads-marketplace, cc-blueprint-toolkit, claude-equity-research-marketplace,
-    n8n-mcp-skills, life-sciences, spring-m11n-marketplace, everything-claude-code, claude-code-plugins.
-    CI Configuration (Minimal): beads-marketplace, cc-blueprint-toolkit, claude-equity-research-marketplace.
+    Marketplace Sources (Local, 9 total):
+      beads-marketplace - Issue tracking and natural language programming
+      cc-blueprint-toolkit - Project scaffolding and architecture templates
+      claude-equity-research-marketplace - Financial analysis and equity research
+      n8n-mcp-skills - Workflow automation integration
+      life-sciences - Anthropic's official life sciences research plugins
+      spring-m11n-marketplace - Automated Spring Boot 4.x migrations
+      everything-claude-code - Comprehensive Claude Code resources
+      claude-code-plugins - Anthropic's Claude Code plugins
+      claude-plugins-official - Anthropic's official plugin directory
 
-    Migration from YAML Version: YAML templates removed, JSON templates now merge directly into settings.json,
-    no external tools required (yq/jq not needed), configuration automatically preserved during upgrade.
+    sindri-standalone (local marketplace wrapping plugins without marketplace.json):
+      seine - Multi-domain agentic search with 21 AI agents (adambkovacs/seine-agentic-search-orchestrator-plugin)
+
+    CI Configuration (Minimal): beads-marketplace, cc-blueprint-toolkit, claude-equity-research-marketplace.

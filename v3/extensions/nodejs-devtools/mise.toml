@@ -1,16 +1,8 @@
 # nodejs-devtools.toml - npm global dev tools configuration for mise
 # Requires nodejs.toml to be installed first
-#
-# IMPORTANT: Use pinned major.minor versions instead of "latest"
-# Pinned versions provide reliable, reproducible installations without
-# requiring network queries. pnpm's content-addressable store handles
-# version resolution efficiently.
 
 [tools]
-# npm global development tools - pinned to major.minor for stability
-# Installed via pnpm (configured in mise-config as npm.package_manager = "pnpm")
-# NOTE: pnpm itself is NOT listed here - it's bootstrapped by nodejs extension
-#       to avoid circular dependency (mise using pnpm to install pnpm)
+# Pinned to major.minor for stable, reproducible installations
 "npm:typescript" = "5.9"
 "npm:ts-node" = "10.9"
 "npm:eslint" = "10"

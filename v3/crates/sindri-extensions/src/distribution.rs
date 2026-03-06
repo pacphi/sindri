@@ -268,10 +268,33 @@ impl ExtensionDistributor {
     ///
     /// In bundled mode (SINDRI_EXT_HOME set), installs from bundled extensions.
     /// Otherwise, downloads from raw.githubusercontent.com using CLI version tag.
+    /// Install an extension (convenience wrapper without force)
     pub async fn install(
         &self,
         name: &str,
         version: Option<&str>,
+    ) -> Result<(String, Option<String>)> {
+        self.install_ext(name, version, false).await
+    }
+
+    /// Install an extension with force option
+    ///
+    /// When `force` is true, skip the "already installed" check and pass `--force`
+    /// to the underlying installer (e.g., mise) so it actually re-downloads and
+    /// re-runs build scripts.
+    pub async fn install_force(
+        &self,
+        name: &str,
+        version: Option<&str>,
+    ) -> Result<(String, Option<String>)> {
+        self.install_ext(name, version, true).await
+    }
+
+    async fn install_ext(
+        &self,
+        name: &str,
+        version: Option<&str>,
+        force: bool,
     ) -> Result<(String, Option<String>)> {
         info!("Installing extension: {}", name);
 
@@ -332,10 +355,13 @@ impl ExtensionDistributor {
             name, target_version, self.cli_version
         );
 
-        // 4. Check if already installed
-        if self.is_installed(name, &target_version)? {
+        // 4. Check if already installed (skip when force=true)
+        if !force && self.is_installed(name, &target_version)? {
             info!("{} {} is already installed", name, target_version);
             return Ok((target_version.to_string(), None));
+        }
+        if force {
+            info!("Force reinstall enabled for {} {}", name, target_version);
         }
 
         // 5. Get extension directory (bundled or downloaded)
@@ -463,7 +489,7 @@ impl ExtensionDistributor {
         let executor = crate::executor::ExtensionExecutor::new(&ext_dir, workspace_dir, home_dir)
             .with_timeout(runtime_config.network.mise_timeout_secs);
 
-        let (install_output, install_result) = executor.install(&extension).await;
+        let (install_output, install_result) = executor.install(&extension, force).await;
 
         // Write log file before checking result (ensures logs exist even on failure)
         let log_file = self.write_install_log(name, &install_output);

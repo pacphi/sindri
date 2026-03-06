@@ -1,104 +1,122 @@
 # Claude Marketplace Extension
 
-This extension automatically configures Claude Code plugin marketplaces via JSON configuration merged directly into `~/.claude/settings.json`.
+This extension automatically configures Claude Code plugin marketplaces via JSON configuration merged directly into `~/.claude/settings.json`. It also installs standalone plugins from repos that don't provide a marketplace catalog.
 
 ## Overview
 
-This extension provides automated configuration of plugin marketplaces through JSON templates that integrate
-directly with Claude Code's `settings.json`. Marketplaces and plugins are configured once and automatically installed
-when Claude Code is invoked.
-
-It provides:
+This extension provides:
 
 - **JSON Configuration**: Direct integration with Claude Code's native settings format
 - **Automatic Merging**: Settings merged into `~/.claude/settings.json` without manual editing
+- **Standalone Plugins**: Installs plugins from repos that have `plugin.json` but no `marketplace.json`
 - **Environment-Aware**: Automatically selects full or minimal marketplace list based on CI environment
 - **Curated Collection**: Pre-selected high-quality marketplaces for various use cases
 - **Idempotent**: Safe to re-run installation without duplicating configuration
-- **Team Consistency**: Share marketplace configuration across teams for consistent tooling
 
 ## Prerequisites
 
-- **Claude CLI** (pre-installed in base Docker image) - **Required**
-- **Claude Authentication** (API key or Max/Pro plan) - **Required**
+- **Claude CLI** (pre-installed in base Docker image) — **Required**
+- **Claude Authentication** (API key or Max/Pro plan) — **Required**
 
-No external tools (yq/jq) are required - the extension uses native V3 JSON merge capabilities.
+No external tools (yq/jq) are required — the extension uses native V3 JSON merge capabilities.
 
 ## Installation
 
-### Via Extension Manager
-
 ```bash
-# Install claude-marketplace (auto-configures settings.json)
 sindri extension install claude-marketplace
-
-# Or use interactive mode
-extension-manager --interactive
 ```
 
 ### Verification
 
 ```bash
-# Check installation status
-extension-manager status claude-marketplace
-
-# Validate installation
-extension-manager validate claude-marketplace
+sindri extension status claude-marketplace
 
 # View configured marketplaces and plugins
 cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
-```
 
-## Usage
-
-### Automated Configuration Workflow
-
-The extension automatically configures marketplaces and plugins:
-
-1. **Install extension** (merges JSON templates into settings.json):
-
-   ```bash
-   sindri extension install claude-marketplace
-   ```
-
-2. **Invoke Claude Code** (automatic marketplace and plugin installation):
-
-   ```bash
-   claude
-   ```
-
-Claude Code automatically:
-
-- Registers all marketplaces from `extraKnownMarketplaces`
-- Installs all plugins from `enabledPlugins` object
-- Handles authentication and dependencies
-
-### Manual Plugin Management
-
-After configuration, you can still manage plugins manually:
-
-```bash
-# Browse and install plugins interactively
-claude /plugin
-
-# List all registered marketplaces
-claude /plugin marketplace list
-
-# List installed plugins
+# View installed plugins
 claude /plugin list
-
-# Install additional plugin
-claude /plugin install plugin-name@marketplace-name
-
-# Uninstall plugin
-claude /plugin uninstall plugin-name
 ```
+
+## How It Works
+
+### Marketplaces vs Standalone Plugins
+
+Claude Code supports two types of plugin sources:
+
+| Type                  | Structure                                                           | How it's registered                              |
+| --------------------- | ------------------------------------------------------------------- | ------------------------------------------------ |
+| **Marketplace**       | Repo has `.claude-plugin/marketplace.json` listing multiple plugins | Via `extraKnownMarketplaces` in settings.json    |
+| **Standalone Plugin** | Repo has `.claude-plugin/plugin.json` (single plugin, no catalog)   | Wrapped in `sindri-standalone` local marketplace |
+
+This extension handles both:
+
+- **Marketplaces** are configured declaratively in `marketplaces.local.json` and merged into settings.json
+- **Standalone plugins** are wrapped in the `sindri-standalone` local marketplace (a thin `marketplace.json` catalog that references the plugin's GitHub repo). The `install.sh` script registers this marketplace via `claude plugin marketplace add`.
+
+### Workflow
+
+1. **Template Selection**: Extension checks `CI` and `GITHUB_ACTIONS` environment variables
+2. **JSON Merging**: V3 configure system merges selected template into `~/.claude/settings.json`
+3. **Standalone Install**: `install.sh` runs `claude plugin install` for standalone plugin repos
+4. **Automatic Activation**: Claude Code reads settings and installs marketplace plugins on next invocation
+
+## Curated Marketplaces
+
+### Marketplace Sources (Local, 9 total)
+
+| Marketplace                            | Description                                         | Repository                                              |
+| -------------------------------------- | --------------------------------------------------- | ------------------------------------------------------- |
+| **beads-marketplace**                  | Issue tracking and natural language programming     | steveyegge/beads                                        |
+| **cc-blueprint-toolkit**               | Project scaffolding and architecture templates      | croffasia/cc-blueprint-toolkit                          |
+| **claude-equity-research-marketplace** | Financial analysis and equity research tools        | quant-sentiment-ai/claude-equity-research               |
+| **n8n-mcp-skills**                     | Workflow automation integration                     | czlonkowski/n8n-skills                                  |
+| **life-sciences**                      | Anthropic's official life sciences research plugins | anthropics/life-sciences                                |
+| **spring-m11n-marketplace**            | Automated Spring Boot 4.x migrations                | agentic-incubator/java-spring-modernization-marketplace |
+| **everything-claude-code**             | Comprehensive Claude Code resources and examples    | affaan-m/everything-claude-code                         |
+| **claude-code-plugins**                | Anthropic's Claude Code plugins                     | anthropics/claude-code                                  |
+| **claude-plugins-official**            | Anthropic's official plugin directory               | anthropics/claude-plugins-official                      |
+
+### sindri-standalone (Local Marketplace)
+
+Wraps standalone plugins that lack `marketplace.json` into a proper marketplace catalog, registered locally via `install.sh`.
+
+| Plugin    | Description                                                            | Repository                                           |
+| --------- | ---------------------------------------------------------------------- | ---------------------------------------------------- |
+| **seine** | Multi-domain agentic search with 21 AI agents and deliberative council | adambkovacs/seine-agentic-search-orchestrator-plugin |
+
+### Enabled Plugins by Category
+
+| Category           | Plugin                 | Source                             | Description                                                              |
+| ------------------ | ---------------------- | ---------------------------------- | ------------------------------------------------------------------------ |
+| **AI Development** | beads                  | beads-marketplace                  | Issue tracking and natural language programming                          |
+| **AI Development** | everything-claude-code | everything-claude-code             | Comprehensive Claude Code resources                                      |
+| **Architecture**   | bp                     | cc-blueprint-toolkit               | Project scaffolding and architecture templates                           |
+| **Finance**        | trading-ideas          | claude-equity-research-marketplace | Equity research (marketplace registered, plugin disabled — upstream bug) |
+| **Automation**     | n8n-mcp-skills         | n8n-mcp-skills                     | n8n workflow automation integration                                      |
+| **Life Sciences**  | 10x-genomics           | life-sciences                      | 10x Genomics data analysis                                               |
+| **Life Sciences**  | pubmed                 | life-sciences                      | PubMed literature search                                                 |
+| **Life Sciences**  | biorender              | life-sciences                      | Scientific figure creation                                               |
+| **Life Sciences**  | synapse                | life-sciences                      | Sage Bionetworks Synapse integration                                     |
+| **Life Sciences**  | wiley-scholar-gateway  | life-sciences                      | Wiley journal access                                                     |
+| **Life Sciences**  | single-cell-rna-qc     | life-sciences                      | Single-cell RNA-seq quality control                                      |
+| **Java/Spring**    | spring-m11n            | spring-m11n-marketplace            | Automated Spring Boot 4.x migration                                      |
+| **UI/Design**      | frontend-design        | claude-code-plugins                | Frontend design assistance                                               |
+| **Research**       | seine                  | sindri-standalone                  | Multi-domain agentic search orchestrator                                 |
+| **Code Review**    | pr-review-toolkit      | claude-plugins-official            | Pull request review automation                                           |
+| **Security**       | security-guidance      | claude-plugins-official            | Security best practices and guidance                                     |
+
+### Quick-Start by Use Case
+
+- **Software Development**: beads, bp, everything-claude-code, frontend-design
+- **Research & Analysis**: seine, pubmed, wiley-scholar-gateway, trading-ideas
+- **Life Sciences**: 10x-genomics, pubmed, biorender, synapse, single-cell-rna-qc
+- **DevOps & Security**: pr-review-toolkit, security-guidance, n8n-mcp-skills
+- **Java/Spring**: spring-m11n
 
 ## Configuration
 
 ### JSON Configuration Format
-
-The extension uses JSON templates that follow Claude Code's official settings format:
 
 ```json
 {
@@ -117,117 +135,81 @@ The extension uses JSON templates that follow Claude Code's official settings fo
 }
 ```
 
-### Example Configuration
+### Environment-Aware Configuration
+
+| Environment                                 | Template                                        | Marketplaces                   |
+| ------------------------------------------- | ----------------------------------------------- | ------------------------------ |
+| **Local** (default)                         | `marketplaces.local.json` + `sindri-standalone` | 9 GitHub + 1 local marketplace |
+| **CI** (`CI=true` or `GITHUB_ACTIONS=true`) | `marketplaces.ci.json`                          | 3 marketplaces (minimal)       |
+
+### Adding Standalone Plugins
+
+To add a standalone plugin (a repo with `plugin.json` but no `marketplace.json`), add a plugin entry to `sindri-standalone/.claude-plugin/marketplace.json`:
 
 ```json
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "extraKnownMarketplaces": {
-    "beads-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "steveyegge/beads"
-      }
-    },
-    "cc-blueprint-toolkit": {
-      "source": {
-        "source": "github",
-        "repo": "croffasia/cc-blueprint-toolkit"
-      }
-    }
+  "name": "my-plugin",
+  "source": {
+    "source": "github",
+    "repo": "owner/my-standalone-plugin"
   },
-  "enabledPlugins": {
-    "beads@beads-marketplace": true,
-    "bp@cc-blueprint-toolkit": true
-  }
+  "description": "Description of the plugin"
 }
 ```
 
-### Curated Marketplaces
+Then add it to `enabledPlugins` in `marketplaces.local.json`:
 
-The `marketplaces.local.json` includes these pre-selected marketplaces:
-
-| Marketplace                            | Description                                         | Repository                                              |
-| -------------------------------------- | --------------------------------------------------- | ------------------------------------------------------- |
-| **beads-marketplace**                  | Natural language programming with Claude            | steveyegge/beads                                        |
-| **cc-blueprint-toolkit**               | Project scaffolding and architecture templates      | croffasia/cc-blueprint-toolkit                          |
-| **claude-equity-research-marketplace** | Financial analysis and equity research tools        | quant-sentiment-ai/claude-equity-research               |
-| **n8n-mcp-skills**                     | Workflow automation integration                     | czlonkowski/n8n-skills                                  |
-| **life-sciences**                      | Anthropic's official life sciences research plugins | anthropics/life-sciences                                |
-| **awesome-claude-skills**              | Community-curated collection of useful skills       | ComposioHQ/awesome-claude-skills                        |
-| **claude-code-marketplace**            | Prompt improver for enriching vague prompts         | severity1/claude-code-prompt-improver                   |
-| **spring-m11n-marketplace**            | Automated Spring Boot 4.x migrations                | agentic-incubator/java-spring-modernization-marketplace |
-| **everything-claude-code**             | Comprehensive Claude Code resources and examples    | affaan-m/everything-claude-code                         |
-| **claude-code-plugins**                | Anthropic's official Claude Code plugins            | anthropics/claude-code                                  |
+```json
+"my-plugin@sindri-standalone": true
+```
 
 ### File Locations
 
-- **Claude Settings**: `~/.claude/settings.json` (merged configuration)
-- **Local Template**: `marketplaces.local.json` (full list, 10 marketplaces)
-- **CI Template**: `marketplaces.ci.json` (CI testing, 3 marketplaces)
-- **Default Settings**: Extension includes `default-settings.json` (model/thinking config)
+| File                                                | Purpose                                                  |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| `marketplaces.local.json`                           | Marketplace configuration (local, 9 GitHub marketplaces) |
+| `marketplaces.ci.json`                              | Marketplace configuration (CI, 3 marketplaces)           |
+| `sindri-standalone/.claude-plugin/marketplace.json` | Local marketplace wrapping standalone plugins            |
+| `default-settings.json`                             | Default Claude settings (model/thinking config)          |
+| `install.sh`                                        | Registers sindri-standalone marketplace via Claude CLI   |
+| `~/.claude/settings.json`                           | Merged output (marketplaces + settings)                  |
 
-### Environment-Aware Configuration
+## Usage
 
-The extension automatically selects the appropriate template based on environment:
+### Manual Plugin Management
 
-**Local Environment** (default):
+```bash
+# Browse and install plugins interactively
+claude /plugin
 
-- Uses `marketplaces.local.json` (10 marketplaces)
-- Full marketplace collection for development
+# List all registered marketplaces
+claude /plugin marketplace list
 
-**CI Environment** (`CI=true` or `GITHUB_ACTIONS=true`):
+# List installed plugins
+claude /plugin list
 
-- Uses `marketplaces.ci.json` (3 marketplaces)
-- Minimal set for reliable CI testing
+# Install a standalone plugin directly
+claude plugin install owner/repo
 
-CI Test Marketplaces:
+# Install a plugin from a marketplace
+claude /plugin install plugin-name@marketplace-name
 
-- beads-marketplace
-- cc-blueprint-toolkit
-- claude-equity-research-marketplace
+# Uninstall plugin
+claude /plugin uninstall plugin-name
+```
 
-## How It Works
+### Discovering More Plugins
 
-### Workflow Overview
+The pre-enabled plugins are a curated starting set. Each marketplace may contain additional plugins beyond what is pre-enabled. Browse individual marketplace repositories for full plugin catalogs.
 
-1. **Template Selection**:
-   - Extension checks `CI` and `GITHUB_ACTIONS` environment variables
-   - Selects `marketplaces.local.json` (local) or `marketplaces.ci.json` (CI)
-
-2. **JSON Merging**:
-   - V3 configure system merges selected template into `~/.claude/settings.json`
-   - Uses native deep merge (no external tools required)
-   - Preserves other Claude Code settings (model, thinking mode, etc.)
-
-3. **Automatic Installation**:
-   - Claude Code reads `extraKnownMarketplaces` and `enabledPlugins`
-   - Automatically clones marketplace repositories
-   - Installs specified plugins on next invocation
-   - No manual CLI commands required
-
-## Extension Details
-
-### Metadata
-
-- **Name**: claude-marketplace
-- **Version**: 2.0.0
-- **Category**: claude
-- **Install Method**: script
-- **Upgrade Strategy**: none
-
-### Dependencies
-
-- `claude` CLI (pre-installed in base Docker image)
-- No external tool dependencies (yq/jq not required)
+```bash
+claude /plugin marketplace list
+claude /plugin search <keyword>
+```
 
 ## Troubleshooting
 
 ### settings.json Validation Fails
-
-**Symptom**: Claude Code reports invalid settings
-
-**Solution**:
 
 ```bash
 # Validate JSON syntax
@@ -236,157 +218,34 @@ cat ~/.claude/settings.json | jq empty
 # If corrupt, start fresh
 rm ~/.claude/settings.json
 sindri extension install claude-marketplace
-
-# Verify merge
-cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
 ```
 
-### Marketplace Configuration Not Appearing
+### Standalone Plugin Not Installing
 
-**Symptom**: settings.json exists but has no marketplace configuration
-
-**Solution**:
+If the sindri-standalone marketplace fails to register during `install.sh`, register it manually:
 
 ```bash
-# Reinstall to merge JSON templates
-sindri extension install claude-marketplace
-
-# Verify merge
-cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
-
-# Check environment variable (should show selected template)
-env | grep -E '^(CI|GITHUB_ACTIONS)='
+claude plugin marketplace add /path/to/sindri-standalone
+claude plugin install seine@sindri-standalone
 ```
 
+This may happen if the Claude CLI isn't authenticated yet during initial setup.
+
 ### Wrong Template Applied
-
-**Symptom**: CI template used in local environment or vice versa
-
-**Solution**:
 
 ```bash
 # Check environment variables
 echo "CI=${CI:-<not set>}"
 echo "GITHUB_ACTIONS=${GITHUB_ACTIONS:-<not set>}"
 
-# Unset if incorrectly set
+# Unset if incorrectly set, then reinstall
 unset CI GITHUB_ACTIONS
-
-# Reinstall
 sindri extension install claude-marketplace
 ```
-
-## Customization
-
-### Creating Custom Templates
-
-To customize marketplace configuration:
-
-1. **Copy existing template**:
-
-   ```bash
-   cd v3/extensions/claude-marketplace
-   cp marketplaces.local.json marketplaces.custom.json
-   ```
-
-2. **Edit JSON configuration**:
-
-   ```json
-   {
-     "$schema": "https://json.schemastore.org/claude-code-settings.json",
-     "extraKnownMarketplaces": {
-       "my-custom-marketplace": {
-         "source": {
-           "source": "github",
-           "repo": "myorg/my-marketplace"
-         }
-       }
-     },
-     "enabledPlugins": {
-       "my-plugin@my-custom-marketplace": true
-     }
-   }
-   ```
-
-3. **Update extension.yaml** to reference custom template
-
-4. **Reinstall**:
-
-   ```bash
-   sindri extension install claude-marketplace
-   ```
-
-### Multiple Source Types
-
-The JSON configuration supports different source types:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "github-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "owner/repository"
-      }
-    },
-    "git-marketplace": {
-      "source": {
-        "source": "git",
-        "url": "https://gitlab.com/company/plugins.git"
-      }
-    },
-    "local-marketplace": {
-      "source": {
-        "source": "directory",
-        "path": "/path/to/marketplace"
-      }
-    }
-  }
-}
-```
-
-## Migration from YAML-based Version
-
-If you're upgrading from a previous version that used YAML configuration:
-
-### What Changed
-
-- **YAML templates removed**: No more `marketplaces.yml.example` files
-- **JSON templates added**: `marketplaces.local.json` and `marketplaces.ci.json`
-- **No conversion needed**: Templates merge directly into settings.json
-- **No external tools**: yq/jq no longer required
-
-### Migration Steps
-
-1. **Note your current marketplaces** (if you customized the YAML):
-
-   ```bash
-   # View current settings
-   cat ~/.claude/settings.json | jq '.extraKnownMarketplaces, .enabledPlugins'
-   ```
-
-2. **Upgrade the extension**:
-
-   ```bash
-   sindri extension install claude-marketplace
-   ```
-
-3. **Verify configuration** (should be preserved or enhanced):
-
-   ```bash
-   extension-manager status claude-marketplace
-   ```
-
-4. **Clean up old files** (optional):
-
-   ```bash
-   rm -f ~/config/marketplaces.yml
-   ```
 
 ## Removal
 
 ```bash
-# Uninstall claude-marketplace
 sindri extension remove claude-marketplace
 
 # Note: Marketplace configuration in settings.json is preserved
@@ -394,82 +253,14 @@ sindri extension remove claude-marketplace
 # Edit ~/.claude/settings.json and remove extraKnownMarketplaces and enabledPlugins sections
 ```
 
-## Examples
+## Related Extensions
 
-### Basic Workflow
-
-```bash
-# 1. Install extension (merges JSON templates into settings.json)
-sindri extension install claude-marketplace
-
-# 2. Invoke Claude (automatic marketplace/plugin installation)
-claude
-
-# 3. Verify installation
-claude /plugin list
-claude /plugin marketplace list
-```
-
-### Viewing Current Configuration
-
-```bash
-# View settings.json
-cat ~/.claude/settings.json | jq .
-
-# View just marketplaces
-cat ~/.claude/settings.json | jq '.extraKnownMarketplaces'
-
-# View just enabled plugins
-cat ~/.claude/settings.json | jq '.enabledPlugins'
-
-# Use extension status command
-extension-manager status claude-marketplace
-```
-
-### CI Testing
-
-```bash
-# Test with CI environment
-export CI=true
-sindri extension install claude-marketplace
-
-# Verify only 3 marketplaces configured
-cat ~/.claude/settings.json | jq '.extraKnownMarketplaces | length'
-# Should output: 3
-
-# Unset for local development
-unset CI
-sindri extension install claude-marketplace
-
-# Verify full marketplace list
-cat ~/.claude/settings.json | jq '.extraKnownMarketplaces | length'
-# Should output: 10
-```
+- **claude-cli** — Claude Code CLI (required dependency)
+- **openskills** — OpenSkills CLI for Agent Skills management
+- **nodejs** — Node.js runtime (recommended for many plugins)
 
 ## Resources
 
-- **Claude Code Plugin Marketplace**: https://claudecodemarketplace.com/
-- **Plugin Marketplace Docs**: https://docs.claude.com/en/docs/claude-code/plugin-marketplaces
-- **Settings Configuration**: https://docs.claude.com/en/docs/claude-code/settings
+- **Plugin Marketplace Docs**: https://code.claude.com/docs/en/plugin-marketplaces
+- **Plugin Settings**: https://code.claude.com/docs/en/settings#plugin-settings
 - **JSON Schema**: https://json.schemastore.org/claude-code-settings.json
-- **Claude Code Documentation**: https://docs.claude.com/en/docs/claude-code
-
-## Related Extensions
-
-- **claude** - Claude Code CLI (required dependency)
-- **openskills** - OpenSkills CLI for Agent Skills management
-- **nodejs** - Node.js runtime (recommended for many plugins)
-
-## Support
-
-For issues specific to:
-
-- **Claude CLI**: https://docs.claude.com/en/docs/claude-code
-- **Sindri integration**: https://github.com/pacphi/sindri/issues
-- **Specific plugins**: Check individual plugin repositories
-
-## License
-
-This extension is part of the Sindri project. See the [Sindri repository](https://github.com/pacphi/sindri) for license information.
-
-Individual plugins have their own licenses - check each plugin's repository for details.

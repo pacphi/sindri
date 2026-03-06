@@ -10,11 +10,10 @@ mkdir -p "$LOG_DIR"
 LOG_FILE="${LOG_DIR}/plugin-install.log"
 PREFIX="[ruflo]"
 
-# Plugin list (9 original + 6 new official)
+# Plugin list (12 working + 3 broken upstream)
 PLUGINS=(
   "@claude-flow/plugin-gastown-bridge"
   "@claude-flow/plugin-prime-radiant"
-  "@claude-flow/plugin-code-intelligence"
   "@claude-flow/plugin-test-intelligence"
   "@claude-flow/plugin-perf-optimizer"
   "@claude-flow/plugin-neural-coordination"
@@ -22,11 +21,13 @@ PLUGINS=(
   "@claude-flow/plugin-quantum-optimizer"
   "@claude-flow/teammate-plugin"
   "@claude-flow/embeddings"
-  "@claude-flow/security"
   "@claude-flow/claims"
-  "@claude-flow/neural"
   "@claude-flow/plugins"
   "@claude-flow/performance"
+  # --- Broken upstream deps (uncomment when fixed on npm) ---
+  # "@claude-flow/plugin-code-intelligence"  # E404: depends on unpublished @claude-flow/ruvector-upstream
+  # "@claude-flow/security"                  # ETARGET: peer dep needs @claude-flow/security@>=3.0.0, only alpha on npm
+  # "@claude-flow/neural"                    # ETARGET: peer dep needs @claude-flow/memory@>=3.0.0, only alpha on npm
 )
 
 # Counters
@@ -57,12 +58,12 @@ echo "$PREFIX Installing ${#PLUGINS[@]} core plugins..." | tee -a "$LOG_FILE"
 for plugin in "${PLUGINS[@]}"; do
   echo "  Installing $plugin..." | tee -a "$LOG_FILE"
 
-  if npx ruflo@latest plugins install -n "$plugin" >> "$LOG_FILE" 2>&1; then
+  if npx ruflo@latest plugins install --name "$plugin" >> "$LOG_FILE" 2>&1; then
     echo "  ✓ $plugin installed" | tee -a "$LOG_FILE"
-    ((SUCCESS_COUNT++))
+    ((++SUCCESS_COUNT))
   else
     echo "  ✗ $plugin failed" | tee -a "$LOG_FILE"
-    ((FAIL_COUNT++))
+    ((++FAIL_COUNT))
     FAILED_PLUGINS+=("$plugin")
   fi
 done
@@ -82,7 +83,7 @@ if [ $FAIL_COUNT -gt 0 ]; then
   done
   echo "" | tee -a "$LOG_FILE"
   echo "To retry failed plugins, run:" | tee -a "$LOG_FILE"
-  echo "  npx ruflo@latest plugins install -n <plugin-name>" | tee -a "$LOG_FILE"
+  echo "  npx ruflo@latest plugins install --name <plugin-name>" | tee -a "$LOG_FILE"
 fi
 
 echo "" | tee -a "$LOG_FILE"

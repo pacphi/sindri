@@ -100,9 +100,6 @@ capabilities:
         description: "Direct API features"
   # Lifecycle hooks
   hooks:
-    pre-install:
-      command: "echo 'Preparing claude-flow installation...'"
-      description: "Pre-installation checks"
     post-install:
       command: "claude-flow --version"
       description: "Verify claude-flow installation"
@@ -226,18 +223,12 @@ capabilities:
       - name: "unknown-origin"
         detected-version: "unknown"
         installing-version: "2.7.47"
-        action: stop
+        action: proceed
         message: |
-          ⚠️  Existing .claude directory detected (unknown origin)
+          Existing .claude directory detected (unknown origin).
 
-          Your project has a .claude directory that doesn't match
-          known Claude Flow V2 or V3 structure.
-
-          Options:
-            1. Backup and reinitialize: mv .claude .claude.backup && claude-flow init --force
-            2. Skip initialization: (do nothing)
-
-          Skipping automatic initialization for safety.
+          Claude Flow V2 will merge into the existing .claude directory
+          without overwriting existing configuration files.
 bom:
   tools:
     - name: claude-flow

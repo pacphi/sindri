@@ -20,7 +20,7 @@ MISE_HOME="${HOME:-/alt/home/developer}"
 # Create global mise config
 # - yes = true: auto-accept all prompts (trust, install confirmations)
 # - trusted_config_paths: auto-trust extension configs in conf.d
-# - npm.package_manager = "pnpm": use pnpm for all npm: backend packages (faster, more reliable)
+# - npm section: uses npm (default) for mise's npm: backend (pnpm v10 blocks native build scripts)
 cat > ~/.config/mise/config.toml << EOF
 [settings]
 experimental = true
@@ -39,10 +39,11 @@ yes = true
 trusted_config_paths = ["${MISE_HOME}/.config/mise/conf.d"]
 
 [settings.npm]
-# Use pnpm for all npm: backend package installations
-# pnpm is faster, more disk-efficient, and more secure than npm
-# Requires pnpm to be available (provided by corepack via MISE_NODE_COREPACK below)
-package_manager = "pnpm"
+# Use npm (default) for mise's npm: backend package installations.
+# pnpm v10 blocks native build scripts (better-sqlite3, hnswlib-node, etc.)
+# with no viable workaround for mise's global install context.
+# npm runs all build scripts and is the most compatible choice.
+# Note: project-level pnpm is unaffected — corepack provides it via PATH.
 
 [settings.python]
 # Force precompiled binaries only (no compilation)
@@ -52,9 +53,7 @@ compile = false
 
 [env]
 MISE_USE_TOML = "1"
-# Enable corepack after Node.js installation — creates pnpm/yarn shims
-# alongside node so they are available via mise shims (always in PATH)
-# See: https://mise.jdx.dev/lang/node.html
+# Enable corepack — makes pnpm/yarn available for project-level use
 MISE_NODE_COREPACK = "1"
 # npm timeout configuration (in milliseconds)
 # These apply globally to all npm-based tool installations

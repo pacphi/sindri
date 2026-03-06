@@ -1,7 +1,7 @@
 ---
 metadata:
   name: ruflo
-  version: 3.5.2
+  version: 3.5.14
   description: "Ruflo - AI Agent Orchestration Platform with multi-agent swarms, HNSW search, and 215 MCP tools"
   category: claude
   author: ruvnet
@@ -251,7 +251,7 @@ capabilities:
     scenarios:
       - name: "v2-to-ruflo-upgrade"
         detected-version: "v2"
-        installing-version: "3.5.2"
+        installing-version: "3.5.14"
         action: stop
         message: |
           Claude Flow V2 installation detected.
@@ -271,7 +271,7 @@ capabilities:
           Skipping automatic initialization to prevent data loss.
       - name: "same-version-ruflo"
         detected-version: "ruflo"
-        installing-version: "3.5.2"
+        installing-version: "3.5.14"
         action: skip
         message: |
           Ruflo is already initialized.
@@ -280,7 +280,7 @@ capabilities:
             ruflo init --full --force
       - name: "agentic-qe-coexist"
         detected-version: "agentic-qe"
-        installing-version: "3.5.2"
+        installing-version: "3.5.14"
         action: proceed
         message: |
           Agentic QE detected as co-tenant.
@@ -289,28 +289,22 @@ capabilities:
           without overwriting agentic-qe configuration.
       - name: "unknown-origin"
         detected-version: "unknown"
-        installing-version: "3.5.2"
-        action: stop
+        installing-version: "3.5.14"
+        action: proceed
         message: |
           Existing .claude directory detected (unknown origin).
 
-          Your project has a .claude directory that doesn't match
-          known Claude Flow V2, V3, or Ruflo structure.
-
-          Options:
-            1. Backup and reinitialize: mv .claude .claude.backup && ruflo init --full --force
-            2. Skip initialization: (do nothing)
-
-          Skipping automatic initialization for safety.
+          Ruflo will merge into the existing .claude directory
+          without overwriting existing configuration files.
 bom:
   tools:
     - name: ruflo
-      version: "3.5.2"
+      version: "3.5.14"
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/ruflo
-      purl: pkg:npm/ruflo@3.5.2
+      purl: pkg:npm/ruflo@3.5.14
 docs:
   title: "Ruflo"
   overview: |

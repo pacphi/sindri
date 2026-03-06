@@ -59,7 +59,7 @@ V3 extensions are organized into the following categories:
 
 | Extension           | Version | Description                                                                     | Install Method |
 | ------------------- | ------- | ------------------------------------------------------------------------------- | -------------- |
-| **nodejs**          | 1.1.0   | Node.js LTS via mise with pnpm package manager (corepack)                       | mise           |
+| **nodejs**          | 1.1.0   | Node.js LTS via mise with corepack (pnpm/yarn available for projects)           | mise           |
 | **python**          | 1.2.0   | Python 3.14 with uv package manager via mise                                    | mise           |
 | **rust**            | 1.0.2   | Rust stable via rustup                                                          | script         |
 | **golang**          | 1.1.0   | Go 1.26 via mise                                                                | mise           |
@@ -93,7 +93,7 @@ V3 extensions are organized into the following categories:
 | **claude-code-mux**    | 1.0.0   | High-performance AI routing proxy with automatic failover across 18+ providers      | script         |
 | **claudish**           | 1.1.0   | Claude Code CLI proxy for OpenRouter models via local Anthropic API proxy           | mise           |
 | **claudeup**           | 1.1.0   | TUI tool for managing Claude Code plugins, MCPs, and configuration settings         | mise           |
-| **claude-marketplace** | 2.0.0   | Claude Code plugin marketplace integration via JSON configuration                   | script         |
+| **claude-marketplace** | 2.1.0   | Claude Code plugin marketplace integration via JSON configuration                   | script         |
 | **compahook**          | 1.0.0   | Persistent memory layer for Claude Code's /compact command                          | mise           |
 
 ### AI Agents

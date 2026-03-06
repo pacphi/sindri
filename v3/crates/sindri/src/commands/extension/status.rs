@@ -40,14 +40,17 @@ pub(super) async fn run(args: ExtensionStatusArgs) -> Result<()> {
         .get_all_latest_status()
         .context("Failed to get extension status")?;
 
-    // Filter by name if specified
+    // Filter by name if specified, and exclude removed extensions
     let entries: Vec<_> = if let Some(filter_name) = &args.name {
         status_map
             .iter()
             .filter(|(name, _)| *name == filter_name)
             .collect()
     } else {
-        status_map.iter().collect()
+        status_map
+            .iter()
+            .filter(|(_, s)| s.current_state != ExtensionState::Removed)
+            .collect()
     };
 
     if entries.is_empty() {
@@ -98,6 +101,7 @@ pub(super) async fn run(args: ExtensionStatusArgs) -> Result<()> {
                 ExtensionState::Installing => "installing".to_string(),
                 ExtensionState::Outdated => "outdated".to_string(),
                 ExtensionState::Removing => "removing".to_string(),
+                ExtensionState::Removed => "removed".to_string(),
             }
         };
 

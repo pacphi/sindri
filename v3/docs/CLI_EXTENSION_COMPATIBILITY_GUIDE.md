@@ -323,7 +323,7 @@ what upstream provides at install time.
 | Source     | Meaning                                                        |
 | ---------- | -------------------------------------------------------------- |
 | **mise**   | Installed and version-managed by [mise](https://mise.jdx.dev/) |
-| **npm**    | Installed via mise's npm backend (uses pnpm)                   |
+| **npm**    | Installed via mise's npm backend                               |
 | **script** | Custom install script (`install.sh`) with pinned version       |
 | **binary** | Direct binary download from GitHub releases                    |
 | **apt**    | System package manager (Ubuntu/Debian)                         |

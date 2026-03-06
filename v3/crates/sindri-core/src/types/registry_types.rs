@@ -154,6 +154,8 @@ pub enum ExtensionState {
     Installing,
     /// Being removed
     Removing,
+    /// Successfully removed
+    Removed,
 }
 
 /// Resolved extension list with dependency order

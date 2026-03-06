@@ -127,7 +127,7 @@ impl ExtensionExecutor {
     ///
     /// Returns `(InstallOutput, Result<()>)` — the output is always populated
     /// (even on failure) so callers can write log files regardless of outcome.
-    pub async fn install(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
+    pub async fn install(&self, extension: &Extension, force: bool) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
         info!("Installing extension: {}", name);
 
@@ -156,12 +156,12 @@ impl ExtensionExecutor {
 
         // Execute installation based on method
         let (mut output, result) = match extension.install.method {
-            InstallMethod::Mise => self.install_mise(extension).await,
+            InstallMethod::Mise => self.install_mise(extension, force).await,
             InstallMethod::Apt => self.install_apt(extension).await,
             InstallMethod::Binary => self.install_binary(extension).await,
             InstallMethod::Npm | InstallMethod::NpmGlobal => self.install_npm(extension).await,
             InstallMethod::Script => self.install_script(extension, timeout).await,
-            InstallMethod::Hybrid => self.install_hybrid(extension, timeout).await,
+            InstallMethod::Hybrid => self.install_hybrid(extension, timeout, force).await,
         };
 
         // Execute post-install hooks if installation succeeded
@@ -191,7 +191,11 @@ impl ExtensionExecutor {
     }
 
     /// Install via mise
-    async fn install_mise(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
+    async fn install_mise(
+        &self,
+        extension: &Extension,
+        force: bool,
+    ) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
         let mise_config = match extension.install.mise.as_ref() {
             Some(c) => c,
@@ -309,7 +313,12 @@ impl ExtensionExecutor {
 
         while retry_count < max_retries && !install_successful {
             let result = self
-                .run_mise_install(&config_path, Duration::from_secs(300), mise_path.as_deref())
+                .run_mise_install(
+                    &config_path,
+                    Duration::from_secs(300),
+                    mise_path.as_deref(),
+                    force,
+                )
                 .await;
 
             match result {
@@ -362,9 +371,28 @@ impl ExtensionExecutor {
         config_path: &Path,
         timeout: Duration,
         mise_path: Option<&str>,
+        force: bool,
     ) -> std::result::Result<InstallOutput, (InstallOutput, anyhow::Error)> {
         let mut cmd = Command::new("mise");
         cmd.arg("install");
+        if force {
+            cmd.arg("--force");
+            // mise install --force requires explicit TOOL@VERSION arguments.
+            // Parse them from the mise config file (TOML [tools] section).
+            if let Ok(content) = std::fs::read_to_string(config_path) {
+                if let Ok(toml) = content.parse::<toml::Table>() {
+                    if let Some(tools) = toml.get("tools").and_then(|t| t.as_table()) {
+                        for (tool, version) in tools {
+                            let ver = match version {
+                                toml::Value::String(s) => s.clone(),
+                                _ => continue,
+                            };
+                            cmd.arg(format!("{}@{}", tool, ver));
+                        }
+                    }
+                }
+            }
+        }
         cmd.current_dir(&self.workspace_dir);
         if let Some(path) = mise_path {
             cmd.env("PATH", path);
@@ -383,12 +411,10 @@ impl ExtensionExecutor {
         }
 
         // Ensure npm packages with native addons (e.g., sharp) install correctly.
-        // pnpm (used by mise for npm packages) may not run install scripts by default,
-        // and native addons need the correct platform/arch to download prebuilt binaries.
         cmd.env("npm_config_foreground_scripts", "true");
         cmd.env("SHARP_IGNORE_GLOBAL_LIBVIPS", "1");
 
-        // Set platform and arch so npm/pnpm downloads correct prebuilt native binaries.
+        // Set platform and arch so npm downloads correct prebuilt native binaries.
         // Without this, packages like sharp fail on ARM (aarch64) containers because
         // the install script can't determine the target architecture in mise's environment.
         let npm_arch = match std::env::consts::ARCH {
@@ -1238,6 +1264,7 @@ impl ExtensionExecutor {
         &self,
         extension: &Extension,
         timeout: u64,
+        force: bool,
     ) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
         info!("Installing {} via hybrid method...", name);
@@ -1270,7 +1297,7 @@ impl ExtensionExecutor {
             run_step!(self.install_apt(extension).await);
         }
         if extension.install.mise.is_some() {
-            run_step!(self.install_mise(extension).await);
+            run_step!(self.install_mise(extension, force).await);
         }
         if extension.install.npm.is_some() {
             run_step!(self.install_npm(extension).await);

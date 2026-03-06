@@ -22,7 +22,6 @@
   },
   "enabledPlugins": {
     "beads@beads-marketplace": true,
-    "bp@cc-blueprint-toolkit": true,
-    "trading-ideas@claude-equity-research-marketplace": true
+    "bp@cc-blueprint-toolkit": true
   }
 }

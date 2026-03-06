@@ -546,7 +546,7 @@ impl ProfileInstaller {
         let version = extension.metadata.version.clone();
 
         // Execute installation — returns (InstallOutput, Result<()>)
-        let (install_output, result) = self.executor.install(extension).await;
+        let (install_output, result) = self.executor.install(extension, false).await;
         let duration_secs = start_time.elapsed().as_secs();
 
         // Write log file before checking result (ensures logs exist even on failure)

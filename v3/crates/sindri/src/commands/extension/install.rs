@@ -143,7 +143,11 @@ async fn install_by_name(
     let spinner = output::spinner("Installing extension...");
 
     // Install extension
-    let result = distributor.install(&name, version.as_deref()).await;
+    let result = if force {
+        distributor.install_force(&name, version.as_deref()).await
+    } else {
+        distributor.install(&name, version.as_deref()).await
+    };
     let duration_secs = start_time.elapsed().as_secs();
 
     match result {

@@ -51,12 +51,12 @@ echo "$PREFIX Installing ${#PLUGINS[@]} core plugins..." | tee -a "$LOG_FILE"
 for plugin in "${PLUGINS[@]}"; do
   echo "  Installing $plugin..." | tee -a "$LOG_FILE"
 
-  if npx claude-flow@latest plugins install -n "$plugin" >> "$LOG_FILE" 2>&1; then
+  if npx claude-flow@latest plugins install --name "$plugin" >> "$LOG_FILE" 2>&1; then
     echo "  ✓ $plugin installed" | tee -a "$LOG_FILE"
-    ((SUCCESS_COUNT++))
+    ((++SUCCESS_COUNT))
   else
     echo "  ✗ $plugin failed" | tee -a "$LOG_FILE"
-    ((FAIL_COUNT++))
+    ((++FAIL_COUNT))
     FAILED_PLUGINS+=("$plugin")
   fi
 done
@@ -76,7 +76,7 @@ if [ $FAIL_COUNT -gt 0 ]; then
   done
   echo "" | tee -a "$LOG_FILE"
   echo "To retry failed plugins, run:" | tee -a "$LOG_FILE"
-  echo "  npx claude-flow@latest plugins install -n <plugin-name>" | tee -a "$LOG_FILE"
+  echo "  npx claude-flow@latest plugins install --name <plugin-name>" | tee -a "$LOG_FILE"
 fi
 
 echo "" | tee -a "$LOG_FILE"
