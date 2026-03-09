@@ -127,7 +127,7 @@ jobs:
       # MODIFIED: Build with fresh layers + push to GHCR
       - name: Build and push to GHCR
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: v2/Dockerfile

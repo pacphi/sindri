@@ -379,7 +379,7 @@ jobs:
       # - For development builds with bundled extensions, use v3/Dockerfile.dev
       - name: Build and push image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: v3/Dockerfile
