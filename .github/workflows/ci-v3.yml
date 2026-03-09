@@ -104,7 +104,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.17.6
+        uses: cargo-bins/cargo-binstall@v1.17.7
 
       - name: Install cargo-machete
         run: cargo binstall cargo-machete --no-confirm
@@ -230,7 +230,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.17.6
+        uses: cargo-bins/cargo-binstall@v1.17.7
 
       - name: Install cargo-llvm-cov
         run: cargo binstall cargo-llvm-cov --no-confirm --force
@@ -533,7 +533,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@v1.17.6
+        uses: cargo-bins/cargo-binstall@v1.17.7
 
       - name: Install cargo-audit
         run: cargo binstall cargo-audit --no-confirm
