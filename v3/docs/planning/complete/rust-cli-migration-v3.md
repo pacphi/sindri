@@ -256,7 +256,7 @@ globset = "0.4"
 sindri-rs/
 ├── Cargo.toml                     # Workspace manifest
 ├── Cargo.lock
-├── rust-toolchain.toml            # Rust 1.93+
+├── rust-toolchain.toml            # Rust 1.94+
 ├── .cargo/
 │   └── config.toml                # Cross-compilation
 │

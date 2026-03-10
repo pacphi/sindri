@@ -58,7 +58,7 @@ Separate Docker build into two distinct images:
 ┌─────────────────────────────────────────────────────────┐
 │ sindri:base-X.Y.Z (Build once per Rust version)        │
 ├─────────────────────────────────────────────────────────┤
-│ • Rust 1.93 toolchain (246MB)                           │
+│ • Rust 1.94 toolchain (246MB)                           │
 │ • cargo-chef installation                               │
 │ • System packages (apt-get update - SLOW!)              │
 │ • GitHub CLI                                            │
@@ -95,7 +95,7 @@ Separate Docker build into two distinct images:
 **Features:**
 
 - Multi-arch support (linux/amd64, linux/arm64)
-- Rust 1.93 toolchain
+- Rust 1.94 toolchain
 - cargo-chef installation
 - System packages (Ubuntu 24.04)
 - GitHub CLI v2.87.2
@@ -145,7 +145,7 @@ docker buildx build \
 
 - Builds for linux/amd64 and linux/arm64 in parallel
 - Pushes to GHCR as `ghcr.io/pacphi/sindri:base-X.Y.Z`
-- Tags: `base-latest`, `base-rust1.93`, `base-YYYY.MM.DD`
+- Tags: `base-latest`, `base-rust1.94`, `base-YYYY.MM.DD`
 - Tests both architectures
 - Cleans up old versions (keeps last 5)
 - Generates build summary
@@ -584,7 +584,7 @@ make v3-cache-status
 1. Consider base image variants (minimal, full)
 2. Optimize for even faster builds if possible
 3. Share learnings with community
-4. Plan for Rust 1.93+ upgrade
+4. Plan for Rust 1.94+ upgrade
 
 ---
 

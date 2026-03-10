@@ -172,21 +172,21 @@ Cleans up provider resources after deployment.
 
 ## Path-Based Triggers
 
-| Changed Path                  | Triggers                    | Example                                 |
-| ----------------------------- | --------------------------- | --------------------------------------- |
-| `v2/**`                       | `ci-v2.yml`                 | Changes to v2 code, scripts, extensions |
-| `v3/**`                       | `ci-v3.yml`                 | Changes to v3 Rust code, extensions     |
-| `.github/workflows/ci-v2.yml` | `ci-v2.yml`                 | Self-trigger for workflow changes       |
-| `.github/workflows/ci-v3.yml` | `ci-v3.yml`                 | Self-trigger for workflow changes       |
-| `.github/actions/shared/**`   | `ci-v2.yml`                 | Shared action changes (build, deploy)   |
-| `.github/actions/v3/**`       | `ci-v3.yml`                 | v3 action changes                       |
-| `.github/actions/packer/**`   | `ci-v3.yml`                 | Packer VM image action changes          |
-| `.github/workflows/v3-*.yml`  | `ci-v3.yml`                 | v3 extension testing workflows          |
-| `.github/scripts/v3/**`       | `ci-v3.yml`                 | v3 scripts (discovery, k3d management)  |
-| `package.json`                | `ci-v2.yml`                 | Root tooling affects v2 validation      |
-| Tags `v2.*.*`                 | `release-v2.yml`            | v2 release trigger                      |
-| Tags `v3.*.*`                 | `release-v3.yml`            | v3 release trigger                      |
-| `v3/Dockerfile.base`          | `build-base-image.yml`      | Base image Dockerfile changes           |
+| Changed Path                  | Triggers               | Example                                 |
+| ----------------------------- | ---------------------- | --------------------------------------- |
+| `v2/**`                       | `ci-v2.yml`            | Changes to v2 code, scripts, extensions |
+| `v3/**`                       | `ci-v3.yml`            | Changes to v3 Rust code, extensions     |
+| `.github/workflows/ci-v2.yml` | `ci-v2.yml`            | Self-trigger for workflow changes       |
+| `.github/workflows/ci-v3.yml` | `ci-v3.yml`            | Self-trigger for workflow changes       |
+| `.github/actions/shared/**`   | `ci-v2.yml`            | Shared action changes (build, deploy)   |
+| `.github/actions/v3/**`       | `ci-v3.yml`            | v3 action changes                       |
+| `.github/actions/packer/**`   | `ci-v3.yml`            | Packer VM image action changes          |
+| `.github/workflows/v3-*.yml`  | `ci-v3.yml`            | v3 extension testing workflows          |
+| `.github/scripts/v3/**`       | `ci-v3.yml`            | v3 scripts (discovery, k3d management)  |
+| `package.json`                | `ci-v2.yml`            | Root tooling affects v2 validation      |
+| Tags `v2.*.*`                 | `release-v2.yml`       | v2 release trigger                      |
+| Tags `v3.*.*`                 | `release-v3.yml`       | v3 release trigger                      |
+| `v3/Dockerfile.base`          | `build-base-image.yml` | Base image Dockerfile changes           |
 
 ## CI Workflows
 
@@ -350,7 +350,7 @@ git push origin v3.0.0
 
 | Input            | Default  | Description             |
 | ---------------- | -------- | ----------------------- |
-| `rust_version`   | `1.93`   | Rust toolchain version  |
+| `rust_version`   | `1.94`   | Rust toolchain version  |
 | `ubuntu_version` | `24.04`  | Ubuntu base version     |
 | `gh_version`     | `2.87.2` | GitHub CLI version      |
 | `push_to_ghcr`   | `true`   | Whether to push to GHCR |

@@ -25,7 +25,7 @@
 # Build Arguments
 # ------------------------------------------------------------------------------
 ARG UBUNTU_VERSION=24.04
-ARG RUST_VERSION=1.93
+ARG RUST_VERSION=1.94
 ARG GH_VERSION=2.87.3
 ARG COSIGN_VERSION=3.0.5
 
