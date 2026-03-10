@@ -201,6 +201,7 @@ pub(super) async fn run(args: ExtensionValidateArgs) -> Result<()> {
                     mise: None,
                 },
                 remove: None,
+                service: None,
                 upgrade: None,
                 capabilities: None,
                 deprecation: None,

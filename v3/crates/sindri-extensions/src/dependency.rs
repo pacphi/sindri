@@ -114,6 +114,7 @@ mod tests {
                     mise: None,
                 },
                 remove: None,
+                service: None,
                 upgrade: None,
                 capabilities: None,
                 deprecation: None,

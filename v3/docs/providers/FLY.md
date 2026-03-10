@@ -576,6 +576,66 @@ flyctl scale memory 8192 -a <app-name>
 | Sydney      | syd  | Australia                 |
 | Tokyo       | nrt  | Asia                      |
 
+## Hardcoded Defaults
+
+> **For maintainers:** The following values are either hardcoded in the generated `fly.toml` (not configurable via `sindri.yaml`) or are fallback defaults applied when a field is omitted from the config. This section documents where each value originates.
+
+### Non-Configurable Template Values
+
+These are baked into the Tera template and cannot be changed via `sindri.yaml`.
+
+**Source:** `sindri-providers/src/templates/fly.toml.tera`
+
+| Value                                 | Template Line | Description                      |
+| ------------------------------------- | ------------- | -------------------------------- |
+| `DEV_USER = "developer"`              | 27            | Container username               |
+| `SSH_PORT = "2222"`                   | 28            | Internal SSH daemon port         |
+| `TZ = "UTC"`                          | 29            | Container timezone               |
+| `INIT_WORKSPACE = "true"`             | 37            | Always initializes workspace     |
+| `source = "home_data"`                | 47            | Fly volume name                  |
+| `destination = "/alt/home/developer"` | 48            | Volume mount path                |
+| `snapshot_retention = 7`              | 50            | Volume snapshot retention (days) |
+| `auto_extend_size_threshold = 80`     | 51            | Extend at 80% capacity           |
+| `auto_extend_size_increment = "5GB"`  | 52            | Grow by 5GB per extension        |
+| `auto_extend_size_limit = "250GB"`    | 53            | Maximum auto-extended size       |
+| `protocol = "tcp"`                    | 62            | Service protocol                 |
+| `internal_port = 2222`                | 63            | SSH internal port                |
+| `min_machines_running = 0`            | 66            | Allows scale to zero             |
+| TCP check `interval = "30s"`          | 72            | Health check interval            |
+| TCP check `timeout = "10s"`           | 73            | Health check timeout             |
+| TCP check `grace_period = "30s"`      | 74            | Health check grace period        |
+| `strategy = "rolling"`                | 94            | Deploy strategy                  |
+| Health check `port = 2222`            | 101           | SSH health check port            |
+
+### Configurable Fallback Defaults
+
+These defaults are applied when the corresponding field is omitted from `sindri.yaml`. Override them by setting the value in your config.
+
+**Source:** `sindri-providers/src/fly.rs` — `get_fly_config()`
+
+| Field               | Default              | Line         | Override in `sindri.yaml`           |
+| ------------------- | -------------------- | ------------ | ----------------------------------- |
+| Region              | `"sjc"`              | 94           | `providers.fly.region`              |
+| Organization        | `"personal"`         | 97           | `providers.fly.organization`        |
+| CPU kind            | `"shared"`           | 100          | `providers.fly.cpuKind`             |
+| CPUs                | `2`                  | 65           | `deployment.resources.cpus`         |
+| Memory              | `"2GB"` (2048 MB)    | 62–63        | `deployment.resources.memory`       |
+| SSH port (external) | `10022`              | 104          | `providers.fly.sshPort`             |
+| Auto-stop           | `true` → `"suspend"` | 105, 149–153 | `providers.fly.autoStopMachines`    |
+| Auto-start          | `true`               | 106          | `providers.fly.autoStartMachines`   |
+| Volume size         | `10` GB              | 90           | `deployment.volumes.workspace.size` |
+| GPU tier            | `"gpu-small"`        | 81           | `deployment.gpu.tier`               |
+
+### Computed / Derived Values
+
+These are calculated at runtime and cannot be directly set.
+
+| Value                                 | Computation                                 | Source             |
+| ------------------------------------- | ------------------------------------------- | ------------------ |
+| `swap_size_mb`                        | `max(memory_mb / 2, 2048)`                  | `fly.rs:68`        |
+| `auto_stop_mode`                      | `"suspend"` if auto_stop else `"off"`       | `fly.rs:149–153`   |
+| GPU config (guest type, CPUs, memory) | Mapped from tier via `get_fly_gpu_config()` | `fly.rs:1083–1091` |
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

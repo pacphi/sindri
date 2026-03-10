@@ -27,6 +27,11 @@ pub struct Extension {
     #[serde(default)]
     pub remove: Option<RemoveConfig>,
 
+    /// Service/daemon configuration for extensions that run background processes.
+    /// The entrypoint starts all registered services on every container boot.
+    #[serde(default)]
+    pub service: Option<ServiceConfig>,
+
     /// Upgrade configuration
     #[serde(default)]
     pub upgrade: Option<UpgradeConfig>,
@@ -664,6 +669,80 @@ pub struct ScriptRemoveConfig {
 
 fn default_remove_timeout() -> u32 {
     120
+}
+
+/// Service/daemon configuration for extensions that run background processes.
+/// The entrypoint starts all registered services on every container boot.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceConfig {
+    /// Whether the service should auto-start on container boot
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+
+    /// Start configuration
+    pub start: ServiceCommandConfig,
+
+    /// Stop configuration (for graceful shutdown on remove/stop)
+    #[serde(default)]
+    pub stop: Option<ServiceStopConfig>,
+
+    /// Readiness check
+    #[serde(default)]
+    pub readiness: Option<ServiceReadinessConfig>,
+
+    /// Environment variables required to start (skip if any are missing)
+    #[serde(default, rename = "requires-env")]
+    pub requires_env: Vec<String>,
+}
+
+/// Start command configuration for a service
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceCommandConfig {
+    /// Command to run (executed via bash -c)
+    pub command: String,
+
+    /// Arguments
+    #[serde(default)]
+    pub args: Vec<String>,
+
+    /// PID file path (convention: ~/.sindri/<name>.pid)
+    #[serde(default)]
+    pub pidfile: Option<String>,
+
+    /// Log file path (convention: ~/.sindri/logs/<name>.log)
+    #[serde(default)]
+    pub logfile: Option<String>,
+}
+
+/// Stop configuration for a service
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceStopConfig {
+    /// Command to stop the service (if not set, uses SIGTERM to pidfile PID)
+    #[serde(default)]
+    pub command: Option<String>,
+
+    /// Seconds to wait before SIGKILL after SIGTERM
+    #[serde(default = "default_stop_timeout")]
+    pub timeout: u32,
+}
+
+/// Readiness check configuration for a service
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceReadinessConfig {
+    /// Command to check if service is ready (exit 0 = ready)
+    pub check: String,
+
+    /// Seconds to wait for readiness
+    #[serde(default = "default_readiness_timeout")]
+    pub timeout: u32,
+}
+
+fn default_stop_timeout() -> u32 {
+    10
+}
+
+fn default_readiness_timeout() -> u32 {
+    5
 }
 
 /// Upgrade configuration

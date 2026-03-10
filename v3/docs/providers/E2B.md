@@ -526,6 +526,56 @@ e2b team list
 e2b team switch <team-name>
 ```
 
+## Hardcoded Defaults
+
+> **For maintainers:** The following values are either hardcoded in the generated `e2b.toml` / Dockerfile (not configurable via `sindri.yaml`) or are fallback defaults applied when a field is omitted from the config.
+
+### Non-Configurable Template Values
+
+**Source:** `sindri-providers/src/templates/e2b.toml.tera`
+
+| Value                                                                         | Template Line | Description                  |
+| ----------------------------------------------------------------------------- | ------------- | ---------------------------- |
+| `dockerfile = "e2b.Dockerfile"`                                               | 7             | Fixed Dockerfile filename    |
+| `start_cmd = "/docker/scripts/entrypoint.sh echo 'Sindri environment ready'"` | 16            | Hardcoded entrypoint command |
+
+**Source:** `sindri-providers/src/e2b.rs` — Dockerfile generation
+
+| Value                                         | Line     | Description                           |
+| --------------------------------------------- | -------- | ------------------------------------- |
+| `ENV E2B_PROVIDER=true`                       | 328      | Provider marker (always set)          |
+| `ENV INIT_WORKSPACE=true`                     | 342      | Always initializes workspace          |
+| `WORKDIR /alt/home/developer/workspace`       | 367      | Fixed working directory               |
+| `USER developer`                              | 369      | Always switches to developer user     |
+| Shell `/bin/bash`                             | 571      | Terminal connection shell             |
+| DinD mode `"none"`                            | 392      | E2B does not support Docker-in-Docker |
+| Output directory `.e2b/template/`             | 300, 306 | Fixed output structure                |
+| Metadata keys `sindri_name`, `sindri_profile` | 486–487  | Sandbox metadata identifiers          |
+
+### Configurable Fallback Defaults
+
+**Source:** `sindri-providers/src/e2b.rs` — `get_e2b_config()`
+
+| Field           | Default                             | Line     | Override in `sindri.yaml`     |
+| --------------- | ----------------------------------- | -------- | ----------------------------- |
+| Memory          | `"2GB"` (2048 MB)                   | 70–71    | `deployment.resources.memory` |
+| CPUs            | `2`                                 | 73       | `deployment.resources.cpus`   |
+| Profile         | `"base"`                            | 80       | `extensions.profile`          |
+| Timeout         | `300` seconds                       | 107      | `providers.e2b.timeout`       |
+| Auto-pause      | `true`                              | 108      | `providers.e2b.autoPause`     |
+| Auto-resume     | `true`                              | 109      | `providers.e2b.autoResume`    |
+| Reuse template  | `true`                              | 110      | `providers.e2b.reuseTemplate` |
+| Build on deploy | `false`                             | 111      | `providers.e2b.buildOnDeploy` |
+| Dockerfile name | `"Dockerfile.dev"` / `"Dockerfile"` | 282, 284 | Selected by build mode        |
+
+### Computed / Derived Values
+
+| Value             | Computation                                | Source         |
+| ----------------- | ------------------------------------------ | -------------- |
+| `template_alias`  | Lowercase name, non-alphanumeric → hyphens | `e2b.rs:63–67` |
+| `timeout_ms`      | `timeout * 1000`                           | `e2b.rs:481`   |
+| On-timeout action | `"pause"` if auto_pause else none          | `e2b.rs:505`   |
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

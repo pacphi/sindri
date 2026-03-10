@@ -667,6 +667,73 @@ sudo usermod -aG docker $USER
 
 **$0** - Uses local machine resources only.
 
+## Hardcoded Defaults
+
+> **For maintainers:** The following values are either hardcoded in the generated `docker-compose.yml` (not configurable via `sindri.yaml`) or are fallback defaults applied when a field is omitted from the config.
+
+### Non-Configurable Template Values
+
+**Source:** `sindri-providers/src/templates/docker-compose.yml.tera`
+
+| Value                                                                      | Template Line  | Description                                  |
+| -------------------------------------------------------------------------- | -------------- | -------------------------------------------- |
+| `INIT_WORKSPACE=true`                                                      | 28             | Always initializes workspace                 |
+| `/alt/home/developer`                                                      | 16             | Home directory volume mount path             |
+| `/var/lib/docker`                                                          | 18             | Docker daemon storage (privileged DinD mode) |
+| `/var/run/docker.sock`                                                     | 21             | Docker socket path (socket DinD mode)        |
+| `runtime: nvidia`                                                          | 47             | GPU runtime name                             |
+| GPU capabilities `[gpu, compute, utility]`                                 | 57             | NVIDIA capabilities list                     |
+| `/tmp:size=2G,mode=1777,noexec,nosuid,nodev`                               | 68, 72, 78, 94 | tmpfs mount (all modes)                      |
+| `no-new-privileges:true`                                                   | 76             | Security option (socket mode)                |
+| Group `docker`                                                             | 80             | Added group in socket mode                   |
+| Capabilities drop `ALL`, add `CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID` | 85–92          | Linux capabilities (none mode)               |
+| `stdin_open: true`                                                         | 96             | Interactive stdin                            |
+| `tty: true`                                                                | 97             | Pseudo-TTY                                   |
+| `driver: local`                                                            | 113, 116       | Volume driver type                           |
+
+**Source:** `sindri-providers/src/templates/docker-compose.dind.yml.tera`
+
+| Value                           | Template Line | Description                            |
+| ------------------------------- | ------------- | -------------------------------------- |
+| `runtime: sysbox-runc`          | 11            | Sysbox runtime name                    |
+| `privileged: true`              | 13            | Privileged mode (when DinD privileged) |
+| `INIT_WORKSPACE=true`           | 27            | Always initializes workspace           |
+| `stdin_open: true`, `tty: true` | 43–44         | Interactive terminal                   |
+| `driver: local`                 | 52            | Volume driver type                     |
+
+### Configurable Fallback Defaults
+
+**Source:** `sindri-providers/src/templates/context.rs` — `from_config()`
+
+| Field               | Default          | Line    | Override in `sindri.yaml`             |
+| ------------------- | ---------------- | ------- | ------------------------------------- |
+| Memory              | `"4GB"`          | 97      | `deployment.resources.memory`         |
+| CPUs                | `2`              | 100     | `deployment.resources.cpus`           |
+| Volume size         | `"10GB"`         | 109     | `deployment.volumes.workspace.size`   |
+| GPU type            | `"nvidia"`       | 118     | `deployment.resources.gpu.type`       |
+| Network mode        | `"bridge"`       | 133     | `providers.docker.network`            |
+| DinD storage size   | `"20GB"`         | 153     | `providers.docker.dind.storageSize`   |
+| DinD storage driver | `"auto"`         | 154     | `providers.docker.dind.storageDriver` |
+| Secrets file        | `".env.secrets"` | 197     | Not configurable                      |
+| Privileged          | `false`          | 128–129 | `providers.docker.privileged`         |
+
+**Source:** `sindri-providers/src/docker.rs`
+
+| Field                    | Default                                    | Line     | Description            |
+| ------------------------ | ------------------------------------------ | -------- | ---------------------- |
+| Secrets file permissions | `0o600`                                    | 453      | Owner read/write only  |
+| Dockerfile names         | `"Dockerfile"` / `"Dockerfile.dev"`        | 600, 602 | Selected by build mode |
+| User/home in exec        | `-u developer`, `HOME=/alt/home/developer` | 775, 810 | Connection environment |
+
+### Computed / Derived Values
+
+| Value          | Computation                                                   | Source                          |
+| -------------- | ------------------------------------------------------------- | ------------------------------- |
+| DinD mode      | Auto-detected from host (`sysbox-runc` binary, Docker socket) | `docker.rs::detect_dind_mode()` |
+| Image tag      | `sindri:{cli_version}-{gitsha}`                               | `docker.rs:593–596`             |
+| Volume names   | `{name}_home`, `{name}_docker`                                | `docker.rs:347–350`             |
+| Container name | Derived from config `name` field                              | `docker.rs:714–718`             |
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

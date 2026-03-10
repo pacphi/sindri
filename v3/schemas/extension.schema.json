@@ -473,6 +473,84 @@
         }
       }
     },
+    "service": {
+      "type": ["object", "null"],
+      "description": "Service/daemon configuration for extensions that run background processes. The entrypoint starts all registered services on every container boot.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the service should auto-start on container boot"
+        },
+        "start": {
+          "type": "object",
+          "description": "Start command configuration",
+          "required": ["command"],
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "Command to run (executed via bash -c)"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Arguments appended to the command"
+            },
+            "pidfile": {
+              "type": ["string", "null"],
+              "description": "PID file path (convention: ~/.sindri/<name>.pid)"
+            },
+            "logfile": {
+              "type": ["string", "null"],
+              "description": "Log file path (convention: ~/.sindri/logs/<name>.log)"
+            }
+          }
+        },
+        "stop": {
+          "type": ["object", "null"],
+          "description": "Stop configuration for graceful shutdown",
+          "properties": {
+            "command": {
+              "type": ["string", "null"],
+              "description": "Command to stop the service (if not set, uses SIGTERM to pidfile PID)"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 10,
+              "minimum": 1,
+              "description": "Seconds to wait before SIGKILL after SIGTERM"
+            }
+          }
+        },
+        "readiness": {
+          "type": ["object", "null"],
+          "description": "Readiness check configuration",
+          "properties": {
+            "check": {
+              "type": "string",
+              "description": "Command to check if service is ready (exit 0 = ready)"
+            },
+            "timeout": {
+              "type": "integer",
+              "default": 5,
+              "minimum": 1,
+              "description": "Seconds to wait for readiness"
+            }
+          },
+          "required": ["check"]
+        },
+        "requires-env": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Environment variables required to start (skip if any are missing)"
+        }
+      },
+      "required": ["start"]
+    },
     "capabilities": {
       "type": ["object", "null"],
       "description": "Optional capabilities for project initialization, authentication, hooks, and MCP integration",

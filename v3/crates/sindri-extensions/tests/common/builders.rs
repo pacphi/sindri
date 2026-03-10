@@ -256,6 +256,7 @@ impl ExtensionBuilder {
             validate,
             configure: None,
             remove: None,
+            service: None,
             upgrade: None,
             capabilities,
             deprecation: None,

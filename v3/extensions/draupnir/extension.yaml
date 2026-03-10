@@ -45,11 +45,41 @@ configure:
       value: "http://localhost:9090/v1/azure"
       condition: "{{ env.SINDRI_LLM_ADAPTER != 'none' }}"
 
+service:
+  enabled: true
+  start:
+    command: "draupnir"
+    pidfile: ~/.sindri/draupnir.pid
+    logfile: ~/.sindri/logs/draupnir.log
+  stop:
+    timeout: 10
+  readiness:
+    check: "kill -0 $(cat ~/.sindri/draupnir.pid 2>/dev/null) 2>/dev/null"
+    timeout: 5
+  requires-env:
+    - SINDRI_CONSOLE_URL
+
+capabilities:
+  hooks:
+    post-install:
+      command: "bash scripts/start.sh"
+      description: "Start draupnir agent as background daemon"
+
 validate:
   commands:
     - name: draupnir
       versionFlag: --version
       expectedPattern: "\\d+\\.\\d+\\.\\d+"
+
+remove:
+  script:
+    path: scripts/remove.sh
+    timeout: 30
+  paths:
+    - ~/.local/bin/draupnir
+    - ~/.sindri/draupnir.pid
+    - ~/.sindri/logs/draupnir.log
+  confirmation: true
 
 bom:
   tools:

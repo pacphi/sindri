@@ -751,6 +751,44 @@ providers:
 - **Manual Cleanup:** The `destroy` command removes the service but preserves the project. Delete projects manually if no longer needed.
 - **Secret Updates:** Updating secrets requires service restart to take effect.
 
+## Hardcoded Defaults
+
+> **For maintainers:** The Northflank provider has no Tera template — it drives the Northflank CLI directly. The following values are fallback defaults in the Rust implementation, applied when a field is omitted from `sindri.yaml`.
+
+### Configurable Fallback Defaults
+
+**Source:** `sindri-providers/src/northflank.rs`
+
+| Field             | Default           | Line    | Override in `sindri.yaml`              |
+| ----------------- | ----------------- | ------- | -------------------------------------- |
+| Memory            | `"2GB"` (2048 MB) | 377–378 | `deployment.resources.memory`          |
+| vCPUs             | `2`               | 379     | `deployment.resources.cpus`            |
+| Volume size       | `10` GB           | 386–387 | `deployment.volumes.workspace.size`    |
+| Volume mount path | `"/workspace"`    | 395     | `providers.northflank.volumeMountPath` |
+| Instances         | `1`               | 410     | `providers.northflank.instances`       |
+| Deploy timeout    | `300` seconds     | 1001    | Not configurable                       |
+
+### Compute Plan Auto-Mapping
+
+The provider maps CPU/memory to Northflank compute plans automatically.
+
+**Source:** `sindri-providers/src/northflank.rs:743–747`
+
+| Condition                   | Compute Plan     |
+| --------------------------- | ---------------- |
+| CPU ≤ 1, Memory ≤ 512 MB    | `nf-compute-10`  |
+| CPU ≤ 2, Memory ≤ 2048 MB   | `nf-compute-20`  |
+| CPU ≤ 4, Memory ≤ 4096 MB   | `nf-compute-50`  |
+| CPU ≤ 8, Memory ≤ 8192 MB   | `nf-compute-100` |
+| CPU > 8 or Memory > 8192 MB | `nf-compute-200` |
+
+### Non-Configurable Runtime Values
+
+| Value                | Default    | Line     | Description                              |
+| -------------------- | ---------- | -------- | ---------------------------------------- |
+| Status poll interval | 5 seconds  | 346, 882 | Polling loop sleep between status checks |
+| Reconnection wait    | 10 seconds | 1089     | Wait time before reconnection attempt    |
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

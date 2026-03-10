@@ -1010,6 +1010,46 @@ providers:
 4. Build in one region, copy only where needed
 5. Schedule builds during off-peak hours
 
+## Hardcoded Defaults
+
+> **For maintainers:** The VM provider uses Packer HCL templates to build machine images. The following values are either hardcoded in the templates or are CLI defaults applied when flags are omitted.
+
+### Non-Configurable Template Values (AWS Example)
+
+**Source:** `sindri-packer/src/templates/hcl/aws.pkr.hcl.tera`
+
+| Value                | Template Line                       | Description |
+| -------------------- | ----------------------------------- | ----------- | ----------------------- |
+| SSH timeout          | `20m`                               | 53          | Builder SSH timeout     |
+| Volume type          | `gp3`                               | 58          | EBS volume type         |
+| Encryption (boot)    | `true`                              | 60          | Boot volume encryption  |
+| Base AMI filter      | `ubuntu-noble-24.04-amd64-server-*` | 44          | Ubuntu 24.04 base image |
+| SSH username         | `ubuntu`                            | 52          | Packer SSH user         |
+| Canonical Account ID | `099720109477`                      | 49          | AMI owner filter        |
+
+### CLI Flag Defaults
+
+These defaults are applied when the corresponding CLI flag is omitted.
+
+| Flag               | Default      | Description                   |
+| ------------------ | ------------ | ----------------------------- |
+| `--name`           | `sindri-dev` | Image name                    |
+| `--sindri-version` | `latest`     | Sindri CLI version to install |
+| `--profile`        | `base`       | Extension profile             |
+| `--disk-size`      | `60` GB      | Root disk size                |
+| `--cis-hardening`  | `false`      | CIS benchmark hardening       |
+| `--force`          | `false`      | Force rebuild                 |
+| `--dry-run`        | `false`      | Preview mode                  |
+
+### Cloud-Specific Instance Defaults
+
+| Cloud   | Default Instance  | Default Region |
+| ------- | ----------------- | -------------- |
+| AWS     | `t3.large`        | `us-west-2`    |
+| Azure   | `Standard_D4s_v4` | `westus2`      |
+| GCP     | `e2-standard-4`   | `us-west1-a`   |
+| Alibaba | `ecs.g6.xlarge`   | `cn-hangzhou`  |
+
 ## Related Documentation
 
 ### Cloud-Specific Guides

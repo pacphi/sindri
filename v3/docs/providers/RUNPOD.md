@@ -930,6 +930,51 @@ The RunPod provider uses direct HTTP REST API calls (`reqwest`) instead of shell
 - **Volume Resize:** Volumes can only be enlarged, never reduced.
 - **Connection Timeout:** Proxy URLs have a 100-second connection timeout. Use SSH for long-running connections.
 
+## Hardcoded Defaults
+
+> **For maintainers:** The RunPod provider has no Tera template — it drives the RunPod REST API directly. The following values are fallback defaults in the Rust implementation, applied when a field is omitted from `sindri.yaml`.
+
+### Non-Configurable Values
+
+**Source:** `sindri-providers/src/runpod.rs`
+
+| Value                | Default                     | Line     | Description                 |
+| -------------------- | --------------------------- | -------- | --------------------------- |
+| API base URL         | `https://rest.runpod.io/v1` | 24       | `const RUNPOD_API_BASE`     |
+| SSH port exposed     | `22/tcp`                    | 733      | Always in ports list        |
+| Volume mount path    | `"/workspace"`              | 767      | Fixed in `CreatePodRequest` |
+| HTTP request timeout | 30 seconds                  | 456      | API call timeout            |
+| Status poll interval | 5 seconds                   | 336, 713 | Polling loop sleep          |
+
+### Configurable Fallback Defaults
+
+**Source:** `sindri-providers/src/runpod.rs`
+
+| Field          | Default              | Line    | Override in `sindri.yaml`           |
+| -------------- | -------------------- | ------- | ----------------------------------- |
+| Memory         | `"2GB"` (2048 MB)    | 345–346 | `deployment.resources.memory`       |
+| vCPUs          | `2`                  | 347     | `deployment.resources.cpus`         |
+| GPU type       | `"NVIDIA RTX A4000"` | 366     | `deployment.resources.gpu.type`     |
+| Volume size    | `50` GB              | 374–375 | `deployment.volumes.workspace.size` |
+| Container disk | `20` GB              | 381     | `providers.runpod.containerDiskGb`  |
+| Cloud type     | `"COMMUNITY"`        | 385     | `providers.runpod.cloudType`        |
+| Deploy timeout | `300` seconds        | 780     | Not configurable                    |
+
+### GPU Cost Estimates (Hardcoded)
+
+Used for `sindri plan` cost estimation.
+
+**Source:** `sindri-providers/src/runpod.rs:618–623`
+
+| GPU Type | Estimated $/hour |
+| -------- | ---------------- |
+| A4000    | $0.20            |
+| A5000    | $0.30            |
+| 4090     | $0.44            |
+| A100     | $1.10            |
+| H100     | $2.50            |
+| Other    | $0.30            |
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

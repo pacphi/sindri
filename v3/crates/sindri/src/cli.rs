@@ -305,6 +305,9 @@ pub enum ExtensionCommands {
 
     /// View extension event log
     Log(ExtensionLogArgs),
+
+    /// Manage extension background services
+    Services(ExtensionServicesArgs),
 }
 
 #[derive(Args, Debug)]
@@ -375,6 +378,31 @@ pub struct ExtensionLogArgs {
     /// Output as JSON
     #[arg(long)]
     pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ExtensionServicesArgs {
+    /// Action to perform (omit to list all services)
+    #[command(subcommand)]
+    pub action: Option<ServicesAction>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ServicesAction {
+    /// Start a specific service
+    Start(ServiceNameArg),
+
+    /// Stop a specific service
+    Stop(ServiceNameArg),
+
+    /// Restart a specific service (stop + start)
+    Restart(ServiceNameArg),
+}
+
+#[derive(Args, Debug)]
+pub struct ServiceNameArg {
+    /// Service (extension) name
+    pub name: String,
 }
 
 #[derive(Args, Debug)]

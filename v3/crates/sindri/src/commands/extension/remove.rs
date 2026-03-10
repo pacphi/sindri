@@ -157,6 +157,22 @@ pub(super) async fn run(args: ExtensionRemoveArgs) -> Result<()> {
         output::warning(&format!("Failed to publish remove started event: {}", e));
     }
 
+    // 5b. Stop and remove service script if registered
+    {
+        let home = get_home_dir()?;
+        let executor = sindri_extensions::ExtensionExecutor::new(
+            &extensions_dir,
+            std::env::current_dir().unwrap_or_else(|_| home.join("workspace")),
+            &home,
+        );
+        if let Err(e) = executor.remove_service(&args.name).await {
+            output::warning(&format!(
+                "Failed to remove service for {}: {}",
+                args.name, e
+            ));
+        }
+    }
+
     // 6. Execute removal operations
     if let Some(ext) = &extension {
         if let Some(remove_config) = &ext.remove {

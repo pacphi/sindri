@@ -744,6 +744,64 @@ spec:
 - Preemptible VMs where appropriate
 - Right-sized node pools
 
+## Hardcoded Defaults
+
+> **For maintainers:** The following values are either hardcoded in the generated Kubernetes manifests (not configurable via `sindri.yaml`) or are fallback defaults applied when a field is omitted from the config.
+
+### Non-Configurable Template Values
+
+**Source:** `sindri-providers/src/templates/k8s-deployment.yaml.tera`
+
+| Value                              | Template Line | Description                         |
+| ---------------------------------- | ------------- | ----------------------------------- |
+| `apiVersion: apps/v1`              | 3             | Deployment API version              |
+| `kind: Deployment`                 | 4             | Resource kind                       |
+| `replicas: 1`                      | 12            | Fixed single replica                |
+| App label `sindri`                 | 9, 15, 20     | Label selector across all resources |
+| Container name `sindri`            | 24            | Pod container name                  |
+| `INIT_WORKSPACE: "true"`           | 38            | Always initializes workspace        |
+| `stdin: true`                      | 58            | Interactive stdin                   |
+| `tty: true`                        | 59            | Pseudo-TTY                          |
+| Mount path `/alt/home/developer`   | 57            | Home directory volume mount         |
+| Mount name `home`                  | 56            | Volume mount name                   |
+| PVC `accessModes: [ReadWriteOnce]` | 81            | Single-node access only             |
+| Service port name `ssh`            | 96            | Service port identifier             |
+| Service port `22`                  | 97–98         | SSH port (port and targetPort)      |
+| Service type `ClusterIP`           | 99            | Internal-only service               |
+| PVC/Service `apiVersion: v1`       | 71, 86        | Core API version                    |
+
+### Configurable Fallback Defaults
+
+**Source:** `sindri-providers/src/kubernetes.rs`
+
+| Field                         | Default       | Line | Override in `sindri.yaml`           |
+| ----------------------------- | ------------- | ---- | ----------------------------------- |
+| Namespace                     | `"default"`   | 138  | `providers.kubernetes.namespace`    |
+| Volume size                   | `"10Gi"`      | 150  | `deployment.volumes.workspace.size` |
+| Pod readiness timeout         | `300` seconds | 844  | Not configurable                    |
+| Deployment replicas (in plan) | `1`           | 1058 | Not configurable                    |
+
+**Source:** `sindri-providers/src/templates/context.rs`
+
+| Field       | Default    | Line | Override in `sindri.yaml`           |
+| ----------- | ---------- | ---- | ----------------------------------- |
+| Memory      | `"4GB"`    | 97   | `deployment.resources.memory`       |
+| CPUs        | `2`        | 100  | `deployment.resources.cpus`         |
+| Volume size | `"10GB"`   | 109  | `deployment.volumes.workspace.size` |
+| GPU type    | `"nvidia"` | 118  | `deployment.resources.gpu.type`     |
+
+### Computed / Derived Values
+
+| Value                | Computation                                           | Source                   |
+| -------------------- | ----------------------------------------------------- | ------------------------ |
+| PVC name             | `{name}-home-pvc`                                     | `kubernetes.rs:391`      |
+| Secrets name         | `{name}-secrets`                                      | `kubernetes.rs:582`      |
+| ImagePullSecret name | `sindri-registry-creds`                               | `kubernetes.rs:484`      |
+| GPU node selector    | `gpu: nvidia` (hardcoded key-value)                   | `kubernetes.rs:198`      |
+| Registry fallback    | `ghcr.io` (when image has no `/`)                     | `kubernetes.rs:824`      |
+| Shell for exec       | `/bin/bash`                                           | `kubernetes.rs:859, 915` |
+| Pod phase mapping    | Running/Pending/Succeeded/Failed/Unknown → state enum | `kubernetes.rs:348–355`  |
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

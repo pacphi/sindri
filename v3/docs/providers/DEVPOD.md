@@ -567,6 +567,121 @@ devpod up . --recreate
 | **Feature-Rich**    | DevContainer features ecosystem |
 | **Standardized**    | Industry-standard format        |
 
+## Hardcoded Defaults
+
+> **For maintainers:** The following values are either hardcoded in the generated `devcontainer.json` (not configurable via `sindri.yaml`) or are fallback defaults applied when a field is omitted from the config. DevPod supports 7 backend variants, each with its own defaults.
+
+### Non-Configurable Template Values
+
+**Source:** `sindri-providers/src/templates/devcontainer.json.tera`
+
+| Value                                                  | Template Line | Description                     |
+| ------------------------------------------------------ | ------------- | ------------------------------- |
+| `INIT_WORKSPACE = "true"`                              | 5             | Always initializes workspace    |
+| Volume mount target `/alt/home/developer`              | 22            | Home directory path             |
+| `remoteUser: "developer"`                              | 25            | Fixed username                  |
+| `workspaceFolder: "/alt/home/developer/workspace"`     | 26            | Fixed workspace path            |
+| GPU run arg `"all"`                                    | 30            | All GPUs exposed (when enabled) |
+| VS Code extension `ms-vscode-remote.remote-containers` | 36            | Required extension              |
+| Terminal default profile `bash`                        | 39            | Default Linux shell             |
+| `postStartCommand: "/docker/scripts/entrypoint.sh"`    | 43            | Fixed entrypoint path           |
+
+**Source:** `sindri-providers/src/devpod.rs`
+
+| Value                              | Line | Description                               |
+| ---------------------------------- | ---- | ----------------------------------------- |
+| IDE argument `"none"`              | 670  | Always passes `--ide none` to `devpod up` |
+| Build arg `BUILD_FROM_SOURCE=true` | 255  | Always set for Docker builds              |
+| Image tag for local K8s            | 395  | `sindri:local` (for kind/k3d clusters)    |
+| Registry host fallback             | 414  | `docker.io` when not in buildRepository   |
+
+### Configurable Fallback Defaults
+
+**Source:** `sindri-providers/src/devpod.rs`
+
+| Field                | Default    | Line | Override in `sindri.yaml` |
+| -------------------- | ---------- | ---- | ------------------------- |
+| DevPod provider type | `"docker"` | 54   | `providers.devpod.type`   |
+
+**Source:** `sindri-providers/src/templates/context.rs`
+
+| Field               | Default    | Line | Override in `sindri.yaml`             |
+| ------------------- | ---------- | ---- | ------------------------------------- |
+| Memory              | `"4GB"`    | 97   | `deployment.resources.memory`         |
+| CPUs                | `2`        | 100  | `deployment.resources.cpus`           |
+| Volume size         | `"10GB"`   | 109  | `deployment.volumes.workspace.size`   |
+| GPU type            | `"nvidia"` | 118  | `deployment.resources.gpu.type`       |
+| Network mode        | `"bridge"` | 133  | `providers.docker.network`            |
+| DinD storage size   | `"20GB"`   | 153  | `providers.docker.dind.storageSize`   |
+| DinD storage driver | `"auto"`   | 154  | `providers.docker.dind.storageDriver` |
+
+### Variant-Specific Defaults
+
+Each DevPod backend variant has its own defaults (applied when the corresponding field is omitted).
+
+**Source:** `sindri-core/src/types/config_types.rs`
+
+#### AWS (`providers.devpod.type: aws`)
+
+| Field         | Default       | Line | Override                        |
+| ------------- | ------------- | ---- | ------------------------------- |
+| Region        | `"us-west-2"` | 773  | `providers.devpod.region`       |
+| Instance type | `"c5.xlarge"` | 777  | `providers.devpod.instanceType` |
+| Disk size     | `40` GB       | 780  | `providers.devpod.diskSize`     |
+
+#### GCP (`providers.devpod.type: gcp`)
+
+| Field        | Default           | Line | Override                       |
+| ------------ | ----------------- | ---- | ------------------------------ |
+| Zone         | `"us-central1-a"` | 800  | `providers.devpod.zone`        |
+| Machine type | `"e2-standard-4"` | 804  | `providers.devpod.machineType` |
+| Disk type    | `"pd-balanced"`   | 808  | `providers.devpod.diskType`    |
+| Disk size    | `40` GB           | 780  | `providers.devpod.diskSize`    |
+
+#### Azure (`providers.devpod.type: azure`)
+
+| Field          | Default              | Line | Override                         |
+| -------------- | -------------------- | ---- | -------------------------------- |
+| Resource group | `"devpod-resources"` | 827  | `providers.devpod.resourceGroup` |
+| Location       | `"eastus"`           | 831  | `providers.devpod.location`      |
+| VM size        | `"Standard_D4s_v3"`  | 835  | `providers.devpod.vmSize`        |
+| Disk size      | `40` GB              | 780  | `providers.devpod.diskSize`      |
+
+#### DigitalOcean (`providers.devpod.type: digitalocean`)
+
+| Field  | Default         | Line | Override                  |
+| ------ | --------------- | ---- | ------------------------- |
+| Region | `"nyc3"`        | 850  | `providers.devpod.region` |
+| Size   | `"s-4vcpu-8gb"` | 854  | `providers.devpod.size`   |
+
+#### Kubernetes (`providers.devpod.type: kubernetes`)
+
+| Field     | Default    | Line | Override                     |
+| --------- | ---------- | ---- | ---------------------------- |
+| Namespace | `"devpod"` | 871  | `providers.devpod.namespace` |
+
+#### SSH (`providers.devpod.type: ssh`)
+
+| Field    | Default           | Line | Override                   |
+| -------- | ----------------- | ---- | -------------------------- |
+| User     | `"root"`          | 888  | `providers.devpod.user`    |
+| Port     | `22`              | 892  | `providers.devpod.port`    |
+| Key path | `"~/.ssh/id_rsa"` | 896  | `providers.devpod.keyPath` |
+
+#### Docker (`providers.devpod.type: docker`)
+
+No variant-specific defaults beyond the shared template context values above.
+
+### Computed / Derived Values
+
+| Value                 | Computation                                   | Source                      |
+| --------------------- | --------------------------------------------- | --------------------------- |
+| DevPod provider name  | Lowercased enum variant                       | `devpod.rs:53`              |
+| K8s cluster detection | `kind-*` or `k3d-*` context prefix            | `devpod.rs:73, 89`          |
+| SSH command           | `devpod ssh {name}`                           | `devpod.rs:795`             |
+| Docker build args     | `SINDRI_VERSION`, `SINDRI_SOURCE_REF`         | `devpod.rs:244–245`         |
+| Volume mount source   | `{name}_home` (computed from deployment name) | `devcontainer.json.tera:21` |
+
 ## Related Documentation
 
 - [Provider Overview](README.md)

@@ -25,6 +25,7 @@ mod list;
 mod log;
 mod remove;
 mod rollback;
+mod services;
 mod status;
 mod support;
 mod upgrade;
@@ -53,5 +54,6 @@ pub async fn run(cmd: ExtensionCommands) -> Result<()> {
         ExtensionCommands::Docs(args) => docs::run(args).await,
         ExtensionCommands::Verify(args) => verify::run(args).await,
         ExtensionCommands::Log(args) => log::run(args).await,
+        ExtensionCommands::Services(args) => services::run(args).await,
     }
 }

@@ -369,6 +369,7 @@ pub(crate) mod tests {
             },
             configure: None,
             remove: None,
+            service: None,
             upgrade: None,
             capabilities: None,
             deprecation: None,

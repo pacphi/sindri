@@ -457,6 +457,42 @@ install_extensions_background() {
 }
 
 # ------------------------------------------------------------------------------
+# start_extension_services - Start registered extension services on every boot
+# ------------------------------------------------------------------------------
+# Extensions with a service: block in extension.yaml have start scripts generated
+# at ~/.sindri/services/<name>.sh during installation. This function runs all of
+# them on every boot (including restarts), ensuring daemons survive container
+# lifecycle events without requiring reinstallation.
+start_extension_services() {
+    local services_dir="${SINDRI_HOME}/services"
+
+    if [ ! -d "$services_dir" ] || [ -z "$(ls -A "$services_dir" 2>/dev/null)" ]; then
+        return 0
+    fi
+
+    print_status "Starting extension services..."
+    local started=0
+    local failed=0
+
+    for service_file in "$services_dir"/*.sh; do
+        [ -f "$service_file" ] || continue
+        [ -x "$service_file" ] || continue
+        local name=$(basename "$service_file" .sh)
+
+        if sudo -u "${DEVELOPER_USER}" --preserve-env bash "$service_file" >> "${SINDRI_HOME}/logs/${name}-service.log" 2>&1; then
+            started=$((started + 1))
+        else
+            print_warning "Service $name failed to start"
+            failed=$((failed + 1))
+        fi
+    done
+
+    if [ $started -gt 0 ]; then
+        print_success "$started extension service(s) started"
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # start_ssh_daemon - Start OpenSSH server
 # ------------------------------------------------------------------------------
 start_ssh_daemon() {
@@ -504,6 +540,15 @@ setup_git_config
 
 # Step 6: Install extensions in background (non-blocking)
 install_extensions_background
+INSTALL_PID=$!
+
+# Step 6b: Start extension services (runs on every boot, including restarts)
+# Wait for background install to complete before starting services
+if [ -n "${INSTALL_PID:-}" ] && kill -0 "$INSTALL_PID" 2>/dev/null; then
+    print_status "Waiting for extension installation to complete before starting services..."
+    wait "$INSTALL_PID" 2>/dev/null || true
+fi
+start_extension_services
 
 # Step 7: Start SSH daemon (foreground if not CI mode)
 if [[ "${CI_MODE:-false}" != "true" ]]; then
