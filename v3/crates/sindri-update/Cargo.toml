@@ -20,7 +20,7 @@ reqwest = { workspace = true }
 semver = { workspace = true }
 sha2 = "0.10"
 indicatif = { workspace = true }
-tempfile = "3.24"
+tempfile = "3.27"
 futures-util = "0.3"
 bytes = "1.11"
 chrono = { workspace = true }
