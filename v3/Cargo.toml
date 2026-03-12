@@ -79,7 +79,7 @@ chrono = { version = "0.4", features = ["serde"] }
 regex = "1.12"
 
 # TOML parsing (for mise.toml)
-toml = "0.8"
+toml = "1.0"
 
 # URL handling
 url = "2.5"
