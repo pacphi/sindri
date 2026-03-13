@@ -40,7 +40,7 @@ serde_json = "1.0"
 serde_yaml_ng = "0.10"
 
 # JSON Schema validation
-jsonschema = "0.44"
+jsonschema = "0.45"
 
 # Template rendering
 tera = "1.20"
@@ -79,7 +79,7 @@ chrono = { version = "0.4", features = ["serde"] }
 regex = "1.12"
 
 # TOML parsing (for mise.toml)
-toml = "0.8"
+toml = "1.0"
 
 # URL handling
 url = "2.5"
@@ -88,7 +88,7 @@ url = "2.5"
 petgraph = "0.8"
 
 # UUID for unique identifiers
-uuid = { version = "1.21", features = ["v4", "serde"] }
+uuid = { version = "1.22", features = ["v4", "serde"] }
 
 # File locking for concurrent access
 fs4 = "0.13"
@@ -101,12 +101,12 @@ flate2 = "1.1"
 walkdir = "2.5"
 
 # Tool detection
-which = "8.0"
+which = "8.0.2"
 futures = "0.3"
 dirs = "6.0"
 
 # Testing
-tempfile = "3.25"
+tempfile = "3.27"
 serial_test = "3.4"
 
 # Workspace crates
