@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: P-Replicator — Claude Code toolkit for AI-assisted product development and Vibe Coding
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - mise-config
     - nodejs

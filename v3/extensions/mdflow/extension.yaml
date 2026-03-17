@@ -5,6 +5,7 @@ metadata:
   description: >-
     Multi-backend CLI that transforms markdown files into executable AI agents - run prompts against Claude, Codex, Gemini, or Copilot via markdown
   category: documentation
+  distros: [ubuntu, fedora, opensuse]
   author: John Lindquist
   homepage: https://github.com/johnlindquist/mdflow
   dependencies:

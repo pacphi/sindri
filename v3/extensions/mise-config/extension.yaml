@@ -4,6 +4,7 @@ metadata:
   version: 2.0.0
   description: Global mise configuration and settings
   category: package-manager
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies: []
 requirements:

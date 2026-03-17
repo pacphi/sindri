@@ -3,6 +3,7 @@ metadata:
   version: 1.0.0
   description: Autonomous AI pentester for finding exploits in web applications
   category: testing
+  distros: [ubuntu, fedora, opensuse]
   dependencies: []
 
 install:

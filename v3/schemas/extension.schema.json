@@ -5,6 +5,27 @@
   "description": "Schema for Sindri YAML extension definitions",
   "type": "object",
   "required": ["metadata", "install", "validate"],
+  "definitions": {
+    "scriptConfig": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 600
+        }
+      }
+    }
+  },
   "properties": {
     "metadata": {
       "type": "object",
@@ -55,6 +76,16 @@
           "items": {
             "type": "string"
           }
+        },
+        "distros": {
+          "type": "array",
+          "description": "Linux distributions this extension supports. Used for catalog filtering.",
+          "items": {
+            "type": "string",
+            "enum": ["ubuntu", "fedora", "opensuse"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
         }
       }
     },
@@ -148,7 +179,7 @@
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["mise", "apt", "binary", "npm", "npm-global", "script", "hybrid"]
+          "enum": ["mise", "apt", "dnf", "zypper", "binary", "npm", "npm-global", "script", "hybrid"]
         },
         "npm": {
           "type": ["object", "null"],
@@ -206,6 +237,98 @@
               "default": true
             }
           }
+        },
+        "dnf": {
+          "type": ["object", "null"],
+          "description": "DNF (Fedora) package manager configuration",
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "DNF package names to install"
+            },
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["baseUrl"],
+                "properties": {
+                  "name": {
+                    "type": ["string", "null"],
+                    "description": "Repository ID"
+                  },
+                  "gpgKey": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "baseUrl": {
+                    "type": "string",
+                    "description": "DNF baseurl for the repo"
+                  }
+                }
+              }
+            },
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "DNF group installs (e.g., development-tools)"
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "required": ["packages"]
+        },
+        "zypper": {
+          "type": ["object", "null"],
+          "description": "Zypper (openSUSE) package manager configuration",
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Zypper package names to install"
+            },
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["baseUrl"],
+                "properties": {
+                  "name": {
+                    "type": ["string", "null"],
+                    "description": "Repository alias"
+                  },
+                  "gpgKey": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "baseUrl": {
+                    "type": "string",
+                    "description": "Zypper repository URL"
+                  }
+                }
+              }
+            },
+            "patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Zypper pattern installs (e.g., devel_basis)"
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "required": ["packages"]
         },
         "binary": {
           "type": ["object", "null"],
@@ -269,6 +392,22 @@
               "default": 600
             }
           }
+        },
+        "scripts": {
+          "type": ["object", "null"],
+          "description": "Per-distro script overrides. Falls back to install.script if no override for current distro.",
+          "properties": {
+            "ubuntu": {
+              "$ref": "#/definitions/scriptConfig"
+            },
+            "fedora": {
+              "$ref": "#/definitions/scriptConfig"
+            },
+            "opensuse": {
+              "$ref": "#/definitions/scriptConfig"
+            }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -395,6 +534,30 @@
             }
           }
         },
+        "dnf": {
+          "type": ["object", "null"],
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "DNF packages to remove"
+            }
+          }
+        },
+        "zypper": {
+          "type": ["object", "null"],
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Zypper packages to remove"
+            }
+          }
+        },
         "script": {
           "type": ["object", "null"],
           "properties": {
@@ -451,6 +614,38 @@
                 "type": "string"
               },
               "description": "APT packages to upgrade"
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "dnf": {
+          "type": ["object", "null"],
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "DNF packages to upgrade"
+            },
+            "updateFirst": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "zypper": {
+          "type": ["object", "null"],
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Zypper packages to upgrade"
             },
             "updateFirst": {
               "type": "boolean",

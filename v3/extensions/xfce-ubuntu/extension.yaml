@@ -4,6 +4,7 @@ metadata:
   version: 2.0.0
   description: XFCE desktop with xRDP remote access for GUI development
   category: desktop
+  distros: [ubuntu]
   author: Sindri Team
   homepage: https://www.xfce.org
   dependencies: []

@@ -3,6 +3,7 @@ metadata:
   version: 1.0.0
   description: Persistent memory layer for Claude Code's /compact command
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   tags:
     - claude-code
     - hooks

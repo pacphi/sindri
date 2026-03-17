@@ -5,6 +5,7 @@ metadata:
   description: >-
     OpenFang - Open-source agent OS for autonomous AI agents across 40+ messaging platforms
   category: ai-agents
+  distros: [ubuntu, fedora, opensuse]
   author: OpenFang
   homepage: https://openfang.sh
   dependencies: []

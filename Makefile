@@ -51,6 +51,43 @@ VERSION := $(shell grep '^version' v3/Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 
 # ============================================================================
+# Multi-Distro Configuration
+# ============================================================================
+
+# Default distro for local builds — matches Dockerfile ARG default.
+# Override: make v3-docker-build DISTRO=fedora
+DISTRO ?= ubuntu
+
+# Validated distro values (guard used in distro-aware targets)
+VALID_DISTROS := ubuntu fedora opensuse
+
+# Version pins for distro base images (keep in sync with Dockerfile ARGs)
+UBUNTU_VERSION   ?= 24.04
+FEDORA_VERSION   ?= 41
+OPENSUSE_VERSION ?= 15.6
+
+# Computed local image name including distro suffix
+# Examples: sindri:v3-ubuntu-local, sindri:v3-fedora-local
+DISTRO_IMAGE_LOCAL     := sindri:v3-$(DISTRO)-local
+DISTRO_IMAGE_VERSIONED := sindri:$(VERSION)-$(GIT_COMMIT)-$(DISTRO)
+
+# Target registry (for remote push targets)
+REGISTRY ?= ghcr.io/pacphi
+
+# Base image for dev builds.  Defaults to GHCR; set to local tag for offline builds:
+#   make v3-docker-build-dev-ubuntu BASE_IMAGE=sindri:base-ubuntu-latest
+BASE_IMAGE ?= $(REGISTRY)/sindri:base-$(DISTRO)-latest
+
+# ─── Guard macro: aborts if DISTRO is not in VALID_DISTROS ──────────────────
+define assert_valid_distro
+	@if ! echo " $(VALID_DISTROS) " | grep -q " $(DISTRO) "; then \
+		echo "$(RED)✗ Unknown DISTRO: $(DISTRO)$(RESET)"; \
+		echo "  Valid values: $(VALID_DISTROS)"; \
+		exit 1; \
+	fi
+endef
+
+# ============================================================================
 # Dependency Checking Functions
 # ============================================================================
 
@@ -194,6 +231,17 @@ endef
 	v3-doc v3-run v3-run-debug v3-install \
 	v3-docker-build v3-docker-build-latest v3-docker-build-nocache \
 	v3-docker-build-from-source v3-docker-build-from-binary \
+	v3-docker-build-ubuntu v3-docker-build-fedora \
+	v3-docker-build-opensuse v3-docker-build-all \
+	v3-docker-build-dev v3-docker-build-dev-ubuntu v3-docker-build-dev-fedora \
+	v3-docker-build-dev-opensuse v3-docker-build-dev-all \
+	v3-docker-build-base-ubuntu v3-docker-build-base-fedora \
+	v3-docker-build-base-opensuse v3-docker-build-base-all \
+	v3-distro-test v3-distro-test-ubuntu v3-distro-test-fedora \
+	v3-distro-test-opensuse v3-distro-test-all \
+	v3-pkg-manager-test \
+	v3-cache-clear-distro \
+	_v3-docker-build-impl _v3-docker-build-dev-impl _v3-docker-build-base-impl \
 	v3-cycle \
 	ci v2-ci v3-ci v3-quality \
 	clean v2-clean v3-clean
@@ -301,6 +349,33 @@ help:
 	@echo "  v3-cache-clear-soft    - Clear incremental caches"
 	@echo "  v3-cache-clear-medium  - Clear cargo + build cache"
 	@echo "  v3-cache-clear-hard    - Clear all except base"
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ V3 Multi-Distro Build Targets ══════════════════════════════════$(RESET)"
+	@echo "  v3-docker-build           - Build image (DISTRO=ubuntu|fedora|opensuse, default: ubuntu)"
+	@echo "  v3-docker-build-ubuntu    - Build Ubuntu image locally"
+	@echo "  v3-docker-build-fedora    - Build Fedora 41 image locally"
+	@echo "  v3-docker-build-opensuse  - Build openSUSE Leap 15.6 image locally"
+	@echo "  v3-docker-build-all       - Build all three distro images sequentially"
+	@echo "  v3-docker-build-dev       - Build DEV image (DISTRO=..., from source)"
+	@echo "  v3-docker-build-dev-ubuntu    - Build Ubuntu dev image"
+	@echo "  v3-docker-build-dev-fedora    - Build Fedora dev image"
+	@echo "  v3-docker-build-dev-opensuse  - Build openSUSE dev image"
+	@echo "  v3-docker-build-dev-all       - Build all three dev distro images"
+	@echo "  v3-docker-build-base      - Build base image (DISTRO=...)"
+	@echo "  v3-docker-build-base-all  - Build all three base images"
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ V3 Distro Testing ════════════════════════════════════════════════$(RESET)"
+	@echo "  v3-distro-test            - Smoke test local image (DISTRO=ubuntu|fedora|opensuse)"
+	@echo "  v3-distro-test-ubuntu     - Smoke test Ubuntu local image"
+	@echo "  v3-distro-test-fedora     - Smoke test Fedora local image"
+	@echo "  v3-distro-test-opensuse   - Smoke test openSUSE local image"
+	@echo "  v3-distro-test-all        - Build and test all three distros"
+	@echo "  v3-pkg-manager-test       - Run pkg-manager.sh Docker-based integration tests"
+	@echo ""
+	@echo "$(BOLD)$(BLUE)═══ V3 Cache (distro-aware) ═════════════════════════════════════════$(RESET)"
+	@echo "  v3-cache-status           - Show all distro images and cache usage"
+	@echo "  v3-cache-clear-distro     - Remove images for one distro (DISTRO=...)"
+	@echo "  v3-clean                  - Clean artifacts; add DISTRO= to target one distro"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)═══ CI/CD Targets ═══════════════════════════════════════════════════$(RESET)"
 	@echo "  ci                     - Run full CI (v2 + v3)"
@@ -909,104 +984,195 @@ v3-install:
 	@echo "$(GREEN)✓ Installed: $(shell which sindri 2>/dev/null || echo '~/.cargo/bin/sindri')$(RESET)"
 
 # ============================================================================
-# V3 Docker Build Targets
+# V3 Docker Build Targets (Multi-Distro)
 # ============================================================================
 
-.PHONY: v3-docker-build
-v3-docker-build: v3-docker-build-from-binary
-
-.PHONY: v3-docker-build-from-binary
-v3-docker-build-from-binary:
-	@echo "$(BLUE)Building v3 production Docker image from pre-compiled binary (local tag)...$(RESET)"
-	@echo "$(BLUE)Using Dockerfile (production) - downloads binary from GitHub releases (~5 min)$(RESET)"
-	docker build -t sindri:v3-local \
+# Internal implementation — do not call directly; use named distro targets.
+.PHONY: _v3-docker-build-impl
+_v3-docker-build-impl:
+	$(call assert_valid_distro)
+	@echo "$(BLUE)Building Sindri v3 Docker image [distro=$(DISTRO)]...$(RESET)"
+	@echo "$(BLUE)→ Dockerfile: v3/Dockerfile$(RESET)"
+	@echo "$(BLUE)→ Tags: $(DISTRO_IMAGE_LOCAL)$(RESET)"
+	docker build \
+		--build-arg DISTRO=$(DISTRO) \
+		--build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) \
+		--build-arg FEDORA_VERSION=$(FEDORA_VERSION) \
+		--build-arg OPENSUSE_VERSION=$(OPENSUSE_VERSION) \
+		-t $(DISTRO_IMAGE_LOCAL) \
+		-t $(DISTRO_IMAGE_VERSIONED) \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
-	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-local$(RESET)"
+	@echo "$(GREEN)✓ Build complete: $(DISTRO_IMAGE_LOCAL)$(RESET)"
 
-.PHONY: v3-docker-build-from-source
-v3-docker-build-from-source:
-	@echo "$(BLUE)Building v3 development Docker image from Rust source (~8 min)...$(RESET)"
-	@echo "$(BLUE)Using Dockerfile.dev (development) - builds from source with bundled extensions$(RESET)"
-	docker build -t sindri:v3-dev \
-		-f $(V3_DIR)/Dockerfile.dev \
-		$(PROJECT_ROOT)
-	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-dev$(RESET)"
+# ── Convenience aliases ───────────────────────────────────────────────────────
+.PHONY: v3-docker-build-ubuntu
+v3-docker-build-ubuntu:
+	@$(MAKE) _v3-docker-build-impl DISTRO=ubuntu
+
+.PHONY: v3-docker-build-fedora
+v3-docker-build-fedora:
+	@$(MAKE) _v3-docker-build-impl DISTRO=fedora
+
+.PHONY: v3-docker-build-opensuse
+v3-docker-build-opensuse:
+	@$(MAKE) _v3-docker-build-impl DISTRO=opensuse
+
+# ── Build all three distros sequentially ─────────────────────────────────────
+.PHONY: v3-docker-build-all
+v3-docker-build-all: v3-docker-build-ubuntu v3-docker-build-fedora v3-docker-build-opensuse
+	@echo ""
+	@echo "$(GREEN)$(BOLD)✓ All three distro images built:$(RESET)"
+	@docker images --filter="reference=sindri:v3-*-local" \
+		--format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
+
+# ── DISTRO-parameterised generic target (for CI scripts) ─────────────────────
+#   Usage: make v3-docker-build DISTRO=fedora
+.PHONY: v3-docker-build
+v3-docker-build:
+	@$(MAKE) _v3-docker-build-impl
+
+# ── Backward compatibility aliases ───────────────────────────────────────────
+.PHONY: v3-docker-build-from-binary
+v3-docker-build-from-binary: v3-docker-build
 
 .PHONY: v3-docker-build-latest
 v3-docker-build-latest:
-	@echo "$(BLUE)Building v3 production Docker image (latest tag)...$(RESET)"
-	@echo "$(BLUE)Using Dockerfile (production)$(RESET)"
-	docker build -t sindri:v3-latest \
-		-f $(V3_DIR)/Dockerfile \
-		$(PROJECT_ROOT)
-	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
+	@echo "$(YELLOW)Note: v3-docker-build-latest now builds ubuntu variant$(RESET)"
+	@$(MAKE) _v3-docker-build-impl DISTRO=ubuntu
 
 .PHONY: v3-docker-build-nocache
 v3-docker-build-nocache:
-	@echo "$(BLUE)Building v3 production Docker image (no cache)...$(RESET)"
-	@echo "$(BLUE)Using Dockerfile (production)$(RESET)"
+	$(call assert_valid_distro)
+	@echo "$(BLUE)Building Sindri v3 Docker image (no cache) [distro=$(DISTRO)]...$(RESET)"
 	@echo "$(YELLOW)Warning: This will take longer than normal$(RESET)"
-	docker build --no-cache -t sindri:v3-latest \
+	docker build --no-cache \
+		--build-arg DISTRO=$(DISTRO) \
+		--build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) \
+		--build-arg FEDORA_VERSION=$(FEDORA_VERSION) \
+		--build-arg OPENSUSE_VERSION=$(OPENSUSE_VERSION) \
+		-t $(DISTRO_IMAGE_LOCAL) \
 		-f $(V3_DIR)/Dockerfile \
 		$(PROJECT_ROOT)
-	@echo "$(GREEN)✓ v3 Docker build complete: sindri:v3-latest$(RESET)"
+	@echo "$(GREEN)✓ Build complete (no cache): $(DISTRO_IMAGE_LOCAL)$(RESET)"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Dev image (Dockerfile.dev — bundled extensions, from source)
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ==============================================================================
-# V3 Base Image Management & Fast Development Builds
-# ==============================================================================
-
-.PHONY: v3-docker-build-base
-v3-docker-build-base:
-	@echo "$(BOLD)$(BLUE)Building v3 base image (slow, build once)...$(RESET)"
-	@echo "This image contains:"
-	@echo "  - Rust toolchain"
-	@echo "  - cargo-chef"
-	@echo "  - System packages (Ubuntu, build tools)"
-	@echo "  - GitHub CLI"
-	@echo ""
-	@echo "Build time: ~15-20 minutes (on ARM64)"
-	@echo "Rebuild only when Rust version or system deps change"
-	@echo ""
+.PHONY: _v3-docker-build-dev-impl
+_v3-docker-build-dev-impl:
+	$(call assert_valid_distro)
+	@echo "$(BLUE)Building Sindri v3 DEV image [distro=$(DISTRO)] from source...$(RESET)"
+	@echo "$(BLUE)→ Dockerfile: v3/Dockerfile.dev  (~3-5 min)$(RESET)"
+	@echo "$(BLUE)→ Base image: $(BASE_IMAGE)$(RESET)"
+	@# Auto-build base image if not available locally or remotely, then build dev.
+	@# Everything runs in a single shell so 'exit 0' prevents the fallthrough build.
+	@EFFECTIVE_BASE="$(BASE_IMAGE)"; \
+	if ! docker image inspect "$$EFFECTIVE_BASE" >/dev/null 2>&1; then \
+		echo "$(YELLOW)Base image $$EFFECTIVE_BASE not found locally.$(RESET)"; \
+		if ! docker manifest inspect "$$EFFECTIVE_BASE" >/dev/null 2>&1; then \
+			echo "$(YELLOW)Base image $$EFFECTIVE_BASE not found in remote registry either.$(RESET)"; \
+			echo "$(BLUE)Auto-building base image for $(DISTRO) (this may take 15-20 min on first run)...$(RESET)"; \
+			$(MAKE) _v3-docker-build-base-impl DISTRO=$(DISTRO); \
+			EFFECTIVE_BASE="sindri:base-$(DISTRO)-latest"; \
+			echo "$(GREEN)✓ Base image built locally. Using $$EFFECTIVE_BASE$(RESET)"; \
+		fi; \
+	fi; \
 	docker build \
-		-f $(V3_DIR)/Dockerfile.base \
-		-t sindri:base-$(VERSION) \
-		-t sindri:base-latest \
-		$(V3_DIR)
+		--build-arg DISTRO=$(DISTRO) \
+		--build-arg BASE_IMAGE=$$EFFECTIVE_BASE \
+		-t sindri:v3-$(DISTRO)-dev \
+		-t sindri:$(VERSION)-$(GIT_COMMIT)-$(DISTRO)-dev \
+		-f $(V3_DIR)/Dockerfile.dev \
+		$(PROJECT_ROOT); \
+	echo "$(GREEN)✓ Dev image complete: sindri:v3-$(DISTRO)-dev$(RESET)"
+
+.PHONY: v3-docker-build-dev-ubuntu
+v3-docker-build-dev-ubuntu:
+	@$(MAKE) _v3-docker-build-dev-impl DISTRO=ubuntu
+
+.PHONY: v3-docker-build-dev-fedora
+v3-docker-build-dev-fedora:
+	@$(MAKE) _v3-docker-build-dev-impl DISTRO=fedora
+
+.PHONY: v3-docker-build-dev-opensuse
+v3-docker-build-dev-opensuse:
+	@$(MAKE) _v3-docker-build-dev-impl DISTRO=opensuse
+
+.PHONY: v3-docker-build-dev
+v3-docker-build-dev:
+	@$(MAKE) _v3-docker-build-dev-impl
+
+# ── Build all three dev distros sequentially ─────────────────────────────────
+.PHONY: v3-docker-build-dev-all
+v3-docker-build-dev-all: v3-docker-build-dev-ubuntu v3-docker-build-dev-fedora v3-docker-build-dev-opensuse
 	@echo ""
-	@echo "$(GREEN)✓ Base image built: sindri:base-latest$(RESET)"
-	@echo "  This image can be reused for weeks/months"
-	@echo "  Use 'make v3-docker-build-fast' for fast incremental builds"
+	@echo "$(GREEN)$(BOLD)✓ All three dev distro images built:$(RESET)"
+	@docker images --filter="reference=sindri:v3-*-dev" \
+		--format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}"
+
+# Backward compat aliases
+.PHONY: v3-docker-build-from-source
+v3-docker-build-from-source: v3-docker-build-dev
 
 .PHONY: v3-docker-build-fast
 v3-docker-build-fast:
-	@echo "$(BOLD)$(BLUE)Building v3 image (fast, using base)...$(RESET)"
-	@echo "Prerequisites: Base image from GHCR or local"
-	@echo "  Pull: docker pull ghcr.io/pacphi/sindri:base-latest"
-	@echo "  Or build: make v3-docker-build-base"
-	@echo ""
-	@echo "Building with cargo cache (fast incremental)..."
-	docker build \
-		-f $(V3_DIR)/Dockerfile.dev \
-		-t sindri:$(VERSION)-$(GIT_COMMIT) \
-		-t sindri:latest \
-		.
-	@echo ""
-	@echo "$(GREEN)✓ Fast build complete: sindri:latest$(RESET)"
-	@echo "  Build time: ~3-5 min (incremental: 1-2 min)"
+	@echo "$(YELLOW)Note: v3-docker-build-fast is now v3-docker-build-dev$(RESET)"
+	@$(MAKE) _v3-docker-build-dev-impl
 
 .PHONY: v3-docker-build-fast-nocache
 v3-docker-build-fast-nocache:
-	@echo "$(BOLD)$(BLUE)Building v3 image (fast, no cargo cache)...$(RESET)"
-	docker build \
-		--no-cache \
+	$(call assert_valid_distro)
+	@echo "$(BLUE)Building v3 DEV image (no cache) [distro=$(DISTRO)]...$(RESET)"
+	docker build --no-cache \
+		--build-arg DISTRO=$(DISTRO) \
+		--build-arg BASE_IMAGE=$(BASE_IMAGE) \
+		-t sindri:v3-$(DISTRO)-dev \
 		-f $(V3_DIR)/Dockerfile.dev \
-		-t sindri:$(VERSION)-$(GIT_COMMIT) \
-		-t sindri:latest \
-		.
-	@echo ""
-	@echo "$(GREEN)✓ Fast build (no cache) complete$(RESET)"
+		$(PROJECT_ROOT)
+	@echo "$(GREEN)✓ Dev build (no cache) complete$(RESET)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Base image builds (one per distro)
+# ─────────────────────────────────────────────────────────────────────────────
+
+.PHONY: _v3-docker-build-base-impl
+_v3-docker-build-base-impl:
+	$(call assert_valid_distro)
+	@echo "$(BOLD)$(BLUE)Building v3 base image [distro=$(DISTRO)]...$(RESET)"
+	@echo "Build time: ~15-20 min (arm64). Rebuild on Rust version change."
+	docker build \
+		--build-arg DISTRO=$(DISTRO) \
+		--build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) \
+		--build-arg FEDORA_VERSION=$(FEDORA_VERSION) \
+		--build-arg OPENSUSE_VERSION=$(OPENSUSE_VERSION) \
+		-t sindri:base-$(DISTRO)-$(VERSION) \
+		-t sindri:base-$(DISTRO)-latest \
+		-f $(V3_DIR)/Dockerfile.base \
+		$(V3_DIR)
+	@echo "$(GREEN)✓ Base image built: sindri:base-$(DISTRO)-latest$(RESET)"
+
+.PHONY: v3-docker-build-base-ubuntu
+v3-docker-build-base-ubuntu:
+	@$(MAKE) _v3-docker-build-base-impl DISTRO=ubuntu
+
+.PHONY: v3-docker-build-base-fedora
+v3-docker-build-base-fedora:
+	@$(MAKE) _v3-docker-build-base-impl DISTRO=fedora
+
+.PHONY: v3-docker-build-base-opensuse
+v3-docker-build-base-opensuse:
+	@$(MAKE) _v3-docker-build-base-impl DISTRO=opensuse
+
+# Usage: make v3-docker-build-base DISTRO=fedora
+.PHONY: v3-docker-build-base
+v3-docker-build-base:
+	@$(MAKE) _v3-docker-build-base-impl
+
+.PHONY: v3-docker-build-base-all
+v3-docker-build-base-all: v3-docker-build-base-ubuntu v3-docker-build-base-fedora v3-docker-build-base-opensuse
+	@echo "$(GREEN)$(BOLD)✓ All three base images built$(RESET)"
 
 # ==============================================================================
 # V3 Smart Cache Management
@@ -1014,22 +1180,26 @@ v3-docker-build-fast-nocache:
 
 .PHONY: v3-cache-status
 v3-cache-status:
-	@echo "$(BOLD)$(BLUE)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
-	@echo "$(BOLD)$(BLUE)║                      V3 Cache Status                               ║$(RESET)"
-	@echo "$(BOLD)$(BLUE)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
+	@echo "$(BOLD)$(BLUE)╔══════════════════════════════════════════════════════════════════╗$(RESET)"
+	@echo "$(BOLD)$(BLUE)║                     V3 Cache Status                               ║$(RESET)"
+	@echo "$(BOLD)$(BLUE)╚══════════════════════════════════════════════════════════════════╝$(RESET)"
 	@echo ""
-	@echo "$(BOLD)Docker Images:$(RESET)"
-	@docker images --filter=reference='sindri*' --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}' 2>/dev/null || true
+	@echo "$(BOLD)Base Images:$(RESET)"
+	@docker images --filter="reference=sindri:base*" \
+		--format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}" 2>/dev/null || true
 	@echo ""
-	@echo "$(BOLD)BuildKit Cache:$(RESET)"
-	@docker buildx du 2>/dev/null || docker system df | grep "Build Cache" || echo "No cache data"
+	@echo "$(BOLD)Local Build Images (by distro):$(RESET)"
+	@for DISTRO in ubuntu fedora opensuse; do \
+		echo "  [$$DISTRO]:"; \
+		docker images --filter="reference=sindri:*$$DISTRO*" \
+			--format "    {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}" 2>/dev/null || true; \
+	done
 	@echo ""
-	@echo "$(BOLD)Cargo Target Directory:$(RESET)"
-	@if [ -d $(V3_DIR)/target ]; then \
-		du -sh $(V3_DIR)/target 2>/dev/null || echo "Not found"; \
-	else \
-		echo "Not found"; \
-	fi
+	@echo "$(BOLD)BuildKit Cache (per distro scope):$(RESET)"
+	@docker buildx du 2>/dev/null | head -20 || docker system df | grep "Build Cache" || echo "No cache data"
+	@echo ""
+	@echo "$(BOLD)Cargo Target:$(RESET)"
+	@du -sh $(V3_DIR)/target 2>/dev/null || echo "Not built"
 
 .PHONY: v3-cache-clear-soft
 v3-cache-clear-soft:
@@ -1057,6 +1227,16 @@ v3-cache-clear-medium:
 	fi
 	@docker buildx prune --filter "until=1h" --force 2>/dev/null || true
 	@echo "$(GREEN)✓ Medium cache cleared$(RESET)"
+
+# Per-distro image cleanup — removes only images for one distro
+# Usage: make v3-cache-clear-distro DISTRO=fedora
+.PHONY: v3-cache-clear-distro
+v3-cache-clear-distro:
+	$(call assert_valid_distro)
+	@echo "$(YELLOW)Removing all local images for distro=$(DISTRO)...$(RESET)"
+	@docker images --filter="reference=sindri:*$(DISTRO)*" \
+		--format "{{.ID}}" | sort -u | xargs docker rmi -f 2>/dev/null || true
+	@echo "$(GREEN)✓ Removed all $(DISTRO) images$(RESET)"
 
 .PHONY: v3-cache-clear-hard
 v3-cache-clear-hard:
@@ -1093,53 +1273,46 @@ v3-cache-nuke:
 .PHONY: v3-cycle-fast
 v3-cycle-fast:
 	@if [ -z "$(CONFIG)" ]; then \
-		echo "$(RED)Error: CONFIG parameter required$(RESET)"; \
-		echo "Usage: make v3-cycle-fast CONFIG=/path/to/sindri.yaml"; \
+		echo "$(RED)Error: CONFIG is required$(RESET)"; \
+		echo "Usage: make v3-cycle-fast CONFIG=/path/to/sindri.yaml [DISTRO=ubuntu|fedora|opensuse]"; \
 		exit 1; \
 	fi
+	$(call assert_valid_distro)
 	@echo ""
-	@echo "$(BOLD)$(GREEN)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
-	@echo "$(BOLD)$(GREEN)║                    V3 Fast Development Cycle                       ║$(RESET)"
-	@echo "$(BOLD)$(GREEN)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
-	@echo ""
-	@echo "$(BOLD)Mode:$(RESET) Incremental (keeps caches, reuses base image)"
-	@echo "$(BOLD)Time:$(RESET) ~3-5 minutes"
-	@echo "$(BOLD)Config:$(RESET) $(CONFIG)"
+	@echo "$(BOLD)$(GREEN)╔══════════════════════════════════════════════════════════════╗$(RESET)"
+	@echo "$(BOLD)$(GREEN)║         V3 Fast Development Cycle [$(DISTRO)]                    ║$(RESET)"
+	@echo "$(BOLD)$(GREEN)╚══════════════════════════════════════════════════════════════╝$(RESET)"
+	@echo "$(BOLD)Mode:$(RESET) Incremental  $(BOLD)Distro:$(RESET) $(DISTRO)  $(BOLD)Time:$(RESET) ~3-5 min"
 	@echo ""
 	@$(MAKE) v3-cache-clear-soft
 	@sindri destroy --config $(CONFIG) -f || true
-	@$(MAKE) v3-docker-build-fast
+	@$(MAKE) _v3-docker-build-dev-impl
 	@$(MAKE) v3-install
 	@sindri deploy --config $(CONFIG)
 	@echo ""
-	@echo "$(GREEN)✓ Fast cycle complete!$(RESET)"
-	@echo "  Connect: sindri connect --config $(CONFIG)"
+	@echo "$(GREEN)✓ Fast cycle [$(DISTRO)] complete — Connect: sindri connect --config $(CONFIG)$(RESET)"
 
 .PHONY: v3-cycle-clean
 v3-cycle-clean:
 	@if [ -z "$(CONFIG)" ]; then \
-		echo "$(RED)Error: CONFIG parameter required$(RESET)"; \
-		echo "Usage: make v3-cycle-clean CONFIG=/path/to/sindri.yaml"; \
-		exit 1; \
+		echo "$(RED)Error: CONFIG is required$(RESET)"; exit 1; \
 	fi
+	$(call assert_valid_distro)
 	@echo ""
-	@echo "$(BOLD)$(YELLOW)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
-	@echo "$(BOLD)$(YELLOW)║                   V3 Clean Development Cycle                       ║$(RESET)"
-	@echo "$(BOLD)$(YELLOW)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
-	@echo ""
-	@echo "$(BOLD)Mode:$(RESET) Clean build (clears caches, keeps base image)"
-	@echo "$(BOLD)Time:$(RESET) ~10-15 minutes"
-	@echo "$(BOLD)Config:$(RESET) $(CONFIG)"
+	@echo "$(BOLD)$(YELLOW)╔══════════════════════════════════════════════════════════════╗$(RESET)"
+	@echo "$(BOLD)$(YELLOW)║        V3 Clean Development Cycle [$(DISTRO)]                    ║$(RESET)"
+	@echo "$(BOLD)$(YELLOW)╚══════════════════════════════════════════════════════════════╝$(RESET)"
+	@echo "$(BOLD)Mode:$(RESET) Clean build  $(BOLD)Distro:$(RESET) $(DISTRO)  $(BOLD)Time:$(RESET) ~10-15 min"
 	@echo ""
 	@$(MAKE) v3-cache-clear-medium
 	@sindri destroy --config $(CONFIG) -f || true
-	@docker images --filter=reference='sindri:*' --format '{{.ID}}\t{{.Repository}}:{{.Tag}}' | \
-		grep -v 'sindri:base-' | awk '{print $$1}' | xargs docker rmi -f 2>/dev/null || true
-	@$(MAKE) v3-docker-build-fast-nocache
+	@docker images --filter="reference=sindri:v3-$(DISTRO)*" \
+		--format "{{.ID}}" | xargs docker rmi -f 2>/dev/null || true
+	@$(MAKE) _v3-docker-build-dev-impl
 	@$(MAKE) v3-install
 	@sindri deploy --config $(CONFIG)
 	@echo ""
-	@echo "$(GREEN)✓ Clean cycle complete!$(RESET)"
+	@echo "$(GREEN)✓ Clean cycle [$(DISTRO)] complete$(RESET)"
 
 .PHONY: v3-cycle-nuclear
 v3-cycle-nuclear:
@@ -1242,6 +1415,72 @@ v3-cycle:
 	@sindri connect --config $(CONFIG)
 	@echo ""
 	@echo "$(GREEN)$(BOLD)✓ V3 full development cycle complete$(RESET)"
+
+# ============================================================================
+# V3 Distro Smoke Tests (local — mirrors the CI distro matrix job)
+# ============================================================================
+
+# Run smoke test on a locally-built distro image.
+# Usage: make v3-distro-test DISTRO=fedora
+.PHONY: v3-distro-test
+v3-distro-test:
+	$(call assert_valid_distro)
+	@IMG="$(DISTRO_IMAGE_LOCAL)"; \
+	if ! docker image inspect "$$IMG" >/dev/null 2>&1; then \
+		echo "$(YELLOW)Image not found: $$IMG$(RESET)"; \
+		echo "Build first: make v3-docker-build DISTRO=$(DISTRO)"; \
+		exit 1; \
+	fi; \
+	echo "$(BLUE)Running smoke tests for $(DISTRO)...$(RESET)"; \
+	\
+	echo "  [1/4] sindri --version"; \
+	docker run --rm "$$IMG" sindri --version; \
+	\
+	echo "  [2/4] distro detection"; \
+	DETECTED=$$(docker run --rm "$$IMG" /bin/bash -c \
+		"source /docker/lib/pkg-manager.sh && detect_distro"); \
+	if [ "$$DETECTED" != "$(DISTRO)" ]; then \
+		echo "$(RED)FAIL: expected $(DISTRO), got $$DETECTED$(RESET)"; exit 1; \
+	fi; \
+	echo "$(GREEN)  ✓ Distro detection: $$DETECTED$(RESET)"; \
+	\
+	echo "  [3/4] architecture detection"; \
+	ARCH=$$(docker run --rm "$$IMG" /bin/bash -c \
+		"source /docker/lib/pkg-manager.sh && detect_arch"); \
+	echo "$(GREEN)  ✓ Architecture: $$ARCH$(RESET)"; \
+	\
+	echo "  [4/4] starship --version"; \
+	docker run --rm "$$IMG" starship --version; \
+	echo "$(GREEN)  ✓ starship available$(RESET)"; \
+	\
+	echo "$(GREEN)$(BOLD)✓ All smoke tests passed for $(DISTRO)$(RESET)"
+
+# Convenience aliases
+.PHONY: v3-distro-test-ubuntu v3-distro-test-fedora v3-distro-test-opensuse
+v3-distro-test-ubuntu:   ; @$(MAKE) v3-distro-test DISTRO=ubuntu
+v3-distro-test-fedora:   ; @$(MAKE) v3-distro-test DISTRO=fedora
+v3-distro-test-opensuse: ; @$(MAKE) v3-distro-test DISTRO=opensuse
+
+# Build and test all three in sequence
+.PHONY: v3-distro-test-all
+v3-distro-test-all:
+	@echo "$(BLUE)Building and testing all distros...$(RESET)"
+	@for DISTRO in ubuntu fedora opensuse; do \
+		$(MAKE) v3-docker-build DISTRO=$$DISTRO && \
+		$(MAKE) v3-distro-test  DISTRO=$$DISTRO || exit 1; \
+	done
+	@echo "$(GREEN)$(BOLD)✓ All distros built and tested$(RESET)"
+
+# ── pkg-manager.sh integration tests (Docker-based) ─────────────────────────
+.PHONY: v3-pkg-manager-test
+v3-pkg-manager-test:
+	@echo "$(BLUE)Running pkg-manager.sh integration tests (Docker-based)...$(RESET)"
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "$(RED)Docker is required to run these tests$(RESET)"; \
+		exit 1; \
+	fi
+	$(V3_DIR)/tests/pkg-manager-test.sh
+	@echo "$(GREEN)✓ pkg-manager.sh integration tests passed$(RESET)"
 
 # ============================================================================
 # V3 Extension Testing Targets
@@ -1381,10 +1620,20 @@ v2-clean:
 v3-clean:
 	@echo "$(BLUE)Cleaning v3 Rust artifacts...$(RESET)"
 	cd $(V3_DIR) && cargo clean
-	@echo "$(BLUE)Cleaning v3 cached repositories...$(RESET)"
+	@echo "$(BLUE)Cleaning Sindri repository caches...$(RESET)"
 	@rm -rf ~/Library/Caches/sindri/repos 2>/dev/null || true
 	@rm -rf ~/.cache/sindri/repos 2>/dev/null || true
-	@echo "$(BLUE)Cleaning Docker build cache...$(RESET)"
+	@if [ -n "$(DISTRO)" ] && [ "$(DISTRO)" != "." ]; then \
+		echo "$(BLUE)Removing Docker images for distro=$(DISTRO)...$(RESET)"; \
+		docker images --filter="reference=sindri:*$(DISTRO)*" \
+			--format "{{.ID}}" | sort -u | xargs docker rmi -f 2>/dev/null || true; \
+	else \
+		echo "$(BLUE)Removing all non-base sindri Docker images...$(RESET)"; \
+		docker images --filter="reference=sindri:*" --format "{{.ID}}\t{{.Tag}}" \
+			| grep -v "base-" | awk '{print $$1}' \
+			| xargs docker rmi -f 2>/dev/null || true; \
+	fi
+	@echo "$(BLUE)Clearing BuildKit build caches...$(RESET)"
 	@docker builder prune --all --force 2>/dev/null || true
 	@docker buildx prune --all --force 2>/dev/null || true
 	@echo "$(GREEN)✓ v3 artifacts cleaned$(RESET)"

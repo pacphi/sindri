@@ -5,6 +5,7 @@ metadata:
   description: >-
     TUI tool for managing Claude Code plugins, MCPs (Model Context Protocol), and configuration settings
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: MadAppGang
   license: MIT
   homepage: https://github.com/MadAppGang/claude-code/tree/main/tools/claudeup

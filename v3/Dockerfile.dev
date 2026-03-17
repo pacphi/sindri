@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1.4
 # ==============================================================================
-# Sindri v3 Dockerfile.dev - Development Builds (Local Source)
+# Sindri v3 Dockerfile.dev - Development Builds (Local Source, Multi-Distro)
 # ==============================================================================
 # Multi-stage build for development iteration with bundled extensions.
+# Supports multiple Linux distributions via the DISTRO build arg.
 #
 # IMPORTANT: This Dockerfile uses COPY to build from local files.
 # It does NOT clone from GitHub - it builds whatever is in your working directory.
@@ -23,6 +24,20 @@
 # See v3/docs/MAINTAINER_GUIDE.md for the full "Two Development Paths" guide.
 #
 # ------------------------------------------------------------------------------
+# Multi-Distro Support:
+# ------------------------------------------------------------------------------
+# The DISTRO arg selects which base image to use:
+#   - ubuntu  (default) -> ghcr.io/pacphi/sindri:base-ubuntu-latest
+#   - fedora            -> ghcr.io/pacphi/sindri:base-fedora-latest
+#   - opensuse          -> ghcr.io/pacphi/sindri:base-opensuse-latest
+#
+# Usage:
+#   docker build --build-arg DISTRO=fedora -f v3/Dockerfile.dev .
+#
+# The builder stages always use rust:1.94-slim-bookworm (Debian) since they
+# only compile Rust code. Distro selection only affects the runtime stage.
+#
+# ------------------------------------------------------------------------------
 # Build Performance (with base image):
 # ------------------------------------------------------------------------------
 # - First build: 3-5 minutes
@@ -32,10 +47,11 @@
 # ------------------------------------------------------------------------------
 # Base Image:
 # ------------------------------------------------------------------------------
-# Uses pre-built base image (ghcr.io/pacphi/sindri:base-latest) containing:
+# Uses pre-built base image (ghcr.io/pacphi/sindri:base-{DISTRO}-latest)
+# containing:
 # - Rust 1.94 toolchain
 # - cargo-chef for dependency caching
-# - System packages (Ubuntu 24.04)
+# - System packages (distro-specific)
 # - GitHub CLI
 # - Cosign (container signing)
 #
@@ -58,7 +74,8 @@
 # ------------------------------------------------------------------------------
 # Build Arguments
 # ------------------------------------------------------------------------------
-ARG BASE_IMAGE=ghcr.io/pacphi/sindri:base-latest
+ARG DISTRO=ubuntu
+ARG BASE_IMAGE=ghcr.io/pacphi/sindri:base-${DISTRO}-latest
 
 # ==============================================================================
 # Stage 1: Prepare Recipe (cargo-chef)
@@ -137,15 +154,22 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     chmod +x /output/sindri
 
 # ==============================================================================
-# Stage 4: Runtime Image (inherits from base)
+# Stage 4: Runtime Image (inherits from distro-specific base)
 # ==============================================================================
 FROM ${BASE_IMAGE}
+
+ARG DISTRO
+
+# ------------------------------------------------------------------------------
+# Labels
+# ------------------------------------------------------------------------------
+LABEL sindri.distro="${DISTRO}"
 
 # ------------------------------------------------------------------------------
 # Runtime environment already set by base image
 # ------------------------------------------------------------------------------
 # Inherited from base:
-# - Ubuntu 24.04 with system packages
+# - System packages (distro-specific: Ubuntu, Fedora, or openSUSE)
 # - Developer user and workspace directories
 # - GitHub CLI
 # - SSH server configuration structure
@@ -237,6 +261,10 @@ ENTRYPOINT ["/docker/scripts/entrypoint.sh"]
 #
 # 3. Full rebuild (when you need to):
 #      make v3-docker-build-from-source
+#
+# 4. Build for a specific distro:
+#      docker build --build-arg DISTRO=fedora -f v3/Dockerfile.dev .
+#      docker build --build-arg DISTRO=opensuse -f v3/Dockerfile.dev .
 #
 # Build times:
 # - Base image: 15-20 min (build once, reuse for weeks/months)

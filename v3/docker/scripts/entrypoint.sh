@@ -357,6 +357,7 @@ install_extensions_background() {
 
     # Run installation in background
     (
+        set -o pipefail
         cd "$WORKSPACE"
 
         # Determine installation method (priority order)
@@ -386,7 +387,7 @@ install_extensions_background() {
 
         if [[ -f "$env_file" ]]; then
             local propagated_vars
-            propagated_vars=$(grep -oP '(?<=^export )\w+' "$env_file" | tr '\n' ',' | sed 's/,$//')
+            propagated_vars=$(grep '^export ' "$env_file" | sed 's/^export \([A-Za-z_][A-Za-z_0-9]*\)=.*/\1/' | tr '\n' ',' | sed 's/,$//')
             [[ -n "$propagated_vars" ]] && preserve_list="${preserve_list},${propagated_vars}"
         fi
 

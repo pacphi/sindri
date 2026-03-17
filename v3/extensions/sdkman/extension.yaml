@@ -4,6 +4,7 @@ metadata:
   version: 1.0.1
   description: SDKMAN - The Software Development Kit Manager for JVM tools
   category: package-manager
+  distros: [ubuntu, fedora, opensuse]
   author: SDKMAN Team
   license: Apache-2.0
   homepage: https://sdkman.io

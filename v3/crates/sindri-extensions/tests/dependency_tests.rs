@@ -180,6 +180,7 @@ mod dependency_tests {
                 author: None,
                 homepage: None,
                 dependencies: vec![],
+                distros: vec![sindri_core::types::Distro::Ubuntu],
             },
             requirements: None,
             install: InstallConfig {
@@ -189,6 +190,9 @@ mod dependency_tests {
                 binary: None,
                 npm: None,
                 script: None,
+                dnf: None,
+                zypper: None,
+                scripts: None,
             },
             configure: None,
             validate: sindri_core::types::ValidateConfig {
@@ -213,6 +217,7 @@ mod dependency_tests {
                 author: None,
                 homepage: None,
                 dependencies: vec![],
+                distros: vec![sindri_core::types::Distro::Ubuntu],
             },
             requirements: None,
             install: InstallConfig {
@@ -222,6 +227,9 @@ mod dependency_tests {
                 binary: None,
                 npm: None,
                 script: None,
+                dnf: None,
+                zypper: None,
+                scripts: None,
             },
             configure: None,
             validate: sindri_core::types::ValidateConfig {
@@ -246,6 +254,7 @@ mod dependency_tests {
                 author: None,
                 homepage: None,
                 dependencies: vec!["mise-config".to_string(), "sdkman".to_string()],
+                distros: vec![sindri_core::types::Distro::Ubuntu],
             },
             requirements: None,
             install: InstallConfig {
@@ -255,6 +264,9 @@ mod dependency_tests {
                 binary: None,
                 npm: None,
                 script: None,
+                dnf: None,
+                zypper: None,
+                scripts: None,
             },
             configure: None,
             validate: sindri_core::types::ValidateConfig {

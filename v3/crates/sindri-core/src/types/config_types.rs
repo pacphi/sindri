@@ -33,6 +33,10 @@ pub struct DeploymentConfig {
     /// Deployment provider
     pub provider: Provider,
 
+    /// Target Linux distribution for the container image
+    #[serde(default)]
+    pub distro: super::extension_types::Distro,
+
     /// Docker image to deploy (legacy, use image_config instead)
     #[serde(default)]
     pub image: Option<String>,
@@ -54,8 +58,18 @@ pub struct DeploymentConfig {
     pub volumes: VolumesConfig,
 }
 
-/// Default certificate identity regexp for Sindri image signature verification
-pub const DEFAULT_CERTIFICATE_IDENTITY: &str = "https://github.com/pacphi/sindri";
+/// Default certificate identity regexp for Sindri image signature verification.
+///
+/// Built from the registry owner/image constants so forks only need to update
+/// [`crate::config::loader::DEFAULT_REGISTRY_OWNER`] and
+/// [`crate::config::loader::DEFAULT_IMAGE_NAME`].
+pub fn default_certificate_identity() -> String {
+    format!(
+        "https://github.com/{}/{}",
+        crate::config::loader::DEFAULT_REGISTRY_OWNER,
+        crate::config::loader::DEFAULT_IMAGE_NAME,
+    )
+}
 
 /// Default OIDC issuer for Sindri image signature verification
 pub const DEFAULT_CERTIFICATE_OIDC_ISSUER: &str = "https://token.actions.githubusercontent.com";
@@ -109,10 +123,10 @@ pub struct ImageConfig {
 
 impl ImageConfig {
     /// Returns the certificate identity for verification, falling back to the default.
-    pub fn cert_identity_or_default(&self) -> &str {
+    pub fn cert_identity_or_default(&self) -> String {
         self.certificate_identity
-            .as_deref()
-            .unwrap_or(DEFAULT_CERTIFICATE_IDENTITY)
+            .clone()
+            .unwrap_or_else(default_certificate_identity)
     }
 
     /// Returns the OIDC issuer for verification, falling back to the default.

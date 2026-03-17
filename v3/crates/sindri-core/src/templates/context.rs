@@ -2,6 +2,7 @@
 //!
 //! Provides context data for rendering sindri.yaml templates.
 
+use crate::config::loader::default_image_registry;
 use crate::types::Provider;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -48,6 +49,8 @@ pub struct ConfigInitContext {
     pub provider: String,
     /// Selected profile
     pub profile: String,
+    /// Target Linux distribution
+    pub distro: String,
     /// Available profiles with descriptions
     pub profiles: Vec<ProfileInfo>,
     /// Whether the provider supports GPU
@@ -58,11 +61,13 @@ pub struct ConfigInitContext {
     pub provider_supports_ssh: bool,
     /// Provider-specific region/location default
     pub default_region: String,
+    /// Default container image registry (e.g., "ghcr.io/pacphi/sindri")
+    pub default_registry: String,
 }
 
 impl ConfigInitContext {
     /// Create a new config init context
-    pub fn new(name: &str, provider: Provider, profile: &str) -> Self {
+    pub fn new(name: &str, provider: Provider, profile: &str, distro: &str) -> Self {
         let provider_str = provider.to_string();
         let (supports_gpu, supports_dind, supports_ssh, default_region) = match provider {
             Provider::Fly => (true, false, true, "sjc".to_string()),
@@ -78,11 +83,13 @@ impl ConfigInitContext {
             name: name.to_string(),
             provider: provider_str,
             profile: profile.to_string(),
+            distro: distro.to_string(),
             profiles: Self::load_profiles(),
             provider_supports_gpu: supports_gpu,
             provider_supports_dind: supports_dind,
             provider_supports_ssh: supports_ssh,
             default_region,
+            default_registry: default_image_registry(),
         }
     }
 

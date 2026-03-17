@@ -154,6 +154,16 @@ impl<'a> ExtensionValidator<'a> {
                     anyhow::bail!("Install method 'apt' requires 'apt' configuration block");
                 }
             }
+            InstallMethod::Dnf => {
+                if extension.install.dnf.is_none() {
+                    anyhow::bail!("Install method 'dnf' requires 'dnf' configuration block");
+                }
+            }
+            InstallMethod::Zypper => {
+                if extension.install.zypper.is_none() {
+                    anyhow::bail!("Install method 'zypper' requires 'zypper' configuration block");
+                }
+            }
             InstallMethod::Binary => {
                 if extension.install.binary.is_none() {
                     anyhow::bail!("Install method 'binary' requires 'binary' configuration block");

@@ -4,6 +4,7 @@ metadata:
   version: 2.2.0
   description: .NET SDK 10.0 and 8.0 with ASP.NET Core and development tools
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies: []
 requirements:

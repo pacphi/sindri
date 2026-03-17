@@ -5,6 +5,7 @@ metadata:
   description: >-
     Ollama - Run large language models locally. Provides the ollama CLI for managing and running LLMs like Llama, Mistral, CodeLlama, and more.
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   homepage: https://ollama.com
   dependencies: []

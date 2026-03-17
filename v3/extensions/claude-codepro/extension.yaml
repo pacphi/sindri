@@ -4,6 +4,7 @@ metadata:
   version: 4.5.29
   description: Production-grade TDD-enforced development environment for Claude Code with automated quality checks
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: Max Ritter
   license: Proprietary (Free tier available)
   homepage: https://github.com/maxritter/claude-codepro

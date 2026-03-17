@@ -5,6 +5,7 @@ metadata:
   description: >-
     JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies:
     - mise-config

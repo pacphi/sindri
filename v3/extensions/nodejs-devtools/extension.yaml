@@ -5,6 +5,7 @@ metadata:
   description: >-
     TypeScript, ESLint, Prettier, and Node.js development tools via mise
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies:
     - nodejs

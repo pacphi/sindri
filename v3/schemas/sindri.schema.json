@@ -24,6 +24,12 @@
           "enum": ["fly", "kubernetes", "docker-compose", "docker", "devpod", "e2b", "runpod", "northflank"],
           "description": "Deployment provider (docker is an alias for docker-compose)"
         },
+        "distro": {
+          "type": "string",
+          "enum": ["ubuntu", "fedora", "opensuse"],
+          "default": "ubuntu",
+          "description": "Target Linux distribution for the container image"
+        },
         "image": {
           "type": "string",
           "description": "Docker image to deploy"

@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: Autonomous spec generation skill that produces implementable specifications from reference materials
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - python
 

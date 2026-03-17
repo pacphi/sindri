@@ -4,6 +4,7 @@ metadata:
   version: 2.1.0
   description: Claude Code plugin marketplace integration via JSON configuration
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies:
     - claude-cli

@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: Multi-model AI agent framework for Claude Code with cost optimization (alpha)
   category: ai-agents
+  distros: [ubuntu, fedora, opensuse]
   author: ruvnet
   license: MIT
   homepage: https://github.com/ruvnet/agentic-flow

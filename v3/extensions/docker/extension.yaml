@@ -4,6 +4,7 @@ metadata:
   version: 1.1.0
   description: Docker Engine and Compose with Docker-in-Docker support
   category: devops
+  distros: [ubuntu, fedora]
   dependencies: []
 requirements:
   domains:
@@ -19,6 +20,17 @@ install:
       - gpgKey: https://download.docker.com/linux/ubuntu/gpg
         sources: >-
           deb https://download.docker.com/linux/ubuntu jammy stable
+    packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+      - fuse-overlayfs
+  dnf:
+    repositories:
+      - name: docker-ce-stable
+        gpgKey: https://download.docker.com/linux/fedora/gpg
+        baseUrl: https://download.docker.com/linux/fedora/$releasever/$basearch/stable
     packages:
       - docker-ce
       - docker-ce-cli

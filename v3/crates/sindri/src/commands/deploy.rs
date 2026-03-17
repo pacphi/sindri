@@ -188,7 +188,8 @@ async fn verify_image(image: &str, config: &SindriConfig) -> Result<()> {
     let image_config = config.inner().deployment.image_config.as_ref().unwrap();
 
     // Get certificate identity and OIDC issuer from config or use defaults
-    let cert_identity = Some(image_config.cert_identity_or_default());
+    let cert_identity_owned = image_config.cert_identity_or_default();
+    let cert_identity = Some(cert_identity_owned.as_str());
     let cert_oidc_issuer = Some(image_config.cert_oidc_issuer_or_default());
 
     // Verify signature

@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: GitHub specification kit for AI-powered repository documentation and workflows
   category: documentation
+  distros: [ubuntu, fedora, opensuse]
   author: GitHub
   homepage: https://github.com/github/spec-kit
   dependencies:

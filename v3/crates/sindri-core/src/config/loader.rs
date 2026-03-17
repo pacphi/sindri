@@ -39,11 +39,50 @@ pub trait ImageVersionResolver: Send + Sync {
 /// Configuration file names to search for
 const CONFIG_FILE_NAMES: &[&str] = &["sindri.yaml", "sindri.yml"];
 
-/// Default image registry
-const DEFAULT_IMAGE_REGISTRY: &str = "ghcr.io/pacphi/sindri";
+// ─── Default image registry constants ────────────────────────────────────────
+//
+// These three constants define the default container image that `sindri config init`
+// generates and that the CLI falls back to when no image is configured.
+//
+// **Forking / private registry:**
+//   1. Update the three constants below to point to your registry.
+//   2. Rebuild the CLI (`cargo build --release`).
+//   3. The Tera config template, default certificate identity, and fallback image
+//      reference all derive from these values automatically.
+//
+//   The Makefile also honours `REGISTRY ?= ghcr.io/pacphi` which can be
+//   overridden at build time:
+//      make v3-docker-build REGISTRY=ghcr.io/myorg
+//
+//   End-users can always override per-project via `sindri.yaml`:
+//      deployment:
+//        image: myregistry.example.com/myorg/sindri:v3-latest
+//   or via the structured `image_config` block.
+// ─────────────────────────────────────────────────────────────────────────────
 
-/// Default image tag
+/// Default container registry host (e.g., `"ghcr.io"`, `"docker.io"`).
+pub const DEFAULT_REGISTRY_HOST: &str = "ghcr.io";
+
+/// Default registry owner / namespace.
+pub const DEFAULT_REGISTRY_OWNER: &str = "pacphi";
+
+/// Default image name.
+pub const DEFAULT_IMAGE_NAME: &str = "sindri";
+
+/// Default image tag used by [`generate_default_config`].
 const DEFAULT_IMAGE_TAG: &str = "latest";
+
+/// Compose the full default image registry reference.
+///
+/// Returns `"{host}/{owner}/{image}"` (e.g., `"ghcr.io/pacphi/sindri"`).
+/// All template rendering and fallback logic should call this rather than
+/// assembling the string ad-hoc.
+pub fn default_image_registry() -> String {
+    format!(
+        "{}/{}/{}",
+        DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_OWNER, DEFAULT_IMAGE_NAME
+    )
+}
 
 /// Loaded and validated Sindri configuration
 #[derive(Debug, Clone)]
@@ -157,7 +196,12 @@ impl SindriConfig {
             name: name.to_string(),
             deployment: DeploymentConfig {
                 provider,
-                image: Some(format!("{}:{}", DEFAULT_IMAGE_REGISTRY, DEFAULT_IMAGE_TAG)),
+                distro: crate::types::Distro::default(),
+                image: Some(format!(
+                    "{}:{}",
+                    default_image_registry(),
+                    DEFAULT_IMAGE_TAG
+                )),
                 image_config: None,
                 build_from_source: None,
                 resources: ResourcesConfig::default(),
@@ -312,6 +356,75 @@ impl SindriConfig {
         Err(Error::invalid_config("No image configured"))
     }
 
+    /// Validate that the image tag matches the declared distro.
+    /// Returns a warning message if mismatched, None if consistent.
+    pub fn validate_distro_image_consistency(&self) -> Option<String> {
+        use crate::types::Distro;
+
+        let distro = self.config.deployment.distro;
+
+        // Determine the effective image reference
+        let image_ref = if let Some(ic) = &self.config.deployment.image_config {
+            // Skip check for digest-pinned images
+            if ic.digest.is_some() {
+                return None;
+            }
+            // Skip check for version-based resolution (resolved at deploy time)
+            if ic.version.is_some() {
+                return None;
+            }
+            ic.tag_override.as_deref().map(|t| format!(":{}", t))
+        } else {
+            self.config.deployment.image.clone()
+        };
+
+        let image_ref = image_ref?;
+
+        // Extract the tag portion (after the last ':')
+        let tag = match image_ref.rsplit_once(':') {
+            Some((_, tag)) => tag,
+            None => return None, // No tag, can't validate
+        };
+
+        // Skip digest references
+        if tag.contains("sha256") {
+            return None;
+        }
+
+        match distro {
+            Distro::Ubuntu => {
+                if tag.contains("-fedora") || tag.contains("-opensuse") {
+                    Some(format!(
+                        "Distro is 'ubuntu' but image tag '{}' appears to target a different distro",
+                        tag
+                    ))
+                } else {
+                    None
+                }
+            }
+            Distro::Fedora => {
+                if !tag.contains("-fedora") {
+                    Some(format!(
+                        "Distro is 'fedora' but image tag '{}' does not contain '-fedora'",
+                        tag
+                    ))
+                } else {
+                    None
+                }
+            }
+            Distro::Opensuse => {
+                if !tag.contains("-opensuse") {
+                    Some(format!(
+                        "Distro is 'opensuse' but image tag '{}' does not contain '-opensuse'",
+                        tag
+                    ))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
     /// Serialize configuration to YAML
     pub fn to_yaml(&self) -> Result<String> {
         serde_yaml_ng::to_string(&self.config).map_err(Error::from)
@@ -338,12 +451,18 @@ impl SindriConfig {
 /// * `name` - Project name
 /// * `provider` - Deployment provider
 /// * `profile` - Extension profile to use
+/// * `distro` - Target Linux distribution (ubuntu, fedora, opensuse)
 ///
 /// # Returns
 /// Generated YAML configuration string
-pub fn generate_config(name: &str, provider: Provider, profile: &str) -> Result<String> {
+pub fn generate_config(
+    name: &str,
+    provider: Provider,
+    profile: &str,
+    distro: &str,
+) -> Result<String> {
     let registry = ConfigTemplateRegistry::new().map_err(|e| Error::Template(e.to_string()))?;
-    let context = ConfigInitContext::new(name, provider, profile);
+    let context = ConfigInitContext::new(name, provider, profile, distro);
     registry
         .render_config(&context)
         .map_err(|e| Error::Template(e.to_string()))
@@ -354,7 +473,7 @@ pub fn generate_config(name: &str, provider: Provider, profile: &str) -> Result<
 /// This function is kept for backward compatibility.
 /// Prefer using `generate_config` which accepts a profile parameter.
 pub fn generate_default_config(name: &str, provider: Provider) -> String {
-    generate_config(name, provider, "minimal").unwrap_or_else(|_| {
+    generate_config(name, provider, "minimal", "ubuntu").unwrap_or_else(|_| {
         // Fallback to minimal hardcoded config if template fails
         format!(
             r#"---
@@ -374,7 +493,7 @@ extensions:
 "#,
             name = name,
             provider = format!("{:?}", provider).to_lowercase(),
-            registry = DEFAULT_IMAGE_REGISTRY,
+            registry = default_image_registry(),
             tag = DEFAULT_IMAGE_TAG
         )
     })
@@ -440,6 +559,129 @@ providers:
         assert_eq!(config.deployment.provider, Provider::Fly);
         assert!(config.deployment.resources.gpu.is_some());
         assert_eq!(config.secrets.len(), 1);
+    }
+
+    #[test]
+    fn test_config_without_distro_defaults_to_ubuntu() {
+        let yaml = r#"
+version: "3.0"
+name: test-project
+deployment:
+  provider: docker
+extensions:
+  profile: minimal
+"#;
+        let config: SindriConfigFile = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(
+            config.deployment.distro,
+            crate::types::Distro::Ubuntu,
+            "missing distro should default to ubuntu"
+        );
+    }
+
+    #[test]
+    fn test_distro_image_match_ubuntu_unsuffixed() {
+        let config = make_config_with_distro_and_image(
+            crate::types::Distro::Ubuntu,
+            Some("ghcr.io/pacphi/sindri:v3-latest"),
+        );
+        assert!(config.validate_distro_image_consistency().is_none());
+    }
+
+    #[test]
+    fn test_distro_image_mismatch_fedora_ubuntu_image() {
+        let config = make_config_with_distro_and_image(
+            crate::types::Distro::Fedora,
+            Some("ghcr.io/pacphi/sindri:v3-latest"),
+        );
+        let warning = config.validate_distro_image_consistency();
+        assert!(warning.is_some(), "fedora with unsuffixed tag should warn");
+        assert!(warning.unwrap().contains("-fedora"));
+    }
+
+    #[test]
+    fn test_distro_image_match_fedora() {
+        let config = make_config_with_distro_and_image(
+            crate::types::Distro::Fedora,
+            Some("ghcr.io/pacphi/sindri:v3-latest-fedora"),
+        );
+        assert!(config.validate_distro_image_consistency().is_none());
+    }
+
+    #[test]
+    fn test_distro_image_mismatch_ubuntu_with_fedora_tag() {
+        let config = make_config_with_distro_and_image(
+            crate::types::Distro::Ubuntu,
+            Some("ghcr.io/pacphi/sindri:v3-latest-fedora"),
+        );
+        let warning = config.validate_distro_image_consistency();
+        assert!(warning.is_some(), "ubuntu with fedora tag should warn");
+    }
+
+    #[test]
+    fn test_distro_image_skip_digest() {
+        let yaml = r#"
+version: "3.0"
+name: test-project
+deployment:
+  provider: docker
+  distro: fedora
+  image_config:
+    registry: ghcr.io/pacphi/sindri
+    digest: sha256:abc123def456
+extensions:
+  profile: minimal
+"#;
+        let config_file: SindriConfigFile = serde_yaml_ng::from_str(yaml).unwrap();
+        let config = SindriConfig {
+            config: config_file,
+            config_path: "test.yaml".into(),
+            working_dir: ".".into(),
+        };
+        assert!(
+            config.validate_distro_image_consistency().is_none(),
+            "digest-pinned images should skip check"
+        );
+    }
+
+    #[test]
+    fn test_distro_image_skip_no_image() {
+        let config = make_config_with_distro_and_image(crate::types::Distro::Fedora, None);
+        assert!(
+            config.validate_distro_image_consistency().is_none(),
+            "no image configured should skip check"
+        );
+    }
+
+    fn make_config_with_distro_and_image(
+        distro: crate::types::Distro,
+        image: Option<&str>,
+    ) -> SindriConfig {
+        SindriConfig {
+            config: SindriConfigFile {
+                version: "3.0".to_string(),
+                name: "test".to_string(),
+                deployment: DeploymentConfig {
+                    provider: Provider::Docker,
+                    distro,
+                    image: image.map(|s| s.to_string()),
+                    image_config: None,
+                    build_from_source: None,
+                    resources: ResourcesConfig::default(),
+                    volumes: VolumesConfig::default(),
+                },
+                extensions: ExtensionsConfig {
+                    profile: Some("minimal".to_string()),
+                    active: None,
+                    additional: None,
+                    auto_install: true,
+                },
+                secrets: Vec::new(),
+                providers: ProvidersConfig::default(),
+            },
+            config_path: "test.yaml".into(),
+            working_dir: ".".into(),
+        }
     }
 
     // --- Error path tests ---

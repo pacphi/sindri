@@ -4,6 +4,7 @@ metadata:
   version: 2.0.0
   description: GitHub CLI authentication and workflow configuration
   category: devops
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   protected: true
   dependencies: []

@@ -97,6 +97,61 @@ pub struct ExtensionMetadata {
     /// Dependencies (other extension names)
     #[serde(default)]
     pub dependencies: Vec<String>,
+
+    /// Supported Linux distributions
+    #[serde(default = "default_distros")]
+    pub distros: Vec<Distro>,
+}
+
+/// Supported Linux distributions for multi-distro container builds.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Distro {
+    #[default]
+    Ubuntu,
+    Fedora,
+    Opensuse,
+}
+
+impl std::fmt::Display for Distro {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Distro::Ubuntu => write!(f, "ubuntu"),
+            Distro::Fedora => write!(f, "fedora"),
+            Distro::Opensuse => write!(f, "opensuse"),
+        }
+    }
+}
+
+impl std::str::FromStr for Distro {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ubuntu" => Ok(Distro::Ubuntu),
+            "fedora" => Ok(Distro::Fedora),
+            "opensuse" => Ok(Distro::Opensuse),
+            _ => Err(format!(
+                "Unknown distro '{}'. Valid values: ubuntu, fedora, opensuse",
+                s
+            )),
+        }
+    }
+}
+
+impl Distro {
+    /// Convert to string slice
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Distro::Ubuntu => "ubuntu",
+            Distro::Fedora => "fedora",
+            Distro::Opensuse => "opensuse",
+        }
+    }
+}
+
+fn default_distros() -> Vec<Distro> {
+    vec![Distro::Ubuntu]
 }
 
 /// Extension categories
@@ -253,6 +308,18 @@ pub struct InstallConfig {
     /// Script configuration
     #[serde(default)]
     pub script: Option<ScriptConfig>,
+
+    /// DNF configuration (Fedora)
+    #[serde(default)]
+    pub dnf: Option<DnfInstallConfig>,
+
+    /// Zypper configuration (openSUSE)
+    #[serde(default)]
+    pub zypper: Option<ZypperInstallConfig>,
+
+    /// Per-distro script overrides
+    #[serde(default)]
+    pub scripts: Option<PerDistroScripts>,
 }
 
 /// Installation methods
@@ -261,6 +328,8 @@ pub struct InstallConfig {
 pub enum InstallMethod {
     Mise,
     Apt,
+    Dnf,
+    Zypper,
     Binary,
     Npm,
     NpmGlobal,
@@ -313,6 +382,92 @@ pub struct AptRepository {
 
     /// Sources list entry
     pub sources: String,
+}
+
+/// DNF (Fedora) package manager install configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DnfInstallConfig {
+    /// Packages to install
+    pub packages: Vec<String>,
+
+    /// Custom repositories
+    #[serde(default)]
+    pub repositories: Vec<DnfRepository>,
+
+    /// DNF group installs
+    #[serde(default)]
+    pub groups: Vec<String>,
+
+    /// Run dnf makecache first
+    #[serde(default = "default_true", rename = "updateFirst")]
+    pub update_first: bool,
+}
+
+/// DNF repository definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DnfRepository {
+    /// Repository name/ID
+    #[serde(default)]
+    pub name: Option<String>,
+
+    /// GPG key URL
+    #[serde(default, rename = "gpgKey")]
+    pub gpg_key: Option<String>,
+
+    /// Repository base URL
+    #[serde(rename = "baseUrl")]
+    pub base_url: String,
+}
+
+/// Zypper (openSUSE) package manager install configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ZypperInstallConfig {
+    /// Packages to install
+    pub packages: Vec<String>,
+
+    /// Custom repositories
+    #[serde(default)]
+    pub repositories: Vec<ZypperRepository>,
+
+    /// Zypper pattern installs
+    #[serde(default)]
+    pub patterns: Vec<String>,
+
+    /// Run zypper refresh first
+    #[serde(default = "default_true", rename = "updateFirst")]
+    pub update_first: bool,
+}
+
+/// Zypper repository definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ZypperRepository {
+    /// Repository alias
+    #[serde(default)]
+    pub name: Option<String>,
+
+    /// GPG key URL
+    #[serde(default, rename = "gpgKey")]
+    pub gpg_key: Option<String>,
+
+    /// Repository URL
+    #[serde(rename = "baseUrl")]
+    pub base_url: String,
+}
+
+/// Per-distro script overrides.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PerDistroScripts {
+    /// Ubuntu-specific script override
+    #[serde(default)]
+    pub ubuntu: Option<ScriptConfig>,
+
+    /// Fedora-specific script override
+    #[serde(default)]
+    pub fedora: Option<ScriptConfig>,
+
+    /// openSUSE-specific script override
+    #[serde(default)]
+    pub opensuse: Option<ScriptConfig>,
 }
 
 /// Binary download config
@@ -622,6 +777,14 @@ pub struct RemoveConfig {
     #[serde(default)]
     pub apt: Option<AptRemoveConfig>,
 
+    /// DNF removal config
+    #[serde(default)]
+    pub dnf: Option<DnfRemoveConfig>,
+
+    /// Zypper removal config
+    #[serde(default)]
+    pub zypper: Option<ZypperRemoveConfig>,
+
     /// Script removal config
     #[serde(default)]
     pub script: Option<ScriptRemoveConfig>,
@@ -665,6 +828,22 @@ pub struct ScriptRemoveConfig {
     /// Timeout
     #[serde(default = "default_remove_timeout")]
     pub timeout: u32,
+}
+
+/// DNF removal config
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DnfRemoveConfig {
+    /// Packages to remove
+    #[serde(default)]
+    pub packages: Vec<String>,
+}
+
+/// Zypper removal config
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ZypperRemoveConfig {
+    /// Packages to remove
+    #[serde(default)]
+    pub packages: Vec<String>,
 }
 
 fn default_remove_timeout() -> u32 {
@@ -760,6 +939,14 @@ pub struct UpgradeConfig {
     #[serde(default)]
     pub apt: Option<AptUpgradeConfig>,
 
+    /// DNF upgrade config
+    #[serde(default)]
+    pub dnf: Option<DnfUpgradeConfig>,
+
+    /// Zypper upgrade config
+    #[serde(default)]
+    pub zypper: Option<ZypperUpgradeConfig>,
+
     /// Script upgrade config
     #[serde(default)]
     pub script: Option<ScriptConfig>,
@@ -801,6 +988,30 @@ pub struct AptUpgradeConfig {
     pub packages: Vec<String>,
 
     /// Run apt update first
+    #[serde(default = "default_true", rename = "updateFirst")]
+    pub update_first: bool,
+}
+
+/// DNF upgrade config
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DnfUpgradeConfig {
+    /// Packages to upgrade
+    #[serde(default)]
+    pub packages: Vec<String>,
+
+    /// Run dnf makecache first
+    #[serde(default = "default_true", rename = "updateFirst")]
+    pub update_first: bool,
+}
+
+/// Zypper upgrade config
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ZypperUpgradeConfig {
+    /// Packages to upgrade
+    #[serde(default)]
+    pub packages: Vec<String>,
+
+    /// Run zypper refresh first
     #[serde(default = "default_true", rename = "updateFirst")]
     pub update_first: bool,
 }
@@ -1430,6 +1641,8 @@ pub struct BomTool {
 pub enum BomSource {
     Mise,
     Apt,
+    Dnf,
+    Zypper,
     Npm,
     Pip,
     Binary,

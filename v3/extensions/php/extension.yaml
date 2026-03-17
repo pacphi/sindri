@@ -4,6 +4,7 @@ metadata:
   version: 2.2.0
   description: PHP 8.5 with Composer, Symfony CLI, and development tools
   category: languages
+  distros: [ubuntu]
   author: Sindri Team
   dependencies: []
 requirements:

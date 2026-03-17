@@ -245,6 +245,10 @@ pub fn render_extension_doc(extension: &Extension, format: DocOutputFormat) -> R
             "Uses mise for tool management with automatic shim refresh.".to_string()
         }
         InstallMethod::Apt => "Uses apt package manager for installation.".to_string(),
+        InstallMethod::Dnf => "Uses dnf package manager for installation (Fedora).".to_string(),
+        InstallMethod::Zypper => {
+            "Uses zypper package manager for installation (openSUSE).".to_string()
+        }
         InstallMethod::Binary => "Downloads pre-built binaries.".to_string(),
         InstallMethod::Npm | InstallMethod::NpmGlobal => {
             "Uses npm for global package installation.".to_string()
@@ -456,7 +460,7 @@ mod tests {
     #[test]
     fn test_render_config_docker() {
         let registry = ConfigTemplateRegistry::new().unwrap();
-        let context = ConfigInitContext::new("test-project", Provider::Docker, "minimal");
+        let context = ConfigInitContext::new("test-project", Provider::Docker, "minimal", "ubuntu");
 
         let result = registry.render_config(&context);
         if let Err(ref e) = result {
@@ -472,7 +476,7 @@ mod tests {
     #[test]
     fn test_render_config_fly() {
         let registry = ConfigTemplateRegistry::new().unwrap();
-        let context = ConfigInitContext::new("my-app", Provider::Fly, "fullstack");
+        let context = ConfigInitContext::new("my-app", Provider::Fly, "fullstack", "ubuntu");
 
         let result = registry.render_config(&context);
         let content = result.expect("render_config for Fly provider should succeed");
@@ -486,7 +490,7 @@ mod tests {
     #[test]
     fn test_render_config_e2b_no_gpu() {
         let registry = ConfigTemplateRegistry::new().unwrap();
-        let context = ConfigInitContext::new("sandbox", Provider::E2b, "minimal");
+        let context = ConfigInitContext::new("sandbox", Provider::E2b, "minimal", "ubuntu");
 
         let result = registry.render_config(&context);
         let content = result.expect("render_config for E2B provider should succeed");
@@ -497,7 +501,7 @@ mod tests {
     #[test]
     fn test_render_config_runpod() {
         let registry = ConfigTemplateRegistry::new().unwrap();
-        let context = ConfigInitContext::new("gpu-dev", Provider::Runpod, "minimal");
+        let context = ConfigInitContext::new("gpu-dev", Provider::Runpod, "minimal", "ubuntu");
 
         let result = registry.render_config(&context);
         let content = result.expect("render_config for RunPod provider should succeed");
@@ -511,7 +515,7 @@ mod tests {
     #[test]
     fn test_render_config_northflank() {
         let registry = ConfigTemplateRegistry::new().unwrap();
-        let context = ConfigInitContext::new("nf-app", Provider::Northflank, "minimal");
+        let context = ConfigInitContext::new("nf-app", Provider::Northflank, "minimal", "ubuntu");
 
         let result = registry.render_config(&context);
         let content = result.expect("render_config for Northflank provider should succeed");
@@ -523,10 +527,48 @@ mod tests {
 
     #[test]
     fn test_context_profiles_loaded() {
-        let context = ConfigInitContext::new("test", Provider::Docker, "minimal");
+        let context = ConfigInitContext::new("test", Provider::Docker, "minimal", "ubuntu");
         assert!(!context.profiles.is_empty());
         assert!(context.profiles.iter().any(|p| p.name == "minimal"));
         assert!(context.profiles.iter().any(|p| p.name == "fullstack"));
+    }
+
+    #[test]
+    fn test_render_config_with_fedora_distro() {
+        let registry = ConfigTemplateRegistry::new().unwrap();
+        let context = ConfigInitContext::new("fedora-test", Provider::Docker, "minimal", "fedora");
+
+        let result = registry.render_config(&context);
+        let content = result.expect("render_config for fedora distro should succeed");
+        assert!(
+            content.contains("distro: fedora"),
+            "should contain distro: fedora"
+        );
+        assert!(
+            content.contains("v3-latest-fedora"),
+            "should contain fedora image tag"
+        );
+    }
+
+    #[test]
+    fn test_render_config_ubuntu_no_suffix() {
+        let registry = ConfigTemplateRegistry::new().unwrap();
+        let context = ConfigInitContext::new("ubuntu-test", Provider::Docker, "minimal", "ubuntu");
+
+        let result = registry.render_config(&context);
+        let content = result.expect("render_config for ubuntu distro should succeed");
+        assert!(
+            content.contains("distro: ubuntu"),
+            "should contain distro: ubuntu"
+        );
+        assert!(
+            content.contains("ghcr.io/pacphi/sindri:v3-latest"),
+            "should contain unsuffixed image tag"
+        );
+        assert!(
+            !content.contains("v3-latest-ubuntu"),
+            "should NOT contain -ubuntu suffix"
+        );
     }
 
     #[test]

@@ -4,6 +4,14 @@ set -euo pipefail
 # mise-config install script - Simplified for YAML-driven architecture
 # Creates global mise configuration
 
+# Fallback print functions if BASH_ENV didn't load common.sh
+# (e.g., common.sh not found at expected path on first boot)
+if ! declare -f print_status >/dev/null 2>&1; then
+    print_status() { echo "[INFO] $*"; }
+    print_success() { echo "[OK] $*"; }
+    print_error() { echo "[ERROR] $*" >&2; }
+fi
+
 # Ensure mise auto-accepts prompts (even for trust commands)
 # These are set here as explicit exports to ensure they're available in all contexts
 export MISE_YES=1

@@ -5,6 +5,7 @@ metadata:
   description: >-
     Context7 MCP server for up-to-date, version-specific library documentation (optional API key for higher rate limits)
   category: mcp
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   homepage: https://github.com/upstash/context7
   dependencies:

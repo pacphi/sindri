@@ -14,5 +14,13 @@
 # Last Updated: December 17, 2025
 # ============================================================================
 
+# Ensure /usr/local/bin is in PATH for all distros (openSUSE excludes it by default)
+Defaults secure_path="/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Preserve mise and sindri environment variables through sudo
+# Belt-and-suspenders: ensures critical vars survive even if --preserve-env parsing fails
+# (e.g., openSUSE grep lacks PCRE support, breaking the entrypoint's env propagation)
+Defaults env_keep += "SINDRI_DISTRO SINDRI_EXT_HOME SINDRI_SOURCE_REF MISE_DATA_DIR MISE_CONFIG_DIR MISE_CACHE_DIR MISE_STATE_DIR MISE_TRUSTED_CONFIG_PATHS MISE_YES TMPDIR"
+
 # Allow developer user passwordless access to ALL commands
 developer ALL=(ALL) NOPASSWD: ALL

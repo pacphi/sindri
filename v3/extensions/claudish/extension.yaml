@@ -5,6 +5,7 @@ metadata:
   description: >-
     Claude Code CLI proxy for OpenRouter models - run Claude Code with any OpenRouter model via local Anthropic API proxy
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: MadAppGang
   homepage: https://github.com/MadAppGang/claudish
   dependencies:

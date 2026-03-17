@@ -7,13 +7,50 @@ use crate::configure::ConfigureProcessor;
 use crate::validation::ValidationConfig;
 use anyhow::{anyhow, Context, Result};
 use regex::Regex;
-use sindri_core::types::{AptInstallConfig, Extension, HookConfig, InstallMethod, ServiceConfig};
+use sindri_core::types::{
+    AptInstallConfig, Distro, Extension, HookConfig, InstallMethod, ServiceConfig,
+};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
+
+static DETECTED_DISTRO: OnceLock<Distro> = OnceLock::new();
+
+/// Detect the running Linux distribution.
+/// Checks SINDRI_DISTRO env var first, then /etc/os-release.
+fn detect_distro() -> &'static Distro {
+    DETECTED_DISTRO.get_or_init(|| {
+        // 1. Check env override
+        if let Ok(val) = std::env::var("SINDRI_DISTRO") {
+            match val.as_str() {
+                "ubuntu" => return Distro::Ubuntu,
+                "fedora" => return Distro::Fedora,
+                "opensuse" => return Distro::Opensuse,
+                _ => {} // fall through to file detection
+            }
+        }
+
+        // 2. Parse /etc/os-release
+        if let Ok(contents) = std::fs::read_to_string("/etc/os-release") {
+            for line in contents.lines() {
+                if let Some(id) = line.strip_prefix("ID=") {
+                    let id = id.trim_matches('"');
+                    return match id {
+                        "ubuntu" => Distro::Ubuntu,
+                        "fedora" => Distro::Fedora,
+                        "opensuse-leap" | "opensuse-tumbleweed" | "opensuse" => Distro::Opensuse,
+                        _ => Distro::Ubuntu, // fallback
+                    };
+                }
+            }
+        }
+
+        Distro::Ubuntu // default fallback
+    })
+}
 
 /// Captured output from an extension installation
 #[derive(Debug, Clone, Default)]
@@ -45,17 +82,61 @@ pub struct ExtensionExecutor {
 }
 
 impl ExtensionExecutor {
+    /// Directories that must be in PATH for child commands.
+    ///
+    /// `/usr/local/bin` is where mise, gh, cosign, and starship are installed.
+    /// Some distros (notably openSUSE) do not include it by default when
+    /// commands are run via `sudo -u … --preserve-env` or non-login shells.
+    const REQUIRED_PATH_DIRS: &[&str] = &["/usr/local/bin"];
+
     /// Create a new executor
+    ///
+    /// Ensures system tool directories (e.g. `/usr/local/bin`) are present in
+    /// `PATH` so that child processes can find mise, gh, and other binaries
+    /// regardless of distro-specific PATH defaults.
     pub fn new(
         extension_dir: impl Into<PathBuf>,
         workspace_dir: impl Into<PathBuf>,
         home_dir: impl Into<PathBuf>,
     ) -> Self {
+        // Ensure required directories are in PATH for child commands
+        Self::ensure_path_includes_required_dirs();
+
         Self {
             extension_dir: extension_dir.into(),
             default_timeout: 300,
             workspace_dir: workspace_dir.into(),
             home_dir: home_dir.into(),
+        }
+    }
+
+    /// Ensure required system directories are present in the process PATH.
+    ///
+    /// On Ubuntu `/usr/local/bin` is set via `/etc/environment` (PAM) and is
+    /// always present. On Fedora it is added by `pathmunge` in `/etc/profile`.
+    /// On openSUSE it is added by `/etc/profile` (aaa_base) for login shells,
+    /// but is **absent** in non-login contexts such as `sudo -u … bash -c …`.
+    ///
+    /// Since the executor spawns child commands that need tools in these dirs
+    /// (mise, gh, cosign, starship), we prepend any missing dirs once at
+    /// construction time rather than patching every `Command` call site.
+    fn ensure_path_includes_required_dirs() {
+        let current_path = std::env::var("PATH").unwrap_or_default();
+        let mut missing: Vec<&str> = Vec::new();
+
+        for dir in Self::REQUIRED_PATH_DIRS {
+            if !current_path.split(':').any(|p| p == *dir) {
+                missing.push(dir);
+            }
+        }
+
+        if !missing.is_empty() {
+            let new_path = format!("{}:{}", missing.join(":"), current_path);
+            std::env::set_var("PATH", &new_path);
+            tracing::debug!(
+                "Prepended {} to PATH for distro compatibility",
+                missing.join(", ")
+            );
         }
     }
 
@@ -157,7 +238,9 @@ impl ExtensionExecutor {
         // Execute installation based on method
         let (mut output, result) = match extension.install.method {
             InstallMethod::Mise => self.install_mise(extension, force).await,
-            InstallMethod::Apt => self.install_apt(extension).await,
+            InstallMethod::Apt | InstallMethod::Dnf | InstallMethod::Zypper => {
+                self.install_pkg_manager(extension).await
+            }
             InstallMethod::Binary => self.install_binary(extension).await,
             InstallMethod::Npm | InstallMethod::NpmGlobal => self.install_npm(extension).await,
             InstallMethod::Script => self.install_script(extension, timeout).await,
@@ -612,6 +695,71 @@ impl ExtensionExecutor {
         }
     }
 
+    /// Dispatch package manager install based on runtime distro and extension config.
+    ///
+    /// For `method: apt` on Fedora, uses `dnf` config if present.
+    /// For `method: apt` on openSUSE, uses `zypper` config if present.
+    /// For `method: dnf`, always uses `dnf` config.
+    /// For `method: zypper`, always uses `zypper` config.
+    async fn install_pkg_manager(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
+        let distro = detect_distro();
+        let name = &extension.metadata.name;
+
+        match (distro, &extension.install.method) {
+            // Ubuntu: always use apt
+            (Distro::Ubuntu, InstallMethod::Apt) => self.install_apt(extension).await,
+            // Fedora: use dnf config
+            (Distro::Fedora, InstallMethod::Apt) | (_, InstallMethod::Dnf) => {
+                if extension.install.dnf.is_some() {
+                    self.install_dnf(extension).await
+                } else {
+                    (
+                        InstallOutput {
+                            install_method: "dnf".to_string(),
+                            exit_status: "missing config".to_string(),
+                            ..Default::default()
+                        },
+                        Err(anyhow!(
+                            "Extension '{}' has no 'dnf' config for Fedora",
+                            name
+                        )),
+                    )
+                }
+            }
+            // openSUSE: use zypper config
+            (Distro::Opensuse, InstallMethod::Apt) | (_, InstallMethod::Zypper) => {
+                if extension.install.zypper.is_some() {
+                    self.install_zypper(extension).await
+                } else {
+                    (
+                        InstallOutput {
+                            install_method: "zypper".to_string(),
+                            exit_status: "missing config".to_string(),
+                            ..Default::default()
+                        },
+                        Err(anyhow!(
+                            "Extension '{}' has no 'zypper' config for openSUSE",
+                            name
+                        )),
+                    )
+                }
+            }
+            _ => (
+                InstallOutput {
+                    install_method: format!("{:?}", extension.install.method),
+                    exit_status: "unsupported distro".to_string(),
+                    ..Default::default()
+                },
+                Err(anyhow!(
+                    "Extension '{}' method {:?} not supported on {:?}",
+                    name,
+                    extension.install.method,
+                    distro
+                )),
+            ),
+        }
+    }
+
     /// Install via apt
     async fn install_apt(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
         let name = &extension.metadata.name;
@@ -732,6 +880,207 @@ impl ExtensionExecutor {
             // Write sources file
             self.write_file_with_sudo(&sources_file, sources.as_bytes(), use_sudo)
                 .await?;
+        }
+
+        Ok(())
+    }
+
+    /// Install via DNF (Fedora)
+    async fn install_dnf(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
+        let name = &extension.metadata.name;
+        let dnf_config = match extension.install.dnf.as_ref() {
+            Some(c) => c,
+            None => {
+                return (
+                    InstallOutput {
+                        install_method: "dnf".to_string(),
+                        exit_status: "missing config".to_string(),
+                        ..Default::default()
+                    },
+                    Err(anyhow!("dnf configuration is missing")),
+                )
+            }
+        };
+
+        info!("Installing {} via dnf...", name);
+
+        let mut output = InstallOutput {
+            install_method: "dnf".to_string(),
+            ..Default::default()
+        };
+
+        let use_sudo = self.needs_sudo().await;
+
+        // Add repositories if configured
+        for repo in &dnf_config.repositories {
+            let mut args = vec!["config-manager".to_string(), "addrepo".to_string()];
+            args.push(format!("--set=baseurl={}", repo.base_url));
+            if let Some(ref name) = repo.name {
+                args.push(format!("--id={}", name));
+            }
+            if let Some(ref gpg_key) = repo.gpg_key {
+                args.push("--set=gpgcheck=1".to_string());
+                args.push(format!("--set=gpgkey={}", gpg_key));
+            }
+            let str_args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+            if let Err(e) = self.run_dnf_command(&str_args, use_sudo).await {
+                output.exit_status = "repo setup failed".to_string();
+                return (output, Err(e));
+            }
+        }
+
+        // Install groups if configured
+        for group in &dnf_config.groups {
+            let args = vec!["group", "install", "-y", group.as_str()];
+            if let Err(e) = self.run_dnf_command(&args, use_sudo).await {
+                output.exit_status = "group install failed".to_string();
+                return (output, Err(e));
+            }
+        }
+
+        // Update cache if configured
+        if dnf_config.update_first {
+            if let Err(e) = self
+                .run_dnf_command(&["makecache", "--refresh"], use_sudo)
+                .await
+            {
+                output.exit_status = "dnf makecache failed".to_string();
+                return (output, Err(e));
+            }
+        }
+
+        // Install packages
+        if !dnf_config.packages.is_empty() {
+            let mut args = vec!["install", "-y", "--setopt=install_weak_deps=False"];
+            for pkg in &dnf_config.packages {
+                args.push(pkg.as_str());
+            }
+            if let Err(e) = self.run_dnf_command(&args, use_sudo).await {
+                output.exit_status = "dnf install failed".to_string();
+                return (output, Err(e));
+            }
+        }
+
+        output.exit_status = "success".to_string();
+        info!("{} installation via dnf completed successfully", name);
+        (output, Ok(()))
+    }
+
+    /// Run a dnf command with optional sudo
+    async fn run_dnf_command(&self, args: &[&str], use_sudo: bool) -> Result<()> {
+        let mut cmd = Command::new(if use_sudo { "sudo" } else { "dnf" });
+        if use_sudo {
+            cmd.arg("dnf");
+        }
+        cmd.args(args);
+
+        debug!("Running: dnf {}", args.join(" "));
+
+        let output = cmd.output().await.context("Failed to run dnf command")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow!("dnf {} failed: {}", args[0], stderr));
+        }
+
+        Ok(())
+    }
+
+    /// Install via Zypper (openSUSE)
+    async fn install_zypper(&self, extension: &Extension) -> (InstallOutput, Result<()>) {
+        let name = &extension.metadata.name;
+        let zypper_config = match extension.install.zypper.as_ref() {
+            Some(c) => c,
+            None => {
+                return (
+                    InstallOutput {
+                        install_method: "zypper".to_string(),
+                        exit_status: "missing config".to_string(),
+                        ..Default::default()
+                    },
+                    Err(anyhow!("zypper configuration is missing")),
+                )
+            }
+        };
+
+        info!("Installing {} via zypper...", name);
+
+        let mut output = InstallOutput {
+            install_method: "zypper".to_string(),
+            ..Default::default()
+        };
+
+        let use_sudo = self.needs_sudo().await;
+
+        // Add repositories if configured
+        for repo in &zypper_config.repositories {
+            let alias = repo.name.as_deref().unwrap_or(&repo.base_url);
+            let mut args = vec!["addrepo"];
+            args.push(repo.base_url.as_str());
+            args.push(alias);
+            if let Err(e) = self.run_zypper_command(&args, use_sudo).await {
+                // Ignore "already exists" errors
+                let err_msg = format!("{}", e);
+                if !err_msg.contains("already exists") {
+                    output.exit_status = "repo setup failed".to_string();
+                    return (output, Err(e));
+                }
+            }
+        }
+
+        // Refresh if configured
+        if zypper_config.update_first {
+            if let Err(e) = self
+                .run_zypper_command(&["--gpg-auto-import-keys", "refresh"], use_sudo)
+                .await
+            {
+                output.exit_status = "zypper refresh failed".to_string();
+                return (output, Err(e));
+            }
+        }
+
+        // Install patterns if configured
+        for pattern in &zypper_config.patterns {
+            let args = vec!["install", "-t", "pattern", pattern.as_str()];
+            if let Err(e) = self.run_zypper_command(&args, use_sudo).await {
+                output.exit_status = "pattern install failed".to_string();
+                return (output, Err(e));
+            }
+        }
+
+        // Install packages
+        if !zypper_config.packages.is_empty() {
+            let mut args = vec!["install", "--no-recommends"];
+            for pkg in &zypper_config.packages {
+                args.push(pkg.as_str());
+            }
+            if let Err(e) = self.run_zypper_command(&args, use_sudo).await {
+                output.exit_status = "zypper install failed".to_string();
+                return (output, Err(e));
+            }
+        }
+
+        output.exit_status = "success".to_string();
+        info!("{} installation via zypper completed successfully", name);
+        (output, Ok(()))
+    }
+
+    /// Run a zypper command with optional sudo
+    async fn run_zypper_command(&self, args: &[&str], use_sudo: bool) -> Result<()> {
+        let mut cmd = Command::new(if use_sudo { "sudo" } else { "zypper" });
+        if use_sudo {
+            cmd.arg("zypper");
+        }
+        cmd.arg("--non-interactive");
+        cmd.args(args);
+
+        debug!("Running: zypper --non-interactive {}", args.join(" "));
+
+        let output = cmd.output().await.context("Failed to run zypper command")?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(anyhow!("zypper {} failed: {}", args[0], stderr));
         }
 
         Ok(())
@@ -1074,6 +1423,9 @@ impl ExtensionExecutor {
         let log_dir = self.sindri_log_dir(name);
         let _ = std::fs::create_dir_all(&log_dir);
         cmd.env("SINDRI_LOG_DIR", &log_dir);
+        // Inject distro info for scripts to branch on
+        cmd.env("SINDRI_DISTRO", detect_distro().as_str());
+        cmd.env("SINDRI_PKG_MANAGER_LIB", "/docker/lib/pkg-manager.sh");
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
@@ -1304,8 +1656,29 @@ impl ExtensionExecutor {
             }};
         }
 
-        if extension.install.apt.is_some() {
-            run_step!(self.install_apt(extension).await);
+        // Dispatch package install based on distro
+        let distro = detect_distro();
+        match distro {
+            Distro::Ubuntu => {
+                if extension.install.apt.is_some() {
+                    run_step!(self.install_apt(extension).await);
+                }
+            }
+            Distro::Fedora => {
+                if extension.install.dnf.is_some() {
+                    run_step!(self.install_dnf(extension).await);
+                } else if extension.install.apt.is_some() {
+                    // Fallback to apt if no dnf config (will fail gracefully on non-Ubuntu)
+                    run_step!(self.install_apt(extension).await);
+                }
+            }
+            Distro::Opensuse => {
+                if extension.install.zypper.is_some() {
+                    run_step!(self.install_zypper(extension).await);
+                } else if extension.install.apt.is_some() {
+                    run_step!(self.install_apt(extension).await);
+                }
+            }
         }
         if extension.install.mise.is_some() {
             run_step!(self.install_mise(extension, force).await);

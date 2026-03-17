@@ -5,6 +5,7 @@ metadata:
   description: >-
     AI research tools including Goalie goal management and Research-Swarm multi-agent research framework
   category: research
+  distros: [ubuntu, fedora, opensuse]
   author: ruvnet
   homepage: https://github.com/ruvnet
   dependencies:

@@ -334,7 +334,7 @@ fn dirs_log_dir(extension_name: &str) -> PathBuf {
 pub(crate) mod tests {
     use super::*;
     use sindri_core::types::{
-        CommandValidation, Extension, ExtensionCategory, ExtensionMetadata, InstallConfig,
+        CommandValidation, Distro, Extension, ExtensionCategory, ExtensionMetadata, InstallConfig,
         InstallMethod, ValidateConfig,
     };
 
@@ -349,6 +349,7 @@ pub(crate) mod tests {
                 author: None,
                 homepage: None,
                 dependencies: vec![],
+                distros: vec![Distro::Ubuntu],
             },
             requirements: None,
             install: InstallConfig {
@@ -358,6 +359,9 @@ pub(crate) mod tests {
                 apt: None,
                 binary: None,
                 npm: None,
+                dnf: None,
+                zypper: None,
+                scripts: None,
             },
             validate: ValidateConfig {
                 commands: vec![CommandValidation {

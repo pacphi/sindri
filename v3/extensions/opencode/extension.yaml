@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: OpenCode - Open source AI coding agent for terminal, desktop, and IDE integration
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - mise-config
     - nodejs

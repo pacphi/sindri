@@ -4,6 +4,7 @@ metadata:
   version: 1.0.2
   description: Rust stable via rustup
   category: languages
+  distros: [ubuntu, fedora, opensuse]
 requirements:
   domains:
     - crates.io

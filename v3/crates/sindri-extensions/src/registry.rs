@@ -397,6 +397,78 @@ impl ExtensionRegistry {
     pub fn extensions(&self) -> impl Iterator<Item = (&String, &Extension)> {
         self.extensions.iter()
     }
+
+    /// List extensions compatible with the given distro.
+    /// Checks loaded extension definitions for distro support.
+    pub fn list_extensions_for_distro(&self, distro: &sindri_core::types::Distro) -> Vec<&str> {
+        self.extensions
+            .iter()
+            .filter(|(_, ext)| ext.metadata.distros.contains(distro))
+            .map(|(name, _)| name.as_str())
+            .collect()
+    }
+
+    /// Search extensions filtered by distro compatibility.
+    pub fn search_for_distro(&self, query: &str, distro: &sindri_core::types::Distro) -> Vec<&str> {
+        let query_lower = query.to_lowercase();
+        self.entries
+            .iter()
+            .filter(|(name, entry)| {
+                (name.to_lowercase().contains(&query_lower)
+                    || entry.description.to_lowercase().contains(&query_lower))
+                    && self
+                        .extensions
+                        .get(*name)
+                        .map(|ext| ext.metadata.distros.contains(distro))
+                        .unwrap_or(true) // If extension not loaded, include it
+            })
+            .map(|(name, _)| name.as_str())
+            .collect()
+    }
+
+    /// List categories that have at least one extension on the given distro.
+    pub fn list_categories_for_distro(&self, distro: &sindri_core::types::Distro) -> Vec<String> {
+        let mut categories: Vec<_> = self
+            .entries
+            .iter()
+            .filter(|(name, _)| {
+                self.extensions
+                    .get(*name)
+                    .map(|ext| ext.metadata.distros.contains(distro))
+                    .unwrap_or(true)
+            })
+            .map(|(_, e)| e.category.clone())
+            .collect();
+        categories.sort();
+        categories.dedup();
+        categories
+    }
+
+    /// Get profile extensions filtered by distro.
+    pub fn get_profile_extensions_for_distro(
+        &self,
+        profile_name: &str,
+        distro: &sindri_core::types::Distro,
+    ) -> Result<Vec<String>> {
+        let extensions = self.get_profile_extensions(profile_name)?;
+        Ok(extensions
+            .into_iter()
+            .filter(|name| {
+                self.extensions
+                    .get(name)
+                    .map(|ext| ext.metadata.distros.contains(distro))
+                    .unwrap_or(true)
+            })
+            .collect())
+    }
+
+    /// Check if an extension supports the given distro.
+    pub fn supports_distro(&self, name: &str, distro: &sindri_core::types::Distro) -> bool {
+        self.extensions
+            .get(name)
+            .map(|ext| ext.metadata.distros.contains(distro))
+            .unwrap_or(true) // If not loaded, assume supported
+    }
 }
 
 impl Default for ExtensionRegistry {

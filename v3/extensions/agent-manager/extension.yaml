@@ -4,6 +4,7 @@ metadata:
   version: 2.0.0
   description: Claude Code agent manager for managing AI agents
   category: ai-agents
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   license: MIT
   dependencies: []

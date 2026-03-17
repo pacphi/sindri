@@ -3,6 +3,7 @@ metadata:
   version: 1.2.1
   description: Sindri instance agent for mimir fleet management
   category: devops
+  distros: [ubuntu, fedora, opensuse]
   tags:
     - agent
     - fleet

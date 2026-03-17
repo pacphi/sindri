@@ -4,6 +4,7 @@ metadata:
   version: 2.1.0
   description: Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
 requirements:
   domains:

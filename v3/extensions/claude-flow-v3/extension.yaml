@@ -4,6 +4,7 @@ metadata:
   version: 3.0.0
   description: Next-gen multi-agent orchestration with modular packages, 10x performance, 150x faster search (v3 alpha)
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: ruvnet
   license: MIT
   homepage: https://github.com/ruvnet/claude-flow

@@ -4,6 +4,7 @@ metadata:
   version: 1.1.0
   description: Headless browser automation CLI for AI agents with snapshot-based element selection
   category: ai-agents
+  distros: [ubuntu, fedora, opensuse]
   author: Vercel Labs
   license: Apache-2.0
   homepage: https://github.com/vercel-labs/agent-browser

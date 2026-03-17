@@ -154,6 +154,10 @@ pub struct ConfigInitArgs {
     #[arg(long, default_value = "minimal")]
     pub profile: String,
 
+    /// Target Linux distribution (ubuntu, fedora, opensuse)
+    #[arg(short = 'd', long, default_value = "ubuntu")]
+    pub distro: String,
+
     /// Output file path
     #[arg(short, long, default_value = "sindri.yaml")]
     pub output: Utf8PathBuf,
@@ -435,6 +439,10 @@ pub struct ExtensionInstallArgs {
     /// Skip confirmation prompt (for profile/config installation)
     #[arg(short = 'y', long)]
     pub yes: bool,
+
+    /// Override distro detection (ubuntu, fedora, opensuse)
+    #[arg(long, value_name = "DISTRO")]
+    pub distro: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -454,6 +462,10 @@ pub struct ExtensionListArgs {
     /// Output as JSON
     #[arg(long)]
     pub json: bool,
+
+    /// Override distro detection (ubuntu, fedora, opensuse)
+    #[arg(long, value_name = "DISTRO")]
+    pub distro: Option<String>,
 }
 
 #[derive(Args, Debug)]

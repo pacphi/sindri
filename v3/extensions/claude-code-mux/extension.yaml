@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: High-performance AI routing proxy with automatic failover across 18+ providers (Anthropic, OpenAI, Gemini, etc.)
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: 9j
   homepage: https://github.com/9j/claude-code-mux
   dependencies: []

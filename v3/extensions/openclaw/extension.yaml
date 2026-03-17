@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - mise-config
     - nodejs

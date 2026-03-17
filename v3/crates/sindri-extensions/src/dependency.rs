@@ -98,6 +98,7 @@ mod tests {
                     author: None,
                     homepage: None,
                     dependencies: deps.iter().map(|s| s.to_string()).collect(),
+                    distros: vec![sindri_core::types::Distro::Ubuntu],
                 },
                 requirements: None,
                 install: sindri_core::types::InstallConfig {
@@ -107,6 +108,9 @@ mod tests {
                     binary: None,
                     npm: None,
                     script: None,
+                    dnf: None,
+                    zypper: None,
+                    scripts: None,
                 },
                 configure: None,
                 validate: sindri_core::types::ValidateConfig {

@@ -4,6 +4,7 @@ metadata:
   version: 9.8.2
   description: AI orchestration and multi-model collaboration MCP server with 18 specialized tools
   category: mcp
+  distros: [ubuntu, fedora, opensuse]
   author: BeehiveInnovations
   license: MIT
   homepage: https://github.com/BeehiveInnovations/pal-mcp-server

@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: Claude Code CLI - Official Anthropic AI coding assistant
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: Anthropic
   license: Proprietary
   homepage: https://claude.ai/code

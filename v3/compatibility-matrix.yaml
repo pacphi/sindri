@@ -7,7 +7,7 @@
 
 schema_version: "1.0"
 
-# Last Updated: 2026-02-26
+# Last Updated: 2026-03-16
 # CLI version compatibility mappings
 # Key format: CLI version (supports wildcards like "3.0.x")
 # Compatible extension versions use semver ranges (e.g., ">=1.0.0,<2.0.0")
@@ -215,10 +215,20 @@ cli_versions:
       ralph: ">=1.0.0,<2.0.0"
       ruvnet-research: ">=1.0.0,<2.0.0"
 
+    distros:
+      supported: [ubuntu, fedora, opensuse]
+      default: ubuntu
+
+    features:
+      - multi-distro-extensions
+
     breaking_changes:
       - "Extension schema v1.1 adds support for conditional dependencies"
       - "New authentication capability system for extensions"
       - "MCP integration now requires explicit registration"
+
+    migration_notes:
+      - "Extensions without distros field implicitly get distros: [ubuntu]"
 
   # CLI v4.0.x series (future major version - placeholder)
   "4.0.x":

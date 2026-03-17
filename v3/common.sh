@@ -141,22 +141,31 @@ get_github_release_version() {
     echo "$version"
 }
 
-# Clean up APT caches and temporary files
-# Usage: cleanup_apt_cache
-cleanup_apt_cache() {
-    print_debug "Cleaning up APT caches to free disk space..."
+# Clean up package manager caches and temporary files (distro-aware)
+# Usage: cleanup_pkg_cache
+cleanup_pkg_cache() {
+    print_debug "Cleaning up package caches to free disk space..."
 
-    # Clean apt cache (handle sudo failure gracefully for no-new-privileges containers)
+    # Clean package manager cache (handle sudo failure gracefully for no-new-privileges containers)
     if command_exists apt-get; then
         sudo apt-get clean 2>/dev/null || true
         sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
         sudo rm -rf /var/cache/apt/archives/* 2>/dev/null || true
+    elif command_exists zypper; then
+        sudo zypper clean --all 2>/dev/null || true
+        sudo rm -rf /var/cache/zypp/* 2>/dev/null || true
+    elif command_exists dnf; then
+        sudo dnf clean all 2>/dev/null || true
+        sudo rm -rf /var/cache/dnf/* 2>/dev/null || true
     fi
 
     # Clean up temporary files (safe without sudo)
-    rm -rf /tmp/*.tar.gz /tmp/*.zip /tmp/*.deb 2>/dev/null || true
+    rm -rf /tmp/*.tar.gz /tmp/*.zip /tmp/*.deb /tmp/*.rpm 2>/dev/null || true
 }
+
+# Backward-compatible alias for scripts still using the old name
+cleanup_apt_cache() { cleanup_pkg_cache; }
 
 # Export functions for use in subshells
 export -f print_status print_success print_warning print_error print_header print_debug print_info
-export -f command_exists is_user ensure_directory retry_command get_github_release_version cleanup_apt_cache
+export -f command_exists is_user ensure_directory retry_command get_github_release_version cleanup_pkg_cache cleanup_apt_cache

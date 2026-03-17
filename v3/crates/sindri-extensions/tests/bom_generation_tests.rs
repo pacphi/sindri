@@ -6,7 +6,7 @@ mod common;
 
 use common::bom_builders::*;
 use sindri_core::types::{
-    BomConfig, BomSource, BomToolType, CommandValidation, Extension, ExtensionCategory,
+    BomConfig, BomSource, BomToolType, CommandValidation, Distro, Extension, ExtensionCategory,
     ExtensionMetadata, InstallConfig, InstallMethod, ValidateConfig,
 };
 use sindri_extensions::bom::{
@@ -26,6 +26,7 @@ fn make_extension_with_bom(name: &str, bom_config: BomConfig) -> Extension {
             author: None,
             homepage: None,
             dependencies: vec![],
+            distros: vec![Distro::Ubuntu],
         },
         requirements: None,
         install: InstallConfig {
@@ -35,6 +36,9 @@ fn make_extension_with_bom(name: &str, bom_config: BomConfig) -> Extension {
             binary: None,
             npm: None,
             script: None,
+            dnf: None,
+            zypper: None,
+            scripts: None,
         },
         configure: None,
         validate: ValidateConfig {
@@ -61,6 +65,7 @@ fn make_extension_with_validation(name: &str, commands: Vec<CommandValidation>) 
             author: None,
             homepage: None,
             dependencies: vec![],
+            distros: vec![Distro::Ubuntu],
         },
         requirements: None,
         install: InstallConfig {
@@ -70,6 +75,9 @@ fn make_extension_with_validation(name: &str, commands: Vec<CommandValidation>) 
             binary: None,
             npm: None,
             script: None,
+            dnf: None,
+            zypper: None,
+            scripts: None,
         },
         configure: None,
         validate: ValidateConfig {

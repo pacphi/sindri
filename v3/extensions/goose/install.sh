@@ -4,6 +4,11 @@ set -euo pipefail
 # goose install script - Block's open-source AI agent
 # Installs the Goose CLI from official release
 
+# Source pkg-manager library if available
+if [ -f "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}" ]; then
+    source "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}"
+fi
+
 print_status "Installing Goose AI agent CLI..."
 
 # Determine if we have root access (for installing dependencies)
@@ -20,14 +25,37 @@ print_status "Checking for required system libraries..."
 if ! ldconfig -p 2>/dev/null | grep -q "libxcb.so.1"; then
   print_status "Installing X11 libraries required by Goose..."
   if [[ -n "$SUDO" ]] || [[ $(id -u) -eq 0 ]]; then
-    $SUDO apt-get update -qq 2>/dev/null || true
-    $SUDO apt-get install -y -qq libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0 2>/dev/null || {
-      print_warning "Could not install X11 libraries - goose may not work properly"
-      print_warning "Run as root: apt-get install -y libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0"
-    }
+    case "${SINDRI_DISTRO:-ubuntu}" in
+      ubuntu)
+        $SUDO apt-get update -qq 2>/dev/null || true
+        $SUDO apt-get install -y -qq libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0 2>/dev/null || {
+          print_warning "Could not install X11 libraries - goose may not work properly"
+          print_warning "Run as root: apt-get install -y libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0"
+        }
+        ;;
+      fedora)
+        $SUDO dnf install -y libxcb libxcb-devel 2>/dev/null || {
+          print_warning "Could not install X11 libraries - goose may not work properly"
+          print_warning "Run as root: dnf install -y libxcb libxcb-devel"
+        }
+        ;;
+      opensuse)
+        $SUDO zypper --non-interactive install libxcb1 libxcb-devel 2>/dev/null || {
+          print_warning "Could not install X11 libraries - goose may not work properly"
+          print_warning "Run as root: zypper install libxcb1 libxcb-devel"
+        }
+        ;;
+      *)
+        print_warning "Unknown distro '${SINDRI_DISTRO:-}' - attempting apt-get for X11 libraries"
+        $SUDO apt-get update -qq 2>/dev/null || true
+        $SUDO apt-get install -y -qq libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0 2>/dev/null || {
+          print_warning "Could not install X11 libraries - goose may not work properly"
+        }
+        ;;
+    esac
   else
     print_warning "Cannot install X11 libraries without root access"
-    print_warning "Ask admin to run: apt-get install -y libxcb1 libxcb-render0 libxcb-shape0 libxcb-xfixes0"
+    print_warning "Install X11/libxcb libraries manually for your distro"
   fi
 fi
 

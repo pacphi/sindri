@@ -3,6 +3,7 @@ metadata:
   version: 1.0.0
   description: Real-time Excalidraw diagram creation and manipulation via MCP server
   category: mcp
+  distros: [ubuntu, fedora, opensuse]
   dependencies: [nodejs]
 
 install:

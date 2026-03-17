@@ -30,6 +30,7 @@ mod dependency_event_tracking_tests {
                 author: None,
                 homepage: None,
                 dependencies: deps,
+                distros: vec![sindri_core::types::Distro::Ubuntu],
             },
             requirements: None,
             install: InstallConfig {
@@ -39,6 +40,9 @@ mod dependency_event_tracking_tests {
                 binary: None,
                 npm: None,
                 script: None,
+                dnf: None,
+                zypper: None,
+                scripts: None,
             },
             configure: None,
             validate: sindri_core::types::ValidateConfig {

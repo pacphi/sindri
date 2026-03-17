@@ -206,7 +206,7 @@ else
     fi
 fi
 
-# Clean up APT caches and temporary files (critical for disk-constrained environments)
-cleanup_apt_cache
+# Clean up package caches and temporary files (critical for disk-constrained environments)
+cleanup_pkg_cache
 
 print_success "Cloud provider CLI tools installation complete"

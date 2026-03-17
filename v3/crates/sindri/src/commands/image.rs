@@ -293,14 +293,13 @@ async fn verify(args: ImageVerifyArgs) -> Result<()> {
         .as_ref()
         .and_then(|c| c.inner().deployment.image_config.as_ref());
 
-    let default_identity = sindri_core::types::DEFAULT_CERTIFICATE_IDENTITY;
+    let default_identity = sindri_core::types::default_certificate_identity();
     let default_issuer = sindri_core::types::DEFAULT_CERTIFICATE_OIDC_ISSUER;
 
-    let cert_identity = Some(
-        image_config
-            .map(|ic| ic.cert_identity_or_default())
-            .unwrap_or(default_identity),
-    );
+    let cert_identity_owned = image_config
+        .map(|ic| ic.cert_identity_or_default())
+        .unwrap_or(default_identity);
+    let cert_identity = Some(cert_identity_owned.as_str());
     let cert_oidc_issuer = Some(
         image_config
             .map(|ic| ic.cert_oidc_issuer_or_default())

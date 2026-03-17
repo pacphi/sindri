@@ -5,6 +5,7 @@ metadata:
   description: >-
     Linear MCP server using Claude Code's native HTTP transport (no API key required, no npm dependencies)
   category: mcp
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   homepage: https://linear.app/docs/mcp
   dependencies:

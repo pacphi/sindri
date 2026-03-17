@@ -4,6 +4,7 @@ metadata:
   version: 2.0.0
   description: Playwright browser automation framework with Chromium
   category: testing
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies:
     - nodejs

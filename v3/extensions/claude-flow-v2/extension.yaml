@@ -4,6 +4,7 @@ metadata:
   version: 2.7.47
   description: AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable)
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: ruvnet
   license: MIT
   homepage: https://github.com/ruvnet/claude-flow

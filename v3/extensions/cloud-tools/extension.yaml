@@ -4,6 +4,7 @@ metadata:
   version: 2.2.0
   description: Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)
   category: devops
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies:
     - python  # Required for Azure CLI (pip install azure-cli)

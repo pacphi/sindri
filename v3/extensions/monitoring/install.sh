@@ -4,6 +4,11 @@ set -euo pipefail
 # monitoring install script - Simplified for YAML-driven architecture
 # Installs Claude monitoring tools: UV, claude-monitor, claude-usage-cli
 
+# Source pkg-manager library if available
+if [ -f "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}" ]; then
+    source "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}"
+fi
+
 print_status "Installing monitoring tools..."
 
 # Install UV package manager
@@ -31,12 +36,24 @@ elif command_exists uv; then
     print_success "claude-monitor installed via UV"
   else
     print_warning "UV install failed, trying pip3..."
-    command_exists pip3 || sudo apt-get install -y python3-pip
+    if ! command_exists pip3; then
+      if type pkg_install &>/dev/null; then
+        sudo pkg_install python3-pip
+      else
+        sudo apt-get install -y python3-pip
+      fi
+    fi
     timeout 120 pip3 install claude-monitor 2>&1 && print_success "claude-monitor installed via pip3"
   fi
 else
   # Fallback to pip3
-  command_exists pip3 || sudo apt-get install -y python3-pip
+  if ! command_exists pip3; then
+    if type pkg_install &>/dev/null; then
+      sudo pkg_install python3-pip
+    else
+      sudo apt-get install -y python3-pip
+    fi
+  fi
   if pip3 show claude-monitor >/dev/null 2>&1; then
     print_warning "claude-monitor already installed"
   else

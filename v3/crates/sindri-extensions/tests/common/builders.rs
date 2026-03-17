@@ -8,9 +8,10 @@
 use sindri_core::types::{
     AuthProvider, CapabilitiesConfig, CollisionHandlingConfig, CollisionScenario,
     CommandValidation, ConflictActionType, ConflictResourceType, ConflictRule, DetectionMethod,
-    Extension, ExtensionCategory, ExtensionMetadata, HookConfig, HooksCapability, InstallConfig,
-    InstallMethod, MiseInstallConfig, OnConflictAction, ProjectInitCapability, ProjectInitCommand,
-    ScenarioAction, ScriptConfig, StateMarkerType, ValidateConfig, VersionDetection, VersionMarker,
+    Distro, Extension, ExtensionCategory, ExtensionMetadata, HookConfig, HooksCapability,
+    InstallConfig, InstallMethod, MiseInstallConfig, OnConflictAction, ProjectInitCapability,
+    ProjectInitCommand, ScenarioAction, ScriptConfig, StateMarkerType, ValidateConfig,
+    VersionDetection, VersionMarker,
 };
 
 /// Builder for creating Extension test fixtures
@@ -205,6 +206,7 @@ impl ExtensionBuilder {
             author: None,
             homepage: None,
             dependencies: self.dependencies,
+            distros: vec![Distro::Ubuntu],
         };
 
         let install = InstallConfig {
@@ -214,6 +216,9 @@ impl ExtensionBuilder {
             apt: None,
             binary: None,
             npm: None,
+            dnf: None,
+            zypper: None,
+            scripts: None,
         };
 
         let validate = ValidateConfig {

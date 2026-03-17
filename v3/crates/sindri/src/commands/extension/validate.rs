@@ -185,6 +185,7 @@ pub(super) async fn run(args: ExtensionValidateArgs) -> Result<()> {
                     author: None,
                     homepage: None,
                     dependencies: entry.dependencies.clone(),
+                    distros: vec![sindri_core::types::Distro::Ubuntu],
                 },
                 requirements: None,
                 install: sindri_core::types::InstallConfig {
@@ -194,6 +195,9 @@ pub(super) async fn run(args: ExtensionValidateArgs) -> Result<()> {
                     binary: None,
                     npm: None,
                     script: None,
+                    dnf: None,
+                    zypper: None,
+                    scripts: None,
                 },
                 configure: None,
                 validate: sindri_core::types::ValidateConfig {

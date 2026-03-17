@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: Kilo Code AI coding assistant CLI for terminal-based AI pair programming
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - mise-config
     - nodejs

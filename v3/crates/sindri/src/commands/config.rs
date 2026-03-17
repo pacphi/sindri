@@ -51,8 +51,12 @@ fn init(args: ConfigInitArgs) -> Result<()> {
         _ => return Err(anyhow!("Unknown provider: {}", args.provider)),
     };
 
-    // Generate config using template with selected profile
-    let content = generate_config(&name, provider, &args.profile)
+    // Parse distro
+    let _distro: sindri_core::types::Distro =
+        args.distro.parse().map_err(|e: String| anyhow!("{}", e))?;
+
+    // Generate config using template with selected profile and distro
+    let content = generate_config(&name, provider, &args.profile, &args.distro)
         .map_err(|e| anyhow!("Failed to generate config: {}", e))?;
 
     // Write file
@@ -61,6 +65,7 @@ fn init(args: ConfigInitArgs) -> Result<()> {
     output::success(&format!("Created {}", args.output));
     output::info(&format!("Provider: {}", provider));
     output::info(&format!("Profile: {}", args.profile));
+    output::info(&format!("Distro: {}", args.distro));
 
     Ok(())
 }
@@ -85,9 +90,15 @@ fn validate(args: ConfigValidateArgs) -> Result<()> {
     output::success(&format!("Configuration is valid: {}", config.config_path));
     output::kv("Name", config.name());
     output::kv("Provider", &config.provider().to_string());
+    output::kv("Distro", &config.config.deployment.distro.to_string());
 
     if let Some(profile) = &config.extensions().profile {
         output::kv("Profile", profile);
+    }
+
+    // Check distro/image consistency
+    if let Some(warning) = config.validate_distro_image_consistency() {
+        output::warn(&warning);
     }
 
     if args.check_extensions {
@@ -169,6 +180,7 @@ mod tests {
             name,
             provider: provider.to_string(),
             profile: "minimal".to_string(),
+            distro: "ubuntu".to_string(),
             output,
             force,
         }
@@ -283,6 +295,61 @@ mod tests {
         assert!(
             err_msg.contains("Unknown provider"),
             "error should mention unknown provider, got: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    fn test_init_with_distro_fedora() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+
+        let args = ConfigInitArgs {
+            name: Some("fedora-proj".to_string()),
+            provider: "docker".to_string(),
+            profile: "minimal".to_string(),
+            distro: "fedora".to_string(),
+            output: file_path.clone(),
+            force: false,
+        };
+        let result = init(args);
+        assert!(
+            result.is_ok(),
+            "init with fedora distro should succeed: {:?}",
+            result.err()
+        );
+
+        let content = std::fs::read_to_string(&file_path).unwrap();
+        assert!(
+            content.contains("distro: fedora"),
+            "generated config should contain distro: fedora"
+        );
+        assert!(
+            content.contains("v3-latest-fedora"),
+            "generated config should contain fedora image tag"
+        );
+    }
+
+    #[test]
+    fn test_init_invalid_distro() {
+        let tmp = TempDir::new().unwrap();
+        let file_path = Utf8PathBuf::from_path_buf(tmp.path().join("sindri.yaml")).unwrap();
+
+        let args = ConfigInitArgs {
+            name: Some("test".to_string()),
+            provider: "docker".to_string(),
+            profile: "minimal".to_string(),
+            distro: "invalid-distro".to_string(),
+            output: file_path,
+            force: false,
+        };
+        let result = init(args);
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("Unknown distro"),
+            "error should mention unknown distro, got: {}",
             err_msg
         );
     }

@@ -5,6 +5,7 @@ metadata:
   description: >-
     Block's open-source AI agent that automates engineering tasks - builds projects, executes code, debugs, and orchestrates workflows with any LLM
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   author: Block
   homepage: https://block.github.io/goose/
   dependencies: []

@@ -1,8 +1,13 @@
 # syntax=docker/dockerfile:1.4
 # ==============================================================================
-# Sindri v3 Dockerfile (Production)
+# Sindri v3 Dockerfile (Production) — Multi-Distro
 # ==============================================================================
 # Multi-stage build for Sindri v3 with pre-compiled binary
+#
+# Supported distros:
+#   - ubuntu   (default) — apt-get based
+#   - fedora             — dnf based
+#   - opensuse           — zypper based
 #
 # Build modes (priority order):
 #   1. Local binary from build context (v3/bin/sindri)
@@ -25,15 +30,35 @@
 #   - Layers ordered by change frequency (least → most frequent)
 #   - Consolidated COPY + RUN operations for scripts
 #   - Multi-stage GH CLI + Cosign download (parallel build, isolated caching)
+#   - Builder/downloader stages stay on Ubuntu (distro-independent file ops)
+#   - Only the runtime stage is multi-distro
+#
+# Build:
+#   docker build -f v3/Dockerfile -t sindri:v3.0.0 .
+#   docker build -f v3/Dockerfile --build-arg DISTRO=fedora -t sindri:v3.0.0-fedora .
+#   docker build -f v3/Dockerfile --build-arg DISTRO=opensuse -t sindri:v3.0.0-opensuse .
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
 # Build Arguments
 # ------------------------------------------------------------------------------
+ARG DISTRO=ubuntu
 ARG UBUNTU_VERSION=24.04
+ARG FEDORA_VERSION=41
+ARG OPENSUSE_VERSION=15.6
 ARG SINDRI_VERSION=3.0.0
 ARG GH_VERSION=2.87.3
 ARG COSIGN_VERSION=3.0.5
+
+# ==============================================================================
+# Runtime Distro Selection
+# ==============================================================================
+# Define one stage per supported distro, then select via DISTRO build arg.
+# BuildKit resolves the variable in FROM base-${DISTRO}.
+# Only the selected distro image is pulled/built (BuildKit optimization).
+FROM ubuntu:${UBUNTU_VERSION} AS base-ubuntu
+FROM fedora:${FEDORA_VERSION} AS base-fedora
+FROM opensuse/leap:${OPENSUSE_VERSION} AS base-opensuse
 
 # ==============================================================================
 # Stage 1a: Local Binary from Build Context (CI workflows)
@@ -41,6 +66,7 @@ ARG COSIGN_VERSION=3.0.5
 # This stage checks for a pre-built binary in the build context (v3/bin/sindri)
 # which is provided by CI workflows that compile the binary in a previous job.
 # The v3/bin/.gitkeep ensures the directory always exists for COPY to work.
+# Stays on Ubuntu — only does file operations (distro-independent).
 FROM ubuntu:${UBUNTU_VERSION} AS builder-local
 
 # Create output directory
@@ -65,6 +91,7 @@ RUN if [ -f /tmp/local-bin/sindri ]; then \
 # This stage attempts to download a pre-compiled binary from GitHub releases.
 # If the release doesn't exist (e.g., during CI before any release is published),
 # it gracefully creates a .skip marker to allow fallback to local binary.
+# Stays on Ubuntu — only does downloads (distro-independent).
 FROM ubuntu:${UBUNTU_VERSION} AS builder-binary
 
 ARG SINDRI_VERSION
@@ -100,6 +127,7 @@ RUN apt-get update && \
 # Priority order:
 #   1. Local binary from build context (CI workflows)
 #   2. Downloaded binary from releases (default fallback)
+# Stays on Ubuntu — only does file operations (distro-independent).
 FROM ubuntu:${UBUNTU_VERSION} AS binary-merge
 
 ARG SINDRI_VERSION
@@ -127,6 +155,7 @@ RUN mkdir -p /output && \
 # ==============================================================================
 # Stage 3: Download GitHub CLI (parallel build, isolated caching)
 # ==============================================================================
+# Stays on Ubuntu — only does downloads (distro-independent).
 FROM ubuntu:${UBUNTU_VERSION} AS gh-downloader
 
 ARG GH_VERSION
@@ -143,6 +172,7 @@ RUN apt-get update && \
 # ==============================================================================
 # Stage 3b: Download Cosign (parallel build, isolated caching)
 # ==============================================================================
+# Stays on Ubuntu — only does downloads (distro-independent).
 FROM ubuntu:${UBUNTU_VERSION} AS cosign-downloader
 
 ARG COSIGN_VERSION
@@ -157,14 +187,18 @@ RUN apt-get update && \
     echo "Cosign ${COSIGN_VERSION} installed for ${TARGETARCH}"
 
 # ==============================================================================
-# Stage 4: Runtime Image
+# Stage 4: Runtime Image (Multi-Distro)
 # ==============================================================================
-FROM ubuntu:${UBUNTU_VERSION}
+# Uses the selected distro via BuildKit variable FROM resolution.
+# Only the chosen base-${DISTRO} image is pulled (BuildKit optimization).
+FROM base-${DISTRO} AS runtime
+
+# Re-declare DISTRO after FROM (ARGs are scoped per stage)
+ARG DISTRO
 
 # ------------------------------------------------------------------------------
 # Runtime Build Arguments
 # ------------------------------------------------------------------------------
-ARG DEBIAN_FRONTEND=noninteractive
 ARG DEVELOPER_USER=developer
 ARG DEVELOPER_UID=1001
 ARG DEVELOPER_GID=1001
@@ -179,45 +213,30 @@ ENV DEVELOPER_USER=${DEVELOPER_USER} \
     ALT_HOME=${ALT_HOME} \
     WORKSPACE=${WORKSPACE} \
     SSH_PORT=${SSH_PORT} \
-    DEBIAN_FRONTEND=noninteractive \
     TERM=xterm-256color \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
 # ------------------------------------------------------------------------------
-# Install System Packages (changes infrequently)
+# Install System Packages via pkg-manager.sh (multi-distro aware)
 # ------------------------------------------------------------------------------
-# Key changes from v2:
-# - REMOVED: jq, yq, python3-jsonschema (replaced by Rust CLI)
-# - KEPT: git, curl, wget (still needed for cloning, downloads)
-# - KEPT: build-essential, libssl-dev (for native extension compilation)
-# - KEPT: openssh-server (SSH access)
-# - KEPT: gh (GitHub CLI - may become extension in future)
+# Uses pkg-manager.sh to install the correct packages for the selected distro.
+# Replaces the inline apt-get block — supports Ubuntu, Fedora, and openSUSE.
 # ------------------------------------------------------------------------------
-RUN <<EOF
-apt-get update
-apt-get install -y --no-install-recommends \
-    ca-certificates curl wget git openssh-server sudo \
-    locales tzdata fontconfig unzip zip \
-    build-essential pkg-config libssl-dev \
-    gnupg \
-    iproute2 \
-    nano vim
-apt-get install -y --only-upgrade libgnutls30t64
-locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8
-apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-rm -f /etc/ssh/ssh_host_*
-EOF
+COPY v3/docker/lib/pkg-manager.sh /docker/lib/pkg-manager.sh
+SHELL ["/bin/bash", "-c"]
+RUN chmod +x /docker/lib/pkg-manager.sh && \
+    export SINDRI_DISTRO=${DISTRO} && \
+    . /docker/lib/pkg-manager.sh && \
+    pkg_install_sindri_base
 
 # ------------------------------------------------------------------------------
-# Create Developer User (changes infrequently)
+# Create Developer User via pkg-manager.sh (multi-distro aware)
 # ------------------------------------------------------------------------------
-RUN groupadd -g ${DEVELOPER_GID} ${DEVELOPER_USER} && \
-    useradd -m -d ${ALT_HOME} -u ${DEVELOPER_UID} -g ${DEVELOPER_GID} -s /bin/bash ${DEVELOPER_USER} && \
-    echo "${DEVELOPER_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${DEVELOPER_USER} && \
-    chmod 0440 /etc/sudoers.d/${DEVELOPER_USER}
+RUN export SINDRI_DISTRO=${DISTRO} && \
+    . /docker/lib/pkg-manager.sh && \
+    create_developer_user "${DEVELOPER_USER}" "${DEVELOPER_UID}" "${DEVELOPER_GID}" "${ALT_HOME}"
+SHELL ["/bin/sh", "-c"]
 
 # ------------------------------------------------------------------------------
 # Setup SSH Server and Configuration (changes infrequently)
@@ -322,6 +341,11 @@ COPY v3/docker/scripts/healthcheck.sh /docker/scripts/
 COPY v3/docker/templates/ /docker/templates/
 
 RUN chmod +x /docker/scripts/entrypoint.sh /docker/scripts/healthcheck.sh
+
+# ------------------------------------------------------------------------------
+# Labels
+# ------------------------------------------------------------------------------
+LABEL sindri.distro="${DISTRO}"
 
 # ------------------------------------------------------------------------------
 # Runtime Configuration

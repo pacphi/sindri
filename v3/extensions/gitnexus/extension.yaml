@@ -4,6 +4,7 @@ metadata:
   version: 1.0.1
   description: Codebase knowledge graph CLI with AI agent integration via MCP server
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   author: abhigyanpatwari
   license: MIT
   homepage: https://github.com/abhigyanpatwari/GitNexus

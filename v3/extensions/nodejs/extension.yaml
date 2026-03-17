@@ -4,6 +4,7 @@ metadata:
   version: 1.1.0
   description: Node.js LTS via mise with corepack (pnpm/yarn available for projects)
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - mise-config
 requirements:

@@ -31,6 +31,7 @@ fn create_test_extension(
             author: Some("Test Author".to_string()),
             homepage: None,
             dependencies: vec![],
+            distros: vec![sindri_core::types::Distro::Ubuntu],
         },
         requirements: None,
         install: InstallConfig {
@@ -40,6 +41,9 @@ fn create_test_extension(
             binary: None,
             npm: None,
             script: None,
+            dnf: None,
+            zypper: None,
+            scripts: None,
         },
         configure: None,
         validate: ValidateConfig {
@@ -122,6 +126,7 @@ fn build_registry_with_extensions(extensions: Vec<(&str, Extension)>) -> Extensi
                 sha256: None,
                 deprecated: false,
                 successor: None,
+                distros: vec![],
             },
         );
         registry.extensions.insert(name.to_string(), ext);

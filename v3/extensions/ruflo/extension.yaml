@@ -4,6 +4,7 @@ metadata:
   version: 3.5.14
   description: "Ruflo - AI Agent Orchestration Platform with multi-agent swarms, HNSW search, and 215 MCP tools"
   category: claude
+  distros: [ubuntu, fedora, opensuse]
   author: ruvnet
   homepage: https://github.com/ruvnet/ruflo
   dependencies:

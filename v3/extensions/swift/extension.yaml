@@ -4,6 +4,7 @@ metadata:
   version: 1.0.0
   description: Swift 6.2.3 programming language via mise
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - mise-config
 

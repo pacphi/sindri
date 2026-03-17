@@ -4,6 +4,7 @@ metadata:
   version: 1.2.0
   description: Python 3.14 with uv package manager via mise
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   dependencies:
     - mise-config
 requirements:

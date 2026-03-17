@@ -317,9 +317,13 @@ jobs:
   # ============================================
 
   build-image:
-    name: Build v3 Docker Image
+    name: Build CI Image — ${{ matrix.distro }}
     runs-on: ubuntu-latest
     needs: rust-build
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [ubuntu, fedora, opensuse]
     permissions:
       contents: read
       packages: write
@@ -347,19 +351,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # NOTE: Use full SHA (${{ github.sha }}) not {{sha}} template (which gives short SHA)
-      # to ensure consistency between build tags and downstream jobs (security-scan, mark-passed)
-      - name: Generate metadata
+      - name: Generate metadata for ${{ matrix.distro }}
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=v3-ci-${{ github.sha }}
+            type=raw,value=v3-ci-${{ github.sha }}-${{ matrix.distro }}
           labels: |
-            org.opencontainers.image.title=Sindri v3
-            org.opencontainers.image.description=Multi-cloud development environment orchestrator (Rust)
+            org.opencontainers.image.title=Sindri v3 (${{ matrix.distro }})
+            org.opencontainers.image.description=Multi-cloud development environment orchestrator (Rust) — ${{ matrix.distro }} variant
             sindri.version=v3
+            sindri.distro=${{ matrix.distro }}
             sindri.ci.run=${{ github.run_id }}
             sindri.ci.branch=${{ github.ref_name }}
 
@@ -369,15 +372,7 @@ jobs:
           mkdir -p v3/bin
           cp ./bin/sindri v3/bin/
 
-      # NOTE: CI builds only linux/amd64 because:
-      # - The rust-build job produces only x86_64 binaries
-      # - Multi-arch requires pre-compiled binaries for each architecture
-      # - ARM64 builds happen during releases (not CI) when binaries are published
-      # This avoids builder-binary trying to download non-existent ARM releases
-      # - Using production Dockerfile which uses pre-built binary from v3/bin/
-      # - Pre-built binary is copied in previous step for faster builds (~2 min)
-      # - For development builds with bundled extensions, use v3/Dockerfile.dev
-      - name: Build and push image
+      - name: Build and push — ${{ matrix.distro }}
         id: build
         uses: docker/build-push-action@v7
         with:
@@ -387,12 +382,14 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
-          no-cache: true
+          no-cache: false
           pull: true
+          cache-from: type=gha,scope=${{ matrix.distro }}
+          cache-to: type=gha,scope=${{ matrix.distro }},mode=max
+          build-args: |
+            DISTRO=${{ matrix.distro }}
           provenance: mode=max
           sbom: true
-          build-args: |
-            SINDRI_VERSION=${{ env.VERSION }}
           secrets: |
             github_token=${{ secrets.GITHUB_TOKEN }}
 
@@ -416,14 +413,11 @@ jobs:
 
       - name: Export image info
         run: |
-          echo "tag=ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "tag=ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-${{ matrix.distro }}" >> $GITHUB_OUTPUT
           echo "✅ Image built, signed, and pushed (linux/amd64)"
-          echo "   Image: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}"
+          echo "   Image: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-${{ matrix.distro }}"
+          echo "   Distro: ${{ matrix.distro }}"
           echo "   Digest: ${{ steps.build.outputs.digest }}"
-          echo "   Platform: linux/amd64"
-          echo "   Signed: Cosign 3.x (keyless, by digest)"
-          echo "   Provenance: SLSA build provenance attested"
-          echo "   Note: Multi-arch (amd64+arm64) builds happen during releases"
 
   # ============================================
   # Security Scanning
@@ -453,7 +447,7 @@ jobs:
         continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-ubuntu
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
@@ -468,8 +462,8 @@ jobs:
       - name: Scan summary
         if: always()
         run: |
-          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "Image: \`ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "## Security Scan Results (ubuntu variant)" >> $GITHUB_STEP_SUMMARY
+          echo "Image: \`ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-ubuntu\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f trivy-results.sarif ]; then
             ISSUES=$(jq '.runs[0].results | length' trivy-results.sarif)
@@ -483,7 +477,7 @@ jobs:
   # ============================================
 
   mark-passed:
-    name: Mark as Promotion Candidate
+    name: Mark Promotion Candidates
     needs: [build-image, security-scan, k8s-cluster-lifecycle]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -498,25 +492,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag as promotion candidate
+      - name: Tag all distros as promotion candidates
         run: |
-          echo "Pulling CI image..."
-          docker pull ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}
+          for DISTRO in ubuntu fedora opensuse; do
+            SRC="ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-${DISTRO}"
+            DST="ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}-${DISTRO}"
+            docker pull "$SRC"
+            docker tag "$SRC" "$DST"
+            docker push "$DST"
+            echo "✅ Marked: $DST"
+          done
 
-          echo "Tagging as v3-ci-passed..."
-          docker tag ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }} \
-                     ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}
-
-          echo "Pushing promotion candidate tag..."
-          docker push ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}
-
-          echo "✅ Image marked as promotion candidate"
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Promotion Candidate" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image**: \`ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "## Promotion Candidates" >> $GITHUB_STEP_SUMMARY
+          for DISTRO in ubuntu fedora opensuse; do
+            echo "- **${DISTRO}**: \`ghcr.io/${{ github.repository }}:v3-ci-passed-${{ github.sha }}-${DISTRO}\`" >> $GITHUB_STEP_SUMMARY
+          done
           echo "- **Status**: Ready for release promotion" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tests**: K8s integration tests passed" >> $GITHUB_STEP_SUMMARY
-          echo "- **Security**: Vulnerability scan completed" >> $GITHUB_STEP_SUMMARY
 
   # ============================================
   # Security Audit (Cargo)

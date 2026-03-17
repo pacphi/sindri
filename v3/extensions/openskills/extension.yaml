@@ -5,6 +5,7 @@ metadata:
   description: >-
     OpenSkills CLI for managing Claude Code skills from Anthropic's marketplace
   category: productivity
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   license: MIT
   dependencies:

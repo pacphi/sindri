@@ -48,6 +48,10 @@ pub struct RegistryEntry {
     /// Name of the replacement extension (if deprecated)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub successor: Option<String>,
+
+    /// Supported Linux distributions
+    #[serde(default)]
+    pub distros: Vec<String>,
 }
 
 /// Profiles file (profiles.yaml)

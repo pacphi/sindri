@@ -4,6 +4,7 @@ metadata:
   version: 2.2.0
   description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
   category: devops
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   homepage: https://sindri.dev
   dependencies: []
@@ -32,6 +33,21 @@ install:
     packages:
       - ansible
       - ansible-lint
+      - jq
+      - curl
+      - wget
+  dnf:
+    updateFirst: true
+    packages:
+      - ansible
+      - ansible-lint
+      - jq
+      - curl
+      - wget
+  zypper:
+    updateFirst: true
+    packages:
+      - ansible
       - jq
       - curl
       - wget

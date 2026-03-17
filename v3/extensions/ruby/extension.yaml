@@ -4,6 +4,7 @@ metadata:
   version: 2.1.0
   description: Ruby 4.0.x via mise with Rails and Bundler
   category: languages
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies: []
 requirements:

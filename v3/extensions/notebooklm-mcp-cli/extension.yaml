@@ -5,6 +5,7 @@ metadata:
   description: >-
     CLI and MCP server for Google NotebookLM - notebook creation, source management, AI analysis, and content generation
   category: mcp
+  distros: [ubuntu, fedora, opensuse]
   author: jacob-bd
   license: MIT
   homepage: https://github.com/jacob-bd/notebooklm-mcp-cli

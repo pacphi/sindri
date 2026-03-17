@@ -5,6 +5,7 @@ metadata:
   description: >-
     Atlassian MCP server using Claude Code's native SSE transport (no API key required, no Docker dependencies)
   category: mcp
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   homepage: https://support.atlassian.com/atlassian-rovo-mcp-server/
   dependencies:

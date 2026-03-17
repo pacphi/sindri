@@ -77,7 +77,9 @@ pub async fn verify_extension_installed(extension: &Extension) -> bool {
     // 1. Check installation method-specific verification
     let method_verified = match extension.install.method {
         InstallMethod::Mise => verify_mise_tools(extension).await,
-        InstallMethod::Apt => verify_apt_packages(extension).await,
+        InstallMethod::Apt | InstallMethod::Dnf | InstallMethod::Zypper => {
+            verify_apt_packages(extension).await
+        }
         InstallMethod::Binary => verify_binaries(extension).await,
         InstallMethod::Npm | InstallMethod::NpmGlobal => verify_npm_packages(extension).await,
         InstallMethod::Script => {
@@ -532,12 +534,16 @@ rust = "1.75"
                 dependencies: vec![],
                 author: None,
                 homepage: None,
+                distros: vec![Distro::Ubuntu],
             },
             requirements: None,
             install: InstallConfig {
                 method: InstallMethod::Binary,
                 mise: None,
                 apt: None,
+                dnf: None,
+                zypper: None,
+                scripts: None,
                 binary: Some(BinaryInstallConfig {
                     downloads: vec![BinaryDownload {
                         name: "nonexistent-binary-tool-12345".to_string(),

@@ -5,6 +5,7 @@ metadata:
   description: >-
     Unified CLI for RuVector Format (RVF) vector storage operations
   category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
   author: ruvnet
   license: MIT OR Apache-2.0
   homepage: https://github.com/ruvnet/ruvector

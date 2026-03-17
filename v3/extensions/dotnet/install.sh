@@ -4,6 +4,11 @@ set -euo pipefail
 # dotnet install script - Simplified for YAML-driven architecture
 # Installs .NET SDK 10.0 and 8.0 with ASP.NET Core and dev tools
 
+# Source pkg-manager library if available
+if [ -f "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}" ]; then
+    source "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}"
+fi
+
 # Determine if we need sudo (handle no-new-privileges containers)
 if [[ $(id -u) -eq 0 ]]; then
   # Already root, no sudo needed
@@ -26,54 +31,56 @@ if command_exists dotnet; then
   exit 0
 fi
 
-# Add .NET backports PPA if requested (for .NET 9 or older versions on Ubuntu 24.04)
-if [[ "${EXT_USE_DOTNET_BACKPORTS:-false}" == "true" ]]; then
-  print_status "Adding Ubuntu .NET backports PPA..."
-  $SUDO add-apt-repository -y ppa:dotnet/backports 2>/dev/null || print_warning "Backports PPA failed"
-fi
-
-# Try apt-based installation first (requires root)
+# Try apt-based installation on Ubuntu (requires root)
 apt_install_succeeded=false
 
-if [[ -n "$SUDO" ]] || [[ $(id -u) -eq 0 ]]; then
-  # Update package lists
-  print_status "Updating package lists..."
-  if $SUDO apt-get update 2>/dev/null; then
-    # Show available .NET packages for debugging
-    print_status "Checking available .NET packages..."
-    apt-cache search dotnet-sdk 2>/dev/null | head -10 || true
+if [[ "${SINDRI_DISTRO:-ubuntu}" == "ubuntu" ]]; then
+  # Add .NET backports PPA if requested (for .NET 9 or older versions on Ubuntu 24.04)
+  if [[ "${EXT_USE_DOTNET_BACKPORTS:-false}" == "true" ]]; then
+    print_status "Adding Ubuntu .NET backports PPA..."
+    $SUDO add-apt-repository -y ppa:dotnet/backports 2>/dev/null || print_warning "Backports PPA failed"
+  fi
 
-    # Install .NET SDKs - try newest first, fall back to older versions
-    print_status "Installing .NET SDKs via apt..."
+  if [[ -n "$SUDO" ]] || [[ $(id -u) -eq 0 ]]; then
+    # Update package lists
+    print_status "Updating package lists..."
+    if $SUDO apt-get update 2>/dev/null; then
+      # Show available .NET packages for debugging
+      print_status "Checking available .NET packages..."
+      apt-cache search dotnet-sdk 2>/dev/null | head -10 || true
 
-    # Try .NET 10 first (LTS as of Nov 2025)
-    if $SUDO apt-get install -y dotnet-sdk-10.0 2>/dev/null; then
-      print_success "Installed dotnet-sdk-10.0"
-      apt_install_succeeded=true
-    else
-      print_warning "dotnet-sdk-10.0 not available via apt, trying .NET 8..."
-    fi
+      # Install .NET SDKs - try newest first, fall back to older versions
+      print_status "Installing .NET SDKs via apt..."
 
-    # Try .NET 8 as fallback (LTS)
-    if ! $apt_install_succeeded; then
-      if $SUDO apt-get install -y dotnet-sdk-8.0 2>/dev/null; then
-        print_success "Installed dotnet-sdk-8.0"
+      # Try .NET 10 first (LTS as of Nov 2025)
+      if $SUDO apt-get install -y dotnet-sdk-10.0 2>/dev/null; then
+        print_success "Installed dotnet-sdk-10.0"
         apt_install_succeeded=true
+      else
+        print_warning "dotnet-sdk-10.0 not available via apt, trying .NET 8..."
       fi
-    fi
 
-    # Install ASP.NET Core Runtimes (optional)
-    if $apt_install_succeeded; then
-      print_status "Installing ASP.NET Core Runtimes..."
-      $SUDO apt-get install -y aspnetcore-runtime-10.0 2>/dev/null || true
-      $SUDO apt-get install -y aspnetcore-runtime-8.0 2>/dev/null || true
+      # Try .NET 8 as fallback (LTS)
+      if ! $apt_install_succeeded; then
+        if $SUDO apt-get install -y dotnet-sdk-8.0 2>/dev/null; then
+          print_success "Installed dotnet-sdk-8.0"
+          apt_install_succeeded=true
+        fi
+      fi
+
+      # Install ASP.NET Core Runtimes (optional)
+      if $apt_install_succeeded; then
+        print_status "Installing ASP.NET Core Runtimes..."
+        $SUDO apt-get install -y aspnetcore-runtime-10.0 2>/dev/null || true
+        $SUDO apt-get install -y aspnetcore-runtime-8.0 2>/dev/null || true
+      fi
     fi
   fi
 fi
 
 # If apt failed, use Microsoft's dotnet-install.sh (works without root)
 if ! $apt_install_succeeded; then
-  print_warning "apt installation not available (requires root), using dotnet-install.sh..."
+  print_warning "Package manager installation not available, using Microsoft's dotnet-install.sh..."
 
   # Set up .NET installation directory in user space
   export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
@@ -182,7 +189,17 @@ if ! command_exists nuget; then
   $SUDO wget -O /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe 2>/dev/null
   $SUDO cp "$(dirname "${BASH_SOURCE[0]}")/nuget-wrapper.template" /usr/local/bin/nuget
   $SUDO chmod +x /usr/local/bin/nuget
-  $SUDO apt-get install -y mono-complete 2>/dev/null && print_success "NuGet CLI installed"
+  case "${SINDRI_DISTRO:-ubuntu}" in
+    ubuntu)
+      $SUDO apt-get install -y mono-complete 2>/dev/null && print_success "NuGet CLI installed"
+      ;;
+    fedora)
+      $SUDO dnf install -y mono-complete 2>/dev/null && print_success "NuGet CLI installed"
+      ;;
+    opensuse)
+      $SUDO zypper --non-interactive install mono-complete 2>/dev/null && print_success "NuGet CLI installed"
+      ;;
+  esac
 fi
 
 print_success ".NET development environment installation complete"

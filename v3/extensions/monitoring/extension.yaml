@@ -5,6 +5,7 @@ metadata:
   description: >-
     Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli)
   category: devops
+  distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
   dependencies:
     - python

@@ -4,6 +4,11 @@ set -euo pipefail
 # ollama install script - Installs Ollama LLM runtime
 # Uses official installer with extended timeout for large binary download
 
+# Source pkg-manager library if available
+if [ -f "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}" ]; then
+    source "${SINDRI_PKG_MANAGER_LIB:-/docker/lib/pkg-manager.sh}"
+fi
+
 print_status "Installing Ollama..."
 
 # Check if running in CI mode - skip large downloads
@@ -101,12 +106,19 @@ mkdir -p "$HOME/.local/bin"
 # Check if zstd is available, install if needed
 if ! command_exists zstd; then
     print_status "Installing zstd for tarball extraction..."
-    if command_exists apt-get; then
+    if type pkg_install &>/dev/null; then
+        sudo pkg_update
+        sudo pkg_install zstd
+        sudo pkg_clean
+    elif command_exists apt-get; then
         sudo apt-get update -qq && sudo apt-get install -y -qq zstd
-        cleanup_apt_cache
-    elif command_exists yum; then
-        sudo yum install -y -q zstd
-        sudo yum clean all 2>/dev/null || true
+        cleanup_pkg_cache
+    elif command_exists dnf; then
+        sudo dnf install -y zstd
+        sudo dnf clean all 2>/dev/null || true
+    elif command_exists zypper; then
+        sudo zypper --non-interactive install zstd
+        sudo zypper clean --all 2>/dev/null || true
     else
         print_error "Cannot install zstd - package manager not found"
         exit 1
