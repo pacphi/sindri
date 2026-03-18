@@ -874,57 +874,286 @@ jobs:
           chmod +x ./bin/sindri
           echo "$PWD/bin" >> $GITHUB_PATH
 
-      - name: Validate RunPod example configs
+      - name: Detect available credentials
+        id: creds
         run: |
-          echo "## RunPod Config Validation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "has_runpod=${{ secrets.RUNPOD_API_KEY != '' }}" >> $GITHUB_OUTPUT
+          echo "has_northflank=${{ secrets.NORTHFLANK_API_TOKEN != '' }}" >> $GITHUB_OUTPUT
+          echo "has_fly=${{ secrets.FLY_API_TOKEN != '' }}" >> $GITHUB_OUTPUT
+          echo "has_e2b=${{ secrets.E2B_API_KEY != '' }}" >> $GITHUB_OUTPUT
+          echo "has_aws=${{ secrets.AWS_ACCESS_KEY_ID != '' }}" >> $GITHUB_OUTPUT
+          echo "has_gcp=${{ secrets.GCP_CREDENTIALS != '' }}" >> $GITHUB_OUTPUT
+          echo "has_azure=${{ secrets.AZURE_CLIENT_ID != '' }}" >> $GITHUB_OUTPUT
+          echo "has_digitalocean=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN != '' }}" >> $GITHUB_OUTPUT
 
+      # --- Tier 1: Always run (no credentials needed) ---
+
+      - name: Validate Docker example configs
+        run: |
           PASS=0
           FAIL=0
+          for config in v3/examples/docker-*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "DOCKER_PASS=$PASS" >> $GITHUB_ENV
+          echo "DOCKER_FAIL=$FAIL" >> $GITHUB_ENV
 
+      - name: Validate DevPod Docker configs
+        run: |
+          PASS=0
+          FAIL=0
+          for config in v3/examples/devpod-docker*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "DEVPOD_DOCKER_PASS=$PASS" >> $GITHUB_ENV
+          echo "DEVPOD_DOCKER_FAIL=$FAIL" >> $GITHUB_ENV
+
+      # --- Tier 2: Credential-gated (skip when secrets unavailable) ---
+
+      - name: Validate RunPod example configs
+        if: steps.creds.outputs.has_runpod == 'true'
+        env:
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+        run: |
+          PASS=0
+          FAIL=0
           for config in v3/examples/runpod-*.yaml; do
             if [[ -f "$config" ]]; then
               CONFIG_NAME=$(basename "$config")
               echo "Validating: $CONFIG_NAME"
-
               if sindri deploy --config "$config" --dry-run 2>&1; then
-                echo "- $CONFIG_NAME: PASS" >> $GITHUB_STEP_SUMMARY
                 PASS=$((PASS + 1))
               else
-                echo "- $CONFIG_NAME: **FAIL**" >> $GITHUB_STEP_SUMMARY
                 FAIL=$((FAIL + 1))
               fi
             fi
           done
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**RunPod**: $PASS passed, $FAIL failed" >> $GITHUB_STEP_SUMMARY
+          echo "RUNPOD_PASS=$PASS" >> $GITHUB_ENV
+          echo "RUNPOD_FAIL=$FAIL" >> $GITHUB_ENV
 
       - name: Validate Northflank example configs
+        if: steps.creds.outputs.has_northflank == 'true'
+        env:
+          NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
         run: |
-          echo "## Northflank Config Validation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
           PASS=0
           FAIL=0
-
           for config in v3/examples/northflank-*.yaml; do
             if [[ -f "$config" ]]; then
               CONFIG_NAME=$(basename "$config")
               echo "Validating: $CONFIG_NAME"
-
               if sindri deploy --config "$config" --dry-run 2>&1; then
-                echo "- $CONFIG_NAME: PASS" >> $GITHUB_STEP_SUMMARY
                 PASS=$((PASS + 1))
               else
-                echo "- $CONFIG_NAME: **FAIL**" >> $GITHUB_STEP_SUMMARY
                 FAIL=$((FAIL + 1))
               fi
             fi
           done
+          echo "NORTHFLANK_PASS=$PASS" >> $GITHUB_ENV
+          echo "NORTHFLANK_FAIL=$FAIL" >> $GITHUB_ENV
 
+      - name: Validate Fly.io example configs
+        if: steps.creds.outputs.has_fly == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          PASS=0
+          FAIL=0
+          for config in v3/examples/fly-*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "FLY_PASS=$PASS" >> $GITHUB_ENV
+          echo "FLY_FAIL=$FAIL" >> $GITHUB_ENV
+
+      - name: Validate E2B example configs
+        if: steps.creds.outputs.has_e2b == 'true'
+        env:
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+        run: |
+          PASS=0
+          FAIL=0
+          for config in v3/examples/e2b-*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "E2B_PASS=$PASS" >> $GITHUB_ENV
+          echo "E2B_FAIL=$FAIL" >> $GITHUB_ENV
+
+      - name: Validate DevPod AWS configs
+        if: steps.creds.outputs.has_aws == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          PASS=0
+          FAIL=0
+          for config in v3/examples/devpod-aws*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "DEVPOD_AWS_PASS=$PASS" >> $GITHUB_ENV
+          echo "DEVPOD_AWS_FAIL=$FAIL" >> $GITHUB_ENV
+
+      - name: Validate DevPod GCP configs
+        if: steps.creds.outputs.has_gcp == 'true'
+        env:
+          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+        run: |
+          PASS=0
+          FAIL=0
+          for config in v3/examples/devpod-gcp*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "DEVPOD_GCP_PASS=$PASS" >> $GITHUB_ENV
+          echo "DEVPOD_GCP_FAIL=$FAIL" >> $GITHUB_ENV
+
+      - name: Validate DevPod Azure configs
+        if: steps.creds.outputs.has_azure == 'true'
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          PASS=0
+          FAIL=0
+          for config in v3/examples/devpod-azure*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "DEVPOD_AZURE_PASS=$PASS" >> $GITHUB_ENV
+          echo "DEVPOD_AZURE_FAIL=$FAIL" >> $GITHUB_ENV
+
+      - name: Validate DevPod DigitalOcean configs
+        if: steps.creds.outputs.has_digitalocean == 'true'
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        run: |
+          PASS=0
+          FAIL=0
+          for config in v3/examples/devpod-digitalocean*.yaml; do
+            if [[ -f "$config" ]]; then
+              CONFIG_NAME=$(basename "$config")
+              echo "Validating: $CONFIG_NAME"
+              if sindri deploy --config "$config" --dry-run 2>&1; then
+                PASS=$((PASS + 1))
+              else
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo "DEVPOD_DO_PASS=$PASS" >> $GITHUB_ENV
+          echo "DEVPOD_DO_FAIL=$FAIL" >> $GITHUB_ENV
+
+      # --- Summary ---
+
+      - name: Generate validation summary
+        if: always()
+        run: |
+          echo "## Provider Config Validation" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Northflank**: $PASS passed, $FAIL failed" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | Tier | Status | Pass | Fail | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------|--------|------|------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          # Helper to emit a summary row
+          summary_row() {
+            local PROVIDER="$1" TIER="$2" PASS_VAR="$3" FAIL_VAR="$4" CRED_FLAG="$5" CRED_NAME="$6"
+            local PASS="${!PASS_VAR:-}" FAIL="${!FAIL_VAR:-}"
+
+            if [[ "$TIER" == "Always" ]]; then
+              if [[ "$FAIL" -gt 0 ]]; then
+                echo "| $PROVIDER | $TIER | FAIL | $PASS | $FAIL | No credentials needed |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| $PROVIDER | $TIER | PASS | $PASS | $FAIL | No credentials needed |" >> $GITHUB_STEP_SUMMARY
+              fi
+            elif [[ "$CRED_FLAG" == "true" ]]; then
+              if [[ -z "$PASS" && -z "$FAIL" ]]; then
+                PASS=0; FAIL=0
+              fi
+              if [[ "$FAIL" -gt 0 ]]; then
+                echo "| $PROVIDER | Gated | FAIL | $PASS | $FAIL | Credentials available |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| $PROVIDER | Gated | PASS | $PASS | $FAIL | Credentials available |" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "| $PROVIDER | Gated | SKIPPED | — | — | $CRED_NAME not configured |" >> $GITHUB_STEP_SUMMARY
+            fi
+          }
+
+          # Tier 1
+          summary_row "Docker" "Always" "DOCKER_PASS" "DOCKER_FAIL" "true" ""
+          summary_row "DevPod (Docker)" "Always" "DEVPOD_DOCKER_PASS" "DEVPOD_DOCKER_FAIL" "true" ""
+
+          # Tier 2
+          summary_row "RunPod" "Gated" "RUNPOD_PASS" "RUNPOD_FAIL" \
+            "${{ steps.creds.outputs.has_runpod }}" "RUNPOD_API_KEY"
+          summary_row "Northflank" "Gated" "NORTHFLANK_PASS" "NORTHFLANK_FAIL" \
+            "${{ steps.creds.outputs.has_northflank }}" "NORTHFLANK_API_TOKEN"
+          summary_row "Fly.io" "Gated" "FLY_PASS" "FLY_FAIL" \
+            "${{ steps.creds.outputs.has_fly }}" "FLY_API_TOKEN"
+          summary_row "E2B" "Gated" "E2B_PASS" "E2B_FAIL" \
+            "${{ steps.creds.outputs.has_e2b }}" "E2B_API_KEY"
+          summary_row "DevPod (AWS)" "Gated" "DEVPOD_AWS_PASS" "DEVPOD_AWS_FAIL" \
+            "${{ steps.creds.outputs.has_aws }}" "AWS credentials"
+          summary_row "DevPod (GCP)" "Gated" "DEVPOD_GCP_PASS" "DEVPOD_GCP_FAIL" \
+            "${{ steps.creds.outputs.has_gcp }}" "GCP_CREDENTIALS"
+          summary_row "DevPod (Azure)" "Gated" "DEVPOD_AZURE_PASS" "DEVPOD_AZURE_FAIL" \
+            "${{ steps.creds.outputs.has_azure }}" "Azure credentials"
+          summary_row "DevPod (DigitalOcean)" "Gated" "DEVPOD_DO_PASS" "DEVPOD_DO_FAIL" \
+            "${{ steps.creds.outputs.has_digitalocean }}" "DIGITALOCEAN_ACCESS_TOKEN"
 
   # ============================================
   # Cloud Provider Integration Tests (Optional)
@@ -1082,7 +1311,7 @@ jobs:
           echo "- Release build (cargo build --release)" >> $GITHUB_STEP_SUMMARY
           echo "- Code coverage (cargo-llvm-cov)" >> $GITHUB_STEP_SUMMARY
           echo "- YAML validation (extensions, schemas)" >> $GITHUB_STEP_SUMMARY
-          echo "- Provider config validation (dry-run)" >> $GITHUB_STEP_SUMMARY
+          echo "- Provider config validation (Docker/DevPod always, cloud providers credential-gated)" >> $GITHUB_STEP_SUMMARY
           echo "- Cloud provider integration tests (RunPod, Northflank) - manual dispatch only" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Job Results" >> $GITHUB_STEP_SUMMARY

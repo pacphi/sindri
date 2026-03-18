@@ -1,0 +1,26 @@
+# DevPod Docker Development Environment
+#
+# A local DevPod workspace using Docker as the provider.
+# No cloud credentials needed — runs entirely on the local machine.
+#
+# Prerequisites:
+#   - Docker installed and running
+#   - DevPod CLI installed (https://devpod.sh)
+#
+# Usage:
+#   cp devpod-docker.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: devpod-docker-dev
+
+deployment:
+  provider: devpod
+  image: ghcr.io/sindri-labs/sindri:latest
+  resources:
+    memory: 4GB
+    cpus: 2
+
+providers:
+  devpod:
+    type: docker

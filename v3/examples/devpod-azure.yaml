@@ -1,0 +1,32 @@
+# DevPod Azure Development Environment
+#
+# A DevPod workspace running on an Azure VM.
+# Uses a Standard_D4s_v3 instance with 40 GB disk.
+#
+# Prerequisites:
+#   - Set AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID,
+#     and AZURE_SUBSCRIPTION_ID environment variables
+#   - DevPod CLI installed (https://devpod.sh)
+#
+# Usage:
+#   cp devpod-azure.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: devpod-azure-dev
+
+deployment:
+  provider: devpod
+  image: ghcr.io/sindri-labs/sindri:latest
+  resources:
+    memory: 8GB
+    cpus: 4
+
+providers:
+  devpod:
+    type: azure
+    azure:
+      location: eastus
+      resourceGroup: devpod-resources
+      vmSize: Standard_D4s_v3
+      diskSize: 40

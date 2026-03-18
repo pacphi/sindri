@@ -1,0 +1,29 @@
+# Fly.io Basic Development Environment
+#
+# A simple development setup on Fly.io with shared CPU and auto-stop enabled.
+# Machines stop when idle and restart on incoming connections to save costs.
+#
+# Prerequisites:
+#   - Set FLY_API_TOKEN environment variable
+#   - Get your token at https://fly.io/user/personal_access_tokens
+#
+# Usage:
+#   cp fly-basic.yaml sindri.yaml
+#   sindri deploy
+
+version: "3.0"
+name: fly-dev
+
+deployment:
+  provider: fly
+  image: ghcr.io/sindri-labs/sindri:latest
+  resources:
+    memory: 4GB
+    cpus: 2
+
+providers:
+  fly:
+    region: sjc
+    cpuKind: shared
+    autoStopMachines: true
+    autoStartMachines: true
