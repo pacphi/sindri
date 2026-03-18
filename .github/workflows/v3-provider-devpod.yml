@@ -51,9 +51,27 @@ env:
   DEVPOD_VERSION: v0.5.18
 
 jobs:
+  # Verify required credentials before spawning matrix jobs
+  check-credentials:
+    name: Verify Credentials
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Check credentials
+        uses: ./.github/actions/shared/check-credentials
+        with:
+          provider: devpod
+          sub-provider: ${{ inputs.devpod-provider }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          gcp-credentials: ${{ secrets.GCP_CREDENTIALS }}
+          azure-credentials: ${{ secrets.AZURE_CREDENTIALS }}
+
   # Test each extension in DevPod
   test:
     name: "Test: ${{ matrix.extension }}"
+    needs: check-credentials
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

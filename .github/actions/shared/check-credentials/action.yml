@@ -1,0 +1,183 @@
+name: Check Provider Credentials
+description: Validates that required secrets are configured before spawning expensive matrix jobs
+
+inputs:
+  provider:
+    description: 'Provider type (fly, e2b, devpod, packer, northflank, runpod)'
+    required: true
+  sub-provider:
+    description: 'Sub-provider for devpod (aws, gcp, azure, docker) or packer (aws, azure, gcp, oci, alibaba)'
+    required: false
+    default: ''
+
+  # Provider-specific secret values (pass via ${{ secrets.X }})
+  fly-api-token:
+    required: false
+    default: ''
+  northflank-api-token:
+    required: false
+    default: ''
+  runpod-api-key:
+    required: false
+    default: ''
+  e2b-api-key:
+    required: false
+    default: ''
+  aws-access-key-id:
+    required: false
+    default: ''
+  aws-secret-access-key:
+    required: false
+    default: ''
+  gcp-credentials:
+    required: false
+    default: ''
+  azure-credentials:
+    required: false
+    default: ''
+  azure-client-id:
+    required: false
+    default: ''
+  azure-client-secret:
+    required: false
+    default: ''
+  azure-subscription-id:
+    required: false
+    default: ''
+  azure-tenant-id:
+    required: false
+    default: ''
+  oci-user-ocid:
+    required: false
+    default: ''
+  oci-tenancy-ocid:
+    required: false
+    default: ''
+  oci-fingerprint:
+    required: false
+    default: ''
+  oci-private-key:
+    required: false
+    default: ''
+  alibaba-access-key:
+    required: false
+    default: ''
+  alibaba-secret-key:
+    required: false
+    default: ''
+
+outputs:
+  credentials-valid:
+    description: 'Whether all required credentials are present'
+    value: ${{ steps.check.outputs.valid }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check required credentials
+      id: check
+      shell: bash
+      run: |
+        PROVIDER="${{ inputs.provider }}"
+        SUB_PROVIDER="${{ inputs.sub-provider }}"
+        MISSING=()
+
+        check_secret() {
+          local name="$1"
+          local value="$2"
+          if [[ -z "$value" ]]; then
+            MISSING+=("$name")
+          fi
+        }
+
+        case "$PROVIDER" in
+          fly)
+            check_secret "FLY_API_TOKEN" "${{ inputs.fly-api-token }}"
+            ;;
+
+          northflank)
+            check_secret "NORTHFLANK_API_TOKEN" "${{ inputs.northflank-api-token }}"
+            ;;
+
+          runpod)
+            check_secret "RUNPOD_API_KEY" "${{ inputs.runpod-api-key }}"
+            ;;
+
+          e2b)
+            check_secret "E2B_API_KEY" "${{ inputs.e2b-api-key }}"
+            ;;
+
+          devpod)
+            case "$SUB_PROVIDER" in
+              aws)
+                check_secret "AWS_ACCESS_KEY_ID" "${{ inputs.aws-access-key-id }}"
+                check_secret "AWS_SECRET_ACCESS_KEY" "${{ inputs.aws-secret-access-key }}"
+                ;;
+              gcp)
+                check_secret "GCP_CREDENTIALS" "${{ inputs.gcp-credentials }}"
+                ;;
+              azure)
+                check_secret "AZURE_CREDENTIALS" "${{ inputs.azure-credentials }}"
+                ;;
+              docker)
+                # No credentials needed for local Docker provider
+                ;;
+              *)
+                echo "::warning::Unknown devpod sub-provider '$SUB_PROVIDER', skipping credential check"
+                ;;
+            esac
+            ;;
+
+          packer)
+            case "$SUB_PROVIDER" in
+              aws)
+                check_secret "AWS_ACCESS_KEY_ID" "${{ inputs.aws-access-key-id }}"
+                check_secret "AWS_SECRET_ACCESS_KEY" "${{ inputs.aws-secret-access-key }}"
+                ;;
+              azure)
+                check_secret "AZURE_CLIENT_ID" "${{ inputs.azure-client-id }}"
+                check_secret "AZURE_CLIENT_SECRET" "${{ inputs.azure-client-secret }}"
+                check_secret "AZURE_SUBSCRIPTION_ID" "${{ inputs.azure-subscription-id }}"
+                check_secret "AZURE_TENANT_ID" "${{ inputs.azure-tenant-id }}"
+                ;;
+              gcp)
+                check_secret "GCP_CREDENTIALS" "${{ inputs.gcp-credentials }}"
+                ;;
+              oci)
+                check_secret "OCI_USER_OCID" "${{ inputs.oci-user-ocid }}"
+                check_secret "OCI_TENANCY_OCID" "${{ inputs.oci-tenancy-ocid }}"
+                check_secret "OCI_FINGERPRINT" "${{ inputs.oci-fingerprint }}"
+                check_secret "OCI_PRIVATE_KEY" "${{ inputs.oci-private-key }}"
+                ;;
+              alibaba)
+                check_secret "ALIBABA_ACCESS_KEY" "${{ inputs.alibaba-access-key }}"
+                check_secret "ALIBABA_SECRET_KEY" "${{ inputs.alibaba-secret-key }}"
+                ;;
+              *)
+                echo "::warning::Unknown packer sub-provider '$SUB_PROVIDER', skipping credential check"
+                ;;
+            esac
+            ;;
+
+          *)
+            echo "::warning::Unknown provider '$PROVIDER', skipping credential check"
+            ;;
+        esac
+
+        if [[ ${#MISSING[@]} -gt 0 ]]; then
+          echo "valid=false" >> $GITHUB_OUTPUT
+          echo ""
+          echo "::error title=Missing Credentials::The following secrets are required for the '$PROVIDER' provider but are not configured: ${MISSING[*]}"
+          echo ""
+          echo "To fix this, add the missing secrets in:"
+          echo "  Settings → Secrets and variables → Actions → Repository secrets"
+          echo ""
+          echo "Missing secrets:"
+          for secret in "${MISSING[@]}"; do
+            echo "  - $secret"
+          done
+          exit 1
+        fi
+
+        echo "valid=true" >> $GITHUB_OUTPUT
+        echo "All required credentials for '$PROVIDER' provider are configured"

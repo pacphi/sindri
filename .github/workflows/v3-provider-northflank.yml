@@ -42,9 +42,23 @@ env:
   NORTHFLANK_API_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
 
 jobs:
+  # Verify required credentials before spawning matrix jobs
+  check-credentials:
+    name: Verify Credentials
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Check credentials
+        uses: ./.github/actions/shared/check-credentials
+        with:
+          provider: northflank
+          northflank-api-token: ${{ secrets.NORTHFLANK_API_TOKEN }}
+
   # Test each extension on Northflank
   test:
     name: "Test: ${{ matrix.extension }}"
+    needs: check-credentials
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

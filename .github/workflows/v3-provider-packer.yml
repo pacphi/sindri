@@ -64,9 +64,36 @@ on:
         required: false
 
 jobs:
+  # Verify required credentials before spawning expensive jobs
+  check-credentials:
+    name: Verify Credentials
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Check credentials
+        uses: ./.github/actions/shared/check-credentials
+        with:
+          provider: packer
+          sub-provider: ${{ inputs.cloud }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          gcp-credentials: ${{ secrets.GCP_CREDENTIALS }}
+          oci-user-ocid: ${{ secrets.OCI_USER_OCID }}
+          oci-tenancy-ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          oci-fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+          oci-private-key: ${{ secrets.OCI_PRIVATE_KEY }}
+          alibaba-access-key: ${{ secrets.ALIBABA_ACCESS_KEY }}
+          alibaba-secret-key: ${{ secrets.ALIBABA_SECRET_KEY }}
+
   # Build Packer image first (if needed)
   build-image:
     name: Build Packer Image
+    needs: check-credentials
     runs-on: ubuntu-latest
     outputs:
       image_id: ${{ steps.build.outputs.image_id || steps.existing.outputs.image_id }}

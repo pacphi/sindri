@@ -42,9 +42,23 @@ env:
   RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
 
 jobs:
+  # Verify required credentials before spawning matrix jobs
+  check-credentials:
+    name: Verify Credentials
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Check credentials
+        uses: ./.github/actions/shared/check-credentials
+        with:
+          provider: runpod
+          runpod-api-key: ${{ secrets.RUNPOD_API_KEY }}
+
   # Test each extension on RunPod
   test:
     name: "Test: ${{ matrix.extension }}"
+    needs: check-credentials
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

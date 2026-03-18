@@ -1,0 +1,430 @@
+# Reusable Workflow: E2B Provider
+# Tests extensions in E2B cloud sandboxes with auto-pause/resume
+# E2B sandboxes start in ~150ms and support pause/resume for cost efficiency.
+# Uses the sindri CLI for deployment and E2B SDK for non-interactive command execution.
+name: "v3: Provider - E2B"
+
+on:
+  workflow_call:
+    inputs:
+      extensions:
+        description: 'JSON array of extension names to test'
+        type: string
+        required: true
+      max-parallel:
+        description: 'Maximum parallel jobs'
+        type: number
+        default: 2
+      sandbox-timeout:
+        description: 'Sandbox timeout in seconds (auto-kills after this period)'
+        type: number
+        default: 600
+      sindri-image:
+        description: 'Sindri container image to test'
+        type: string
+        default: 'ghcr.io/pacphi/sindri:latest'
+
+    outputs:
+      results:
+        description: 'Test results JSON'
+        value: ${{ jobs.summary.outputs.results }}
+      passed:
+        description: 'Number of passed tests'
+        value: ${{ jobs.summary.outputs.passed }}
+      failed:
+        description: 'Number of failed tests'
+        value: ${{ jobs.summary.outputs.failed }}
+
+    secrets:
+      E2B_API_KEY:
+        description: 'E2B API key (https://e2b.dev/dashboard)'
+        required: true
+
+env:
+  E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+
+jobs:
+  # Verify required credentials before spawning matrix jobs
+  check-credentials:
+    name: Verify Credentials
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Check credentials
+        uses: ./.github/actions/shared/check-credentials
+        with:
+          provider: e2b
+          e2b-api-key: ${{ secrets.E2B_API_KEY }}
+
+  # Build the E2B template once, shared across all extension tests
+  build-template:
+    name: Build E2B Template
+    needs: check-credentials
+    runs-on: ubuntu-latest
+    outputs:
+      template_id: ${{ steps.build.outputs.template_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install E2B CLI
+        run: npm install -g @e2b/cli
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: v3
+
+      - name: Build Sindri CLI
+        working-directory: v3
+        run: cargo build --release
+
+      - name: Generate E2B config
+        id: config
+        run: |
+          # Create a minimal sindri.yaml for E2B template build
+          cat > /tmp/sindri-e2b-ci.yaml << 'EOF'
+          version: "3.0"
+          name: sindri-ci-test
+
+          deployment:
+            provider: e2b
+            image: ${{ inputs.sindri-image }}
+            resources:
+              memory: 2GB
+              cpus: 2
+
+          extensions:
+            autoInstall: false
+
+          providers:
+            e2b:
+              timeout: ${{ inputs.sandbox-timeout }}
+              reuseTemplate: true
+              autoPause: false
+              autoResume: false
+              internetAccess: true
+              buildOnDeploy: true
+          EOF
+
+          echo "config_path=/tmp/sindri-e2b-ci.yaml" >> $GITHUB_OUTPUT
+
+      - name: Build E2B template via sindri
+        id: build
+        run: |
+          # Use sindri deploy --dry-run to generate template files,
+          # then build template directly to capture the template ID
+          ./v3/target/release/sindri deploy \
+            --config ${{ steps.config.outputs.config_path }} \
+            --dry-run 2>&1 || true
+
+          # Build template and capture the template ID
+          # sindri deploy generates files in .e2b/template/
+          if [[ -d .e2b/template ]]; then
+            cd .e2b/template
+            TEMPLATE_BUILD_OUTPUT=$(e2b template build \
+              --name sindri-ci-test \
+              --dockerfile e2b.Dockerfile \
+              --cpu-count 2 \
+              --memory-mb 2048 2>&1)
+            echo "$TEMPLATE_BUILD_OUTPUT"
+
+            # Extract template ID from build output
+            TEMPLATE_ID=$(echo "$TEMPLATE_BUILD_OUTPUT" | grep -oP 'Template ID:\s*\K\S+' || \
+                          echo "$TEMPLATE_BUILD_OUTPUT" | grep -oP '"templateId":\s*"\K[^"]+' || \
+                          echo "sindri-ci-test")
+          else
+            # Fallback: build template directly from sindri image
+            echo "No .e2b/template found, building from image directly"
+            mkdir -p /tmp/e2b-template
+            cat > /tmp/e2b-template/e2b.Dockerfile << DEOF
+          FROM ${{ inputs.sindri-image }}
+          ENV E2B_PROVIDER=true
+          ENV SKIP_AUTO_INSTALL=true
+          WORKDIR /alt/home/developer/workspace
+          USER developer
+          DEOF
+
+            cd /tmp/e2b-template
+            TEMPLATE_BUILD_OUTPUT=$(e2b template build \
+              --name sindri-ci-test \
+              --dockerfile e2b.Dockerfile \
+              --cpu-count 2 \
+              --memory-mb 2048 2>&1)
+            echo "$TEMPLATE_BUILD_OUTPUT"
+
+            TEMPLATE_ID=$(echo "$TEMPLATE_BUILD_OUTPUT" | grep -oP 'Template ID:\s*\K\S+' || \
+                          echo "sindri-ci-test")
+          fi
+
+          echo "template_id=$TEMPLATE_ID" >> $GITHUB_OUTPUT
+          echo "Built template: $TEMPLATE_ID"
+
+  # Test each extension in an E2B sandbox
+  test:
+    name: "Test: ${{ matrix.extension }}"
+    needs: [check-credentials, build-template]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        extension: ${{ fromJson(inputs.extensions) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install E2B CLI and SDK
+        run: |
+          npm install -g @e2b/cli
+          npm install e2b
+
+      - name: Setup yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Get Extension Requirements
+        id: requirements
+        run: |
+          EXT_FILE="v3/extensions/${{ matrix.extension }}/extension.yaml"
+          if [[ -f "$EXT_FILE" ]]; then
+            MEMORY=$(yq -r '.requirements.memory // 1024' "$EXT_FILE")
+            # E2B supports 1-8 vCPUs and 128-8192 MB RAM
+            if [[ $MEMORY -le 1024 ]]; then
+              CPU_COUNT=1
+              MEMORY_MB=1024
+            elif [[ $MEMORY -le 2048 ]]; then
+              CPU_COUNT=2
+              MEMORY_MB=2048
+            elif [[ $MEMORY -le 4096 ]]; then
+              CPU_COUNT=4
+              MEMORY_MB=4096
+            else
+              CPU_COUNT=8
+              MEMORY_MB=8192
+            fi
+          else
+            CPU_COUNT=2
+            MEMORY_MB=2048
+          fi
+          echo "cpu_count=$CPU_COUNT" >> $GITHUB_OUTPUT
+          echo "memory_mb=$MEMORY_MB" >> $GITHUB_OUTPUT
+
+      - name: Create E2B Sandbox
+        id: create
+        run: |
+          TEMPLATE_ID="${{ needs.build-template.outputs.template_id }}"
+          TIMEOUT_MS=$(( ${{ inputs.sandbox-timeout }} * 1000 ))
+
+          echo "Creating E2B sandbox from template: $TEMPLATE_ID"
+
+          # Create sandbox via E2B CLI with metadata for identification
+          SANDBOX_OUTPUT=$(e2b sandbox create "$TEMPLATE_ID" \
+            --timeout "$TIMEOUT_MS" \
+            --metadata '{"purpose":"ci-extension-test","extension":"${{ matrix.extension }}"}' \
+            --json 2>&1)
+
+          echo "$SANDBOX_OUTPUT"
+
+          SANDBOX_ID=$(echo "$SANDBOX_OUTPUT" | jq -r '.sandboxId // empty' 2>/dev/null)
+
+          if [[ -z "$SANDBOX_ID" ]]; then
+            echo "::error::Failed to create E2B sandbox"
+            echo "$SANDBOX_OUTPUT"
+            exit 1
+          fi
+
+          echo "sandbox_id=$SANDBOX_ID" >> $GITHUB_OUTPUT
+          echo "Sandbox created: $SANDBOX_ID"
+
+      - name: Run Extension Tests
+        id: test
+        timeout-minutes: 15
+        run: |
+          SANDBOX_ID="${{ steps.create.outputs.sandbox_id }}"
+          EXEC_SCRIPT="${{ github.workspace }}/.github/scripts/v3/e2b-exec.mjs"
+
+          echo "::group::Installing ${{ matrix.extension }}"
+          START_TIME=$(date +%s)
+
+          if node "$EXEC_SCRIPT" "$SANDBOX_ID" sindri extension install ${{ matrix.extension }} --yes 2>&1 | tee install.log; then
+            INSTALL_RESULT="success"
+          else
+            INSTALL_RESULT="failure"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "::endgroup::"
+
+          if [[ "$INSTALL_RESULT" == "success" ]]; then
+            echo "::group::Validating ${{ matrix.extension }}"
+            if node "$EXEC_SCRIPT" "$SANDBOX_ID" sindri extension validate ${{ matrix.extension }} 2>&1 | tee validate.log; then
+              VALIDATE_RESULT="success"
+            else
+              VALIDATE_RESULT="failure"
+            fi
+            echo "::endgroup::"
+
+            echo "::group::Removing ${{ matrix.extension }}"
+            node "$EXEC_SCRIPT" "$SANDBOX_ID" sindri extension remove ${{ matrix.extension }} --yes 2>&1 | tee remove.log || true
+            echo "::endgroup::"
+          else
+            VALIDATE_RESULT="skipped"
+          fi
+
+          echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
+          echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+      - name: Cleanup E2B Sandbox
+        if: always()
+        run: |
+          SANDBOX_ID="${{ steps.create.outputs.sandbox_id }}"
+          if [[ -n "$SANDBOX_ID" ]]; then
+            echo "Killing E2B sandbox: $SANDBOX_ID"
+            e2b sandbox kill "$SANDBOX_ID" || true
+          fi
+
+      - name: Create Test Report
+        id: report
+        if: always()
+        run: |
+          cat > test-result.json << EOF
+          {
+            "extension": "${{ matrix.extension }}",
+            "provider": "e2b",
+            "sandbox_id": "${{ steps.create.outputs.sandbox_id }}",
+            "install": {
+              "result": "${{ steps.test.outputs.install_result || 'error' }}",
+              "duration": ${{ steps.test.outputs.install_duration || 0 }}
+            },
+            "validate": {
+              "result": "${{ steps.test.outputs.validate_result || 'skipped' }}"
+            },
+            "overall": "${{ steps.test.outputs.install_result == 'success' && steps.test.outputs.validate_result == 'success' && 'passed' || 'failed' }}"
+          }
+          EOF
+
+          cat test-result.json
+
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2b-result-${{ matrix.extension }}
+          path: |
+            test-result.json
+            install.log
+            validate.log
+            remove.log
+          retention-days: 7
+
+  # Cleanup E2B template after all tests
+  cleanup-template:
+    name: Cleanup Template
+    needs: [build-template, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install E2B CLI
+        run: npm install -g @e2b/cli
+
+      - name: Kill orphaned sandboxes
+        run: |
+          echo "Checking for orphaned CI sandboxes..."
+          SANDBOXES=$(e2b sandbox list --json 2>/dev/null || echo '[]')
+          echo "$SANDBOXES" | jq -r '.[] | select(.metadata.purpose == "ci-extension-test") | .sandboxId' | while read -r sid; do
+            if [[ -n "$sid" ]]; then
+              echo "Killing orphaned sandbox: $sid"
+              e2b sandbox kill "$sid" || true
+            fi
+          done
+
+  # Aggregate results
+  summary:
+    name: Test Summary
+    needs: [build-template, test]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.aggregate.outputs.results }}
+      passed: ${{ steps.aggregate.outputs.passed }}
+      failed: ${{ steps.aggregate.outputs.failed }}
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v8
+        with:
+          path: results
+          pattern: e2b-result-*
+
+      - name: Aggregate Results
+        id: aggregate
+        run: |
+          RESULTS="[]"
+          PASSED=0
+          FAILED=0
+
+          for dir in results/*/; do
+            if [[ -f "$dir/test-result.json" ]]; then
+              RESULT=$(cat "$dir/test-result.json")
+              RESULTS=$(echo "$RESULTS" | jq --argjson r "$RESULT" '. + [$r]')
+
+              OVERALL=$(echo "$RESULT" | jq -r '.overall')
+              if [[ "$OVERALL" == "passed" ]]; then
+                PASSED=$((PASSED + 1))
+              else
+                FAILED=$((FAILED + 1))
+              fi
+            fi
+          done
+
+          {
+            echo "results<<EOF"
+            echo "$RESULTS"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+
+      - name: Generate Summary
+        run: |
+          echo "## E2B Provider Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Template:** ${{ needs.build-template.outputs.template_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Sandbox Timeout:** ${{ inputs.sandbox-timeout }}s" >> $GITHUB_STEP_SUMMARY
+          echo "**Passed:** ${{ steps.aggregate.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed:** ${{ steps.aggregate.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Extension | Install | Validate | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|----------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ steps.aggregate.outputs.results }}' | jq -r '.[] | "| \(.extension) | " +
+            (if .install.result == "success" then "pass" else "fail" end) + " | " +
+            (if .validate.result == "success" then "pass" elif .validate.result == "skipped" then "skip" else "fail" end) +
+            " | \(.install.duration)s |"' >> $GITHUB_STEP_SUMMARY

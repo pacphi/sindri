@@ -330,6 +330,23 @@ jobs:
       GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
+  # E2B provider tests
+  test-e2b:
+    name: E2B Tests
+    needs: [resolve-selection, generate-matrices]
+    if: |
+      always() &&
+      needs.generate-matrices.result == 'success' &&
+      contains(inputs.providers || '', 'e2b') &&
+      fromJson(needs.generate-matrices.outputs.e2b-count || '0') > 0
+    uses: ./.github/workflows/v3-provider-e2b.yml
+    with:
+      extensions: ${{ needs.generate-matrices.outputs.e2b-extensions }}
+      max-parallel: ${{ inputs.max-parallel || 2 }}
+      sindri-image: ${{ inputs.sindri-image }}
+    secrets:
+      E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+
   # Packer provider tests
   test-packer:
     name: Packer Tests
@@ -361,7 +378,7 @@ jobs:
   # Final summary
   summary:
     name: Test Summary
-    needs: [resolve-selection, generate-matrices, test-docker, test-fly, test-k3d, test-devpod, test-packer]
+    needs: [resolve-selection, generate-matrices, test-docker, test-fly, test-k3d, test-e2b, test-devpod, test-packer]
     if: always()
     runs-on: ubuntu-latest
 
@@ -399,6 +416,12 @@ jobs:
           if [[ "${{ needs.test-k3d.result }}" != "skipped" ]]; then
             K3D_STATUS="${{ needs.test-k3d.result == 'success' && 'pass' || 'fail' }}"
             echo "| k3d | ${{ needs.generate-matrices.outputs.k3d-count }} | ${{ needs.test-k3d.outputs.passed || '?' }} | ${{ needs.test-k3d.outputs.failed || '?' }} | $K3D_STATUS |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # E2B results
+          if [[ "${{ needs.test-e2b.result }}" != "skipped" ]]; then
+            E2B_STATUS="${{ needs.test-e2b.result == 'success' && 'pass' || 'fail' }}"
+            echo "| E2B | ${{ needs.generate-matrices.outputs.e2b-count }} | ${{ needs.test-e2b.outputs.passed || '?' }} | ${{ needs.test-e2b.outputs.failed || '?' }} | $E2B_STATUS |" >> $GITHUB_STEP_SUMMARY
           fi
 
           # DevPod results
