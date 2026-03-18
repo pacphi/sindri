@@ -180,10 +180,16 @@ jobs:
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
-      - name: Build release binaries
+      - name: Install musl tools
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Add musl target
+        run: rustup target add x86_64-unknown-linux-musl
+
+      - name: Build release binaries (static musl)
         run: |
           cd v3
-          cargo build --release --workspace
+          cargo build --release --workspace --target x86_64-unknown-linux-musl
 
       - name: Check binary size
         run: |
@@ -192,8 +198,8 @@ jobs:
           echo "| Binary | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
 
-          if [[ -f v3/target/release/sindri ]]; then
-            SIZE=$(du -h v3/target/release/sindri | cut -f1)
+          if [[ -f v3/target/x86_64-unknown-linux-musl/release/sindri ]]; then
+            SIZE=$(du -h v3/target/x86_64-unknown-linux-musl/release/sindri | cut -f1)
             echo "| sindri | $SIZE |" >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -202,7 +208,7 @@ jobs:
         with:
           name: sindri-v3-binaries-${{ github.sha }}
           path: |
-            v3/target/release/sindri
+            v3/target/x86_64-unknown-linux-musl/release/sindri
           retention-days: 1
 
   # NOTE: YAML/schema validation is handled by the dedicated validate-yaml.yml workflow
