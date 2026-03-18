@@ -145,7 +145,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: v3
           file: v3/Dockerfile.base
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event.inputs.push_to_ghcr != 'false' }}

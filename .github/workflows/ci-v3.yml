@@ -444,7 +444,7 @@ jobs:
       - name: Scan with Trivy
         id: trivy
         continue-on-error: true
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-ubuntu
           format: sarif
