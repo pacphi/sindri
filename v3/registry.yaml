@@ -181,6 +181,9 @@ extensions:
   opencode:
     category: "ai-dev"
     description: "OpenCode - Open source AI coding agent for terminal, desktop, and IDE integration"
+  rtk:
+    category: "ai-dev"
+    description: "RTK (Rust Token Killer) - High-performance CLI proxy that reduces LLM token consumption by 60-90%"
   p-replicator:
     category: "ai-dev"
     description: "P-Replicator — Claude Code toolkit for AI-assisted product development and Vibe Coding"

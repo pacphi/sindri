@@ -108,19 +108,20 @@ V3 extensions are organized into the following categories:
 
 ### AI Development
 
-| Extension        | Version | Description                                                                          | Install Method |
-| ---------------- | ------- | ------------------------------------------------------------------------------------ | -------------- |
-| **ai-toolkit**   | 2.3.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)     | script         |
-| **clarity**      | 1.0.0   | Autonomous spec generation skill from reference materials (5-phase workflow)         | script         |
-| **gitnexus**     | 1.0.0   | Codebase knowledge graph CLI with AI agent integration via MCP server                | mise           |
-| **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)               | script         |
-| **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                        | script         |
-| **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming             | mise           |
-| **openclaw**     | 1.0.0   | OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI  | mise           |
-| **opencode**     | 1.0.0   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE                | mise           |
-| **p-replicator** | 1.0.0   | P-Replicator — Claude Code toolkit for AI-assisted product development (Vibe Coding) | mise           |
-| **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration           | script         |
-| **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                      | script         |
+| Extension        | Version | Description                                                                                       | Install Method |
+| ---------------- | ------- | ------------------------------------------------------------------------------------------------- | -------------- |
+| **ai-toolkit**   | 2.3.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)                  | script         |
+| **clarity**      | 1.0.0   | Autonomous spec generation skill from reference materials (5-phase workflow)                      | script         |
+| **gitnexus**     | 1.0.0   | Codebase knowledge graph CLI with AI agent integration via MCP server                             | mise           |
+| **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)                            | script         |
+| **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                                     | script         |
+| **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming                          | mise           |
+| **openclaw**     | 1.0.0   | OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI               | mise           |
+| **opencode**     | 1.0.0   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE                             | mise           |
+| **p-replicator** | 1.0.0   | P-Replicator — Claude Code toolkit for AI-assisted product development (Vibe Coding)              | mise           |
+| **rtk**          | 1.0.0   | RTK (Rust Token Killer) - High-performance CLI proxy that reduces LLM token consumption by 60-90% | script         |
+| **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration                        | script         |
+| **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                                   | script         |
 
 ### MCP Servers
 
@@ -256,15 +257,15 @@ sindri extension upgrade nodejs
 
 Profiles provide pre-configured extension sets for common use cases:
 
-| Profile           | Extensions                                                            |
-| ----------------- | --------------------------------------------------------------------- |
-| **minimal**       | nodejs, python                                                        |
-| **fullstack**     | nodejs, python, docker, nodejs-devtools                               |
-| **anthropic-dev** | claude-cli, claude-flow-v3, agentic-qe, kilo, ralph, ai-toolkit, etc. |
-| **systems**       | rust, golang, haskell, docker, infra-tools                            |
-| **enterprise**    | claude-cli, kilo, all languages, jira-mcp, cloud-tools                |
-| **devops**        | docker, infra-tools, monitoring, cloud-tools                          |
-| **mobile**        | nodejs, swift, linear-mcp, supabase-cli                               |
+| Profile           | Extensions                                                        |
+| ----------------- | ----------------------------------------------------------------- |
+| **minimal**       | nodejs, python                                                    |
+| **fullstack**     | nodejs, python, docker, nodejs-devtools                           |
+| **anthropic-dev** | claude-cli, ruflo, agentic-qe, kilo, ralph, ai-toolkit, rtk, etc. |
+| **systems**       | rust, golang, haskell, docker, infra-tools                        |
+| **enterprise**    | claude-cli, kilo, all languages, jira-mcp, cloud-tools            |
+| **devops**        | docker, infra-tools, monitoring, cloud-tools                      |
+| **mobile**        | nodejs, swift, linear-mcp, supabase-cli                           |
 
 Configure profiles in `sindri.yaml`:
 
@@ -689,7 +690,7 @@ When run via sindri, `SINDRI_LOG_DIR` is automatically set to `~/.sindri/logs/<y
 
 ## Summary Statistics
 
-- **Total Extensions**: 59
+- **Total Extensions**: 60
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 12

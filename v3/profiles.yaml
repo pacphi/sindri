@@ -59,6 +59,7 @@ profiles:
       - tmux-workspace
       - cloud-tools
       - notebooklm-mcp-cli
+      - rtk
       - ruvector-cli
       - rvf-cli
 
