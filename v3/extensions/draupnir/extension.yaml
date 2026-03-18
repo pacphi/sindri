@@ -1,6 +1,6 @@
 metadata:
   name: draupnir
-  version: 1.2.1
+  version: 1.2.2
   description: Sindri instance agent for mimir fleet management
   category: devops
   distros: [ubuntu, fedora, opensuse]
@@ -17,7 +17,7 @@ install:
   script:
     path: install.sh
     timeout: 120
-    args: ["1.2.1"]
+    args: ["1.2.2"]
 
 configure:
   environment:
@@ -85,9 +85,9 @@ remove:
 bom:
   tools:
     - name: draupnir
-      version: "1.2.1"
+      version: "1.2.2"
       source: github-release
       type: cli-tool
       license: MIT
       homepage: https://github.com/pacphi/draupnir
-      purl: pkg:github/pacphi/draupnir@v1.2.1
+      purl: pkg:github/pacphi/draupnir@v1.2.2
