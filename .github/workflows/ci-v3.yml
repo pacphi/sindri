@@ -177,17 +177,8 @@ jobs:
         with:
           workspaces: v3 -> target
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
-
-      - name: Configure sccache
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-
       - name: Build release binaries (static musl)
         env:
-          RUSTC_WRAPPER: ""
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
         run: |
           cd v3
@@ -453,7 +444,7 @@ jobs:
       - name: Scan with Trivy
         id: trivy
         continue-on-error: true
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: ghcr.io/${{ github.repository }}:v3-ci-${{ github.sha }}-ubuntu
           format: sarif
