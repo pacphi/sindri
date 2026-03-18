@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Download yq with pinned version for reproducibility and security tracking
 # NOTE: Version must use Go 1.25.6+ to fix CVE-2025-61728 (archive/zip DoS)
-ARG YQ_VERSION=4.52.2
+ARG YQ_VERSION=4.52.4
 RUN ARCH=$(dpkg --print-architecture) && \
     wget -qO /tmp/yq "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH}" && \
     chmod +x /tmp/yq

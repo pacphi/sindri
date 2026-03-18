@@ -98,8 +98,9 @@ jobs:
       - name: Install tools
         run: |
           npm install -g ajv-cli ajv-formats
-          # Install yq with verification
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          # Install yq with pinned version for reproducibility and security tracking
+          YQ_VERSION=4.52.4
+          sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
           sudo chmod +x /usr/local/bin/yq
           # Verify installation
           yq --version
@@ -129,8 +130,9 @@ jobs:
       - name: Install tools
         run: |
           npm install -g ajv-cli ajv-formats
-          # Install yq with verification
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          # Install yq with pinned version for reproducibility and security tracking
+          YQ_VERSION=4.52.4
+          sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
           sudo chmod +x /usr/local/bin/yq
           # Verify installation
           yq --version
