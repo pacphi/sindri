@@ -186,6 +186,8 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
       - name: Build release binaries (static musl)
+        env:
+          RUSTC_WRAPPER: ""
         run: |
           cd v3
           cargo build --release --workspace --target x86_64-unknown-linux-musl
