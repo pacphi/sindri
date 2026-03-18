@@ -188,6 +188,7 @@ jobs:
       - name: Build release binaries (static musl)
         env:
           RUSTC_WRAPPER: ""
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
         run: |
           cd v3
           cargo build --release --workspace --target x86_64-unknown-linux-musl
