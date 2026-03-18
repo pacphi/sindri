@@ -352,7 +352,7 @@ git push origin v3.0.0
 | ---------------- | -------- | ----------------------- |
 | `rust_version`   | `1.94`   | Rust toolchain version  |
 | `ubuntu_version` | `24.04`  | Ubuntu base version     |
-| `gh_version`     | `2.87.2` | GitHub CLI version      |
+| `gh_version`     | `2.88.1` | GitHub CLI version      |
 | `push_to_ghcr`   | `true`   | Whether to push to GHCR |
 
 ### cleanup-container-images.yml - Cleanup Container Images

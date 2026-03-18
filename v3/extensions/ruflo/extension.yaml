@@ -1,7 +1,7 @@
 ---
 metadata:
   name: ruflo
-  version: 3.5.14
+  version: 3.5.36
   description: "Ruflo - AI Agent Orchestration Platform with multi-agent swarms, HNSW search, and 215 MCP tools"
   category: claude
   distros: [ubuntu, fedora, opensuse]
@@ -252,7 +252,7 @@ capabilities:
     scenarios:
       - name: "v2-to-ruflo-upgrade"
         detected-version: "v2"
-        installing-version: "3.5.14"
+        installing-version: "3.5.36"
         action: stop
         message: |
           Claude Flow V2 installation detected.
@@ -272,7 +272,7 @@ capabilities:
           Skipping automatic initialization to prevent data loss.
       - name: "same-version-ruflo"
         detected-version: "ruflo"
-        installing-version: "3.5.14"
+        installing-version: "3.5.36"
         action: skip
         message: |
           Ruflo is already initialized.
@@ -281,7 +281,7 @@ capabilities:
             ruflo init --full --force
       - name: "agentic-qe-coexist"
         detected-version: "agentic-qe"
-        installing-version: "3.5.14"
+        installing-version: "3.5.36"
         action: proceed
         message: |
           Agentic QE detected as co-tenant.
@@ -290,7 +290,7 @@ capabilities:
           without overwriting agentic-qe configuration.
       - name: "unknown-origin"
         detected-version: "unknown"
-        installing-version: "3.5.14"
+        installing-version: "3.5.36"
         action: proceed
         message: |
           Existing .claude directory detected (unknown origin).
@@ -300,12 +300,12 @@ capabilities:
 bom:
   tools:
     - name: ruflo
-      version: "3.5.14"
+      version: "3.5.36"
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/ruflo
-      purl: pkg:npm/ruflo@3.5.14
+      purl: pkg:npm/ruflo@3.5.36
 docs:
   title: "Ruflo"
   overview: |
@@ -313,7 +313,7 @@ docs:
     multi-agent swarms, HNSW-powered search (150x-12,500x faster), Flash Attention
     optimization, and 215 MCP tools. The ruflo npm package is a thin branded wrapper
     around @claude-flow/cli - all claude-flow commands work identically via ruflo.
-  last-updated: "2026-03-04"
+  last-updated: "2026-03-18"
   features:
     - "15-agent hierarchy - Specialized agent roles"
     - "HNSW search - 150x-12,500x faster pattern retrieval"

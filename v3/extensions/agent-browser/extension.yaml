@@ -1,7 +1,7 @@
 ---
 metadata:
   name: agent-browser
-  version: 1.1.0
+  version: 1.2.0
   description: Headless browser automation CLI for AI agents with snapshot-based element selection
   category: ai-agents
   distros: [ubuntu, fedora, opensuse]
@@ -55,17 +55,17 @@ upgrade:
 bom:
   tools:
     - name: agent-browser
-      version: "0.15.0"
+      version: "0.21.0"
       source: npm
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/vercel-labs/agent-browser
-      purl: pkg:npm/agent-browser@0.15.0
+      purl: pkg:npm/agent-browser@0.21.0
 docs:
   title: "Agent Browser"
   overview: |
     Headless browser automation CLI for AI agents with snapshot-based element selection. Built by Vercel Labs for reliable browser automation.
-  last-updated: "2026-02-25"
+  last-updated: "2026-03-18"
   features:
     - "Snapshot-based Selection - Reliable element targeting"
     - "Headless Operation - Run without visible browser"

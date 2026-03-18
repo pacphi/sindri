@@ -40,8 +40,8 @@ case "$ARCH" in
         ;;
 esac
 
-# Pinned version for consistency (researched 2026-02-09)
-LATEST_VERSION="2.76.15"
+# Pinned version for consistency (researched 2026-03-18)
+LATEST_VERSION="2.78.1"
 print_status "Installing Supabase CLI version: v$LATEST_VERSION"
 
 case "${SINDRI_DISTRO:-ubuntu}" in

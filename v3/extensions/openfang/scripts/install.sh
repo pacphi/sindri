@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # OpenFang install script - Open-source agent OS for autonomous AI agents
-# Installs OpenFang CLI v0.1.1 via official installer or cargo fallback
+# Installs OpenFang CLI v0.4.6 via official installer or cargo fallback
 
-OPENFANG_VERSION="0.1.1"
+OPENFANG_VERSION="0.4.6"
 
 print_status "Installing OpenFang agent OS v${OPENFANG_VERSION}..."
 

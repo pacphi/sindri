@@ -134,15 +134,15 @@ install_sdk_tool() {
 }
 
 print_status "Installing build tools..."
-# Pinned versions for consistency (researched 2026-02-09)
-install_sdk_tool maven mvn 3.9.12
-install_sdk_tool gradle "" 9.3.1
+# Pinned versions for consistency (researched 2026-03-18)
+install_sdk_tool maven mvn 3.9.14
+install_sdk_tool gradle "" 9.4.0
 
 # Install languages
 print_status "Installing JVM languages..."
-# Pinned versions for consistency (researched 2026-02-09)
-install_sdk_tool kotlin "" 2.3.10
-install_sdk_tool scala "" 3.8.1
+# Pinned versions for consistency (researched 2026-03-18)
+install_sdk_tool kotlin "" 2.3.20
+install_sdk_tool scala "" 3.8.2
 install_sdk_tool sbt
 
 # Clojure via mise (more reliable than SDKMAN for Clojure)

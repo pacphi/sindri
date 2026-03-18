@@ -1,7 +1,7 @@
 ---
 metadata:
   name: infra-tools
-  version: 2.2.0
+  version: 2.3.0
   description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
   category: devops
   distros: [ubuntu, fedora, opensuse]
@@ -175,7 +175,7 @@ bom:
       purl: pkg:deb/ubuntu/ansible
       cpe: cpe:2.3:a:ansible:ansible:*:*:*:*:*:*:*:*
     - name: pulumi
-      version: "3.223.0"
+      version: "3.226.0"
       source: script
       type: cli-tool
       license: Apache-2.0
@@ -217,12 +217,12 @@ bom:
       homepage: https://carvel.dev/ytt
       purl: pkg:github/carvel-dev/ytt@0.53.2
     - name: kbld
-      version: "0.47.1"
+      version: "0.47.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/kbld
-      purl: pkg:github/carvel-dev/kbld@0.47.1
+      purl: pkg:github/carvel-dev/kbld@0.47.2
     - name: vendir
       version: "0.45.2"
       source: script
@@ -241,7 +241,7 @@ docs:
   title: "Infrastructure Tools"
   overview: |
     Infrastructure and DevOps tooling including Terraform, Kubernetes tools, and Configuration Management. Comprehensive IaC toolkit.
-  last-updated: "2026-02-25"
+  last-updated: "2026-03-18"
   usage:
     - section: "Terraform"
       examples:

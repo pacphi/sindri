@@ -5,9 +5,9 @@ set -euo pipefail
 # ghcup is the official Haskell toolchain installer
 
 # Tool versions - update these when upgrading
-GHC_VERSION="9.12.2"           # Latest stable (9.14.1 is preliminary)
-CABAL_VERSION="3.14.1.1"       # Latest stable compatible with GHC 9.12
-STACK_VERSION="3.3.1"          # Latest stable
+GHC_VERSION="9.12.3"           # Latest stable
+CABAL_VERSION="3.16.1.0"       # Latest stable compatible with GHC 9.12
+STACK_VERSION="3.9.3"          # Latest stable
 HLS_VERSION="2.13.0.0"         # Latest with GHC 9.12 support
 
 # Create temporary directory in home (not /tmp) to avoid noexec

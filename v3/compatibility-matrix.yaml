@@ -7,7 +7,7 @@
 
 schema_version: "1.0"
 
-# Last Updated: 2026-03-16
+# Last Updated: 2026-03-18
 # CLI version compatibility mappings
 # Key format: CLI version (supports wildcards like "3.0.x")
 # Compatible extension versions use semver ranges (e.g., ">=1.0.0,<2.0.0")
@@ -52,7 +52,7 @@ cli_versions:
       agent-skills-cli: ">=1.0.0,<2.0.0"
       claude-cli: ">=1.0.0,<2.0.0"
       claude-code-mux: ">=1.0.0,<2.0.0"
-      claude-codepro: ">=4.5.0,<5.0.0"
+      claude-codepro: ">=4.5.0,<8.0.0"
       claude-flow-v2: ">=2.7.0,<3.0.0"
       claude-flow-v3: ">=3.0.0,<4.0.0"
       claude-marketplace: ">=2.0.0,<3.0.0"
@@ -159,7 +159,7 @@ cli_versions:
       agent-skills-cli: ">=1.0.0,<2.0.0"
       claude-cli: ">=1.0.0,<2.0.0"
       claude-code-mux: ">=1.0.0,<2.0.0"
-      claude-codepro: ">=4.5.0,<5.0.0"
+      claude-codepro: ">=4.5.0,<8.0.0"
       claude-flow-v2: ">=2.7.0,<3.0.0"
       claude-flow-v3: ">=3.0.0,<4.0.0"
       claude-marketplace: ">=2.0.0,<3.0.0"
@@ -266,7 +266,7 @@ cli_versions:
       agent-skills-cli: ">=1.0.0,<2.0.0"
       claude-cli: ">=2.0.0,<3.0.0"
       claude-code-mux: ">=2.0.0,<3.0.0"
-      claude-codepro: ">=5.0.0,<6.0.0"
+      claude-codepro: ">=8.0.0,<9.0.0"
       claude-flow-v2: ">=3.0.0,<4.0.0"
       claude-flow-v3: ">=4.0.0,<5.0.0"
       claude-marketplace: ">=3.0.0,<4.0.0"

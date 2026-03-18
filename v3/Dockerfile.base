@@ -35,7 +35,7 @@ ARG UBUNTU_VERSION=24.04
 ARG FEDORA_VERSION=41
 ARG OPENSUSE_VERSION=15.6
 ARG RUST_VERSION=1.94
-ARG GH_VERSION=2.87.3
+ARG GH_VERSION=2.88.1
 ARG COSIGN_VERSION=3.0.5
 
 # ==============================================================================

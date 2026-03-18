@@ -45,7 +45,8 @@ This pattern is based on:
 /v2/CHANGELOG.md           # v2-specific (v2.0.0+) - Bash/Docker
 /v3/CHANGELOG.md           # v3-specific (v3.0.0+) - Rust
 /RELEASE_NOTES.v2.md       # Migration guide: v1 → v2
-/RELEASE_NOTES.v3.md       # Migration guide: v2 → v3 (to be published)
+/RELEASE_NOTES.v3.md       # Migration guide: v2 → v3
+/RELEASE_NOTES.v3.1.md     # Release notes: v3.1.0 (March 2026)
 ```
 
 ### Root CHANGELOG.md
@@ -289,7 +290,8 @@ This is usually harmless (e.g., CI changes affecting both), but indicates commit
 Create migration guides for **major version upgrades**:
 
 - v1 → v2: `RELEASE_NOTES.v2.md` (published)
-- v2 → v3: `RELEASE_NOTES.v3.md` (to be published with v3.0.0)
+- v2 → v3: `RELEASE_NOTES.v3.md` (published)
+- v3.1.0: `RELEASE_NOTES.v3.1.md` (published)
 
 ### Migration Guide Workflow
 

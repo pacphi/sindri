@@ -1,7 +1,7 @@
 ---
 metadata:
   name: jvm
-  version: 2.1.1
+  version: 2.2.0
   description: >-
     JVM languages (Java, Kotlin, Scala) via SDKMAN, plus Clojure/Leiningen via mise
   category: languages
@@ -82,33 +82,33 @@ bom:
       homepage: https://openjdk.org
       purl: pkg:generic/openjdk@25
     - name: mvn
-      version: "3.9.12"
+      version: "3.9.14"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://maven.apache.org
-      purl: pkg:maven/maven@3.9.12
+      purl: pkg:maven/maven@3.9.14
     - name: gradle
-      version: "9.3.1"
+      version: "9.4.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://gradle.org
-      purl: pkg:generic/gradle@9.3.1
+      purl: pkg:generic/gradle@9.4.0
     - name: kotlin
-      version: "2.3.10"
+      version: "2.3.20"
       source: script
       type: compiler
       license: Apache-2.0
       homepage: https://kotlinlang.org
-      purl: pkg:maven/org.jetbrains.kotlin/kotlin-compiler@2.3.10
+      purl: pkg:maven/org.jetbrains.kotlin/kotlin-compiler@2.3.20
     - name: scala
-      version: "3.8.1"
+      version: "3.8.2"
       source: script
       type: compiler
       license: Apache-2.0
       homepage: https://www.scala-lang.org
-      purl: pkg:maven/org.scala-lang/scala-compiler@3.8.1
+      purl: pkg:maven/org.scala-lang/scala-compiler@3.8.2
     - name: clojure
       version: "1.12"  # Installed via mise (already pinned in mise.toml)
       source: mise
@@ -127,7 +127,7 @@ docs:
   title: "JVM"
   overview: |
     JVM languages (Java, Kotlin, Scala) with SDKMAN and Clojure/Leiningen with mise. Provides a complete JVM development environment with multiple language support.
-  last-updated: "2026-01-29"
+  last-updated: "2026-03-18"
   usage:
     - section: "Java"
       examples:

@@ -2,4 +2,4 @@
 # Rebranded from @claude-flow/cli with identical functionality
 
 [tools]
-"npm:ruflo" = "3.5.14"
+"npm:ruflo" = "3.5.36"

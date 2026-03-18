@@ -29,15 +29,14 @@ Choose the changelog for your version:
 
 ---
 
-## 🔄 Migration Guides
+## 🔄 Migration & Release Guides
 
 Upgrading between major versions? These guides will help:
 
-<!-- Migration guide to be published with v3.0.0 release
+- **[v3.1.0 Release Notes](RELEASE_NOTES.v3.1.0.md)** - Sindri 3.1.0 (March 2026)
+  - Multi-distro support, collision handling, service framework, 8 new extensions, 24 extension upgrades
 - **[v2 → v3 Migration Guide](RELEASE_NOTES.v3.md)** - Upgrading from v2 (Bash/Docker) to v3 (Rust)
   - Breaking changes, code examples, step-by-step migration
--->
-
 - **[v1 → v2 Migration Guide](RELEASE_NOTES.v2.md)** - Upgrading from v1 to v2
   - Extension system changes, capability-based architecture, removed extensions
 
