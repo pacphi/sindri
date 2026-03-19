@@ -102,7 +102,8 @@ jobs:
         id: create
         run: |
           APP_NAME="sindri-test-${{ matrix.extension }}-$(date +%s)"
-          APP_NAME=$(echo "$APP_NAME" | tr '_' '-' | cut -c1-63)
+          # Sanitize: Fly.io blocks app names containing "github" (abuse filter)
+          APP_NAME=$(echo "$APP_NAME" | sed 's/github/gh/g' | tr '_' '-' | cut -c1-63)
 
           echo "Creating Fly app: $APP_NAME"
 
@@ -130,7 +131,7 @@ jobs:
 
       - name: Run Extension Tests
         id: test
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
           APP_NAME="${{ steps.create.outputs.app_name }}"
 
