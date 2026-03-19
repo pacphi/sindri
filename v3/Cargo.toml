@@ -28,7 +28,7 @@ authors = ["Sindri Team"]
 tokio = { version = "1.49", features = ["full"] }
 
 # CLI framework
-clap = { version = "4.5", features = ["derive", "env", "wrap_help", "string"] }
+clap = { version = "4.6", features = ["derive", "env", "wrap_help", "string"] }
 
 # Error handling
 anyhow = "1.0"
