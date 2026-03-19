@@ -36,8 +36,8 @@ on:
       max-parallel:
         description: 'Maximum parallel jobs per provider'
         required: false
-        type: number
-        default: 2  # Conservative for pre-release
+        type: string
+        default: '2'
 
 env:
   RUST_BACKTRACE: 1
@@ -138,7 +138,7 @@ jobs:
       sindri-image: ${{ needs.resolve-ci-image.outputs.ci_image }}
 
       providers: ${{ inputs.providers }}
-      max-parallel: ${{ inputs.max-parallel }}
+      max-parallel: ${{ fromJSON(inputs.max-parallel || '2') }}
       filter-heavy: ${{ inputs.filter-heavy }}
     secrets: inherit
 
