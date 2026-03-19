@@ -133,16 +133,16 @@ Sindri V3 represents a complete architectural transformation from V2, delivering
 
 ### Category 5: Security
 
-| Feature                | V2  | V3  | Notes                 |
-| ---------------------- | :-: | :-: | --------------------- |
-| Image signing (Cosign) | ✅  | ✅  | OIDC keyless          |
-| SBOM generation        | ✅  | ✅  | SPDX format           |
-| SLSA provenance        | ⚠️  | ✅  | Level 3               |
-| Vulnerability scanning | ⚠️  | ✅  | Trivy + cargo-audit   |
-| Secrets management     | ✅  | ✅  | env, file, vault      |
-| S3 encrypted secrets   | ❌  | 🆕  | age encryption        |
-| Input validation       | ❌  | 🆕  | Schema-based          |
-| Signature verification | ❌  | 🆕  | `sindri image verify` |
+| Feature                    | V2  | V3  | Notes                   |
+| -------------------------- | :-: | :-: | ----------------------- |
+| Image signing (Cosign 3.x) | ✅  | ✅  | OIDC keyless, by digest |
+| SBOM generation            | ✅  | ✅  | SPDX format             |
+| SLSA provenance            | ✅  | ✅  | Level 3                 |
+| Vulnerability scanning     | ⚠️  | ✅  | Trivy + cargo-audit     |
+| Secrets management         | ✅  | ✅  | env, file, vault        |
+| S3 encrypted secrets       | ❌  | 🆕  | age encryption          |
+| Input validation           | ❌  | 🆕  | Schema-based            |
+| Signature verification     | ❌  | 🆕  | `sindri image verify`   |
 
 **Feature Count:** V2=5, V3=12
 

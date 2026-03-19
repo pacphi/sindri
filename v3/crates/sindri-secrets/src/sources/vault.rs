@@ -174,7 +174,7 @@ impl VaultSource {
                 *token_lock = Some(TokenMetadata {
                     token: token.clone(),
                     ttl: token_info.ttl,
-                    renewable: token_info.renewable,
+                    renewable: token_info.renewable.unwrap_or(false),
                     last_renewed: std::time::SystemTime::now(),
                 });
 

@@ -245,16 +245,23 @@ promote-image:
 
 ### Security Features
 
-#### Image Signing (Cosign)
+#### Image Signing (Cosign 3.x)
 
 ```bash
-# Sign with keyless OIDC
-cosign sign --yes ghcr.io/repo:v2.3.0
+# Sign by digest with keyless OIDC (cosign 3.x)
+cosign sign --yes ghcr.io/repo@sha256:<digest>
 
 # Verify
 cosign verify ghcr.io/repo:v2.3.0 \
   --certificate-identity-regexp='https://github.com/repo' \
   --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
+
+# Verify SLSA provenance
+cosign verify-attestation \
+  --type slsaprovenance \
+  --certificate-identity-regexp='https://github.com/repo' \
+  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+  ghcr.io/repo:v2.3.0
 ```
 
 **Features:**
@@ -262,6 +269,8 @@ cosign verify ghcr.io/repo:v2.3.0 \
 - Keyless signing (no key management)
 - OIDC identity binding
 - Transparency log (Rekor)
+- SLSA build provenance attestations
+- Digest-based signing for immutability
 
 #### SBOM Generation (Syft)
 
@@ -269,8 +278,8 @@ cosign verify ghcr.io/repo:v2.3.0 \
 # Generate SBOM
 syft ghcr.io/repo:v2.3.0 -o spdx-json
 
-# Attach to image
-cosign attach sbom --sbom sbom.spdx.json ghcr.io/repo:v2.3.0
+# Attach to image by digest
+cosign attach sbom --sbom sbom.spdx.json ghcr.io/repo@sha256:<digest>
 
 # Download
 cosign download sbom ghcr.io/repo:v2.3.0
@@ -302,18 +311,25 @@ trivy:
 ### For Developers
 
 ```bash
-# 1. Verify image signature
+# 1. Verify image signature (cosign 3.x)
 cosign verify ghcr.io/pacphi/sindri:v2.3.0 \
   --certificate-identity-regexp='https://github.com/pacphi/sindri' \
   --certificate-oidc-issuer='https://token.actions.githubusercontent.com'
 
-# 2. Download SBOM
+# 2. Verify SLSA provenance
+cosign verify-attestation \
+  --type slsaprovenance \
+  --certificate-identity-regexp='https://github.com/pacphi/sindri' \
+  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
+  ghcr.io/pacphi/sindri:v2.3.0
+
+# 3. Download SBOM
 cosign download sbom ghcr.io/pacphi/sindri:v2.3.0 > sbom.json
 
-# 3. Inspect SBOM
+# 4. Inspect SBOM
 jq '.packages[] | {name, version}' sbom.json | head -20
 
-# 4. Check vulnerabilities
+# 5. Check vulnerabilities
 trivy image ghcr.io/pacphi/sindri:v2.3.0
 ```
 
@@ -490,7 +506,7 @@ permissions:
 
 ### Tools
 
-- [Cosign](https://github.com/sigstore/cosign) - Container signing
+- [Cosign 3.x](https://github.com/sigstore/cosign) - Container signing (keyless, by digest)
 - [Syft](https://github.com/anchore/syft) - SBOM generation
 - [Trivy](https://github.com/aquasecurity/trivy) - Vulnerability scanner
 - [Docker Buildx](https://github.com/docker/buildx) - Multi-arch builds

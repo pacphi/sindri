@@ -25,7 +25,7 @@ sindri-backup = { workspace = true }
 
 # CLI
 clap = { workspace = true }
-clap_complete = "4.5.65"
+clap_complete = "4.6.0"
 tokio = { workspace = true }
 anyhow = { workspace = true }
 futures = { workspace = true }
@@ -60,7 +60,7 @@ globset = { workspace = true }
 glob = "0.3"
 walkdir = "2.5"
 rand = "0.10"
-vaultrs = "0.7"
+vaultrs = "0.8"
 regex = { workspace = true }
 
 # Tool detection
