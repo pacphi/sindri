@@ -82,10 +82,12 @@ jobs:
     steps:
       - name: Filter Extensions by Provider
         id: filter
+        env:
+          EXTENSIONS_INPUT: ${{ inputs.extensions }}
         run: |
           set -euo pipefail
 
-          EXTENSIONS='${{ inputs.extensions }}'
+          EXTENSIONS="$EXTENSIONS_INPUT"
           PROVIDERS="${{ inputs.providers }}"
 
           echo "Processing extensions for providers: $PROVIDERS"
