@@ -518,7 +518,7 @@ sindri extension status --verify
     database   5432/tcp
 ```
 
-These ports are automatically mapped by providers (Docker, Fly.io, Kubernetes, RunPod, Northflank). Manual `sindri.yaml` port overrides take precedence over extension defaults. See [ADR-050](../architecture/adr/050-service-port-exposure.md) for details.
+These ports are automatically mapped by providers (Docker, Fly.io, Kubernetes, RunPod, Northflank). Manual `sindri.yaml` port overrides take precedence over extension defaults. See [ADR-050](architecture/adr/050-service-port-exposure.md) for details.
 
 #### extension info
 
