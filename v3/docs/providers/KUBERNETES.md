@@ -515,6 +515,37 @@ kubectl port-forward pod/<pod-name> -n sindri-dev 10022:2222
 ssh developer@localhost -p 10022
 ```
 
+### Extension Service Ports
+
+Extensions that declare `service.ports` in their `extension.yaml` automatically get their ports added to the generated Kubernetes Service manifest. For example, installing paperclip adds:
+
+```yaml
+# In generated k8s-deployment.yaml Service spec
+ports:
+  - name: ssh
+    port: 22
+    targetPort: 22
+  - name: web-ui
+    port: 3100
+    targetPort: 3100
+  - name: database
+    port: 5432
+    targetPort: 5432
+```
+
+To access extension web UIs, use `kubectl port-forward`:
+
+```bash
+# Forward paperclip dashboard
+kubectl port-forward pod/<pod-name> -n sindri-dev 3100:3100
+
+# Forward guacamole web UI
+kubectl port-forward pod/<pod-name> -n sindri-dev 8080:8080
+
+# Open in browser
+open http://localhost:3100
+```
+
 ### VS Code Kubernetes Extension
 
 1. Install "Kubernetes" extension in VS Code

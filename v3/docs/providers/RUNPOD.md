@@ -537,6 +537,27 @@ providers:
 
 **Note:** Proxy URLs have a 100-second connection timeout (Cloudflare). For long-running connections, use SSH or a public IP.
 
+### Automatic Extension Ports
+
+Extensions that declare `service.ports` in their `extension.yaml` automatically have their HTTP/HTTPS ports merged into the RunPod pod's port list. TCP and UDP ports are not exposed through RunPod's proxy — only HTTP ports are supported.
+
+For example, installing **paperclip** (port 3100/http) and **ollama** (port 11434/http) automatically adds:
+
+```
+3100/http → https://<podId>-3100.proxy.runpod.net
+11434/http → https://<podId>-11434.proxy.runpod.net
+```
+
+Manual `providers.runpod.ports` entries take precedence — if you already declare a port manually, the extension-declared port is skipped (no duplicates).
+
+**Limitations:**
+
+- Only `http` and `https` protocol ports are exposed (RunPod proxy is HTTP-only)
+- TCP ports (e.g., guacamole's RDP on 3389) are silently skipped — use SSH tunneling for TCP services
+- UDP ports are not supported by RunPod
+
+See [ADR-050](../architecture/adr/050-service-port-exposure.md) for the full architecture.
+
 ### File Transfer
 
 **With public IP (SCP/SFTP):**

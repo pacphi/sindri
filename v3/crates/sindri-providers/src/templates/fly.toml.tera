@@ -73,6 +73,56 @@ services = []
     timeout = "10s"
     grace_period = "30s"
 
+{% for sp in service_ports %}
+{% if sp.protocol == "http" or sp.protocol == "https" %}
+# {{ sp.extension_name }}: {{ sp.name }}
+[[services]]
+  protocol = "tcp"
+  internal_port = {{ sp.container_port }}
+  auto_stop_machines = "{{ env_vars.fly_auto_stop_mode }}"
+  auto_start_machines = {{ env_vars.fly_auto_start }}
+  min_machines_running = 0
+
+  [[services.ports]]
+    port = {{ sp.host_port }}
+    handlers = ["tls", "http"]
+
+{% if sp.health_path %}
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "30s"
+    path = "{{ sp.health_path }}"
+{% endif %}
+
+{% elif sp.protocol == "tcp" %}
+# {{ sp.extension_name }}: {{ sp.name }}
+[[services]]
+  protocol = "tcp"
+  internal_port = {{ sp.container_port }}
+  auto_stop_machines = "{{ env_vars.fly_auto_stop_mode }}"
+  auto_start_machines = {{ env_vars.fly_auto_start }}
+
+  [[services.ports]]
+    port = {{ sp.host_port }}
+
+  [[services.tcp_checks]]
+    interval = "30s"
+    timeout = "10s"
+
+{% elif sp.protocol == "udp" %}
+# {{ sp.extension_name }}: {{ sp.name }}
+[[services]]
+  protocol = "udp"
+  internal_port = {{ sp.container_port }}
+  auto_stop_machines = "{{ env_vars.fly_auto_stop_mode }}"
+  auto_start_machines = {{ env_vars.fly_auto_start }}
+
+  [[services.ports]]
+    port = {{ sp.host_port }}
+
+{% endif %}
+{% endfor %}
 {% endif %}
 {% if gpu_enabled %}
 # GPU-enabled VM configuration

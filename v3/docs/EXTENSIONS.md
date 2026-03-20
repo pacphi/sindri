@@ -41,7 +41,7 @@ V3 extensions are organized into the following categories:
 | **claude**          | Claude Code integrations and workflow tools      | 10    |
 | **devops**          | Infrastructure, deployment, and operations tools | 6     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 5     |
-| **ai-dev**          | AI development tools and LLM interfaces          | 11    |
+| **ai-dev**          | AI development tools and LLM interfaces          | 12    |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
 | **productivity**    | Developer productivity and workflow tools        | 3     |
@@ -119,6 +119,7 @@ V3 extensions are organized into the following categories:
 | **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming                          | mise           |
 | **openclaw**     | 1.0.0   | OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI               | mise           |
 | **opencode**     | 1.0.0   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE                             | mise           |
+| **paperclip**    | 1.0.0   | Paperclip - AI agent orchestrator with React dashboard for managing agent teams                   | mise           |
 | **p-replicator** | 1.0.0   | P-Replicator — Claude Code toolkit for AI-assisted product development (Vibe Coding)              | mise           |
 | **rtk**          | 1.0.0   | RTK (Rust Token Killer) - High-performance CLI proxy that reduces LLM token consumption by 60-90% | script         |
 | **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration                        | script         |
@@ -691,7 +692,7 @@ When run via sindri, `SINDRI_LOG_DIR` is automatically set to `~/.sindri/logs/<y
 
 ## Summary Statistics
 
-- **Total Extensions**: 60
+- **Total Extensions**: 61
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 12

@@ -21,6 +21,20 @@ requirements:
   installTimeout: 600
   validationTimeout: 30
 
+service:
+  enabled: true
+  ports:
+    - containerPort: 18789
+      hostPort: 18789
+      protocol: http
+      name: web-ui
+      description: "OpenClaw browser Control UI"
+      ui: true
+  start:
+    command: "openclaw gateway --port 18789"
+    pidfile: "~/.sindri/openclaw.pid"
+    logfile: "~/.sindri/logs/openclaw.log"
+
 install:
   method: mise
   mise:

@@ -13,7 +13,8 @@
 - **Multi-distro support** — Ubuntu, Fedora, and openSUSE are now first-class targets for containers and extensions
 - **Collision-aware project-init** — Smart conflict resolution when extensions share directories (merge-json, append, skip, etc.)
 - **Extension service framework** — Background daemons survive container restarts via idempotent service lifecycle management
-- **8 new extensions** — OpenFang, Clarity, OpenClaw, OpenCode, Agent Skills CLI, P-Replicator, RTK, and Ruflo
+- **Service port exposure** — Extensions declaratively expose web UIs and network services; providers auto-generate port mappings
+- **9 new extensions** — Paperclip, OpenFang, Clarity, OpenClaw, OpenCode, Agent Skills CLI, P-Replicator, RTK, and Ruflo
 - **24 extensions upgraded** — Software versions bumped across the entire catalog with BOM tracking
 - **Extension deprecation system** — Formal schema support for marking extensions deprecated with migration guidance
 - **2 new deployment providers** — RunPod (GPU cloud) and Northflank (container platform)
@@ -65,6 +66,45 @@ Background daemons now survive container restarts via a generic `service:` block
 - `sindri extension services [list|start|stop|restart]` CLI subcommand
 - Draupnir wired as the first consumer
 
+### Service Port Exposure (ADR-050)
+
+Extensions that expose web UIs or network services can now declare their port requirements in `extension.yaml`. Providers automatically generate the correct port mappings — no manual `sindri.yaml` configuration needed.
+
+```yaml
+service:
+  ports:
+    - containerPort: 3100
+      protocol: http
+      name: web-ui
+      ui: true
+      healthPath: /api/health
+```
+
+**What's included:**
+
+- `ServicePort` and `PortProtocol` types in `sindri-core` with serde support
+- `service.ports[]` array in extension schema with 8 fields (`containerPort`, `hostPort`, `protocol`, `name`, `description`, `envOverride`, `ui`, `healthPath`)
+- `ServicePortContext` in template context for structured port data in provider templates
+- **Docker** — Extension ports rendered as `-p host:container` mappings with descriptive comments
+- **Fly.io** — HTTP ports generate `[[services]]` blocks with TLS handlers and optional health checks; TCP ports get plain TCP service blocks
+- **Kubernetes** — Extension ports added to the Service spec alongside SSH
+- **RunPod** — HTTP ports merged into `expose_ports` for RunPod's proxy system
+- **Northflank** — Extension ports mapped to `NorthflankPortConfig` entries with protocol mapping
+- Manual `sindri.yaml` ports take precedence (override) over extension defaults
+- `envOverride` field enables runtime port remapping via environment variables
+
+**7 extensions updated with port declarations:**
+
+| Extension       | Port(s)    | Protocol  | Web UI |
+| --------------- | ---------- | --------- | ------ |
+| paperclip       | 3100, 5432 | http, tcp | Yes    |
+| excalidraw-mcp  | 3000       | http      | Yes    |
+| guacamole       | 8080, 3389 | http, tcp | Yes    |
+| openclaw        | 18789      | http      | Yes    |
+| ollama          | 11434      | http      | No     |
+| claude-code-mux | 13456      | http      | No     |
+| xfce-ubuntu     | 3389       | tcp       | Yes    |
+
 ### Extension Deprecation System
 
 Extensions can now be formally marked as deprecated with migration guidance:
@@ -110,6 +150,7 @@ Extensions can now be formally marked as deprecated with migration guidance:
 
 | Extension            | Version | Category  | Description                                                                                                     |
 | -------------------- | ------- | --------- | --------------------------------------------------------------------------------------------------------------- |
+| **paperclip**        | 1.0.0   | ai-dev    | AI agent orchestrator with React dashboard for managing agent teams (ports 3100, 5432)                          |
 | **ruflo**            | 3.5.36  | claude    | AI Agent Orchestration Platform — successor to Claude Flow with HNSW search, Flash Attention, and 215 MCP tools |
 | **openfang**         | 1.1.0   | ai-agents | Open-source agent OS for autonomous AI agents across 40+ messaging platforms                                    |
 | **clarity**          | 1.0.0   | ai-dev    | Autonomous spec generation skill from reference materials (5-phase workflow)                                    |
@@ -237,8 +278,13 @@ GitHub CLI upgraded from **2.87.3 → 2.88.1** across:
 
 - Added README files for all v3 crates
 - Extension service framework guide (SERVICES.md) and ADR-048
+- Service port exposure architecture documented in ADR-050
 - Collision handling architecture documented in ADR-047
-- Updated extension-guide-v3 skill with corrected compatibility matrix guidance
+- Updated extension-guide-v3 skill with `service.ports` documentation and compatibility matrix guidance
+- Added service port sections to provider docs (Docker, Fly.io, Kubernetes)
+- Added port conflict troubleshooting to TROUBLESHOOTING.md
+- Added extension service ports section to GETTING_STARTED.md
+- Added service port info to CLI `extension status` reference
 
 ---
 
@@ -268,7 +314,7 @@ All existing v3.0.x extensions remain compatible. The `compatibility-matrix.yaml
 **New in 3.1.x schema (v1.1):**
 
 - `distros` field for multi-distro support
-- `service` block for background daemon lifecycle
+- `service` block for background daemon lifecycle with `ports[]` array for declarative port exposure
 - `deprecated` field with migration guidance
 - Collision handling capabilities
 
@@ -279,7 +325,7 @@ All existing v3.0.x extensions remain compatible. The `compatibility-matrix.yaml
 | Metric                   | Value                          |
 | ------------------------ | ------------------------------ |
 | Commits since v3.0.1     | 65                             |
-| New extensions           | 8                              |
+| New extensions           | 9                              |
 | Extensions upgraded      | 24                             |
 | New deployment providers | 2                              |
 | Supported distros        | 3 (was 1)                      |

@@ -1,0 +1,184 @@
+---
+metadata:
+  name: paperclip
+  version: 1.0.0
+  description: Paperclip - AI agent orchestrator with React dashboard for managing agent teams
+  category: ai-dev
+  distros: [ubuntu, fedora, opensuse]
+  dependencies:
+    - mise-config
+    - nodejs
+
+requirements:
+  domains:
+    - paperclip.ing
+    - registry.npmjs.org
+    - api.github.com
+  diskSpace: 400
+  memory: 512
+  installTime: 120
+  installTimeout: 600
+  validationTimeout: 30
+
+install:
+  method: mise
+  mise:
+    configFile: mise.toml
+    reshimAfterInstall: true
+
+validate:
+  commands:
+    - name: paperclipai
+      versionFlag: --version
+      expectedPattern: "\\d{4}\\.\\d+\\.\\d+"
+
+remove:
+  mise:
+    removeConfig: true
+    tools: ["npm:paperclipai"]
+
+service:
+  enabled: true
+  ports:
+    - containerPort: 3100
+      hostPort: 3100
+      protocol: http
+      name: web-ui
+      description: "Paperclip React dashboard"
+      envOverride: PAPERCLIP_PORT
+      ui: true
+      healthPath: /api/health
+    - containerPort: 5432
+      hostPort: 5432
+      protocol: tcp
+      name: database
+      description: "Embedded PostgreSQL for agent state"
+  start:
+    command: "paperclipai run"
+    pidfile: "~/.sindri/paperclip.pid"
+    logfile: "~/.sindri/logs/paperclip.log"
+  stop:
+    command: "paperclipai stop"
+    timeout: 15
+  readiness:
+    check: "curl -sf http://localhost:3100/api/health || exit 1"
+    timeout: 30
+
+capabilities:
+  project-init:
+    enabled: true
+    priority: 55
+    commands:
+      - command: "paperclipai onboard --yes"
+        description: "Initialize Paperclip agent workspace"
+        requiresAuth: "none"
+        conditional: false
+    state-markers:
+      - path: ".paperclip"
+        type: directory
+    validation:
+      command: "paperclipai status"
+      expectedPattern: "running|ready"
+  hooks:
+    post-install:
+      command: "paperclipai doctor"
+      description: "Verify Paperclip installation health"
+    post-project-init:
+      command: "sleep 3 && curl -sf http://localhost:3100/api/health || echo 'Paperclip starting...'"
+      description: "Verify Paperclip dashboard is responding"
+
+bom:
+  # NOTE: Versions researched 2026-03-19
+  tools:
+    - name: paperclipai
+      version: "2026.318.0"
+      source: mise
+      type: cli-tool
+      license: MIT
+      homepage: https://paperclip.ing
+      purl: pkg:npm/paperclipai@2026.318.0
+
+docs:
+  title: "Paperclip"
+  overview: |
+    Paperclip is an open-source Node.js agent orchestrator with a React dashboard for managing
+    agent teams. It provides a visual interface for creating, coordinating, and monitoring AI
+    agent workflows with built-in state persistence via embedded PostgreSQL.
+  last-updated: "2026-03-19"
+  features:
+    - "React Dashboard - Visual agent team management on localhost:3100"
+    - "Agent Orchestration - Create and coordinate multi-agent workflows"
+    - "Team Management - Define agent teams with roles and capabilities"
+    - "State Persistence - Embedded PostgreSQL for durable agent state"
+    - "Real-time Monitoring - Live dashboard with agent activity and metrics"
+    - "Onboarding Wizard - Interactive setup for new agent workspaces"
+    - "Plugin System - Extensible architecture for custom agent behaviors"
+    - "REST API - Full API for programmatic agent management"
+  usage:
+    - section: "Getting Started"
+      examples:
+        - description: "Check installed version"
+          code: "paperclipai --version"
+        - description: "Run the onboarding wizard"
+          code: "paperclipai onboard"
+        - description: "Start the orchestrator and dashboard"
+          code: "paperclipai run"
+    - section: "Agent Management"
+      examples:
+        - description: "Create a new agent team"
+          code: "paperclipai team create --name research-squad"
+        - description: "Add an agent to a team"
+          code: "paperclipai agent add --team research-squad --role researcher"
+        - description: "List active agents"
+          code: "paperclipai agent list"
+        - description: "Check agent status"
+          code: "paperclipai status"
+    - section: "Dashboard"
+      examples:
+        - description: "Access the React dashboard"
+          code: |
+            # Start the orchestrator
+            paperclipai run
+
+            # Open browser to dashboard
+            # http://localhost:3100
+        - description: "Start on a custom port"
+          code: |
+            export PAPERCLIP_PORT=8080
+            paperclipai run
+            # Dashboard available at http://localhost:8080
+    - section: "Configuration"
+      examples:
+        - description: "View current configuration"
+          code: "paperclipai config show"
+        - description: "Set default LLM provider"
+          code: "paperclipai config set llm.provider anthropic"
+        - description: "Health check"
+          code: "paperclipai doctor"
+  related:
+    - name: ruflo
+      description: "Alternative agent orchestration platform with HNSW search"
+    - name: claude-cli
+      description: "Claude Code CLI - can serve as the LLM backend for Paperclip agents"
+    - name: ai-toolkit
+      description: "Collection of AI CLI tools that complement Paperclip's agent capabilities"
+  notes: |
+    ## Configuration
+
+    Paperclip stores configuration in `~/.paperclip/config.json`. Key settings include:
+
+    - `llm.provider` - LLM provider selection (anthropic, openai, etc.)
+    - `llm.model` - Default model for agent tasks
+    - `dashboard.port` - Dashboard port (default: 3100, override with PAPERCLIP_PORT)
+    - `db.path` - PostgreSQL data directory
+    - `agents.maxConcurrent` - Maximum concurrent agent tasks
+
+    ## Environment Variables
+
+    - `PAPERCLIP_PORT` - Override dashboard port (default: 3100)
+    - `PAPERCLIP_HOME` - Override home directory (default: ~/.paperclip)
+    - `PAPERCLIP_LOG_LEVEL` - Set log verbosity (debug, info, warn, error)
+    - `ANTHROPIC_API_KEY` - Required for Anthropic LLM provider
+    - `OPENAI_API_KEY` - Required for OpenAI LLM provider
+
+    More information: https://paperclip.ing

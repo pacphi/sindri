@@ -387,6 +387,63 @@ mise list
 mise doctor
 ```
 
+#### Service Port Conflicts
+
+**Symptom:**
+
+```text
+Warning: Port 3000 is already in use by extension 'excalidraw-mcp'
+```
+
+Or after deployment, a web UI is unreachable on the expected port.
+
+**Diagnosis:**
+
+```bash
+# Check which extensions declare service ports
+sindri extension status --verify
+
+# Check if a port is in use on the host
+lsof -i :3000
+# or
+ss -tlnp | grep 3000
+
+# Inside a container, check listening ports
+netstat -tlnp
+```
+
+**Common causes:**
+
+1. **Two extensions claim the same host port:**
+
+   Extensions like excalidraw-mcp (port 3000) and a custom web app may both want port 3000. Override one in `sindri.yaml`:
+
+   ```yaml
+   providers:
+     docker:
+       ports:
+         - "3001:3000" # Remap excalidraw to 3001
+   ```
+
+   Manual `sindri.yaml` ports take precedence over extension-declared defaults.
+
+2. **Host port already occupied by another process:**
+
+   ```bash
+   # Find and stop the conflicting process
+   lsof -i :3000
+   kill <PID>
+
+   # Or use the extension's envOverride to remap
+   export PAPERCLIP_PORT=3200
+   ```
+
+3. **Port not exposed in provider config:**
+
+   For providers that don't auto-generate port mappings (DevPod, E2B), extension-declared ports are informational only. You may need to configure port forwarding manually through the provider's native tools.
+
+**See also:** [ADR-050: Service Port Exposure](architecture/adr/050-service-port-exposure.md) for the full architecture.
+
 ---
 
 ### Provider-Specific Issues

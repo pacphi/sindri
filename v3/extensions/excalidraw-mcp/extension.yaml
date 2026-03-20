@@ -40,6 +40,20 @@ validate:
       expectedPattern: "mcp_excalidraw-canvas"
       description: "Verify canvas Docker image is pulled"
 
+service:
+  enabled: true
+  ports:
+    - containerPort: 3000
+      hostPort: 3000
+      protocol: http
+      name: web-ui
+      description: "Excalidraw canvas server"
+      ui: true
+      healthPath: /health
+  start:
+    command: "docker start mcp-excalidraw-canvas || docker run -d -p 3000:3000 --name mcp-excalidraw-canvas --restart unless-stopped ghcr.io/yctimlin/mcp_excalidraw-canvas:latest"
+    logfile: "~/.sindri/logs/excalidraw-mcp.log"
+
 capabilities:
   project-init:
     enabled: true

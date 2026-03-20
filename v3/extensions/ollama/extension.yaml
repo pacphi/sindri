@@ -16,6 +16,21 @@ requirements:
   diskSpace: 1000
   memory: 8192
   installTime: 600
+service:
+  enabled: true
+  ports:
+    - containerPort: 11434
+      hostPort: 11434
+      protocol: http
+      name: api
+      description: "Ollama REST API"
+      envOverride: OLLAMA_HOST
+      ui: false
+  start:
+    command: "ollama serve"
+    pidfile: "~/.sindri/ollama.pid"
+    logfile: "~/.sindri/logs/ollama.log"
+
 install:
   method: script
   script:

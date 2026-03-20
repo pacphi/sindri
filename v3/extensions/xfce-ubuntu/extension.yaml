@@ -17,6 +17,19 @@ requirements:
   memory: 4096
   installTime: 900
 
+service:
+  enabled: true
+  ports:
+    - containerPort: 3389
+      hostPort: 3389
+      protocol: tcp
+      name: rdp
+      description: "xRDP remote desktop access"
+      ui: true
+  start:
+    command: "sudo systemctl start xrdp"
+    logfile: "~/.sindri/logs/xfce-ubuntu.log"
+
 install:
   method: hybrid
   apt:

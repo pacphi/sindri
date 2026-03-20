@@ -433,6 +433,21 @@ primary_region = "sjc"
   [[services.ports]]
     port = 10022
 
+# Extension-declared service ports are automatically added here.
+# For example, installing paperclip generates:
+#
+# [[services]]
+#   protocol = "tcp"
+#   internal_port = 3100
+#   [[services.ports]]
+#     port = 3100
+#     handlers = ["tls", "http"]
+#   [[services.http_checks]]
+#     path = "/api/health"
+#
+# HTTP/HTTPS ports get TLS termination; TCP ports get plain TCP services.
+# See ADR-050 for details on the service port exposure architecture.
+
 [[vm]]
   cpu_kind = "shared"
   cpus = 2

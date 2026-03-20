@@ -742,6 +742,54 @@
             "type": "string"
           },
           "description": "Environment variables required to start (skip if any are missing)"
+        },
+        "ports": {
+          "type": "array",
+          "description": "Network ports exposed by this service for provider-level mapping and proxy configuration",
+          "items": {
+            "type": "object",
+            "required": ["containerPort", "protocol", "name"],
+            "properties": {
+              "containerPort": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535,
+                "description": "Port number inside the container"
+              },
+              "hostPort": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535,
+                "description": "Default host-side port mapping (omit for provider auto-assign)"
+              },
+              "protocol": {
+                "type": "string",
+                "enum": ["http", "https", "tcp", "udp"],
+                "description": "Network protocol"
+              },
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$",
+                "description": "Short identifier for routing and display"
+              },
+              "description": {
+                "type": "string"
+              },
+              "envOverride": {
+                "type": "string",
+                "description": "Env var name that overrides host port at runtime"
+              },
+              "ui": {
+                "type": "boolean",
+                "default": false,
+                "description": "Whether this port serves a browsable web UI (proxy/ingress hint)"
+              },
+              "healthPath": {
+                "type": "string",
+                "description": "HTTP path for health checks (only for http/https)"
+              }
+            }
+          }
         }
       },
       "required": ["start"]

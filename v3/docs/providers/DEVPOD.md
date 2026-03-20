@@ -442,6 +442,32 @@ Edit `.devcontainer/devcontainer.json`:
 
 ### Port Forwarding
 
+DevPod uses the devcontainer.json `forwardPorts` and `portsAttributes` fields for port forwarding. These are automatically populated from extension `service.ports` declarations.
+
+#### Automatic Extension Ports
+
+Extensions that declare `service.ports` in their `extension.yaml` automatically generate `forwardPorts` entries in the devcontainer.json. Ports with `ui: true` open in the browser automatically; other ports show a notification.
+
+For example, installing **paperclip** (ports 3100/http, 5432/tcp) generates:
+
+```json
+"forwardPorts": [3100, 5432],
+"portsAttributes": {
+  "3100": {
+    "label": "paperclip: web-ui",
+    "onAutoForward": "openBrowser"
+  },
+  "5432": {
+    "label": "paperclip: database",
+    "onAutoForward": "notify"
+  }
+}
+```
+
+#### Manual Overrides
+
+You can add additional ports manually in `sindri.yaml`. Manual ports are included alongside extension-declared ports:
+
 ```json
 "forwardPorts": [3000, 8080, 5432],
 "portsAttributes": {
@@ -455,6 +481,8 @@ Edit `.devcontainer/devcontainer.json`:
   }
 }
 ```
+
+See [ADR-050](../architecture/adr/050-service-port-exposure.md) for the full architecture.
 
 ## DevPod CLI Commands
 

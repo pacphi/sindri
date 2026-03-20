@@ -387,6 +387,7 @@ impl RunpodProvider {
             expose_ports: runpod
                 .map(|r| r.expose_ports.iter().map(|p| p.to_string()).collect())
                 .unwrap_or_default(),
+            service_ports: Vec::new(),
             spot_bid: runpod.and_then(|r| r.spot_bid),
             cpus,
             memory_mb,
@@ -468,6 +469,8 @@ struct RunpodDeployConfig<'a> {
     cloud_type: String,
     region: Option<String>,
     expose_ports: Vec<String>,
+    /// Extension-declared service ports for automatic HTTP proxy exposure
+    service_ports: Vec<crate::templates::ServicePortContext>,
     #[allow(dead_code)]
     spot_bid: Option<f64>,
     #[allow(dead_code)]
@@ -733,6 +736,17 @@ impl Provider for RunpodProvider {
         let mut ports = vec!["22/tcp".to_string()];
         for port in &runpod_config.expose_ports {
             ports.push(format!("{}/http", port));
+        }
+        // Merge extension-declared service ports (HTTP/HTTPS via RunPod proxy)
+        for sp in &runpod_config.service_ports {
+            if (sp.protocol == "http" || sp.protocol == "https")
+                && !runpod_config
+                    .expose_ports
+                    .iter()
+                    .any(|p| p == &sp.container_port.to_string())
+            {
+                ports.push(format!("{}/http", sp.container_port));
+            }
         }
 
         // Resolve and inject secrets as environment variables

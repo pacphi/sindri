@@ -25,6 +25,18 @@
   "remoteUser": "developer",
   "workspaceFolder": "/alt/home/developer/workspace",
   "features": {},
+{% if service_ports | length > 0 %}
+  "forwardPorts": [{% for sp in service_ports %}{{ sp.container_port }}{% if not loop.last %}, {% endif %}{% endfor %}],
+  "portsAttributes": {
+{% for sp in service_ports %}
+    "{{ sp.container_port }}": {
+      "label": "{{ sp.extension_name }}: {{ sp.name }}"{% if sp.ui %},
+      "onAutoForward": "openBrowser"{% else %},
+      "onAutoForward": "notify"{% endif %}
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  },
+{% endif %}
 {% if gpu_enabled %}
   "runArgs": [
     "--gpus", "all"

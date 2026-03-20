@@ -473,7 +473,7 @@ sindri extension validate my-ext --file ./extension.yaml
 
 #### extension status
 
-Show extension status.
+Show extension status, including declared service ports.
 
 **Synopsis:**
 
@@ -509,6 +509,16 @@ sindri extension status --since 2026-02-01
 # Verify actual installation (slower)
 sindri extension status --verify
 ```
+
+**Service ports:** Extensions that declare `service.ports` in their `extension.yaml` will show port information in the status output. For example, `sindri extension status paperclip` shows:
+
+```
+  Service Ports:
+    web-ui     3100/http  (ui) → http://localhost:3100
+    database   5432/tcp
+```
+
+These ports are automatically mapped by providers (Docker, Fly.io, Kubernetes, RunPod, Northflank). Manual `sindri.yaml` port overrides take precedence over extension defaults. See [ADR-050](../architecture/adr/050-service-port-exposure.md) for details.
 
 #### extension info
 

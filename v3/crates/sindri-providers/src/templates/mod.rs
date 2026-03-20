@@ -6,7 +6,7 @@
 mod context;
 mod docker;
 
-pub use context::TemplateContext;
+pub use context::{ServicePortContext, TemplateContext};
 pub use docker::DockerTemplates;
 
 use anyhow::Result;

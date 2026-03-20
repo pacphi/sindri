@@ -898,9 +898,12 @@ providers:
   docker:
     network: bridge # bridge | host | none
     restart: unless-stopped # no | always | on-failure | unless-stopped
-    ports: # Additional port mappings
+    ports: # Additional port mappings (manual overrides)
       - "8080:8080"
       - "3000:3000"
+    # Note: Extensions that declare service.ports in their extension.yaml
+    # will have their ports automatically added to the generated config.
+    # Manual ports listed here take precedence over extension-declared ports.
     privileged: false # Run in privileged mode (not recommended)
     extraHosts: # Extra /etc/hosts entries
       - "host.docker.internal:host-gateway"

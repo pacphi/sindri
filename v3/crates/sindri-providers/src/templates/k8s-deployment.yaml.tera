@@ -96,4 +96,43 @@ spec:
     - name: ssh
       port: 22
       targetPort: 22
+{% for sp in service_ports %}
+    - name: {{ sp.name }}
+      port: {{ sp.host_port }}
+      targetPort: {{ sp.container_port }}
+{% endfor %}
   type: ClusterIP
+{% set has_ui_ports = false %}
+{% for sp in service_ports %}
+{% if sp.ui %}
+{% set_global has_ui_ports = true %}
+{% endif %}
+{% endfor %}
+{% if has_ui_ports %}
+{% if k8s.ingress_enabled is defined and k8s.ingress_enabled %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ name }}
+  namespace: {{ k8s.namespace | default(value="default") }}
+  labels:
+    app: sindri
+    instance: {{ name }}
+spec:
+  rules:
+    - http:
+        paths:
+{% for sp in service_ports %}
+{% if sp.ui %}
+          - path: /{{ sp.extension_name }}/{{ sp.name }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ name }}
+                port:
+                  number: {{ sp.host_port }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endif %}

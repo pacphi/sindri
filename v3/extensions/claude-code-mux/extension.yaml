@@ -8,6 +8,20 @@ metadata:
   author: 9j
   homepage: https://github.com/9j/claude-code-mux
   dependencies: []
+service:
+  enabled: true
+  ports:
+    - containerPort: 13456
+      hostPort: 13456
+      protocol: http
+      name: proxy
+      description: "Claude Code Mux routing proxy"
+      ui: false
+  start:
+    command: "ccm start"
+    pidfile: "~/.sindri/claude-code-mux.pid"
+    logfile: "~/.sindri/logs/claude-code-mux.log"
+
 requirements:
   domains:
     - github.com

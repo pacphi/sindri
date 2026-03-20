@@ -518,7 +518,34 @@ docker run --rm -v sindri-docker_dev_home:/data -v $(pwd):/backup \
 
 ## Port Forwarding
 
-### Static Ports
+### Automatic Extension Ports
+
+Extensions that declare `service.ports` in their `extension.yaml` have their ports automatically mapped in the generated `docker-compose.yml`. No manual configuration is needed.
+
+For example, installing the **paperclip** extension (which declares ports 3100 and 5432) automatically generates:
+
+```yaml
+# In generated docker-compose.yml
+ports:
+  - "3100:3100" # paperclip: web-ui (http, web-ui)
+  - "5432:5432" # paperclip: database (tcp)
+```
+
+Other extensions with automatic port mapping include:
+
+| Extension       | Port(s)    | Protocol  | Description            |
+| --------------- | ---------- | --------- | ---------------------- |
+| paperclip       | 3100, 5432 | http, tcp | Dashboard + PostgreSQL |
+| excalidraw-mcp  | 3000       | http      | Canvas server          |
+| guacamole       | 8080, 3389 | http, tcp | Web UI + RDP           |
+| openclaw        | 18789      | http      | Control UI             |
+| ollama          | 11434      | http      | REST API               |
+| claude-code-mux | 13456      | http      | Routing proxy          |
+| xfce-ubuntu     | 3389       | tcp       | xRDP access            |
+
+### Manual Port Overrides
+
+Manual ports in `sindri.yaml` take precedence over extension-declared ports. Use this to remap defaults:
 
 ```yaml
 providers:

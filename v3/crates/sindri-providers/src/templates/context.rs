@@ -3,8 +3,10 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sindri_core::config::SindriConfig;
+use sindri_core::types::{Extension, PortProtocol};
 use std::collections::HashMap;
 use tera::Context;
+use tracing::warn;
 
 /// Template context containing all data needed for rendering
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,6 +41,9 @@ pub struct TemplateContext {
     pub extra_hosts: Vec<String>,
     pub ports: Vec<String>,
 
+    // Extension-declared service ports (structured)
+    pub service_ports: Vec<ServicePortContext>,
+
     // Secrets
     pub has_secrets: bool,
     pub secrets_file: String,
@@ -48,6 +53,19 @@ pub struct TemplateContext {
 
     // CI mode
     pub ci_mode: bool,
+}
+
+/// Structured service port context for template rendering
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServicePortContext {
+    pub container_port: u16,
+    pub host_port: u16,
+    pub protocol: String,
+    pub name: String,
+    pub description: String,
+    pub ui: bool,
+    pub health_path: Option<String>,
+    pub extension_name: String,
 }
 
 /// Docker-in-Docker configuration
@@ -193,6 +211,7 @@ impl TemplateContext {
             network_mode,
             extra_hosts,
             ports,
+            service_ports: Vec::new(),
             has_secrets: !file.secrets.is_empty(),
             secrets_file: ".env.secrets".to_string(),
             env_vars,
@@ -224,6 +243,89 @@ impl TemplateContext {
         self.has_secrets = true;
         self
     }
+
+    /// Set extension-declared service ports
+    pub fn with_service_ports(mut self, service_ports: Vec<ServicePortContext>) -> Self {
+        self.service_ports = service_ports;
+        self
+    }
+
+    /// Aggregate service ports from installed extensions.
+    ///
+    /// Iterates each extension's `service.ports`, resolves host ports (using
+    /// `host_port` or falling back to `container_port`), detects host-port
+    /// collisions across extensions (logging warnings), and merges with manual
+    /// `sindri.yaml` ports (manual takes precedence — matching container ports
+    /// are skipped).
+    pub fn aggregate_extension_ports(
+        extensions: &[Extension],
+        manual_ports: &[String],
+    ) -> Vec<ServicePortContext> {
+        let mut result = Vec::new();
+        let mut seen_host_ports: HashMap<u16, String> = HashMap::new();
+
+        // Parse manual port mappings to detect container ports already covered
+        let manual_container_ports: Vec<u16> = manual_ports
+            .iter()
+            .filter_map(|p| {
+                // Parse "host:container" or "container" formats
+                let parts: Vec<&str> = p.split(':').collect();
+                match parts.len() {
+                    2 => parts[1].parse::<u16>().ok(),
+                    1 => parts[0].parse::<u16>().ok(),
+                    _ => None,
+                }
+            })
+            .collect();
+
+        for ext in extensions {
+            let service = match &ext.service {
+                Some(s) if s.enabled => s,
+                _ => continue,
+            };
+
+            let ext_name = &ext.metadata.name;
+
+            for port in &service.ports {
+                // Skip if manual sindri.yaml already maps this container port
+                if manual_container_ports.contains(&port.container_port) {
+                    continue;
+                }
+
+                let host_port = port.host_port.unwrap_or(port.container_port);
+
+                // Detect host port collisions
+                if let Some(existing_ext) = seen_host_ports.get(&host_port) {
+                    warn!(
+                        "Host port {} collision: extension '{}' and '{}' both declare host port {}. \
+                         The later declaration will be included but may fail at runtime.",
+                        host_port, existing_ext, ext_name, host_port
+                    );
+                }
+                seen_host_ports.insert(host_port, ext_name.clone());
+
+                let protocol_str = match &port.protocol {
+                    PortProtocol::Http => "http",
+                    PortProtocol::Https => "https",
+                    PortProtocol::Tcp => "tcp",
+                    PortProtocol::Udp => "udp",
+                };
+
+                result.push(ServicePortContext {
+                    container_port: port.container_port,
+                    host_port,
+                    protocol: protocol_str.to_string(),
+                    name: port.name.clone(),
+                    description: port.description.clone().unwrap_or_default(),
+                    ui: port.ui,
+                    health_path: port.health_path.clone(),
+                    extension_name: ext_name.clone(),
+                });
+            }
+        }
+
+        result
+    }
 }
 
 /// Builder for TemplateContext
@@ -247,6 +349,7 @@ pub struct TemplateContextBuilder {
     network_mode: String,
     extra_hosts: Vec<String>,
     ports: Vec<String>,
+    service_ports: Vec<ServicePortContext>,
     has_secrets: bool,
     secrets_file: String,
     env_vars: HashMap<String, String>,
@@ -348,6 +451,11 @@ impl TemplateContextBuilder {
         self
     }
 
+    pub fn service_ports(mut self, service_ports: Vec<ServicePortContext>) -> Self {
+        self.service_ports = service_ports;
+        self
+    }
+
     pub fn build(self) -> TemplateContext {
         TemplateContext {
             name: if self.name.is_empty() {
@@ -396,6 +504,7 @@ impl TemplateContextBuilder {
             },
             extra_hosts: self.extra_hosts,
             ports: self.ports,
+            service_ports: self.service_ports,
             has_secrets: self.has_secrets,
             secrets_file: if self.secrets_file.is_empty() {
                 ".env.secrets".to_string()

@@ -277,6 +277,26 @@ image_config:
 
 Uses a specific tag or digest.
 
+## Extension Service Ports
+
+Some extensions expose web UIs or network services (dashboards, APIs, remote desktops). Sindri automatically maps these ports to your provider when you deploy.
+
+For example, installing the **paperclip** extension gives you a React dashboard at `http://localhost:3100` and an embedded PostgreSQL on port 5432 — no manual port configuration needed.
+
+Extensions with service ports include:
+
+| Extension          | Port  | What You Get                 |
+| ------------------ | ----- | ---------------------------- |
+| **paperclip**      | 3100  | Agent orchestrator dashboard |
+| **excalidraw-mcp** | 3000  | Excalidraw canvas server     |
+| **guacamole**      | 8080  | Remote desktop web gateway   |
+| **openclaw**       | 18789 | AI gateway Control UI        |
+| **ollama**         | 11434 | Local LLM REST API           |
+
+These work automatically on Docker and Fly.io. For Kubernetes, use `kubectl port-forward` to access the ports locally. You can override any port in `sindri.yaml` if the default conflicts with something on your system.
+
+For details, see the [Extension documentation](EXTENSIONS.md) and [provider-specific guides](providers/).
+
 ## Next Steps
 
 - Read the [Image Management Guide](IMAGE_MANAGEMENT.md)

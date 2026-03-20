@@ -27,6 +27,25 @@ install:
     timeout: 1200
     args: ["--version", "1.6.0"]
 
+service:
+  enabled: true
+  ports:
+    - containerPort: 8080
+      hostPort: 8080
+      protocol: http
+      name: web-ui
+      description: "Guacamole web interface"
+      ui: true
+      healthPath: /guacamole
+    - containerPort: 3389
+      hostPort: 3389
+      protocol: tcp
+      name: rdp
+      description: "RDP access port"
+  start:
+    command: "sudo systemctl start guacd && sudo systemctl start tomcat9"
+    logfile: "~/.sindri/logs/guacamole.log"
+
 configure:
   templates:
     - source: guacamole.properties.template

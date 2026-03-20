@@ -440,7 +440,7 @@ impl NorthflankProvider {
         });
 
         // Add ports
-        let ports_json: Vec<serde_json::Value> = if config.ports.is_empty() {
+        let mut ports_json: Vec<serde_json::Value> = if config.ports.is_empty() {
             vec![serde_json::json!({
                 "name": "ssh",
                 "internalPort": 22,
@@ -461,6 +461,26 @@ impl NorthflankProvider {
                 })
                 .collect()
         };
+        // Merge extension-declared service ports
+        for sp in &config.service_ports {
+            let already_mapped = config
+                .ports
+                .iter()
+                .any(|p| p.internal_port == sp.container_port);
+            if !already_mapped {
+                ports_json.push(serde_json::json!({
+                    "name": sp.name,
+                    "internalPort": sp.container_port,
+                    "public": sp.ui,
+                    "protocol": match sp.protocol.as_str() {
+                        "http" | "https" => "HTTP",
+                        "tcp" => "TCP",
+                        "udp" => "UDP",
+                        _ => "TCP",
+                    }
+                }));
+            }
+        }
         service_def["ports"] = serde_json::Value::Array(ports_json);
 
         // Add health checks if configured
@@ -614,6 +634,8 @@ pub struct NorthflankDeployConfig<'a> {
     pub volume_name: Option<String>,
     pub region: Option<String>,
     pub ports: Vec<NorthflankPort>,
+    /// Extension-declared service ports for automatic port mapping
+    pub service_ports: Vec<crate::templates::ServicePortContext>,
     pub health_check: Option<NorthflankHealthCheck>,
     pub auto_scaling: Option<NorthflankAutoScaling>,
     pub cpus: u32,
@@ -944,6 +966,7 @@ impl Provider for NorthflankProvider {
                 public: false,
                 protocol: "TCP".to_string(),
             }],
+            service_ports: Vec::new(),
             health_check: None,
             auto_scaling: None,
             cpus: nf_config.cpus,

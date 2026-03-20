@@ -7,7 +7,7 @@ version: "3.0.0"
 metadata:
   name: "Sindri v3 Extension Registry"
   description: "Registry of available extensions for Sindri v3 (Rust-based CLI)"
-  last_updated: "2026-02-26"
+  last_updated: "2026-03-19"
 
 
 extensions:
@@ -178,6 +178,9 @@ extensions:
   openclaw:
     category: "ai-dev"
     description: "OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI"
+  paperclip:
+    category: "ai-dev"
+    description: "Paperclip - AI agent orchestrator with React dashboard for managing agent teams"
   opencode:
     category: "ai-dev"
     description: "OpenCode - Open source AI coding agent for terminal, desktop, and IDE integration"

@@ -294,6 +294,22 @@ providers:
 | `public`       | boolean | No       | `false` | Expose publicly with auto-TLS            |
 | `protocol`     | string  | No       | `HTTP`  | Protocol: `HTTP`, `TCP`, or `UDP`        |
 
+### Automatic Extension Ports
+
+Extensions that declare `service.ports` in their `extension.yaml` automatically have their ports merged into the Northflank service definition. Extension ports are mapped as follows:
+
+| Extension Protocol | Northflank Protocol | Public     | Notes              |
+| ------------------ | ------------------- | ---------- | ------------------ |
+| `http` / `https`   | `HTTP`              | `ui` value | Auto-TLS if public |
+| `tcp`              | `TCP`               | `ui` value | Raw TCP            |
+| `udp`              | `UDP`               | `ui` value | Raw UDP            |
+
+The `ui` field from the extension's port declaration maps directly to Northflank's `public` flag — ports with `ui: true` (web UIs) are exposed publicly with auto-TLS, while API ports (`ui: false`) remain internal.
+
+Manual `providers.northflank.ports` entries take precedence — if you already declare a port with a matching `internalPort`, the extension-declared port is skipped.
+
+See [ADR-050](../architecture/adr/050-service-port-exposure.md) for the full architecture.
+
 ### Auto-Scaling Configuration
 
 | Field                     | Type    | Required | Default | Description                                    |

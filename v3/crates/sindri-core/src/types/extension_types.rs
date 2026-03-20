@@ -858,6 +858,10 @@ pub struct ServiceConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
 
+    /// Declared network ports for provider-level mapping
+    #[serde(default)]
+    pub ports: Vec<ServicePort>,
+
     /// Start configuration
     pub start: ServiceCommandConfig,
 
@@ -914,6 +918,50 @@ pub struct ServiceReadinessConfig {
     /// Seconds to wait for readiness
     #[serde(default = "default_readiness_timeout")]
     pub timeout: u32,
+}
+
+/// Port exposure declaration for provider-level mapping
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServicePort {
+    /// Port number inside the container
+    pub container_port: u16,
+
+    /// Default host-side port mapping
+    #[serde(default)]
+    pub host_port: Option<u16>,
+
+    /// Network protocol
+    pub protocol: PortProtocol,
+
+    /// Short identifier for routing and display
+    pub name: String,
+
+    /// Human-readable description
+    #[serde(default)]
+    pub description: Option<String>,
+
+    /// Env var name that overrides host port at runtime
+    #[serde(default)]
+    pub env_override: Option<String>,
+
+    /// Whether this port serves a browsable web UI
+    #[serde(default)]
+    pub ui: bool,
+
+    /// HTTP path for health checks (only for http/https)
+    #[serde(default)]
+    pub health_path: Option<String>,
+}
+
+/// Network protocol for service ports
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PortProtocol {
+    Http,
+    Https,
+    Tcp,
+    Udp,
 }
 
 fn default_stop_timeout() -> u32 {

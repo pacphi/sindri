@@ -322,6 +322,28 @@ extensions:
 
 These become `INSTALL_PROFILE` and `ADDITIONAL_EXTENSIONS` environment variables.
 
+## Service Port Exposure
+
+E2B sandboxes are accessed programmatically via the SDK — there is no Docker-style port mapping or Fly.io-style service block. Extension `service.ports` declarations are **informational only** for the E2B provider.
+
+If an extension declares ports (e.g., paperclip on 3100), the service runs inside the sandbox but you access it via the E2B SDK's process and terminal APIs, not via a public URL or port forward.
+
+For HTTP services running inside a sandbox, you can use the SDK to proxy requests:
+
+```typescript
+const sandbox = await Sandbox.create("sindri-e2b");
+
+// Start the service inside the sandbox
+await sandbox.process.start({ cmd: "paperclipai run" });
+
+// Access via SDK (not via direct HTTP)
+const { stdout } = await sandbox.process.start({
+  cmd: "curl -s http://localhost:3100/api/health",
+});
+```
+
+See [ADR-050](../architecture/adr/050-service-port-exposure.md) for the full architecture across all providers.
+
 ## Connection Methods
 
 ### E2B CLI Terminal (Recommended)

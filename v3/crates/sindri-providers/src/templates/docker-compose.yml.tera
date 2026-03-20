@@ -95,11 +95,17 @@ services:
 {% endif %}
     stdin_open: true
     tty: true
-{% if ports | length > 0 %}
+{% if ports | length > 0 or service_ports | length > 0 %}
     ports:
 {% for port in ports %}
       - "{{ port }}"
 {% endfor %}
+{% if service_ports | length > 0 %}
+    # Extension-declared service ports
+{% for sp in service_ports %}
+      - "{{ sp.host_port }}:{{ sp.container_port }}" # {{ sp.extension_name }}: {{ sp.name }} ({{ sp.protocol }}{% if sp.ui %}, web-ui{% endif %})
+{% endfor %}
+{% endif %}
 {% endif %}
 {% if extra_hosts | length > 0 %}
     extra_hosts:

@@ -90,6 +90,7 @@ cli_versions:
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
       opencode: ">=1.0.0,<2.0.0"
+      paperclip: ">=1.0.0,<2.0.0"
       p-replicator: ">=1.0.0,<2.0.0"
       rtk: ">=1.0.0,<2.0.0"
 
@@ -197,6 +198,7 @@ cli_versions:
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
       opencode: ">=1.0.0,<2.0.0"
+      paperclip: ">=1.0.0,<2.0.0"
       p-replicator: ">=1.0.0,<2.0.0"
       rtk: ">=1.0.0,<2.0.0"
 
@@ -304,6 +306,7 @@ cli_versions:
       ollama: ">=2.0.0,<3.0.0"
       openclaw: ">=2.0.0,<3.0.0"
       opencode: ">=2.0.0,<3.0.0"
+      paperclip: ">=2.0.0,<3.0.0"
       p-replicator: ">=2.0.0,<3.0.0"
       rtk: ">=2.0.0,<3.0.0"
 
