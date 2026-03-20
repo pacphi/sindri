@@ -621,6 +621,54 @@ capabilities:
       strategy: append-if-missing
 ```
 
+### service.ports (Service Port Exposure — ADR-050)
+
+Extensions that expose web UIs or network services can declare ports in the `service` block.
+Providers auto-generate port mappings from these declarations. Manual `sindri.yaml` ports take precedence.
+
+```yaml
+service:
+  enabled: true
+  ports:
+    - containerPort: 3100         # Required: port inside container
+      hostPort: 3100              # Optional: default host mapping (defaults to containerPort)
+      protocol: http              # Required: http | https | tcp | udp
+      name: web-ui                # Required: identifier (lowercase, hyphens)
+      description: "Dashboard"    # Optional: human-readable
+      envOverride: MY_PORT        # Optional: env var to remap at runtime
+      ui: true                    # Optional: browsable web UI hint (default: false)
+      healthPath: /api/health     # Optional: HTTP health endpoint
+  start:
+    command: "mytool serve"
+```
+
+**Port protocol enum**: `http`, `https`, `tcp`, `udp`
+
+**Provider behavior**:
+- **Docker**: Generates `-p host:container` mappings
+- **Fly.io**: HTTP ports get `[[services]]` with TLS handlers; TCP ports get plain TCP services
+- **Kubernetes**: Ports added to Service spec; `ui: true` ports can generate Ingress
+- **RunPod**: HTTP ports merged into `expose_ports` for RunPod proxy
+- **Northflank**: Mapped to NorthflankPortConfig entries
+- **DevPod/E2B**: Informational only
+
+**Example** (extension with dashboard + database):
+```yaml
+service:
+  enabled: true
+  ports:
+    - containerPort: 3100
+      protocol: http
+      name: web-ui
+      ui: true
+      healthPath: /api/health
+    - containerPort: 5432
+      protocol: tcp
+      name: database
+  start:
+    command: "mytool run"
+```
+
 ## V3-Specific Notes
 
 1. **Extension Discovery**: V3 auto-discovers extensions from `v3/extensions/` directory, but `v3/registry.yaml` must be maintained for registry listing
@@ -630,6 +678,7 @@ capabilities:
 5. **Collision Handling**: Smart conflict resolution for cloned projects
 6. **Project Context**: Automatic CLAUDE.md file management
 7. **Generated Docs**: Extension documentation is generated on-demand via `sindri extension docs <name>` combining human-written `docs` section content with auto-derived data from the extension YAML
+8. **Service Port Exposure**: Extensions can declare `service.ports` for automatic provider port mapping (see ADR-050)
 
 ## Post-Extension Checklist
 
