@@ -57,7 +57,7 @@ mkdir -p "$HOME/.openfang/bin"
 # via cargo so the binary links against the system's libssl.
 needs_cargo_build=false
 if command_exists openssl; then
-    openssl_major=$(openssl version 2>/dev/null | grep -oP '(?<=OpenSSL )\d+' || echo "")
+    openssl_major=$(openssl version 2>/dev/null | grep -oP '(?<=OpenSSL )\d+' | head -1 || echo "")
     if [[ "$openssl_major" -ge 3 ]] 2>/dev/null; then
         print_status "OpenSSL ${openssl_major}.x detected — prebuilt binary requires OpenSSL 1.x"
         print_status "Will build from source via cargo to link against system OpenSSL"
