@@ -185,7 +185,7 @@ jobs:
     outputs:
       ci_image: ${{ steps.verify.outputs.ci_image }}
       image_digest: ${{ steps.verify.outputs.image_digest }}
-      commit_sha: ${{ steps.get-sha.outputs.sha }}
+      commit_sha: ${{ steps.verify.outputs.commit_sha }}
       all_distros_available: ${{ steps.check-distros.outputs.all_distros_available }}
     steps:
       - uses: actions/checkout@v6
@@ -210,47 +210,101 @@ jobs:
         id: verify
         run: |
           SHA="${{ steps.get-sha.outputs.sha }}"
-          CI_PASSED="ghcr.io/${{ github.repository }}:v3-ci-passed-${SHA}-ubuntu"
-          CI_TAG="ghcr.io/${{ github.repository }}:v3-ci-${SHA}-ubuntu"
+          REPO="ghcr.io/${{ github.repository }}"
+
+          # Try to find a CI image for a given SHA (ubuntu as the canary)
+          try_pull_ci_image() {
+            local sha="$1"
+            local ci_passed="${REPO}:v3-ci-passed-${sha}-ubuntu"
+            local ci_tag="${REPO}:v3-ci-${sha}-ubuntu"
+
+            if docker pull "$ci_passed" 2>/dev/null; then
+              echo "$ci_passed"
+              return 0
+            elif docker pull "$ci_tag" 2>/dev/null; then
+              echo "$ci_tag"
+              return 0
+            fi
+            return 1
+          }
 
           echo "Looking for promotion candidate images..."
-          echo "  Preferred: $CI_PASSED"
-          echo "  Fallback:  $CI_TAG"
+          echo "  Preferred: ${REPO}:v3-ci-passed-${SHA}-ubuntu"
+          echo "  Fallback:  ${REPO}:v3-ci-${SHA}-ubuntu"
           echo ""
 
-          if docker pull "$CI_PASSED" 2>/dev/null; then
-            echo "ci_image=$CI_PASSED" >> $GITHUB_OUTPUT
-            DIGEST=$(docker inspect "$CI_PASSED" --format='{{index .RepoDigests 0}}')
-            echo "image_digest=$DIGEST" >> $GITHUB_OUTPUT
-            echo "✅ Found CI image: $CI_PASSED"
-            echo "   Digest: $DIGEST"
-            echo "::notice title=CI Image Found::Using tested image: $CI_PASSED"
-          elif docker pull "$CI_TAG" 2>/dev/null; then
-            echo "ci_image=$CI_TAG" >> $GITHUB_OUTPUT
-            DIGEST=$(docker inspect "$CI_TAG" --format='{{index .RepoDigests 0}}')
-            echo "image_digest=$DIGEST" >> $GITHUB_OUTPUT
-            echo "⚠️  Using unverified CI image: $CI_TAG"
-            echo "   Digest: $DIGEST"
-            echo "::warning title=Unverified CI Image::Using CI image that didn't pass tests: $CI_TAG"
+          FOUND_IMAGE=""
+          EFFECTIVE_SHA="$SHA"
+
+          if FOUND_IMAGE=$(try_pull_ci_image "$SHA"); then
+            echo "✅ Found CI image for tagged commit: $FOUND_IMAGE"
           else
-            echo "::error title=No CI Image::No CI image found for commit $SHA"
+            echo "⚠  No CI image for tagged commit ${SHA::12}"
+            echo "   Searching ancestors for reusable CI image..."
             echo ""
-            echo "Possible causes:"
-            echo "  1. CI workflow didn't run on this commit"
-            echo "  2. CI workflow is still running"
-            echo "  3. CI workflow failed"
-            echo "  4. Image was deleted (check retention policy)"
-            echo ""
-            echo "To fix:"
-            echo "  1. Verify CI ran: https://github.com/${{ github.repository }}/actions"
-            echo "  2. Check GHCR packages: https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
-            exit 1
+
+            # Paths that affect the container image — if any changed, we can't reuse
+            CONTAINER_PATHS="v3/ .github/actions/v3/ .github/scripts/v3/"
+
+            FOUND=false
+            for ANCESTOR_SHA in $(git log --format='%H' --skip=1 --max-count=10 HEAD); do
+              CHANGED_FILES=$(git diff --name-only "$ANCESTOR_SHA" HEAD)
+
+              CONTAINER_CHANGE=false
+              while IFS= read -r FILE; do
+                [[ -z "$FILE" ]] && continue
+                for PATTERN in $CONTAINER_PATHS; do
+                  if [[ "$FILE" == ${PATTERN}* ]]; then
+                    CONTAINER_CHANGE=true
+                    break 2
+                  fi
+                done
+              done <<< "$CHANGED_FILES"
+
+              if [[ "$CONTAINER_CHANGE" == "true" ]]; then
+                echo "   ${ANCESTOR_SHA::12}: diff includes container-affecting files, stopping search"
+                break
+              fi
+
+              echo "   ${ANCESTOR_SHA::12}: trying..."
+              if FOUND_IMAGE=$(try_pull_ci_image "$ANCESTOR_SHA"); then
+                EFFECTIVE_SHA="$ANCESTOR_SHA"
+                FOUND=true
+                echo ""
+                echo "✅ Reusing CI image from ancestor ${ANCESTOR_SHA::12}: $FOUND_IMAGE"
+                echo "   Only non-container files changed since that build:"
+                echo "$CHANGED_FILES" | sed 's/^/     /'
+                echo "::notice title=CI Image Reused::Using CI image from ancestor ${ANCESTOR_SHA::12} — no container-affecting changes since"
+                break
+              fi
+            done
+
+            if [[ "$FOUND" != "true" ]]; then
+              echo "::error title=No CI Image::No CI image found for commit ${SHA::12} or recent ancestors"
+              echo ""
+              echo "Possible causes:"
+              echo "  1. CI workflow didn't run on this or recent commits"
+              echo "  2. CI workflow is still running"
+              echo "  3. CI workflow failed"
+              echo "  4. Image was deleted (check retention policy)"
+              echo ""
+              echo "To fix:"
+              echo "  1. Verify CI ran: https://github.com/${{ github.repository }}/actions"
+              echo "  2. Check GHCR packages: https://github.com/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }}"
+              exit 1
+            fi
           fi
+
+          echo "ci_image=$FOUND_IMAGE" >> $GITHUB_OUTPUT
+          echo "commit_sha=$EFFECTIVE_SHA" >> $GITHUB_OUTPUT
+          DIGEST=$(docker inspect "$FOUND_IMAGE" --format='{{index .RepoDigests 0}}')
+          echo "image_digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "   Digest: $DIGEST"
 
       - name: Check all distro CI images
         id: check-distros
         run: |
-          SHA="${{ steps.get-sha.outputs.sha }}"
+          SHA="${{ steps.verify.outputs.commit_sha }}"
           ALL_OK=true
           for DISTRO in ubuntu fedora opensuse; do
             IMG="ghcr.io/${{ github.repository }}:v3-ci-passed-${SHA}-${DISTRO}"
