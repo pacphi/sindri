@@ -478,7 +478,7 @@ jobs:
   mark-passed:
     name: Mark Promotion Candidates
     needs: [build-image, security-scan, k8s-cluster-lifecycle]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
