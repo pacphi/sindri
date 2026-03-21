@@ -1,0 +1,5 @@
+# RUSTSEC-2026-0049: rustls-webpki CRL Distribution Point matching logic
+# Affects rustls-webpki 0.101.7 via aws-smithy-http-client -> rustls 0.21.12
+# Cannot upgrade: aws-smithy-http-client 1.1.12 (latest) still depends on rustls 0.21.x
+# Remove this entry once AWS SDK drops the rustls 0.21 dependency
+RUSTSEC-2026-0049
