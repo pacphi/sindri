@@ -69,6 +69,7 @@ cli_versions:
       # DevOps & Tools
       docker: ">=1.1.0,<2.0.0"
       draupnir: ">=1.0.0,<2.0.0"
+      glab: ">=1.0.0,<2.0.0"
       github-cli: ">=2.0.0,<3.0.0"
       supabase-cli: ">=2.0.0,<3.0.0"
       tmux-workspace: ">=2.0.0,<3.0.0"
@@ -177,6 +178,7 @@ cli_versions:
       # DevOps & Tools
       docker: ">=1.1.0,<2.0.0"
       draupnir: ">=1.0.0,<2.0.0"
+      glab: ">=1.0.0,<2.0.0"
       github-cli: ">=2.0.0,<3.0.0"
       supabase-cli: ">=2.1.0,<3.0.0"
       tmux-workspace: ">=2.0.0,<3.0.0"
@@ -285,6 +287,7 @@ cli_versions:
       # DevOps & Tools
       docker: ">=2.0.0,<3.0.0"
       draupnir: ">=2.0.0,<3.0.0"
+      glab: ">=2.0.0,<3.0.0"
       github-cli: ">=3.0.0,<4.0.0"
       supabase-cli: ">=3.0.0,<4.0.0"
       tmux-workspace: ">=3.0.0,<4.0.0"

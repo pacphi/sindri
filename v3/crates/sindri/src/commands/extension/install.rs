@@ -3,6 +3,7 @@
 use anyhow::{anyhow, Context, Result};
 use sindri_core::types::ExtensionState;
 use sindri_extensions::{EventEnvelope, ExtensionEvent, StatusLedger};
+use std::collections::HashSet;
 use std::time::Instant;
 
 use crate::cli::ExtensionInstallArgs;
@@ -260,9 +261,15 @@ async fn install_from_config(
                     }
                 }
 
-                // Install each additional extension
-                for ext in additional {
-                    install_by_name(ext.clone(), None, force, no_deps).await?;
+                // Install each additional extension, continuing on error.
+                // Track failures so dependents can be skipped.
+                let failed = install_extensions_resilient(additional, force, no_deps).await;
+                if !failed.is_empty() {
+                    output::warning(&format!(
+                        "{}/{} additional extension(s) failed to install",
+                        failed.len(),
+                        additional.len()
+                    ));
                 }
             }
         }
@@ -302,9 +309,16 @@ async fn install_from_config(
             }
         }
 
-        // Install each extension
-        for ext in active {
-            install_by_name(ext.clone(), None, force, no_deps).await?;
+        // Install each extension, continuing on error so one failure doesn't
+        // block remaining independent extensions. Extensions whose dependencies
+        // failed are automatically skipped.
+        let failed = install_extensions_resilient(active, force, no_deps).await;
+        if !failed.is_empty() {
+            return Err(anyhow!(
+                "{}/{} extension(s) failed to install",
+                failed.len(),
+                active.len()
+            ));
         }
 
         return Ok(());
@@ -313,6 +327,100 @@ async fn install_from_config(
     // Case 3: No profile, no active list
     output::warning("No extensions specified in config file");
     Ok(())
+}
+
+/// Install a list of extensions with dependency-aware continue-on-error.
+///
+/// When an extension fails, its transitive dependents are automatically skipped
+/// (since they would likely fail too). Independent extensions continue installing.
+/// Returns the list of extensions that failed (directly or due to a failed dependency).
+async fn install_extensions_resilient(
+    extensions: &[String],
+    force: bool,
+    no_deps: bool,
+) -> Vec<(String, String)> {
+    // Build a dependency map for the requested extensions so we can skip
+    // dependents of failed extensions. We load this best-effort from the
+    // registry — if the registry is unavailable we fall back to no dependency
+    // tracking (still continue-on-error, just without transitive skipping).
+    let dependency_map = load_dependency_map(extensions).await;
+
+    let mut failed: Vec<(String, String)> = Vec::new();
+    let mut failed_names: HashSet<String> = HashSet::new();
+
+    for ext in extensions {
+        // Check if any of this extension's dependencies have failed
+        if let Some(deps) = dependency_map.get(ext.as_str()) {
+            let blocked_by: Vec<&String> = deps
+                .iter()
+                .filter(|d| failed_names.contains(d.as_str()))
+                .collect();
+            if !blocked_by.is_empty() {
+                let reason = format!(
+                    "Skipped: dependency {} failed",
+                    blocked_by
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                output::warning(&format!("Skipping '{}': {}", ext, reason));
+                failed.push((ext.clone(), reason));
+                failed_names.insert(ext.clone());
+                continue;
+            }
+        }
+
+        if let Err(e) = install_by_name(ext.clone(), None, force, no_deps).await {
+            output::warning(&format!(
+                "Extension '{}' failed: {}. Continuing with remaining extensions.",
+                ext, e
+            ));
+            failed.push((ext.clone(), e.to_string()));
+            failed_names.insert(ext.clone());
+        }
+    }
+
+    if !failed.is_empty() {
+        output::warning(&format!("{} extension(s) failed:", failed.len()));
+        for (name, err) in &failed {
+            output::error(&format!("  {}: {}", name, err));
+        }
+    }
+
+    failed
+}
+
+/// Load a dependency map for the given extensions from the registry.
+/// Returns a map of extension_name -> Vec<dependency_names>.
+/// Falls back to an empty map if the registry is unavailable.
+async fn load_dependency_map(
+    extensions: &[String],
+) -> std::collections::HashMap<String, Vec<String>> {
+    let mut map = std::collections::HashMap::new();
+    let cache_dir = match get_cache_dir() {
+        Ok(d) => d,
+        Err(_) => return map,
+    };
+
+    let registry =
+        match sindri_extensions::ExtensionRegistry::load_from_github(cache_dir, "main").await {
+            Ok(r) => r,
+            Err(_) => return map,
+        };
+
+    let resolver = sindri_extensions::DependencyResolver::new(&registry);
+
+    for ext_name in extensions {
+        // Resolve returns the full dependency chain in topological order.
+        // The extension's direct + transitive deps are everything except itself.
+        if let Ok(chain) = resolver.resolve(ext_name) {
+            let deps: Vec<String> = chain.into_iter().filter(|name| name != ext_name).collect();
+            map.insert(ext_name.clone(), deps);
+        }
+    }
+
+    map
 }
 
 /// Install extensions from a profile (delegates to profile::install)

@@ -355,7 +355,13 @@ install_extensions_background() {
 
     print_status "Starting background extension installation..."
 
-    # Run installation in background
+    # Overall timeout for the entire installation process (default: 30 minutes).
+    # Individual extensions have their own timeouts (default: 5 minutes), but
+    # this guards against the overall process hanging indefinitely if something
+    # goes wrong at the orchestration level.
+    local install_timeout="${INSTALL_TIMEOUT:-1800}"
+
+    # Run installation in background with timeout wrapper
     (
         set -o pipefail
         cd "$WORKSPACE"
@@ -393,14 +399,35 @@ install_extensions_background() {
 
         local env_vars="$preserve_list"
 
+        # Helper: run a command with the overall install timeout.
+        # If the command exceeds the timeout, it is killed and an error is logged.
+        run_with_timeout() {
+            local cmd_description="$1"
+            shift
+            # Use timeout command (coreutils) to enforce the deadline
+            if command -v timeout >/dev/null 2>&1; then
+                timeout --signal=TERM --kill-after=30 "$install_timeout" "$@"
+                local rc=$?
+                if [[ $rc -eq 124 ]]; then
+                    print_error "Installation timed out after ${install_timeout}s: ${cmd_description}" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                fi
+                return $rc
+            else
+                # Fallback: run without timeout if timeout command unavailable
+                "$@"
+            fi
+        }
+
         if [[ -f "sindri.yaml" ]]; then
             # Priority 1: Install from sindri.yaml if present in workspace
-            print_status "Installing extensions from sindri.yaml..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "Installing extensions from sindri.yaml (timeout: ${install_timeout}s)..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            run_with_timeout "sindri.yaml config install" \
+                sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" bash -c "cd '$WORKSPACE' && sindri extension install --from-config sindri.yaml --yes" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
         elif [[ -n "${INSTALL_PROFILE:-}" ]]; then
             # Priority 2: Install from INSTALL_PROFILE environment variable
-            print_status "Installing profile: ${INSTALL_PROFILE}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "Installing profile: ${INSTALL_PROFILE} (timeout: ${install_timeout}s)..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            run_with_timeout "profile ${INSTALL_PROFILE}" \
+                sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri profile install "${INSTALL_PROFILE}" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
 
             # Install additional extensions on top of profile if specified
             if [[ -n "${ADDITIONAL_EXTENSIONS:-}" ]]; then
@@ -412,13 +439,14 @@ install_extensions_background() {
                     ext=$(echo "$ext" | xargs)
                     if [[ -n "$ext" ]]; then
                         print_status "Installing additional extension: ${ext}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-                        sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri extension install "$ext" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                        run_with_timeout "extension ${ext}" \
+                            sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri extension install "$ext" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null || true
                     fi
                 done
             fi
         elif [[ -n "${CUSTOM_EXTENSIONS:-}" ]]; then
             # Priority 3: Install from CUSTOM_EXTENSIONS environment variable (explicit list, no profile)
-            print_status "Installing custom extensions: ${CUSTOM_EXTENSIONS}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            print_status "Installing custom extensions: ${CUSTOM_EXTENSIONS} (timeout: ${install_timeout}s)..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
             # Split comma-separated list and install each extension
             IFS=',' read -ra EXTENSIONS <<< "$CUSTOM_EXTENSIONS"
             for ext in "${EXTENSIONS[@]}"; do
@@ -426,7 +454,8 @@ install_extensions_background() {
                 ext=$(echo "$ext" | xargs)
                 if [[ -n "$ext" ]]; then
                     print_status "Installing extension: ${ext}..." 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-                    sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri extension install "$ext" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+                    run_with_timeout "extension ${ext}" \
+                        sudo -u "$DEVELOPER_USER" --preserve-env="${env_vars}" sindri extension install "$ext" --yes 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null || true
                 fi
             done
         else
@@ -441,15 +470,22 @@ install_extensions_background() {
         # Capture exit code before checking it
         local exit_code=$?
 
-        # Mark as complete if successful
+        # Always create bootstrap marker — even on partial failure, the container
+        # should be usable. Extensions that succeeded are healthy; failed ones are
+        # reported via 'sindri extension status'. Without the marker, every container
+        # restart re-attempts all extensions, including ones that will always fail.
+        touch "$bootstrap_marker"
+        chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
+
         if [[ $exit_code -eq 0 ]]; then
-            touch "$bootstrap_marker"
-            chown "${DEVELOPER_USER}:${DEVELOPER_USER}" "$bootstrap_marker"
             print_success "Extension installation complete" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
             echo "✅ Extension installation complete. View log: sindri extension log"
+        elif [[ $exit_code -eq 124 ]]; then
+            print_error "Extension installation timed out after ${install_timeout}s" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "⏱️ Extension installation timed out. Some extensions may have installed. View: sindri extension status"
         else
-            print_error "Extension installation failed (exit code: ${exit_code})" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
-            echo "❌ Extension installation failed. View errors: sindri extension log -l error"
+            print_error "Extension installation completed with errors (exit code: ${exit_code})" 2>&1 | sudo -u "$DEVELOPER_USER" tee -a "$install_log" > /dev/null
+            echo "⚠️ Extension installation had errors. View: sindri extension status"
         fi
     ) &
 

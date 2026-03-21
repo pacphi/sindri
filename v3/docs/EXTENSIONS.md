@@ -39,7 +39,7 @@ V3 extensions are organized into the following categories:
 | ------------------- | ------------------------------------------------ | ----- |
 | **languages**       | Programming language runtimes and toolchains     | 11    |
 | **claude**          | Claude Code integrations and workflow tools      | 10    |
-| **devops**          | Infrastructure, deployment, and operations tools | 6     |
+| **devops**          | Infrastructure, deployment, and operations tools | 7     |
 | **ai-agents**       | AI agent frameworks and orchestration            | 5     |
 | **ai-dev**          | AI development tools and LLM interfaces          | 12    |
 | **mcp**             | Model Context Protocol servers                   | 5     |
@@ -78,6 +78,7 @@ V3 extensions are organized into the following categories:
 | **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                           | hybrid         |
 | **infra-tools** | 2.3.0   | Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)                   | hybrid         |
 | **draupnir**    | 1.0.0   | Sindri instance agent for mimir fleet management                                  | script         |
+| **glab**        | 1.0.0   | GitLab CLI for merge requests, issues, pipelines, and CI/CD                       | mise           |
 | **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                              | script         |
 | **cloud-tools** | 2.3.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)         | script         |
 | **monitoring**  | 2.0.0   | Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli) | script         |
@@ -692,7 +693,7 @@ When run via sindri, `SINDRI_LOG_DIR` is automatically set to `~/.sindri/logs/<y
 
 ## Summary Statistics
 
-- **Total Extensions**: 61
+- **Total Extensions**: 62
 - **Categories**: 13
 - **Installation Methods Used**: 6 (mise, apt, binary, npm, script, hybrid)
 - **Extensions with project-init**: 12

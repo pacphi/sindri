@@ -7,7 +7,7 @@ version: "3.0.0"
 metadata:
   name: "Sindri v3 Extension Registry"
   description: "Registry of available extensions for Sindri v3 (Rust-based CLI)"
-  last_updated: "2026-03-19"
+  last_updated: "2026-03-20"
 
 
 extensions:
@@ -109,6 +109,9 @@ extensions:
     category: "devops"
     description: "Docker and container tools"
     sha256: "29dd0f9b5d648a0c3d0278593ecf99e57d0fb6e30a1333b3a206af49492565e8"
+  glab:
+    category: "devops"
+    description: "GitLab CLI for merge requests, issues, pipelines, and CI/CD"
   github-cli:
     category: "devops"
     description: "GitHub CLI tools"
