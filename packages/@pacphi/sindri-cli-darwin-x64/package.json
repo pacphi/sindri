@@ -1,14 +1,14 @@
 {
-  "name": "@sindri/cli-linux-x64",
+  "name": "@pacphi/sindri-cli-darwin-x64",
   "version": "3.1.0",
-  "description": "Sindri CLI binary — Linux x64",
+  "description": "Sindri CLI binary — macOS Intel (x64)",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/pacphi/sindri"
   },
   "os": [
-    "linux"
+    "darwin"
   ],
   "cpu": [
     "x64"

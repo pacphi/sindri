@@ -135,8 +135,8 @@ panic = "abort"
 # On `git tag v3.x.y`:
 #   1. Builds sindri binary for all 5 target triples
 #   2. Creates GitHub Release with assets
-#   3. Publishes @sindri/cli-{platform} npm packages
-#   4. Publishes @sindri/cli wrapper package
+#   3. Publishes @pacphi/sindri-cli-{platform} npm packages
+#   4. Publishes @pacphi/sindri-cli wrapper package
 #
 # Docs: https://opensource.axo.dev/cargo-dist/
 [workspace.metadata.dist]
@@ -150,10 +150,10 @@ targets = [
     "aarch64-apple-darwin",
     "x86_64-pc-windows-msvc",
 ]
-# Publish to npm under the @sindri scope
-npm-scope = "@sindri"
-# The npm package names map to the platform packages in packages/@sindri/
-npm-package = "@sindri/cli"
+# Publish to npm under the @pacphi scope
+npm-scope = "@pacphi"
+# The npm package names map to the platform packages in packages/@pacphi/
+npm-package = "@pacphi/sindri-cli"
 # CI provider (generates .github/workflows/release.yml)
 ci = ["github"]
 # Create GitHub Release automatically

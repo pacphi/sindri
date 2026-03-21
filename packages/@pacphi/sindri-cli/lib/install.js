@@ -1,7 +1,7 @@
 /**
- * @sindri/cli postinstall fallback
+ * @pacphi/sindri-cli postinstall fallback
  *
- * Runs after `npm install @sindri/cli`. If the platform-specific optional
+ * Runs after `npm install @pacphi/sindri-cli`. If the platform-specific optional
  * dependency was installed successfully, this is a no-op. If it was skipped
  * (e.g. cross-platform install, CI environment), we attempt to download the
  * binary directly from GitHub Releases.
@@ -55,7 +55,7 @@ async function main() {
 
   if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
 
-  process.stdout.write(`@sindri/cli: Downloading ${url} …\n`);
+  process.stdout.write(`@pacphi/sindri-cli: Downloading ${url} …\n`);
 
   await download(url, destFile);
 
@@ -63,7 +63,7 @@ async function main() {
     chmodSync(destFile, 0o755);
   }
 
-  process.stdout.write(`@sindri/cli: Binary installed to ${destFile}\n`);
+  process.stdout.write(`@pacphi/sindri-cli: Binary installed to ${destFile}\n`);
 }
 
 function download(url, dest) {
@@ -87,5 +87,5 @@ function download(url, dest) {
 
 main().catch((err) => {
   // Postinstall failures must not break the overall install
-  process.stderr.write(`@sindri/cli: postinstall warning — ${err.message}\n`);
+  process.stderr.write(`@pacphi/sindri-cli: postinstall warning — ${err.message}\n`);
 });

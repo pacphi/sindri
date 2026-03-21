@@ -1,13 +1,13 @@
-# @sindri/cli
+# @pacphi/sindri-cli
 
 The Sindri CLI distributed as an npm package.
 
 ## Installation
 
 ```bash
-npm install -g @sindri/cli
+npm install -g @pacphi/sindri-cli
 # or
-pnpm add -g @sindri/cli
+pnpm add -g @pacphi/sindri-cli
 ```
 
 ## Usage
@@ -30,27 +30,27 @@ to it.
 
 ### Supported platforms
 
-| Platform | Package |
-|----------|---------|
-| macOS Apple Silicon | `@sindri/cli-darwin-arm64` |
-| macOS Intel | `@sindri/cli-darwin-x64` |
-| Linux x64 | `@sindri/cli-linux-x64` |
-| Linux arm64 | `@sindri/cli-linux-arm64` |
-| Windows x64 | `@sindri/cli-win32-x64` |
+| Platform            | Package                           |
+| ------------------- | --------------------------------- |
+| macOS Apple Silicon | `@pacphi/sindri-cli-darwin-arm64` |
+| macOS Intel         | `@pacphi/sindri-cli-darwin-x64`   |
+| Linux x64           | `@pacphi/sindri-cli-linux-x64`    |
+| Linux arm64         | `@pacphi/sindri-cli-linux-arm64`  |
+| Windows x64         | `@pacphi/sindri-cli-win32-x64`    |
 
 ## Programmatic usage
 
 ```javascript
-const { getInstalledBinaryPath } = require("@sindri/cli");
+const { getInstalledBinaryPath } = require("@pacphi/sindri-cli");
 const bin = getInstalledBinaryPath();
-// bin = "/path/to/node_modules/@sindri/cli-linux-x64/sindri"
+// bin = "/path/to/node_modules/@pacphi/sindri-cli-linux-x64/sindri"
 ```
 
 ## Environment variables
 
-| Variable | Description |
-|----------|-------------|
-| `SINDRI_BIN_PATH` | Override the binary path entirely |
+| Variable               | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `SINDRI_BIN_PATH`      | Override the binary path entirely                |
 | `SINDRI_SKIP_DOWNLOAD` | Set to `1` to skip postinstall download fallback |
 
 ## Version alignment

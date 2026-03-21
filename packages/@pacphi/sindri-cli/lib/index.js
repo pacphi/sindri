@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @sindri/cli — runtime binary resolver
+ * @pacphi/sindri-cli — runtime binary resolver
  *
  * Resolves the platform-specific sindri binary from the installed optional
  * dependency package, then delegates all arguments to it.
@@ -16,11 +16,11 @@ const path = require("node:path");
 
 // Maps Node.js platform+arch to the optional package name
 const PLATFORM_PACKAGES = {
-  "darwin-arm64": "@sindri/cli-darwin-arm64",
-  "darwin-x64": "@sindri/cli-darwin-x64",
-  "linux-x64": "@sindri/cli-linux-x64",
-  "linux-arm64": "@sindri/cli-linux-arm64",
-  "win32-x64": "@sindri/cli-win32-x64",
+  "darwin-arm64": "@pacphi/sindri-cli-darwin-arm64",
+  "darwin-x64": "@pacphi/sindri-cli-darwin-x64",
+  "linux-x64": "@pacphi/sindri-cli-linux-x64",
+  "linux-arm64": "@pacphi/sindri-cli-linux-arm64",
+  "win32-x64": "@pacphi/sindri-cli-win32-x64",
 };
 
 const BINARY_NAMES = {
@@ -63,7 +63,7 @@ if (require.main === module) {
   try {
     bin = getInstalledBinaryPath();
   } catch (err) {
-    process.stderr.write(`@sindri/cli: ${err.message}\n`);
+    process.stderr.write(`@pacphi/sindri-cli: ${err.message}\n`);
     process.exit(1);
   }
 
@@ -72,11 +72,11 @@ if (require.main === module) {
   if (result.error) {
     if (result.error.code === "ENOENT") {
       process.stderr.write(
-        `@sindri/cli: sindri binary not found at '${bin}'.\n` +
-          `Run: npm install @sindri/cli  or set SINDRI_BIN_PATH\n`,
+        `@pacphi/sindri-cli: sindri binary not found at '${bin}'.\n` +
+          `Run: npm install @pacphi/sindri-cli  or set SINDRI_BIN_PATH\n`,
       );
     } else {
-      process.stderr.write(`@sindri/cli: ${result.error.message}\n`);
+      process.stderr.write(`@pacphi/sindri-cli: ${result.error.message}\n`);
     }
     process.exit(1);
   }

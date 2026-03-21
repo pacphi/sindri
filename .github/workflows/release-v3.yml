@@ -586,55 +586,55 @@ jobs:
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
 
-          # linux-x86_64 → cli-linux-x64
+          # linux-x86_64 → sindri-cli-linux-x64
           tar -xzf "artifacts/binary-linux-x86_64/sindri-v${version}-linux-x86_64.tar.gz" \
-            -C packages/@sindri/cli-linux-x64/
-          chmod +x packages/@sindri/cli-linux-x64/sindri
+            -C packages/@pacphi/sindri-cli-linux-x64/
+          chmod +x packages/@pacphi/sindri-cli-linux-x64/sindri
 
-          # linux-aarch64 → cli-linux-arm64
+          # linux-aarch64 → sindri-cli-linux-arm64
           tar -xzf "artifacts/binary-linux-aarch64/sindri-v${version}-linux-aarch64.tar.gz" \
-            -C packages/@sindri/cli-linux-arm64/
-          chmod +x packages/@sindri/cli-linux-arm64/sindri
+            -C packages/@pacphi/sindri-cli-linux-arm64/
+          chmod +x packages/@pacphi/sindri-cli-linux-arm64/sindri
 
-          # macos-aarch64 → cli-darwin-arm64
+          # macos-aarch64 → sindri-cli-darwin-arm64
           tar -xzf "artifacts/binary-macos-aarch64/sindri-v${version}-macos-aarch64.tar.gz" \
-            -C packages/@sindri/cli-darwin-arm64/
-          chmod +x packages/@sindri/cli-darwin-arm64/sindri
+            -C packages/@pacphi/sindri-cli-darwin-arm64/
+          chmod +x packages/@pacphi/sindri-cli-darwin-arm64/sindri
 
-          # windows-x86_64 → cli-win32-x64
-          cd packages/@sindri/cli-win32-x64
+          # windows-x86_64 → sindri-cli-win32-x64
+          cd packages/@pacphi/sindri-cli-win32-x64
           unzip -o "${GITHUB_WORKSPACE}/artifacts/binary-windows-x86_64/sindri-v${version}-windows-x86_64.zip"
           cd "${GITHUB_WORKSPACE}"
 
           echo "Binaries extracted:"
-          ls -lh packages/@sindri/cli-linux-x64/sindri
-          ls -lh packages/@sindri/cli-linux-arm64/sindri
-          ls -lh packages/@sindri/cli-darwin-arm64/sindri
-          ls -lh packages/@sindri/cli-win32-x64/sindri.exe
+          ls -lh packages/@pacphi/sindri-cli-linux-x64/sindri
+          ls -lh packages/@pacphi/sindri-cli-linux-arm64/sindri
+          ls -lh packages/@pacphi/sindri-cli-darwin-arm64/sindri
+          ls -lh packages/@pacphi/sindri-cli-win32-x64/sindri.exe
 
       - name: Update package versions
         run: |
           version="${{ needs.validate-tag.outputs.version }}"
 
           # Update platform package versions
-          for pkg in cli-linux-x64 cli-linux-arm64 cli-darwin-arm64 cli-win32-x64; do
+          for pkg in sindri-cli-linux-x64 sindri-cli-linux-arm64 sindri-cli-darwin-arm64 sindri-cli-win32-x64; do
             jq --arg v "$version" '.version = $v' \
-              "packages/@sindri/${pkg}/package.json" > tmp.json \
-              && mv tmp.json "packages/@sindri/${pkg}/package.json"
-            echo "Updated @sindri/${pkg} to ${version}"
+              "packages/@pacphi/${pkg}/package.json" > tmp.json \
+              && mv tmp.json "packages/@pacphi/${pkg}/package.json"
+            echo "Updated @pacphi/${pkg} to ${version}"
           done
 
           # Update wrapper package version and optionalDependencies
           jq --arg v "$version" '
             .version = $v |
-            .optionalDependencies["@sindri/cli-darwin-arm64"] = $v |
-            .optionalDependencies["@sindri/cli-darwin-x64"] = $v |
-            .optionalDependencies["@sindri/cli-linux-x64"] = $v |
-            .optionalDependencies["@sindri/cli-linux-arm64"] = $v |
-            .optionalDependencies["@sindri/cli-win32-x64"] = $v
-          ' packages/@sindri/cli/package.json > tmp.json \
-            && mv tmp.json packages/@sindri/cli/package.json
-          echo "Updated @sindri/cli wrapper to ${version}"
+            .optionalDependencies["@pacphi/sindri-cli-darwin-arm64"] = $v |
+            .optionalDependencies["@pacphi/sindri-cli-darwin-x64"] = $v |
+            .optionalDependencies["@pacphi/sindri-cli-linux-x64"] = $v |
+            .optionalDependencies["@pacphi/sindri-cli-linux-arm64"] = $v |
+            .optionalDependencies["@pacphi/sindri-cli-win32-x64"] = $v
+          ' packages/@pacphi/sindri-cli/package.json > tmp.json \
+            && mv tmp.json packages/@pacphi/sindri-cli/package.json
+          echo "Updated @pacphi/sindri-cli wrapper to ${version}"
 
       - name: Determine npm tag
         id: npm-tag
@@ -651,9 +651,9 @@ jobs:
         run: |
           tag="${{ steps.npm-tag.outputs.tag }}"
 
-          for pkg in cli-linux-x64 cli-linux-arm64 cli-darwin-arm64 cli-win32-x64; do
-            echo "Publishing @sindri/${pkg} with --tag ${tag}..."
-            cd "packages/@sindri/${pkg}"
+          for pkg in sindri-cli-linux-x64 sindri-cli-linux-arm64 sindri-cli-darwin-arm64 sindri-cli-win32-x64; do
+            echo "Publishing @pacphi/${pkg} with --tag ${tag}..."
+            cd "packages/@pacphi/${pkg}"
             npm publish --provenance --access public --tag "${tag}"
             cd "${GITHUB_WORKSPACE}"
           done
@@ -663,8 +663,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           tag="${{ steps.npm-tag.outputs.tag }}"
-          echo "Publishing @sindri/cli with --tag ${tag}..."
-          cd packages/@sindri/cli
+          echo "Publishing @pacphi/sindri-cli with --tag ${tag}..."
+          cd packages/@pacphi/sindri-cli
           npm publish --provenance --access public --tag "${tag}"
 
   # Job 9: Update CHANGELOG.md and Cargo.toml

@@ -1,20 +1,20 @@
 {
-  "name": "@sindri/cli-win32-x64",
+  "name": "@pacphi/sindri-cli-linux-arm64",
   "version": "3.1.0",
-  "description": "Sindri CLI binary — Windows x64",
+  "description": "Sindri CLI binary — Linux arm64",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/pacphi/sindri"
   },
   "os": [
-    "win32"
+    "linux"
   ],
   "cpu": [
-    "x64"
+    "arm64"
   ],
   "files": [
-    "sindri.exe"
+    "sindri"
   ],
   "engines": {
     "node": ">=24"
