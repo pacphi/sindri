@@ -51,27 +51,72 @@ fi
 # Ensure install directory exists
 mkdir -p "$HOME/.openfang/bin"
 
-# Method 1: Official installer
-install_success=false
-print_status "Attempting install via official installer..."
-if curl -fsSL https://openfang.sh/install | VERSION="${OPENFANG_VERSION}" sh 2>&1; then
-    install_success=true
-    print_status "Official installer completed"
+# Detect OpenSSL major version to choose install strategy.
+# The official prebuilt binary is linked against OpenSSL 1.x.
+# Systems with OpenSSL 3.x (e.g., Ubuntu 24.04+) must build from source
+# via cargo so the binary links against the system's libssl.
+needs_cargo_build=false
+if command_exists openssl; then
+    openssl_major=$(openssl version 2>/dev/null | grep -oP '(?<=OpenSSL )\d+' || echo "")
+    if [[ "$openssl_major" -ge 3 ]] 2>/dev/null; then
+        print_status "OpenSSL ${openssl_major}.x detected — prebuilt binary requires OpenSSL 1.x"
+        print_status "Will build from source via cargo to link against system OpenSSL"
+        needs_cargo_build=true
+    fi
 fi
 
-# Method 2: Cargo fallback
-if [[ "$install_success" != "true" ]]; then
-    print_warning "Official installer failed, trying cargo fallback..."
+install_success=false
+
+if [[ "$needs_cargo_build" == "true" ]]; then
+    # OpenSSL 3.x: build from source first, prebuilt binary as last resort
     if command_exists cargo; then
+        print_status "Building OpenFang from source via cargo (OpenSSL 3.x compatibility)..."
         if cargo install openfang-cli --version "$OPENFANG_VERSION" --locked 2>&1; then
+            # cargo installs to ~/.cargo/bin; copy to ~/.openfang/bin for consistency
+            if [[ -f "$HOME/.cargo/bin/openfang" ]]; then
+                cp "$HOME/.cargo/bin/openfang" "$HOME/.openfang/bin/openfang"
+                print_status "Copied binary to ~/.openfang/bin/"
+            fi
             install_success=true
-            print_status "Cargo install completed"
+            print_status "Cargo build completed"
         else
-            print_error "Cargo install failed"
+            print_warning "Cargo build failed, trying official installer as fallback..."
+            if curl -fsSL https://openfang.sh/install | VERSION="${OPENFANG_VERSION}" sh 2>&1; then
+                install_success=true
+                print_status "Official installer completed"
+            fi
         fi
     else
-        print_error "Cargo not found - cannot use fallback install method"
-        print_status "Install Rust first: https://rustup.rs"
+        print_warning "Cargo not available — trying official installer (may fail with OpenSSL 3.x)..."
+        if curl -fsSL https://openfang.sh/install | VERSION="${OPENFANG_VERSION}" sh 2>&1; then
+            install_success=true
+            print_status "Official installer completed"
+        fi
+    fi
+else
+    # OpenSSL 1.x or unknown: prebuilt binary first, cargo fallback
+    print_status "Attempting install via official installer..."
+    if curl -fsSL https://openfang.sh/install | VERSION="${OPENFANG_VERSION}" sh 2>&1; then
+        install_success=true
+        print_status "Official installer completed"
+    fi
+
+    if [[ "$install_success" != "true" ]]; then
+        print_warning "Official installer failed, trying cargo fallback..."
+        if command_exists cargo; then
+            if cargo install openfang-cli --version "$OPENFANG_VERSION" --locked 2>&1; then
+                if [[ -f "$HOME/.cargo/bin/openfang" ]]; then
+                    cp "$HOME/.cargo/bin/openfang" "$HOME/.openfang/bin/openfang"
+                fi
+                install_success=true
+                print_status "Cargo install completed"
+            else
+                print_error "Cargo install failed"
+            fi
+        else
+            print_error "Cargo not found - cannot use fallback install method"
+            print_status "Install Rust first: https://rustup.rs"
+        fi
     fi
 fi
 

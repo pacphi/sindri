@@ -1739,8 +1739,13 @@ impl ExtensionExecutor {
         debug!("Validation timeout: {}s", validation_timeout);
 
         // Build comprehensive PATH for validation
-        // This ensures tools installed via various methods are discoverable
-        let validation_config = ValidationConfig::new(&self.home_dir, &self.workspace_dir);
+        // This ensures tools installed via various methods are discoverable.
+        // Include any PATH directories declared in the extension's configure.environment
+        // so that binaries installed to custom locations (e.g., ~/.openfang/bin) are
+        // discoverable without hardcoding them in DEFAULT_VALIDATION_PATHS.
+        let extra_paths = Self::extract_configure_paths(extension, &self.home_dir);
+        let validation_config = ValidationConfig::new(&self.home_dir, &self.workspace_dir)
+            .with_extra_paths(extra_paths);
         let validation_path = validation_config.build_validation_path();
 
         debug!(
@@ -1817,6 +1822,49 @@ impl ExtensionExecutor {
 
         info!("Extension {} validation passed", name);
         Ok(true)
+    }
+
+    /// Extract PATH directories from an extension's `configure.environment` entries.
+    ///
+    /// Extensions declare PATH additions like `$HOME/.openfang/bin:$PATH` in their
+    /// configure block. This method parses those values and returns resolved directory
+    /// paths that can be injected into the validation PATH, so binaries installed to
+    /// custom locations are discoverable during post-install validation.
+    fn extract_configure_paths(extension: &Extension, home_dir: &Path) -> Vec<String> {
+        let configure = match &extension.configure {
+            Some(c) => c,
+            None => return Vec::new(),
+        };
+
+        let home_str = home_dir.to_string_lossy();
+        let mut paths = Vec::new();
+
+        for env_var in &configure.environment {
+            if env_var.key != "PATH" {
+                continue;
+            }
+
+            // Split the value on ':' and extract directory components,
+            // skipping $PATH itself and resolving $HOME
+            for segment in env_var.value.split(':') {
+                let trimmed = segment.trim();
+                if trimmed.is_empty() || trimmed == "$PATH" {
+                    continue;
+                }
+
+                let resolved = trimmed
+                    .replace("$HOME", &home_str)
+                    .replace("${HOME}", &home_str);
+
+                debug!(
+                    "Extracted configure PATH for {}: {}",
+                    extension.metadata.name, resolved
+                );
+                paths.push(resolved);
+            }
+        }
+
+        paths
     }
 
     /// Execute a lifecycle hook

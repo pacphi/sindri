@@ -773,10 +773,10 @@
                 "description": "Short identifier for routing and display"
               },
               "description": {
-                "type": "string"
+                "type": ["string", "null"]
               },
               "envOverride": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Env var name that overrides host port at runtime"
               },
               "ui": {
@@ -785,7 +785,7 @@
                 "description": "Whether this port serves a browsable web UI (proxy/ingress hint)"
               },
               "healthPath": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "HTTP path for health checks (only for http/https)"
               }
             }
