@@ -319,6 +319,9 @@ jobs:
             # ── Distro-only floating alias (stable only) ──────────────────
             type=raw,value=${{ matrix.distro }},enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
 
+            # ── Per-distro latest alias (stable only) ─────────────────────
+            type=raw,value=latest-${{ matrix.distro }},enable=${{ needs.validate-tag.outputs.is_prerelease == 'false' }}
+
             # ── Ubuntu-only backward-compat tags (stable only) ────────────
             type=semver,pattern={{version}},value=v${{ needs.validate-tag.outputs.version }},enable=${{ matrix.distro == 'ubuntu' }}
             type=semver,pattern={{major}}.{{minor}},value=v${{ needs.validate-tag.outputs.version }},enable=${{ matrix.distro == 'ubuntu' }}
