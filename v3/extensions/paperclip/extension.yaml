@@ -65,27 +65,10 @@ service:
     timeout: 30
 
 capabilities:
-  project-init:
-    enabled: true
-    priority: 55
-    commands:
-      - command: "paperclipai onboard --yes"
-        description: "Initialize Paperclip agent workspace"
-        requiresAuth: "none"
-        conditional: false
-    state-markers:
-      - path: ".paperclip"
-        type: directory
-    validation:
-      command: "paperclipai status"
-      expectedPattern: "running|ready"
   hooks:
     post-install:
       command: "paperclipai doctor"
       description: "Verify Paperclip installation health"
-    post-project-init:
-      command: "sleep 3 && curl -sf http://localhost:3100/api/health || echo 'Paperclip starting...'"
-      description: "Verify Paperclip dashboard is responding"
 
 bom:
   # NOTE: Versions researched 2026-03-19
