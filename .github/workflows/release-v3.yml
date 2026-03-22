@@ -468,10 +468,13 @@ jobs:
             fi
           done
 
-  # Job 7: Attest build provenance (SLSA)
+  # Job 7: Attest build provenance (SLSA) for each distro image
   attest-provenance:
     runs-on: ubuntu-latest
     needs: [validate-tag, verify-ci-image, promote-image]
+    strategy:
+      matrix:
+        distro: [ubuntu, fedora, opensuse]
     permissions:
       contents: read
       packages: write
@@ -489,13 +492,13 @@ jobs:
         id: digest
         run: |
           VERSION="${{ needs.validate-tag.outputs.version }}"
-          IMAGE="ghcr.io/${{ github.repository }}:${VERSION}"
+          IMAGE="ghcr.io/${{ github.repository }}:${VERSION}-${{ matrix.distro }}"
 
           docker pull "$IMAGE"
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
           DIGEST_HASH="${DIGEST#*@}"
           echo "digest=$DIGEST_HASH" >> $GITHUB_OUTPUT
-          echo "Image digest: $DIGEST_HASH"
+          echo "Image digest for ${{ matrix.distro }}: $DIGEST_HASH"
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v4
