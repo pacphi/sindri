@@ -99,10 +99,10 @@ jobs:
             local ci_passed="${REPO}:v3-ci-passed-${sha}-${distro}"
             local ci_tag="${REPO}:v3-ci-${sha}-${distro}"
 
-            if docker pull "$ci_passed" 2>/dev/null; then
+            if docker pull "$ci_passed" >/dev/null 2>&1; then
               echo "$ci_passed|ci-passed"
               return 0
-            elif docker pull "$ci_tag" 2>/dev/null; then
+            elif docker pull "$ci_tag" >/dev/null 2>&1; then
               echo "$ci_tag|ci-tag"
               return 0
             fi
