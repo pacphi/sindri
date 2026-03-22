@@ -71,7 +71,7 @@ services = []
   [[services.tcp_checks]]
     interval = "30s"
     timeout = "10s"
-    grace_period = "30s"
+    grace_period = "120s"
 
 {% for sp in service_ports %}
 {% if sp.protocol == "http" or sp.protocol == "https" %}
@@ -91,7 +91,7 @@ services = []
   [[services.http_checks]]
     interval = "30s"
     timeout = "10s"
-    grace_period = "30s"
+    grace_period = "120s"
     path = "{{ sp.health_path }}"
 {% endif %}
 
@@ -151,5 +151,5 @@ services = []
     port = 2222
     interval = "30s"
     timeout = "10s"
-    grace_period = "30s"
+    grace_period = "120s"
 {% endif %}

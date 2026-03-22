@@ -575,11 +575,16 @@ persist_ssh_host_keys
 # Step 5: Configure Git
 setup_git_config
 
-# Step 6: Install extensions in background (non-blocking)
+# Step 6: Start SSH daemon early so health checks pass during extension installation
+if [[ "${CI_MODE:-false}" != "true" ]]; then
+    start_ssh_daemon
+fi
+
+# Step 7: Install extensions in background (non-blocking)
 install_extensions_background
 INSTALL_PID=$!
 
-# Step 6b: Start extension services (runs on every boot, including restarts)
+# Step 7b: Start extension services (runs on every boot, including restarts)
 # Wait for background install to complete before starting services
 if [ -n "${INSTALL_PID:-}" ] && kill -0 "$INSTALL_PID" 2>/dev/null; then
     print_status "Waiting for extension installation to complete before starting services..."
@@ -587,16 +592,14 @@ if [ -n "${INSTALL_PID:-}" ] && kill -0 "$INSTALL_PID" 2>/dev/null; then
 fi
 start_extension_services
 
-# Step 7: Start SSH daemon (foreground if not CI mode)
+# Step 8: Keep container running
 if [[ "${CI_MODE:-false}" != "true" ]]; then
-    start_ssh_daemon
-
     print_success "========================================="
     print_success "Sindri v3 initialization complete!"
     print_success "SSH available on port ${SSH_PORT}"
     print_success "========================================="
 
-    # Keep container running
+    # Keep container running (sshd is already running in background)
     wait
 else
     print_status "Running in CI mode - SSH daemon not started"
