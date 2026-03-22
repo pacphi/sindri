@@ -23,15 +23,11 @@ on:
         type: boolean
         default: false  # Pre-release: test everything by default
 
-      distro:
-        description: 'Base image distro to test'
+      distros:
+        description: 'Distros to test (comma-separated: ubuntu,fedora,opensuse)'
         required: false
-        type: choice
-        default: 'ubuntu'
-        options:
-          - ubuntu
-          - fedora
-          - opensuse
+        type: string
+        default: 'ubuntu,fedora,opensuse'
 
       max-parallel:
         description: 'Maximum parallel jobs per provider'
@@ -44,18 +40,19 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Resolve commit SHA and find corresponding CI release candidate image
-  resolve-ci-image:
-    name: Resolve CI Release Candidate
+  # Resolve commit SHA and find CI release candidate images for each distro
+  resolve-ci-images:
+    name: Resolve CI Release Candidates
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: read
     outputs:
-      ci_image: ${{ steps.find.outputs.ci_image }}
-      image_source: ${{ steps.find.outputs.image_source }}
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
       commit_sha: ${{ steps.resolve-sha.outputs.sha }}
       short_sha: ${{ steps.resolve-sha.outputs.short_sha }}
+      distros_tested: ${{ steps.build-matrix.outputs.distros_tested }}
+      distro_summary: ${{ steps.build-matrix.outputs.distro_summary }}
 
     steps:
       - name: Checkout
@@ -85,31 +82,54 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find CI image
-        id: find
+      - name: Build distro matrix
+        id: build-matrix
         run: |
           SHA="${{ steps.resolve-sha.outputs.sha }}"
-          DISTRO="${{ inputs.distro || 'ubuntu' }}"
-          CI_PASSED="ghcr.io/${{ github.repository }}:v3-ci-passed-${SHA}-${DISTRO}"
-          CI_TAG="ghcr.io/${{ github.repository }}:v3-ci-${SHA}-${DISTRO}"
+          DISTROS="${{ inputs.distros || 'ubuntu,fedora,opensuse' }}"
+          REPO="${{ github.repository }}"
 
-          echo "Looking for CI images for commit: $SHA"
-          echo "  Preferred: $CI_PASSED (tested)"
-          echo "  Fallback:  $CI_TAG (untested)"
+          echo "Resolving CI images for distros: $DISTROS"
           echo ""
 
-          if docker pull "$CI_PASSED" 2>/dev/null; then
-            echo "ci_image=$CI_PASSED" >> $GITHUB_OUTPUT
-            echo "image_source=ci-passed" >> $GITHUB_OUTPUT
-            echo "✅ Found CI release candidate: $CI_PASSED (passed tests)"
-            echo "::notice title=Release Candidate::Using tested CI image as release candidate: $CI_PASSED"
-          elif docker pull "$CI_TAG" 2>/dev/null; then
-            echo "ci_image=$CI_TAG" >> $GITHUB_OUTPUT
-            echo "image_source=ci-tag" >> $GITHUB_OUTPUT
-            echo "⚠️  Using untested CI image: $CI_TAG (didn't pass all tests)"
-            echo "::warning title=Untested Candidate::Using CI image that didn't pass full test suite"
-          else
-            echo "::error title=No CI Image::No CI release candidate found for commit $SHA"
+          INCLUDE="[]"
+          SUMMARY="[]"
+          FAILED=false
+
+          for DISTRO in $(echo "$DISTROS" | tr ',' ' '); do
+            CI_PASSED="ghcr.io/${REPO}:v3-ci-passed-${SHA}-${DISTRO}"
+            CI_TAG="ghcr.io/${REPO}:v3-ci-${SHA}-${DISTRO}"
+
+            echo "── ${DISTRO} ──"
+            echo "  Preferred: $CI_PASSED (tested)"
+            echo "  Fallback:  $CI_TAG (untested)"
+
+            if docker pull "$CI_PASSED" 2>/dev/null; then
+              echo "  ✅ Found tested CI image"
+              INCLUDE=$(echo "$INCLUDE" | jq \
+                --arg d "$DISTRO" --arg img "$CI_PASSED" --arg src "ci-passed" \
+                '. + [{distro: $d, ci_image: $img, image_source: $src}]')
+              SUMMARY=$(echo "$SUMMARY" | jq \
+                --arg d "$DISTRO" --arg src "ci-passed" \
+                '. + [{distro: $d, status: "✅ Passed CI Tests", source: $src}]')
+            elif docker pull "$CI_TAG" 2>/dev/null; then
+              echo "  ⚠️  Using untested CI image"
+              echo "::warning title=Untested Candidate ($DISTRO)::Using CI image that didn't pass full test suite for $DISTRO"
+              INCLUDE=$(echo "$INCLUDE" | jq \
+                --arg d "$DISTRO" --arg img "$CI_TAG" --arg src "ci-tag" \
+                '. + [{distro: $d, ci_image: $img, image_source: $src}]')
+              SUMMARY=$(echo "$SUMMARY" | jq \
+                --arg d "$DISTRO" --arg src "ci-tag" \
+                '. + [{distro: $d, status: "⚠️ Untested", source: $src}]')
+            else
+              echo "  ❌ No CI image found"
+              echo "::error title=No CI Image ($DISTRO)::No CI release candidate found for $DISTRO at commit $SHA"
+              FAILED=true
+            fi
+            echo ""
+          done
+
+          if [[ "$FAILED" == "true" ]]; then
             echo ""
             echo "Possible causes:"
             echo "  1. CI workflow hasn't run on this commit yet"
@@ -121,21 +141,38 @@ jobs:
             echo "  1. Wait for CI to complete"
             echo "  2. Run CI workflow manually on this commit"
             echo "  3. Provide a different commit SHA"
+            echo "  4. Reduce the distros list to only available ones"
             exit 1
           fi
 
-  # Test individual extensions using the CI image
+          MATRIX=$(jq -nc --argjson include "$INCLUDE" '{"include": $include}')
+          DISTROS_TESTED=$(echo "$INCLUDE" | jq -c '[.[].distro]')
+
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "distros_tested=$DISTROS_TESTED" >> $GITHUB_OUTPUT
+
+          {
+            echo "distro_summary<<EOF"
+            echo "$SUMMARY"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "Resolved $(echo "$INCLUDE" | jq 'length') distro(s): $DISTROS_TESTED"
+
+  # Test individual extensions per distro using the CI images
   test-extensions:
-    name: Test Individual Extensions
-    needs: resolve-ci-image
+    name: Test Extensions — ${{ matrix.distro }}
+    needs: resolve-ci-images
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve-ci-images.outputs.matrix) }}
     uses: ./.github/workflows/v3-extension-test.yml
     with:
       # CRITICAL: Test ALL extensions individually (not profiles)
       selection-mode: all
 
-      # Use CI image as base for all provider tests
-      # This will be passed to provider workflows to override the default image
-      sindri-image: ${{ needs.resolve-ci-image.outputs.ci_image }}
+      # Use distro-specific CI image as base for all provider tests
+      sindri-image: ${{ matrix.ci_image }}
 
       providers: ${{ inputs.providers }}
       max-parallel: ${{ fromJSON(inputs.max-parallel || '2') }}
@@ -145,12 +182,14 @@ jobs:
   # Generate comprehensive test report
   summary:
     name: Pre-Release Summary
-    needs: [resolve-ci-image, test-extensions]
+    needs: [resolve-ci-images, test-extensions]
     if: always()
     runs-on: ubuntu-latest
 
     steps:
       - name: Generate summary
+        env:
+          DISTRO_SUMMARY: ${{ needs.resolve-ci-images.outputs.distro_summary }}
         run: |
           echo "# V3 Pre-Release Test Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -159,27 +198,33 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit SHA** | \`${{ needs.resolve-ci-image.outputs.commit_sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Short SHA** | \`${{ needs.resolve-ci-image.outputs.short_sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Release Candidate** | \`${{ needs.resolve-ci-image.outputs.ci_image }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Candidate Status** | ${{ needs.resolve-ci-image.outputs.image_source == 'ci-passed' && '✅ Passed CI Tests' || '⚠️ Untested' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit SHA** | \`${{ needs.resolve-ci-images.outputs.commit_sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Short SHA** | \`${{ needs.resolve-ci-images.outputs.short_sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Distros** | ${{ needs.resolve-ci-images.outputs.distros_tested }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Providers** | ${{ inputs.providers }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Filter Heavy** | ${{ inputs.filter-heavy }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Max Parallel** | ${{ inputs.max-parallel }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Release Candidates" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Distro | CI Image Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-----------------|" >> $GITHUB_STEP_SUMMARY
+          echo "$DISTRO_SUMMARY" | jq -r '.[] | "| **\(.distro)** | \(.status) |"' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           echo "## Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.test-extensions.result }}" == "success" ]]; then
-            echo "### ✅ All Extension Tests Passed" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ All Extension Tests Passed (All Distros)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "All individual extensions passed testing across selected providers." >> $GITHUB_STEP_SUMMARY
+            echo "All individual extensions passed testing across all selected distros and providers." >> $GITHUB_STEP_SUMMARY
             echo "This commit is ready for release tagging." >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Extension Tests Failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Some extensions failed testing. Review provider-specific results." >> $GITHUB_STEP_SUMMARY
+            echo "Some extensions failed testing on one or more distros. Review per-distro results above." >> $GITHUB_STEP_SUMMARY
             echo "**Do NOT proceed with release until failures are resolved.**" >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -202,19 +247,23 @@ jobs:
             echo "git push origin v3.1.0-beta.1" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The release workflow will **promote** this release candidate:" >> $GITHUB_STEP_SUMMARY
-            echo "1. Pull candidate: \`${{ needs.resolve-ci-image.outputs.ci_image }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "2. Retag with version tags (e.g., v3.0.0, v3-latest)" >> $GITHUB_STEP_SUMMARY
+            echo "The release workflow will **promote** these release candidates:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "$DISTRO_SUMMARY" | jq -r '.[] | "- **\(.distro)**: \(.status)"' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Promotion steps per distro:" >> $GITHUB_STEP_SUMMARY
+            echo "1. Pull candidate image" >> $GITHUB_STEP_SUMMARY
+            echo "2. Retag with version tags (e.g., v3.0.0-ubuntu, v3.0.0-fedora)" >> $GITHUB_STEP_SUMMARY
             echo "3. Sign with Cosign (keyless)" >> $GITHUB_STEP_SUMMARY
             echo "4. Generate and attach SBOM" >> $GITHUB_STEP_SUMMARY
             echo "5. Create GitHub release with binaries" >> $GITHUB_STEP_SUMMARY
           else
             echo "### Fix Failures First" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "1. Review test logs for failed extensions" >> $GITHUB_STEP_SUMMARY
+            echo "1. Review test logs for failed extensions per distro" >> $GITHUB_STEP_SUMMARY
             echo "2. Fix issues in codebase" >> $GITHUB_STEP_SUMMARY
             echo "3. Commit and push fixes" >> $GITHUB_STEP_SUMMARY
-            echo "4. Wait for CI to build new image" >> $GITHUB_STEP_SUMMARY
+            echo "4. Wait for CI to build new images" >> $GITHUB_STEP_SUMMARY
             echo "5. Re-run pre-release tests" >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -222,4 +271,4 @@ jobs:
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "_Pre-release testing validates CI release candidates before promotion._" >> $GITHUB_STEP_SUMMARY
-          echo "_The release workflow promotes the candidate by retagging (no rebuild)._" >> $GITHUB_STEP_SUMMARY
+          echo "_The release workflow promotes the candidates by retagging (no rebuild)._" >> $GITHUB_STEP_SUMMARY
