@@ -87,7 +87,27 @@ jobs:
         run: |
           SHA="${{ steps.resolve-sha.outputs.sha }}"
           DISTROS="${{ inputs.distros || 'ubuntu,fedora,opensuse' }}"
-          REPO="${{ github.repository }}"
+          REPO="ghcr.io/${{ github.repository }}"
+
+          # Paths that affect the container image — if any changed, we can't reuse an ancestor
+          CONTAINER_PATHS="v3/ .github/actions/v3/ .github/scripts/v3/"
+
+          # Try to find a CI image for a given SHA and distro
+          try_pull_ci_image() {
+            local sha="$1"
+            local distro="$2"
+            local ci_passed="${REPO}:v3-ci-passed-${sha}-${distro}"
+            local ci_tag="${REPO}:v3-ci-${sha}-${distro}"
+
+            if docker pull "$ci_passed" 2>/dev/null; then
+              echo "$ci_passed|ci-passed"
+              return 0
+            elif docker pull "$ci_tag" 2>/dev/null; then
+              echo "$ci_tag|ci-tag"
+              return 0
+            fi
+            return 1
+          }
 
           echo "Resolving CI images for distros: $DISTROS"
           echo ""
@@ -97,33 +117,84 @@ jobs:
           FAILED=false
 
           for DISTRO in $(echo "$DISTROS" | tr ',' ' '); do
-            CI_PASSED="ghcr.io/${REPO}:v3-ci-passed-${SHA}-${DISTRO}"
-            CI_TAG="ghcr.io/${REPO}:v3-ci-${SHA}-${DISTRO}"
-
             echo "── ${DISTRO} ──"
-            echo "  Preferred: $CI_PASSED (tested)"
-            echo "  Fallback:  $CI_TAG (untested)"
 
-            if docker pull "$CI_PASSED" 2>/dev/null; then
-              echo "  ✅ Found tested CI image"
-              INCLUDE=$(echo "$INCLUDE" | jq \
-                --arg d "$DISTRO" --arg img "$CI_PASSED" --arg src "ci-passed" \
-                '. + [{distro: $d, ci_image: $img, image_source: $src}]')
-              SUMMARY=$(echo "$SUMMARY" | jq \
-                --arg d "$DISTRO" --arg src "ci-passed" \
-                '. + [{distro: $d, status: "✅ Passed CI Tests", source: $src}]')
-            elif docker pull "$CI_TAG" 2>/dev/null; then
-              echo "  ⚠️  Using untested CI image"
-              echo "::warning title=Untested Candidate ($DISTRO)::Using CI image that didn't pass full test suite for $DISTRO"
-              INCLUDE=$(echo "$INCLUDE" | jq \
-                --arg d "$DISTRO" --arg img "$CI_TAG" --arg src "ci-tag" \
-                '. + [{distro: $d, ci_image: $img, image_source: $src}]')
-              SUMMARY=$(echo "$SUMMARY" | jq \
-                --arg d "$DISTRO" --arg src "ci-tag" \
-                '. + [{distro: $d, status: "⚠️ Untested", source: $src}]')
-            else
-              echo "  ❌ No CI image found"
-              echo "::error title=No CI Image ($DISTRO)::No CI release candidate found for $DISTRO at commit $SHA"
+            FOUND=false
+            RESULT=""
+
+            # First, try the exact commit
+            if RESULT=$(try_pull_ci_image "$SHA" "$DISTRO"); then
+              IMG="${RESULT%%|*}"
+              SRC="${RESULT##*|}"
+              FOUND=true
+              if [[ "$SRC" == "ci-passed" ]]; then
+                echo "  ✅ Found tested CI image at target commit"
+                INCLUDE=$(echo "$INCLUDE" | jq \
+                  --arg d "$DISTRO" --arg img "$IMG" --arg src "$SRC" \
+                  '. + [{distro: $d, ci_image: $img, image_source: $src}]')
+                SUMMARY=$(echo "$SUMMARY" | jq \
+                  --arg d "$DISTRO" --arg src "$SRC" \
+                  '. + [{distro: $d, status: "✅ Passed CI Tests", source: $src}]')
+              else
+                echo "  ⚠️  Using untested CI image at target commit"
+                echo "::warning title=Untested Candidate ($DISTRO)::Using CI image that didn't pass full test suite for $DISTRO"
+                INCLUDE=$(echo "$INCLUDE" | jq \
+                  --arg d "$DISTRO" --arg img "$IMG" --arg src "$SRC" \
+                  '. + [{distro: $d, ci_image: $img, image_source: $src}]')
+                SUMMARY=$(echo "$SUMMARY" | jq \
+                  --arg d "$DISTRO" --arg src "$SRC" \
+                  '. + [{distro: $d, status: "⚠️ Untested", source: $src}]')
+              fi
+            fi
+
+            # If not found, walk ancestors (only if no container-affecting changes)
+            if [[ "$FOUND" != "true" ]]; then
+              echo "  ⚠  No CI image at target commit, searching ancestors..."
+
+              for ANCESTOR_SHA in $(git log --format='%H' --skip=1 --max-count=10 "$SHA"); do
+                CHANGED_FILES=$(git diff --name-only "$ANCESTOR_SHA" "$SHA")
+
+                CONTAINER_CHANGE=false
+                while IFS= read -r FILE; do
+                  [[ -z "$FILE" ]] && continue
+                  for PATTERN in $CONTAINER_PATHS; do
+                    if [[ "$FILE" == ${PATTERN}* ]]; then
+                      CONTAINER_CHANGE=true
+                      break 2
+                    fi
+                  done
+                done <<< "$CHANGED_FILES"
+
+                if [[ "$CONTAINER_CHANGE" == "true" ]]; then
+                  echo "    ${ANCESTOR_SHA::12}: diff includes container-affecting files, stopping search"
+                  break
+                fi
+
+                echo "    ${ANCESTOR_SHA::12}: trying..."
+                if RESULT=$(try_pull_ci_image "$ANCESTOR_SHA" "$DISTRO"); then
+                  IMG="${RESULT%%|*}"
+                  SRC="${RESULT##*|}"
+                  FOUND=true
+                  echo "  ✅ Reusing CI image from ancestor ${ANCESTOR_SHA::12}"
+                  echo "     Only non-container files changed since that build:"
+                  echo "$CHANGED_FILES" | sed 's/^/       /'
+                  echo "::notice title=CI Image Reused ($DISTRO)::Using CI image from ancestor ${ANCESTOR_SHA::12}"
+                  STATUS_PREFIX="✅ Reused from ${ANCESTOR_SHA::12}"
+                  [[ "$SRC" == "ci-tag" ]] && STATUS_PREFIX="⚠️ Reused (untested) from ${ANCESTOR_SHA::12}"
+                  INCLUDE=$(echo "$INCLUDE" | jq \
+                    --arg d "$DISTRO" --arg img "$IMG" --arg src "$SRC" \
+                    '. + [{distro: $d, ci_image: $img, image_source: $src}]')
+                  SUMMARY=$(echo "$SUMMARY" | jq \
+                    --arg d "$DISTRO" --arg status "$STATUS_PREFIX" --arg src "$SRC" \
+                    '. + [{distro: $d, status: $status, source: $src}]')
+                  break
+                fi
+              done
+            fi
+
+            if [[ "$FOUND" != "true" ]]; then
+              echo "  ❌ No CI image found at target or any safe ancestor"
+              echo "::error title=No CI Image ($DISTRO)::No CI release candidate found for $DISTRO at commit $SHA or ancestors"
               FAILED=true
             fi
             echo ""
@@ -132,10 +203,11 @@ jobs:
           if [[ "$FAILED" == "true" ]]; then
             echo ""
             echo "Possible causes:"
-            echo "  1. CI workflow hasn't run on this commit yet"
+            echo "  1. CI workflow hasn't run on this or recent commits"
             echo "  2. CI workflow is still running"
             echo "  3. CI workflow failed to build image"
             echo "  4. Image was deleted (retention policy)"
+            echo "  5. Container-affecting files changed since last CI build"
             echo ""
             echo "Solutions:"
             echo "  1. Wait for CI to complete"
