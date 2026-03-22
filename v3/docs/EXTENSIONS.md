@@ -40,7 +40,7 @@ V3 extensions are organized into the following categories:
 | **languages**       | Programming language runtimes and toolchains     | 11    |
 | **claude**          | Claude Code integrations and workflow tools      | 10    |
 | **devops**          | Infrastructure, deployment, and operations tools | 7     |
-| **ai-agents**       | AI agent frameworks and orchestration            | 5     |
+| **ai-agents**       | AI agent frameworks and orchestration            | 6     |
 | **ai-dev**          | AI development tools and LLM interfaces          | 12    |
 | **mcp**             | Model Context Protocol servers                   | 5     |
 | **package-manager** | SDK and package management tools                 | 2     |
@@ -100,13 +100,14 @@ V3 extensions are organized into the following categories:
 
 ### AI Agents
 
-| Extension         | Version | Description                                                                          | Install Method |
-| ----------------- | ------- | ------------------------------------------------------------------------------------ | -------------- |
-| **agentic-flow**  | 1.0.0   | Multi-model AI agent framework for Claude Code with cost optimization (alpha)        | mise           |
-| **agentic-qe**    | 1.3.2   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
-| **agent-manager** | 2.0.0   | Claude Code agent manager for managing AI agents                                     | script         |
-| **agent-browser** | 1.2.1   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
-| **openfang**      | 1.2.0   | Open-source agent OS for autonomous AI agents across 40+ messaging platforms         | script         |
+| Extension         | Version | Description                                                                                  | Install Method |
+| ----------------- | ------- | -------------------------------------------------------------------------------------------- | -------------- |
+| **agentic-flow**  | 1.0.0   | Multi-model AI agent framework for Claude Code with cost optimization (alpha)                | mise           |
+| **agentic-qe**    | 1.3.2   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis         | mise           |
+| **agent-manager** | 2.0.0   | Claude Code agent manager for managing AI agents                                             | script         |
+| **agent-browser** | 1.2.1   | Headless browser automation CLI for AI agents with snapshot-based element selection          | mise           |
+| **loki-mode**     | 1.0.0   | Autonomous multi-agent development framework that transforms PRDs into production-ready code | mise           |
+| **openfang**      | 1.2.0   | Open-source agent OS for autonomous AI agents across 40+ messaging platforms                 | script         |
 
 ### AI Development
 

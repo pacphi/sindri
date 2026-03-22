@@ -24,6 +24,9 @@ extensions:
   agentic-qe:
     category: "ai-agents"
     description: "Agentic quality engineering"
+  loki-mode:
+    category: "ai-agents"
+    description: "Loki Mode - Autonomous multi-agent development framework that transforms PRDs into production-ready code"
   openfang:
     category: "ai-agents"
     description: "OpenFang - Open-source agent OS for autonomous AI agents across 40+ messaging platforms"
