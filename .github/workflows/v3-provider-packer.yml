@@ -21,6 +21,10 @@ on:
         description: 'Cloud region'
         type: string
         default: 'us-west-2'
+      artifact-prefix:
+        description: 'Prefix for artifact names (for multi-distro isolation)'
+        type: string
+        default: ''
 
     outputs:
       results:
@@ -465,7 +469,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: packer-result-${{ matrix.extension }}
+          name: ${{ inputs.artifact-prefix }}packer-result-${{ matrix.extension }}
           path: |
             test-result.json
             install.log
@@ -488,7 +492,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: results
-          pattern: packer-result-*
+          pattern: ${{ inputs.artifact-prefix }}packer-result-*
 
       - name: Aggregate Results
         id: aggregate

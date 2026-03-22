@@ -246,6 +246,9 @@ jobs:
       # Use distro-specific CI image as base for all provider tests
       sindri-image: ${{ matrix.ci_image }}
 
+      # Prefix artifacts with distro name to avoid 409 conflicts across matrix
+      artifact-prefix: ${{ matrix.distro }}-
+
       providers: ${{ inputs.providers }}
       max-parallel: ${{ fromJSON(inputs.max-parallel || '2') }}
       filter-heavy: ${{ inputs.filter-heavy }}

@@ -21,6 +21,10 @@ on:
         description: 'Sindri container image to test'
         type: string
         default: 'ghcr.io/pacphi/sindri:latest'
+      artifact-prefix:
+        description: 'Prefix for artifact names (for multi-distro isolation)'
+        type: string
+        default: ''
 
     outputs:
       results:
@@ -242,7 +246,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: runpod-result-${{ matrix.extension }}
+          name: ${{ inputs.artifact-prefix }}runpod-result-${{ matrix.extension }}
           path: |
             test-result.json
             install.log
@@ -266,7 +270,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: results
-          pattern: runpod-result-*
+          pattern: ${{ inputs.artifact-prefix }}runpod-result-*
 
       - name: Aggregate Results
         id: aggregate

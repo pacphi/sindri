@@ -22,6 +22,10 @@ on:
         description: 'Sindri container image to test'
         type: string
         default: 'ghcr.io/pacphi/sindri:latest'
+      artifact-prefix:
+        description: 'Prefix for artifact names (for multi-distro isolation)'
+        type: string
+        default: ''
 
     outputs:
       results:

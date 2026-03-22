@@ -17,6 +17,10 @@ on:
         description: 'Sindri container image'
         type: string
         default: 'ghcr.io/pacphi/sindri:latest'
+      artifact-prefix:
+        description: 'Prefix for artifact names (for multi-distro isolation)'
+        type: string
+        default: ''
 
     outputs:
       results:
@@ -57,7 +61,7 @@ jobs:
       - name: Upload CLI
         uses: actions/upload-artifact@v7
         with:
-          name: sindri-cli
+          name: ${{ inputs.artifact-prefix }}sindri-cli
           path: v3/target/release/sindri
           retention-days: 1
 
@@ -82,7 +86,7 @@ jobs:
       - name: Download CLI
         uses: actions/download-artifact@v8
         with:
-          name: sindri-cli
+          name: ${{ inputs.artifact-prefix }}sindri-cli
           path: /tmp/sindri
 
       - name: Setup CLI
@@ -186,7 +190,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: docker-result-${{ matrix.extension }}
+          name: ${{ inputs.artifact-prefix }}docker-result-${{ matrix.extension }}
           path: |
             test-result.json
             install.log
@@ -210,7 +214,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: results
-          pattern: docker-result-*
+          pattern: ${{ inputs.artifact-prefix }}docker-result-*
 
       - name: Aggregate Results
         id: aggregate
