@@ -1,7 +1,7 @@
 ---
 metadata:
   name: kilo
-  version: 1.0.0
+  version: 2.0.0
   description: Kilo Code AI coding assistant CLI for terminal-based AI pair programming
   category: ai-dev
   distros: [ubuntu, fedora, opensuse]
@@ -35,22 +35,22 @@ remove:
     tools: ["npm:@kilocode/cli"]
 
 bom:
-  # NOTE: Versions researched 2026-02-16
+  # NOTE: Versions researched 2026-03-21
   tools:
     - name: kilo
-      version: "1.0.21"
+      version: "7.1.0"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://kilo.ai
-      purl: pkg:npm/%40kilocode/cli@1.0.21
+      purl: pkg:npm/%40kilocode/cli@7.1.0
 
 docs:
   title: "Kilo Code CLI"
   overview: |
     Kilo Code is an AI coding assistant CLI that brings AI pair programming to your terminal.
     It supports multiple AI providers and enables interactive coding sessions directly from the command line.
-  last-updated: "2026-02-16"
+  last-updated: "2026-03-21"
   features:
     - "Terminal-based AI pair programming"
     - "Multi-provider AI support"

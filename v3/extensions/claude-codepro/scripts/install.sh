@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Claude CodePro v7.6.2 Installer for Sindri
+# Claude CodePro v7.7.1 Installer for Sindri
 # Downloads and executes the official installer
 
-VERSION="v7.6.2"
+VERSION="v7.7.1"
 INSTALLER_URL="https://raw.githubusercontent.com/maxritter/claude-codepro/${VERSION}/install.sh"
 
 echo "===> Installing Claude CodePro ${VERSION}"

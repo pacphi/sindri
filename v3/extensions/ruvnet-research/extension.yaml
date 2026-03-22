@@ -1,7 +1,7 @@
 ---
 metadata:
   name: ruvnet-research
-  version: 1.0.0
+  version: 1.0.1
   description: >-
     AI research tools including Goalie goal management and Research-Swarm multi-agent research framework
   category: research
@@ -46,14 +46,14 @@ upgrade:
 bom:
   tools:
     - name: goalie
-      version: "1.3" # Pinned in mise.toml
+      version: "1.3.1" # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/cmurczek/goalie
       purl: pkg:npm/goalie
     - name: research-swarm
-      version: "1.2" # Pinned in mise.toml
+      version: "1.2.2" # Pinned in mise.toml
       source: npm
       type: cli-tool
       license: MIT
@@ -63,7 +63,7 @@ docs:
   title: "RuVNet Research"
   overview: |
     AI research tools including Goalie goal management and Research-Swarm multi-agent research framework. Tools for AI-assisted research and goal tracking.
-  last-updated: "2026-01-26"
+  last-updated: "2026-03-21"
   usage:
     - section: "Goalie"
       examples:

@@ -1,7 +1,7 @@
 ---
 metadata:
   name: claude-flow-v2
-  version: 2.7.47
+  version: 3.5.42
   description: AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable)
   category: claude
   distros: [ubuntu, fedora, opensuse]
@@ -195,7 +195,7 @@ capabilities:
       # Scenario 1: Same version already installed
       - name: "same-version-v2"
         detected-version: "v2"
-        installing-version: "2.7.47"
+        installing-version: "3.5.42"
         action: skip
         message: |
           ✓ Claude Flow V2 is already initialized
@@ -205,7 +205,7 @@ capabilities:
       # Scenario 2: V3 detected when installing V2 (downgrade)
       - name: "v3-to-v2-downgrade"
         detected-version: "v3"
-        installing-version: "2.7.47"
+        installing-version: "3.5.42"
         action: stop
         message: |
           ⚠️  Claude Flow V3 installation detected
@@ -223,7 +223,7 @@ capabilities:
       # Scenario 3: Unknown .claude directory
       - name: "unknown-origin"
         detected-version: "unknown"
-        installing-version: "2.7.47"
+        installing-version: "3.5.42"
         action: proceed
         message: |
           Existing .claude directory detected (unknown origin).
@@ -233,7 +233,7 @@ capabilities:
 bom:
   tools:
     - name: claude-flow
-      version: "2.7.47"
+      version: "3.5.42"
       source: npm
       type: cli-tool
       license: MIT
@@ -243,7 +243,7 @@ docs:
   title: "Claude Flow V2"
   overview: |
     AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable). The proven, stable version of Claude Flow for production use.
-  last-updated: "2026-01-26"
+  last-updated: "2026-03-21"
   usage:
     - section: "Initialization"
       examples:

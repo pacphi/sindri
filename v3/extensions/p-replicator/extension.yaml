@@ -1,7 +1,7 @@
 ---
 metadata:
   name: p-replicator
-  version: 1.0.0
+  version: 1.1.0
   description: P-Replicator — Claude Code toolkit for AI-assisted product development and Vibe Coding
   category: ai-dev
   distros: [ubuntu, fedora, opensuse]
@@ -40,12 +40,12 @@ bom:
   # NOTE: Versions researched 2026-03-03
   tools:
     - name: p-replicator
-      version: "1.1.0"
+      version: "1.3.0"
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://github.com/dzhechko/pu-unicorn-replicate
-      purl: pkg:npm/%40dzhechkov/p-replicator@1.1.0
+      purl: pkg:npm/%40dzhechkov/p-replicator@1.3.0
 
 docs:
   title: "P-Replicator"
@@ -55,7 +55,7 @@ docs:
     ready for development through a multi-phase pipeline with interactive checkpoints.
     Includes 10 modular skills (~200K chars), 2 commands (/replicate, /harvest),
     4 agents, and quality gates with swarm validation.
-  last-updated: "2026-03-03"
+  last-updated: "2026-03-21"
   features:
     - "Full /replicate pipeline: Discovery → Planning → Validation → Toolkit → Finalize"
     - "10 modular skills with composable architecture (foundation → composite → master orchestrator)"

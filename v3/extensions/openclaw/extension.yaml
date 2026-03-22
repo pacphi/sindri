@@ -1,7 +1,7 @@
 ---
 metadata:
   name: openclaw
-  version: 1.0.0
+  version: 1.1.0
   description: OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI
   category: ai-dev
   distros: [ubuntu, fedora, opensuse]
@@ -53,15 +53,15 @@ remove:
     tools: ["npm:openclaw"]
 
 bom:
-  # NOTE: Versions researched 2026-02-25
+  # NOTE: Versions researched 2026-03-21
   tools:
     - name: openclaw
-      version: "2026.2.24"
+      version: "2026.3.13"
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://github.com/openclaw/openclaw
-      purl: pkg:npm/openclaw@2026.2.24
+      purl: pkg:npm/openclaw@2026.3.13
 
 docs:
   title: "OpenClaw AI Gateway"
@@ -71,7 +71,7 @@ docs:
     browser-based Control UI, configurable agent workspaces, proactive heartbeat automation,
     per-sender session management, and media handling. Supports multiple LLM providers
     including Anthropic Claude, OpenAI, and custom OpenAI/Anthropic-compatible endpoints.
-  last-updated: "2026-02-25"
+  last-updated: "2026-03-21"
   features:
     - "Multi-channel messaging (WhatsApp, Telegram, Discord, iMessage, Slack, Teams)"
     - "Browser-based Control UI dashboard (localhost:18789)"

@@ -1,7 +1,7 @@
 ---
 metadata:
   name: rtk
-  version: 1.0.0
+  version: 1.1.0
   description: "RTK (Rust Token Killer) - High-performance CLI proxy that reduces LLM token consumption by 60-90%"
   category: ai-dev
   author: rtk-ai
@@ -67,12 +67,12 @@ bom:
   # NOTE: Versions researched 2026-03-18
   tools:
     - name: rtk
-      version: "0.30.1"
+      version: "0.31.0"
       source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/rtk-ai/rtk
-      purl: pkg:github/rtk-ai/rtk@v0.30.1
+      purl: pkg:github/rtk-ai/rtk@v0.31.0
 
 docs:
   title: "RTK (Rust Token Killer)"
@@ -81,7 +81,7 @@ docs:
     It smart-filters, groups, truncates, and deduplicates command outputs before they
     reach language model contexts. Built as a single Rust binary with zero dependencies
     and <10ms overhead per execution.
-  last-updated: "2026-03-18"
+  last-updated: "2026-03-21"
   features:
     - "Reduces LLM token consumption by 60-90% via smart output filtering"
     - "Auto-rewrite hook for Claude Code — transparently converts commands (e.g., git status → rtk git status)"

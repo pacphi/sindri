@@ -1,7 +1,7 @@
 ---
 metadata:
   name: claudeup
-  version: 1.1.0
+  version: 1.2.0
   description: >-
     TUI tool for managing Claude Code plugins, MCPs (Model Context Protocol), and configuration settings
   category: claude
@@ -44,17 +44,17 @@ upgrade:
 bom:
   tools:
     - name: claudeup
-      version: "3.3.1"
+      version: "3.7.2"
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/MadAppGang/claude-code/tree/main/tools/claudeup
-      purl: pkg:npm/claudeup@3.3.1
+      purl: pkg:npm/claudeup@3.7.2
 docs:
   title: "ClaudeUp"
   overview: |
     TUI tool for managing Claude Code plugins, MCPs (Model Context Protocol), and configuration settings. Provides an interactive terminal interface for Claude Code management.
-  last-updated: "2026-01-26"
+  last-updated: "2026-03-21"
   usage:
     - section: "Launch TUI"
       examples:

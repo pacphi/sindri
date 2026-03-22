@@ -1,7 +1,7 @@
 ---
 metadata:
   name: claude-codepro
-  version: 7.6.2
+  version: 7.7.1
   description: Production-grade TDD-enforced development environment for Claude Code with automated quality checks
   category: claude
   distros: [ubuntu, fedora, opensuse]
@@ -148,7 +148,7 @@ capabilities:
     scenarios:
       - name: "already-installed"
         detected-version: "installed"
-        installing-version: "7.6.2"
+        installing-version: "7.7.1"
         action: skip
         message: |
           ✓ Claude CodePro is already installed
@@ -157,19 +157,19 @@ capabilities:
 bom:
   tools:
     - name: claude-codepro
-      version: "7.6.2"
+      version: "7.7.1"
       source: github-release
       type: utility
       license: Proprietary
       homepage: https://github.com/maxritter/claude-codepro
-      purl: pkg:github/maxritter/claude-codepro@v7.6.2
+      purl: pkg:github/maxritter/claude-codepro@v7.7.1
 docs:
   title: "Claude CodePro"
   overview: |
     Production-grade TDD-enforced development environment for Claude Code with automated quality checks. Provides strict development workflows with test-driven development enforcement.
 
     Note: This extension takes FULL CONTROL of the .claude/ directory and is INCOMPATIBLE with claude-flow extensions.
-  last-updated: "2026-03-18"
+  last-updated: "2026-03-21"
   features:
     - "TDD Enforcement - Pre-edit hooks require tests before code"
     - "Quality Checks - Automated Python/TypeScript linting"

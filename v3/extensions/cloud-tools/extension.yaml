@@ -1,7 +1,7 @@
 ---
 metadata:
   name: cloud-tools
-  version: 2.3.0
+  version: 2.3.1
   description: Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)
   category: devops
   distros: [ubuntu, fedora, opensuse]
@@ -90,17 +90,17 @@ upgrade:
     path: upgrade.sh
     timeout: 900
 bom:
-  # NOTE: Versions researched 2026-03-18
+  # NOTE: Versions researched 2026-03-21
   # Install script uses upstream installers - versions reflect latest available
   tools:
     - name: aws
-      version: "2.34.11"
+      version: "2.34.14"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://aws.amazon.com/cli
-      purl: pkg:generic/awscli@2.34.11
-      cpe: cpe:2.3:a:amazon:aws_cli:2.34.11:*:*:*:*:*:*:*
+      purl: pkg:generic/awscli@2.34.14
+      cpe: cpe:2.3:a:amazon:aws_cli:2.34.14:*:*:*:*:*:*:*
     - name: az
       version: "2.84.0"
       source: script
@@ -131,12 +131,12 @@ bom:
       homepage: https://docs.digitalocean.com/reference/doctl
       purl: pkg:github/digitalocean/doctl@1.152.0
     - name: flyctl
-      version: "0.4.23"
+      version: "0.4.26"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://fly.io/docs/flyctl
-      purl: pkg:github/superfly/flyctl@0.4.23
+      purl: pkg:github/superfly/flyctl@0.4.26
     - name: ibmcloud
       version: "2.41.1"
       source: script
@@ -148,7 +148,7 @@ docs:
   title: "Cloud Tools"
   overview: |
     Cloud provider CLI tools for AWS, Azure, GCP, Fly.io, OCI, Alibaba Cloud, DigitalOcean, and IBM Cloud. Provides unified access to major cloud platforms.
-  last-updated: "2026-03-18"
+  last-updated: "2026-03-21"
   usage:
     - section: "AWS CLI"
       examples:

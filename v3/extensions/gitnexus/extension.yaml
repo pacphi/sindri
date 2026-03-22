@@ -1,7 +1,7 @@
 ---
 metadata:
   name: gitnexus
-  version: 1.1.0
+  version: 1.1.1
   description: Codebase knowledge graph CLI with AI agent integration via MCP server
   category: ai-dev
   distros: [ubuntu, fedora, opensuse]
@@ -77,7 +77,7 @@ capabilities:
         fi
       description: "Check platform compatibility for native dependencies"
     post-install:
-      command: "claude mcp add gitnexus -- npx -y @veewo/gitnexus@1.4.6 mcp"
+      command: "claude mcp add gitnexus -- npx -y @veewo/gitnexus@1.4.7 mcp"
       description: "Register GitNexus MCP server with Claude Code"
     post-project-init:
       command: "echo 'GitNexus analysis complete — knowledge graph is ready'"
@@ -89,7 +89,7 @@ capabilities:
       command: "npx"
       args:
         - "-y"
-        - "@veewo/gitnexus@1.4.6"
+        - "@veewo/gitnexus@1.4.7"
         - "mcp"
     tools:
       - name: "list_repos"
@@ -111,12 +111,12 @@ bom:
   # NOTE: Versions researched 2026-02-22
   tools:
     - name: gitnexus
-      version: "1.4.6"
+      version: "1.4.7"
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://github.com/abhigyanpatwari/GitNexus
-      purl: pkg:npm/%40veewo/gitnexus@1.4.6
+      purl: pkg:npm/%40veewo/gitnexus@1.4.7
 
 docs:
   title: "GitNexus"
@@ -126,7 +126,7 @@ docs:
     server. It provides "Precomputed Relational Intelligence": indexing precomputes clustering,
     tracing, and scoring so tools return complete context in one call rather than requiring multiple
     LLM queries for code exploration.
-  last-updated: "2026-03-18"
+  last-updated: "2026-03-21"
   features:
     - "Knowledge graph indexing — dependency mapping, call chain tracking, functional clustering"
     - "7 MCP tools — query, context, impact, detect_changes, rename, cypher, list_repos"
@@ -161,9 +161,9 @@ docs:
     - section: "MCP Server"
       examples:
         - description: "Start MCP server (stdio transport)"
-          code: "npx -y @veewo/gitnexus@1.4.6 mcp"
+          code: "npx -y @veewo/gitnexus@1.4.7 mcp"
         - description: "Register with Claude Code (one-time setup)"
-          code: "claude mcp add gitnexus -- npx -y @veewo/gitnexus@1.4.6 mcp"
+          code: "claude mcp add gitnexus -- npx -y @veewo/gitnexus@1.4.7 mcp"
         - description: "Configure MCP for all supported editors"
           code: "npx gitnexus setup"
         - description: "Start HTTP server for web UI"
@@ -176,7 +176,7 @@ docs:
               "mcpServers": {
                 "gitnexus": {
                   "command": "npx",
-                  "args": ["-y", "@veewo/gitnexus@1.4.6", "mcp"]
+                  "args": ["-y", "@veewo/gitnexus@1.4.7", "mcp"]
                 }
               }
             }

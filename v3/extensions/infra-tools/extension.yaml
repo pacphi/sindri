@@ -1,7 +1,7 @@
 ---
 metadata:
   name: infra-tools
-  version: 2.3.0
+  version: 2.4.0
   description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
   category: devops
   distros: [ubuntu, fedora, opensuse]
@@ -167,7 +167,7 @@ bom:
       homepage: https://k9scli.io
       purl: pkg:github/derailed/k9s
     - name: ansible
-      version: "13.3.0"
+      version: "13.4.0"
       source: apt
       type: cli-tool
       license: GPL-3.0
@@ -175,7 +175,7 @@ bom:
       purl: pkg:deb/ubuntu/ansible
       cpe: cpe:2.3:a:ansible:ansible:*:*:*:*:*:*:*:*
     - name: pulumi
-      version: "3.226.0"
+      version: "3.227.0"
       source: script
       type: cli-tool
       license: Apache-2.0
@@ -189,19 +189,19 @@ bom:
       homepage: https://www.crossplane.io
       purl: pkg:generic/crossplane
     - name: kubectx
-      version: "0.9.5"
+      version: "0.10.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
-      purl: pkg:github/ahmetb/kubectx@0.9.5
+      purl: pkg:github/ahmetb/kubectx@0.10.0
     - name: kubens
-      version: "0.9.5"
+      version: "0.10.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
-      purl: pkg:github/ahmetb/kubectx@0.9.5
+      purl: pkg:github/ahmetb/kubectx@0.10.0
     - name: kapp
       version: "0.65.1"
       source: script
@@ -241,7 +241,7 @@ docs:
   title: "Infrastructure Tools"
   overview: |
     Infrastructure and DevOps tooling including Terraform, Kubernetes tools, and Configuration Management. Comprehensive IaC toolkit.
-  last-updated: "2026-03-18"
+  last-updated: "2026-03-21"
   usage:
     - section: "Terraform"
       examples:

@@ -76,11 +76,11 @@ V3 extensions are organized into the following categories:
 | Extension       | Version | Description                                                                       | Install Method |
 | --------------- | ------- | --------------------------------------------------------------------------------- | -------------- |
 | **docker**      | 1.1.0   | Docker Engine and Compose with Docker-in-Docker support                           | hybrid         |
-| **infra-tools** | 2.3.0   | Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)                   | hybrid         |
+| **infra-tools** | 2.4.0   | Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)                   | hybrid         |
 | **draupnir**    | 1.0.0   | Sindri instance agent for mimir fleet management                                  | script         |
 | **glab**        | 1.0.0   | GitLab CLI for merge requests, issues, pipelines, and CI/CD                       | mise           |
 | **github-cli**  | 2.0.0   | GitHub CLI authentication and workflow configuration                              | script         |
-| **cloud-tools** | 2.3.0   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)         | script         |
+| **cloud-tools** | 2.3.1   | Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)         | script         |
 | **monitoring**  | 2.0.0   | Claude monitoring and usage tracking tools (UV, claude-monitor, claude-usage-cli) | script         |
 
 ### Claude Code Integrations
@@ -89,12 +89,12 @@ V3 extensions are organized into the following categories:
 | ---------------------- | ------- | --------------------------------------------------------------------------------------------- | -------------- |
 | **claude-cli**         | 1.0.0   | Claude Code CLI - Official Anthropic AI coding assistant                                      | script         |
 | **claude-flow-v3**     | 3.0.0   | Next-gen multi-agent orchestration with 10x performance, 150x faster search (alpha)           | mise           |
-| **ruflo**              | 3.5.36  | AI Agent Orchestration Platform — successor to Claude Flow with HNSW search and 215 MCP tools | mise           |
-| **claude-flow-v2**     | 2.7.47  | AI-powered multi-agent orchestration system for Claude Code workflows (stable)                | mise           |
-| **claude-codepro**     | 7.6.2   | Production-grade TDD-enforced development environment with automated quality checks           | script         |
+| **ruflo**              | 3.5.42  | AI Agent Orchestration Platform — successor to Claude Flow with HNSW search and 215 MCP tools | mise           |
+| **claude-flow-v2**     | 3.5.42  | AI-powered multi-agent orchestration system for Claude Code workflows (stable)                | mise           |
+| **claude-codepro**     | 7.7.1   | Production-grade TDD-enforced development environment with automated quality checks           | script         |
 | **claude-code-mux**    | 1.0.0   | High-performance AI routing proxy with automatic failover across 18+ providers                | script         |
-| **claudish**           | 1.1.0   | Claude Code CLI proxy for OpenRouter models via local Anthropic API proxy                     | mise           |
-| **claudeup**           | 1.1.0   | TUI tool for managing Claude Code plugins, MCPs, and configuration settings                   | mise           |
+| **claudish**           | 2.0.0   | Claude Code CLI proxy for OpenRouter models via local Anthropic API proxy                     | mise           |
+| **claudeup**           | 1.2.0   | TUI tool for managing Claude Code plugins, MCPs, and configuration settings                   | mise           |
 | **claude-marketplace** | 2.1.0   | Claude Code plugin marketplace integration via JSON configuration                             | script         |
 | **compahook**          | 1.0.0   | Persistent memory layer for Claude Code's /compact command                                    | mise           |
 
@@ -103,26 +103,26 @@ V3 extensions are organized into the following categories:
 | Extension         | Version | Description                                                                          | Install Method |
 | ----------------- | ------- | ------------------------------------------------------------------------------------ | -------------- |
 | **agentic-flow**  | 1.0.0   | Multi-model AI agent framework for Claude Code with cost optimization (alpha)        | mise           |
-| **agentic-qe**    | 1.3.1   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
+| **agentic-qe**    | 1.3.2   | Agentic Quality Engineering v3 with AI-powered test generation and coverage analysis | mise           |
 | **agent-manager** | 2.0.0   | Claude Code agent manager for managing AI agents                                     | script         |
-| **agent-browser** | 1.2.0   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
-| **openfang**      | 1.1.0   | Open-source agent OS for autonomous AI agents across 40+ messaging platforms         | script         |
+| **agent-browser** | 1.2.1   | Headless browser automation CLI for AI agents with snapshot-based element selection  | mise           |
+| **openfang**      | 1.2.0   | Open-source agent OS for autonomous AI agents across 40+ messaging platforms         | script         |
 
 ### AI Development
 
 | Extension        | Version | Description                                                                                       | Install Method |
 | ---------------- | ------- | ------------------------------------------------------------------------------------------------- | -------------- |
-| **ai-toolkit**   | 2.4.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)                  | script         |
+| **ai-toolkit**   | 2.5.0   | AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot)                  | script         |
 | **clarity**      | 1.0.0   | Autonomous spec generation skill from reference materials (5-phase workflow)                      | script         |
-| **gitnexus**     | 1.1.0   | Codebase knowledge graph CLI with AI agent integration via MCP server                             | mise           |
+| **gitnexus**     | 1.1.1   | Codebase knowledge graph CLI with AI agent integration via MCP server                             | mise           |
 | **ollama**       | 1.0.0   | Ollama - Run large language models locally (Llama, Mistral, CodeLlama)                            | script         |
 | **goose**        | 1.0.0   | Block's open-source AI agent that automates engineering tasks                                     | script         |
-| **kilo**         | 1.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming                          | mise           |
-| **openclaw**     | 1.0.0   | OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI               | mise           |
-| **opencode**     | 1.0.0   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE                             | mise           |
+| **kilo**         | 2.0.0   | Kilo Code AI coding assistant CLI for terminal-based AI pair programming                          | mise           |
+| **openclaw**     | 1.1.0   | OpenClaw - Multi-channel AI gateway for messaging platforms with browser Control UI               | mise           |
+| **opencode**     | 1.0.1   | OpenCode - Open source AI coding agent for terminal, desktop, and IDE                             | mise           |
 | **paperclip**    | 1.0.0   | Paperclip - AI agent orchestrator with React dashboard for managing agent teams                   | mise           |
-| **p-replicator** | 1.0.0   | P-Replicator — Claude Code toolkit for AI-assisted product development (Vibe Coding)              | mise           |
-| **rtk**          | 1.0.0   | RTK (Rust Token Killer) - High-performance CLI proxy that reduces LLM token consumption by 60-90% | script         |
+| **p-replicator** | 1.1.0   | P-Replicator — Claude Code toolkit for AI-assisted product development (Vibe Coding)              | mise           |
+| **rtk**          | 1.1.0   | RTK (Rust Token Killer) - High-performance CLI proxy that reduces LLM token consumption by 60-90% | script         |
 | **ruvector-cli** | 1.0.0   | CLI for RuVector self-learning vector database with MCP server integration                        | script         |
 | **rvf-cli**      | 1.0.0   | Unified CLI for RuVector Format (RVF) vector storage operations                                   | script         |
 
@@ -183,7 +183,7 @@ V3 extensions are organized into the following categories:
 
 | Extension           | Version | Description                                                                 | Install Method |
 | ------------------- | ------- | --------------------------------------------------------------------------- | -------------- |
-| **ruvnet-research** | 1.0.0   | AI research tools including Goalie and Research-Swarm multi-agent framework | mise           |
+| **ruvnet-research** | 1.0.1   | AI research tools including Goalie and Research-Swarm multi-agent framework | mise           |
 
 ---
 

@@ -7,7 +7,7 @@
 
 schema_version: "1.0"
 
-# Last Updated: 2026-03-18
+# Last Updated: 2026-03-21
 # CLI version compatibility mappings
 # Key format: CLI version (supports wildcards like "3.0.x")
 # Compatible extension versions use semver ranges (e.g., ">=1.0.0,<2.0.0")
@@ -53,11 +53,11 @@ cli_versions:
       claude-cli: ">=1.0.0,<2.0.0"
       claude-code-mux: ">=1.0.0,<2.0.0"
       claude-codepro: ">=4.5.0,<8.0.0"
-      claude-flow-v2: ">=2.7.0,<3.0.0"
+      claude-flow-v2: ">=2.7.0,<4.0.0"
       claude-flow-v3: ">=3.0.0,<4.0.0"
       claude-marketplace: ">=2.0.0,<3.0.0"
       claudeup: ">=1.0.0,<2.0.0"
-      claudish: ">=1.0.0,<2.0.0"
+      claudish: ">=1.0.0,<3.0.0"
       compahook: ">=1.0.0,<2.0.0"
       ruflo: ">=3.5.0,<4.0.0"
 
@@ -87,7 +87,7 @@ cli_versions:
 
       # AI/ML Tools
       goose: ">=1.0.0,<2.0.0"
-      kilo: ">=1.0.0,<2.0.0"
+      kilo: ">=1.0.0,<3.0.0"
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
       opencode: ">=1.0.0,<2.0.0"
@@ -162,11 +162,11 @@ cli_versions:
       claude-cli: ">=1.0.0,<2.0.0"
       claude-code-mux: ">=1.0.0,<2.0.0"
       claude-codepro: ">=4.5.0,<8.0.0"
-      claude-flow-v2: ">=2.7.0,<3.0.0"
+      claude-flow-v2: ">=2.7.0,<4.0.0"
       claude-flow-v3: ">=3.0.0,<4.0.0"
       claude-marketplace: ">=2.0.0,<3.0.0"
       claudeup: ">=1.0.0,<2.0.0"
-      claudish: ">=1.0.0,<2.0.0"
+      claudish: ">=1.0.0,<3.0.0"
       compahook: ">=1.0.0,<2.0.0"
       ruflo: ">=3.5.0,<4.0.0"
 
@@ -196,7 +196,7 @@ cli_versions:
 
       # AI/ML Tools
       goose: ">=1.0.0,<2.0.0"
-      kilo: ">=1.0.0,<2.0.0"
+      kilo: ">=1.0.0,<3.0.0"
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
       opencode: ">=1.0.0,<2.0.0"

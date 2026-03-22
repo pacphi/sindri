@@ -1,7 +1,7 @@
 ---
 metadata:
   name: opencode
-  version: 1.0.0
+  version: 1.0.1
   description: OpenCode - Open source AI coding agent for terminal, desktop, and IDE integration
   category: ai-dev
   distros: [ubuntu, fedora, opensuse]
@@ -38,15 +38,15 @@ remove:
     tools: ["npm:opencode-ai"]
 
 bom:
-  # NOTE: Versions researched 2026-02-25
+  # NOTE: Versions researched 2026-03-21
   tools:
     - name: opencode
-      version: "1.2.14"
+      version: "1.2.27"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://opencode.ai
-      purl: pkg:npm/opencode-ai@1.2.14
+      purl: pkg:npm/opencode-ai@1.2.27
 
 docs:
   title: "OpenCode AI Coding Agent"
@@ -54,7 +54,7 @@ docs:
     OpenCode is an open source AI coding agent available as a terminal CLI, desktop application, and IDE extension.
     It analyzes codebases, answers questions about code, suggests implementation plans, and writes/modifies code based on user requests.
     Supports 75+ LLM providers including Anthropic Claude, OpenAI, Azure, Google, and self-hosted models.
-  last-updated: "2026-02-25"
+  last-updated: "2026-03-21"
   features:
     - "Terminal-based AI coding assistant"
     - "Multi-provider LLM support (75+ providers)"
