@@ -113,6 +113,7 @@ jobs:
         id: install
         timeout-minutes: 10
         run: |
+          set -o pipefail
           echo "::group::Installing ${{ matrix.extension }}"
           START_TIME=$(date +%s)
 
@@ -129,11 +130,17 @@ jobs:
           echo "result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
           echo "duration=$DURATION" >> $GITHUB_OUTPUT
 
+          if [[ "$INSTALL_RESULT" != "success" ]]; then
+            echo "::error::Extension ${{ matrix.extension }} install failed"
+            exit 1
+          fi
+
       - name: Validate Extension
         id: validate
         if: steps.install.outputs.result == 'success'
         timeout-minutes: 5
         run: |
+          set -o pipefail
           echo "::group::Validating ${{ matrix.extension }}"
 
           if sindri extension validate ${{ matrix.extension }} 2>&1 | tee validate.log; then
@@ -144,6 +151,11 @@ jobs:
 
           echo "::endgroup::"
           echo "result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+          if [[ "$VALIDATE_RESULT" != "success" ]]; then
+            echo "::error::Extension ${{ matrix.extension }} validation failed"
+            exit 1
+          fi
 
       - name: Remove Extension
         id: remove

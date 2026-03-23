@@ -177,6 +177,7 @@ jobs:
         id: test
         timeout-minutes: 20
         run: |
+          set -o pipefail
           WORKSPACE="${{ steps.create.outputs.workspace_name }}"
 
           echo "::group::Installing ${{ matrix.extension }}"
@@ -211,6 +212,11 @@ jobs:
           echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
           echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
           echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+          if [[ "$INSTALL_RESULT" != "success" || "$VALIDATE_RESULT" == "failure" ]]; then
+            echo "::error::Extension ${{ matrix.extension }} failed (install=$INSTALL_RESULT, validate=$VALIDATE_RESULT)"
+            exit 1
+          fi
 
       - name: Cleanup DevPod Workspace
         if: always()

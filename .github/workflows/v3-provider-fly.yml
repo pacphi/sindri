@@ -137,12 +137,13 @@ jobs:
         id: test
         timeout-minutes: 20
         run: |
+          set -o pipefail
           APP_NAME="${{ steps.create.outputs.app_name }}"
 
           echo "::group::Installing ${{ matrix.extension }}"
           START_TIME=$(date +%s)
 
-          if flyctl ssh console --app "$APP_NAME" -C "sindri extension install ${{ matrix.extension }} --yes" 2>&1 | tee install.log; then
+          if flyctl ssh console --app "$APP_NAME" -u developer -C "sindri extension install ${{ matrix.extension }} --yes" 2>&1 | tee install.log; then
             INSTALL_RESULT="success"
           else
             INSTALL_RESULT="failure"
@@ -154,7 +155,7 @@ jobs:
 
           if [[ "$INSTALL_RESULT" == "success" ]]; then
             echo "::group::Validating ${{ matrix.extension }}"
-            if flyctl ssh console --app "$APP_NAME" -C "sindri extension validate ${{ matrix.extension }}" 2>&1 | tee validate.log; then
+            if flyctl ssh console --app "$APP_NAME" -u developer -C "sindri extension validate ${{ matrix.extension }}" 2>&1 | tee validate.log; then
               VALIDATE_RESULT="success"
             else
               VALIDATE_RESULT="failure"
@@ -162,7 +163,7 @@ jobs:
             echo "::endgroup::"
 
             echo "::group::Removing ${{ matrix.extension }}"
-            flyctl ssh console --app "$APP_NAME" -C "sindri extension remove ${{ matrix.extension }} --yes" 2>&1 | tee remove.log || true
+            flyctl ssh console --app "$APP_NAME" -u developer -C "sindri extension remove ${{ matrix.extension }} --yes" 2>&1 | tee remove.log || true
             echo "::endgroup::"
           else
             VALIDATE_RESULT="skipped"
@@ -171,6 +172,12 @@ jobs:
           echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
           echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
           echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+          # Fail the step so the job conclusion reflects actual test results
+          if [[ "$INSTALL_RESULT" != "success" || "$VALIDATE_RESULT" == "failure" ]]; then
+            echo "::error::Extension ${{ matrix.extension }} failed (install=$INSTALL_RESULT, validate=$VALIDATE_RESULT)"
+            exit 1
+          fi
 
       - name: Cleanup Fly App
         if: always()

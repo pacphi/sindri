@@ -175,6 +175,7 @@ jobs:
         id: test
         timeout-minutes: 15
         run: |
+          set -o pipefail
           POD_ID="${{ steps.create.outputs.pod_id }}"
 
           echo "::group::Installing ${{ matrix.extension }}"
@@ -209,6 +210,11 @@ jobs:
           echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
           echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
           echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+          if [[ "$INSTALL_RESULT" != "success" || "$VALIDATE_RESULT" == "failure" ]]; then
+            echo "::error::Extension ${{ matrix.extension }} failed (install=$INSTALL_RESULT, validate=$VALIDATE_RESULT)"
+            exit 1
+          fi
 
       - name: Cleanup RunPod Pod
         if: always()

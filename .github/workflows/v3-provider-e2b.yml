@@ -262,6 +262,7 @@ jobs:
         id: test
         timeout-minutes: 15
         run: |
+          set -o pipefail
           SANDBOX_ID="${{ steps.create.outputs.sandbox_id }}"
           EXEC_SCRIPT="${{ github.workspace }}/.github/scripts/v3/e2b-exec.mjs"
 
@@ -297,6 +298,11 @@ jobs:
           echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
           echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
           echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+          if [[ "$INSTALL_RESULT" != "success" || "$VALIDATE_RESULT" == "failure" ]]; then
+            echo "::error::Extension ${{ matrix.extension }} failed (install=$INSTALL_RESULT, validate=$VALIDATE_RESULT)"
+            exit 1
+          fi
 
       - name: Cleanup E2B Sandbox
         if: always()

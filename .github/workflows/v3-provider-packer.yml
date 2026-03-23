@@ -397,6 +397,7 @@ jobs:
         id: test
         timeout-minutes: 20
         run: |
+          set -o pipefail
           PUBLIC_IP="${{ steps.launch.outputs.public-ip }}"
           SSH_KEY="${{ steps.launch.outputs.ssh-key-path }}"
 
@@ -434,6 +435,11 @@ jobs:
           echo "install_result=$INSTALL_RESULT" >> $GITHUB_OUTPUT
           echo "install_duration=$DURATION" >> $GITHUB_OUTPUT
           echo "validate_result=$VALIDATE_RESULT" >> $GITHUB_OUTPUT
+
+          if [[ "$INSTALL_RESULT" != "success" || "$VALIDATE_RESULT" == "failure" ]]; then
+            echo "::error::Extension ${{ matrix.extension }} failed (install=$INSTALL_RESULT, validate=$VALIDATE_RESULT)"
+            exit 1
+          fi
 
       - name: Terminate Instance
         if: always()

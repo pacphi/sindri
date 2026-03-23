@@ -211,6 +211,11 @@ jobs:
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
 
+          if [[ "$FAILED" -gt 0 ]]; then
+            echo "::error::$FAILED extension(s) failed on k3d"
+            exit 1
+          fi
+
       - name: Aggregate Results
         id: aggregate
         run: |
