@@ -116,7 +116,7 @@ jobs:
           workspaces: v3 -> target
 
       - name: Setup Packer
-        uses: hashicorp/setup-packer@v3.1.0
+        uses: hashicorp/setup-packer@v3.2.0
 
       - name: Build Sindri CLI
         working-directory: v3
