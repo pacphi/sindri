@@ -85,7 +85,7 @@
     "js-yaml": "^4.1.1",
     "lint-staged": "^16.2.7",
     "markdownlint-cli": "^0.48.0",
-    "npm-check-updates": "^19.4.1",
+    "npm-check-updates": "^20.0.0",
     "prettier": "^3.8.1",
     "yaml-lint": "^1.7.0"
   },
