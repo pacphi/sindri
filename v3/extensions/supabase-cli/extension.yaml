@@ -1,7 +1,7 @@
 ---
 metadata:
   name: supabase-cli
-  version: 2.2.0
+  version: 2.3.0
   description: Supabase CLI for local development, migrations, and edge functions
   category: cloud
   distros: [ubuntu, fedora, opensuse]
@@ -51,19 +51,20 @@ upgrade:
   script:
     path: install.sh
 bom:
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: supabase
-      version: "2.78.1"
+      version: "2.90.0"
       source: binary
       type: cli-tool
       license: MIT
       homepage: https://supabase.com/docs/guides/local-development/cli/getting-started
-      purl: pkg:github/supabase/cli
+      purl: pkg:github/supabase/cli@2.90.0
 docs:
   title: "Supabase CLI"
   overview: |
     Supabase CLI for local development, migrations, and edge functions. Full-featured tooling for Supabase backend development.
-  last-updated: "2026-03-18"
+  last-updated: "2026-04-21"
   usage:
     - section: "Project Setup"
       examples:

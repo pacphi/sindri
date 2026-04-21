@@ -1,7 +1,7 @@
 ---
 metadata:
   name: openfang
-  version: 1.2.0
+  version: 1.3.0
   description: >-
     OpenFang - Open-source agent OS for autonomous AI agents across 40+ messaging platforms
   category: ai-agents
@@ -73,15 +73,15 @@ capabilities:
       description: "Initialize config directory and verify system health"
 
 bom:
-  # NOTE: Versions researched 2026-03-18
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: openfang
-      version: "0.5.1"
+      version: "0.6.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://openfang.sh
-      purl: pkg:cargo/openfang-cli@0.5.1
+      purl: pkg:cargo/openfang-cli@0.6.0
 
 docs:
   title: "OpenFang Agent OS"
@@ -90,7 +90,7 @@ docs:
     Agents are deployable across 40+ messaging platforms (Slack, Discord, Telegram, WhatsApp, etc.) with support
     for 20+ LLM providers. OpenFang supports local-first operation with Ollama for privacy-sensitive deployments,
     or cloud providers like Anthropic, OpenAI, and Groq for maximum capability.
-  last-updated: "2026-03-21"
+  last-updated: "2026-04-21"
   features:
     - "Agent OS - Spawn and manage autonomous AI agents from the terminal"
     - "40+ messaging platforms - Slack, Discord, Telegram, WhatsApp, Matrix, and more"

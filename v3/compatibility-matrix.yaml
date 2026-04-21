@@ -7,7 +7,7 @@
 
 schema_version: "1.0"
 
-# Last Updated: 2026-03-21
+# Last Updated: 2026-04-21
 # CLI version compatibility mappings
 # Key format: CLI version (supports wildcards like "3.0.x")
 # Compatible extension versions use semver ranges (e.g., ">=1.0.0,<2.0.0")
@@ -57,8 +57,8 @@ cli_versions:
       claude-flow-v2: ">=2.7.0,<4.0.0"
       claude-flow-v3: ">=3.0.0,<4.0.0"
       claude-marketplace: ">=2.0.0,<3.0.0"
-      claudeup: ">=1.0.0,<2.0.0"
-      claudish: ">=1.0.0,<3.0.0"
+      claudeup: ">=1.0.0,<3.0.0"
+      claudish: ">=1.0.0,<4.0.0"
       compahook: ">=1.0.0,<2.0.0"
       ruflo: ">=3.5.0,<4.0.0"
 
@@ -84,14 +84,14 @@ cli_versions:
       pal-mcp-server: ">=9.8.0,<10.0.0"
 
       # Development Tools
-      nodejs-devtools: ">=2.2.0,<3.0.0"
+      nodejs-devtools: ">=2.2.0,<4.0.0"
 
       # AI/ML Tools
       goose: ">=1.0.0,<2.0.0"
       kilo: ">=1.0.0,<3.0.0"
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
-      opencode: ">=1.0.0,<2.0.0"
+      opencode: ">=1.0.0,<3.0.0"
       paperclip: ">=1.0.0,<2.0.0"
       p-replicator: ">=1.0.0,<2.0.0"
       rtk: ">=1.0.0,<2.0.0"
@@ -167,8 +167,8 @@ cli_versions:
       claude-flow-v2: ">=2.7.0,<4.0.0"
       claude-flow-v3: ">=3.0.0,<4.0.0"
       claude-marketplace: ">=2.0.0,<3.0.0"
-      claudeup: ">=1.0.0,<2.0.0"
-      claudish: ">=1.0.0,<3.0.0"
+      claudeup: ">=1.0.0,<3.0.0"
+      claudish: ">=1.0.0,<4.0.0"
       compahook: ">=1.0.0,<2.0.0"
       ruflo: ">=3.5.0,<4.0.0"
 
@@ -194,14 +194,14 @@ cli_versions:
       pal-mcp-server: ">=9.8.0,<10.0.0"
 
       # Development Tools
-      nodejs-devtools: ">=2.3.0,<3.0.0"
+      nodejs-devtools: ">=2.3.0,<4.0.0"
 
       # AI/ML Tools
       goose: ">=1.0.0,<2.0.0"
       kilo: ">=1.0.0,<3.0.0"
       ollama: ">=1.0.0,<2.0.0"
       openclaw: ">=1.0.0,<2.0.0"
-      opencode: ">=1.0.0,<2.0.0"
+      opencode: ">=1.0.0,<3.0.0"
       paperclip: ">=1.0.0,<2.0.0"
       p-replicator: ">=1.0.0,<2.0.0"
       rtk: ">=1.0.0,<2.0.0"
@@ -278,7 +278,7 @@ cli_versions:
       claude-flow-v3: ">=4.0.0,<5.0.0"
       claude-marketplace: ">=3.0.0,<4.0.0"
       claudeup: ">=2.0.0,<3.0.0"
-      claudish: ">=2.0.0,<3.0.0"
+      claudish: ">=2.0.0,<4.0.0"
       compahook: ">=2.0.0,<3.0.0"
       ruflo: ">=3.5.0,<4.0.0"
 

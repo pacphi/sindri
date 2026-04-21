@@ -1,7 +1,7 @@
 ---
 metadata:
   name: claude-flow-v2
-  version: 3.5.42
+  version: 3.5.80
   description: AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable)
   category: claude
   distros: [ubuntu, fedora, opensuse]
@@ -195,7 +195,7 @@ capabilities:
       # Scenario 1: Same version already installed
       - name: "same-version-v2"
         detected-version: "v2"
-        installing-version: "3.5.42"
+        installing-version: "3.5.80"
         action: skip
         message: |
           ✓ Claude Flow V2 is already initialized
@@ -205,7 +205,7 @@ capabilities:
       # Scenario 2: V3 detected when installing V2 (downgrade)
       - name: "v3-to-v2-downgrade"
         detected-version: "v3"
-        installing-version: "3.5.42"
+        installing-version: "3.5.80"
         action: stop
         message: |
           ⚠️  Claude Flow V3 installation detected
@@ -223,7 +223,7 @@ capabilities:
       # Scenario 3: Unknown .claude directory
       - name: "unknown-origin"
         detected-version: "unknown"
-        installing-version: "3.5.42"
+        installing-version: "3.5.80"
         action: proceed
         message: |
           Existing .claude directory detected (unknown origin).
@@ -231,19 +231,20 @@ capabilities:
           Claude Flow V2 will merge into the existing .claude directory
           without overwriting existing configuration files.
 bom:
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: claude-flow
-      version: "3.5.42"
+      version: "3.5.80"
       source: npm
       type: cli-tool
       license: MIT
       homepage: https://github.com/ruvnet/claude-flow
-      purl: pkg:npm/claude-flow
+      purl: pkg:npm/claude-flow@3.5.80
 docs:
   title: "Claude Flow V2"
   overview: |
     AI-powered multi-agent orchestration system for Claude Code workflows (v2 stable). The proven, stable version of Claude Flow for production use.
-  last-updated: "2026-03-21"
+  last-updated: "2026-04-21"
   usage:
     - section: "Initialization"
       examples:

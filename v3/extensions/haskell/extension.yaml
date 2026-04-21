@@ -1,7 +1,7 @@
 ---
 metadata:
   name: haskell
-  version: 2.2.0
+  version: 2.3.0
   description: Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup
   category: languages
   distros: [ubuntu, fedora, opensuse]
@@ -45,17 +45,18 @@ validate:
 remove:
   script:
     path: remove.sh
+# NOTE: Versions researched 2026-04-21
 bom:
   tools:
     - name: ghcup
-      version: "0.1.50"
+      version: "0.1.50.2"
       source: script
       type: cli-tool
       license: LGPL-3.0
       homepage: https://www.haskell.org/ghcup
       purl: pkg:generic/ghcup
     - name: ghc
-      version: "9.12.3"
+      version: "9.12.4"
       source: script
       type: compiler
       license: BSD-3-Clause
@@ -76,7 +77,7 @@ bom:
       homepage: https://docs.haskellstack.org
       purl: pkg:generic/stack
     - name: haskell-language-server
-      version: "2.13.0"
+      version: "2.13.0.0"
       source: script
       type: server
       license: Apache-2.0
@@ -86,7 +87,7 @@ docs:
   title: "Haskell"
   overview: |
     Haskell development environment with GHC, Cabal, Stack, and HLS via ghcup. Provides a complete functional programming environment with IDE support.
-  last-updated: "2026-03-18"
+  last-updated: "2026-04-21"
   usage:
     - section: "GHC (Compiler)"
       examples:

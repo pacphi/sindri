@@ -1,8 +1,8 @@
 ---
 metadata:
   name: swift
-  version: 1.0.1
-  description: Swift 6.2.4 programming language via mise
+  version: 1.1.0
+  description: Swift 6.3 programming language via mise
   category: languages
   distros: [ubuntu, fedora, opensuse]
   dependencies:
@@ -40,17 +40,18 @@ remove:
     removeConfig: true
     tools: [swift]
 
+# NOTE: Versions researched 2026-04-21
 bom:
   tools:
     - name: swift
-      version: "6.2.4"
+      version: "6.3"
       source: mise
       type: compiler
       license: Apache-2.0
       homepage: https://www.swift.org
       purl: pkg:generic/swift
     - name: swiftc
-      version: "6.2.4"
+      version: "6.3"
       source: mise
       type: compiler
       license: Apache-2.0
@@ -59,8 +60,8 @@ bom:
 docs:
   title: "Swift"
   overview: |
-    Swift 6.2.4 via mise. Provides the Swift programming language for iOS, macOS, Linux, and server-side development.
-  last-updated: "2026-03-18"
+    Swift 6.3 via mise. Provides the Swift programming language for iOS, macOS, Linux, and server-side development.
+  last-updated: "2026-04-21"
   usage:
     - section: "Basic Swift Commands"
       examples:

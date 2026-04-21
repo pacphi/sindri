@@ -1,8 +1,8 @@
 ---
 metadata:
   name: ruby
-  version: 2.1.0
-  description: Ruby 4.0.x via mise with Rails and Bundler
+  version: 2.2.0
+  description: Ruby 4.0.2 via mise with Rails and Bundler
   category: languages
   distros: [ubuntu, fedora, opensuse]
   author: Sindri Team
@@ -49,10 +49,11 @@ upgrade:
   strategy: automatic
   mise:
     upgradeAll: true
+# NOTE: Versions researched 2026-04-21
 bom:
   tools:
     - name: ruby
-      version: "4.0"
+      version: "4.0.2"
       source: mise
       type: runtime
       license: Ruby OR BSD-2-Clause
@@ -75,8 +76,8 @@ bom:
 docs:
   title: "Ruby"
   overview: |
-    Ruby 4.0.x via mise with Rails and Bundler. Provides a complete Ruby development environment with modern tooling.
-  last-updated: "2026-02-13"
+    Ruby 4.0.2 via mise with Rails and Bundler. Provides a complete Ruby development environment with modern tooling.
+  last-updated: "2026-04-21"
   usage:
     - section: "Basic Ruby"
       examples:

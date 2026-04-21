@@ -1,7 +1,7 @@
 ---
 metadata:
   name: playwright
-  version: 2.0.0
+  version: 2.1.0
   description: Playwright browser automation framework with Chromium
   category: testing
   distros: [ubuntu, fedora, opensuse]
@@ -49,19 +49,20 @@ upgrade:
     path: upgrade.sh
     timeout: 600
 bom:
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: playwright
-      version: "1.58.2"
+      version: "1.59.1"
       source: npm
       type: framework
       license: Apache-2.0
       homepage: https://playwright.dev
-      purl: pkg:npm/@playwright/test
+      purl: pkg:npm/@playwright/test@1.59.1
 docs:
   title: "Playwright"
   overview: |
     Playwright browser automation framework with Chromium. Provides end-to-end testing capabilities for web applications.
-  last-updated: "2026-01-26"
+  last-updated: "2026-04-21"
   usage:
     - section: "Running Tests"
       examples:

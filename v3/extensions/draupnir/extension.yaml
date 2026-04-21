@@ -83,6 +83,7 @@ remove:
   confirmation: true
 
 bom:
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: draupnir
       version: "1.2.2"

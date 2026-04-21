@@ -1,7 +1,7 @@
 ---
 metadata:
   name: infra-tools
-  version: 2.4.0
+  version: 2.5.0
   description: Infrastructure and DevOps tooling (Terraform, K8s, Config Mgmt)
   category: devops
   distros: [ubuntu, fedora, opensuse]
@@ -129,79 +129,80 @@ upgrade:
     packages: ["ansible", "ansible-lint"]
     updateFirst: true
 bom:
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: terraform
-      version: "1.14"
+      version: "1.14.9"
       source: mise
       type: cli-tool
       license: BUSL-1.1
       homepage: https://www.terraform.io
-      purl: pkg:generic/terraform
-      cpe: cpe:2.3:a:hashicorp:terraform:*:*:*:*:*:*:*:*
+      purl: pkg:generic/terraform@1.14.9
+      cpe: cpe:2.3:a:hashicorp:terraform:1.14.9:*:*:*:*:*:*:*
     - name: packer
-      version: "1.15"
+      version: "1.15.1"
       source: mise
       type: cli-tool
       license: BUSL-1.1
       homepage: https://www.packer.io
-      purl: pkg:generic/packer
+      purl: pkg:generic/packer@1.15.1
     - name: kubectl
-      version: "1.35"
+      version: "1.35.4"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://kubernetes.io
-      purl: pkg:generic/kubectl
+      purl: pkg:generic/kubectl@1.35.4
     - name: helm
-      version: "4.1"
+      version: "4.1.3"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://helm.sh
-      purl: pkg:generic/helm
+      purl: pkg:generic/helm@4.1.3
     - name: k9s
-      version: "0.50"
+      version: "0.50.18"
       source: mise
       type: cli-tool
       license: Apache-2.0
       homepage: https://k9scli.io
-      purl: pkg:github/derailed/k9s
+      purl: pkg:github/derailed/k9s@0.50.18
     - name: ansible
-      version: "13.4.0"
+      version: "13.5.0"
       source: apt
       type: cli-tool
       license: GPL-3.0
       homepage: https://www.ansible.com
       purl: pkg:deb/ubuntu/ansible
-      cpe: cpe:2.3:a:ansible:ansible:*:*:*:*:*:*:*:*
+      cpe: cpe:2.3:a:ansible:ansible:13.5.0:*:*:*:*:*:*:*
     - name: pulumi
-      version: "3.227.0"
+      version: "3.231.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.pulumi.com
-      purl: pkg:generic/pulumi
+      purl: pkg:generic/pulumi@3.231.0
     - name: crossplane
-      version: "2.2.0"
+      version: "2.2.1"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.crossplane.io
-      purl: pkg:generic/crossplane
+      purl: pkg:generic/crossplane@2.2.1
     - name: kubectx
-      version: "0.10.0"
+      version: "0.10.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
-      purl: pkg:github/ahmetb/kubectx@0.10.0
+      purl: pkg:github/ahmetb/kubectx@0.10.2
     - name: kubens
-      version: "0.10.0"
+      version: "0.10.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://github.com/ahmetb/kubectx
-      purl: pkg:github/ahmetb/kubectx@0.10.0
+      purl: pkg:github/ahmetb/kubectx@0.10.2
     - name: kapp
       version: "0.65.1"
       source: script
@@ -217,19 +218,19 @@ bom:
       homepage: https://carvel.dev/ytt
       purl: pkg:github/carvel-dev/ytt@0.53.2
     - name: kbld
-      version: "0.47.2"
+      version: "0.47.3"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/kbld
-      purl: pkg:github/carvel-dev/kbld@0.47.2
+      purl: pkg:github/carvel-dev/kbld@0.47.3
     - name: vendir
-      version: "0.45.2"
+      version: "0.45.3"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://carvel.dev/vendir
-      purl: pkg:github/carvel-dev/vendir@0.45.2
+      purl: pkg:github/carvel-dev/vendir@0.45.3
     - name: imgpkg
       version: "0.47.2"
       source: script
@@ -241,7 +242,7 @@ docs:
   title: "Infrastructure Tools"
   overview: |
     Infrastructure and DevOps tooling including Terraform, Kubernetes tools, and Configuration Management. Comprehensive IaC toolkit.
-  last-updated: "2026-03-21"
+  last-updated: "2026-04-21"
   usage:
     - section: "Terraform"
       examples:

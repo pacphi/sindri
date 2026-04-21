@@ -1,7 +1,7 @@
 ---
 metadata:
   name: paperclip
-  version: 1.0.0
+  version: 1.1.0
   description: Paperclip - AI agent orchestrator with React dashboard for managing agent teams
   category: ai-dev
   distros: [ubuntu, fedora, opensuse]
@@ -71,15 +71,15 @@ capabilities:
       description: "Verify Paperclip installation health"
 
 bom:
-  # NOTE: Versions researched 2026-03-19
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: paperclipai
-      version: "2026.318.0"
+      version: "2026.416.0"
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://paperclip.ing
-      purl: pkg:npm/paperclipai@2026.318.0
+      purl: pkg:npm/paperclipai@2026.416.0
 
 docs:
   title: "Paperclip"
@@ -87,7 +87,7 @@ docs:
     Paperclip is an open-source Node.js agent orchestrator with a React dashboard for managing
     agent teams. It provides a visual interface for creating, coordinating, and monitoring AI
     agent workflows with built-in state persistence via embedded PostgreSQL.
-  last-updated: "2026-03-19"
+  last-updated: "2026-04-21"
   features:
     - "React Dashboard - Visual agent team management on localhost:3100"
     - "Agent Orchestration - Create and coordinate multi-agent workflows"

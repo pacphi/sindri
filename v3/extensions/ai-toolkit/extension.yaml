@@ -1,7 +1,7 @@
 ---
 metadata:
   name: ai-toolkit
-  version: 2.5.0
+  version: 2.6.0
   description: >-
     AI CLI tools and coding assistants (Fabric, Codex, Gemini, Droid, Grok, Copilot). For Ollama, install the separate ollama extension.
   category: ai-dev
@@ -69,6 +69,7 @@ upgrade:
     path: upgrade.sh
     timeout: 900
 bom:
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: fabric
       version: dynamic  # go install @latest (cannot pin easily)
@@ -78,19 +79,19 @@ bom:
       homepage: https://github.com/danielmiessler/fabric
       purl: pkg:pypi/fabric
     - name: codex
-      version: "0.116.0"
+      version: "0.122.0"
       source: script
       type: cli-tool
       license: MIT
       homepage: https://github.com/openai/openai-codex
-      purl: pkg:pypi/openai-codex
+      purl: pkg:npm/%40openai/codex@0.122.0
     - name: gemini
-      version: "0.34.0"
+      version: "0.38.2"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://ai.google.dev
-      purl: pkg:pypi/google-generativeai
+      purl: pkg:npm/%40google/gemini-cli@0.38.2
     - name: droid
       version: dynamic  # Factory.ai installer (gets latest)
       source: script
@@ -109,7 +110,7 @@ docs:
   title: "AI Toolkit"
   overview: |
     AI CLI tools and coding assistants including Fabric, Codex, Gemini, Droid, and Grok. For local LLM hosting, install the separate ollama extension.
-  last-updated: "2026-03-21"
+  last-updated: "2026-04-21"
   usage:
     - section: "Fabric"
       examples:

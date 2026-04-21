@@ -3,11 +3,11 @@
 
 [tools]
 # Pinned to major.minor for stable, reproducible installations
-"npm:typescript" = "5.9"
+"npm:typescript" = "6.0.3"
 "npm:ts-node" = "10.9"
 "npm:eslint" = "10"
-"npm:@typescript-eslint/parser" = "8"
-"npm:@typescript-eslint/eslint-plugin" = "8"
+"npm:@typescript-eslint/parser" = "8.59.0"
+"npm:@typescript-eslint/eslint-plugin" = "8.59.0"
 "npm:prettier" = "3.8"
 "npm:nodemon" = "3.1"
 

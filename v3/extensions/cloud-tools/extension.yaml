@@ -1,7 +1,7 @@
 ---
 metadata:
   name: cloud-tools
-  version: 2.3.1
+  version: 2.4.0
   description: Cloud provider CLI tools (AWS, Azure, GCP, Fly.io, OCI, Alibaba, DO, IBM)
   category: devops
   distros: [ubuntu, fedora, opensuse]
@@ -90,65 +90,65 @@ upgrade:
     path: upgrade.sh
     timeout: 900
 bom:
-  # NOTE: Versions researched 2026-03-21
+  # NOTE: Versions researched 2026-04-21
   # Install script uses upstream installers - versions reflect latest available
   tools:
     - name: aws
-      version: "2.34.14"
+      version: "2.34.33"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://aws.amazon.com/cli
-      purl: pkg:generic/awscli@2.34.14
-      cpe: cpe:2.3:a:amazon:aws_cli:2.34.14:*:*:*:*:*:*:*
+      purl: pkg:generic/awscli@2.34.33
+      cpe: cpe:2.3:a:amazon:aws_cli:2.34.33:*:*:*:*:*:*:*
     - name: az
-      version: "2.84.0"
+      version: "2.85.0"
       source: script
       type: cli-tool
       license: MIT
       homepage: https://docs.microsoft.com/en-us/cli/azure
-      purl: pkg:pypi/azure-cli@2.84.0
-      cpe: cpe:2.3:a:microsoft:azure_cli:2.84.0:*:*:*:*:*:*:*
+      purl: pkg:pypi/azure-cli@2.85.0
+      cpe: cpe:2.3:a:microsoft:azure_cli:2.85.0:*:*:*:*:*:*:*
     - name: gcloud
-      version: "561.0.0"
+      version: "565.0.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://cloud.google.com/sdk/gcloud
-      purl: pkg:generic/google-cloud-sdk@561.0.0
+      purl: pkg:generic/google-cloud-sdk@565.0.0
     - name: aliyun
-      version: "3.3.2"
+      version: "3.3.10"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://www.alibabacloud.com/help/cli
-      purl: pkg:github/aliyun/aliyun-cli@3.3.2
+      purl: pkg:github/aliyun/aliyun-cli@3.3.10
     - name: doctl
-      version: "1.152.0"
+      version: "1.155.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://docs.digitalocean.com/reference/doctl
-      purl: pkg:github/digitalocean/doctl@1.152.0
+      purl: pkg:github/digitalocean/doctl@1.155.0
     - name: flyctl
-      version: "0.4.26"
+      version: "0.4.37"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://fly.io/docs/flyctl
-      purl: pkg:github/superfly/flyctl@0.4.26
+      purl: pkg:github/superfly/flyctl@0.4.37
     - name: ibmcloud
-      version: "2.41.1"
+      version: "2.42.0"
       source: script
       type: cli-tool
       license: Apache-2.0
       homepage: https://cloud.ibm.com/docs/cli
-      purl: pkg:generic/ibm-cloud-cli@2.41.1
+      purl: pkg:generic/ibm-cloud-cli@2.42.0
 docs:
   title: "Cloud Tools"
   overview: |
     Cloud provider CLI tools for AWS, Azure, GCP, Fly.io, OCI, Alibaba Cloud, DigitalOcean, and IBM Cloud. Provides unified access to major cloud platforms.
-  last-updated: "2026-03-21"
+  last-updated: "2026-04-21"
   usage:
     - section: "AWS CLI"
       examples:

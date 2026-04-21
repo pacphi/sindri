@@ -1,7 +1,7 @@
 ---
 metadata:
   name: loki-mode
-  version: 1.0.0
+  version: 1.1.0
   description: >-
     Loki Mode - Autonomous multi-agent development framework that transforms PRDs into production-ready code
   category: ai-agents
@@ -55,15 +55,15 @@ upgrade:
     upgradeAll: true
 
 bom:
-  # NOTE: Versions researched 2026-03-22
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: loki-mode
-      version: "6.60.0"
+      version: "6.80.1"
       source: mise
       type: cli-tool
       license: BSL-1.1
       homepage: https://github.com/asklokesh/loki-mode
-      purl: pkg:npm/loki-mode@6.60.0
+      purl: pkg:npm/loki-mode@6.80.1
 
 docs:
   title: "Loki Mode"
@@ -73,7 +73,7 @@ docs:
     across 8 swarms (engineering, operations, business logic, data, product, growth, review, orchestration) using a
     RARV+C cycle (Reason-Act-Reflect-Verify-Compound). Supports multiple LLM providers including Claude Code, OpenAI
     Codex CLI, and Google Gemini CLI.
-  last-updated: "2026-03-22"
+  last-updated: "2026-04-21"
   features:
     - "Autonomous PRD-to-code pipeline with 41 specialized agents across 8 swarms"
     - "RARV+C iteration cycle (Reason-Act-Reflect-Verify-Compound)"

@@ -40,15 +40,15 @@ upgrade:
   strategy: automatic
 
 bom:
-  # NOTE: Versions researched 2026-03-20
+  # NOTE: Versions researched 2026-04-21
   tools:
     - name: glab
-      version: "1.89.0"
+      version: "1.92.1"
       source: mise
       type: cli-tool
       license: MIT
       homepage: https://gitlab.com/gitlab-org/cli
-      purl: pkg:golang/gitlab.com/gitlab-org/cli@1.89.0
+      purl: pkg:golang/gitlab.com/gitlab-org/cli@1.92.1
 
 docs:
   title: "GitLab CLI (glab)"
@@ -56,7 +56,7 @@ docs:
     glab is the official GitLab CLI tool, bringing GitLab workflows to your terminal.
     Interact with merge requests, issues, pipelines, CI/CD jobs, snippets, and more
     without leaving the command line.
-  last-updated: "2026-03-20"
+  last-updated: "2026-04-21"
   features:
     - "Merge request management (create, review, merge, approve)"
     - "Issue tracking and management"
