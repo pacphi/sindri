@@ -180,7 +180,7 @@ impl PlatformMatrix {
     /// Get all enabled platforms sorted by priority
     pub fn enabled_platforms(&self) -> Vec<(&String, &PlatformDefinition)> {
         let mut platforms: Vec<_> = self.platforms.iter().filter(|(_, p)| p.enabled).collect();
-        platforms.sort_by(|a, b| b.1.priority.cmp(&a.1.priority));
+        platforms.sort_by_key(|b| std::cmp::Reverse(b.1.priority));
         platforms
     }
 

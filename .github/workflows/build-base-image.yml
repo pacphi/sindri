@@ -19,17 +19,17 @@ on:
   workflow_dispatch:
     inputs:
       rust_version:
-        description: 'Rust version (e.g., 1.94)'
+        description: 'Rust version (e.g., 1.95)'
         required: false
-        default: '1.94'
+        default: '1.95'
       ubuntu_version:
         description: 'Ubuntu version (e.g., 24.04)'
         required: false
         default: '24.04'
       gh_version:
-        description: 'GitHub CLI version (e.g., 2.88.1)'
+        description: 'GitHub CLI version (e.g., 2.89.0)'
         required: false
-        default: '2.88.1'
+        default: '2.89.0'
       push_to_ghcr:
         description: 'Push to GHCR (true/false)'
         required: false
@@ -49,7 +49,7 @@ on:
       rust_version:
         description: 'Rust version'
         required: false
-        default: '1.94'
+        default: '1.95'
         type: string
       ubuntu_version:
         description: 'Ubuntu version'
@@ -77,9 +77,9 @@ jobs:
       - name: Set build arguments
         id: args
         run: |
-          RUST_VERSION="${{ github.event.inputs.rust_version || '1.94' }}"
+          RUST_VERSION="${{ github.event.inputs.rust_version || '1.95' }}"
           UBUNTU_VERSION="${{ github.event.inputs.ubuntu_version || '24.04' }}"
-          GH_VERSION="${{ github.event.inputs.gh_version || '2.88.1' }}"
+          GH_VERSION="${{ github.event.inputs.gh_version || '2.89.0' }}"
 
           echo "rust_version=$RUST_VERSION" >> $GITHUB_OUTPUT
           echo "ubuntu_version=$UBUNTU_VERSION" >> $GITHUB_OUTPUT
@@ -125,11 +125,11 @@ jobs:
             latest=false
             prefix=base-,onlatest=true
           tags: |
-            # Version-specific tag (e.g., base-1.94)
+            # Version-specific tag (e.g., base-1.95)
             type=raw,value=${{ steps.args.outputs.version }}
             # Latest tag for base
             type=raw,value=latest
-            # Rust version tag (e.g., base-rust1.94)
+            # Rust version tag (e.g., base-rust1.95)
             type=raw,value=rust${{ steps.args.outputs.rust_version }}
             # Date tag (e.g., base-2026.01.30)
             type=raw,value={{date 'YYYY.MM.DD'}}

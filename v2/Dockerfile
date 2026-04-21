@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Download yq with pinned version for reproducibility and security tracking
 # NOTE: Version must use Go 1.25.6+ to fix CVE-2025-61728 (archive/zip DoS)
-ARG YQ_VERSION=4.52.4
+ARG YQ_VERSION=4.52.5
 RUN ARCH=$(dpkg --print-architecture) && \
     wget -qO /tmp/yq "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_${ARCH}" && \
     chmod +x /tmp/yq
@@ -106,7 +106,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /tmp/yq /usr/local/bin/yq
 
 # Install GitHub CLI from official releases (avoids CVE vulnerabilities in apt version)
-ARG GH_VERSION=2.87.2
+ARG GH_VERSION=2.89.0
 RUN ARCH=$(dpkg --print-architecture) && \
     wget -qO /tmp/gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" && \
     tar -xzf /tmp/gh.tar.gz -C /tmp && \

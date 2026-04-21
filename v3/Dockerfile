@@ -47,8 +47,8 @@ ARG UBUNTU_VERSION=24.04
 ARG FEDORA_VERSION=41
 ARG OPENSUSE_VERSION=15.6
 ARG SINDRI_VERSION=3.0.0
-ARG GH_VERSION=2.88.1
-ARG COSIGN_VERSION=3.0.5
+ARG GH_VERSION=2.89.0
+ARG COSIGN_VERSION=3.0.6
 
 # ==============================================================================
 # Runtime Distro Selection
